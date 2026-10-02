@@ -25,7 +25,7 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
 // Ambient product set ℝ × ℝ and its symbolic scout.
-constexpr auto R2 = R * R;
+constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, R2's Domain
 // becomes the canonical pair<ℝ, ℝ>; for now the carrier reads as the

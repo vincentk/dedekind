@@ -7,7 +7,7 @@
  *
  *    - @c SetAsProduct: the @e set-level witness is in main code (a
  *      static_assert at the ℚ definition site in rational.cppm, since
- *      ℚ = Universe<Rational<default_integer>> already walks
+ *      ℚ = 𝔸<Rational<default_integer>> already walks
  *      IsSubobject without adapters).
  *    - @c AlgebraAsProduct: the @e algebra-level witness lives here in
  *      the test fork, via a thin @c RationalView<I> wrapper that

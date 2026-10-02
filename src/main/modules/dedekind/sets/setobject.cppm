@@ -58,7 +58,7 @@ using dedekind::category::IsSubobject;
  *     cardinality  C               (ℵ_0, Finite, ...)
  *     logic        L               Ω_L a De Morgan algebra (Truth<L>)
  *     decidable == ?               a property of T, not of being a set
- *     ≡ Universe<T, L, C>      𝔸 is its own universe: the fixpoint
+ *     ≡ 𝔸<T, L, C>      𝔸 is its own universe: the fixpoint
  *
  *   CHARACTERISTIC (π_2)           one of two kinds of predicate
  *     STRUCTURED   ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ⊕ Meet<H↑,H↓> ⊕ ...
@@ -120,13 +120,13 @@ using dedekind::category::IsLSet;
 /** @brief A @b universe: the terminal object of @c Sub(T) --- the reified type
  *  constraint @c 𝔸<T,L,C> itself (carrier, logic, cardinality class). */
 export template <typename U>
-concept IsUniverse = IsLSet<U> && dedekind::category::IsTerminalObject<U>;
+concept Is𝔸 = IsLSet<U> && dedekind::category::IsTerminalObject<U>;
 
 /** @brief @c U is the universe leg @b of @c S: a universe over the same
  *  carrier under the same logic. */
 export template <typename U, typename S>
-concept IsUniverseOf =
-    IsUniverse<U> && std::same_as<typename U::Domain, typename S::Domain> &&
+concept Is𝔸Of =
+    Is𝔸<U> && std::same_as<typename U::Domain, typename S::Domain> &&
     std::same_as<typename U::logic_species, typename S::logic_species>;
 
 /** @brief The @b leaf case: a set object that carries the subobject surface
@@ -135,7 +135,7 @@ template <typename S>
 concept IsSetObjectLeaf =
     IsLSet<S> && requires(const S& s, const typename S::Domain& x) {
       /** @brief The universe leg: the reified type constraint. */
-      { universe(s) } -> IsUniverseOf<S>;
+      { universe(s) } -> Is𝔸Of<S>;
       /** @brief The classifier leg: a χ datum callable on the carrier. */
       classifier(s)(x);
     };

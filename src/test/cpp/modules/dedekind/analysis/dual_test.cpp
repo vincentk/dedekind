@@ -103,24 +103,20 @@ TEST_CASE(
 
 // ---------------------------------------------------------------------------
 // Starter-universe coverage moved from numbers/starters_test.cpp at PR #513
-// (:dual relocation).  The 𝔻 / D / DualSet starter aliases now live in
-// dedekind::analysis.
+// (:dual relocation).  The 𝔻 / 𝔻_d universes live in dedekind::analysis.
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
-          "[analysis][dual][starter]") {
+TEST_CASE("Analysis: 𝔻 / 𝔻_d starter universes", "[analysis][dual][starter]") {
   // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
   // 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1>; the machine-double ambient
-  // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).  D is the
-  // classifier instance DualSet{} (= DualSetOf<>{}).  The pair mirrors ℝ/ℂ.
+  // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).
   using R2 = QuadraticReal<2>;
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                            Universe<Dual<R2>, Boole, ℶ_1>>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(𝔻)>, 𝔸<Dual<R2>, Boole, ℶ_1>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                             Dual<R2>>);
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
-                            Universe<Dual<machine_real_scalar>, Boole, ℶ_1>>);
-  STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
+                            𝔸<Dual<machine_real_scalar>, Boole, ℶ_1>>);
 
   constexpr auto duals = Set{𝔻};
   static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);

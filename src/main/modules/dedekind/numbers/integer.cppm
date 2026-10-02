@@ -71,11 +71,11 @@ export using default_integer = dedekind::sets::SignedCardinality;
  * the wrap boundary.
  */
 export inline constexpr auto ℤ =
-    dedekind::sets::𝔸<dedekind::sets::SignedCardinality>;
+    dedekind::sets::𝔸<dedekind::sets::SignedCardinality>{};
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                           dedekind::sets::Universe<
-                               dedekind::sets::SignedCardinality, Boole, ℵ_0>>,
+                           dedekind::sets::𝔸<dedekind::sets::SignedCardinality,
+                                             Boole, ℵ_0>>,
               "ℤ is the universe 𝔸<SignedCardinality>, mirroring "
               "ℕ = 𝔸<Cardinality> (#670).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,

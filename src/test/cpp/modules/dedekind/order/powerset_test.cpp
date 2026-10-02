@@ -51,14 +51,14 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // 𝔓(𝔸) has the Sub(C) domain (the interval specialisation), so it composes
     // with the ordered families.  (𝔓(∅) = {∅} is the one closed form that needs
     // no Sub --- it is a :sets fast path, exercised in sets/expressions_test.)
-    constexpr auto Pu = 𝔓(𝔸<int>);
+    constexpr auto Pu = 𝔓(𝔸<int>{});
     STATIC_CHECK(
         std::same_as<typename std::remove_cvref_t<decltype(Pu)>::Domain,
                      Sub<int, Boole>>);
     // 𝔓(𝔸) is the universal BOUNDARY type 𝔸<Sub(C)> (a closed form), not a
     // trivially-true filtered Set --- so boundary / lattice identities survive.
     // (Domain == Sub(C) above + the is_universal_boundary tag pins it as
-    // Universe<Sub(C)>, robust to the cardinality parameter.)
+    // 𝔸<Sub(C)>, robust to the cardinality parameter.)
     STATIC_CHECK(requires {
       typename std::remove_cvref_t<decltype(Pu)>::is_universal_boundary;
     });
@@ -131,7 +131,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // general filtered set with NO convex Sub(C) coercion (@c !SubReifiable); a
     // halfspace IS convex/reifiable and would defeat the assertion below.
     constexpr auto is_positive = [](const auto& v) { return v > 0; };
-    auto positives = Set{Comprehension{Universe<int>{}, is_positive}};
+    auto positives = Set{Comprehension{𝔸<int>{}, is_positive}};
     using G = std::remove_cvref_t<decltype(positives)>;
     STATIC_CHECK(SetShaped<G>);  // it IS a set...
     STATIC_CHECK(

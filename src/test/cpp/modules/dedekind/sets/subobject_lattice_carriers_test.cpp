@@ -2,7 +2,7 @@
  *
  * #698 Slice 9 — `:etcs` harmonisation on the @c :sets side.
  *
- * Witnesses that the @c :sets carriers (@c Ø, @c Universe,
+ * Witnesses that the @c :sets carriers (@c Ø, @c 𝔸,
  * @c SingletonSet) participate in @c :lattice::IsSubobjectLattice
  * structurally:
  *
@@ -62,7 +62,7 @@ TEST_CASE("sets:subobject-lattice — Ø participates in IsSubobjectLattice",
 TEST_CASE(
     "sets:subobject-lattice — Universe participates in IsSubobjectLattice",
     "[sets][lattice][subobject][etcs][universal]") {
-  STATIC_CHECK(IsSubobjectLattice<Universe<bool>>);
+  STATIC_CHECK(IsSubobjectLattice<𝔸<bool>>);
 }
 
 TEST_CASE(
@@ -76,11 +76,11 @@ TEST_CASE("sets:subobject-lattice — complement operator actually runs",
   /** @brief Codecov touch: the set complement @c !s (post-#834 the ONE
    *         complement surface; the @c set_complement / @c complement
    *         free-function aliases are retired).  On a boundary the
-   *         @c Universe member @c operator! fires (@c !𝔸 = Ø).  The
+   *         @c 𝔸 member @c operator! fires (@c !𝔸 = Ø).  The
    *         concept-level static asserts in this file check the shape via
    *         @c decltype; this runtime call exercises the body so coverage
    *         sees it. */
-  constexpr Universe<bool> univ{};
+  constexpr 𝔸<bool> univ{};
   const auto univ_complement = ~univ;
   STATIC_CHECK(IsSetObject<decltype(univ_complement)>);
 }
@@ -93,7 +93,7 @@ TEST_CASE(
    *         carrier with @c Boole automatically participates in
    *         the Boolean refinement.  Type-checked, not documented. */
   STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool>>);
-  STATIC_CHECK(IsBooleanSubobjectLattice<Universe<bool>>);
+  STATIC_CHECK(IsBooleanSubobjectLattice<𝔸<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<SingletonSet<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool, Boole>>);
 }
@@ -106,7 +106,7 @@ TEST_CASE(
    *         @c Kleene falls out of the Boolean refinement.
    *         Heyting structure still holds via @c IsSubobjectLattice. */
   STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Ø<bool, Kleene>>);
-  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Universe<bool, Kleene>>);
+  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<𝔸<bool, Kleene>>);
   STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<SingletonSet<bool, Kleene>>);
 }
 
@@ -117,7 +117,7 @@ TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
    *         carriers all expose it pre-Slice-9, so @c IsSet still
    *         fires.  Defensive witness from the @c :sets side. */
   STATIC_CHECK(IsSet<Ø<bool>>);
-  STATIC_CHECK(IsSet<Universe<bool>>);
+  STATIC_CHECK(IsSet<𝔸<bool>>);
   STATIC_CHECK(IsSet<SingletonSet<bool>>);
 }
 
@@ -142,5 +142,5 @@ TEST_CASE("sets:etcs — IsSet's std::regular<Domain> clause is load-bearing",
    *  rather than load-bearing. */
   STATIC_CHECK(std::semiregular<NonRegularDomain>);
   STATIC_CHECK_FALSE(std::regular<NonRegularDomain>);
-  STATIC_CHECK_FALSE(IsSet<Universe<NonRegularDomain>>);
+  STATIC_CHECK_FALSE(IsSet<𝔸<NonRegularDomain>>);
 }

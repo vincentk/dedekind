@@ -14,7 +14,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
   }
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
-    Universe<int> universe;
+    𝔸<int> universe;
 
     // Verify these are valid sets over the active logic species.
     static_assert(IsSet<decltype(ambient_set<int>(empty))>);
@@ -25,13 +25,13 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
     REQUIRE(universe(42) == true);
 
     // Verify the Magnitude (The Ruler)
-    // Note: Universe<int> is Countable (ℵ_0)
+    // Note: 𝔸<int> is Countable (ℵ_0)
     REQUIRE(empty.cardinality() == Finite{});
   }
 
   SECTION("4. The Logic Swapping (Topos-Awareness)") {
     // Universal Set over the Ternary Topos (Kleene Logic)
-    Universe<int, Kleene> k_universe;
+    𝔸<int, Kleene> k_universe;
 
     REQUIRE(k_universe(42) == Ternary::True);
   }
@@ -40,14 +40,14 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   // The Identities: Ø and 𝔸 as the "North and South Poles"
   constexpr Ø<int> null;
-  constexpr Universe<int> universe;
+  constexpr 𝔸<int> universe;
 
   SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
     /**
      * In a Union, the Universe is the Annihilator: 𝔸 | S = 𝔸.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
-    static_assert(std::is_same_v<decltype((universe | null)), Universe<int>>);
+    static_assert(std::is_same_v<decltype((universe | null)), 𝔸<int>>);
     static_assert(std::is_same_v<decltype((null & universe)), Ø<int>>);
   }
 
@@ -89,9 +89,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
-    // ℕ is now the carrier (unsigned int) post-#401; the predicate-set
-    // value is the namespace-level constant @c N (NaturalNumbersOf<>).
-    constexpr auto naturals = N;
+    constexpr auto naturals = ℕ;
     constexpr Ø<SignedExtensionalCardinal<>> empty;
     constexpr SingletonSet<SignedExtensionalCardinal<>> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();
@@ -109,8 +107,8 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     // Boundaries share the singleton's carrier: 𝔸 & S = S and Ø | S = S are
     // carrier-uniform identities.  (The engine-routed operators fail closed on
     // a mixed carrier, so the universe must be over the same carrier as s, not
-    // the outer Universe<int>.)
-    constexpr Universe<SignedExtensionalCardinal<>> sc_universe;
+    // the outer 𝔸<int>.)
+    constexpr 𝔸<SignedExtensionalCardinal<>> sc_universe;
 
     CHECK(std::is_same_v<decltype(empty | s),
                          SingletonSet<SignedExtensionalCardinal<>>>);
@@ -142,7 +140,7 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
   const auto bang = dedekind::category::unit<int>();  // !: int → One
 
   SECTION("Universe source → SingletonSet<One> (inhabited collapse)") {
-    constexpr Universe<int> universe;
+    constexpr 𝔸<int> universe;
     const auto img = image(bang, universe);
     STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
                               SingletonSet<One, Boole>>);

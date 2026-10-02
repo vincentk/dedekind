@@ -54,15 +54,12 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename L = Boole>
-using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
-
 /** @section numbers_boolean__Canonical_Species_Spine
  *
  * The canonical Boolean species symbol @c 𝔹 names the @b universe value
  * @c 𝔸<bool> (post-#559).  The carrier is @c bool, addressed directly in
  * template-type-parameter positions; @c 𝔹 is the constexpr
- * @c Universe<bool, Boole, Finite>{} value the set-builder
+ * @c 𝔹 value the set-builder
  * DSL takes as ambient.  The Boolean structures the carrier @c bool
  * carries are @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field
  * 𝔽₂ — and @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The
@@ -70,100 +67,15 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  * in #559's ℕ slice; @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻 follow under
  * the same #559 plan).
  *
- * The predicate-set role moves to @c FiniteBooleanSetOf<> (kept as a
- * non-symbol-colliding alias of @c FiniteBooleanSet for set-builder
- * DSL usage).  The canonical home of @c 𝔹 is
- * @c dedekind::algebra::𝔹 (upstream of this partition); this
- * partition re-exports it so downstream @c numbers code can reach
- * the symbol without an extra namespace qualification.
+ * The canonical home of @c 𝔹 is @c dedekind::sets::𝔹 (upstream of this
+ * partition), which also carries its witnesses; predicate sets over @c bool
+ * are @c sets::FiniteBooleanSet<L>, constructed directly.
  *
  * Acts as the base of the embedding chain
  * @c 𝔹 @c ↪ @c ℕ @c ↪ @c ℤ @c ↪ @c ℚ @c ↪ @c ℝ @c ↪ @c ℂ.
  */
 
-/** @brief Re-export of the canonical Boolean universe symbol @c 𝔹 (post-#559).
- *
- *  @details The canonical definition lives in @c dedekind::algebra::boolean
- *  (upstream of this partition).  Post-#559, @c 𝔹 names the universe value
- *  @c 𝔸<bool> (a constexpr @c Universe<bool, Boole, Finite>{}),
- *  not a carrier-type alias.  The underlying carrier is @c bool, used
- *  directly in template-type-parameter positions.  Predicate-set callers
- *  want @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the
- *  universal Boolean set is @c FiniteBooleanSetOf<>{Boole::True,
- *  Boole::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
- */
-export using ::dedekind::algebra::𝔹;
-
-/**
- * @concept Is_B
- * @brief Identifies a structure as a formal Boolean Semiring (𝔹).
- *
- * Defines a set where the algebraic rules are governed by logical
- * disjunction and conjunction, maintaining a cardinality of exactly 2.
- *
- * @tparam M The Algebraic Structure governing the Boolean set.
- * @tparam E The underlying element type (e.g., bool).
- *
- * @note FIXME(#379): this concept appears to be dead code.  The body
- * requires @c m.cardinality() to return @c std::same_as<std::size_t>,
- * but the canonical Boolean carrier @c FiniteBooleanSet (in
- * @c sets:expressions) returns @c cardinality_type @c = @c Finite ---
- * a tag type, not @c std::size_t.  The concept therefore does not
- * fire on its own canonical carrier, and there are no witnesses
- * anywhere in the codebase.  Surgery candidate: either repair the
- * concept body to accept @c Finite (or any @c IsCardinality
- * value-or-tag) and add a @c static_assert(Is_B<FiniteBooleanSetOf<>>)
- * witness, or remove the concept as deliberately-not-shipped.  Flagged
- * during the #379 paper / module sweep.
- */
-export template <typename M, typename E = typename M::Domain>
-concept Is_B = std::same_as<E, bool> && requires(const M& m) {
-  // The structure must possess a discrete cardinality |S| = 2.
-  { m.cardinality() } -> std::same_as<std::size_t>;
-  requires m.cardinality() == 2;
-};
-
 /** @section numbers_boolean__Formal_Verification */
-
-// (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
-//     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
-//     value 𝔸<bool> (a constexpr Universe<bool, Boole, Finite>{}).
-static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
-                           Universe<bool, Boole, Finite>>,
-              "𝔹 is the universe 𝔸<bool> (post-#559).");
-static_assert(
-    std::same_as<
-        typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
-        bool>,
-    "𝔹's underlying carrier IS bool — the textbook universe-over-carrier "
-    "reading.");
-
-// (0a) Relationship between 𝔹 (the carrier) and Universe<bool> (the
-//      predicate-set / characteristic-function wrapper).  The
-//      predicate-set's @c Domain @b is the carrier, and the
-//      @c FiniteBooleanSetOf<> alias from this partition is the
-//      same predicate set.  IsSet<𝔹> itself does @b not fire — the
-//      @c IsSet concept (in @c category:set) needs the predicate-set
-//      surface (membership morphism, ambient species, etc.); a
-//      bare carrier type like @c bool carries no such surface.  To
-//      participate as a set, lift the carrier through
-//      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
-//      in (1) below witnesses exactly that lift.
-static_assert(std::same_as<typename Universe<bool>::Domain, bool>,
-              "Universe<bool>::Domain is the carrier `bool` (and 𝔹 = "
-              "𝔸<bool>) — predicate-set's "
-              "underlying element type IS the carrier.");
-static_assert(
-    std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
-    "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = 𝔸<bool>).");
-
-// (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
-//     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
-//     entry point that survives the carrier migration.
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
-        FiniteBooleanSetOf<>{}))>,
-    "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
 // (1b) ExtensionalSet<bool> is the canonical *listed* (vs. predicate)
 //      carrier for 𝔹: instances store their elements as data (e.g.
@@ -251,22 +163,6 @@ static_assert(dedekind::sequences::IsFiniteSequence<
                   dedekind::sequences::FinitePath<bool>>,
               "FinitePath<𝔹> is a bona-fide finite sequence; 𝔹 is a valid "
               "sequence codomain.");
-
-// (4) Primitive-type arrow: 𝔹 *is* @c bool (post-#400 carrier migration).
-// The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
-// — kept here as the predicate-set witnesses that survive the symbol-as-
-// carrier reading.
-static_assert(FiniteBooleanSetOf<>{Boole::True, Boole::True}(true) ==
-                  Boole::True,
-              "Universal Boolean predicate-set contains true.");
-static_assert(FiniteBooleanSetOf<>{Boole::True, Boole::True}(false) ==
-                  Boole::True,
-              "Universal Boolean predicate-set contains false (every bool is a "
-              "Boolean).");
-static_assert(FiniteBooleanSetOf<>{}(true) == Boole::False,
-              "Empty Boolean predicate-set does not contain true.");
-static_assert(FiniteBooleanSetOf<>{}(false) == Boole::False,
-              "Empty Boolean predicate-set does not contain false.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ in @c :natural.
 // This partition is upstream of @c :natural, so the witness for the

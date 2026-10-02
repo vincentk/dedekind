@@ -93,9 +93,8 @@ TEST_CASE(
   // Positive: 𝔸<int> is a set object (IsSet) whose carrier int closes under
   // (+, *), so it type-checks against IsAlgebraOnSet.  (𝔹 = 𝔸<bool> is the
   // sibling witness pinned in :algebra:boolean; ℕ/ℤ/ℚ downstream in :numbers.)
-  STATIC_CHECK(IsSet<decltype(𝔸<int>)>);
-  STATIC_CHECK(
-      IsAlgebraOnSet<decltype(𝔸<int>), std::plus<int>, std::multiplies<int>>);
+  STATIC_CHECK(IsSet<𝔸<int>>);
+  STATIC_CHECK(IsAlgebraOnSet<𝔸<int>, std::plus<int>, std::multiplies<int>>);
 
   // Negative: a plain arrow int -> int is IsArrow with Domain = int, and int
   // closes under (+, *), so the OLD IsArrow-gated concept would have wrongly

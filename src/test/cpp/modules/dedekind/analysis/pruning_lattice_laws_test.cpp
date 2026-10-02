@@ -32,8 +32,7 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   // type-level Singleton∩Singleton collapse that a value pivot cannot express)
   // ──
   {
-    static_assert(
-        dedekind::category::IsSet<decltype(𝔸<bool>)>);  // the universe IS an
+    static_assert(dedekind::category::IsSet<𝔸<bool>>);  // the universe IS an
                                                         // ETCS set
     constexpr Singleton<bool> T{true};                  // {true} ⊂ 𝔹
     constexpr Singleton<bool> F = ~T;  // complement: the point {false}
@@ -78,7 +77,7 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     //     the general product decides by membership
     static_assert((η(true) * η(false)) == η(std::pair{true, false}));
     static_assert((η(false) * η(true)) == η(std::pair{false, true}));
-    static_assert((𝔸<bool> * 𝔸<bool>)(std::pair{true, false}));
+    static_assert((𝔹 * 𝔹)(std::pair{true, false}));
   }
   CHECK(true);  // runtime anchor for coverage
 }

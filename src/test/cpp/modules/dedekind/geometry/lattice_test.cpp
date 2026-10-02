@@ -81,9 +81,8 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
     using ZLineLogic = typename decltype(z_line)::logic_species;
     using ZPlaneLogic = typename decltype(z_plane)::logic_species;
 
-    // Post-#401: ℕ-lattice carrier is unsigned int; natural-lattice-points
-    // are unsigned pairs.  The "rejects negative" semantics moves to the
-    // direct N(int) classifier (witnessed in numbers/natural.cppm).
+    // The ℕ-lattice is the universe over Cardinality; "rejects negative" is
+    // the subobject ℕ ⊂ ℤ, an :order halfspace over int, not this lattice.
     REQUIRE(n_line(0u) == NLineLogic::True);
     REQUIRE(n_line(7u) == NLineLogic::True);
     REQUIRE(n_plane({1u, 2u}) == NPlaneLogic::True);

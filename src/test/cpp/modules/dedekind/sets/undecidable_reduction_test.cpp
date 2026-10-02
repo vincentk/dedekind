@@ -70,7 +70,7 @@ TEST_CASE("Reduction restores decidability: U ∧ Ø → Ø, decided (#894)",
   // ambient.
   constexpr Set<int, Kleene, UnknownPredicate<int>> U{UnknownPredicate<int>{}};
   constexpr Ø<int, Kleene> E{};
-  constexpr Universe<int, Kleene> A{};
+  constexpr 𝔸<int, Kleene> A{};
 
   // As DECLARED, none of the three is decidable (Kleene codomain tag).
   STATIC_CHECK_FALSE(HasDecidableMembership<decltype(U)>);

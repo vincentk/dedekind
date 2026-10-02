@@ -42,6 +42,7 @@
 
 import dedekind.python;
 import dedekind.sets; // Cardinality: the ℕ carrier for the canonical native sets
+import dedekind.order; // Halfspace: ℕ ⊂ ℤ as the subobject {x ∈ ℤ | x ≥ 0}
 
 namespace nb = nanobind;
 
@@ -270,10 +271,13 @@ NB_MODULE(_dedekind, module) {
         .def("__repr__", [](const NatUniverse&) { return std::string("ℕ"); });
     module.attr("N") = dedekind::sets::ℕ;  // source `ℕ` NFKC-normalises to "N"
 
-    // N = NaturalNumbersOf<>, the discriminating ℤ-subobject classifier
-    // (χ: x ↦ x ≥ 0).  The money shot: `-7 not in Nat` is decided in C++.
-    // Keyed under "Nat" to avoid the NFKC collision with `ℕ` → "N".
-    using Naturals = dedekind::sets::NaturalNumbersOf<>;
+    // Nat = {x ∈ ℤ | x ≥ 0}, the subobject ℕ ⊂ ℤ as an :order halfspace over
+    // the machine int (χ: x ↦ x ≥ 0).  The money shot: `-7 not in Nat` is
+    // decided in C++.  Keyed under "Nat" to avoid the NFKC collision with
+    // `ℕ` → "N".
+    using Naturals =
+        dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
+                                   dedekind::order::Strictness::NonStrict>;
     nb::class_<Naturals>(module, "NaturalClassifier",
                          "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0): "
                          "the discriminating native classifier.")
@@ -282,7 +286,7 @@ NB_MODULE(_dedekind, module) {
             [](const Naturals& s, int x) { return static_cast<bool>(s(x)); },
             "x ∈ ℕ⊂ℤ via the native classifier (Nat(-7) == False).")
         .def("__repr__", [](const Naturals&) { return std::string("ℕ⊂ℤ"); });
-    module.attr("Nat") = Naturals{};  // ASCII key, distinct from `ℕ` → "N"
+    module.attr("Nat") = Naturals{0};  // ASCII key, distinct from `ℕ` → "N"
   }
 
   // ── ext: the native retraction μ: Int ⇀ Ext (#886) ─────────────────────
@@ -296,7 +300,11 @@ NB_MODULE(_dedekind, module) {
   module.def(
       "ext",
       [](const std::vector<int>& universe) {
-        return dedekind::sets::ext(universe, dedekind::sets::N);
+        return dedekind::sets::ext(
+            universe,
+            dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
+                                       dedekind::order::Strictness::NonStrict>{
+                0});
       },
       "Extensionalise a finite universe through the native ℕ⊂ℤ classifier χ "
       "into a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "

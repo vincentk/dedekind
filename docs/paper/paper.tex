@@ -604,7 +604,7 @@ The \emph{member} column is membership ($\models$ satisfaction, $\in$ set member
 \label{sec:reification_set}
 The chains of §\ref{sec:logic_lattice} already give a well-defined set: a type \emph{is} a set, and membership reduces to the \emph{type check} the compiler already performs, reified as the universal set \cppinline{𝔸<T>} over \cppinline{T}, whose characteristic map is constant-true ($\chi \equiv \top$).
 This much already serves the algebra and the exposition; the relational operations, subset and equality, are reified later (§\ref{sec:ddk_ordered} onward) where the quantifier they hide can discharge.
-A \emph{proper} set adds a \emph{predicate} to that type constraint: a carrier \cppinline{A} with a characteristic map $\chi_S : A \to \Omega$ (\cppinline{𝔸<A> | P}), whose membership is now valued in the chain and may answer $U$.
+A \emph{proper} set adds a \emph{predicate} to that type constraint: a carrier \cppinline{A} with a characteristic map $\chi_S : A \to \Omega$ (\cppinline{𝔸<A>{} | P}), whose membership is now valued in the chain and may answer $U$.
 The two layers are thus one construction at two settings of the predicate: the trivial $\chi \equiv \top$ (a bare type, the universal set) and a genuine $\chi$ (a refined subobject).
 Here, a set \emph{is} its characteristic predicate, not a list of its elements.
 The set operations \emph{are} the pointwise logical ones.
@@ -783,7 +783,7 @@ A runtime-stateful leaf is left unreduced, since a same-type pair need not be ge
 A partial logic such as Kleene's $K_3$ declines the collapse, since $a \wedge \neg a$ can sit at the interior Unknown: its negation stays involutive ($\neg\neg A = A$) but is not a full complement.
 
 The correspondence is exact on the decidable track, and it is what makes the algebra optimizable.
-The top element, the universal set $A$ itself, is reified as \cppinline{sets::𝔸<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{𝔸<bool>}.
+The top element, the universal set $A$ itself, is reified as \cppinline{sets::𝔸<T>}; Listing~\ref{lst:pruning} (left) exhibits the canonical case, the Booleans $\mathbb{B} = $ \cppinline{𝔸<bool>{}}.
 Optimization is then the simplification of these predicate compositions at translation time: an empty meet prunes, $\bot \wedge p \Rightarrow \bot$, and constant conjuncts fold away.
 The induced order, set inclusion, is pointwise implication $\chi_S \Rightarrow \chi_T$; it ranges over the domain, and keeping it decidable is the task of the ordered (§\ref{sec:ddk_ordered}) and extensional (§\ref{sec:ddk_extensional}) specialisations.
 
@@ -1713,7 +1713,7 @@ static_assert(IsGaloisField<decltype(𝔹),
 \begin{minipage}[t]{0.45\linewidth}
 $\mathbb{S}$ as an algebraic set (default ops)
 \begin{cpp}
-constexpr auto 𝕊 = sets::𝔸<std::size_t>;
+constexpr auto 𝕊 = sets::𝔸<std::size_t>{};
 // (+, ×) are the defaults, so omitted:
 static_assert(
   IsCommutativeRing<decltype(𝕊)>);
@@ -1828,7 +1828,7 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 \label{lst:certificate-ladder}
 \begin{cpp}
 using Q = Rational<default_integer>;         // the ℚ carrier = Frac(ℤ)
-constexpr auto ℚ = sets::𝔸<Q>;               // ℚ as an algebraic set
+constexpr auto ℚ = sets::𝔸<Q>{};             // ℚ as an algebraic set
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
 static_assert(IsField<decltype(ℚ)>);         // scalar: ℚ is a field

@@ -464,7 +464,7 @@ constexpr auto ambient_set(Pred&& predicate) {
 // This is slice 1 of #607's wrapper-dissolution plan: no removals yet,
 // but std types are now first-class IsSet citizens via the lift.
 // Subsequent slices will dissolve @c ExtensionalSet, @c SingletonSet,
-// @c Universe, @c Ø in favour of these overloads (and an analogous
+// @c 𝔸, @c Ø in favour of these overloads (and an analogous
 // SingletonSet-replacement that takes a single @c T value).
 // ---------------------------------------------------------------------------
 

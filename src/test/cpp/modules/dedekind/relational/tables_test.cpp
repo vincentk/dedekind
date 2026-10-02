@@ -146,15 +146,13 @@ TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   constexpr auto is_succ_pair = [](const std::pair<int, int>& p) {
     return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
   };
-  const auto succ =
-      Set{Comprehension{Universe<std::pair<int, int>>{}, is_succ_pair}};
+  const auto succ = Set{Comprehension{𝔸<std::pair<int, int>>{}, is_succ_pair}};
 
   // Relation R2: {(b, c) | 0 <= b < 5 and c = b * 2}  (double pairs)
   constexpr auto is_double_pair = [](const std::pair<int, int>& p) {
     return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
   };
-  const auto dbl =
-      Set{Comprehension{Universe<std::pair<int, int>>{}, is_double_pair}};
+  const auto dbl = Set{Comprehension{𝔸<std::pair<int, int>>{}, is_double_pair}};
 
   // Join: succ ⋈ dbl = {(a, b, c) | b = a+1 and c = b*2}
   // => (0,1,2), (1,2,4), (2,3,6), (3,4,8)

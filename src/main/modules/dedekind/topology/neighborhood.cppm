@@ -203,10 +203,10 @@ concept IsClopen = IsOpen<S> && IsClosed<S>;
 // Ø<T,Boole>. So the two witnesses below record the COINCIDENCE on the core,
 // not an implication.
 static_assert(
-    IsClopen<Ø<int, Boole>> && IsClopen<Universe<int, Boole>>,
+    IsClopen<Ø<int, Boole>> && IsClopen<𝔸<int, Boole>>,
     "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
 static_assert(HasDecidableMembership<Ø<int, Boole>> &&
-                  HasDecidableMembership<Universe<int, Boole>>,
+                  HasDecidableMembership<𝔸<int, Boole>>,
               "and decidable: on the boundary objects both readings hold");
 
 /**

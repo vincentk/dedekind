@@ -259,7 +259,7 @@ struct SingletonSet {
     const auto meet_pred = [s1 = *this, s2 = other](const T& x) {
       return s1(x) && s2(x);
     };
-    return Comprehension{𝔸<T, L>, meet_pred};
+    return Comprehension{𝔸<T, L>{}, meet_pred};
   }
 
   /** @brief Symmetric difference @c {a} @c △ @c {b} (#469).
@@ -285,7 +285,7 @@ struct SingletonSet {
       const auto b = dedekind::category::lift_logic<L>(s2(x));
       return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
     };
-    return Set{Comprehension{𝔸<T, L>, xor_pred}};
+    return Set{Comprehension{𝔸<T, L>{}, xor_pred}};
   }
 
   /** @brief Complement @c !{a} @c = @c {x @c ∈ @c T @c | @c x @c ≠ @c a}.
@@ -336,7 +336,7 @@ export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
   // The asymmetry is one-sided: `singleton(v)` always lands in
-  // Boole, while `Set{x % Universe<T> | …}` ascends through
+  // Boole, while `Set{x % 𝔸<T> | …}` ascends through
   // NaturalLogic and routinely arrives as Kleene.  Take the
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
@@ -346,7 +346,7 @@ constexpr auto operator^(const SingletonSet<T, L1>& s,
     const auto b = dedekind::category::lift_logic<L2>(other(x));
     return L2::OR(L2::AND(a, L2::RFL(b)), L2::AND(L2::RFL(a), b));
   };
-  return Set{Comprehension{𝔸<T, L2>, xor_pred}};
+  return Set{Comprehension{𝔸<T, L2>{}, xor_pred}};
 }
 
 export template <typename T, typename L1, typename L2, typename P>
@@ -517,7 +517,7 @@ constexpr auto image(
  *  @details
  *  - @c image(F, @c Ø<T, @c L>) → @c Ø<One, @c L> — empty source maps
  *    to empty image.
- *  - @c image(F, @c Universe<T, @c L, @c C>) →
+ *  - @c image(F, @c 𝔸<T, @c L, @c C>) →
  *    @c SingletonSet<One, @c L>{One{}} — inhabited source collapses
  *    to the singleton on @c One.
  *  - @c image(F, @c SingletonSet<T, @c L>) falls through to the
@@ -530,7 +530,7 @@ constexpr auto image(
 export template <typename L, typename T, typename C, typename F>
   requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&&, const Universe<T, L, C>&) {
+constexpr auto image(F&&, const 𝔸<T, L, C>&) {
   return SingletonSet<dedekind::category::One, L>{dedekind::category::One{}};
 }
 

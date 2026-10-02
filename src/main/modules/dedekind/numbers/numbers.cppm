@@ -45,7 +45,7 @@ export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
-export import :lattice;     // Lattices over RealsOf<> and ℂ
+export import :lattice;     // Lattices over ℝ_d and ℂ_d
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section numbers__Non_Standard_Analysis */
@@ -57,7 +57,7 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 export import :symbolic;     // Formal symbols / Indeterminates
 export import :real;         // ℝ = 𝔸<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
                              // materialisable ambient ℝ_d = 𝔸<Real<double>>;
-                             // Real<Q>/ExactReal; RealsOf<>/RealSet; R
+                             // Real<Q>/ExactReal
 export import :real_bridge;  // HSP S-leg ℚ ↪ ℝ (monic hom EmbedsAsSubalgebra;
                              // the inclusion arrow IS embed_ℚ_ℝ) + its graph
                              // Γ = graph(embed), a relation on ℚ×ℝ

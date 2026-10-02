@@ -150,8 +150,8 @@ concept IsRelation =
     dedekind::category::IsProduct<typename S::Domain, T1, T2> &&
     dedekind::category::IsProduct<
         dedekind::sets::universe_t<S>,
-        std::remove_cvref_t<decltype(𝔸<T1, typename S::logic_species>)>,
-        std::remove_cvref_t<decltype(𝔸<T2, typename S::logic_species>)>>;
+        std::remove_cvref_t<𝔸<T1, typename S::logic_species>>,
+        std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
 
 /** @brief Relation membership witness: (a,b) ∈ R. */
 export template <typename T1, typename T2, typename L, typename P>

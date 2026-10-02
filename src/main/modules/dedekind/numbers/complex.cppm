@@ -847,48 +847,13 @@ static_assert(
     "cosine-node set of the 8-point kernel is Congruence<4,2> (k ≡ 2 mod 4).");
 }  // namespace
 
-/**
- * @brief Characteristic morphism for ℂ: the complex numbers.
- * Accepts native Complex<R> and all embedded predecessors
- * (Real<R>, Rational<I>, int, unsigned, Ternary).
- */
-export template <typename R = machine_real_scalar,
-                 IsInteger I = default_integer, typename L = Boole,
-                 typename C = ℶ_1>
-  requires IsComplexScalar<R>
-struct ComplexesOf {
-  using Domain = Complex<R>;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = C;
-
-  // Native Complex<R>: always a member of ℂ
-  constexpr typename L::Ω operator()(const Complex<R>&) const {
-    return L::True;
-  }
-
-  // Direct parent: embed Real<R> into ℂ via the canonical arrow.
-  constexpr typename L::Ω operator()(const Real<R>& r) const {
-    return operator()(embed_ℝ_d_ℂ<R>(r));
-  }
-
-  // Delegate non-parent ancestors to ambient ℝ.
-  template <typename T>
-    requires(!std::same_as<T, Complex<R>> && !std::same_as<T, Real<R>>)
-  constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::RealsOf<machine_real_scalar, I>{}(x);
-  }
-};
-
-export using ComplexSet = ComplexesOf<>;
-
 /** @brief The canonical complex-number universe ℂ =
  * 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the coat-hanger
  * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c Universe over the carrier), not classifier-alias types.  All
+ *  @c 𝔸 over the carrier), not classifier-alias types.  All
  *  seven species symbols (@c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻)
  *  carry the canonical @c element<ℂ> scout spelling.
  *
@@ -896,26 +861,22 @@ export using ComplexSet = ComplexesOf<>;
  *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ, NOT
  *  @c Complex<double>.  Machine-double complex lives on the materialisable
  *  ambient @c ℂ_d = 𝔸<Complex<machine_real_scalar>> below (mirroring
- *  ℝ_d / 𝔻_d).  The classifier (multi-overload cross-carrier @c operator()
- *  that delegates ℝ_d-side arguments through @c embed_ℝ_d_ℂ and lands non-
- *  parent ancestors via @c RealsOf<>) is reachable via @c ComplexSet
- *  @c = @c ComplexesOf<>.
+ *  ℝ_d / 𝔻_d).
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
- *  cardinality of ℂ, matching ℝ — overriding the @c 𝔸<...> variable
- *  template's @c ℵ_0 default.  ℂ is in bijection with ℝ × ℝ and
+ *  cardinality of ℂ, matching ℝ — overriding @c 𝔸's @c ℵ_0 default.  ℂ is
+ *  in bijection with ℝ × ℝ and
  *  therefore shares ℝ's continuum cardinality.
  *
  *  Textbook construction: ℂ = ℝ[i]/(i²+1) --- the H-leg witnessed below via
  *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>{};
 
 static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(ℂ)>,
-        dedekind::sets::Universe<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
+    std::same_as<std::remove_cvref_t<decltype(ℂ)>,
+                 dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
     "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");
@@ -930,13 +891,11 @@ static_assert(
  *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
  *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
 export inline constexpr auto ℂ_d =
-    dedekind::sets::𝔸<Complex<machine_real_scalar>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Complex<machine_real_scalar>, Boole, ℶ_1>{};
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
                  Complex<machine_real_scalar>>,
     "ℂ_d's carrier is Complex<machine_real_scalar> (machine ambient).");
-
-export inline constexpr ComplexSet C{};
 
 }  // namespace dedekind::numbers
 
@@ -1128,7 +1087,7 @@ constexpr auto embed_grid_ℂ(
     return grid(dedekind::geometry::IntegerLatticePoint2D{x, y}) ==
            GridLogic::True;
   };
-  return Set{Comprehension{𝔸<Complex<double>>, in_grid}};
+  return Set{Comprehension{𝔸<Complex<double>>{}, in_grid}};
 }
 
 /**
@@ -1295,13 +1254,12 @@ static_assert(
 
 /** @section complex__Canonical_Species_Spine (ℂ)
  *
- * The canonical complex-number species ℂ is defined above as
- * @c ComplexSet @c = @c ComplexesOf<> with value-level constant
- * @c C; @c Complex<S> implements ℂ via the Cayley--Dickson
+ * The canonical complex-number universe @c ℂ is defined above;
+ * @c Complex<S> implements ℂ via the Cayley--Dickson
  * construction over any scalar ring @c S.  The spine witnesses pin
  * ℂ's syntax / semantics / arrow fabric:
  *
- * (1) IsSet anchor on @c C (above).
+ * (1) IsSet anchor: the universe @c ℂ (above).
  * (2) Syntax: @c HasRingOperators<Complex<R>> for any @c
  *     HasRingOperators @c R --- ℂ's ring operator surface lifts
  *     elementwise (binary +, binary -, unary -, *).  The unary

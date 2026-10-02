@@ -1599,7 +1599,7 @@ static_assert(
  * over the @em family of subobjects of @c A in @c L, not over a single
  * predicate-type closed carrier.  Concretely, when no structural collapse
  * fires (a @c structured_and / @c structured_or reduction to a halfspace,
- * interval, @c Singleton, @c Ø or @c Universe, or an @c IsComplementPair
+ * interval, @c Singleton, @c Ø or @c 𝔸, or an @c IsComplementPair
  * short-circuit), @c A @c & @c B returns a @c Meet<A,B> carrying both
  * operand sets (dually, @c | returns a @c Join<A,B>).  The node is a
  * different type, but over the same @c Ambient and @c logic_species.

@@ -32,7 +32,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// The Boolean universe 𝔹 (= 𝔸<bool> = Universe<bool, Boole, Finite>) with
+// The Boolean universe 𝔹 (= 𝔸<bool>{}) with
 // the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate);
 // the wrap keeps the Set<bool, Boole, BooleanEqPredicate> shape the complement-
 // pair collapse below relies on.
@@ -51,7 +51,7 @@ static_assert((b_false & b_true)(false) == false);
 static_assert((b_false & b_true)(true) == false);
 
 // ... and their union covers 𝔹 entirely.
-static_assert(B == (b_false | b_true));
+static_assert(𝔹 == (b_false | b_true));
 static_assert((b_false | b_true)(false) == true);
 static_assert((b_false | b_true)(true) == true);
 

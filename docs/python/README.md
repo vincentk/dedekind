@@ -33,7 +33,7 @@ Current Python bindings intentionally expose a small, reviewable API:
   `unordered_set_roundtrip(values)`, `path_from_range(values)`
 - canonical native sets (#886): `𝔹` (the Boolean universe `𝔸<bool>`), `ℕ`
   (the ambient natural-numbers universe `𝔸<Cardinality>`), and `Nat` (the
-  discriminating ℕ⊂ℤ classifier, χ: x ↦ x ≥ 0). Membership `x in s` runs the
+  subobject ℕ⊂ℤ, the halfspace `{x ∈ ℤ | x ≥ 0}`, χ: x ↦ x ≥ 0). Membership `x in s` runs the
   native characteristic morphism χ from the C++ core.
 - `ext(universe)`: the native retraction μ: Int ⇀ Ext. It materialises a finite
   candidate universe through the native ℕ⊂ℤ classifier into a Python `set`, so

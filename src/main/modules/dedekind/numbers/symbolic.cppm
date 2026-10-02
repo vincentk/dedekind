@@ -39,7 +39,7 @@ using namespace dedekind::category;
 
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-  const dedekind::sets::Universe<Q, Kleene> universe{};
+  const dedekind::sets::𝔸<Q, Kleene> universe{};
   // Lower-cut prototype encoded as an ETCS subobject over Q.
   return ambient_set<Q>([universe](const Q& q) {
     if constexpr (std::floating_point<Q>) {
@@ -69,7 +69,7 @@ inline constexpr bool is_transcendental_v = false;
 export template <typename R>
   requires std::regular<R>
 constexpr auto TranscendentalSet() {
-  const dedekind::sets::Universe<R> universe{};
+  const dedekind::sets::𝔸<R> universe{};
   return ambient_set<R>([universe](const R& x) constexpr {
     return universe(x) && is_transcendental_v<R>;
   });

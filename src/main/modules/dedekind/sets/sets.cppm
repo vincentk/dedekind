@@ -165,8 +165,8 @@ static_assert(HasCardinalityInterface<_S1>);
 
 // A Kleene-valued universe is NOT an ETCS set but has the full surface.
 static_assert(
-    HasSetSurface<Universe<bool, dedekind::category::Kleene>> &&
-        !dedekind::category::IsSet<Universe<bool, dedekind::category::Kleene>>,
+    HasSetSurface<𝔸<bool, dedekind::category::Kleene>> &&
+        !dedekind::category::IsSet<𝔸<bool, dedekind::category::Kleene>>,
     "the surface is the L-set's: a Kleene universe has it without "
     "being ETCS.");
 // Strict-superset claim: HasSetSurface fires wherever IsSet fires...

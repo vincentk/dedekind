@@ -623,7 +623,7 @@ static_assert(
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c Universe over the
+ *  @b universe values (constexpr instances of @c 𝔸 over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
  *  (@c Rational<default_integer>, or @c Rational<I> for the
  *  parameterised form over an arbitrary @c IsInteger I) in
@@ -640,13 +640,13 @@ static_assert(
  *  @c algebra::IsField fires on @c Rational<default_integer>; see
  *  the probe near the bottom of this file.
  */
-export inline constexpr Universe<Rational<default_integer>, Boole, ℵ_0> ℚ =
-    dedekind::sets::𝔸<Rational<default_integer>>;
+export inline constexpr 𝔸<Rational<default_integer>, Boole, ℵ_0> ℚ =
+    dedekind::sets::𝔸<Rational<default_integer>>{};
 
-static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                           dedekind::sets::Universe<Rational<default_integer>,
-                                                    Boole, ℵ_0>>,
-              "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                 dedekind::sets::𝔸<Rational<default_integer>, Boole, ℵ_0>>,
+    "ℚ is the universe 𝔸<Rational<default_integer>> (post-#559).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                  Rational<default_integer>>,
@@ -1089,19 +1089,14 @@ namespace dedekind::numbers {
 
 /** @section rational__Canonical_Species_Spine (ℚ)
  *
- * The canonical rational-number species ℚ is defined above as
- * @c ℚ @c = @c Rational<default_integer> with value-level
- * predicate-set constant @c Q (of type @c IntegersOf<>-analog @c
- * RationalsOf<>).  The spine witnesses below pin ℚ's syntax /
- * semantics / arrow-fabric witnesses against drift; the layout
- * mirrors the @c numbers:integer spine for ℤ so that downstream code
- * can scan one block per textbook carrier and find the same five
- * witness slots.
+ * The canonical rational-number universe is @c ℚ @c = @c
+ * 𝔸<Rational<default_integer>>{} above.  The spine witnesses below pin ℚ's
+ * syntax / semantics / arrow-fabric witnesses against drift; the layout mirrors
+ * the @c numbers:integer spine for ℤ so that downstream code can scan one block
+ * per textbook carrier and find the same five witness slots.
  */
 
-// (1) IsSet anchor on the predicate-set constant Q --- removed under
-// ℚ-retarget chiselling: the @c Q constant + @c RationalsOf were
-// removed.  IsSet for ℚ is witnessed via the universe value ℚ above.
+// (1) IsSet for ℚ is witnessed via the universe value ℚ above.
 
 // (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
 // #559, ℚ is the universe value 𝔸<Rational<default_integer>>; the carrier

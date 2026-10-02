@@ -245,7 +245,6 @@ TEST_CASE("linear_algebra:matrix — matrix multiplication is non-commutative",
           "[linear_algebra][matrix][value][non_commutative]") {
   // Two nilpotent matrices over ℚ for which lhs·rhs ≠ rhs·lhs. Pins the
   // property that the concept documentation claims without requiring.
-  // Names avoid the ambient `B` (BooleanSet) in dedekind::algebra.
   constexpr Matrix2x2V<Rat> nilpotent_lhs{Rat{0L}, Rat{1L}, Rat{0L}, Rat{0L}};
   constexpr Matrix2x2V<Rat> nilpotent_rhs{Rat{0L}, Rat{0L}, Rat{1L}, Rat{0L}};
   STATIC_CHECK(nilpotent_lhs * nilpotent_rhs != nilpotent_rhs * nilpotent_lhs);

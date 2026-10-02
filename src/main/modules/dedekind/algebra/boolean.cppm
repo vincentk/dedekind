@@ -1,39 +1,27 @@
 /**
  * @file boolean.cppm
  * @partition :boolean
- * @brief Boolean Starter Package: canonical Boolean ambient species aliases.
+ * @brief Boolean Starter Package: the algebra on the carrier @c bool and the
+ *        canonical embedding @c 𝔹 @c ↪ @c 𝕂3.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section algebra_boolean__Starter_Intent
  * This partition offers a small, explicit entry point for Boolean algebra in
- * the set-builder DSL. It exports canonical Boolean universe aliases so
- * examples remain readable and stable.
+ * the set-builder DSL: the algebraic witnesses on the carrier @c bool and the
+ * mono @c 𝔹 @c ↪ @c 𝕂3.  The universe itself is @c dedekind::sets::𝔹
+ * (@c 𝔸<bool>{}), defined once upstream in @c :sets:boundaries.
  *
  * @section algebra_boolean__Notation
- * - `𝔹`: canonical Unicode symbol for the Boolean @b universe over the
- *   carrier @c bool (post-#559).  Spelled as the value @c 𝔸<bool> below;
- *   carrier-type positions use @c bool directly.
+ * - `𝔹`: the Boolean @b universe @c 𝔸<bool>{} over the carrier @c bool
+ *   (@c dedekind::sets::𝔹); carrier-type positions use @c bool directly.
  *   @c static_assert(IsField<bool, bit_xor, bit_and>) carries the algebra
- *   on the carrier, while @c element<𝔹> is the canonical scout spelling
- *   over the universe.
- * - `BooleanSetOf<L, C>` ≡ `Universe<bool, L, C>`: parameterised
- *   predicate-set template alias.  Bool is the @b bottom of the algebraic
- *   tower, so the characteristic morphism χ_𝔹 of 𝔹-as-subobject coincides
- *   with the universe 𝔸<bool> (no proper ambient super-object); the alias
- *   makes this collapse explicit.  Contrast with @c NaturalNumbersOf,
- *   @c IntegersOf, @c RationalsOf, @c RealsOf, @c ComplexesOf,
- *   @c DualSetOf, where χ_T : tower-ambient → Ω is a non-trivial
- *   classifier with multi-overload cross-carrier embedding-aware
- *   membership (e.g.\ @c N(-7) returns @c False because -7 ∈ ℤ does not
- *   land in ℕ ↪ ℤ).
- * - `B`: value-level instance @c BooleanSetOf<>{}, named for paper-listing
- *   readability and direct membership-test calls (e.g.\ @c B(true)).
- * - `BooleanSet` (non-exported): an internal convenience alias for
- *   `BooleanSetOf<>` used inside this partition.  Not part of the
- *   public surface — external callers should spell `BooleanSetOf<>` or
- *   `decltype(B)` for the same type.
+ *   on the carrier.  Bool is the @b bottom of the algebraic tower, so the
+ *   characteristic morphism of 𝔹-as-subobject coincides with the universe
+ *   (no proper ambient super-object).  Every other species symbol
+ *   (@c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻) is likewise the universe over its
+ *   carrier; a subobject such as ℕ ⊂ ℤ is an @c :order halfspace.
  *
  * @section algebra_boolean__Paper_Alignment
  * In the paper's Feature Cube (bool row), logical (`||`, `&&`) and bitwise
@@ -66,44 +54,6 @@ import :universal;
 namespace dedekind::algebra {
 using namespace dedekind::category;
 using namespace dedekind::sets;
-
-export template <typename L = dedekind::category::Boole, typename C = Finite>
-using BooleanSetOf = Universe<bool, L, C>;
-
-// Non-exported convenience alias used by the value-level B constant
-// below.  The exported public surface is `BooleanSetOf<L, C>` (the
-// parameterised template); callers naming the default form should
-// either use `BooleanSetOf<>` directly or @c decltype(B).  This keeps
-// the namespace surface small, per Copilot review on PR #407.
-using BooleanSet = BooleanSetOf<>;
-
-/** @brief The canonical Boolean universe @c 𝔹 = @c 𝔸<bool> (post-#559).
- *
- *  @details Per #559's chosen direction (option A): the named species
- *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c Universe over the
- *  carrier), not carrier @b types.  Carrier types are spelled directly
- *  (@c bool, @c Cardinality, etc.) in template-type-parameter positions;
- *  the math symbols denote the sets.
- *
- *  This makes @c element<𝔹> the canonical scout spelling — closer to
- *  textbook math notation than the previous @c element<𝔸<𝔹>> form (which
- *  required @c 𝔹 to be a type alias for @c bool).  The Boolean structures
- *  @c bool carries — the Boolean rig (@c bool, @c ∨, @c ∧), the Galois
- *  field 𝔽₂ (@c bool, @c ⊕, @c ∧), the order lattice — are still witnessed
- *  on the carrier @c bool directly (see formal-verification block below
- *  and @c numbers:boolean).
- *
- *  Pre-#559 the spelling was @c using @c 𝔹 @c = @c bool (carrier-type
- *  alias); the ~25 type-context sites of @c 𝔹 in concept gates and
- *  static_asserts were migrated to @c bool directly in step 1 of this
- *  PR (#559, slice 𝔹).
- */
-// Canonical home moved upstream to @c dedekind::sets (#784), so the point-free
-// set DSL in @c :order --- upstream of @c :algebra --- can spell @c 𝔹 too;
-// re-exported here for the established @c dedekind::algebra::𝔹 name.  Same
-// entity, so the two spellings never disambiguate.
-export using ::dedekind::sets::𝔹;
 
 static_assert(
     IsAlgebraOnSet<decltype(𝔹),
@@ -191,14 +141,7 @@ static_assert(
 // value carrier carrier ever calls for it.
 static_assert(dedekind::category::HasLogicalOperators<bool>);
 
-export inline constexpr BooleanSet B{};
-
 /** @section algebra_boolean__Formal_Verification */
-
-// BooleanSet is the canonical IsSet witness for the Boolean ambient universe.
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<bool>(B))>,
-              "BooleanSet must be the canonical IsSet anchor for bool.");
 
 // `bool` under (min, max) is a (distributive) lattice --- the Boolean
 // lattice 𝔹.  Witnessed at the source so downstream code does not
