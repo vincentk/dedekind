@@ -41,11 +41,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   SECTION("Complement is the reducer's Not node; ~~s is s") {
     STATIC_REQUIRE(IsSetObject<decltype(~_s)>);
     INFO("Inverted membership test vis-a-vis base set.");
-    REQUIRE((~_s)(4));
-    REQUIRE_FALSE((~_s)(42));
+    REQUIRE((~_s)(std::size_t{4}));
+    REQUIRE_FALSE((~_s)(std::size_t{42}));
     INFO("Complement is an involution: the Not node peels structurally.");
     STATIC_REQUIRE(std::same_as<decltype(~~_s), decltype(_s)>);
-    REQUIRE((~~_s)(42));
+    REQUIRE((~~_s)(std::size_t{42}));
     REQUIRE(~~_s == _s);
   }
   SECTION("Intersections") {
