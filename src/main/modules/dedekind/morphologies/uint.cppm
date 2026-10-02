@@ -186,7 +186,7 @@ export inline constexpr auto embed_uint_ℕ_ =
  * @c embed_𝔹_𝕂3 (PR #626): names the construction at the call site
  * rather than re-spelling @c image(embed_uint_ℕ_, S).  Accepted input
  * @c S is anything @c dedekind::sets::image already dispatches on —
- * @c SingletonSet (@c :sets:singleton),
+ * @c Singleton (@c :sets:singleton),
  * @c std::set<unsigned> / @c std::unordered_set<unsigned>
  * (@c :sets:extensional); lazy predicate sets join the dispatch table
  * when #602's layer 2 lands.
@@ -212,7 +212,7 @@ export inline constexpr auto embed_uint_ℕ_ =
 // implicit conversion at the per-element @c embed_uint_ℕ_ call site,
 // silently breaking the canonical-mono contract and bypassing the
 // @c digits-safety @c static_assert in the per-value @c embed_uint_ℕ(U).
-// We pin both the @c Domain-exposing carriers (SingletonSet,
+// We pin both the @c Domain-exposing carriers (Singleton,
 // dedekind::sets::Set, …) and the @c value_type-exposing carriers
 // (std::set, std::unordered_set) in a single disjunctive constraint —
 // either typedef must match exactly @c unsigned for the overload to
@@ -238,27 +238,27 @@ constexpr auto embed_uint_ℕ(S&& s) {
 
 // (The no-narrowing pin in the @c requires-clause above is the substantive
 // guard.  Negative-witness @c static_asserts of the form
-// @c "!requires @c { @c embed_uint_ℕ(SingletonSet<int>{0}); @c }" trigger
+// @c "!requires @c { @c embed_uint_ℕ(Singleton<int>{0}); @c }" trigger
 // a hard "no matching function" diagnostic on clang-22 inside the
 // nested-requires context rather than absorbing as SFINAE; pin via
 // runtime tests in @c uint_test.cpp instead.)
 
-// Set-level lift witness: @c embed_uint_ℕ on @c SingletonSet<unsigned>{42}
+// Set-level lift witness: @c embed_uint_ℕ on @c Singleton<unsigned>{42}
 // lands at @c finite_cardinality(42).  Pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
 static_assert(
-    embed_uint_ℕ(
-        dedekind::sets::SingletonSet<unsigned, dedekind::category::Boole>{42u})
+    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
+                     42u})
             .pivot == dedekind::sets::finite_cardinality(42),
-    "embed_uint_ℕ(SingletonSet<unsigned>{42}) lands at "
+    "embed_uint_ℕ(Singleton<unsigned>{42}) lands at "
     "finite_cardinality(42) on the Cardinality carrier.");
 static_assert(
-    embed_uint_ℕ(
-        dedekind::sets::SingletonSet<unsigned, dedekind::category::Boole>{0u})
+    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
+                     0u})
             .pivot == dedekind::sets::finite_cardinality(0),
-    "embed_uint_ℕ(SingletonSet<unsigned>{0}) lands at "
+    "embed_uint_ℕ(Singleton<unsigned>{0}) lands at "
     "finite_cardinality(0) on the Cardinality carrier.");
 
 // Concept-level witness: the result realises the categorical image of
@@ -266,7 +266,7 @@ static_assert(
 // of @c Cod<embed_uint_ℕ_> = Cardinality per @c :category:image.
 static_assert(
     dedekind::category::IsImageOf<
-        decltype(embed_uint_ℕ(dedekind::sets::SingletonSet<
+        decltype(embed_uint_ℕ(dedekind::sets::Singleton<
                               unsigned, dedekind::category::Boole>{42u})),
         decltype(embed_uint_ℕ_)>,
     "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "

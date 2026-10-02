@@ -96,12 +96,12 @@ struct ExtensionalSet {
 //
 // `ExtensionalSet<T, …>` is already a callable predicate
 // `T → L::Ω`, which is the only shape `dedekind::category::ambient_set<A>(…)`
-// asks for.  Following the SingletonSet precedent (singleton.cppm:222–225,
-// `IsSet<decltype(ambient_set<int>(SingletonSet<int>{0}))>`), we lift via
+// asks for.  Following the Singleton precedent (singleton.cppm:222–225,
+// `IsSet<decltype(ambient_set<int>(Singleton<int>{0}))>`), we lift via
 // the same `ambient_set<T>(…)` mediator rather than retrofitting
 // `Ambient` / `Member` / `ι` / `χ` directly onto the struct.  Two reasons:
 //
-//   * Consistency with SingletonSet: both small-extensional carriers
+//   * Consistency with Singleton: both small-extensional carriers
 //     reach IsSet through the same gate.  The "small finite set" rosetta
 //     entry the issue calls for is the lift, not the struct shape.
 //   * Avoids a copy-ctor footgun: a stored `χ` field would have to track
@@ -109,7 +109,7 @@ struct ExtensionalSet {
 //     entirely (the lifted Subobject owns its own predicate copy).
 //
 // The decltype-based static_assert form is borrowed wholesale from the
-// SingletonSet site — it resolves the lifted type at the type level
+// Singleton site — it resolves the lifted type at the type level
 // without requiring `std::unordered_set` to be constexpr-constructible
 // (it isn't, in C++23, with non-empty contents).
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ static_assert(
     dedekind::category::IsSet<
         decltype(dedekind::category::ambient_set<int>(ExtensionalSet<int>{}))>,
     "ExtensionalSet must lift to an ETCS set object via "
-    "ambient_set<T>(...), the same gate SingletonSet uses (#598).");
+    "ambient_set<T>(...), the same gate Singleton uses (#598).");
 
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(

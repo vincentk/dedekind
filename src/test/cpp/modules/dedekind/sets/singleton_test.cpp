@@ -28,9 +28,12 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
     INFO("Successful membership test.");
-    REQUIRE(_s(42));
+    REQUIRE(_s(std::size_t{42}));
     INFO("Failed membership test.");
-    REQUIRE(!_s(4));
+    REQUIRE(!_s(std::size_t{4}));
+    INFO("A foreign type compares in the common type, never by narrowing.");
+    STATIC_REQUIRE(!Singleton<int>{1}(1.5));
+    STATIC_REQUIRE(Singleton<int>{1}(1.0));
   }
   SECTION("Cardinality") {
     REQUIRE(_s.size() == 1);
@@ -38,30 +41,31 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(
         std::same_as<typename decltype(_s)::cardinality_type, Finite>);
   }
-  SECTION("Complement") {
-    STATIC_REQUIRE(IsSet<decltype(!_s)>);
+  SECTION("Complement is the reducer's Not node; ~~s is s") {
+    STATIC_REQUIRE(IsSetObject<decltype(~_s)>);
     INFO("Inverted membership test vis-a-vis base set.");
-    REQUIRE((!(!_s))(42));
-    REQUIRE((!_s)(4));
-    INFO("Complement is its own inverse.");
-    // @c HasSetSurface (the @c :sets ergonomic wrapper around @c IsSet)
-    // is ref-decay-safe; @c decltype(!(!_s)) is @c SingletonSet const&
-    // post-involution and the strict @c :etcs::IsSet would not fire on
-    // a reference type without manual @c std::remove_cvref_t.
-    STATIC_REQUIRE(HasSetSurface<decltype(!(!_s))>);
-    REQUIRE(&(!(!_s)) == &_s);
+    REQUIRE((~_s)(std::size_t{4}));
+    REQUIRE_FALSE((~_s)(std::size_t{42}));
+    INFO("Complement is an involution: the Not node peels structurally.");
+    STATIC_REQUIRE(std::same_as<decltype(~~_s), decltype(_s)>);
+    REQUIRE((~~_s)(std::size_t{42}));
+    REQUIRE(~~_s == _s);
+    INFO(
+        "On the two-element carrier the complement of a point is the other "
+        "point (found from sets alone, no order namespace in scope).");
+    STATIC_REQUIRE(
+        std::same_as<decltype(~Singleton<bool>{true}), Singleton<bool>>);
+    STATIC_REQUIRE((~Singleton<bool>{true})(false));
+    STATIC_REQUIRE(!(~Singleton<bool>{true})(true));
   }
   SECTION("Intersections") {
     // FIXME(#685): Boolean-algebra-of-sets identities not yet encoded
     // structurally at the DSL surface.  Each assertion below names a
     // textbook law that today fails to compile:
     //   * `_s & _s` returns @c Comprehension<Universe, lambda>,
-    //     not @c SingletonSet — missing semantic-equality overload.
-    //   * `&(_s & _s) == &_s` asks for structural pointer-identity on
-    //     self-meet — `operator&` would need to return a reference
-    //     branch (mirroring the `Complement` involution pattern).
-    //   * `Complement<S> & SingletonSet<S>` lacks a cross-type overload
-    //     and no equality with `Ø<T>{}` exists today.
+    //     not @c Singleton — missing semantic-equality overload.
+    //   * `(~_s) & _s == Ø<T>{}` needs the complement-pair collapse to
+    //     reach the Singleton leaf.
     INFO("The intersection of a set with itself is a fixed point.");
     REQUIRE((_s & _s).size() == 1);
     // REQUIRE((_s & _s) == _s);
@@ -81,23 +85,22 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO(
         "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
     REQUIRE((_s | _s)(42));
-    REQUIRE(!(_s | _s)(4));
+    REQUIRE(!(_s | _s)(std::size_t{4}));
     // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
     // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
     // {42} here; the recoverable OrPredicate is correct for distinct atoms.)
     const auto _t = ι<size_t>(7);
-    REQUIRE((_s | _t)(42));
-    REQUIRE((_s | _t)(7));
-    REQUIRE(!(_s | _t)(4));
+    REQUIRE((_s | _t)(std::size_t{42}));
+    REQUIRE((_s | _t)(std::size_t{7}));
+    REQUIRE(!(_s | _t)(std::size_t{4}));
     // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
     // the union is a RECOVERABLE Join node whose two atoms survive in the type
     // (an opaque predicate with the same membership would pass the checks
     // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<UnionT,
-                     Set<size_t, Boole,
-                         Join<SingletonSet<size_t>, SingletonSet<size_t>>>>);
+        std::same_as<UnionT, Set<size_t, Boole,
+                                 Join<Singleton<size_t>, Singleton<size_t>>>>);
     REQUIRE((_s | _t).predicate().lhs.pivot == 42);
     REQUIRE((_s | _t).predicate().rhs.pivot == 7);
     // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
@@ -123,12 +126,12 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   }
   SECTION("Subset relations") {
     // FIXME(#685): three independent gaps blocking subset assertions:
-    //   * `_s <= _s`: SingletonSet's `auto operator<=>(const
-    //     SingletonSet&) const = delete` shadows the template
+    //   * `_s <= _s`: Singleton's `auto operator<=>(const
+    //     Singleton&) const = delete` shadows the template
     //     `operator<=(const S&)` for same-type self-comparison;
     //     overload resolution picks the deleted spaceship first.
     //   * `_s <= Ø`, `Ø <= _s`, `_s <= !_s`: cross-type mereology through
-    //     the SingletonSet template `<=` (which delegates to the operand's
+    //     the Singleton template `<=` (which delegates to the operand's
     //     `operator()`) still needs its equality / bound wiring.
     //   * Catch2 `REQUIRE` rejects chained comparisons
     //     (`a <= b == false`); wrap as `(a <= b) == false`.
@@ -144,32 +147,30 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     //     which lacks `.size()` for the same structural reason
     //     `Comprehension` did pre-singleton-bounded patch.
     //   * `_s * Ø == Ø`, `Ø * _s == Ø`: empty-annihilation needs
-    //     either a `cartesian_product(SingletonSet, Ø)` overload
+    //     either a `cartesian_product(Singleton, Ø)` overload
     //     short-circuiting to `Ø<pair, L>`, or cross-type equality
     //     between predicate-`Set` and `Ø`.
-    //   * `_s * !_s`: `Complement<SingletonSet>` doesn't satisfy
-    //     the existing `operator*` overloads' constraints.
-    // NOTE: user-side, the last line `REQUIRE(_s * !_s).size() > 1);`
-    // has unbalanced parens — likely `REQUIRE((_s * !_s).size() > 1);`.
+    //   * `_s * ~_s`: a `Not<Singleton>` factor needs the generic
+    //     cartesian product to carry the complement through.
     // REQUIRE((_s * _s).size() == 1);
     // REQUIRE((_s * Ø<size_t>{}) == Ø<size_t>{});
     // REQUIRE((Ø<size_t>{} * _s) == Ø<size_t>{});
-    // REQUIRE((_s * !_s).size() > 1);
+    // REQUIRE((_s * ~_s).size() > 1);
   }
 }
 
 /**
- * @brief Functor Highway — exercises the @c SingletonSet monad-bind
+ * @brief Functor Highway — exercises the @c Singleton monad-bind
  *        + co-monad-extract pipeline (#687).
  *
- * @details Rewritten from the original `into<SingletonSet>` /
- *          `extract<SingletonSet>` factory syntax to the current
+ * @details Rewritten from the original `into<Singleton>` /
+ *          `extract<Singleton>` factory syntax to the current
  *          surface: `singleton(value)` for η, `s.origin()` for ε,
  *          `s >>= f` for Kleisli bind (all exported by `:sets:singleton`).
- *          The Set-monad structure lives directly on `SingletonSet`; this
+ *          The Set-monad structure lives directly on `Singleton`; this
  *          TEST_CASE exercises the composition behaviour at the value level.
  *          (The former `singleton_functor` witness struct was retired: it was
- *          unused, and its codomain `category::Set<SingletonSet<T>>` was the
+ *          unused, and its codomain `category::Set<Singleton<T>>` was the
  *          project's lone category-of-sets-as-objects --- a set is an object of
  *          Set, not itself a category.)
  */

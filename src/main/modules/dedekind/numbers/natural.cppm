@@ -125,7 +125,7 @@ export inline constexpr auto embed_𝔹_ℕ_ =
  * @details Layer-1 entry per #602: names the construction at the
  * call site rather than re-spelling @c image(embed_𝔹_ℕ_, S).  The
  * accepted input @c S is anything @c dedekind::sets::image already
- * dispatches on --- @c SingletonSet (@c :sets:singleton),
+ * dispatches on --- @c Singleton (@c :sets:singleton),
  * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
  * lazy predicate sets join the dispatch table when #602's layer 2
  * lands.  This is structurally the union of the @c IsSet
@@ -313,23 +313,23 @@ static_assert(embed_𝔹_ℕ_(false) == finite_cardinality(0),
 static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
               "embed_𝔹_ℕ_(true)  = 1 in the variant ℕ-proxy carrier.");
 
-// Set-level lift witnesses: @c embed_𝔹_ℕ on @c SingletonSet<true>
-// lands at @c finite_cardinality(1), and on @c SingletonSet<false>
+// Set-level lift witnesses: @c embed_𝔹_ℕ on @c Singleton<true>
+// lands at @c finite_cardinality(1), and on @c Singleton<false>
 // at @c finite_cardinality(0).  Both pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain
 // type (the type-only form would only check that we land in some
-// @c SingletonSet<Cardinality>, not which inhabitant).  Uses the
-// existing @c image(F, SingletonSet) overload from
+// @c Singleton<Cardinality>, not which inhabitant).  Uses the
+// existing @c image(F, Singleton) overload from
 // @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{true}).pivot ==
+    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
         finite_cardinality(1),
     "embed_𝔹_ℕ(Singleton<true>) lands at finite_cardinality(1) on the "
     "Cardinality carrier.");
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{false}).pivot ==
+    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
         finite_cardinality(0),
     "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
     "Cardinality carrier.");
@@ -340,7 +340,7 @@ static_assert(
 // (smallest-such-subobject reading per @c :category:image).
 static_assert(
     dedekind::category::IsImageOf<
-        decltype(embed_𝔹_ℕ(dedekind::sets::SingletonSet<bool, Boole>{true})),
+        decltype(embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true})),
         decltype(embed_𝔹_ℕ_)>,
     "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
     "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "

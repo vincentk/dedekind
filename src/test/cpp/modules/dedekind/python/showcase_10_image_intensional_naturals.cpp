@@ -8,7 +8,7 @@
  *
  * Layer-1 entry per #602: the @c image overload for intensional
  * predicate-defined Sets completes the API surface alongside the
- * extensional cases (SingletonSet, std::set, std::unordered_set).
+ * extensional cases (Singleton, std::set, std::unordered_set).
  *
  * Categorically the image of @c {x | P(x)} under @c f: T → U is
  * @c {y | ∃x ∈ T. P(x) ∧ y == f(x)}.  On a transfinite carrier the

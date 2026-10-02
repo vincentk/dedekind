@@ -26,8 +26,8 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 constexpr auto gt_3 = ℕ | (χ > fix(3_c));          // { x ∈ ℕ | x > 3 }
 constexpr auto lt_5 = ℕ | (χ < fix(5_c));          // { x ∈ ℕ | x < 5 }
 
-constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}, at compile time
-static_assert(in_between == Singleton<4>{});
+constexpr auto in_between = gt_3 & lt_5;            // ≡ {4}: the point, as a VALUE
+static_assert(in_between(4) && !in_between(5));
 
 // Decidability is not the contrast: a halfspace on ℕ decides membership
 // by a comparison, so both parents and the result are decidable.  The

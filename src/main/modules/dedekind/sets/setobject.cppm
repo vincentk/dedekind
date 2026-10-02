@@ -82,7 +82,8 @@ using dedekind::category::IsSubobject;
  * the category, not of an object, so successor is deliberately absent here;
  * and whether @c == is decidable is a property of the universe's carrier, not a
  * requirement of being a set.  @c SetExpr (@c :expressions) is the CRTP mixin
- * that realises this surface; @c Set / @c SingletonSet realise it by hand.
+ * that realises this surface (@c Singleton, @c Halfspace, @c SetVal derive
+ * from it); @c Set realises it by hand.
  *
  * @section setobject__Legs
  * The two legs are @b named customization points, @c universe(s) and

@@ -2,9 +2,9 @@
  *
  * Unit coverage for the value-carrying halfspace DSL: `Halfspace<T, D, S, L>`
  * with its pivot as a value, `Singleton<T, L>{v}`, `Interval<T, SL, SU, L>`
- * (= `Meet<Halfspace↑, Halfspace↓>`, built by `make_interval`),
- * `IntervalProduct<A, B>`, and the `structured_and` overloads that fold them
- * value-first (`reduce_meet` / `SetVal`).
+ * (= `Meet<Halfspace↑, Halfspace↓>`, built by `make_interval`), and the
+ * `structured_and` overloads that fold them value-first (`reduce_meet` /
+ * `SetVal`).
  *
  * Each SECTION exercises one structural branch independently of the Set
  * wrapper; end-to-end Set-level behaviour is covered by the IR showcases.
@@ -338,20 +338,20 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
   CHECK_FALSE(static_cast<bool>(point_free(finite_cardinality(5))));
 }
 
-TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
-          "[order][halfspace][product]") {
+TEST_CASE(
+    "order:halfspace — the product of two intervals is the generic "
+    "cartesian product (a box)",
+    "[order][halfspace][product]") {
   constexpr auto a =
       make_interval<Strictness::Strict, Strictness::Strict>(0, 5);
   constexpr auto b =
       make_interval<Strictness::Strict, Strictness::Strict>(0, 3);
-  // a = {1,2,3,4} (size 4), b = {1,2} (size 2)
+  // a = {1,2,3,4}, b = {1,2}
   constexpr auto box = a * b;
-
-  SECTION("Product cardinality = factor cardinalities") {
-    STATIC_CHECK(box.size() ==
-                 dedekind::order::size(a) * dedekind::order::size(b));
-    STATIC_CHECK(box.size() == 8u);
-  }
+  STATIC_CHECK(IsSetObject<decltype(box)>);
+  // FIXME(#975): the box's finite cardinality (|a|·|b| = 4·2) is a property of
+  // the normal form (runs per coordinate), not of a bespoke product type; the
+  // generic product's cardinality_type is the carrier axis until then.
 
   SECTION("2D membership is the conjunction of factor memberships") {
     using Logic = typename decltype(box)::logic_species;

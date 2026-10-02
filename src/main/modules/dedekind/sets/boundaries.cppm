@@ -23,7 +23,7 @@
  * (&).
  *
  * @section boundaries__Semantic_Role
- * While a SingletonSet represents an 'Atomic Part', the boundaries
+ * While a Singleton represents an 'Atomic Part', the boundaries
  * represent the 'Absolute State' of the Species. In a 'Family' (A Set
  * of Sets), these objects serve as the terminal bounds of the collection.
  *
@@ -194,7 +194,7 @@ struct Ø final {
   constexpr std::size_t upper_bound() const { return 0; }
 
   // Set-shape gate for the lattice operators below: @c IsSet<S>.  The
-  // canonical carriers (@c 𝔸, @c SingletonSet, @c Set) all
+  // canonical carriers (@c 𝔸, @c Singleton, @c Set) all
   // satisfy @c IsSet structurally post-#625, so the lattice ops accept
   // anything that does.
 
@@ -644,7 +644,7 @@ constexpr auto Ø<T, L>::operator!() const {
  *  normal-form @b value under @c subobject_order<L>, then finalize the codomain
  *  leg.  The value twin of @c subobject_reduce_t: it runs the same laws but
  *  returns a value, so it works at runtime and preserves a runtime-stateful
- *  operand (e.g.\ a @c SingletonSet holding an extensional value) where the
+ *  operand (e.g.\ a @c Singleton holding an extensional value) where the
  *  normal form is that operand.  The four @c Ø / @c 𝔸 meet & join operators
  *  route through here (boundary operands are stateless); this is also the
  *  general entry the #916 Python composition surface will call once the

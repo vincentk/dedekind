@@ -62,7 +62,7 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     static_assert((le_5 & gt_5).kind == SetKind::Empty);
   }
   // ── generator η, symmetric difference ^, product * (source for paper
-  // Listing 2).  Singleton products collapse to a value SingletonSet, so they
+  // Listing 2).  Singleton products collapse to a value Singleton, so they
   // are equality-comparable (#844/#845); ^ and the general product decide by
   // membership. ──
   {

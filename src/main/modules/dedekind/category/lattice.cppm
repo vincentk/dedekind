@@ -880,7 +880,7 @@ inline constexpr bool idempotent_leaf_v<Not<A>> = idempotent_leaf_v<A>;
  *  @brief @c T's values are determined by its type, so a @b type-only lattice
  *  law (@c X∧X=X idempotence, @c a∧¬a=⊥ complement) collapses @b soundly on it:
  *  two same-type instances are necessarily the same value.  A runtime-stateful
- *  leaf (say a @c SingletonSet holding a value, or a predicate with an
+ *  leaf (say a @c Singleton holding a value, or a predicate with an
  *  @c expected field) is @b not idempotent, so those laws must not fire on it,
  *  else @c Meet{S{7},¬S{3}} would wrongly collapse to @c ⊥.  This is the
  *  value-safety gate the type-level reducer shares with the value-first

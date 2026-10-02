@@ -22,7 +22,7 @@ export module dedekind.morphologies:archimedean;
 
 import dedekind.category; // IsArrow (#602 layer-1 breadcrumb)
 import dedekind.sequences;
-import dedekind.sets; // SingletonSet, singleton, image (#602 layer-1)
+import dedekind.sets; // Singleton, singleton, image (#602 layer-1)
 
 namespace dedekind::morphologies {
 using namespace dedekind::sequences;
@@ -175,7 +175,7 @@ static_assert(IsArchimedeanField<double>,
 
 /**
  * @section archimedean__Image_Of_Singleton_Under_Peano_Successor
- * Categorical breadcrumbs for @c image(f, @c SingletonSet) (#602 layer-1).
+ * Categorical breadcrumbs for @c image(f, @c Singleton) (#602 layer-1).
  *
  * The witness arrow is the Peano successor S(x) = x + 1, the canonical
  * carrier-level instance of the @c successor / @c generator vocabulary
@@ -208,13 +208,13 @@ static_assert(dedekind::category::IsArrow<succ_arrow>,
               "Breadcrumb (i): the Peano-successor witness arrow "
               "S(x) = x + 1 satisfies IsArrow.");
 
-inline constexpr auto s0 = dedekind::sets::SingletonSet<int>{0};
+inline constexpr auto s0 = dedekind::sets::Singleton<int>{0};
 inline constexpr auto s1 = dedekind::sets::image(succ_arrow{}, s0);
 
 static_assert(
-    std::is_same_v<decltype(s1), const dedekind::sets::SingletonSet<int>>,
-    "Breadcrumb (ii): image preserves the SingletonSet shape; "
-    "Cod(F) == int folds back to SingletonSet<int>.");
+    std::is_same_v<decltype(s1), const dedekind::sets::Singleton<int>>,
+    "Breadcrumb (ii): image preserves the Singleton shape; "
+    "Cod(F) == int folds back to Singleton<int>.");
 static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
               "Breadcrumb (ii): image preserves IsExtensional.");
 static_assert(s1.size() == 1,

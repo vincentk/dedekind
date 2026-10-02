@@ -87,7 +87,7 @@ export inline constexpr auto embed_𝔹_𝕂3_ =
  * @c :numbers:natural, PR #624).  Names the construction at the call
  * site rather than re-spelling @c image(embed_𝔹_𝕂3_, S).  Accepted
  * input @c S is anything @c dedekind::sets::image already dispatches
- * on --- @c SingletonSet (@c :sets:singleton),
+ * on --- @c Singleton (@c :sets:singleton),
  * @c std::set<bool> / @c std::unordered_set<bool> (@c :sets:extensional);
  * lazy predicate sets join the dispatch table when #602's layer 2
  * lands.
@@ -111,12 +111,12 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
 // same shape, different codomain.  Lives next to the arrow itself so the
 // value-pin moves with the canonical surface.
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{true})
-                      .pivot == dedekind::category::Ternary::True,
+static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
+                  dedekind::category::Ternary::True,
               "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
               "carrier.");
-static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{false})
-                      .pivot == dedekind::category::Ternary::False,
+static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
+                  dedekind::category::Ternary::False,
               "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
               "carrier.");
 
@@ -125,7 +125,7 @@ static_assert(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{false})
 // @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
 static_assert(
     dedekind::category::IsImageOf<
-        decltype(embed_𝔹_𝕂3(dedekind::sets::SingletonSet<bool, Boole>{true})),
+        decltype(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{true})),
         decltype(embed_𝔹_𝕂3_)>,
     "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
     "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "

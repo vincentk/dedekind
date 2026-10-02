@@ -3,7 +3,7 @@
  * #698 Slice 9 — `:etcs` harmonisation on the @c :sets side.
  *
  * Witnesses that the @c :sets carriers (@c Ø, @c 𝔸,
- * @c SingletonSet) participate in @c :lattice::IsSubobjectLattice
+ * @c Singleton) participate in @c :lattice::IsSubobjectLattice
  * structurally:
  *
  *   - All three already exposed @c Domain + @c logic_species
@@ -66,9 +66,9 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "sets:subobject-lattice — SingletonSet participates in IsSubobjectLattice",
+    "sets:subobject-lattice — Singleton participates in IsSubobjectLattice",
     "[sets][lattice][subobject][etcs][singleton]") {
-  STATIC_CHECK(IsSubobjectLattice<SingletonSet<bool>>);
+  STATIC_CHECK(IsSubobjectLattice<Singleton<bool>>);
 }
 
 TEST_CASE("sets:subobject-lattice — complement operator actually runs",
@@ -94,7 +94,7 @@ TEST_CASE(
    *         the Boolean refinement.  Type-checked, not documented. */
   STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<𝔸<bool>>);
-  STATIC_CHECK(IsBooleanSubobjectLattice<SingletonSet<bool>>);
+  STATIC_CHECK(IsBooleanSubobjectLattice<Singleton<bool>>);
   STATIC_CHECK(IsBooleanSubobjectLattice<Ø<bool, Boole>>);
 }
 
@@ -107,7 +107,7 @@ TEST_CASE(
    *         Heyting structure still holds via @c IsSubobjectLattice. */
   STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Ø<bool, Kleene>>);
   STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<𝔸<bool, Kleene>>);
-  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<SingletonSet<bool, Kleene>>);
+  STATIC_CHECK_FALSE(IsBooleanSubobjectLattice<Singleton<bool, Kleene>>);
 }
 
 TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
@@ -118,7 +118,7 @@ TEST_CASE("sets:subobject-lattice — IsSet still fires post-Axiom-10 update",
    *         fires.  Defensive witness from the @c :sets side. */
   STATIC_CHECK(IsSet<Ø<bool>>);
   STATIC_CHECK(IsSet<𝔸<bool>>);
-  STATIC_CHECK(IsSet<SingletonSet<bool>>);
+  STATIC_CHECK(IsSet<Singleton<bool>>);
 }
 
 TEST_CASE("sets:etcs — IsSet's std::regular<Domain> clause is load-bearing",

@@ -77,8 +77,8 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cardinality bounds for extensional sets are computed explicitly") {
-    constexpr SingletonSet<SignedExtensionalCardinal<>> s1{1};
-    constexpr SingletonSet<SignedExtensionalCardinal<>> s2{2};
+    constexpr Singleton<SignedExtensionalCardinal<>> s1{1};
+    constexpr Singleton<SignedExtensionalCardinal<>> s2{2};
     constexpr Ø<SignedExtensionalCardinal<>> empty;
 
     CHECK(bound_meet(s1, s2) == 1);
@@ -91,7 +91,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
     constexpr auto naturals = ℕ;
     constexpr Ø<SignedExtensionalCardinal<>> empty;
-    constexpr SingletonSet<SignedExtensionalCardinal<>> singleton{7};
+    constexpr Singleton<SignedExtensionalCardinal<>> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();
 
     CHECK(bound_meet(universe, naturals) == max_v);
@@ -102,7 +102,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Identity optimizations remain structurally valid") {
-    constexpr SingletonSet<SignedExtensionalCardinal<>> s{42};
+    constexpr Singleton<SignedExtensionalCardinal<>> s{42};
     constexpr Ø<SignedExtensionalCardinal<>> empty;
     // Boundaries share the singleton's carrier: 𝔸 & S = S and Ø | S = S are
     // carrier-uniform identities.  (The engine-routed operators fail closed on
@@ -111,9 +111,9 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     constexpr 𝔸<SignedExtensionalCardinal<>> sc_universe;
 
     CHECK(std::is_same_v<decltype(empty | s),
-                         SingletonSet<SignedExtensionalCardinal<>>>);
+                         Singleton<SignedExtensionalCardinal<>>>);
     CHECK(std::is_same_v<decltype(sc_universe & s),
-                         SingletonSet<SignedExtensionalCardinal<>>>);
+                         Singleton<SignedExtensionalCardinal<>>>);
   }
 
   SECTION("Cartesian Product") {
@@ -139,11 +139,11 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
   using dedekind::category::One;
   const auto bang = dedekind::category::unit<int>();  // !: int → One
 
-  SECTION("Universe source → SingletonSet<One> (inhabited collapse)") {
+  SECTION("Universe source → Singleton<One> (inhabited collapse)") {
     constexpr 𝔸<int> universe;
     const auto img = image(bang, universe);
     STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
-                              SingletonSet<One, Boole>>);
+                              Singleton<One, Boole>>);
     CHECK(img(One{}));
   }
 
@@ -154,11 +154,11 @@ TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)"
         std::same_as<std::remove_cvref_t<decltype(img)>, Ø<One, Boole>>);
   }
 
-  SECTION("SingletonSet source → SingletonSet<One> via the generic overload") {
+  SECTION("Singleton source → Singleton<One> via the generic overload") {
     const auto s = singleton(7);
     const auto img = image(bang, s);
     STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(img)>,
-                              SingletonSet<One, Boole>>);
+                              Singleton<One, Boole>>);
     CHECK(img(One{}));
   }
 }

@@ -22,22 +22,22 @@ using namespace dedekind::sets;
 static_assert(
     IsIdempotentLeaf<Ø<SignedExtensionalCardinal<>>>,
     "a stateless boundary is value-determined (idempotent-collapsible)");
-static_assert(!IsIdempotentLeaf<SingletonSet<SignedExtensionalCardinal<>>>,
+static_assert(!IsIdempotentLeaf<Singleton<SignedExtensionalCardinal<>>>,
               "a runtime-stateful leaf is not idempotent-collapsible");
 
 TEST_CASE(
     "value-first subobject_reduce runs the boundary laws on values (#922)",
     "[sets][reducer][value-first]") {
   using Card = SignedExtensionalCardinal<>;
-  const 𝔸<Card> universe;             // 𝔸 = ⊤ of Sub(Card)
-  const Ø<Card> empty;                // Ø = ⊥ of Sub(Card)
-  const SingletonSet<Card> seven{7};  // a RUNTIME-stateful leaf (holds 7)
+  const 𝔸<Card> universe;          // 𝔸 = ⊤ of Sub(Card)
+  const Ø<Card> empty;             // Ø = ⊥ of Sub(Card)
+  const Singleton<Card> seven{7};  // a RUNTIME-stateful leaf (holds 7)
 
   SECTION("𝔸 ∧ S = S: the stateful singleton survives with its value") {
     const auto r =
-        subobject_reduce(Meet<𝔸<Card>, SingletonSet<Card>>{universe, seven});
+        subobject_reduce(Meet<𝔸<Card>, Singleton<Card>>{universe, seven});
     STATIC_REQUIRE(
-        std::same_as<std::remove_cvref_t<decltype(r)>, SingletonSet<Card>>);
+        std::same_as<std::remove_cvref_t<decltype(r)>, Singleton<Card>>);
     // The value 7 flowed through the reduce (not default-constructed away).
     CHECK(static_cast<bool>(r(7)));
     CHECK(!static_cast<bool>(r(3)));
@@ -45,22 +45,22 @@ TEST_CASE(
 
   SECTION("Ø ∨ S = S: the stateful singleton survives the join unit") {
     const auto r =
-        subobject_reduce(Join<Ø<Card>, SingletonSet<Card>>{empty, seven});
+        subobject_reduce(Join<Ø<Card>, Singleton<Card>>{empty, seven});
     STATIC_REQUIRE(
-        std::same_as<std::remove_cvref_t<decltype(r)>, SingletonSet<Card>>);
+        std::same_as<std::remove_cvref_t<decltype(r)>, Singleton<Card>>);
     CHECK(static_cast<bool>(r(7)));
     CHECK(!static_cast<bool>(r(3)));
   }
 
   SECTION("Ø ∧ S = Ø: collapses to the initial boundary (annihilator)") {
     const auto r =
-        subobject_reduce(Meet<Ø<Card>, SingletonSet<Card>>{empty, seven});
+        subobject_reduce(Meet<Ø<Card>, Singleton<Card>>{empty, seven});
     STATIC_REQUIRE(IsInitialObject<std::remove_cvref_t<decltype(r)>>);
   }
 
   SECTION("𝔸 ∨ S = 𝔸: collapses to the terminal boundary (annihilator)") {
     const auto r =
-        subobject_reduce(Join<𝔸<Card>, SingletonSet<Card>>{universe, seven});
+        subobject_reduce(Join<𝔸<Card>, Singleton<Card>>{universe, seven});
     STATIC_REQUIRE(IsTerminalObject<std::remove_cvref_t<decltype(r)>>);
   }
 
@@ -69,9 +69,9 @@ TEST_CASE(
     // the stateful value flowing through, so the value-first path is genuinely
     // one reducer across phases (#922).
     constexpr auto r = subobject_reduce(
-        Meet<𝔸<Card>, SingletonSet<Card>>{𝔸<Card>{}, SingletonSet<Card>{7}});
+        Meet<𝔸<Card>, Singleton<Card>>{𝔸<Card>{}, Singleton<Card>{7}});
     STATIC_REQUIRE(
-        std::same_as<std::remove_cvref_t<decltype(r)>, SingletonSet<Card>>);
+        std::same_as<std::remove_cvref_t<decltype(r)>, Singleton<Card>>);
     STATIC_REQUIRE(static_cast<bool>(r(7)));
     STATIC_REQUIRE(!static_cast<bool>(r(3)));
   }
@@ -80,7 +80,7 @@ TEST_CASE(
     // 𝔸 & S via the boundary operator must yield the same value-first result.
     const auto via_operator = universe & seven;
     const auto via_value =
-        subobject_reduce(Meet<𝔸<Card>, SingletonSet<Card>>{universe, seven});
+        subobject_reduce(Meet<𝔸<Card>, Singleton<Card>>{universe, seven});
     STATIC_REQUIRE(std::same_as<std::remove_cvref_t<decltype(via_operator)>,
                                 std::remove_cvref_t<decltype(via_value)>>);
     CHECK(static_cast<bool>(via_value(7)) ==

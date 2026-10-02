@@ -1285,7 +1285,7 @@ export constexpr bool operator<(const SignedCardinality& lhs,
  *
  * Closes #669, which itself closes the persistent local-only build
  * failure on @c sint.cppm:228
- * (@c embed_sint_ℤ(SingletonSet<int>{42}).pivot @c == @c
+ * (@c embed_sint_ℤ(Singleton<int>{42}).pivot @c == @c
  * finite_signed_cardinality(42)).
  */
 export constexpr bool operator==(const SignedCardinality& lhs,
@@ -2454,7 +2454,7 @@ static_assert(std::equality_comparable<dedekind::sets::SignedCardinality>,
 static_assert(std::regular<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be std::regular --- closes the "
               "persistent :sint.cppm local-only build failure "
-              "(embed_sint_ℤ(SingletonSet<int>{42}).pivot == "
+              "(embed_sint_ℤ(Singleton<int>{42}).pivot == "
               "finite_signed_cardinality(42) static_assert at "
               "sint.cppm:228).");
 static_assert(std::three_way_comparable<dedekind::sets::SignedCardinality,

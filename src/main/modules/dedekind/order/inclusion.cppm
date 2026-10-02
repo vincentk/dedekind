@@ -146,20 +146,4 @@ constexpr typename L::Ω operator<=(const Interval<T, ASL, ASU, L>& a,
   }
 }
 
-/** @brief @f$\{V\} \subseteq S \iff V \in S@f$: a singleton is a subset iff its
- *  sole point is a member --- the membership base case, decidable whenever
- *  @c S's χ is.  Calls the classifier @c other(V) directly (@c IsSet guarantees
- *  @c operator(), not @c contains); the universal set is excluded so its own
- *  @c X ⊆ 𝔸 overload stays unambiguous. */
-export template <typename T, typename L, typename S>
-  requires(
-      dedekind::category::IsLSet<S> &&
-      std::same_as<typename S::logic_species, L> &&
-      !requires { typename S::is_universal_boundary; } &&
-      requires(const S& s, const T& v) { s(v); })
-constexpr typename L::Ω operator<=(const Singleton<T, L>& single,
-                                   const S& other) {
-  return other(single.value);
-}
-
 }  // namespace dedekind::order
