@@ -91,31 +91,66 @@ concept HasDiscreteCarrier =
  * @brief A set where every point has a neighborhood entirely within the set.
  * @note Arity: Updated to structuralist 1-arg IsSet.
  */
+/** @section neighborhood__Order_Reading
+ *  The order-topology reading of @c order's shapes, inferred from their
+ *  @b strictness --- the datum is order-theoretic (does the pivot belong:
+ *  @c > vs @c ≥), the open / closed verdict is its topological consequence
+ *  on a dense chain: a strict ray is open, a non-strict one closed, a point is
+ *  closed, finite meets / joins preserve both, and complement swaps them.  On a
+ *  discrete carrier @ref HasDiscreteCarrier makes everything clopen regardless.
+ *  No shape carries a hand tag. */
 export template <typename S>
-concept IsOpen =
-    dedekind::category::IsPredicate<S> &&
-    // INFERENCE (not tag), in preference order:
-    //  * ∅ and X --- the boundary subobjects (⊥/⊤) --- are clopen in EVERY
-    //    topology, so their openness is derived from @c IsBoundaryObject
-    //    (#904);
-    //  * a @c HasDiscreteCarrier set is clopen (discrete topology, #905);
-    //  * otherwise the shape's boundary structure is reified as @c is_open_tag
-    //    --- the dense-carrier seam @c IsOpen cannot infer, since the boundary
-    //    enum lives downstream of this partition (see @c :interval).
-    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
-     requires { typename S::is_open_tag; });
+inline constexpr bool is_order_open_v = false;
+export template <typename S>
+inline constexpr bool is_order_closed_v = false;
+template <typename T, Direction D, typename L>
+inline constexpr bool is_order_open_v<Halfspace<T, D, Strictness::Strict, L>> =
+    true;
+template <typename T, Direction D, typename L>
+inline constexpr bool
+    is_order_closed_v<Halfspace<T, D, Strictness::NonStrict, L>> = true;
+template <typename T, typename L>
+inline constexpr bool is_order_closed_v<Singleton<T, L>> = true;
+template <typename A, typename B>
+inline constexpr bool is_order_open_v<Meet<A, B>> =
+    is_order_open_v<A> && is_order_open_v<B>;
+template <typename A, typename B>
+inline constexpr bool is_order_closed_v<Meet<A, B>> =
+    is_order_closed_v<A> && is_order_closed_v<B>;
+template <typename A, typename B>
+inline constexpr bool is_order_open_v<Join<A, B>> =
+    is_order_open_v<A> && is_order_open_v<B>;
+template <typename A, typename B>
+inline constexpr bool is_order_closed_v<Join<A, B>> =
+    is_order_closed_v<A> && is_order_closed_v<B>;
+template <typename A>
+inline constexpr bool is_order_open_v<Not<A>> = is_order_closed_v<A>;
+template <typename A>
+inline constexpr bool is_order_closed_v<Not<A>> = is_order_open_v<A>;
+
+/**
+ * @concept IsOpen
+ * @brief A set where every point has a neighborhood entirely within the set
+ *        --- in the carrier's @b order topology.
+ * @details Inferred, never tagged: ∅ and X (the boundary subobjects) are
+ *          clopen in every topology; on a discrete carrier every subset is
+ *          clopen (@ref HasDiscreteCarrier); otherwise the shape's strictness
+ *          decides (@ref is_order_open_v).
+ */
+export template <typename S>
+concept IsOpen = dedekind::category::IsPredicate<S> &&
+                 (dedekind::category::IsBoundaryObject<S> ||
+                  HasDiscreteCarrier<S> || is_order_open_v<S>);
 
 /**
  * @concept IsClosed
- * @brief A set that contains all its limit points.
+ * @brief A set that contains all its limit points --- in the carrier's
+ *        @b order topology.  Same three-leg inference as @ref IsOpen.
  */
 export template <typename S>
-concept IsClosed =
-    dedekind::category::IsPredicate<S> &&
-    // Same three-leg inference as @c IsOpen: boundary object (#904), discrete
-    // carrier (#905), else the reified @c is_closed_tag dense-carrier seam.
-    (dedekind::category::IsBoundaryObject<S> || HasDiscreteCarrier<S> ||
-     requires { typename S::is_closed_tag; });
+concept IsClosed = dedekind::category::IsPredicate<S> &&
+                   (dedekind::category::IsBoundaryObject<S> ||
+                    HasDiscreteCarrier<S> || is_order_closed_v<S>);
 
 /**
  * @concept IsClopen
@@ -157,8 +192,8 @@ static_assert(
     "Ø and 𝔸 are clopen: ∅ and X are open ∧ closed in every topology");
 static_assert(HasDecidableMembership<Ø<int, Boole>> &&
                   HasDecidableMembership<Universe<int, Boole>>,
-              "and, on the Boole core, decidable: the two independent "
-              "certificates coincide there (they do not imply each other)");
+              "and decidable: the order-topology and decidability readings "
+              "coincide on the boundary objects of every carrier");
 
 /**
  * @concept IsNeighborhood
@@ -200,39 +235,24 @@ concept IsConvex = dedekind::category::IsPredicate<S> && is_convex_v<S>;
  * @details We use the Categorical Magmoid here to avoid a circular
  * dependency on the Algebra module's Magma.
  */
-export template <typename S>
-concept IsConvexMagmoid = IsConvex<S> && requires(S a, S b) {
-  { a & b } -> std::same_as<S>;
-};
+// Convexity of order's shapes: a principal up-/down-set and a point are
+// convex, and a finite meet of convex sets is convex.
+template <typename T, Direction D, Strictness St, typename L>
+inline constexpr bool is_convex_v<Halfspace<T, D, St, L>> = true;
+template <typename T, typename L>
+inline constexpr bool is_convex_v<Singleton<T, L>> = true;
+template <typename A, typename B>
+inline constexpr bool is_convex_v<Meet<A, B>> =
+    is_convex_v<A> && is_convex_v<B>;
 
-/**
- * @concept IsHalfSpace
- * @brief A Convex Set defined by a single "Naked" boundary (Ray).
- */
-export template <typename S>
-concept IsHalfSpace = IsConvex<S> && requires { typename S::is_ray_tag; } &&
-                      requires(S s) { s.pivot(); };
-
-/**
- * @concept IsRay
- * @brief A set representing all points greater than (or less than) a pivot.
- */
-export template <typename R, typename T>
-concept IsRay = IsTotallyOrdered<T> && requires(T pivot) {
-  { R::upward_from(pivot) } -> std::same_as<R>;
-  { R::downward_from(pivot) } -> std::same_as<R>;
-};
-
-/**
- * @concept IsInterval
- * @brief A "Molecule" formed by the intersection of two Half-Spaces.
- */
-export template <typename S>
-concept IsInterval = IsConvex<S> && requires {
-  typename S::lower_ray_type;
-  typename S::upper_ray_type;
-  requires IsHalfSpace<typename S::lower_ray_type>;
-  requires IsHalfSpace<typename S::upper_ray_type>;
-};
+static_assert(
+    IsOpen<Halfspace<double, Direction::Upward, Strictness::Strict>> &&
+        !IsClosed<Halfspace<double, Direction::Upward, Strictness::Strict>>,
+    "a strict ray on a dense carrier is open and not closed");
+static_assert(IsClopen<Halfspace<int, Direction::Upward, Strictness::Strict>>,
+              "the same ray on a discrete carrier is clopen");
+static_assert(
+    IsConvex<OrderInterval<double, Strictness::Strict, Strictness::Strict>>,
+    "an interval is convex");
 
 }  // namespace dedekind::topology
