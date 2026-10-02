@@ -444,8 +444,10 @@ static_assert(IsLSet<Ø<int>> && IsLSet<Universe<int, Kleene>>,
 static_assert(IsSet<Ø<int>> && !IsSet<Universe<int, Kleene>>,
               "only a Boolean boundary object is an ETCS set: a Kleene-valued "
               "one lives in the Sierpiński topos, which is not well-pointed.");
-static_assert(IsFiniteLSet<Ø<bool>> && !IsFiniteLSet<Ø<Cardinality>>,
-              "bool is a finite chain carrier (Pst); ℕ is not.");
+static_assert(IsFiniteLSet<Ø<bool>> && IsFiniteLSet<Ø<Ternary>> &&
+                  IsFiniteLSet<Ø<int>> && !IsFiniteLSet<Ø<Cardinality>>,
+              "bool, K₃ and the machine integers are finite chain carriers "
+              "(Pst); ℕ's Cardinality is not.");
 static_assert(IsUniverse<Universe<int>> && !IsUniverse<Ø<int>>,
               "𝔸 is the universe (terminal in Sub(T)); Ø is not.");
 static_assert(IsSetObject<Ø<int>>,

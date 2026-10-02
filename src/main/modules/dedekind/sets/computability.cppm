@@ -147,25 +147,20 @@ concept HasDecidableMembership = requires {
 
 /**
  * @concept IsDecidableSet
- * @brief The strict, Boolean reading of an ETCS set: an @c IsSet whose
- *        membership is decidable (χ factors through the dominance Σ ↪ Ω;
- *        Σ = Ω is the strict-ETCS collapse only).
+ * @brief A Boolean-valued L-set: an @c IsLSet whose membership is decidable
+ *        (χ factors through the dominance Σ ↪ Ω; @c logic_species is Boole).
  *
- * @details `IsSet` (category/etcs.cppm) is the honest BASE: it checks the ETCS
- * axiom schema over the ambient logic species, which may be @c Kleene, so
- * a bare `IsSet` may have @c Unknown membership (an "Ω-set"; an object of the
- * partial-map category, Kleisli of the lift monad).  `IsDecidableSet` is the
- * earned refinement — a "Σ-set" — where the classifier collapses to the
- * two-valued fragment and every membership query is answered in Boolean logic.
- *
- * This is the classifier being Boolean (LEM holds on membership), which is the
- * effect the ETCS Axiom of Choice (Axiom 10, well-pointed + choice ⟹ LEM)
- * delivers; it is strictly weaker than committing to full choice, so we gate on
- * the observable consequence (@c HasDecidableMembership, i.e. `logic_species`
- * is @c Boole) rather than on choice itself.  Naming the restriction
- * positively (rather than tightening `IsSet`) keeps partial sets first-class
- * and makes "assume the Boolean fragment" an explicit, visible act.  See #846
- * and Figure "Classifier Ω vs dominance Σ" in the paper.
+ * @details `IsLSet` (category/topoi.cppm) is the general noun: a subobject
+ * with χ into any bounded chain, so a bare L-set may answer @c Unknown (a
+ * Kleene-valued "Ω-set"; an object of the presheaf topos on the chain).
+ * `IsDecidableSet` is the earned refinement — a "Σ-set" — where the
+ * classifier is the two-valued fragment and every membership query is
+ * answered in Boolean logic.  It is weaker than `IsSet` (ETCS), which adds
+ * the axiom schema on top of Ω = 𝔹: a bare @c Halfspace over @c int is
+ * decidable without being an ETCS set.  Naming the restriction positively
+ * keeps the partial (Kleene) sets first-class and makes "assume the Boolean
+ * fragment" an explicit, visible act.  See #846 and Figure "Classifier Ω vs
+ * dominance Σ" in the paper.
  *
  * @see Giuseppe Rosolini (Università di Genova), @e Continuity @e and
  *      @e Effectiveness @e in @e Topoi (Oxford D.Phil., 1986) --- the dominance

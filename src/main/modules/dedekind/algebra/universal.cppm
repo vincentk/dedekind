@@ -165,19 +165,21 @@ concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
  *     are never confused with F.
  *
  * The definition factors as @c Ddk @c = @c Trsk @c ∩ @c Alg:
- *   - @c IsSet<X> is the @c Trsk (set) half: @c X satisfies the full ETCS set
- *     contract (not merely @c IsArrow), so @c X::Domain stays well-formed ---
- *     and, since @c Trsk @c = @c Jlt @c ∩ @c Set, @c IsSet now roots
- *     @c std::regular on @c X::Domain (the @c Jlt value-semantics half).
+ *   - @c IsLSet<X> is the @c Trsk (set) half: @c X is a Goguen L-set (a
+ *     subobject of a regular carrier with χ into a named chain), not merely
+ *     an @c IsArrow --- Kleene-valued sets qualify; the ETCS specialisation
+ *     @c IsSet is not required --- and, since @c Trsk @c = @c Jlt @c ∩ @c Set,
+ *     @c IsLSet roots @c std::regular on @c X::Domain (the @c Jlt
+ *     value-semantics half).
  *   - @c IsClosedAlgebra is the @c Alg half: the operations close on the
  *     carrier.  @c std::regular is @b not re-pinned here (it already comes
- *     from @c IsSet), so the carrier's regularity is asserted exactly once.
+ *     from @c IsLSet), so the carrier's regularity is asserted exactly once.
  *     @c IsClosedUnderEither admits exactly the two operation shapes the
  *     carrier uses: a unary @c Op is already an endomap @c A @c → @c A, and a
  *     binary @c Op @c A×A @c → @c A @b corresponds to endomorphisms once one
  *     argument is fixed (currying).  Neither shape is an arbitrary n-ary API.
  *
- * @tparam X    The set object (@c IsSet).
+ * @tparam X    The set object (@c IsLSet).
  * @tparam Ops  The family of operations on @c X::Domain.
  */
 export template <typename X, typename... Ops>

@@ -135,14 +135,15 @@ concept HasCardinalityInterface = requires(const S& s) {
   { s.cardinality() };
 };
 
-/** @brief Master: ergonomic counterpart of @c :etcs::IsSet — strict
- *         set-theoretic superset that adds cv/ref decay (so callers
- *         can pass @c decltype(expr) directly).
+/** @brief Master: the ergonomic surface of an @b L-set
+ *         (@c category::IsLSet) with cv/ref decay, so callers can pass
+ *         @c decltype(expr) directly.
  *
- *  @details Every @c IsSet<T> satisfies @c HasSetSurface<T>; the
- *           superset is proper because reference- / cv-qualified
- *           variants satisfy @c HasSetSurface but not the strict
- *           @c :etcs::IsSet.  Granular DSL affordances (membership,
+ *  @details Every @c IsSet<T> (ETCS, Ω = 𝔹) satisfies @c HasSetSurface<T>,
+ *           and so does every Kleene-valued set: the surface is the
+ *           L-set's, not the ETCS specialisation's.  The superset is
+ *           proper twice over (non-Boolean species, and reference- /
+ *           cv-qualified spellings).  Granular DSL affordances (membership,
  *           complement, lattice ops, cardinality) are the @c Has*
  *           sub-concepts above — composed at use sites rather than
  *           bundled here. */
@@ -162,6 +163,12 @@ static_assert(HasComplementOperator<_S1>);
 static_assert(HasSetOperators<_S1>);
 static_assert(HasCardinalityInterface<_S1>);
 
+// A Kleene-valued universe is NOT an ETCS set but has the full surface.
+static_assert(
+    HasSetSurface<Universe<bool, dedekind::category::Kleene>> &&
+        !dedekind::category::IsSet<Universe<bool, dedekind::category::Kleene>>,
+    "the surface is the L-set's: a Kleene universe has it without "
+    "being ETCS.");
 // Strict-superset claim: HasSetSurface fires wherever IsSet fires...
 static_assert(dedekind::category::IsSet<_S1> ? HasSetSurface<_S1> : true);
 static_assert(HasSetSurface<_S1>);

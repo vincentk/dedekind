@@ -77,18 +77,20 @@ TEST_CASE("sets:computability — extensionality and decidability are orthogonal
 
 TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
           "[sets][computability][846]") {
-  // IsDecidableSet = IsSet && HasDecidableMembership: the strict, Boolean
-  // reading (χ factors through the dominance Σ ↪ Ω; Σ = Ω only in strict
-  // ETCS).  IsSet is the honest
-  // base and does NOT imply it — an ETCS set over Kleene is IsSet but
-  // has non-decidable (Ω-valued) membership.
+  // IsDecidableSet = IsLSet && HasDecidableMembership: the Boolean reading
+  // of an L-set (χ factors through the dominance Σ ↪ Ω).  IsLSet is the
+  // general noun and does NOT imply it — a Kleene-valued L-set has Ω-valued
+  // (possibly Unknown) membership; nor is it an ETCS set (IsSet needs Ω = 𝔹).
   SECTION("Σ-sets: ETCS sets over Boole are decidable") {
     STATIC_CHECK(IsDecidableSet<decltype(ℕ)>);
     STATIC_CHECK(IsDecidableSet<decltype(𝔸<bool>)>);
   }
-  SECTION("Ω-set: same carrier, Ternary ambient — IsSet but not decidable") {
+  SECTION(
+      "Ω-set: same carrier, Ternary ambient — an L-set, neither decidable "
+      "nor ETCS") {
     STATIC_CHECK(
         IsLSet<decltype(𝔸<bool, Kleene>)>);  // an L-set, not ETCS (Ω ≠ 𝔹)
+    STATIC_CHECK_FALSE(IsSet<decltype(𝔸<bool, Kleene>)>);
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, Kleene>)>);
     STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, Kleene>)>);
   }
@@ -166,7 +168,7 @@ TEST_CASE(
     // Now coherent: IsSet holds (a partial / Ω-set), and it is HONESTLY
     // non-decidable: the carrier axis no longer over-promotes it to Boole.
     STATIC_CHECK(
-        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹);
+        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     // Runtime observable (Codecov-visible): membership answers in Ternary,
     // matching the declared codomain rather than a mis-typed bool.
@@ -189,7 +191,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
     STATIC_CHECK(
-        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹);
+        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(3) == Kleene::True);
   }
@@ -234,7 +236,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
     STATIC_CHECK(
-        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹);
+        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(3) == Kleene::True);
     CHECK(s(-1) == Kleene::Unknown);
@@ -256,7 +258,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
     STATIC_CHECK(
-        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹);
+        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(3) == Kleene::True);
     CHECK(s(-1) == Kleene::Unknown);
@@ -278,7 +280,7 @@ TEST_CASE(
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
     STATIC_CHECK(
-        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹);
+        IsLSet<decltype(s)>);  // Kleene-valued: an L-set, not ETCS (Ω ≠ 𝔹)
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
     CHECK(s(6) == Kleene::True);
     CHECK(s(5) == Kleene::False);

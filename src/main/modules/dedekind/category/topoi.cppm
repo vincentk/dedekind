@@ -41,7 +41,6 @@ export module dedekind.category:topoi;
 import :logic;
 import :morphism;
 import :cartesian;
-import :nno;  // HasNNOStep: the finiteness witness of the Pst fragment
 
 namespace dedekind::category {
 
@@ -383,13 +382,15 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *
  *  Finiteness is what makes the Pst fragment complete (χ is a finite table;
  *  normalisation by evaluation decides equality; the normal form is the family
- *  of α-cuts, one run-list per level of @f$L@f$).  @c IsPst alone does @b not
- *  give it --- it admits chains of any cardinality (@c logic.cppm) --- so the
- *  fragment is gated on a bounded chain @b with @b a @b step
- *  (@c HasNNOStep): from @f$\bot@f$ the successor reaches @f$\top@f$ in
- *  finitely many steps, so the carrier is finite.  The shipped witnesses are
- *  @c bool and the machine integers; ℕ's @c Cardinality is not a chain of the
- *  required shape and a dense chain has no step.
+ *  of α-cuts, one run-list per level of @f$L@f$).  Neither @c IsPst (the
+ *  truth-object shape: it admits chains of any cardinality and excludes
+ *  @c int, which is not @c IsΩ) nor @c HasNNOStep (a step; @c Ternary has
+ *  none) is that witness, so the fragment is gated on @ref IsFiniteChain: a
+ *  totally ordered carrier that is finite by its representation --- a machine
+ *  integer or an enumeration.  @c bool, @c Ternary (@f$K_3@f$) and @c int are
+ *  the shipped witnesses; ℕ's @c Cardinality (a variant, unbounded) and the
+ *  dense carriers are not.  Products of finite chains follow with
+ *  @c IsProduct.
  */
 
 /** @brief An L-set: a subobject of a regular carrier with @f$\chi : X \to L@f$
@@ -403,14 +404,22 @@ concept IsLSet =
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
     IsPst<typename S::logic_species::Ω>;
 
-/** @brief The Pst fragment: an L-set whose carrier is a @b finite bounded
- *  chain --- a totally ordered truth-shaped type (@c IsPst) with a successor
- *  step (@c HasNNOStep), hence finite.  Products of such carriers follow with
+/** @brief A carrier that is a @b finite chain by its representation: totally
+ *  ordered and either a machine integer or an enumeration (both finite by
+ *  construction).  @c bool, @c Ternary, @c int qualify; @c Cardinality and
+ *  the dense carriers do not.
+ *  @tparam T the carrier. */
+export template <typename T>
+concept IsFiniteChain =
+    std::totally_ordered<T> && (std::integral<T> || std::is_enum_v<T>);
+
+/** @brief The Pst fragment: an L-set whose carrier is a finite chain
+ *  (@ref IsFiniteChain), so χ is a finite table and normalisation by
+ *  evaluation is complete.  Products of finite chains follow with
  *  @c IsProduct.
  *  @tparam S the candidate set type. */
 export template <typename S>
-concept IsFiniteLSet =
-    IsLSet<S> && IsPst<typename S::Domain> && HasNNOStep<typename S::Domain>;
+concept IsFiniteLSet = IsLSet<S> && IsFiniteChain<typename S::Domain>;
 
 /**
  * @brief The Subobject Species S ↣ A.
