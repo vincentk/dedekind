@@ -99,10 +99,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<UnionT, Set<size_t, Boole,
-                                 Join<Singleton<size_t>, Singleton<size_t>>>>);
-    REQUIRE((_s | _t).predicate().lhs.pivot == 42);
-    REQUIRE((_s | _t).predicate().rhs.pivot == 7);
+        std::same_as<
+            UnionT, Comprehension<𝔸<size_t, Boole>,
+                                  Join<Singleton<size_t>, Singleton<size_t>>>>);
+    REQUIRE((_s | _t).predicate.lhs.pivot == 42);
+    REQUIRE((_s | _t).predicate.rhs.pivot == 7);
     // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
     // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
     // overload surgery tracked there.

@@ -129,7 +129,7 @@ concept IsEntireTranslationCarrier =
  *  needs the order and stays gated on @c IsOrderedAdditiveGroup; the two facts
  *  are gated independently.  ℕ = @c Cardinality is not a group, so it is not
  *  matched here either way.) */
-export template <typename T, auto K, typename L>
+export template <typename T, auto K, typename L, typename C>
   requires dedekind::category::IsGroup<T, std::plus<T>> && requires(
                                                                decltype(K) k) {
     {
@@ -137,13 +137,15 @@ export template <typename T, auto K, typename L>
     } -> std::same_as<decltype(K)>;
   }
 constexpr auto inverse(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   // −K is the group's UNARY inverse of the shift (category::inverse_v), NOT
   // carrier operator- on the NTTP; the converse graph is x ↦ x + (−K).  It is
   // computed at decltype(K) to preserve the graph's NTTP type-identity.
   constexpr decltype(K) neg_K =
       dedekind::category::inverse_v<decltype(K), std::plus<decltype(K)>>(K);
-  return Set<std::pair<T, T>, L, ProjAddConstProj<1, neg_K, Rel::Eq, 2>>{
+  return Comprehension<𝔸<std::pair<T, T>, L>,
+                       ProjAddConstProj<1, neg_K, Rel::Eq, 2>>{
       ProjAddConstProj<1, neg_K, Rel::Eq, 2>{}};
 }
 
@@ -156,11 +158,12 @@ constexpr auto inverse(
 // equals the converse graph @c π1+(−1)==π2 (i.e. @c x↦x+UINT_MAX, the modular
 // predecessor).  A bijection's converse is its inverse, so this is correct.
 static_assert(
-    std::same_as<decltype(inverse(Set<std::pair<unsigned, unsigned>, Boole,
-                                      ProjAddConstProj<1, 1u, Rel::Eq, 2>>{
-                     ProjAddConstProj<1, 1u, Rel::Eq, 2>{}})),
-                 Set<std::pair<unsigned, unsigned>, Boole,
-                     ProjAddConstProj<1, -1u, Rel::Eq, 2>>>,
+    std::same_as<
+        decltype(inverse(Comprehension<𝔸<std::pair<unsigned, unsigned>, Boole>,
+                                       ProjAddConstProj<1, 1u, Rel::Eq, 2>>{
+            ProjAddConstProj<1, 1u, Rel::Eq, 2>{}})),
+        Comprehension<𝔸<std::pair<unsigned, unsigned>, Boole>,
+                      ProjAddConstProj<1, -1u, Rel::Eq, 2>>>,
     "inverse over unsigned (a cyclic group the old IsOrderedAdditiveGroup gate "
     "withheld) is now the converse graph with the negated (modular) shift: the "
     "group inverse, #875 (retractability generalizes ℤ → arbitrary IsGroup).");
@@ -175,10 +178,10 @@ static_assert(
 // Bounded by a π1-halfspace the range is that halfspace pushed forward by K ---
 // an affine pushforward that, unlike bare onto-ness, DOES need
 // order-preservation (below).
-export template <typename T, auto K, typename L>
+export template <typename T, auto K, typename L, typename C>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
-constexpr auto image(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+constexpr auto image(const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                                         ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return 𝔸<T, L>{};  // preserve the relation's logic species
 }
 
@@ -195,19 +198,19 @@ constexpr auto image(
  *  it does not --- the image of @c {x≥5} under @c x+1 wraps @c UINT_MAX to @c
  * 0, which @c {y≥6} would miss --- so the modular groups are declined; the
  *  saturating ℕ (K≥0) and the ordered groups are admitted. */
-export template <typename T, auto K, Rel R, typename VT, typename L>
+export template <typename T, auto K, Rel R, typename VT, typename L, typename C>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            IsEntireTranslationCarrier<T, K>)
 constexpr auto image(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<1, R, VT>>>& s) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                                        ProjBound<1, R, VT>>>& s) {
   // The pivot rides in the ProjBound VALUE now, so the shifted pivot P+K
   // is computed at constexpr (folds when the argument is constexpr) rather than
   // in the NTTPs.  Direction / strictness stay type-level (R is NTTP), so the
   // meet's complement-pair collapse remains type-sensitive.
   return Halfspace<T, dir_of(R), strict_of(R), L>{
-      static_cast<T>(s.predicate().rp.value + K)};  // keep L
+      static_cast<T>(s.predicate.rp.value + K)};  // keep L
 }
 
 /** @brief image of a restricted REFLECTION @c x↦c·x (@c c=±1) on @c {x⋈P}: the
@@ -226,17 +229,18 @@ constexpr auto image(
  *  @c x↦−x has no image; on a wrapping group (@c unsigned) modular negation
  * does NOT reverse the order (@c −x of @c {x<5} would admit @c 0 via @c
  * UINT_MAX), so both are declined. */
-export template <typename T, auto C, Rel R, typename VT, typename L>
+export template <typename T, auto C, Rel R, typename VT, typename L,
+                 typename CU>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            (C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
 constexpr auto image(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
-                              ProjBound<1, R, VT>>>& s) {
+    const Comprehension<𝔸<std::pair<T, T>, L, CU>,
+                        ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
+                                        ProjBound<1, R, VT>>>& s) {
   constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
   return Halfspace<T, d, strict_of(R), L>{
-      static_cast<T>(C * s.predicate().rp.value)};  // keep L
+      static_cast<T>(C * s.predicate.rp.value)};  // keep L
 }
 
 /** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide
@@ -246,10 +250,11 @@ constexpr auto image(
  *  IsEntireTranslationCarrier: on @c bool the graph is not entire (@c true+K
  *  leaves the carrier), so the query is withheld there rather than claiming a
  *  spurious total function. */
-export template <typename T, auto K, typename L>
+export template <typename T, auto K, typename L, typename C>
   requires IsEntireTranslationCarrier<T, K>
 consteval bool is_function(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return true;
 }
 
@@ -259,10 +264,11 @@ consteval bool is_function(
  *  a @b partial function (functional, not entire; Table~3).  Gated on @c
  *  IsEntireTranslationCarrier so the bare graph is certified total only where
  *  @c x+K genuinely stays in the carrier (ℤ for any @c K, ℕ for @c K≥0). */
-export template <typename T, auto K, typename L>
+export template <typename T, auto K, typename L, typename C>
   requires IsEntireTranslationCarrier<T, K>
 consteval bool is_entire(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
   return true;
 }
 // A CODOMAIN constraint on π2 (an upper/lower bound, or its meet with a
@@ -273,22 +279,23 @@ consteval bool is_entire(
 // @c Cardinality is NOT matched here, precisely because a lower bound there can
 // be VACUOUS (e.g. @c π2≥0 on the successor removes nothing): declining to
 // match keeps @c is_entire from making a false non-entire claim on ℕ.
-export template <typename T, auto K, Rel R, typename VT, typename L>
+export template <typename T, auto K, Rel R, typename VT, typename L, typename C>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 consteval bool is_entire(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              ProjBound<2, R, VT>>>&) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                                        ProjBound<2, R, VT>>>&) {
   return false;
 }
 export template <typename T, auto K, Rel R, typename VT, auto V, auto W,
-                 typename L>
+                 typename L, typename C>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 consteval bool is_entire(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, R, VT>,
-                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
+    const Comprehension<
+        𝔸<std::pair<T, T>, L, C>,
+        ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                        RelAnd<ProjBound<2, R, VT>,
+                               ProjModConstBound<2, V, Rel::Eq, W>>>>&) {
   return false;
 }
 
@@ -305,15 +312,16 @@ consteval bool is_entire(
  *  --- where a codomain bound @c P<K would pull the feasible domain empty while
  *  the formula still returned a negative singleton --- and @c unsigned alike.
  */
-export template <typename T, auto K, typename VT, auto V, auto W, typename L>
+export template <typename T, auto K, typename VT, auto V, auto W, typename L,
+                 typename C>
   requires(dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            dedekind::sets::IsRingIntegral<T>)
 constexpr auto argmax(
-    const Set<std::pair<T, T>, L,
-              ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
-                              RelAnd<ProjBound<2, Rel::Le, VT>,
-                                     ProjModConstBound<2, V, Rel::Eq, W>>>>&
-        s) {
+    const Comprehension<
+        𝔸<std::pair<T, T>, L, C>,
+        ProductRestrict<ProjAddConstProj<1, K, Rel::Eq, 2>,
+                        RelAnd<ProjBound<2, Rel::Le, VT>,
+                               ProjModConstBound<2, V, Rel::Eq, W>>>>& s) {
   // The codomain bound P rides in the ProjBound VALUE now; the residue
   // modulus/shift @c K/@c W/@c V stay compile-time NTTPs.  The optimum is read
   // off with wider-type headroom (a wider signed type, not the pivot's own),
@@ -321,7 +329,7 @@ constexpr auto argmax(
   // adds @c V only when the remainder is negative (cf. the ℤ/N materialisation
   // in :numbers).  Folds at compile time when the argument is constexpr.
   using W_ = long long;  // wider bound: no pivot overflow
-  const W_ p = W_(s.predicate().rp.a.value) - W_(K);  // domain bound {x ≤ P−K}
+  const W_ p = W_(s.predicate.rp.a.value) - W_(K);  // domain bound {x ≤ P−K}
   constexpr W_ r0 = (W_(W) - W_(K)) % W_(V);
   constexpr W_ r = r0 < 0 ? r0 + W_(V) : r0;  // residue x ≡ (W−K) mod V
   const W_ d0 = (p - r) % W_(V);
@@ -351,10 +359,11 @@ constexpr auto argmax(
  * values, so the modular groups are declined (the same gate the forward
  * pushforward carries). */
 export template <typename T, auto K, Direction D, Strictness S, typename LG,
-                 typename LH>
+                 typename LH, typename C>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T>
 constexpr auto preimage(
-    const Set<std::pair<T, T>, LG, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, LG, C>,
+                        ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     const Halfspace<T, D, S, LH>& h) {
   // The pivot P rides in the Halfspace VALUE, so the pulled-back bound P−K is
   // computed at constexpr in the carrier's own arithmetic (folds when the
@@ -378,11 +387,12 @@ constexpr auto preimage(
  *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
  *  the order). */
 export template <typename T, auto C, Direction D, Strictness S, typename LG,
-                 typename LH>
+                 typename LH, typename CU>
   requires((C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
 constexpr auto preimage(
-    const Set<std::pair<T, T>, LG, ProjMulConstProj<1, C, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, LG, CU>,
+                        ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Halfspace<T, D, S, LH>& h) {
   constexpr Direction d = (C < 0) ? flip(D) : D;
   // The pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
@@ -417,16 +427,16 @@ namespace dedekind::category {
 // unsigned/bool are (cyclic) groups, but true+K leaves bool and x+K wraps on
 // unsigned, so neither is a total translation.
 template <typename T, auto K, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    𝔸<std::pair<T, T>, L>,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
     dedekind::order::IsEntireTranslationCarrier<T, K>;
 
 // LEAF: the diagonal π1==π2 (the identity relation) is entire on any carrier --
 // a ↦ a is total.
 template <typename T, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    𝔸<std::pair<T, T>, L>,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
 // NODE (the compositional closure) for ComposePred's ENTIRENESS moved to

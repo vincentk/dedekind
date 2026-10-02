@@ -21,13 +21,13 @@ namespace {
 constexpr auto even_below_ten = [](const auto& v) {
   return (v < 10u) && (v % 2u == 0u);
 };
-constexpr auto evens_0_10 = Set{Comprehension{ℕ, even_below_ten}};
+constexpr auto evens_0_10 = Comprehension{ℕ, even_below_ten};
 
 // Multiples of 3 in [0, 10)
 constexpr auto three_below_ten = [](const auto& v) {
   return (v < 10u) && (v % 3u == 0u);
 };
-constexpr auto threes_0_10 = Set{Comprehension{ℕ, three_below_ten}};
+constexpr auto threes_0_10 = Comprehension{ℕ, three_below_ten};
 
 }  // namespace
 
@@ -146,13 +146,13 @@ TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   constexpr auto is_succ_pair = [](const std::pair<int, int>& p) {
     return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
   };
-  const auto succ = Set{Comprehension{𝔸<std::pair<int, int>>{}, is_succ_pair}};
+  const auto succ = Comprehension{𝔸<std::pair<int, int>>{}, is_succ_pair};
 
   // Relation R2: {(b, c) | 0 <= b < 5 and c = b * 2}  (double pairs)
   constexpr auto is_double_pair = [](const std::pair<int, int>& p) {
     return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
   };
-  const auto dbl = Set{Comprehension{𝔸<std::pair<int, int>>{}, is_double_pair}};
+  const auto dbl = Comprehension{𝔸<std::pair<int, int>>{}, is_double_pair};
 
   // Join: succ ⋈ dbl = {(a, b, c) | b = a+1 and c = b*2}
   // => (0,1,2), (1,2,4), (2,3,6), (3,4,8)

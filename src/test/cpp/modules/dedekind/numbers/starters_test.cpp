@@ -112,7 +112,7 @@ TEST_CASE(
   // (SignedCardinality), so `χ == fix(0_c)` mismatches the carrier; a NAMED
   // heterogeneous predicate (comprehension) instead.
   constexpr auto is_nonzero = [](const I& v) { return !(v == 0); };
-  constexpr auto denominators = Set{Comprehension{ℤ, is_nonzero}};
+  constexpr auto denominators = Comprehension{ℤ, is_nonzero};
   constexpr auto pairs = cartesian_product(numerators, denominators);
 
   // Cross-multiplication equivalence relation (typed tag so the

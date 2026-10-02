@@ -28,8 +28,8 @@ struct IsPositive {
 
 TEST_CASE("sets:setobject — the two legs of a set object at runtime",
           "[sets][setobject][legs]") {
-  const auto even = Set<int, Boole, IsEven>{IsEven{}};
-  const auto positive = Set<int, Boole, IsPositive>{IsPositive{}};
+  const auto even = Comprehension<𝔸<int, Boole>, IsEven>{IsEven{}};
+  const auto positive = Comprehension<𝔸<int, Boole>, IsPositive>{IsPositive{}};
 
   SECTION("a Set's universe is 𝔸 over its carrier; its classifier is P") {
     STATIC_CHECK(IsSetObject<decltype(even)>);

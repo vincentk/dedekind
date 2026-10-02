@@ -75,7 +75,6 @@ import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
 
 namespace dedekind::relational {
 using namespace dedekind::category;
-using dedekind::sets::Set;  // the Set carrier (stays in :sets)
 // @c Relation is native to this module now (:dyadic), reached via import above.
 
 struct CanonicalPairPredicate {
@@ -122,7 +121,7 @@ static_assert(
  * @tparam P  Existing predicate type of @p s.
  * @tparam Pred  Additional filter predicate type.
  */
-export template <typename T, typename L, typename P, typename Pred>
+export template <typename T, typename L, typename P, typename Pred, typename C>
   requires std::invocable<const std::decay_t<Pred>&, const T&> &&
            requires(
                std::invoke_result_t<const std::decay_t<Pred>&, const T&> v) {
@@ -130,13 +129,13 @@ export template <typename T, typename L, typename P, typename Pred>
                dedekind::category::lift_logic<L>(v)
              } -> std::same_as<typename L::Ω>;
            }
-constexpr auto select(const Set<T, L, P>& s, Pred&& pred) {
+constexpr auto select(const Comprehension<𝔸<T, L, C>, P>& s, Pred&& pred) {
   auto lifted = [p = std::forward<Pred>(pred)](const T& v) -> typename L::Ω {
     return dedekind::category::lift_logic<L>(std::invoke(p, v));
   };
   auto combined = [base = s, f = std::move(lifted)](const T& v) ->
       typename L::Ω { return L::AND(base(v), f(v)); };
-  return Set<T, L, decltype(combined)>{std::move(combined)};
+  return Comprehension<𝔸<T, L>, decltype(combined)>{std::move(combined)};
 }
 
 /**
@@ -147,8 +146,9 @@ constexpr auto select(const Set<T, L, P>& s, Pred&& pred) {
  * Named alias for the @c operator| on Set, provided for relational-algebra
  * readability.
  */
-export template <typename T, typename L, typename P1, typename P2>
-constexpr auto set_union(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
+export template <typename T, typename L, typename P1, typename P2, typename C>
+constexpr auto set_union(const Comprehension<𝔸<T, L, C>, P1>& a,
+                         const Comprehension<𝔸<T, L, C>, P2>& b) {
   return a | b;
 }
 
@@ -160,8 +160,9 @@ constexpr auto set_union(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
  * Expressed as the conjunction of membership in @p a and non-membership in
  * @p b.
  */
-export template <typename T, typename L, typename P1, typename P2>
-constexpr auto set_difference(const Set<T, L, P1>& a, const Set<T, L, P2>& b) {
+export template <typename T, typename L, typename P1, typename P2, typename C>
+constexpr auto set_difference(const Comprehension<𝔸<T, L, C>, P1>& a,
+                              const Comprehension<𝔸<T, L, C>, P2>& b) {
   return a & ~b;
 }
 
@@ -198,9 +199,9 @@ constexpr auto operator-(const A& a, const B& b) {
  * operator in minimal relational algebra (A ∩ B = A ∖ (A ∖ B)), but is
  * provided here for ergonomics.
  */
-export template <typename T, typename L, typename P1, typename P2>
-constexpr auto set_intersection(const Set<T, L, P1>& a,
-                                const Set<T, L, P2>& b) {
+export template <typename T, typename L, typename P1, typename P2, typename C>
+constexpr auto set_intersection(const Comprehension<𝔸<T, L, C>, P1>& a,
+                                const Comprehension<𝔸<T, L, C>, P2>& b) {
   return a & b;
 }
 
@@ -230,7 +231,7 @@ constexpr auto natural_join(const Relation<T1, T2, L, P1>& r1,
     const auto in_r2 = r2(std::pair<T2, T3>{std::get<1>(t), std::get<2>(t)});
     return L::AND(in_r1, in_r2);
   };
-  return Set<Triple, L, decltype(pred)>{pred};
+  return Comprehension<𝔸<Triple, L>, decltype(pred)>{pred};
 }
 
 using CanonicalNaturalJoin =

@@ -184,10 +184,12 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
   // branch that structured_or once activated returned ¬(A ∩ B) by negating a
   // bare Interval — a Morphism, not a Set.  Removed; the general path must
   // keep △ closed over Set.
-  constexpr Set<int, Boole, HS<Direction::Upward, Strictness::Strict>> a{
-      HS<Direction::Upward, Strictness::Strict>{10}};
-  constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> b{
-      HS<Direction::Downward, Strictness::Strict>{100}};
+  constexpr Comprehension<𝔸<int, Boole>,
+                          HS<Direction::Upward, Strictness::Strict>>
+      a{HS<Direction::Upward, Strictness::Strict>{10}};
+  constexpr Comprehension<𝔸<int, Boole>,
+                          HS<Direction::Downward, Strictness::Strict>>
+      b{HS<Direction::Downward, Strictness::Strict>{100}};
   STATIC_CHECK(
       IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
@@ -203,15 +205,17 @@ TEST_CASE(
   SECTION(
       "function-pointer predicate combines via the free operator& (an "
       "irreducible Meet node, itself a set object)") {
-    constexpr Set<int, Boole, bool (*)(int)> pos{&is_pos};  // x > 0
-    constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> cap{
-        HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
+    constexpr Comprehension<𝔸<int, Boole>, bool (*)(int)> pos{
+        &is_pos};  // x > 0
+    constexpr Comprehension<𝔸<int, Boole>,
+                            HS<Direction::Downward, Strictness::Strict>>
+        cap{HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(
-        std::same_as<M,
-                     Meet<Set<int, Boole, bool (*)(int)>,
-                          Set<int, Boole,
-                              HS<Direction::Downward, Strictness::Strict>>>>);
+        std::same_as<
+            M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>,
+                    Comprehension<𝔸<int, Boole>, HS<Direction::Downward,
+                                                    Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10
@@ -330,7 +334,7 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
       std::same_as<typename NaturalLogic<decltype(point_free)>::type, Boole>);
 
   // Symptom 1: the Set-wrapped form is decidable.
-  STATIC_CHECK(HasDecidableMembership<decltype(Set{point_free})>);
+  STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
@@ -581,7 +585,7 @@ TEST_CASE(
   SECTION(
       "Set{halfspace} adopts the halfspace's Kleene species, so its "
       "codomain matches membership: an L-set, not an ETCS set") {
-    constexpr auto s = Set{h};
+    constexpr auto s = h;
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -605,7 +609,7 @@ TEST_CASE(
     constexpr auto hs =
         𝔸<int, Kleene>{} | (π > fix(5_c));  // {x > 5}, L = Kleene
     STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
-    constexpr auto s = Set{hs};
+    constexpr auto s = hs;
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);

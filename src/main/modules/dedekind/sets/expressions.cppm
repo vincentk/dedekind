@@ -168,6 +168,13 @@ struct Comprehension
    *  here instead of through aggregate init. */
   constexpr Comprehension(const Base& b, Predicate p)
       : base(b), predicate(static_cast<Predicate&&>(p)) {}
+  /** @brief The former over the @b universe of the carrier: @c {x ∈ 𝔸 | P}
+   *  from the predicate alone (the base is default-constructible, as @c 𝔸<T,L>
+   *  is).  This is the one set former of the Δ₀ core; what used to be spelled
+   *  @c Set<T,L,P> is @c Comprehension<𝔸<T,L>, P>. */
+  constexpr explicit Comprehension(Predicate p)
+    requires std::default_initializable<Base>
+      : base{}, predicate(static_cast<Predicate&&>(p)) {}
 
   // Forward Base's cardinality so NaturalLogic / IsCountable can read off
   // the carrier axis on a comprehension's effective magnitude.  A
@@ -177,6 +184,7 @@ struct Comprehension
   // (#622).  Sharper bounds (singleton-bounded comprehensions etc.) are
   // tracked via the @c size() probe below, not via this typedef.
   using cardinality_type = typename Base::cardinality_type;
+  constexpr cardinality_type cardinality() const { return {}; }
 
   /** @brief χ: the comprehension's characteristic map --- @c x @c ∈ @c {S @c |
    *  @c P} @c ⟺ @c x @c ∈ @c S @c ∧ @c P(x).  A comprehension @b is a set, so
@@ -360,9 +368,6 @@ constexpr auto lift_to(const S& s) {
 // @c !! peel / @c are_complement_sets_v collapse all fold into the reducer's
 // complement laws (#834 / #829 / #946).
 
-export template <typename T, typename L, typename Predicate>
-class Set;
-
 /** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
 export template <typename L>
 struct FiniteBooleanSet {
@@ -423,33 +428,37 @@ static_assert(
     "FiniteBooleanSet: the full table contains both bools, the empty table "
     "neither.");
 
-export template <typename L>
-constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& lhs,
-                         const FiniteBooleanSet<L>& rhs) {
+export template <typename L, typename C>
+constexpr auto operator|(
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
+    const FiniteBooleanSet<L>& rhs) {
   return FiniteBooleanSet<L>{
       L::OR(lhs(false), rhs(false)),
       L::OR(lhs(true), rhs(true)),
   };
 }
 
-export template <typename L>
-constexpr auto operator|(const FiniteBooleanSet<L>& lhs,
-                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+export template <typename L, typename C>
+constexpr auto operator|(
+    const FiniteBooleanSet<L>& lhs,
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
   return rhs | lhs;
 }
 
-export template <typename L>
-constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& lhs,
-                         const FiniteBooleanSet<L>& rhs) {
+export template <typename L, typename C>
+constexpr auto operator&(
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
+    const FiniteBooleanSet<L>& rhs) {
   return FiniteBooleanSet<L>{
       L::AND(lhs(false), rhs(false)),
       L::AND(lhs(true), rhs(true)),
   };
 }
 
-export template <typename L>
-constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
-                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+export template <typename L, typename C>
+constexpr auto operator&(
+    const FiniteBooleanSet<L>& lhs,
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
   return rhs & lhs;
 }
 
@@ -459,16 +468,18 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
  *  singletons.  Compute the finite meet directly, more specialised than the
  *  generic @c IsSubobject combinators, so it wins; a finite bool set is
  *  extensional, so the result is a @c FiniteBooleanSet. */
-export template <typename L>
-constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& a,
-                         const Set<bool, L, BooleanEqPredicate>& b) {
+export template <typename L, typename C>
+constexpr auto operator&(
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
   return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
                              L::AND(a(true), b(true))};
 }
 /** @brief @c bool @c BooleanEqPredicate join, dual to the meet above. */
-export template <typename L>
-constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& a,
-                         const Set<bool, L, BooleanEqPredicate>& b) {
+export template <typename L, typename C>
+constexpr auto operator|(
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
+    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
   return FiniteBooleanSet<L>{L::OR(a(false), b(false)),
                              L::OR(a(true), b(true))};
 }
@@ -508,21 +519,23 @@ constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& a,
  *         strength-reduction; closes a slice of #362).  The
  *         intersection is contained in ℕ, so the result carrier is
  *         @c Cardinality. */
-export template <typename L, typename P1, typename P2>
-constexpr auto operator&(const Set<Cardinality, L, P1>& lhs,
-                         const Set<SignedCardinality, L, P2>& rhs) {
+export template <typename L, typename P1, typename P2, typename C>
+constexpr auto operator&(
+    const Comprehension<𝔸<Cardinality, L, C>, P1>& lhs,
+    const Comprehension<𝔸<SignedCardinality, L, C>, P2>& rhs) {
   auto predicate = [lhs, rhs](const Cardinality& v) {
     return L::AND(lhs(v), rhs(lift_cardinality_to_signed(v)));
   };
-  return Set<Cardinality, L, decltype(predicate)>{predicate};
+  return Comprehension<𝔸<Cardinality, L>, decltype(predicate)>{predicate};
 }
 
 /** @brief Symmetric: @c Set<SignedCardinality> @c & @c
  *         Set<Cardinality> delegates to the canonical direction.  The
  *         result still tightens to @c Set<Cardinality>. */
-export template <typename L, typename P1, typename P2>
-constexpr auto operator&(const Set<SignedCardinality, L, P1>& lhs,
-                         const Set<Cardinality, L, P2>& rhs) {
+export template <typename L, typename P1, typename P2, typename C>
+constexpr auto operator&(
+    const Comprehension<𝔸<SignedCardinality, L, C>, P1>& lhs,
+    const Comprehension<𝔸<Cardinality, L, C>, P2>& rhs) {
   return rhs & lhs;
 }
 
@@ -577,24 +590,26 @@ constexpr Cardinality project_signed_to_natural(
  *      with @c rhs(v).
  *    * Otherwise @c v is not in ℕ, so @c lhs(v) is structurally @c
  *      false; the union reduces to @c rhs(v). */
-export template <typename L, typename P1, typename P2>
-constexpr auto operator|(const Set<Cardinality, L, P1>& lhs,
-                         const Set<SignedCardinality, L, P2>& rhs) {
+export template <typename L, typename P1, typename P2, typename C>
+constexpr auto operator|(
+    const Comprehension<𝔸<Cardinality, L, C>, P1>& lhs,
+    const Comprehension<𝔸<SignedCardinality, L, C>, P2>& rhs) {
   auto predicate = [lhs, rhs](const SignedCardinality& v) {
     if (detail::sc_is_in_natural_image(v)) {
       return L::OR(lhs(detail::project_signed_to_natural(v)), rhs(v));
     }
     return rhs(v);
   };
-  return Set<SignedCardinality, L, decltype(predicate)>{predicate};
+  return Comprehension<𝔸<SignedCardinality, L>, decltype(predicate)>{predicate};
 }
 
 /** @brief Symmetric: @c Set<SignedCardinality> @c | @c Set<Cardinality>
  *         delegates to the canonical direction.  The result still
  *         widens to @c Set<SignedCardinality>. */
-export template <typename L, typename P1, typename P2>
-constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
-                         const Set<Cardinality, L, P2>& rhs) {
+export template <typename L, typename P1, typename P2, typename C>
+constexpr auto operator|(
+    const Comprehension<𝔸<SignedCardinality, L, C>, P1>& lhs,
+    const Comprehension<𝔸<Cardinality, L, C>, P2>& rhs) {
   return rhs | lhs;
 }
 
@@ -629,10 +644,10 @@ constexpr auto elevate_meet(Reduced reduced) {
     if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
       return reduced;
     } else {
-      return Set<T, L, Result>{std::move(reduced)};
+      return Comprehension<𝔸<T, L>, Result>{std::move(reduced)};
     }
   } else {
-    return Set<T, L, Result>{std::move(reduced)};
+    return Comprehension<𝔸<T, L>, Result>{std::move(reduced)};
   }
 }
 
@@ -646,7 +661,7 @@ constexpr auto elevate_join(Reduced reduced) {
   if constexpr (std::same_as<Result, 𝔸<T, L>>) {
     return reduced;
   } else {
-    return Set<T, L, Result>{std::move(reduced)};
+    return Comprehension<𝔸<T, L>, Result>{std::move(reduced)};
   }
 }
 
@@ -658,9 +673,10 @@ template <typename RA, typename RB>
 struct combine_meet {
   using type = law_inactive;
 };
-template <typename T, typename L, typename PA, typename PB>
+template <typename T, typename L, typename PA, typename PB, typename C>
   requires requires(const PA& a, const PB& b) { structured_and(a, b); }
-struct combine_meet<Set<T, L, PA>, Set<T, L, PB>> {
+struct combine_meet<Comprehension<𝔸<T, L, C>, PA>,
+                    Comprehension<𝔸<T, L, C>, PB>> {
   using type = decltype(elevate_meet<T, L>(
       structured_and(std::declval<const PA&>(), std::declval<const PB&>())));
 };
@@ -669,9 +685,10 @@ template <typename RA, typename RB>
 struct combine_join {
   using type = law_inactive;
 };
-template <typename T, typename L, typename PA, typename PB>
+template <typename T, typename L, typename PA, typename PB, typename C>
   requires requires(const PA& a, const PB& b) { structured_or(a, b); }
-struct combine_join<Set<T, L, PA>, Set<T, L, PB>> {
+struct combine_join<Comprehension<𝔸<T, L, C>, PA>,
+                    Comprehension<𝔸<T, L, C>, PB>> {
   using type = decltype(elevate_join<T, L>(
       structured_or(std::declval<const PA&>(), std::declval<const PB&>())));
 };
@@ -712,115 +729,6 @@ export struct SetCombine {
   }
 };
 
-export template <typename T, typename L, typename Predicate>
-class Set {
- public:
-  // ~ arrow / morphism / subobject classifier jargon
-  using Domain = T;
-  using Codomain = typename L::Ω;
-
-  // ~ topoi jargon: Member-shape mirror of Subobject's; the IsSubobject
-  // contract reads the Member-to-T projection through ι below.  Same
-  // shape as Ø / Universe / Singleton's Member.
-  struct Member {
-    T value;
-  };
-
-  /** @brief ι: Set ↣ T — Member unwrap.  Identical pattern to
-   *  Subobject<A, χ>::ι and Singleton::ι; the inclusion projects
-   *  the Member's T-value back to the ambient. */
-  constexpr T ι(const Member& m) const { return m.value; }
-
-  /** @brief χ: T → Ω — arrow-form classifier for the IsSubobject
-   *  contract — historically a static self-reference (now retired).
-   *  Post-#681 structural refactor: @c Set @b is the characteristic
-   *  morphism via @c operator() below; the @c IsSubobject concept
-   *  recognises this structurally with @c { s(a) } @c -> @c IsΩ
-   *  rather than via a named @c .χ member.  No static-init cascade for
-   *  non-default-constructible Predicates (e.g.\ capturing-lambda
-   *  predicates produced by the comprehension DSL). */
-
-  using logic_species = L;
-  using cardinality_type = ℵ_0;
-
-  // NOTE: no blanket is_associative_v<Op> / is_idempotent_v<Op> here.  Those
-  // would be read by category::is_associative_v's member-discovery for EVERY Op
-  // (claiming, e.g., that a Set --- or a graph(f), which is a Set<pair> --- is
-  // associative under std::plus, an operation it has no closed meaning for).
-  // Same honesty fix as SetExpr (#806 review); nothing consumed them for set
-  // types.  A carrier registers a specific (Op) it truly satisfies instead.
-
-  // Store the predicate as a concrete type, not a std::function
-  constexpr Set(Predicate p) : predicate_(std::move(p)) {}
-
-  /** @brief χ at @c v: the stored predicate's answer lifted into @c L::Ω.
-   *  @param v a carrier value.
-   *  @return membership in @c L::Ω (@c lift_logic<L>). */
-  constexpr auto operator()(const T& v) const {
-    return dedekind::category::lift_logic<L>(predicate_(v));
-  }
-
-  /** @brief Const reference to the underlying predicate.  Most callers
-   *  should use @c operator() for membership and let
-   *  the predicate stay encapsulated; this getter exists for scalar-
-   *  interop layers (Python facades, IR fixtures) that need to extract
-   *  value-level state from a predicate whose fields are part of its
-   *  public contract (e.g.\ @c LPSolutionPredicate carrying
-   *  @c point and @c feasible ).  Does not expose mutation; the
-   *  predicate's encapsulation discipline remains the predicate's
-   *  responsibility, not the Set's. */
-  constexpr const Predicate& predicate() const { return predicate_; }
-
-  constexpr cardinality_type cardinality() const { return {}; }
-
-  // The meet / join / complement operators are no longer Set MEMBERS: they are
-  // free combinators over IsSet (below the class), so Set, Meet, Join and
-  // the boundaries all compose uniformly (combinators over Jlt structural
-  // types, not an inheritance hierarchy).  #892.
-
-  // Symmetric difference @c A △ B (XOR) is a FREE combinator over @c
-  // IsSubobject below the class (like @c & / @c | / @c ~), so @c A △ ~B
-  // composes when @c ~B is a @c Not node rather than a @c Set.  #469 / #892.
-
-  /** @brief Same-predicate subset: always True (identity). */
-  constexpr typename L::Ω operator<=(const Set& /*other*/) const {
-    return L::True;
-  }
-
-  /**
-   * @brief Subset test: this ⊆ other for heterogeneous predicate types.
-   *
-   * For intensional sets over potentially infinite domains, the general subset
-   * question is undecidable without witnesses. This overload is only available
-   * when the ambient logic supports Unknown.
-   */
-  template <typename OtherPredicate>
-    requires(!std::same_as<Predicate, OtherPredicate>) &&
-            requires { L::Unknown; }
-  constexpr typename L::Ω operator<=(const Set<T, L, OtherPredicate>&) const {
-    return L::Unknown;
-  }
-
-  /**
-   * @brief Point-wise subset evidence: returns true iff this(x) implies
-   * other(x) at the given witness point x.
-   */
-  template <typename OtherPredicate>
-  constexpr typename L::Ω is_subset_of_at(
-      const Set<T, L, OtherPredicate>& other, const T& x) const {
-    const auto in_this = (*this)(x);
-    const auto in_other = other(x);
-    // Implication in Ω: a => b  is  (!a) OR b.
-    return L::OR(L::RFL(in_this), in_other);
-  }
-
- private:
-  template <typename, typename, typename>
-  friend class Set;
-
-  Predicate predicate_;
-};
-
 // ── The set-object legs of the opaque arm (IsSetObject, :setobject) ──────────
 //
 // A comprehension's universe is its BASE's universe: the mereological whole is
@@ -836,18 +744,16 @@ constexpr auto universe(const Comprehension<Base, Predicate>& c) {
 // leg applies) and the predicate P as its χ datum --- the very object
 // `operator&` hands to `structured_and`, so the leg names what the reducer
 // already reads.
-export template <typename T, typename L, typename P>
-constexpr const P& classifier(const Set<T, L, P>& s) {
-  return s.predicate();
+export template <typename T, typename L, typename P, typename C, typename CU>
+constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
+  return s.predicate;
 }
 
 static_assert(
-    IsSetObject<Set<int, dedekind::category::Boole, UniversalPredicate<int>>>,
-    "Set<T,L,P> is a set object: universe 𝔸<T,L>, classifier P.");
-static_assert(std::same_as<universe_t<Set<int, dedekind::category::Boole,
+    std::same_as<universe_t<Comprehension<𝔸<int, dedekind::category::Boole, CU>,
                                           UniversalPredicate<int>>>,
-                           𝔸<int>>,
-              "the implicit universe of Set<int> is 𝔸<int>.");
+                 𝔸<int>>,
+    "the implicit universe of Set<int> is 𝔸<int>.");
 static_assert(IsSetObject<Comprehension<𝔸<int>, UniversalPredicate<int>>>,
               "a comprehension is a set object.");
 static_assert(
@@ -864,8 +770,9 @@ namespace dedekind::category {
 // A runtime-stateful predicate (a field-carrying P such as BooleanEqPredicate)
 // makes two same-type Sets potentially distinct, so the reducer's type-based
 // idempotence must NOT collapse them; gate it on the predicate's emptiness.
-template <typename T, typename L, typename P>
-inline constexpr bool idempotent_leaf_v<dedekind::sets::Set<T, L, P>> =
+template <typename T, typename L, typename P, typename C>
+inline constexpr bool idempotent_leaf_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<T, L, C>, P>> =
     std::is_empty_v<P>;
 
 }  // namespace dedekind::category
@@ -881,14 +788,15 @@ namespace dedekind::sets {
 // @c subobject_reduce_t and materialises the normal form; the irreducible meet
 // / join becomes a @c Meet / @c Join carrying its operand sets (#892).
 
-/** @brief The predicate of a PLAIN @c Set<T,L,P> (@c ::type absent otherwise);
+/** @brief The predicate of a PLAIN set, a @c Comprehension over the universe
+ *  @c 𝔸<T,L> (@c ::type absent otherwise);
  *  @c PlainSet gates the plain-set-only branches (complement pair, predicate
  *  negation) so a compound node (@c Meet / @c Join) takes the node path.
  */
 template <typename S>
 struct set_predicate {};
-template <typename T, typename L, typename P>
-struct set_predicate<Set<T, L, P>> {
+template <typename T, typename L, typename P, typename C>
+struct set_predicate<Comprehension<𝔸<T, L, C>, P>> {
   using type = P;
 };
 template <typename S>
@@ -953,13 +861,10 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
       // collapse).  Meet, not the structured_and leaf below --- a Not node
       // has no @c .predicate().
       return finalize_combine(Meet<RHS, LHS>{rhs, lhs});
-    } else if constexpr (requires {
-                           lhs.predicate();
-                           rhs.predicate();
-                         }) {
+    } else if constexpr (PlainSet<LHS> && PlainSet<RHS>) {
       // SetCombine collapsed two plain-set leaves via structured_and.
-      return finalize_combine(elevate_meet<T, Log>(
-          structured_and(lhs.predicate(), rhs.predicate())));
+      return finalize_combine(
+          elevate_meet<T, Log>(structured_and(lhs.predicate, rhs.predicate)));
     } else {
       // A normal form the type-level cascade above does not name (e.g. a law
       // reassociating through a node operand): the value-first reducer folds
@@ -1001,12 +906,9 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
     } else if constexpr (std::same_as<R, Join<RHS, LHS>>) {
       // Commutatively canonicalised operands (see the meet dual above).
       return finalize_combine(Join<RHS, LHS>{rhs, lhs});
-    } else if constexpr (requires {
-                           lhs.predicate();
-                           rhs.predicate();
-                         }) {
-      return finalize_combine(elevate_join<T, Log>(
-          structured_or(lhs.predicate(), rhs.predicate())));
+    } else if constexpr (PlainSet<LHS> && PlainSet<RHS>) {
+      return finalize_combine(
+          elevate_join<T, Log>(structured_or(lhs.predicate, rhs.predicate)));
     } else {
       return subobject_reduce<Log, SetCombine>(Join<LHS, RHS>{lhs, rhs});
     }
@@ -1126,8 +1028,8 @@ constexpr auto operator^(const LHS& a, const RHS& b) {
  *  @c Not<Not<A>> → @c A at the leaf (the reducer's @c ¬¬A→A), so the
  *  double-negation is structurally self-inverse. */
 namespace detail_complement_involution {
-using UnivSizeSet = Set<std::size_t, dedekind::category::Boole,
-                        UniversalPredicate<std::size_t>>;
+using UnivSizeSet = Comprehension<𝔸<std::size_t, dedekind::category::Boole>,
+                                  UniversalPredicate<std::size_t>>;
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~~std::declval<UnivSizeSet>())>,
                  UnivSizeSet>,
@@ -1302,7 +1204,7 @@ struct SymbolicImagePredicate {
   }
 };
 
-/** @brief image(f, Set<T, L, P>) — image of an intensional Set under
+/** @brief image(f, {x ∈ 𝔸 | P}) — image of an intensional set under
  *         an arrow.  Layer 1 of #602.
  *
  *  @details Sister overload in the @c image dispatch table, alongside
@@ -1323,12 +1225,12 @@ struct SymbolicImagePredicate {
  *  decidable-specialisation path (layer 2).
  */
 export template <typename T, typename L, typename P,
-                 dedekind::category::IsArrow F>
+                 dedekind::category::IsArrow F, typename C>
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&&, const Set<T, L, P>&) {
+constexpr auto image(F&&, const Comprehension<𝔸<T, L, C>, P>&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return Set<U, dedekind::category::Kleene, SymbolicImagePredicate<U>>{
-      SymbolicImagePredicate<U>{}};
+  return Comprehension<𝔸<U, dedekind::category::Kleene>,
+                       SymbolicImagePredicate<U>>{SymbolicImagePredicate<U>{}};
 }
 
 /** @brief Composed predicate for the iso-decidable @c image(f, Set)
@@ -1361,7 +1263,7 @@ struct ComposedIsoImagePredicate {
   }
 };
 
-/** @brief image(iso f, Set<T, L, P>) — @b decidable specialisation for
+/** @brief image(iso f, {x ∈ 𝔸 | P}) — @b decidable specialisation for
  *         isomorphism arrows (#602 Layer 2 entry).
  *
  *  @details When @c f admits an inverse @c f^{-1} (the @c IsIsomorphism
@@ -1393,9 +1295,9 @@ struct ComposedIsoImagePredicate {
  *  #661) over follow-up slices.
  */
 export template <typename T, typename L, typename P,
-                 dedekind::category::IsIsomorphism F>
+                 dedekind::category::IsIsomorphism F, typename C>
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&& f, const Set<T, L, P>& s) {
+constexpr auto image(F&& f, const Comprehension<𝔸<T, L, C>, P>& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   // Unqualified call so ADL routes to the inverse overload for f's
   // type (e.g.\ Identity<T>, TaggedNegate) in dedekind::category.
@@ -1405,8 +1307,10 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   // codebase's ADL-hook style for partial categorical primitives.
   auto f_inv = inverse(std::forward<F>(f));
   using FInv = std::remove_cvref_t<decltype(f_inv)>;
-  using NewPredicate = ComposedIsoImagePredicate<Set<T, L, P>, FInv>;
-  return Set<U, L, NewPredicate>{NewPredicate{s, std::move(f_inv)}};
+  using NewPredicate =
+      ComposedIsoImagePredicate<Comprehension<𝔸<T, L, C>, P>, FInv>;
+  return Comprehension<𝔸<U, L>, NewPredicate>{
+      NewPredicate{s, std::move(f_inv)}};
 }
 
 /** @brief image of the @b unbounded universe under an iso @c F:T→U is the
@@ -1458,7 +1362,7 @@ struct ComposedRetractImagePredicate {
   }
 };
 
-/** @brief image(monic-with-retract f, Set<T, L, P>) --- @b decidable
+/** @brief image(monic-with-retract f, {x ∈ 𝔸 | P}) --- @b decidable
  *         specialisation for monic arrows that ship a retract (a partial
  *         inverse via the @c retract(f) ADL hook).  #602 Layer 2 / Case A.
  *
@@ -1503,10 +1407,10 @@ struct ComposedRetractImagePredicate {
  *  ambiguous between the two overloads; with it, iso always wins.
  */
 export template <typename T, typename L, typename P,
-                 dedekind::category::IsRetractableArrow F>
+                 dedekind::category::IsRetractableArrow F, typename C>
   requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
            (!dedekind::category::IsIsomorphism<std::remove_cvref_t<F>>)
-constexpr auto image(F&& f, const Set<T, L, P>& s) {
+constexpr auto image(F&& f, const Comprehension<𝔸<T, L, C>, P>& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   // Unqualified call so ADL routes to the retract overload registered
   // for f's type in the appropriate namespace.  The IsRetractableArrow
@@ -1514,8 +1418,9 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
   auto retract_fn = retract(std::forward<F>(f));
   using RetractFn = std::remove_cvref_t<decltype(retract_fn)>;
   using NewPredicate =
-      ComposedRetractImagePredicate<Set<T, L, P>, RetractFn, L>;
-  return Set<U, L, NewPredicate>{NewPredicate{s, std::move(retract_fn)}};
+      ComposedRetractImagePredicate<Comprehension<𝔸<T, L, C>, P>, RetractFn, L>;
+  return Comprehension<𝔸<U, L>, NewPredicate>{
+      NewPredicate{s, std::move(retract_fn)}};
 }
 
 // A NON-injective arrow's image is decided ANALYTICALLY, point-free, as the
@@ -1532,8 +1437,9 @@ constexpr auto image(F&& f, const Set<T, L, P>& s) {
  *         this overload picks up @c S @c ^ @c Ø when the boundary is on
  *         the right, keeping the structural collapse type-level rather
  *         than falling through to the lambda. */
-export template <typename T, typename L, typename Predicate>
-constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
+export template <typename T, typename L, typename Predicate, typename C>
+constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
+                         const Ø<T, L>&) {
   return s;
 }
 
@@ -1541,7 +1447,8 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
  *         universe is the complement; #469).  Symmetric of
  *         @c 𝔸::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
-constexpr auto operator^(const Set<T, L, Predicate>& s, const 𝔸<T, L, C>&) {
+constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
+                         const 𝔸<T, L, C>&) {
   return !s;
 }
 
@@ -1599,101 +1506,6 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const 𝔸<T, L, C>&) {
  * Percent in the logic-species lattice so such ambients wrap coherently instead
  * of being rejected.
  */
-
-/** @brief The type predicate @c P returns for a member query on @c Domain ---
- *  the authority for a wrapping @c Set's codomain (a @c logic_species tag is
- *  only a proxy for it).
- *  @note Deliberately the @b ungated sibling of @c category::OmegaOf: same
- *  @c const / @c decay extraction, but @b no @c LogicalMap / @c IsΩ gate.
- *  @c CoherentWrap must read the RAW answer of a predicate whose return is
- *  @e not a truth-object (@c Percentage, a @c Chain value) in order to REJECT
- *  it; @c OmegaOf requires @c LogicalMap and so is ill-formed on exactly those
- *  predicates, which is why it cannot centralize this contract.  Reuse ends at
- *  the extraction shape.
- *  @tparam P a predicate / set-node; @tparam Domain the carrier queried. */
-template <typename P, typename Domain>
-using membership_answer_t = std::remove_cvref_t<
-    std::invoke_result_t<const std::decay_t<P>&, const Domain&>>;
-
-/** @brief The coherent @c Set codomain species: @c join_logic_t of the
- *  carrier-axis @c NaturalLogic<Carrier> verdict and @c GetLogic of @c P's
- *  actual answer on @c Domain.  Rationale: @ref
- *  expressions__Set_Codomain_Reconciliation.
- *  @tparam Carrier the set-node whose cardinality feeds the carrier axis;
- *  @tparam P the wrapped predicate; @tparam Domain the carrier queried. */
-template <typename Carrier, typename P, typename Domain>
-using set_logic_t = join_logic_t<typename NaturalLogic<Carrier>::type,
-                                 typename dedekind::category::GetLogic<
-                                     membership_answer_t<P, Domain>>::type>;
-
-/** @brief Whether wrapping @c P (answering on @c Domain, carrier axis from
- *  @c Carrier) yields a coherent @c Set: the wrapper's declared @c Ω is what
- *  @c P actually RETURNS, i.e. @c P's answer is @c bool or exactly
- *  @c set_logic_t::Ω.  An answer outside that is a declared-codomain vs
- *  actual-return mismatch (not a lost value), the Sollbruchstelle rejected here
- *  (@c Percent / @c Chain, FIXME(#945)).  Rationale: @ref
- *  expressions__Set_Codomain_Reconciliation.
- *  @tparam Carrier carrier axis source; @tparam P wrapped predicate;
- *  @tparam Domain the carrier queried. */
-template <typename Carrier, typename P, typename Domain>
-concept CoherentWrap =
-    requires(const P& p, const Domain& x) { p(x); } &&
-    (std::same_as<membership_answer_t<P, Domain>, bool> ||
-     std::same_as<membership_answer_t<P, Domain>,
-                  typename set_logic_t<Carrier, P, Domain>::Ω>);
-
-/** @brief One-argument convenience: a bare set-node @c Species is its own
- *  carrier @b and predicate.
- *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
-export template <typename Species>
-concept CoherentSetWrap =
-    CoherentWrap<Species, Species, typename Species::Domain>;
-
-/** @brief The @c Set codomain species for a bare set-node @c Species.
- *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
-/** @brief The carrier-axis authority for a wrapped species: its own declared
- *  @c cardinality_type when it has one (a leaf), else its UNIVERSE's (a
- *  lattice node declares no cardinality class of its own; the mereological
- *  whole it is a part of does), else the species itself. */
-template <typename Species>
-struct wrap_carrier {
-  using type = Species;
-};
-template <typename Species>
-  requires(!requires { typename Species::cardinality_type; }) &&
-          IsSetObject<Species>
-struct wrap_carrier<Species> {
-  using type = universe_t<Species>;
-};
-template <typename Species>
-using wrapped_logic_t = set_logic_t<typename wrap_carrier<Species>::type,
-                                    Species, typename Species::Domain>;
-
-// Enforce ETCS compliance also here:
-static_assert(
-    IsSet<decltype(ambient_set<int>(Set<int, Boole, UniversalPredicate<int>>{
-        UniversalPredicate<int>{}}))>,
-    "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set ");
-
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
-        Set<int, dedekind::category::Boole, UniversalPredicate<int>>{
-            UniversalPredicate<int>{}}))>,
-    "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
-    "object.");
-
-/** @section expressions__Identity_CTAD
- *  Bare set-node wrap; shares the codomain reconciliation of @ref
- *  expressions__Set_Codomain_Reconciliation with the comprehension / scout
- *  guides above.  *  @note @c Set{Comprehension{base, pred}} takes this guide
- * too and wraps the WHOLE comprehension (its χ is @c base ∧ @c pred); the
- * earlier Comprehension-specific guide stored only @c pred and dropped the base
- * (#948).
- */
-template <typename Species>
-  requires CoherentSetWrap<Species>
-Set(Species)
-    -> Set<typename Species::Domain, wrapped_logic_t<Species>, Species>;
 
 /** @section expressions__Logical_Lifting */
 
@@ -1780,17 +1592,18 @@ struct ProductMembership {
 /**
  * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
  *
- * Constructs a Set whose domain is std::pair<T1,T2> and whose membership
+ * Constructs a comprehension over 𝔸<pair<T1,T2>> whose membership
  * predicate checks element-wise membership in both component sets.
  */
 export template <typename T1, typename L1, typename P1, typename T2,
-                 typename L2, typename P2>
+                 typename L2, typename P2, typename C1, typename C2>
   requires std::same_as<L1, L2>
-constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
-                                 const Set<T2, L2, P2>& b) {
+constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
+                                 const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
   using Pair = std::pair<T1, T2>;
-  using Pred = ProductMembership<Set<T1, L1, P1>, Set<T2, L2, P2>>;
-  return Set<Pair, L1, Pred>{Pred{a, b}};
+  using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
+                                 Comprehension<𝔸<T2, L2, C2>, P2>>;
+  return Comprehension<𝔸<Pair, L1>, Pred>{Pred{a, b}};
 }
 
 /**
@@ -1815,8 +1628,8 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   // @c b here instead would recurse on a mixed @c 𝔸 x @c Set pair
   // (no
   // @c operator*(Universe, Set), so it re-enters this generic).
-  const auto left = Set{a};
-  const auto right = Set{b};
+  const auto& left = a;
+  const auto& right = b;
   // The wrapped species may differ even when the raw operands' carrier-axis
   // reading agreed (a node over 𝔸<int> wraps Boole, one over 𝔸<double, ℶ_1>
   // wraps Kleene): reconcile at the JOIN before delegating, lifting only the
@@ -1829,9 +1642,9 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   } else {
     using L = join_logic_t<LL, LR>;
     if constexpr (std::same_as<LL, L>)
-      return cartesian_product(left, Set{lift_to<L>(right)});
+      return cartesian_product(left, lift_to<L>(right));
     else
-      return cartesian_product(Set{lift_to<L>(left)}, right);
+      return cartesian_product(lift_to<L>(left), right);
   }
 }
 
@@ -1889,9 +1702,10 @@ constexpr auto operator*(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
 
 /** @brief Infix sugar for cartesian product over sets. */
 export template <typename T1, typename L1, typename P1, typename T2,
-                 typename L2, typename P2>
+                 typename L2, typename P2, typename C1, typename C2>
   requires std::same_as<L1, L2>
-constexpr auto operator*(const Set<T1, L1, P1>& a, const Set<T2, L2, P2>& b) {
+constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
+                         const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
   return cartesian_product(a, b);
 }
 
@@ -1908,8 +1722,7 @@ constexpr auto operator*(const A& a, const B& b) {
   return cartesian_product(a, b);
 }
 
-using CanonicalIntSet =
-    Set<int, dedekind::category::Boole, UniversalPredicate<int>>;
+using CanonicalIntSet = 𝔸<int>;
 using CanonicalIntProductSet =
     decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
                                std::declval<const CanonicalIntSet&>()));

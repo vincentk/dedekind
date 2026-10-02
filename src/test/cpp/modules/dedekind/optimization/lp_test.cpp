@@ -70,8 +70,9 @@ TEST_CASE(
   // halfspace-list endofunctor's full @c IsEndofunctor instantiation
   // (Σ_cat, Shape, φ) is its own scaffolding task; see the source
   // commentary @c lp__F_Algebra_Witness in @c lp.cppm .
-  using OutputSet = dedekind::sets::Set<Vec2V<Rat>, dedekind::category::Boole,
-                                        LPSolutionPredicate<Rat>>;
+  using OutputSet =
+      dedekind::sets::Comprehension<𝔸<Vec2V<Rat>, dedekind::category::Boole>,
+                                    LPSolutionPredicate<Rat>>;
   using LPSolutionCat = dedekind::category::DiscreteCategory<OutputSet>;
   using LPSolutionIdF = dedekind::category::identity_functor<LPSolutionCat>;
 
@@ -107,7 +108,8 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
 
   // Input side: a polytope is `Set<F, L, Polytope2DPredicate<T, Hs...>>`.
   using PolyG =
-      dedekind::sets::Set<F, L, Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+      dedekind::sets::Comprehension<𝔸<F, L>,
+                                    Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   STATIC_CHECK(dedekind::category::IsSet<PolyG>);
 
   // Output side — three regimes of the Set's predicate, all over the
@@ -122,10 +124,11 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
   //  (c) runtime singleton-or-empty (LPSolutionPredicate carrying
   //      (point, feasible) at the value level — what
   //      `maximize_with_values` and siblings return).
-  using SingOut =
-      dedekind::sets::Set<F, L, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
-  using EmptyOut = dedekind::sets::Set<F, L, dedekind::sets::EmptyPredicate<F>>;
-  using RuntimeOut = dedekind::sets::Set<F, L, LPSolutionPredicate<Rat>>;
+  using SingOut = dedekind::sets::Comprehension<
+      𝔸<F, L>, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  using EmptyOut = dedekind::sets::Ø<F, L>;
+  using RuntimeOut =
+      dedekind::sets::Comprehension<𝔸<F, L>, LPSolutionPredicate<Rat>>;
   STATIC_CHECK(dedekind::category::IsSet<SingOut>);
   STATIC_CHECK(dedekind::category::IsSet<EmptyOut>);
   STATIC_CHECK(dedekind::category::IsSet<RuntimeOut>);
@@ -206,7 +209,7 @@ TEST_CASE("optimization:lp — bit-ops fast-path triptych dispatch (#749)",
   constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
   using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using OptPred =
-      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate)>;
   STATIC_CHECK(
       std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
 
@@ -257,7 +260,7 @@ TEST_CASE(
   constexpr LinearFunctional<Rat, Rat{1L}, Rat{1L}> Uf{};
   using FastSet = std::remove_cvref_t<decltype(argmax(G_fast, Uf))>;
   using FastPred =
-      std::remove_cvref_t<decltype(std::declval<FastSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<FastSet>().predicate)>;
   STATIC_CHECK(
       std::same_as<FastPred, Singleton2DPredicate<Rat, Rat{1L}, Rat{1L}>>);
 
@@ -267,7 +270,7 @@ TEST_CASE(
   constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Ug{};
   using GenericSet = std::remove_cvref_t<decltype(argmax(G_generic, Ug))>;
   using GenericPred =
-      std::remove_cvref_t<decltype(std::declval<GenericSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<GenericSet>().predicate)>;
   STATIC_CHECK(
       std::same_as<GenericPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
 
@@ -409,9 +412,9 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
 
   // The expression-type witnesses: all three surfaces return a Set
   // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
-  using ExpectedOpt =
-      dedekind::sets::Set<Vec2V<Rat>, dedekind::category::Boole,
-                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  using ExpectedOpt = dedekind::sets::Comprehension<
+      𝔸<Vec2V<Rat>, dedekind::category::Boole>,
+      Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
   STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(argmax(G_p, U_p))>,
@@ -445,7 +448,7 @@ TEST_CASE(
   constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
   using OptSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using OptPred =
-      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<OptSet>().predicate)>;
   STATIC_CHECK(
       std::same_as<OptPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
   STATIC_CHECK(OptPred::coord_x == Rat{2L});
@@ -556,8 +559,8 @@ TEST_CASE(
   // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
   // whose predicate carries the halfspace pack at the type level.
   using ExpectedG =
-      dedekind::sets::Set<F, dedekind::category::Boole,
-                          Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+      dedekind::sets::Comprehension<𝔸<F, dedekind::category::Boole>,
+                                    Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   static_assert(std::same_as<decltype(G), const ExpectedG>);
 
   // argmax(G, U).  Set in, Set out.  The output Set's predicate type
@@ -565,9 +568,9 @@ TEST_CASE(
   // type level — input polytope and output locus carried in the same
   // DSL vocabulary.
   constexpr auto opt = argmax(G, U);
-  using ExpectedOpt =
-      dedekind::sets::Set<F, dedekind::category::Boole,
-                          Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+  using ExpectedOpt = dedekind::sets::Comprehension<
+      𝔸<F, dedekind::category::Boole>,
+      Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   static_assert(std::same_as<decltype(opt), const ExpectedOpt>);
 
   // The witnesses: opt ∈ G via the Set DSL's `contains`; opt itself
@@ -717,7 +720,7 @@ TEST_CASE(
   constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
   using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using NttpPred =
-      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate)>;
   STATIC_CHECK(
       std::same_as<NttpPred, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>);
   STATIC_CHECK(v(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
@@ -746,7 +749,7 @@ TEST_CASE(
   constexpr LinearFunctional<Rat, Rat{3L}, Rat{2L}> Uf{};
   using NttpSet = std::remove_cvref_t<decltype(argmax(G, Uf))>;
   using NttpPred =
-      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate())>;
+      std::remove_cvref_t<decltype(std::declval<NttpSet>().predicate)>;
   CHECK(result(Vec2V<Rat>{NttpPred::coord_x, NttpPred::coord_y}));
 }
 

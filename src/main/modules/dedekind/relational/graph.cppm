@@ -89,7 +89,6 @@ import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
 namespace dedekind::relational {
 using dedekind::sets::forall;  // the ¬∃¬ quantifier used by is_graph_of
-using dedekind::sets::Set;     // the Set<pair> carrier (stays in :sets)
 
 /**
  * @brief The membership predicate of a functional graph @f$\Gamma_f@f$:
@@ -119,8 +118,10 @@ struct GraphPredicate {
  *        @f$\Gamma_f=\{(a,b)\mid b=f(a)\}\subseteq A\times B@f$ of @c F : A→B.
  */
 export template <typename F>
-using Graph = Set<std::pair<typename F::Domain, typename F::Codomain>,
-                  dedekind::category::Boole, GraphPredicate<F>>;
+using Graph =
+    Comprehension<𝔸<std::pair<typename F::Domain, typename F::Codomain>,
+                    dedekind::category::Boole>,
+                  GraphPredicate<F>>;
 
 /**
  * @brief @c graph(f) --- the graph of a function @c f : A → B as the @c Set
@@ -249,7 +250,7 @@ constexpr auto operator>>(const Graph<F>& r, const Graph<G>& s) {
   // it is found regardless of the arrows' namespace), then re-graph f;g : A →
   // C.
   return graph(
-      dedekind::category::operator>>(r.predicate().arrow, s.predicate().arrow));
+      dedekind::category::operator>>(r.predicate.arrow, s.predicate.arrow));
 }
 
 /**
@@ -329,7 +330,8 @@ constexpr auto preimage(F f, S s) {
   using Arr = std::remove_cvref_t<F>;
   using St = std::remove_cvref_t<S>;
   using A = typename Arr::Domain;
-  return Set<A, typename St::logic_species, PreimagePredicate<Arr, St>>{
+  return Comprehension<𝔸<A, typename St::logic_species>,
+                       PreimagePredicate<Arr, St>>{
       PreimagePredicate<Arr, St>{f, s}};
 }
 

@@ -63,7 +63,7 @@ using namespace dedekind::sets;
 // Set{}-wrapped: image() consumes a Set (a bare point-free Halfspace is not
 // one; see #927).  The wrap also routes the carrier logic through Set
 // deduction.
-constexpr auto gt_5 = Set{ℕ | (χ > fix(5_c))};
+constexpr auto gt_5 = ℕ | (χ > fix(5_c));
 
 // Arrow ℕ → ℕ wrapped via the project's typed-arrow factory so it
 // satisfies @c IsArrow (which gates on @c Domain / @c Codomain

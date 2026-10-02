@@ -1058,8 +1058,8 @@ static_assert(std::same_as<typename NaturalLogic<PointFree>::type, Boole>,
 
 // Observable symptom: the Set-wrapped form is decidable (the Set CTAD keys the
 // logic species off NaturalLogic<inner>).
-static_assert(HasDecidableMembership<decltype(Set{ℕ | (χ > fix(5_c))})>,
-              "#848: Set{ℕ | x>5} is a decidable (ClassicalLogic) set.");
+static_assert(HasDecidableMembership<decltype(ℕ | (χ > fix(5_c)))>,
+              "#848: ℕ | x>5 is a decidable (ClassicalLogic) set.");
 
 // The continuum leg (ℝ) stays honestly ternary through the SAME thread: a real
 // halfspace is carrier-axis ℶ₁, so NaturalLogic keeps its Kleene verdict --- no
@@ -1315,7 +1315,7 @@ struct ProductRestrict {
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
 constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
-  return Set<std::pair<T1, T2>, L, RP>{rp};
+  return Comprehension<𝔸<std::pair<T1, T2>, L>, RP>{rp};
 }
 
 /** @brief @c product @c | @c relPred --- the relation as a set object on
@@ -1335,8 +1335,8 @@ export template <typename S, IsRelPredicate RP>
   }
 constexpr auto operator|(const S& prod, RP rp) {
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
-  return Set<typename S::Domain, typename S::logic_species,
-             ProductRestrict<X, RP>>{
+  return Comprehension<𝔸<typename S::Domain, typename S::logic_species>,
+                       ProductRestrict<X, RP>>{
       ProductRestrict<X, RP>{classifier(prod), rp}};
 }
 
@@ -1495,15 +1495,17 @@ constexpr auto axis_factor(const ProductRestrict<Pp, RP>& r) {
 
 /** @brief @f$\pi_A(R)@f$ --- the domain factor, recovered structurally
  *  (preserving the relation's logic species @c L). */
-export template <typename T1, typename T2, typename L, IsRelPredicate P>
-constexpr auto dom(const Set<std::pair<T1, T2>, L, P>& r) {
-  return axis_factor<1, T1, L>(r.predicate());
+export template <typename T1, typename T2, typename L, IsRelPredicate P,
+                 typename C>
+constexpr auto dom(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
+  return axis_factor<1, T1, L>(r.predicate);
 }
 
 /** @brief @f$\pi_B(R)@f$ --- the codomain factor, recovered structurally. */
-export template <typename T1, typename T2, typename L, IsRelPredicate P>
-constexpr auto cod(const Set<std::pair<T1, T2>, L, P>& r) {
-  return axis_factor<2, T2, L>(r.predicate());
+export template <typename T1, typename T2, typename L, IsRelPredicate P,
+                 typename C>
+constexpr auto cod(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
+  return axis_factor<2, T2, L>(r.predicate);
 }
 
 /** @section halfspace__Formal_Verification (relational surface) */
@@ -1984,7 +1986,8 @@ export template <typename T, Direction D1, Strictness S1, Direction D2,
 constexpr auto operator|(const Halfspace<T, D1, S1, L>& a,
                          const Halfspace<T, D2, S2, L>& b) {
   auto pred = [a, b](const T& v) { return L::OR(a(v), b(v)); };
-  return dedekind::sets::Set<T, L, decltype(pred)>{pred};
+  return dedekind::sets::Comprehension<dedekind::sets::𝔸<T, L>, decltype(pred)>{
+      pred};
 }
 /** @brief Meets involving the value @c SetVal route through the one
  *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
@@ -2087,11 +2090,14 @@ static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ.");
 // is cast into the carrier (@c +fix(1_c) and @c +fix(2_c) both become @c +true,
 // the SAME graph {false→true}), so a raw @c K1==K2 would wrongly separate them;
 // bool is declined rather than compared incorrectly.
-export template <typename T, auto K1, auto K2, typename L>
+export template <typename T, auto K1, auto K2, typename L, typename C,
+                 typename CU>
   requires dedekind::category::IsSaturating<T>
 constexpr bool operator==(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, L, CU>,
+                        ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
   return K1 == K2;
 }
 
@@ -2104,12 +2110,16 @@ constexpr bool operator==(
  *  carrier's @c + is faithful.  On @c bool the @c +1 graph is @c {false→true}
  *  and composing it with itself is EMPTY, while the symbolic @c +2 graph is
  *  non-empty --- so bool is declined rather than rewritten wrongly. */
-export template <typename T, auto A, auto B, typename L>
+export template <typename T, auto A, auto B, typename L, typename C,
+                 typename CU>
   requires dedekind::category::IsSaturating<T>
 constexpr auto operator>>(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, A, Rel::Eq, 2>>&,
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, B, Rel::Eq, 2>>&) {
-  return Set<std::pair<T, T>, L, ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, A, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, L, CU>,
+                        ProjAddConstProj<1, B, Rel::Eq, 2>>&) {
+  return Comprehension<𝔸<std::pair<T, T>, L>,
+                       ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
       ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
 }
 
@@ -2337,8 +2347,8 @@ namespace dedekind::category {
 // LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
 // by construction).
 template <typename T, auto K, typename L>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    𝔸<std::pair<T, T>, L>,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
     true;
 
@@ -2346,17 +2356,17 @@ inline constexpr bool is_right_unique_v<dedekind::sets::Set<
 // carrier
 // -- a ↦ a, single-valued.
 template <typename T, typename L>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<T, T>, L,
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    𝔸<std::pair<T, T>, L>,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
 // RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
 // FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
 // functional (a PARTIAL function).
 template <typename A, typename B, typename L, typename P, typename RP>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, B>, L, dedekind::order::ProductRestrict<P, RP>>> =
-    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, P>>;
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    𝔸<std::pair<A, B>, L>, dedekind::order::ProductRestrict<P, RP>>> =
+    is_right_unique_v<dedekind::sets::Comprehension<𝔸<std::pair<A, B>, L>, P>>;
 
 // NODE (the compositional closure) for ComposePred's FUNCTIONALITY moved to
 // dedekind.relational:dyadic (PR #797, Copilot review) --- it is

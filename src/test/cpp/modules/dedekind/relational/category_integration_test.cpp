@@ -39,8 +39,8 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   // named predicates (comprehension form) rather than inline lambdas.
   constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
   constexpr auto le_ten = [](const auto& v) { return v <= 10u; };
-  const auto positive = Set{Comprehension{ℕ, gt_zero}};
-  const auto bounded = Set{Comprehension{ℕ, le_ten}};
+  const auto positive = Comprehension{ℕ, gt_zero};
+  const auto bounded = Comprehension{ℕ, le_ten};
 
   // ambient_set<Cardinality> lifts the predicate-set into the variant
   // ℕ-proxy ambient (the carrier of the ℕ universe; post-#402 / #559
@@ -68,7 +68,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
   constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
-  const auto positive = Set{Comprehension{ℕ, gt_zero}};
+  const auto positive = Comprehension{ℕ, gt_zero};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),

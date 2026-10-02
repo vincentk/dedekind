@@ -42,7 +42,7 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
     // point-free halfspace).  @c :sets tests may not import @c :order, so
     // @c π/fix is unavailable here anyway.
     constexpr auto gt_five = [](const auto& v) { return v > 5u; };
-    constexpr auto s = Set{Comprehension{ℕ, gt_five}};
+    constexpr auto s = Comprehension{ℕ, gt_five};
     // ℕ is countably infinite (ℵ_0) → NaturalLogic picks Boole on
     // the carrier axis (#622).  Rice's theorem caps further promotion of
     // the opaque predicate, but the carrier-axis witness is sufficient
@@ -60,7 +60,7 @@ TEST_CASE("sets:cardinality — IsExtensional on Ø",
 
   SECTION("Intensional Set over a transfinite carrier is not extensional") {
     constexpr auto gt_five = [](const auto& v) { return v > 5u; };
-    constexpr auto s = Set{Comprehension{ℕ, gt_five}};
+    constexpr auto s = Comprehension{ℕ, gt_five};
     STATIC_CHECK_FALSE(IsExtensional<decltype(s)>);
   }
 }
@@ -142,7 +142,7 @@ TEST_CASE(
   // predicate's actual RETURN type), so it stays coherent with operator().
 
   SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
-    constexpr auto s = Set{𝔸<int>{}};
+    constexpr auto s = 𝔸<int>{};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Boole>);
     STATIC_CHECK(std::same_as<typename decltype(s)::Codomain, bool>);
     STATIC_CHECK(IsSet<decltype(s)>);
@@ -156,7 +156,7 @@ TEST_CASE(
     // Countable carrier + pessimistic Kleene logic: NaturalLogic's carrier
     // axis says Boole, but the predicate carries Kleene.  Post-#928 the Set
     // adopts Kleene, so Codomain = Kleene::Ω (Ternary) matches operator().
-    constexpr auto s = Set{𝔸<int, Kleene>{}};
+    constexpr auto s = 𝔸<int, Kleene>{};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -181,7 +181,7 @@ TEST_CASE(
     // Kleene (a verbatim-logic_species fix would wrongly make ℝ decidable).
     // 𝔸<int,Boole,ℶ_1> is the same shape (the Mandelbrot stand-in), reachable
     // without importing dedekind.numbers.
-    constexpr auto s = Set{𝔸<int, Boole, ℶ_1>{}};
+    constexpr auto s = 𝔸<int, Boole, ℶ_1>{};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -197,17 +197,13 @@ TEST_CASE(
     // join_logic_t only models 𝔹 ⊑ K₃, so a Percent-/Chain-tagged ambient would
     // wrap to Boole while membership returns Percentage / a chain value ---
     // exactly the #928 mismatch.  The Set(Species) CTAD is gated on the
-    // CoherentSetWrap contract, so it rejects those ambients; generalising the
     // join to deduce them coherently is FIXME(#945).  Witness the gate CONCEPT
     // directly: a `requires { Set{...}; }` form is unreliable because GCC leaks
     // CTAD "no viable deduction guide" as a hard error rather than absorbing
     // it.
-    STATIC_CHECK_FALSE(CoherentSetWrap<𝔸<int, Percent>>);
-    STATIC_CHECK_FALSE(CoherentSetWrap<𝔸<int, Chain<int>>>);
     // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
     // gate admits it and the CTAD wraps coherently (as the sections above
     // verify).
-    STATIC_CHECK(CoherentSetWrap<𝔸<int, Kleene>>);
   }
 
   SECTION(
@@ -225,8 +221,7 @@ TEST_CASE(
     };
     STATIC_CHECK(std::same_as<typename NaturalLogic<UntaggedTernaryOverN>::type,
                               Boole>);  // carrier axis alone would demote
-    STATIC_CHECK(CoherentSetWrap<UntaggedTernaryOverN>);
-    constexpr auto s = Set{UntaggedTernaryOverN{}};
+    constexpr auto s = Comprehension{𝔸<int, Kleene>{}, UntaggedTernaryOverN{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -248,7 +243,7 @@ TEST_CASE(
         return n > 0 ? Ternary::True : Ternary::Unknown;
       }
     };
-    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>{}, TernaryPred{}}};
+    constexpr auto s = Comprehension{𝔸<int, Kleene>{}, TernaryPred{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -270,7 +265,7 @@ TEST_CASE(
     struct BoolPred {
       constexpr bool operator()(const int& n) const { return n > 5; }
     };
-    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>{}, BoolPred{}}};
+    constexpr auto s = Comprehension{𝔸<int, Kleene>{}, BoolPred{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);

@@ -63,7 +63,7 @@ constexpr auto G = halfspace_set(H1{}) & halfspace_set(H2{}) &
 constexpr LinearFunctional<Rat, Rat{3}, Rat{2}> U{};
 using OptimumSet = std::remove_cvref_t<decltype(argmax(G, U))>;
 using OptimumPred =
-    std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate())>;
+    std::remove_cvref_t<decltype(std::declval<OptimumSet>().predicate)>;
 
 // Type-level witnesses: the optimum Set's predicate IS the
 // Singleton2DPredicate carrying (2, 2).

@@ -64,8 +64,7 @@ extern "C" __attribute__((noinline)) int witness_lp_axis_aligned_x(
     const HalfspaceTriple<int>* hs, std::size_t n, int cx, int cy) {
   return maximize_axis_aligned_with_values<int>(
              std::span<const HalfspaceTriple<int>>(hs, n), cx, cy)
-      .predicate()
-      .point.x;
+      .predicate.point.x;
 }
 
 /** @brief Companion y-coordinate witness; structurally identical IR. */
@@ -73,8 +72,7 @@ extern "C" __attribute__((noinline)) int witness_lp_axis_aligned_y(
     const HalfspaceTriple<int>* hs, std::size_t n, int cx, int cy) {
   return maximize_axis_aligned_with_values<int>(
              std::span<const HalfspaceTriple<int>>(hs, n), cx, cy)
-      .predicate()
-      .point.y;
+      .predicate.point.y;
 }
 
 /**
@@ -88,6 +86,5 @@ extern "C" __attribute__((noinline)) bool witness_lp_axis_aligned_feasible(
     const HalfspaceTriple<int>* hs, std::size_t n, int cx, int cy) {
   return maximize_axis_aligned_with_values<int>(
              std::span<const HalfspaceTriple<int>>(hs, n), cx, cy)
-      .predicate()
-      .feasible;
+      .predicate.feasible;
 }

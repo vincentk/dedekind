@@ -120,7 +120,7 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
     constexpr auto bounded_grid = [](const NaturalLatticePoint2D& q) {
       return (q.first < 4u) && (q.second < 4u);
     };
-    const auto bounded = Set{Comprehension{natural_lattice_2d(), bounded_grid}};
+    const auto bounded = Comprehension{natural_lattice_2d(), bounded_grid};
     using Logic = typename decltype(bounded)::logic_species;
     REQUIRE(bounded({0u, 0u}) == Logic::True);
     REQUIRE(bounded({3u, 3u}) == Logic::True);
@@ -136,10 +136,9 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
       return (q.first >= -2) && (q.first < 2) && (q.second >= -2) &&
              (q.second < 2);
     };
-    const auto half_space =
-        Set{Comprehension{integer_lattice_2d(), first_nonneg}};
+    const auto half_space = Comprehension{integer_lattice_2d(), first_nonneg};
     const auto interval_box =
-        Set{Comprehension{integer_lattice_2d(), interval_box_pred}};
+        Comprehension{integer_lattice_2d(), interval_box_pred};
 
     using HalfLogic = typename decltype(half_space)::logic_species;
     using BoxLogic = typename decltype(interval_box)::logic_species;
