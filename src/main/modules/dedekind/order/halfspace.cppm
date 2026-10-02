@@ -373,14 +373,6 @@ struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
  * universe.  Left as free functions, mirroring the @c structured_and surface.
  */
 
-/** @brief Complement of a static singleton on a @b two-element (bool) carrier:
- *         the other singleton.  On a larger carrier the complement of a point
- *         is not a point, so there is deliberately no overload there. */
-export template <typename L>
-constexpr auto operator~(const Singleton<bool, L>& s) {
-  return Singleton<bool, L>{!s.pivot};
-}
-
 // The meet / join of two points is the value-first `reduce_meet` /
 // `reduce_join` (empty vs singleton via `.kind`): a value pivot cannot branch
 // the RESULT TYPE on whether the two points coincide, so there is no type-level
