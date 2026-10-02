@@ -426,17 +426,17 @@ namespace dedekind::category {
 // any K) or ℕ = Cardinality with K ≥ 0.  Bare @c IsAbelianGroup was the trap:
 // unsigned/bool are (cyclic) groups, but true+K leaves bool and x+K wraps on
 // unsigned, so neither is a total translation.
-template <typename T, auto K, typename L>
+template <typename T, auto K, typename L, typename C>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<T, T>, L>,
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
     dedekind::order::IsEntireTranslationCarrier<T, K>;
 
 // LEAF: the diagonal π1==π2 (the identity relation) is entire on any carrier --
 // a ↦ a is total.
-template <typename T, typename L>
+template <typename T, typename L, typename C>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<T, T>, L>,
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
 // NODE (the compositional closure) for ComposePred's ENTIRENESS moved to

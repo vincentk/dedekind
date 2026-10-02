@@ -1209,13 +1209,17 @@ static_assert(
 // sequence is INFINITE; a finite sequence is a PARTIAL function (undefined past
 // its size), left at the primary false.
 namespace dedekind::category {
-template <typename I, typename T, typename L, typename PathT>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<I, T>, L>, dedekind::sequences::SequenceGraph<PathT>>> = true;
-template <typename I, typename T, typename L, typename PathT>
+template <typename I, typename T, typename L, typename PathT, typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<I, T>, L, C>,
+                                  dedekind::sequences::SequenceGraph<PathT>>> =
+    true;
+template <typename I, typename T, typename L, typename PathT, typename C>
   requires(!dedekind::sets::IsFinite<typename PathT::cardinality_type>)
-inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<I, T>, L>, dedekind::sequences::SequenceGraph<PathT>>> = true;
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<I, T>, L, C>,
+                                  dedekind::sequences::SequenceGraph<PathT>>> =
+    true;
 }  // namespace dedekind::category
 
 namespace dedekind::sequences {

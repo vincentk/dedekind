@@ -2346,27 +2346,30 @@ namespace dedekind::category {
 
 // LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
 // by construction).
-template <typename T, auto K, typename L>
+template <typename T, auto K, typename L, typename C>
 inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<T, T>, L>,
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
     dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
     true;
 
 // LEAF: the diagonal π1==π2 (the identity relation) is functional on any
 // carrier
 // -- a ↦ a, single-valued.
-template <typename T, typename L>
+template <typename T, typename L, typename C>
 inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<T, T>, L>,
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
     dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
 
 // RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
 // FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
 // functional (a PARTIAL function).
-template <typename A, typename B, typename L, typename P, typename RP>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<A, B>, L>, dedekind::order::ProductRestrict<P, RP>>> =
-    is_right_unique_v<dedekind::sets::Comprehension<𝔸<std::pair<A, B>, L>, P>>;
+template <typename A, typename B, typename L, typename P, typename RP,
+          typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, C>,
+                                  dedekind::order::ProductRestrict<P, RP>>> =
+    is_right_unique_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<A, B>, L, C>, P>>;
 
 // NODE (the compositional closure) for ComposePred's FUNCTIONALITY moved to
 // dedekind.relational:dyadic (PR #797, Copilot review) --- it is

@@ -610,12 +610,14 @@ namespace dedekind::category {
 
 // LEAF: the diagonal Δ = {(a,a)} is a TOTAL FUNCTION (a ↦ a) --- single-valued
 // (right-unique) AND entire (left-total).
-template <typename A, typename L>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<A, A>, L>, dedekind::relational::DiagPred<A>>> = true;
-template <typename A, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<A, A>, L>, dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
 
 // NODE: the relative product R;S propagates BOTH properties through @c >> ---
 // it is functional iff both factors are, and entire iff both factors are (§3.2
@@ -626,16 +628,21 @@ inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<A, C>, L>, dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_right_unique_v<
-        dedekind::sets::Comprehension<𝔸<std::pair<A, B>, L>, PR>> &&
-    is_right_unique_v<dedekind::sets::Comprehension<𝔸<std::pair<B, C>, L>, PS>>;
+    dedekind::sets::𝔸<std::pair<A, C>, L, C>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    is_right_unique_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<A, B>, L, C>, PR>> &&
+    is_right_unique_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<B, C>, L, C>, PS>>;
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    𝔸<std::pair<A, C>, L>, dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Comprehension<𝔸<std::pair<A, B>, L>, PR>> &&
-    is_left_total_v<dedekind::sets::Comprehension<𝔸<std::pair<B, C>, L>, PS>>;
+    dedekind::sets::𝔸<std::pair<A, C>, L, C>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    is_left_total_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<A, B>, L, C>, PR>> &&
+    is_left_total_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<B, C>, L, C>, PS>>;
 
 static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is FUNCTIONAL (single-valued).");
