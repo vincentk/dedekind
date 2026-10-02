@@ -287,7 +287,7 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
  * @f$\mathbb{R}@f$, @c std::size_t; the logic-species parameter on
  * @c IsDirectedSet defaults to @c Boole), the halfspace
  * satisfies @c IsNet automatically, since @c IsNet @c = @c IsArrow @c &&
- * @c IsDirectedSet<typename @c N::Domain>.  Same for @c OrderInterval;
+ * @c IsDirectedSet<typename @c N::Domain>.  Same for @c Interval;
  * @c Singleton inhabits @c IsArrow at the predicate level.
  *
  * Textbook identification (Munkres / Kelley): a halfspace
@@ -337,19 +337,17 @@ static_assert(
                     dedekind::category::Boole>>,
     "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
 
-// OrderInterval (the meet of two halfspaces) inherits the same conformance ---
+// Interval (the meet of two halfspaces) inherits the same conformance ---
 // two-sided indicator.
-static_assert(
-    dedekind::category::IsArrow<
-        OrderInterval<int, Strictness::NonStrict, Strictness::NonStrict,
-                      dedekind::category::Boole>>,
-    "OrderInterval exposes the IsArrow shape.");
+static_assert(dedekind::category::IsArrow<
+                  Interval<int, Strictness::NonStrict, Strictness::NonStrict,
+                           dedekind::category::Boole>>,
+              "Interval exposes the IsArrow shape.");
 
-static_assert(
-    IsNet<OrderInterval<std::size_t, Strictness::NonStrict,
-                        Strictness::NonStrict, dedekind::category::Boole>>,
-    "On a directed carrier, OrderInterval is an indicator net "
-    "(eventually-False past the upper pivot).");
+static_assert(IsNet<Interval<std::size_t, Strictness::NonStrict,
+                             Strictness::NonStrict, dedekind::category::Boole>>,
+              "On a directed carrier, Interval is an indicator net "
+              "(eventually-False past the upper pivot).");
 
 // Singleton inhabits IsArrow at the predicate level --- the degenerate case.
 static_assert(

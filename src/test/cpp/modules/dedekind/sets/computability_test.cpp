@@ -10,7 +10,7 @@
  * Tests in this file use ONLY @c dedekind.sets + @c dedekind.category so
  * the sets-test target respects the module DAG (sets is upstream of order).
  * Downstream concept-conformance for order-level types (@c Singleton,
- * @c OrderInterval) lives in
+ * @c Interval) lives in
  * @c modules/dedekind/order/halfspace_test.cpp; reduction-boundary
  * coverage via the halfspace DSL lives in
  * @c modules/dedekind/analysis/pruning_showcases_test.cpp.

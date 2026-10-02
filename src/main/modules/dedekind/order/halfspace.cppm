@@ -489,7 +489,7 @@ constexpr auto operator~(const Singleton<bool, L>& s) {
  * in a @c Set): the ℕ column of the §3 pruning listing then reads bare and
  * telling, symmetric with the bool @c Singleton column.  Narrow and gated, so
  * ordinary (non-complement) halfspace pairs still route to @c structured_and /
- * @c OrderInterval unchanged.
+ * @c Interval unchanged.
  */
 
 /** @brief The halfspace factory (#832): a @c Halfspace @b value denotes a
@@ -564,26 +564,25 @@ static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
  *  Value-carrying: the two halfspaces ARE the data (no pivot in a type), so an
  *  endpoint is Python-constructible; the free @c π_1 / @c π_2 recover them. */
 export template <typename T, Strictness SL, Strictness SU, typename L = Boole>
-using OrderInterval =
+using Interval =
     dedekind::category::Meet<Halfspace<T, Direction::Upward, SL, L>,
                              Halfspace<T, Direction::Downward, SU, L>>;
 
 /** @brief Build the interval from its two endpoints: the strictness pair in
  *  the type, the pivots as values. */
 export template <Strictness SL, Strictness SU, typename L = Boole, typename T>
-constexpr OrderInterval<T, SL, SU, L> make_interval(T lo, T hi) {
-  return OrderInterval<T, SL, SU, L>{
-      Halfspace<T, Direction::Upward, SL, L>{lo},
-      Halfspace<T, Direction::Downward, SU, L>{hi}};
+constexpr Interval<T, SL, SU, L> make_interval(T lo, T hi) {
+  return Interval<T, SL, SU, L>{Halfspace<T, Direction::Upward, SL, L>{lo},
+                                Halfspace<T, Direction::Downward, SU, L>{hi}};
 }
 
 /** @brief The endpoints, read off the two halfspace legs. */
 export template <typename T, Strictness SL, Strictness SU, typename L>
-constexpr T lower_pivot(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr T lower_pivot(const Interval<T, SL, SU, L>& iv) {
   return dedekind::category::π_1(iv).pivot;
 }
 export template <typename T, Strictness SL, Strictness SU, typename L>
-constexpr T upper_pivot(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr T upper_pivot(const Interval<T, SL, SU, L>& iv) {
   return dedekind::category::π_2(iv).pivot;
 }
 
@@ -595,12 +594,12 @@ constexpr T upper_pivot(const OrderInterval<T, SL, SU, L>& iv) {
  *  @c int).  The variant ℕ-/ℤ-proxies await the heterogeneous-pivot
  *  restoration (#970). */
 export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr long long eff_lower(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr long long eff_lower(const Interval<T, SL, SU, L>& iv) {
   const auto lo = static_cast<long long>(lower_pivot(iv));
   return SL == Strictness::Strict ? lo + 1 : lo;
 }
 export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr long long eff_upper(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr long long eff_upper(const Interval<T, SL, SU, L>& iv) {
   const auto hi = static_cast<long long>(upper_pivot(iv));
   return SU == Strictness::Strict ? hi - 1 : hi;
 }
@@ -611,7 +610,7 @@ constexpr long long eff_upper(const OrderInterval<T, SL, SU, L>& iv) {
  *  @c lo==hi with an open end --- @c [5,5] is the singleton).  Empty intervals
  *  are representable, so @c :inclusion recognises @f$∅ ⊆ X@f$. */
 export template <typename T, Strictness SL, Strictness SU, typename L>
-constexpr bool is_empty(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr bool is_empty(const Interval<T, SL, SU, L>& iv) {
   if constexpr (std::integral<T>) {
     return eff_lower(iv) > eff_upper(iv);
   } else {
@@ -625,7 +624,7 @@ constexpr bool is_empty(const OrderInterval<T, SL, SU, L>& iv) {
 /** @brief The finite cardinality of an interval on a built-in integral
  *  carrier (0 when empty). */
 export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr std::size_t size(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
   const long long lo = eff_lower(iv);
   const long long hi = eff_upper(iv);
   return hi < lo ? 0u : static_cast<std::size_t>(hi - lo + 1);
@@ -637,7 +636,7 @@ constexpr std::size_t size(const OrderInterval<T, SL, SU, L>& iv) {
  *  @b value.  Being @c constexpr it serves BOTH phases (the
  * compile-time/runtime optionality): the type-level @c structured_and below @b
  * delegates to it (it lifts its NTTP pivots to values, calls @c reduce_meet,
- * and lifts the result kind back to @c Singleton / @c OrderInterval / @c
+ * and lifts the result kind back to @c Singleton / @c Interval / @c
  * EmptyPredicate), and the Python @c dedekind.lwv surface calls the @b same
  * function on runtime pivots. No NTTP is read off at runtime; the pivot never
  * needs to live in a type.
@@ -874,7 +873,7 @@ constexpr SetVal<T, L> to_setval(const Halfspace<T, D, S, L>& h) {
 /** @brief Lift an interval (the meet of its two halfspaces) to its @c SetVal:
  *  the raw @c Interval kind; @c reduce_meet normalises it. */
 export template <typename T, Strictness SL, Strictness SU, typename L>
-constexpr SetVal<T, L> to_setval(const OrderInterval<T, SL, SU, L>& iv) {
+constexpr SetVal<T, L> to_setval(const Interval<T, SL, SU, L>& iv) {
   return {{},
           SetKind::Interval,
           lower_pivot(iv),
@@ -944,7 +943,7 @@ constexpr typename L::Ω operator==(const Halfspace<T, D, S, L>& h,
  * Three-way reduction, evaluated at compile time on the NTTP pivots:
  *   1. disjoint       → `EmptyPredicate<T>` (Lo, Hi straddle no T)
  *   2. exactly one T  → `Singleton<unique, L>` (only for integral T)
- *   3. otherwise      → `OrderInterval<T, Lo, Hi, SL, SU, L>`
+ *   3. otherwise      → `Interval<T, Lo, Hi, SL, SU, L>`
  *
  * The cardinality formula over integral T, by strictness pair:
  *   strict/strict         : Hi - Lo - 1
@@ -1012,7 +1011,7 @@ constexpr auto structured_or(const Halfspace<T, D1, S1, L>& a,
 
 /**
  * @brief Cartesian product of two reduced extensional structures (typically
- * `OrderInterval`s on integer carriers). Preserves size / logic / tags so the
+ * `Interval`s on integer carriers). Preserves size / logic / tags so the
  * 2D product participates in the same computability classification as the
  * 1D factors: `IsExtensional<IntervalProduct<I1, I2>>` holds whenever each
  * factor satisfies `IsExtensional`.
@@ -1029,7 +1028,7 @@ struct IntervalProduct {
   using is_extensional_tag = void;
 
   // Cardinality is only finite when both factors are — for a product whose
-  // factors include a non-integral `OrderInterval` (cardinality ℵ_0), the
+  // factors include a non-integral `Interval` (cardinality ℵ_0), the
   // product is likewise transfinite.
   using cardinality_type = std::conditional_t<requires {
     typename A::cardinality_type;
@@ -1067,14 +1066,14 @@ struct IntervalProduct {
 // @c IsProduct (the shared product substrate the comonoid's copy/merge is built
 // on), and its @c operator() is the product-arrow action on that pair.  This
 // pins the :order ⟶ :category dependency as a compiler check rather than prose.
-// The fixture is a concrete integer OrderInterval so the assertion has real
+// The fixture is a concrete integer Interval so the assertion has real
 // carriers.  NOTE the honest limit: @c IntervalProduct is a PREDICATE on A×B
 // (its @c Codomain is a logic value), so it witnesses the product-OBJECT domain
 // and the arrow shape, NOT the pair→pair @c Tensor arrow-action; presenting it
 // AS @c Tensor would need a real adapter with a product Codomain.  FIXME(#946).
 namespace {
 using IntervalProductFixture =
-    OrderInterval<int, Strictness::NonStrict, Strictness::NonStrict>;
+    Interval<int, Strictness::NonStrict, Strictness::NonStrict>;
 using IntervalProductWitness =
     IntervalProduct<IntervalProductFixture, IntervalProductFixture>;
 static_assert(dedekind::category::IsArrow<IntervalProductWitness>,
@@ -1090,8 +1089,8 @@ static_assert(
 export template <typename T1, Strictness SL1, Strictness SU1, typename L1,
                  typename T2, Strictness SL2, Strictness SU2, typename L2>
   requires std::same_as<L1, L2>
-constexpr auto operator*(OrderInterval<T1, SL1, SU1, L1> a,
-                         OrderInterval<T2, SL2, SU2, L2> b) {
+constexpr auto operator*(Interval<T1, SL1, SU1, L1> a,
+                         Interval<T2, SL2, SU2, L2> b) {
   return IntervalProduct<decltype(a), decltype(b)>{a, b};
 }
 
@@ -1105,8 +1104,8 @@ constexpr auto operator*(OrderInterval<T1, SL1, SU1, L1> a,
  *  @see dedekind::sequences::bridge_meet_witness in @c :sequences:ranges. */
 export template <typename T, Strictness SL1, Strictness SU1, Strictness SL2,
                  Strictness SU2, typename L>
-constexpr SetVal<T, L> structured_and(const OrderInterval<T, SL1, SU1, L>& a,
-                                      const OrderInterval<T, SL2, SU2, L>& b) {
+constexpr SetVal<T, L> structured_and(const Interval<T, SL1, SU1, L>& a,
+                                      const Interval<T, SL2, SU2, L>& b) {
   return reduce_meet(to_setval(a), to_setval(b));
 }
 
@@ -1650,8 +1649,8 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
     // here).
     //
     // FIXME(#872): axis_factor is not closed over its recursive outputs.  With
-    // 3+ same-axis bounds a child reduces to an OrderInterval/Singleton and
-    // structured_and(OrderInterval, Halfspace) has no overload, so the relation
+    // 3+ same-axis bounds a child reduces to an Interval/Singleton and
+    // structured_and(Interval, Halfspace) has no overload, so the relation
     // fails to instantiate (association-dependent).  Two-bound meets work
     // (witnessed below); the meet-lattice closure / RelAnd normalization is
     // #872, out of this PR's meet/join scope.
@@ -2124,7 +2123,7 @@ constexpr auto lowerbounds(const Universe<bool, L, C>&) {
  *  @c Set{A} @c & @c Set{B} spelling (that reaches @c elevate_meet) and forced
  * a defensive @c Set{} re-wrap at the disjoint-emptiness call sites.  Routing
  * the empty result through the SAME @c Ø<T,L> the sets layer produces makes the
- * two spellings type-identical.  Non-empty results (an @c OrderInterval, a
+ * two spellings type-identical.  Non-empty results (an @c Interval, a
  *  @c Singleton) are returned exactly as @c structured_and shapes them. */
 export template <typename T, Direction D1, Strictness S1, Direction D2,
                  Strictness S2, typename L>

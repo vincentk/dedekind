@@ -20,7 +20,7 @@
  *   - `:completeness` — successor, Archimedean, dense / discrete,
  *                       Dedekind-complete.
  *   - `:halfspace`    — NTTP halfspace DSL (`bound<V>`, `Halfspace`,
- *                       `OrderInterval`, `Singleton`, `IntervalProduct`,
+ *                       `Interval`, `Singleton`, `IntervalProduct`,
  *                       `structured_and`).
  *
  * Wikipedia: Partially ordered set, Total order, Half-space (geometry)

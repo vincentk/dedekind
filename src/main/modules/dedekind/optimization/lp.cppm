@@ -960,7 +960,7 @@ constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
  *  halfspace packs.
  *
  *  Parallels @c :order:halfspace::structured_and on 1D halfspaces; the
- *  difference is that 1D meets land in `Singleton` / `OrderInterval` /
+ *  difference is that 1D meets land in `Singleton` / `Interval` /
  *  empty (the lattice for 1D), whereas 2D halfspace meets land in
  *  `Polytope2DPredicate` (no cardinality-1 short circuit at this layer —
  *  the optimum-as-typed-constant collapse happens further down in

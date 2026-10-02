@@ -15,12 +15,12 @@
 #include <type_traits>
 
 import dedekind.sequences; // ext, to_iota_view
-import dedekind.order;     // OrderInterval, Strictness
+import dedekind.order;     // Interval, Strictness
 import dedekind.category;  // Boole
 
 using namespace dedekind::sequences;
 using dedekind::category::Boole;
-using dedekind::order::OrderInterval;
+using dedekind::order::Interval;
 using dedekind::order::Strictness;
 
 namespace {

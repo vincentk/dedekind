@@ -57,7 +57,7 @@ concept DecidableMeetSubset =
     };
 
 /** @brief A decidable @c <= exists for the pair --- generic (meet) @b or a
- *  per-carrier specialisation (@c Singleton membership, @c OrderInterval
+ *  per-carrier specialisation (@c Singleton membership, @c Interval
  *  endpoints).  The gate for the derived relations, so they ride @b any
  *  @c <=, not only the meet-based one. */
 export template <typename A, typename B>
@@ -75,7 +75,7 @@ concept HasProperSubset = HasSubset<A, B> && requires(const A& a, const B& b) {
 
 /** @brief @f$A \subseteq B \iff A \cap B = A@f$ --- the generic identity.
  *  More-specialized per-carrier @c <= (@c Set / @c Ø / @c Universe, the
- *  @c Singleton membership and @c OrderInterval endpoints below) win by partial
+ *  @c Singleton membership and @c Interval endpoints below) win by partial
  *  ordering; this fills the gaps (@c Halfspace ⊆ @c Halfspace). */
 export template <typename A, typename B>
   requires DecidableMeetSubset<A, B>
@@ -116,8 +116,8 @@ constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
  *  would wrongly report @c False (#835 review). */
 export template <typename T, Strictness ASL, Strictness ASU, Strictness BSL,
                  Strictness BSU, typename L>
-constexpr typename L::Ω operator<=(const OrderInterval<T, ASL, ASU, L>& a,
-                                   const OrderInterval<T, BSL, BSU, L>& b) {
+constexpr typename L::Ω operator<=(const Interval<T, ASL, ASU, L>& a,
+                                   const Interval<T, BSL, BSU, L>& b) {
   if (is_empty(a)) return L::True;  // ∅ ⊆ X
   if constexpr (std::integral<T>) {
     // Discrete: nest the EFFECTIVE carrier bounds, the same normalisation

@@ -27,12 +27,11 @@ TEST_CASE(
     "[topology][continuity]") {
   using OpenRay = Halfspace<double, Direction::Upward, Strictness::Strict>;
   using ClosedRay = Halfspace<double, Direction::Upward, Strictness::NonStrict>;
-  using OpenInterval =
-      OrderInterval<double, Strictness::Strict, Strictness::Strict>;
+  using OpenInterval = Interval<double, Strictness::Strict, Strictness::Strict>;
   using ClosedInterval =
-      OrderInterval<double, Strictness::NonStrict, Strictness::NonStrict>;
+      Interval<double, Strictness::NonStrict, Strictness::NonStrict>;
   using LeftClosedInterval =
-      OrderInterval<double, Strictness::NonStrict, Strictness::Strict>;
+      Interval<double, Strictness::NonStrict, Strictness::Strict>;
 
   SECTION(
       "dense carrier: strict is open, non-strict is closed, mixed is neither") {
@@ -82,8 +81,7 @@ TEST_CASE(
 
   SECTION("discrete carrier: the same shapes are clopen by structure") {
     using IntRay = Halfspace<int, Direction::Upward, Strictness::Strict>;
-    using IntInterval =
-        OrderInterval<int, Strictness::Strict, Strictness::Strict>;
+    using IntInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
     STATIC_CHECK(HasDiscreteCarrier<IntRay>);
     STATIC_CHECK(IsClopen<IntRay>);
     STATIC_CHECK(IsClopen<IntInterval>);

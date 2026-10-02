@@ -1,7 +1,7 @@
 /** @file dedekind/order/halfspace_test.cpp
  *
  * Unit coverage for the NTTP halfspace DSL introduced in PR #361:
- * `bound<V>`, `Halfspace<T, Pivot, D, S, L>`, `OrderInterval<T, Lo, Hi, ...>`,
+ * `bound<V>`, `Halfspace<T, Pivot, D, S, L>`, `Interval<T, Lo, Hi, ...>`,
  * `Singleton<auto Value, L>`, `IntervalProduct<A, B>`, and the `structured_and`
  * overloads that dispatch between them.
  *
@@ -181,7 +181,7 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
           "[order][halfspace][set][xor]") {
   // {x > 10} △ {x < 100}: the union covers the line.  A dormant covering-XOR
   // branch that structured_or once activated returned ¬(A ∩ B) by negating a
-  // bare OrderInterval — a Morphism, not a Set.  Removed; the general path must
+  // bare Interval — a Morphism, not a Set.  Removed; the general path must
   // keep △ closed over Set.
   constexpr Set<int, Boole, HS<Direction::Upward, Strictness::Strict>> a{
       HS<Direction::Upward, Strictness::Strict>{10}};
@@ -261,7 +261,7 @@ TEST_CASE("order:halfspace — Singleton identity and cross-L equality",
   SECTION("Size is 1") { STATIC_CHECK(s_classical.size() == 1u); }
 }
 
-TEST_CASE("order:halfspace — OrderInterval size across strictness pairs",
+TEST_CASE("order:halfspace — Interval size across strictness pairs",
           "[order][halfspace][order_interval]") {
   // An interval is the meet of two halfspaces; its endpoints are values.
   SECTION("strict/strict on ℤ: [1, 4] open") {

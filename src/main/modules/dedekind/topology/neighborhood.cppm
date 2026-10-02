@@ -256,7 +256,7 @@ static_assert(
 static_assert(IsClopen<Halfspace<int, Direction::Upward, Strictness::Strict>>,
               "the same ray on a discrete carrier is clopen");
 static_assert(
-    IsConvex<OrderInterval<double, Strictness::Strict, Strictness::Strict>>,
+    IsConvex<Interval<double, Strictness::Strict, Strictness::Strict>>,
     "an interval is convex");
 
 }  // namespace dedekind::topology
