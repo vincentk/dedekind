@@ -83,16 +83,15 @@ TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
   // (possibly Unknown) membership; nor is it an ETCS set (IsSet needs Ω = 𝔹).
   SECTION("Σ-sets: ETCS sets over Boole are decidable") {
     STATIC_CHECK(IsDecidableSet<decltype(ℕ)>);
-    STATIC_CHECK(IsDecidableSet<decltype(𝔸<bool>)>);
+    STATIC_CHECK(IsDecidableSet<𝔸<bool>>);
   }
   SECTION(
       "Ω-set: same carrier, Ternary ambient — an L-set, neither decidable "
       "nor ETCS") {
-    STATIC_CHECK(
-        IsLSet<decltype(𝔸<bool, Kleene>)>);  // an L-set, not ETCS (Ω ≠ 𝔹)
-    STATIC_CHECK_FALSE(IsSet<decltype(𝔸<bool, Kleene>)>);
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(𝔸<bool, Kleene>)>);
-    STATIC_CHECK_FALSE(IsDecidableSet<decltype(𝔸<bool, Kleene>)>);
+    STATIC_CHECK(IsLSet<𝔸<bool, Kleene>>);  // an L-set, not ETCS (Ω ≠ 𝔹)
+    STATIC_CHECK_FALSE(IsSet<𝔸<bool, Kleene>>);
+    STATIC_CHECK_FALSE(HasDecidableMembership<𝔸<bool, Kleene>>);
+    STATIC_CHECK_FALSE(IsDecidableSet<𝔸<bool, Kleene>>);
   }
 }
 
@@ -102,12 +101,9 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
   // carrier axis (Rice's theorem caps further promotion of opaque-λ
   // predicates; the carrier-axis verdict is the cheap structural witness).
   SECTION("Countable carriers → Boole") {
-    STATIC_CHECK(
-        std::same_as<typename NaturalLogic<Universe<int>>::type, Boole>);
-    STATIC_CHECK(
-        std::same_as<typename NaturalLogic<Universe<unsigned>>::type, Boole>);
-    STATIC_CHECK(
-        std::same_as<typename NaturalLogic<Universe<bool>>::type, Boole>);
+    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<int>>::type, Boole>);
+    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<unsigned>>::type, Boole>);
+    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<bool>>::type, Boole>);
   }
 
   // Negative witness: Mandelbrot-shaped Sets — uncountable carrier (ℶ_1)
@@ -122,10 +118,9 @@ TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
   SECTION("Uncountable carriers → Kleene (Mandelbrot-shape witness)") {
     // ℶ_1-tagged Universe models the "carrier with ℝ-shaped
     // cardinality" — the Mandelbrot canonical case is @c
-    // Universe<Complex<...>, _, ℶ_1>, mechanically equivalent here.
+    // 𝔸<Complex<...>, _, ℶ_1>, mechanically equivalent here.
     STATIC_CHECK(
-        std::same_as<typename NaturalLogic<Universe<int, Boole, ℶ_1>>::type,
-                     Kleene>);
+        std::same_as<typename NaturalLogic<𝔸<int, Boole, ℶ_1>>::type, Kleene>);
   }
 
   // SFINAE fallback: types without @c cardinality_type degrade to the
@@ -147,7 +142,7 @@ TEST_CASE(
   // predicate's actual RETURN type), so it stays coherent with operator().
 
   SECTION("Coherent ambient (𝔸<int>) is unchanged: Boole, decidable") {
-    constexpr auto s = Set{𝔸<int>};
+    constexpr auto s = Set{𝔸<int>{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Boole>);
     STATIC_CHECK(std::same_as<typename decltype(s)::Codomain, bool>);
     STATIC_CHECK(IsSet<decltype(s)>);
@@ -161,7 +156,7 @@ TEST_CASE(
     // Countable carrier + pessimistic Kleene logic: NaturalLogic's carrier
     // axis says Boole, but the predicate carries Kleene.  Post-#928 the Set
     // adopts Kleene, so Codomain = Kleene::Ω (Ternary) matches operator().
-    constexpr auto s = Set{𝔸<int, Kleene>};
+    constexpr auto s = Set{𝔸<int, Kleene>{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -186,7 +181,7 @@ TEST_CASE(
     // Kleene (a verbatim-logic_species fix would wrongly make ℝ decidable).
     // 𝔸<int,Boole,ℶ_1> is the same shape (the Mandelbrot stand-in), reachable
     // without importing dedekind.numbers.
-    constexpr auto s = Set{𝔸<int, Boole, ℶ_1>};
+    constexpr auto s = Set{𝔸<int, Boole, ℶ_1>{}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -207,12 +202,12 @@ TEST_CASE(
     // directly: a `requires { Set{...}; }` form is unreliable because GCC leaks
     // CTAD "no viable deduction guide" as a hard error rather than absorbing
     // it.
-    STATIC_CHECK_FALSE(CoherentSetWrap<Universe<int, Percent>>);
-    STATIC_CHECK_FALSE(CoherentSetWrap<Universe<int, Chain<int>>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<𝔸<int, Percent>>);
+    STATIC_CHECK_FALSE(CoherentSetWrap<𝔸<int, Chain<int>>>);
     // Control: a Kleene ambient DOES lift into the wrapped codomain, so the
     // gate admits it and the CTAD wraps coherently (as the sections above
     // verify).
-    STATIC_CHECK(CoherentSetWrap<Universe<int, Kleene>>);
+    STATIC_CHECK(CoherentSetWrap<𝔸<int, Kleene>>);
   }
 
   SECTION(
@@ -253,7 +248,7 @@ TEST_CASE(
         return n > 0 ? Ternary::True : Ternary::Unknown;
       }
     };
-    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, TernaryPred{}}};
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>{}, TernaryPred{}}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
@@ -275,7 +270,7 @@ TEST_CASE(
     struct BoolPred {
       constexpr bool operator()(const int& n) const { return n > 5; }
     };
-    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>, BoolPred{}}};
+    constexpr auto s = Set{Comprehension{𝔸<int, Kleene>{}, BoolPred{}}};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
     STATIC_CHECK(
         std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);

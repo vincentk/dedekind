@@ -32,7 +32,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// The Boolean universe 𝔹 (= 𝔸<bool> = Universe<bool, Boole, Finite>) with
+// The Boolean universe 𝔹 (= 𝔸<bool> = 𝔸<bool, Boole, Finite>) with
 // the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate);
 // the wrap keeps the Set<bool, Boole, BooleanEqPredicate> shape the complement-
 // pair collapse below relies on.

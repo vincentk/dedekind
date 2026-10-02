@@ -73,7 +73,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   SECTION("Union") {
     // FIXME(#685): mirror of the SECTION("Intersections") gaps above,
     // with `|` (union) in place of `&` (intersection) and
-    // `Universe<T>{}` in place of `Ø<T>{}`.  Same underlying
+    // `𝔸<T>{}` in place of `Ø<T>{}`.  Same underlying
     // structural-identity / cross-type-overload / equality-matrix
     // surgery needed.
     // The union is now the recoverable named OrPredicate (no element scout,
@@ -104,7 +104,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
     // overload surgery tracked there.
     // REQUIRE((_s | _s) == _s);
-    // REQUIRE((!_s) | _s == Universe<size_t>{});
+    // REQUIRE((!_s) | _s == 𝔸<size_t>{});
   }
   SECTION("Difference") {
     // FIXME(#685): set-difference operator `-` not defined on the

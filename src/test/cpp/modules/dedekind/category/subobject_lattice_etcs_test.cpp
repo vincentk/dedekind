@@ -9,7 +9,7 @@
  *   - @c Subobject<A, Chi> now exposes @c logic_species via
  *     @c GetLogic<Cod<Chi>> (the single new typedef in Slice 9).
  *
- * The @c :sets-side carriers (@c Ø, @c Universe, @c SingletonSet)
+ * The @c :sets-side carriers (@c Ø, @c 𝔸, @c SingletonSet)
  * are witnessed in
  * @c test/cpp/modules/dedekind/sets/subobject_lattice_carriers_test.cpp
  * (which can import @c dedekind.sets).

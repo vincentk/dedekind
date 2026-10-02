@@ -888,7 +888,7 @@ export using ComplexSet = ComplexesOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c Universe over the carrier), not classifier-alias types.  All
+ *  @c 𝔸 over the carrier), not classifier-alias types.  All
  *  seven species symbols (@c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, @c ℂ, @c 𝔻)
  *  carry the canonical @c element<ℂ> scout spelling.
  *
@@ -910,12 +910,11 @@ export using ComplexSet = ComplexesOf<>;
  *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>{};
 
 static_assert(
-    std::same_as<
-        std::remove_cvref_t<decltype(ℂ)>,
-        dedekind::sets::Universe<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
+    std::same_as<std::remove_cvref_t<decltype(ℂ)>,
+                 dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
     "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");
@@ -930,7 +929,7 @@ static_assert(
  *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
  *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
 export inline constexpr auto ℂ_d =
-    dedekind::sets::𝔸<Complex<machine_real_scalar>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Complex<machine_real_scalar>, Boole, ℶ_1>{};
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
                  Complex<machine_real_scalar>>,
@@ -1128,7 +1127,7 @@ constexpr auto embed_grid_ℂ(
     return grid(dedekind::geometry::IntegerLatticePoint2D{x, y}) ==
            GridLogic::True;
   };
-  return Set{Comprehension{𝔸<Complex<double>>, in_grid}};
+  return Set{Comprehension{𝔸<Complex<double>>{}, in_grid}};
 }
 
 /**

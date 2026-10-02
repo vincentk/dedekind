@@ -348,7 +348,7 @@ export using RealSet = RealsOf<>;
  *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
  *
  *  @details Per #559 the named species symbols denote @b universe values
- *  (constexpr @c Universe instances over the carrier).  @c ℝ's carrier is
+ *  (constexpr @c 𝔸 instances over the carrier).  @c ℝ's carrier is
  *  the decidable FIELD @c QuadraticReal<2> @c = ℚ(√2): the @b universe @c ℝ is
  * a set-indexed field (@c algebra::IsField, as @c ℚ @c = @c 𝔸<Rational> is),
  * and its @b carrier is order-complete in the library's @b structural surrogate
@@ -369,13 +369,12 @@ export using RealSet = RealsOf<>;
  *  ℝ.  The cross-carrier membership classifier is @c RealSet @c = @c RealsOf<>.
  */
 export inline constexpr auto ℝ =
-    dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>{};
 
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(ℝ)>,
-                 dedekind::sets::Universe<QuadraticReal<2>, Boole, ℶ_1>>,
-    "ℝ is the universe 𝔸<QuadraticReal<2>, Boole, ℶ_1> — the "
-    "coat-hanger realised as ℚ(√2).");
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℝ)>,
+                           dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>>,
+              "ℝ is the universe 𝔸<QuadraticReal<2>, Boole, ℶ_1> — the "
+              "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
                            QuadraticReal<2>>,
               "ℝ's carrier IS QuadraticReal<2> = ℚ(√2).");
@@ -399,7 +398,7 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
  *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
  *  @c ℝ. */
 export inline constexpr auto ℝ_d =
-    dedekind::sets::𝔸<Real<machine_real_scalar>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Real<machine_real_scalar>, Boole, ℶ_1>{};
 
 export inline constexpr RealsOf<> R{};
 

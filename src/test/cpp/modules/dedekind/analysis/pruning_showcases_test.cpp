@@ -152,8 +152,8 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
   // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch to
   // @c element<𝔸<ℝ>>; for now ℝ is still the predicate-set type.
-  constexpr auto gt_five = 𝔸<Real<double>> | (χ > bound<5.0>);
-  constexpr auto lt_three = 𝔸<Real<double>> | (χ < bound<3.0>);
+  constexpr auto gt_five = 𝔸<Real<double>>{} | (χ > bound<5.0>);
+  constexpr auto lt_three = 𝔸<Real<double>>{} | (χ < bound<3.0>);
 
   // The contradiction folds value-first to the empty SetVal, on a continuous
   // carrier just as on ℕ.

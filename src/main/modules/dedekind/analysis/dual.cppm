@@ -291,7 +291,7 @@ static_assert(
 
 export template <typename F = dedekind::numbers::machine_real_scalar,
                  typename L = Boole, typename C = ℶ_1>
-using DualSetOf = Universe<Dual<F>, L, C>;
+using DualSetOf = 𝔸<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 
@@ -301,7 +301,7 @@ export using DualSet = DualSetOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
- *  @c Universe over the carrier), not classifier-alias types.  All
+ *  @c 𝔸 over the carrier), not classifier-alias types.  All
  *  seven species symbols (𝔹, ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻) carry the canonical
  *  @c element<𝔻> scout spelling.
  *
@@ -330,12 +330,12 @@ export using DualSet = DualSetOf<>;
  *  is the universal-algebra side of that same construction.
  */
 export inline constexpr auto 𝔻 =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>{};
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                 dedekind::sets::Universe<
-                     Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>>,
+                 dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>,
+                                   Boole, ℶ_1>>,
     "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ and ℂ.  Not Dual<double>.");
@@ -348,7 +348,8 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
  *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
  *  abstract @c 𝔻 is the coat-hanger. */
 export inline constexpr auto 𝔻_d =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>, Boole, ℶ_1>;
+    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>, Boole,
+                      ℶ_1>{};
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
                            Dual<dedekind::numbers::machine_real_scalar>>,
               "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");

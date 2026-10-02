@@ -235,7 +235,7 @@ static_assert(
 // The pure-lift payoff: the set object 𝔸<bool> is a set-indexed algebra
 // field under (XOR, AND) --- 𝔽2 qualifies with no division operator surface.
 static_assert(
-    IsField<decltype(𝔸<bool>), std::bit_xor<bool>, std::bit_and<bool>>,
+    IsField<𝔸<bool>, std::bit_xor<bool>, std::bit_and<bool>>,
     "𝔽2 = 𝔸<bool> under (XOR, AND) is a set-indexed algebra::IsField: "
     "the lift is purely axiomatic, no operator/ or .inverse() required.");
 

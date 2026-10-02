@@ -58,7 +58,7 @@ module;
 export module dedekind.order:powerset;
 
 import dedekind.category;
-import dedekind.sets; // Ø, Universe, Set, SetShaped (the deleted gate),
+import dedekind.sets; // Ø, 𝔸, Set, SetShaped (the deleted gate),
                       // IsRingIntegral (:sets:cardinality, #878)
 import :total;        // IsTotallyOrdered --- the ordered-carrier gate
 import :halfspace;    // Halfspace, Singleton, Interval
@@ -90,7 +90,7 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // --- the to_sub coercions (and, structurally, the 𝔓 gate) ---
   constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty_(true) { normalize(); }
   template <typename Card>
-  constexpr Sub(const dedekind::sets::Universe<C, L, Card>&) {}  // 𝔸
+  constexpr Sub(const dedekind::sets::𝔸<C, L, Card>&) {}  // 𝔸
   // The singleton's carrier must BE @c C (like the Halfspace / Interval
   // ctors that fix @c C): otherwise @c Singleton<4.5> would silently narrow
   // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
@@ -270,8 +270,8 @@ constexpr auto power_set(const S& base) {
  */
 export template <typename C, typename L, typename Card>
   requires IsTotallyOrdered<C>
-constexpr auto power_set(const dedekind::sets::Universe<C, L, Card>&) {
-  return dedekind::sets::𝔸<Sub<C, L>, L>;
+constexpr auto power_set(const dedekind::sets::𝔸<C, L, Card>&) {
+  return dedekind::sets::𝔸<Sub<C, L>, L>{};
 }
 
 /** @brief Textbook fraktur-P alias for @c power_set (blackboard @c 𝔓). Forwards

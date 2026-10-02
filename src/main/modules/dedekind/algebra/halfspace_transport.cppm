@@ -179,7 +179,7 @@ export template <typename T, auto K, typename L>
   requires dedekind::category::IsAbelianGroup<T, std::plus<T>>
 constexpr auto image(
     const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&) {
-  return 𝔸<T, L>;  // preserve the relation's logic species
+  return 𝔸<T, L>{};  // preserve the relation's logic species
 }
 
 /** @brief image of a translation graph restricted to a halfspace @c {x⋈P}: the

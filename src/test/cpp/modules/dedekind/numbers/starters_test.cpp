@@ -17,30 +17,28 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   // spelled directly (Cardinality, SignedCardinality, Rational<...>, ...)
   // in template-type-parameter positions.  Each symbol's STATIC_CHECK
   // below witnesses the universe-over-carrier reading by asserting
-  // (a) decltype(symbol) == Universe<carrier> and (b)
+  // (a) decltype(symbol) == 𝔸<carrier> and (b)
   // decltype(symbol)::Domain == carrier.
 
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>>);
   STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(ℕ)>, Universe<Cardinality>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔸<Cardinality>)>,
-                            Universe<Cardinality>>);
+      std::same_as<std::remove_cvref_t<𝔸<Cardinality>>, 𝔸<Cardinality>>);
 
   // Post-#670: ℤ uses the saturating SignedCardinality variant
   // (mirroring ℕ = 𝔸<Cardinality>), not the cyclic finite fragment.
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
-                            Universe<SignedCardinality>>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(ℤ)>, 𝔸<SignedCardinality>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
                             SignedCardinality>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔸<SignedCardinality>)>,
-                            Universe<SignedCardinality>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<SignedCardinality>>,
+                            𝔸<SignedCardinality>>);
 
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                            Universe<Rational<default_integer>>>);
+                            𝔸<Rational<default_integer>>>);
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                             Rational<default_integer>>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(𝔸<Rational<default_integer>>)>,
-                   Universe<Rational<default_integer>>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<Rational<default_integer>>>,
+                            𝔸<Rational<default_integer>>>);
 
   // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
   // PR ; analogous STATIC_CHECKs live in
@@ -60,8 +58,8 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   // Direct ambient-call route: ℕ.contains(value) (or equivalently
   // 𝔸<Cardinality>.contains(value), since ℕ = 𝔸<Cardinality>) returns
   // L::True for every Cardinality value (the universal-set semantics).
-  static_assert(𝔸<Cardinality>.contains(7u));
-  static_assert(𝔸<Cardinality>.contains(0u));
+  static_assert(𝔸<Cardinality>{}.contains(7u));
+  static_assert(𝔸<Cardinality>{}.contains(0u));
 
   constexpr auto integers = ℤ;
   static_assert(integers(-7));

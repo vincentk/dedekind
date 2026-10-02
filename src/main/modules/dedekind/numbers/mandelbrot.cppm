@@ -274,7 +274,7 @@ constexpr auto M_N(std::size_t max_iter, EscapeCriterion criterion,
   const auto escapes = [kleene, policy](const Complex<R>& x) {
     return collapse_ternary(kleene(x), policy);
   };
-  return Set{Comprehension{𝔸<Complex<R>>, classify(escapes).χ}};
+  return Set{Comprehension{𝔸<Complex<R>>{}, classify(escapes).χ}};
 }
 
 /**

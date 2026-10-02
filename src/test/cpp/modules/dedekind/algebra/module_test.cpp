@@ -117,14 +117,14 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     constexpr auto is_zero_line = [](const RealLine& r) {
       return r.coordinate().resolve() == 0.0;
     };
-    auto zero_line = Set{Comprehension{Universe<RealLine>{}, is_zero_line}};
+    auto zero_line = Set{Comprehension{𝔸<RealLine>{}, is_zero_line}};
     CHECK(zero_line(RealLine(0.0)));
     CHECK_FALSE(zero_line(RealLine(1.0)));
 
     constexpr auto is_true_line = [](const BoolLine& x) {
       return x.coordinate();
     };
-    auto true_line = Set{Comprehension{Universe<BoolLine>{}, is_true_line}};
+    auto true_line = Set{Comprehension{𝔸<BoolLine>{}, is_true_line}};
     CHECK(true_line(BoolLine(true)));
     CHECK_FALSE(true_line(BoolLine(false)));
   }

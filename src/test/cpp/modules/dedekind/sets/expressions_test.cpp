@@ -119,9 +119,8 @@ static_assert(IsArrowProduct<MeetLift, A_set, B_set>,
 static_assert(dedekind::category::IsInitialObject<
                   dedekind::sets::Ø<int, dedekind::category::Boole>>,
               "Ø is the initial object (⊥) of Sub(U). #881.");
-static_assert(
-    dedekind::category::IsTerminalObject<dedekind::sets::Universe<int>>,
-    "Universe is the terminal object (⊤) of Sub(U). #881.");
+static_assert(dedekind::category::IsTerminalObject<dedekind::sets::𝔸<int>>,
+              "Universe is the terminal object (⊤) of Sub(U). #881.");
 
 // #881 step 4: dually, the APPLIED join A | B is the PUSHOUT of its two
 // concrete sets --- the coproduct over the initial ∅ (span ∅ ⟶ A, ∅ ⟶ B), with
@@ -202,7 +201,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
     constexpr auto gt_zero = [](const auto& v) { return v > 0; };
-    auto positives = Set{Comprehension{Universe<int>{}, gt_zero}};
+    auto positives = Set{Comprehension{𝔸<int>{}, gt_zero}};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -242,7 +241,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto S = Set{Comprehension{ℕ, gt_10}};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
-    Universe<SDomain, SLogic> universe{};
+    𝔸<SDomain, SLogic> universe{};
     auto right_collapse = S ^ universe;  // type: !S
     auto left_collapse = universe ^ S;   // type: !S
     REQUIRE_FALSE(right_collapse(50u));  // 50 ∈ S → ∉ !S
@@ -407,7 +406,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
 TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = Universe<bool, Boole, Finite>;
+  using BoolAmbient = 𝔸<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   // The Boolean-literal collapse is keyed on the leaf type
@@ -434,7 +433,7 @@ TEST_CASE(
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true by
   // the structured-and / FiniteBooleanSet collapse machinery.
-  using BoolAmbient = Universe<bool, Boole, Finite>;
+  using BoolAmbient = 𝔸<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS
@@ -466,8 +465,8 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // too --- the test DAG imports upstream only).
   constexpr auto gt_zero = [](const auto& v) { return v > 0; };
   constexpr auto le_three = [](const auto& v) { return v <= 3; };
-  const auto positive = Set{Comprehension{Universe<int>{}, gt_zero}};
-  const auto small = Set{Comprehension{Universe<int>{}, le_three}};
+  const auto positive = Set{Comprehension{𝔸<int>{}, gt_zero}};
+  const auto small = Set{Comprehension{𝔸<int>{}, le_three}};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;
@@ -483,7 +482,7 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
           "[sets][relations][cartesian][ambient]") {
-  constexpr auto ambient = Universe<int>{};
+  constexpr auto ambient = 𝔸<int>{};
   constexpr auto p_via_function = cartesian_product(ambient, ambient);
   constexpr auto p_via_operator = ambient * ambient;
 
@@ -624,7 +623,7 @@ TEST_CASE(
 TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
           "[sets][comprehension][kleene]") {
   // The whole comprehension is wrapped (base ∧ pred); the species is the join.
-  const auto s = Set{Comprehension{Universe<int>{}, UnknownPredicate<int>{}}};
+  const auto s = Set{Comprehension{𝔸<int>{}, UnknownPredicate<int>{}}};
   STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
   CHECK(s(0) == Ternary::Unknown);
   CHECK(s(42) == Ternary::Unknown);

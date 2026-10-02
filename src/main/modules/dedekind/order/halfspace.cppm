@@ -495,7 +495,7 @@ constexpr auto operator~(const Singleton<bool, L>& s) {
 /** @brief The halfspace factory (#832): a @c Halfspace @b value denotes a
  *  @b proper cut by construction.  A degenerate configuration collapses to the
  *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
- *  universe @c Universe --- so @f$\emptyset = \text{Halfspace}@f$ and
+ *  universe @c 𝔸 --- so @f$\emptyset = \text{Halfspace}@f$ and
  *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
  * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
  * return type is heterogeneous but statically resolved by @c if @c constexpr
@@ -508,7 +508,7 @@ constexpr auto make_halfspace() {
   if constexpr (halfspace_is_empty<T, V, D, S>())
     return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
   else if constexpr (halfspace_is_moot<T, V, D, S>())
-    return dedekind::sets::codomain_reduce_t<dedekind::sets::Universe<T, L>>{};
+    return dedekind::sets::codomain_reduce_t<dedekind::sets::𝔸<T, L>>{};
   else
     return Halfspace<T, D, S, L>{static_cast<T>(V)};  // V may be a wider pivot
 }
@@ -1165,8 +1165,7 @@ constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
 // union operator| on a Universe (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
-constexpr auto operator|(const Universe<T, L, C>&,
-                         const UnboundHalfspace<D, S, V>&) {
+constexpr auto operator|(const 𝔸<T, L, C>&, const UnboundHalfspace<D, S, V>&) {
   // Through the factory (#837 review): a degenerate binder collapses like any
   // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
   // not a raw (gate-tripping) halfspace.
@@ -1178,7 +1177,7 @@ constexpr auto operator|(const Universe<T, L, C>&,
 // error there; a singleton over such a carrier needs a T-valued pivot.
 export template <typename T, typename L, typename C, auto V>
   requires std::same_as<T, decltype(V)>
-constexpr Singleton<decltype(V), L> operator|(const Universe<T, L, C>&,
+constexpr Singleton<decltype(V), L> operator|(const 𝔸<T, L, C>&,
                                               const UnboundSingleton<V>&) {
   return Singleton<decltype(V), L>{V};
 }
@@ -1504,7 +1503,7 @@ struct ProductRestrict {
  *  @return @c Set<pair<T1,T2>, L, RP>. */
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
-constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
+constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
   return Set<std::pair<T1, T2>, L, RP>{rp};
 }
 
@@ -1565,18 +1564,16 @@ constexpr auto cylinder(const Halfspace<T, D, S, L>& h) {
 export template <typename T, Direction D, Strictness S, typename L, typename T2,
                  typename L2, typename C2>
   requires std::same_as<L, L2>
-constexpr auto operator*(const Halfspace<T, D, S, L>& a,
-                         const Universe<T2, L2, C2>&) {
-  return 𝔸<std::pair<T, T2>, L> | cylinder<1>(a);
+constexpr auto operator*(const Halfspace<T, D, S, L>& a, const 𝔸<T2, L2, C2>&) {
+  return 𝔸<std::pair<T, T2>, L>{} | cylinder<1>(a);
 }
 
 // total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
 export template <typename T1, typename L1, typename C1, typename T, Direction D,
                  Strictness S, typename L>
   requires std::same_as<L1, L>
-constexpr auto operator*(const Universe<T1, L1, C1>&,
-                         const Halfspace<T, D, S, L>& b) {
-  return 𝔸<std::pair<T1, T>, L> | cylinder<2>(b);
+constexpr auto operator*(const 𝔸<T1, L1, C1>&, const Halfspace<T, D, S, L>& b) {
+  return 𝔸<std::pair<T1, T>, L>{} | cylinder<2>(b);
 }
 
 // restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) && (π2 ⋈ fix(q)).
@@ -1585,7 +1582,7 @@ export template <typename Ta, Direction Da, Strictness Sa, typename La,
   requires std::same_as<La, Lb>
 constexpr auto operator*(const Halfspace<Ta, Da, Sa, La>& a,
                          const Halfspace<Tb, Db, Sb, Lb>& b) {
-  return 𝔸<std::pair<Ta, Tb>, La> | (cylinder<1>(a) && cylinder<2>(b));
+  return 𝔸<std::pair<Ta, Tb>, La>{} | (cylinder<1>(a) && cylinder<2>(b));
 }
 
 /**
@@ -1624,7 +1621,7 @@ export constexpr bool is_order_rel(Rel r) {
  *  no axis-@c I structure, so the declared universe @c 𝔸<TI>. */
 export template <IsRingIntegral auto I, typename TI, typename L, typename P>
 constexpr auto axis_factor(const P&) {
-  return 𝔸<TI, L>;  // preserve the relation's logic species
+  return 𝔸<TI, L>{};  // preserve the relation's logic species
 }
 
 /** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
@@ -2118,11 +2115,11 @@ constexpr SetVal<T, L> lowerbounds(
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <typename L, typename C>
-constexpr auto upperbounds(const Universe<bool, L, C>&) {
+constexpr auto upperbounds(const 𝔸<bool, L, C>&) {
   return Singleton<bool, L>{true};
 }
 export template <typename L, typename C>
-constexpr auto lowerbounds(const Universe<bool, L, C>&) {
+constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
   return Singleton<bool, L>{false};
 }
 
@@ -2221,7 +2218,7 @@ constexpr auto operator&(const Halfspace<T, D, S, L>&, Ø<T, LZ>) {
 export template <typename T, Direction D, Strictness S, typename L, typename LU,
                  typename C>
 constexpr auto operator&(const Halfspace<T, D, S, L>& h,
-                         const dedekind::sets::Universe<T, LU, C>&) {
+                         const dedekind::sets::𝔸<T, LU, C>&) {
   return h;
 }
 
@@ -2253,13 +2250,13 @@ constexpr auto min(const S& s) {
 }
 
 inline constexpr auto ℤ =
-    𝔸<SignedCardinality>;  // local alias (:integer is downstream)
+    𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
 // Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality>, a registered
 // TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
 // @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
 // gate correctly rejects @c max/min on it; the max/min VALUES are identical on
 // ℕ (they are non-negative).
-inline constexpr auto ℕ = 𝔸<Cardinality>;
+inline constexpr auto ℕ = 𝔸<Cardinality>{};
 inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -2331,11 +2328,11 @@ constexpr bool operator==(const Ø<bool, L>& e,
 }
 export template <Direction D, Strictness S, typename L, typename C>
 constexpr bool operator==(const Halfspace<bool, D, S, L>& h,
-                          const Universe<bool, L, C>&) {
+                          const 𝔸<bool, L, C>&) {
   return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
 }
 export template <Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const Universe<bool, L, C>& u,
+constexpr bool operator==(const 𝔸<bool, L, C>& u,
                           const Halfspace<bool, D, S, L>& h) {
   return h == u;
 }
@@ -2365,13 +2362,11 @@ constexpr bool operator==(const Halfspace<T, D, S, L>&,
   return false;
 }
 export template <typename T, Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const Universe<T, L, C>&,
-                          const Halfspace<T, D, S, L>&) {
+constexpr bool operator==(const 𝔸<T, L, C>&, const Halfspace<T, D, S, L>&) {
   return false;
 }
 export template <typename T, Direction D, Strictness S, typename L, typename C>
-constexpr bool operator==(const Halfspace<T, D, S, L>&,
-                          const Universe<T, L, C>&) {
+constexpr bool operator==(const Halfspace<T, D, S, L>&, const 𝔸<T, L, C>&) {
   return false;
 }
 
@@ -2379,13 +2374,11 @@ constexpr bool operator==(const Halfspace<T, D, S, L>&,
  *  @c == 𝔸 is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
  *  (@c 𝔸<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
 export template <typename L, typename C>
-constexpr bool operator==(const Singleton<bool, L>&,
-                          const Universe<bool, L, C>&) {
+constexpr bool operator==(const Singleton<bool, L>&, const 𝔸<bool, L, C>&) {
   return false;
 }
 export template <typename L, typename C>
-constexpr bool operator==(const Universe<bool, L, C>& u,
-                          const Singleton<bool, L>& s) {
+constexpr bool operator==(const 𝔸<bool, L, C>& u, const Singleton<bool, L>& s) {
   return s == u;
 }
 
@@ -2405,17 +2398,18 @@ static_assert(min(ge5)(5) == (ge5(5) && (ge5 & (ℕ | (π < fix(5_c)))).kind ==
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
 // max/min above, its ∀-projection settled by 𝔹's upperbounds/lowerbounds ({⊤} /
 // {⊥}) and the universe-identity meet 𝔹 ∩ {⊤} = {⊤}.
-static_assert(max(𝔸<bool>)(true), "max 𝔹 = {true}.");
-static_assert(!max(𝔸<bool>)(false), "false is not the greatest element of 𝔹.");
-static_assert(min(𝔸<bool>)(false), "min 𝔹 = {false}.");
-static_assert(!min(𝔸<bool>)(true), "true is not the least element of 𝔹.");
+static_assert(max(𝔸<bool>{})(true), "max 𝔹 = {true}.");
+static_assert(!max(𝔸<bool>{})(false),
+              "false is not the greatest element of 𝔹.");
+static_assert(min(𝔸<bool>{})(false), "min 𝔹 = {false}.");
+static_assert(!min(𝔸<bool>{})(true), "true is not the least element of 𝔹.");
 // Modelling witness ("Theorems for Free", type-checked) with a STRUCTURAL
 // IsPredicate --- not an opaque lambda, which cannot feed the collapse.  The
 // specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
 // ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
 // so false is correctly NOT the max.
-static_assert(max(𝔸<bool>)(false) ==
-                  (𝔸<bool>(false) && forall(𝔸<bool>, π <= fix(false_c))),
+static_assert(max(𝔸<bool>{})(false) ==
+                  (𝔸<bool>{}(false) && forall(𝔸<bool>{}, π <= fix(false_c))),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---

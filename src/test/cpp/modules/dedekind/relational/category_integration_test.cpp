@@ -9,7 +9,7 @@ using namespace dedekind::sets;
 
 TEST_CASE("Sets+Category: boundaries lift into ETCS subobjects",
           "[sets][category][etcs][integration]") {
-  const Universe<int> universe{};
+  const 𝔸<int> universe{};
   const Ø<int> empty{};
 
   const auto u_set = ambient_set<int>(universe);

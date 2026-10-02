@@ -18,7 +18,7 @@
  *   @c static_assert(IsField<bool, bit_xor, bit_and>) carries the algebra
  *   on the carrier, while @c element<𝔹> is the canonical scout spelling
  *   over the universe.
- * - `BooleanSetOf<L, C>` ≡ `Universe<bool, L, C>`: parameterised
+ * - `BooleanSetOf<L, C>` ≡ `𝔸<bool, L, C>`: parameterised
  *   predicate-set template alias.  Bool is the @b bottom of the algebraic
  *   tower, so the characteristic morphism χ_𝔹 of 𝔹-as-subobject coincides
  *   with the universe 𝔸<bool> (no proper ambient super-object); the alias
@@ -68,7 +68,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 export template <typename L = dedekind::category::Boole, typename C = Finite>
-using BooleanSetOf = Universe<bool, L, C>;
+using BooleanSetOf = 𝔸<bool, L, C>;
 
 // Non-exported convenience alias used by the value-level B constant
 // below.  The exported public surface is `BooleanSetOf<L, C>` (the
@@ -81,7 +81,7 @@ using BooleanSet = BooleanSetOf<>;
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c Universe over the
+ *  @b universe values (constexpr instances of @c 𝔸 over the
  *  carrier), not carrier @b types.  Carrier types are spelled directly
  *  (@c bool, @c Cardinality, etc.) in template-type-parameter positions;
  *  the math symbols denote the sets.

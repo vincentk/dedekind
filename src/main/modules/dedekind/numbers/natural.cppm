@@ -183,13 +183,13 @@ using ::dedekind::sets::ℕ;
 // (0) Universe witness: ℕ names the universe over the Cardinality
 //     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
 //     Cardinality; post-#559 it is the value 𝔸<Cardinality> (a constexpr
-//     Universe<Cardinality, Boole, ℵ_0>{}).  Cardinality is
+//     𝔸<Cardinality, Boole, ℵ_0>{}).  Cardinality is
 //     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
 //     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
 //     additive inverses; rig-not-ring).  Callers wanting the bounded
 //     machine carrier explicitly spell @c unsigned @c int directly.
 static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
-                           Universe<Cardinality, Boole, ℵ_0>>,
+                           𝔸<Cardinality, Boole, ℵ_0>>,
               "ℕ is the universe 𝔸<Cardinality> (post-#559).");
 static_assert(
     std::same_as<
@@ -214,7 +214,7 @@ static_assert(dedekind::algebra::IsAlgebraOnSet<decltype(dedekind::sets::ℕ),
 
 // (0a) Relationship between the carrier Cardinality and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
-//      @b is the carrier — same shape as the 𝔹 ↔ Universe<bool>
+//      @b is the carrier — same shape as the 𝔹 ↔ 𝔸<bool>
 //      relationship from #400.  The bare @b carrier type @c Cardinality
 //      carries no predicate-set surface, so @c NaturalNumbersOf<> (below)
 //      anchors the set-builder DSL; the universe @b value ℕ = 𝔸<Cardinality>
@@ -551,7 +551,7 @@ struct FiniteResidueSet {
     return true;  // (A) ∅ iff every residue is a non-member
   }
   template <typename C>
-  constexpr bool operator==(const Universe<Cardinality, L, C>&) const {
+  constexpr bool operator==(const 𝔸<Cardinality, L, C>&) const {
     for (const auto& v : at)
       if (!(v == L::True)) return false;
     return true;  // (B) 𝔸 iff every residue is a member
@@ -561,7 +561,7 @@ struct FiniteResidueSet {
     return s == e;
   }
   template <typename C>
-  friend constexpr bool operator==(const Universe<Cardinality, L, C>& u,
+  friend constexpr bool operator==(const 𝔸<Cardinality, L, C>& u,
                                    const FiniteResidueSet& s) {
     return s == u;
   }
@@ -575,7 +575,7 @@ struct FiniteResidueSet {
  *  ADL finds it through the @c 𝔸<Cardinality> (sets) operand. */
 export template <typename L, typename C, auto N, auto R>
 constexpr auto operator|(
-    const Universe<Cardinality, L, C>&,
+    const 𝔸<Cardinality, L, C>&,
     dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
   // Normalise R into [0,N) exactly as ProjModConstBound does (mathematical
   // residue, not raw value), so equivalent fragments like π%fix(3_c)==fix(3_c)
@@ -612,9 +612,10 @@ using dedekind::order::operator""_c;
 
 // 𝔹 = 𝔸<bool>, a finite carrier: the point-free membership fragment
 // π == fix(true_c) materialises over {false, true} through s | p.
-static_assert(dedekind::sets::exists(dedekind::sets::𝔸<bool>, π == fix(true_c)),
+static_assert(dedekind::sets::exists(dedekind::sets::𝔸<bool>{},
+                                     π == fix(true_c)),
               "∃b∈𝔹. b — true is a member.");
-static_assert(!dedekind::sets::forall(dedekind::sets::𝔸<bool>,
+static_assert(!dedekind::sets::forall(dedekind::sets::𝔸<bool>{},
                                       π == fix(true_c)),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
@@ -623,11 +624,11 @@ static_assert(!dedekind::sets::forall(dedekind::sets::𝔸<bool>,
 // three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
 // against S --- s | p materialises the fragment into a FiniteResidueSet.
 static_assert(
-    dedekind::sets::exists(dedekind::sets::𝔸<dedekind::sets::Cardinality>,
+    dedekind::sets::exists(dedekind::sets::𝔸<dedekind::sets::Cardinality>{},
                            π % fix(3_c) == fix(0_c)),
     "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
 static_assert(
-    !dedekind::sets::forall(dedekind::sets::𝔸<dedekind::sets::Cardinality>,
+    !dedekind::sets::forall(dedekind::sets::𝔸<dedekind::sets::Cardinality>{},
                             π % fix(3_c) == fix(0_c)),
     "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 

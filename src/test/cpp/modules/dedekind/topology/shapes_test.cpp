@@ -77,7 +77,7 @@ TEST_CASE("Topology: on a discrete carrier every shape is clopen by structure",
 TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
           "[topology][clopen][decidability]") {
   using Emptyℤ = Ø<int, Boole>;
-  using Universeℤ = Universe<int, Boole>;
+  using Universeℤ = 𝔸<int, Boole>;
 
   SECTION("Ø and 𝔸 are clopen (∅ and X are open ∧ closed in every topology)") {
     STATIC_CHECK(IsClopen<Emptyℤ>);
@@ -115,7 +115,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
       "order-clopen but NOT recognised decidable: a Kleene boundary --- on "
       "a discrete carrier decidable ⇒ order-clopen, never the converse") {
     using EmptyK = Ø<int, Kleene>;
-    using UniverseK = Universe<int, Kleene>;
+    using UniverseK = 𝔸<int, Kleene>;
     STATIC_CHECK(IsClopen<EmptyK> && !HasDecidableMembership<EmptyK>);
     STATIC_CHECK(IsClopen<UniverseK> && !HasDecidableMembership<UniverseK>);
     CHECK((IsClopen<EmptyK> && !HasDecidableMembership<EmptyK>));

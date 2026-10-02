@@ -363,7 +363,7 @@ namespace dedekind::algebra {
 /** @section galois__Formal_Verification */
 
 // 𝔸<bool> is the Galois field 𝔽2 under (XOR, AND).
-static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<bool>),
+static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<bool>{}),
                             std::bit_xor<bool>, std::bit_and<bool>>,
               "𝔸<bool> must satisfy IsGaloisField under (XOR, AND): its "
               "carrier is the Galois field 𝔽2 (order 2).");
@@ -384,7 +384,7 @@ static_assert(
     "axiomatic category::IsField above, this is algebra::IsField's carrier "
     "content: division ring + axiomatic field).");
 
-static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<𝔽64>), std::plus<𝔽64>,
+static_assert(IsGaloisField<decltype(dedekind::sets::𝔸<𝔽64>{}), std::plus<𝔽64>,
                             std::multiplies<𝔽64>>,
               "𝔸<𝔽64> must satisfy IsGaloisField (the algebraic set over "
               "GF(2^6), order 64).");

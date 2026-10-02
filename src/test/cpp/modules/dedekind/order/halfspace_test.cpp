@@ -415,9 +415,9 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
 
   SECTION("empty ⊆ anything; anything ⊆ universe") {
     static_assert(bool(Ø<int>{} <= gt5), "∅ ⊆ {x>5}");
-    static_assert(bool(gt5 <= 𝔸<int>), "{x>5} ⊆ ℤ");
+    static_assert(bool(gt5 <= 𝔸<int>{}), "{x>5} ⊆ ℤ");
     CHECK(bool(Ø<int>{} <= gt5));
-    CHECK(bool(gt5 <= 𝔸<int>));
+    CHECK(bool(gt5 <= 𝔸<int>{}));
   }
 
   SECTION("singleton ⊆ via membership") {
@@ -523,7 +523,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
     static_assert(
         std::same_as<decltype(make_halfspace<Cardinality, 0, Direction::Upward,
                                              Strictness::NonStrict>()),
-                     Universe<Cardinality, Boole>>,
+                     𝔸<Cardinality, Boole>>,
         "{x≥0} on ℕ = ℕ (moot constraint drops)");
     // An interior cut stays a proper Halfspace.
     static_assert(
@@ -537,7 +537,7 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
   SECTION("the DSL routes through the factory") {
     // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
     static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
-                               Universe<Cardinality, Boole>>,
+                               𝔸<Cardinality, Boole>>,
                   "ℕ | (χ >= fix(0_c)) = ℕ");
   }
 
@@ -602,7 +602,8 @@ TEST_CASE(
     // Exercise the real species propagation: the DSL operator| threads the
     // ambient's Kleene into make_halfspace, so the halfspace (and thus the
     // wrapped Set) carries Kleene end-to-end.
-    constexpr auto hs = 𝔸<int, Kleene> | (π > fix(5_c));  // {x > 5}, L = Kleene
+    constexpr auto hs =
+        𝔸<int, Kleene>{} | (π > fix(5_c));  // {x > 5}, L = Kleene
     STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
     constexpr auto s = Set{hs};
     STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);

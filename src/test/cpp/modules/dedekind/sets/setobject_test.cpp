@@ -34,7 +34,7 @@ TEST_CASE("sets:setobject — the two legs of a set object at runtime",
   SECTION("a Set's universe is 𝔸 over its carrier; its classifier is P") {
     STATIC_CHECK(IsSetObject<decltype(even)>);
     const auto u = universe(even);
-    STATIC_CHECK(IsUniverse<decltype(u)>);
+    STATIC_CHECK(Is𝔸<decltype(u)>);
     CHECK(u(7));  // the universe accepts everything
     CHECK(classifier(even)(4));
     CHECK_FALSE(classifier(even)(3));
@@ -52,8 +52,8 @@ TEST_CASE("sets:setobject — the two legs of a set object at runtime",
 
   SECTION("Ø and 𝔸: the universe is its own universe") {
     CHECK(universe(Ø<int>{})(0));
-    CHECK(universe(𝔸<int>)(0));
-    STATIC_CHECK(std::same_as<universe_t<Ø<int>>, Universe<int>>);
+    CHECK(universe(𝔸<int>{})(0));
+    STATIC_CHECK(std::same_as<universe_t<Ø<int>>, 𝔸<int>>);
     CHECK_FALSE(static_cast<bool>(classifier(Ø<int>{})(0)));
   }
 
@@ -77,14 +77,13 @@ TEST_CASE("sets:setobject — the two legs of a set object at runtime",
     const auto r = subobject_reduce<Boole>(MakeMeet{}(Ø<int>{}, even));
     STATIC_CHECK(IsSetObject<decltype(r)>);
     CHECK_FALSE(static_cast<bool>(r(4)));  // Ø ∧ even = Ø
-    const auto top = subobject_reduce<Boole>(MakeJoin{}(𝔸<int>, even));
+    const auto top = subobject_reduce<Boole>(MakeJoin{}(𝔸<int>{}, even));
     CHECK(static_cast<bool>(top(3)));  // 𝔸 ∨ even = 𝔸
   }
 
   SECTION("a pair universe projects to the factor universes") {
-    const auto pairs = 𝔸<std::pair<int, bool>>;
-    STATIC_CHECK(IsProduct<decltype(pairs), Universe<int>,
-                           Universe<bool, Boole, Finite>>);
+    const auto pairs = 𝔸<std::pair<int, bool>>{};
+    STATIC_CHECK(IsProduct<decltype(pairs), 𝔸<int>, 𝔸<bool>>);
     CHECK(π_1(pairs)(42));
     CHECK(π_2(pairs)(false));
   }

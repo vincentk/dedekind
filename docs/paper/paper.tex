@@ -1713,7 +1713,7 @@ static_assert(IsGaloisField<decltype(𝔹),
 \begin{minipage}[t]{0.45\linewidth}
 $\mathbb{S}$ as an algebraic set (default ops)
 \begin{cpp}
-constexpr auto 𝕊 = sets::𝔸<std::size_t>;
+constexpr auto 𝕊 = sets::𝔸<std::size_t>{};
 // (+, ×) are the defaults, so omitted:
 static_assert(
   IsCommutativeRing<decltype(𝕊)>);
@@ -1828,7 +1828,7 @@ Materialised, an operator is the matrix ring $M_n(F) = \operatorname{End}(V)$, t
 \label{lst:certificate-ladder}
 \begin{cpp}
 using Q = Rational<default_integer>;         // the ℚ carrier = Frac(ℤ)
-constexpr auto ℚ = sets::𝔸<Q>;               // ℚ as an algebraic set
+constexpr auto ℚ = sets::𝔸<Q>{};             // ℚ as an algebraic set
 using V = Vec2V<Q>;  using M = Matrix2x2V<Q>;
 
 static_assert(IsField<decltype(ℚ)>);         // scalar: ℚ is a field

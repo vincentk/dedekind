@@ -62,7 +62,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  * The canonical Boolean species symbol @c 𝔹 names the @b universe value
  * @c 𝔸<bool> (post-#559).  The carrier is @c bool, addressed directly in
  * template-type-parameter positions; @c 𝔹 is the constexpr
- * @c Universe<bool, Boole, Finite>{} value the set-builder
+ * @c 𝔸<bool, Boole, Finite>{} value the set-builder
  * DSL takes as ambient.  The Boolean structures the carrier @c bool
  * carries are @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field
  * 𝔽₂ — and @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The
@@ -85,7 +85,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  *
  *  @details The canonical definition lives in @c dedekind::algebra::boolean
  *  (upstream of this partition).  Post-#559, @c 𝔹 names the universe value
- *  @c 𝔸<bool> (a constexpr @c Universe<bool, Boole, Finite>{}),
+ *  @c 𝔸<bool> (a constexpr @c 𝔸<bool, Boole, Finite>{}),
  *  not a carrier-type alias.  The underlying carrier is @c bool, used
  *  directly in template-type-parameter positions.  Predicate-set callers
  *  want @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the
@@ -127,10 +127,10 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 
 // (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
 //     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
-//     value 𝔸<bool> (a constexpr Universe<bool, Boole, Finite>{}).
-static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
-                           Universe<bool, Boole, Finite>>,
-              "𝔹 is the universe 𝔸<bool> (post-#559).");
+//     value 𝔸<bool> (a constexpr 𝔸<bool, Boole, Finite>{}).
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>, 𝔸<bool>>,
+    "𝔹 is the universe 𝔸<bool> (post-#559).");
 static_assert(
     std::same_as<
         typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
@@ -138,7 +138,7 @@ static_assert(
     "𝔹's underlying carrier IS bool — the textbook universe-over-carrier "
     "reading.");
 
-// (0a) Relationship between 𝔹 (the carrier) and Universe<bool> (the
+// (0a) Relationship between 𝔹 (the carrier) and 𝔸<bool> (the
 //      predicate-set / characteristic-function wrapper).  The
 //      predicate-set's @c Domain @b is the carrier, and the
 //      @c FiniteBooleanSetOf<> alias from this partition is the
@@ -149,8 +149,8 @@ static_assert(
 //      participate as a set, lift the carrier through
 //      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
 //      in (1) below witnesses exactly that lift.
-static_assert(std::same_as<typename Universe<bool>::Domain, bool>,
-              "Universe<bool>::Domain is the carrier `bool` (and 𝔹 = "
+static_assert(std::same_as<typename 𝔸<bool>::Domain, bool>,
+              "𝔸<bool>::Domain is the carrier `bool` (and 𝔹 = "
               "𝔸<bool>) — predicate-set's "
               "underlying element type IS the carrier.");
 static_assert(

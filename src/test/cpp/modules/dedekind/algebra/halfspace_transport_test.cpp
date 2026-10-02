@@ -30,8 +30,8 @@ using namespace dedekind::relational;
 using namespace dedekind::order;
 
 namespace {
-inline constexpr auto ℤ = 𝔸<SignedCardinality>;
-inline constexpr auto ℕ = 𝔸<Cardinality>;
+inline constexpr auto ℤ = 𝔸<SignedCardinality>{};
+inline constexpr auto ℕ = 𝔸<Cardinality>{};
 using dedekind::algebra::𝔽64;  // GF(2⁶): operator+ is XOR (characteristic 2)
 
 // ── #876 finding 2: the translation graph IS a categorical equalizer ─────────
@@ -186,9 +186,9 @@ static_assert(dedekind::category::IsAbelianGroup<𝔽64, std::plus<𝔽64>>,
 // (derive the shift from the group-inverse API).  A plain −K would have leaned
 // on 𝔽64's carrier operator-, which IsGroup never promises.
 static_assert(
-    std::is_same_v<decltype(inverse(𝔸<𝔽64> * 𝔸<𝔽64> |
+    std::is_same_v<decltype(inverse(𝔸<𝔽64>{} * 𝔸<𝔽64>{} |
                                     π1 + Bound<𝔽64{5}>{} == π2)),
-                   decltype(𝔸<𝔽64> * 𝔸<𝔽64> | π1 + Bound<𝔽64{5}>{} == π2)>,
+                   decltype(𝔸<𝔽64>{} * 𝔸<𝔽64>{} | π1 + Bound<𝔽64{5}>{} == π2)>,
     "#876/#875: over 𝔽64 = GF(2⁶) the group inverse of the +5 shift is +5 "
     "itself (char 2), so the converse graph EQUALS the forward graph; the "
     "shift flows through the group-inverse registry, not carrier operator-.");
@@ -278,7 +278,7 @@ static_assert(preimage(ℤ* ℤ | π1 + fix(5_c) == π2, ℤ | (π <= fix(8_c)))
 TEST_CASE(
     "algebra:halfspace_transport — a function is its graph: inverse/image",
     "[algebra][relation][function][inverse][image]") {
-  constexpr auto Z = 𝔸<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>{};
   const auto f = Z * Z | π1 + fix(3_c) == π2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
@@ -299,7 +299,7 @@ TEST_CASE(
 // {x≤5 ∧ x≡0 mod3}, and argmax reads the constrained optimum (3) structurally.
 TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
           "[algebra][argmax][partial][optimization]") {
-  constexpr auto Z = 𝔸<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>{};
   const auto g = Z * Z | π1 + fix(3_c) == π2 |
                  (π2 <= fix(8_c) && π2 % fix(3_c) == fix(0_c));
   STATIC_CHECK(!is_entire(g));
@@ -317,7 +317,7 @@ TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
 // halfspace pushed forward.  Sound where a lone retract is not; no walk.
 TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
           "[algebra][image][reflection]") {
-  constexpr auto Z = 𝔸<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>{};
   const auto absNeg =
       Z * Z | π1 * fix(-1_c) == π2 | π1 < fix(0_c);  // x↦-x, x<0
   const auto img = image(absNeg);                    // {y>0}
@@ -335,7 +335,7 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
 // ⟺ f(a) ∈ P, checked at the boundary; reflection flips the sense.
 TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
           "[algebra][preimage][pullback][inverse]") {
-  constexpr auto Z = 𝔸<SignedCardinality>;
+  constexpr auto Z = 𝔸<SignedCardinality>{};
   const auto f = Z * Z | π1 + fix(3_c) == π2;         // x ↦ x+3
   const auto dom = preimage(f, Z | (π <= fix(8_c)));  // derived {x ≤ 5}
   volatile int five = 5, six = 6;
@@ -359,7 +359,7 @@ TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
 TEST_CASE(
     "algebra:halfspace_transport: inverse over a cyclic group (unsigned), #875",
     "[algebra][inverse][group]") {
-  constexpr auto U = 𝔸<unsigned>;
+  constexpr auto U = 𝔸<unsigned>{};
   const auto succ = U * U | π1 + fix(1_c) == π2;  // graph of x ↦ x+1 over ℤ/2ʷ
   const auto pred = inverse(succ);                // converse = modular x ↦ x−1
   volatile unsigned ten = 10u;
