@@ -179,6 +179,21 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
 export template <typename T>
 Singleton(T) -> Singleton<T>;
 
+/** @brief A point is the whole universe only on the unit carrier: @c {x} ==
+ * 𝔸<T> iff @c T has exactly one value (@c category::One).  On every other
+ * carrier it is @c false --- the @c forall leg for the @c == fragment
+ *  (@c 𝔸<bool>{} | (π == fix(v)) collapses to a @c Singleton<bool>, and
+ *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
+ *  @c :order, so ADL finds it from @c sets-level generic code. */
+export template <typename T, typename L, typename L2, typename C>
+constexpr bool operator==(const Singleton<T, L>&, const 𝔸<T, L2, C>&) {
+  return std::same_as<T, dedekind::category::One>;
+}
+export template <typename T, typename L, typename L2, typename C>
+constexpr bool operator==(const 𝔸<T, L2, C>& u, const Singleton<T, L>& s) {
+  return s == u;
+}
+
 // ---------------------------------------------------------------------------
 // Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
 // (#469 review-driven specialisations).

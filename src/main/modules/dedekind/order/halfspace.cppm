@@ -2188,18 +2188,6 @@ constexpr bool operator==(const Halfspace<T, D, S, L>&, const 𝔸<T, L, C>&) {
   return false;
 }
 
-/** @brief A @c Singleton over @c bool is never all of @c 𝔹 (two elements), so
- *  @c == 𝔸 is @c false: the forall (scheme B) leg for the @c == fragment on 𝔹
- *  (@c 𝔸<bool> | (π == fix(v)) collapses to @c Singleton<v>). */
-export template <typename L, typename C>
-constexpr bool operator==(const Singleton<bool, L>&, const 𝔸<bool, L, C>&) {
-  return false;
-}
-export template <typename L, typename C>
-constexpr bool operator==(const 𝔸<bool, L, C>& u, const Singleton<bool, L>& s) {
-  return s == u;
-}
-
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
 // overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
 // pivot.  5 is the max because 5 ∈ {x≤5} AND ∀a∈{x≤5}. a ≤ 5 --- the latter
