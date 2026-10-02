@@ -300,19 +300,33 @@ struct SwapPred {
   }
 };
 
-/** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
- *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$). */
-export template <typename A, typename B, typename L, typename P>
-constexpr auto converse(const Set<std::pair<A, B>, L, P>& r) {
-  return Set<std::pair<B, A>, L, SwapPred<P>>{SwapPred<P>{r.predicate()}};
-}
-
-/** @brief Pair-like Domain test for @c is_relation. */
+/** @brief Pair-like carrier: both coordinates present --- the shape every
+ *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
+ */
 template <typename D>
 concept IsPairLike = requires {
   typename D::first_type;
   typename D::second_type;
 };
+
+/** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
+ *  of a relation @f$R \subseteq A \times B@f$ (Tarski's @f$R^\smile@f$).
+ *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
+ *  lattice node over relations, a comprehension): the transposed χ datum is
+ *  the relation's @b classifier leg --- @c P for a @c Set, the node itself for
+ *  a node.
+ *  @tparam R an @c IsSetObject whose @c Domain is a pair @c A×B.
+ *  @param r the relation.
+ *  @return the relation @c Set<pair<B,A>, L, SwapPred<classifier>>. */
+export template <typename R>
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain>
+constexpr auto converse(const R& r) {
+  using A = typename R::Domain::first_type;
+  using B = typename R::Domain::second_type;
+  using L = typename R::logic_species;
+  using X = std::remove_cvref_t<decltype(classifier(r))>;
+  return Set<std::pair<B, A>, L, SwapPred<X>>{SwapPred<X>{classifier(r)}};
+}
 
 /** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
  *  @c IsSet whose Domain is a product @f$A \times B@f$. */
@@ -491,17 +505,21 @@ constexpr auto diag(const S& s) {
  * to a genuine pair-predicate (invocable on a carrier pair @f$\langle A,A
  * \rangle@f$) so a mis-typed @c R fails at the call, not deep inside the
  * union. */
-export template <typename A, typename L, typename P>
-  requires std::invocable<const P&, std::pair<A, A>>
-constexpr auto reflexive(const Set<std::pair<A, A>, L, P>& r) {
-  return r | diag<A, L>();
+export template <typename R>
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain> &&
+           std::same_as<typename R::Domain::first_type,
+                        typename R::Domain::second_type>
+constexpr auto reflexive(const R& r) {
+  return r | diag<typename R::Domain::first_type, typename R::logic_species>();
 }
 
 /** @brief @c symmetric(R) = @c R @c | @c R° --- the smallest symmetric relation
  *  containing @c R (add the reversed edges; @c R° is the @c converse). */
-export template <typename A, typename L, typename P>
-  requires std::invocable<const P&, std::pair<A, A>>
-constexpr auto symmetric(const Set<std::pair<A, A>, L, P>& r) {
+export template <typename R>
+  requires dedekind::sets::IsSetObject<R> && IsPairLike<typename R::Domain> &&
+           std::same_as<typename R::Domain::first_type,
+                        typename R::Domain::second_type>
+constexpr auto symmetric(const R& r) {
   return r | converse(r);
 }
 

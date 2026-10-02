@@ -1494,22 +1494,40 @@ struct ProductRestrict {
   }
 };
 
-// 𝔸<A×B> | relPred  →  the relation as an IsSet on A × B.  The @b universal
-// product carries no factor restriction, so the relation's membership @b is
-// the rel-predicate: the pure product universe refined to a subobject.
+/** @brief @c 𝔸<A×B> @c | @c relPred --- the relation as a set object on
+ *  @c A×B.  The universal product carries no factor restriction, so the
+ *  relation's membership @b is the rel-predicate: the pure product universe
+ *  refined to a subobject.
+ *  @tparam T1,T2 the factor carriers; @tparam L the logic; @tparam C the
+ *  product's cardinality class; @tparam RP the rel-predicate.
+ *  @param rp the rel-predicate on pairs.
+ *  @return @c Set<pair<T1,T2>, L, RP>. */
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
 constexpr auto operator|(const Universe<std::pair<T1, T2>, L, C>&, RP rp) {
   return Set<std::pair<T1, T2>, L, RP>{rp};
 }
 
-// product | relPred  →  the relation as an IsSet on A × B, keeping the
-// product's own membership (so a restricted product bounds the relation).
-export template <typename T1, typename T2, typename L, typename P,
-                 IsRelPredicate RP>
-constexpr auto operator|(const Set<std::pair<T1, T2>, L, P>& prod, RP rp) {
-  return Set<std::pair<T1, T2>, L, ProductRestrict<P, RP>>{
-      ProductRestrict<P, RP>{prod.predicate(), rp}};
+/** @brief @c product @c | @c relPred --- the relation as a set object on
+ *  @c A×B, keeping the product's own membership (so a restricted product
+ *  bounds the relation).
+ *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
+ *  lattice node, a comprehension): the restricted χ datum is the product's
+ *  @b classifier leg --- @c P for a @c Set, the node itself for a node.
+ *  @tparam S an @c IsSetObject whose @c Domain is a pair; @tparam RP the
+ *  rel-predicate.
+ *  @param prod the product set object; @param rp the rel-predicate on pairs.
+ *  @return @c Set<Domain, L, ProductRestrict<classifier, RP>>. */
+export template <typename S, IsRelPredicate RP>
+  requires dedekind::sets::IsSetObject<S> && requires {
+    typename S::Domain::first_type;  // a pair carrier: both coordinates
+    typename S::Domain::second_type;
+  }
+constexpr auto operator|(const S& prod, RP rp) {
+  using X = std::remove_cvref_t<decltype(classifier(prod))>;
+  return Set<typename S::Domain, typename S::logic_species,
+             ProductRestrict<X, RP>>{
+      ProductRestrict<X, RP>{classifier(prod), rp}};
 }
 
 /**

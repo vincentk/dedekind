@@ -274,10 +274,10 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = Universe<bool, Boole, Finite>;
-    constexpr BoolAmbient B_bool{};
-    auto only_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
-    auto only_false = Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
+    auto only_true =
+        Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
+    auto only_false =
+        Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
     auto sym_diff = only_true ^ only_false;
     // The symmetric difference of two disjoint singletons is their
     // union — every element of {true, false} appears in exactly one,
@@ -410,9 +410,13 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   using BoolAmbient = Universe<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
+  // The Boolean-literal collapse is keyed on the leaf type
+  // Set<bool, L, BooleanEqPredicate>; spelled explicitly (Set{Comprehension{…}}
+  // now wraps the whole comprehension, #948).
   constexpr auto b_false =
-      Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
-  constexpr auto b_true = Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
+      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
+  constexpr auto b_true =
+      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
 
   STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));
@@ -436,13 +440,13 @@ TEST_CASE(
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS
   // BooleanEqPredicate{true}, the canonical bool-domain predicate.
   constexpr auto b_true_bare =
-      Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
+      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
   // Equivalent comparison form.
   constexpr auto b_true_eq =
-      Set{Comprehension{B_bool, BooleanEqPredicate{true}}};
+      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
   // Negated bare-b form.
   constexpr auto b_false =
-      Set{Comprehension{B_bool, BooleanEqPredicate{false}}};
+      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
 
   // The collapse machinery treats both bare-b and (b == true) as the
   // same predicate (BooleanEqPredicate{true}) so the static_asserts
@@ -615,4 +619,15 @@ TEST_CASE(
     // y = -3 is odd, same story.
     CHECK(img(-3) == false);
   }
+}
+
+TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
+          "[sets][comprehension][kleene]") {
+  // The whole comprehension is wrapped (base ∧ pred); the species is the join.
+  const auto s = Set{Comprehension{Universe<int>{}, UnknownPredicate<int>{}}};
+  STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
+  CHECK(s(0) == Ternary::Unknown);
+  CHECK(s(42) == Ternary::Unknown);
+  const auto none = Set{Comprehension{Ø<int>{}, UnknownPredicate<int>{}}};
+  CHECK(none(0) == Ternary::False);
 }

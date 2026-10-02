@@ -132,10 +132,30 @@ struct SetExpr {
   // review.
 };
 
+/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
+ *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
+ * a cross-species combine reduces at. */
+export template <typename L1, typename L2>
+using join_logic_t =
+    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
+    std::same_as<L2, dedekind::category::Kleene>,
+      dedekind::category::Kleene, dedekind::category::Boole > ;
+
+/** @brief The logic species of @c {base @c | @c pred}: the @b join of the
+ *  base's species and the species of the predicate's answer (@c bool ↦ Boole,
+ *  @c Ternary ↦ Kleene, a declared @c logic_species as itself), so a Kleene
+ *  predicate over a Boole base lifts the base rather than truncating itself. */
+template <typename Base, typename Predicate>
+using comprehension_logic_t = join_logic_t<
+    typename Base::logic_species,
+    typename dedekind::category::GetLogic<std::remove_cvref_t<
+        std::invoke_result_t<const Predicate&, const typename Base::Domain&>>>::
+        type>;
+
 export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
-              typename Base::logic_species> {
+              comprehension_logic_t<Base, Predicate>> {
   Base base;  // by VALUE: a comprehension OWNS its base.  A reference member
               // would dangle when the constructor binds an rvalue base (the
               // aggregate form extended the temporary's lifetime; a constructor
@@ -163,19 +183,13 @@ struct Comprehension
    * it
    *  @b is its own predicate (@c IsSet @c ⟹ @c IsPredicate). */
   constexpr auto operator()(const typename Base::Domain& x) const {
-    // Combine under the base's logic (@c L::AND), first @b lifting the
-    // (commonly
-    // @c bool) predicate result into @c L::Ω.  A @c bool cast would collapse
-    // ternary membership (@c Ternary::False, underlying −1, reads as @c true),
-    // and @c L::AND(Ternary, bool) is ill-formed (@c Ternary is a scoped enum),
-    // so a @c Kleene base needs the lift.  A comprehension @c {S|P} is
-    // S-membership ∧ P.
-    using L = typename Base::logic_species;
-    const auto p = predicate(x);
-    if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>, typename L::Ω>)
-      return L::AND(base(x), p);
-    else
-      return L::AND(base(x), p ? L::True : L::False);
+    // Both answers are lifted into the JOIN species before the conjunction
+    // (Σ ↪ Ω: a Boole answer becomes a decided Kleene one), so a Boole base
+    // with a Kleene predicate keeps Unknown instead of failing to convert it,
+    // and a Kleene base with a bool predicate lifts the predicate as before.
+    using L = comprehension_logic_t<Base, Predicate>;
+    return L::AND(dedekind::category::lift_logic<L>(base(x)),
+                  dedekind::category::lift_logic<L>(predicate(x)));
   }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a
@@ -272,6 +286,19 @@ static_assert(UnknownPredicate<int>{}(0) == Ternary::Unknown &&
 static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
               "UnknownPredicate is never in the decided core Σ = {⊤,⊥}");
 
+// A Kleene predicate over a Boole base: the comprehension's species is the
+// JOIN (Kleene), Unknown survives, and a False base still annihilates it.
+static_assert(std::same_as<Comprehension<Universe<int>,
+                                         UnknownPredicate<int>>::logic_species,
+                           Kleene>,
+              "{𝔸<int,Boole> | Unknown} is Kleene-classified (the join)");
+static_assert(Comprehension{Universe<int>{}, UnknownPredicate<int>{}}(0) ==
+                  Ternary::Unknown,
+              "a Boole base lifts; the predicate's Unknown is preserved");
+static_assert(Comprehension{Ø<int>{}, UnknownPredicate<int>{}}(0) ==
+                  Ternary::False,
+              "a False base annihilates Unknown (Kleene AND = min)");
+
 // The codomain-leg value finalizer `finalize_combine` (#894) is hoisted to
 // `:boundaries` (beside `codomain_reduce_t`), so the upstream boundary
 // operators and the general subobject operators below share ONE implementation
@@ -279,15 +306,6 @@ static_assert(!is_decided<Kleene>(UnknownPredicate<int>{}(0)),
 // else passes through) instead of duplicating it.  Reachable here through
 // `import :boundaries`; a new expressions-level operator needs only
 // `return finalize_combine(...)` and inherits the rule.
-
-/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
- *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
- * a cross-species combine reduces at. */
-export template <typename L1, typename L2>
-using join_logic_t =
-    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
-    std::same_as<L2, dedekind::category::Kleene>,
-      dedekind::category::Kleene, dedekind::category::Boole > ;
 
 /** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
  *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.
@@ -723,25 +741,9 @@ class Set {
   // Store the predicate as a concrete type, not a std::function
   constexpr Set(Predicate p) : predicate_(std::move(p)) {}
 
-  /** @brief Construct from a comprehension value (@c Set{scout | pred}).
-   *  @deprecated The paper-aligned grammar is the bare comprehension
-   *  @c scout|pred, with no @c Set{...} wrapper.  As of #895 the bare
-   *  @c Comprehension is an @c IsSubobject, so it carries the full
-   *  set-complement surface --- @c ~(scout|pred) is the set complement (the
-   *  reducer's @c Not node), and meet / join apply via @c IsSubobject.  So this
-   *  wrapping
-   *  constructor no longer adds any capability; it stays ONLY to keep the
-   *  ~90 live @c Set{scout|pred} call sites compiling until they migrate to the
-   *  bare grammar (PR B of #895).  This is a soft (documentation) deprecation
-   *  only: a hard @c [[deprecated]] would break those call sites under
-   *  @c -Werror before the migration. */
-  // FIXME(#948): stores the predicate only, dropping the comprehension's base;
-  // membership becomes P(x) rather than base(x) ∧ P(x).  Sound for universal
-  // ambient bases (base(x) ≡ ⊤); wrong for non-universal bases.
-  template <typename B, typename P>
-    requires std::same_as<Predicate, P>
-  constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
-
+  /** @brief χ at @c v: the stored predicate's answer lifted into @c L::Ω.
+   *  @param v a carrier value.
+   *  @return membership in @c L::Ω (@c lift_logic<L>). */
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
@@ -1639,24 +1641,23 @@ concept CoherentSetWrap =
 
 /** @brief The @c Set codomain species for a bare set-node @c Species.
  *  @tparam Species the set-node wrapped by the @c Set(Species) CTAD. */
+/** @brief The carrier-axis authority for a wrapped species: its own declared
+ *  @c cardinality_type when it has one (a leaf), else its UNIVERSE's (a
+ *  lattice node declares no cardinality class of its own; the mereological
+ *  whole it is a part of does), else the species itself. */
 template <typename Species>
-using wrapped_logic_t = set_logic_t<Species, Species, typename Species::Domain>;
-
-/** @brief The point-free comprehension @c A|pred (deprecated scout spelling
- *  @c element<A>|pred): codomain derived from the whole comprehension's return
- *  per @ref expressions__Set_Codomain_Reconciliation.
- *  @tparam B the comprehension's base (carrier axis + logic species);
- *  @tparam P the wrapped predicate.
- *  FIXME(#948): the wrap stores @c P only (the converting ctor drops @c B), so
- *  a NON-universal base's membership is lost; harmless for universal ambient
- *  bases (@c base(x) ≡ ⊤), general fix tracked separately. */
-export template <typename B, typename P>
-  requires CoherentWrap<B, P, typename B::Domain>
-Set(Comprehension<B, P>)
-    -> Set<typename B::Domain,
-           join_logic_t<set_logic_t<B, P, typename B::Domain>,
-                        typename B::logic_species>,
-           P>;
+struct wrap_carrier {
+  using type = Species;
+};
+template <typename Species>
+  requires(!requires { typename Species::cardinality_type; }) &&
+          IsSetObject<Species>
+struct wrap_carrier<Species> {
+  using type = universe_t<Species>;
+};
+template <typename Species>
+using wrapped_logic_t = set_logic_t<typename wrap_carrier<Species>::type,
+                                    Species, typename Species::Domain>;
 
 // Enforce ETCS compliance also here:
 static_assert(
@@ -1674,7 +1675,11 @@ static_assert(
 /** @section expressions__Identity_CTAD
  *  Bare set-node wrap; shares the codomain reconciliation of @ref
  *  expressions__Set_Codomain_Reconciliation with the comprehension / scout
- *  guides above. */
+ *  guides above.  *  @note @c Set{Comprehension{base, pred}} takes this guide
+ * too and wraps the WHOLE comprehension (its χ is @c base ∧ @c pred); the
+ * earlier Comprehension-specific guide stored only @c pred and dropped the base
+ * (#948).
+ */
 template <typename Species>
   requires CoherentSetWrap<Species>
 Set(Species)
@@ -1802,7 +1807,22 @@ constexpr auto cartesian_product(const A& a, const B& b) {
   // @c operator*(Universe, Set), so it re-enters this generic).
   const auto left = Set{a};
   const auto right = Set{b};
-  return cartesian_product(left, right);
+  // The wrapped species may differ even when the raw operands' carrier-axis
+  // reading agreed (a node over 𝔸<int> wraps Boole, one over 𝔸<double, ℶ_1>
+  // wraps Kleene): reconcile at the JOIN before delegating, lifting only the
+  // lower side, so the same-logic Set × Set overload always matches and this
+  // generic never re-enters itself.
+  using LL = typename std::remove_cvref_t<decltype(left)>::logic_species;
+  using LR = typename std::remove_cvref_t<decltype(right)>::logic_species;
+  if constexpr (std::same_as<LL, LR>) {
+    return cartesian_product(left, right);
+  } else {
+    using L = join_logic_t<LL, LR>;
+    if constexpr (std::same_as<LL, L>)
+      return cartesian_product(left, Set{lift_to<L>(right)});
+    else
+      return cartesian_product(Set{lift_to<L>(left)}, right);
+  }
 }
 
 /**
@@ -1892,6 +1912,21 @@ static_assert(
 // The product of two set objects is a set object (today's witness) ...
 static_assert(IsSetObject<CanonicalIntProductSet>,
               "A × B is a set object over the pair carrier.");
+// Mixed-carrier nodes: the complements of a countable and an uncountable
+// universe wrap as Boole and Kleene; the product reconciles at the join
+// (Kleene) instead of re-entering the generic overload.
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(cartesian_product(
+                     Not<Universe<int>>{Universe<int>{}},
+                     Not<Universe<double, Boole, ℶ_1>>{
+                         Universe<double, Boole, ℶ_1>{}}))>::logic_species,
+                 Kleene>,
+    "a Boole × Kleene product lands in the join species.");
+static_assert(cartesian_product(Not<Universe<int>>{Universe<int>{}},
+                                Not<Universe<double, Boole, ℶ_1>>{
+                                    Universe<double, Boole, ℶ_1>{}})(std::pair{
+                  0, 0.0}) == Ternary::False,
+              "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
 // FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
 // only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
 // with π_1 / π_2 on the product SET returning the factor set objects (the

@@ -38,10 +38,12 @@ using namespace dedekind::algebra;
 // pair collapse below relies on.
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
-constexpr auto b_false = Set{Comprehension{𝔹, BooleanEqPredicate{false}}};
+constexpr auto b_false =
+    Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
 
 // { b ∈ 𝔹 | b == true } = the singleton {true} ⊂ 𝔹
-constexpr auto b_true = Set{Comprehension{𝔹, BooleanEqPredicate{true}}};
+constexpr auto b_true =
+    Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
 static_assert(Ø<bool, Boole>{} == (b_false & b_true));
