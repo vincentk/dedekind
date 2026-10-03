@@ -8,6 +8,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <climits>
+#include <limits>
 
 import dedekind.sets;
 
@@ -25,8 +26,8 @@ TEST_CASE("SignedExtensionalCardinal — canonical zero is unique",
   constexpr Z neg_zero = -Z{0};
 
   STATIC_CHECK(pos_zero == neg_zero);
-  STATIC_CHECK(!pos_zero.negative);
-  STATIC_CHECK(!neg_zero.negative);  // canonical: negation of zero stays +0
+  STATIC_CHECK(!pos_zero.negative());
+  STATIC_CHECK(!neg_zero.negative());  // canonical: negation of zero stays +0
 }
 
 TEST_CASE("SignedExtensionalCardinal — construction and equality",
@@ -37,8 +38,8 @@ TEST_CASE("SignedExtensionalCardinal — construction and equality",
 
   STATIC_CHECK(three == three_again);
   STATIC_CHECK(three != minus_three);
-  STATIC_CHECK(three.negative == false);
-  STATIC_CHECK(minus_three.negative == true);
+  STATIC_CHECK(three.negative() == false);
+  STATIC_CHECK(minus_three.negative() == true);
 }
 
 TEST_CASE("SignedExtensionalCardinal — ordering respects sign",
@@ -84,7 +85,7 @@ TEST_CASE("SignedExtensionalCardinal — addition",
 
   // Cancellation to zero is canonical.
   STATIC_CHECK(three + minus_three == Z{0});
-  STATIC_CHECK(!(three + minus_three).negative);
+  STATIC_CHECK(!(three + minus_three).negative());
 }
 
 TEST_CASE("SignedExtensionalCardinal — subtraction",
@@ -112,7 +113,7 @@ TEST_CASE("SignedExtensionalCardinal — multiplication and sign rule",
 
   // Zero absorbs sign.
   STATIC_CHECK(minus_three * Z{0} == Z{0});
-  STATIC_CHECK(!(minus_three * Z{0}).negative);
+  STATIC_CHECK(!(minus_three * Z{0}).negative());
 }
 
 TEST_CASE("SignedExtensionalCardinal — division and modulo",
@@ -162,16 +163,30 @@ TEST_CASE("SignedExtensionalCardinal — ring laws on small values",
 
 TEST_CASE("SignedExtensionalCardinal — no overflow near signed-int-min",
           "[sets][cardinality][signed][overflow-safety]") {
-  // Construction from INT_MIN must not overflow during negation; the
-  // magnitude is 2^31 exactly, representable in the unsigned limb.
+  // INT_MIN is well inside the 64-bit signed word; its magnitude 2^31 is
+  // exact.
   constexpr Z min_int{INT_MIN};
-  STATIC_CHECK(min_int.negative);
-  STATIC_CHECK(min_int.magnitude !=
+  STATIC_CHECK(min_int.negative());
+  STATIC_CHECK(min_int.magnitude() !=
                SignedExtensionalCardinal<>::magnitude_type{});
 
-  // -(INT_MIN) in the C++ type would be UB; here it is a well-defined
-  // unsigned magnitude equal to 2^31.
+  // -(INT_MIN) in the C++ type would be UB; here it is exactly +2^31.
   constexpr Z neg_min = -min_int;
-  STATIC_CHECK(!neg_min.negative);
-  STATIC_CHECK(neg_min.magnitude == min_int.magnitude);
+  STATIC_CHECK(!neg_min.negative());
+  STATIC_CHECK(neg_min.magnitude() == min_int.magnitude());
+}
+
+TEST_CASE("SignedExtensionalCardinal — addition is associative at the wrap",
+          "[sets][cardinality][signed][ring]") {
+  // The counterexample to a sign-magnitude layout: with x = max, y = 1,
+  // z = -1, (x + y) + z and x + (y + z) must agree in ℤ/2^w.
+  constexpr Z x{std::numeric_limits<Z::signed_type>::max()};
+  constexpr Z y{1};
+  constexpr Z z{-1};
+  STATIC_CHECK((x + y) + z == x + (y + z));
+  // -min wraps to min, and min / -1 is min: no undefined operation.
+  constexpr Z min{std::numeric_limits<Z::signed_type>::min()};
+  STATIC_CHECK(-min == min);
+  STATIC_CHECK(min / Z{-1} == min);
+  STATIC_CHECK(min % Z{-1} == Z{0});
 }

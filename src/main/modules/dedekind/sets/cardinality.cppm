@@ -153,18 +153,24 @@ export using ℶ_1 = ℵ<1>;  ///< The Continuum (assuming GCH)
 
 /**
  * @concept IsWrappingWord
- * @brief A machine word that is the wrapping ring ℤ/2^w: a commutative ring
- *        under @c + and @c *, periodic under @c +, totally ordered.
- * @details Read off the @c category registrations, so signed @c int (whose
- *          ring claim is refused: overflow is UB) does not qualify.
+ * @brief A machine word that is the wrapping ring ℤ/2^w: an unsigned
+ *        built-in integer (not @c bool) that the @c category registrations
+ *        certify as a commutative ring under @c + and @c *, periodic under
+ *        @c +, and totally ordered.
+ * @details The machine-type part guarantees the operations the carriers use
+ *          (@c /, @c %, the overflow builtins, @c numeric_limits); the
+ *          @c category part is the semantic claim.  Signed @c int fails
+ *          both (its ring claim is refused: overflow is UB).
  */
 export template <typename W>
 concept IsWrappingWord =
+    std::unsigned_integral<W> && !std::same_as<W, bool> &&
     dedekind::category::IsCommutativeRing<W, std::plus<W>,
                                           std::multiplies<W>> &&
     dedekind::category::IsPeriodic<W, std::plus<W>> && std::totally_ordered<W>;
 
-static_assert(IsWrappingWord<std::size_t> && !IsWrappingWord<int>,
+static_assert(IsWrappingWord<std::size_t> && !IsWrappingWord<int> &&
+                  !IsWrappingWord<bool>,
               "std::size_t is a wrapping word; signed int is not a ring.");
 
 /**
@@ -601,174 +607,127 @@ constexpr T inverse(const T& x, std::plus<T>) {
 }
 
 /**
- * @brief Signed one-word integer with a sign-magnitude layout.
+ * @brief Signed one-word integer: two's complement over the word @c W.
  *
- * @details Two structural fields — @ref negative (the sign bit) and @ref
- * magnitude (an unsigned word, delegated to ExtensionalCardinal<W>).
- * Canonical zero has `negative == false` and `magnitude == 0`; the
- * arithmetic operators preserve that canonical form, so `+0` and `-0` compare
- * equal and never appear in results of operators on this type.
+ * @details One structural field, @ref value, of type
+ * @c std::make_signed_t<W>.  Arithmetic runs through the overflow builtins
+ * on that type, which yield the wrapped result, so the carrier is exactly
+ * the residue ring ℤ/2^w read in the signed range [-2^(w-1), 2^(w-1)-1]:
+ * a genuine commutative ring and cyclic group, which the registrations
+ * below claim.  @c -min wraps to @c min, and @c min / @c -1 is @c min (the
+ * ring answer), so no operation is undefined.
  *
  * It satisfies IsInteger (see registrations after the numbers:integer
  * module pulls this file), making it the signed backing carrier for
  * fixed-width `Rational<Z>`.  The `SignedCardinality` variant downstream
- * wraps it with ±ℵ_0 sentinels so callers that need an unbounded ℤ proxy
- * escalate (saturate) rather than wrap; this carrier on its own is the
- * bounded (cyclic, mod 2^w) ℤ proxy.
+ * escalates to ±ℵ_0 where this carrier wraps.
  *
- * @tparam W The magnitude word (default @c std::size_t).
- *
- * Structural on purpose: the two public fields make the type usable as a
+ * Structural on purpose: the public field makes the type usable as a
  * non-type template parameter wherever `Rational<Z>` is.
+ *
+ * @tparam W The word (default @c std::size_t); the value is its signed twin.
  */
 export template <IsWrappingWord W = std::size_t>
 struct SignedExtensionalCardinal {
+  using word_type = W;
+  using signed_type = std::make_signed_t<W>;
   using magnitude_type = ExtensionalCardinal<W>;
 
-  bool negative;
-  magnitude_type magnitude;
+  /** @brief A wrapped result and whether the exact result overflowed. */
+  struct CheckedResult {
+    SignedExtensionalCardinal result;
+    bool overflowed;
+  };
 
-  constexpr SignedExtensionalCardinal() noexcept
-      : negative(false), magnitude() {}
+  signed_type value{};
 
-  /** @brief Construction from any integral source, sign-correctly. */
+  constexpr SignedExtensionalCardinal() noexcept = default;
+
+  /** @brief Construction from any integral source, modulo 2^w. */
   template <std::integral S>
-  constexpr SignedExtensionalCardinal(S value) noexcept  // NOLINT
-      : negative(false), magnitude() {
-    if constexpr (std::signed_integral<S>) {
-      if (value < 0) {
-        negative = true;
-        using U = std::make_unsigned_t<S>;
-        // `0u - static_cast<U>(value)` in unsigned arithmetic yields the
-        // magnitude without overflow even at the minimum value of S.
-        const U magnitude_bits = static_cast<U>(0) - static_cast<U>(value);
-        magnitude = magnitude_type{
-            static_cast<typename magnitude_type::word_type>(magnitude_bits)};
-        return;
-      }
-    }
-    magnitude =
-        magnitude_type{static_cast<typename magnitude_type::word_type>(value)};
+  constexpr SignedExtensionalCardinal(S v) noexcept  // NOLINT
+      : value(static_cast<signed_type>(static_cast<W>(v))) {}
+
+  /** @brief Is the value negative? */
+  constexpr bool negative() const noexcept { return value < 0; }
+
+  /** @brief |value| as an unsigned word (exact, also for @c min). */
+  constexpr magnitude_type magnitude() const noexcept {
+    const W bits = static_cast<W>(value);
+    return magnitude_type{negative() ? static_cast<W>(W{0} - bits) : bits};
   }
 
-  /** @brief Explicit projection to @c std::size_t — reads the magnitude
-   *         (sign is dropped).  Sibling to
-   *         @c ExtensionalCardinal::operator @c std::size_t() ; used at the
-   *         same call sites in @c :sequences:path 's helpers. */
+  /** @brief Explicit projection to @c std::size_t — the magnitude (sign is
+   *         dropped).  Sibling to @c ExtensionalCardinal::operator
+   *         @c std::size_t() ; used at the same call sites in
+   *         @c :sequences:path 's helpers. */
   explicit constexpr operator std::size_t() const noexcept {
-    return static_cast<std::size_t>(magnitude);
+    return static_cast<std::size_t>(magnitude());
   }
 
-  constexpr friend bool operator==(
+  constexpr friend bool operator==(const SignedExtensionalCardinal&,
+                                   const SignedExtensionalCardinal&) = default;
+
+  constexpr friend std::strong_ordering operator<=>(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
-    // Zero is canonical: ignore sign when magnitude is zero.
-    const bool lhs_zero = lhs.magnitude == magnitude_type{};
-    const bool rhs_zero = rhs.magnitude == magnitude_type{};
-    if (lhs_zero && rhs_zero) return true;
-    return lhs.negative == rhs.negative && lhs.magnitude == rhs.magnitude;
+    return lhs.value <=> rhs.value;
   }
 
-  /** @brief Heterogeneous equality with built-in integrals.
-   *
-   *  @details Without this overload the comparison @c SEC<> @c == @c int
-   *  is ambiguous: both @c operator==(SEC, SEC) (after the implicit
-   *  @c int @c → @c SEC constructor) and @c operator==(SignedCardinality,
-   *  int) (after the implicit @c SEC @c → @c SignedCardinality variant
-   *  conversion) match in one user-defined conversion.  Providing the
-   *  heterogeneous form directly on @c SEC makes it a strictly better
-   *  match (no UDC required on the @c SEC side), resolving the ambiguity
-   *  without forcing call-sites to write @c SEC<>{N} just to compare
-   *  against an @c int literal.  Symmetric overload below covers
-   *  @c int @c == @c SEC.  Required by the @c default_integer retarget
-   *  to @c SEC<> (#499 / paper-side ℚ-as-IsField unblock).
-   */
+  /** @brief Heterogeneous comparison with built-in integrals, exact across
+   *  signedness (compared in 128 bits).  Without it, @c SEC @c == @c int is
+   *  ambiguous between the @c SEC and @c SignedCardinality overloads, each
+   *  one user-defined conversion away. */
   template <std::integral T>
   constexpr friend bool operator==(const SignedExtensionalCardinal& lhs,
                                    T rhs) noexcept {
-    return lhs == SignedExtensionalCardinal{rhs};
+    return static_cast<__int128>(lhs.value) == static_cast<__int128>(rhs);
   }
   template <std::integral T>
   constexpr friend bool operator==(
       T lhs, const SignedExtensionalCardinal& rhs) noexcept {
-    return SignedExtensionalCardinal{lhs} == rhs;
+    return static_cast<__int128>(lhs) == static_cast<__int128>(rhs.value);
   }
-
-  /** @brief Heterogeneous ordering with built-in integrals.
-   *
-   *  @details Mirrors the heterogeneous @c operator== above for the
-   *  ordering side (@c <, @c <=, @c >, @c >=).  Without these
-   *  overloads, comparisons like @c q.num() @c > @c 0 (where
-   *  @c q.num() returns @c SEC<> after the @c default_integer
-   *  retarget, and @c 0 is an @c int literal) trigger the same
-   *  ambiguity the equality side resolved: @c operator<=>(SEC, SEC)
-   *  via @c int @c → @c SEC versus @c operator<=>(SignedCardinality,
-   *  int) via @c SEC @c → @c SignedCardinality.  Providing the
-   *  heterogeneous form directly on @c SEC makes it a strictly better
-   *  match (no UDC on the @c SEC side), letting callers write
-   *  @c q.num() @c > @c 0 and similar without explicit
-   *  @c default_integer{0} lifts.  Mirrors the heterogeneous
-   *  @c operator== above for the ordering side.
-   */
   template <std::integral T>
   constexpr friend std::strong_ordering operator<=>(
       const SignedExtensionalCardinal& lhs, T rhs) noexcept {
-    return lhs <=> SignedExtensionalCardinal{rhs};
+    return static_cast<__int128>(lhs.value) <=> static_cast<__int128>(rhs);
   }
   template <std::integral T>
   constexpr friend std::strong_ordering operator<=>(
       T lhs, const SignedExtensionalCardinal& rhs) noexcept {
-    return SignedExtensionalCardinal{lhs} <=> rhs;
+    return static_cast<__int128>(lhs) <=> static_cast<__int128>(rhs.value);
   }
 
-  constexpr friend std::strong_ordering operator<=>(
+  static constexpr CheckedResult checked_add(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
-    const bool lhs_zero = lhs.magnitude == magnitude_type{};
-    const bool rhs_zero = rhs.magnitude == magnitude_type{};
-    if (lhs_zero && rhs_zero) return std::strong_ordering::equal;
-    if (lhs.negative && !rhs.negative) return std::strong_ordering::less;
-    if (!lhs.negative && rhs.negative) return std::strong_ordering::greater;
-    // Same sign (non-zero on at least one side).
-    if (lhs.negative) {
-      // Both negative: larger magnitude is the smaller value.
-      return rhs.magnitude <=> lhs.magnitude;
-    }
-    return lhs.magnitude <=> rhs.magnitude;
+    SignedExtensionalCardinal sum;
+    const bool overflowed =
+        __builtin_add_overflow(lhs.value, rhs.value, &sum.value);
+    return CheckedResult{sum, overflowed};
   }
 
+  static constexpr CheckedResult checked_mul(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal product;
+    const bool overflowed =
+        __builtin_mul_overflow(lhs.value, rhs.value, &product.value);
+    return CheckedResult{product, overflowed};
+  }
+
+  /** @brief The additive inverse in ℤ/2^w (@c -min wraps to @c min). */
   constexpr SignedExtensionalCardinal operator-() const noexcept {
-    // Canonicalise zero: if the magnitude is zero we always return +0,
-    // regardless of the input sign. The public-field layout means
-    // callers can construct non-canonical {negative = true, magnitude = 0}
-    // values directly; this operator normalises them on the way out.
-    if (magnitude == magnitude_type{}) {
-      return SignedExtensionalCardinal{};  // canonical +0
-    }
-    SignedExtensionalCardinal result{*this};
-    result.negative = !negative;
+    SignedExtensionalCardinal result;
+    (void)__builtin_sub_overflow(signed_type{0}, value, &result.value);
     return result;
   }
 
   constexpr friend SignedExtensionalCardinal operator+(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
-    SignedExtensionalCardinal result;
-    if (lhs.negative == rhs.negative) {
-      // Same sign: magnitudes add, sign preserved.
-      result.negative = lhs.negative;
-      result.magnitude = lhs.magnitude + rhs.magnitude;
-    } else if (lhs.magnitude >= rhs.magnitude) {
-      // Opposite signs, |lhs| >= |rhs|: result takes sign of lhs.
-      result.magnitude = lhs.magnitude - rhs.magnitude;
-      result.negative = lhs.negative;
-    } else {
-      // Opposite signs, |lhs| <  |rhs|: result takes sign of rhs.
-      result.magnitude = rhs.magnitude - lhs.magnitude;
-      result.negative = rhs.negative;
-    }
-    if (result.magnitude == magnitude_type{}) result.negative = false;
-    return result;
+    return checked_add(lhs, rhs).result;
   }
 
   constexpr friend SignedExtensionalCardinal operator-(
@@ -780,51 +739,40 @@ struct SignedExtensionalCardinal {
   constexpr friend SignedExtensionalCardinal operator*(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
-    SignedExtensionalCardinal result;
-    result.magnitude = lhs.magnitude * rhs.magnitude;
-    result.negative = (lhs.negative != rhs.negative) &&
-                      (result.magnitude != magnitude_type{});
-    return result;
+    return checked_mul(lhs, rhs).result;
   }
 
-  /** @brief Euclidean division; result truncates toward zero (C++ semantics).
-   */
+  /** @brief Division truncating toward zero (C++ semantics).  Division by
+   *  zero yields zero by convention; @c min / @c -1 wraps to @c min. */
   constexpr friend SignedExtensionalCardinal operator/(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
+    if (rhs.value == 0) return SignedExtensionalCardinal{};
+    if (rhs.value == -1) return -lhs;
     SignedExtensionalCardinal result;
-    result.magnitude = lhs.magnitude / rhs.magnitude;
-    result.negative = (lhs.negative != rhs.negative) &&
-                      (result.magnitude != magnitude_type{});
+    result.value = static_cast<signed_type>(lhs.value / rhs.value);
     return result;
   }
 
-  /** @brief Euclidean remainder; result takes the sign of the dividend
-   *         (C++ semantics: `a == (a / b) * b + a % b`). */
+  /** @brief Remainder with the sign of the dividend (C++ semantics:
+   *  `a == (a / b) * b + a % b`).  Modulo zero yields @c lhs. */
   constexpr friend SignedExtensionalCardinal operator%(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
+    if (rhs.value == 0) return lhs;
+    if (rhs.value == -1) return SignedExtensionalCardinal{};
     SignedExtensionalCardinal result;
-    result.magnitude = lhs.magnitude % rhs.magnitude;
-    result.negative = lhs.negative && (result.magnitude != magnitude_type{});
+    result.value = static_cast<signed_type>(lhs.value % rhs.value);
     return result;
   }
 
   /** @brief Explicit conversion to a signed integral type (modular, like the
    *  carrier).  Used by the IR-fixture showcases to extract a
-   * compile-time-known rational's numerator as a concrete machine integer for
-   * the emitted `ret i64 ...` witness. */
+   *  compile-time-known rational's numerator as a concrete machine integer
+   *  for the emitted `ret i64 ...` witness. */
   template <std::signed_integral S>
   constexpr explicit operator S() const noexcept {
-    // Negate in unsigned space: `-signed_min` is UB in the target type
-    // when magnitude equals |signed_min|.  Casting the unsigned magnitude
-    // back to the signed type after modular negation yields the correct
-    // two's-complement value (including the signed-min edge case).
-    using U = std::make_unsigned_t<S>;
-    const U u_mag = static_cast<U>(magnitude.value);
-    const U u_signed =
-        negative ? static_cast<U>(static_cast<U>(0) - u_mag) : u_mag;
-    return static_cast<S>(u_signed);
+    return static_cast<S>(value);
   }
 };
 
@@ -833,7 +781,7 @@ struct SignedExtensionalCardinal {
 // ---------------------------------------------------------------------------
 //
 // `SignedExtensionalCardinal<W>` is a *finite* signed carrier --- ℤ/2^w ℤ
-// under sign-magnitude arithmetic.  Useful for
+// in two's complement.  Useful for
 // showcase arithmetic, but not ℤ.  `SignedCardinality` is the signed
 // counterpart of `Cardinality` (the ℕ ∪ {ℵ_0} variant): an extended-
 // integer carrier whose addition / subtraction / multiplication
@@ -892,7 +840,7 @@ export struct NaZ {
  *      usable in @c constexpr / NTTP-shaped contexts that cannot
  *      observe exceptions.
  *    - The finite fragment @c SignedExtensionalCardinal<> is one
- *      signed-magnitude word (so the variant is @b not a bignum).  The explicit
+ *      two's-complement word (so the variant is @b not a bignum).  The explicit
  * overflow story is escalation to @f$\pm \aleph_0@f$, not bigint growth:
  * signed-overflow UB and silent wrap are replaced by the saturation behaviour.
  *
@@ -962,7 +910,7 @@ constexpr int sc_sign(const SignedCardinality& v) noexcept {
   if (sc_is_neg_inf(v)) return -1;
   const auto& z = std::get<SignedExtensionalCardinal<>>(v);
   if (z == SignedExtensionalCardinal<>{}) return 0;
-  return z.negative ? -1 : +1;
+  return z.negative() ? -1 : +1;
 }
 }  // namespace detail
 
@@ -987,7 +935,11 @@ export constexpr SignedCardinality operator-(
   if (detail::sc_is_naz(v)) return SignedCardinality{NaZ{}};
   if (detail::sc_is_pos_inf(v)) return SignedCardinality{NegativeInfinity{}};
   if (detail::sc_is_neg_inf(v)) return SignedCardinality{PositiveInfinity{}};
-  return SignedCardinality{-std::get<SignedExtensionalCardinal<>>(v)};
+  const auto& z = std::get<SignedExtensionalCardinal<>>(v);
+  // -min is not representable: it is past the word, so it escalates.
+  if (z.value == std::numeric_limits<decltype(z.value)>::min())
+    return SignedCardinality{PositiveInfinity{}};
+  return SignedCardinality{-z};
 }
 
 /** @brief Addition with ±ℵ_0 escalation on overflow. */
@@ -1003,27 +955,16 @@ export constexpr SignedCardinality operator+(
     return SignedCardinality{PositiveInfinity{}};
   if (sc_is_neg_inf(lhs) || sc_is_neg_inf(rhs))
     return SignedCardinality{NegativeInfinity{}};
-  // Both finite: sign-magnitude with overflow detection on same-sign
-  // adds (opposite-sign reduces magnitude, never overflows).
+  // Both finite: overflow is only possible for same-sign operands, and its
+  // direction is their sign.
   const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
   const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
-  if (a.negative == b.negative) {
-    const auto checked =
-        SignedExtensionalCardinal<>::magnitude_type::checked_add(a.magnitude,
-                                                                 b.magnitude);
-    if (checked.overflowed) {
-      return a.negative ? SignedCardinality{NegativeInfinity{}}
+  const auto checked = SignedExtensionalCardinal<>::checked_add(a, b);
+  if (checked.overflowed) {
+    return a.negative() ? SignedCardinality{NegativeInfinity{}}
                         : SignedCardinality{PositiveInfinity{}};
-    }
-    SignedExtensionalCardinal<> result;
-    result.negative = a.negative;
-    result.magnitude = checked.result;
-    if (result.magnitude == SignedExtensionalCardinal<>::magnitude_type{}) {
-      result.negative = false;  // canonicalise zero
-    }
-    return SignedCardinality{result};
   }
-  return SignedCardinality{a + b};
+  return SignedCardinality{checked.result};
 }
 
 /** @brief Subtraction: @c a - b @c == a + (-b). */
@@ -1050,19 +991,13 @@ export constexpr SignedCardinality operator*(
   }
   const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
   const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
-  const auto checked = SignedExtensionalCardinal<>::magnitude_type::checked_mul(
-      a.magnitude, b.magnitude);
+  const auto checked = SignedExtensionalCardinal<>::checked_mul(a, b);
   if (checked.overflowed) {
-    const bool result_negative = (a.negative != b.negative);
-    return result_negative ? SignedCardinality{NegativeInfinity{}}
-                           : SignedCardinality{PositiveInfinity{}};
+    return (a.negative() != b.negative())
+               ? SignedCardinality{NegativeInfinity{}}
+               : SignedCardinality{PositiveInfinity{}};
   }
-  SignedExtensionalCardinal<> result;
-  result.magnitude = checked.result;
-  result.negative =
-      (a.negative != b.negative) &&
-      (result.magnitude != SignedExtensionalCardinal<>::magnitude_type{});
-  return SignedCardinality{result};
+  return SignedCardinality{checked.result};
 }
 
 /** @brief Truncating division.  Division by zero and @c ±ℵ_0/±ℵ_0
@@ -1086,6 +1021,9 @@ export constexpr SignedCardinality operator/(
   if (rhs_inf) return finite_signed_cardinality(0);  // finite / ±ℵ_0 → 0
   const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
   const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  // min / -1 = 2^(w-1) is past the word: it escalates rather than wraps.
+  if (a.value == std::numeric_limits<decltype(a.value)>::min() && b.value == -1)
+    return SignedCardinality{PositiveInfinity{}};
   return SignedCardinality{a / b};
 }
 
@@ -1447,9 +1385,9 @@ constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
   // helper (with order reversed for negative-vs-negative).
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
   using LT = ExtensionalCardinal<>::word_type;
-  const LT magnitude_value = z.magnitude.value;
+  const LT magnitude_value = z.magnitude().value;
   const bool z_is_zero = (magnitude_value == 0);
-  const bool z_is_neg = z.negative && !z_is_zero;
+  const bool z_is_neg = z.negative() && !z_is_zero;
   const bool rhs_is_neg = rhs < F{0};
   if (z_is_neg && !rhs_is_neg) return std::partial_ordering::less;
   if (!z_is_neg && rhs_is_neg) return std::partial_ordering::greater;
@@ -1482,10 +1420,10 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
   if (!std::isfinite(rhs)) return false;
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
   using LT = ExtensionalCardinal<>::word_type;
-  const LT magnitude_value = z.magnitude.value;
+  const LT magnitude_value = z.magnitude().value;
   const bool z_is_zero = (magnitude_value == 0);
   if (z_is_zero) return rhs == F{0};  // ±0 collapse
-  const bool z_is_neg = z.negative;
+  const bool z_is_neg = z.negative();
   const bool rhs_is_neg = rhs < F{0};
   if (z_is_neg != rhs_is_neg) return false;
   return eq_unsigned_to_floating<F, LT>(magnitude_value,
@@ -1535,10 +1473,13 @@ export constexpr SignedCardinality lift_cardinality_to_signed(
   if (std::holds_alternative<ℵ_0>(c)) {
     return SignedCardinality{PositiveInfinity{}};
   }
-  SignedExtensionalCardinal<> result;
-  result.magnitude = std::get<ExtensionalCardinal<>>(c);
-  result.negative = false;
-  return SignedCardinality{result};
+  // ℕ's word is unsigned and ℤ's is its signed twin, so naturals past
+  // 2^(w-1) - 1 are past ℤ's word: they escalate (the #680 tripwire).
+  const auto n = std::get<ExtensionalCardinal<>>(c).value;
+  using Signed = SignedExtensionalCardinal<>::signed_type;
+  if (n > static_cast<std::size_t>(std::numeric_limits<Signed>::max()))
+    return SignedCardinality{PositiveInfinity{}};
+  return SignedCardinality{SignedExtensionalCardinal<>{n}};
 }
 
 /**
@@ -1726,7 +1667,7 @@ export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
   if (detail::sc_is_pos_inf(z) || detail::sc_is_neg_inf(z))
     return Cardinality{ℵ_0{}};
   // Finite: extract the magnitude (an ExtensionalCardinal<>) directly.
-  return Cardinality{std::get<SignedExtensionalCardinal<>>(z).magnitude};
+  return Cardinality{std::get<SignedExtensionalCardinal<>>(z).magnitude()};
 }
 
 /** @brief Arrow form of @c abs: an exported @c arrow<SignedCardinality,

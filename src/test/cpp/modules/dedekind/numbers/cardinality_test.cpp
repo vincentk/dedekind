@@ -564,8 +564,8 @@ TEST_CASE(
     const auto neg_five = -finite_cardinality(5);
     REQUIRE(std::holds_alternative<SignedExtensionalCardinal<>>(neg_five));
     const auto& z = std::get<SignedExtensionalCardinal<>>(neg_five);
-    CHECK(z.negative);
-    CHECK(z.magnitude == ExtensionalCardinal<>{5});
+    CHECK(z.negative());
+    CHECK(z.magnitude() == ExtensionalCardinal<>{5});
     // Witness: -n equals the corresponding negative finite_signed_cardinality.
     CHECK(neg_five == finite_signed_cardinality(-5));
   }
@@ -573,8 +573,8 @@ TEST_CASE(
     const auto neg_zero = -finite_cardinality(0);
     REQUIRE(std::holds_alternative<SignedExtensionalCardinal<>>(neg_zero));
     const auto& z = std::get<SignedExtensionalCardinal<>>(neg_zero);
-    CHECK_FALSE(z.negative);  // canonical zero
-    CHECK(z.magnitude == ExtensionalCardinal<>{});
+    CHECK_FALSE(z.negative());
+    CHECK(z.magnitude() == ExtensionalCardinal<>{});
     CHECK(neg_zero == finite_signed_cardinality(0));
   }
   SECTION("Negation of ℵ_0 maps to -ℵ_0 (NegativeInfinity sentinel)") {

@@ -812,7 +812,7 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
  * than trip signed-overflow UB.  The default @c default_integer
  * (@c SignedCardinality) stands in for ℤ, and its saturation sentinel is
  * ℚ's out-of-memory tripwire: @c Rational rejects it with
- * @c std::domain_error.  On the current one-limb carrier the tripwire sits
+ * @c std::domain_error.  On the current one-word carrier the tripwire sits
  * at 2^63, so a double whose mantissa or power-of-two scaling exceeds that
  * (e.g. 1e20, 1e-20, every subnormal) trips it.
  */
