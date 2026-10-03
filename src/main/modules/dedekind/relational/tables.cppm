@@ -59,7 +59,7 @@ module;
 export module dedekind.relational:tables;
 
 import dedekind.category;
-import dedekind.sets; // Set, Relation, lift_logic, cartesian_product (:expressions)
+import dedekind.sets; // IsSetObject, Comprehension, lift_logic, cartesian_product
 import :dyadic;       // the Tarski BASE.  FIXME(#798): re-target
                  // natural_join ⋈ onto the relative product ; (Codd's join IS
                  // Tarski's ; with the pivot retained) --- seeded here as the
@@ -113,7 +113,8 @@ static_assert(
  *
  * σ_f(S) = {x ∈ S | f(x)}
  *
- * Constructs a new Set whose membership is the conjunction of membership in
+ * Constructs a comprehension whose membership is the conjunction of membership
+ * in
  * @p s and satisfaction of @p pred. Predicate outputs are normalized through
  * @c dedekind::category::lift_logic<L>, so both native logical witnesses
  * (@c L::Ω) and bool-valued predicates are accepted.
@@ -123,15 +124,19 @@ static_assert(
  * @tparam P  Existing predicate type of @p s.
  * @tparam Pred  Additional filter predicate type.
  */
-export template <typename T, typename L, typename P, typename Pred, typename C>
-  requires std::invocable<const std::decay_t<Pred>&, const T&> &&
-           requires(
-               std::invoke_result_t<const std::decay_t<Pred>&, const T&> v) {
+export template <dedekind::sets::IsSetObject S, typename Pred>
+  requires std::invocable<const std::decay_t<Pred>&,
+                          const typename S::Domain&> &&
+           requires(std::invoke_result_t<const std::decay_t<Pred>&,
+                                         const typename S::Domain&>
+                        v) {
              {
-               dedekind::category::lift_logic<L>(v)
-             } -> std::same_as<typename L::Ω>;
+               dedekind::category::lift_logic<typename S::logic_species>(v)
+             } -> std::same_as<typename S::logic_species::Ω>;
            }
-constexpr auto select(const Comprehension<𝔸<T, L, C>, P>& s, Pred&& pred) {
+constexpr auto select(const S& s, Pred&& pred) {
+  using T = typename S::Domain;
+  using L = typename S::logic_species;
   auto lifted = [p = std::forward<Pred>(pred)](const T& v) -> typename L::Ω {
     return dedekind::category::lift_logic<L>(std::invoke(p, v));
   };
@@ -148,9 +153,9 @@ constexpr auto select(const Comprehension<𝔸<T, L, C>, P>& s, Pred&& pred) {
  * Named alias for the @c operator| on Set, provided for relational-algebra
  * readability.
  */
-export template <typename T, typename L, typename P1, typename P2, typename C>
-constexpr auto set_union(const Comprehension<𝔸<T, L, C>, P1>& a,
-                         const Comprehension<𝔸<T, L, C>, P2>& b) {
+export template <dedekind::sets::IsSetObject A, dedekind::sets::IsSetObject B>
+  requires std::same_as<typename A::Domain, typename B::Domain>
+constexpr auto set_union(const A& a, const B& b) {
   return a | b;
 }
 
@@ -162,9 +167,9 @@ constexpr auto set_union(const Comprehension<𝔸<T, L, C>, P1>& a,
  * Expressed as the conjunction of membership in @p a and non-membership in
  * @p b.
  */
-export template <typename T, typename L, typename P1, typename P2, typename C>
-constexpr auto set_difference(const Comprehension<𝔸<T, L, C>, P1>& a,
-                              const Comprehension<𝔸<T, L, C>, P2>& b) {
+export template <dedekind::sets::IsSetObject A, dedekind::sets::IsSetObject B>
+  requires std::same_as<typename A::Domain, typename B::Domain>
+constexpr auto set_difference(const A& a, const B& b) {
   return a & ~b;
 }
 
@@ -201,9 +206,9 @@ constexpr auto operator-(const A& a, const B& b) {
  * operator in minimal relational algebra (A ∩ B = A ∖ (A ∖ B)), but is
  * provided here for ergonomics.
  */
-export template <typename T, typename L, typename P1, typename P2, typename C>
-constexpr auto set_intersection(const Comprehension<𝔸<T, L, C>, P1>& a,
-                                const Comprehension<𝔸<T, L, C>, P2>& b) {
+export template <dedekind::sets::IsSetObject A, dedekind::sets::IsSetObject B>
+  requires std::same_as<typename A::Domain, typename B::Domain>
+constexpr auto set_intersection(const A& a, const B& b) {
   return a & b;
 }
 
@@ -214,20 +219,25 @@ constexpr auto set_intersection(const Comprehension<𝔸<T, L, C>, P1>& a,
  * Given R1 ⊆ T1 × T2 and R2 ⊆ T2 × T3,
  * R1 ⋈ R2 = {(t1, t2, t3) | (t1, t2) ∈ R1 ∧ (t2, t3) ∈ R2}
  *
- * The result is a Set<std::tuple<T1,T2,T3>, L, ...>.  Membership of a triple
- * (t1,t2,t3) is the conjunction of membership of (t1,t2) in R1 and (t2,t3)
- * in R2.
+ * The result is a comprehension over 𝔸<std::tuple<T1,T2,T3>, L>.  Membership of
+ * a triple (t1,t2,t3) is the conjunction of membership of (t1,t2) in R1 and
+ * (t2,t3) in R2.
  *
  * @tparam T1  Type of the first component (left relation domain).
  * @tparam T2  Shared join type (right component of R1, left component of R2).
  * @tparam T3  Type of the third component (right relation codomain).
  * @tparam L   Logic species shared by both relations.
  */
-export template <typename T1, typename T2, typename T3, typename L, typename P1,
-                 typename P2, typename C1, typename C2>
-constexpr auto natural_join(
-    const Comprehension<𝔸<std::pair<T1, T2>, L, C1>, P1>& r1,
-    const Comprehension<𝔸<std::pair<T2, T3>, L, C2>, P2>& r2) {
+export template <dedekind::sets::IsSetObject R1, dedekind::sets::IsSetObject R2>
+  requires IsPairLike<typename R1::Domain> && IsPairLike<typename R2::Domain> &&
+           std::same_as<typename R1::Domain::second_type,
+                        typename R2::Domain::first_type> &&
+           std::same_as<typename R1::logic_species, typename R2::logic_species>
+constexpr auto natural_join(const R1& r1, const R2& r2) {
+  using T1 = typename R1::Domain::first_type;
+  using T2 = typename R1::Domain::second_type;
+  using T3 = typename R2::Domain::second_type;
+  using L = typename R1::logic_species;
   using Triple = std::tuple<T1, T2, T3>;
   auto pred = [r1, r2](const Triple& t) {
     const auto in_r1 = r1(std::pair<T1, T2>{std::get<0>(t), std::get<1>(t)});

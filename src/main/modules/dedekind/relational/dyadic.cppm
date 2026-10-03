@@ -305,7 +305,7 @@ struct SwapPred {
 /** @brief Pair-like carrier: both coordinates present --- the shape every
  *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
  */
-template <typename D>
+export template <typename D>
 concept IsPairLike = requires {
   typename D::first_type;
   typename D::second_type;
