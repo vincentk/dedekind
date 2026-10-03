@@ -60,9 +60,10 @@ namespace {
 constexpr auto on_small_natural_grid = [](const R2Point& p) {
   const double x = p.first.value();
   const double y = p.second.value();
-  return static_cast<double>(static_cast<int>(x)) == x &&
-         static_cast<double>(static_cast<int>(y)) == y && x >= 0.0 &&
-         x <= 3.0 && y >= 0.0 && y <= 3.0;
+  // Bounds first: the int casts below are only defined inside [0, 3].
+  return x >= 0.0 && x <= 3.0 && y >= 0.0 && y <= 3.0 &&
+         static_cast<double>(static_cast<int>(x)) == x &&
+         static_cast<double>(static_cast<int>(y)) == y;
 };
 constexpr auto natural_lattice = Comprehension{R2, on_small_natural_grid};
 constexpr auto unit_square = R2 | (π1 >= bound<0.5> && π1 <= bound<1.5> &&
