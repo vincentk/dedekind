@@ -127,11 +127,12 @@ TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)
   using R2 = QuadraticReal<2>;
   const auto U = 𝔻;
   const auto O = ~U;
-  // The complement pair collapses to the boundary objects, and a decided
-  // result factors through Σ: the codomain leg (#894) answers in Boole even
-  // though 𝔻 is Kleene.
+  // U is the universe, so the bounded laws decide: U ∪ ¬U = U, the decided ⊤,
+  // which factors through Σ and answers in Boole (#894); U ∩ ¬U = ¬U, a Not
+  // node over the Kleene universe (K₃ is not complemented, nothing collapses
+  // further), which answers pointwise in K₃.
   CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == true);
-  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == false);
+  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
 }
 
 // ---------------------------------------------------------------------------
