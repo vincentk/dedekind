@@ -41,7 +41,7 @@
  * it merely reports that the operator surface is closed.  The
  * field-axiomatic distinction is a job for the strict @c category::IsField
  * concept (which is intentionally not specialised on @c Dual<int>);
- * this file pins @c HasFieldOperators<Dual<double>> as a positive
+ * this file pins @c HasFieldOperators<Dual<ℚ>> as a positive
  * witness and the ring-shape concepts (@c HasRingOperators,
  * @c IsAlgebra) as the load-bearing claims for the integer-carrier
  * extensions.
@@ -112,7 +112,8 @@ using namespace dedekind::sets;
  *          kept for existing call sites.
  */
 export template <typename F>
-  requires std::regular<F>
+  requires std::regular<F> &&
+           (!std::floating_point<F>)  // 𝔻 over raw floats is not a ring (IEEE)
 struct Dual {
   using value_type = F;
 
@@ -212,18 +213,20 @@ constexpr F π_2(const Dual<F>& d) {
 /** @section dual__Formal_Verification */
 
 // Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
-inline constexpr Dual<double> eps{0.0, 1.0};
-static_assert(eps * eps == Dual<double>{0.0, 0.0}, "Nilpotent axiom: ε² = 0.");
+using 𝔻_ℚ = Dual<dedekind::numbers::Rational<>>;
+using ℚ_ = dedekind::numbers::Rational<>;
+inline constexpr 𝔻_ℚ eps{ℚ_{0}, ℚ_{1}};
+static_assert(eps * eps == 𝔻_ℚ{ℚ_{0}, ℚ_{0}}, "Nilpotent axiom: ε² = 0.");
 
 // Forward-mode AD correctness: d/dx(x²)|_{x=3} = 6.
 // Dual(3, 1) seeds x with derivative 1; squaring gives value 9, derivative 6.
-inline constexpr Dual<double> x_seed{3.0, 1.0};
-static_assert(x_seed * x_seed == Dual<double>{9.0, 6.0},
+inline constexpr 𝔻_ℚ x_seed{ℚ_{3}, ℚ_{1}};
+static_assert(x_seed * x_seed == 𝔻_ℚ{ℚ_{9}, ℚ_{6}},
               "AD rule: d/dx(x²)|_{x=3} = 6.");
 
-// Dual<double> is field-like: +, -, unary -, *, / are all defined and closed.
-static_assert(dedekind::algebra::HasFieldOperators<Dual<double>>,
-              "Dual<double> must satisfy the operational field-like witness.");
+// Dual<ℚ> is field-like: +, -, unary -, *, / are all defined and closed.
+static_assert(dedekind::algebra::HasFieldOperators<𝔻_ℚ>,
+              "Dual<ℚ> must satisfy the operational field-like witness.");
 
 // Dual(R) = R[ε]/(ε²) is well-defined for any commutative ring R; nothing in
 // the +, -, unary -, * fragment needs R to be a field or to be a floating-
@@ -245,7 +248,7 @@ static_assert(dedekind::algebra::HasFieldOperators<Dual<double>>,
 // NOT pinned here even though it would syntactically fire (operator/
 // compiles via integer division), because the integer-division
 // semantics are not field-axiomatic --- the field-shape claim belongs
-// only on field-shaped carriers (Dual<double>, Dual<Rat>).
+// only on field-shaped carriers (Dual<Rat>).
 //
 // Note: ``machine-integer-coefficient'' is the honest framing here.
 // Plain @c int is NOT axiomatic-ring-safe in this project (signed-
@@ -281,9 +284,8 @@ static_assert(eps_int * eps_int == Dual<int>{0, 0},
 // tangent-bundle carrier over F (Hartshorne, Ex. II.2.8).  Pin one
 // witness per shipped carrier so the concept's primary instances are
 // mechanical at translation time.
-static_assert(dedekind::geometry::IsTangentBundle<Dual<double>>,
-              "Dual<double> is a first-order tangent-bundle carrier over the "
-              "machine-real proxy.");
+static_assert(dedekind::geometry::IsTangentBundle<𝔻_ℚ>,
+              "Dual<ℚ> is a first-order tangent-bundle carrier over ℚ.");
 static_assert(
     dedekind::geometry::IsTangentBundle<Dual<int>>,
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "

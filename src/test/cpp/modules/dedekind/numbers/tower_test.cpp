@@ -15,7 +15,7 @@ using namespace dedekind::category;
 using namespace dedekind::numbers;
 
 static_assert(IsSpecies<Rational<machine_integer>>);
-static_assert(IsSpecies<Complex<machine_real_scalar>>);
+static_assert(IsSpecies<Complex<Rational<machine_integer>>>);
 
 TEST_CASE("Partial Arithmetic: Rational<I>",
           "[numbers][tower][partial][rational]") {
@@ -45,23 +45,24 @@ TEST_CASE("Partial Arithmetic: Rational<I>",
 
 TEST_CASE("Partial Arithmetic: Complex<R>",
           "[numbers][tower][partial][complex]") {
-  const auto add_op = PartialAddComplex<machine_real_scalar>{};
-  const auto mul_op = PartialMulComplex<machine_real_scalar>{};
+  using Q = Rational<machine_integer>;
+  const auto add_op = PartialAddComplex<Q>{};
+  const auto mul_op = PartialMulComplex<Q>{};
 
-  const auto c1 = Complex<machine_real_scalar>{1.0, 2.0};
-  const auto c2 = Complex<machine_real_scalar>{3.0, 4.0};
+  const auto c1 = Complex<Q>{Q{1}, Q{2}};
+  const auto c2 = Complex<Q>{Q{3}, Q{4}};
 
   // (1+2i) + (3+4i) = (4+6i)
   const auto add_result = add_op(std::make_pair(c1, c2));
   CHECK(add_result.status == Ternary::True);
-  CHECK(add_result.value.real() == 4.0);
-  CHECK(add_result.value.imag() == 6.0);
+  CHECK(add_result.value.real() == Q{4});
+  CHECK(add_result.value.imag() == Q{6});
 
   // (1+2i)(3+4i) = -5+10i
   const auto mul_result = mul_op(std::make_pair(c1, c2));
   CHECK(mul_result.status == Ternary::True);
-  CHECK(mul_result.value.real() == -5.0);
-  CHECK(mul_result.value.imag() == 10.0);
+  CHECK(mul_result.value.real() == Q{-5});
+  CHECK(mul_result.value.imag() == Q{10});
 }
 
 TEST_CASE("Partial Embedding ℤ ↪ ℚ with Ternary status",
@@ -89,13 +90,10 @@ static_assert(partial_identity_v<Rational<machine_integer>,
                                  PartialMulRational<machine_integer>>.num() ==
               1);
 
-// Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) under
-// rounding.  Associativity-by-fiat is reserved for dedekind::ieee::IEEE<F>.
-static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
-                                       PartialAddComplex<machine_real_scalar>>);
-static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
-                                      PartialAddComplex<machine_real_scalar>>);
-static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
-                                       PartialMulComplex<machine_real_scalar>>);
-static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
-                                      PartialMulComplex<machine_real_scalar>>);
+// Complex arithmetic is commutative, registered for every exact scalar.
+static_assert(
+    is_kleene_commutative_v<Complex<Rational<machine_integer>>,
+                            PartialAddComplex<Rational<machine_integer>>>);
+static_assert(
+    is_kleene_commutative_v<Complex<Rational<machine_integer>>,
+                            PartialMulComplex<Rational<machine_integer>>>);
