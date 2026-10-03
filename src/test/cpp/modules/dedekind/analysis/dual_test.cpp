@@ -102,39 +102,6 @@ TEST_CASE(
 }
 
 // ---------------------------------------------------------------------------
-// Starter-universe coverage moved from numbers/starters_test.cpp at PR #513
-// (:dual relocation).  The 𝔻 / 𝔻_d universes live in dedekind::analysis.
-// ---------------------------------------------------------------------------
-
-TEST_CASE("Analysis: 𝔻 / 𝔻_d starter universes", "[analysis][dual][starter]") {
-  // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
-  // 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1>; the machine-double ambient
-  // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).
-  using R2 = QuadraticReal<2>;
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(𝔻)>, 𝔸<Dual<R2>, Kleene, ℶ_1>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
-                            Dual<R2>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
-                            𝔸<Dual<machine_real_scalar>, Kleene, ℶ_1>>);
-
-  constexpr auto duals = 𝔻;
-  static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);
-}
-
-TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
-          "[analysis][dual][starter][lattice]") {
-  using R2 = QuadraticReal<2>;
-  const auto U = 𝔻;
-  const auto O = ~U;
-  // U is the universe, so the bounded laws decide: U ∪ ¬U = U, the decided ⊤,
-  // which factors through Σ and answers in Boole (#894); U ∩ ¬U = ¬U, a Not
-  // node over the Kleene universe (K₃ is not complemented, nothing collapses
-  // further), which answers pointwise in K₃.
-  CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == true);
-  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
-}
-
 // ---------------------------------------------------------------------------
 // Tower coverage moved from numbers/tower_test.cpp at PR #513 (:dual
 // relocation).  ℂ ↪ Dual seeding and Set-membership-over-Dual<double>
