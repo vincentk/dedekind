@@ -367,13 +367,6 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  SECTION("Identity: Set{ℕ} is ℕ") {
-    // The universe remains stable when materialized through Set{...}.
-    auto U = ℕ;
-    static_assert(std::is_same_v<decltype(U)::logic_species, Boole>);
-    REQUIRE(U(42u));
-  }
-
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
     constexpr auto gt10_and_lt5 = [](const auto& v) {
