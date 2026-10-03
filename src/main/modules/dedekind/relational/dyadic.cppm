@@ -364,11 +364,11 @@ struct ComposePred {
  *  there is deliberately no overload, so it is an honest compile error.
  *  FIXME(#795): generalise the intermediate beyond @c bool. */
 export template <typename A, typename B, typename C, typename L, typename PR,
-                 typename PS, typename CU>
+                 typename PS, typename CR, typename CS>
   requires std::same_as<B, bool>
 constexpr auto operator>>(
-    const Comprehension<𝔸<std::pair<A, B>, L, CU>, PR>& r,
-    const Comprehension<𝔸<std::pair<B, C>, L, CU>, PS>& s) {
+    const Comprehension<𝔸<std::pair<A, B>, L, CR>, PR>& r,
+    const Comprehension<𝔸<std::pair<B, C>, L, CS>, PS>& s) {
   return Comprehension<𝔸<std::pair<A, C>, L>, ComposePred<PR, PS, B>>{
       ComposePred<PR, PS, B>{r.predicate, s.predicate}};
 }

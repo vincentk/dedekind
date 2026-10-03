@@ -324,7 +324,7 @@ static_assert(
     std::same_as<std::remove_cvref_t<decltype(𝔻)>,
                  dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>,
                                    Kleene, ℶ_1>>,
-    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1> — the "
+    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ and ℂ.  Not Dual<double>.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,

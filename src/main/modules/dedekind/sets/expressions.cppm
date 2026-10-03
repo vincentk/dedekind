@@ -1592,23 +1592,6 @@ struct ProductMembership {
   }
 };
 
-/**
- * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
- *
- * Constructs a comprehension over 𝔸<pair<T1,T2>> whose membership
- * predicate checks element-wise membership in both component sets.
- */
-export template <typename T1, typename L1, typename P1, typename T2,
-                 typename L2, typename P2, typename C1, typename C2>
-  requires std::same_as<L1, L2>
-constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
-                                 const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
-  using Pair = std::pair<T1, T2>;
-  using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
-                                 Comprehension<𝔸<T2, L2, C2>, P2>>;
-  return Comprehension<𝔸<Pair, L1>, Pred>{Pred{a, b}};
-}
-
 // The cartesian-product cardinality is the JOIN of the factors on the lattice
 // Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
 // factors, Finite only when both are finite.  The primary is left INCOMPLETE
@@ -1634,6 +1617,24 @@ template <std::size_t M, std::size_t N>
 struct product_cardinality<ℵ<M>, ℵ<N>> {
   using type = ℵ<(M > N ? M : N)>;
 };
+
+/**
+ * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
+ *
+ * Constructs a comprehension over 𝔸<pair<T1,T2>> whose membership
+ * predicate checks element-wise membership in both component sets.
+ */
+export template <typename T1, typename L1, typename P1, typename T2,
+                 typename L2, typename P2, typename C1, typename C2>
+  requires std::same_as<L1, L2>
+constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
+                                 const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
+  using Pair = std::pair<T1, T2>;
+  using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
+                                 Comprehension<𝔸<T2, L2, C2>, P2>>;
+  using CC = typename product_cardinality<C1, C2>::type;
+  return Comprehension<𝔸<Pair, L1, CC>, Pred>{Pred{a, b}};
+}
 
 /** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
  *  product of two universes is the universe over the pair carrier (codomain leg

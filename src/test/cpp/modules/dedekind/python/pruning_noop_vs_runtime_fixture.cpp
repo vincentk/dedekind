@@ -33,9 +33,9 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
 // The Boolean universe 𝔹 (= 𝔸<bool>{}) with
-// the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate);
-// the wrap keeps the Set<bool, Boole, BooleanEqPredicate> shape the complement-
-// pair collapse below relies on.
+// the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate):
+// the plain set Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>, the leaf
+// shape the complement-pair collapse below relies on.
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
 constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
