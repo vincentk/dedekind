@@ -143,6 +143,10 @@ TEST_CASE("embed_𝕃_ℚ: precision-overflow inputs throw on built-in signed I"
   // 56-bit denominator, which fits in long long (63-bit signed range).
   // Just confirm the call succeeds on a wide enough carrier.
   CHECK_NOTHROW(embed_𝕃_ℚ<long long>(𝕃<double>{0.1}));
+
+  // The default carrier is fixed-width too: 1e20 needs 2^66 and saturates it,
+  // and Rational rejects the sentinel.
+  REQUIRE_THROWS_AS(embed_𝕃_ℚ<>(𝕃<double>{1.0e20}), std::domain_error);
 }
 
 TEST_CASE("embed_𝕃_ℚ: injectivity (the monic property)",

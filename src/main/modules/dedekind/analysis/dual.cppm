@@ -25,8 +25,8 @@
  *
  * @section dual__Carrier_Generality
  * The construction Dual(R) = R[ε]/(ε²) is well-defined over any
- * commutative ring R, not only over floating-point fields.  The current
- * Dual<F> constraint `std::regular<F>` reflects this: integer carriers
+ * commutative ring R.  The Dual<F> constraint is `std::regular<F>` and not
+ * `std::floating_point<F>` (IEEE floats are not a ring): integer carriers
  * (Dual<int>, Dual<SignedExtensionalCardinal<>>) and the modular ring
  * (Dual<unsigned int>) instantiate cleanly and close the ring-operator
  * surface.
@@ -60,8 +60,8 @@
  * mechanically, without any numerical approximation.  The @b numerical
  * counterpart is @c dedekind::analysis::ftc::derivative_at (central
  * difference) in @c dedekind.analysis:ftc, which uses a small step
- * @c h on a @c std::floating_point carrier.  The two routes converge
- * on smooth functions and IEEE-edge carriers.  Their structural
+ * @c h on a @c std::floating_point carrier.  The two routes agree on
+ * smooth functions.  Their structural
  * divergence: @c :ftc currently gates on
  * @c IsNumericalBridgeScalar @c = @c HasFieldOperators<R> @c && @c
  * std::floating_point<resolved_value_t<R>>, so the analytic side is
@@ -274,6 +274,12 @@ static_assert(
     dedekind::algebra::HasRingOperators<Dual<unsigned int>>,
     "Dual<unsigned int> closes the ring-operator surface under modular wrap.");
 
+// The float gate: Dual over an IEEE float is not a type.
+template <typename F>
+concept dual_admits = requires { typename Dual<F>; };
+static_assert(!dual_admits<double> && dual_admits<int>,
+              "Dual rejects raw floats (not a ring under IEEE).");
+
 // Nilpotent axiom ε² = 0 carries to any ring carrier — the defining
 // relation of Dual is independent of F.
 inline constexpr Dual<int> eps_int{0, 1};
@@ -302,8 +308,7 @@ static_assert(
  *  @c element<𝔻> scout spelling.
  *
  *  Post-HSP retarget: the carrier of @c 𝔻 is @c Dual<QuadraticReal<2>> —
- *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
- *  @c Dual<double>.
+ *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
@@ -326,7 +331,7 @@ static_assert(
                                    Kleene, ℶ_1>>,
     "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
-    "ℝ and ℂ.  Not Dual<double>.");
+    "ℝ and ℂ.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                            Dual<dedekind::numbers::QuadraticReal<2>>>,
               "𝔻's carrier IS Dual<QuadraticReal<2>> — the 2nd-order quotient "

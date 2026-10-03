@@ -48,14 +48,9 @@ TEST_CASE("Quaternion: Hamilton product rules", "[numbers][quaternion]") {
   const H j = h(Q{0}, Q{0}, Q{1}, Q{0});
   const H k = h(Q{0}, Q{0}, Q{0}, Q{1});
 
-  REQUIRE(i * i == -one);
-  REQUIRE(j * j == -one);
-  REQUIRE(k * k == -one);
-  REQUIRE(i * j == k);
-  REQUIRE(j * k == i);
-  REQUIRE(k * i == j);
-  REQUIRE(j * i == -k);
+  // Coverage companion: the full table is a static_assert in :quaternion.
   REQUIRE((i * j) * k == -one);
+  REQUIRE(j * i == -k);
 }
 
 TEST_CASE("Quaternion: conjugate and norm", "[numbers][quaternion]") {

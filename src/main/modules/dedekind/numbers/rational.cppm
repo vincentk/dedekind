@@ -800,7 +800,7 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
  * the bit-pattern via @c std::bit_cast and constructs
  * @c Rational<I>{numerator, denominator} where the denominator is the
  * relevant power of two.  NaN and +/-inf cannot reach it: the domain
- * @c 𝕃<double> excludes them by type, so the arrow is total on its domain and
+ * @c 𝕃<double> excludes them by type.  Where the arrow is defined it is
  * injective by the exactness of the dyadic decomposition (Knuth, @em TAOCP,
  * Vol. 2, §4.2), hence registered monic below.
  *
@@ -809,9 +809,11 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
  * power-of-two scaling.  For built-in signed @c I the arrow checks each step
  * against @c std::numeric_limits<I> and throws @c std::overflow_error rather
  * than trip signed-overflow UB.  The default @c default_integer
- * (@c SignedCardinality) is trusted: past its capacity it reaches the
- * sentinel that @c Rational rejects, the out-of-memory tripwire of ℚ's
- * faithful-field posture, not a partiality of the arrow.
+ * (@c SignedCardinality) is fixed-width: a finite double whose mantissa or
+ * power-of-two scaling exceeds about 2^63 (e.g. 1e20, 1e-20, every
+ * subnormal) saturates it, and @c Rational rejects the sentinel with
+ * @c std::domain_error.  So on the default carrier the arrow is partial on
+ * large exponents; a carrier wide enough for 2^1074 would make it total.
  */
 export template <IsInteger I = default_integer>
 inline constexpr auto embed_𝕃_ℚ =
@@ -819,7 +821,6 @@ inline constexpr auto embed_𝕃_ℚ =
         [](const dedekind::morphologies::𝕃<double>& f) -> Rational<I> {
           const double x = f.value();
 
-          // ±0 collapses to canonical zero.
           // ±0 collapses to canonical zero.
           if (x == 0.0) {
             return Rational<I>{I{0}, I{1}};

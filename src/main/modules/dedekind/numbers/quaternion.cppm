@@ -58,6 +58,8 @@ concept IsQuaternionScalar =
       { -a } -> std::same_as<R>;
     } && std::equality_comparable<R> &&
     !std::floating_point<R>;  // ℍ over raw floats is not a ring (IEEE)
+static_assert(!IsQuaternionScalar<double> && IsQuaternionScalar<int>,
+              "IsQuaternionScalar rejects raw floats.");
 
 /**
  * @class Quaternion

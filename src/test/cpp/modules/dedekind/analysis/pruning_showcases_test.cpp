@@ -54,41 +54,31 @@ TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
 
 namespace {
 
-// Shared with showcase 2 (ℂ lattice × square singleton).
-// Post-HSP retarget: ℂ is the coat-hanger 𝔸<Complex<QuadraticReal<2>>, ...>, so
-// showcase 2 runs on EXACT ℚ(√2) arithmetic; the scout stays element<ℂ> (now a
-// Complex<QuadraticReal<2>> scout).
-using QR = QuadraticReal<2>;  // exact real carrier (R2 is taken above for ℝ²)
-using Q = Rational<>;         // for the exact rational thresholds ½, 1½
-// A coordinate is a "small natural" iff it is one of 0,1,2,3 — on the EXACT
-// carrier the "integral ∧ 0 ≤ · ≤ 3" test IS membership in {0,1,2,3}.
-constexpr bool is_small_natural(const QR& t) {
-  return t == QR{} || t == QR{1} || t == QR{2} || t == QR{3};
-}
-
-// Complex real()/imag() component predicates are not π-projectable (π projects
-// pair coordinates, not Complex parts), so NAMED-predicate comprehensions.
-constexpr auto in_natural_lattice = [](const Complex<QR>& z) {
-  return is_small_natural(z.real()) && is_small_natural(z.imag());
+// Shared with showcase 2: the {0,…,3}² lattice × [½,1½]² square in ℝ_d × ℝ_d,
+// the same spelling as the IR fixture.  Integrality has no point-free
+// spelling, so the lattice keeps one named predicate.
+constexpr auto on_small_natural_grid = [](const R2Point& p) {
+  const double x = p.first.value();
+  const double y = p.second.value();
+  return static_cast<double>(static_cast<int>(x)) == x &&
+         static_cast<double>(static_cast<int>(y)) == y && x >= 0.0 &&
+         x <= 3.0 && y >= 0.0 && y <= 3.0;
 };
-constexpr auto in_unit_square = [](const Complex<QR>& z) {
-  return (z.real() >= QR{Q{1, 2}}) && (z.real() <= QR{Q{3, 2}}) &&
-         (z.imag() >= QR{Q{1, 2}}) && (z.imag() <= QR{Q{3, 2}});
-};
-constexpr auto natural_lattice_in_c = Comprehension{ℂ, in_natural_lattice};
-constexpr auto square_c1_c2 = Comprehension{ℂ, in_unit_square};
+constexpr auto natural_lattice = Comprehension{R2, on_small_natural_grid};
+constexpr auto unit_square = R2 | (π1 >= bound<0.5> && π1 <= bound<1.5> &&
+                                   π2 >= bound<0.5> && π2 <= bound<1.5>);
 
 }  // namespace
 
-TEST_CASE("Pruning showcase 2: ℕ² lattice × [½,1½]² in ℂ = {1+i}",
+TEST_CASE("Pruning showcase 2: {0..3}² lattice × [½,1½]² in ℝ² = {(1,1)}",
           "[analysis][pruning][showcase][showcase02]") {
-  constexpr auto lattice_square = natural_lattice_in_c & square_c1_c2;
-  using CLogic = typename decltype(lattice_square)::logic_species;
+  constexpr auto lattice_square = natural_lattice & unit_square;
+  using L = typename decltype(lattice_square)::logic_species;
 
-  STATIC_CHECK(lattice_square(Complex<QR>{QR{1}, QR{1}}) == CLogic::True);
-  STATIC_CHECK(lattice_square(Complex<QR>{QR{}, QR{1}}) == CLogic::False);
-  STATIC_CHECK(lattice_square(Complex<QR>{QR{1}, QR{}}) == CLogic::False);
-  STATIC_CHECK(lattice_square(Complex<QR>{QR{2}, QR{2}}) == CLogic::False);
+  STATIC_CHECK(lattice_square(R2Point{1.0, 1.0}) == L::True);
+  STATIC_CHECK(lattice_square(R2Point{0.0, 1.0}) == L::False);
+  STATIC_CHECK(lattice_square(R2Point{1.0, 0.0}) == L::False);
+  STATIC_CHECK(lattice_square(R2Point{2.0, 2.0}) == L::False);
 }
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",

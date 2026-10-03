@@ -44,6 +44,8 @@ concept IsComplexScalar = requires(S a, S b) {
   { a - b } -> std::same_as<S>;
   { a * b } -> std::same_as<S>;
 } && !std::floating_point<S>;  // ℂ over raw floats is not a ring (IEEE)
+static_assert(!IsComplexScalar<double> && IsComplexScalar<int>,
+              "IsComplexScalar rejects raw floats.");
 
 export template <typename R>
   requires IsComplexScalar<R>
@@ -165,7 +167,7 @@ constexpr R dot(const Complex<R>& z, const Complex<R>& w) {
 
 /**
  * @brief Squared norm abs2(z) = <z, z> = |z|² = re² + im²: exact, √-free.
- * @details The @c HasInnerProduct primitive for ℂ, available for every
+ * @details The squared-norm primitive for ℂ, available for every
  * @c IsComplexScalar R --- including the exact, non-√-closed ℝ = ℚ(√2), where
  * @c norm does not exist but @c abs2 does.  Equals Re(z · conj z) (pinned
  * below).
@@ -790,8 +792,7 @@ static_assert(
  *  carry the canonical @c element<ℂ> scout spelling.
  *
  *  Post-HSP retarget: the carrier of @c ℂ is @c Complex<QuadraticReal<2>> ---
- *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ, NOT
- *  @c Complex<double>.
+ *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
  *  cardinality of ℂ, matching ℝ — overriding @c 𝔸's @c ℵ_0 default.  ℂ is
@@ -809,7 +810,7 @@ static_assert(
                  dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1>>,
     "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
-    "ℝ = 𝔸<QuadraticReal<2>> (#806).  Not Complex<double>.");
+    "ℝ = 𝔸<QuadraticReal<2>> (#806).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℂ)>::Domain,
                  Complex<QuadraticReal<2>>>,
