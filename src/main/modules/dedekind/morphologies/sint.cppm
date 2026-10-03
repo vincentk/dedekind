@@ -178,16 +178,17 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
 export template <std::signed_integral S>
 constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
   // The lift funnels into @c finite_signed_cardinality, which stores into
-  // @c SignedExtensionalCardinal<>'s signed word (@c std::make_signed_t of
-  // @c std::size_t).  On 32-bit platforms @c long @c long is wider than
-  // that word, so the word is the binding constraint.  Pin the guard
-  // against it so the injectivity claim holds on every platform.
+  // @c SignedExtensionalCardinal<>'s signed word (@c std::ptrdiff_t).  On
+  // 32-bit platforms @c long @c long is wider than that word, so the word is
+  // the binding constraint.  Pin the guard against it so the injectivity claim
+  // holds on every platform.
   static_assert(
       std::numeric_limits<S>::digits <=
-          std::numeric_limits<std::make_signed_t<std::size_t>>::digits,
+          std::numeric_limits<
+              dedekind::sets::SignedExtensionalCardinal<>::signed_type>::digits,
       "embed_sint_ℤ requires every value of S "
       "to be representable in the SignedExtensionalCardinal<>'s "
-      "signed word (std::make_signed_t<std::size_t>).  On platforms where "
+      "signed word (std::ptrdiff_t).  On platforms where "
       "this fires (e.g. 32-bit std::size_t with 64-bit long long, or "
       "wider extended integer types), an explicit ±ℵ_0 escalation "
       "on out-of-range values would be needed; without it the "

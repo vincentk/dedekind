@@ -407,7 +407,7 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
  * all finite cyclic carriers that matter --- @c unsigned int /
  * @c unsigned long / @c size_t under @c std::plus (wrapping at
  * @f$2^w@f$), @c ExtensionalCardinal<W> under @c std::plus,
- * @c SignedExtensionalCardinal<W> under @c std::plus,
+ * @c SignedExtensionalCardinal<S> under @c std::plus,
  * @c morphologies::Modular<N> under @c std::plus --- are cyclic
  * specialisations of the abelian-group case.
  *

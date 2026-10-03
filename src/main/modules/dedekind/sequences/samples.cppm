@@ -115,7 +115,7 @@ export inline const auto is_even =
  * @tparam T Any @c IsRingIntegral inhabitant constructible from the
  *           unsigned literals @c 0u and @c 1u — i.e.\ @c std::integral
  *           types and the @c ExtensionalCardinal<W> /
- *           @c SignedExtensionalCardinal<W> ring-integral carriers.
+ *           @c SignedExtensionalCardinal<S> ring-integral carriers.
  *           The variant @c Cardinality / @c SignedCardinality Forms are
  *           excluded by the brace-init requirement; they need
  *           @c finite_cardinality factories rather than @c T(0u)

@@ -607,15 +607,14 @@ constexpr T inverse(const T& x, std::plus<T>) {
 }
 
 /**
- * @brief Signed one-word integer: two's complement over the word @c W.
+ * @brief Signed one-word integer: two's complement in the signed word @c S.
  *
- * @details One structural field, @ref value, of type
- * @c std::make_signed_t<W>.  Arithmetic runs through the overflow builtins
- * on that type, which yield the wrapped result, so the carrier is exactly
- * the residue ring ℤ/2^w read in the signed range [-2^(w-1), 2^(w-1)-1]:
- * a genuine commutative ring and cyclic group, which the registrations
- * below claim.  @c -min wraps to @c min, and @c min / @c -1 is @c min (the
- * ring answer), so no operation is undefined.
+ * @details One structural field, @ref value, of type @c S.  Arithmetic runs
+ * through the overflow builtins on that type, which yield the wrapped result,
+ * so the carrier is exactly the residue ring ℤ/2^w read in the signed range
+ * [-2^(w-1), 2^(w-1)-1]: a genuine commutative ring and cyclic group, which the
+ * registrations below claim.  @c -min wraps to @c min, and @c min / @c -1 is @c
+ * min (the ring answer), so no operation is undefined.
  *
  * It satisfies IsInteger (see registrations after the numbers:integer
  * module pulls this file), making it the signed backing carrier for
@@ -625,13 +624,18 @@ constexpr T inverse(const T& x, std::plus<T>) {
  * Structural on purpose: the public field makes the type usable as a
  * non-type template parameter wherever `Rational<Z>` is.
  *
- * @tparam W The word (default @c std::size_t); the value is its signed twin.
+ * @tparam S The signed word (default @c std::ptrdiff_t, the signed twin of
+ *           @c std::size_t).  Gated on being a signed built-in integer whose
+ *           unsigned twin is an @c IsWrappingWord: the raw signed type is not a
+ *           ring (overflow is UB), but this carrier's builtin-based arithmetic
+ *           is exactly the ring of its unsigned twin.
  */
-export template <IsWrappingWord W = std::size_t>
+export template <typename S = std::ptrdiff_t>
+  requires std::signed_integral<S> && IsWrappingWord<std::make_unsigned_t<S>>
 struct SignedExtensionalCardinal {
-  using word_type = W;
-  using signed_type = std::make_signed_t<W>;
-  using magnitude_type = ExtensionalCardinal<W>;
+  using signed_type = S;
+  using word_type = std::make_unsigned_t<S>;
+  using magnitude_type = ExtensionalCardinal<word_type>;
 
   /** @brief A wrapped result and whether the exact result overflowed. */
   struct CheckedResult {
@@ -646,15 +650,16 @@ struct SignedExtensionalCardinal {
   /** @brief Construction from any integral source, modulo 2^w. */
   template <std::integral S>
   constexpr SignedExtensionalCardinal(S v) noexcept  // NOLINT
-      : value(static_cast<signed_type>(static_cast<W>(v))) {}
+      : value(static_cast<signed_type>(static_cast<word_type>(v))) {}
 
   /** @brief Is the value negative? */
   constexpr bool negative() const noexcept { return value < 0; }
 
   /** @brief |value| as an unsigned word (exact, also for @c min). */
   constexpr magnitude_type magnitude() const noexcept {
-    const W bits = static_cast<W>(value);
-    return magnitude_type{negative() ? static_cast<W>(W{0} - bits) : bits};
+    const word_type bits = static_cast<word_type>(value);
+    return magnitude_type{
+        negative() ? static_cast<word_type>(word_type{0} - bits) : bits};
   }
 
   /** @brief Explicit projection to @c std::size_t — the magnitude (sign is
@@ -780,7 +785,7 @@ struct SignedExtensionalCardinal {
 // SignedCardinality: extended-integer carrier with ±ℵ_0 escalation (#377)
 // ---------------------------------------------------------------------------
 //
-// `SignedExtensionalCardinal<W>` is a *finite* signed carrier --- ℤ/2^w ℤ
+// `SignedExtensionalCardinal<S>` is a *finite* signed carrier --- ℤ/2^w ℤ
 // in two's complement.  Useful for
 // showcase arithmetic, but not ℤ.  `SignedCardinality` is the signed
 // counterpart of `Cardinality` (the ℕ ∪ {ℵ_0} variant): an extended-
@@ -1769,8 +1774,8 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
 namespace detail_isringintegral {
 template <typename>
 struct is_signed_extensional_cardinal : std::false_type {};
-template <typename W>
-struct is_signed_extensional_cardinal<SignedExtensionalCardinal<W>>
+template <typename S>
+struct is_signed_extensional_cardinal<SignedExtensionalCardinal<S>>
     : std::true_type {};
 template <typename>
 struct is_extensional_cardinal : std::false_type {};
@@ -1949,17 +1954,17 @@ struct inverse_trait<Z1, std::plus<Z1>> {
   }
 };
 
-template <typename W>
+template <typename S>
 inline constexpr bool is_reflexive_v<
-    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<S>, std::less_equal<>> = true;
 
-template <typename W>
+template <typename S>
 inline constexpr bool is_transitive_v<
-    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<S>, std::less_equal<>> = true;
 
-template <typename W>
+template <typename S>
 inline constexpr bool is_antisymmetric_v<
-    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<S>, std::less_equal<>> = true;
 
 static_assert(IsRing<Z1, std::plus<Z1>, std::multiplies<Z1>>,
               "SignedExtensionalCardinal<> must certify as a total ring.");
@@ -1974,7 +1979,7 @@ static_assert(IsAbelianGroup<Z1, std::plus<Z1>>,
 //
 // `ExtensionalCardinal<W>` is the bounded ℕ carrier; under addition
 // it wraps modulo 2^w, forming a finite cyclic group.
-// `SignedExtensionalCardinal<W>` is its signed counterpart, also
+// `SignedExtensionalCardinal<S>` is its signed counterpart, also
 // cyclic under addition (same capacity, signed representation).
 // Order is exposed via `cyclic_order_v`; here we report 0
 // ("order not representable as std::size_t") rather than the exact
@@ -1986,9 +1991,9 @@ struct is_cyclic_group<dedekind::sets::ExtensionalCardinal<W>,
                        std::plus<dedekind::sets::ExtensionalCardinal<W>>>
     : std::true_type {};
 
-template <typename W>
-struct is_cyclic_group<dedekind::sets::SignedExtensionalCardinal<W>,
-                       std::plus<dedekind::sets::SignedExtensionalCardinal<W>>>
+template <typename S>
+struct is_cyclic_group<dedekind::sets::SignedExtensionalCardinal<S>,
+                       std::plus<dedekind::sets::SignedExtensionalCardinal<S>>>
     : std::true_type {};
 
 static_assert(IsCyclicGroup<C1, std::plus<C1>>,
@@ -2213,17 +2218,17 @@ struct SpeciesTraits<dedekind::sets::SignedCardinality> {
   using machine_type = dedekind::sets::SignedCardinality;
 };
 
-// Lift the bounded exact ℤ carrier @c SignedExtensionalCardinal<W>
+// Lift the bounded exact ℤ carrier @c SignedExtensionalCardinal<S>
 // to IsSpecies status as well, parallel to @c SignedCardinality
 // above.  Required for @c ℤ @c = @c SignedExtensionalCardinal<>
 // to flow into @c ambient_set<...> as the canonical carrier per
 // #399 slice 3 (the value-level @c Z constant in
 // @c numbers/integer.cppm anchors @c IsSet on this carrier).  The word
 // @c W is kept parametric, mirroring the carrier.
-template <typename W>
-struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<W>> {
-  using Domain = dedekind::sets::SignedExtensionalCardinal<W>;
-  using machine_type = dedekind::sets::SignedExtensionalCardinal<W>;
+template <typename S>
+struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<S>> {
+  using Domain = dedekind::sets::SignedExtensionalCardinal<S>;
+  using machine_type = dedekind::sets::SignedExtensionalCardinal<S>;
 };
 
 // IsSpecies witnesses: the variant carriers are now first-class

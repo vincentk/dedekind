@@ -1,8 +1,8 @@
 /** @file dedekind/sets/signed_extensional_cardinal_test.cpp
  *
- * Tests for the one-word sign-magnitude integer carrier
- * SignedExtensionalCardinal<W>. Covers ring laws, canonical-zero
- * normalisation, signed edge cases around the minimum representable
+ * Tests for the one-word two's-complement integer carrier
+ * SignedExtensionalCardinal<S>. Covers ring laws, the wrap at the signed
+ * word's edges, signed edge cases around the minimum representable
  * value, and sign propagation through *, /, % per C++ semantics.
  */
 
