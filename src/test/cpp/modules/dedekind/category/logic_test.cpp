@@ -1,6 +1,7 @@
 /** @file test/cpp/modules/dedekind/category/logic_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <initializer_list>
 
 import dedekind.category;
 
@@ -270,5 +271,65 @@ TEST_CASE("Logic: the Percentage confidence chain (bounded, #906)",
     CHECK(IsDeMorganAlgebra<P>);
     CHECK(IsBoundedDeMorganChain<P>);  // ⟹ Kleene
     CHECK(!IsBooleanLogic<P>);         // 101 grades, not Boolean
+  }
+}
+
+TEST_CASE(
+    "Logic: the species semilattice — 𝔹 at the bottom, joins where a "
+    "shipped bound exists (#945)",
+    "[category][logic][species][semilattice]") {
+  using C = Chain<int>;
+
+  SECTION("the dominance order: 𝔹 ⊑ K₃ ⊑ Percent; 𝔹 ⊑ Chain<T>; parity gap") {
+    STATIC_CHECK(LiftsTo<Boole, Kleene>);
+    STATIC_CHECK(LiftsTo<Boole, Percent>);
+    STATIC_CHECK(LiftsTo<Boole, C>);
+    STATIC_CHECK(LiftsTo<Kleene, Percent>);
+    STATIC_CHECK(LiftsTo<Percent, Percent>);
+    STATIC_CHECK(!LiftsTo<Kleene, Boole>);
+    STATIC_CHECK(!LiftsTo<Kleene, C>);   // K₃ has a ¬-fixed point, Chain none
+    STATIC_CHECK(!LiftsTo<Percent, C>);  // same parity obstruction
+    STATIC_CHECK(!LiftsTo<C, Chain<long>>);  // the poles do not map to poles
+  }
+
+  SECTION("joins: partial, exactly for comparable species") {
+    STATIC_CHECK(std::same_as<join_logic_t<Boole, Kleene>, Kleene>);
+    STATIC_CHECK(std::same_as<join_logic_t<Kleene, Boole>, Kleene>);
+    STATIC_CHECK(std::same_as<join_logic_t<Kleene, Percent>, Percent>);
+    STATIC_CHECK(std::same_as<join_logic_t<Boole, C>, C>);
+    STATIC_CHECK(std::same_as<join_logic_t<Kleene, Kleene>, Kleene>);
+    STATIC_CHECK(!HaveLogicJoin<Kleene, C>);
+    STATIC_CHECK(!HaveLogicJoin<Percent, C>);
+  }
+
+  SECTION("meets: total, 𝔹 the bottom") {
+    STATIC_CHECK(std::same_as<meet_logic_t<Kleene, Percent>, Kleene>);
+    STATIC_CHECK(std::same_as<meet_logic_t<Percent, Kleene>, Kleene>);
+    STATIC_CHECK(std::same_as<meet_logic_t<Kleene, C>, Boole>);
+    STATIC_CHECK(std::same_as<meet_logic_t<Percent, C>, Boole>);
+    STATIC_CHECK(std::same_as<meet_logic_t<C, C>, C>);
+    STATIC_CHECK(std::same_as<meet_logic_t<Boole, C>, Boole>);
+  }
+
+  SECTION("K₃ ↪ Percent lands on 0 / 50 / 100 and commutes with ¬") {
+    STATIC_CHECK(lift_logic<Percent>(Ternary::False) == Percentage{0});
+    STATIC_CHECK(lift_logic<Percent>(Ternary::Unknown) == Percentage{50});
+    STATIC_CHECK(lift_logic<Percent>(Ternary::True) == Percentage{100});
+    for (const auto k : {Ternary::False, Ternary::Unknown, Ternary::True}) {
+      CHECK(Percent::RFL(lift_logic<Percent>(k)) ==
+            lift_logic<Percent>(Kleene::RFL(k)));
+    }
+    // 𝔹 lands on the poles of every species, and a value already in the
+    // target passes through.
+    STATIC_CHECK(lift_logic<Percent>(true) == Percentage{100});
+    STATIC_CHECK(lift_logic<Percent>(Percentage{37}) == Percentage{37});
+  }
+
+  SECTION("classifier answers name their species; a bare int does not") {
+    STATIC_CHECK(std::same_as<classifier_logic_t<bool>, Boole>);
+    STATIC_CHECK(std::same_as<classifier_logic_t<Ternary>, Kleene>);
+    STATIC_CHECK(std::same_as<classifier_logic_t<Percentage>, Percent>);
+    STATIC_CHECK(!IsClassifierAnswer<int>);
+    STATIC_CHECK(IsΩ<Percentage>);
   }
 }

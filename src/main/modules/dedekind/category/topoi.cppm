@@ -433,13 +433,12 @@ export template <typename A, typename Chi>
 struct Subobject {
   using Domain = A;
 
-  /** @brief The logic species @c L is derived from the characteristic
-   *  morphism's codomain @c Cod<Chi> via @c GetLogic.  Concretely:
-   *  @c GetLogic<bool>::type @c = @c Boole;
-   *  @c GetLogic<Ternary>::type @c = @c Kleene.  Required by
-   *  @c :lattice::IsSubobjectLattice as a CT-vocabulary metadata
-   *  typedef (#698 Slice 9). */
-  using logic_species = typename GetLogic<Cod<Chi>>::type;
+  /** @brief The logic species is read off the characteristic morphism's
+   *  codomain @c Cod<Chi> (@c classifier_logic_t: @c bool ↦ @c Boole,
+   *  @c Ternary ↦ @c Kleene, a wrapper's own @c logic_species), with no
+   *  default.  Required by @c :lattice::IsSubobjectLattice as a CT-vocabulary
+   *  metadata typedef. */
+  using logic_species = classifier_logic_t<Cod<Chi>>;
 
   /** @brief χ: A ⟶ Ω: re-export the stored rule's @b own codomain @c Cod<Chi>
    *  (the classifier the predicate returns --- @c bool / @c Ternary, or a
@@ -618,7 +617,7 @@ concept IsQuotient = requires(Q q) {
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator&&(P&& p, Q&& q) {
-  using L = typename GetLogic<Cod<P>>::type;
+  using L = classifier_logic_t<Cod<P>>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -631,7 +630,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
           requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator&&(C&& constant, P&& p) {
-  using L = typename GetLogic<Cod<P>>::type;
+  using L = classifier_logic_t<Cod<P>>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -655,7 +654,7 @@ auto operator&&(P&& p, C&& constant) {
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator||(P&& p, Q&& q) {
-  using L = typename GetLogic<Cod<P>>::type;
+  using L = classifier_logic_t<Cod<P>>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -668,7 +667,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
           requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator||(C&& constant, P&& p) {
-  using L = typename GetLogic<Cod<P>>::type;
+  using L = classifier_logic_t<Cod<P>>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -691,7 +690,7 @@ auto operator||(P&& p, C&& constant) {
  */
 export template <IsPredicate P>
 auto operator!(P&& p) {
-  using L = typename GetLogic<Cod<P>>::type;
+  using L = classifier_logic_t<Cod<P>>;
   using A = Dom<P>;
 
   // Return a formal Morphism A -> Ω
