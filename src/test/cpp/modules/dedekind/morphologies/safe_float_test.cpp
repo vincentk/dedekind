@@ -18,6 +18,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 
 import dedekind.morphologies;
 import dedekind.category;
@@ -34,6 +35,18 @@ namespace {
 /** @brief Lift a value known to be finite (test inputs only). */
 SF sf(double x) { return *mo::try_safe_float(x); }
 }  // namespace
+
+TEST_CASE(
+    "morphologies:safe_float — the checked constructor gates the boundary",
+    "[morphologies][safe_float]") {
+  constexpr double inf = std::numeric_limits<double>::infinity();
+  CHECK(SF{2.5}.value() == 2.5);
+  CHECK(SF{}.value() == 0.0);
+  CHECK_THROWS_AS(SF{std::numeric_limits<double>::quiet_NaN()},
+                  std::domain_error);
+  CHECK_THROWS_AS(SF{inf}, std::domain_error);
+  CHECK_THROWS_AS(SF{-inf}, std::domain_error);
+}
 
 TEST_CASE("morphologies:safe_float — try_safe_float gates the boundary",
           "[morphologies][safe_float][lattice][496]") {
