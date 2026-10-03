@@ -1931,9 +1931,11 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
  * arithmetic, additive inverses, or strict ring laws (a @b shape concept,
  * sibling of @c HasRingOperators / @c IsRing).
  *
- * Floating-point carriers (@c float / @c double / @c Real<Q>) are @b not
- * admitted: their range cardinalities are uncountable in the abstract reading
- * and lossy under IEEE rounding.
+ * Raw floating-point carriers (@c float / @c double) are @b not admitted:
+ * their abstract range is uncountable and IEEE arithmetic rounds.  The finite
+ * floats @c 𝕃<F> are excluded for a different reason: they form a finite set
+ * of dyadic rationals, but they are not integral and claim only a lattice
+ * reduct, no arithmetic.
  *
  * @note Lives in @c :sets:cardinality --- the canonical cardinality /
  * enumerability home --- since it depends only on @c std::integral and the

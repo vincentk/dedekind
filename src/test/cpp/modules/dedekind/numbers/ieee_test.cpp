@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -25,12 +26,17 @@ TEST_CASE("IEEE map/bind and lane conversions", "[numbers][ieee][unsafe]") {
   const auto bound = ieee_bind(x, [](double v) { return ieee_unit(v + 5.0); });
   CHECK(bound.resolve() == 7.0);
 
-  const auto safe = Real<machine_real_scalar>{4.0};
-  const auto fast = assume_ieee(safe);
+  using Rd = typename decltype(ℝ_d)::Domain;
+  const auto fast = assume_ieee(Rd{4.0});
   CHECK(fast.resolve() == 4.0);
 
   const auto back = discharge_ieee(fast);
-  CHECK(back.resolve() == 4.0);
+  REQUIRE(back.has_value());
+  CHECK(back->value() == 4.0);
+
+  // The fast lane can leave the finite floats; the exit says so.
+  const auto inf = ieee_unit(std::numeric_limits<double>::infinity());
+  CHECK_FALSE(discharge_ieee(inf).has_value());
 }
 
 TEST_CASE("Complex machine ambient lifts to an L-set, not an ETCS set",

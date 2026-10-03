@@ -56,8 +56,7 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // to reach Dual<F> and the 𝔻 alias.
 export import :symbolic;     // Formal symbols / Indeterminates
 export import :real;         // ℝ = 𝔸<QuadraticReal<2>> (the ℚ(√2) coat-hanger);
-                             // materialisable ambient ℝ_d = 𝔸<Real<double>>;
-                             // Real<Q>/ExactReal
+                             // machine ambient ℝ_d = 𝔸<𝕃<double>>
 export import :real_bridge;  // HSP S-leg ℚ ↪ ℝ (monic hom EmbedsAsSubalgebra;
                              // the inclusion arrow IS embed_ℚ_ℝ) + its graph
                              // Γ = graph(embed), a relation on ℚ×ℝ

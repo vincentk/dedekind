@@ -804,7 +804,7 @@ inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 /** @brief Path D to totality: the operation is total because the carrier is
  *  @b exact --- arbitrary-precision arithmetic with no rounding, @c Op(a,b)
  *  always defined and lossless.  The archetypes are the exact number fields
- *  (@c Rational = ℚ, @c ExactReal, @c QuadraticReal = ℚ(√D)) under @c + and
+ *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
  *  @c *.  Distinct from the three machine-finite paths, which are total by
  *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
  * is total because its arithmetic is @b closed and exact.

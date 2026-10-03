@@ -14,10 +14,12 @@
 module;
 
 #include <concepts>
+#include <optional>
 
 export module dedekind.numbers.ieee;
 
 import dedekind.ieee;
+import dedekind.morphologies; // 𝕃<F>, the honest lane
 import dedekind.numbers;
 
 namespace dedekind::numbers {
@@ -38,16 +40,19 @@ constexpr IEEE<F> ieee_unit(F value) noexcept {
   return dedekind::ieee::ieee_unit<F>(value);
 }
 
-/** @brief Explicit entry from the honest lane into IEEE fast lane. */
+/** @brief Explicit entry from the honest lane (the finite floats @c 𝕃<F>)
+ *  into the IEEE fast lane. */
 export template <std::floating_point F = machine_real_scalar>
-constexpr IEEE<F> assume_ieee(const Real<F>& r) noexcept {
-  return IEEE<F>{r.resolve()};
+constexpr IEEE<F> assume_ieee(const dedekind::morphologies::𝕃<F>& r) noexcept {
+  return IEEE<F>{r.value()};
 }
 
-/** @brief Explicit exit from IEEE fast lane into the honest lane carrier. */
+/** @brief Explicit exit from the IEEE fast lane into the honest lane:
+ *  @c nullopt when the fast lane produced NaN or +/-inf. */
 export template <std::floating_point F = machine_real_scalar>
-constexpr Real<F> discharge_ieee(const IEEE<F>& x) noexcept {
-  return Real<F>{x.resolve()};
+constexpr std::optional<dedekind::morphologies::𝕃<F>> discharge_ieee(
+    const IEEE<F>& x) noexcept {
+  return dedekind::morphologies::try_safe_float(x.resolve());
 }
 
 }  // namespace dedekind::numbers

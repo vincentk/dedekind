@@ -8,7 +8,7 @@
  *
  * @section cut__Reals_As_Cuts
  * A real number @b is a Dedekind lower cut of @f$\mathbb{Q}@f$ (Dedekind 1872).
- * @c Real<Q> (see @c :real) reifies only the @b principal cuts --- one rational
+ * @c Rational<I> names only the @b principal cuts --- one rational
  * bound, so it can name @f$\mathbb{Q}@f$ but no irrational.  @c Cut<Q> is the
  * leaf that adds the first @b non-principal cuts we can still @b decide:
  *   - @b principal @f$q@f$: the cut @f$\{x\in\mathbb{Q}\mid x<q\}@f$;
@@ -176,7 +176,7 @@ struct SpeciesTraits<dedekind::numbers::Cut<Q>> {
 /** @section cut__Order_Fabric
  *  @c Cut<Q>'s @c <=> is a genuine total order (exact on the leaf shapes), so
  *  the poset traits are @b earned, not postulated.  Registered parametrically
- *  over @c Q --- the same shape @c Real<Rational<I>> uses --- so no witness is
+ *  over @c Q --- the same shape @c Rational<I> uses --- so no witness is
  *  cloned per instantiation. */
 template <typename Q>
 inline constexpr bool

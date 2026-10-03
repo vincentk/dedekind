@@ -18,31 +18,21 @@ import dedekind.category;
 import dedekind.sets;
 import dedekind.algebra;
 import dedekind.numbers;
+import dedekind.order;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
+using namespace dedekind::order;
 
 // Ambient product set ℝ × ℝ and its symbolic scout.
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
-// FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, R2's Domain
-// becomes the canonical pair<ℝ, ℝ>; for now the carrier reads as the
-// underlying std::pair<Real<double>, Real<double>>.  The
-// universal-ambient @c 𝔸<R2Point> ⊃ R2 lets the scout re-bind to the
-// narrower R2 via @c xy @c % @c R2 below.
-// Diagonal: { (x, y) ∈ ℝ² | x = y }.  NAMED-predicate comprehensions over the
-// non-universal R2 base (a product Set); candidate point-free `R2 | (π1 == π2)`
-// / `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)` (Trsk pair grammar), CI-gated.
-constexpr auto on_diagonal = [](R2Point p) { return p.first == p.second; };
-constexpr auto in_strip = [](R2Point p) {
-  return (p.first > 5.0) && (p.second < 3.0);
-};
-constexpr auto diagonal = Comprehension{R2, on_diagonal};
-
-// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Comprehension{R2, in_strip};
+// Diagonal { (x, y) ∈ ℝ² | x = y } and strip { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 },
+// both point-free over the product of finite doubles.
+constexpr auto diagonal = R2 | (π1 == π2);
+constexpr auto strip = R2 | (π1 > bound<5.0> && π2 < bound<3.0>);
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;

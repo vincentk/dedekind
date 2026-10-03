@@ -8,9 +8,6 @@ using namespace dedekind::numbers;
 using namespace dedekind::category;
 
 TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
-  using RealValue = Real<double>;
-  using ComplexValue = Complex<RealValue>;
-
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
     // The lower cut is Kleene-valued (NaN ↦ Unknown): an L-set, not an ETCS
@@ -24,20 +21,9 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
             Ternary::Unknown);
   }
 
-  SECTION("Complex arithmetic over Real wrapper") {
-    const ComplexValue a{RealValue{1.0}, RealValue{2.0}};
-    const ComplexValue b{RealValue{3.0}, RealValue{4.0}};
-    const ComplexValue s = a + b;
-    REQUIRE(s.real().resolve() == 4.0);
-    REQUIRE(s.imag().resolve() == 6.0);
-  }
-
   SECTION("Transcendental-set marker (no rational point in the set)") {
-    // The `:constants` partition's hardcoded `Pi()` / `E()` / `Sqrt2()`
-    // were removed in #379 (they were `double` literals dressed in
-    // `Real<double>`, not Dedekind cuts); the `TranscendentalSet<double>`
-    // marker --- the @b set of transcendentals over $\mathbb{R}$ ---
-    // remains in `:symbolic` and is what this section actually checks.
+    // The `TranscendentalSet<double>` marker: the @b set of transcendentals
+    // over $\mathbb{R}$.
     const auto T = TranscendentalSet<double>();
     STATIC_CHECK(dedekind::category::IsSet<decltype(T)>);
     REQUIRE(T.χ(0.0) == false);  // 0 is rational, not transcendental

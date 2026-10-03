@@ -55,21 +55,23 @@ TEST_CASE("Numbers: lattice factory API", "[numbers][lattice][api]") {
   SECTION("lattice<ℝ_d> supports unbounded and bounded forms") {
     const auto all = lattice<ℝ_d>;
     using LogicAll = typename decltype(all)::logic_species;
-    REQUIRE(all(Real<double>{2.0}) == LogicAll::True);
-    REQUIRE(all(Real<double>{2.25}) == LogicAll::False);
+    using Rd = typename decltype(ℝ_d)::Domain;
+    REQUIRE(all(Rd{2.0}) == LogicAll::True);
+    REQUIRE(all(Rd{2.25}) == LogicAll::False);
 
     const auto bounded = lattice<ℝ_d>.bounded(4);
     using LogicBounded = typename decltype(bounded)::logic_species;
-    REQUIRE(bounded(Real<double>{0.0}) == LogicBounded::True);
-    REQUIRE(bounded(Real<double>{3.0}) == LogicBounded::True);
-    REQUIRE(bounded(Real<double>{4.0}) == LogicBounded::False);
+    REQUIRE(bounded(Rd{0.0}) == LogicBounded::True);
+    REQUIRE(bounded(Rd{3.0}) == LogicBounded::True);
+    REQUIRE(bounded(Rd{4.0}) == LogicBounded::False);
   }
 
   SECTION("lattice<ℝ_d,3> models integer points in ℝ^3") {
     const auto x = lattice<ℝ_d, 3>;
-    using V3 = std::array<Real<double>, 3>;
-    REQUIRE(x(V3{Real<double>{1.0}, Real<double>{2.0}, Real<double>{3.0}}));
-    REQUIRE(!x(V3{Real<double>{1.0}, Real<double>{2.5}, Real<double>{3.0}}));
+    using Rd = typename decltype(ℝ_d)::Domain;
+    using V3 = std::array<Rd, 3>;
+    REQUIRE(x(V3{Rd{1.0}, Rd{2.0}, Rd{3.0}}));
+    REQUIRE(!x(V3{Rd{1.0}, Rd{2.5}, Rd{3.0}}));
   }
 
   SECTION("lattice<ℂ_d,3> models Gaussian integer points in ℂ^3") {
