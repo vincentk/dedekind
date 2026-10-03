@@ -349,3 +349,32 @@ TEST_CASE("Topos: Arrow Operations Closure", "[category][topoi]") {
     }
   }
 }
+
+namespace {
+/** @brief A Percentage-valued arrow: the confidence is the argument, clamped.
+ */
+struct Confidence {
+  constexpr Percentage operator()(const int& x) const { return Percentage{x}; }
+};
+}  // namespace
+
+TEST_CASE("Topos: constants on a Percentage-valued arrow lift into Percent",
+          "[category][topoi][species]") {
+  const auto p = arrow<int, Percentage>(Confidence{});
+  STATIC_CHECK(IsPredicate<decltype(p)>);
+
+  // A Percentage constant is already in Ω; bool and Ternary lift along the
+  // dominance (true ↦ 100, Unknown ↦ 50).  Both operand orders, both ops.
+  const auto left_pct = Percentage{30} && p;
+  const auto right_pct = p || Percentage{30};
+  const auto left_bool = true && p;
+  const auto right_tern = p || Ternary::Unknown;
+  STATIC_CHECK(std::same_as<Cod<decltype(left_pct)>, Percentage>);
+  STATIC_CHECK(std::same_as<Cod<decltype(right_pct)>, Percentage>);
+  STATIC_CHECK(std::same_as<Cod<decltype(left_bool)>, Percentage>);
+  STATIC_CHECK(std::same_as<Cod<decltype(right_tern)>, Percentage>);
+  CHECK(left_pct(70) == Percentage{30});    // 30 ∧ 70
+  CHECK(right_pct(10) == Percentage{30});   // 10 ∨ 30
+  CHECK(left_bool(70) == Percentage{70});   // 100 ∧ 70
+  CHECK(right_tern(20) == Percentage{50});  // 20 ∨ 50
+}

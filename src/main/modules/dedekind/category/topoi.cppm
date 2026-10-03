@@ -45,12 +45,7 @@ import :cartesian;
 namespace dedekind::category {
 
 template <typename C>
-concept IsClassifierConstant =
-    std::same_as<std::remove_cvref_t<C>, bool> ||
-    std::same_as<std::remove_cvref_t<C>, Ternary> || requires {
-      typename std::remove_cvref_t<C>::logic_species;
-      typename std::remove_cvref_t<C>::machine_type;
-    };
+concept IsClassifierConstant = IsClassifierAnswer<C>;
 
 /** @brief Lift a classifier constant into the predicate's own @c Ω: the
  *  identity when it is already there, else the dominance lift @c lift_logic

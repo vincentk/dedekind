@@ -637,6 +637,13 @@ TEST_CASE(
   const auto pairs = unknown * confident;
   STATIC_CHECK(std::same_as<typename decltype(pairs)::logic_species, Percent>);
   CHECK(pairs(std::pair{2, 2}) == Percentage{50});
+  // Equal effective species over different base tags (Percent answers over a
+  // Kleene base and over a Percent base) are a product too.
+  const auto over_kleene = Comprehension{𝔸<int, Kleene>{}, ConfidentlyEven{}};
+  const auto same_species = over_kleene * confident;
+  STATIC_CHECK(
+      std::same_as<typename decltype(same_species)::logic_species, Percent>);
+  CHECK(same_species(std::pair{2, 5}) == Percentage{50});
 
   // An answer already in the base's Ω stays in the base's species.  (A
   // Chain<int> set is not yet an L-set citizen: IsPredicate asks IsΩ of the
@@ -645,4 +652,10 @@ TEST_CASE(
   STATIC_CHECK(
       std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
   CHECK(graded(7) == 7);  // ⊤ ∧ 7
+  // A product of graded sets keeps the grade: the conjunction is Chain's min,
+  // not the carrier's && (which would collapse 7 ∧ 3 to true).
+  const auto grid = graded * graded;
+  STATIC_CHECK(
+      std::same_as<typename decltype(grid)::logic_species, Chain<int>>);
+  CHECK(grid(std::pair{7, 3}) == 3);
 }

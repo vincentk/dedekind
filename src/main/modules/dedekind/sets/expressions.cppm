@@ -1542,11 +1542,17 @@ export template <typename A, typename B>
 struct ProductMembership {
   A a;
   B b;
-  // @c auto (not @c bool): inherit the operands' logic species so a Kleene
-  // component keeps @c Unknown rather than collapsing under a bool cast.
+  /** @brief The product's species: the join of the factors'.  Each factor's
+   *  answer is lifted into it and the conjunction is that species' @c AND, so
+   *  a Kleene factor keeps @c Unknown and a @c Chain<int> factor keeps its
+   *  grade (the carrier's own @c && would collapse both to @c bool). */
+  using logic_species =
+      join_logic_t<typename A::logic_species, typename B::logic_species>;
   template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p.first) && b(p.second);
+  constexpr typename logic_species::Ω operator()(const P& p) const {
+    using L = logic_species;
+    return L::AND(dedekind::category::lift_logic<L>(a(p.first)),
+                  dedekind::category::lift_logic<L>(b(p.second)));
   }
 };
 
@@ -1584,25 +1590,30 @@ struct product_cardinality<ℵ<M>, ℵ<N>> {
  */
 export template <typename T1, typename L1, typename P1, typename T2,
                  typename L2, typename P2, typename C1, typename C2>
-  requires std::same_as<L1, L2>
+  requires dedekind::category::HaveLogicJoin<
+      typename Comprehension<𝔸<T1, L1, C1>, P1>::logic_species,
+      typename Comprehension<𝔸<T2, L2, C2>, P2>::logic_species>
 constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
                                  const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
+  // Dispatch and reconcile on the factors' EFFECTIVE species (a comprehension
+  // may answer above its base's tag); the product lives in their join.
   using Pair = std::pair<T1, T2>;
   using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
                                  Comprehension<𝔸<T2, L2, C2>, P2>>;
   using CC = typename product_cardinality<C1, C2>::type;
-  return Comprehension<𝔸<Pair, L1, CC>, Pred>{Pred{a, b}};
+  return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
+      Pred{a, b}};
 }
 
 /** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
- *  product of two universes is the universe over the pair carrier (codomain leg
- *  #894: a universe is decided, so the result stays in the left species). */
+ *  product of two universes is the universe over the pair carrier, in the
+ *  join of the factors' species. */
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
-  requires std::same_as<LA, LB>
+  requires dedekind::category::HaveLogicJoin<LA, LB>
 constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>{});
+  return finalize_combine(𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{});
 }
 
 /** @brief A set object as a PLAIN set over its universe: itself when it already
@@ -1621,8 +1632,8 @@ constexpr auto plain_over_universe(const S& s) {
 /**
  * @brief Cartesian product over arbitrary set objects.
  *
- * Normalises each operand to a plain set over its universe, reconciles the
- * species at the join, and delegates to the plain × plain product.
+ * Normalises each operand to a plain set over its universe and delegates to
+ * the plain × plain product, which reconciles the species at their join.
  */
 export template <typename A, typename B>
   requires requires {
@@ -1635,25 +1646,9 @@ export template <typename A, typename B>
 constexpr auto cartesian_product(const A& a, const B& b) {
   // Normalise BOTH operands to plain sets over their universes; this is what
   // TERMINATES the generic dispatch (the plain × plain overload matches).  The
-  // species may differ (a node over 𝔸<int> is Boole, one over 𝔸<double,
-  // Kleene, ℶ_1> is Kleene): reconcile at the JOIN first, lifting only the
-  // lower side, and re-plain the lifted operand.
-  const auto left = plain_over_universe(a);
-  const auto right = plain_over_universe(b);
-  using LL = typename std::remove_cvref_t<decltype(left)>::logic_species;
-  using LR = typename std::remove_cvref_t<decltype(right)>::logic_species;
-  if constexpr (std::same_as<LL, LR>) {
-    return cartesian_product(left, right);
-  } else {
-    static_assert(dedekind::category::HaveLogicJoin<LL, LR>,
-                  "cartesian_product: the factors' logic species have no "
-                  "common upper bound among the shipped species.");
-    using L = join_logic_t<LL, LR>;
-    if constexpr (std::same_as<LL, L>)
-      return cartesian_product(left, plain_over_universe(lift_to<L>(right)));
-    else
-      return cartesian_product(plain_over_universe(lift_to<L>(left)), right);
-  }
+  // species are reconciled there, at their join: ProductMembership lifts each
+  // factor's answer into it.
+  return cartesian_product(plain_over_universe(a), plain_over_universe(b));
 }
 
 /**
