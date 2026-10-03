@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 import dedekind.category;
 import dedekind.sets;
@@ -621,12 +622,21 @@ TEST_CASE(
   const auto unknown = Comprehension{𝔸<int>{}, UnknownPredicate<int>{}};
   STATIC_CHECK(std::same_as<universe_t<decltype(unknown)>, 𝔸<int, Kleene>>);
   STATIC_CHECK(IsSetObject<decltype(unknown)>);
+  const auto re_tagged = universe(unknown);  // the leg, at run time
+  CHECK(re_tagged(0) == Ternary::True);
 
-  // Kleene ∧ Percent combines at their join, Percent: Unknown ↦ 50.
+  // Kleene ∧ / ∨ Percent combine at their join, Percent: Unknown ↦ 50.
   const auto both = unknown & confident;
   STATIC_CHECK(std::same_as<typename decltype(both)::logic_species, Percent>);
   CHECK(both(2) == Percentage{50});
   CHECK(both(3) == Percentage{0});
+  const auto either = unknown | confident;
+  CHECK(either(2) == Percentage{100});
+  CHECK(either(3) == Percentage{50});
+  // ...and so does the product, reconciling the factors at the join.
+  const auto pairs = unknown * confident;
+  STATIC_CHECK(std::same_as<typename decltype(pairs)::logic_species, Percent>);
+  CHECK(pairs(std::pair{2, 2}) == Percentage{50});
 
   // An answer already in the base's Ω stays in the base's species.  (A
   // Chain<int> set is not yet an L-set citizen: IsPredicate asks IsΩ of the

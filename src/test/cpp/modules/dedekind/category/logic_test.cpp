@@ -275,37 +275,32 @@ TEST_CASE("Logic: the Percentage confidence chain (bounded, #906)",
 }
 
 TEST_CASE(
-    "Logic: the species semilattice — 𝔹 at the bottom, joins where a "
-    "shipped bound exists (#945)",
+    "Logic: the species semilattice, 𝔹 at the bottom, joins where a shipped "
+    "bound exists",
     "[category][logic][species][semilattice]") {
   using C = Chain<int>;
 
-  SECTION("the dominance order: 𝔹 ⊑ K₃ ⊑ Percent; 𝔹 ⊑ Chain<T>; parity gap") {
-    STATIC_CHECK(LiftsTo<Boole, Kleene>);
-    STATIC_CHECK(LiftsTo<Boole, Percent>);
-    STATIC_CHECK(LiftsTo<Boole, C>);
-    STATIC_CHECK(LiftsTo<Kleene, Percent>);
+  // The module pins the shipped edges, the parity negatives and the headline
+  // joins / meets at the definition site; here the complements of that table.
+  SECTION(
+      "the order is not symmetric, and chains of different width are "
+      "incomparable") {
     STATIC_CHECK(LiftsTo<Percent, Percent>);
     STATIC_CHECK(!LiftsTo<Kleene, Boole>);
-    STATIC_CHECK(!LiftsTo<Kleene, C>);   // K₃ has a ¬-fixed point, Chain none
-    STATIC_CHECK(!LiftsTo<Percent, C>);  // same parity obstruction
-    STATIC_CHECK(!LiftsTo<C, Chain<long>>);  // the poles do not map to poles
+    // Chain<int> → Chain<long> by the natural cast sends INT_MAX to an
+    // interior value, not to ⊤; no other map is registered.
+    STATIC_CHECK(!LiftsTo<C, Chain<long>>);
   }
 
-  SECTION("joins: partial, exactly for comparable species") {
-    STATIC_CHECK(std::same_as<join_logic_t<Boole, Kleene>, Kleene>);
+  SECTION("joins commute and are idempotent; the parity gap has none") {
     STATIC_CHECK(std::same_as<join_logic_t<Kleene, Boole>, Kleene>);
-    STATIC_CHECK(std::same_as<join_logic_t<Kleene, Percent>, Percent>);
     STATIC_CHECK(std::same_as<join_logic_t<Boole, C>, C>);
     STATIC_CHECK(std::same_as<join_logic_t<Kleene, Kleene>, Kleene>);
-    STATIC_CHECK(!HaveLogicJoin<Kleene, C>);
     STATIC_CHECK(!HaveLogicJoin<Percent, C>);
   }
 
-  SECTION("meets: total, 𝔹 the bottom") {
-    STATIC_CHECK(std::same_as<meet_logic_t<Kleene, Percent>, Kleene>);
+  SECTION("meets commute, are idempotent, and bottom out at 𝔹") {
     STATIC_CHECK(std::same_as<meet_logic_t<Percent, Kleene>, Kleene>);
-    STATIC_CHECK(std::same_as<meet_logic_t<Kleene, C>, Boole>);
     STATIC_CHECK(std::same_as<meet_logic_t<Percent, C>, Boole>);
     STATIC_CHECK(std::same_as<meet_logic_t<C, C>, C>);
     STATIC_CHECK(std::same_as<meet_logic_t<Boole, C>, Boole>);
@@ -331,5 +326,7 @@ TEST_CASE(
     STATIC_CHECK(std::same_as<classifier_logic_t<Percentage>, Percent>);
     STATIC_CHECK(!IsClassifierAnswer<int>);
     STATIC_CHECK(IsΩ<Percentage>);
+    // A Truth<L> wrapper is not an L::Ω: the lift refuses it at the gate.
+    STATIC_CHECK(!LiftableInto<Truth<Kleene>, Kleene>);
   }
 }

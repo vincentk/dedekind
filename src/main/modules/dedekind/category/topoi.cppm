@@ -44,9 +44,6 @@ import :cartesian;
 
 namespace dedekind::category {
 
-template <typename>
-inline constexpr bool always_false_v = false;
-
 template <typename C>
 concept IsClassifierConstant =
     std::same_as<std::remove_cvref_t<C>, bool> ||
@@ -55,17 +52,24 @@ concept IsClassifierConstant =
       typename std::remove_cvref_t<C>::machine_type;
     };
 
+/** @brief Lift a classifier constant into the predicate's own @c Ω: the
+ *  identity when it is already there, else the dominance lift @c lift_logic
+ *  into the species @c OmegaTarget names (@c true into @c Ternary,
+ *  @c Ternary::Unknown into @c Percentage, ...).  Constrained, so a pair with
+ *  no registered embedding fails the combinators' gate, not this body. */
 template <typename OmegaTarget, typename Constant>
+  requires std::same_as<std::remove_cvref_t<Constant>, OmegaTarget> ||
+           requires(const std::remove_cvref_t<Constant>& c) {
+             {
+               lift_logic<classifier_logic_t<OmegaTarget>>(c)
+             } -> std::same_as<OmegaTarget>;
+           }
 constexpr auto lift_classifier_constant(Constant&& value) {
   using C = std::remove_cvref_t<Constant>;
   if constexpr (std::same_as<C, OmegaTarget>) {
     return value;
-  } else if constexpr (std::same_as<OmegaTarget, Ternary> &&
-                       std::same_as<C, bool>) {
-    return value ? Ternary::True : Ternary::False;
   } else {
-    static_assert(always_false_v<OmegaTarget>,
-                  "Unsupported classifier constant lift between logic species");
+    return lift_logic<classifier_logic_t<OmegaTarget>>(value);
   }
 }
 

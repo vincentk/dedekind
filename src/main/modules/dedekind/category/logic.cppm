@@ -525,9 +525,9 @@ concept HasLogicalOperators = requires(T a, T b) {
  * "the Ω".  @c bool is distinguished only at the dominance layer (as the
  * decided core @f$\mathbb{B}@f$ that decidable maps factor through; see @c
  * lift_logic), not as a logic.  Register a new species (say a fuzzy logic) and
- * its truth-type joins as another peer.  @c Ternary (Kleene @f$K_3@f$) is the
- * one non-trivial inhabitant currently shipped, the honest default, not the
- * only possible Ω.
+ * its truth-type joins as another peer.  The non-trivial inhabitants shipped
+ * are @c Ternary (Kleene @f$K_3@f$), @c Percentage (the @c Percent chain) and
+ * each @c Chain<T>'s @c T, read as truth values only through their species.
  */
 export template <typename T>
 concept IsΩ =
@@ -613,8 +613,8 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
  * layer, but the one target every decidable map factors through (the Rosolini
- * dominance @f$\Sigma@f$).  @c Ternary (Kleene
- *          @f$K_3@f$) and @c Chain<T> are the non-trivial @f$\Omega@f$ we
+ * dominance @f$\Sigma@f$).  @c Ternary (Kleene @f$K_3@f$), @c Percentage
+ *          and @c Chain<T> are the non-trivial @f$\Omega@f$ we
  * currently ship: peers of @f$\mathbb{B}@f$, @b not the canonical
  * @f$\Omega@f$; for @c Ternary @f$\iota@f$ is the concrete map @c bool @c ↪
  * @c Ternary (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while
@@ -651,7 +651,7 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *      inclusion is @c IsDominanceInclusion (all #846).
  */
 // ---------------------------------------------------------------------------
-// The species of a classifier answer (#945)
+// The species of a classifier answer
 // ---------------------------------------------------------------------------
 
 /** @brief The logic species a classifier @b answer type belongs to.
@@ -686,7 +686,7 @@ concept IsClassifierAnswer =
 
 // ---------------------------------------------------------------------------
 // The dominance order on logic species: a meet-semilattice with 𝔹 at the
-// bottom (#945)
+// bottom
 // ---------------------------------------------------------------------------
 
 /** @brief The embedding @c From @c ↪ @c To of one species' answers into
@@ -706,10 +706,7 @@ export template <typename From, typename To>
 struct species_embed;
 template <typename L>
 struct species_embed<L, L> {
-  template <typename V>
-  static constexpr V apply(V v) {
-    return v;
-  }
+  static constexpr typename L::Ω apply(typename L::Ω v) { return v; }
 };
 template <typename To>
   requires IsOckhamAlgebra<To> && (!std::same_as<To, Boole>)
@@ -765,8 +762,11 @@ concept HaveLogicJoin = requires { typename join_logic<L1, L2>::type; };
  *  both.  @b Total: @c 𝔹 (the dominance Σ) embeds into every species, so the
  *  order is a meet-semilattice with @c 𝔹 at the bottom.  Comparable species
  *  meet at the smaller one; an incomparable shipped pair meets at @c 𝔹 (their
- *  only common lower bound).  A new species that shares a non-@c 𝔹 lower
- *  bound with a species it does not compare to must specialise this. */
+ *  only common lower bound).  The meet is relative to the @b registered
+ *  edges: two even chains (@c Chain<int>, @c Chain<long>) meet at @c 𝔹 here
+ *  although an embedding between them exists mathematically; register the
+ *  edge to refine it.  A new species that shares a non-@c 𝔹 lower bound with
+ *  a species it does not compare to must specialise this. */
 export template <typename L1, typename L2>
 struct meet_logic {
   using type = Boole;
@@ -785,11 +785,16 @@ export template <typename L1, typename L2>
 using meet_logic_t = typename meet_logic<L1, L2>::type;
 
 /** @brief @c T can be lifted into @c To's answers: it already is one, or it is
- *  a classifier answer whose species embeds into @c To. */
+ *  a classifier answer whose species' registered embedding into @c To accepts
+ *  it and lands in @c To::Ω (a @c Truth<L> wrapper is not an @c L::Ω and is
+ *  refused). */
 export template <typename T, typename To>
-concept LiftableInto =
-    std::same_as<std::remove_cvref_t<T>, typename To::Ω> ||
-    (IsClassifierAnswer<T> && lifts_to_v<classifier_logic_t<T>, To>);
+concept LiftableInto = std::same_as<std::remove_cvref_t<T>, typename To::Ω> ||
+                       requires(const T& t) {
+                         {
+                           species_embed<classifier_logic_t<T>, To>::apply(t)
+                         } -> std::same_as<typename To::Ω>;
+                       };
 
 /** @brief Lift an answer along the dominance into @c TargetLogic::Ω.  A value
  *  already in @c TargetLogic::Ω passes through; otherwise its species is read
