@@ -127,8 +127,11 @@ TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)
   using R2 = QuadraticReal<2>;
   const auto U = 𝔻;
   const auto O = ~U;
-  CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::True);
-  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
+  // The complement pair collapses to the boundary objects, and a decided
+  // result factors through Σ: the codomain leg (#894) answers in Boole even
+  // though 𝔻 is Kleene.
+  CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == true);
+  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == false);
 }
 
 // ---------------------------------------------------------------------------
