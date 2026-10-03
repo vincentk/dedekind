@@ -33,13 +33,16 @@ TEST_CASE("IEEE map/bind and lane conversions", "[numbers][ieee][unsafe]") {
   CHECK(back.resolve() == 4.0);
 }
 
-TEST_CASE("Complex ambient set is a canonical IsSet anchor",
+TEST_CASE("Complex machine ambient lifts to an L-set, not an ETCS set",
           "[numbers][complex][etcs]") {
+  // ℂ_d carries Kleene (the continuum universes do), so its ambient lift is a
+  // Goguen L-set; IsSet (Ω = 𝔹) is deliberately not claimed.
   using ComplexAmbient =
       decltype(dedekind::category::ambient_set<Complex<machine_real_scalar>>(
           dedekind::numbers::ℂ_d));
 
-  STATIC_CHECK(IsSet<ComplexAmbient>);
+  STATIC_CHECK(dedekind::category::IsLSet<ComplexAmbient>);
+  STATIC_CHECK_FALSE(IsSet<ComplexAmbient>);
   CHECK(true);
 }
 
