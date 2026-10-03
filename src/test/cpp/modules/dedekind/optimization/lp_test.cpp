@@ -26,7 +26,7 @@ using namespace dedekind::optimization;
 using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
-// Arbitrary-precision signed rational — the canonical ℚ for these tests.
+// Fixed-width (one-limb) signed rational — the canonical ℚ for these tests.
 using Rat = Rational<SignedExtensionalCardinal<>>;
 
 // The paper-facing LP instance (§5 candidate centrepiece):

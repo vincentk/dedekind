@@ -22,7 +22,7 @@ using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
 
-// Arbitrary-precision signed rational — the canonical ℚ carrier; embedded
+// Fixed-width (one-limb) signed rational — the canonical ℚ carrier; embedded
 // sensor-fusion showcases get bit-for-bit determinism with no signed-long
 // overflow hazard.
 using Rat = Rational<SignedExtensionalCardinal<>>;

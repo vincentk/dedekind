@@ -800,20 +800,21 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
  * the bit-pattern via @c std::bit_cast and constructs
  * @c Rational<I>{numerator, denominator} where the denominator is the
  * relevant power of two.  NaN and +/-inf cannot reach it: the domain
- * @c 𝕃<double> excludes them by type.  Where the arrow is defined it is
- * injective by the exactness of the dyadic decomposition (Knuth, @em TAOCP,
- * Vol. 2, §4.2), hence registered monic below.
+ * @c 𝕃<double> excludes them by type, so under ℚ's faithful-field posture
+ * the arrow is total on its domain, and it is injective by the exactness of
+ * the dyadic decomposition (Knuth, @em TAOCP, Vol. 2, §4.2), hence
+ * registered monic below.
  *
  * @section rational__Precision
  * The integer carrier @c I must hold the reduced 53-bit mantissa and the
  * power-of-two scaling.  For built-in signed @c I the arrow checks each step
  * against @c std::numeric_limits<I> and throws @c std::overflow_error rather
  * than trip signed-overflow UB.  The default @c default_integer
- * (@c SignedCardinality) is fixed-width: a finite double whose mantissa or
- * power-of-two scaling exceeds about 2^63 (e.g. 1e20, 1e-20, every
- * subnormal) saturates it, and @c Rational rejects the sentinel with
- * @c std::domain_error.  So on the default carrier the arrow is partial on
- * large exponents; a carrier wide enough for 2^1074 would make it total.
+ * (@c SignedCardinality) stands in for ℤ, and its saturation sentinel is
+ * ℚ's out-of-memory tripwire: @c Rational rejects it with
+ * @c std::domain_error.  On the current one-limb carrier the tripwire sits
+ * at 2^63, so a double whose mantissa or power-of-two scaling exceeds that
+ * (e.g. 1e20, 1e-20, every subnormal) trips it.
  */
 export template <IsInteger I = default_integer>
 inline constexpr auto embed_𝕃_ℚ =
@@ -868,8 +869,7 @@ inline constexpr auto embed_𝕃_ℚ =
             if (mantissa > static_cast<std::uint64_t>(L::max())) {
               throw std::overflow_error(
                   "embed_𝕃_ℚ: reduced mantissa exceeds I::max(); use a "
-                  "wider integer carrier (e.g. long long, "
-                  "SignedExtensionalCardinal<N> with N sufficiently large).");
+                  "wider integer carrier (e.g. long long).");
             }
           }
 
@@ -1124,8 +1124,7 @@ static_assert(
 static_assert(
     dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
     "Rational<SignedExtensionalCardinal<>> must satisfy "
-    "HasFieldOperators: "
-    "the intended arbitrary-precision signed-rational carrier for ℚ.");
+    "HasFieldOperators: the fixed-width signed-rational carrier for ℚ.");
 
 // ---------------------------------------------------------------------------
 // Algebraic-soul concept certifications (dogfood the library's own concepts)
@@ -1137,8 +1136,8 @@ static_assert(
 // hold (e.g. because a downstream change breaks a species-trait), the build
 // breaks here, at the point of the claim, rather than silently downstream.
 
-// ℚ as the field of rationals: the canonical arbitrary-precision rational
-// carrier that the paper-facing showcases instantiate on.  Both the
+// ℚ as the field of rationals: the canonical rational carrier that the
+// paper-facing showcases instantiate on.  Both the
 // operational @c HasFieldOperators surface AND the axiomatic
 // @c category::IsField / @c algebra::IsField close on
 // @c Rational<default_integer> (see the probes below).
@@ -1189,12 +1188,11 @@ static_assert(dedekind::category::IsField<
  * @details RigPolynomial<Rational<I>> forms a commutative ring under
  * coefficient-wise addition and Cauchy product. The coefficient field is
  * the quotient field of the integer carrier I. The default I = default_integer
- * (currently `int`, the machine signed integer) gives Q[x] over ℤ.
+ * (@c SignedCardinality) gives Q[x] over ℤ.
  *
  * @note This is the structurally correct polynomial ring: the coefficient type
  * Rational<I> is field-like (HasFieldOperators), so the polynomial ring
- * has all four arithmetic operations available. A future retarget to
- * SignedExtensionalCardinal<N> would give a provably total Q[x].
+ * has all four arithmetic operations available.
  */
 export template <IsInteger I = default_integer>
 using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;

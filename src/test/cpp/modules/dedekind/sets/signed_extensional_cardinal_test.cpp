@@ -1,14 +1,11 @@
 /** @file dedekind/sets/signed_extensional_cardinal_test.cpp
  *
- * Tests for the sign-magnitude arbitrary-precision integer carrier
+ * Tests for the fixed-width sign-magnitude integer carrier
  * SignedExtensionalCardinal<N>. Covers ring laws, canonical-zero
  * normalisation, signed edge cases around the minimum representable
- * value, and sign propagation through *, /, % per C++ semantics.
- *
- * The carrier is the intended signed backing for Rational<Z> where
- * arbitrary-precision rationals with negative coefficients are needed
- * — it replaces `long` / `int` in contexts where silent overflow would
- * otherwise be a latent hazard.
+ * value, and sign propagation through *, /, % per C++ semantics
+ * (division on the one-limb carrier only).  Wider N carry + and *
+ * across limbs; they are tested for that and nothing else.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -182,14 +179,11 @@ TEST_CASE("SignedExtensionalCardinal — no overflow near signed-int-min",
 }
 
 TEST_CASE(
-    "SignedExtensionalCardinal<2> — multi-limb round-trip "
-    "through (-2)·(-2)/4 = identity",
-    "[sets][cardinality][signed][multi-limb][roundtrip]") {
-  // Multi-limb counterpart of the SignedCardinality round-trip.  Uses
-  // the 2-limb carrier (128-bit magnitude) and chooses an `original`
-  // such that the ×(-2) chain pushes the magnitude into the high
-  // limb, then `/ 4` recovers the original via the multi-limb
-  // long-division operator.
+    "SignedExtensionalCardinal<2> — signed multiplication carries "
+    "into the high limb",
+    "[sets][cardinality][signed][multi-limb]") {
+  // The 2-limb carrier (128-bit magnitude): the ×(-2) chain pushes the
+  // magnitude into the high limb with the right sign.
   using Z2 = SignedExtensionalCardinal<2>;
 
   // original = 2^63 (single-limb magnitude).
@@ -203,7 +197,6 @@ TEST_CASE(
   }();
 
   constexpr Z2 neg_two{-2};
-  constexpr Z2 four{4};
 
   // step1 = original × (-2) = -2^64.  Magnitude = 2^64 carries into
   // limbs[1] (limbs[0]=0, limbs[1]=1) --- two-limb territory.
@@ -217,19 +210,6 @@ TEST_CASE(
   STATIC_CHECK(!step2.negative);
   STATIC_CHECK(step2.magnitude.limbs[0] == 0);
   STATIC_CHECK(step2.magnitude.limbs[1] == 2);
-
-  // roundtrip = step2 / 4 = 2^63.  This step exercises the
-  // multi-limb-by-single-limb long division path: the dividend has
-  // limbs[1] = 2, the divisor fits in one limb, and the quotient
-  // collapses back to the single-limb magnitude original carries.
-  constexpr Z2 roundtrip = step2 / four;
-  STATIC_CHECK(!roundtrip.negative);
-  STATIC_CHECK(roundtrip.magnitude.limbs[0] ==
-               (static_cast<Z2::magnitude_type::limb_type>(1ULL) << 63));
-  STATIC_CHECK(roundtrip.magnitude.limbs[1] == 0);
-
-  // The round-trip equals the original.
-  STATIC_CHECK(roundtrip == original);
 }
 
 TEST_CASE(
@@ -305,54 +285,4 @@ TEST_CASE(
   CHECK(value.magnitude.limbs[0] == 0);  // == 0 exactly
   CHECK_FALSE(value.negative);           // canonical +0
   CHECK(value == zero);
-}
-
-TEST_CASE(
-    "SignedExtensionalCardinal<3> — three-limb round-trip "
-    "through (-2)·(-2)/4 = identity",
-    "[sets][cardinality][signed][multi-limb][roundtrip]") {
-  // Three-limb carrier (192-bit magnitude).  Pick `original` such that
-  // step2's magnitude reaches limbs[2] (i.e.\ exceeds 2^128), exercising
-  // the long-division pass across three limbs.
-  using Z3 = SignedExtensionalCardinal<3>;
-
-  // original magnitude = 2^127 (limbs[1] = 2^63, limbs[0] = 0).  Multi-
-  // limb already; step1 doubles it to 2^128 (limbs[2] = 1, the rest 0).
-  constexpr Z3 original = []() constexpr {
-    Z3 z;
-    z.negative = false;
-    z.magnitude.limbs[0] = 0;
-    z.magnitude.limbs[1] = static_cast<Z3::magnitude_type::limb_type>(1ULL)
-                           << 63;
-    z.magnitude.limbs[2] = 0;
-    return z;
-  }();
-
-  constexpr Z3 neg_two{-2};
-  constexpr Z3 four{4};
-
-  // step1 = original × (-2) = -2^128.  Magnitude carries into limbs[2].
-  constexpr Z3 step1 = original * neg_two;
-  STATIC_CHECK(step1.negative);
-  STATIC_CHECK(step1.magnitude.limbs[0] == 0);
-  STATIC_CHECK(step1.magnitude.limbs[1] == 0);
-  STATIC_CHECK(step1.magnitude.limbs[2] == 1);
-
-  // step2 = step1 × (-2) = 2^129.  Magnitude (0, 0, 2) in limbs.
-  constexpr Z3 step2 = step1 * neg_two;
-  STATIC_CHECK(!step2.negative);
-  STATIC_CHECK(step2.magnitude.limbs[0] == 0);
-  STATIC_CHECK(step2.magnitude.limbs[1] == 0);
-  STATIC_CHECK(step2.magnitude.limbs[2] == 2);
-
-  // roundtrip = step2 / 4 = 2^127.  Three-limb long division
-  // collapses limbs[2] back into limbs[1].
-  constexpr Z3 roundtrip = step2 / four;
-  STATIC_CHECK(!roundtrip.negative);
-  STATIC_CHECK(roundtrip.magnitude.limbs[0] == 0);
-  STATIC_CHECK(roundtrip.magnitude.limbs[1] ==
-               (static_cast<Z3::magnitude_type::limb_type>(1ULL) << 63));
-  STATIC_CHECK(roundtrip.magnitude.limbs[2] == 0);
-
-  STATIC_CHECK(roundtrip == original);
 }

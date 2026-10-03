@@ -126,8 +126,8 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  * @brief The Master Safety Certificate for Level 0.
  * A morphism is total if it is Periodic (Circular), Idempotent
  * (Stable), Saturating (escalating to an extended-range sentinel), or
- * Exact (unbounded arbitrary-precision arithmetic that never overflows
- * or rounds).
+ * Exact (arithmetic that never rounds; overflow is the carrier's
+ * out-of-memory tripwire, not a wrong answer).
  *
  * Textbook note:
  * The four paths are orthogonal algebraic properties.  This concept

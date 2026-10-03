@@ -44,8 +44,8 @@ using namespace dedekind::numbers;
 using namespace dedekind::optimization;
 using dedekind::sets::SignedExtensionalCardinal;
 
-// Arbitrary-precision signed rational: the canonical ℚ. Overflow-safe
-// to 2^{64·N−1} in a single limb, eliminating the signed-long hazard.
+// Fixed-width (one-limb) signed rational: the canonical ℚ. Wraps at
+// 2^63 instead of tripping signed-overflow UB.
 using Rat = Rational<SignedExtensionalCardinal<>>;
 
 // Constraints of the paper-facing LP instance.
