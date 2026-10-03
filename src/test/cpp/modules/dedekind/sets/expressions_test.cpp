@@ -190,8 +190,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto distinct = singleton(11);
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
-    // Post-#622 (carrier-axis cut): ℕ is countable (ℵ_0) and routes to
-    // Boole, so the Set CTAD lands @c bool, not @c Ternary.
+    // Boole species (int is countable), so answers are @c bool.
     // {7} ^ {7} is empty pointwise.
     REQUIRE_FALSE(sym_eq(7));
     REQUIRE_FALSE(sym_eq(0));
@@ -221,9 +220,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
     auto S = Comprehension{ℕ, gt_10};
-    // Use the deduced Domain / logic species from S rather than
-    // hard-coding `unsigned int` / Kleene — the carrier choice
-    // is set by N's CTAD, and the test should not pre-empt it.
+    // Use the deduced Domain / logic species from S rather than hard-coding
+    // them: the carrier and species come from ℕ, the universe.
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     Ø<SDomain, SLogic> empty{};
@@ -548,14 +546,6 @@ TEST_CASE(
     CHECK(img(-1) == false);
     CHECK(img(0) == false);
   }
-
-  // FIXME(#693): "Identity iso on a Kleene-logic source preserves the
-  // Kleene species" — pre-#622 the ℕ fixture routed to Kleene.  Post-#622
-  // the carrier-axis cut puts ℕ on Boole; recovering the
-  // Kleene-preserves-Kleene witness requires an explicit Ternary-typed
-  // (Kleene::Ω) predicate carrier — the principled home is the predicate-level
-  // axis
-  // (#693).
 }
 
 TEST_CASE(
