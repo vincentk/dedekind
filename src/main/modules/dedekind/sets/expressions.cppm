@@ -747,18 +747,13 @@ export struct SetCombine {
 // has universe 𝔸<Cardinality>, and `(ℕ | P) | Q` the same --- the recursion
 // bottoms out at the universe, which is its own universe.
 export template <typename Base, typename Predicate>
-constexpr auto universe(const Comprehension<Base, Predicate>& c) {
-  // The universe leg lives in the COMPREHENSION's species: when the answer
-  // lifted the base's species (a Kleene predicate over a Boole base), the
-  // universe is re-tagged to the join, else the base's universe is returned
-  // as is.  Keeps the leg's species equal to the set's (Is𝔸Of).
-  using U = std::remove_cvref_t<decltype(universe(c.base))>;
-  using L = typename Comprehension<Base, Predicate>::logic_species;
-  if constexpr (std::same_as<typename U::logic_species, L>) {
-    return universe(c.base);
-  } else {
-    return 𝔸<typename U::Domain, L, typename U::cardinality_type>{};
-  }
+constexpr auto universe(const Comprehension<Base, Predicate>&) {
+  // The leg lives in the COMPREHENSION's species: the base's universe,
+  // re-tagged to the join when the answer lifted the base (a Kleene predicate
+  // over a Boole base), so the leg's species equals the set's (Is𝔸Of).
+  return 𝔸<typename Base::Domain,
+           typename Comprehension<Base, Predicate>::logic_species,
+           typename universe_t<Base>::cardinality_type>{};
 }
 
 // Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default
