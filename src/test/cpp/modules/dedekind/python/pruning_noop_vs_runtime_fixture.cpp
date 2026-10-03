@@ -33,17 +33,17 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
 // The Boolean universe 𝔹 (= 𝔸<bool>{}) with
-// the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate);
-// the wrap keeps the Set<bool, Boole, BooleanEqPredicate> shape the complement-
-// pair collapse below relies on.
+// the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate):
+// the plain set Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>, the leaf
+// shape the complement-pair collapse below relies on.
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
-constexpr auto b_false =
-    Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
+constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+    BooleanEqPredicate{false}};
 
 // { b ∈ 𝔹 | b == true } = the singleton {true} ⊂ 𝔹
 constexpr auto b_true =
-    Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
+    Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{BooleanEqPredicate{true}};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
 static_assert(Ø<bool, Boole>{} == (b_false & b_true));
@@ -80,6 +80,7 @@ extern "C" __attribute__((noinline)) bool pruning_compile_time_noop(bool x) {
  */
 extern "C" __attribute__((noinline)) bool pruning_runtime_guard(
     bool x, bool (*runtime_pred)(bool)) {
-  const auto dynamic = Set<bool, Boole, bool (*)(bool)>{runtime_pred};
+  const auto dynamic =
+      Comprehension<𝔸<bool, Boole>, bool (*)(bool)>{runtime_pred};
   return (b_false & dynamic)(x);
 }

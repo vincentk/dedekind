@@ -254,7 +254,7 @@ export template <SubReifiable S>
 constexpr auto power_set(const S& base) {
   using C = typename S::Domain;
   using L = typename S::logic_species;
-  return dedekind::sets::Set<Sub<C, L>, L, SubsetOf<C, L>>{
+  return dedekind::sets::Comprehension<𝔸<Sub<C, L>, L>, SubsetOf<C, L>>{
       SubsetOf<C, L>{Sub<C, L>{base}}};
 }
 

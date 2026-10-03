@@ -147,7 +147,7 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
     requires std::same_as<L2, L>
   constexpr auto operator|(const Singleton<U, L2>& other) const {
     using Or = dedekind::category::Join<Singleton<T, L>, Singleton<U, L2>>;
-    return Set<T, L, Or>{Or{*this, other}};
+    return Comprehension<𝔸<T, L>, Or>{Or{*this, other}};
   }
   /** @brief Singleton-bounded meet, same species only (a cross-species meet
    *  routes through the lifting overload in @c :expressions, #894). */
@@ -175,7 +175,7 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
       const auto b = dedekind::category::lift_logic<L>(s2(x));
       return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
     };
-    return Set{Comprehension{𝔸<T, L>{}, xor_pred}};
+    return Comprehension{𝔸<T, L>{}, xor_pred};
   }
 };
 /** @brief CTAD: @c Singleton{4} deduces @c Singleton<int>. */
@@ -234,9 +234,9 @@ constexpr auto operator*(const Singleton<T1, L1>& a,
   return Singleton<std::pair<T1, T2>, L1>{std::pair{a.pivot, b.pivot}};
 }
 
-export template <typename T, typename L1, typename L2, typename P>
+export template <typename T, typename L1, typename L2, typename P, typename C>
 constexpr auto operator^(const Singleton<T, L1>& s,
-                         const Set<T, L2, P>& other) {
+                         const Comprehension<𝔸<T, L2, C>, P>& other) {
   // The asymmetry is one-sided: `singleton(v)` always lands in
   // Boole, while `Set{x % 𝔸<T> | …}` ascends through
   // NaturalLogic and routinely arrives as Kleene.  Take the
@@ -248,11 +248,11 @@ constexpr auto operator^(const Singleton<T, L1>& s,
     const auto b = dedekind::category::lift_logic<L2>(other(x));
     return L2::OR(L2::AND(a, L2::RFL(b)), L2::AND(L2::RFL(a), b));
   };
-  return Set{Comprehension{𝔸<T, L2>{}, xor_pred}};
+  return Comprehension{𝔸<T, L2>{}, xor_pred};
 }
 
-export template <typename T, typename L1, typename L2, typename P>
-constexpr auto operator^(const Set<T, L1, P>& other,
+export template <typename T, typename L1, typename L2, typename P, typename C>
+constexpr auto operator^(const Comprehension<𝔸<T, L1, C>, P>& other,
                          const Singleton<T, L2>& s) {
   return s ^ other;
 }

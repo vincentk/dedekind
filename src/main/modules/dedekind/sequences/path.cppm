@@ -467,7 +467,7 @@ constexpr auto as_relation(const Path<T, Cardinality, Index>& path) {
   // gated on @c IsRingIntegral via @c IsSequence; the finite-cardinality bound
   // check lives in @c SequenceGraph.
   using P = Path<T, Cardinality, Index>;
-  return Set<std::pair<Index, T>, Boole, SequenceGraph<P>>{
+  return Comprehension<𝔸<std::pair<Index, T>, Boole>, SequenceGraph<P>>{
       SequenceGraph<P>{path}};
 }
 
@@ -1209,13 +1209,17 @@ static_assert(
 // sequence is INFINITE; a finite sequence is a PARTIAL function (undefined past
 // its size), left at the primary false.
 namespace dedekind::category {
-template <typename I, typename T, typename L, typename PathT>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<I, T>, L, dedekind::sequences::SequenceGraph<PathT>>> = true;
-template <typename I, typename T, typename L, typename PathT>
+template <typename I, typename T, typename L, typename PathT, typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<I, T>, L, C>,
+                                  dedekind::sequences::SequenceGraph<PathT>>> =
+    true;
+template <typename I, typename T, typename L, typename PathT, typename C>
   requires(!dedekind::sets::IsFinite<typename PathT::cardinality_type>)
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<I, T>, L, dedekind::sequences::SequenceGraph<PathT>>> = true;
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<I, T>, L, C>,
+                                  dedekind::sequences::SequenceGraph<PathT>>> =
+    true;
 }  // namespace dedekind::category
 
 namespace dedekind::sequences {

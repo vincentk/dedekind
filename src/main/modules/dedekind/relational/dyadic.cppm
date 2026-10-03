@@ -70,12 +70,12 @@ module;
 export module dedekind.relational:dyadic;
 
 import dedekind.category; // IsSet, Boole
-import dedekind.sets;     // Set<std::pair<...>, L, P> (:expressions)
+import dedekind.sets; // Comprehension<𝔸<std::pair<...>, L>, P> (:expressions)
 
 namespace dedekind::relational {
-using dedekind::sets::Set;  // relations ARE Set<pair>; the carrier stays in
-                            // :sets
-using dedekind::sets::𝔸;    // the declared-domain/codomain universal set
+// :sets
+using dedekind::sets::Comprehension;  // the plain set over a universe
+using dedekind::sets::𝔸;  // the declared-domain/codomain universal set
 
 // ── The relation CORE (moved here from :sets/expressions, #792) ─────────────
 // A relation is a downstream concept (category → sets → relational), so its
@@ -89,7 +89,7 @@ using dedekind::sets::𝔸;    // the declared-domain/codomain universal set
  * @see Lambek and Scott @cite lambek1988higher
  */
 export template <typename T1, typename T2, typename L, typename P>
-using Relation = Set<std::pair<T1, T2>, L, P>;
+using Relation = Comprehension<𝔸<std::pair<T1, T2>, L>, P>;
 
 /**
  * @brief A (set-level) Function is a Relation where each domain element maps
@@ -154,9 +154,10 @@ concept IsRelation =
         std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
 
 /** @brief Relation membership witness: (a,b) ∈ R. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
-                                const T2& b) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr typename L::Ω relates(
+    const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r, const T1& a,
+    const T2& b) {
   return r(std::pair<T1, T2>{a, b});
 }
 
@@ -173,8 +174,8 @@ constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
  * separate existential carrying its own decidability certificate --- the Rice
  * wall stays quarantined to that one operation.
  */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto dom(const Relation<T1, T2, L, P>& r) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto dom(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
   // π_1 of the relation's UNIVERSE leg: 𝔸<A×B> ≅ 𝔸<A> × 𝔸<B>, so the declared
   // domain is read off the product, not restated; the logic rides along.
   return π_1(
@@ -183,8 +184,8 @@ constexpr auto dom(const Relation<T1, T2, L, P>& r) {
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto cod(const Relation<T1, T2, L, P>& r) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto cod(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
   return π_2(universe(r));  // dual of dom
 }
 
@@ -217,10 +218,11 @@ constexpr auto cod(const Relation<T1, T2, L, P>& r) {
  * equality-comparable, named-fibre enumeration (the characteristic relation
  * @f$\chi : S \to 2@f$) is tracked in #840.
  */
-export template <typename T1, typename T2, typename L, typename P>
-constexpr auto apply(const Relation<T1, T2, L, P>& r, const T1& x) {
+export template <typename T1, typename T2, typename L, typename P, typename C>
+constexpr auto apply(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
+                     const T1& x) {
   auto fibre = [r, x](const T2& b) { return r(std::pair<T1, T2>{x, b}); };
-  return Set<T2, L, decltype(fibre)>{fibre};
+  return Comprehension<𝔸<T2, L>, decltype(fibre)>{fibre};
 }
 
 /**
@@ -303,7 +305,7 @@ struct SwapPred {
 /** @brief Pair-like carrier: both coordinates present --- the shape every
  *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
  */
-template <typename D>
+export template <typename D>
 concept IsPairLike = requires {
   typename D::first_type;
   typename D::second_type;
@@ -325,7 +327,8 @@ constexpr auto converse(const R& r) {
   using B = typename R::Domain::second_type;
   using L = typename R::logic_species;
   using X = std::remove_cvref_t<decltype(classifier(r))>;
-  return Set<std::pair<B, A>, L, SwapPred<X>>{SwapPred<X>{classifier(r)}};
+  return Comprehension<𝔸<std::pair<B, A>, L>, SwapPred<X>>{
+      SwapPred<X>{classifier(r)}};
 }
 
 /** @brief @c is_relation(R) --- the bracket-free query: @c R is a relation, an
@@ -361,12 +364,13 @@ struct ComposePred {
  *  there is deliberately no overload, so it is an honest compile error.
  *  FIXME(#795): generalise the intermediate beyond @c bool. */
 export template <typename A, typename B, typename C, typename L, typename PR,
-                 typename PS>
+                 typename PS, typename CR, typename CS>
   requires std::same_as<B, bool>
-constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
-                          const Set<std::pair<B, C>, L, PS>& s) {
-  return Set<std::pair<A, C>, L, ComposePred<PR, PS, B>>{
-      ComposePred<PR, PS, B>{r.predicate(), s.predicate()}};
+constexpr auto operator>>(
+    const Comprehension<𝔸<std::pair<A, B>, L, CR>, PR>& r,
+    const Comprehension<𝔸<std::pair<B, C>, L, CS>, PS>& s) {
+  return Comprehension<𝔸<std::pair<A, C>, L>, ComposePred<PR, PS, B>>{
+      ComposePred<PR, PS, B>{r.predicate, s.predicate}};
 }
 
 // ── Meet, the diagonal, reflexive / symmetric closures ─────────────────────
@@ -374,11 +378,13 @@ constexpr auto operator>>(const Set<std::pair<A, B>, L, PR>& r,
 /** @brief @c R @c & @c S --- the INTERSECTION (meet) of two relations over the
  *  same product, dual to the union @c | (@c Join): membership is both
  *  predicates (@c RelAnd).  The Boolean-lattice ∩ on relations. */
-export template <typename A, typename B, typename L, typename PR, typename PS>
-constexpr auto operator&(const Set<std::pair<A, B>, L, PR>& r,
-                         const Set<std::pair<A, B>, L, PS>& s) {
-  return Set<std::pair<A, B>, L, RelAnd<PR, PS>>{
-      RelAnd<PR, PS>{r.predicate(), s.predicate()}};
+export template <typename A, typename B, typename L, typename PR, typename PS,
+                 typename C, typename CU>
+constexpr auto operator&(
+    const Comprehension<𝔸<std::pair<A, B>, L, C>, PR>& r,
+    const Comprehension<𝔸<std::pair<A, B>, L, CU>, PS>& s) {
+  return Comprehension<𝔸<std::pair<A, B>, L>, RelAnd<PR, PS>>{
+      RelAnd<PR, PS>{r.predicate, s.predicate}};
 }
 
 /** @brief The point-free composite meet @c R∩S @c = @c Δ† @c ∘ @c (R⊗S) @c ∘
@@ -458,7 +464,7 @@ struct DiagPred {
  *  the relation algebra. */
 export template <typename A, typename L = dedekind::category::Boole>
 constexpr auto diag() {
-  return Set<std::pair<A, A>, L, DiagPred<A>>{DiagPred<A>{}};
+  return Comprehension<𝔸<std::pair<A, A>, L>, DiagPred<A>>{DiagPred<A>{}};
 }
 
 /** @brief The coreflexive predicate for @f$\Delta_S = \{(x,x) \mid x \in S\}@f$
@@ -497,7 +503,8 @@ export template <typename S>
 constexpr auto diag(const S& s) {
   using A = typename S::Domain;
   using L = typename S::logic_species;
-  return Set<std::pair<A, A>, L, CoreflexivePred<S>>{CoreflexivePred<S>{s}};
+  return Comprehension<𝔸<std::pair<A, A>, L>, CoreflexivePred<S>>{
+      CoreflexivePred<S>{s}};
 }
 
 /** @brief @c reflexive(R) = @c R @c | @c Δ --- the smallest reflexive relation
@@ -605,12 +612,14 @@ namespace dedekind::category {
 
 // LEAF: the diagonal Δ = {(a,a)} is a TOTAL FUNCTION (a ↦ a) --- single-valued
 // (right-unique) AND entire (left-total).
-template <typename A, typename L>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, A>, L, dedekind::relational::DiagPred<A>>> = true;
-template <typename A, typename L>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, A>, L, dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
 
 // NODE: the relative product R;S propagates BOTH properties through @c >> ---
 // it is functional iff both factors are, and entire iff both factors are (§3.2
@@ -619,17 +628,23 @@ inline constexpr bool is_left_total_v<dedekind::sets::Set<
 // @c algebra-level before the extraction; both are pure relation-algebra, so
 // both live here now.
 template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
-inline constexpr bool is_right_unique_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_right_unique_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
-    is_right_unique_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+          typename B, typename Card>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    is_right_unique_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
+    is_right_unique_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
 template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B>
-inline constexpr bool is_left_total_v<dedekind::sets::Set<
-    std::pair<A, C>, L, dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Set<std::pair<A, B>, L, PR>> &&
-    is_left_total_v<dedekind::sets::Set<std::pair<B, C>, L, PS>>;
+          typename B, typename Card>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    is_left_total_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
+    is_left_total_v<dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
 
 static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is FUNCTIONAL (single-valued).");

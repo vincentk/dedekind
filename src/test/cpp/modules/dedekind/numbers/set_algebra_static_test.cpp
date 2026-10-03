@@ -11,12 +11,12 @@ using namespace dedekind::sets;
 namespace {
 
 // Post-HSP retarget: ℂ is the COAT-HANGER universe value
-// 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>, so these ℂ showcases run
+// 𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1>, so these ℂ showcases run
 // on EXACT ℚ(√2) arithmetic.  The comprehensions spell the node explicitly as
 // @c Comprehension{ℂ, pred} (and @c Comprehension{ℝ_d, pred}); the ambient is
 // the base and no scout is needed to disambiguate from set-union.  ℝ itself is
 // the ℚ(√2) coat-hanger, so Real<double> live on the materialisable ambient
-// ℝ_d = 𝔸<Real<double>, Boole, ℶ_1>.  (A plain 𝔸<Real<double>> with the
+// ℝ_d = 𝔸<Real<double>, Kleene, ℶ_1>.  (A plain 𝔸<Real<double>> with the
 // default ℵ_0 would route the carrier-axis resolver to Boole, contradicting the
 // ℶ_1 cardinality and the Kleene semantics this test relies on.)
 using R2 = QuadraticReal<2>;  // the exact real carrier ℝ = ℚ(√2)
@@ -62,24 +62,24 @@ constexpr auto complex_outside_unit_ball = [](const Complex<R2>& z) {
 // Component-extraction predicates (a real's @c .resolve(), a complex's
 // @c .real()/.imag()) are not π-expressible, so they stay NAMED-predicate
 // comprehensions --- reusing the named predicates above.
-constexpr auto ℝ_plus = Set{Comprehension{ℝ_d, real_gt_zero}};
+constexpr auto ℝ_plus = Comprehension{ℝ_d, real_gt_zero};
 
-constexpr auto ℝ_small = Set{Comprehension{ℝ_d, real_lt_three}};
+constexpr auto ℝ_small = Comprehension{ℝ_d, real_lt_three};
 
-constexpr auto ℝ_nonzero = Set{Comprehension{ℝ_d, real_nonzero}};
+constexpr auto ℝ_nonzero = Comprehension{ℝ_d, real_nonzero};
 
-constexpr auto ℂ_right_half = Set{Comprehension{ℂ, complex_re_positive}};
+constexpr auto ℂ_right_half = Comprehension{ℂ, complex_re_positive};
 
-constexpr auto ℂ_upper_half = Set{Comprehension{ℂ, complex_im_nonnegative}};
+constexpr auto ℂ_upper_half = Comprehension{ℂ, complex_im_nonnegative};
 
 constexpr auto ℂ_outside_unit_ball =
-    Set{Comprehension{ℂ, complex_outside_unit_ball}};
+    Comprehension{ℂ, complex_outside_unit_ball};
 
-constexpr auto between_reals = Set{Comprehension{ℝ_d, real_between}};
-constexpr auto outside_real_band = Set{Comprehension{ℝ_d, real_outside_band}};
-constexpr auto first_quadrant = Set{Comprehension{ℂ, complex_first_quadrant}};
+constexpr auto between_reals = Comprehension{ℝ_d, real_between};
+constexpr auto outside_real_band = Comprehension{ℝ_d, real_outside_band};
+constexpr auto first_quadrant = Comprehension{ℂ, complex_first_quadrant};
 constexpr auto not_third_quadrant =
-    Set{Comprehension{ℂ, complex_not_third_quadrant}};
+    Comprehension{ℂ, complex_not_third_quadrant};
 
 constexpr auto real_mix = ~((ℝ_plus & ℝ_nonzero) | (ℝ_small | ~ℝ_plus));
 constexpr auto complex_mix =

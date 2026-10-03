@@ -46,15 +46,14 @@ constexpr auto in_natural_lattice = [](const Complex<double>& z) {
          (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
          (z.imag() <= 3.0);
 };
-constexpr auto natural_lattice_in_c =
-    Set{Comprehension{ℂ_d, in_natural_lattice}};
+constexpr auto natural_lattice_in_c = Comprehension{ℂ_d, in_natural_lattice};
 
 // Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
 constexpr auto in_unit_square = [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
 };
-constexpr auto square_c1_c2 = Set{Comprehension{ℂ_d, in_unit_square}};
+constexpr auto square_c1_c2 = Comprehension{ℂ_d, in_unit_square};
 
 // Intersection contains exactly c₃ = 1 + i
 constexpr auto lattice_square_intersection =

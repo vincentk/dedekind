@@ -42,13 +42,13 @@ using R2Point = typename decltype(R2)::Domain;
 // stays well-typed.  Kept as the exact scout-equivalent @c Comprehension<R2,
 // π1==π2> to guarantee the showcase compiles (Trsk `R2 | (π1==π2)` is an
 // equivalent point-free spelling; CI-gated).
-constexpr auto diag = Set{Comprehension{R2, π1 == π2}};
+constexpr auto diag = Comprehension{R2, π1 == π2};
 // FLAG(#895 L3): pair float bounds; a NAMED predicate (not a hand lambda),
 // candidate point-free `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)`.
 constexpr auto in_strip = [](R2Point p) {
   return (p.first > 5.0) && (p.second < 3.0);
 };
-constexpr auto strip = Set{Comprehension{R2, in_strip}};
+constexpr auto strip = Comprehension{R2, in_strip};
 
 }  // namespace
 
@@ -85,8 +85,8 @@ constexpr auto in_unit_square = [](const Complex<QR>& z) {
   return (z.real() >= QR{Q{1, 2}}) && (z.real() <= QR{Q{3, 2}}) &&
          (z.imag() >= QR{Q{1, 2}}) && (z.imag() <= QR{Q{3, 2}});
 };
-constexpr auto natural_lattice_in_c = Set{Comprehension{ℂ, in_natural_lattice}};
-constexpr auto square_c1_c2 = Set{Comprehension{ℂ, in_unit_square}};
+constexpr auto natural_lattice_in_c = Comprehension{ℂ, in_natural_lattice};
+constexpr auto square_c1_c2 = Comprehension{ℂ, in_unit_square};
 
 }  // namespace
 
@@ -161,6 +161,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   STATIC_CHECK(empty_meet.kind == SetKind::Empty);
 
   SECTION("Continuous carrier: parents not finite, reduced set is empty") {
-    STATIC_CHECK(!static_cast<bool>(empty_meet(4.0)));  // empty: no inhabitant
+    STATIC_CHECK(empty_meet(4.0) ==
+                 decltype(empty_meet)::logic_species::False);  // no inhabitant
   }
 }

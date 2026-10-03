@@ -372,7 +372,7 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
  *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
  *  @c ℝ. */
 export inline constexpr auto ℝ_d =
-    dedekind::sets::𝔸<Real<machine_real_scalar>, Boole, ℶ_1>{};
+    dedekind::sets::𝔸<Real<machine_real_scalar>, Kleene, ℶ_1>{};
 
 }  // namespace dedekind::numbers
 

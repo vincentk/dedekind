@@ -184,10 +184,12 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
   // branch that structured_or once activated returned ¬(A ∩ B) by negating a
   // bare Interval — a Morphism, not a Set.  Removed; the general path must
   // keep △ closed over Set.
-  constexpr Set<int, Boole, HS<Direction::Upward, Strictness::Strict>> a{
-      HS<Direction::Upward, Strictness::Strict>{10}};
-  constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> b{
-      HS<Direction::Downward, Strictness::Strict>{100}};
+  constexpr Comprehension<𝔸<int, Boole>,
+                          HS<Direction::Upward, Strictness::Strict>>
+      a{HS<Direction::Upward, Strictness::Strict>{10}};
+  constexpr Comprehension<𝔸<int, Boole>,
+                          HS<Direction::Downward, Strictness::Strict>>
+      b{HS<Direction::Downward, Strictness::Strict>{100}};
   STATIC_CHECK(
       IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
@@ -203,15 +205,17 @@ TEST_CASE(
   SECTION(
       "function-pointer predicate combines via the free operator& (an "
       "irreducible Meet node, itself a set object)") {
-    constexpr Set<int, Boole, bool (*)(int)> pos{&is_pos};  // x > 0
-    constexpr Set<int, Boole, HS<Direction::Downward, Strictness::Strict>> cap{
-        HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
+    constexpr Comprehension<𝔸<int, Boole>, bool (*)(int)> pos{
+        &is_pos};  // x > 0
+    constexpr Comprehension<𝔸<int, Boole>,
+                            HS<Direction::Downward, Strictness::Strict>>
+        cap{HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(
-        std::same_as<M,
-                     Meet<Set<int, Boole, bool (*)(int)>,
-                          Set<int, Boole,
-                              HS<Direction::Downward, Strictness::Strict>>>>);
+        std::same_as<
+            M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>,
+                    Comprehension<𝔸<int, Boole>, HS<Direction::Downward,
+                                                    Strictness::Strict>>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10
@@ -330,7 +334,7 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
       std::same_as<typename NaturalLogic<decltype(point_free)>::type, Boole>);
 
   // Symptom 1: the Set-wrapped form is decidable.
-  STATIC_CHECK(HasDecidableMembership<decltype(Set{point_free})>);
+  STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
   // for coverage (static_asserts are invisible to Codecov).
@@ -564,57 +568,17 @@ TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)
 }
 
 TEST_CASE(
-    "order:halfspace - Set{A|pred} codomain tracks the halfspace's own logic "
-    "species for an incoherent ambient (#928)",
-    "[order][halfspace][928]") {
-  // A Kleene halfspace over a countable carrier: NaturalLogic reads Boole (ℵ_0)
-  // but operator() returns Ternary, so #928 derives the Set codomain from the
-  // RETURN type (GetLogic), not the carrier axis.
-  constexpr Halfspace<int, Direction::Upward, Strictness::Strict, Kleene> h{5};
-
-  SECTION("the halfspace itself is coherent: carrier ℵ_0, species Kleene") {
-    STATIC_CHECK(std::same_as<typename decltype(h)::logic_species, Kleene>);
-    STATIC_CHECK(std::same_as<typename decltype(h)::cardinality_type, ℵ_0>);
-    STATIC_CHECK(std::same_as<typename NaturalLogic<decltype(h)>::type, Boole>);
-  }
-
-  SECTION(
-      "Set{halfspace} adopts the halfspace's Kleene species, so its "
-      "codomain matches membership: an L-set, not an ETCS set") {
-    constexpr auto s = Set{h};
-    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
-    STATIC_CHECK(
-        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
-    STATIC_CHECK(IsLSet<decltype(s)>);
-    STATIC_CHECK_FALSE(IsSet<decltype(s)>);  // Kleene-valued: Ω ≠ 𝔹
-    // Honestly non-decidable: the carrier axis no longer over-promotes the
-    // Kleene predicate to Boole.
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
-    // Runtime observable (Codecov-visible): membership answers in Ternary,
-    // coherent with the declared codomain.
-    CHECK(s(6) == Kleene::True);   // 6 > 5
-    CHECK(s(5) == Kleene::False);  // boundary excluded
-  }
-
-  SECTION(
-      "end-to-end through the genuine point-free A|pred DSL binding over a "
-      "Kleene ambient (not a hand-built Halfspace)") {
-    // Exercise the real species propagation: the DSL operator| threads the
-    // ambient's Kleene into make_halfspace, so the halfspace (and thus the
-    // wrapped Set) carries Kleene end-to-end.
-    constexpr auto hs =
-        𝔸<int, Kleene>{} | (π > fix(5_c));  // {x > 5}, L = Kleene
-    STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
-    constexpr auto s = Set{hs};
-    STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
-    STATIC_CHECK(
-        std::same_as<typename decltype(s)::Codomain, typename Kleene::Ω>);
-    STATIC_CHECK(IsLSet<decltype(s)>);
-    STATIC_CHECK_FALSE(IsSet<decltype(s)>);  // Kleene-valued: Ω ≠ 𝔹
-    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
-    CHECK(s(6) == Kleene::True);
-    CHECK(s(5) == Kleene::False);
-  }
+    "order:halfspace — the point-free former threads the universe's species "
+    "into the halfspace",
+    "[order][halfspace][species]") {
+  constexpr auto hs = 𝔸<int, Kleene>{} | (π > fix(5_c));  // {x > 5}, L = Kleene
+  STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
+  STATIC_CHECK(
+      std::same_as<typename decltype(hs)::Codomain, typename Kleene::Ω>);
+  STATIC_CHECK(IsLSet<decltype(hs)> && !IsSet<decltype(hs)>);  // Ω ≠ 𝔹
+  STATIC_CHECK_FALSE(HasDecidableMembership<decltype(hs)>);
+  CHECK(hs(6) == Kleene::True);
+  CHECK(hs(5) == Kleene::False);
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

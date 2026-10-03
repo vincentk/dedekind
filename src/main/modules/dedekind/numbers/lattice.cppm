@@ -125,7 +125,7 @@ struct LatticeFactory<ℂ_d, N> {
       }
       return true;
     };
-    return Set<Domain, Boole, decltype(pred)>{pred};
+    return Comprehension<𝔸<Domain, Boole>, decltype(pred)>{pred};
   }
 };
 
@@ -159,7 +159,7 @@ struct LatticeFactory<ℝ_d, 1> {
       if (!detail::is_integral_coordinate(v)) return false;
       return (v >= 0.0) && (v < static_cast<double>(n));
     };
-    return Set{Comprehension{ℝ_d, in_bounded_grid}};
+    return Comprehension{ℝ_d, in_bounded_grid};
   }
 };
 
@@ -191,7 +191,7 @@ struct LatticeFactory<ℝ_d, N> {
       }
       return true;
     };
-    return Set<Domain, Boole, decltype(pred)>{pred};
+    return Comprehension<𝔸<Domain, Boole>, decltype(pred)>{pred};
   }
 };
 

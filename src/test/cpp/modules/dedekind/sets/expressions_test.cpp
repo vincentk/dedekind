@@ -62,8 +62,10 @@ struct IsPositive {
 // ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
 // product = pullback = meet.  (The predicate alone, AndPredicate, is only the
 // classifier-pairing above; the pullback is the applied predicate.)
-using A_set = dedekind::sets::Set<int, dedekind::category::Boole, IsEven>;
-using B_set = dedekind::sets::Set<int, dedekind::category::Boole, IsPositive>;
+using A_set =
+    dedekind::sets::Comprehension<𝔸<int, dedekind::category::Boole>, IsEven>;
+using B_set = dedekind::sets::Comprehension<𝔸<int, dedekind::category::Boole>,
+                                            IsPositive>;
 constexpr A_set a_set{IsEven{}};
 constexpr B_set b_set{IsPositive{}};
 constexpr auto meet_set = a_set & b_set;
@@ -164,7 +166,7 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     // accepts unsigned literals via implicit construction).  Callsites
     // here use unsigned values that lift into Cardinality.
     constexpr auto gt_zero = [](const auto& v) { return v > 0u; };
-    auto infinite = Set{Comprehension{ℕ, gt_zero}};
+    auto infinite = Comprehension{ℕ, gt_zero};
     REQUIRE(infinite(5u));
     REQUIRE_FALSE(infinite(0u));
   }
@@ -188,8 +190,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto distinct = singleton(11);
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
-    // Post-#622 (carrier-axis cut): ℕ is countable (ℵ_0) and routes to
-    // Boole, so the Set CTAD lands @c bool, not @c Ternary.
+    // Boole species (int is countable), so answers are @c bool.
     // {7} ^ {7} is empty pointwise.
     REQUIRE_FALSE(sym_eq(7));
     REQUIRE_FALSE(sym_eq(0));
@@ -201,7 +202,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
     constexpr auto gt_zero = [](const auto& v) { return v > 0; };
-    auto positives = Set{Comprehension{𝔸<int>{}, gt_zero}};
+    auto positives = Comprehension{𝔸<int>{}, gt_zero};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -218,10 +219,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
-    auto S = Set{Comprehension{ℕ, gt_10}};
-    // Use the deduced Domain / logic species from S rather than
-    // hard-coding `unsigned int` / Kleene — the carrier choice
-    // is set by N's CTAD, and the test should not pre-empt it.
+    auto S = Comprehension{ℕ, gt_10};
+    // Use the deduced Domain / logic species from S rather than hard-coding
+    // them: the carrier and species come from ℕ, the universe.
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     Ø<SDomain, SLogic> empty{};
@@ -238,7 +238,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ 𝔸 = ¬A, 𝔸 ^ A = ¬A (#469)") {
-    auto S = Set{Comprehension{ℕ, gt_10}};
+    auto S = Comprehension{ℕ, gt_10};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
     𝔸<SDomain, SLogic> universe{};
@@ -257,7 +257,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // different sets — see the stateful-predicate-disjoint-instances
     // section below).  The honest claim is therefore the runtime one:
     // for any Set S, S ^ S evaluates to false at every input.
-    auto S = Set{Comprehension{ℕ, gt_10}};
+    auto S = Comprehension{ℕ, gt_10};
     auto S_xor_S = S ^ S;
     REQUIRE_FALSE(S_xor_S(5u));
     REQUIRE_FALSE(S_xor_S(50u));
@@ -273,10 +273,10 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    auto only_true =
-        Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
-    auto only_false =
-        Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
+    auto only_true = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+        BooleanEqPredicate{true}};
+    auto only_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+        BooleanEqPredicate{false}};
     auto sym_diff = only_true ^ only_false;
     // The symmetric difference of two disjoint singletons is their
     // union — every element of {true, false} appears in exactly one,
@@ -293,8 +293,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the intersection at the type level, so A & B reduces to
     // Ø<unsigned int, Kleene>.  In that case A ^ B should
     // collapse to A | B (no XOR formula needed in the result lambda).
-    auto A = Set{Comprehension{ℕ, gt_10}};
-    auto B = Set{Comprehension{ℕ, lt_5}};
+    auto A = Comprehension{ℕ, gt_10};
+    auto B = Comprehension{ℕ, lt_5};
     auto sym_diff_disjoint = A ^ B;
     auto union_disjoint = A | B;
     // Membership matches the union (since the intersection is empty,
@@ -314,8 +314,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // XOR is the free identity A △ B = (A ∩ ~B) ∪ (~A ∩ B), so A ^ ~B and
     // ~(A ^ B) agree pointwise: x ∈ A ^ ~B iff x is in exactly one, which is
     // equivalent to x ∈ A ↔ x ∈ B (the biconditional).
-    auto A = Set{Comprehension{ℕ, gt_10}};
-    auto B = Set{Comprehension{ℕ, lt_100}};
+    auto A = Comprehension{ℕ, gt_10};
+    auto B = Comprehension{ℕ, lt_100};
     auto sym_diff_neg = A ^ ~B;
     auto biconditional = ~(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
@@ -336,7 +336,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the capturing lambda (x > 10u) here is non-empty, so the pair stays a
     // residual node whose pointwise value is true everywhere.  We test the
     // runtime semantics rather than the structural type.
-    auto S = Set{Comprehension{ℕ, gt_10}};
+    auto S = Comprehension{ℕ, gt_10};
     auto S_xor_notS = S ^ ~S;
     REQUIRE(S_xor_notS(5u));
     REQUIRE(S_xor_notS(50u));
@@ -344,8 +344,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
-    auto A = Set{Comprehension{ℕ, gt_10}};
-    auto B = Set{Comprehension{ℕ, lt_100}};
+    auto A = Comprehension{ℕ, gt_10};
+    auto B = Comprehension{ℕ, lt_100};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
     REQUIRE(sym_diff(5u));
@@ -356,8 +356,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & ~(A & B)") {
-    auto A = Set{Comprehension{ℕ, gt_10}};
-    auto B = Set{Comprehension{ℕ, lt_100}};
+    auto A = Comprehension{ℕ, gt_10};
+    auto B = Comprehension{ℕ, lt_100};
     auto sym_diff = A ^ B;
     auto union_minus_inter = (A | B) & ~(A & B);
     REQUIRE(sym_diff(5u) == union_minus_inter(5u));
@@ -367,19 +367,12 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  SECTION("Identity: Set{ℕ} is ℕ") {
-    // The universe remains stable when materialized through Set{...}.
-    auto U = Set{ℕ};
-    static_assert(std::is_same_v<decltype(U)::logic_species, Boole>);
-    REQUIRE(U(42u));
-  }
-
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
     constexpr auto gt10_and_lt5 = [](const auto& v) {
       return (v > 10u) && (v < 5u);
     };
-    auto S = Set{Comprehension{ℕ, gt10_and_lt5}};
+    auto S = Comprehension{ℕ, gt10_and_lt5};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
     REQUIRE_FALSE(S(0u));
@@ -391,7 +384,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     constexpr auto gt10_or_le10 = [](const auto& v) {
       return (v > 10u) || (v <= 10u);
     };
-    auto S = Set{Comprehension{ℕ, gt10_or_le10}};
+    auto S = Comprehension{ℕ, gt10_or_le10};
     REQUIRE(S(7u));
   }
 }
@@ -404,10 +397,10 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   // The Boolean-literal collapse is keyed on the leaf type
   // Set<bool, L, BooleanEqPredicate>; spelled explicitly (Set{Comprehension{…}}
   // now wraps the whole comprehension, #948).
-  constexpr auto b_false =
-      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
-  constexpr auto b_true =
-      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
+  constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+      BooleanEqPredicate{false}};
+  constexpr auto b_true = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+      BooleanEqPredicate{true}};
 
   STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));
@@ -431,13 +424,14 @@ TEST_CASE(
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS
   // BooleanEqPredicate{true}, the canonical bool-domain predicate.
   constexpr auto b_true_bare =
-      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
+      Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+          BooleanEqPredicate{true}};
   // Equivalent comparison form.
-  constexpr auto b_true_eq =
-      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{true}};
+  constexpr auto b_true_eq = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+      BooleanEqPredicate{true}};
   // Negated bare-b form.
-  constexpr auto b_false =
-      Set<bool, Boole, BooleanEqPredicate>{BooleanEqPredicate{false}};
+  constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
+      BooleanEqPredicate{false}};
 
   // The collapse machinery treats both bare-b and (b == true) as the
   // same predicate (BooleanEqPredicate{true}) so the static_asserts
@@ -457,8 +451,8 @@ TEST_CASE("Dedekind Sets: Cartesian product witnesses", "[sets][cartesian]") {
   // too --- the test DAG imports upstream only).
   constexpr auto gt_zero = [](const auto& v) { return v > 0; };
   constexpr auto le_three = [](const auto& v) { return v <= 3; };
-  const auto positive = Set{Comprehension{𝔸<int>{}, gt_zero}};
-  const auto small = Set{Comprehension{𝔸<int>{}, le_three}};
+  const auto positive = Comprehension{𝔸<int>{}, gt_zero};
+  const auto small = Comprehension{𝔸<int>{}, le_three};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;
@@ -517,29 +511,6 @@ TEST_CASE("sets:powerset — 𝔓(∅) = {∅} is a :sets closed form (#830)",
 // relational/relation_core_test with the Relation type and the relates /
 // is_single_valued_at surface.)
 
-TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
-          "[sets][subset][logic]") {
-  // FIXME(#693): "Ternary logic yields Unknown for heterogeneous predicates"
-  // — pre-#622 the test exhibited heterogeneous subset returning Unknown
-  // because ℕ-carrier Sets routed Ternary by default; post-#622 ℕ →
-  // Classical on the carrier axis, so the heterogeneous subset between
-  // two opaque-λ ℕ-Sets is no longer a Ternary case.  Predicate-level
-  // axis (#693) is the principled home for this witness — an explicit
-  // Ternary-typed predicate carrier would expose Unknown without going
-  // through the carrier-axis resolver.
-
-  SECTION("Classical logic has no heterogeneous subset operator") {
-    const auto positive_pred = [](const int& v) { return v > 0; };
-    const auto small_pred = [](const int& v) { return v <= 3; };
-
-    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
-    const Set<int, Boole, decltype(small_pred)> small{small_pred};
-
-    CHECK(positive.is_subset_of_at(small, 5) == false);
-    CHECK(positive.is_subset_of_at(small, -1) == true);
-  }
-}
-
 TEST_CASE(
     "Dedekind Sets: image(iso f, Set<T, L, P>) — #602 Layer 2 decidable "
     "specialisation",
@@ -553,7 +524,8 @@ TEST_CASE(
 
   SECTION("Identity iso preserves classical decidability") {
     const auto positive_pred = [](const int& v) { return v > 0; };
-    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
+    const Comprehension<𝔸<int, Boole>, decltype(positive_pred)> positive{
+        positive_pred};
 
     auto img = image(Identity<int>{}, positive);
 
@@ -567,14 +539,6 @@ TEST_CASE(
     CHECK(img(-1) == false);
     CHECK(img(0) == false);
   }
-
-  // FIXME(#693): "Identity iso on a Kleene-logic source preserves the
-  // Kleene species" — pre-#622 the ℕ fixture routed to Kleene.  Post-#622
-  // the carrier-axis cut puts ℕ on Boole; recovering the
-  // Kleene-preserves-Kleene witness requires an explicit Ternary-typed
-  // (Kleene::Ω) predicate carrier — the principled home is the predicate-level
-  // axis
-  // (#693).
 }
 
 TEST_CASE(
@@ -590,7 +554,8 @@ TEST_CASE(
 
   SECTION("Classical: image preserves Classical decidability") {
     const auto positive_pred = [](const int& v) { return v > 0; };
-    const Set<int, Boole, decltype(positive_pred)> positive{positive_pred};
+    const Comprehension<𝔸<int, Boole>, decltype(positive_pred)> positive{
+        positive_pred};
 
     auto img = image(retract_image_test::DoubleArrow{}, positive);
 
@@ -615,10 +580,10 @@ TEST_CASE(
 TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
           "[sets][comprehension][kleene]") {
   // The whole comprehension is wrapped (base ∧ pred); the species is the join.
-  const auto s = Set{Comprehension{𝔸<int>{}, UnknownPredicate<int>{}}};
+  const auto s = Comprehension{𝔸<int>{}, UnknownPredicate<int>{}};
   STATIC_CHECK(std::same_as<typename decltype(s)::logic_species, Kleene>);
   CHECK(s(0) == Ternary::Unknown);
   CHECK(s(42) == Ternary::Unknown);
-  const auto none = Set{Comprehension{Ø<int>{}, UnknownPredicate<int>{}}};
+  const auto none = Comprehension{Ø<int>{}, UnknownPredicate<int>{}};
   CHECK(none(0) == Ternary::False);
 }

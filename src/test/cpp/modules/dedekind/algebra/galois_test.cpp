@@ -35,7 +35,7 @@
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.sequences;
-import dedekind.sets; // 𝔸<T> — set carrier for set-indexed IsGaloisField
+import dedekind.sets; // dedekind::sets::𝔸<T> — set carrier for set-indexed IsGaloisField
 
 using dedekind::algebra::galois_order_v;
 using dedekind::algebra::is_galois_field_v;

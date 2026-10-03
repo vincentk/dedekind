@@ -66,8 +66,8 @@ struct IsEven {
 struct IsPositive {
   constexpr bool operator()(int x) const { return x > 0; }
 };
-using A_set = Set<int, Boole, IsEven>;
-using B_set = Set<int, Boole, IsPositive>;
+using A_set = Comprehension<𝔸<int, Boole>, IsEven>;
+using B_set = Comprehension<𝔸<int, Boole>, IsPositive>;
 constexpr A_set a_set{IsEven{}};
 constexpr B_set b_set{IsPositive{}};
 constexpr auto meet_set = a_set & b_set;

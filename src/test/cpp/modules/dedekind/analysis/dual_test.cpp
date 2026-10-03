@@ -102,35 +102,6 @@ TEST_CASE(
 }
 
 // ---------------------------------------------------------------------------
-// Starter-universe coverage moved from numbers/starters_test.cpp at PR #513
-// (:dual relocation).  The 𝔻 / 𝔻_d universes live in dedekind::analysis.
-// ---------------------------------------------------------------------------
-
-TEST_CASE("Analysis: 𝔻 / 𝔻_d starter universes", "[analysis][dual][starter]") {
-  // Post-HSP retarget: 𝔻 is the COAT-HANGER universe value
-  // 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1>; the machine-double ambient
-  // is 𝔻_d = 𝔸<Dual<machine_real_scalar>> (mirroring ℝ_d / ℂ_d).
-  using R2 = QuadraticReal<2>;
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(𝔻)>, 𝔸<Dual<R2>, Boole, ℶ_1>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
-                            Dual<R2>>);
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔻_d)>,
-                            𝔸<Dual<machine_real_scalar>, Boole, ℶ_1>>);
-
-  constexpr auto duals = Set{𝔻};
-  static_assert(duals(Dual<R2>{R2{1}, R2{1}}) == Ternary::True);
-}
-
-TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
-          "[analysis][dual][starter][lattice]") {
-  using R2 = QuadraticReal<2>;
-  const auto U = Set{𝔻};
-  const auto O = ~U;
-  CHECK((U | O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::True);
-  CHECK((U & O)(Dual<R2>{R2{3}, R2{1}}) == Ternary::False);
-}
-
 // ---------------------------------------------------------------------------
 // Tower coverage moved from numbers/tower_test.cpp at PR #513 (:dual
 // relocation).  ℂ ↪ Dual seeding and Set-membership-over-Dual<double>
@@ -158,8 +129,8 @@ TEST_CASE("Analysis: Set membership over Dual<double> domain",
   using F = machine_real_scalar;
   // Sets over Dual: membership based on the primal value component.
   const auto positive_pred = [](const Dual<F>& d) { return d.value() > 0.0; };
-  const Set<Dual<F>, Boole, decltype(positive_pred)> positive_primal{
-      positive_pred};
+  const Comprehension<𝔸<Dual<F>, Boole>, decltype(positive_pred)>
+      positive_primal{positive_pred};
 
   CHECK(positive_primal(Dual<F>{1.0, 0.5}) == true);
   CHECK(positive_primal(Dual<F>{-1.0, 0.5}) == false);

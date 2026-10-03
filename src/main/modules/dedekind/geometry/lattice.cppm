@@ -179,7 +179,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
   const auto in_window = [n](const NaturalLatticePoint2D& q) {
     return (q.first < n) && (q.second < n);
   };
-  return Set{Comprehension{unbounded, in_window}};
+  return Comprehension{unbounded, in_window};
 }
 
 /**
@@ -197,7 +197,7 @@ export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&
            (q.second < upper);
   };
-  return Set{Comprehension{unbounded, in_window}};
+  return Comprehension{unbounded, in_window};
 }
 
 /**

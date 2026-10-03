@@ -505,9 +505,10 @@ struct LPSolutionPredicate {
 export template <typename T>
 constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
                                        bool feasible) {
-  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::Boole, LPSolutionPredicate<T>>{
-      LPSolutionPredicate<T>{point, feasible}};
+  return dedekind::sets::Comprehension<
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
+      LPSolutionPredicate<T>>{LPSolutionPredicate<T>{point, feasible}};
 }
 
 /** @section lp__F_Algebra_Witness
@@ -533,9 +534,10 @@ constexpr auto lp_runtime_solution_set(dedekind::linear_algebra::Vec2V<T> point,
 namespace detail {
 
 template <typename T>
-using LPSolutionSet =
-    dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                        dedekind::category::Boole, LPSolutionPredicate<T>>;
+using LPSolutionSet = dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                      dedekind::category::Boole>,
+    LPSolutionPredicate<T>>;
 
 template <typename T>
 using LPSolutionIdF = dedekind::category::identity_functor<
@@ -732,23 +734,19 @@ struct Singleton2DPredicate {
  *  §5 bridge symmetric — Set goes in, Set comes out. */
 export template <typename T, T x_val, T y_val>
 constexpr auto lp_singleton_set() {
-  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::Boole,
-                             Singleton2DPredicate<T, x_val, y_val>>{
+  return dedekind::sets::Comprehension<
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
+      Singleton2DPredicate<T, x_val, y_val>>{
       Singleton2DPredicate<T, x_val, y_val>{}};
 }
 
-/** @brief Lift an empty optimum into a @c :expressions Set whose
- *  predicate is the existing @c :expressions::EmptyPredicate over
- *  @c Vec2V<T> .  Used as the output of @ref argmax when the LP is
- *  infeasible — the empty optimum is a value of the output Set type,
- *  not a compile event. */
+/** @brief The empty optimum: @c Ø over @c Vec2V<T>, the output of @ref argmax
+ *  when the LP is infeasible --- a value, not a compile event. */
 export template <typename T>
 constexpr auto lp_empty_set() {
-  return dedekind::sets::Set<
-      dedekind::linear_algebra::Vec2V<T>, dedekind::category::Boole,
-      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>>{
-      dedekind::sets::EmptyPredicate<dedekind::linear_algebra::Vec2V<T>>{}};
+  return dedekind::sets::Ø<dedekind::linear_algebra::Vec2V<T>,
+                           dedekind::category::Boole>{};
 }
 
 namespace detail {
@@ -943,10 +941,10 @@ struct Polytope2DPredicate {
  *  whose predicate carries the halfspace structurally. */
 export template <typename T, T a, T b, T c>
 constexpr auto halfspace_set(Halfspace2D<T, a, b, c>) {
-  return dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>,
-                             dedekind::category::Boole,
-                             Halfspace2DPredicate<T, a, b, c>>{
-      Halfspace2DPredicate<T, a, b, c>{}};
+  return dedekind::sets::Comprehension<
+      dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>,
+                        dedekind::category::Boole>,
+      Halfspace2DPredicate<T, a, b, c>>{Halfspace2DPredicate<T, a, b, c>{}};
 }
 
 /** @section lp__structured_and_overloads
@@ -1033,8 +1031,9 @@ struct LinearFunctional {
 export template <typename T, typename L, typename... Hs, T cx, T cy>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto argmax(
-    const dedekind::sets::Set<dedekind::linear_algebra::Vec2V<T>, L,
-                              Polytope2DPredicate<T, Hs...>>&,
+    const dedekind::sets::Comprehension<
+        dedekind::sets::𝔸<dedekind::linear_algebra::Vec2V<T>, L>,
+        Polytope2DPredicate<T, Hs...>>&,
     LinearFunctional<T, cx, cy>) {
   return detail::maximize_set<T, cx, cy, Hs...>();
 }

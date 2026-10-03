@@ -39,10 +39,10 @@ constexpr auto on_diagonal = [](R2Point p) { return p.first == p.second; };
 constexpr auto in_strip = [](R2Point p) {
   return (p.first > 5.0) && (p.second < 3.0);
 };
-constexpr auto diagonal = Set{Comprehension{R2, on_diagonal}};
+constexpr auto diagonal = Comprehension{R2, on_diagonal};
 
 // Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Set{Comprehension{R2, in_strip}};
+constexpr auto strip = Comprehension{R2, in_strip};
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;

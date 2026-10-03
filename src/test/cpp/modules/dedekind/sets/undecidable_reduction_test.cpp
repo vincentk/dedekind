@@ -68,7 +68,8 @@ TEST_CASE("Reduction restores decidability: U ∧ Ø → Ø, decided (#894)",
   // A Kleene ambient. U is the maximally-undecidable set (χ ≡ Unknown); the
   // empty boundary and the universe are declared conservatively in that
   // ambient.
-  constexpr Set<int, Kleene, UnknownPredicate<int>> U{UnknownPredicate<int>{}};
+  constexpr Comprehension<𝔸<int, Kleene>, UnknownPredicate<int>> U{
+      UnknownPredicate<int>{}};
   constexpr Ø<int, Kleene> E{};
   constexpr 𝔸<int, Kleene> A{};
 
@@ -93,9 +94,10 @@ TEST_CASE("Reduction restores decidability: U ∧ Ø → Ø, decided (#894)",
 TEST_CASE("Cross-species combine: Boole ∩ Kleene lifts into the reducer (#894)",
           "[sets][decidable][rosolini][mixed]") {
   // Same carrier, different codomains: A over Boole, B over Kleene.
-  constexpr Set<int, Boole, UniversalPredicate<int>> A{
+  constexpr Comprehension<𝔸<int, Boole>, UniversalPredicate<int>> A{
       UniversalPredicate<int>{}};
-  constexpr Set<int, Kleene, UnknownPredicate<int>> B{UnknownPredicate<int>{}};
+  constexpr Comprehension<𝔸<int, Kleene>, UnknownPredicate<int>> B{
+      UnknownPredicate<int>{}};
   constexpr Ø<int, Kleene> E{};
 
   // The mixed-species meet now type-checks; the same-species gate rejected it
@@ -131,7 +133,7 @@ TEST_CASE("Cross-species combine: Boole ∩ Kleene lifts into the reducer (#894)
 
 TEST_CASE("Codomain leg on complement / product / symmetric difference (#894)",
           "[sets][decidable][rosolini][reduction]") {
-  constexpr Set<int, Boole, UniversalPredicate<int>> A{
+  constexpr Comprehension<𝔸<int, Boole>, UniversalPredicate<int>> A{
       UniversalPredicate<int>{}};
 
   // Runtime calls (not static_assert) so the boundary-operator bodies are

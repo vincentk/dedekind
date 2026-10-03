@@ -2,15 +2,16 @@
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.sets; // 𝔸<T> — set carrier for the set-indexed rungs
+import dedekind.sets; // dedekind::sets::𝔸<T> — set carrier for the set-indexed rungs
 using namespace dedekind::algebra;
 using namespace dedekind::category;
 
 // Set-indexed base rung: algebra::IsMagma is a claim about a *set object*,
 // not a raw carrier.  The magma partition sits upstream of :sets and cannot
 // import a set carrier, so its positive witness lives here.
-static_assert(dedekind::algebra::IsMagma<dedekind::sets::𝔸<unsigned int>>,
-              "𝔸<unsigned int> under + is a set-indexed magma.");
+static_assert(
+    dedekind::algebra::IsMagma<dedekind::sets::𝔸<unsigned int>>,
+    "dedekind::sets::𝔸<unsigned int> under + is a set-indexed magma.");
 // Regression guard on the IsSet/Domain composition: a bare carrier is not a
 // set object, so the set-indexed concept must reject it (explicit Op keeps
 // the default-argument substitution out of the picture).

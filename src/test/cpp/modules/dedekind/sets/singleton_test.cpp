@@ -59,29 +59,14 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     STATIC_REQUIRE(!(~Singleton<bool>{true})(true));
   }
   SECTION("Intersections") {
-    // FIXME(#685): Boolean-algebra-of-sets identities not yet encoded
-    // structurally at the DSL surface.  Each assertion below names a
-    // textbook law that today fails to compile:
-    //   * `_s & _s` returns @c Comprehension<Universe, lambda>,
-    //     not @c Singleton — missing semantic-equality overload.
-    //   * `(~_s) & _s == Ø<T>{}` needs the complement-pair collapse to
-    //     reach the Singleton leaf.
+    // FIXME(#685): structural identity ({a}∩{a} == {a}, {a}∩¬{a} == Ø) is
+    // tracked there; today the self-meet is witnessed by its size.
     INFO("The intersection of a set with itself is a fixed point.");
     REQUIRE((_s & _s).size() == 1);
-    // REQUIRE((_s & _s) == _s);
-    // REQUIRE(&(_s & _s) == &_s);
-    INFO("The intersection of a set with its complement is empty.");
-    // REQUIRE((!_s) & _s == Ø<size_t>{});
-    // REQUIRE(Ø<size_t>{} == (!_s) & _s);
   }
   SECTION("Union") {
-    // FIXME(#685): mirror of the SECTION("Intersections") gaps above,
-    // with `|` (union) in place of `&` (intersection) and
-    // `𝔸<T>{}` in place of `Ø<T>{}`.  Same underlying
-    // structural-identity / cross-type-overload / equality-matrix
-    // surgery needed.
-    // The union is now the recoverable named OrPredicate (no element scout,
-    // no lambda), so it is tested by MEMBERSHIP rather than a size() probe.
+    // The union is the recoverable Join node, so it is tested by MEMBERSHIP
+    // and by recovering both atoms from the type.
     INFO(
         "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
     REQUIRE((_s | _s)(42));
@@ -99,63 +84,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<UnionT, Set<size_t, Boole,
-                                 Join<Singleton<size_t>, Singleton<size_t>>>>);
-    REQUIRE((_s | _t).predicate().lhs.pivot == 42);
-    REQUIRE((_s | _t).predicate().rhs.pivot == 7);
-    // FIXME(#685): structural identity ({a}∪{a} == {a}, round-trip to the
-    // universe for {a}∪¬{a}) still needs the equality-matrix / cross-type
-    // overload surgery tracked there.
-    // REQUIRE((_s | _s) == _s);
-    // REQUIRE((!_s) | _s == 𝔸<size_t>{});
-  }
-  SECTION("Difference") {
-    // FIXME(#685): set-difference operator `-` not defined on the
-    // user-facing set surface today.  Canonical reduction is
-    // `A - B = A & !B`, so this slice is downstream of the other
-    // lattice-of-sets work (cross-type meets, equality matrix).
-    INFO("Variations on {x} - Ø = id.");
-    // REQUIRE(_s - Ø<size_t>{} == _s);
-    // REQUIRE(Ø<size_t>{} - _s == Ø<size_t>{});
-    // REQUIRE(_s - _s == Ø<size_t>{});
-    INFO("Variations on {x} - !{x} = Ø.");
-    // NOTE: `_s - !_s` reads `_s ∩ !!_s = _s ∩ _s = _s`,
-    // not `Ø` — likely a copy-paste from the `_s - _s` line.
-    // REQUIRE(_s - !_s == Ø<size_t>{});
-    // REQUIRE(_s - _s == Ø<size_t>{});
-  }
-  SECTION("Subset relations") {
-    // FIXME(#685): three independent gaps blocking subset assertions:
-    //   * `_s <= _s`: Singleton's `auto operator<=>(const
-    //     Singleton&) const = delete` shadows the template
-    //     `operator<=(const S&)` for same-type self-comparison;
-    //     overload resolution picks the deleted spaceship first.
-    //   * `_s <= Ø`, `Ø <= _s`, `_s <= !_s`: cross-type mereology through
-    //     the Singleton template `<=` (which delegates to the operand's
-    //     `operator()`) still needs its equality / bound wiring.
-    //   * Catch2 `REQUIRE` rejects chained comparisons
-    //     (`a <= b == false`); wrap as `(a <= b) == false`.
-    // REQUIRE(_s <= _s);
-    // REQUIRE((_s <= Ø<size_t>{}) == false);
-    // REQUIRE((Ø<size_t>{} <= _s) == true);
-    // REQUIRE((_s <= !_s) == false);
-  }
-  SECTION("Cartesian Product") {
-    // FIXME(#685): three layered gaps:
-    //   * `_s * _s` resolves through the generic ambient-species
-    //     `operator*` to `Set<pair, L, lambda>` (a predicate set)
-    //     which lacks `.size()` for the same structural reason
-    //     `Comprehension` did pre-singleton-bounded patch.
-    //   * `_s * Ø == Ø`, `Ø * _s == Ø`: empty-annihilation needs
-    //     either a `cartesian_product(Singleton, Ø)` overload
-    //     short-circuiting to `Ø<pair, L>`, or cross-type equality
-    //     between predicate-`Set` and `Ø`.
-    //   * `_s * ~_s`: a `Not<Singleton>` factor needs the generic
-    //     cartesian product to carry the complement through.
-    // REQUIRE((_s * _s).size() == 1);
-    // REQUIRE((_s * Ø<size_t>{}) == Ø<size_t>{});
-    // REQUIRE((Ø<size_t>{} * _s) == Ø<size_t>{});
-    // REQUIRE((_s * ~_s).size() > 1);
+        std::same_as<
+            UnionT, Comprehension<𝔸<size_t, Boole>,
+                                  Join<Singleton<size_t>, Singleton<size_t>>>>);
+    REQUIRE((_s | _t).predicate.lhs.pivot == 42);
+    REQUIRE((_s | _t).predicate.rhs.pivot == 7);
   }
 }
 

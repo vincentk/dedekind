@@ -225,13 +225,15 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * saturation breaks residue-equivalence, and which @c Congruence cannot reduce)
  * are declined by construction.
  */
-export template <typename T, auto K, auto N, decltype(N) R, typename L>
+export template <typename T, auto K, auto N, decltype(N) R, typename L,
+                 typename C>
   requires std::same_as<std::remove_cvref_t<T>, decltype(N)> &&
            std::unsigned_integral<decltype(N)> &&
            (std::has_single_bit(
                static_cast<std::make_unsigned_t<decltype(N)>>(N)))
 constexpr auto preimage(
-    const Set<std::pair<T, T>, L, ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, L, C>,
+                        ProjAddConstProj<1, K, Rel::Eq, 2>>&,
     Congruence<N, R>) {
   // Compute in the carrier's own arithmetic (unsigned ℤ/2^w): apply the graph's
   // static_cast<T>(K) FIRST (so a huge shift folds exactly as the graph sees

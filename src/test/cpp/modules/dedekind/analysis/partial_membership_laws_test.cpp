@@ -61,10 +61,10 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   }
   // ── membership CLASSIFIED into Ω: a comprehension over ℝ (ℶ₁) ──
   {
-    // ℝ_d is tagged ℶ₁ (uncountable) but has Boole logic.  The Set{} wrap runs
-    // NaturalLogic<Halfspace> in deduction, routing the ℶ₁ carrier to Kleene,
-    // so the wrapped set withholds decidable membership.
-    constexpr auto gt = Set{ℝ_d | (χ > bound<5.0>)};  // {r ∈ ℝ | r > 5}
+    // ℝ_d carries Kleene (the machine real admits NaN), so a halfspace carved
+    // from it inherits the universe's species and withholds decidable
+    // membership; nothing re-tags it.
+    constexpr auto gt = ℝ_d | (χ > bound<5.0>);  // {r ∈ ℝ | r > 5}
     // χ_gt : ℝ → Ω, not ℝ → Σ; the type system withholds decidable membership
     static_assert(std::same_as<typename decltype(gt)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(gt)>);
@@ -72,7 +72,7 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {
     constexpr auto gt5 =
-        Set{ℕ | (χ > fix(5_c))};  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
+        ℕ | (χ > fix(5_c));  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
     static_assert(HasDecidableMembership<decltype(gt5)>);
     constexpr cardinality_succ succ;
     constexpr auto s = arrow<Cardinality, Cardinality>(succ);  // ℕ → ℕ
