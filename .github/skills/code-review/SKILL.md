@@ -149,6 +149,14 @@ Coherence checks:
   semicolon, parenthesis, or hyphen serves. Call out any em-dash a diff
   introduces.
 
+## Tests
+
+Test code has its own skill, `.github/skills/test-review/SKILL.md`: every test
+names one pattern (unit, integration, witness/exhibit, regression, coverage
+companion), and a test that restates a module-level `static_assert`, tests
+retired behaviour, or consists of commented-out assertions is recommended for
+removal. Apply it to every diff under `src/test/`.
+
 ## Do NOT flag
 
 - **Verbose type-level markers are intentional.** Restrictive-over-ergonomic is
