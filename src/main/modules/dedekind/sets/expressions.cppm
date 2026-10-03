@@ -748,7 +748,17 @@ export struct SetCombine {
 // bottoms out at the universe, which is its own universe.
 export template <typename Base, typename Predicate>
 constexpr auto universe(const Comprehension<Base, Predicate>& c) {
-  return universe(c.base);
+  // The universe leg lives in the COMPREHENSION's species: when the answer
+  // lifted the base's species (a Kleene predicate over a Boole base), the
+  // universe is re-tagged to the join, else the base's universe is returned
+  // as is.  Keeps the leg's species equal to the set's (Is𝔸Of).
+  using U = std::remove_cvref_t<decltype(universe(c.base))>;
+  using L = typename Comprehension<Base, Predicate>::logic_species;
+  if constexpr (std::same_as<typename U::logic_species, L>) {
+    return universe(c.base);
+  } else {
+    return 𝔸<typename U::Domain, L, typename U::cardinality_type>{};
+  }
 }
 
 // Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default

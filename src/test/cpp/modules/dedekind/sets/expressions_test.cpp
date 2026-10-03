@@ -610,19 +610,29 @@ TEST_CASE(
   const auto confident = Comprehension{𝔸<int, Percent>{}, ConfidentlyEven{}};
   STATIC_CHECK(
       std::same_as<typename decltype(confident)::logic_species, Percent>);
+  STATIC_CHECK(IsLSet<decltype(confident)>);
+  STATIC_CHECK(IsSetObject<decltype(confident)>);
   CHECK(confident(2) == Percentage{100});
   CHECK(confident(5) == Percentage{50});
   CHECK(confident(3) == Percentage{0});
 
-  // An answer already in the base's Ω stays in the base's species.
+  // A comprehension joined UP from its base is a set object: its universe leg
+  // is re-tagged to the join (𝔸<int, Kleene>, not the Boole base).
+  const auto unknown = Comprehension{𝔸<int>{}, UnknownPredicate<int>{}};
+  STATIC_CHECK(std::same_as<universe_t<decltype(unknown)>, 𝔸<int, Kleene>>);
+  STATIC_CHECK(IsSetObject<decltype(unknown)>);
+
+  // Kleene ∧ Percent combines at their join, Percent: Unknown ↦ 50.
+  const auto both = unknown & confident;
+  STATIC_CHECK(std::same_as<typename decltype(both)::logic_species, Percent>);
+  CHECK(both(2) == Percentage{50});
+  CHECK(both(3) == Percentage{0});
+
+  // An answer already in the base's Ω stays in the base's species.  (A
+  // Chain<int> set is not yet an L-set citizen: IsPredicate asks IsΩ of the
+  // bare int answer, which only the species can vouch for.)
   const auto graded = Comprehension{𝔸<int, Chain<int>>{}, GradeOf{}};
   STATIC_CHECK(
       std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
   CHECK(graded(7) == 7);  // ⊤ ∧ 7
-
-  // No shipped species is above both K₃ and Chain<int>: the combine is refused.
-  using K = decltype(Comprehension{𝔸<int>{}, UnknownPredicate<int>{}});
-  using G = decltype(graded);
-  STATIC_CHECK(!requires(const K& k, const G& g) { k & g; });
-  STATIC_CHECK(!requires(const K& k, const G& g) { k | g; });
 }
