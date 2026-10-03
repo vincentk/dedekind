@@ -514,28 +514,35 @@ constexpr auto operator|(
 // that dispatches across the full lattice.  See
 // @c docs/design/carrier-lattice.md for the design discussion.
 
-/** @brief Cross-carrier meet @c Set<Cardinality> @c & @c
- *         Set<SignedCardinality> @c → @c Set<Cardinality> (carrier
- *         strength-reduction; closes a slice of #362).  The
- *         intersection is contained in ℕ, so the result carrier is
- *         @c Cardinality. */
-export template <typename L, typename P1, typename P2, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<Cardinality, L, C>, P1>& lhs,
-    const Comprehension<𝔸<SignedCardinality, L, C>, P2>& rhs) {
+/** @brief The two carriers of the one cross-carrier pair the library ships,
+ *  ℕ ↪ ℤ on the variant proxies: @c A is a set object over @c Cardinality,
+ *  @c B one over @c SignedCardinality, in the same species.  Any set object
+ *  qualifies (a halfspace, a comprehension, a node): only χ is read. */
+template <typename A, typename B>
+concept NatZedPair =
+    IsSetObject<A> && IsSetObject<B> &&
+    std::same_as<typename A::Domain, Cardinality> &&
+    std::same_as<typename B::Domain, SignedCardinality> &&
+    std::same_as<typename A::logic_species, typename B::logic_species>;
+
+/** @brief Cross-carrier meet: a set over ℕ @c & a set over ℤ @c → a set over
+ *  ℕ (carrier strength-reduction; closes a slice of #362).  The intersection
+ *  is contained in ℕ, so the result carrier is @c Cardinality. */
+export template <typename A, typename B>
+  requires NatZedPair<A, B>
+constexpr auto operator&(const A& lhs, const B& rhs) {
+  using L = typename A::logic_species;
   auto predicate = [lhs, rhs](const Cardinality& v) {
     return L::AND(lhs(v), rhs(lift_cardinality_to_signed(v)));
   };
   return Comprehension<𝔸<Cardinality, L>, decltype(predicate)>{predicate};
 }
 
-/** @brief Symmetric: @c Set<SignedCardinality> @c & @c
- *         Set<Cardinality> delegates to the canonical direction.  The
- *         result still tightens to @c Set<Cardinality>. */
-export template <typename L, typename P1, typename P2, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<SignedCardinality, L, C>, P1>& lhs,
-    const Comprehension<𝔸<Cardinality, L, C>, P2>& rhs) {
+/** @brief Symmetric: a set over ℤ @c & a set over ℕ delegates to the
+ *  canonical direction; the result still tightens to ℕ. */
+export template <typename A, typename B>
+  requires NatZedPair<B, A>
+constexpr auto operator&(const A& lhs, const B& rhs) {
   return rhs & lhs;
 }
 
@@ -578,11 +585,9 @@ constexpr Cardinality project_signed_to_natural(
 }
 }  // namespace detail
 
-/** @brief Cross-carrier join @c Set<Cardinality> @c | @c
- *         Set<SignedCardinality> @c → @c Set<SignedCardinality>
- *         (carrier widening; closes a slice of #362).  The union may
- *         contain negative integers from the @c rhs side, so the
- *         result carrier widens to ℤ.
+/** @brief Cross-carrier join: a set over ℕ @c | a set over ℤ @c → a set over
+ *  ℤ (carrier widening; closes a slice of #362).  The union may contain
+ *  negative integers from the @c rhs side, so the result carrier widens to ℤ.
  *
  *  Membership for @c v @c : @c ℤ:
  *    * If @c v lives in the image of ℕ ↪ ℤ (non-negative, not @c NaZ,
@@ -590,10 +595,10 @@ constexpr Cardinality project_signed_to_natural(
  *      with @c rhs(v).
  *    * Otherwise @c v is not in ℕ, so @c lhs(v) is structurally @c
  *      false; the union reduces to @c rhs(v). */
-export template <typename L, typename P1, typename P2, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<Cardinality, L, C>, P1>& lhs,
-    const Comprehension<𝔸<SignedCardinality, L, C>, P2>& rhs) {
+export template <typename A, typename B>
+  requires NatZedPair<A, B>
+constexpr auto operator|(const A& lhs, const B& rhs) {
+  using L = typename A::logic_species;
   auto predicate = [lhs, rhs](const SignedCardinality& v) {
     if (detail::sc_is_in_natural_image(v)) {
       return L::OR(lhs(detail::project_signed_to_natural(v)), rhs(v));
@@ -603,13 +608,11 @@ constexpr auto operator|(
   return Comprehension<𝔸<SignedCardinality, L>, decltype(predicate)>{predicate};
 }
 
-/** @brief Symmetric: @c Set<SignedCardinality> @c | @c Set<Cardinality>
- *         delegates to the canonical direction.  The result still
- *         widens to @c Set<SignedCardinality>. */
-export template <typename L, typename P1, typename P2, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<SignedCardinality, L, C>, P1>& lhs,
-    const Comprehension<𝔸<Cardinality, L, C>, P2>& rhs) {
+/** @brief Symmetric: a set over ℤ @c | a set over ℕ delegates to the
+ *  canonical direction; the result still widens to ℤ. */
+export template <typename A, typename B>
+  requires NatZedPair<B, A>
+constexpr auto operator|(const A& lhs, const B& rhs) {
   return rhs | lhs;
 }
 
