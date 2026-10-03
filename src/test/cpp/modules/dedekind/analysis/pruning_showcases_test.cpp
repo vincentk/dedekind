@@ -161,6 +161,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   STATIC_CHECK(empty_meet.kind == SetKind::Empty);
 
   SECTION("Continuous carrier: parents not finite, reduced set is empty") {
-    STATIC_CHECK(!static_cast<bool>(empty_meet(4.0)));  // empty: no inhabitant
+    STATIC_CHECK(empty_meet(4.0) ==
+                 decltype(empty_meet)::logic_species::False);  // no inhabitant
   }
 }

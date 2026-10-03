@@ -31,9 +31,9 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// ℝ is now the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
-// @c ℝ_d = @c 𝔸<Real<double>, Kleene, ℶ_1>: @b Boole logic, @b ℶ_1 cardinality.
-// A bare point-free @c Halfspace IS a set, so no Set{} wrapper.
+// ℝ is the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
+// @c ℝ_d = @c 𝔸<Real<double>, Kleene, ℶ_1>: Kleene logic (the machine real
+// admits NaN), ℶ_1 cardinality.  A bare point-free @c Halfspace IS a set.
 constexpr auto gt_five = ℝ_d | (χ > bound<5.0>);
 constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
 
@@ -41,7 +41,8 @@ constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
 // the crossing-bound emptiness test fires on a continuous carrier just as on ℕ.
 constexpr auto empty_meet = gt_five & lt_three;
 static_assert(empty_meet.kind == SetKind::Empty);
-static_assert(!static_cast<bool>(empty_meet(Real<double>{4.0})));
+static_assert(empty_meet(Real<double>{4.0}) ==
+              decltype(empty_meet)::logic_species::False);
 
 /**
  * @brief Showcase 5: halfspace contradiction on ℝ.
