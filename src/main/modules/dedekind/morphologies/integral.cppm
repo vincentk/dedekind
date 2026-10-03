@@ -125,7 +125,7 @@ concept IsSaturatingInteger =
 /** @brief Cyclic-ℤ-shape integer: integer surface + abelian-group-cyclic
  *         under @c +.  @c SignedExtensionalCardinal<> (sign-magnitude
  *         @c ℤ/2^{N*64}ℤ) is the canonical witness via
- *         @c IsCyclicGroup<SignedExtensionalCardinal<1>, std::plus<>>
+ *         @c IsCyclicGroup<SignedExtensionalCardinal<>, std::plus<>>
  *         pinned in @c :sets:cardinality.
  */
 export template <typename T>

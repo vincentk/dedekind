@@ -4,7 +4,7 @@
  * @brief Re-export of dedekind.sets:cardinality with numbers-level proofs.
  *
  * @details
- * The extensional cardinality carrier `ExtensionalCardinal<N>` is defined in
+ * The extensional cardinality carrier `ExtensionalCardinal<W>` is defined in
  * `dedekind.sets:cardinality` (below the `numbers` and `algebra` layers),
  * making it available for use in polynomial ring assertions in `algebra`.
  *
@@ -34,7 +34,7 @@ using C1 = dedekind::sets::ExtensionalCardinal<>;
 using Z1 = dedekind::sets::SignedExtensionalCardinal<>;
 
 static_assert(dedekind::numbers::IsNatural<C1>,
-              "ExtensionalCardinal<1> must satisfy IsNatural.");
+              "ExtensionalCardinal<> must satisfy IsNatural.");
 
 // Order witnesses: both bounded ℕ (C1) and bounded ℤ (Z1) carry the
 // total order inherited from their bit-pattern representation, with
@@ -42,18 +42,18 @@ static_assert(dedekind::numbers::IsNatural<C1>,
 // here (in `numbers`) because `sets` is upstream of `order` and
 // cannot import it.
 static_assert(dedekind::order::IsPreOrdered<C1>,
-              "ExtensionalCardinal<1> with <= is a pre-order.");
+              "ExtensionalCardinal<> with <= is a pre-order.");
 static_assert(dedekind::order::IsPartiallyOrdered<C1>,
-              "ExtensionalCardinal<1> with <= is a partial order.");
+              "ExtensionalCardinal<> with <= is a partial order.");
 static_assert(dedekind::order::IsTotallyOrdered<C1>,
-              "ExtensionalCardinal<1> must satisfy IsTotallyOrdered.");
+              "ExtensionalCardinal<> must satisfy IsTotallyOrdered.");
 
 static_assert(dedekind::order::IsPreOrdered<Z1>,
-              "SignedExtensionalCardinal<1> with <= is a pre-order.");
+              "SignedExtensionalCardinal<> with <= is a pre-order.");
 static_assert(dedekind::order::IsPartiallyOrdered<Z1>,
-              "SignedExtensionalCardinal<1> with <= is a partial order.");
+              "SignedExtensionalCardinal<> with <= is a partial order.");
 static_assert(dedekind::order::IsTotallyOrdered<Z1>,
-              "SignedExtensionalCardinal<1> with <= is totally ordered.");
+              "SignedExtensionalCardinal<> with <= is totally ordered.");
 
 // Cardinal types are valid \emph{net domains}: ℕ-bounded and ℤ-bounded
 // carriers are directed sets (the join-semilattice structure under
@@ -62,10 +62,10 @@ static_assert(dedekind::order::IsTotallyOrdered<Z1>,
 // a net.  Both bool (in `algebra:boolean`) and cardinal types
 // (here) are witnessed as candidate net domains.
 static_assert(dedekind::order::IsDirectedSet<C1>,
-              "ExtensionalCardinal<1> is a directed set --- a valid "
+              "ExtensionalCardinal<> is a directed set --- a valid "
               "net domain (the bounded ℕ case).");
 static_assert(dedekind::order::IsDirectedSet<Z1>,
-              "SignedExtensionalCardinal<1> is a directed set "
+              "SignedExtensionalCardinal<> is a directed set "
               "(the bounded ℤ case).");
 
 // IsInteger<C1> is verified in rational.cppm (which imports both

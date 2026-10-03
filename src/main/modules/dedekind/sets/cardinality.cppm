@@ -1,13 +1,13 @@
 /**
  * @file dedekind/sets/cardinality.cppm
  * @partition :cardinality
- * @brief Cardinality types and the Extensional N-limb cardinal carrier.
+ * @brief Cardinality types and the one-word extensional cardinal carrier.
  *
  * @details
  * This partition owns all concrete cardinality types:
  *   - `Finite`, `ℵ<N>`, `ℵ_0`, `ℶ_1` — the cardinality ladder (moved from
  *     `:mereology`, where only the structural concepts now remain).
- *   - `ExtensionalCardinal<N>` — the machine-total finite cardinal carrier
+ *   - `ExtensionalCardinal<W>` — the machine-total finite cardinal carrier
  *     with wrapping arithmetic, compatible with `dedekind.category:total`.
  *   - `Cardinality` — the `finite | ℵ_0` sum type and its utility functions.
  *
@@ -152,88 +152,87 @@ export using ℶ_1 = ℵ<1>;  ///< The Continuum (assuming GCH)
 // ---------------------------------------------------------------------------
 
 /**
- * @brief Finite extensional cardinality carrier using `N` machine limbs.
- * @tparam N Number of `std::size_t` limbs stored in little-endian order.
+ * @concept IsWrappingWord
+ * @brief A machine word that is the wrapping ring ℤ/2^w: a commutative ring
+ *        under @c + and @c *, periodic under @c +, totally ordered.
+ * @details Read off the @c category registrations, so signed @c int (whose
+ *          ring claim is refused: overflow is UB) does not qualify.
  */
-export template <std::size_t N = 1>
+export template <typename W>
+concept IsWrappingWord =
+    dedekind::category::IsCommutativeRing<W, std::plus<W>,
+                                          std::multiplies<W>> &&
+    dedekind::category::IsPeriodic<W, std::plus<W>> && std::totally_ordered<W>;
+
+static_assert(IsWrappingWord<std::size_t> && !IsWrappingWord<int>,
+              "std::size_t is a wrapping word; signed int is not a ring.");
+
+/**
+ * @brief Finite extensional cardinal: one machine word @c W.
+ *
+ * @details The bare carrier is the wrapping ring ℤ/2^w (registered periodic
+ * and cyclic below); @c Cardinality adjoins the saturating @c ℵ_0 on top.
+ * It is not a bignum: its width is the width of @c W.  Overflow is detected
+ * with the compiler's checked-arithmetic builtins, which compute exactly for
+ * any word width, so no promotion to @c int can overflow on the way.
+ *
+ * @tparam W The word (default @c std::size_t).
+ */
+export template <IsWrappingWord W = std::size_t>
 struct ExtensionalCardinal {
-  static_assert(N > 0, "ExtensionalCardinal<N> requires N >= 1.");
-
   using cardinality_type = Finite;
-  using limb_type = std::size_t;
+  using word_type = W;
 
+  /** @brief A wrapped result and whether the exact result overflowed @c W. */
   struct CheckedResult {
-    ExtensionalCardinal value;
+    ExtensionalCardinal result;
     bool overflowed;
   };
 
-  std::array<limb_type, N> limbs{};
-
-  static constexpr std::size_t limb_bits = CHAR_BIT * sizeof(limb_type);
+  W value{};
 
   constexpr ExtensionalCardinal() = default;
 
-  constexpr ExtensionalCardinal(limb_type value) noexcept { limbs[0] = value; }
+  constexpr ExtensionalCardinal(W v) noexcept  // NOLINT
+      : value(v) {}
 
   /** @brief Construction from any integral type via two's-complement wrapping.
    *  The explicit @c static_cast keeps the sign-conversion at this boundary
    *  rather than at each call site.
    *
-   *  Intentionally non-explicit (post-#402) so integral values can convert
-   *  implicitly when initialising or passing a @c Cardinality — the
-   *  load-bearing path for the @c ℕ-as-Cardinality carrier reading.  The
-   *  @c std::variant alternative @c ExtensionalCardinal<> is selected by
-   *  the variant's per-alternative-ctor lookup regardless of @c explicit;
-   *  what the @c explicit drop changes is whether implicit conversions are
-   *  permitted (e.g., copy-initialisation, argument passing, return
-   *  conversion) from @c std::integral source values. */
+   *  Intentionally non-explicit so integral values convert implicitly when
+   *  initialising or passing a @c Cardinality (= @c std::variant<
+   *  ExtensionalCardinal<>, ℵ_0>), the load-bearing path for the
+   *  @c ℕ-as-Cardinality carrier reading. */
   template <std::integral S>
-    requires(!std::same_as<S, limb_type>)
-  constexpr ExtensionalCardinal(S value) noexcept {
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    // Intentionally implicit so @c std::integral values convert to
-    // @c Cardinality (= @c std::variant<ExtensionalCardinal<>, ℵ_0>)
-    // without the call site spelling @c ExtensionalCardinal<>{...}.
-    limbs[0] = static_cast<limb_type>(value);
-  }
+    requires(!std::same_as<S, W>)
+  constexpr ExtensionalCardinal(S v) noexcept  // NOLINT
+      : value(static_cast<W>(v)) {}
 
-  /** @brief Explicit projection to @c std::size_t — reads the
-   *         least-significant limb.  Used by @c :sequences:path 's helper
-   *         functions (@c drop , @c scan , @c <<= , @c tails ,
-   *         @c as_relation ) when the user-chosen @c Index Form needs to
-   *         flow through a @c std::size_t -valued counter
-   *         (e.g.\ @c std::vector::size() bound checks).  Marked
-   *         @c explicit so the projection IS-A choice the call site
-   *         makes — it does not implicitly silently lose upper limbs.
-   *
-   *  For @c N @c = @c 1 this is the full value.  For @c N @c > @c 1 the
-   *  upper limbs are dropped; the call site must ensure the value fits. */
-  explicit constexpr operator std::size_t() const noexcept { return limbs[0]; }
+  /** @brief Explicit projection to @c std::size_t.  Used by
+   *  @c :sequences:path 's helpers when the user-chosen @c Index Form flows
+   *  through a @c std::size_t counter.  Explicit, so a word wider than
+   *  @c std::size_t is never narrowed silently. */
+  explicit constexpr operator std::size_t() const noexcept {
+    return static_cast<std::size_t>(value);
+  }
 
   constexpr friend bool operator==(const ExtensionalCardinal&,
                                    const ExtensionalCardinal&) = default;
 
   constexpr friend std::strong_ordering operator<=>(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
-    for (std::size_t index = N; index-- > 0;) {
-      if (lhs.limbs[index] < rhs.limbs[index]) {
-        return std::strong_ordering::less;
-      }
-      if (lhs.limbs[index] > rhs.limbs[index]) {
-        return std::strong_ordering::greater;
-      }
-    }
-    return std::strong_ordering::equal;
+    return lhs.value <=> rhs.value;
   }
 
   constexpr friend ExtensionalCardinal operator+(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
-    return checked_add(lhs, rhs).value;
+    return checked_add(lhs, rhs).result;
   }
 
   constexpr friend ExtensionalCardinal operator*(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
-    return checked_mul(lhs, rhs).value;
+    return checked_mul(lhs, rhs).result;
   }
 
   constexpr friend ExtensionalCardinal operator-(
@@ -241,101 +240,53 @@ struct ExtensionalCardinal {
     return lhs + (-rhs);
   }
 
-  /** @brief Euclidean division, one-limb carriers only.  Division by zero
-   *  yields zero by convention (total).  Multi-limb division is not
-   *  implemented, so it is not offered: a wider @c N supports @c +, @c -
-   *  and @c * only. */
+  /** @brief Euclidean division.  Division by zero yields zero by convention
+   *  (total). */
   constexpr friend ExtensionalCardinal operator/(
-      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept
-    requires(N == 1)
-  {
-    if (rhs.limbs[0] == 0) return ExtensionalCardinal{};
-    return ExtensionalCardinal{lhs.limbs[0] / rhs.limbs[0]};
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+    if (rhs.value == W{0}) return ExtensionalCardinal{};
+    return ExtensionalCardinal{static_cast<W>(lhs.value / rhs.value)};
   }
 
-  /** @brief Euclidean modulo, one-limb carriers only.  Division by zero
-   *  yields @c lhs by convention (total). */
+  /** @brief Euclidean modulo.  Division by zero yields @c lhs by convention
+   *  (total). */
   constexpr friend ExtensionalCardinal operator%(
-      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept
-    requires(N == 1)
-  {
-    if (rhs.limbs[0] == 0) return lhs;
-    return ExtensionalCardinal{lhs.limbs[0] % rhs.limbs[0]};
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+    if (rhs.value == W{0}) return lhs;
+    return ExtensionalCardinal{static_cast<W>(lhs.value % rhs.value)};
   }
 
+  /** @brief The additive inverse in ℤ/2^w. */
   constexpr ExtensionalCardinal operator-() const noexcept {
-    ExtensionalCardinal result{};
-    for (std::size_t index = 0; index < N; ++index) {
-      result.limbs[index] = ~limbs[index];
-    }
-    return result + ExtensionalCardinal{1};
+    return ExtensionalCardinal{static_cast<W>(W{0} - value)};
   }
 
+  /** @brief The value as @c std::size_t, or @p sentinel when it does not
+   *  fit (only possible for a word wider than @c std::size_t). */
   constexpr std::size_t realize_to_size_t(
       std::size_t sentinel =
           std::numeric_limits<std::size_t>::max()) const noexcept {
-    for (std::size_t index = 1; index < N; ++index) {
-      if (limbs[index] != 0) {
+    if constexpr (std::numeric_limits<W>::digits >
+                  std::numeric_limits<std::size_t>::digits) {
+      if (value > static_cast<W>(std::numeric_limits<std::size_t>::max()))
         return sentinel;
-      }
     }
-    return limbs[0];
+    return static_cast<std::size_t>(value);
   }
 
   static constexpr CheckedResult checked_add(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
-    ExtensionalCardinal result{};
-    unsigned __int128 carry = 0;
-
-    for (std::size_t index = 0; index < N; ++index) {
-      const unsigned __int128 sum =
-          static_cast<unsigned __int128>(lhs.limbs[index]) +
-          static_cast<unsigned __int128>(rhs.limbs[index]) + carry;
-      result.limbs[index] = static_cast<limb_type>(sum);
-      carry = sum >> limb_bits;
-    }
-
-    return CheckedResult{result, carry != 0};
+    W sum{};
+    const bool overflowed = __builtin_add_overflow(lhs.value, rhs.value, &sum);
+    return CheckedResult{ExtensionalCardinal{sum}, overflowed};
   }
 
   static constexpr CheckedResult checked_mul(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
-    ExtensionalCardinal result{};
-    bool overflowed = false;
-
-    for (std::size_t left_index = 0; left_index < N; ++left_index) {
-      for (std::size_t right_index = 0; right_index < N; ++right_index) {
-        const std::size_t target_index = left_index + right_index;
-        const unsigned __int128 product =
-            static_cast<unsigned __int128>(lhs.limbs[left_index]) *
-            static_cast<unsigned __int128>(rhs.limbs[right_index]);
-
-        if (target_index >= N) {
-          overflowed = overflowed || (product != 0);
-          continue;
-        }
-
-        overflowed =
-            accumulate_word(result.limbs, target_index, product) || overflowed;
-      }
-    }
-
-    return CheckedResult{result, overflowed};
-  }
-
- private:
-  static constexpr bool accumulate_word(std::array<limb_type, N>& target,
-                                        std::size_t index,
-                                        unsigned __int128 word) noexcept {
-    while (word != 0 && index < N) {
-      const unsigned __int128 sum =
-          static_cast<unsigned __int128>(target[index]) +
-          static_cast<limb_type>(word);
-      target[index] = static_cast<limb_type>(sum);
-      word = (word >> limb_bits) + (sum >> limb_bits);
-      ++index;
-    }
-    return word != 0;
+    W product{};
+    const bool overflowed =
+        __builtin_mul_overflow(lhs.value, rhs.value, &product);
+    return CheckedResult{ExtensionalCardinal{product}, overflowed};
   }
 };
 
@@ -343,24 +294,24 @@ struct ExtensionalCardinal {
 // Overflow-aware arithmetic returning ℵ_0 on overflow
 // ---------------------------------------------------------------------------
 
-export template <std::size_t N>
-constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> add_or_ℵ_0(
-    const ExtensionalCardinal<N>& lhs, const ExtensionalCardinal<N>& rhs) {
-  const auto checked = ExtensionalCardinal<N>::checked_add(lhs, rhs);
+export template <IsWrappingWord W>
+constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> add_or_ℵ_0(
+    const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
+  const auto checked = ExtensionalCardinal<W>::checked_add(lhs, rhs);
   if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<N>, ℵ_0>{ℵ_0{}};
+    return std::variant<ExtensionalCardinal<W>, ℵ_0>{ℵ_0{}};
   }
-  return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
+  return std::variant<ExtensionalCardinal<W>, ℵ_0>{checked.result};
 }
 
-export template <std::size_t N>
-constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
-    const ExtensionalCardinal<N>& lhs, const ExtensionalCardinal<N>& rhs) {
-  const auto checked = ExtensionalCardinal<N>::checked_mul(lhs, rhs);
+export template <IsWrappingWord W>
+constexpr std::variant<ExtensionalCardinal<W>, ℵ_0> mul_or_ℵ_0(
+    const ExtensionalCardinal<W>& lhs, const ExtensionalCardinal<W>& rhs) {
+  const auto checked = ExtensionalCardinal<W>::checked_mul(lhs, rhs);
   if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<N>, ℵ_0>{ℵ_0{}};
+    return std::variant<ExtensionalCardinal<W>, ℵ_0>{ℵ_0{}};
   }
-  return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
+  return std::variant<ExtensionalCardinal<W>, ℵ_0>{checked.result};
 }
 
 /** @brief Sum type for finite vs countably infinite cardinalities; the
@@ -372,13 +323,10 @@ constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
  *  @b escalates --- saturates --- into @c ℵ_0 via the @c add /
  *  @c mul helpers below.  The explicit overflow story is "you reached
  *  countable infinity" rather than the C++ default of silent wrap or
- *  UB.  The finite fragment is @c ExtensionalCardinal<N>, a
- *  @b fixed-precision @c N-limb unsigned carrier; the default
- *  @c ExtensionalCardinal<> uses a single @c std::size_t limb (so
- *  the variant is @b not a bignum: a larger @c N widens the finite
- *  range for @c +, @c - and @c * only, and division needs @c N = 1).  The @c
- * ℵ_0 alternative marks the saturation regime that takes over once that fixed
- *  capacity cannot hold the result.
+ *  UB.  The finite fragment is @c ExtensionalCardinal<>, one
+ *  @c std::size_t word (so the variant is @b not a bignum).  The
+ *  @c ℵ_0 alternative marks the saturation regime that takes over once
+ *  the word cannot hold the result.
  *
  *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
  *  not a monoid in the textbook sense (e.g.\ left-cancellation
@@ -468,7 +416,7 @@ export constexpr std::strong_ordering compare(const Cardinality& lhs,
 // is @c valueless_by_exception.  @c std::variant becomes valueless only
 // if an alternative's move/copy ctor throws during reassignment; both
 // of @c Cardinality's alternatives are nothrow-move-constructible
-// (@c ExtensionalCardinal<> wraps a @c std::array of integral limbs;
+// (@c ExtensionalCardinal<> wraps one integral word;
 // @c ℵ_0 is empty), so @c Cardinality is provably never valueless and
 // the @c noexcept on these operators is sound.  The static_asserts
 // below make the guarantee explicit at compile time.
@@ -653,32 +601,29 @@ constexpr T inverse(const T& x, std::plus<T>) {
 }
 
 /**
- * @brief Signed fixed-precision N-limb integer with a sign-magnitude layout.
+ * @brief Signed one-word integer with a sign-magnitude layout.
  *
  * @details Two structural fields — @ref negative (the sign bit) and @ref
- * magnitude (an N-limb unsigned natural delegated to ExtensionalCardinal<N>).
+ * magnitude (an unsigned word, delegated to ExtensionalCardinal<W>).
  * Canonical zero has `negative == false` and `magnitude == 0`; the
  * arithmetic operators preserve that canonical form, so `+0` and `-0` compare
  * equal and never appear in results of operators on this type.
  *
- * For @c N = 1 it satisfies IsInteger (see registrations after the
- * numbers:integer module pulls this file), making it the signed backing
- * carrier for fixed-width `Rational<Z>` — overflow happens at 2^63.  Wider
- * @c N offer @c +, @c - and @c * only (no division), so they are not
- * IsInteger and cannot back a @c Rational.  The
- * `SignedCardinality` variant downstream wraps this carrier with ±ℵ_0
- * sentinels so callers that need an unbounded ℤ proxy escalate
- * (saturate) rather than wrap; this carrier on its own is the bounded
- * (cyclic, mod 2^{N*64}) ℤ proxy.
+ * It satisfies IsInteger (see registrations after the numbers:integer
+ * module pulls this file), making it the signed backing carrier for
+ * fixed-width `Rational<Z>`.  The `SignedCardinality` variant downstream
+ * wraps it with ±ℵ_0 sentinels so callers that need an unbounded ℤ proxy
+ * escalate (saturate) rather than wrap; this carrier on its own is the
+ * bounded (cyclic, mod 2^w) ℤ proxy.
+ *
+ * @tparam W The magnitude word (default @c std::size_t).
  *
  * Structural on purpose: the two public fields make the type usable as a
  * non-type template parameter wherever `Rational<Z>` is.
  */
-export template <std::size_t N = 1>
+export template <IsWrappingWord W = std::size_t>
 struct SignedExtensionalCardinal {
-  static_assert(N > 0, "SignedExtensionalCardinal<N> requires N >= 1.");
-
-  using magnitude_type = ExtensionalCardinal<N>;
+  using magnitude_type = ExtensionalCardinal<W>;
 
   bool negative;
   magnitude_type magnitude;
@@ -698,16 +643,16 @@ struct SignedExtensionalCardinal {
         // magnitude without overflow even at the minimum value of S.
         const U magnitude_bits = static_cast<U>(0) - static_cast<U>(value);
         magnitude = magnitude_type{
-            static_cast<typename magnitude_type::limb_type>(magnitude_bits)};
+            static_cast<typename magnitude_type::word_type>(magnitude_bits)};
         return;
       }
     }
     magnitude =
-        magnitude_type{static_cast<typename magnitude_type::limb_type>(value)};
+        magnitude_type{static_cast<typename magnitude_type::word_type>(value)};
   }
 
-  /** @brief Explicit projection to @c std::size_t — reads the magnitude's
-   *         least-significant limb (sign is dropped).  Sibling to
+  /** @brief Explicit projection to @c std::size_t — reads the magnitude
+   *         (sign is dropped).  Sibling to
    *         @c ExtensionalCardinal::operator @c std::size_t() ; used at the
    *         same call sites in @c :sequences:path 's helpers. */
   explicit constexpr operator std::size_t() const noexcept {
@@ -843,12 +788,10 @@ struct SignedExtensionalCardinal {
   }
 
   /** @brief Euclidean division; result truncates toward zero (C++ semantics).
-   *  One-limb carriers only, like the magnitude's own division. */
+   */
   constexpr friend SignedExtensionalCardinal operator/(
       const SignedExtensionalCardinal& lhs,
-      const SignedExtensionalCardinal& rhs) noexcept
-    requires(N == 1)
-  {
+      const SignedExtensionalCardinal& rhs) noexcept {
     SignedExtensionalCardinal result;
     result.magnitude = lhs.magnitude / rhs.magnitude;
     result.negative = (lhs.negative != rhs.negative) &&
@@ -857,32 +800,28 @@ struct SignedExtensionalCardinal {
   }
 
   /** @brief Euclidean remainder; result takes the sign of the dividend
-   *         (C++ semantics: `a == (a / b) * b + a % b`).  One-limb only. */
+   *         (C++ semantics: `a == (a / b) * b + a % b`). */
   constexpr friend SignedExtensionalCardinal operator%(
       const SignedExtensionalCardinal& lhs,
-      const SignedExtensionalCardinal& rhs) noexcept
-    requires(N == 1)
-  {
+      const SignedExtensionalCardinal& rhs) noexcept {
     SignedExtensionalCardinal result;
     result.magnitude = lhs.magnitude % rhs.magnitude;
     result.negative = lhs.negative && (result.magnitude != magnitude_type{});
     return result;
   }
 
-  /** @brief Explicit conversion to a signed integral type (single-limb only).
-   *  Constrained to N == 1 to prevent silent truncation of multi-limb values.
-   *  Used by the IR-fixture showcases to extract a compile-time-known
-   *  rational's numerator as a concrete machine integer for the emitted
-   *  `ret i64 ...` witness. */
+  /** @brief Explicit conversion to a signed integral type (modular, like the
+   *  carrier).  Used by the IR-fixture showcases to extract a
+   * compile-time-known rational's numerator as a concrete machine integer for
+   * the emitted `ret i64 ...` witness. */
   template <std::signed_integral S>
-    requires(N == 1)
   constexpr explicit operator S() const noexcept {
     // Negate in unsigned space: `-signed_min` is UB in the target type
     // when magnitude equals |signed_min|.  Casting the unsigned magnitude
     // back to the signed type after modular negation yields the correct
     // two's-complement value (including the signed-min edge case).
     using U = std::make_unsigned_t<S>;
-    const U u_mag = static_cast<U>(magnitude.limbs[0]);
+    const U u_mag = static_cast<U>(magnitude.value);
     const U u_signed =
         negative ? static_cast<U>(static_cast<U>(0) - u_mag) : u_mag;
     return static_cast<S>(u_signed);
@@ -893,8 +832,8 @@ struct SignedExtensionalCardinal {
 // SignedCardinality: extended-integer carrier with ±ℵ_0 escalation (#377)
 // ---------------------------------------------------------------------------
 //
-// `SignedExtensionalCardinal<N>` shipped in #373 is a *finite* signed
-// carrier --- ℤ/2^{64 N}ℤ under sign-magnitude arithmetic.  Useful for
+// `SignedExtensionalCardinal<W>` is a *finite* signed carrier --- ℤ/2^w ℤ
+// under sign-magnitude arithmetic.  Useful for
 // showcase arithmetic, but not ℤ.  `SignedCardinality` is the signed
 // counterpart of `Cardinality` (the ℕ ∪ {ℵ_0} variant): an extended-
 // integer carrier whose addition / subtraction / multiplication
@@ -952,14 +891,10 @@ export struct NaZ {
  *      IEEE-NaN-style rather than throwing, keeping the carrier
  *      usable in @c constexpr / NTTP-shaped contexts that cannot
  *      observe exceptions.
- *    - The finite fragment @c SignedExtensionalCardinal<N> is
- *      @b fixed-precision signed-magnitude with @c N limbs; the
- *      shorthand @c SignedExtensionalCardinal<> uses the default
- *      single-limb instantiation (so the variant is @b not a bignum:
- *      a larger @c N widens the finite range for @c +, @c - and @c *
- *      only, and division needs @c N = 1).  The explicit overflow story is
- * escalation to @f$\pm \aleph_0@f$, not bigint growth: signed-overflow UB and
- * silent wrap are replaced by the saturation behaviour.
+ *    - The finite fragment @c SignedExtensionalCardinal<> is one
+ *      signed-magnitude word (so the variant is @b not a bignum).  The explicit
+ * overflow story is escalation to @f$\pm \aleph_0@f$, not bigint growth:
+ * signed-overflow UB and silent wrap are replaced by the saturation behaviour.
  *
  *  Strictly mathematically, @f$\mathbb{Z} \cup \{\pm \aleph_0,
  *  \mathit{NaZ}\}@f$ is not a group in the textbook sense
@@ -1082,7 +1017,7 @@ export constexpr SignedCardinality operator+(
     }
     SignedExtensionalCardinal<> result;
     result.negative = a.negative;
-    result.magnitude = checked.value;
+    result.magnitude = checked.result;
     if (result.magnitude == SignedExtensionalCardinal<>::magnitude_type{}) {
       result.negative = false;  // canonicalise zero
     }
@@ -1123,7 +1058,7 @@ export constexpr SignedCardinality operator*(
                            : SignedCardinality{PositiveInfinity{}};
   }
   SignedExtensionalCardinal<> result;
-  result.magnitude = checked.value;
+  result.magnitude = checked.result;
   result.negative =
       (a.negative != b.negative) &&
       (result.magnitude != SignedExtensionalCardinal<>::magnitude_type{});
@@ -1369,7 +1304,7 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 //     this same file) covers the @c Cardinality finite path.
 //   * @c SignedExtensionalCardinal<> doesn't carry an @c operator
 //     @c F(); we lift via @c (negative @c ? @c -1 @c : @c 1) @c *
-//     @c static_cast<F>(magnitude) on the single-limb instantiation.
+//     @c static_cast<F>(magnitude) on the one-word carrier.
 
 namespace detail {
 /** @brief Compare a non-negative integer @c lhs with a finite
@@ -1447,7 +1382,7 @@ constexpr bool eq_unsigned_to_floating(LT lhs, F rhs) noexcept {
  *         @c std::partial_ordering::unordered.  Finite-vs-finite is
  *         settled in @b integer @b domain via @c
  *         compare_unsigned_to_floating, which stays precision-correct
- *         even when the underlying limb exceeds @c 2^digits<F>. */
+ *         even when the underlying word exceeds @c 2^digits<F>. */
 export template <std::floating_point F>
 constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
                                             F rhs) noexcept {
@@ -1461,9 +1396,9 @@ constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
     return std::partial_ordering::greater;
   if (rhs == std::numeric_limits<F>::infinity())
     return std::partial_ordering::less;
-  using LT = ExtensionalCardinal<>::limb_type;
+  using LT = ExtensionalCardinal<>::word_type;
   return detail::compare_unsigned_to_floating<F, LT>(
-      std::get<ExtensionalCardinal<>>(lhs).limbs[0], rhs);
+      std::get<ExtensionalCardinal<>>(lhs).value, rhs);
 }
 
 /** @brief @c Cardinality @c == @c std::floating_point.  Equality
@@ -1476,9 +1411,9 @@ constexpr bool operator==(const Cardinality& lhs, F rhs) noexcept {
   if (rhs != rhs) return false;
   if (std::holds_alternative<ℵ_0>(lhs))
     return rhs == std::numeric_limits<F>::infinity();
-  using LT = ExtensionalCardinal<>::limb_type;
+  using LT = ExtensionalCardinal<>::word_type;
   return detail::eq_unsigned_to_floating<F, LT>(
-      std::get<ExtensionalCardinal<>>(lhs).limbs[0], rhs);
+      std::get<ExtensionalCardinal<>>(lhs).value, rhs);
 }
 
 /** @brief @c SignedCardinality @c <=> @c std::floating_point.
@@ -1511,8 +1446,8 @@ constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
   // Both finite.  Sign first, then magnitude comparison via the unsigned
   // helper (with order reversed for negative-vs-negative).
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
-  using LT = ExtensionalCardinal<>::limb_type;
-  const LT magnitude_value = z.magnitude.limbs[0];
+  using LT = ExtensionalCardinal<>::word_type;
+  const LT magnitude_value = z.magnitude.value;
   const bool z_is_zero = (magnitude_value == 0);
   const bool z_is_neg = z.negative && !z_is_zero;
   const bool rhs_is_neg = rhs < F{0};
@@ -1546,8 +1481,8 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
   if (sc_is_neg_inf(lhs)) return rhs == -std::numeric_limits<F>::infinity();
   if (!std::isfinite(rhs)) return false;
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
-  using LT = ExtensionalCardinal<>::limb_type;
-  const LT magnitude_value = z.magnitude.limbs[0];
+  using LT = ExtensionalCardinal<>::word_type;
+  const LT magnitude_value = z.magnitude.value;
   const bool z_is_zero = (magnitude_value == 0);
   if (z_is_zero) return rhs == F{0};  // ±0 collapse
   const bool z_is_neg = z.negative;
@@ -1893,13 +1828,13 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
 namespace detail_isringintegral {
 template <typename>
 struct is_signed_extensional_cardinal : std::false_type {};
-template <std::size_t N>
-struct is_signed_extensional_cardinal<SignedExtensionalCardinal<N>>
+template <typename W>
+struct is_signed_extensional_cardinal<SignedExtensionalCardinal<W>>
     : std::true_type {};
 template <typename>
 struct is_extensional_cardinal : std::false_type {};
-template <std::size_t N>
-struct is_extensional_cardinal<ExtensionalCardinal<N>> : std::true_type {};
+template <typename W>
+struct is_extensional_cardinal<ExtensionalCardinal<W>> : std::true_type {};
 }  // namespace detail_isringintegral
 
 export template <typename T>
@@ -1947,7 +1882,7 @@ static_assert(!IsRingIntegral<long double>);
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------
-// Category trait registrations for ExtensionalCardinal<1>
+// Category trait registrations for ExtensionalCardinal<>
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
@@ -1989,22 +1924,22 @@ struct is_periodic<C1, std::plus<C1>> : std::true_type {};
 template <>
 struct is_periodic<C1, std::multiplies<C1>> : std::true_type {};
 
-template <std::size_t N>
+template <typename W>
 inline constexpr bool
-    is_reflexive_v<dedekind::sets::ExtensionalCardinal<N>, std::less_equal<>> =
+    is_reflexive_v<dedekind::sets::ExtensionalCardinal<W>, std::less_equal<>> =
         true;
 
-template <std::size_t N>
+template <typename W>
 inline constexpr bool
-    is_transitive_v<dedekind::sets::ExtensionalCardinal<N>, std::less_equal<>> =
+    is_transitive_v<dedekind::sets::ExtensionalCardinal<W>, std::less_equal<>> =
         true;
 
-template <std::size_t N>
-inline constexpr bool is_antisymmetric_v<dedekind::sets::ExtensionalCardinal<N>,
+template <typename W>
+inline constexpr bool is_antisymmetric_v<dedekind::sets::ExtensionalCardinal<W>,
                                          std::less_equal<>> = true;
 
 static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
-              "ExtensionalCardinal<1> must certify as a total ring.");
+              "ExtensionalCardinal<> must certify as a total ring.");
 
 static_assert(
     IsProduct<dedekind::sets::LipschitzBoundaryWitness,
@@ -2012,10 +1947,10 @@ static_assert(
     "Cardinality boundary witness must realize a categorical product.");
 
 // ---------------------------------------------------------------------------
-// Category trait registrations for SignedExtensionalCardinal<1>
+// Category trait registrations for SignedExtensionalCardinal<>
 // ---------------------------------------------------------------------------
 //
-// Mirrors the ExtensionalCardinal<1> registrations above, with the crucial
+// Mirrors the ExtensionalCardinal<> registrations above, with the crucial
 // addition of `is_invertible_v` under + (every integer has an additive
 // inverse — this is what lifts ℤ from a commutative monoid to an
 // abelian group at the trait-registry level).
@@ -2051,7 +1986,7 @@ inline constexpr bool
     is_distributive_v<Z1, std::multiplies<Z1>, std::plus<Z1>> = true;
 
 // Periodicity: the operation is total on the finite carrier, wrapping at
-// the N-limb capacity boundary. Required for IsTotal / IsMagma dispatch.
+// the word's capacity boundary. Required for IsTotal / IsMagma dispatch.
 template <>
 struct is_periodic<Z1, std::plus<Z1>> : std::true_type {};
 
@@ -2073,54 +2008,54 @@ struct inverse_trait<Z1, std::plus<Z1>> {
   }
 };
 
-template <std::size_t N>
+template <typename W>
 inline constexpr bool is_reflexive_v<
-    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
 
-template <std::size_t N>
+template <typename W>
 inline constexpr bool is_transitive_v<
-    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
 
-template <std::size_t N>
+template <typename W>
 inline constexpr bool is_antisymmetric_v<
-    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+    dedekind::sets::SignedExtensionalCardinal<W>, std::less_equal<>> = true;
 
 static_assert(IsRing<Z1, std::plus<Z1>, std::multiplies<Z1>>,
-              "SignedExtensionalCardinal<1> must certify as a total ring.");
+              "SignedExtensionalCardinal<> must certify as a total ring.");
 
 static_assert(IsAbelianGroup<Z1, std::plus<Z1>>,
-              "SignedExtensionalCardinal<1> must certify as an abelian group "
+              "SignedExtensionalCardinal<> must certify as an abelian group "
               "under addition (the defining ℤ-versus-ℕ distinction).");
 
 // ---------------------------------------------------------------------------
 // IsCyclicGroup witnesses for the cardinal carriers (#378).
 // ---------------------------------------------------------------------------
 //
-// `ExtensionalCardinal<N>` is the bounded ℕ carrier; under addition
-// it wraps modulo its limb capacity, forming a finite cyclic group.
-// `SignedExtensionalCardinal<N>` is its signed counterpart, also
+// `ExtensionalCardinal<W>` is the bounded ℕ carrier; under addition
+// it wraps modulo 2^w, forming a finite cyclic group.
+// `SignedExtensionalCardinal<W>` is its signed counterpart, also
 // cyclic under addition (same capacity, signed representation).
 // Order is exposed via `cyclic_order_v`; here we report 0
 // ("order not representable as std::size_t") rather than the exact
-// 2^(64 N)-class bound --- the concept-level claim is cyclicity,
+// 2^w bound --- the concept-level claim is cyclicity,
 // not the cardinality value.
 
-template <std::size_t N>
-struct is_cyclic_group<dedekind::sets::ExtensionalCardinal<N>,
-                       std::plus<dedekind::sets::ExtensionalCardinal<N>>>
+template <typename W>
+struct is_cyclic_group<dedekind::sets::ExtensionalCardinal<W>,
+                       std::plus<dedekind::sets::ExtensionalCardinal<W>>>
     : std::true_type {};
 
-template <std::size_t N>
-struct is_cyclic_group<dedekind::sets::SignedExtensionalCardinal<N>,
-                       std::plus<dedekind::sets::SignedExtensionalCardinal<N>>>
+template <typename W>
+struct is_cyclic_group<dedekind::sets::SignedExtensionalCardinal<W>,
+                       std::plus<dedekind::sets::SignedExtensionalCardinal<W>>>
     : std::true_type {};
 
 static_assert(IsCyclicGroup<C1, std::plus<C1>>,
-              "ExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
+              "ExtensionalCardinal<> under + must satisfy IsCyclicGroup "
               "(bounded ℕ, wraps modulo capacity).");
 
 static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
-              "SignedExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
+              "SignedExtensionalCardinal<> under + must satisfy IsCyclicGroup "
               "(bounded ℤ, wraps modulo capacity).");
 
 // ---------------------------------------------------------------------------
@@ -2337,18 +2272,17 @@ struct SpeciesTraits<dedekind::sets::SignedCardinality> {
   using machine_type = dedekind::sets::SignedCardinality;
 };
 
-// Lift the bounded exact ℤ carrier @c SignedExtensionalCardinal<N>
+// Lift the bounded exact ℤ carrier @c SignedExtensionalCardinal<W>
 // to IsSpecies status as well, parallel to @c SignedCardinality
 // above.  Required for @c ℤ @c = @c SignedExtensionalCardinal<>
 // to flow into @c ambient_set<...> as the canonical carrier per
 // #399 slice 3 (the value-level @c Z constant in
-// @c numbers/integer.cppm anchors @c IsSet on this carrier).  N is
-// kept parametric to mirror the per-N variability already exposed
-// at the carrier level.
-template <std::size_t N>
-struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<N>> {
-  using Domain = dedekind::sets::SignedExtensionalCardinal<N>;
-  using machine_type = dedekind::sets::SignedExtensionalCardinal<N>;
+// @c numbers/integer.cppm anchors @c IsSet on this carrier).  The word
+// @c W is kept parametric, mirroring the carrier.
+template <typename W>
+struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<W>> {
+  using Domain = dedekind::sets::SignedExtensionalCardinal<W>;
+  using machine_type = dedekind::sets::SignedExtensionalCardinal<W>;
 };
 
 // IsSpecies witnesses: the variant carriers are now first-class

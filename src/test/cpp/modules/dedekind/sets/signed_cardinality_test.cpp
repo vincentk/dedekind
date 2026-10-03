@@ -37,14 +37,14 @@ using SEC = SignedExtensionalCardinal<>;
 // escalation path.
 constexpr SignedCardinality huge_positive() {
   SEC z;
-  z.magnitude.limbs[0] = static_cast<SEC::magnitude_type::limb_type>(-1);
+  z.magnitude.value = static_cast<SEC::magnitude_type::word_type>(-1);
   return SignedCardinality{z};
 }
 
 constexpr SignedCardinality huge_negative() {
   SEC z;
   z.negative = true;
-  z.magnitude.limbs[0] = static_cast<SEC::magnitude_type::limb_type>(-1);
+  z.magnitude.value = static_cast<SEC::magnitude_type::word_type>(-1);
   return SignedCardinality{z};
 }
 

@@ -187,7 +187,7 @@ constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
   static_assert(std::numeric_limits<S>::digits <=
                     std::numeric_limits<std::size_t>::digits,
                 "embed_sint_ℤ requires every value of S "
-                "to be representable in the SignedExtensionalCardinal<>'s limb "
+                "to be representable in the SignedExtensionalCardinal<>'s word "
                 "type (std::size_t for the magnitude).  On platforms where "
                 "this fires (e.g. 32-bit std::size_t with 64-bit long long, or "
                 "wider extended integer types), an explicit ±ℵ_0 escalation "

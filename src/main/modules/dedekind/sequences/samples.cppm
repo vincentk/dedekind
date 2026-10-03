@@ -30,7 +30,7 @@
  *    fibonacci_of<ℕ_Form> (@c ExtensionalCardinal<> at the carrier
  *    role) is what the paper listing cites; alternative
  *    @c IsRingIntegral carriers (@c std::size_t , @c unsigned,
- *    @c ExtensionalCardinal<N>, …) instantiate the same recurrence at
+ *    @c ExtensionalCardinal<W>, …) instantiate the same recurrence at
  *    no extra cost.  The variant @c Cardinality /
  *    @c SignedCardinality Forms require the
  *    @c finite_cardinality(0) factory rather than brace-init and are a
@@ -114,8 +114,8 @@ export inline const auto is_even =
  *
  * @tparam T Any @c IsRingIntegral inhabitant constructible from the
  *           unsigned literals @c 0u and @c 1u — i.e.\ @c std::integral
- *           types and the @c ExtensionalCardinal<N> /
- *           @c SignedExtensionalCardinal<N> ring-integral carriers.
+ *           types and the @c ExtensionalCardinal<W> /
+ *           @c SignedExtensionalCardinal<W> ring-integral carriers.
  *           The variant @c Cardinality / @c SignedCardinality Forms are
  *           excluded by the brace-init requirement; they need
  *           @c finite_cardinality factories rather than @c T(0u)
