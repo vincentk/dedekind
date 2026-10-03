@@ -60,6 +60,18 @@ jobs:
     - name: Validate Checked-In LLVM IR Fixture
       run: make ir-fixture-check CXX=clang++-22
 
+    # Regenerate the IR snapshots from source and publish them, so a stale
+    # checked-in .ll can be refreshed from CI output without a local build.
+    - name: Refresh LLVM IR Snapshots
+      run: make ir-fixture-refresh CXX=clang++-22
+
+    - name: Upload Refreshed LLVM IR Snapshots
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+      with:
+        name: ir-fixtures
+        if-no-files-found: error
+        path: src/test/cpp/modules/dedekind/python/*.ll
+
     - name: Process Coverage Data
       run: make coverage CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
