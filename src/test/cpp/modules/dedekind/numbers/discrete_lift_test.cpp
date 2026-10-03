@@ -5,10 +5,7 @@
  * project's concrete numeric tower (@c bool, @c unsigned, @c int,
  * @c Rational) — illustrates that the textbook @c Set @c ↪ @c Cat
  * embedding fires at every rung of the carrier ladder reached here,
- * not only on primitive int.  The @c Real rung lifts identically
- * once the canonical @c Real carrier is dog-fooded on @c IsSet
- * (#586); for now the rung is reached transitively via
- * @c Rational<default_integer>'s scalar role inside @c ExactReal.
+ * not only on primitive int.
  * The short-range test that pins the lift on primitive ambients
  * lives in @c category/discrete_lift_test.cpp.
  */

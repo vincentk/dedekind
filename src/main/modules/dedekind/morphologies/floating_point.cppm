@@ -32,8 +32,8 @@
  *   3. @b Field @b laws fail downstream of (1).  Without a ring the
  *      field witness cannot fire.
  *
- * The exact-real reading lives one carrier step deeper, on @c Real<Q>
- * (Dedekind cuts over @c Q ; PR #397).  IEEE 754's @b operational
+ * The exact-real reading lives on @c QuadraticReal<D> and @c Cut<Q>
+ * (decidable cuts over @c Q).  IEEE 754's @b operational
  * acceptability for the project's downstream code is delegated to
  * @c IsOrderedField / @c IsArchimedeanField + the @c IsLipschitzBoundaryPolicy
  * machinery in @c category/numeric.cppm, @b not to a false axiomatic
@@ -65,10 +65,11 @@
  */
 module;
 
-#include <cmath>  // std::isfinite (the finite-subset gate)
 #include <concepts>
 #include <functional>
-#include <optional>  // Kleisli lift F -> Maybe<safe_float<F>>
+#include <limits>     // numeric_limits<F>::max (the finite-subset gate)
+#include <optional>   // Kleisli lift F -> Maybe<safe_float<F>>
+#include <stdexcept>  // std::domain_error (checked constructor)
 
 export module dedekind.morphologies:floating_point;
 
@@ -196,13 +197,16 @@ static_assert(!dedekind::order::IsTotallyOrdered<long double>,
 // (safe_float carries the FINITE invariant of #496; the lattice needs only
 //  !isnan, so a bare-NaN-free variant would retain +/-inf as top / bottom.)
 
-/** @brief Finite IEEE-754 subset: the invariant @c std::isfinite makes the
+/** @brief Finite IEEE-754 subset: the finiteness invariant makes the
  *  order total, so (unlike raw @c F) this carrier reflexively compares.
  *
- *  @details The representative is @b private and the sole construction path
- *  is @c lift / @c try_safe_float: aggregate-initialising a NaN is ill-formed,
- *  so the reflexivity certificate below rests on a @b guarantee, not a
- *  convention.  This is the enforced form of the #496 @c safe_float.
+ *  @details The representative is @b private and every constructor checks
+ *  it: the default is @c 0, the explicit constructor throws on NaN / +/-inf
+ *  (so a non-finite literal is a compile error in a constant expression), and
+ *  @c lift / @c try_safe_float are the non-throwing Kleisli entry.  The
+ *  reflexivity certificate below rests on a @b guarantee, not a convention.
+ *  This is the enforced form of the #496 @c safe_float, and the carrier of
+ *  the machine-real ambient @c numbers::ℝ_d.
  *
  *  @note @b Signed @b zeros.  @c -0.0 and @c +0.0 are distinct bit patterns
  *  that compare @b equal, so @c <= is antisymmetric only @e up @e to @c ==,
@@ -210,15 +214,32 @@ static_assert(!dedekind::order::IsTotallyOrdered<long double>,
  *  element).  A hostile reader will poke here; the collapse is sound. */
 export template <std::floating_point F>
 class safe_float {
-  F value_;  ///< invariant: std::isfinite(value_), enforced by the private ctor
-  constexpr explicit safe_float(F x) noexcept : value_(x) {}  // the gate
+  F value_{};  ///< invariant: finite, enforced by every constructor
+
+  /** @brief The gate: @c false for NaN (every comparison fails) and for
+   *  +/-inf (outside @c [-max, max]).  Plain comparisons, so it is usable in
+   *  a constant expression without a constexpr @c std::isfinite. */
+  static constexpr bool is_finite(F x) noexcept {
+    return x >= -std::numeric_limits<F>::max() &&
+           x <= std::numeric_limits<F>::max();
+  }
 
  public:
+  /** @brief Zero, the finite default. */
+  constexpr safe_float() noexcept = default;
+
+  /** @brief Checked entry: throws @c std::domain_error on NaN / +/-inf.
+   *  Explicit, so a raw @c F never converts silently. */
+  constexpr explicit safe_float(F x) : value_(x) {
+    if (!is_finite(x))
+      throw std::domain_error("safe_float: NaN and +/-inf are not finite");
+  }
+
   /** @brief Kleisli lift @f$F \to
    *  \mathrm{Maybe}\langle\mathtt{safe\_float}\rangle@f$: @c nullopt on the
-   *  rejected boundary (NaN / +/-inf), else the finite value.  Sole entry. */
+   *  rejected boundary (NaN / +/-inf), else the finite value. */
   [[nodiscard]] static constexpr std::optional<safe_float> lift(F x) noexcept {
-    if (std::isfinite(x)) return safe_float(x);
+    if (is_finite(x)) return safe_float(x);
     return std::nullopt;
   }
 

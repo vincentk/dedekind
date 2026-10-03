@@ -58,12 +58,11 @@ static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
 // retarget chiselling (both arrows deleted).
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
-                           Real<machine_real_scalar>>);
+                           dedekind::morphologies::𝕃<machine_real_scalar>>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
                            Complex<machine_real_scalar>>);
 
 static_assert(IsSpecies<Rational<machine_integer>>);
-static_assert(IsSpecies<Real<machine_real_scalar>>);
 static_assert(IsSpecies<Complex<machine_real_scalar>>);
 
 // ---------------------------------------------------------------------------
@@ -103,14 +102,6 @@ TEST_CASE("Tower: embed_uint_ℕ (universal machine→variant lift)",
 // was the deprecated extensional_integer-targeted embed; callers can
 // use embed_sint_ℤ (the per-set lift) or embed_signed_integral<Z> from
 // :sint directly).
-
-TEST_CASE("Tower: embed_floating_ℝ_d<F> covers any floating_point",
-          "[numbers][tower][embedding]") {
-  // float → Real<double>: widening conversion
-  CHECK(embed_floating_ℝ_d(1.0f).resolve() == static_cast<double>(1.0f));
-  // double → Real<double>: identity wrap
-  CHECK(embed_floating_ℝ_d(2.5).resolve() == 2.5);
-}
 
 // ---------------------------------------------------------------------------
 // 𝔹 ↪ ℕ
@@ -164,24 +155,16 @@ TEST_CASE("Tower: K3 ↪ ℤ via embed_𝕂3_ℤ_", "[numbers][tower][embedding]
 // chiselling.  The arrow itself was deleted (machine-layer scaffolding).
 
 // ---------------------------------------------------------------------------
-// ℚ ↪ ℝ
-// ---------------------------------------------------------------------------
-
-// Tower: ℚ ↪ ℝ via embed_ℚ_ℝ — TEST_CASE removed under ℚ retarget
-// cleanup.  The arrow itself was removed (no static_cast<int> on
-// SignedCardinality variant carrier).  Direct Real<S>{...} construction
-// remains available for callers that want the lossy realisation.
-
-// ---------------------------------------------------------------------------
 // ℝ_d ↪ ℂ
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: ℝ_d ↪ ℂ via embed_ℝ_d_ℂ", "[numbers][tower][embedding]") {
   // Embedding: imaginary part is always 0.
-  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{3.0}).real() == 3.0);
-  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{3.0}).imag() == 0.0);
-  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{-2.5}).real() == -2.5);
-  CHECK(embed_ℝ_d_ℂ<>(Real<machine_real_scalar>{-2.5}).imag() == 0.0);
+  using F = dedekind::morphologies::𝕃<machine_real_scalar>;
+  CHECK(embed_ℝ_d_ℂ<>(F{3.0}).real() == 3.0);
+  CHECK(embed_ℝ_d_ℂ<>(F{3.0}).imag() == 0.0);
+  CHECK(embed_ℝ_d_ℂ<>(F{-2.5}).real() == -2.5);
+  CHECK(embed_ℝ_d_ℂ<>(F{-2.5}).imag() == 0.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -239,34 +222,6 @@ TEST_CASE("Partial Arithmetic: Rational<I>",
   CHECK(div_zero.status == Ternary::False);
 }
 
-TEST_CASE("Partial Arithmetic: Real<S>", "[numbers][tower][partial][real]") {
-  const auto add_op = PartialAddReal<machine_real_scalar>{};
-  const auto mul_op = PartialMulReal<machine_real_scalar>{};
-  const auto div_op = PartialDivReal<machine_real_scalar>{};
-
-  const auto r1 = Real<machine_real_scalar>{1.5};
-  const auto r2 = Real<machine_real_scalar>{2.0};
-
-  // Partial addition on reals always succeeds
-  const auto add_result = add_op(std::make_pair(r1, r2));
-  CHECK(add_result.status == Ternary::True);
-  CHECK(add_result.value.resolve() == 3.5);
-
-  // Partial multiplication succeeds
-  const auto mul_result = mul_op(std::make_pair(r1, r2));
-  CHECK(mul_result.status == Ternary::True);
-  CHECK(mul_result.value.resolve() == 3.0);
-
-  // Division by non-zero succeeds
-  const auto div_result = div_op(std::make_pair(r1, r2));
-  CHECK(div_result.status == Ternary::True);
-
-  // Division by zero fails (returns False status)
-  const auto div_zero =
-      div_op(std::make_pair(r1, Real<machine_real_scalar>{0}));
-  CHECK(div_zero.status == Ternary::False);
-}
-
 TEST_CASE("Partial Arithmetic: Complex<R>",
           "[numbers][tower][partial][complex]") {
   const auto add_op = PartialAddComplex<machine_real_scalar>{};
@@ -296,23 +251,6 @@ TEST_CASE("Partial Embeddings with Ternary Status",
   CHECK(z_result.status == Ternary::True);
   CHECK(z_result.value.num() == 42);
   CHECK(z_result.value.den() == 1);
-
-  // ℚ ↪ ℝ: lossy embedding (Ternary::Unknown)
-  const auto embed_q_to_r =
-      PartialEmbedRationalToReal<machine_integer, machine_real_scalar>{};
-  const auto q = Rational<machine_integer>(1, 3);
-  const auto q_result = embed_q_to_r(q);
-  CHECK(q_result.status == Ternary::Unknown);  // Flagged as potentially lossy
-  CHECK(q_result.value.resolve() ==
-        static_cast<machine_real_scalar>(1.0 / 3.0));
-
-  // ℝ_d ↪ ℂ: exact embedding (Ternary::True)
-  const auto embed_r_to_c = PartialEmbedRealToComplex<machine_real_scalar>{};
-  const auto r = Real<machine_real_scalar>{2.5};
-  const auto r_result = embed_r_to_c(r);
-  CHECK(r_result.status == Ternary::True);
-  CHECK(r_result.value.real() == 2.5);
-  CHECK(r_result.value.imag() == 0.0);
 }
 
 // Static asserts for Kleene traits
@@ -335,16 +273,6 @@ static_assert(partial_identity_v<Rational<machine_integer>,
 // Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) due to
 // rounding. Associativity-by-fiat is reserved for the explicit
 // dedekind::ieee::IEEE<F> opt-in.
-static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
-                                       PartialAddReal<machine_real_scalar>>);
-static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
-                                      PartialAddReal<machine_real_scalar>>);
-
-static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
-                                       PartialMulReal<machine_real_scalar>>);
-static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
-                                      PartialMulReal<machine_real_scalar>>);
-
 static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
                                        PartialAddComplex<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,

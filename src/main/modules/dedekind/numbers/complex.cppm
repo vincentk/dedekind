@@ -256,24 +256,6 @@ struct PartialMulComplex {
  * Specializations are declared in the dedekind::category namespace (see below).
  */
 
-/**
- * @brief Embedding transform: ℝ_d ↪ ℂ (Real<R> → Complex<R>) with Ternary
- *        acknowledgment.
- *
- * The embedding of a real R into the complex numbers is **exact**:
- * every real x corresponds uniquely to (x + 0i).
- * This transform returns Ternary::True to signal no information loss.
- */
-export template <IsRealCarrier R = machine_real_scalar>
-struct PartialEmbedRealToComplex {
-  using value_type = Complex<R>;
-  using logic_species = Kleene;
-
-  TernaryResult<Complex<R>> operator()(const Real<R>& r) const noexcept {
-    return {Ternary::True, Complex<R>{r.resolve(), R{}}};
-  }
-};
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -307,13 +289,6 @@ template <typename R>
 inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
     dedekind::numbers::Complex<R>, dedekind::numbers::PartialMulComplex<R>> =
     dedekind::numbers::Complex<R>{R{1}, R{}};
-
-/** @brief Kleene traits for real→complex embedding (exact). */
-template <dedekind::numbers::IsRealCarrier R>
-inline constexpr bool
-    is_kleene_associative_v<dedekind::numbers::Complex<R>,
-                            dedekind::numbers::PartialEmbedRealToComplex<R>> =
-        true;
 
 // ---------------------------------------------------------------------------
 // Complex<R> = R[i]/(i²+1) is a rig / commutative ring (a FIELD when x²+1 is
@@ -401,21 +376,17 @@ inline constexpr bool
 // --- a genuine ordered field.  The carriers with a type-indexed
 // category::IsField AND a compatible order --- ℚ and ℚ(√D) --- opt into both
 // markers, so Complex<ℚ> and Complex<ℚ(√D)> are certified fields through ONE
-// registration, not an ad-hoc per-carrier list.  (The Dedekind-cut ℝ = Real<·>
-// is NOT certified: it carries only the SET-indexed algebra::IsField, not the
-// type-indexed category::IsField the gate needs --- the IsTotal exact-path
-// gate, see real.cppm --- so it opts into no markers and Complex<ℝ> gets no
-// field cert yet.)  This is SUFFICIENT, not necessary (x²+1 is also irreducible
-// over the non-orderable 𝔽₃, which simply goes uncertified).  Crucially the
-// gate is NOT std::totally_ordered (mere syntactic comparability, which 𝔽₅
-// satisfies by representatives even though −1 = 2² is a square): the O2 marker
-// is a genuine value-level compatibility witness 𝔽₅ cannot opt into, so
-// Complex<𝔽₅> is correctly excluded (#818 round 8).  Non-orderable bases get NO
-// field certificate: Complex<double> (excluded upstream by associativity ---
-// IEEE), Complex<Complex<·>> (ℂ opts into neither marker, so the bicomplex base
-// is not an ordered field --- it splits into zero divisors).  Parabolic
-// sibling: Dual<F> = F[ε]/(ε²) registers no multiplicative inverse (ε
-// nilpotent) --- a ring, never a field.
+// registration, not an ad-hoc per-carrier list.   This is SUFFICIENT, not
+// necessary (x²+1 is also irreducible over the non-orderable 𝔽₃, which simply
+// goes uncertified).  Crucially the gate is NOT std::totally_ordered (mere
+// syntactic comparability, which 𝔽₅ satisfies by representatives even though −1
+// = 2² is a square): the O2 marker is a genuine value-level compatibility
+// witness 𝔽₅ cannot opt into, so Complex<𝔽₅> is correctly excluded (#818 round
+// 8).  Non-orderable bases get NO field certificate: Complex<double> (excluded
+// upstream by associativity --- IEEE), Complex<Complex<·>> (ℂ opts into neither
+// marker, so the bicomplex base is not an ordered field --- it splits into zero
+// divisors).  Parabolic sibling: Dual<F> = F[ε]/(ε²) registers no
+// multiplicative inverse (ε nilpotent) --- a ring, never a field.
 //
 // Existence witness only: IsField reads @c exists, never @c compute (nothing
 // in-tree invokes @c inverse_trait::compute; the public inverse is @c
@@ -454,13 +425,15 @@ constexpr bool to_lattice_coordinate(
 }  // namespace detail
 
 /**
- * @brief Machine realization arrow ℝ_d ↪ ℂ: Real<R> → Complex<R>.
- * @details Every real x embeds as the complex number (x + 0i).
- *          This is the current machine model lift of R → C.
+ * @brief Machine realization arrow ℝ_d ↪ ℂ_d: @c 𝕃<R> → @c Complex<R>.
+ * @details Every finite float x embeds as the complex number (x + 0i).
  */
-export template <IsRealCarrier R = machine_real_scalar>
-inline constexpr auto embed_ℝ_d_ℂ = arrow<Real<R>, Complex<R>>(
-    [](const Real<R>& r) noexcept { return Complex<R>{r.resolve(), R{}}; });
+export template <std::floating_point R = machine_real_scalar>
+inline constexpr auto embed_ℝ_d_ℂ =
+    arrow<dedekind::morphologies::𝕃<R>, Complex<R>>(
+        [](const dedekind::morphologies::𝕃<R>& r) noexcept {
+          return Complex<R>{r.value(), R{}};
+        });
 
 /**
  * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{C}@f$ over
@@ -472,7 +445,7 @@ inline constexpr auto embed_ℝ_d_ℂ = arrow<Real<R>, Complex<R>>(
  * the ℂ sibling of @c embed_ℚ_ℝ): ℝ is the real subfield
  * @f$\{\,\mathrm{im}=0\,\}
  * \subset\mathbb{C}@f$.  Distinct from the machine @c embed_ℝ_d_ℂ
- * (@c Real<double> → @c Complex<double>); this is the coat-hanger arrow
+ * (@c 𝕃<double> → @c Complex<double>); this is the coat-hanger arrow
  * @f$r\mapsto r+0i@f$, witnessed by computation below.  Not registered
  * @c is_monotone_v --- ℂ carries no total order (that is exactly what the
  * quotient by @f$(i^2+1)@f$ forfeits vs. ℝ). */
@@ -952,7 +925,7 @@ namespace dedekind::numbers {
 // ("Named functors that build the library's carriers") with source.
 //
 // FIXME(#498/NEW-A): same naming-convention question as
-// Rational<I>::IntegerCarrier and Real<Q>::ScalarCarrier — see the
+// Rational<I>::IntegerCarrier — see the
 // FIXME there.  Aligning IntegerCarrier / ScalarCarrier / value_type
 // with :functor's Σ_cat / Τ_cat / Shape<U> convention is NEW-A
 // trait-registry work.
@@ -1166,13 +1139,6 @@ static_assert(
                                   double>,
     "Complex<double> must satisfy IsProduct<Complex<R>, R, R> (ℂ ≅ ℝ × ℝ).");
 
-// Proof over the exact real: ℂ over ExactReal is also a product.
-static_assert(
-    dedekind::category::IsProduct<
-        dedekind::numbers::Complex<dedekind::numbers::ExactReal<>>,
-        dedekind::numbers::ExactReal<>, dedekind::numbers::ExactReal<>>,
-    "Complex<ExactReal<>> must satisfy IsProduct (ℂ ≅ ℝ × ℝ over ℚ-based ℝ).");
-
 // ── The HSP legs of the coat-hanger ℂ = Cplx(ℝ) = ℝ[i]/(i²+1), ℝ = ℚ(√2)
 // ────── P (product): ℂ ≅ ℝ × ℝ as a set/module.
 static_assert(
@@ -1284,8 +1250,8 @@ static_assert(
  */
 static_assert(dedekind::algebra::HasRingOperators<Complex<double>>,
               "Complex<double> closes the literal ring operator surface.");
-static_assert(dedekind::algebra::HasRingOperators<Complex<ExactReal<>>>,
-              "Complex<ExactReal<>> --- the exact ℂ carrier --- closes the "
-              "literal ring operator surface.");
+static_assert(dedekind::algebra::HasRingOperators<Complex<QuadraticReal<2>>>,
+              "Complex<QuadraticReal<2>> --- the exact ℂ carrier --- closes "
+              "the literal ring operator surface.");
 
 }  // namespace dedekind::numbers

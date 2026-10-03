@@ -42,6 +42,7 @@ export module dedekind.numbers:lattice;
 import dedekind.category;
 import dedekind.sets;
 import dedekind.geometry;
+import dedekind.morphologies; // 𝕃<double>, ℝ_d's carrier
 import :real;
 import :complex;
 
@@ -138,24 +139,24 @@ struct LatticeFactory<ℂ_d, N> {
  */
 template <>
 struct LatticeFactory<ℝ_d, 1> {
-  using Domain = Real<machine_real_scalar>;
+  using Domain = dedekind::morphologies::𝕃<machine_real_scalar>;
   using Codomain = Boole::Ω;
   using logic_species = Boole;
   using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& x) const {
-    return detail::is_integral_coordinate(x.resolve()) ? logic_species::True
-                                                       : logic_species::False;
+    return detail::is_integral_coordinate(x.value()) ? logic_species::True
+                                                     : logic_species::False;
   }
 
   constexpr auto bounded(int n) const {
-    // This lattice specialisation computes on @c Real<double> (the machine
-    // real), so it scouts the materialisable ambient @c ℝ_d --- not the
-    // abstract @c ℝ (now the coat-hanger over @c QuadraticReal<2>).
+    // This lattice specialisation computes on the finite doubles @c 𝕃<double>,
+    // so it scouts the machine ambient @c ℝ_d --- not the abstract @c ℝ (the
+    // coat-hanger over @c QuadraticReal<2>).
     // Runtime bound @c n and an integrality gate: not π-expressible, so a NAMED
     // local predicate over the ℝ_d base (comprehension form).
-    const auto in_bounded_grid = [n](const Real<double>& x) {
-      const double v = x.resolve();
+    const auto in_bounded_grid = [n](const Domain& x) {
+      const double v = x.value();
       if (!detail::is_integral_coordinate(v)) return false;
       return (v >= 0.0) && (v < static_cast<double>(n));
     };
@@ -169,14 +170,14 @@ struct LatticeFactory<ℝ_d, 1> {
 template <std::size_t N>
   requires(N > 1)
 struct LatticeFactory<ℝ_d, N> {
-  using Domain = std::array<Real<double>, N>;
+  using Domain = std::array<dedekind::morphologies::𝕃<machine_real_scalar>, N>;
   using Codomain = bool;
   using logic_species = Boole;
   using cardinality_type = ℶ_1;
 
   constexpr Codomain operator()(const Domain& xs) const {
     for (const auto& x : xs) {
-      if (!detail::is_integral_coordinate(x.resolve()))
+      if (!detail::is_integral_coordinate(x.value()))
         return logic_species::False;
     }
     return logic_species::True;
@@ -185,7 +186,7 @@ struct LatticeFactory<ℝ_d, N> {
   constexpr auto bounded(int n) const {
     auto pred = [n](const Domain& xs) {
       for (const auto& x : xs) {
-        const double v = x.resolve();
+        const double v = x.value();
         if (!detail::is_integral_coordinate(v)) return false;
         if ((v < 0.0) || (v >= static_cast<double>(n))) return false;
       }

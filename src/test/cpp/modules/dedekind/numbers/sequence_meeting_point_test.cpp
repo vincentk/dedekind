@@ -21,7 +21,7 @@
  *   4. a countable carrier (cardinality_type = ℵ_0) — the classical
  *      logical-collapse crown: IsClassicallyConvergent fires and a
  *      (bounded Sup, subsequence Sub) pair witnesses Bolzano–Weierstrass.
- *   5. @c ExactReal (ℝ)                     — the honest-rejection foil:
+ *   5. @c QuadraticReal<2> (ℝ)              — the honest-rejection foil:
  *      Cauchy-shaped but in the Ternary / continuum regime, so the
  *      Cauchy⇒convergent collapse (and hence BW) is Specker-blocked —
  *      exactly the carrier on which BW is classically famous.
@@ -44,8 +44,8 @@ using namespace dedekind::sequences;
 using dedekind::morphologies::Modular;
 using dedekind::numbers::Complex;
 using dedekind::numbers::DivergencePath;
-using dedekind::numbers::ExactReal;
 using dedekind::numbers::mandelbrot_orbit;
+using dedekind::numbers::QuadraticReal;
 
 namespace seq_meet {
 
@@ -123,12 +123,12 @@ TEST_CASE(
       WitnessesBolzanoWeierstrass<seq_meet::bw_sub, seq_meet::bw_super>);
 }
 
-TEST_CASE("sequence meeting-point — ExactReal (ℝ) is the honest-rejection foil",
+TEST_CASE("sequence meeting-point — ℝ = ℚ(√2) is the honest-rejection foil",
           "[sequences][meeting-point][continuum][honest-rejection]") {
   /** @brief ℝ is Cauchy-shaped but sits in the Ternary / continuum
    *         regime, so the Cauchy⇒convergent collapse is Specker-blocked —
    *         BW is classically famous on ℝ yet constructively rejected. */
-  using R = ExactReal<>;
+  using R = QuadraticReal<2>;
   STATIC_CHECK(IsCauchySequence<Path<R>>);
   STATIC_CHECK(
       std::is_same_v<convergence_logic<Path<R>>, dedekind::category::Kleene>);
@@ -147,7 +147,7 @@ TEST_CASE(
    *         Bolzano–Weierstrass crown — with ℝ as the honest-rejection
    *         foil that keeps the LEM gate load-bearing. */
   using Z6 = Modular<6>;
-  using R = ExactReal<>;
+  using R = QuadraticReal<2>;
 
   // Row 4 (IsSequence) — analytic leg
   STATIC_CHECK(IsSequence<Path<double>>);

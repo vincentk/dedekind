@@ -6,10 +6,10 @@
  *   { x ∈ ℝ | x > 5.0 }  ∩  { x ∈ ℝ | x < 3.0 }   ≡   ∅
  *
  * Same DSL, different carrier. The bounds are `double` pivot VALUES carried by
- * the two halfspaces; the Set's carrier is `Real<double>`. The value-first
- * contradiction fold works identically — but the collapse differs from ℕ: a
- * continuous carrier has no successor, so a non-empty meet stays an interval
- * value and never tightens to a point.
+ * the two halfspaces; the carrier is the finite doubles `𝕃<double>`. The
+ * value-first contradiction fold works identically — but the collapse differs
+ * from ℕ: a continuous carrier has no successor, so a non-empty meet stays an
+ * interval value and never tightens to a point.
  *
  * Expected LLVM IR: `ret i1 false`.
  *
@@ -32,8 +32,9 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // ℝ is the ℚ(√2) coat-hanger, so machine-real (double) halfspaces live on
-// @c ℝ_d = @c 𝔸<Real<double>, Kleene, ℶ_1>: Kleene logic (the machine real
-// admits NaN), ℶ_1 cardinality.  A bare point-free @c Halfspace IS a set.
+// @c ℝ_d = @c 𝔸<𝕃<double>, Boole, ℶ_1>: the finite doubles, NaN excluded by
+// the carrier.  A bare point-free @c Halfspace IS a set.
+using Rd = typename decltype(ℝ_d)::Domain;
 constexpr auto gt_five = ℝ_d | (χ > bound<5.0>);
 constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
 
@@ -41,7 +42,7 @@ constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
 // the crossing-bound emptiness test fires on a continuous carrier just as on ℕ.
 constexpr auto empty_meet = gt_five & lt_three;
 static_assert(empty_meet.kind == SetKind::Empty);
-static_assert(empty_meet(Real<double>{4.0}) ==
+static_assert(empty_meet(Rd{4.0}) ==
               decltype(empty_meet)::logic_species::False);
 
 /**
@@ -53,5 +54,5 @@ static_assert(empty_meet(Real<double>{4.0}) ==
  */
 extern "C" __attribute__((noinline)) bool witness_real_halfspace_empty() {
   using Logic = typename decltype(empty_meet)::logic_species;
-  return empty_meet(Real<double>{42.0}) == Logic::True;
+  return empty_meet(Rd{42.0}) == Logic::True;
 }

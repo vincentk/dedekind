@@ -34,7 +34,7 @@
  * with ring-like arithmetic; the paper-facing existential proof uses
  * `Rational<long>` (ℚ as a proxy for ℝ per the #364 / #366 narrowing), since
  * exact rational arithmetic sidesteps the rounding / structurality questions
- * that `Real<double>` would raise today.
+ * that `double` would raise today.
  *
  * @section matrix__Module_Action_Alignment
  * `Vec2<T, x, y>` is a structural 2-vector carrying its coordinates as NTTPs.

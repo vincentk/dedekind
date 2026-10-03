@@ -150,7 +150,7 @@ class QuadraticReal {
 
   /** @brief Extrema of the singleton @f$\{*this\}@f$ (inf = sup = the value).
    *  Supplies @c HasExtrema, the structural prerequisite for
-   *  @c IsDedekindComplete (matching @c ExactReal). */
+   *  @c IsDedekindComplete. */
   constexpr QuadraticReal infimum() const { return *this; }
   constexpr QuadraticReal supremum() const { return *this; }
 

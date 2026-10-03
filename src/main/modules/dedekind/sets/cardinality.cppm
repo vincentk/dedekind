@@ -1931,7 +1931,7 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
  * arithmetic, additive inverses, or strict ring laws (a @b shape concept,
  * sibling of @c HasRingOperators / @c IsRing).
  *
- * Floating-point carriers (@c float / @c double / @c Real<Q>) are @b not
+ * Floating-point carriers (@c float / @c double / @c 𝕃<F>) are @b not
  * admitted: their range cardinalities are uncountable in the abstract reading
  * and lossy under IEEE rounding.
  *

@@ -102,7 +102,7 @@ using namespace dedekind::sets;
  *
  *   - @c HasFieldOperators is @b broader: it accepts user-defined
  *     types whose literal field operator surface closes
- *     (@c Rational<I>, @c Complex<F>, @c Real<F>); @c
+ *     (@c Rational<I>, @c Complex<F>, @c QuadraticReal<D>); @c
  *     std::is_arithmetic does not lift to user types.
  *
  *   - @c HasFieldOperators is @b narrower at the integer-promotion

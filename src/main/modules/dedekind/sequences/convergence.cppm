@@ -183,8 +183,8 @@ inline constexpr bool is_order_convergent_v = false;
  * The monotone-convergence propagation itself
  * (@c is_bounded_sequence_v @c ∧ @c is_monotone_sequence_v over a
  * @c order::IsDedekindComplete carrier @c ⇒ order-convergent) is a named
- * follow-up rather than a baked-in concept disjunction: the only
- * @c IsDedekindComplete carrier in the library, @c ExactReal, lives
+ * follow-up rather than a baked-in concept disjunction: the
+ * @c IsDedekindComplete carrier @c QuadraticReal<D> lives
  * downstream of @c :sequences, so the propagation is best witnessed in a
  * downstream test alongside that carrier (cf.\ the orbit bridge, whose
  * propagation is witnessed downstream in @c :morphologies).

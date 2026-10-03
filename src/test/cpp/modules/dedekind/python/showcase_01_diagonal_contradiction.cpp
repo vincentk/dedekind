@@ -27,17 +27,13 @@ using namespace dedekind::numbers;
 // Ambient product set ℝ × ℝ and its symbolic scout.
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
-// FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, R2's Domain
-// becomes the canonical pair<ℝ, ℝ>; for now the carrier reads as the
-// underlying std::pair<Real<double>, Real<double>>.  The
-// universal-ambient @c 𝔸<R2Point> ⊃ R2 lets the scout re-bind to the
-// narrower R2 via @c xy @c % @c R2 below.
+// R2Point is std::pair<𝕃<double>, 𝕃<double>>, a pair of finite doubles.
 // Diagonal: { (x, y) ∈ ℝ² | x = y }.  NAMED-predicate comprehensions over the
 // non-universal R2 base (a product Set); candidate point-free `R2 | (π1 == π2)`
 // / `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)` (Trsk pair grammar), CI-gated.
 constexpr auto on_diagonal = [](R2Point p) { return p.first == p.second; };
 constexpr auto in_strip = [](R2Point p) {
-  return (p.first > 5.0) && (p.second < 3.0);
+  return (p.first.value() > 5.0) && (p.second.value() < 3.0);
 };
 constexpr auto diagonal = Comprehension{R2, on_diagonal};
 

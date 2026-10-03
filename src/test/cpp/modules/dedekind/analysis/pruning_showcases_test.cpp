@@ -38,7 +38,7 @@ constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // The diagonal {x == y}: reuse the set-expression operator== on the projections
 // (π1 == π2), not a hand lambda, over the R2 base, so the element type tracks
-// R2 (Real<double> under the double-real proxy, else double) and diag & strip
+// R2 (a pair of finite doubles 𝕃<double>) and diag & strip
 // stays well-typed.  Kept as the exact scout-equivalent @c Comprehension<R2,
 // π1==π2> to guarantee the showcase compiles (Trsk `R2 | (π1==π2)` is an
 // equivalent point-free spelling; CI-gated).
@@ -46,7 +46,7 @@ constexpr auto diag = Comprehension{R2, π1 == π2};
 // FLAG(#895 L3): pair float bounds; a NAMED predicate (not a hand lambda),
 // candidate point-free `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)`.
 constexpr auto in_strip = [](R2Point p) {
-  return (p.first > 5.0) && (p.second < 3.0);
+  return (p.first.value() > 5.0) && (p.second.value() < 3.0);
 };
 constexpr auto strip = Comprehension{R2, in_strip};
 
@@ -150,10 +150,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
 
 TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
-  // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch to
-  // @c element<𝔸<ℝ>>; for now ℝ is still the predicate-set type.
-  constexpr auto gt_five = 𝔸<Real<double>>{} | (χ > bound<5.0>);
-  constexpr auto lt_three = 𝔸<Real<double>>{} | (χ < bound<3.0>);
+  constexpr auto gt_five = ℝ_d | (χ > bound<5.0>);
+  constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
 
   // The contradiction folds value-first to the empty SetVal, on a continuous
   // carrier just as on ℕ.
@@ -161,7 +159,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   STATIC_CHECK(empty_meet.kind == SetKind::Empty);
 
   SECTION("Continuous carrier: parents not finite, reduced set is empty") {
-    STATIC_CHECK(empty_meet(4.0) ==
+    STATIC_CHECK(empty_meet(typename decltype(ℝ_d)::Domain{4.0}) ==
                  decltype(empty_meet)::logic_species::False);  // no inhabitant
   }
 }

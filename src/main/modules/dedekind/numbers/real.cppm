@@ -2,9 +2,8 @@
  * @file dedekind/numbers/real.cppm
  * @partition :real
  * @brief The real line: @c ℝ (the coat-hanger --- a set-indexed field over the
- *        order-complete carrier @c QuadraticReal<2>), the reified scalar
- * carriers
- *        @c Real<Q> / @c ExactReal, and the materialisable ambient @c ℝ_d.
+ *        order-complete carrier @c QuadraticReal<2>) and the machine ambient
+ *        @c ℝ_d over the finite doubles @c 𝕃<double>.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -15,18 +14,14 @@
  */
 module;
 
-#include <compare>
 #include <concepts>
-#include <cstddef>
-#include <functional>
 #include <type_traits>
-#include <utility>
 
 export module dedekind.numbers:real;
 
 import dedekind.algebra; // HasRingOperators / HasFieldOperators (canonical-spine witnesses)
 import dedekind.category;
-import dedekind.morphologies; // IsInteger (gated template parameter on Real<Rational<I>>)
+import dedekind.morphologies; // 𝕃<double>, the carrier of ℝ_d
 import dedekind.order;
 import dedekind.sets;
 import :quadratic;  // QuadraticReal — the coat-hanger carrier ℝ points to
@@ -39,284 +34,6 @@ using namespace dedekind::sets;
 
 // Canonical machine realization for the real scalar carrier.
 export using machine_real_scalar = double;
-
-export template <typename S>
-concept IsRealCarrier = requires(S a, S b) {
-  S{};
-  { a + b } -> std::same_as<S>;
-  { a - b } -> std::same_as<S>;
-  { a * b } -> std::same_as<S>;
-  { a / b } -> std::same_as<S>;
-  { a < b } -> std::convertible_to<bool>;
-};
-
-export template <IsRealCarrier Q>
-class Real {
- public:
-  // Self-Domain: var<ℝ> ranges over reals (per the symbolic-scout
-  // factory's Variable<S>::T = S::Domain rule).  The underlying
-  // scalar carrier is exposed via ScalarCarrier.
-  using Domain = Real;
-  using ScalarCarrier = Q;
-  using path_type = Q;
-
-  constexpr Real() = default;
-  /** @brief Implicit to allow `(a + b) / Q{2}` in IsDense checks. */
-  constexpr Real(Q value)
-      : value_(value) {}  // NOLINT(google-explicit-constructor)
-  /** @brief Single-step implicit conversion from any V → Q.
-   *  Allows `(a + b) / 2` in IsDense: int → Rational → Real in one UDC. */
-  template <typename V>
-    requires(!std::same_as<V, Q> && std::convertible_to<V, Q>)
-  constexpr Real(V v) : value_(v) {}  // NOLINT(google-explicit-constructor)
-
-  constexpr Q resolve() const { return value_; }
-  constexpr Q path() const { return value_; }
-
-  // Compatibility with prior symbolic-cut style usage.
-  constexpr bool operator()(const Q& x) const { return x < value_; }
-
-  // Three-way comparison delegates to the scalar carrier.
-  // For Q = Rational<I>: strong_ordering; for Q = double: partial_ordering.
-  friend constexpr auto operator<=>(const Real& a, const Real& b) {
-    return a.value_ <=> b.value_;
-  }
-
-  friend constexpr bool operator==(const Real&, const Real&) = default;
-
-  /** @brief Supremum and infimum of the singleton {value_}.
-   *  Satisfies HasExtrema — required by IsDedekindComplete. */
-  constexpr Q infimum() const { return value_; }
-  constexpr Q supremum() const { return value_; }
-
-  // Additive inverse: -(a) = Real{-value_}
-  constexpr Real operator-() const { return Real{-value_}; }
-
-  friend constexpr Real operator+(const Real& a, const Real& b) {
-    return Real{a.value_ + b.value_};
-  }
-
-  friend constexpr Real operator*(const Real& a, const Real& b) {
-    return Real{a.value_ * b.value_};
-  }
-
-  friend constexpr Real operator-(const Real& a, const Real& b) {
-    return Real{a.value_ - b.value_};
-  }
-
-  friend constexpr Real operator/(const Real& a, const Real& b) {
-    return Real{a.value_ / b.value_};
-  }
-
- private:
-  Q value_{};
-};
-
-/** @section real__Partial_Arithmetic_with_Ternary_Logic */
-
-/**
- * @brief Partial addition transform for Real<S>.
- *
- * Real arithmetic uses a numeric carrier S (typically double/IEEE 754).
- * Operations succeed but may lose precision due to rounding.
- * We acknowledge this by always returning Ternary::True (the operation
- * completed) but document that the result is approximate.
- */
-export template <IsRealCarrier S>
-struct PartialAddReal {
-  using value_type = Real<S>;
-  using logic_species = Kleene;
-
-  TernaryResult<Real<S>> operator()(
-      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
-    auto [a, b] = p;
-    return {Ternary::True, a + b};
-  }
-};
-
-/**
- * @brief Partial multiplication transform for Real<S>.
- *
- * Real multiplication succeeds but may lose precision due to rounding.
- */
-export template <IsRealCarrier S>
-struct PartialMulReal {
-  using value_type = Real<S>;
-  using logic_species = Kleene;
-
-  TernaryResult<Real<S>> operator()(
-      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
-    auto [a, b] = p;
-    return {Ternary::True, a * b};
-  }
-};
-
-/**
- * @brief Partial division for Real<S> with zero-check.
- *
- * Returns Ternary::False if divisor is zero (for double), reflecting
- * the IEEE 754 behavior of producing non-finite values (±∞ or NaN).
- */
-export template <IsRealCarrier S>
-struct PartialDivReal {
-  using value_type = Real<S>;
-  using logic_species = Kleene;
-
-  TernaryResult<Real<S>> operator()(
-      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
-    auto [a, b] = p;
-    // For floating-point types, division by zero produces inf/nan.
-    // We flag this as False because non-finite output lies outside
-    // the intended domain of this partial operation.
-    if constexpr (std::is_floating_point_v<S>) {
-      if (b.resolve() == S{0}) {
-        return {Ternary::False, a / b};  // Produces ±∞ or NaN per IEEE 754
-      }
-    }
-    return {Ternary::True, a / b};
-  }
-};
-
-/**
- * @brief Identity and Associativity traits for Real arithmetic.
- *
- * Real<S> arithmetic (e.g., with S = double) is commutative but NOT
- * associative: floating-point rounding means (a+b)+c ≠ a+(b+c) in general.
- * Commutativity holds for all IEEE 754 operations (barring no special cases
- * that differ by order). Associativity-by-fiat is reserved for the
- * explicit dedekind::ieee::IEEE<F> opt-in wrapper.
- *
- * Partial identities: 0 for addition, 1 for multiplication.
- *
- * Specializations are declared in the dedekind::category namespace (see below).
- */
-
-/**
- * @brief Embedding transform: ℚ ↪ ℝ with Ternary acknowledgment.
- *
- * The embedding of a rational Q = p/q into the reals (via IEEE 754 scalar S)
- * is **lossy**: the result is the closest representable value, not necessarily
- * exact. This transform returns Ternary::Unknown to signal potential
- * information loss due to floating-point rounding.
- *
- * In a more sophisticated model, we could check if the rational is exactly
- * representable and return True, but conservatively, we flag all embeddings
- * as Unknown.
- */
-// @c I has no default because the body @c static_cast<S>(q.num()) requires
-// @c I to be convertible to the floating-point @c S; the project's
-// @c default_integer (post-PR #676) is @c SignedCardinality (a
-// @c std::variant), which has no floating-point cast.  Callers must
-// instantiate with a castable integer carrier (e.g.\ @c machine_integer).
-export template <dedekind::morphologies::IsInteger I,
-                 IsRealCarrier S = machine_real_scalar>
-  requires std::convertible_to<I, S>
-struct PartialEmbedRationalToReal {
-  using value_type = Real<S>;
-  using logic_species = Kleene;
-
-  TernaryResult<Real<S>> operator()(const Rational<I>& q) const noexcept {
-    // The embedding is lossy due to IEEE 754 approximation — inline to avoid
-    // forward ref
-    return {Ternary::Unknown,
-            Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())}};
-  }
-};
-
-/**
- * @brief Kleene traits for rational→real embedding (lossy).
- *
- * The embedding is not associative/commutative in the Kleene sense because
- * different computation orders might yield different rounded results.
- */
-// Note: We intentionally do NOT declare associativity for this embedding
-// because floating-point rounding violates Kleene associativity.
-
-}  // namespace dedekind::numbers
-
-namespace dedekind::category {
-
-/** @brief Kleene traits for real arithmetic.
- *
- * Commutativity holds for IEEE 754 addition and multiplication.
- * Associativity does NOT hold for floating-point — that opt-in belongs
- * exclusively to dedekind::ieee::IEEE<F>.
- */
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr bool is_kleene_commutative_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> = true;
-
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr dedekind::numbers::Real<S> partial_identity_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> =
-    dedekind::numbers::Real<S>{S{0}};
-
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr bool is_kleene_commutative_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> = true;
-
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr dedekind::numbers::Real<S> partial_identity_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> =
-    dedekind::numbers::Real<S>{S{1}};
-
-/** @brief Ordering traits: Real<Rational<I>> inherits ℚ's total order.
- *
- * Real<double> is intentionally withheld (NaN breaks reflexivity).
- * Real<Rational<I>> is totally ordered because Rational<I> is.
- */
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_reflexive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-                   std::less_equal<>> = true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_transitive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-                    std::less_equal<>> = true;
-
-template <dedekind::morphologies::IsInteger I>
-inline constexpr bool
-    is_antisymmetric_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-                       std::less_equal<>> = true;
-
-}  // namespace dedekind::category
-
-// NB: no order-compatibility markers (O1/O2) are registered for @c Real<Q>.
-// They would be inert: @c IsOrderedMultiplicativeGroup (and the @c Complex<R>
-// field gate) require @c category::IsField<R>, and strict @c category::IsField
-// on the exact Dedekind-cut @c Real is deliberately blocked (the @c IsTotal
-// exact-path gate --- see the @c ExactReal witness block below).  @c Real
-// carries only the @b set-indexed @c algebra::IsField (ℝ = 𝔸<Rational>), not
-// the type-indexed @c category::IsField, so @c Complex<Real> is NOT a certified
-// field.  Add the markers here only once @c category::IsField<Real> lands, with
-// a test (#818 keeps the certified reals to ℚ and ℚ(√D)).
-
-namespace dedekind::numbers {
-
-// embed_ℚ_ℝ removed under ℚ retarget cleanup: the arrow required
-// `static_cast<int>(I)` to be valid on the integer carrier I, which
-// `SignedCardinality` (the post-#670 / ℚ-retarget canonical integer
-// carrier) does not provide (the variant deliberately does not export
-// machine-numeric conversions).  Callers that need ℚ → ℝ realisation
-// should construct @c Real<S>{ ... } explicitly at the call site, where
-// the lossy semantics are visible.
-
-/**
- * @brief Canonical embedding of any std::floating_point type into ℝ.
- *
- * @details Wraps any floating-point value in Real<machine_real_scalar>
- * (= Real<double>). For float → Real<double> this is a widening conversion;
- * for double it is an identity wrap. The embedding is approximate because
- * IEEE 754 does not represent all reals exactly (cf. PartialEmbedRationalToReal
- * for the lossy-flagged variant).
- *
- * @tparam F Any std::floating_point source type.
- */
-export template <std::floating_point F>
-constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
-  return Real<machine_real_scalar>{static_cast<machine_real_scalar>(v)};
-}
 
 /** @brief The canonical real-number universe @c ℝ @c = @c
  *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
@@ -365,109 +82,17 @@ static_assert(IsDedekindComplete<QuadraticReal<2>>,
               "ℝ's CARRIER ℚ(√2) is order-complete (structural surrogate) — a "
               "carrier-level property, not a property of the set ℝ itself.");
 
-/** @brief The @b materialisable machine-real ambient: @c Real<double> with the
- *  continuum's cardinality (@c ℶ_1, hence Ternary membership).  Distinct from
- *  @c ℝ (the abstract coat-hanger over @c QuadraticReal<2>): @c ℝ_d is where
- *  @b IEEE/double computations on reals live (halfspaces with decimal pivots,
- *  integer-coordinate lattices).  Rule of thumb: compute on @c ℝ_d; model on
- *  @c ℝ. */
+/** @brief The machine-real ambient: the finite doubles @c 𝕃<double>.
+ *
+ *  @details NaN and +/-inf are excluded by the carrier's type, so the order
+ *  is total and membership is decidable: @c ℝ_d is @c Boole, like @c ℝ.  The
+ *  @c ℶ_1 tag names the continuum @c ℝ_d approximates, as it does on @c ℝ;
+ *  the carrier itself is the finite set of dyadic rationals a double holds.
+ *  Only the @c (min, max) lattice reduct is claimed: IEEE rounding breaks
+ *  the associativity of @c + and @c *.  Rule of thumb: compute on @c ℝ_d;
+ *  model on @c ℝ. */
 export inline constexpr auto ℝ_d =
-    dedekind::sets::𝔸<Real<machine_real_scalar>, Kleene, ℶ_1>{};
-
-}  // namespace dedekind::numbers
-
-namespace dedekind::category {
-template <typename Q>
-struct SpeciesTraits<dedekind::numbers::Real<Q>> {
-  using Domain = dedekind::numbers::Real<Q>;
-  using machine_type = dedekind::numbers::Real<Q>;
-};
-
-// embed_ℚ_ℝ monicity registration also removed (the arrow itself was
-// removed above; no `decltype` to register).
-}  // namespace dedekind::category
-
-namespace dedekind::numbers {
-
-// Functor identification: Real<Q> = Cuts(Q).  The Cuts functor
-// (Dedekind order-completion of an ordered field; cf. Lang §I appendix)
-// takes a dense-ordered carrier Q to its Cauchy/Dedekind completion;
-// for any IsRealCarrier Q, Real<Q> IS that completion.  The
-// ScalarCarrier alias is the source-side projection of the Cuts
-// functor, mechanically aligning the §2 paper paragraph
-// ("Named functors that build the library's carriers") with source.
-//
-// FIXME(#498/NEW-A): same naming-convention question as
-// Rational<I>::IntegerCarrier — see the FIXME there.  Aligning
-// IntegerCarrier / ScalarCarrier / value_type with :functor's
-// Σ_cat / Τ_cat / Shape<U> convention is NEW-A trait-registry work.
-static_assert(std::same_as<typename Real<machine_real_scalar>::ScalarCarrier,
-                           machine_real_scalar>,
-              "Real<Q> is the Cuts-functor image of Q; ScalarCarrier names Q "
-              "mechanically.");
-
-/**
- * @brief Canonical exact real: ℝ defined over ℚ by the Dedekind cut
- * construction.
- *
- * Real<Rational<I>> uses exact rational arithmetic as its scalar carrier.
- * Unlike Real<double>, it satisfies IsDedekindComplete: the ordering is total
- * (inherited from ℚ), the density holds (midpoint (a+b)/2 always exists in
- * ℚ), and HasExtrema holds trivially (infimum = supremum = the point itself).
- *
- * The name "ExactReal" reflects that this is the formally honest ℝ:
- * every value is a ratio of integers with no rounding loss.
- */
-export template <IsInteger I = default_integer>
-using ExactReal = Real<Rational<I>>;
-
-// Proof: ExactReal<> satisfies the Dedekind-completeness axioms.
-static_assert(
-    IsDedekindComplete<ExactReal<>>,
-    "ExactReal<> (= Real<Rational<Z>>) must satisfy IsDedekindComplete — "
-    "ℝ defined over ℚ via the Dedekind cut construction.");
-
-// Proof: ExactReal<> satisfies the operational field-like witness.
-static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
-              "ExactReal<> must satisfy HasFieldOperators (ℝ is a field).");
-
-/** @section real__Canonical_Species_Spine (ℝ)
- *
- * The canonical real-number universe @c ℝ is defined above; the
- * exact realisation is @c ExactReal<I> @c = @c Real<Rational<I>>
- * (Dedekind cuts over ℚ, formally honest --- every value is a ratio
- * of integers with no rounding loss).  The spine witnesses below pin
- * ℝ's syntax / semantics / arrow fabric:
- *
- * (1) IsSet anchor on @c R (above).
- * (2) Syntax: @c HasRingOperators / @c HasFieldOperators on the
- *     exact carrier @c ExactReal<>; the machine carrier @c double
- *     fires the literal-shape concept too, but its semantics are
- *     IEEE-policy-flavoured (@c HasFieldOperators holds with the
- *     usual rounding caveats).
- * (3) Semantics: @c IsDedekindComplete<ExactReal<>> (above) is the
- *     defining ℝ axiom; @c HasFieldOperators<ExactReal<>> is the
- *     operational field witness (Pattern-(b) per #394).  Strict
- *     @c IsField is blocked by two distinct issues: the
- *     architectural @c IsTotal gate (currently periodic/idempotent/
- *     saturating only --- exact carriers are none of those) and the
- *     species-trait specialisations on @c Rational / @c ExactReal
- *     under the active numeric policy (full chain in the @c IsField
- *     block of @c rational.cppm; the architectural blocker is the
- *     @c IsTotal exact-path lift, not @c #379).
- * (4) Primitive-type arrow: ℝ ↔ @c double is the open #398 work
- *     (explicit @c embed_double / @c realize_to_double morphisms).
- *     The current trivial direction is @c Real<double>{x} for the
- *     forward and @c .resolve() for the reverse.
- * (5) Adjacent-set arrows: @c ℚ @c ↪ @c ℝ was previously offered by
- *     @c embed_ℚ_ℝ; that arrow was removed under the ℚ retarget
- *     cleanup (no @c static_cast<int> on @c SignedCardinality carrier);
- *     ℝ_d ↪ ℂ via @c embed_ℝ_d_ℂ in @c :complex (downstream) remains.
- */
-static_assert(dedekind::algebra::HasRingOperators<ExactReal<>>,
-              "ExactReal<> closes the ring operator surface.");
-static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
-              "ExactReal<> closes the field operator surface "
-              "(+, binary -, unary -, *, /, T{1}).");
+    dedekind::sets::𝔸<dedekind::morphologies::𝕃<machine_real_scalar>, Boole,
+                      ℶ_1>{};
 
 }  // namespace dedekind::numbers

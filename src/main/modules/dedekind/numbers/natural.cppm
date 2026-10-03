@@ -18,7 +18,7 @@
  * - IsNatural  : N (ℕ) - The Discrete Monoid.
  * - IsInteger  : Z (ℤ) - The Euclidean Group.
  * - Rational<I> : Q (ℚ) - The Countable Dense Field.
- * - Real<I> / IEEE<F> : R (ℝ) - Exact and floating-point realisations.
+ * - QuadraticReal<D> / 𝕃<F> : R (ℝ) - Exact and finite-float realisations.
  *
  * @section natural__Structural_Mapping
  * This is where we perform the final 'Lifting'. We prove that

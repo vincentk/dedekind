@@ -59,15 +59,19 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
                   finite_cardinality(3));     // none finite
     static_assert(succ(aleph_0) == aleph_0);  // fix(succ) = ℵ₀ (saturation)
   }
-  // ── membership CLASSIFIED into Ω: a comprehension over ℝ (ℶ₁) ──
+  // ── membership CLASSIFIED into Ω: a comprehension over ℂ_d (ℶ₁) ──
   {
-    // ℝ_d carries Kleene (the machine real admits NaN), so a halfspace carved
-    // from it inherits the universe's species and withholds decidable
-    // membership; nothing re-tags it.
-    constexpr auto gt = ℝ_d | (χ > bound<5.0>);  // {r ∈ ℝ | r > 5}
-    // χ_gt : ℝ → Ω, not ℝ → Σ; the type system withholds decidable membership
-    static_assert(std::same_as<typename decltype(gt)::logic_species, Kleene>);
-    static_assert(!HasDecidableMembership<decltype(gt)>);
+    // ℂ_d carries Kleene, so a comprehension carved from it inherits the
+    // universe's species and withholds decidable membership; nothing re-tags
+    // it.
+    constexpr auto re_positive = [](const Complex<double>& z) {
+      return z.real() > 0.0;
+    };
+    constexpr auto right_half = Comprehension{ℂ_d, re_positive};
+    // χ : ℂ → Ω, not ℂ → Σ; the type system withholds decidable membership
+    static_assert(
+        std::same_as<typename decltype(right_half)::logic_species, Kleene>);
+    static_assert(!HasDecidableMembership<decltype(right_half)>);
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {

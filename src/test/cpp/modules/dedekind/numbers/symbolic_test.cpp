@@ -8,9 +8,6 @@ using namespace dedekind::numbers;
 using namespace dedekind::category;
 
 TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
-  using RealValue = Real<double>;
-  using ComplexValue = Complex<RealValue>;
-
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
     // The lower cut is Kleene-valued (NaN ↦ Unknown): an L-set, not an ETCS
@@ -22,14 +19,6 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
     REQUIRE(root2.χ(1.5) == Ternary::False);
     REQUIRE(root2.χ(std::numeric_limits<double>::quiet_NaN()) ==
             Ternary::Unknown);
-  }
-
-  SECTION("Complex arithmetic over Real wrapper") {
-    const ComplexValue a{RealValue{1.0}, RealValue{2.0}};
-    const ComplexValue b{RealValue{3.0}, RealValue{4.0}};
-    const ComplexValue s = a + b;
-    REQUIRE(s.real().resolve() == 4.0);
-    REQUIRE(s.imag().resolve() == 6.0);
   }
 
   SECTION("Transcendental-set marker (no rational point in the set)") {

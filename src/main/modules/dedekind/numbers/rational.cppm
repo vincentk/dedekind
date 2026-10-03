@@ -107,7 +107,8 @@ class Rational {
   // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
   Z first, second;
 
-  /** @brief Default: 0/1. Required so Rational<Z> satisfies IsRealCarrier. */
+  /** @brief Default: 0/1, the value-initialised @c T{} of the generic
+   * witnesses. */
   constexpr Rational() : first(Z{}), second(Z{1}) {}
 
   constexpr Rational(Z num, Z den) : first(num), second(den) { simplify(); }
@@ -135,8 +136,6 @@ class Rational {
    *  which C++ does not permit in implicit-conversion chains.  This template
    *  collapses both steps into a single UDC, enabling:
    *
-   *    * @c Real<Rational<Z>>{1} for the @c HasGroupOperatorsMul
-   *      @c T{1} witness on @c ExactReal<>;
    *    * @c Rational<Z>{2} for the @c (a @c + @c b) @c / @c T{2}
    *      midpoint expression in the @c IsDense concept (the @c T{2}
    *      reformulation, landed under this PR, replaces the previous
@@ -147,10 +146,7 @@ class Rational {
    *
    *  Canonical example post-retarget: @c Z @c = @c
    *  SignedExtensionalCardinal<>, whose @c S → @c SEC<> constructor
-   *  is itself a one-UDC step.  Required for the
-   *  @c HasGroupOperatorsMul / @c IsDense witnesses to fire on
-   *  @c Real<Rational<default_integer>> (#499 / default_integer
-   *  retarget).
+   *  is itself a one-UDC step.
    */
   template <std::integral S>
     requires(!std::same_as<S, Z>)
@@ -488,7 +484,7 @@ static_assert((Rational<default_integer>(default_integer{2}, default_integer{3})
 //
 // FIXME(#498/NEW-A): IntegerCarrier is the ad-hoc source-projection
 // alias on Rational<I>; sibling carriers use ScalarCarrier
-// (Real<Q>, Complex<R>) and value_type (Dual<F>, IsTangentBundle).
+// (Complex<R>) and value_type (Dual<F>, IsTangentBundle).
 // The dedekind.category:functor partition meanwhile establishes the
 // canonical convention --- Σ_cat / Τ_cat for source/target category
 // and Shape<U> for the on-objects action (cf. maybe_functor<T> at
@@ -1169,8 +1165,7 @@ static_assert(
 //   - Forward successor:    @c ℚ ↪ ℝ — the @c embed_ℚ_ℝ arrow was
 //     removed under the ℚ retarget cleanup (the @c SignedCardinality
 //     variant carrier deliberately does not expose machine-numeric
-//     conversions).  Callers construct @c Real<S>{…} directly at the
-//     call site for the lossy realisation.
+//     conversions).  The exact ℚ ↪ ℝ is @c embed_ℚ_ℝ in @c :real_bridge.
 //   - Reverse direction (ℚ → machine):  intentionally not a single
 //     primitive on @c Rational<I>: ℚ → @c double is the realisation
 //     crossing into IEEE 754 numerics, and the carrier-lattice
