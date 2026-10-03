@@ -587,3 +587,42 @@ TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
   const auto none = Comprehension{Ø<int>{}, UnknownPredicate<int>{}};
   CHECK(none(0) == Ternary::False);
 }
+
+namespace {
+/** @brief A Kleene-valued predicate: even is True, 1 mod 4 is Unknown. */
+struct ConfidentlyEven {
+  constexpr Ternary operator()(const int& x) const {
+    if (x % 2 == 0) return Ternary::True;
+    return x % 4 == 1 ? Ternary::Unknown : Ternary::False;
+  }
+};
+/** @brief An answer already in @c Chain<int>::Ω: the grade is the value. */
+struct GradeOf {
+  constexpr int operator()(const int& x) const { return x; }
+};
+}  // namespace
+
+TEST_CASE(
+    "Comprehension: the species is the semilattice join of base and "
+    "answer (#945)",
+    "[sets][comprehension][species]") {
+  // A Kleene answer over a Percent universe answers in Percent (K₃ ↪ Percent).
+  const auto confident = Comprehension{𝔸<int, Percent>{}, ConfidentlyEven{}};
+  STATIC_CHECK(
+      std::same_as<typename decltype(confident)::logic_species, Percent>);
+  CHECK(confident(2) == Percentage{100});
+  CHECK(confident(5) == Percentage{50});
+  CHECK(confident(3) == Percentage{0});
+
+  // An answer already in the base's Ω stays in the base's species.
+  const auto graded = Comprehension{𝔸<int, Chain<int>>{}, GradeOf{}};
+  STATIC_CHECK(
+      std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
+  CHECK(graded(7) == 7);  // ⊤ ∧ 7
+
+  // No shipped species is above both K₃ and Chain<int>: the combine is refused.
+  using K = decltype(Comprehension{𝔸<int>{}, UnknownPredicate<int>{}});
+  using G = decltype(graded);
+  STATIC_CHECK(!requires(const K& k, const G& g) { k & g; });
+  STATIC_CHECK(!requires(const K& k, const G& g) { k | g; });
+}
