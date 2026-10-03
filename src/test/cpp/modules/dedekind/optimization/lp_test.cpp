@@ -70,9 +70,9 @@ TEST_CASE(
   // halfspace-list endofunctor's full @c IsEndofunctor instantiation
   // (Σ_cat, Shape, φ) is its own scaffolding task; see the source
   // commentary @c lp__F_Algebra_Witness in @c lp.cppm .
-  using OutputSet =
-      dedekind::sets::Comprehension<𝔸<Vec2V<Rat>, dedekind::category::Boole>,
-                                    LPSolutionPredicate<Rat>>;
+  using OutputSet = dedekind::sets::Comprehension<
+      dedekind::sets::𝔸<Vec2V<Rat>, dedekind::category::Boole>,
+      LPSolutionPredicate<Rat>>;
   using LPSolutionCat = dedekind::category::DiscreteCategory<OutputSet>;
   using LPSolutionIdF = dedekind::category::identity_functor<LPSolutionCat>;
 
@@ -108,7 +108,7 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
 
   // Input side: a polytope is `Set<F, L, Polytope2DPredicate<T, Hs...>>`.
   using PolyG =
-      dedekind::sets::Comprehension<𝔸<F, L>,
+      dedekind::sets::Comprehension<dedekind::sets::𝔸<F, L>,
                                     Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   STATIC_CHECK(dedekind::category::IsSet<PolyG>);
 
@@ -125,10 +125,10 @@ TEST_CASE("optimization:lp — both argmax input and output satisfy IsSet (#749)
   //      (point, feasible) at the value level — what
   //      `maximize_with_values` and siblings return).
   using SingOut = dedekind::sets::Comprehension<
-      𝔸<F, L>, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
+      dedekind::sets::𝔸<F, L>, Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   using EmptyOut = dedekind::sets::Ø<F, L>;
-  using RuntimeOut =
-      dedekind::sets::Comprehension<𝔸<F, L>, LPSolutionPredicate<Rat>>;
+  using RuntimeOut = dedekind::sets::Comprehension<dedekind::sets::𝔸<F, L>,
+                                                   LPSolutionPredicate<Rat>>;
   STATIC_CHECK(dedekind::category::IsSet<SingOut>);
   STATIC_CHECK(dedekind::category::IsSet<EmptyOut>);
   STATIC_CHECK(dedekind::category::IsSet<RuntimeOut>);
@@ -413,7 +413,7 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   // The expression-type witnesses: all three surfaces return a Set
   // whose predicate is Singleton2DPredicate<Rat, 2, 2>.
   using ExpectedOpt = dedekind::sets::Comprehension<
-      𝔸<Vec2V<Rat>, dedekind::category::Boole>,
+      dedekind::sets::𝔸<Vec2V<Rat>, dedekind::category::Boole>,
       Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   STATIC_CHECK(std::same_as<decltype(polytope.extract()), ExpectedOpt>);
   STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)), ExpectedOpt>);
@@ -558,9 +558,9 @@ TEST_CASE(
 
   // `decltype(G)` IS a real `:expressions::Set` instance — the §3 DSL —
   // whose predicate carries the halfspace pack at the type level.
-  using ExpectedG =
-      dedekind::sets::Comprehension<𝔸<F, dedekind::category::Boole>,
-                                    Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
+  using ExpectedG = dedekind::sets::Comprehension<
+      dedekind::sets::𝔸<F, dedekind::category::Boole>,
+      Polytope2DPredicate<Rat, H1, H2, H3, H4>>;
   static_assert(std::same_as<decltype(G), const ExpectedG>);
 
   // argmax(G, U).  Set in, Set out.  The output Set's predicate type
@@ -569,7 +569,7 @@ TEST_CASE(
   // DSL vocabulary.
   constexpr auto opt = argmax(G, U);
   using ExpectedOpt = dedekind::sets::Comprehension<
-      𝔸<F, dedekind::category::Boole>,
+      dedekind::sets::𝔸<F, dedekind::category::Boole>,
       Singleton2DPredicate<Rat, Rat{2L}, Rat{2L}>>;
   static_assert(std::same_as<decltype(opt), const ExpectedOpt>);
 
