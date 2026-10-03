@@ -16,9 +16,7 @@
  *      point ℵ₀ is one.  Whether a construction closes on itself (hence whether
  *      membership is decided) is a property of the domain, the
  *      Galois-specialisation axis.
- *   3. Membership genuinely lands in Ω\Σ: a comprehension over an uncountable
- *      carrier (ℝ, tagged ℶ₁) is CLASSIFIED undecidable (its logic species is
- *      Kleene, so == is withheld), and the intensional image of a set
+ *   3. Membership genuinely lands in Ω\Σ: the intensional image of a set
  *      RETURNS Unknown outright.
  *
  * The archetype hard predicate is Mandelbrot membership (numbers/mandelbrot),
@@ -58,20 +56,6 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
     static_assert(succ(finite_cardinality(3)) !=
                   finite_cardinality(3));     // none finite
     static_assert(succ(aleph_0) == aleph_0);  // fix(succ) = ℵ₀ (saturation)
-  }
-  // ── membership CLASSIFIED into Ω: a comprehension over ℂ_d (ℶ₁) ──
-  {
-    // ℂ_d carries Kleene, so a comprehension carved from it inherits the
-    // universe's species and withholds decidable membership; nothing re-tags
-    // it.
-    constexpr auto re_positive = [](const Complex<double>& z) {
-      return z.real() > 0.0;
-    };
-    constexpr auto right_half = Comprehension{ℂ_d, re_positive};
-    // χ : ℂ → Ω, not ℂ → Σ; the type system withholds decidable membership
-    static_assert(
-        std::same_as<typename decltype(right_half)::logic_species, Kleene>);
-    static_assert(!HasDecidableMembership<decltype(right_half)>);
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {

@@ -18,27 +18,21 @@ import dedekind.category;
 import dedekind.sets;
 import dedekind.algebra;
 import dedekind.numbers;
+import dedekind.order;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
+using namespace dedekind::order;
 
 // Ambient product set ℝ × ℝ and its symbolic scout.
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
-// R2Point is std::pair<𝕃<double>, 𝕃<double>>, a pair of finite doubles.
-// Diagonal: { (x, y) ∈ ℝ² | x = y }.  NAMED-predicate comprehensions over the
-// non-universal R2 base (a product Set); candidate point-free `R2 | (π1 == π2)`
-// / `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)` (Trsk pair grammar), CI-gated.
-constexpr auto on_diagonal = [](R2Point p) { return p.first == p.second; };
-constexpr auto in_strip = [](R2Point p) {
-  return (p.first.value() > 5.0) && (p.second.value() < 3.0);
-};
-constexpr auto diagonal = Comprehension{R2, on_diagonal};
-
-// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Comprehension{R2, in_strip};
+// Diagonal { (x, y) ∈ ℝ² | x = y } and strip { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 },
+// both point-free over the product of finite doubles.
+constexpr auto diagonal = R2 | (π1 == π2);
+constexpr auto strip = R2 | (π1 > bound<5.0> && π2 < bound<3.0>);
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;

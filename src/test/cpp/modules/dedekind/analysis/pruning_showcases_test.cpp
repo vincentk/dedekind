@@ -36,19 +36,9 @@ namespace {
 // Shared with showcase 1 (ℝ² diagonal × strip).
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
-// The diagonal {x == y}: reuse the set-expression operator== on the projections
-// (π1 == π2), not a hand lambda, over the R2 base, so the element type tracks
-// R2 (a pair of finite doubles 𝕃<double>) and diag & strip
-// stays well-typed.  Kept as the exact scout-equivalent @c Comprehension<R2,
-// π1==π2> to guarantee the showcase compiles (Trsk `R2 | (π1==π2)` is an
-// equivalent point-free spelling; CI-gated).
-constexpr auto diag = Comprehension{R2, π1 == π2};
-// FLAG(#895 L3): pair float bounds; a NAMED predicate (not a hand lambda),
-// candidate point-free `R2 | (π1 > bound<5.0> && π2 < bound<3.0>)`.
-constexpr auto in_strip = [](R2Point p) {
-  return (p.first.value() > 5.0) && (p.second.value() < 3.0);
-};
-constexpr auto strip = Comprehension{R2, in_strip};
+// Diagonal {x = y} and strip {x > 5 ∧ y < 3}, point-free over R2.
+constexpr auto diag = R2 | (π1 == π2);
+constexpr auto strip = R2 | (π1 > bound<5.0> && π2 < bound<3.0>);
 
 }  // namespace
 

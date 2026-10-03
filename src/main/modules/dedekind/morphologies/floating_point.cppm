@@ -65,6 +65,7 @@
  */
 module;
 
+#include <compare>
 #include <concepts>
 #include <functional>
 #include <limits>     // numeric_limits<F>::max (the finite-subset gate)
@@ -250,6 +251,16 @@ class safe_float {
                                     const safe_float&) noexcept = default;
   friend constexpr bool operator==(const safe_float&,
                                    const safe_float&) noexcept = default;
+
+  /** @brief Compare against a raw @c F pivot (a @c bound<5.0> in a
+   *  point-free predicate).  Partial: a NaN pivot is unordered. */
+  friend constexpr std::partial_ordering operator<=>(const safe_float& a,
+                                                     F b) noexcept {
+    return a.value_ <=> b;
+  }
+  friend constexpr bool operator==(const safe_float& a, F b) noexcept {
+    return a.value_ == b;
+  }
 };
 
 /** @brief Free-function spelling of @c safe_float<F>::lift. */
