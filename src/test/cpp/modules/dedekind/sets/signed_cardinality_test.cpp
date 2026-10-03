@@ -14,6 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <climits>
 #include <compare>
+#include <limits>
 #include <variant>
 
 import dedekind.sets;
@@ -30,22 +31,14 @@ namespace {
 
 using SEC = SignedExtensionalCardinal<>;
 
-// Builds a finite SignedCardinality close to the magnitude wrap point
-// so that adding it to itself overflows the underlying ExtensionalCardinal
-// magnitude.  We do not need the literal max value --- any value whose
-// doubled magnitude carries past the limb capacity triggers the
-// escalation path.
+// The extreme finite values of the signed word: doubling either one
+// overflows the word and triggers the escalation path.
 constexpr SignedCardinality huge_positive() {
-  SEC z;
-  z.magnitude.limbs[0] = static_cast<SEC::magnitude_type::limb_type>(-1);
-  return SignedCardinality{z};
+  return SignedCardinality{SEC{std::numeric_limits<SEC::signed_type>::max()}};
 }
 
 constexpr SignedCardinality huge_negative() {
-  SEC z;
-  z.negative = true;
-  z.magnitude.limbs[0] = static_cast<SEC::magnitude_type::limb_type>(-1);
-  return SignedCardinality{z};
+  return SignedCardinality{SEC{std::numeric_limits<SEC::signed_type>::min()}};
 }
 
 constexpr bool is_pos_inf(const SignedCardinality& v) {
@@ -308,9 +301,9 @@ TEST_CASE(
 
   // Sign tracking: × (-2) flips sign; × (-2) again restores positive;
   // / 4 keeps the sign.
-  CHECK(std::get<SEC>(step1).negative);
-  CHECK_FALSE(std::get<SEC>(step2).negative);
-  CHECK_FALSE(std::get<SEC>(roundtrip).negative);
+  CHECK(std::get<SEC>(step1).negative());
+  CHECK_FALSE(std::get<SEC>(step2).negative());
+  CHECK_FALSE(std::get<SEC>(roundtrip).negative());
 
   // The round-trip equals the original.
   CHECK(roundtrip == original);

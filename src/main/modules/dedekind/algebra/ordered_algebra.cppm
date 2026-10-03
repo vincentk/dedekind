@@ -81,7 +81,7 @@ namespace dedekind::algebra {
  *       project's @c SignedCardinality variant), keeping
  *       translation-invariance honest @b including at the boundary.
  *       Modular carriers (@c unsigned @c int, the finite
- *       @c sets::SignedExtensionalCardinal<N>) wrap, reversing order;
+ *       @c sets::SignedExtensionalCardinal<S>) wrap, reversing order;
  *       they fail the marker by default.
  *
  * @note The project put deliberate effort into the saturating
@@ -94,7 +94,7 @@ namespace dedekind::algebra {
  *       bona-fide proxy for ℤ modulo physical limits").  The marker
  *       opt-in below honours that effort: it is specialised for
  *       @c SignedCardinality, @b not for the cyclic finite-fragment
- *       @c SignedExtensionalCardinal<N>.
+ *       @c SignedExtensionalCardinal<S>.
  */
 export template <typename T>
 struct is_translation_invariant_ordered : std::false_type {};
@@ -108,9 +108,9 @@ struct is_translation_invariant_ordered : std::false_type {};
  *  order @f$\le@f$ on the finite fragment; saturation collapses
  *  ordering past the boundary into the @f$\pm \aleph_0@f$ sentinel
  *  (the meet still holds: both sides land at the same sentinel).  The
- *  finite-fragment carrier @c SignedExtensionalCardinal<N> is
+ *  finite-fragment carrier @c SignedExtensionalCardinal<S> is
  *  intentionally @b not opted in: it is cyclic
- *  (mod @f$2^{N \cdot 64}@f$), so its addition would reverse the
+ *  (mod @f$2^w@f$), so its addition would reverse the
  *  order at the wrap boundary.  The variant @c SignedCardinality is
  *  what callers should use whenever they want translation-invariance
  *  at the type level (i.e.\ the halfspace pipe). */

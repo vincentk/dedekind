@@ -80,7 +80,7 @@ using namespace dedekind::sets;
  *
  * @details Deliberately *not* restricted to `std::unsigned_integral<N>` so
  * that user-defined certified natural-number types (e.g.
- * `ExtensionalCardinal<N>`) can satisfy the concept without being built-in C++
+ * `ExtensionalCardinal<>`) can satisfy the concept without being built-in C++
  * types.  The required operations are exactly those that characterise ℕ as a
  * commutative semiring with a total order:
  *

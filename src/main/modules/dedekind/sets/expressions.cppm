@@ -565,7 +565,7 @@ namespace detail {
  *  the predicate be reused on the @c Set's branching choice. */
 constexpr bool sc_is_negative_finite(const SignedCardinality& v) noexcept {
   if (!std::holds_alternative<SignedExtensionalCardinal<>>(v)) return false;
-  return std::get<SignedExtensionalCardinal<>>(v).negative;
+  return std::get<SignedExtensionalCardinal<>>(v).negative();
 }
 
 constexpr bool sc_is_in_natural_image(const SignedCardinality& v) noexcept {
@@ -581,7 +581,7 @@ constexpr Cardinality project_signed_to_natural(
   if (std::holds_alternative<PositiveInfinity>(v)) {
     return Cardinality{ℵ_0{}};
   }
-  return Cardinality{std::get<SignedExtensionalCardinal<>>(v).magnitude};
+  return Cardinality{std::get<SignedExtensionalCardinal<>>(v).magnitude()};
 }
 }  // namespace detail
 

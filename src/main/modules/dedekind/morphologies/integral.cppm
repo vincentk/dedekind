@@ -125,7 +125,7 @@ concept IsSaturatingInteger =
 /** @brief Cyclic-ℤ-shape integer: integer surface + abelian-group-cyclic
  *         under @c +.  @c SignedExtensionalCardinal<> (sign-magnitude
  *         @c ℤ/2^{N*64}ℤ) is the canonical witness via
- *         @c IsCyclicGroup<SignedExtensionalCardinal<1>, std::plus<>>
+ *         @c IsCyclicGroup<SignedExtensionalCardinal<>, std::plus<>>
  *         pinned in @c :sets:cardinality.
  */
 export template <typename T>
@@ -172,9 +172,9 @@ static_assert(!IsAlgebra<bool, std::plus<>, std::multiplies<>>,
 /** @section integral__IsInteger_Witnesses
  *
  * @c ExtensionalCardinal<> and @c SignedExtensionalCardinal<> are the
- * project's two structurally-faithful @c IsInteger witnesses: cyclic
- * ℤ/2^{N·64}ℤ (unsigned wrap) and overflow-free signed-magnitude
- * @c ℤ on the same limb width.  The variant ℤ proxy
+ * project's two structurally-faithful @c IsInteger witnesses: the cyclic
+ * ℤ/2^w read unsigned and read in two's complement, on the same word.  The
+ * variant ℤ proxy
  * @c SignedCardinality is the saturating sibling — it inherits
  * @c IsInteger transitively through its finite-fragment alternative
  * but is gated separately via @c IsSaturatingInteger above.
@@ -185,8 +185,7 @@ static_assert(IsInteger<ExtensionalCardinal<>>,
 
 static_assert(IsInteger<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
-              "signed ring: sign-magnitude arithmetic, overflow-free up to "
-              "2^{N*64 - 1}).");
+              "signed ring: two's complement, wrapping at 2^(w-1)).");
 
 /** @section integral__Residue_Preimage
  *
@@ -276,7 +275,7 @@ static_assert(!IsCyclicInteger<SignedCardinality>,
               "ℤ proxy, not a finite cyclic group.");
 static_assert(IsCyclicInteger<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> is the canonical cyclic-ℤ "
-              "witness (sign-magnitude ℤ/2^{N*64}ℤ under +).");
+              "witness (two's-complement ℤ/2^w under +).");
 static_assert(!IsSaturatingInteger<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> is NOT saturating: it wraps "
               "cyclically rather than escalating to a sentinel.");

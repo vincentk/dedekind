@@ -159,11 +159,11 @@ template <auto N>
 constexpr Modular<N> χ_to_modular(SignedCardinality const& z) noexcept {
   if (auto const* sec = std::get_if<SignedExtensionalCardinal<>>(&z)) {
     using ML = typename Modular<N>::machine_type;
-    auto const limb = sec->magnitude.limbs[0];
+    auto const limb = sec->magnitude().value;
     using LimbType = std::remove_cv_t<std::remove_reference_t<decltype(limb)>>;
     auto const reduced_in_limb = limb % static_cast<LimbType>(N);
     auto const reduced_mag = static_cast<ML>(reduced_in_limb);
-    if (sec->negative && reduced_mag != 0) {
+    if (sec->negative() && reduced_mag != 0) {
       return Modular<N>{static_cast<ML>(N) - reduced_mag};
     }
     return Modular<N>{reduced_mag};
