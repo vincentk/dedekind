@@ -46,6 +46,7 @@ using dedekind::numbers::Complex;
 using dedekind::numbers::DivergencePath;
 using dedekind::numbers::mandelbrot_orbit;
 using dedekind::numbers::QuadraticReal;
+using dedekind::numbers::Rational;
 
 namespace seq_meet {
 
