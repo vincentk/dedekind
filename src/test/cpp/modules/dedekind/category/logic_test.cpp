@@ -326,6 +326,10 @@ TEST_CASE(
     STATIC_CHECK(std::same_as<classifier_logic_t<Percentage>, Percent>);
     STATIC_CHECK(!IsClassifierAnswer<int>);
     STATIC_CHECK(IsΩ<Percentage>);
+    STATIC_CHECK(HasLogicalOperators<Percentage>);
+    STATIC_CHECK((Percentage{30} && Percentage{70}) == Percentage{30});
+    STATIC_CHECK((Percentage{30} || Percentage{70}) == Percentage{70});
+    STATIC_CHECK(!Percentage{30} == Percentage{70});
     // A Truth<L> wrapper is not an L::Ω: the lift refuses it at the gate.
     STATIC_CHECK(!LiftableInto<Truth<Kleene>, Kleene>);
   }

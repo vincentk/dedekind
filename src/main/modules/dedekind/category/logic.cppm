@@ -418,6 +418,25 @@ export struct Percent final {
 
 static_assert(IsOckhamAlgebra<Percent>, "Percent must fulfill IsOckhamAlgebra");
 
+/** @brief The logical register on @c Percentage, as @c Ternary has below: @c &&
+ *  / @c || / @c ! are the species' @c AND / @c OR / @c RFL, so a @c Percentage
+ *  answer conjoins as an answer (a product's membership @c a(x.first) @c &&
+ *  @c b(x.second) stays a @c Percentage) and @c HasLogicalOperators holds.
+ *  Deduced on both operands, so no @c int → @c Percentage conversion sneaks a
+ *  bare number into the register. */
+export template <std::same_as<Percentage> P>
+constexpr P operator&&(P a, P b) noexcept {
+  return Percent::AND(a, b);
+}
+export template <std::same_as<Percentage> P>
+constexpr P operator||(P a, P b) noexcept {
+  return Percent::OR(a, b);
+}
+export template <std::same_as<Percentage> P>
+constexpr P operator!(P a) noexcept {
+  return Percent::RFL(a);
+}
+
 // NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
 // / identity_v static_asserts) are placed at the END of this partition, below
 // the #912/#933 Ternary :total registrations (identity_trait<Ternary, Sup/Inf>)
