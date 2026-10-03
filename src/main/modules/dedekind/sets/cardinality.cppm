@@ -648,8 +648,8 @@ struct SignedExtensionalCardinal {
   constexpr SignedExtensionalCardinal() noexcept = default;
 
   /** @brief Construction from any integral source, modulo 2^w. */
-  template <std::integral S>
-  constexpr SignedExtensionalCardinal(S v) noexcept  // NOLINT
+  template <std::integral I>
+  constexpr SignedExtensionalCardinal(I v) noexcept  // NOLINT
       : value(static_cast<signed_type>(static_cast<word_type>(v))) {}
 
   /** @brief Is the value negative? */
@@ -775,9 +775,9 @@ struct SignedExtensionalCardinal {
    *  carrier).  Used by the IR-fixture showcases to extract a
    *  compile-time-known rational's numerator as a concrete machine integer
    *  for the emitted `ret i64 ...` witness. */
-  template <std::signed_integral S>
-  constexpr explicit operator S() const noexcept {
-    return static_cast<S>(value);
+  template <std::signed_integral Target>
+  constexpr explicit operator Target() const noexcept {
+    return static_cast<Target>(value);
   }
 };
 
