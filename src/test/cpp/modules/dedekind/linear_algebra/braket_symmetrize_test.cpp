@@ -88,11 +88,6 @@ TEST_CASE("Bra-ket: P=½(I+U) projects ζ₈ onto cos (the operator S-leg)",
       !dedekind::category::IsField<Complex<Cx>, std::plus<Complex<Cx>>,
                                    std::multiplies<Complex<Cx>>>,
       "Complex<ℂ> SPLITS (its base ℂ already contains i) — NOT a field.");
-  static_assert(
-      !dedekind::category::IsSemiring<Complex<double>,
-                                      std::plus<Complex<double>>,
-                                      std::multiplies<Complex<double>>>,
-      "Complex<double> is not even a semiring (IEEE breaks associativity).");
   Ket<Cx, 8> e0{};
   e0.c[0] = Cx{R2{1}, R2{}};
   const Bra<Cx, 8> e0_bra{e0.c};

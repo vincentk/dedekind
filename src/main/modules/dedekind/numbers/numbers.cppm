@@ -45,7 +45,7 @@ export import :quadratic;   // ℚ(√D) — a decidable quadratic real FIELD
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
-export import :lattice;     // Lattices over ℝ_d and ℂ_d
+export import :lattice;     // Integer lattices over ℝ_d
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section numbers__Non_Standard_Analysis */

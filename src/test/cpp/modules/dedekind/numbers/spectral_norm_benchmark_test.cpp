@@ -191,11 +191,6 @@ TEST_CASE("Numbers: spectral norm benchmark kernels", "[numbers][spectral]") {
     REQUIRE_THAT(spectral_norm<double>(100u),
                  Catch::Matchers::WithinRel(1.274219991, 1e-8));
   }
-
-  SECTION("Scalar-generic pipeline also supports complex carriers") {
-    REQUIRE_THAT(spectral_norm<Complex<double>>(10u),
-                 Catch::Matchers::WithinRel(1.271844019, 1e-8));
-  }
 }
 
 TEST_CASE("Numbers: spectral norm benchmark-style run",

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/lattice.cppm
  * @partition :lattice
- * @brief Integer / Gaussian lattices in ℝ, ℂ, ℝⁿ, ℂⁿ.
+ * @brief Integer lattices in ℝ_d and ℝ_dⁿ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -23,17 +23,13 @@ module;
  * @section numbers_lattice__Description
  * This partition provides the user-facing lattice factory:
  *
- *   auto c = lattice<ℂ_d>;         // Gaussian-integer lattice in ℂ
  *   auto r = lattice<ℝ_d>;         // Integer lattice in ℝ
  *   auto x = lattice<ℝ_d, 3>;      // Integer lattice in ℝ^3
- *   auto y = lattice<ℂ_d, 3>;      // Gaussian-integer lattice in ℂ^3
  *
- * and bounded variants:
+ * and the bounded variant:
  *
- *   auto grid_c = lattice<ℂ_d>.bounded(size);
  *   auto grid_r = lattice<ℝ_d>.bounded(size);
  *
- * `lattice<ℂ_d>.bounded(n)` yields points x+iy with x,y in {0,...,n-1}.
  * `lattice<ℝ_d>.bounded(n)` yields points x in {0,...,n-1} embedded in ℝ.
  */
 
@@ -44,7 +40,6 @@ import dedekind.sets;
 import dedekind.geometry;
 import dedekind.morphologies; // 𝕃<double>, ℝ_d's carrier
 import :real;
-import :complex;
 
 namespace dedekind::numbers {
 
@@ -63,72 +58,10 @@ constexpr bool is_integral_coordinate(double x) {
 /**
  * @brief Primary template for lattice factory values.
  *
- * @tparam AmbientSet A canonical ambient set value (@c ℂ_d or @c ℝ_d).
+ * @tparam AmbientSet A canonical ambient set value (@c ℝ_d).
  */
 export template <auto AmbientSet, std::size_t N = 1>
 struct LatticeFactory;
-
-/**
- * @brief Lattice factory specialization for ℂ.
- *
- * `lattice<ℂ_d>` denotes the Gaussian-integer lattice ℤ[i] ⊂ ℂ_d.
- * `lattice<ℂ_d>.bounded(n)` denotes the bounded square lattice
- * {x+iy | x,y in {0,...,n-1}}.
- */
-template <>
-struct LatticeFactory<ℂ_d, 1> {
-  using Domain = Complex<machine_real_scalar>;
-  using Codomain = Boole::Ω;
-  using logic_species = Boole;
-  using cardinality_type = ℶ_1;
-
-  constexpr Codomain operator()(const Domain& z) const {
-    return detail::is_integral_coordinate(z.real()) &&
-                   detail::is_integral_coordinate(z.imag())
-               ? logic_species::True
-               : logic_species::False;
-  }
-
-  constexpr auto bounded(int n) const { return complex_lattice(n); }
-};
-
-/**
- * @brief Lattice factory specialization for ℂ^N, N > 1.
- */
-template <std::size_t N>
-  requires(N > 1)
-struct LatticeFactory<ℂ_d, N> {
-  using Domain = std::array<Complex<double>, N>;
-  using Codomain = bool;
-  using logic_species = Boole;
-  using cardinality_type = ℶ_1;
-
-  constexpr Codomain operator()(const Domain& xs) const {
-    for (const auto& z : xs) {
-      if (!detail::is_integral_coordinate(z.real()) ||
-          !detail::is_integral_coordinate(z.imag()))
-        return logic_species::False;
-    }
-    return logic_species::True;
-  }
-
-  constexpr auto bounded(int n) const {
-    auto pred = [n](const Domain& xs) {
-      for (const auto& z : xs) {
-        const double re = z.real();
-        const double im = z.imag();
-        if (!detail::is_integral_coordinate(re) ||
-            !detail::is_integral_coordinate(im))
-          return false;
-        if ((re < 0.0) || (re >= static_cast<double>(n)) || (im < 0.0) ||
-            (im >= static_cast<double>(n)))
-          return false;
-      }
-      return true;
-    };
-    return Comprehension<𝔸<Domain, Boole>, decltype(pred)>{pred};
-  }
-};
 
 /**
  * @brief Lattice factory specialization for ℝ.
@@ -197,7 +130,7 @@ struct LatticeFactory<ℝ_d, N> {
 };
 
 /**
- * @brief First-class lattice value: `lattice<ℂ_d>` and `lattice<ℝ_d>`.
+ * @brief First-class lattice value: `lattice<ℝ_d>`.
  */
 export template <auto AmbientSet, std::size_t N = 1>
 inline constexpr LatticeFactory<AmbientSet, N> lattice{};

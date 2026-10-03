@@ -27,7 +27,7 @@ using namespace dedekind::linear_algebra;
 
 namespace {
 // Canonical paper-facing carrier: ℚ as a proxy for ℝ (exact arithmetic).
-// The finite-bignum rational, NOT Rational<default_integer>: this file uses Rat
+// The one-limb rational, NOT Rational<default_integer>: this file uses Rat
 // as a NON-TYPE template parameter (Invertible2x2<Rat, Rat{1L}, ...>), which
 // requires a STRUCTURAL type.  default_integer is std::variant<...> (a private
 // member ⟹ non-structural).  SignedExtensionalCardinal<> is all-public
@@ -338,7 +338,7 @@ TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
 // ===========================================================================
 
 namespace {
-// Arbitrary-precision signed rational — the canonical ℚ carrier for the
+// Fixed-width (one-limb) signed rational — the canonical ℚ carrier for the
 // lattice corners (matches embeddings_test.cpp's choice of carrier and
 // keeps the closure-tier identities exact at the ring layer).
 using LatticeRat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;

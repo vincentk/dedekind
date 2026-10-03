@@ -201,13 +201,6 @@ export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
 }
 
 /**
- * @brief Convenience overload matching the natural-window convention [0, n).
- */
-export constexpr auto square_integer_grid(int n) {
-  return square_integer_grid(IntegerLatticeScalar{0}, IntegerLatticeScalar{n});
-}
-
-/**
  * @brief The canonical embedding ℤ² ↪ ℝ²: (x, y) ↦ Vector{x, y}.
  *
  * @details Maps each integer pair to the corresponding point in ℝ².

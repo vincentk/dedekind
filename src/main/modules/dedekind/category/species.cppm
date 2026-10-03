@@ -802,8 +802,9 @@ export template <typename T, typename Op>
 inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 
 /** @brief Path D to totality: the operation is total because the carrier is
- *  @b exact --- arbitrary-precision arithmetic with no rounding, @c Op(a,b)
- *  always defined and lossless.  The archetypes are the exact number fields
+ *  @b exact --- arithmetic with no rounding, @c Op(a,b) defined and lossless
+ *  up to the carrier's out-of-memory tripwire.  The archetypes are the exact
+ * number fields
  *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
  *  @c *.  Distinct from the three machine-finite paths, which are total by
  *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
@@ -839,7 +840,7 @@ inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
  *  Four pragmatic paths to totality, each a sufficient (not
  *  necessary) condition: periodicity (modular wrap), idempotence
  *  (globally stable), saturation (escalation to an extended-range
- *  sentinel), or exactness (unbounded arbitrary-precision arithmetic).
+ *  sentinel), or exactness (exact arithmetic with no rounding).
  *  See the textbook note on @c IsTotal below.
  */
 export template <typename T, typename Op>

@@ -241,82 +241,26 @@ struct ExtensionalCardinal {
     return lhs + (-rhs);
   }
 
-  /**
-   * @brief Euclidean division.  Division by zero yields zero by
-   *        convention (total).  When the divisor fits in a single
-   *        limb, performs schoolbook long division across the full
-   *        @c N-limb dividend (multi-limb-correct).  When the divisor
-   *        itself is multi-limb, falls back to single-limb truncation
-   *        --- multi-limb-by-multi-limb division is out of scope.
-   */
+  /** @brief Euclidean division, one-limb carriers only.  Division by zero
+   *  yields zero by convention (total).  Multi-limb division is not
+   *  implemented, so it is not offered: a wider @c N supports @c +, @c -
+   *  and @c * only. */
   constexpr friend ExtensionalCardinal operator/(
-      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept
+    requires(N == 1)
+  {
     if (rhs.limbs[0] == 0) return ExtensionalCardinal{};
-    // Detect a multi-limb divisor; fall back to truncated single-limb
-    // division if the rhs has any non-zero high limbs.
-    bool divisor_multi_limb = false;
-    for (std::size_t i = 1; i < N; ++i) {
-      if (rhs.limbs[i] != 0) {
-        divisor_multi_limb = true;
-        break;
-      }
-    }
-    if (divisor_multi_limb) {
-      ExtensionalCardinal result{};
-      result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
-      return result;
-    }
-    // Single-limb divisor: schoolbook long division from the high limb
-    // down.  Use unsigned __int128 to carry the running remainder
-    // shifted into the next limb without overflowing intermediate
-    // arithmetic.
-    ExtensionalCardinal result{};
-    unsigned __int128 remainder = 0;
-    const unsigned __int128 divisor =
-        static_cast<unsigned __int128>(rhs.limbs[0]);
-    for (std::size_t i = N; i-- > 0;) {
-      const unsigned __int128 cur =
-          (remainder << limb_bits) |
-          static_cast<unsigned __int128>(lhs.limbs[i]);
-      result.limbs[i] = static_cast<limb_type>(cur / divisor);
-      remainder = cur % divisor;
-    }
-    return result;
+    return ExtensionalCardinal{lhs.limbs[0] / rhs.limbs[0]};
   }
 
-  /** @brief Euclidean modulo.  Division by zero yields @c lhs by
-   *         convention (total).  Single-limb divisor: full multi-limb
-   *         remainder via the same long-division pass as @c operator/;
-   *         the result is therefore representable in a single limb (it
-   *         is bounded above by the divisor) and lives in @c limbs[0].
-   *         Multi-limb divisor: falls back to single-limb truncation. */
+  /** @brief Euclidean modulo, one-limb carriers only.  Division by zero
+   *  yields @c lhs by convention (total). */
   constexpr friend ExtensionalCardinal operator%(
-      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept
+    requires(N == 1)
+  {
     if (rhs.limbs[0] == 0) return lhs;
-    bool divisor_multi_limb = false;
-    for (std::size_t i = 1; i < N; ++i) {
-      if (rhs.limbs[i] != 0) {
-        divisor_multi_limb = true;
-        break;
-      }
-    }
-    if (divisor_multi_limb) {
-      ExtensionalCardinal result{};
-      result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
-      return result;
-    }
-    unsigned __int128 remainder = 0;
-    const unsigned __int128 divisor =
-        static_cast<unsigned __int128>(rhs.limbs[0]);
-    for (std::size_t i = N; i-- > 0;) {
-      const unsigned __int128 cur =
-          (remainder << limb_bits) |
-          static_cast<unsigned __int128>(lhs.limbs[i]);
-      remainder = cur % divisor;
-    }
-    ExtensionalCardinal result{};
-    result.limbs[0] = static_cast<limb_type>(remainder);
-    return result;
+    return ExtensionalCardinal{lhs.limbs[0] % rhs.limbs[0]};
   }
 
   constexpr ExtensionalCardinal operator-() const noexcept {
@@ -431,10 +375,9 @@ constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
  *  UB.  The finite fragment is @c ExtensionalCardinal<N>, a
  *  @b fixed-precision @c N-limb unsigned carrier; the default
  *  @c ExtensionalCardinal<> uses a single @c std::size_t limb (so
- *  the variant is @b not arbitrary-precision bigint --- choosing a
- *  larger @c N at the type level widens the finite range but every
- *  instantiation is still fixed-precision).  The @c ℵ_0 alternative
- *  marks the saturation regime that takes over once that fixed
+ *  the variant is @b not a bignum: a larger @c N widens the finite
+ *  range for @c +, @c - and @c * only, and division needs @c N = 1).  The @c
+ * ℵ_0 alternative marks the saturation regime that takes over once that fixed
  *  capacity cannot hold the result.
  *
  *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
@@ -718,10 +661,11 @@ constexpr T inverse(const T& x, std::plus<T>) {
  * arithmetic operators preserve that canonical form, so `+0` and `-0` compare
  * equal and never appear in results of operators on this type.
  *
- * Satisfies IsInteger (see registrations after the numbers:integer module
- * pulls this file), making it the intended signed backing carrier for
- * `Rational<Z>` when fixed-precision rationals with negative coefficients
- * are required — overflow happens at 2^{N*64-1} and not before.  The
+ * For @c N = 1 it satisfies IsInteger (see registrations after the
+ * numbers:integer module pulls this file), making it the signed backing
+ * carrier for fixed-width `Rational<Z>` — overflow happens at 2^63.  Wider
+ * @c N offer @c +, @c - and @c * only (no division), so they are not
+ * IsInteger and cannot back a @c Rational.  The
  * `SignedCardinality` variant downstream wraps this carrier with ±ℵ_0
  * sentinels so callers that need an unbounded ℤ proxy escalate
  * (saturate) rather than wrap; this carrier on its own is the bounded
@@ -899,10 +843,12 @@ struct SignedExtensionalCardinal {
   }
 
   /** @brief Euclidean division; result truncates toward zero (C++ semantics).
-   */
+   *  One-limb carriers only, like the magnitude's own division. */
   constexpr friend SignedExtensionalCardinal operator/(
       const SignedExtensionalCardinal& lhs,
-      const SignedExtensionalCardinal& rhs) noexcept {
+      const SignedExtensionalCardinal& rhs) noexcept
+    requires(N == 1)
+  {
     SignedExtensionalCardinal result;
     result.magnitude = lhs.magnitude / rhs.magnitude;
     result.negative = (lhs.negative != rhs.negative) &&
@@ -911,10 +857,12 @@ struct SignedExtensionalCardinal {
   }
 
   /** @brief Euclidean remainder; result takes the sign of the dividend
-   *         (C++ semantics: `a == (a / b) * b + a % b`). */
+   *         (C++ semantics: `a == (a / b) * b + a % b`).  One-limb only. */
   constexpr friend SignedExtensionalCardinal operator%(
       const SignedExtensionalCardinal& lhs,
-      const SignedExtensionalCardinal& rhs) noexcept {
+      const SignedExtensionalCardinal& rhs) noexcept
+    requires(N == 1)
+  {
     SignedExtensionalCardinal result;
     result.magnitude = lhs.magnitude % rhs.magnitude;
     result.negative = lhs.negative && (result.magnitude != magnitude_type{});
@@ -1007,12 +955,11 @@ export struct NaZ {
  *    - The finite fragment @c SignedExtensionalCardinal<N> is
  *      @b fixed-precision signed-magnitude with @c N limbs; the
  *      shorthand @c SignedExtensionalCardinal<> uses the default
- *      single-limb instantiation (so the variant is @b not
- *      arbitrary-precision bigint --- choosing a larger @c N widens
- *      the finite range but every instantiation is still
- *      fixed-precision).  The explicit overflow story is escalation
- *      to @f$\pm \aleph_0@f$, not bigint growth: signed-overflow UB
- *      and silent wrap are replaced by the saturation behaviour.
+ *      single-limb instantiation (so the variant is @b not a bignum:
+ *      a larger @c N widens the finite range for @c +, @c - and @c *
+ *      only, and division needs @c N = 1).  The explicit overflow story is
+ * escalation to @f$\pm \aleph_0@f$, not bigint growth: signed-overflow UB and
+ * silent wrap are replaced by the saturation behaviour.
  *
  *  Strictly mathematically, @f$\mathbb{Z} \cup \{\pm \aleph_0,
  *  \mathit{NaZ}\}@f$ is not a group in the textbook sense

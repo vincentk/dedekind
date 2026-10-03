@@ -25,8 +25,8 @@
  *
  * @section dual__Carrier_Generality
  * The construction Dual(R) = R[ε]/(ε²) is well-defined over any
- * commutative ring R, not only over floating-point fields.  The current
- * Dual<F> constraint `std::regular<F>` reflects this: integer carriers
+ * commutative ring R.  The Dual<F> constraint is `std::regular<F>` and not
+ * `std::floating_point<F>` (IEEE floats are not a ring): integer carriers
  * (Dual<int>, Dual<SignedExtensionalCardinal<>>) and the modular ring
  * (Dual<unsigned int>) instantiate cleanly and close the ring-operator
  * surface.
@@ -41,7 +41,7 @@
  * it merely reports that the operator surface is closed.  The
  * field-axiomatic distinction is a job for the strict @c category::IsField
  * concept (which is intentionally not specialised on @c Dual<int>);
- * this file pins @c HasFieldOperators<Dual<double>> as a positive
+ * this file pins @c HasFieldOperators<Dual<ℚ>> as a positive
  * witness and the ring-shape concepts (@c HasRingOperators,
  * @c IsAlgebra) as the load-bearing claims for the integer-carrier
  * extensions.
@@ -60,8 +60,8 @@
  * mechanically, without any numerical approximation.  The @b numerical
  * counterpart is @c dedekind::analysis::ftc::derivative_at (central
  * difference) in @c dedekind.analysis:ftc, which uses a small step
- * @c h on a @c std::floating_point carrier.  The two routes converge
- * on smooth functions and IEEE-edge carriers.  Their structural
+ * @c h on a @c std::floating_point carrier.  The two routes agree on
+ * smooth functions.  Their structural
  * divergence: @c :ftc currently gates on
  * @c IsNumericalBridgeScalar @c = @c HasFieldOperators<R> @c && @c
  * std::floating_point<resolved_value_t<R>>, so the analytic side is
@@ -112,7 +112,8 @@ using namespace dedekind::sets;
  *          kept for existing call sites.
  */
 export template <typename F>
-  requires std::regular<F>
+  requires std::regular<F> &&
+           (!std::floating_point<F>)  // 𝔻 over raw floats is not a ring (IEEE)
 struct Dual {
   using value_type = F;
 
@@ -212,18 +213,20 @@ constexpr F π_2(const Dual<F>& d) {
 /** @section dual__Formal_Verification */
 
 // Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
-inline constexpr Dual<double> eps{0.0, 1.0};
-static_assert(eps * eps == Dual<double>{0.0, 0.0}, "Nilpotent axiom: ε² = 0.");
+using 𝔻_ℚ = Dual<dedekind::numbers::Rational<>>;
+using ℚ_ = dedekind::numbers::Rational<>;
+inline constexpr 𝔻_ℚ eps{ℚ_{0}, ℚ_{1}};
+static_assert(eps * eps == 𝔻_ℚ{ℚ_{0}, ℚ_{0}}, "Nilpotent axiom: ε² = 0.");
 
 // Forward-mode AD correctness: d/dx(x²)|_{x=3} = 6.
 // Dual(3, 1) seeds x with derivative 1; squaring gives value 9, derivative 6.
-inline constexpr Dual<double> x_seed{3.0, 1.0};
-static_assert(x_seed * x_seed == Dual<double>{9.0, 6.0},
+inline constexpr 𝔻_ℚ x_seed{ℚ_{3}, ℚ_{1}};
+static_assert(x_seed * x_seed == 𝔻_ℚ{ℚ_{9}, ℚ_{6}},
               "AD rule: d/dx(x²)|_{x=3} = 6.");
 
-// Dual<double> is field-like: +, -, unary -, *, / are all defined and closed.
-static_assert(dedekind::algebra::HasFieldOperators<Dual<double>>,
-              "Dual<double> must satisfy the operational field-like witness.");
+// Dual<ℚ> is field-like: +, -, unary -, *, / are all defined and closed.
+static_assert(dedekind::algebra::HasFieldOperators<𝔻_ℚ>,
+              "Dual<ℚ> must satisfy the operational field-like witness.");
 
 // Dual(R) = R[ε]/(ε²) is well-defined for any commutative ring R; nothing in
 // the +, -, unary -, * fragment needs R to be a field or to be a floating-
@@ -245,7 +248,7 @@ static_assert(dedekind::algebra::HasFieldOperators<Dual<double>>,
 // NOT pinned here even though it would syntactically fire (operator/
 // compiles via integer division), because the integer-division
 // semantics are not field-axiomatic --- the field-shape claim belongs
-// only on field-shaped carriers (Dual<double>, Dual<Rat>).
+// only on field-shaped carriers (Dual<Rat>).
 //
 // Note: ``machine-integer-coefficient'' is the honest framing here.
 // Plain @c int is NOT axiomatic-ring-safe in this project (signed-
@@ -271,6 +274,12 @@ static_assert(
     dedekind::algebra::HasRingOperators<Dual<unsigned int>>,
     "Dual<unsigned int> closes the ring-operator surface under modular wrap.");
 
+// The float gate: Dual over an IEEE float is not a type.
+template <typename F>
+concept dual_admits = requires { typename Dual<F>; };
+static_assert(!dual_admits<double> && dual_admits<int>,
+              "Dual rejects raw floats (not a ring under IEEE).");
+
 // Nilpotent axiom ε² = 0 carries to any ring carrier — the defining
 // relation of Dual is independent of F.
 inline constexpr Dual<int> eps_int{0, 1};
@@ -281,9 +290,8 @@ static_assert(eps_int * eps_int == Dual<int>{0, 0},
 // tangent-bundle carrier over F (Hartshorne, Ex. II.2.8).  Pin one
 // witness per shipped carrier so the concept's primary instances are
 // mechanical at translation time.
-static_assert(dedekind::geometry::IsTangentBundle<Dual<double>>,
-              "Dual<double> is a first-order tangent-bundle carrier over the "
-              "machine-real proxy.");
+static_assert(dedekind::geometry::IsTangentBundle<𝔻_ℚ>,
+              "Dual<ℚ> is a first-order tangent-bundle carrier over ℚ.");
 static_assert(
     dedekind::geometry::IsTangentBundle<Dual<int>>,
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "
@@ -300,10 +308,7 @@ static_assert(
  *  @c element<𝔻> scout spelling.
  *
  *  Post-HSP retarget: the carrier of @c 𝔻 is @c Dual<QuadraticReal<2>> —
- *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
- *  @c Dual<double>.  Machine-double forward-mode AD lives on the
- *  materialisable ambient @c 𝔻_d = 𝔸<Dual<machine_real_scalar>> below
- *  (mirroring ℝ_d / ℂ_d).
+ *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
@@ -326,21 +331,11 @@ static_assert(
                                    Kleene, ℶ_1>>,
     "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
-    "ℝ and ℂ.  Not Dual<double>.");
+    "ℝ and ℂ.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                            Dual<dedekind::numbers::QuadraticReal<2>>>,
               "𝔻's carrier IS Dual<QuadraticReal<2>> — the 2nd-order quotient "
               "ℝ[ε]/(ε²) over the coat-hanger ℝ.");
-
-/** @brief The materialisable machine ambient @c 𝔻_d = @c 𝔸<Dual<double>>,
- *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
- *  abstract @c 𝔻 is the coat-hanger. */
-export inline constexpr auto 𝔻_d =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>, Kleene,
-                      ℶ_1>{};
-static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
-                           Dual<dedekind::numbers::machine_real_scalar>>,
-              "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");
 
 /**
  * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{D}@f$ over

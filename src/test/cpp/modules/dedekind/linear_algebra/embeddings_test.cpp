@@ -30,7 +30,7 @@ using namespace dedekind::numbers;
 using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
-// Arbitrary-precision signed rational — the canonical ℚ carrier.
+// Fixed-width (one-limb) signed rational — the canonical ℚ carrier.
 using Rat = Rational<SignedExtensionalCardinal<>>;
 }  // namespace
 

@@ -38,6 +38,7 @@ export module dedekind.numbers:quaternion;
 
 import dedekind.category;
 import dedekind.geometry;
+import :rational;  // the exact witnesses below
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -48,19 +49,23 @@ using namespace dedekind::geometry;
  * @brief Scalar type suitable as quaternion components.
  */
 export template <typename R>
-concept IsQuaternionScalar = requires(R a, R b) {
-  R{};
-  { a + b } -> std::same_as<R>;
-  { a - b } -> std::same_as<R>;
-  { a * b } -> std::same_as<R>;
-  { -a } -> std::same_as<R>;
-} && std::equality_comparable<R>;
+concept IsQuaternionScalar =
+    requires(R a, R b) {
+      R{};
+      { a + b } -> std::same_as<R>;
+      { a - b } -> std::same_as<R>;
+      { a * b } -> std::same_as<R>;
+      { -a } -> std::same_as<R>;
+    } && std::equality_comparable<R> &&
+    !std::floating_point<R>;  // ℍ over raw floats is not a ring (IEEE)
+static_assert(!IsQuaternionScalar<double> && IsQuaternionScalar<int>,
+              "IsQuaternionScalar rejects raw floats.");
 
 /**
  * @class Quaternion
  * @brief Hamilton's hypercomplex numbers q = a + bi + cj + dk.
  *
- * @tparam R  The scalar component type (e.g. double, float).
+ * @tparam R  The scalar component type (an exact ring, e.g. @c Rational<>).
  *
  * Multiplication is non-commutative: ij = k but ji = -k.
  */
@@ -139,45 +144,6 @@ class Quaternion {
   R a_, b_, c_, d_;
 };
 
-/**
- * @brief Embed a quaternion as a 4-dimensional real vector.
- *
- * Formalises the identification ℍ ≅ ℝ⁴ via
- *   q = a + bi + cj + dk  ↦  (a, b, c, d).
- *
- * The dimension HasDimension<Vector<R,4>, 4> is enforced at compile time.
- */
-export template <typename R>
-  requires IsQuaternionScalar<R> && std::floating_point<R>
-constexpr Vector<R, 4> as_vector(const Quaternion<R>& q) {
-  return {q.w(), q.x(), q.y(), q.z()};
-}
-
-/**
- * @brief Embed a quaternion into its 4×4 left-multiplication matrix.
- *
- * The left-multiplication map L_q : ℍ → ℍ, p ↦ q × p, is ℝ-linear.
- * In the ordered basis {1, i, j, k} the matrix is:
- *
- *   L_q = ⎡ w  -x  -y  -z ⎤
- *          ⎢ x   w  -z   y ⎥
- *          ⎢ y   z   w  -x ⎥
- *          ⎣ z  -y   x   w ⎦
- *
- * This satisfies: as_matrix(q) * as_vector(p) == as_vector(q * p).
- *
- * The map q ↦ L_q is an injective ring homomorphism ℍ ↪ M₄(ℝ).
- */
-export template <typename R>
-  requires IsQuaternionScalar<R> && std::floating_point<R>
-constexpr LinearMap<R, 4, 4> as_matrix(const Quaternion<R>& q) {
-  const R w = q.w(), x = q.x(), y = q.y(), z = q.z();
-  return {{{w, -x, -y, -z},  // row 0
-           {x, w, -z, y},    // row 1
-           {y, z, w, -x},    // row 2
-           {z, -y, x, w}}};  // row 3
-}
-
 /** @section quaternion__Formal_Verification
  *
  * The Hamilton relations i²=j²=k²=ijk=-1 and non-commutativity ij≠ji
@@ -185,11 +151,16 @@ constexpr LinearMap<R, 4, 4> as_matrix(const Quaternion<R>& q) {
  * Quaternion multiplication table is correct.
  */
 
-// Basis quaternions
-inline constexpr Quaternion<double> q_i{0, 1, 0, 0};
-inline constexpr Quaternion<double> q_j{0, 0, 1, 0};
-inline constexpr Quaternion<double> q_k{0, 0, 0, 1};
-inline constexpr Quaternion<double> q_neg1{-1, 0, 0, 0};
+// Basis quaternions over the exact ℚ
+using ℍ_ℚ = Quaternion<Rational<>>;
+inline constexpr ℍ_ℚ q_i{Rational<>{0}, Rational<>{1}, Rational<>{0},
+                         Rational<>{0}};
+inline constexpr ℍ_ℚ q_j{Rational<>{0}, Rational<>{0}, Rational<>{1},
+                         Rational<>{0}};
+inline constexpr ℍ_ℚ q_k{Rational<>{0}, Rational<>{0}, Rational<>{0},
+                         Rational<>{1}};
+inline constexpr ℍ_ℚ q_neg1{Rational<>{-1}, Rational<>{0}, Rational<>{0},
+                            Rational<>{0}};
 
 // i² = j² = k² = -1
 static_assert(q_i * q_i == q_neg1, "i² = -1");

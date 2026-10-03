@@ -13,7 +13,7 @@ import dedekind.algebra; // HasRingOperators, IsAlgebra (witness mirrors)
 import dedekind.analysis;
 import dedekind.category; // Boole, Ternary, var, ...
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
-import dedekind.numbers;  // Complex<F>, machine_real_scalar, IEEE<F>
+import dedekind.numbers;  // Rational<>, Complex<F>, IEEE<F>
 import dedekind.sets;     // Set, 𝔸, predicate-set DSL
 
 using namespace dedekind::analysis;
@@ -22,53 +22,38 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Analysis: Dual Numbers and Differentiation", "[analysis][dual]") {
-  using Scalar = double;
-  using DualValue = Dual<Scalar>;
+  using Q = Rational<>;
+  using DualValue = Dual<Q>;
 
   SECTION("Automatic Differentiation: f(x) = x²") {
-    // Seed: x = 3, dx = 1
-    DualValue x{3.0, 1.0};
-
-    // Compute f(x) = x * x
-    DualValue res = x * x;
-
-    // f(3) = 9
-    REQUIRE(res.value() == 9.0);
-    // f'(3) = 2*x = 6
-    REQUIRE(res.derivative() == 6.0);
+    const DualValue x{Q{3}, Q{1}};  // seed x = 3, dx = 1
+    const DualValue res = x * x;
+    REQUIRE(res.value() == Q{9});
+    REQUIRE(res.derivative() == Q{6});  // f'(3) = 2x = 6
   }
 
   SECTION("Subtraction: (a + bε) - (c + dε)") {
-    DualValue a{5.0, 3.0};
-    DualValue b{2.0, 1.0};
-    DualValue res = a - b;
-    REQUIRE(res.value() == 3.0);
-    REQUIRE(res.derivative() == 2.0);
+    const DualValue res = DualValue{Q{5}, Q{3}} - DualValue{Q{2}, Q{1}};
+    REQUIRE(res.value() == Q{3});
+    REQUIRE(res.derivative() == Q{2});
   }
 
   SECTION("Unary negation: -(a + bε) = -a - bε") {
-    DualValue a{4.0, -1.0};
-    DualValue res = -a;
-    REQUIRE(res.value() == -4.0);
-    REQUIRE(res.derivative() == 1.0);
+    const DualValue res = -DualValue{Q{4}, Q{-1}};
+    REQUIRE(res.value() == Q{-4});
+    REQUIRE(res.derivative() == Q{1});
   }
 
   SECTION("Inverse: (a + bε)⁻¹ = 1/a - (b/a²)ε") {
-    // (2 + 1ε)⁻¹ = 0.5 - 0.25ε
-    DualValue a{2.0, 1.0};
-    DualValue inv = a.inverse();
-    REQUIRE(inv.value() == 0.5);
-    REQUIRE(inv.derivative() == -0.25);
+    const DualValue inv = DualValue{Q{2}, Q{1}}.inverse();
+    REQUIRE(inv.value() == Q{1, 2});
+    REQUIRE(inv.derivative() == Q{-1, 4});
   }
 
   SECTION("Division: AD rule d/dx(1/x)|_{x=2} = -1/4") {
-    // f(x) = 1/x, f'(x) = -1/x²
-    // Seed x = 2, dx = 1: (2 + 1ε) / (2 + 1ε) would give 1, test 1/(x):
-    DualValue one{1.0, 0.0};
-    DualValue x{2.0, 1.0};
-    DualValue res = one / x;
-    REQUIRE(res.value() == 0.5);
-    REQUIRE(res.derivative() == -0.25);
+    const DualValue res = DualValue{Q{1}, Q{0}} / DualValue{Q{2}, Q{1}};
+    REQUIRE(res.value() == Q{1, 2});
+    REQUIRE(res.derivative() == Q{-1, 4});
   }
 }
 
@@ -97,44 +82,8 @@ TEST_CASE(
   // first-order tangent-bundle carrier over F (flat case;
   // Spec(R[ε]/(ε²)) reading).  Bundle-structure on non-flat manifolds
   // is the #185 follow-up.
-  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<double>>);
+  STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<Rational<>>>);
   STATIC_CHECK(dedekind::geometry::IsTangentBundle<Dual<int>>);
 }
 
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Tower coverage moved from numbers/tower_test.cpp at PR #513 (:dual
-// relocation).  ℂ ↪ Dual seeding and Set-membership-over-Dual<double>
-// belong with the Dual carrier rather than under :numbers tower tests.
-// ---------------------------------------------------------------------------
-
-TEST_CASE("Analysis: ℂ -> Dual (forward-mode AD seed)",
-          "[analysis][dual][tower]") {
-  // A complex number c = (a + 0i) can be seeded into Dual as (a + 0ε).
-  const auto c = Complex<machine_real_scalar>{3.0, 0.0};
-  const Dual<machine_real_scalar> d{c.real(), machine_real_scalar{}};
-
-  CHECK(d.value() == 3.0);
-  CHECK(d.derivative() == 0.0);
-
-  // Dual arithmetic: (3 + 0ε) * (2 + 1ε) = 6 + 3ε
-  const Dual<machine_real_scalar> seed{2.0, 1.0};
-  const auto product = d * seed;
-  CHECK(product.value() == 6.0);
-  CHECK(product.derivative() == 3.0);
-}
-
-TEST_CASE("Analysis: Set membership over Dual<double> domain",
-          "[analysis][dual][tower][sets]") {
-  using F = machine_real_scalar;
-  // Sets over Dual: membership based on the primal value component.
-  const auto positive_pred = [](const Dual<F>& d) { return d.value() > 0.0; };
-  const Comprehension<𝔸<Dual<F>, Boole>, decltype(positive_pred)>
-      positive_primal{positive_pred};
-
-  CHECK(positive_primal(Dual<F>{1.0, 0.5}) == true);
-  CHECK(positive_primal(Dual<F>{-1.0, 0.5}) == false);
-
-  // Derivative component does not affect set membership.
-  CHECK(positive_primal(Dual<F>{0.5, -99.0}) == true);
-}

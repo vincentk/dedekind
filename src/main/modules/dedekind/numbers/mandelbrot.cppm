@@ -45,6 +45,7 @@ import dedekind.geometry;
 import dedekind.sequences;
 import dedekind.sets;
 import :complex;
+import :rational;  // the exact witnesses below
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -311,13 +312,13 @@ namespace dedekind::numbers {
  *  Sequence-API leverage pinned at the type level (#719). */
 
 // The raw orbit n ↦ z_n is a bona-fide sequence (ℕ → Complex<R>).
-static_assert(dedekind::sequences::IsSequence<OrbitPath<double>>,
+static_assert(dedekind::sequences::IsSequence<OrbitPath<Rational<>>>,
               "A Mandelbrot orbit is an IsSequence (ℕ → Complex).");
 
 // The escape indicator is a typed absorptive sequence — eventual-constancy
 // for every c, independent of the value-level membership question.
 static_assert(
-    dedekind::sequences::IsAbsorptiveSequence<DivergencePath<double>>,
+    dedekind::sequences::IsAbsorptiveSequence<DivergencePath<Rational<>>>,
     "The Mandelbrot divergence path is an absorptive sequence: eventually "
     "constant (True after escape, else the degenerate constant Unknown).");
 

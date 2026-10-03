@@ -186,11 +186,10 @@ constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
 // CAVEAT: @c is_left_total_v (entireness) below is registered unconditionally,
 // which assumes @c F is a @b total arrow.  @c is_right_unique_v (single-valued)
 // is always honest for a graph; entireness is not, if @c F is genuinely partial
-// (e.g. an arrow that @c throw s / rejects part of its domain, like
-// @c embed_double_ℚ).  No current caller graphs a partial arrow, so this is
-// latent; a partial-arrow graph would need @c is_left_total gated on the
-// arrow's totality (there is no general "arrow is total" trait yet --- FIXME if
-// one is needed).
+// (e.g. an arrow that @c throw s / rejects part of its domain).  No current
+// caller graphs a partial arrow, so this is latent; a partial-arrow graph would
+// need @c is_left_total gated on the arrow's totality (there is no general
+// "arrow is total" trait yet --- FIXME if one is needed).
 namespace dedekind::category {
 template <typename F>
 inline constexpr bool is_left_total_v<dedekind::relational::Graph<F>> = true;
