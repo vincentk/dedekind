@@ -1162,10 +1162,7 @@ static_assert(
 // (5) Adjacent-set arrows on ℚ:
 //   - Forward predecessor: @c ℤ ↪ ℚ via @c embed_ℤ_ℚ (n ↦ n/1; same
 //     arrow as (4)).
-//   - Forward successor:    @c ℚ ↪ ℝ — the @c embed_ℚ_ℝ arrow was
-//     removed under the ℚ retarget cleanup (the @c SignedCardinality
-//     variant carrier deliberately does not expose machine-numeric
-//     conversions).  The exact ℚ ↪ ℝ is @c embed_ℚ_ℝ in @c :real_bridge.
+//   - Forward successor:    @c ℚ ↪ ℝ via @c embed_ℚ_ℝ in @c :real_bridge.
 //   - Reverse direction (ℚ → machine):  intentionally not a single
 //     primitive on @c Rational<I>: ℚ → @c double is the realisation
 //     crossing into IEEE 754 numerics, and the carrier-lattice

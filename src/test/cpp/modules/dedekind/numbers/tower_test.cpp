@@ -20,6 +20,9 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
                            Complex<machine_real_scalar>>);
 
+static_assert(IsSpecies<Rational<machine_integer>>);
+static_assert(IsSpecies<Complex<machine_real_scalar>>);
+
 TEST_CASE("Tower: ℝ_d ↪ ℂ via embed_ℝ_d_ℂ", "[numbers][tower][embedding]") {
   // Embedding: imaginary part is always 0.
   using F = dedekind::morphologies::𝕃<machine_real_scalar>;

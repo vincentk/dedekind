@@ -376,7 +376,7 @@ inline constexpr bool
 // --- a genuine ordered field.  The carriers with a type-indexed
 // category::IsField AND a compatible order --- ℚ and ℚ(√D) --- opt into both
 // markers, so Complex<ℚ> and Complex<ℚ(√D)> are certified fields through ONE
-// registration, not an ad-hoc per-carrier list.   This is SUFFICIENT, not
+// registration, not an ad-hoc per-carrier list.  This is SUFFICIENT, not
 // necessary (x²+1 is also irreducible over the non-orderable 𝔽₃, which simply
 // goes uncertified).  Crucially the gate is NOT std::totally_ordered (mere
 // syntactic comparability, which 𝔽₅ satisfies by representatives even though −1
@@ -859,10 +859,14 @@ static_assert(
     "ℂ's carrier IS Complex<QuadraticReal<2>> — the 2nd-order quotient "
     "ℝ[i]/(i²+1) over the coat-hanger ℝ.");
 
-/** @brief The materialisable machine ambient @c ℂ_d = @c 𝔸<Complex<double>>,
- *  mirroring @c ℝ_d.  Machine-double complex work (showcases, Mandelbrot,
- *  benchmarks, the Python facade) lives here, exactly as @c double reals moved
- *  from @c ℝ to @c ℝ_d in #806.  The abstract @c ℂ is the coat-hanger. */
+/** @brief The materialisable machine ambient @c ℂ_d = @c 𝔸<Complex<double>>.
+ *  Machine-double complex work (showcases, Mandelbrot, benchmarks, the Python
+ *  facade) lives here.  The abstract @c ℂ is the coat-hanger.
+ *
+ *  @note Unlike @c ℝ_d (Boole over the finite doubles @c 𝕃<double>), @c ℂ_d is
+ *  Kleene over raw @c Complex<double>: its components may be NaN or +/-inf.
+ *  FIXME(#496): retarget to @c Complex<𝕃<double>> once @c 𝕃 carries the
+ *  arithmetic @c Complex needs. */
 export inline constexpr auto ℂ_d =
     dedekind::sets::𝔸<Complex<machine_real_scalar>, Kleene, ℶ_1>{};
 static_assert(
