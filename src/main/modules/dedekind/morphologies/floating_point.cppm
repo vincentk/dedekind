@@ -225,15 +225,22 @@ class safe_float {
            x <= std::numeric_limits<F>::max();
   }
 
+  /** @brief The cold rejection path, kept out of the constructor's body.
+   *  Not constexpr: reaching it in a constant expression is a compile error. */
+  [[noreturn, gnu::cold, gnu::noinline]] static void reject_non_finite() {
+    throw std::domain_error("safe_float: NaN and +/-inf are not finite");
+  }
+
  public:
   /** @brief Zero, the finite default. */
   constexpr safe_float() noexcept = default;
 
   /** @brief Checked entry: throws @c std::domain_error on NaN / +/-inf.
-   *  Explicit, so a raw @c F never converts silently. */
+   *  Explicit, so a raw @c F never converts silently.  The body is one
+   *  comparison and the throw lives out of line, so the constructor inlines
+   *  and a constant argument folds (the IR exhibits depend on it). */
   constexpr explicit safe_float(F x) : value_(x) {
-    if (!is_finite(x))
-      throw std::domain_error("safe_float: NaN and +/-inf are not finite");
+    if (!is_finite(x)) reject_non_finite();
   }
 
   /** @brief Kleisli lift @f$F \to
