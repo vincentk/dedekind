@@ -319,7 +319,7 @@ constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
 }
 
 /** @brief The canonical real-number universe @c ℝ @c = @c
- *         𝔸<QuadraticReal<2>, Kleene, ℶ_1> --- the coat-hanger.
+ *         𝔸<QuadraticReal<2>, Boole, ℶ_1> --- the coat-hanger.
  *
  *  @details Per #559 the named species symbols denote @b universe values
  *  (constexpr @c 𝔸 instances over the carrier).  @c ℝ's carrier is
@@ -343,11 +343,11 @@ constexpr Real<machine_real_scalar> embed_floating_ℝ_d(F v) {
  *  ℝ.
  */
 export inline constexpr auto ℝ =
-    dedekind::sets::𝔸<QuadraticReal<2>, Kleene, ℶ_1>{};
+    dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>{};
 
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℝ)>,
-                           dedekind::sets::𝔸<QuadraticReal<2>, Kleene, ℶ_1>>,
-              "ℝ is the universe 𝔸<QuadraticReal<2>, Kleene, ℶ_1> — the "
+                           dedekind::sets::𝔸<QuadraticReal<2>, Boole, ℶ_1>>,
+              "ℝ is the universe 𝔸<QuadraticReal<2>, Boole, ℶ_1> — the "
               "coat-hanger realised as ℚ(√2).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
                            QuadraticReal<2>>,
