@@ -411,30 +411,6 @@ struct inverse_trait<dedekind::numbers::Complex<R>,
 
 namespace dedekind::numbers {
 
-namespace detail {
-constexpr bool to_lattice_coordinate(
-    double x, dedekind::geometry::IntegerLatticeScalar& out) {
-  using Scalar = dedekind::geometry::IntegerLatticeScalar;
-  constexpr double lo = static_cast<double>(std::numeric_limits<Scalar>::min());
-  constexpr double hi = static_cast<double>(std::numeric_limits<Scalar>::max());
-  if ((x < lo) || (x > hi)) return false;
-  if (std::trunc(x) != x) return false;
-  out = static_cast<Scalar>(x);
-  return true;
-}
-}  // namespace detail
-
-/**
- * @brief Machine realization arrow ℝ_d ↪ ℂ_d: @c 𝕃<R> → @c Complex<R>.
- * @details Every finite float x embeds as the complex number (x + 0i).
- */
-export template <std::floating_point R = machine_real_scalar>
-inline constexpr auto embed_ℝ_d_ℂ =
-    arrow<dedekind::morphologies::𝕃<R>, Complex<R>>(
-        [](const dedekind::morphologies::𝕃<R>& r) noexcept {
-          return Complex<R>{r.value(), R{}};
-        });
-
 /**
  * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{C}@f$ over
  * the
@@ -444,8 +420,7 @@ inline constexpr auto embed_ℝ_d_ℂ =
  * @details A genuine monic @b ring embedding (an @c EmbedsAsSubalgebra S-leg,
  * the ℂ sibling of @c embed_ℚ_ℝ): ℝ is the real subfield
  * @f$\{\,\mathrm{im}=0\,\}
- * \subset\mathbb{C}@f$.  Distinct from the machine @c embed_ℝ_d_ℂ
- * (@c 𝕃<double> → @c Complex<double>); this is the coat-hanger arrow
+ * \subset\mathbb{C}@f$.  The arrow is
  * @f$r\mapsto r+0i@f$, witnessed by computation below.  Not registered
  * @c is_monotone_v --- ℂ carries no total order (that is exactly what the
  * quotient by @f$(i^2+1)@f$ forfeits vs. ℝ). */
@@ -832,9 +807,7 @@ static_assert(
  *
  *  Post-HSP retarget: the carrier of @c ℂ is @c Complex<QuadraticReal<2>> ---
  *  the 2nd-order quotient ℝ[i]/(i²+1) over the coat-hanger ℝ, NOT
- *  @c Complex<double>.  Machine-double complex lives on the materialisable
- *  ambient @c ℂ_d = 𝔸<Complex<machine_real_scalar>> below (mirroring
- *  ℝ_d / 𝔻_d).
+ *  @c Complex<double>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
  *  cardinality of ℂ, matching ℝ — overriding @c 𝔸's @c ℵ_0 default.  ℂ is
@@ -859,21 +832,6 @@ static_assert(
     "ℂ's carrier IS Complex<QuadraticReal<2>> — the 2nd-order quotient "
     "ℝ[i]/(i²+1) over the coat-hanger ℝ.");
 
-/** @brief The materialisable machine ambient @c ℂ_d = @c 𝔸<Complex<double>>.
- *  Machine-double complex work (showcases, Mandelbrot, benchmarks, the Python
- *  facade) lives here.  The abstract @c ℂ is the coat-hanger.
- *
- *  @note Unlike @c ℝ_d (Boole over the finite doubles @c 𝕃<double>), @c ℂ_d is
- *  Kleene over raw @c Complex<double>: its components may be NaN or +/-inf.
- *  FIXME(#496): retarget to @c Complex<𝕃<double>> once @c 𝕃 carries the
- *  arithmetic @c Complex needs. */
-export inline constexpr auto ℂ_d =
-    dedekind::sets::𝔸<Complex<machine_real_scalar>, Kleene, ℶ_1>{};
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(ℂ_d)>::Domain,
-                 Complex<machine_real_scalar>>,
-    "ℂ_d's carrier is Complex<machine_real_scalar> (machine ambient).");
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -882,14 +840,6 @@ struct SpeciesTraits<dedekind::numbers::Complex<R>> {
   using Domain = dedekind::numbers::Complex<R>;
   using machine_type = dedekind::numbers::Complex<R>;
 };
-
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_d_ℂ<>)>> =
-        true;
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℝ_d_ℂ<>)>>,
-    "embed_ℝ_d_ℂ (ℝ_d ↪ ℂ) is registered injective.");
 
 // The coat-hanger S-leg ℝ ↪ ℂ is monic (r ↦ (r,0) is injective).
 template <>
@@ -1006,85 +956,6 @@ static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
               "Complex<ℚ> is a module over ℚ.");
 
 /**
- * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
- *
- * @details The Gaussian integers ℤ[i] embed into ℂ via (a, b) ↦ a + bi.
- *          This is the standard lattice injection identifying the square
- *          integer grid ℤ² with ℤ[i] ⊂ ℂ.
- *          Declared monic below: distinct integer pairs yield distinct
- *          complex numbers since real() and imag() recover a and b exactly.
- */
-export inline constexpr auto embed_z2_c =
-    arrow<dedekind::geometry::IntegerLatticePoint2D, Complex<double>>(
-        [](const dedekind::geometry::IntegerLatticePoint2D& p) noexcept {
-          return Complex<double>{static_cast<double>(p.first),
-                                 static_cast<double>(p.second)};
-        });
-
-/**
- * @brief Lift a Set<IntegerLatticePoint2D> (a lattice grid) to
- *        Set<Complex<double>>
- *        via the embedding embed_z2_c.
- *
- * @details A complex number z belongs to the image if and only if:
- *          (1) z has integral real and imaginary parts, and
- *          (2) the corresponding lattice point is in grid.
- *
- *          This is the canonical preimage characterisation of the image of a
- *          monic (injective) map: z ∈ embed_z2_c(grid) ↔ embed_z2_c⁻¹(z) ∈
- * grid.
- *
- * @param grid  A Set<dedekind::geometry::IntegerLatticePoint2D,
- *              Boole, P> (e.g. from
- *              dedekind::geometry::square_integer_grid).
- * @return A Set<Complex<double>, Boole, ...>.
- */
-export template <typename L, typename P, typename C>
-constexpr auto embed_grid_ℂ(
-    const dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<dedekind::geometry::IntegerLatticePoint2D, L, C>, P>&
-        grid) {
-  using namespace dedekind::sets;
-  // FIXME(#399 slice 4-6): once ℂ becomes a carrier alias for
-  // Complex<...>, the ambient can be spelled @c ℂ directly; for now the
-  // universe over @c Complex<double> is the comprehension base.
-  // Runtime @c grid capture + a Complex→lattice coordinate conversion: not
-  // π-expressible, so a NAMED local predicate over the universe
-  // (comprehension).
-  const auto in_grid = [grid](const Complex<double>& z) {
-    const double re = z.real();
-    const double im = z.imag();
-    dedekind::geometry::IntegerLatticeScalar x =
-        dedekind::geometry::IntegerLatticeScalar{0};
-    dedekind::geometry::IntegerLatticeScalar y =
-        dedekind::geometry::IntegerLatticeScalar{0};
-    if (!detail::to_lattice_coordinate(re, x) ||
-        !detail::to_lattice_coordinate(im, y))
-      return false;
-    using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
-    return grid(dedekind::geometry::IntegerLatticePoint2D{x, y}) ==
-           GridLogic::True;
-  };
-  return Comprehension{𝔸<Complex<double>>{}, in_grid};
-}
-
-/**
- * @brief The canonical N×N square Gaussian-integer grid as a Set<ℂ>.
- *
- * @details Combines dedekind::geometry::square_integer_grid with
- *          embed_grid_ℂ to produce the set:
- *            Λ_N = { x + iy ∈ ℂ | 0 ≤ x < n, 0 ≤ y < n, x,y ∈ ℤ }.
- *          This is the default discretization of ℂ used in numerical
- *          algorithms such as the Mandelbrot set approximation.
- *
- * @param n  Side length of the grid (number of lattice points per axis).
- * @return A Set<Complex<double>, Boole, ...>.
- */
-export constexpr auto complex_lattice(int n) {
-  return embed_grid_ℂ(dedekind::geometry::square_integer_grid(n));
-}
-
-/**
  * @brief Embed a complex number into a 2-dimensional real vector.
  *
  * Formalises the identification ℂ ≅ ℝ² via z = a + bi ↦ (a, b).
@@ -1123,18 +994,6 @@ constexpr dedekind::geometry::LinearMap<R, 2, 2> as_matrix(
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-
-template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>> =
-        true;
-
-static_assert(
-    IsMonicArrow<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
-    "embed_z2_c must be recognised as a monic arrow.");
-static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
-    "embed_z2_c (ℤ² ↪ ℂ) is registered injective.");
 
 // Structural product proof: ℂ ≅ ℝ × ℝ (or more generally S × S for any
 // carrier).
@@ -1246,7 +1105,7 @@ static_assert(
  *     yet shipped --- a future @c embed_std_complex would close
  *     the loop, but the current path is to construct
  *     @c Complex<double>{re, im} directly.
- * (5) Adjacent-set arrow: ℝ_d ↪ ℂ via @c embed_ℝ_d_ℂ above
+ * (5) Adjacent-set arrow: ℝ ↪ ℂ via @c embed_ℝ_ℂ above
  *     (registered monic); reverse projections @c .real() / @c
  *     .imag() live on the carrier as accessors.  Higher: ℂ ↪ ℍ
  *     (quaternions) via @c Quaternion<R>'s zero-imaginary lift

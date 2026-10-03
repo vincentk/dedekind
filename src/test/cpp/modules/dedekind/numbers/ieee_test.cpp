@@ -39,19 +39,6 @@ TEST_CASE("IEEE map/bind and lane conversions", "[numbers][ieee][unsafe]") {
   CHECK_FALSE(discharge_ieee(inf).has_value());
 }
 
-TEST_CASE("Complex machine ambient lifts to an L-set, not an ETCS set",
-          "[numbers][complex][etcs]") {
-  // ℂ_d carries Kleene (the continuum universes do), so its ambient lift is a
-  // Goguen L-set; IsSet (Ω = 𝔹) is deliberately not claimed.
-  using ComplexAmbient =
-      decltype(dedekind::category::ambient_set<Complex<machine_real_scalar>>(
-          dedekind::numbers::ℂ_d));
-
-  STATIC_CHECK(dedekind::category::IsLSet<ComplexAmbient>);
-  STATIC_CHECK_FALSE(IsSet<ComplexAmbient>);
-  CHECK(true);
-}
-
 static_assert(is_associative_v<IEEE<double>, IEEEAdd<double>>,
               "IEEE fast lane should certify associativity by explicit policy");
 

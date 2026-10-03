@@ -301,9 +301,7 @@ static_assert(
  *
  *  Post-HSP retarget: the carrier of @c 𝔻 is @c Dual<QuadraticReal<2>> —
  *  the 2nd-order quotient ℝ[ε]/(ε²) over the coat-hanger ℝ, NOT
- *  @c Dual<double>.  Machine-double forward-mode AD lives on the
- *  materialisable ambient @c 𝔻_d = 𝔸<Dual<machine_real_scalar>> below
- *  (mirroring ℝ_d / ℂ_d).
+ *  @c Dual<double>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
@@ -331,16 +329,6 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
                            Dual<dedekind::numbers::QuadraticReal<2>>>,
               "𝔻's carrier IS Dual<QuadraticReal<2>> — the 2nd-order quotient "
               "ℝ[ε]/(ε²) over the coat-hanger ℝ.");
-
-/** @brief The materialisable machine ambient @c 𝔻_d = @c 𝔸<Dual<double>>,
- *  mirroring @c ℝ_d / @c ℂ_d.  Machine-double forward-mode AD lives here; the
- *  abstract @c 𝔻 is the coat-hanger. */
-export inline constexpr auto 𝔻_d =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::machine_real_scalar>, Kleene,
-                      ℶ_1>{};
-static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻_d)>::Domain,
-                           Dual<dedekind::numbers::machine_real_scalar>>,
-              "𝔻_d's carrier is Dual<machine_real_scalar> (machine ambient).");
 
 /**
  * @brief The Birkhoff @b S leg @f$\mathbb{R}\hookrightarrow\mathbb{D}@f$ over

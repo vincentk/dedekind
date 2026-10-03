@@ -1,7 +1,7 @@
 /**
  * @file tower_test.cpp
- * @brief The numeric embeddings and partial arithmetic of @c :numbers:
- * ℝ_d ↪ ℂ, ℤ ↪ ℚ, and the Ternary-status transforms on ℚ and ℂ.
+ * @brief The partial arithmetic of @c :numbers: ℤ ↪ ℚ and the
+ * Ternary-status transforms on ℚ and ℂ.
  *
  * The lower rungs (𝔹 ↪ ℕ, 𝕂3 ↪ ℤ) are tested in their own partitions'
  * suites (morphologies/uint_test, numbers/integer_test).
@@ -9,28 +9,13 @@
 #include <catch2/catch_test_macros.hpp>
 
 import dedekind.category;
-import dedekind.morphologies;
 import dedekind.numbers;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
-                           dedekind::morphologies::𝕃<machine_real_scalar>>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_d_ℂ<>)>>,
-                           Complex<machine_real_scalar>>);
-
 static_assert(IsSpecies<Rational<machine_integer>>);
 static_assert(IsSpecies<Complex<machine_real_scalar>>);
-
-TEST_CASE("Tower: ℝ_d ↪ ℂ via embed_ℝ_d_ℂ", "[numbers][tower][embedding]") {
-  // Embedding: imaginary part is always 0.
-  using F = dedekind::morphologies::𝕃<machine_real_scalar>;
-  CHECK(embed_ℝ_d_ℂ<>(F{3.0}).real() == 3.0);
-  CHECK(embed_ℝ_d_ℂ<>(F{3.0}).imag() == 0.0);
-  CHECK(embed_ℝ_d_ℂ<>(F{-2.5}).real() == -2.5);
-  CHECK(embed_ℝ_d_ℂ<>(F{-2.5}).imag() == 0.0);
-}
 
 TEST_CASE("Partial Arithmetic: Rational<I>",
           "[numbers][tower][partial][rational]") {

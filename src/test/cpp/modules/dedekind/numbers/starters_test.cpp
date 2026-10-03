@@ -40,7 +40,7 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<std::remove_cvref_t<𝔸<Rational<default_integer>>>,
                             𝔸<Rational<default_integer>>>);
 
-  // The 𝔻 / 𝔻_d universes live in dedekind.analysis:dual; their checks are
+  // The 𝔻 universe lives in dedekind.analysis:dual; their checks are
   // in src/test/cpp/modules/dedekind/analysis/dual_test.cpp.
 }
 

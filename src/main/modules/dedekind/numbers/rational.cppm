@@ -156,7 +156,7 @@ class Rational {
   /** @brief #680: ℚ has no sentinels.  On the saturating @c SignedCardinality a
    *  non-finite numerator/denominator (@c NaZ / @c ±ℵ_0) is @b not a rational,
    *  so @b reject it with @c std::domain_error (Honest Rejection at the carrier
-   *  boundary, the same posture as division-by-zero, cf. the @c embed_double_ℚ
+   *  boundary, the same posture as division-by-zero, cf. the @c embed_𝕃_ℚ
    *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
    *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
    *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
@@ -709,15 +709,6 @@ export using machine_integer = int;
  * through.  The homomorphism/injectivity laws are @b witnessed by computation
  * below on the ring ℤ.
  *
- * @note Why register the ring-embedding traits here when @c embed_double_ℚ
- * (below) @b withholds @c is_monic_arrow_v?  @c double 's NaN/±∞ are @b in-band
- * values that make @c embed_double_ℚ genuinely @b partial (it @c throw s), so a
- * total-arrow trait would over-claim.  @c embed_ℤ_ℚ_ is @b total on the ring:
- * @f$n\mapsto n/1@f$ closes on all of ℤ, and the saturating @c
- * SignedCardinality sentinels (±∞, NaZ) are @b not ring elements.  Registering
- * is honest here (the same convention @c embed_ℚ_ℝ follows); withholding is
- * honest there.
- *
  * @see @c PartialEmbedIntegerToRational --- the @b same map @f$n\mapsto n/1@f$
  * on the @b Ternary/Kleene surface, generic over @c I.  @c embed_ℤ_ℚ_ is the
  * categorical @c arrow over the canonical @c default_integer, carrying the
@@ -765,10 +756,8 @@ namespace dedekind::algebra {
  *  @c domain_error rather than diverging in @c euclidean_gcd (the old hang) or
  *  fabricating an order-incoherent @c NaZ/1.  A retained sentinel would break
  *  ℚ's total order (@c NaZ/1 @c <=> @c 1/1 equal while @c == false), so
- *  rejection --- not saturation --- is the coherent fix.  Contrast
- *  @c embed_double_ℚ, whose NaN/±∞ are @b common in-band IEEE values it must
- *  likewise reject; the finite fragment is unaffected and still gcd-normalises
- *  at compile time. */
+ *  rejection --- not saturation --- is the coherent fix.  The finite fragment
+ *  is unaffected and still gcd-normalises at compile time. */
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
@@ -803,153 +792,114 @@ static_assert(embed_ℤ_ℚ_(ℤ_carrier{2}) < embed_ℤ_ℚ_(ℤ_carrier{3}),
 }  // namespace
 
 /**
- * @brief Exact dyadic embedding @c double → ℚ.
+ * @brief Exact dyadic embedding of the finite doubles into ℚ:
+ *        @c 𝕃<double> → @c Rational<I>.
  *
- * @details Every finite IEEE 754 @c double is exactly the dyadic
- * rational @c m·2^e for integers @c m, @c e (mantissa, exponent).
- * This arrow extracts the bit-pattern via @c std::bit_cast and
- * constructs @c Rational<I>{numerator, denominator} where the
- * denominator is the relevant power of two.  The mapping is lossless
- * on its in-range subset and partial in three ways: NaN and ±∞ are
- * out-of-band for ℚ (the rationals are a field with no sentinels)
- * and trip @c std::domain_error; finite inputs whose reduced
- * mantissa or scaled denominator do not fit in @c I trip
- * @c std::overflow_error.  In a constant-evaluation context the
- * same conditions are rejected as not-a-constant-expression because
- * @c throw is not @c constexpr.
+ * @details Every finite IEEE 754 @c double is exactly the dyadic rational
+ * @c m·2^e for integers @c m, @c e (mantissa, exponent).  This arrow extracts
+ * the bit-pattern via @c std::bit_cast and constructs
+ * @c Rational<I>{numerator, denominator} where the denominator is the
+ * relevant power of two.  NaN and +/-inf cannot reach it: the domain
+ * @c 𝕃<double> excludes them by type, so the arrow is total on its domain and
+ * injective by the exactness of the dyadic decomposition (Knuth, @em TAOCP,
+ * Vol. 2, §4.2), hence registered monic below.
  *
  * @section rational__Precision
- * The integer carrier @c I must be wide enough to hold the reduced
- * 53-bit mantissa and any post-decomposition power-of-two scaling.
- * For built-in signed @c I (e.g. @c int, @c long, @c long @c long)
- * the arrow checks each step against @c std::numeric_limits<I> and
- * throws @c std::overflow_error on out-of-range values --- avoiding
- * the signed-overflow UB that an unchecked multiplication would
- * trip.  For non-built-in carriers (@c SignedExtensionalCardinal<N>
- * etc.) the arrow trusts the carrier's own arithmetic; sufficient
- * width or saturating semantics is the carrier's responsibility.
- *
- * The default @c default_integer (= @c int) suffices for inputs
- * whose exact rational representation fits in 32 bits on each side
- * --- notably the small integer-valued doubles paper showcases use
- * (e.g. @c -21.0, @c 0.5, @c 1.5).  Callers needing full IEEE
- * precision instantiate over @c SignedExtensionalCardinal<N> with
- * @c N large enough.
- *
- * @section rational__Honesty_Obligation
- * The arrow is a @b partial morphism in the Cockett--Lack
- * restriction-category sense (cf. references.bib, cockett2002restriction):
- * total on its in-range subset (where it is provably injective by the
- * exactness of the dyadic decomposition; Knuth, @em TAOCP, Vol. 2,
- * §4.2), partial on the IEEE sentinels and on the precision-overflow
- * boundary.  The unconditional @c is_monic_arrow_v registration is
- * @b deferred to the safe-float boundary refactor in #496, where the
- * partial-domain restriction will live in the type rather than in
- * the throws --- at that point the in-range-subset injectivity will
- * lift to a total-arrow @c IsMonicArrow witness.  Until then the
- * structural claim is documented in this comment but @b not pinned
- * mechanically (a mechanical pin would be a stronger claim than the
- * partial function actually supports).
+ * The integer carrier @c I must hold the reduced 53-bit mantissa and the
+ * power-of-two scaling.  For built-in signed @c I the arrow checks each step
+ * against @c std::numeric_limits<I> and throws @c std::overflow_error rather
+ * than trip signed-overflow UB.  The default @c default_integer
+ * (@c SignedCardinality) is trusted: past its capacity it reaches the
+ * sentinel that @c Rational rejects, the out-of-memory tripwire of ℚ's
+ * faithful-field posture, not a partiality of the arrow.
  */
 export template <IsInteger I = default_integer>
-inline constexpr auto embed_double_ℚ =
-    arrow<double, Rational<I>>([](const double& x) -> Rational<I> {
-      // Reject IEEE 754 sentinels: NaN / ±∞ are out-of-band for ℚ.
-      // In a constexpr context these throws make the call
-      // not-a-constant-expression --- the right behaviour for an
-      // exact-rationals codomain.
-      if (x != x) {
-        throw std::domain_error(
-            "embed_double_ℚ: NaN has no embedding in ℚ (the rationals "
-            "are a field with no sentinels).");
-      }
-      constexpr double kInfinity = std::numeric_limits<double>::infinity();
-      if (x == kInfinity || x == -kInfinity) {
-        throw std::domain_error(
-            "embed_double_ℚ: ±∞ has no embedding in ℚ; this requires "
-            "an extended-real interpretation rather than a rational one.");
-      }
+inline constexpr auto embed_𝕃_ℚ =
+    arrow<dedekind::morphologies::𝕃<double>, Rational<I>>(
+        [](const dedekind::morphologies::𝕃<double>& f) -> Rational<I> {
+          const double x = f.value();
 
-      // ±0 collapses to canonical zero.
-      if (x == 0.0) {
-        return Rational<I>{I{0}, I{1}};
-      }
-
-      // Decompose IEEE 754 double via bit_cast (constexpr in C++20):
-      //   sign      bit  : 1 bit at position 63
-      //   biased exp     : 11 bits at positions 62..52, biased by 1023
-      //   mantissa frac  : 52 bits at positions 51..0 (with implicit
-      //                    leading 1 for normals; absent for subnormals)
-      const auto bits = std::bit_cast<std::uint64_t>(x);
-      const bool sign = (bits >> 63) & 1U;
-      const auto biased_exp = static_cast<unsigned>((bits >> 52) & 0x7FFU);
-      const auto mantissa_frac = bits & 0x000F'FFFF'FFFF'FFFFULL;
-
-      // Recover the integer mantissa (with implicit-1 for normals) and
-      // the binary exponent.  After this block, x = (sign? -1 : 1) *
-      // mantissa * 2^exp exactly.
-      std::uint64_t mantissa;
-      int exp;
-      if (biased_exp == 0) {
-        // Subnormal: no implicit leading 1; smallest exponent is -1074.
-        mantissa = mantissa_frac;
-        exp = -1074;
-      } else {
-        mantissa = (1ULL << 52) | mantissa_frac;
-        exp = static_cast<int>(biased_exp) - 1023 - 52;
-      }
-
-      // Reduce to lowest terms in the dyadic form: strip factors of 2
-      // from the mantissa, raising the exponent.  This keeps the
-      // numerator / denominator small for cleanly-representable values
-      // (e.g. -21.0 lands as mantissa=21, exp=0 → Rational<I>{-21, 1}).
-      while ((mantissa & 1U) == 0U && mantissa != 0U) {
-        mantissa >>= 1;
-        ++exp;
-      }
-
-      // Mantissa-fit check: for built-in signed I, throw if the reduced
-      // mantissa exceeds I::max() (otherwise the static_cast below
-      // would silently truncate or invoke implementation-defined
-      // behaviour).  For non-built-in carriers, trust the carrier.
-      if constexpr (std::integral<I>) {
-        using L = std::numeric_limits<I>;
-        if (mantissa > static_cast<std::uint64_t>(L::max())) {
-          throw std::overflow_error(
-              "embed_double_ℚ: reduced mantissa exceeds I::max(); use a "
-              "wider integer carrier (e.g. long long, "
-              "SignedExtensionalCardinal<N> with N sufficiently large).");
-        }
-      }
-
-      // Form the rational: numerator carries the sign and the reduced
-      // mantissa; denominator is 2^|exp| when exp < 0, else 1 (with
-      // the mantissa carrying the 2^exp factor in the numerator).
-      // Overflow-checked doubling: for built-in signed I, throw before
-      // a multiplication that would overflow; for non-built-in
-      // carriers, trust the carrier's own arithmetic discipline.
-      const auto checked_double = [](I value) -> I {
-        if constexpr (std::integral<I>) {
-          using L = std::numeric_limits<I>;
-          if (value > L::max() / I{2} || value < L::min() / I{2}) {
-            throw std::overflow_error(
-                "embed_double_ℚ: power-of-two scaling overflows I; use "
-                "a wider integer carrier.");
+          // ±0 collapses to canonical zero.
+          // ±0 collapses to canonical zero.
+          if (x == 0.0) {
+            return Rational<I>{I{0}, I{1}};
           }
-        }
-        return value * I{2};
-      };
 
-      I num = sign ? -static_cast<I>(mantissa) : static_cast<I>(mantissa);
-      if (exp >= 0) {
-        for (int i = 0; i < exp; ++i) num = checked_double(num);
-        return Rational<I>{num, I{1}};
-      } else {
-        I den = I{1};
-        for (int i = 0; i < -exp; ++i) den = checked_double(den);
-        return Rational<I>{num, den};
-      }
-    });
+          // Decompose IEEE 754 double via bit_cast (constexpr in C++20):
+          //   sign      bit  : 1 bit at position 63
+          //   biased exp     : 11 bits at positions 62..52, biased by 1023
+          //   mantissa frac  : 52 bits at positions 51..0 (with implicit
+          //                    leading 1 for normals; absent for subnormals)
+          const auto bits = std::bit_cast<std::uint64_t>(x);
+          const bool sign = (bits >> 63) & 1U;
+          const auto biased_exp = static_cast<unsigned>((bits >> 52) & 0x7FFU);
+          const auto mantissa_frac = bits & 0x000F'FFFF'FFFF'FFFFULL;
+
+          // Recover the integer mantissa (with implicit-1 for normals) and
+          // the binary exponent.  After this block, x = (sign? -1 : 1) *
+          // mantissa * 2^exp exactly.
+          std::uint64_t mantissa;
+          int exp;
+          if (biased_exp == 0) {
+            // Subnormal: no implicit leading 1; smallest exponent is -1074.
+            mantissa = mantissa_frac;
+            exp = -1074;
+          } else {
+            mantissa = (1ULL << 52) | mantissa_frac;
+            exp = static_cast<int>(biased_exp) - 1023 - 52;
+          }
+
+          // Reduce to lowest terms in the dyadic form: strip factors of 2
+          // from the mantissa, raising the exponent.  This keeps the
+          // numerator / denominator small for cleanly-representable values
+          // (e.g. -21.0 lands as mantissa=21, exp=0 → Rational<I>{-21, 1}).
+          while ((mantissa & 1U) == 0U && mantissa != 0U) {
+            mantissa >>= 1;
+            ++exp;
+          }
+
+          // Mantissa-fit check: for built-in signed I, throw if the reduced
+          // mantissa exceeds I::max() (otherwise the static_cast below
+          // would silently truncate or invoke implementation-defined
+          // behaviour).  For non-built-in carriers, trust the carrier.
+          if constexpr (std::integral<I>) {
+            using L = std::numeric_limits<I>;
+            if (mantissa > static_cast<std::uint64_t>(L::max())) {
+              throw std::overflow_error(
+                  "embed_𝕃_ℚ: reduced mantissa exceeds I::max(); use a "
+                  "wider integer carrier (e.g. long long, "
+                  "SignedExtensionalCardinal<N> with N sufficiently large).");
+            }
+          }
+
+          // Form the rational: numerator carries the sign and the reduced
+          // mantissa; denominator is 2^|exp| when exp < 0, else 1 (with
+          // the mantissa carrying the 2^exp factor in the numerator).
+          // Overflow-checked doubling: for built-in signed I, throw before
+          // a multiplication that would overflow; for non-built-in
+          // carriers, trust the carrier's own arithmetic discipline.
+          const auto checked_double = [](I value) -> I {
+            if constexpr (std::integral<I>) {
+              using L = std::numeric_limits<I>;
+              if (value > L::max() / I{2} || value < L::min() / I{2}) {
+                throw std::overflow_error(
+                    "embed_𝕃_ℚ: power-of-two scaling overflows I; use "
+                    "a wider integer carrier.");
+              }
+            }
+            return value * I{2};
+          };
+
+          I num = sign ? -static_cast<I>(mantissa) : static_cast<I>(mantissa);
+          if (exp >= 0) {
+            for (int i = 0; i < exp; ++i) num = checked_double(num);
+            return Rational<I>{num, I{1}};
+          } else {
+            I den = I{1};
+            for (int i = 0; i < -exp; ++i) den = checked_double(den);
+            return Rational<I>{num, den};
+          }
+        });
 
 /** @section rational__Quotient_Construction (#567)
  *
@@ -1069,16 +1019,13 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
 
 namespace dedekind::category {
 
-// Note: @c is_monic_arrow_v<embed_double_ℚ<I>> is intentionally NOT
-// registered.  embed_double_ℚ is a partial morphism (rejects NaN, ±∞,
-// and precision-overflow inputs) in the Cockett--Lack restriction-
-// category sense.  On its in-range subset the embedding is provably
-// injective by the exactness of the dyadic decomposition, but a
-// type-level @c IsMonicArrow registration would claim totality.  The
-// claim will be pinned at #496, where the safe-float refined-type
-// boundary moves the partiality from throws into the typed surface
-// (an @c embed_safe_float_ℚ : @c safe_float<F> → @c Rational<I> arrow
-// is total on its refined domain and therefore cleanly monic).
+/** @brief The finite doubles embed injectively into ℚ: distinct finite
+ *  doubles have distinct dyadic values (@c -0.0 and @c +0.0 are one element
+ *  of @c 𝕃). */
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕃_ℚ<>)>> =
+        true;
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -1151,10 +1098,9 @@ static_assert(
 // (4) Primitive-type arrows on ℚ:
 //   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
 //     to a rational n/1 (registered monic; injective by construction).
-//   - Forward (machine_float → ℚ): @c embed_double_ℚ extracts the exact
-//     dyadic rational m·2^e from the IEEE 754 bit-pattern (registered
-//     monic; rejects NaN / ±∞ as out-of-band — the rationals are a field
-//     with no sentinels).
+//   - Forward (finite float → ℚ): @c embed_𝕃_ℚ extracts the exact dyadic
+//     rational m·2^e from the IEEE 754 bit-pattern of an @c 𝕃<double>
+//     (registered monic; NaN / ±∞ are excluded by the domain).
 // Both arrows are defined further up in this partition; their
 // IsMonicArrow / IsInjective registrations live in the
 // @c dedekind::category-namespace block below those definitions.

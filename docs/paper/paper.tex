@@ -2590,7 +2590,7 @@ through an intermediate role.}
 $\mathbb{B}$ & (identity) & (identity) \\
 $\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
 $\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
-$\mathbb{Q}$ & (none; no direct $\mathbb{Q} \to$ primitive arrow) & \cppinline{embed_double_ℚ<I>(v)} \\
+$\mathbb{Q}$ & (none; no direct $\mathbb{Q} \to$ primitive arrow) & \cppinline{embed_𝕃_ℚ<I>(v)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
 $\mathbb{R}$ policy & \cppinline{assume_ieee(𝕃<double>)} & \cppinline{discharge_ieee(IEEE<double>)}, partial: \cppinline{std::optional} \\
 $\mathbb{C}$ & (none; per-component, no direct arrow) & \cppinline{Complex<R>(re, im)} \\
