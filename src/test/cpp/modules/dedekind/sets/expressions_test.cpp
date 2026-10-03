@@ -520,27 +520,6 @@ TEST_CASE("sets:powerset — 𝔓(∅) = {∅} is a :sets closed form (#830)",
 // relational/relation_core_test with the Relation type and the relates /
 // is_single_valued_at surface.)
 
-TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
-          "[sets][subset][logic]") {
-  // FIXME(#693): "Ternary logic yields Unknown for heterogeneous predicates"
-  // — pre-#622 the test exhibited heterogeneous subset returning Unknown
-  // because ℕ-carrier Sets routed Ternary by default; post-#622 ℕ →
-  // Classical on the carrier axis, so the heterogeneous subset between
-  // two opaque-λ ℕ-Sets is no longer a Ternary case.  Predicate-level
-  // axis (#693) is the principled home for this witness — an explicit
-  // Ternary-typed predicate carrier would expose Unknown without going
-  // through the carrier-axis resolver.
-
-  SECTION("Classical logic has no heterogeneous subset operator") {
-    const auto positive_pred = [](const int& v) { return v > 0; };
-    const auto small_pred = [](const int& v) { return v <= 3; };
-
-    const Comprehension<𝔸<int, Boole>, decltype(positive_pred)> positive{
-        positive_pred};
-    const Comprehension<𝔸<int, Boole>, decltype(small_pred)> small{small_pred};
-  }
-}
-
 TEST_CASE(
     "Dedekind Sets: image(iso f, Set<T, L, P>) — #602 Layer 2 decidable "
     "specialisation",
