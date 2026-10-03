@@ -1227,10 +1227,10 @@ struct SymbolicImagePredicate {
  *  @c IsMonicArrow<F> would be the natural strengthening for the
  *  decidable-specialisation path (layer 2).
  */
-export template <typename T, typename L, typename P,
-                 dedekind::category::IsArrow F, typename C>
-  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&&, const Comprehension<𝔸<T, L, C>, P>&) {
+export template <dedekind::category::IsArrow F, IsSetObject S>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain>
+constexpr auto image(F&&, const S&) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return Comprehension<𝔸<U, dedekind::category::Kleene>,
                        SymbolicImagePredicate<U>>{SymbolicImagePredicate<U>{}};
@@ -1297,11 +1297,12 @@ struct ComposedIsoImagePredicate {
  *  enumerable-source (Case B / #660) and terminal-codomain (Case C /
  *  #661) over follow-up slices.
  */
-export template <typename T, typename L, typename P,
-                 dedekind::category::IsIsomorphism F, typename C>
-  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(F&& f, const Comprehension<𝔸<T, L, C>, P>& s) {
+export template <dedekind::category::IsIsomorphism F, IsSetObject S>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain>
+constexpr auto image(F&& f, const S& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  using L = typename S::logic_species;
   // Unqualified call so ADL routes to the inverse overload for f's
   // type (e.g.\ Identity<T>, TaggedNegate) in dedekind::category.
   // This PR exports the relevant inverse overloads (a small boy-scout
@@ -1310,8 +1311,7 @@ constexpr auto image(F&& f, const Comprehension<𝔸<T, L, C>, P>& s) {
   // codebase's ADL-hook style for partial categorical primitives.
   auto f_inv = inverse(std::forward<F>(f));
   using FInv = std::remove_cvref_t<decltype(f_inv)>;
-  using NewPredicate =
-      ComposedIsoImagePredicate<Comprehension<𝔸<T, L, C>, P>, FInv>;
+  using NewPredicate = ComposedIsoImagePredicate<S, FInv>;
   return Comprehension<𝔸<U, L>, NewPredicate>{
       NewPredicate{s, std::move(f_inv)}};
 }
@@ -1409,19 +1409,19 @@ struct ComposedRetractImagePredicate {
  *  guard, an iso arrow that also happened to be retractable would be
  *  ambiguous between the two overloads; with it, iso always wins.
  */
-export template <typename T, typename L, typename P,
-                 dedekind::category::IsRetractableArrow F, typename C>
-  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+export template <dedekind::category::IsRetractableArrow F, IsSetObject S>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain> &&
            (!dedekind::category::IsIsomorphism<std::remove_cvref_t<F>>)
-constexpr auto image(F&& f, const Comprehension<𝔸<T, L, C>, P>& s) {
+constexpr auto image(F&& f, const S& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  using L = typename S::logic_species;
   // Unqualified call so ADL routes to the retract overload registered
   // for f's type in the appropriate namespace.  The IsRetractableArrow
   // concept guarantees the call is well-formed.
   auto retract_fn = retract(std::forward<F>(f));
   using RetractFn = std::remove_cvref_t<decltype(retract_fn)>;
-  using NewPredicate =
-      ComposedRetractImagePredicate<Comprehension<𝔸<T, L, C>, P>, RetractFn, L>;
+  using NewPredicate = ComposedRetractImagePredicate<S, RetractFn, L>;
   return Comprehension<𝔸<U, L>, NewPredicate>{
       NewPredicate{s, std::move(retract_fn)}};
 }
