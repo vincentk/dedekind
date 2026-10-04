@@ -829,32 +829,6 @@ struct is_exact_total : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
-// FIXME(#806-followup): Path D is not yet forwarded by the H/S/P trait
-// propagation (@c algebra:quotient's subalgebra_base / quotient_algebra_base
-// carry only periodic/idempotent/saturating), so an exact quotient or
-// subalgebra currently loses @c IsTotal.  No exact carrier is quotiented or
-// sub-structured yet (the §5 subalgebra/quotient legs are deferred), so this is
-// latent; add exact-path forwarding there when those legs land.
-
-/** @section species__totality
- *  Four pragmatic paths to totality, each a sufficient (not
- *  necessary) condition: periodicity (modular wrap), idempotence
- *  (globally stable), saturation (escalation to an extended-range
- *  sentinel), or exactness (exact arithmetic with no rounding).
- *  See the textbook note on @c IsTotal below.
- */
-export template <typename T, typename Op>
-struct is_total
-    : std::bool_constant<
-          is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
-          is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
-          is_saturating_v<T, Op> ||  // Path C: It escalates (SEC<>, ±ℵ_0)
-          is_exact_total_v<T, Op>    // Path D: exact & unbounded (ℚ, ℝ-fields)
-          > {};
-
-export template <typename T, typename Op>
-inline constexpr bool is_total_v = is_total<T, Op>::value;
-
 /**
  * Unsigned integers are natively periodic under
  * addition/subtraction/multiplication.

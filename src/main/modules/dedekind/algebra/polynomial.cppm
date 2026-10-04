@@ -429,10 +429,9 @@ static_assert(
 //
 // R[x] is the free associative R-algebra on one generator (Lang
 // §IV.1).  A single declaration of free_algebra_base<RigPolynomial<R>>::type
-// = R fires the structural-trait propagation in algebra:free —
-// associativity, commutativity, distributivity, and the full IsTotal
-// disjunction (periodic / idempotent / saturating) all lift from R
-// to R[x] uniformly.
+// = R declares the construction: category:total reads R[x]'s laws and
+// totality off R (+ coefficientwise; × is the Cauchy product, so its laws
+// rest on R's commutative-ring laws).
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {

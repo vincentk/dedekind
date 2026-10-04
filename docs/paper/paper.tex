@@ -1744,7 +1744,7 @@ construction & builds & law-preservation & in the engine \\
 product / free module & scalar $\to$ vector & Birkhoff HSP (P)~\cite{burris1981universalalgebra} & yes \\
 quotient by an ideal & $\mathbb{R} \to \mathbb{C}, \mathbb{D}$ & Birkhoff HSP (H)~\cite{atiyahmacdonald1969commutative} & yes \\
 subalgebra & a closed sub-part & Birkhoff HSP (S)~\cite{burris1981universalalgebra} & mechanism only \\
-localization (fractions) & $\mathbb{Z} \to \mathbb{Q}$ & commutative algebra~\cite{atiyahmacdonald1969commutative} & filed under quotient \\
+localization (fractions) & $\mathbb{Z} \to \mathbb{Q}$ & commutative algebra~\cite{atiyahmacdonald1969commutative} & by hand \\
 completion & $\mathbb{Q} \to \mathbb{R}$ & analysis, Dedekind cuts~\cite{rudin1976principles} & by hand \\
 endomorphism algebra & $R^n \to M_n(R)$ & module theory~\cite{lang2002algebra} & by hand \\
 \bottomrule
@@ -1762,7 +1762,7 @@ This reaches exactly the Birkhoff-closed constructions, product, quotient, and s
 
 % Source excerpts from dedekind.algebra:quotient and dedekind.morphologies:cyclic.
 \begin{listing}[!ht]
-\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds --- on the machine carrier $\mathbb{Z}/2^{w}\mathbb{Z}$ this needs $N$ a power of two ($N=8$ here), so that native wraparound agrees with mod-$N$ reduction --- and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$, $\mathbb{Q}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
+\caption{The relational H (quotient) leg: a quotient $Q = V/R$ is declared by naming its \emph{congruence} relation $R$ on the carrier $V$ (left), and \cppinline{Modular<N>} $= \mathbb{Z}/N\mathbb{Z}$ names the mod-$N$ relation as its congruence (right).  \cppinline{IsCongruence} checks that $R$ is an equivalence preserved by the operation, so \cppinline{IsCongruenceQuotient} holds --- on the machine carrier $\mathbb{Z}/2^{w}\mathbb{Z}$ this needs $N$ a power of two ($N=8$ here), so that native wraparound agrees with mod-$N$ reduction --- and the certificate rides the relation.  Carriers whose pre-quotient is not itself a reified carrier (the dual numbers $\mathbb{D} = F[\varepsilon]/(\varepsilon^2)$, $\mathbb{C}$) instead declare a trait-propagation base; the P (product) and S (subalgebra) legs mirror the same shape.}
 \label{lst:hsp-combinators}
 \noindent
 \begin{minipage}[t]{0.52\linewidth}
@@ -2467,7 +2467,7 @@ To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carri
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{default_integer}, the saturating $\mathbb{Z}$ (\cppinline{SignedCardinality}); the wrapping word \cppinline{SignedExtensionalCardinal<>} is $\mathbb{Z}/2^{w}\mathbb{Z}$, certified as such and not as a backing for $\mathbb{Q}$.}
 \label{tab:lattice-carriers}
 \footnotesize
 \begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
@@ -2967,8 +2967,7 @@ recursion of the same combinator pattern.
 \paragraph{Carrier choices, error messages, ergonomics.}
 The carrier-vs-overflow trade-offs are catalogued in
 Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
-to \cppinline{Rational<SignedExtensionalCardinal<>>} (exact, wrapping at
-$2^{63}$); programmers who trade exactness for native
+to \cppinline{Rational<SignedExtensionalCardinal<>>} (a structural carrier, usable as a template argument; it wraps at $2^{63}$, so it is certified on its operator surface only, the strict field being \cppinline{Rational<default_integer>}); programmers who trade exactness for native
 performance pick a primitive row and accept the named failure mode
 (signed-overflow UB on \cppinline{int}; non-associative rounding on
 \cppinline{float}/\cppinline{double}).  The combinators of

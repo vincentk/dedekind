@@ -1,9 +1,9 @@
 // Tests for the HSP H/P + free-algebra trait propagation
-// (dedekind.algebra:quotient + :free).  The propagation rules lift
-// is_associative / is_commutative / is_distributive_v / is_periodic /
-// is_idempotent / is_saturating from a base algebra to its declared
-// HSP image.  The static_assert witnesses in the main partition
-// already pin the canonical instances; this file adds Catch2-visible
+// (dedekind.algebra:quotient + :free).  A carrier declares its construction
+// once (quotient_algebra_base / product_algebra_base / free_algebra_base), and
+// category:total reads its laws and totality off that declaration.  The
+// static_assert witnesses in the main
+// partition already pin the canonical instances; this file adds Catch2-visible
 // coverage for the propagation behaviour and the absence of
 // over-firing.
 //
@@ -24,6 +24,7 @@ using dedekind::algebra::RigPolynomial;
 using dedekind::analysis::Dual;
 using dedekind::category::is_associative_v;
 using dedekind::category::is_commutative_v;
+using dedekind::category::is_exact_total_v;
 using dedekind::category::is_periodic_v;
 using dedekind::category::is_total_v;
 using dedekind::category::IsFreeAlgebra;
@@ -44,7 +45,7 @@ using PQ = RigPolynomial<Q>;
 
 TEST_CASE("HSP H: quotient_algebra_base detection",
           "[algebra][quotient][hsp]") {
-  STATIC_CHECK(IsQuotientAlgebra<Q>);
+  STATIC_CHECK_FALSE(IsQuotientAlgebra<Q>);  // Frac is a localization, not H
   STATIC_CHECK(IsQuotientAlgebra<CQ>);
   STATIC_CHECK(IsQuotientAlgebra<DQ>);
   STATIC_CHECK_FALSE(IsQuotientAlgebra<unsigned int>);  // not declared
@@ -54,19 +55,21 @@ TEST_CASE("HSP H: quotient_algebra_base detection",
 TEST_CASE("HSP P: product_algebra_base detection", "[algebra][quotient][hsp]") {
   STATIC_CHECK(IsProductAlgebra<V2u>);
   STATIC_CHECK_FALSE(IsProductAlgebra<unsigned int>);
-  STATIC_CHECK_FALSE(IsProductAlgebra<Q>);  // Rational is H, not P
+  STATIC_CHECK_FALSE(IsProductAlgebra<Q>);  // a localization, not P
 }
 
 TEST_CASE("HSP F: free_algebra_base detection", "[algebra][free][hsp]") {
   STATIC_CHECK(IsFreeAlgebra<PQ>);
-  STATIC_CHECK_FALSE(IsFreeAlgebra<Q>);  // Q is H, not F
+  STATIC_CHECK_FALSE(IsFreeAlgebra<Q>);  // a localization, not F
   STATIC_CHECK_FALSE(IsFreeAlgebra<unsigned int>);
 }
 
-TEST_CASE("HSP propagation: associativity lifts to Q from base",
-          "[algebra][quotient][propagation]") {
-  // Base default_integer (Z1) is associative under +/* via the species
-  // specs in cardinality.cppm; the H propagation lifts to Rational<I>.
+TEST_CASE(
+    "Rational registers its laws; H propagation composes through "
+    "Cplx / Dual",
+    "[algebra][quotient][propagation]") {
+  // Rational<I> registers associativity directly, gated on I's; the second H
+  // (Cplx, Dual) propagates from it.
   STATIC_CHECK(is_associative_v<Q, std::plus<Q>>);
   STATIC_CHECK(is_associative_v<Q, std::multiplies<Q>>);
   // Composes through the second H (Cplx, Dual).
@@ -79,17 +82,24 @@ TEST_CASE("HSP propagation: commutativity lifts componentwise (P)",
   // unsigned int is commutative under +/* (modular arithmetic);
   // P propagation lifts to Vec2V<unsigned int>.
   STATIC_CHECK(is_commutative_v<V2u, std::plus<V2u>>);
-  // Q under + is commutative (lifted via H from default_integer).
+  // Q under + is commutative (registered on Rational<I>, gated on I's).
   STATIC_CHECK(is_commutative_v<Q, std::plus<Q>>);
 }
 
 TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
           "[algebra][quotient][propagation]") {
-  // Post-ℚ-retarget: default_integer is now SignedCardinality
-  // (saturating), so is_periodic no longer applies on Rational<I>; the
-  // IsTotal disjunction in :species closes via is_saturating instead.
+  // ℚ is total on the exact path: closed, lossless arithmetic up to the
+  // out-of-memory tripwire, which Rational raises rather than saturating.
   STATIC_CHECK(is_total_v<Q, std::plus<Q>>);
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
+  STATIC_CHECK(is_exact_total_v<Q, std::plus<Q>>);
+  // By construction: Vec2V<ℚ> is total because ℚ's + is (componentwise), and
+  // ℚ[x] under the Cauchy product because ℚ's × and + are.  No path is
+  // forwarded to the derived carrier.
+  using V2q = Vec2V<Q>;
+  STATIC_CHECK(is_total_v<V2q, std::plus<V2q>>);
+  STATIC_CHECK_FALSE(is_exact_total_v<V2q, std::plus<V2q>>);
+  STATIC_CHECK(is_total_v<PQ, std::multiplies<PQ>>);
   // unsigned int certifies IsTotal via is_periodic; P propagation
   // lifts it to Vec2V<unsigned int>.
   STATIC_CHECK(is_total_v<V2u, std::plus<V2u>>);

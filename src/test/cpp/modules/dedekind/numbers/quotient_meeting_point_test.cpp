@@ -10,7 +10,8 @@
  *
  *   1. @c bool                — the smallest Boolean algebra / @c 𝔽₂ / ℤ/2ℤ.
  *   2. @c Modular<6>          — the canonical finite cyclic ring.
- *   3. @c Rational<int>       — ℚ as @c Frac(ℤ), an HSP-H carrier.
+ *   3. @c Rational<int>       — ℚ as @c Frac(ℤ), a localization: it refuses
+ *      the H leg, which ℂ over ℚ witnesses instead.
  *   4. parity-quotient @c mod_2 — the @c int @c → @c bool homomorphism
  *      from Slice 4's First-Iso crown.
  *
@@ -60,19 +61,6 @@ TEST_CASE("quotient meeting-point — Modular<6> fires HSP propagation (Slice 5)
   STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
   STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);
   STATIC_CHECK(is_distributive_v<Z6, std::multiplies<Z6>, std::plus<Z6>>);
-}
-
-TEST_CASE(
-    "quotient meeting-point — Rational<int> fires IsQuotientAlgebra (HSP-H)",
-    "[quotient][meeting-point][rational][quotient]") {
-  /** @brief @c Rational<int> @c = @c Frac(int) is the canonical
-   *         quotient-algebra witness (carrier-side declaration of
-   *         @c quotient_algebra_base<Rational<I>>::type @c = @c I).
-   *         Fires @c IsQuotientAlgebra; the HSP-H propagation lifts
-   *         species traits from @c int to @c Rational<int> wherever
-   *         the base has them. */
-  using Q = Rational<int>;
-  STATIC_CHECK(IsQuotientAlgebra<Q>);
 }
 
 TEST_CASE(
@@ -151,8 +139,10 @@ TEST_CASE(
   // Row 5 (HSP propagation) — Modular<6> leg
   STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
 
-  // Row 5 / IsQuotientAlgebra — Rational leg
-  STATIC_CHECK(IsQuotientAlgebra<Q>);
+  // Row 5 / IsQuotientAlgebra — ℂ over ℚ leg; ℚ itself is a localization,
+  // not a homomorphic image, and says so.
+  STATIC_CHECK(IsQuotientAlgebra<dedekind::numbers::Complex<Q>>);
+  STATIC_CHECK_FALSE(IsQuotientAlgebra<Q>);
 
   // WitnessesFirstIso crown (Slice 4 cross-ref) — parity-quotient leg
   STATIC_CHECK(WitnessesFirstIso<mod_2_arrow, connector>);

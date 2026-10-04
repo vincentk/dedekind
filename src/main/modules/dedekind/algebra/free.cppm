@@ -39,14 +39,12 @@
  *
  * @section free__Trait_Propagation
  *
- * Like H and P, the free-algebra construction is structure-preserving:
- * if the base @c R has associativity / commutativity / distributivity
- * / saturation under the corresponding operation, the free algebra
- * @c F(R) inherits it.  The propagation specialisations below mirror
- * the @c :quotient pattern: a single
- * @c free_algebra_base<F>::type @c = @c R declaration at the carrier
- * site fires the trait propagation under @c std::plus<F> /
- * @c std::multiplies<F>.  Carrier-specific identity / inverse values
+ * Like H and P, the free-algebra construction is structure-preserving: the
+ * laws of @c + are the base's (coefficientwise), the laws of @c × rest on the
+ * base's commutative-ring laws (the Cauchy product), and totality follows the
+ * same reading.  A single @c free_algebra_base<F>::type @c = @c R declaration
+ * at the carrier site declares the construction; @c category:total reads the
+ * laws and totality off it.  Carrier-specific identity / inverse values
  * remain at the carrier site (the construction of zero polynomial /
  * unit polynomial depends on the carrier's internal layout).
  *
@@ -86,75 +84,17 @@ using free_algebra_base_t = typename free_algebra_base<F>::type;
 export template <typename F>
 concept IsFreeAlgebra = requires { typename free_algebra_base<F>::type; };
 
-// --- Propagation: structural traits lift from Base to F. -------------------
-//
-// The free-algebra functor preserves the variety of the base under
-// the corresponding operations (associativity / commutativity /
-// distributivity / saturation).  Same shape as the H and P
-// propagation in @c :quotient.
+// --- Construction: coefficientwise +, Cauchy-product × ---------------------
+// (@c :total reads F's laws and totality off the declaration below: the × laws
+// rest on the base's commutative-ring laws, as for a polynomial ring).
 
+// The construction, declared once: + is coefficientwise; × is the Cauchy
+// product, computed with the base's × and +.
 template <typename F>
   requires IsFreeAlgebra<F>
-inline constexpr bool is_associative_v<F, std::plus<F>> =
-    is_associative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_associative_v<F, std::multiplies<F>> =
-    is_associative_v<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_commutative_v<F, std::plus<F>> =
-    is_commutative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_commutative_v<F, std::multiplies<F>> =
-    is_commutative_v<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_distributive_v<F, std::multiplies<F>, std::plus<F>> =
-    is_distributive_v<free_algebra_base_t<F>,
-                      std::multiplies<free_algebra_base_t<F>>,
-                      std::plus<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_saturating<F, std::plus<F>>
-    : is_saturating<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {
+struct construction_base<F> {
+  using type = free_algebra_base_t<F>;
+  static constexpr bool times_mixes_plus = true;
 };
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_saturating<F, std::multiplies<F>>
-    : is_saturating<free_algebra_base_t<F>,
-                    std::multiplies<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_periodic<F, std::plus<F>>
-    : is_periodic<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_periodic<F, std::multiplies<F>>
-    : is_periodic<free_algebra_base_t<F>,
-                  std::multiplies<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_idempotent<F, std::plus<F>>
-    : is_idempotent<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {
-};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_idempotent<F, std::multiplies<F>>
-    : is_idempotent<free_algebra_base_t<F>,
-                    std::multiplies<free_algebra_base_t<F>>> {};
 
 }  // namespace dedekind::category

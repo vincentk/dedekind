@@ -80,6 +80,18 @@ using namespace dedekind::sets;
  * not silently clamp on the client's behalf; it @b throws, so the boundary
  * stays visible (Honest Rejection, the same posture as division-by-zero).
  */
+/** @brief The rejection contract a saturating backing must offer ℚ's
+ *  tripwire: @c is_finite(i), found by ADL, says whether @c i is a point of ℤ
+ *  or a sentinel (@c ±ℵ_0 / @c NaZ).  @c Rational rejects a non-finite value
+ *  wherever one can arise (construction, comparison); a saturating carrier
+ *  without this hook would clamp silently and is not admitted as a backing
+ *  (see @c FractionBacking).
+ *  @tparam I the integer carrier. */
+export template <typename I>
+concept RejectsNonFinite = requires(const I& i) {
+  { is_finite(i) } -> std::same_as<bool>;
+};
+
 export template <IsInteger Z = default_integer>
 class Rational {
  public:
@@ -160,12 +172,12 @@ class Rational {
    *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
    *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
    *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
-   *  @c 1/1 while @c == reads it unequal).  Compile-time no-op for carriers
-   * with no non-finite sentinels (plain integers). */
+   *  @c 1/1 while @c == reads it unequal).  Generic over the backing through
+   *  @c RejectsNonFinite (the @c is_finite hook); a compile-time no-op for
+   *  carriers without sentinels (plain integers). */
   constexpr void reject_non_finite() const {
-    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(first) ||
-          !dedekind::sets::is_finite(second))
+    if constexpr (RejectsNonFinite<Z>) {
+      if (!is_finite(first) || !is_finite(second))
         throw std::domain_error(
             "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
     }
@@ -176,8 +188,8 @@ class Rational {
    *  has saturated to a non-finite value, i.e. the comparison has left the
    *  finite backing.  Compile-time no-op for carriers with no sentinels. */
   static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
-    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(lhs) || !dedekind::sets::is_finite(rhs))
+    if constexpr (RejectsNonFinite<Z>) {
+      if (!is_finite(lhs) || !is_finite(rhs))
         throw std::domain_error(
             "Rational: comparison cross-product overflowed the finite backing "
             "(OOM tripwire).");
@@ -401,14 +413,11 @@ struct PartialEmbedIntegerToRational {
  */
 namespace dedekind::category {
 
-// NOTE: ℚ = @c Rational<Z> is already @c IsTotal via @b saturation --- it
-// inherits @c is_saturating from its quotient base @c Z = @c SignedCardinality
-// (@c quotient_algebra_base propagation in @c :algebra:quotient), which passes
-// the @c IsTotal gate.  So the strict @c category::IsField<ℚ> holds without any
-// @c is_exact_total registration; the witness is pinned at the (3)-Semantics
-// static_assert below.  (No @c is_exact_total here: it would be a @b
-// contradictory posture --- these carriers @b saturate, they are not
-// exact/unbounded.)
+// NOTE: ℚ = @c Rational<Z> is @c IsTotal on the EXACT path (@c is_exact_total,
+// registered with the law registrations below): its arithmetic is closed and
+// lossless up to the out-of-memory tripwire, which @c Rational raises rather
+// than saturating.  The strict @c category::IsField<ℚ> rests on that; the
+// witness is pinned at the (3)-Semantics static_assert below.
 
 /** @brief Kleene traits for rational arithmetic. */
 template <dedekind::morphologies::IsInteger I>
@@ -500,26 +509,85 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 }  // namespace dedekind::numbers
 
 // ---------------------------------------------------------------------------
-// Quotient-algebra registration for Rational<I> (#498/#499 NEW-A).
+// Law registrations for Rational<I> = Frac(I), the field of fractions.
 //
-// Rational<I> = Frac(I) is a quotient construction over the integer
-// carrier I (the equivalence collapses (a, b) ~ (c, d) iff a*d = c*b).
-// The single declaration below — `quotient_algebra_base<Rational<I>>::type
-// = I` — fires the structural-trait propagation through
-// `dedekind.algebra:quotient`: associativity, commutativity,
-// distributivity, and the full IsTotal disjunction (periodic /
-// idempotent / saturating) all lift from I to Rational<I> uniformly.
-// The carrier-specific bits (additive identity 0/1, additive inverse
-// via -q) remain explicit specialisations of identity_trait /
-// inverse_trait below.
+// Frac is a LOCALIZATION (Atiyah–Macdonald ch. 3), not a homomorphic image:
+// ℤ ↪ ℚ embeds, nothing is collapsed, and fields are not a variety, so
+// Birkhoff's H leg does not apply and Rational<I> declares no
+// quotient_algebra_base.  The laws are registered directly, each gated on the
+// same law holding for I AND on I not wrapping (FractionBacking): the law of
+// fractions is proved from the law on I only when no intermediate product
+// a*d, b*c wraps, so I must saturate or be exact under the op.  Over a
+// wrapping word (SignedExtensionalCardinal<W>) ℚ's laws are not certified.
+// Totality is the EXACT path (is_exact_total): ℚ's arithmetic is closed and
+// lossless up to the carrier's out-of-memory tripwire, which Rational raises
+// as std::domain_error rather than saturating.  The carrier-specific bits
+// (identities 0/1 and 1/1, inverses) remain explicit below.
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
 
-template <dedekind::morphologies::IsInteger I>
-struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
-  using type = I;
-};
+/** @brief An integer backing over which fraction arithmetic obeys ℚ's laws
+ *  under @c Op: it does not wrap, so a wrapped intermediate cross-product
+ *  cannot silently break a law.  Either it is exact, or it saturates @b and
+ *  offers the @c is_finite hook (@c RejectsNonFinite) through which ℚ's
+ *  tripwire rejects the saturated value instead of clamping.
+ *  @tparam I the integer carrier.
+ *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
+template <typename I, typename Op>
+concept FractionBacking =
+    dedekind::morphologies::IsInteger<I> &&
+    (is_exact_total_v<I, Op> ||
+     (is_saturating_v<I, Op> && dedekind::numbers::RejectsNonFinite<I>));
+
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_associative_v<I, std::plus<I>>
+inline constexpr bool is_associative_v<
+    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
+    true;
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>> &&
+               is_associative_v<I, std::multiplies<I>>
+inline constexpr bool
+    is_associative_v<dedekind::numbers::Rational<I>,
+                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_commutative_v<I, std::plus<I>>
+inline constexpr bool is_commutative_v<
+    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
+    true;
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>> &&
+               is_commutative_v<I, std::multiplies<I>>
+inline constexpr bool
+    is_commutative_v<dedekind::numbers::Rational<I>,
+                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_distributive_v<I, std::multiplies<I>, std::plus<I>>
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::Rational<I>,
+                      std::multiplies<dedekind::numbers::Rational<I>>,
+                      std::plus<dedekind::numbers::Rational<I>>> = true;
+
+// Fraction + uses I's + and ×; fraction × uses I's ×.  Exact over a
+// non-wrapping backing.
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+           FractionBacking<I, std::multiplies<I>>
+struct is_exact_total<dedekind::numbers::Rational<I>,
+                      std::plus<dedekind::numbers::Rational<I>>>
+    : std::true_type {};
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>>
+struct is_exact_total<dedekind::numbers::Rational<I>,
+                      std::multiplies<dedekind::numbers::Rational<I>>>
+    : std::true_type {};
 
 // Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
 // these don't propagate trivially because the quotient witness has its
@@ -743,10 +811,9 @@ inline constexpr bool is_monotone_v<
 namespace dedekind::algebra {
 /** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
  *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
- * and ℚ is @c category::IsField, both via the carriers' @b saturating totality
- *  (@c is_saturating in @c :cardinality, propagated to @c Rational through its
- *  quotient base).  So @c is_homomorphism_v here is a fully-certified ring
- *  homomorphism, not merely an operational declaration.
+ *  (saturating totality, @c :cardinality) and ℚ is @c category::IsField (exact
+ *  totality, registered in this partition).  So @c is_homomorphism_v here is a
+ *  fully-certified ring homomorphism, not merely an operational declaration.
  *
  *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
  *  saturate at the OOM/±ℵ_0 boundary; ℚ instead @b rejects a non-finite ℤ
@@ -971,21 +1038,31 @@ static_assert(
 
 // (3) Semantics (the algebraic structures Rational<default_integer> actually
 //     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
-//     witness HOLDS --- and did all along: ℚ passes the @c IsTotal gate via
-//     @b saturation (it inherits @c is_saturating from its quotient base
-//     @c SignedCardinality; see the @c :cardinality / @c :quotient
-//     registrations), so no @c is_exact_total is needed.  Only
-//     @c HasFieldOperators was ever @b asserted before, though the strict
-//     concept already held; this static_assert closes that code-vs-paper gap
-//     (the paper states ℚ is a field) by pinning it.  The additive-group /
-//     commutative-ring pins on the integer carrier of ℚ live at @c :integer.
+//     witness: ℚ passes the @c IsTotal gate on the exact path
+//     (@c is_exact_total, registered above), its laws are registered on the
+//     carrier gated on ℤ's, and the inverses are explicit.  The additive-group
+//     / commutative-ring pins on the integer carrier of ℚ live at @c :integer.
 static_assert(
     dedekind::category::IsField<Rational<default_integer>,
                                 std::plus<Rational<default_integer>>,
                                 std::multiplies<Rational<default_integer>>>,
-    "ℚ = Rational<default_integer> is a strict category::IsField (via "
-    "saturating totality) --- closing the code-vs-paper gap (previously only "
-    "HasFieldOperators was witnessed).");
+    "ℚ = Rational<default_integer> is a strict category::IsField (exact "
+    "totality, laws registered on the carrier).");
+// ℚ does not saturate: the tripwire rejects, and the certificate says so.
+static_assert(
+    !dedekind::category::is_saturating_v<Rational<default_integer>,
+                                         std::plus<Rational<default_integer>>>,
+    "ℚ is exact, not saturating.");
+// Over a WRAPPING word the fraction laws are not certified: a wrapped
+// cross-product breaks associativity silently, so no field claim is made.
+static_assert(!dedekind::category::is_associative_v<
+                  Rational<SignedExtensionalCardinal<>>,
+                  std::plus<Rational<SignedExtensionalCardinal<>>>> &&
+                  !dedekind::category::IsField<
+                      Rational<SignedExtensionalCardinal<>>,
+                      std::plus<Rational<SignedExtensionalCardinal<>>>,
+                      std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
+              "fractions over a wrapping word are not certified a field.");
 // A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
 static_assert(
     dedekind::category::IsRing<Rational<default_integer>,
