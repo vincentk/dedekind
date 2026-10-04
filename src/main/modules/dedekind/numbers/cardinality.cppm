@@ -122,6 +122,13 @@ static_assert(
     "SignedCardinality is a certified chain: −ℵ_0 < finite < +ℵ_0, NaZ being "
     "the indeterminate-form tripwire and no point of ℤ.");
 
+// Both proxies step by ±1, so neither is dense: the guard is the NNO step, and
+// it fires here although both carriers divide.
+static_assert(!dedekind::order::IsDense<dedekind::sets::Cardinality>,
+              "ℕ is discrete, not dense.");
+static_assert(!dedekind::order::IsDense<dedekind::sets::SignedCardinality>,
+              "ℤ is discrete, not dense.");
+
 // Heterogeneous partial-order shape: the variant ℕ-/ℤ-proxy carriers
 // admit cross-type relational comparison with built-in @c std::integral
 // values via the operators defined in @c sets/cardinality.cppm

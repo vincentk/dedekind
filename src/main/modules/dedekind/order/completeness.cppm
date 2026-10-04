@@ -67,10 +67,14 @@ export template <typename T>
 concept IsArchimedean = IsPartiallyOrdered<T> && IsSuccessor<T>;
 
 /**
- * @brief A set where every point is isolated by a successor.
+ * @brief A set where every point is isolated by a step: the carrier provides
+ *        the NNO steps (@c successor / @c predecessor, @c HasNNOStep), as the
+ *        machine integers and the ℕ / ℤ proxies do.  The step is the honest
+ *        discreteness signal; the @c IsSuccessor leg of @c IsArchimedean is
+ *        withheld on every shipped carrier and cannot carry the guard.
  * @details Intentionally \emph{not} exported: `IsDiscrete` is a private
  *          helper used only inside `IsDense` below (the negation
- *          `!IsDiscrete<T>` rules out the successor-isolated case).
+ *          `!IsDiscrete<T>` rules out the step-isolated case).
  *          The concept has the same scope now as before the
  *          `:concepts` → `:poset`/`:lattice`/`:completeness` split;
  *          if a downstream call site for "is this carrier discrete?"
@@ -78,11 +82,7 @@ concept IsArchimedean = IsPartiallyOrdered<T> && IsSuccessor<T>;
  *          point rather than pre-emptively widening the API.
  */
 template <typename T>
-concept IsDiscrete = IsArchimedean<T> && requires(T x) {
-  // The "Unit Gap" Axiom: There is no z such that x < z < x + 1
-  // In C++, we represent this by the atomic nature of the increment.
-  { x + T(1) };
-};
+concept IsDiscrete = IsPartiallyOrdered<T> && dedekind::category::HasNNOStep<T>;
 
 /**
  * @concept IsDense
@@ -128,11 +128,10 @@ static_assert(
     IsDividableChain<int>,
     "int must satisfy IsDividableChain (integer division and modulo).");
 
-// IsDiscrete<int> is architecturally withheld: IsDiscrete requires
-// IsArchimedean which requires IsSuccessor which requires IsPartialMagma<int,
-// std::plus<int>>. IsPartialMagma expects Op{}(std::pair<T,T>), but
-// std::plus<int> takes two separate arguments. Signed addition is also not a
-// Magma (no IsTotal: signed overflow is UB). See total.cppm: !IsMagma<int,
-// std::plus<int>>.
+// The discreteness guard fires on the machine integer: it steps by ±1, so it
+// is not dense even though (a + b) / 2 is well-formed arithmetic on it.
+static_assert(IsDiscrete<int>, "int steps by ±1: discrete.");
+static_assert(!IsDense<int>,
+              "int is not dense: the step guard decides, not the arithmetic.");
 
 }  // namespace dedekind::order
