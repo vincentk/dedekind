@@ -121,42 +121,94 @@ concept IsClosedUnderUnary = requires(const S& a) {
 export template <typename T, typename Op>
 concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
 
+/** @section total__totality
+ *
+ *  The totality certificate: a carrier's operation is defined on every pair
+ *  (it is a magma).  Five sufficient paths, each a pragmatic certificate and
+ *  none a canonical taxonomy boundary.  Four are @b declared by the carrier in
+ *  @c :species: periodicity (modular wrap), idempotence (globally stable),
+ *  saturation (escalation to an extended-range sentinel), exactness (exact
+ *  arithmetic with no rounding, bounded only by the out-of-memory tripwire).
+ *  The fifth is @b read @b off @b the @b construction here: a carrier built
+ *  from a base algebra computes with the base's operations, so it is total
+ *  exactly when those are, by whatever path certified them.
+ *
+ *  The first three are @b machine-finite (totality by staying in a bounded
+ *  range); the fourth lets a genuinely exact number field be a Magma --- and
+ *  hence reach @c IsField --- rather than being excluded as
+ *  "non-machine-total".  It is registered for @c Rational = ℚ and
+ *  @c QuadraticReal = ℚ(√D).  @c SignedCardinality = ℤ and @c Cardinality = ℕ
+ *  are total via @c is_saturating (they escalate to @f$\pm\aleph_0@f$), so
+ *  @c IsRing<ℤ> / @c IsSemiring<ℕ> hold through the saturating path, witnessed
+ *  at @c :integer / @c :natural.  (The two postures are distinct and a carrier
+ *  picks exactly one.)  The named concept @c IsSaturating that wraps
+ *  @c is_saturating_v lives in @c dedekind.category:mereology; here we reach
+ *  for the underlying trait variables directly so this upstream-foundational
+ *  layer does not depend on that partition.
+ */
+
+/** @brief A carrier's @b construction: @c D is built from a base algebra and
+ *  computes with the base's operations.  @c ::type is the base; @c
+ *  ::times_mixes_plus says whether @c D's × multiplies out (a quotient of a
+ *  polynomial ring, the Cauchy product: the base's × @b and +) or stays
+ *  componentwise (a product, a subalgebra: the base's × alone).  Declared once
+ *  per construction leg in @c dedekind.algebra (H / P / S / F), never per
+ *  carrier; a carrier declaring two legs is ambiguous here, honestly. */
+export template <typename D>
+struct construction_base {};
+
+export template <typename D>
+concept IsConstructed = requires {
+  typename construction_base<D>::type;
+  { construction_base<D>::times_mixes_plus } -> std::convertible_to<bool>;
+};
+
+/** @brief Path E to totality: @b by @b construction.  Defined below
+ *  @c is_total, which it recurses into on the base. */
+export template <typename T, typename Op>
+struct is_total_by_construction : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_total_by_construction_v =
+    is_total_by_construction<T, Op>::value;
+
+/** @brief The certificate.  @c Op is taken up to cv/ref (a @c const @c Inf
+ *  keys the same registration as @c Inf). */
+export template <typename T, typename Op>
+struct is_total
+    : std::bool_constant<
+          is_periodic_v<T, std::remove_cvref_t<Op>> ||     // A: wraps
+          is_idempotent_v<T, std::remove_cvref_t<Op>> ||   // B: stable
+          is_saturating_v<T, std::remove_cvref_t<Op>> ||   // C: escalates
+          is_exact_total_v<T, std::remove_cvref_t<Op>> ||  // D: exact
+          is_total_by_construction_v<T, std::remove_cvref_t<Op>>  // E: built
+          > {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_total_v = is_total<T, Op>::value;
+
+// Path E, read off the construction: + is computed with the base's +; × with
+// the base's × and, where it multiplies out, the base's + as well.
+template <IsConstructed D>
+struct is_total_by_construction<D, std::plus<D>>
+    : is_total<typename construction_base<D>::type,
+               std::plus<typename construction_base<D>::type>> {};
+
+template <IsConstructed D>
+struct is_total_by_construction<D, std::multiplies<D>>
+    : std::bool_constant<
+          is_total_v<typename construction_base<D>::type,
+                     std::multiplies<typename construction_base<D>::type>> &&
+          (!construction_base<D>::times_mixes_plus ||
+           is_total_v<typename construction_base<D>::type,
+                      std::plus<typename construction_base<D>::type>>)> {};
+
 /**
  * @concept IsTotal
- * @brief The Master Safety Certificate for Level 0.
- * A morphism is total if it is Periodic (Circular), Idempotent
- * (Stable), Saturating (escalating to an extended-range sentinel), or
- * Exact (arithmetic that never rounds; overflow is the carrier's
- * out-of-memory tripwire, not a wrong answer).
- *
- * Textbook note:
- * The four paths are orthogonal algebraic properties.  This concept
- * is a pragmatic implementation certificate and not a canonical
- * algebraic taxonomy boundary; carriers opt in to whichever path
- * matches their totality story.  The first three are @b machine-finite
- * (totality by staying in a bounded range); the fourth, @c
- * is_exact_total_v, is the @b exact/unbounded path that lets a genuinely exact
- * number field (no saturation) be a Magma --- and hence reach @c IsField ---
- * rather than being excluded as "non-machine-total".  It is registered for
- * @c Rational = ℚ and @c QuadraticReal = ℚ(√D), the exact fields, whose
- * boundary is the out-of-memory tripwire.  @c SignedCardinality = ℤ and
- * @c Cardinality = ℕ do @b not use this path: they are total via
- * @c is_saturating (they escalate to @f$\pm\aleph_0@f$), so @c IsRing<ℤ> /
- * @c IsSemiring<ℕ> hold through the saturating path, witnessed at @c :integer /
- * @c :natural.  (The two postures are distinct and a carrier picks exactly
- * one.)  A carrier built from a base (product, quotient, subalgebra, free
- * algebra) is total @b by @b construction when the base operations it computes
- * with are (@c is_total_by_construction_v, Path E in @c :species); no path is
- * forwarded.  The named concept @c IsSaturating that wraps @c is_saturating_v
- * lives
- * in @c dedekind.category:mereology (per #387's lift); here we reach for
- * the underlying trait variables directly so this upstream-foundational
- * layer does not depend on that partition.
+ * @brief The Master Safety Certificate for Level 0: @c is_total, as a concept.
  */
 export template <typename T, typename Op>
-concept IsTotal =
-    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op> ||
-    is_exact_total_v<T, Op> || is_total_by_construction_v<T, Op>;
+concept IsTotal = is_total_v<T, Op>;
 
 /**
  * @concept IsTotalArrow
