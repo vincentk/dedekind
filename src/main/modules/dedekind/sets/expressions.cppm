@@ -215,14 +215,16 @@ struct Comprehension
     return L::AND(dedekind::category::lift_logic<L>(base(x)),
                   dedekind::category::lift_logic<L>(predicate(x)));
   }
-  /** @brief Heterogeneous χ: a value of another type @c U that both the base
-   *  and the datum accept is asked of them as it is (the comparison happens
-   *  in the pair's common type), never narrowed to @c Domain first:
-   *  @c Singleton<int>{1}(1.5) is @c False. */
+  /** @brief Heterogeneous χ: a value of another type @c U that the datum
+   *  DECLARES it admits (@c Predicate::admits<U>, e.g.\ a point's cross-type
+   *  @c ==) is asked of base and datum as it is, never narrowed to @c Domain
+   *  first: @c Singleton<int>{1}(1.5) is @c False.  The declaration, not mere
+   *  invocability, is the gate: a generic lambda is invocable with anything and
+   *  must keep converting to @c Domain as before. */
   template <typename U>
     requires(!std::same_as<std::remove_cvref_t<U>, typename Base::Domain>) &&
             std::invocable<const Base&, const U&> &&
-            std::invocable<const Predicate&, const U&>
+            requires { requires Predicate::template admits<U>; }
   constexpr auto operator()(const U& x) const {
     using L = comprehension_logic_t<Base, Predicate>;
     return L::AND(dedekind::category::lift_logic<L>(base(x)),

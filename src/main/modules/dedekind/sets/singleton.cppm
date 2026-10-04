@@ -93,16 +93,20 @@ struct Point {
 
   /** @brief χ(x) = [x == pivot]. */
   constexpr bool operator()(const T& v) const { return v == pivot; }
-  /** @brief Heterogeneous membership: a value of another type @c U with a
-   *  cross-type @c == against @c T (the variant proxies against an @c int
-   *  point; a @c double against an @c int point).  The comparison happens in
-   *  the pair's common type, never by narrowing @c x to @c T:
-   *  @c Point<int>{1}(1.5) is @c false. */
+  /** @brief The foreign carriers this datum admits: any @c U with a cross-type
+   *  @c == against @c T (the variant proxies against an @c int point; a
+   *  @c double against an @c int point).  Read by the comprehension's
+   *  heterogeneous χ, which forwards only on this declaration. */
   template <typename U>
-    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
-            requires(const U& x, const T& v) {
-              { x == v } -> std::convertible_to<bool>;
-            }
+  static constexpr bool admits = !std::same_as<std::remove_cvref_t<U>, T> &&
+                                 requires(const U& x, const T& v) {
+                                   { x == v } -> std::convertible_to<bool>;
+                                 };
+  /** @brief Heterogeneous membership: the comparison happens in the pair's
+   *  common type, never by narrowing @c x to @c T: @c Point<int>{1}(1.5) is
+   *  @c false. */
+  template <typename U>
+    requires admits<U>
   constexpr bool operator()(const U& x) const {
     return x == pivot;
   }
