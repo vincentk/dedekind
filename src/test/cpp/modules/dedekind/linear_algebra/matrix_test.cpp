@@ -26,14 +26,16 @@ using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
 namespace {
-// Canonical paper-facing carrier: ℚ as a proxy for ℝ (exact arithmetic).
-// The one-limb rational, NOT Rational<default_integer>: this file uses Rat
-// as a NON-TYPE template parameter (Invertible2x2<Rat, Rat{1L}, ...>), which
-// requires a STRUCTURAL type.  default_integer is std::variant<...> (a private
-// member ⟹ non-structural).  SignedExtensionalCardinal<> is all-public
-// (structural) AND total (IsAlgebra), so it serves both the NTTP inversion
-// tests and the strict semimodule concept witnesses.
+// Two spellings of ℚ, for two jobs.  Rat is the STRUCTURAL one: this file
+// uses it as a NON-TYPE template parameter (Invertible2x2<Rat, Rat{1L}, ...>),
+// and default_integer is a std::variant (non-structural), while
+// SignedExtensionalCardinal<> is all-public.  It is ℚ over a WRAPPING word, so
+// it is not certified a ring (a wrapped cross-product breaks associativity),
+// and it carries values and NTTPs here, never certificates.  Q is the
+// certified ℚ, over the saturating default_integer: the concept witnesses
+// (semimodule, matrix algebra, orthogonal group) are asked of Q.
 using Rat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;
+using Q = Rational<default_integer>;
 }  // namespace
 
 TEST_CASE("linear_algebra:matrix — identity at the type level",
@@ -162,36 +164,36 @@ TEST_CASE(
     "Matrix2x2V<ℚ>",
     "[linear_algebra][matrix][value][concepts]") {
   // (1) A matrix column is a vector.
-  STATIC_CHECK(IsColumnVector<Vec2V<Rat>>);
+  STATIC_CHECK(IsColumnVector<Vec2V<Q>>);
 
   // (2) A matrix row is a row vector.
-  STATIC_CHECK(IsCovector<Covec2V<Rat>>);
+  STATIC_CHECK(IsCovector<Covec2V<Q>>);
 
   // (3) Vectors and covectors carry a dimension.
-  STATIC_CHECK(HasDimensionCount<Vec2V<Rat>>);
-  STATIC_CHECK(HasDimensionCount<Covec2V<Rat>>);
+  STATIC_CHECK(HasDimensionCount<Vec2V<Q>>);
+  STATIC_CHECK(HasDimensionCount<Covec2V<Q>>);
 
   // (4) Matrices decompose both horizontally (columns) and vertically (rows).
-  STATIC_CHECK(HasColumnDecomposition<Matrix2x2V<Rat>>);
-  STATIC_CHECK(HasRowDecomposition<Matrix2x2V<Rat>>);
+  STATIC_CHECK(HasColumnDecomposition<Matrix2x2V<Q>>);
+  STATIC_CHECK(HasRowDecomposition<Matrix2x2V<Q>>);
 
   // (5) Matrices carry two dimensionalities: row count and column count.
-  STATIC_CHECK(HasMatrixShape<Matrix2x2V<Rat>>);
-  STATIC_CHECK(Matrix2x2V<Rat>::row_count == 2u);
-  STATIC_CHECK(Matrix2x2V<Rat>::column_count == 2u);
+  STATIC_CHECK(HasMatrixShape<Matrix2x2V<Q>>);
+  STATIC_CHECK(Matrix2x2V<Q>::row_count == 2u);
+  STATIC_CHECK(Matrix2x2V<Q>::column_count == 2u);
 
   // (6) Matrix over a ring is at least a submodule-like carrier.
-  STATIC_CHECK(IsMatrixSubmoduleLike<Matrix2x2V<Rat>, Rat>);
+  STATIC_CHECK(IsMatrixSubmoduleLike<Matrix2x2V<Q>, Q>);
 
   // (7) Matrix over a field is at least a ring.
-  STATIC_CHECK(IsMatrixOverFieldRingLike<Matrix2x2V<Rat>, Rat>);
+  STATIC_CHECK(IsMatrixOverFieldRingLike<Matrix2x2V<Q>, Q>);
 
   // (8) Matrix multiplication is closed (and non-commutative in general).
-  STATIC_CHECK(HasMatrixMultiplication<Matrix2x2V<Rat>>);
+  STATIC_CHECK(HasMatrixMultiplication<Matrix2x2V<Q>>);
 
   // (9) Ring operations plus transpose — umbrella matrix-algebra concept.
-  STATIC_CHECK(HasTranspose<Matrix2x2V<Rat>>);
-  STATIC_CHECK(IsMatrixAlgebra<Matrix2x2V<Rat>, Rat>);
+  STATIC_CHECK(HasTranspose<Matrix2x2V<Q>>);
+  STATIC_CHECK(IsMatrixAlgebra<Matrix2x2V<Q>, Q>);
 }
 
 TEST_CASE("linear_algebra:matrix — concatenation builds matrices from tuples",
@@ -279,7 +281,7 @@ TEST_CASE(
     "linear_algebra:matrix — O(2, ℚ) as a multiplicative group of "
     "orthogonal matrices",
     "[linear_algebra][matrix][value][orthogonal][group]") {
-  STATIC_CHECK(IsOrthogonalMatrixCarrier<Matrix2x2V<Rat>>);
+  STATIC_CHECK(IsOrthogonalMatrixCarrier<Matrix2x2V<Q>>);
 
   constexpr auto I = identity_matrix2x2_v<Rat>;
   constexpr Matrix2x2V<Rat> R90{Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}};
@@ -338,10 +340,10 @@ TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
 // ===========================================================================
 
 namespace {
-// Fixed-width (one-limb) signed rational — the canonical ℚ carrier for the
-// lattice corners (matches embeddings_test.cpp's choice of carrier and
-// keeps the closure-tier identities exact at the ring layer).
-using LatticeRat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;
+// The certified ℚ for the lattice corners: over the saturating
+// default_integer, whose laws reach ℚ (fractions over a wrapping word are
+// not certified a ring, so the structural Rat above cannot sit here).
+using LatticeRat = Rational<default_integer>;
 }  // namespace
 
 TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
