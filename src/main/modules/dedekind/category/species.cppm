@@ -831,10 +831,10 @@ inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
 // FIXME(#806-followup): Path D is not yet forwarded by the H/S/P trait
 // propagation (@c algebra:quotient's subalgebra_base / quotient_algebra_base
-// carry only periodic/idempotent/saturating), so an exact quotient or
-// subalgebra currently loses @c IsTotal.  No exact carrier is quotiented or
-// sub-structured yet (the §5 subalgebra/quotient legs are deferred), so this is
-// latent; add exact-path forwarding there when those legs land.
+// carry only periodic/idempotent/saturating).  The exact quotients in the tree
+// (@c Complex<R>, @c Dual<F> over ℚ / ℚ(√D)) forward Path D per-trait at their
+// own registration, so nothing is lost today; add exact-path forwarding to the
+// propagation when a quotient relies on it.
 
 /** @section species__totality
  *  Four pragmatic paths to totality, each a sufficient (not

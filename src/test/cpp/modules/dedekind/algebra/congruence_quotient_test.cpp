@@ -14,8 +14,8 @@
  *  - Structural witness: a carrier declaring both hooks with a genuine
  *    congruence (@c int/(=), the diagonal congruence) satisfies the concept.
  *  - Negative gate (missing congruence): a carrier on the type-declaration
- *    path (@c quotient_algebra_base only, as @c Dual/@c Complex/@c Rational
- * use) honestly rejects — the relational reading requires the congruence.
+ *    path (@c quotient_algebra_base only, as @c Dual/@c Complex use)
+ *    honestly rejects — the relational reading requires the congruence.
  *  - Negative gate (not a congruence): a declared relation that is not an
  *    @c IsCongruence honestly rejects.
  *  - Negative gate (no projection): a genuine congruence on a non-reducing
@@ -46,7 +46,7 @@ struct int_by_equality {
 
 /** @brief Negative (no congruence): declares @b only the trait-propagation
  *         base (@c quotient_algebra_base), no congruence — the type-declaration
- *         path that @c Dual / @c Complex / @c Rational currently use. */
+ *         path that @c Dual / @c Complex currently use. */
 struct int_type_only {};
 
 /** @brief A relation type @b not registered as an equivalence/congruence,
@@ -123,7 +123,7 @@ TEST_CASE(
    *         trait-propagation base) but @b not a congruence honestly rejects
    *         @c IsCongruenceQuotient: the relational reading requires the
    *         congruence to be exhibited.  This is exactly the boundary between
-   *         the type-declaration path (@c Dual/@c Complex/@c Rational today)
+   *         the type-declaration path (@c Dual/@c Complex today)
    *         and the relational path. */
   STATIC_CHECK_FALSE(
       IsCongruenceQuotient<_congruence_quotient_witnesses::int_type_only,

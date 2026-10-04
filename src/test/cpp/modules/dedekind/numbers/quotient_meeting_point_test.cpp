@@ -63,19 +63,6 @@ TEST_CASE("quotient meeting-point — Modular<6> fires HSP propagation (Slice 5)
 }
 
 TEST_CASE(
-    "quotient meeting-point — Rational<int> fires IsQuotientAlgebra (HSP-H)",
-    "[quotient][meeting-point][rational][quotient]") {
-  /** @brief @c Rational<int> @c = @c Frac(int) is the canonical
-   *         quotient-algebra witness (carrier-side declaration of
-   *         @c quotient_algebra_base<Rational<I>>::type @c = @c I).
-   *         Fires @c IsQuotientAlgebra; the HSP-H propagation lifts
-   *         species traits from @c int to @c Rational<int> wherever
-   *         the base has them. */
-  using Q = Rational<int>;
-  STATIC_CHECK(IsQuotientAlgebra<Q>);
-}
-
-TEST_CASE(
     "quotient meeting-point — mod_2 parity homomorphism (First-Iso, Slice 4)",
     "[quotient][meeting-point][parity][first-iso]") {
   /** @brief The @c mod_2 homomorphism @c int @c → @c bool from

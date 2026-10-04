@@ -432,8 +432,8 @@ namespace dedekind::algebra {
  *   registration in @c numbers/rational.cppm (zero excluded by the
  *   @c is_invertible_v convention pinned in @c total.cppm).  So
  *   every @c is_module_v witness above whose scalar is @c ℚ
- *   auto-upgrades to @c is_vector_space_v.  The post-#673 saturating
- *   @c IsTotal path cleared the prior architectural blocker.
+ *   auto-upgrades to @c is_vector_space_v (ℚ is @c IsTotal on the exact
+ *   path, @c is_exact_total).
  *
  * The recursive enrichment Figure~1 of the paper depicts (ℚ as
  * ℤ-module, 𝔻 as ℝ-module, ℂ as ℝ-module, …) is structurally in

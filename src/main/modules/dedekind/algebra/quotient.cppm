@@ -80,8 +80,8 @@ namespace dedekind::category {
 /** @brief @c quotient_algebra_base<Q>: carrier-side declaration that
  *         @c Q is a quotient of some base algebra.  Specialise the
  *         @c ::type member at the carrier-defining partition (e.g.\
- *         @c Rational<I> in @c numbers:rational records
- *         @c quotient_algebra_base<Rational<I>>::type @c = @c I). */
+ *         @c Complex<R> in @c numbers:complex records
+ *         @c quotient_algebra_base<Complex<R>>::type @c = @c R). */
 export template <typename Q>
 struct quotient_algebra_base {};
 
