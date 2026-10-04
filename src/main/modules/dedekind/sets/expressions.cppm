@@ -217,18 +217,23 @@ struct Comprehension
   }
   /** @brief Heterogeneous χ: a value of another type @c U that the datum
    *  DECLARES it admits (@c Predicate::admits<U>, e.g.\ a point's cross-type
-   *  @c ==) is asked of base and datum as it is, never narrowed to @c Domain
+   *  @c ==) is asked of the datum as it is, never narrowed to @c Domain
    *  first: @c Singleton<int>{1}(1.5) is @c False.  The declaration, not mere
    *  invocability, is the gate: a generic lambda is invocable with anything and
-   *  must keep converting to @c Domain as before. */
+   *  must keep converting to @c Domain as before.  Over the universe the base
+   *  is not asked (@c χ_𝔸 @c ≡ @c ⊤, and its signature would narrow); a
+   *  proper base must itself admit @c U. */
   template <typename U>
     requires(!std::same_as<std::remove_cvref_t<U>, typename Base::Domain>) &&
-            std::invocable<const Base&, const U&> &&
-            requires { requires Predicate::template admits<U>; }
+            requires { requires Predicate::template admits<U>; } &&
+            (Is𝔸<Base> || std::invocable<const Base&, const U&>)
   constexpr auto operator()(const U& x) const {
     using L = comprehension_logic_t<Base, Predicate>;
-    return L::AND(dedekind::category::lift_logic<L>(base(x)),
-                  dedekind::category::lift_logic<L>(predicate(x)));
+    if constexpr (Is𝔸<Base>)
+      return dedekind::category::lift_logic<L>(predicate(x));
+    else
+      return L::AND(dedekind::category::lift_logic<L>(base(x)),
+                    dedekind::category::lift_logic<L>(predicate(x)));
   }
 
   /** @brief Size when the base exposes a probe element (@c pivot) and a

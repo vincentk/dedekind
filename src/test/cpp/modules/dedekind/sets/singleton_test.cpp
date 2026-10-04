@@ -71,7 +71,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // and by recovering both atoms from the type.
     INFO(
         "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
-    REQUIRE((_s | _s)(42));
+    REQUIRE((_s | _s)(std::size_t{42}));
     REQUIRE(!(_s | _s)(std::size_t{4}));
     // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
     // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
@@ -80,17 +80,15 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _t)(std::size_t{42}));
     REQUIRE((_s | _t)(std::size_t{7}));
     REQUIRE(!(_s | _t)(std::size_t{4}));
-    // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
-    // the union is a RECOVERABLE Join node whose two atoms survive in the type
-    // (an opaque predicate with the same membership would pass the checks
+    // The STRUCTURAL contract, which membership alone does not pin: the union
+    // is the reducer's RECOVERABLE Join node whose two atoms survive in the
+    // type (an opaque predicate with the same membership would pass the checks
     // above).  Pin the result type and recover both pivots.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<
-            UnionT, Comprehension<𝔸<size_t, Boole>,
-                                  Join<Singleton<size_t>, Singleton<size_t>>>>);
-    REQUIRE(origin((_s | _t).predicate.lhs) == 42);
-    REQUIRE(origin((_s | _t).predicate.rhs) == 7);
+        std::same_as<UnionT, Join<Singleton<size_t>, Singleton<size_t>>>);
+    REQUIRE(origin((_s | _t).lhs) == 42);
+    REQUIRE(origin((_s | _t).rhs) == 7);
   }
 }
 
@@ -127,12 +125,10 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
   SECTION("2. Compile-Time Semantic Mapping of Composition") {
     // Zero-overhead claim: the composition resolves to a constant 12.
     // Explicit left-fold parens on `>>=` (right-associative in C++).
-    static_assert(origin((singleton(5) >>= [](int x) {
-      return singleton(x + 1); }) >>=
-                   [](int x) {
-      return singleton(x * 2);
-                   })) == 12,
-                  "The Composition Axiom must be resolved at compile-time.");
+    static_assert(
+        origin((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
+               [](int x) { return singleton(x * 2); }) == 12,
+        "The Composition Axiom must be resolved at compile-time.");
   }
 }
 
