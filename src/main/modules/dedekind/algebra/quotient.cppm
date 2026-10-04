@@ -145,64 +145,15 @@ inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
                       std::multiplies<quotient_algebra_base_t<Q>>,
                       std::plus<quotient_algebra_base_t<Q>>>;
 
+// Totality by construction (Path E, @c :species): a quotient computes with
+// the base's operations, and its × multiplies out, so it needs the base's +
+// as well.  No path is forwarded; @c IsTotal reads the construction.
 template <typename Q>
   requires IsQuotientAlgebra<Q>
-struct is_saturating<Q, std::plus<Q>>
-    : is_saturating<quotient_algebra_base_t<Q>,
-                    std::plus<quotient_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_saturating<Q, std::multiplies<Q>>
-    : is_saturating<quotient_algebra_base_t<Q>,
-                    std::multiplies<quotient_algebra_base_t<Q>>> {};
-
-// Path D (exact totality) forwards too: a quotient's + is exact when the
-// base's is; its × generally mixes the base's + and ×, so it needs both.  A
-// carrier whose × needs more (Complex: an additive group as well) overrides
-// with its own, more specialised registration.
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_exact_total<Q, std::plus<Q>>
-    : is_exact_total<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_exact_total<Q, std::multiplies<Q>>
-    : std::bool_constant<
-          is_exact_total_v<quotient_algebra_base_t<Q>,
-                           std::multiplies<quotient_algebra_base_t<Q>>> &&
-          is_exact_total_v<quotient_algebra_base_t<Q>,
-                           std::plus<quotient_algebra_base_t<Q>>>> {};
-
-// is_periodic + is_idempotent propagate too: the IsTotal certificate
-// in :species is the disjunction of these three paths, so any of
-// them sufficing on Base must lift to Q for IsTotal to fire on Q.
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_periodic<Q, std::plus<Q>>
-    : is_periodic<quotient_algebra_base_t<Q>,
-                  std::plus<quotient_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_periodic<Q, std::multiplies<Q>>
-    : is_periodic<quotient_algebra_base_t<Q>,
-                  std::multiplies<quotient_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_idempotent<Q, std::plus<Q>>
-    : is_idempotent<quotient_algebra_base_t<Q>,
-                    std::plus<quotient_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-struct is_idempotent<Q, std::multiplies<Q>>
-    : is_idempotent<quotient_algebra_base_t<Q>,
-                    std::multiplies<quotient_algebra_base_t<Q>>> {};
+struct construction_base<Q> {
+  using type = quotient_algebra_base_t<Q>;
+  static constexpr bool times_mixes_plus = true;
+};
 
 // --- H-leg, relationally: the quotient rides a CONGRUENCE (a relation) ------
 //
@@ -394,55 +345,14 @@ inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
                       std::multiplies<product_algebra_base_t<Q>>,
                       std::plus<product_algebra_base_t<Q>>>;
 
+// Totality by construction: a product's operations are componentwise, so
+// each is total exactly when the factor's is.
 template <typename Q>
   requires IsProductAlgebra<Q>
-struct is_saturating<Q, std::plus<Q>>
-    : is_saturating<product_algebra_base_t<Q>,
-                    std::plus<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_saturating<Q, std::multiplies<Q>>
-    : is_saturating<product_algebra_base_t<Q>,
-                    std::multiplies<product_algebra_base_t<Q>>> {};
-
-// Path D: the product's ops are componentwise, so each is exact exactly when
-// the factor's is (Vec2V<ℚ> is total because ℚ is, on the exact path).
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_exact_total<Q, std::plus<Q>>
-    : is_exact_total<product_algebra_base_t<Q>,
-                     std::plus<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_exact_total<Q, std::multiplies<Q>>
-    : is_exact_total<product_algebra_base_t<Q>,
-                     std::multiplies<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_periodic<Q, std::plus<Q>>
-    : is_periodic<product_algebra_base_t<Q>,
-                  std::plus<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_periodic<Q, std::multiplies<Q>>
-    : is_periodic<product_algebra_base_t<Q>,
-                  std::multiplies<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_idempotent<Q, std::plus<Q>>
-    : is_idempotent<product_algebra_base_t<Q>,
-                    std::plus<product_algebra_base_t<Q>>> {};
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-struct is_idempotent<Q, std::multiplies<Q>>
-    : is_idempotent<product_algebra_base_t<Q>,
-                    std::multiplies<product_algebra_base_t<Q>>> {};
+struct construction_base<Q> {
+  using type = product_algebra_base_t<Q>;
+  static constexpr bool times_mixes_plus = false;
+};
 
 // ---------------------------------------------------------------------------
 // S (Subalgebra) — Birkhoff's HSP, Burris-Sankappanavar §II.5 / §II.10.
@@ -567,51 +477,14 @@ inline constexpr bool is_distributive_v<S, std::multiplies<S>, std::plus<S>> =
                       std::multiplies<subalgebra_base_t<S>>,
                       std::plus<subalgebra_base_t<S>>>;
 
+// Totality by construction: a subalgebra computes with the ambient's
+// operations as they are.
 template <typename S>
   requires IsSubalgebraOf<S>
-struct is_saturating<S, std::plus<S>>
-    : is_saturating<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_saturating<S, std::multiplies<S>>
-    : is_saturating<subalgebra_base_t<S>,
-                    std::multiplies<subalgebra_base_t<S>>> {};
-
-// Path D: a subalgebra computes with the ambient's ops, so it is exact where
-// the ambient is.
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_exact_total<S, std::plus<S>>
-    : is_exact_total<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_exact_total<S, std::multiplies<S>>
-    : is_exact_total<subalgebra_base_t<S>,
-                     std::multiplies<subalgebra_base_t<S>>> {};
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_periodic<S, std::plus<S>>
-    : is_periodic<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_periodic<S, std::multiplies<S>>
-    : is_periodic<subalgebra_base_t<S>, std::multiplies<subalgebra_base_t<S>>> {
+struct construction_base<S> {
+  using type = subalgebra_base_t<S>;
+  static constexpr bool times_mixes_plus = false;
 };
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_idempotent<S, std::plus<S>>
-    : is_idempotent<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>> {};
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-struct is_idempotent<S, std::multiplies<S>>
-    : is_idempotent<subalgebra_base_t<S>,
-                    std::multiplies<subalgebra_base_t<S>>> {};
 
 }  // namespace dedekind::category
 

@@ -138,8 +138,10 @@ TEST_CASE(
   // Row 5 (HSP propagation) — Modular<6> leg
   STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
 
-  // Row 5 / IsQuotientAlgebra — Rational leg
-  STATIC_CHECK(IsQuotientAlgebra<Q>);
+  // Row 5 / IsQuotientAlgebra — ℂ over ℚ leg; ℚ itself is a localization,
+  // not a homomorphic image, and says so.
+  STATIC_CHECK(IsQuotientAlgebra<dedekind::numbers::Complex<Q>>);
+  STATIC_CHECK_FALSE(IsQuotientAlgebra<Q>);
 
   // WitnessesFirstIso crown (Slice 4 cross-ref) — parity-quotient leg
   STATIC_CHECK(WitnessesFirstIso<mod_2_arrow, connector>);

@@ -829,29 +829,71 @@ struct is_exact_total : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
-// Path D is forwarded by the H / P / S / F trait propagation
-// (@c algebra:quotient, @c algebra:free) like the three machine-finite paths,
-// so a carrier built over an exact base (@c Vec2V<ℚ>, @c ℚ[x]) stays total.
-// @c Complex<R> / @c Dual<F> keep their own, stricter × registrations.
+/** @brief A carrier's @b construction: @c D is built from a base algebra and
+ *  computes with the base's operations.  @c ::type is the base; @c
+ *  ::times_mixes_plus says whether @c D's × multiplies out (a quotient of a
+ *  polynomial ring, the Cauchy product: the base's × @b and +) or stays
+ *  componentwise (a product, a subalgebra: the base's × alone).  Declared once
+ *  per construction leg in @c dedekind.algebra (H / P / S / F), never per
+ *  carrier; a carrier declaring two legs is ambiguous here, honestly. */
+export template <typename D>
+struct construction_base {};
+
+export template <typename D>
+concept IsConstructed = requires {
+  typename construction_base<D>::type;
+  { construction_base<D>::times_mixes_plus } -> std::convertible_to<bool>;
+};
+
+/** @brief Path E to totality: @b by @b construction.  A constructed carrier's
+ *  operation is total exactly when the base operations it is computed with
+ *  are, by whatever path certified them.  No path is forwarded; the
+ *  construction is read.  Defined below @c is_total, which it recurses into on
+ *  the base. */
+export template <typename T, typename Op>
+struct is_total_by_construction : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_total_by_construction_v =
+    is_total_by_construction<T, Op>::value;
 
 /** @section species__totality
  *  Four pragmatic paths to totality, each a sufficient (not
  *  necessary) condition: periodicity (modular wrap), idempotence
  *  (globally stable), saturation (escalation to an extended-range
- *  sentinel), or exactness (exact arithmetic with no rounding).
+ *  sentinel), or exactness (exact arithmetic with no rounding); and, for a
+ *  carrier built from a base algebra, totality by construction (the base
+ *  operations it computes with are total, by any of the four).
  *  See the textbook note on @c IsTotal below.
  */
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
-          is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
-          is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
-          is_saturating_v<T, Op> ||  // Path C: It escalates (SEC<>, ±ℵ_0)
-          is_exact_total_v<T, Op>    // Path D: exact & unbounded (ℚ, ℝ-fields)
+          is_periodic_v<T, Op> ||     // Path A: It wraps (Groups/Rings)
+          is_idempotent_v<T, Op> ||   // Path B: It's stable (Lattices/Extrema)
+          is_saturating_v<T, Op> ||   // Path C: It escalates (SEC<>, ±ℵ_0)
+          is_exact_total_v<T, Op> ||  // Path D: exact & unbounded (ℚ, ℝ-fields)
+          is_total_by_construction_v<T, Op>  // Path E: built from total ops
           > {};
 
 export template <typename T, typename Op>
 inline constexpr bool is_total_v = is_total<T, Op>::value;
+
+// Path E, read off the construction: + is computed with the base's +; × with
+// the base's × and, where it multiplies out, the base's + as well.
+template <IsConstructed D>
+struct is_total_by_construction<D, std::plus<D>>
+    : is_total<typename construction_base<D>::type,
+               std::plus<typename construction_base<D>::type>> {};
+
+template <IsConstructed D>
+struct is_total_by_construction<D, std::multiplies<D>>
+    : std::bool_constant<
+          is_total_v<typename construction_base<D>::type,
+                     std::multiplies<typename construction_base<D>::type>> &&
+          (!construction_base<D>::times_mixes_plus ||
+           is_total_v<typename construction_base<D>::type,
+                      std::plus<typename construction_base<D>::type>>)> {};
 
 /**
  * Unsigned integers are natively periodic under

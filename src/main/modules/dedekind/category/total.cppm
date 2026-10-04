@@ -144,14 +144,19 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  * @c is_saturating (they escalate to @f$\pm\aleph_0@f$), so @c IsRing<ℤ> /
  * @c IsSemiring<ℕ> hold through the saturating path, witnessed at @c :integer /
  * @c :natural.  (The two postures are distinct and a carrier picks exactly
- * one.) The named concept @c IsSaturating that wraps @c is_saturating_v lives
+ * one.)  A carrier built from a base (product, quotient, subalgebra, free
+ * algebra) is total @b by @b construction when the base operations it computes
+ * with are (@c is_total_by_construction_v, Path E in @c :species); no path is
+ * forwarded.  The named concept @c IsSaturating that wraps @c is_saturating_v
+ * lives
  * in @c dedekind.category:mereology (per #387's lift); here we reach for
  * the underlying trait variables directly so this upstream-foundational
  * layer does not depend on that partition.
  */
 export template <typename T, typename Op>
-concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op> ||
-                  is_saturating_v<T, Op> || is_exact_total_v<T, Op>;
+concept IsTotal =
+    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op> ||
+    is_exact_total_v<T, Op> || is_total_by_construction_v<T, Op>;
 
 /**
  * @concept IsTotalArrow

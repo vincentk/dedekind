@@ -1,9 +1,9 @@
 // Tests for the HSP H/P + free-algebra trait propagation
 // (dedekind.algebra:quotient + :free).  The propagation rules lift
-// is_associative / is_commutative / is_distributive_v / is_periodic /
-// is_idempotent / is_saturating from a base algebra to its declared
-// HSP image.  The static_assert witnesses in the main partition
-// already pin the canonical instances; this file adds Catch2-visible
+// is_associative / is_commutative / is_distributive_v from a base algebra to
+// its declared HSP image, and totality is read off the construction
+// (is_total_by_construction).  The static_assert witnesses in the main
+// partition already pin the canonical instances; this file adds Catch2-visible
 // coverage for the propagation behaviour and the absence of
 // over-firing.
 //
@@ -95,12 +95,13 @@ TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
   STATIC_CHECK(is_exact_total_v<Q, std::plus<Q>>);
   STATIC_CHECK_FALSE(is_saturating_v<Q, std::plus<Q>>);
-  // The P leg forwards the exact path: Vec2V<ℚ> is total because ℚ is.
+  // By construction: Vec2V<ℚ> is total because ℚ's + is (componentwise), and
+  // ℚ[x] under the Cauchy product because ℚ's × and + are.  No path is
+  // forwarded to the derived carrier.
   using V2q = Vec2V<Q>;
-  STATIC_CHECK(is_exact_total_v<V2q, std::plus<V2q>>);
   STATIC_CHECK(is_total_v<V2q, std::plus<V2q>>);
-  // ... and the F leg: ℚ[x] under the Cauchy product.
-  STATIC_CHECK(is_exact_total_v<PQ, std::multiplies<PQ>>);
+  STATIC_CHECK_FALSE(is_exact_total_v<V2q, std::plus<V2q>>);
+  STATIC_CHECK(is_total_v<PQ, std::multiplies<PQ>>);
   // unsigned int certifies IsTotal via is_periodic; P propagation
   // lifts it to Vec2V<unsigned int>.
   STATIC_CHECK(is_total_v<V2u, std::plus<V2u>>);

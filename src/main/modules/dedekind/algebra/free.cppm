@@ -122,56 +122,13 @@ inline constexpr bool is_distributive_v<F, std::multiplies<F>, std::plus<F>> =
                       std::multiplies<free_algebra_base_t<F>>,
                       std::plus<free_algebra_base_t<F>>>;
 
+// Totality by construction: + is coefficientwise; × is the Cauchy product,
+// computed with the base's × and +.
 template <typename F>
   requires IsFreeAlgebra<F>
-struct is_saturating<F, std::plus<F>>
-    : is_saturating<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {
+struct construction_base<F> {
+  using type = free_algebra_base_t<F>;
+  static constexpr bool times_mixes_plus = true;
 };
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_saturating<F, std::multiplies<F>>
-    : is_saturating<free_algebra_base_t<F>,
-                    std::multiplies<free_algebra_base_t<F>>> {};
-
-// Path D: + is coefficientwise, so exact when the base's + is; × is the Cauchy
-// product, built from the base's + and ×, so it needs both.
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_exact_total<F, std::plus<F>>
-    : is_exact_total<free_algebra_base_t<F>,
-                     std::plus<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_exact_total<F, std::multiplies<F>>
-    : std::bool_constant<
-          is_exact_total_v<free_algebra_base_t<F>,
-                           std::multiplies<free_algebra_base_t<F>>> &&
-          is_exact_total_v<free_algebra_base_t<F>,
-                           std::plus<free_algebra_base_t<F>>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_periodic<F, std::plus<F>>
-    : is_periodic<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_periodic<F, std::multiplies<F>>
-    : is_periodic<free_algebra_base_t<F>,
-                  std::multiplies<free_algebra_base_t<F>>> {};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_idempotent<F, std::plus<F>>
-    : is_idempotent<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {
-};
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-struct is_idempotent<F, std::multiplies<F>>
-    : is_idempotent<free_algebra_base_t<F>,
-                    std::multiplies<free_algebra_base_t<F>>> {};
 
 }  // namespace dedekind::category
