@@ -258,9 +258,9 @@ concept IsAbsorptive =
  * names the law that one operation collapses pairs through another
  * (a lattice fact), saturation names the law that an operation
  * escalates to a fixed sentinel on out-of-range inputs (an
- * extended-range fact).  Both feed @c category:species's
+ * extended-range fact).  Both feed @c category:total's
  * @c IsTotal pragmatic certificate via their underlying trait
- * variables; @c IsTotal in @c :species reaches for the trait
+ * variables; @c IsTotal in @c :total reaches for the trait
  * variable @c is_saturating_v directly so the upstream layer does
  * not depend on this partition's concept-level surface.
  *

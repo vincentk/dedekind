@@ -39,14 +39,12 @@
  *
  * @section free__Trait_Propagation
  *
- * Like H and P, the free-algebra construction is structure-preserving:
- * if the base @c R has associativity / commutativity / distributivity
- * / saturation under the corresponding operation, the free algebra
- * @c F(R) inherits it.  The propagation specialisations below mirror
- * the @c :quotient pattern: a single
- * @c free_algebra_base<F>::type @c = @c R declaration at the carrier
- * site fires the trait propagation under @c std::plus<F> /
- * @c std::multiplies<F>.  Carrier-specific identity / inverse values
+ * Like H and P, the free-algebra construction is structure-preserving: the
+ * laws of @c + are the base's (coefficientwise), the laws of @c × rest on the
+ * base's commutative-ring laws (the Cauchy product), and totality follows the
+ * same reading.  A single @c free_algebra_base<F>::type @c = @c R declaration
+ * at the carrier site declares the construction; @c category:total reads the
+ * laws and totality off it.  Carrier-specific identity / inverse values
  * remain at the carrier site (the construction of zero polynomial /
  * unit polynomial depends on the carrier's internal layout).
  *

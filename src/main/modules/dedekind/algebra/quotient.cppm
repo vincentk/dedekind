@@ -3,8 +3,8 @@
  * @partition :quotient
  * @brief HSP structure-preserving operations on algebras — H (quotient,
  *        with a relational congruence reading) + P (direct product) + S
- *        (subalgebra) carrier-side concepts and structural-trait
- *        propagation.
+ *        (subalgebra) carrier-side concepts; their laws and totality are
+ *        read off the construction in @c category:total.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -51,8 +51,8 @@
  * (numbers:rational).
  *
  * Each carrier site declares the quotient relation @b once via a
- * single @c quotient_algebra_base<Q> specialisation; the species
- * traits propagate uniformly without per-trait enumeration.  Carrier-
+ * single @c quotient_algebra_base<Q> specialisation; @c category:total reads
+ * the laws and totality off it without per-trait enumeration.  Carrier-
  * specific bits (additive identity values, additive inverse via @c -q)
  * remain at the carrier site as @c identity_trait / @c inverse_trait
  * specialisations because their construction depends on the carrier's
@@ -62,11 +62,11 @@
  *
  * In the @c :morphism vocabulary, the quotient construction is a
  * @b hub @b arrow (a functor between categories) and its image is a
- * @b spoke (an object in the target category).  The propagation
- * specialisations express functoriality at the trait level: structural
- * traits on @c Q lift from the corresponding traits on @c Base under
- * @c std::plus / @c std::multiplies, exactly as a structure-preserving
- * functor does on objects in @b CRing or @b Mod_R.
+ * @b spoke (an object in the target category).  The construction rules in
+ * @c category:total express functoriality at the trait level: the laws and
+ * totality of @c Q are read off those of @c Base under @c std::plus /
+ * @c std::multiplies, exactly as a structure-preserving functor does on
+ * objects in @b CRing or @b Mod_R.
  *
  * Issues #498 (Algebraic Tower) / #499 (NEW-A trait registry).
  */
@@ -126,8 +126,8 @@ struct construction_base<Q> {
 
 // --- H-leg, relationally: the quotient rides a CONGRUENCE (a relation) ------
 //
-// The propagation above rides @c quotient_algebra_base<Q>::type --- the
-// base carrier, a bare type pointer.  This block adds the @b relational
+// The construction declared above rides @c quotient_algebra_base<Q>::type ---
+// the base carrier, a bare type pointer.  This block adds the @b relational
 // reading, symmetric with the S-leg's @c is_closed_under_v / @c IsSubalgebra
 // (below): a quotient @c Q @c = @c V/R is witnessed by a @b congruence
 // relation @c R on the carrier @c V --- an equivalence preserved by the
@@ -136,13 +136,13 @@ struct construction_base<Q> {
 // closing the asymmetry where H carried only a type pointer while S already
 // carried a relation.
 //
-// @b Deliberately @b decoupled from @c IsQuotientAlgebra (the trait-
-// propagation base).  The two are separate concerns: propagation lifts a
-// base's traits to @c Q via @c quotient_algebra_base, whereas the congruence
+// @b Deliberately @b decoupled from @c IsQuotientAlgebra (the construction
+// base).  The two are separate concerns: @c :total reads @c Q's laws and
+// totality off @c quotient_algebra_base, whereas the congruence
 // merely @b witnesses that @c Q @c = @c V/R.  A carrier may set its traits
 // @b directly and still be a congruence quotient --- e.g.\ @c Modular<N> is
 // total by wraparound while its integer carrier @c V is not, so it must
-// @b not inherit @c V's (non-total) traits by propagation, yet @c Modular<N>
+// @b not inherit @c V's (non-total) traits by construction, yet @c Modular<N>
 // @c = @c V/(≡ mod N) is a genuine congruence quotient.  Coupling the two
 // would corrupt such a carrier's certification; keeping them apart is the
 // honest factoring.
@@ -347,10 +347,10 @@ concept IsSubalgebra = IsSubobject<S, A> && is_closed_under_v<S, A, Op> &&
 
 // ---------------------------------------------------------------------------
 // subalgebra_base<S>::type — carrier-side registry mirroring
-// quotient_algebra_base and product_algebra_base.  The propagation
-// specs below lift the species traits (is_associative, is_commutative,
-// is_distributive, …) from the ambient algebra A to its subalgebra S
-// uniformly, completing the HSP closure of axioms on the trait registry.
+// quotient_algebra_base and product_algebra_base.  @c category:total reads
+// the subalgebra's laws and totality off the ambient algebra A through the
+// construction declared below, completing the HSP closure of axioms on the
+// trait registry.
 // ---------------------------------------------------------------------------
 
 /** @brief @c subalgebra_base<S>: carrier-side declaration that @c S

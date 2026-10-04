@@ -2467,7 +2467,7 @@ To answer ``I need structure $X$'', read its row in Table~\ref{tab:lattice-carri
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{SignedExtensionalCardinal<>}.}
+\caption{\textbf{The carrier poset and its realisations.} Each structure of the poset (§\ref{sec:algebraic_lattice_carriers}), the concept that certifies it, and the carriers that realise it on the built-in (\cppinline{std} / IEEE) side and the exact-library side. Each row names \emph{representative} carriers that strictly realise the structure; a carrier recurs across the rows it satisfies (\cppinline{unsigned} is a magma, monoid, group, and ring; \cppinline{bool} is both a field and a Galois field). \textsuperscript{$\dagger$} marks operator-surface-only certification, the strict axiomatic witness being queued. \cppinline{I} abbreviates \cppinline{default_integer}, the saturating $\mathbb{Z}$ (\cppinline{SignedCardinality}); the wrapping word \cppinline{SignedExtensionalCardinal<>} is $\mathbb{Z}/2^{w}\mathbb{Z}$, certified as such and not as a backing for $\mathbb{Q}$.}
 \label{tab:lattice-carriers}
 \footnotesize
 \begin{tabular}{@{}l l p{0.23\textwidth} p{0.35\textwidth}@{}}
@@ -2967,8 +2967,7 @@ recursion of the same combinator pattern.
 \paragraph{Carrier choices, error messages, ergonomics.}
 The carrier-vs-overflow trade-offs are catalogued in
 Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
-to \cppinline{Rational<SignedExtensionalCardinal<>>} (exact, wrapping at
-$2^{63}$); programmers who trade exactness for native
+to \cppinline{Rational<SignedExtensionalCardinal<>>} (a structural carrier, usable as a template argument; it wraps at $2^{63}$, so it is certified on its operator surface only, the strict field being \cppinline{Rational<default_integer>}); programmers who trade exactness for native
 performance pick a primitive row and accept the named failure mode
 (signed-overflow UB on \cppinline{int}; non-associative rounding on
 \cppinline{float}/\cppinline{double}).  The combinators of

@@ -361,10 +361,9 @@ export inline constexpr auto embed_ℝ_𝔻 =
 // Dual<F> = F[ε]/(ε²) is a polynomial-quotient construction (the
 // nilpotent ε generator collapses to zero squared).  The single
 // declaration below — `quotient_algebra_base<Dual<F>>::type = F` —
-// fires the structural-trait propagation through
-// `dedekind.algebra:quotient`: associativity, commutativity,
-// distributivity, and the full IsTotal disjunction (periodic /
-// idempotent / saturating) all lift from F to Dual<F> uniformly.  The carrier-
+// declares the construction: category:total reads Dual<F>'s laws and totality
+// off F (× multiplies out, so its laws rest on F's commutative-ring laws).  The
+// carrier-
 // specific bits (additive identity, additive inverse) live next to it
 // as identity_trait / inverse_trait specialisations.
 //

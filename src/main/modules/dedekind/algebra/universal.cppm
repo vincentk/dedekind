@@ -235,8 +235,9 @@ concept IsAlgebraOnSet = dedekind::category::IsLSet<X> &&
  * @tparam Ops Family of operations that close on @c T and are total
  *             under one of the @c IsTotal paths.
  *
- * @see @c category:species for @c IsTotal / @c IsPeriodic /
- *      @c IsIdempotent / @c is_saturating_v.
+ * @see @c category:species for the declared paths @c IsPeriodic /
+ *      @c IsIdempotent / @c is_saturating_v, and @c category:total for
+ *      @c IsTotal.
  * @see @c category:total for the per-axiom laws hierarchy
  *      (@c IsRing, @c IsField, @c IsAbelianGroup, etc.) built on
  *      @c IsTotal.

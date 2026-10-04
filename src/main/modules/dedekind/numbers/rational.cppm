@@ -80,6 +80,18 @@ using namespace dedekind::sets;
  * not silently clamp on the client's behalf; it @b throws, so the boundary
  * stays visible (Honest Rejection, the same posture as division-by-zero).
  */
+/** @brief The rejection contract a saturating backing must offer ℚ's
+ *  tripwire: @c is_finite(i), found by ADL, says whether @c i is a point of ℤ
+ *  or a sentinel (@c ±ℵ_0 / @c NaZ).  @c Rational rejects a non-finite value
+ *  wherever one can arise (construction, comparison); a saturating carrier
+ *  without this hook would clamp silently and is not admitted as a backing
+ *  (see @c FractionBacking).
+ *  @tparam I the integer carrier. */
+export template <typename I>
+concept RejectsNonFinite = requires(const I& i) {
+  { is_finite(i) } -> std::same_as<bool>;
+};
+
 export template <IsInteger Z = default_integer>
 class Rational {
  public:
@@ -160,12 +172,12 @@ class Rational {
    *  no-sentinels contract below).  This also avoids @c euclidean_gcd's
    *  non-termination (@c NaZ @c % anything @c == @c NaZ) and the ordering
    *  incoherence a retained @c NaZ/1 would cause (@c <=> would read it EQUAL to
-   *  @c 1/1 while @c == reads it unequal).  Compile-time no-op for carriers
-   * with no non-finite sentinels (plain integers). */
+   *  @c 1/1 while @c == reads it unequal).  Generic over the backing through
+   *  @c RejectsNonFinite (the @c is_finite hook); a compile-time no-op for
+   *  carriers without sentinels (plain integers). */
   constexpr void reject_non_finite() const {
-    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(first) ||
-          !dedekind::sets::is_finite(second))
+    if constexpr (RejectsNonFinite<Z>) {
+      if (!is_finite(first) || !is_finite(second))
         throw std::domain_error(
             "Rational: non-finite ℤ (NaZ / ±ℵ_0) is not a rational.");
     }
@@ -176,8 +188,8 @@ class Rational {
    *  has saturated to a non-finite value, i.e. the comparison has left the
    *  finite backing.  Compile-time no-op for carriers with no sentinels. */
   static constexpr void reject_non_finite_product(const Z& lhs, const Z& rhs) {
-    if constexpr (std::same_as<Z, dedekind::sets::SignedCardinality>) {
-      if (!dedekind::sets::is_finite(lhs) || !dedekind::sets::is_finite(rhs))
+    if constexpr (RejectsNonFinite<Z>) {
+      if (!is_finite(lhs) || !is_finite(rhs))
         throw std::domain_error(
             "Rational: comparison cross-product overflowed the finite backing "
             "(OOM tripwire).");
@@ -516,14 +528,17 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 namespace dedekind::category {
 
 /** @brief An integer backing over which fraction arithmetic obeys ℚ's laws
- *  under @c Op: it does not wrap (it saturates, or is exact), so a wrapped
- *  intermediate cross-product cannot silently break a law; the tripwire
- *  rejects instead.
+ *  under @c Op: it does not wrap, so a wrapped intermediate cross-product
+ *  cannot silently break a law.  Either it is exact, or it saturates @b and
+ *  offers the @c is_finite hook (@c RejectsNonFinite) through which ℚ's
+ *  tripwire rejects the saturated value instead of clamping.
  *  @tparam I the integer carrier.
  *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
 template <typename I, typename Op>
-concept FractionBacking = dedekind::morphologies::IsInteger<I> &&
-                          (is_saturating_v<I, Op> || is_exact_total_v<I, Op>);
+concept FractionBacking =
+    dedekind::morphologies::IsInteger<I> &&
+    (is_exact_total_v<I, Op> ||
+     (is_saturating_v<I, Op> && dedekind::numbers::RejectsNonFinite<I>));
 
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
