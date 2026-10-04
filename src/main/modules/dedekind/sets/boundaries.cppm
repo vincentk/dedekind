@@ -18,7 +18,7 @@
  * @details
  * These sets are the 'First-Class Citizens' of the Mereological System:
  * 1. Self-Awareness: Each boundary knows its 'Ambient Species' (The context).
- * 2. Duality: They are mutually defined via the Complement Morphism (!).
+ * 2. Duality: Each is the other's complement.
  * 3. Identity: They serve as the unit elements for Union (|) and Intersection
  * (&).
  *
@@ -54,7 +54,6 @@ export module dedekind.sets:boundaries;
 import dedekind.category;
 
 import :cardinality;
-import :mereology;
 import :setobject;  // IsSetObject: Ø and 𝔸 are the ⊥ / ⊤ set objects
 
 using namespace dedekind::category;
@@ -335,7 +334,7 @@ struct 𝔸 final {
 
   /**
    * @section boundaries__Lattice_Axiom_2
-   * Everything is a part of the Universal Set.
+   * Everything is a part of the universe 𝔸.
    * Constraint: Exclude Variables (which have a member T) to let
    * symbolic expressions handle their own comparisons.
    */
@@ -734,10 +733,8 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
  *  (@c bool, @c Cardinality, @c SignedExtensionalCardinal<>, ...) in
  *  template-type-parameter positions; the math symbols denote the sets.
  *
- *  This makes @c element<ℕ> the canonical scout spelling for the
- *  natural-numbers universe — closer to textbook math notation than the
- *  pre-#559 @c element<𝔸<ℕ>> form (which required @c ℕ to be a type
- *  alias for @c Cardinality).
+ *  This makes @c ℕ @c | @c (π @c ⋈ @c fix(c)) the canonical spelling for a
+ *  subset of the natural-numbers universe, close to textbook notation.
  *
  *  Pre-#559 the spelling was @c using @c ℕ @c = @c
  *  dedekind::sets::Cardinality (carrier-type alias, post-#402); the

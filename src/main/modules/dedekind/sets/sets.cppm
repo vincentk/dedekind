@@ -34,13 +34,6 @@
  * *Grundlagen einer allgemeinen Mannigfaltigkeitslehre* (1883).
  * [Trans: "The essence of mathematics lies entirely in its freedom."]
  */
-module;
-
-#include <concepts>     // std::convertible_to
-#include <type_traits>  // std::remove_cvref_t (HasSetSurface decays cv/ref)
-#include <utility>  // std::pair's operator== must be reachable here: the set-algebra
-// witnesses evaluate std::regular<std::pair<…>> in THIS unit
-
 export module dedekind.sets;
 
 export import :setobject;  // the noun: IsSetObject, upstream of everything
@@ -50,128 +43,7 @@ export import :computability;
 export import :expressions;
 export import :extensional;
 export import :quantifier;
-export import :mereology;
 export import :singleton;
 export import :quotient;
 // :relational (Codd's σ ⋈ ∪ ∖) and :graph (graphs of arrows) were popped OUT of
 // :sets into the dedekind.relational module (above sets, below order; GH #792).
-
-import dedekind.category; // IsSet (the ETCS-axiomatic gate composed by HasSetSurface)
-
-namespace dedekind::sets {
-
-/** @section sets__User_Facing_Surface
- *
- * @brief Master concept + checklist for the ergonomic set-DSL surface.
- *
- * @details
- * Per @c :etcs vs @c :expressions polarity: @c :etcs reifies the 10 ETCS
- * axioms with almost no regard for ergonomics; @c :expressions and its
- * siblings take ergonomics as the @em sine @em qua @em non (set-builder
- * notation is presumed blackboard-readable).  This block names the
- * ergonomic surface every user-facing set type should expose.
- *
- * Composition: @c HasSetSurface is the @b strict set-theoretic superset
- * of @c :etcs::IsSet (adds cv/ref decay only — no extra structural
- * requirements).  The @c Has* checklist sub-concepts below are
- * standalone affordances composed at use sites rather than bundled
- * into the master.
- */
-
-/** @brief Callable wrapper around set-level union (∪), used so the
- *         abstract lattice claim @c :category:mereology::IsSetLattice
- *         can be instantiated on the set-pair operators. */
-struct set_join {
-  template <typename S>
-  constexpr auto operator()(const S& a, const S& b) const {
-    return a | b;
-  }
-};
-
-/** @brief Callable wrapper around set-level intersection (∩). */
-struct set_meet {
-  template <typename S>
-  constexpr auto operator()(const S& a, const S& b) const {
-    return a & b;
-  }
-};
-
-/** @brief Sub-concept: @c s(v) is well-formed and returns a value
- *         convertible to the set's logic species @c Ω. */
-export template <typename S>
-concept HasMembershipOperator =
-    requires(const S& s, const typename S::Domain& v) {
-      { s(v) } -> std::convertible_to<typename S::logic_species::Ω>;
-    };
-
-/** @brief Sub-concept: the set-algebra surface, one concept so the operators
- *  cannot diverge --- the lattice of sets on PAIRS (∪ @c |, ∩ @c &, △ @c ^),
- *  the complement @c ~ (the reducer's @c Not node; @c ! is predicate negation,
- *  #963) and the cartesian product @c *.
- *  @details The same four spellings as @c :order::HasLatticeOperators, with the
- *           closure moved one level up: a lattice of ELEMENTS closes on the
- *           carrier (@c a&b is again a @c T), a lattice of SETS closes in the
- *           category of set objects (@c a&b is a @c Comprehension, @c ~a a
- *           @c Not node, @c a*b a set over the pair carrier --- each an
- *           @c IsSetObject, none an @c S).  The axiomatic claim ("this IS a
- *           lattice of sets") lives upstream as
- *           @c :category:mereology::IsSetLattice<S, set_join, set_meet>. */
-export template <typename S>
-concept HasSetOperators = requires(const S& a, const S& b) {
-  { a | b } -> IsSetObject;
-  { a & b } -> IsSetObject;
-  { a ^ b } -> IsSetObject;
-  { ~a } -> IsSetObject;
-  { a * b } -> IsSetObject;
-};
-
-/** @brief Sub-concept: @c s.cardinality() returns the carrier's
- *         @c cardinality_type tag. */
-export template <typename S>
-concept HasCardinalityInterface = requires(const S& s) {
-  typename S::cardinality_type;
-  { s.cardinality() };
-};
-
-/** @brief Master: the ergonomic surface of an @b L-set
- *         (@c category::IsLSet) with cv/ref decay, so callers can pass
- *         @c decltype(expr) directly.
- *
- *  @details Every @c IsSet<T> (ETCS, Ω = 𝔹) satisfies @c HasSetSurface<T>,
- *           and so does every Kleene-valued set: the surface is the
- *           L-set's, not the ETCS specialisation's.  The superset is
- *           proper twice over (non-Boolean species, and reference- /
- *           cv-qualified spellings).  Granular DSL affordances (membership,
- *           set algebra, cardinality) are the @c Has*
- *           sub-concepts above — composed at use sites rather than
- *           bundled here. */
-export template <typename S>
-concept HasSetSurface = dedekind::category::IsLSet<std::remove_cvref_t<S>>;
-
-/** @section sets__User_Facing_Surface_Witnesses
- *  @details Canonical green witnesses pinning the master concept +
- *           every sub-concept on @c Singleton, the most fully-
- *           equipped concrete set type today.  Strict-superset
- *           property: a reference-qualified decltype still satisfies
- *           @c HasSetSurface. */
-namespace _user_facing_witnesses {
-using _S1 = Singleton<int, dedekind::category::Boole>;
-static_assert(HasMembershipOperator<_S1>);
-static_assert(HasSetOperators<_S1>);
-static_assert(HasCardinalityInterface<_S1>);
-
-// A Kleene-valued universe is NOT an ETCS set but has the full surface.
-static_assert(
-    HasSetSurface<𝔸<bool, dedekind::category::Kleene>> &&
-        !dedekind::category::IsSet<𝔸<bool, dedekind::category::Kleene>>,
-    "the surface is the L-set's: a Kleene universe has it without "
-    "being ETCS.");
-// Strict-superset claim: HasSetSurface fires wherever IsSet fires...
-static_assert(dedekind::category::IsSet<_S1> ? HasSetSurface<_S1> : true);
-static_assert(HasSetSurface<_S1>);
-// ...and also fires on ref/cv variants the strict IsSet rejects.
-static_assert(!dedekind::category::IsSet<_S1 const&>);
-static_assert(HasSetSurface<_S1 const&>);
-}  // namespace _user_facing_witnesses
-
-}  // namespace dedekind::sets

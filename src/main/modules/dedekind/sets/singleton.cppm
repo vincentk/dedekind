@@ -56,7 +56,6 @@ export module dedekind.sets:singleton;
 import dedekind.category;
 
 import :cardinality;
-import :mereology;
 import :boundaries;
 import :expressions;
 
@@ -156,7 +155,7 @@ struct Singleton : SetExpr<Singleton<T, L>, T, L> {
   constexpr auto operator&(const Singleton<U, L2>& other) const& {
     return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
   }
-  // FIXME(#842): de-lambda to a @c category::Meet node the way @c | was.
+  // FIXME(#992): de-lambda to a @c category::Meet node the way @c | was.
   template <typename U, typename L2>
     requires std::same_as<L2, L>
   constexpr auto operator&(const Singleton<U, L2>& other) const&& {
@@ -411,7 +410,7 @@ constexpr auto image(
  *    generic @c image(F, @c Singleton) above (correct: returns
  *    @c Singleton<One, L>{F(pivot)} = @c Singleton<One, L>{One{}}).
  *
- *  Predicate-based @c Set<T, L, P> sources fall through to the
+ *  Predicate-based @c Comprehension sources fall through to the
  *  symbolic-fallback @c image() in @c :expressions (inhabitation
  *  undecidable in general). */
 export template <typename L, typename T, typename C, typename F>
@@ -440,18 +439,3 @@ constexpr auto image(F&&, const Ø<T, L>&) {
 // @c :singleton with its own assertion machinery (per PR #604 review).
 
 };  // namespace dedekind::sets
-
-// The Set-monad structure on Singleton (η = `singleton`, ε = `origin`,
-// Kleisli `operator>>=` / co-Kleisli `operator<<=`) lives directly on the
-// carrier above in this partition and is exercised at the value level in
-// singleton_test.cpp (the Functor Highway).  A separate `singleton_functor`
-// hub struct was retired: it was unused (only referenced by its own
-// static_asserts and by test prose), and its `Τ_cat = category::Set<
-// Singleton<T>>` was the project's lone `category::Set<SetType>` --- a
-// category whose objects are set-VALUES.  A set is an OBJECT of Set (Lawvere),
-// not itself a category, so we do not model a category-of-sets-as-objects here.
-
-/** @section singleton__The_Final_Ontology_Proof
- * Deferred while `dedekind.sets` is being retargeted to the updated
- * `dedekind.category` hub/spoke functor API.
- */

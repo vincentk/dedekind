@@ -9,8 +9,7 @@
  *     expose its own @c SubsetEqRel callable type (an
  *     @c :morphism::IsArrow-shaped binary relation).
  *   - @c IsSubobjectFamilyMember<R, A, L> — anchored on the ambient
- *     and the classifier, the family concept paralleling
- *     @c :sets::mereology::IsSystem<S, Species, L>.
+ *     and the classifier: parts belong to a family by sharing the ambient.
  *   - @c operator<=> on @c Ternary in @c :logic: supplies the @c < the
  *     value-returning @c :species ops @c Inf / @c Sup use to compute Kleene
  *     meet / join on Ternary directly, so @c :lattice carries no

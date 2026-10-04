@@ -20,7 +20,7 @@
  * @c :sets:cardinality (the canonical home for extensionality /
  * cardinality / enumerability vocabulary post-2026-05-09).  Use
  * @c IsExtensional from there for the size-observable check;
- * @c IsFinite / @c IsCountable / @c IsUncountable / @c IsCardinality
+ * @c IsFinite / @c IsCountable / @c IsCardinality
  * are the cardinality-tier concepts.  The partition header was
  * trimmed in the same pass: the previous tag-based
  * @c IsCompileTimeEnumerable concept was retired as redundant — the
