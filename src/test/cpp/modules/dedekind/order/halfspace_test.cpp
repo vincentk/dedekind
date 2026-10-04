@@ -1,10 +1,10 @@
 /** @file dedekind/order/halfspace_test.cpp
  *
- * Unit coverage for the value-carrying halfspace DSL: `Halfspace<T, D, S, L>`
- * with its pivot as a value, `Singleton<T, L>{v}`, `Interval<T, SL, SU, L>`
- * (= `Meet<Halfspace↑, Halfspace↓>`, built by `make_interval`), and the
- * `structured_and` overloads that fold them value-first (`reduce_meet` /
- * `SetVal`).
+ * Unit coverage for the value-carrying cut DSL: the ray `Halfspace<T, D, S, L>`
+ * and the interval `Interval<T, SL, SU, L>` as comprehensions of the `Bounds`
+ * datum (typed sides, value bounds, built by the point-free former and
+ * `make_interval`), the point `Singleton<T, L>{v}`, and the `structured_and`
+ * that folds them value-first (`reduce_meet` / `SetVal`).
  *
  * Each SECTION exercises one structural branch independently of the Set
  * wrapper; end-to-end Set-level behaviour is covered by the IR showcases.
@@ -79,7 +79,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     STATIC_CHECK(
         std::same_as<
             H, Halfspace<Cardinality, Direction::Upward, Strictness::Strict>>);
-    STATIC_CHECK(h.pivot == 7);
+    STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
@@ -87,7 +87,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Upward,
                                            Strictness::NonStrict>>);
-    STATIC_CHECK(h.pivot == 7);
+    STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION("< constructs Downward/Strict") {
@@ -95,7 +95,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Downward,
                                            Strictness::Strict>>);
-    STATIC_CHECK(h.pivot == 7);
+    STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
@@ -103,7 +103,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, Direction::Downward,
                                            Strictness::NonStrict>>);
-    STATIC_CHECK(h.pivot == 7);
+    STATIC_CHECK(pivot(h) == 7);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
   // signed pivots on unsigned carriers (e.g. `ℕ | (χ > fix(-1_c))` does not
@@ -184,12 +184,8 @@ TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
   // branch that structured_or once activated returned ¬(A ∩ B) by negating a
   // bare Interval — a Morphism, not a Set.  Removed; the general path must
   // keep △ closed over Set.
-  constexpr Comprehension<𝔸<int, Boole>,
-                          HS<Direction::Upward, Strictness::Strict>>
-      a{HS<Direction::Upward, Strictness::Strict>{10}};
-  constexpr Comprehension<𝔸<int, Boole>,
-                          HS<Direction::Downward, Strictness::Strict>>
-      b{HS<Direction::Downward, Strictness::Strict>{100}};
+  constexpr auto a = HS<Direction::Upward, Strictness::Strict>{10};
+  constexpr auto b = HS<Direction::Downward, Strictness::Strict>{100};
   STATIC_CHECK(
       IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
   // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
@@ -207,15 +203,12 @@ TEST_CASE(
       "irreducible Meet node, itself a set object)") {
     constexpr Comprehension<𝔸<int, Boole>, bool (*)(int)> pos{
         &is_pos};  // x > 0
-    constexpr Comprehension<𝔸<int, Boole>,
-                            HS<Direction::Downward, Strictness::Strict>>
-        cap{HS<Direction::Downward, Strictness::Strict>{10}};  // x < 10
+    constexpr auto cap =
+        HS<Direction::Downward, Strictness::Strict>{10};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(
-        std::same_as<
-            M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>,
-                    Comprehension<𝔸<int, Boole>, HS<Direction::Downward,
-                                                    Strictness::Strict>>>>);
+        std::same_as<M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>,
+                             HS<Direction::Downward, Strictness::Strict>>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10

@@ -358,13 +358,14 @@ constexpr auto argmax(
  * order. On a wrapping @c unsigned the shifted bound would admit wrapped
  * values, so the modular groups are declined (the same gate the forward
  * pushforward carries). */
-export template <typename T, auto K, Direction D, Strictness S, typename LG,
-                 typename LH, typename C>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+export template <typename T, auto K, typename LG, typename C, typename LH,
+                 typename CH, IsSide Lo, IsSide Hi>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
+           (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 constexpr auto preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, C>,
                         ProjAddConstProj<1, K, Rel::Eq, 2>>&,
-    const Halfspace<T, D, S, LH>& h) {
+    const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
   // The pivot P rides in the Halfspace VALUE, so the pulled-back bound P−K is
   // computed at constexpr in the carrier's own arithmetic (folds when the
   // argument is constexpr); K is lifted into the carrier first, since a
@@ -374,8 +375,9 @@ constexpr auto preimage(
   // can pull back a Ternary halfspace (mirrors the general :graph preimage).
   // Direction / strictness stay type-level (load-bearing for structured_and's
   // complement detection).
-  return Halfspace<T, D, S, LH>{h.pivot -
-                                static_cast<T>(K)};  // target logic LH
+  using B = Bounds<Lo, Hi, T>;
+  return Comprehension<𝔸<T, LH>, B>{
+      B{pivot(h) - static_cast<T>(K)}};  // target logic LH
 }
 
 /** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
@@ -386,21 +388,24 @@ constexpr auto preimage(
  *  @c IsOrderedAdditiveGroup --- a genuine order-REVERSING additive inverse (on
  *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
  *  the order). */
-export template <typename T, auto C, Direction D, Strictness S, typename LG,
-                 typename LH, typename CU>
+export template <typename T, auto C, typename LG, typename CU, typename LH,
+                 typename CH, IsSide Lo, IsSide Hi>
   requires((C == 1 ||
-            (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
+            (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
+           (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>))
 constexpr auto preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, CU>,
                         ProjMulConstProj<1, C, Rel::Eq, 2>>&,
-    const Halfspace<T, D, S, LH>& h) {
-  constexpr Direction d = (C < 0) ? flip(D) : D;
+    const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
+  // A reflection (C < 0) swaps the sides: the bound keeps its strictness and
+  // changes direction.
+  using B = std::conditional_t<(C < 0), Bounds<Hi, Lo, T>, Bounds<Lo, Hi, T>>;
   // The pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
   // constexpr in the carrier's arithmetic, C lifted into the carrier first.
   // Graph logic (LG) and target logic (LH) deduced separately; the pullback
   // inherits the target's LH.
-  return Halfspace<T, d, S, LH>{static_cast<T>(C) *
-                                h.pivot};  // target logic LH
+  return Comprehension<𝔸<T, LH>, B>{
+      B{static_cast<T>(C) * pivot(h)}};  // target logic LH
 }
 
 }  // namespace dedekind::order

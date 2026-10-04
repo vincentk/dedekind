@@ -8,7 +8,7 @@
  * live inside this library the neighborhood must obey the Lwv laws: it is a
  * subobject of its carrier (Member + ι + χ, the ETCS axioms) over a regular
  * carrier (the Jlt value-semantics half), with a decidable characteristic map
- * and no enumeration.  Order's interval @c Meet<H↑,H↓> is a set object
+ * and no enumeration.  Order's two-sided cut @c Interval is a set object
  * (@c IsSetObject) whose openness reads off the strictness of its bounds, so
  * one open interval is all of these at once.
  *
@@ -36,7 +36,7 @@ using Q = Rational<>;
 // A rational neighborhood (7/5, 3/2) ⊂ ℚ — an open interval between two ℚ.
 constexpr auto nbhd =
     make_interval<Strictness::Strict, Strictness::Strict>(Q{7, 5}, Q{3, 2});
-using QNbhd = std::remove_cvref_t<decltype(nbhd)>;  // Meet<H↑, H↓> over ℚ
+using QNbhd = std::remove_cvref_t<decltype(nbhd)>;  // the two-sided cut over ℚ
 }  // namespace
 
 TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",

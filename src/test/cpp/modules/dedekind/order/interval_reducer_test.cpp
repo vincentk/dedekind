@@ -1,10 +1,10 @@
 /** @file dedekind/order/interval_reducer_test.cpp
  *
- * An interval IS the meet of two opposing halfspaces: the reducer's crossing
- * @c Meet node, an @c IsProduct over @c Halfspace under the @c MakeMeet
- * pairing. No separate interval encoding is needed --- the two bounding
- * halfspaces are the data, membership is their conjunction, and the interval
- * flows through the value-first term reducer like any other lattice term.
+ * The meet of two opposing rays is the reducer's crossing @c Meet node; by
+ * VALUE it normalises to the two-sided cut (@c Interval, the @c Bounds datum
+ * with both sides present), to a point, or to the empty set.  The two bounding
+ * rays are the data, membership is their conjunction, and the node flows
+ * through the value-first term reducer like any other lattice term.
  *
  * The exhibit: a @b semantically @b empty interval (pivots that admit no
  * member) reduces to the empty set.  That is a value-determined collapse the
@@ -29,16 +29,14 @@ using namespace dedekind::order;
 namespace {
 using Up = Halfspace<int, Direction::Upward, Strictness::Strict>;      // {x>lo}
 using Down = Halfspace<int, Direction::Downward, Strictness::Strict>;  // {x<hi}
-// (lo, hi): the crossing meet IS the interval --- order's exported alias
-// Interval<int, Strict, Strict> names exactly this Meet<Up, Down>.
+// (lo, hi): the two-sided cut, which make_interval builds; the crossing MEET of
+// the two rays is the node the reducer normalises to it by value.
 using OpenInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
-static_assert(std::same_as<OpenInterval, Meet<Up, Down>>);
+static_assert(
+    std::same_as<
+        OpenInterval,
+        decltype(make_interval<Strictness::Strict, Strictness::Strict>(0, 0))>);
 }  // namespace
-
-// The interval is the categorical product of its two bounding halfspaces under
-// the meet pairing: π_1 / π_2 recover the halfspaces and MakeMeet builds it.
-static_assert(IsProduct<OpenInterval, Up, Down, MakeMeet>,
-              "an interval is an IsProduct over Halfspace under MakeMeet.");
 
 TEST_CASE(
     "order:interval — Meet<Halfspace↑, Halfspace↓> flows through the value "
@@ -125,7 +123,7 @@ TEST_CASE(
     const auto iv = MakeMeet{}(Up{5}, Down{5});
     const auto r = subobject_reduce<Boole>(iv);
     STATIC_REQUIRE(
-        std::same_as<std::remove_cvref_t<decltype(r)>, OpenInterval>);
+        std::same_as<std::remove_cvref_t<decltype(r)>, Meet<Up, Down>>);
     CHECK(!static_cast<bool>(r(5)));
   }
 }
