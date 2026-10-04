@@ -572,4 +572,25 @@ TEST_CASE(
   CHECK(hs(5) == Kleene::False);
 }
 
+// Witness: a halfspace / SetVal lives on a REGISTERED chain
+// (IsTotallyOrdered), not merely a std::totally_ordered one.  The probe is a
+// concept because an unsatisfied class-template constraint is a hard error
+// outside a template.
+template <typename T>
+concept HalfspaceOver =
+    requires { typename Halfspace<T, Direction::Upward, Strictness::Strict>; };
+template <typename T>
+concept SetValOver = requires { typename SetVal<T>; };
+
+TEST_CASE("order:halfspace — the carrier gate is the registered chain",
+          "[order][halfspace][witness]") {
+  STATIC_CHECK(HalfspaceOver<int> && SetValOver<int>);
+  // ℤ: a chain under the posture that ±ℵ_0 / NaZ are the memory boundary.
+  STATIC_CHECK(HalfspaceOver<SignedCardinality> &&
+               SetValOver<SignedCardinality>);
+  // A raw float has no certified order (NaN breaks reflexivity).
+  STATIC_CHECK_FALSE(HalfspaceOver<double>);
+  STATIC_CHECK_FALSE(SetValOver<double>);
+}
+
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

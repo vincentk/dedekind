@@ -164,18 +164,11 @@ inline constexpr bool is_scaling_invariant_ordered_v =
  * exactly when @c c-translation preserves the order, which is what
  * the marker certifies.
  *
- * @note Earlier drafts also required @c std::totally_ordered<T>.
- *       Dropped because the project's saturating ℤ proxy
- *       (@c sets::SignedCardinality, a @c std::variant) uses
- *       custom comparison operators (specialised on the saturating
- *       semantics and on @c NaZ propagation), which do not satisfy
- *       the @c std::totally_ordered structural concept --- yet the
- *       carrier @b is the right one for translation-invariant
- *       ordered-group semantics.  The marker carries the order claim;
- *       a separate @c std::totally_ordered structural check would
- *       Honest-Reject the very carriers the marker is supposed to
- *       accept.  The structural order check belongs at the marker
- *       opt-in site, not at the concept.
+ * @note No separate order check here: the marker carries the order claim
+ *       (translation invariance is an axiom of the ordered group, not a
+ *       consequence of the carrier being a chain), and the chain itself is
+ *       certified where the carrier registers its order laws (the ℤ proxy
+ *       @c sets::SignedCardinality is a registered @c IsTotallyOrdered chain).
  *
  * Modular carriers (@c unsigned @c int as @f$\mathbb{Z}/2^N\mathbb{Z}@f$)
  * satisfy @c IsAdditiveGroup but NOT this concept --- they fail the

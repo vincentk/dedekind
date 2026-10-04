@@ -47,8 +47,8 @@ import dedekind.relational; // IsFunctional/IsEntire (:graph), used by the order
                             // relation witnesses below (#792)
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
-import :total;  // IsTotallyOrdered — the no-incomparable-element certificate
-                // that keeps the covering join sound (excludes NaZ carriers)
+import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / SetVal:
+                // the interval normal form lives on a certified chain
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -331,8 +331,15 @@ static_assert(
  * Priestley §1.27/§2.20) is computed on the pivot VALUES by @c reduce_meet,
  * the carrier's own @c Sup / @c Inf supplying ∨ / ∧.  Strictness @c S is an
  * @c :order refinement (which boundary point is excised), combined locally.
+ *
+ * The carrier is gated on the @b registered chain (@c IsTotallyOrdered: the
+ * reflexive / transitive / antisymmetric laws plus comparability), not on the
+ * syntactic @c std::totally_ordered: ↑a∩↑b = ↑(a∨b) is a halfspace again only
+ * when every two pivots are comparable.  A carrier without a certified order
+ * (a raw float, whose NaN breaks reflexivity) is refused here, by name.
  */
 export template <typename T, Direction D, Strictness S, typename L = Boole>
+  requires IsTotallyOrdered<T>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
@@ -557,6 +564,9 @@ static_assert(HasNNOStep<int>, "machine integers step by ±1.");
 static_assert(HasNNOStep<dedekind::sets::Cardinality>,
               "the ℕ proxy steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
+static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
+              "the ℤ proxy steps by ±1 through the same customization points, "
+              "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
 /** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
  *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
@@ -569,8 +579,12 @@ static_assert(HasNNOStep<dedekind::sets::Cardinality>,
  *  @c operator|, @c operator==, @c operator<=, membership @c operator() --- and
  *  through the @c half / @c point / @c empty / @c universe factories; do @b not
  *  build downstream on the @c kind / @c lo / @c hi fields, which will change.
+ *
+ *  The carrier is gated on the registered chain (@c IsTotallyOrdered) like
+ *  @c Halfspace: the interval arms are a normal form only on a chain.
  */
 export template <typename V = long long, typename L = Boole>
+  requires IsTotallyOrdered<V>
 struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   using Domain = V;
   SetKind kind = SetKind::Universe;
@@ -975,6 +989,7 @@ constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
 // union operator| on a Universe (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
+  requires IsTotallyOrdered<T>
 constexpr auto operator|(const 𝔸<T, L, C>&, const UnboundHalfspace<D, S, V>&) {
   // Through the factory (#837 review): a degenerate binder collapses like any
   // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
@@ -2024,10 +2039,9 @@ constexpr auto operator&(const Halfspace<T, D, S, L>& h,
  *  greatest/least element is a @b partial-order notion, so the domain must
  *  certify @c IsPartiallyOrdered (dedekind's reflexive/transitive/antisymmetric
  *  axioms, which subsume @c std::totally_ordered one level up in
- *  @c IsTotallyOrdered).  A carrier that is not an ordered set --- e.g.\
- *  @c SignedCardinality, which carries the unordered @c NaZ like an IEEE NaN
- * --- is honestly rejected: you cannot take the max of a set that may contain a
- *  NaN. */
+ *  @c IsTotallyOrdered).  A carrier without a certified order --- a raw float,
+ *  whose NaN breaks reflexivity --- is honestly rejected: you cannot take the
+ *  max of a set that may contain a NaN. */
 export template <typename S>
   requires IsPartiallyOrdered<typename S::Domain> &&
            requires(const S& s) { s & upperbounds(s); }
@@ -2043,11 +2057,9 @@ constexpr auto min(const S& s) {
 
 inline constexpr auto ℤ =
     𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality>, a registered
-// TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
-// @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
-// gate correctly rejects @c max/min on it; the max/min VALUES are identical on
-// ℕ (they are non-negative).
+// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality> and ℤ =
+// @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
+// its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
 inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -2060,6 +2072,12 @@ static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 static_assert(max(ℕ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℕ.");
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ.");
+// ℤ: the same extrema, and the negative side ℕ cannot spell.
+static_assert(max(ℤ | (π <= fix(5_c)))(5), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ | (π <= fix(5_c)))(3), "3 is not the greatest element.");
+static_assert(min(ℤ | (π >= fix(-5_c)))(-5), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ | (π > fix(-5_c)))(-4), "−4 = min {x > −5} on ℤ.");
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */

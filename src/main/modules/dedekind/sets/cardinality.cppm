@@ -978,6 +978,20 @@ export constexpr SignedCardinality operator-(
   return lhs + (-rhs);
 }
 
+/** @brief The steps on the ℤ proxy, the free customization points the order
+ *  layer's point collapse calls (@c category:nno, found here by ADL), as on
+ *  @c Cardinality: @c ±1 through the saturating @c +, so @c ±ℵ_0 are fixpoints
+ *  and @c NaZ propagates.  Unlike ℕ there is no monus: ℤ steps down past zero.
+ */
+export constexpr SignedCardinality successor(
+    const SignedCardinality& n) noexcept {
+  return n + finite_signed_cardinality(1);
+}
+export constexpr SignedCardinality predecessor(
+    const SignedCardinality& n) noexcept {
+  return n - finite_signed_cardinality(1);
+}
+
 /** @brief Multiplication with ±ℵ_0 escalation on overflow.  @c 0 * ±ℵ_0
  *         is indeterminate (returns @c NaZ).
  */
@@ -2077,15 +2091,29 @@ struct inverse_trait<SC, std::plus<SC>> {
   }
 };
 
-// Note: order-axiom trait specialisations (is_reflexive_v /
-// is_transitive_v / is_antisymmetric_v) are deliberately *not*
-// registered for SignedCardinality with std::less_equal<>: the
-// carrier does not define operator<= (only operator< via the
-// partial-ordering compare_signed), and antisymmetry would not be
-// justified given NaZ's unordered comparison semantics.  Downstream
-// code that needs the order traits should specialise them on a
-// well-formed relation functor (e.g.\ one based on compare_signed)
-// rather than on std::less_equal<>.
+// Order-axiom traits under std::less_equal<>: the homogeneous <=> above
+// ranks −ℵ_0 < finite < +ℵ_0 and is reflexive on every alternative (NaZ
+// <=> NaZ is equivalent), so <= is reflexive, transitive and antisymmetric
+// on the whole carrier.  Comparability is the one law NaZ breaks (it is
+// unordered against every other value), and the carrier is certified a
+// CHAIN regardless, under the posture ℚ takes for the same sentinels: the
+// non-finite alternatives are the out-of-memory boundary of the finite
+// backing, not inhabitants of ℤ --- NaZ is the indeterminate-form
+// tripwire, never a point of the integers.  ℤ = 𝔸<SignedCardinality> is
+// thereby a certified chain like ℕ = 𝔸<Cardinality>: halfspaces, SetVal
+// and max / min admit it on the same footing.
+template <>
+inline constexpr bool is_reflexive_v<SC, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_transitive_v<SC, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_antisymmetric_v<SC, std::less_equal<>> = true;
+
+static_assert(IsTotalOrder<SC, std::less_equal<>, bool>,
+              "SignedCardinality is a certified total order under <=: the "
+              "ℤ proxy is a chain on the same footing as the ℕ proxy.");
 
 static_assert(IsAbelianGroup<SC, std::plus<SC>>,
               "SignedCardinality must certify as an abelian group under "
@@ -2116,10 +2144,9 @@ static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
 // is_antisymmetric_v under std::less_equal<>): registered here because
 // Cardinality's homogeneous operator<=> (added in #424 above) lifts the
 // underlying ExtensionalCardinal<>'s strict total order onto the variant
-// in the well-formed direction (finite ≤ ℵ_0; ℵ_0 ≤ ℵ_0).  Unlike
-// SignedCardinality (which carries NaZ's unordered semantics and
-// therefore can't justify std::less_equal<>-based axioms), Cardinality
-// is a clean total order.
+// in the well-formed direction (finite ≤ ℵ_0; ℵ_0 ≤ ℵ_0).  Cardinality
+// has no NaZ, so it is a chain with no posture needed; SignedCardinality
+// registers the same laws above under the ℚ posture on its sentinels.
 // ---------------------------------------------------------------------------
 
 using Card = dedekind::sets::Cardinality;
@@ -2273,9 +2300,10 @@ static_assert(std::totally_ordered<dedekind::sets::Cardinality>,
               "(<, <=, >, >=) via C++20 rewrite rules.");
 
 // --- SignedCardinality (ℤ ∪ {±ℵ_0, NaZ}) ---
-// Partial order: NaZ is unordered with everything (IEEE-NaN-style).
-// std::totally_ordered is INTENTIONALLY NOT satisfied; the right
-// standard-concept binding is three_way_comparable with partial_ordering.
+// <=> returns std::partial_ordering: NaZ is unordered against every other
+// value (IEEE-NaN-style).  std::totally_ordered is a SYNTAX check (the four
+// relational operators exist, rewritten from <=>) and holds; the semantic
+// chain certificate is the IsTotalOrder registration above.
 static_assert(std::equality_comparable<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be std::equality_comparable; the "
               "explicit homogeneous == above (alternative-tag equality + "
@@ -2291,6 +2319,10 @@ static_assert(std::three_way_comparable<dedekind::sets::SignedCardinality,
               "SignedCardinality must be std::three_way_comparable with "
               "std::partial_ordering --- NaZ is unordered with everything, "
               "mirroring IEEE-NaN's partial-order semantics.");
+static_assert(std::totally_ordered<dedekind::sets::SignedCardinality>,
+              "SignedCardinality carries the four relational operators "
+              "(rewritten from <=>); comparability of NaZ is a semantic "
+              "matter settled by the order registration, not by syntax.");
 
 // ---------------------------------------------------------------------------
 // Closure-forcing trait specialisations (slice of #432)

@@ -109,6 +109,19 @@ static_assert(dedekind::order::IsDividableChain<dedekind::sets::Cardinality>,
               "Cardinality carries Euclidean division and modulo "
               "(closed on ℕ: 7/3 = 2 with remainder 1, both naturals).");
 
+// The ℤ proxy is a chain on the same footing: its order laws are registered in
+// :sets under the posture that the non-finite alternatives (±ℵ_0, NaZ) are the
+// out-of-memory boundary of the backing, not points of ℤ.
+static_assert(dedekind::order::IsPreOrdered<dedekind::sets::SignedCardinality>,
+              "SignedCardinality with <= is a pre-order.");
+static_assert(
+    dedekind::order::IsPartiallyOrdered<dedekind::sets::SignedCardinality>,
+    "SignedCardinality with <= is a partial order.");
+static_assert(
+    dedekind::order::IsTotallyOrdered<dedekind::sets::SignedCardinality>,
+    "SignedCardinality is a certified chain: −ℵ_0 < finite < +ℵ_0, NaZ being "
+    "the indeterminate-form tripwire and no point of ℤ.");
+
 // Heterogeneous partial-order shape: the variant ℕ-/ℤ-proxy carriers
 // admit cross-type relational comparison with built-in @c std::integral
 // values via the operators defined in @c sets/cardinality.cppm
