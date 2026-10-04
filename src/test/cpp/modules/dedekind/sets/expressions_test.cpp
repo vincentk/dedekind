@@ -605,6 +605,18 @@ struct GradeOf {
  *  substitution failure rather than a hard error. */
 template <typename A, typename B>
 concept Combinable = requires(const A& a, const B& b) { a & b; };
+template <typename A, typename B>
+concept SymmetricDifferenceOf = requires(const A& a, const B& b) { a ^ b; };
+/** @brief A chain species over a floating Ω: Ockham-shaped, syntactically
+ *  totally ordered, yet NaN breaks the chain.  Must not be an L-set species. */
+struct FloatChain {
+  using Ω = float;
+  static constexpr float True = 1.0f;
+  static constexpr float False = 0.0f;
+  static constexpr float AND(float a, float b) { return a < b ? a : b; }
+  static constexpr float OR(float a, float b) { return a < b ? b : a; }
+  static constexpr float RFL(float a) { return 1.0f - a; }
+};
 }  // namespace
 
 TEST_CASE(
@@ -656,11 +668,24 @@ TEST_CASE(
       std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
   STATIC_CHECK(IsLSet<decltype(graded)>);
   STATIC_CHECK(IsSetObject<decltype(graded)>);
-  CHECK(graded(7) == 7);  // ⊤ ∧ 7
+  STATIC_CHECK(!IsLSet<𝔸<int, FloatChain>>);  // a NaN-carrying Ω is no chain
+  CHECK(graded(7) == 7);                      // ⊤ ∧ 7
   // No shipped species is above both K₃ and Chain<int>: no meet is offered.
   STATIC_CHECK(!Combinable<decltype(unknown), decltype(graded)>);
-  // The predicate combinators conjoin in the set's own species (min).
-  CHECK((graded && graded)(7) == 7);
+  // The predicate combinators conjoin in the set's own species and CLOSE:
+  // the results carry the species, so they are predicates again.
+  const auto both_g = graded && graded;
+  const auto either_g = graded || graded;
+  const auto not_g = !graded;
+  STATIC_CHECK(IsPredicate<decltype(both_g)> &&
+               IsPredicate<decltype(either_g)> && IsPredicate<decltype(not_g)>);
+  CHECK(both_g(7) == 7);            // min
+  CHECK(either_g(7) == 7);          // max
+  CHECK(not_g(7) == ~7);            // Chain's reflection
+  CHECK((true && graded)(7) == 7);  // ⊤ lifted onto the chain's top
+  // Mixed species on a Chain set: no join with K₃, no symmetric difference.
+  STATIC_CHECK(
+      !SymmetricDifferenceOf<decltype(graded), Singleton<int, Kleene>>);
   // A product of graded sets keeps the grade: the conjunction is Chain's min,
   // not the carrier's && (which would collapse 7 ∧ 3 to true).
   const auto grid = graded * graded;

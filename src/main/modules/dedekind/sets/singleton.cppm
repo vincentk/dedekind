@@ -254,6 +254,8 @@ constexpr auto operator^(const Singleton<T, L1>& s,
 }
 
 export template <typename T, typename L1, typename L2, typename P, typename C>
+  requires dedekind::category::HaveLogicJoin<
+      L2, typename Comprehension<𝔸<T, L1, C>, P>::logic_species>
 constexpr auto operator^(const Comprehension<𝔸<T, L1, C>, P>& other,
                          const Singleton<T, L2>& s) {
   return s ^ other;

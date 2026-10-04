@@ -41,30 +41,32 @@ export module dedekind.category:topoi;
 import :logic;
 import :morphism;
 import :cartesian;
+import :lattice;  // Meet / Join / Not: the species-carrying predicate nodes
 
 namespace dedekind::category {
 
 template <typename C>
 concept IsClassifierConstant = IsClassifierAnswer<C>;
 
-/** @brief Lift a classifier constant into the predicate's own @c Ω: the
- *  identity when it is already there, else the dominance lift @c lift_logic
- *  into the species @c OmegaTarget names (@c true into @c Ternary,
- *  @c Ternary::Unknown into @c Percentage, ...).  Constrained, so a pair with
- *  no registered embedding fails the combinators' gate, not this body. */
-template <typename OmegaTarget, typename Constant>
+/** @brief Lift a classifier constant into a predicate's @c Ω: the identity
+ *  when it is already there, else the dominance lift @c lift_logic into the
+ *  predicate's species @c L (@c true into @c Ternary, @c Ternary::Unknown into
+ *  @c Percentage, @c true onto @c Chain<int>'s top, ...).  The species is
+ *  passed, not read off @c OmegaTarget, so a species-tagged predicate whose
+ *  @c Ω is no truth object on its own (@c int) still lifts.  Constrained, so a
+ *  pair with no registered embedding fails the combinators' gate, not this
+ *  body. */
+template <typename OmegaTarget, typename L, typename Constant>
   requires std::same_as<std::remove_cvref_t<Constant>, OmegaTarget> ||
            requires(const std::remove_cvref_t<Constant>& c) {
-             {
-               lift_logic<classifier_logic_t<OmegaTarget>>(c)
-             } -> std::same_as<OmegaTarget>;
+             { lift_logic<L>(c) } -> std::same_as<OmegaTarget>;
            }
 constexpr auto lift_classifier_constant(Constant&& value) {
   using C = std::remove_cvref_t<Constant>;
   if constexpr (std::same_as<C, OmegaTarget>) {
     return value;
   } else {
-    return lift_logic<classifier_logic_t<OmegaTarget>>(value);
+    return lift_logic<L>(value);
   }
 }
 
@@ -427,7 +429,8 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).  Pst is
  *  asked of the @b species (an Ockham algebra whose @c Ω is totally ordered),
  *  not of the bare @c Ω, so a @c Chain<int> set (@c Ω @c = @c int) qualifies
- *  while a bare @c int never does.
+ *  while a bare @c int never does; a floating @c Ω is refused (NaN breaks the
+ *  chain).
  *  @tparam S the candidate set type (@c Domain, @c Codomain, @c logic_species,
  *          @c Member, @c ι, callable χ). */
 export template <typename S>
@@ -436,7 +439,9 @@ concept IsLSet =
     requires { typename S::logic_species; } &&
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
     IsOckhamAlgebra<typename S::logic_species> &&
-    std::totally_ordered<typename S::logic_species::Ω>;
+    std::totally_ordered<typename S::logic_species::Ω> &&
+    // std::totally_ordered is a SYNTAX check; a NaN breaks the chain.
+    !std::floating_point<typename S::logic_species::Ω>;
 
 /** @brief A carrier that is a @b finite chain by its representation: totally
  *  ordered and either a machine integer or an enumeration (both finite by
@@ -647,28 +652,38 @@ concept IsQuotient = requires(Q q) {
 
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  *  @note Textbook term: meet (∧) in the internal Heyting/Boolean algebra of Ω.
- */
+ *  @details Equal codomains no longer imply equal species (two tagged
+ *  predicates can both answer @c int in different chains), so the species are
+ *  required equal.  For species-tagged operands the result is the lattice's
+ *  own @c Meet node, which carries the species, so the combinators close on
+ *  @c IsPredicate; plain @c Ω-valued arrows get a plain arrow as before. */
 export template <IsPredicate P, IsPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
+  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>> &&
+           std::same_as<predicate_logic_t<P>, predicate_logic_t<Q>>
 auto operator&&(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
-
-  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
-                         const A& x) { return L::AND(p(x), q(x)); });
+  if constexpr (IsSpeciesTaggedArrow<P> && IsSpeciesTaggedArrow<Q>) {
+    return Meet<std::decay_t<P>, std::decay_t<Q>>{std::forward<P>(p),
+                                                  std::forward<Q>(q)};
+  } else {
+    return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+                           const A& x) { return L::AND(p(x), q(x)); });
+  }
 }
 
 /** @brief Conjunction of a constant logical value with a predicate. */
 export template <IsClassifierConstant C, IsPredicate P>
-  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
+  requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
+    lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
+  }
 auto operator&&(C&& constant, P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
-  const Ω lifted = lift_classifier_constant<Ω>(std::forward<C>(constant));
+  const Ω lifted = lift_classifier_constant<Ω, L>(std::forward<C>(constant));
   return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
     return L::AND(lifted, p(x));
   });
@@ -676,8 +691,9 @@ auto operator&&(C&& constant, P&& p) {
 
 /** @brief Conjunction of a predicate with a constant logical value. */
 export template <IsPredicate P, IsClassifierConstant C>
-  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
+  requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
+    lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
+  }
 auto operator&&(P&& p, C&& constant) {
   return std::forward<C>(constant) && std::forward<P>(p);
 }
@@ -686,26 +702,32 @@ auto operator&&(P&& p, C&& constant) {
  *  @note Textbook term: join (∨) in the internal Heyting/Boolean algebra of Ω.
  */
 export template <IsPredicate P, IsPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
+  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>> &&
+           std::same_as<predicate_logic_t<P>, predicate_logic_t<Q>>
 auto operator||(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
-
-  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
-                         const A& x) { return L::OR(p(x), q(x)); });
+  if constexpr (IsSpeciesTaggedArrow<P> && IsSpeciesTaggedArrow<Q>) {
+    return Join<std::decay_t<P>, std::decay_t<Q>>{std::forward<P>(p),
+                                                  std::forward<Q>(q)};
+  } else {
+    return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+                           const A& x) { return L::OR(p(x), q(x)); });
+  }
 }
 
 /** @brief Disjunction of a constant logical value with a predicate. */
 export template <IsClassifierConstant C, IsPredicate P>
-  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
+  requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
+    lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
+  }
 auto operator||(C&& constant, P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
-  const Ω lifted = lift_classifier_constant<Ω>(std::forward<C>(constant));
+  const Ω lifted = lift_classifier_constant<Ω, L>(std::forward<C>(constant));
   return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
     return L::OR(lifted, p(x));
   });
@@ -713,8 +735,9 @@ auto operator||(C&& constant, P&& p) {
 
 /** @brief Disjunction of a predicate with a constant logical value. */
 export template <IsPredicate P, IsClassifierConstant C>
-  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
+  requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
+    lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
+  }
 auto operator||(P&& p, C&& constant) {
   return std::forward<C>(constant) || std::forward<P>(p);
 }
@@ -726,10 +749,13 @@ export template <IsPredicate P>
 auto operator!(P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
-
-  // Return a formal Morphism A -> Ω
-  return arrow<A>(
-      [p = std::forward<P>(p)](const A& x) { return L::RFL(p(x)); });
+  if constexpr (IsSpeciesTaggedArrow<P>) {
+    return Not<std::decay_t<P>>{std::forward<P>(p)};  // carries the species
+  } else {
+    // Return a formal Morphism A -> Ω
+    return arrow<A>(
+        [p = std::forward<P>(p)](const A& x) { return L::RFL(p(x)); });
+  }
 }
 
 /**
