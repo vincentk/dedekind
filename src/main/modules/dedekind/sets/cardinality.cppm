@@ -978,15 +978,21 @@ export constexpr SignedCardinality operator-(
   return lhs + (-rhs);
 }
 
-/** @brief The steps on the ℤ proxy, the free customization points the order
+/** @brief The step up on the ℤ proxy, the free customization point the order
  *  layer's point collapse calls (@c category:nno, found here by ADL), as on
- *  @c Cardinality: @c ±1 through the saturating @c +, so @c ±ℵ_0 are fixpoints
- *  and @c NaZ propagates.  Unlike ℕ there is no monus: ℤ steps down past zero.
- */
+ *  @c Cardinality: @c +1 through the saturating @c +, so @c +ℵ_0 is a fixpoint
+ *  and @c NaZ propagates.
+ *  @param n the value to step from.
+ *  @return @c n @c + @c 1, saturating. */
 export constexpr SignedCardinality successor(
     const SignedCardinality& n) noexcept {
   return n + finite_signed_cardinality(1);
 }
+/** @brief The step down on the ℤ proxy: @c −1 through the saturating @c -, so
+ *  @c −ℵ_0 is a fixpoint and @c NaZ propagates.  Unlike ℕ there is no monus:
+ *  ℤ steps down past zero.
+ *  @param n the value to step from.
+ *  @return @c n @c − @c 1, saturating. */
 export constexpr SignedCardinality predecessor(
     const SignedCardinality& n) noexcept {
   return n - finite_signed_cardinality(1);

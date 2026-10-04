@@ -381,8 +381,9 @@ TEST_CASE(
   }
 }
 
-// Coverage companion: the ℤ steps are consumed at compile time by the order
-// layer's max / min witnesses, which Codecov cannot see.  Pattern: unit.
+// Pattern: unit.  The ℤ steps are otherwise consumed only at compile time (the
+// order layer's max / min witnesses), so their runtime semantics are pinned
+// here: the finite step through zero, the fixpoints, and escalation.
 TEST_CASE("SignedCardinality — successor / predecessor step by ±1",
           "[sets][cardinality][signed][nno]") {
   using dedekind::sets::predecessor;
