@@ -27,9 +27,10 @@ import dedekind.topology; // IsOpen, IsClosed, IsNeighborhood (read off order's 
 
 using namespace dedekind::numbers;
 using dedekind::order::Direction;
-using dedekind::order::Halfspace;
+using dedekind::order::DownRay;
 using dedekind::order::make_interval;
 using dedekind::order::Strictness;
+using dedekind::order::UpRay;
 
 namespace {
 using Q = Rational<>;
