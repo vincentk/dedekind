@@ -220,7 +220,7 @@ static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
 static_assert(s1.size() == 1,
               "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
 
-static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(s0.pivot)),
+static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(origin(s0))),
               "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");

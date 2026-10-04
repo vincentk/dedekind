@@ -16,10 +16,10 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 
   SECTION("2. The Pull from the Identity (ε)") {
     auto atom = singleton(42);
-    int value = atom.origin();
+    int value = origin(atom);
 
     REQUIRE(value == 42);
-    static_assert(singleton(7).origin() == 7, "The Round-trip Axiom.");
+    static_assert(origin(singleton(7)) == 7, "The Round-trip Axiom.");
   }
 }
 
@@ -60,9 +60,11 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
   }
   SECTION("Intersections") {
     // FIXME(#685): structural identity ({a}∩{a} == {a}, {a}∩¬{a} == Ø) is
-    // tracked there; today the self-meet is witnessed by its size.
+    // tracked there; today the self-meet is the reducer's Meet node of two
+    // value-carrying points, witnessed by membership.
     INFO("The intersection of a set with itself is a fixed point.");
-    REQUIRE((_s & _s).size() == 1);
+    REQUIRE((_s & _s)(std::size_t{42}));
+    REQUIRE_FALSE((_s & _s)(std::size_t{4}));
   }
   SECTION("Union") {
     // The union is the recoverable Join node, so it is tested by MEMBERSHIP
@@ -87,8 +89,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
         std::same_as<
             UnionT, Comprehension<𝔸<size_t, Boole>,
                                   Join<Singleton<size_t>, Singleton<size_t>>>>);
-    REQUIRE((_s | _t).predicate.lhs.pivot == 42);
-    REQUIRE((_s | _t).predicate.rhs.pivot == 7);
+    REQUIRE(origin((_s | _t).predicate.lhs) == 42);
+    REQUIRE(origin((_s | _t).predicate.rhs) == 7);
   }
 }
 
@@ -98,7 +100,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
  *
  * @details Rewritten from the original `into<Singleton>` /
  *          `extract<Singleton>` factory syntax to the current
- *          surface: `singleton(value)` for η, `s.origin()` for ε,
+ *          surface: `singleton(value)` for η, `origin(s)` for ε,
  *          `s >>= f` for Kleisli bind (all exported by `:sets:singleton`).
  *          The Set-monad structure lives directly on `Singleton`; this
  *          TEST_CASE exercises the composition behaviour at the value level.
@@ -125,10 +127,11 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
   SECTION("2. Compile-Time Semantic Mapping of Composition") {
     // Zero-overhead claim: the composition resolves to a constant 12.
     // Explicit left-fold parens on `>>=` (right-associative in C++).
-    static_assert(((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
+    static_assert(origin((singleton(5) >>= [](int x) {
+      return singleton(x + 1); }) >>=
                    [](int x) {
-                     return singleton(x * 2);
-                   }).origin() == 12,
+      return singleton(x * 2);
+                   })) == 12,
                   "The Composition Axiom must be resolved at compile-time.");
   }
 }
@@ -139,8 +142,7 @@ TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
   // characteristic map (operator()) at RUNTIME so its L::AND-and-lift body is
   // exercised, not only compile-time-asserted.
   auto _s = ι<size_t>(42);
-  const auto self_meet = _s & _s;     // Comprehension<Universe, lambda>
+  const auto self_meet = _s & _s;     // the reducer's Meet node of two points
   CHECK(self_meet(size_t{42}));       // 42 ∈ {42} ∧ 42 ∈ {42}
   CHECK_FALSE(self_meet(size_t{7}));  // 7 ∉ {42}
-  CHECK(self_meet.size() == 1);
 }

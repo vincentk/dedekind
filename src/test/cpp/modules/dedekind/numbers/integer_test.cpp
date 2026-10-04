@@ -207,11 +207,11 @@ TEST_CASE(
   // forwarding-reference body for codecov.
   constexpr Singleton<bool, Boole> s_true{true};
   const auto image_set = embed_𝔹_ℕ(s_true);
-  CHECK(image_set.pivot == finite_cardinality(1));
+  CHECK(origin(image_set) == finite_cardinality(1));
 
   constexpr Singleton<bool, Boole> s_false{false};
   const auto image_set_false = embed_𝔹_ℕ(s_false);
-  CHECK(image_set_false.pivot == finite_cardinality(0));
+  CHECK(origin(image_set_false) == finite_cardinality(0));
 }
 
 // ===========================================================================

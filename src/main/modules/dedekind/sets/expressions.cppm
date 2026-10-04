@@ -157,6 +157,20 @@ using comprehension_logic_t =
                      std::invoke_result_t<const Predicate&,
                                           const typename Base::Domain&>>::type>;
 
+/** @brief The cardinality bound a comprehension inherits: the datum's when it
+ *  declares one, else the base's.
+ *  @tparam Predicate the datum.
+ *  @tparam Base the base set. */
+template <typename Predicate, typename Base>
+struct datum_cardinality {
+  using type = typename Base::cardinality_type;
+};
+template <typename Predicate, typename Base>
+  requires requires { typename Predicate::cardinality_type; }
+struct datum_cardinality<Predicate, Base> {
+  using type = typename Predicate::cardinality_type;
+};
+
 export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
@@ -181,14 +195,11 @@ struct Comprehension
     requires std::default_initializable<Base>
       : base{}, predicate(static_cast<Predicate&&>(p)) {}
 
-  // Forward Base's cardinality so IsCountable can read off
-  // the carrier axis on a comprehension's effective magnitude.  A
-  // predicate-restricted comprehension is at most as large as its base
-  // (P-restriction can only shrink the membership set), so inheriting the
-  // base's cardinality bound is sound for the carrier-axis resolver
-  // (#622).  Sharper bounds (singleton-bounded comprehensions etc.) are
-  // tracked via the @c size() probe below, not via this typedef.
-  using cardinality_type = typename Base::cardinality_type;
+  // The cardinality bound: the datum's when it declares one (a point is
+  // Finite whatever the universe), else the base's.  A predicate-restricted
+  // comprehension is at most as large as its base (P-restriction can only
+  // shrink the membership set), so inheriting the base's bound is sound.
+  using cardinality_type = typename datum_cardinality<Predicate, Base>::type;
   constexpr cardinality_type cardinality() const { return {}; }
 
   /** @brief χ: the comprehension's characteristic map --- @c x @c ∈ @c {S @c |
@@ -200,6 +211,19 @@ struct Comprehension
     // (Σ ↪ Ω: a Boole answer becomes a decided Kleene one), so a Boole base
     // with a Kleene predicate keeps Unknown instead of failing to convert it,
     // and a Kleene base with a bool predicate lifts the predicate as before.
+    using L = comprehension_logic_t<Base, Predicate>;
+    return L::AND(dedekind::category::lift_logic<L>(base(x)),
+                  dedekind::category::lift_logic<L>(predicate(x)));
+  }
+  /** @brief Heterogeneous χ: a value of another type @c U that both the base
+   *  and the datum accept is asked of them as it is (the comparison happens
+   *  in the pair's common type), never narrowed to @c Domain first:
+   *  @c Singleton<int>{1}(1.5) is @c False. */
+  template <typename U>
+    requires(!std::same_as<std::remove_cvref_t<U>, typename Base::Domain>) &&
+            std::invocable<const Base&, const U&> &&
+            std::invocable<const Predicate&, const U&>
+  constexpr auto operator()(const U& x) const {
     using L = comprehension_logic_t<Base, Predicate>;
     return L::AND(dedekind::category::lift_logic<L>(base(x)),
                   dedekind::category::lift_logic<L>(predicate(x)));
@@ -219,6 +243,15 @@ struct Comprehension
     }
   {
     return predicate(base.pivot) ? base.size() : 0;
+  }
+  /** @brief Size when the datum carries it and the base is the whole
+   *  universe: the point @c {p} over @c 𝔸<T> has size 1. */
+  constexpr std::size_t size() const
+    requires Is𝔸<Base> && requires(const Predicate& p) {
+      { p.size() } -> std::convertible_to<std::size_t>;
+    }
+  {
+    return predicate.size();
   }
 };
 
@@ -613,8 +646,8 @@ constexpr auto operator|(const A& lhs, const B& rhs) {
 
 /** @brief Value-level elevate of a @c structured_and result to the meet's
  *  normal-form value: an empty reduction is the initial object @c Ø; a
- *  finite / static-singleton reduction is itself a set-like leaf (returned
- *  bare); any other reduction is a named predicate wrapped back into a @c Set.
+ *  finite reduction (a point) is itself a set-like leaf (returned bare); any
+ *  other reduction is a named predicate wrapped back into a comprehension.
  *  (Extracted verbatim from the pre-reducer @c operator& structured_and branch
  *  so @c SetCombine's type and this value stay in lockstep.) */
 export template <typename T, typename L, typename Reduced>
@@ -622,8 +655,6 @@ constexpr auto elevate_meet(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
   if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
     return Ø<T, L>{};
-  } else if constexpr (requires { typename Result::is_static_singleton_tag; }) {
-    return reduced;
   } else if constexpr (requires { typename Result::cardinality_type; }) {
     // Nested (not &&-chained): a Result without cardinality_type must not
     // instantiate the inner probe.
@@ -991,6 +1022,22 @@ constexpr auto operator^(const LHS& a, const RHS& b) {
   } else {
     return (a & ~b) | (~a & b);
   }
+}
+
+/** @brief Cross-species symmetric difference: both operands are lifted into
+ *  the join of their species and @c △ is computed there (as for @c & and
+ *  @c |). */
+export template <typename LHS, typename RHS>
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>) &&
+           dedekind::category::HaveLogicJoin<typename LHS::logic_species,
+                                             typename RHS::logic_species>
+constexpr auto operator^(const LHS& a, const RHS& b) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(a) ^ lift_to<Log>(b);
 }
 
 // The set-lattice operations ARE the operators @c operator& / @c operator| /

@@ -96,8 +96,8 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // into a @c Sub<int>, testing a different set.  Cross-carrier needs an
   // explicit order embedding, not an implicit coercion.
   constexpr Sub(const Singleton<C, L>& s)
-      : lo_(s.pivot),
-        hi_(s.pivot),
+      : lo_(s.predicate.pivot),
+        hi_(s.predicate.pivot),
         lo_unbounded_(false),
         hi_unbounded_(false),
         lo_strict_(Strictness::NonStrict),

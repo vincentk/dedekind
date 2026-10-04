@@ -324,12 +324,12 @@ static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
+    origin(embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true})) ==
         finite_cardinality(1),
     "embed_𝔹_ℕ(Singleton<true>) lands at finite_cardinality(1) on the "
     "Cardinality carrier.");
 static_assert(
-    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
+    origin(embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{false})) ==
         finite_cardinality(0),
     "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
     "Cardinality carrier.");

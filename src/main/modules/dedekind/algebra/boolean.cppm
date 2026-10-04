@@ -111,12 +111,12 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
 // same shape, different codomain.  Lives next to the arrow itself so the
 // value-pin moves with the canonical surface.
-static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
-                  dedekind::category::Ternary::True,
+static_assert(origin(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{
+                  true})) == dedekind::category::Ternary::True,
               "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
               "carrier.");
-static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
-                  dedekind::category::Ternary::False,
+static_assert(origin(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{
+                  false})) == dedekind::category::Ternary::False,
               "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
               "carrier.");
 
