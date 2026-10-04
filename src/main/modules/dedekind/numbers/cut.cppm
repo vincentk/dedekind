@@ -57,6 +57,10 @@ import :rational;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using dedekind::order::DownRay;
+using dedekind::order::Strictness;
+using dedekind::sets::Comprehension;
+using dedekind::sets::𝔸;
 
 /**
  * @class Cut
@@ -190,8 +194,7 @@ struct LowerCut {
 /** @brief The lower set of a real as a set over @f$\mathbb{Q}@f$:
  *  @f$\{q\in\mathbb{Q}\mid q<r\}@f$, decidable at every rational. */
 export template <typename Q = Rational<default_integer>>
-using LowerSet =
-    dedekind::sets::Comprehension<dedekind::sets::𝔸<Q, Boole>, LowerCut<Q>>;
+using LowerSet = Comprehension<𝔸<Q, Boole>, LowerCut<Q>>;
 
 /** @brief @f$r \mapsto \{q<r\}@f$: the real read as its lower set. */
 export template <typename Q>
@@ -204,8 +207,7 @@ constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
  * @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ as @f$p\mapsto@f$ @c
  * Bounds<Unbounded, Bounded<Strict>, Q>{p}. */
 export template <typename Q = Rational<default_integer>>
-using PrincipalRay =
-    dedekind::order::DownRay<Q, dedekind::order::Strictness::Strict>;
+using PrincipalRay = DownRay<Q, Strictness::Strict>;
 
 /** @brief @f$p \mapsto \{q<p\}@f$: the rational embedded as the principal
  *  ray.  Extensionally equal to @c lower_set(Cut<Q>{p}); structurally the

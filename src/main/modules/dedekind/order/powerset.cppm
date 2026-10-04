@@ -102,17 +102,13 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
         hi_unbounded_(false),
         lo_strict_(Strictness::NonStrict),
         hi_strict_(Strictness::NonStrict) {}
-  template <typename Card, Strictness S>
-  constexpr Sub(
-      const dedekind::sets::Comprehension<dedekind::sets::𝔸<C, L, Card>,
-                                          Bounds<Bounded<S>, Unbounded, C>>& h)
+  template <Strictness S>
+  constexpr Sub(const UpRay<C, S, L>& h)
       : lo_(h.predicate.lo), lo_unbounded_(false), lo_strict_(S) {
     normalize();
   }  // (P, +∞)
-  template <typename Card, Strictness S>
-  constexpr Sub(
-      const dedekind::sets::Comprehension<dedekind::sets::𝔸<C, L, Card>,
-                                          Bounds<Unbounded, Bounded<S>, C>>& h)
+  template <Strictness S>
+  constexpr Sub(const DownRay<C, S, L>& h)
       : hi_(h.predicate.hi), hi_unbounded_(false), hi_strict_(S) {
     normalize();
   }  // (−∞, P)
