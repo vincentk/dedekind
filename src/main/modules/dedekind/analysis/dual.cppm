@@ -316,12 +316,10 @@ static_assert(
  *  default.  It is the cardinality of the 𝔻 modelled, not a logic: equality
  *  on ℚ(√2)[ε] is decidable, so @c 𝔻 answers in @c Boole.
  *
- *  Textbook construction: @c 𝔻 @c = @c ℝ[ε]/(ε²) — a polynomial
- *  quotient observable via the @c quotient operator from
- *  @c sets:quotient (the same DSL primitive ℚ rides on under #567's
- *  textbook quotient exhibit).  The structural-trait propagation
- *  through @c quotient_algebra_base<Dual<F>>::type @c = @c F (below)
- *  is the universal-algebra side of that same construction.
+ *  Textbook construction: @c 𝔻 @c = @c ℝ[ε]/(ε²), a polynomial quotient:
+ *  the H leg of the construction taxonomy, registered as
+ *  @c quotient_algebra_base<Dual<F>>::type @c = @c F (below), which forwards
+ *  the base's laws to 𝔻.
  */
 export inline constexpr auto 𝔻 =
     dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>{};

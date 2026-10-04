@@ -65,10 +65,6 @@ concept IsCardinality = requires {
 export template <typename C>
 concept IsCountable = IsCardinality<C> && (C::is_countable == true);
 
-/** @concept IsUncountable: Magnitude is strictly greater than Aleph_0. */
-export template <typename C>
-concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
-
 /** @concept IsFinite: Strictly terminating. */
 export template <typename C>
 concept IsFinite = IsCountable<C> && (C::is_finite == true);
@@ -105,34 +101,6 @@ export template <typename S>
 concept IsExtensional = requires(const S& s) {
   { s.size() } -> std::same_as<std::size_t>;
 } || is_extensional<S>::value;
-
-/**
- * @concept IsEnumerated
- * @brief A set whose members are materialized or bounded in memory (The
- * "Bucket").
- *
- * @details In the structuralist ontology, Extensionality implies that
- *          membership is not merely a rule (λx. P(x)) but is constrained
- *          by a physical container with a terminable address space.
- *
- * @tparam S A set species.
- * @tparam L The Subobject Classifier (Ω). Defaults to Boole.
- */
-export template <typename S, typename L = Boole>
-concept IsEnumerated = IsExtensional<S> && requires(const S s) {
-  typename S::Domain;
-  requires dedekind::category::IsLSet<
-      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
-
-  /** @section mereology__Magnitude: The Physical Proof */
-  // An extensional set MUST claim a Finite cardinality type.
-  requires(S::cardinality_type::is_finite == true);
-
-  /** @section mereology__Termination: The Boundedness Proof */
-  // Every extensional set must define a maximum capacity (upper_bound)
-  // to ensure memory-safe allocations and finite iteration.
-  { s.upper_bound() } -> std::convertible_to<std::size_t>;
-};
 
 /** @struct ℵ: The Transfinite Ladder. */
 export template <std::size_t N>
@@ -352,12 +320,6 @@ export using Cardinality = std::variant<ExtensionalCardinal<>, ℵ_0>;
 export constexpr Cardinality finite_cardinality(std::size_t n) {
   return Cardinality{ExtensionalCardinal<>{n}};
 }
-
-/**
- * @brief Product witness for Lipschitz-boundary crossings.
- * @details Structured as `std::pair` to stay aligned with `IsProduct`.
- */
-export using LipschitzBoundaryWitness = std::pair<Cardinality, Cardinality>;
 
 /** @brief Cardinal addition under the finite/ℵ_0 policy. */
 export constexpr Cardinality add(const Cardinality& lhs,
@@ -1906,11 +1868,6 @@ inline constexpr bool is_antisymmetric_v<dedekind::sets::ExtensionalCardinal<W>,
 
 static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
               "ExtensionalCardinal<> must certify as a total ring.");
-
-static_assert(
-    IsProduct<dedekind::sets::LipschitzBoundaryWitness,
-              dedekind::sets::Cardinality, dedekind::sets::Cardinality>,
-    "Cardinality boundary witness must realize a categorical product.");
 
 // ---------------------------------------------------------------------------
 // Category trait registrations for SignedExtensionalCardinal<>

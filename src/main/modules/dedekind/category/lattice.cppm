@@ -1607,10 +1607,9 @@ static_assert(
  * @section lattice__Family_Anchor
  * The @b ambient @c A is the anchor (per #712 review): a subobject
  * family is determined by the pair @c (A, @c L), and family membership
- * is recognised by metadata equality.  This parallels the mereology
- * notion in @c :sets::mereology::IsSystem<S, Species, L>: a system is
- * "a space of parts" anchored on its ambient Species, and the parts
- * (subobjects) form a family by virtue of sharing that ambient.
+ * is recognised by metadata equality: a family is "a space of parts"
+ * anchored on its ambient, and the parts (subobjects) belong to it by
+ * virtue of sharing that ambient.
  *
  * @section lattice__Family_Generalisation_Door
  * Per #712 review: if the @c (A, @c L) anchoring proves too

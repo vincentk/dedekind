@@ -106,8 +106,10 @@ using dedekind::category::IsSubobject;
  *                                            𝔸 is its own universe (fixpoint)
  *   classifier(s)  : S → (Domain → Ω_L)      the χ datum: the set itself for
  *                                            the structured arms and for a
- *                                            comprehension (the AST IS the
- *                                            set); Set<T,L,P>'s predicate P
+ *                                            comprehension over a restricted
+ *                                            base (the AST IS the set); the
+ *                                            bare predicate P for a
+ *                                            comprehension over a universe
  *   π_1 / π_2      : 𝔸<A×B> → 𝔸<A> / 𝔸<B>    the universe of a pair carrier
  *                                            is the product of the factors
  * @endcode

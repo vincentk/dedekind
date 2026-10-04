@@ -1,0 +1,22 @@
+# Coverage is reported, not gated.
+#
+# Clang emits no coverage mapping for a template body that is defined in a
+# C++20 module interface unit and instantiated in a test translation unit, so
+# every coverable line of a template-only .cppm counts as a miss whatever the
+# tests do (22 module files sit at 0 hits on main for this reason alone).  A
+# patch touching such a file would go red structurally.  Both statuses are
+# therefore informational: the numbers stay in the PR comment for a human
+# read, and never fail the check.  Non-template module code (runtime
+# functions) is still measured honestly and is what the comment is for.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "diff, files"
+  require_changes: true

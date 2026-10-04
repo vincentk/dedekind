@@ -8,14 +8,11 @@
  *
  * @section expressions__Description
  * This partition provides the principal "set-builder" abstraction:
- * Set<T, L, Predicate> -- an intensional set whose membership test is a
+ * Comprehension<B, P> -- an intensional set whose membership test is a
  * compile-time callable predicate ranging into a subobject classifier L::Omega.
  *
  * Key constructs exported:
- *  - Set<T,L,P>           -- ETCS-compatible intensional set.
- *  - Comprehension<B,P>   -- the point-free set-builder node {x in B | P(x)};
- *                            the retired scout element/BoundScout is gone
- * (#895).
+ *  - Comprehension<B,P>   -- the point-free set-builder node {x in B | P(x)}.
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
  *                            heterogeneous -> Unknown via Kleene).
@@ -63,7 +60,6 @@ import :boundaries;     // For 𝔸, Ø
 import :setobject;      // IsSetObject: the noun every set type here realises
 import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
                         // meet)
-import :mereology;      // For mereology lattice concepts
 import :computability;  // HasDecidableMembership
 
 namespace dedekind::sets {
@@ -71,11 +67,12 @@ using namespace dedekind::category;
 
 // ── What a set object IS (actual representation) ─────────────────────────────
 // The object-level "is a set" concept is @c IsSubobject<T, T::Domain>: @c T
-// classified by a characteristic predicate χ (its @c operator()).  In the
-// carriers this is stored as JUST the classifier --- @c Subobject<A, Chi> holds
-// @c Chi χ (category:topoi), @c Set<T,L,P> holds @c P predicate_ --- and the
-// ambient is the @b type parameter (@c A / @c T), not a stored value; @c ι is
-// the @c Member inclusion (@c ι(Member{a}) = @c a), not a projection.  @c
+// classified by a characteristic predicate χ (its @c operator()).  What the
+// carriers store differs: @c Subobject<A, Chi> (category:topoi) holds JUST the
+// classifier @c Chi χ, its ambient being the @b type parameter @c A, not a
+// stored value; @c Comprehension<B,P> holds both its @c base and its
+// @c predicate, and membership conjoins them.  In either case @c ι is the
+// @c Member inclusion (@c ι(Member{a}) = @c a), not a projection.  @c
 // IsSet<T> is then @c IsSubobject PLUS the CATEGORY commitment (the ambient
 // satisfies the ETCS axioms / is a CCC --- the ambient IS the category Set).
 //
@@ -104,7 +101,7 @@ export using dedekind::category::ambient_set;
  *  structs (@ref Comprehension, and any wrapper that is "morally a set"),
  *  removing the surface boilerplate each would otherwise duplicate.  It is
  *  @b opt-in, @b never a precondition: @c IsSet stays a @b structural concept,
- *  and @c Set<T,L,P> keeps satisfying it by hand.  The
+ *  and a leaf may satisfy it by hand.  The
  *  @c Derived must expose @c operator()(Domain)@c → @c Codomain (its χ). */
 export template <typename Derived, typename DomainT, typename L>
 struct SetExpr {
@@ -178,8 +175,8 @@ struct Comprehension
       : base(b), predicate(static_cast<Predicate&&>(p)) {}
   /** @brief The former over the @b universe of the carrier: @c {x ∈ 𝔸 | P}
    *  from the predicate alone (the base is default-constructible, as @c 𝔸<T,L>
-   *  is).  This is the one set former of the Δ₀ core; what used to be spelled
-   *  @c Set<T,L,P> is @c Comprehension<𝔸<T,L>, P>. */
+   *  is).  This is the one set former of the Δ₀ core,
+   *  @c Comprehension<𝔸<T,L>, P>. */
   constexpr explicit Comprehension(Predicate p)
     requires std::default_initializable<Base>
       : base{}, predicate(static_cast<Predicate&&>(p)) {}
@@ -734,10 +731,9 @@ constexpr auto universe(const Comprehension<Base, Predicate>&) {
            typename universe_t<Base>::cardinality_type>{};
 }
 
-// Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default
-// leg applies) and the predicate P as its χ datum --- the very object
-// `operator&` hands to `structured_and`, so the leg names what the reducer
-// already reads.
+// A comprehension over a universe 𝔸<T,L> is the opaque arm: the default leg
+// applies and the predicate P is its χ datum --- the very object `operator&`
+// hands to `structured_and`, so the leg names what the reducer already reads.
 export template <typename T, typename L, typename P, typename C>
 constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
   return s.predicate;
@@ -1170,10 +1166,8 @@ struct InitialObjectArrow {
  *
  *  Captureless / no source-set + arrow storage in the closure: keeps
  *  the predicate value-light and structurally compatible with the
- *  comprehension-DSL paths.  (Historically also default-constructible
- *  to satisfy the now-retired @c Set::χ static-initialiser; that
- *  static is gone post-#681, but captureless predicates are still
- *  preferable for symbolic-image purposes.)
+ *  comprehension-DSL paths (captureless predicates stay preferable for
+ *  symbolic-image purposes).
  *
  *  @tparam U The codomain element type — read off from @c Cod<F> at
  *  the @c image call site.  Parameterising by @c U keeps the predicate
@@ -1223,15 +1217,15 @@ constexpr auto image(F&&, const S&) {
  *  @details Captures (i) the source set @c S by value and (ii) the
  *  inverse arrow @c FInv by value, so the closure is self-contained
  *  and constexpr-friendly at the call site.  Not default-constructible
- *  in general --- @c Set<T,L,P> stores a @c Predicate by value and has
- *  no default constructor, so callers must always supply both
- *  components to the in-class aggregate initialiser.  The Set's
+ *  in general --- a @c Comprehension stores its @c Predicate by value and
+ *  has no default constructor, so callers must always supply both
+ *  components to the in-class aggregate initialiser.  The source set's
  *  @c operator() already performs @c lift_logic<L> on the inner
  *  result, and @c S.operator() on the unwrapped @c x returns @c L::Ω
  *  directly, so the composition preserves the source logic species
  *  without going through Ternary.
  *
- *  @c SourceSet is the @c Set<T,L,P> instantiation; @c FInv is the
+ *  @c SourceSet is the source set type; @c FInv is the
  *  type returned by @c inverse(f) for the iso @c f.
  */
 template <typename SourceSet, typename FInv>
@@ -1256,7 +1250,8 @@ struct ComposedIsoImagePredicate {
  *    image(f, S) = { y ∈ Cod(f) | S(f^{-1}(y)) }
  *  @endcode
  *
- *  The result is a @c Set<U, L, ComposedIsoImagePredicate<...>> --- the
+ *  The result is a @c Comprehension<𝔸<U, L>, ComposedIsoImagePredicate<...>>
+ *  --- the
  *  same logic species @c L as the source (no demotion to Ternary), and
  *  a composed predicate that evaluates membership through the inverse.
  *  This is strictly stronger than the @c IsArrow fallback above, which
@@ -1812,15 +1807,14 @@ static_assert(
     "formal arrow.");
 }  // namespace detail_setexpr_witness
 
-// ── The point-free projection scout ────────────────────────────────────────
+// ── The point-free variable ────────────────────────────────────────────────
 /**
- * @brief @c π --- the point-free variable, a @b domain-less scout.
+ * @brief @c π --- the point-free variable, naming no carrier.
  *
- * @details Where @c element<ℕ> bakes the carrier into the scout's type, @c π
- * leaves it open.  A comparison @c π @c ⋈ @c fix(V) fixes only the @b shape
- * (direction and pivot) as an @c UnboundHalfspace / @c UnboundSingleton; a
- * later @c carrier @c | @c ... instantiates it at the carrier's @c Domain,
- * reusing
+ * @details @c π leaves the carrier open.  A comparison @c π @c ⋈ @c fix(V)
+ * fixes only the @b shape (direction and pivot) as an @c UnboundHalfspace / @c
+ * UnboundSingleton; a later @c carrier @c | @c ... instantiates it at the
+ * carrier's @c Domain, reusing
  * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
  * coordinates @c π1 / @c π2 follow with the relational surface (#783).
  *

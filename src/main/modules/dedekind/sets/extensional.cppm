@@ -51,7 +51,6 @@ export module dedekind.sets:extensional;
 import dedekind.category;
 import :cardinality;
 import :computability;
-import :mereology;
 
 namespace dedekind::sets {
 
@@ -159,7 +158,7 @@ static_assert(IsExtensional<ExtensionalSet<int>>,
               "predicate from :computability (#598).");
 
 // ---------------------------------------------------------------------------
-// Equivalence-relation breadcrumb (#598 scout).
+// Equivalence-relation breadcrumb.
 //
 // `ExtensionalSet`'s `Equal` template parameter is the equivalence
 // relation under which membership is decided.  `std::equal_to<T>` on
