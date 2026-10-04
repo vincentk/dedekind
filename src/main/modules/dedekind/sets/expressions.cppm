@@ -236,21 +236,6 @@ struct Comprehension
                     dedekind::category::lift_logic<L>(predicate(x)));
   }
 
-  /** @brief Size when the base exposes a probe element (@c pivot) and a
-   *         @c size().  For singleton-bounded bases (size 1), the
-   *         predicate is probed once at @c base.pivot and the result
-   *         is @c base.size() if the probe holds, @c 0 otherwise.
-   *         Larger enumerable bases would need iteration — out of
-   *         scope here (FIXME(#685)). */
-  constexpr std::size_t size() const
-    requires requires(const Base& b, const Predicate& p) {
-      b.pivot;
-      b.size();
-      { p(b.pivot) } -> std::convertible_to<bool>;
-    }
-  {
-    return predicate(base.pivot) ? base.size() : 0;
-  }
   /** @brief Size when the datum carries it and the base is the whole
    *  universe: the point @c {p} over @c 𝔸<T> has size 1. */
   constexpr std::size_t size() const

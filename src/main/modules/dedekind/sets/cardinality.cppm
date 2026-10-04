@@ -2274,7 +2274,7 @@ static_assert(std::equality_comparable<dedekind::sets::SignedCardinality>,
 static_assert(std::regular<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be std::regular --- closes the "
               "persistent :sint.cppm local-only build failure "
-              "(embed_sint_ℤ(Singleton<int>{42}).pivot == "
+              "(origin(embed_sint_ℤ(Singleton<int>{42})) == "
               "finite_signed_cardinality(42) static_assert at "
               "sint.cppm:228).");
 static_assert(std::three_way_comparable<dedekind::sets::SignedCardinality,

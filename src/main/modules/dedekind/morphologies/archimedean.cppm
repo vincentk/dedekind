@@ -188,7 +188,7 @@ static_assert(IsArchimedeanField<double>,
  *         preserved on the codomain side.
  *   (iii) Kleisli factoring: @c image(f, @c s) is the cardinality-1
  *         instance of the powerset-monad bind @c s @c >>= @c (η @c ∘ @c f),
- *         witnessed by @c image(f, @c s) @c == @c singleton(f(s.pivot))
+ *         witnessed by @c image(f, @c s) @c == @c singleton(f(origin(s)))
  *         and @c image(f, @c s) @c == @c (s @c >>= @c (η @c ∘ @c f)).
  *
  * Placing the witness here rather than in @c :sets:singleton keeps the
@@ -221,7 +221,7 @@ static_assert(s1.size() == 1,
               "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
 
 static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(origin(s0))),
-              "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
+              "Breadcrumb (iii): image(f, s) == singleton(f(origin(s))) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");
 static_assert(s1 == (s0 >>=
