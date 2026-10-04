@@ -1106,7 +1106,7 @@ export template <typename T, typename L, typename C, auto V>
   requires std::same_as<T, decltype(V)>
 constexpr Singleton<decltype(V), L> operator|(const 𝔸<T, L, C>&,
                                               const UnboundSingleton<V>&) {
-  return Singleton<decltype(V), L>{V};
+  return singleton<L>(V);
 }
 
 // The point-free surface reproduces the existing halfspace exactly (the
@@ -2034,11 +2034,11 @@ constexpr SetVal<T, L> lowerbounds(
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <typename L, typename C>
 constexpr auto upperbounds(const 𝔸<bool, L, C>&) {
-  return Singleton<bool, L>{true};
+  return singleton<L>(true);
 }
 export template <typename L, typename C>
 constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
-  return Singleton<bool, L>{false};
+  return singleton<L>(false);
 }
 
 /** @brief @c & IS the meet on bare order operands: it forwards to the

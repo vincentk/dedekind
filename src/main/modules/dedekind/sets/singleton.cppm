@@ -187,7 +187,7 @@ constexpr bool operator==(const 𝔸<T, L2, C>& u,
  *  the type is used. */
 export template <typename L, typename C>
 constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) {
-  return Singleton<bool, L>{!s.predicate.pivot};
+  return 𝔸<bool, L>{} | Point<bool>{!s.predicate.pivot};
 }
 
 /** @brief Product of two points: @f$\{a\}\times\{b\}=\{(a,b)\}@f$, the
@@ -365,8 +365,7 @@ export template <typename L, typename T, typename C, typename F>
   requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
 constexpr auto image(F&&, const 𝔸<T, L, C>&) {
-  return Singleton<dedekind::category::One, L>{
-      Point<dedekind::category::One>{dedekind::category::One{}}};
+  return singleton<L>(dedekind::category::One{});
 }
 
 export template <typename L, typename T, typename F>

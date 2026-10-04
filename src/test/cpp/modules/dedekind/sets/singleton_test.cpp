@@ -32,8 +32,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO("Failed membership test.");
     REQUIRE(!_s(std::size_t{4}));
     INFO("A foreign type compares in the common type, never by narrowing.");
-    STATIC_REQUIRE(!Singleton<int>{1}(1.5));
-    STATIC_REQUIRE(Singleton<int>{1}(1.0));
+    STATIC_REQUIRE(!η(1)(1.5));
+    STATIC_REQUIRE(η(1)(1.0));
   }
   SECTION("Cardinality") {
     REQUIRE(_s.size() == 1);
@@ -53,10 +53,9 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO(
         "On the two-element carrier the complement of a point is the other "
         "point (found from sets alone, no order namespace in scope).");
-    STATIC_REQUIRE(
-        std::same_as<decltype(~Singleton<bool>{true}), Singleton<bool>>);
-    STATIC_REQUIRE((~Singleton<bool>{true})(false));
-    STATIC_REQUIRE(!(~Singleton<bool>{true})(true));
+    STATIC_REQUIRE(std::same_as<decltype(~η(true)), Singleton<bool>>);
+    STATIC_REQUIRE((~η(true))(false));
+    STATIC_REQUIRE(!(~η(true))(true));
   }
   SECTION("Intersections") {
     // FIXME(#685): structural identity ({a}∩{a} == {a}, {a}∩¬{a} == Ø) is

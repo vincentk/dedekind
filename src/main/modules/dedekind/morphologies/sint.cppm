@@ -271,22 +271,20 @@ constexpr auto embed_sint_ℤ(S&& s) {
   return dedekind::sets::image(embed_sint_ℤ_, std::forward<S>(s));
 }
 
-// Set-level lift witnesses: @c embed_sint_ℤ on @c Singleton<int>{42}
-// lands at @c finite_signed_cardinality(42), and on @c Singleton<int>{-7}
+// Set-level lift witnesses: @c embed_sint_ℤ on @c η(42)
+// lands at @c finite_signed_cardinality(42), and on @c η(-7)
 // at @c finite_signed_cardinality(-7).  Pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624 / #626 / #628's witnesses — same shape, different
 // (carrier, codomain) pair.
 static_assert(
-    dedekind::sets::origin(embed_sint_ℤ(
-        dedekind::sets::Singleton<int, dedekind::category::Boole>{42})) ==
+    dedekind::sets::origin(embed_sint_ℤ(dedekind::sets::η(42))) ==
         dedekind::sets::finite_signed_cardinality(42),
-    "embed_sint_ℤ(Singleton<int>{42}) lands at "
+    "embed_sint_ℤ(η(42)) lands at "
     "finite_signed_cardinality(42) on the SignedCardinality carrier.");
-static_assert(dedekind::sets::origin(embed_sint_ℤ(
-                  dedekind::sets::Singleton<int, dedekind::category::Boole>{
-                      -7})) == dedekind::sets::finite_signed_cardinality(-7),
-              "embed_sint_ℤ(Singleton<int>{-7}) lands at "
+static_assert(dedekind::sets::origin(embed_sint_ℤ(dedekind::sets::η(-7))) ==
+                  dedekind::sets::finite_signed_cardinality(-7),
+              "embed_sint_ℤ(η(-7)) lands at "
               "finite_signed_cardinality(-7) on the SignedCardinality carrier "
               "(negative-value witness — the symmetric complement to "
               "embed_uint_ℕ's non-negative-only fragment).");
@@ -295,10 +293,8 @@ static_assert(dedekind::sets::origin(embed_sint_ℤ(
 // of the source set under the canonical mono int ↪ ℤ — Subobject
 // of @c Cod<embed_sint_ℤ_> = SignedCardinality per @c :category:image.
 static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_sint_ℤ(
-            dedekind::sets::Singleton<int, dedekind::category::Boole>{42})),
-        decltype(embed_sint_ℤ_)>,
+    dedekind::category::IsImageOf<decltype(embed_sint_ℤ(dedekind::sets::η(42))),
+                                  decltype(embed_sint_ℤ_)>,
     "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: result "
     "is a Subobject of Cod<embed_sint_ℤ_> = SignedCardinality, "
     "witnessing the categorical image of S under the canonical mono "

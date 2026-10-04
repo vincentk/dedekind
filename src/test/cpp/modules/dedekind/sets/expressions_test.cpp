@@ -696,7 +696,7 @@ TEST_CASE("Sets: the species on the classifier, not the base's tag",
 
   // Symmetric difference with a singleton computes in the join of the
   // singleton's species and the comprehension's OWN species.
-  const auto sym = Singleton<int>{2} ^ unknown;
+  const auto sym = η(2) ^ unknown;
   STATIC_CHECK(std::same_as<typename decltype(sym)::logic_species, Kleene>);
   CHECK(sym(2) == Ternary::Unknown);  // ⊤ △ U = U
   CHECK(sym(3) == Ternary::Unknown);  // ⊥ △ U = U

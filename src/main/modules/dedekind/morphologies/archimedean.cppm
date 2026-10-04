@@ -208,7 +208,7 @@ static_assert(dedekind::category::IsArrow<succ_arrow>,
               "Breadcrumb (i): the Peano-successor witness arrow "
               "S(x) = x + 1 satisfies IsArrow.");
 
-inline constexpr auto s0 = dedekind::sets::Singleton<int>{0};
+inline constexpr auto s0 = dedekind::sets::η(0);
 inline constexpr auto s1 = dedekind::sets::image(succ_arrow{}, s0);
 
 static_assert(

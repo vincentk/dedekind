@@ -334,7 +334,7 @@ constexpr auto argmax(
   constexpr W_ r = r0 < 0 ? r0 + W_(V) : r0;  // residue x ≡ (W−K) mod V
   const W_ d0 = (p - r) % W_(V);
   const W_ m = p - (d0 < 0 ? d0 + W_(V) : d0);  // largest x ≤ p with x ≡ r
-  return Singleton<W_, L>{m};
+  return dedekind::sets::singleton<L>(m);
 }
 
 // ── preimage: the CONTRAVARIANT inverse of @c image ────────────────────────
