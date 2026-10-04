@@ -67,11 +67,12 @@ using namespace dedekind::category;
 
 // ── What a set object IS (actual representation) ─────────────────────────────
 // The object-level "is a set" concept is @c IsSubobject<T, T::Domain>: @c T
-// classified by a characteristic predicate χ (its @c operator()).  In the
-// carriers this is stored as JUST the classifier --- @c Subobject<A, Chi> holds
-// @c Chi χ (category:topoi), @c Comprehension<B,P> holds @c P predicate --- and
-// the ambient is the @b type parameter (@c A / @c T), not a stored value; @c ι
-// is the @c Member inclusion (@c ι(Member{a}) = @c a), not a projection.  @c
+// classified by a characteristic predicate χ (its @c operator()).  What the
+// carriers store differs: @c Subobject<A, Chi> (category:topoi) holds JUST the
+// classifier @c Chi χ, its ambient being the @b type parameter @c A, not a
+// stored value; @c Comprehension<B,P> holds both its @c base and its
+// @c predicate, and membership conjoins them.  In either case @c ι is the
+// @c Member inclusion (@c ι(Member{a}) = @c a), not a projection.  @c
 // IsSet<T> is then @c IsSubobject PLUS the CATEGORY commitment (the ambient
 // satisfies the ETCS axioms / is a CCC --- the ambient IS the category Set).
 //
