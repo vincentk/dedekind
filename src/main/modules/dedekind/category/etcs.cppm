@@ -448,8 +448,8 @@ constexpr auto ambient_set(Pred&& predicate) {
 // Juliet-clean lifts: std::set / std::unordered_set ↪ IsSet directly (#607).
 //
 // These overloads let std-container values lift to IsSet without going
-// through a project-shipped wrapper (no @c ExtensionalSet, no
-// @c FiniteBooleanSet, just std).  Each overload wraps the container's
+// through a project-shipped wrapper (no @c ExtensionalSet, just std).  Each
+// overload wraps the container's
 // @c contains member as a callable predicate and forwards to the
 // universal @c ambient_set<A>(Pred) above.
 //

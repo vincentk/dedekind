@@ -60,6 +60,7 @@ using namespace dedekind::category;
 using dedekind::order::DownRay;
 using dedekind::order::Strictness;
 using dedekind::sets::Comprehension;
+using dedekind::sets::π;
 using dedekind::sets::𝔸;
 
 /**
@@ -187,6 +188,7 @@ class Cut {
 export template <typename Q>
   requires IsRational<Q>
 struct LowerCut {
+  using Domain = Q;
   Cut<Q> real{};
   constexpr bool operator()(const Q& q) const { return real.contains(q); }
 };
@@ -199,7 +201,7 @@ using LowerSet = Comprehension<𝔸<Q, Boole>, LowerCut<Q>>;
 /** @brief @f$r \mapsto \{q<r\}@f$: the real read as its lower set. */
 export template <typename Q>
 constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
-  return LowerSet<Q>{LowerCut<Q>{r}};
+  return 𝔸<Q>{} | LowerCut<Q>{r};
 }
 
 /** @brief The lower set of a @b principal cut is the order datum's ray
@@ -215,7 +217,7 @@ using PrincipalRay = DownRay<Q, Strictness::Strict>;
 export template <typename Q>
   requires IsRational<Q>
 constexpr PrincipalRay<Q> principal_ray(const Q& p) {
-  return PrincipalRay<Q>{p};
+  return 𝔸<Q>{} | (π < p);
 }
 
 }  // namespace dedekind::numbers

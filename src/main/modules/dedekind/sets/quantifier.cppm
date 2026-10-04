@@ -49,7 +49,7 @@ export module dedekind.sets:quantifier;
 
 import dedekind.category; // IsSet, ambient_set (the domain-is-a-set witness)
 import :boundaries;       // Ø — the emptiness anchor the quantifiers compare to
-import :expressions;  // FiniteBooleanSet — finite-carrier materialisation (𝔹)
+import :expressions;      // the set former and the reducer's nodes over 𝔹
 
 namespace dedekind::sets {
 

@@ -256,19 +256,23 @@ struct Comprehension
   }
 };
 
-/** @brief Boolean equality predicate for compile-time pruning over 𝔹.
- *
- *  Defined here (rather than further down where the @c FiniteBooleanSet
- *  collapse machinery lives) because the bool-truthy comprehension form
- *  @c 𝔹 @c | @c BooleanEqPredicate{true} needs the type complete (#408).
- *  The collapse-machinery uses further down still see the same definition:
- *  it is the single source of truth for the bool-domain predicate.
- */
-export struct BooleanEqPredicate {
-  bool expected;
-
-  constexpr bool operator()(bool v) const { return v == expected; }
-};
+/** @brief The set former of §3 at the value level: @c 𝔸<T, L>{} @c | @c P is
+ *  @f$\{x \in T \mid P(x)\}@f$ for a value-carrying datum @c P --- a point
+ *  (@c π @c == @c v), a cut (@c π @c > @c v), a lambda.  The compile-time atoms
+ *  @c π @c ⋈ @c fix(c) have their own binders in @c :order (they collapse a
+ *  degenerate cut to a boundary object at compile time); this one takes the
+ *  datum as it is and leaves the degenerate cases to the value reducer.  A
+ *  datum that names its carrier (@c P::Domain) must name this one: a cut over
+ *  @c int is not a set over ℕ.  A set is not a datum: @c 𝔸 @c | @c S is the
+ *  join (@c :boundaries). */
+export template <typename T, typename L, typename C, typename P>
+  requires(!IsSetObject<P>) && (!dedekind::category::IsLSet<P>) &&
+          std::invocable<const P&, const T&> && (!requires {
+            typename P::Domain;
+          } || std::same_as<typename P::Domain, T>)
+constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+  return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
+}
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
@@ -384,122 +388,6 @@ constexpr auto lift_to(const S& s) {
 // @c IsComplementPair / @c IsNegatedPredicate_v traits, and the hand-rolled
 // @c !! peel / @c are_complement_sets_v collapse all fold into the reducer's
 // complement laws (#834 / #829 / #946).
-
-/** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
-export template <typename L>
-struct FiniteBooleanSet {
-  using Domain = bool;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = Finite;
-
-  typename L::Ω at_false;
-  typename L::Ω at_true;
-
-  constexpr typename L::Ω operator()(bool v) const {
-    return v ? at_true : at_false;
-  }
-
-  constexpr bool operator==(const Ø<bool, L>&) const {
-    return at_false == L::False && at_true == L::False;
-  }
-
-  constexpr bool operator==(const 𝔸<bool, L, Finite>&) const {
-    return at_false == L::True && at_true == L::True;
-  }
-
-  friend constexpr bool operator==(const Ø<bool, L>& empty,
-                                   const FiniteBooleanSet& s) {
-    return s == empty;
-  }
-
-  friend constexpr bool operator==(const 𝔸<bool, L, Finite>& universe,
-                                   const FiniteBooleanSet& s) {
-    return s == universe;
-  }
-
-  constexpr auto operator|(const FiniteBooleanSet& other) const {
-    return FiniteBooleanSet{
-        L::OR(at_false, other.at_false),
-        L::OR(at_true, other.at_true),
-    };
-  }
-
-  constexpr auto operator&(const FiniteBooleanSet& other) const {
-    return FiniteBooleanSet{
-        L::AND(at_false, other.at_false),
-        L::AND(at_true, other.at_true),
-    };
-  }
-};
-
-// The two-cell table is a set over bool: the full table is the universe, the
-// empty table is Ø (the Pst normal form on the smallest carrier).
-static_assert(
-    FiniteBooleanSet<dedekind::category::Boole>{
-        dedekind::category::Boole::True,
-        dedekind::category::Boole::True}(false) ==
-            dedekind::category::Boole::True &&
-        FiniteBooleanSet<dedekind::category::Boole>{}(true) ==
-            dedekind::category::Boole::False,
-    "FiniteBooleanSet: the full table contains both bools, the empty table "
-    "neither.");
-
-export template <typename L, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
-    const FiniteBooleanSet<L>& rhs) {
-  return FiniteBooleanSet<L>{
-      L::OR(lhs(false), rhs(false)),
-      L::OR(lhs(true), rhs(true)),
-  };
-}
-
-export template <typename L, typename C>
-constexpr auto operator|(
-    const FiniteBooleanSet<L>& lhs,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
-  return rhs | lhs;
-}
-
-export template <typename L, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
-    const FiniteBooleanSet<L>& rhs) {
-  return FiniteBooleanSet<L>{
-      L::AND(lhs(false), rhs(false)),
-      L::AND(lhs(true), rhs(true)),
-  };
-}
-
-export template <typename L, typename C>
-constexpr auto operator&(
-    const FiniteBooleanSet<L>& lhs,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
-  return rhs & lhs;
-}
-
-/** @brief @c bool @c BooleanEqPredicate meet.  @c BooleanEqPredicate is
- *  RUNTIME-stateful (same TYPE, different @c expected field), so the generic
- *  reducer's TYPE-based idempotent law would wrongly collapse two distinct bool
- *  singletons.  Compute the finite meet directly, more specialised than the
- *  generic @c IsSubobject combinators, so it wins; a finite bool set is
- *  extensional, so the result is a @c FiniteBooleanSet. */
-export template <typename L, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
-  return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
-                             L::AND(a(true), b(true))};
-}
-/** @brief @c bool @c BooleanEqPredicate join, dual to the meet above. */
-export template <typename L, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
-  return FiniteBooleanSet<L>{L::OR(a(false), b(false)),
-                             L::OR(a(true), b(true))};
-}
 
 // ---------------------------------------------------------------------------
 // Cross-carrier meet on the variant pair (existential proof, slice of #362)
@@ -789,7 +677,7 @@ static_assert(
 
 namespace dedekind::category {
 // A Set's value is determined by its type only when its predicate is stateless.
-// A runtime-stateful predicate (a field-carrying P such as BooleanEqPredicate)
+// A runtime-stateful predicate (a field-carrying P such as a Point's pivot)
 // makes two same-type Sets potentially distinct, so the reducer's type-based
 // idempotence must NOT collapse them; gate it on the predicate's emptiness.
 template <typename T, typename L, typename P, typename C>

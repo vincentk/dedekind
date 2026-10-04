@@ -77,6 +77,7 @@ using namespace dedekind::category;
  *  @tparam T the carrier (needs @c ==). */
 export template <typename T>
 struct Point {
+  using Domain = T;
   using cardinality_type = Finite;
   T pivot{};
 
@@ -113,6 +114,18 @@ struct Point {
 
   constexpr std::size_t size() const { return 1; }
 };
+
+/** @brief @c π @c == @c v with a carrier @b value: the point datum, on any
+ *  regular carrier (no order asked), which the set former binds:
+ *  @c 𝔹 @c | @c (π @c == @c true) is the point @c {true}.  The grammar's own
+ *  tags (@c Projection, @c Bound) are empty types, not values, so they are not
+ *  admitted here; @c π @c == @c fix(c) keeps its compile-time binder in
+ *  @c :order. */
+export template <typename T>
+  requires std::regular<T> && (!std::is_empty_v<T>)
+constexpr Point<T> operator==(Projection<0>, T v) {
+  return Point<T>{std::move(v)};
+}
 
 /** @brief @f$\{x\}@f$ as a set: the comprehension of the equality atom over
  *  the universe of @c T, @c {x ∈ 𝔸<T> | x == pivot}.  An alias, not a noun:
@@ -218,8 +231,8 @@ static_assert(
  *  the power-set monad's unit @f$\eta@f$ (see the section note). */
 export template <typename L = Boole, typename T>
 constexpr auto singleton(T&& value) {
-  return Singleton<std::decay_t<T>, L>{
-      Point<std::decay_t<T>>{std::forward<T>(value)}};
+  return 𝔸<std::decay_t<T>, L>{} |
+         Point<std::decay_t<T>>{std::forward<T>(value)};
 }
 
 /** @brief @c η --- the idiomatic spelling of @c singleton: the power-set
@@ -289,7 +302,7 @@ constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
   // Co-Kleisli Extend: apply contextual logic and re-wrap.
-  return Singleton<U, L>{Point<U>{std::forward<Func>(f)(s)}};
+  return 𝔸<U, L>{} | Point<U>{std::forward<Func>(f)(s)};
 }
 
 /**
@@ -328,7 +341,7 @@ constexpr auto image(
                𝔸<dedekind::category::Dom<std::remove_cvref_t<F>>, L, C>,
                Point<dedekind::category::Dom<std::remove_cvref_t<F>>>>& s) {
   using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return Singleton<U, L>{Point<U>{std::forward<F>(f)(s.predicate.pivot)}};
+  return 𝔸<U, L>{} | Point<U>{std::forward<F>(f)(s.predicate.pivot)};
 }
 
 /** @section singleton__Image_Terminal_Morphism (#661)

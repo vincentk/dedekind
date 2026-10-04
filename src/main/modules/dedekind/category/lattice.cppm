@@ -854,7 +854,7 @@ consteval auto join_bounded_law() {
  *  A carrier with RUNTIME-STATEFUL leaves specialises this to @c false for
  * them.
  *  @c sets does so for @c Set<T,L,P> whose predicate @c P carries a runtime
- *  field (e.g.\ a @c BooleanEqPredicate's @c expected).  The type-based
+ *  field (e.g.\ a @c Point's @c pivot).  The type-based
  *  idempotence then does not collapse two distinct-but-same-type values. */
 export template <typename X>
 inline constexpr bool idempotent_leaf_v =

@@ -376,8 +376,7 @@ constexpr auto preimage(
   // Direction / strictness stay type-level (load-bearing for structured_and's
   // complement detection).
   using B = Bounds<Lo, Hi, T>;
-  return Comprehension<𝔸<T, LH>, B>{
-      B{pivot(h) - static_cast<T>(K)}};  // target logic LH
+  return 𝔸<T, LH>{} | B{pivot(h) - static_cast<T>(K)};  // target logic LH
 }
 
 /** @brief preimage of a codomain halfspace @c {y⋈P} under the reflection/scale
@@ -404,8 +403,7 @@ constexpr auto preimage(
   // constexpr in the carrier's arithmetic, C lifted into the carrier first.
   // Graph logic (LG) and target logic (LH) deduced separately; the pullback
   // inherits the target's LH.
-  return Comprehension<𝔸<T, LH>, B>{
-      B{static_cast<T>(C) * pivot(h)}};  // target logic LH
+  return 𝔸<T, LH>{} | B{static_cast<T>(C) * pivot(h)};  // target logic LH
 }
 
 }  // namespace dedekind::order

@@ -363,6 +363,7 @@ export template <IsSide Lo, IsSide Hi, typename T>
   requires IsTotallyOrdered<T> &&
            (is_bounded_side_v<Lo> || is_bounded_side_v<Hi>)
 struct Bounds {
+  using Domain = T;
   using cardinality_type = carrier_cardinality_t<T>;
   static constexpr bool has_lo = is_bounded_side_v<Lo>;
   static constexpr bool has_hi = is_bounded_side_v<Hi>;
@@ -442,9 +443,9 @@ using DownRay = Comprehension<𝔸<T, L>, Bounds<Unbounded, Bounded<S>, T>>;
 export template <Direction D, Strictness S, typename L = Boole, typename T>
 constexpr auto make_ray(T v) {
   if constexpr (D == Direction::Upward)
-    return UpRay<T, S, L>{std::move(v)};
+    return 𝔸<T, L>{} | Bounds<Bounded<S>, Unbounded, T>{std::move(v)};
   else
-    return DownRay<T, S, L>{std::move(v)};
+    return 𝔸<T, L>{} | Bounds<Unbounded, Bounded<S>, T>{std::move(v)};
 }
 /** @brief The interval @c {lo ⋈ x ⋈ hi}: both sides bounded.  Deducible.
  *  @tparam T the carrier, @tparam SL / @tparam SU the two strictnesses,
@@ -500,7 +501,7 @@ export template <typename T, typename L, typename C, IsSide Lo, IsSide Hi>
 constexpr auto operator~(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
   using B = Bounds<flipped_side_t<Hi>, flipped_side_t<Lo>, T>;
-  return Comprehension<𝔸<T, L, C>, B>{B{pivot(r)}};
+  return 𝔸<T, L, C>{} | B{pivot(r)};
 }
 
 // The same-pivot complement-pair @c operator| / @c operator& (union → 𝔸,
@@ -538,7 +539,7 @@ static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
  *  the type, the pivots as values. */
 export template <Strictness SL, Strictness SU, typename L = Boole, typename T>
 constexpr Interval<T, SL, SU, L> make_interval(T lo, T hi) {
-  return Interval<T, SL, SU, L>{Bounds<Bounded<SL>, Bounded<SU>, T>{lo, hi}};
+  return 𝔸<T, L>{} | Bounds<Bounded<SL>, Bounded<SU>, T>{lo, hi};
 }
 
 /** @brief The endpoints, read off the two halfspace legs. */
@@ -1022,6 +1023,53 @@ export template <auto V>
 constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
   return {};
 }
+
+/** @brief @c π @c ⋈ @c v with a carrier @b value @c v (as against @c fix(c), a
+ *  compile-time constant): the value-carrying datum itself, which the set
+ *  former @c 𝔸<T, L>{} @c | @c datum binds to a carrier, so
+ *  @c 𝔸<Q>{} @c | @c (π @c < @c p) is the ray @c {q < p}.  A value cannot
+ *  collapse a degenerate cut at compile time the way @c fix(c) does through
+ *  @c make_halfspace; the value reducer discharges it instead.  Gated on the
+ *  registered chain, as the datum is.  Declared in @c dedekind::sets, the
+ *  namespace of @c π, so ADL finds them wherever @c π is spelled (the carrier's
+ *  own namespace need not be @c order's); the equality atom @c π @c == @c v
+ *  lives beside @c Point in @c :sets:singleton. */
+}  // namespace dedekind::order
+namespace dedekind::sets {
+export template <typename T>
+  requires dedekind::order::IsTotallyOrdered<T>
+constexpr dedekind::order::Bounds<
+    dedekind::order::Bounded<dedekind::order::Strictness::Strict>,
+    dedekind::order::Unbounded, T>
+operator>(Projection<0>, T v) {
+  return {std::move(v)};
+}
+export template <typename T>
+  requires dedekind::order::IsTotallyOrdered<T>
+constexpr dedekind::order::Bounds<
+    dedekind::order::Bounded<dedekind::order::Strictness::NonStrict>,
+    dedekind::order::Unbounded, T>
+operator>=(Projection<0>, T v) {
+  return {std::move(v)};
+}
+export template <typename T>
+  requires dedekind::order::IsTotallyOrdered<T>
+constexpr dedekind::order::Bounds<
+    dedekind::order::Unbounded,
+    dedekind::order::Bounded<dedekind::order::Strictness::Strict>, T>
+operator<(Projection<0>, T v) {
+  return {std::move(v)};
+}
+export template <typename T>
+  requires dedekind::order::IsTotallyOrdered<T>
+constexpr dedekind::order::Bounds<
+    dedekind::order::Unbounded,
+    dedekind::order::Bounded<dedekind::order::Strictness::NonStrict>, T>
+operator<=(Projection<0>, T v) {
+  return {std::move(v)};
+}
+}  // namespace dedekind::sets
+namespace dedekind::order {
 
 /** @brief @c !pred on an unbound halfspace: negate the predicate by flipping
  *  the halfspace's sense, @c !(x @c > @c V) @c = @c (x @c <= @c V).

@@ -460,9 +460,7 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // (𝔸<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
 // Congruence), which are parallel branches meeting first at numbers.  The
 // overloads sit in namespace dedekind::sets so ADL on the Universe operand
-// finds them, as a sibling to sets:FiniteBooleanSet (folding the two into one
-// FiniteCarrierSet was not clean — the bool carrier is load-bearing;
-// FIXME(#798)).
+// finds them (FIXME(#798): a generic finite-carrier materialisation).
 // ───────────────────────────────────────────────────────────────────────────
 namespace dedekind::sets {
 
@@ -476,7 +474,7 @@ namespace dedekind::sets {
  * @brief The image of a Modular<N>-factoring predicate, materialised over the N
  *        residues of ℤ/Nℤ: @c at[r] is the membership of residue @c r.
  *
- * @details Sibling to @c FiniteBooleanSet.  Carries BOTH lattice-bound
+ * @details A finite-carrier materialisation.  Carries BOTH lattice-bound
  * comparisons (Eqn 2): @c ==Ø (scheme A anchor: every residue a non-member) and
  * @c ==𝔸 (scheme B anchor: every residue a member).  Emptiness of the
  * @f$\aleph_0@f$-sized @f$\{x\in\mathbb{N}\mid P(x)\}@f$ is decided on the

@@ -68,8 +68,8 @@ using namespace dedekind::sets;
  * the same #559 plan).
  *
  * The canonical home of @c 𝔹 is @c dedekind::sets::𝔹 (upstream of this
- * partition), which also carries its witnesses; predicate sets over @c bool
- * are @c sets::FiniteBooleanSet<L>, constructed directly.
+ * partition), which also carries its witnesses; the sets over @c bool are
+ * the two points @c 𝔹 @c | @c (π @c == @c v) and the reducer's nodes on them.
  *
  * Acts as the base of the embedding chain
  * @c 𝔹 @c ↪ @c ℕ @c ↪ @c ℤ @c ↪ @c ℚ @c ↪ @c ℝ @c ↪ @c ℂ.

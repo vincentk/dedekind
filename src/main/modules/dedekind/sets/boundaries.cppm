@@ -181,6 +181,21 @@ struct Ø final {
     return std::ranges::begin(s) == std::ranges::end(s);
   }
 
+  // (iii) a set over the FINITE carrier bool with no size(): empty iff it holds
+  //       at neither false nor true --- the 𝔹 leg of the s|p quantifier, an
+  //       exhaustive decision (the reducer's Meet / Join nodes over 𝔹 land
+  //       here), not a fabricated one.
+  template <typename S>
+    requires std::same_as<T, bool> && (!std::same_as<S, Ø>) &&
+             (!requires { typename S::is_universal_boundary; }) &&
+             requires { typename S::Domain; } &&
+             std::same_as<typename S::Domain, bool> &&
+             std::invocable<const S&, const bool&> &&
+             (!requires(const S& s) { s.size(); })
+  constexpr bool operator==(const S& s) const {
+    return !static_cast<bool>(s(false)) && !static_cast<bool>(s(true));
+  }
+
   // The Duality: !∅ = V
   // Forward declaration to satisfy the compiler for 𝔸.
   constexpr auto operator!() const;
@@ -359,6 +374,20 @@ struct 𝔸 final {
     requires(!std::same_as<L2, L> || !std::same_as<C2, C>)
   constexpr bool operator==(const 𝔸<T, L2, C2>&) const {
     return true;
+  }
+
+  /** @brief @c 𝔸<bool> @c == @c S: on the FINITE carrier the universe test is
+   *  decided by exhausting @c {false, true} (the 𝔹 leg of the s|p
+   *  quantifier); an infinite carrier has no catch-all (the Rice wall). */
+  template <typename S>
+    requires std::same_as<T, bool> &&
+             (!requires { typename S::is_universal_boundary; }) &&
+             (!requires { typename S::is_initial_object_tag; }) &&
+             requires { typename S::Domain; } &&
+             std::same_as<typename S::Domain, bool> &&
+             std::invocable<const S&, const bool&>
+  constexpr bool operator==(const S& s) const {
+    return static_cast<bool>(s(false)) && static_cast<bool>(s(true));
   }
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
