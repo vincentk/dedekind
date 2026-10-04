@@ -156,7 +156,8 @@ TEST_CASE("linear_algebra:matrix — Tier 2: BlockUpperTriangular inverse",
 /** @section Value_level_Matrix2x2V_and_Concept_Witnesses
  *
  *  The nine matrix slogans, shape conformance, and O(2, ℚ) witnessed on the
- *  concrete value-level triple `(Matrix2x2V<Rat>, Vec2V<Rat>, Covec2V<Rat>)`.
+ *  concrete value-level triple `(Matrix2x2V<Q>, Vec2V<Q>, Covec2V<Q>)` over
+ *  the certified ℚ.
  */
 
 TEST_CASE(
