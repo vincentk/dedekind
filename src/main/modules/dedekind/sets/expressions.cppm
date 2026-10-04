@@ -260,6 +260,15 @@ struct Comprehension
   {
     return predicate.size();
   }
+  /** @brief The ETCS cardinality bound a datum-sized comprehension exposes to
+   *  @c bound_meet / @c bound_join: its exact size. */
+  constexpr std::size_t upper_bound() const
+    requires Is𝔸<Base> && requires(const Predicate& p) {
+      { p.size() } -> std::convertible_to<std::size_t>;
+    }
+  {
+    return predicate.size();
+  }
 };
 
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
