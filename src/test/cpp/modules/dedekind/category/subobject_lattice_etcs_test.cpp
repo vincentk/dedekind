@@ -7,7 +7,7 @@
  * @c Subobject<A, Chi> after the Slice 9 additions:
  *
  *   - @c Subobject<A, Chi> now exposes @c logic_species via
- *     @c GetLogic<Cod<Chi>> (the single new typedef in Slice 9).
+ *     @c classifier_logic_t<Cod<Chi>> (the single new typedef in Slice 9).
  *
  * The @c :sets-side carriers (@c Ø, @c 𝔸, @c Singleton)
  * are witnessed in
@@ -33,7 +33,7 @@ TEST_CASE("category:subobject-lattice-etcs — Subobject<bool, Chi> participates
           "[category][lattice][subobject][etcs][topoi]") {
   /** @brief A @c Subobject<bool, Chi> produced by @c classify
    *         satisfies @c IsSubobjectLattice — Slice 9 added the
-   *         @c logic_species typedef (via @c GetLogic<Cod<Chi>>); the
+   *         @c logic_species typedef (via @c classifier_logic_t<Cod<Chi>>); the
    *         free @c meet / @c join / @c complement are provided in
    *         @c :etcs::concrete; the @c ≤ relation is derivable from
    *         @c meet (Birkhoff §1.4) and therefore not required by the

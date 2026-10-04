@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 import dedekind.category;
 import dedekind.sets;
@@ -586,4 +587,75 @@ TEST_CASE("Comprehension: a Kleene predicate over a Boole base keeps Unknown",
   CHECK(s(42) == Ternary::Unknown);
   const auto none = Comprehension{Ø<int>{}, UnknownPredicate<int>{}};
   CHECK(none(0) == Ternary::False);
+}
+
+namespace {
+/** @brief A Kleene-valued predicate: even is True, 1 mod 4 is Unknown. */
+struct ConfidentlyEven {
+  constexpr Ternary operator()(const int& x) const {
+    if (x % 2 == 0) return Ternary::True;
+    return x % 4 == 1 ? Ternary::Unknown : Ternary::False;
+  }
+};
+/** @brief An answer already in @c Chain<int>::Ω: the grade is the value. */
+struct GradeOf {
+  constexpr int operator()(const int& x) const { return x; }
+};
+}  // namespace
+
+TEST_CASE(
+    "Comprehension: the species is the semilattice join of base and "
+    "answer (#945)",
+    "[sets][comprehension][species]") {
+  // A Kleene answer over a Percent universe answers in Percent (K₃ ↪ Percent).
+  const auto confident = Comprehension{𝔸<int, Percent>{}, ConfidentlyEven{}};
+  STATIC_CHECK(
+      std::same_as<typename decltype(confident)::logic_species, Percent>);
+  STATIC_CHECK(IsLSet<decltype(confident)>);
+  STATIC_CHECK(IsSetObject<decltype(confident)>);
+  CHECK(confident(2) == Percentage{100});
+  CHECK(confident(5) == Percentage{50});
+  CHECK(confident(3) == Percentage{0});
+
+  // A comprehension joined UP from its base is a set object: its universe leg
+  // is re-tagged to the join (𝔸<int, Kleene>, not the Boole base).
+  const auto unknown = Comprehension{𝔸<int>{}, UnknownPredicate<int>{}};
+  STATIC_CHECK(std::same_as<universe_t<decltype(unknown)>, 𝔸<int, Kleene>>);
+  STATIC_CHECK(IsSetObject<decltype(unknown)>);
+  const auto re_tagged = universe(unknown);  // the leg, at run time
+  CHECK(re_tagged(0) == Ternary::True);
+
+  // Kleene ∧ / ∨ Percent combine at their join, Percent: Unknown ↦ 50.
+  const auto both = unknown & confident;
+  STATIC_CHECK(std::same_as<typename decltype(both)::logic_species, Percent>);
+  CHECK(both(2) == Percentage{50});
+  CHECK(both(3) == Percentage{0});
+  const auto either = unknown | confident;
+  CHECK(either(2) == Percentage{100});
+  CHECK(either(3) == Percentage{50});
+  // ...and so does the product, reconciling the factors at the join.
+  const auto pairs = unknown * confident;
+  STATIC_CHECK(std::same_as<typename decltype(pairs)::logic_species, Percent>);
+  CHECK(pairs(std::pair{2, 2}) == Percentage{50});
+  // Equal effective species over different base tags (Percent answers over a
+  // Kleene base and over a Percent base) are a product too.
+  const auto over_kleene = Comprehension{𝔸<int, Kleene>{}, ConfidentlyEven{}};
+  const auto same_species = over_kleene * confident;
+  STATIC_CHECK(
+      std::same_as<typename decltype(same_species)::logic_species, Percent>);
+  CHECK(same_species(std::pair{2, 5}) == Percentage{50});
+
+  // An answer already in the base's Ω stays in the base's species.  (A
+  // Chain<int> set is not yet an L-set citizen: IsPredicate asks IsΩ of the
+  // bare int answer, which only the species can vouch for.)
+  const auto graded = Comprehension{𝔸<int, Chain<int>>{}, GradeOf{}};
+  STATIC_CHECK(
+      std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
+  CHECK(graded(7) == 7);  // ⊤ ∧ 7
+  // A product of graded sets keeps the grade: the conjunction is Chain's min,
+  // not the carrier's && (which would collapse 7 ∧ 3 to true).
+  const auto grid = graded * graded;
+  STATIC_CHECK(
+      std::same_as<typename decltype(grid)::logic_species, Chain<int>>);
+  CHECK(grid(std::pair{7, 3}) == 3);
 }

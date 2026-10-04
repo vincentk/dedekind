@@ -65,6 +65,7 @@ module;
 #include <functional>
 #include <limits>       // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
 #include <type_traits>  // std::remove_cv_t (reject cv-qualified Chain carriers).
+#include <utility>
 
 export module dedekind.category:logic;
 
@@ -344,6 +345,8 @@ struct Chain final {
 static_assert(IsOckhamAlgebra<Chain<int>>,
               "Chain<int> must fulfill IsOckhamAlgebra");
 
+export struct Percent;
+
 /**
  * @section logic__Species_4
  * @brief @c Percentage: a range-enforcing @c [0,100] carrier ("50:50").
@@ -355,6 +358,9 @@ static_assert(IsOckhamAlgebra<Chain<int>>,
  * and the reflection @c 100-v never leaves the range.
  */
 export struct Percentage final {
+  /** @brief The species this answer belongs to (@c Percent, declared above,
+   *  defined below): what makes a @c Percentage a classifier answer. */
+  using logic_species = Percent;
   /** @brief The confidence value.  @b Naked (public) per the Juliet Posture:
    *  the @c [0,100] range is a @b saturating @b convention, not encapsulated
    *  private state.  The constructor clamps and the algebra (@c min / @c max /
@@ -412,6 +418,25 @@ export struct Percent final {
 
 static_assert(IsOckhamAlgebra<Percent>, "Percent must fulfill IsOckhamAlgebra");
 
+/** @brief The logical register on @c Percentage, as @c Ternary has below: @c &&
+ *  / @c || / @c ! are the species' @c AND / @c OR / @c RFL, so a @c Percentage
+ *  answer conjoins as an answer (a product's membership @c a(x.first) @c &&
+ *  @c b(x.second) stays a @c Percentage) and @c HasLogicalOperators holds.
+ *  Deduced on both operands, so no @c int → @c Percentage conversion sneaks a
+ *  bare number into the register. */
+export template <std::same_as<Percentage> P>
+constexpr P operator&&(P a, P b) noexcept {
+  return Percent::AND(a, b);
+}
+export template <std::same_as<Percentage> P>
+constexpr P operator||(P a, P b) noexcept {
+  return Percent::OR(a, b);
+}
+export template <std::same_as<Percentage> P>
+constexpr P operator!(P a) noexcept {
+  return Percent::RFL(a);
+}
+
 // NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
 // / identity_v static_asserts) are placed at the END of this partition, below
 // the #912/#933 Ternary :total registrations (identity_trait<Ternary, Sup/Inf>)
@@ -449,7 +474,12 @@ export constexpr std::strong_ordering operator<=>(Ternary a,
   return static_cast<std::int8_t>(a) <=> static_cast<std::int8_t>(b);
 }
 
-/** @brief Helper to resolve logic species without hard errors */
+/** @brief The logic a @b thing lives in, with @c Boole as the permissive
+ *  default: a type that names no @c logic_species and is not a known answer
+ *  type is read as classical.  @c IsTotalArrow asks this of a plain
+ *  @e carrier (an @c int domain is classical).  Do @b not use it to read the
+ *  species off a classifier @b answer: that is @c classifier_logic_t, which
+ *  has no default and rejects an answer type that names no species. */
 export template <typename T>
 struct GetLogic {
   using type = Boole;
@@ -514,9 +544,9 @@ concept HasLogicalOperators = requires(T a, T b) {
  * "the Ω".  @c bool is distinguished only at the dominance layer (as the
  * decided core @f$\mathbb{B}@f$ that decidable maps factor through; see @c
  * lift_logic), not as a logic.  Register a new species (say a fuzzy logic) and
- * its truth-type joins as another peer.  @c Ternary (Kleene @f$K_3@f$) is the
- * one non-trivial inhabitant currently shipped, the honest default, not the
- * only possible Ω.
+ * its truth-type joins as another peer.  The non-trivial inhabitants shipped
+ * are @c Ternary (Kleene @f$K_3@f$), @c Percentage (the @c Percent chain) and
+ * each @c Chain<T>'s @c T, read as truth values only through their species.
  */
 export template <typename T>
 concept IsΩ =
@@ -592,8 +622,8 @@ using OmegaOf = std::remove_cvref_t<
 /** @section logic__Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
-/**
- * @brief The Rosolini dominance inclusion @f$\iota : \mathbb{B} \hookrightarrow
+/** @section logic__Dominance_Inclusion
+ * The Rosolini dominance inclusion @f$\iota : \mathbb{B} \hookrightarrow
  *        \Omega@f$, the decided core into a classifier.
  * @details The dominance is general in the classifier @f$\Omega@f$.
  *          @f$\mathbb{B}@f$ = @c Boole::Ω = @c bool is the two-valued
@@ -602,8 +632,8 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *          is its inclusion.  So @f$\mathbb{B}@f$ is @e primus @e inter @e
  * pares among the truth-objects: a peer of any other @f$\Omega@f$ at the object
  * layer, but the one target every decidable map factors through (the Rosolini
- * dominance @f$\Sigma@f$).  @c Ternary (Kleene
- *          @f$K_3@f$) and @c Chain<T> are the non-trivial @f$\Omega@f$ we
+ * dominance @f$\Sigma@f$).  @c Ternary (Kleene @f$K_3@f$), @c Percentage
+ *          and @c Chain<T> are the non-trivial @f$\Omega@f$ we
  * currently ship: peers of @f$\mathbb{B}@f$, @b not the canonical
  * @f$\Omega@f$; for @c Ternary @f$\iota@f$ is the concrete map @c bool @c ↪
  * @c Ternary (@c Ternary = @f$\mathbb{B} + 1@f$, adjoining @c Unknown), while
@@ -639,51 +669,180 @@ export enum class CardinalityTag { Finite, Countable, Continuum };
  *      arrows are @c IsCharacteristic / @c IsDecidableCharacteristic and this
  *      inclusion is @c IsDominanceInclusion (all #846).
  */
+// ---------------------------------------------------------------------------
+// The species of a classifier answer
+// ---------------------------------------------------------------------------
+
+/** @brief The logic species a classifier @b answer type belongs to.
+ *  @details Defined for exactly the answer types: @c bool (@c Boole),
+ *  @c Ternary (@c Kleene), and any type declaring its @c logic_species
+ *  (@c Percentage, @c Truth<L>).  There is @b no default: an @c int is not a
+ *  truth value unless a species says so (@c Chain<int>'s @c Ω is @c int, but
+ *  the species is named at the universe, not read off the number).  Contrast
+ *  @c GetLogic, the permissive read for carriers. */
+export template <typename T>
+struct ClassifierLogic;
+template <>
+struct ClassifierLogic<bool> {
+  using type = Boole;
+};
+template <>
+struct ClassifierLogic<Ternary> {
+  using type = Kleene;
+};
+template <typename T>
+  requires requires { typename T::logic_species; }
+struct ClassifierLogic<T> {
+  using type = typename T::logic_species;
+};
+export template <typename T>
+using classifier_logic_t =
+    typename ClassifierLogic<std::remove_cvref_t<T>>::type;
+/** @brief @c T is a classifier answer: it names its species. */
+export template <typename T>
+concept IsClassifierAnswer =
+    requires { typename ClassifierLogic<std::remove_cvref_t<T>>::type; };
+
+// ---------------------------------------------------------------------------
+// The dominance order on logic species: a meet-semilattice with 𝔹 at the
+// bottom
+// ---------------------------------------------------------------------------
+
+/** @brief The embedding @c From @c ↪ @c To of one species' answers into
+ *  another's, @b preserving @c ⊥, @c ⊤, @c ∧, @c ∨ and @c ¬ (a De Morgan
+ *  embedding), so that the set complement @c ~ commutes with every lift.
+ *  @details Undefined unless the edge is registered.  The shipped edges:
+ *  - @c L @c ↪ @c L (identity, passes any value through);
+ *  - @c 𝔹 @c ↪ @c L for every species (the poles: Rosolini's Σ ↪ Ω);
+ *  - @c K₃ @c ↪ @c Percent (@c False @c ↦ @c 0, @c Unknown @c ↦ @c 50,
+ *    @c True @c ↦ @c 100; @c 50 is @c Percent's self-dual midpoint, so ¬ is
+ *    preserved).
+ *  @b Parity: an odd chain has a ¬-fixed midpoint and an even one has none, so
+ *  @c K₃ and @c Percent do @b not embed into @c Chain<T> (whose ¬ is @c ~a):
+ *  no map preserves ¬ across the parity gap.  Register a new edge by
+ *  specialising this struct. */
+export template <typename From, typename To>
+struct species_embed;
+template <typename L>
+struct species_embed<L, L> {
+  static constexpr typename L::Ω apply(typename L::Ω v) { return v; }
+};
+template <typename To>
+  requires IsOckhamAlgebra<To> && (!std::same_as<To, Boole>)
+struct species_embed<Boole, To> {
+  static constexpr typename To::Ω apply(bool b) {
+    using Ω = typename To::Ω;
+    return b ? static_cast<Ω>(To::True) : static_cast<Ω>(To::False);
+  }
+};
+template <>
+struct species_embed<Kleene, Percent> {
+  static constexpr Percentage apply(Ternary t) {
+    return t == Ternary::True    ? Percentage{100}
+           : t == Ternary::False ? Percentage{0}
+                                 : Percentage{50};
+  }
+};
+
+/** @brief The dominance order: @c From @c ⊑ @c To iff the embedding
+ *  @c species_embed<From, To> is registered.  Reflexive and, over the shipped
+ *  species, transitive (@c 𝔹 ⊑ @c K₃ ⊑ @c Percent; @c 𝔹 ⊑ @c Chain<T>). */
+export template <typename From, typename To>
+inline constexpr bool lifts_to_v = requires {
+  species_embed<From, To>::apply(std::declval<typename From::Ω>());
+};
+export template <typename From, typename To>
+concept LiftsTo = lifts_to_v<From, To>;
+
+/** @brief The @b join of two species: the least shipped species both embed
+ *  into.  @b Partial: comparable species join to the larger one; an
+ *  incomparable pair (@c K₃ / @c Chain<int>, across the parity gap) has no
+ *  shipped upper bound and no @c type, so a cross-species combine of such sets
+ *  is refused at compile time rather than mis-typed.  @c HaveLogicJoin asks
+ *  whether the join exists. */
+export template <typename L1, typename L2>
+struct join_logic;
+template <typename L1, typename L2>
+  requires lifts_to_v<L1, L2>
+struct join_logic<L1, L2> {
+  using type = L2;
+};
+template <typename L1, typename L2>
+  requires lifts_to_v<L2, L1> && (!lifts_to_v<L1, L2>)
+struct join_logic<L1, L2> {
+  using type = L1;
+};
+export template <typename L1, typename L2>
+using join_logic_t = typename join_logic<L1, L2>::type;
+export template <typename L1, typename L2>
+concept HaveLogicJoin = requires { typename join_logic<L1, L2>::type; };
+
+/** @brief The @b meet of two species: the greatest species embedding into
+ *  both.  @b Total: @c 𝔹 (the dominance Σ) embeds into every species, so the
+ *  order is a meet-semilattice with @c 𝔹 at the bottom.  Comparable species
+ *  meet at the smaller one; an incomparable shipped pair meets at @c 𝔹 (their
+ *  only common lower bound).  The meet is relative to the @b registered
+ *  edges: two even chains (@c Chain<int>, @c Chain<long>) meet at @c 𝔹 here
+ *  although an embedding between them exists mathematically; register the
+ *  edge to refine it.  A new species that shares a non-@c 𝔹 lower bound with
+ *  a species it does not compare to must specialise this. */
+export template <typename L1, typename L2>
+struct meet_logic {
+  using type = Boole;
+};
+template <typename L1, typename L2>
+  requires lifts_to_v<L1, L2>
+struct meet_logic<L1, L2> {
+  using type = L1;
+};
+template <typename L1, typename L2>
+  requires lifts_to_v<L2, L1> && (!lifts_to_v<L1, L2>)
+struct meet_logic<L1, L2> {
+  using type = L2;
+};
+export template <typename L1, typename L2>
+using meet_logic_t = typename meet_logic<L1, L2>::type;
+
+/** @brief @c T can be lifted into @c To's answers: it already is one, or it is
+ *  a classifier answer whose species' registered embedding into @c To accepts
+ *  it and lands in @c To::Ω (a @c Truth<L> wrapper is not an @c L::Ω and is
+ *  refused). */
+export template <typename T, typename To>
+concept LiftableInto = std::same_as<std::remove_cvref_t<T>, typename To::Ω> ||
+                       requires(const T& t) {
+                         {
+                           species_embed<classifier_logic_t<T>, To>::apply(t)
+                         } -> std::same_as<typename To::Ω>;
+                       };
+
+/** @brief Lift an answer along the dominance into @c TargetLogic::Ω.  A value
+ *  already in @c TargetLogic::Ω passes through; otherwise its species is read
+ *  off the answer type (@c classifier_logic_t) and the registered embedding
+ *  applies.  Constrained, so an unsupported lift is a substitution failure at
+ *  the call site, not an error inside. */
 export template <typename TargetLogic, typename T>
+  requires LiftableInto<T, TargetLogic>
 constexpr auto lift_logic(T value) {
-  // The dominance inclusion 𝔹 ↪ Ω: a decided @c bool answer embeds as the
-  // target species' poles (@c false ↦ @c ⊥, @c true ↦ @c ⊤).  This is uniform
-  // across every @c IsOckhamAlgebra: @c Boole maps to itself (its poles ARE
-  // the bools), @c Kleene to @c Ternary::{False,True}, @c Chain<T> to
-  // @c numeric_limits<T>::{min,max}.  Without this, @c Truth<Chain<T>> would
-  // store the raw @c 0 / @c 1 (interior chain values), not @c ⊥ / @c ⊤.  A
-  // value already in the species (@c T = @c Ω, not @c bool) passes through.
-  // The endpoints are cast to @c Ω explicitly: @c IsOckhamAlgebra only asks
-  // @c True / @c False to be @e convertible to @c Ω, so a species declaring
-  // them at a narrower type (e.g. @c int constants for a wrapper @c Ω) must not
-  // leak that declaration type out of the codomain-preserving inclusion.
-  if constexpr (std::is_same_v<T, bool> && IsOckhamAlgebra<TargetLogic>) {
-    using Ω = typename TargetLogic::Ω;
-    return value ? static_cast<Ω>(TargetLogic::True)
-                 : static_cast<Ω>(TargetLogic::False);
-  } else {
+  if constexpr (std::same_as<T, typename TargetLogic::Ω>) {
     return value;
+  } else {
+    return species_embed<classifier_logic_t<T>, TargetLogic>::apply(value);
   }
 }
 
-/** @brief The dominance order on logic species: @c From @c ⊑ @c To iff @c
- * From's answers embed into @c To's (@c lift_logic is that inclusion).
- * Reflexive, and
- *  @c 𝔹 @c ⊑ @c K₃ (@c bool @c ↪ @c Ternary).  A cross-species combine / lift
- * is defined @b only along this order: a species pair with no registered
- * inclusion is rejected at the API gate rather than failing inside @c
- * lift_logic (which would silently pass a wrong codomain).  Extend by
- * specialising @c lifts_to_v for a new inclusion. */
-export template <typename From, typename To>
-inline constexpr bool lifts_to_v = false;
-template <typename L>
-inline constexpr bool lifts_to_v<L, L> = true;
-template <>
-inline constexpr bool lifts_to_v<Boole, Kleene> = true;
-// NB: the 𝔹 ↪ Chain<T> inclusion is real (lift_logic implements it: decided
-// answers land on the poles) but is deliberately NOT registered here.  The
-// cross-species set combine that consumes lifts_to_v routes through
-// sets::join_logic_t, which only selects Boole/Kleene; a Boole/Chain mix would
-// pick Boole and then demand the false reverse edge Chain ↪ Boole.  Registering
-// a half-edge the set layer cannot honour would be a misleading claim.  Chain
-// as a set codomain (a general dominance join) is a separate increment.
-export template <typename From, typename To>
-concept LiftsTo = lifts_to_v<From, To>;
+// The semilattice, pinned on the shipped species.
+static_assert(LiftsTo<Boole, Kleene> && LiftsTo<Boole, Percent> &&
+                  LiftsTo<Boole, Chain<int>> && LiftsTo<Kleene, Percent>,
+              "𝔹 is the bottom; K₃ ⊑ Percent.");
+static_assert(!LiftsTo<Kleene, Chain<int>> && !LiftsTo<Percent, Chain<int>>,
+              "No De Morgan embedding across the parity gap.");
+static_assert(std::same_as<join_logic_t<Boole, Kleene>, Kleene> &&
+                  std::same_as<join_logic_t<Percent, Kleene>, Percent> &&
+                  !HaveLogicJoin<Kleene, Chain<int>>,
+              "Joins exist exactly for comparable species.");
+static_assert(std::same_as<meet_logic_t<Kleene, Percent>, Kleene> &&
+                  std::same_as<meet_logic_t<Kleene, Chain<int>>, Boole>,
+              "Meets always exist; 𝔹 is the bottom.");
 
 /**
  * @class Truth

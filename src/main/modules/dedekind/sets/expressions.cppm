@@ -132,25 +132,33 @@ struct SetExpr {
   // review.
 };
 
-/** @brief The join of two logic species (#894): 𝔹 ⊑ K₃ under the dominance, so
- *  the more expressive Ω --- K₃ if either operand is K₃, else 𝔹.  The codomain
- * a cross-species combine reduces at. */
-export template <typename L1, typename L2>
-using join_logic_t =
-    std::conditional_t < std::same_as<L1, dedekind::category::Kleene> ||
-    std::same_as<L2, dedekind::category::Kleene>,
-      dedekind::category::Kleene, dedekind::category::Boole > ;
+/** @brief The species of a predicate's answer, @b relative to the base's
+ *  species @c L: an answer already in @c L::Ω is in @c L (so a @c Chain<int>
+ *  universe accepts an @c int-valued predicate), otherwise the answer type
+ *  names its species (@c classifier_logic_t; no default). */
+template <typename L, typename Answer>
+struct answer_logic {
+  using type = dedekind::category::classifier_logic_t<Answer>;
+};
+template <typename L, typename Answer>
+  requires std::same_as<std::remove_cvref_t<Answer>, typename L::Ω>
+struct answer_logic<L, Answer> {
+  using type = L;
+};
 
-/** @brief The logic species of @c {base @c | @c pred}: the @b join of the
- *  base's species and the species of the predicate's answer (@c bool ↦ Boole,
- *  @c Ternary ↦ Kleene, a declared @c logic_species as itself), so a Kleene
- *  predicate over a Boole base lifts the base rather than truncating itself. */
+/** @brief The logic species of @c {base @c | @c pred}: the @b join (in the
+ *  species semilattice, @c category::join_logic_t) of the base's species and
+ *  the species of the predicate's answer, so a Kleene predicate over a Boole
+ *  base lifts the base rather than truncating itself, and a Kleene predicate
+ *  over a @c Percent base answers in @c Percent.  A pair with no join (a @c K₃
+ *  answer over a @c Chain<int> base) is refused here. */
 template <typename Base, typename Predicate>
-using comprehension_logic_t = join_logic_t<
-    typename Base::logic_species,
-    typename dedekind::category::GetLogic<std::remove_cvref_t<
-        std::invoke_result_t<const Predicate&, const typename Base::Domain&>>>::
-        type>;
+using comprehension_logic_t =
+    join_logic_t<typename Base::logic_species,
+                 typename answer_logic<
+                     typename Base::logic_species,
+                     std::invoke_result_t<const Predicate&,
+                                          const typename Base::Domain&>>::type>;
 
 export template <typename Base, typename Predicate>
 struct Comprehension
@@ -739,8 +747,13 @@ export struct SetCombine {
 // has universe 𝔸<Cardinality>, and `(ℕ | P) | Q` the same --- the recursion
 // bottoms out at the universe, which is its own universe.
 export template <typename Base, typename Predicate>
-constexpr auto universe(const Comprehension<Base, Predicate>& c) {
-  return universe(c.base);
+constexpr auto universe(const Comprehension<Base, Predicate>&) {
+  // The leg lives in the COMPREHENSION's species: the base's universe,
+  // re-tagged to the join when the answer lifted the base (a Kleene predicate
+  // over a Boole base), so the leg's species equals the set's (Is𝔸Of).
+  return 𝔸<typename Base::Domain,
+           typename Comprehension<Base, Predicate>::logic_species,
+           typename universe_t<Base>::cardinality_type>{};
 }
 
 // Set<T,L,P> is the opaque arm with an implicit universe 𝔸<T,L> (the default
@@ -919,8 +932,10 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
 }
 
 /** @brief Cross-species meet (#894, step i): two subobjects over the same
- *  carrier but @b different codomains join to the more expressive one; lift
- * both there, then the same-species meet above folds them.  This lets a mixed
+ *  carrier but @b different codomains join to the more expressive one (the
+ * species semilattice's join, @c category::join_logic_t; refused when no
+ * shipped species is above both); lift both there, then the same-species meet
+ * above folds them.  This lets a mixed
  *  @c Boole @c ∩ @c Kleene combine into the reducer at all.  Same-species
  *  combines are untouched (this overload requires the species to @b differ, so
  *  it never competes with the meet above). */
@@ -930,14 +945,8 @@ export template <typename LHS, typename RHS>
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
-           dedekind::category::LiftsTo<
-               typename LHS::logic_species,
-               join_logic_t<typename LHS::logic_species,
-                            typename RHS::logic_species>> &&
-           dedekind::category::LiftsTo<
-               typename RHS::logic_species,
-               join_logic_t<typename LHS::logic_species,
-                            typename RHS::logic_species>>
+           dedekind::category::HaveLogicJoin<typename LHS::logic_species,
+                                             typename RHS::logic_species>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
   using Log =
       join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
@@ -951,14 +960,8 @@ export template <typename LHS, typename RHS>
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
-           dedekind::category::LiftsTo<
-               typename LHS::logic_species,
-               join_logic_t<typename LHS::logic_species,
-                            typename RHS::logic_species>> &&
-           dedekind::category::LiftsTo<
-               typename RHS::logic_species,
-               join_logic_t<typename LHS::logic_species,
-                            typename RHS::logic_species>>
+           dedekind::category::HaveLogicJoin<typename LHS::logic_species,
+                                             typename RHS::logic_species>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
   using Log =
       join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
@@ -1455,59 +1458,14 @@ constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
   return !s;
 }
 
-/** @section expressions__Set_Codomain_Reconciliation (#928)
+/** @section expressions__Comprehension_Codomain
  *
- * The logic species every @c Set deduction guide picks for its @c L slot must
- * keep the wrapper's codomain coherent.  @c Set::operator() is
- * @c lift_logic<L>(predicate(x)): @c lift_logic embeds a decided @c bool onto
- * the target poles but passes a value ALREADY in a species (a non-@c bool @c Ω)
- * THROUGH unchanged.  So the wrapper is coherent (its @c Codomain @c = @c L::Ω
- * equals what @c operator() returns) iff the wrapped predicate's membership
- * answer either is @c bool (which embeds into any @c L) or already IS @c L::Ω.
- *
- * The single source of truth is therefore the wrapped predicate's ACTUAL
- * @c operator() RETURN type, not a declared @c logic_species tag.  The tag was
- * only ever a PROXY: a predicate can OMIT it, range over a countable carrier
- * (so
- * @c NaturalLogic reads @c Boole), yet still RETURN @c Ternary; keying off the
- * tag would then demote the codomain to @c Boole while @c operator() still
- * returns @c Ternary --- a declared-codomain vs actual-return MISMATCH (@c
- * lift_logic passes a non-@c bool answer through unchanged, so no value is
- * truncated; the wrapper is just mis-typed and fails @c IsSet, #928).  So @c
- * set_logic_t joins the answer's own species (@c GetLogic of the
- * return type) UP with the carrier axis, and @c CoherentWrap checks the answer
- * against the result.  All guides that pick an @c L share this principle: the
- * identity @c Set(Species) CTAD derives @c L from the bare node's own answer,
- * while the point-free
- * comprehension @c Set(Comprehension<B,P>) derives from the WHOLE
- * comprehension's answer --- @c Comprehension::operator() combines @c base(x)
- * under @c B's logic, so it joins @c B's species UP with the @c P-axis @c
- * set_logic_t (a Kleene base with a @c bool predicate still returns @c
- * Kleene::Ω, which a @c P-only derivation would mis-type @c Boole).  So the @c
- * A|pred paths are covered, not only the bare-node one.  The @c
- * UniversalPredicate / boundary
- * guides are EXEMPT: their wrapped predicate answers @c bool by construction,
- * so any @c L is coherent and they keep the plain carrier-axis @c NaturalLogic.
- *
- * - carrier-axis verdict @c NaturalLogic (continuum ⟹ @c Kleene) keeps the
- *   canonical continuum ambient ℝ = @c 𝔸<QuadraticReal,Boole,ℶ_1>
- *   semi-decidable: ℝ returns @c bool, but its ℶ_1 cardinality (not a logic
- *   tag) carries the undecidability, so join(Kleene, Boole) = Kleene holds the
- *   guard;
- * - the answer's species closes the dual gap: any countable-carrier predicate
- *   returning @c Ternary --- @c 𝔸<int,Kleene>, an @c A|pred halfspace carved
- *   from it, an UNTAGGED species whose @c operator() merely returns @c Ternary,
- *   or a @c Ternary-returning comprehension predicate --- has @c GetLogic =
- *   @c Kleene, so join(Boole, Kleene) = Kleene rather than the demoted @c Boole
- *   that made a @c !IsSet wrapper.
- *
- * @c CoherentWrap is the Sollbruchstelle: it admits the wrap iff the answer
- * type is @c bool or exactly @c set_logic_t::Ω.  @c join_logic_t only models 𝔹
- * ⊑ K₃, so a @c Percent- or @c Chain-returning predicate collapses to a @c
- * Boole wrap whose @c Ω (@c bool) is NOT its @c Percentage / chain return; it
- * is rejected rather than silently mis-typed.  FIXME(#945): place @c Chain / @c
- * Percent in the logic-species lattice so such ambients wrap coherently instead
- * of being rejected.
+ * A comprehension's codomain is coherent by construction: its species is
+ * @c comprehension_logic_t, the semilattice join of the base's species and the
+ * species read off the predicate's actual answer type (@c answer_logic), and
+ * @c operator() lifts both answers into that join before the conjunction.  A
+ * predicate whose answer names no species, or whose species has no join with
+ * the base's, is refused at the type rather than mis-typed @c Boole.
  */
 
 /** @section expressions__Logical_Lifting */
@@ -1584,11 +1542,17 @@ export template <typename A, typename B>
 struct ProductMembership {
   A a;
   B b;
-  // @c auto (not @c bool): inherit the operands' logic species so a Kleene
-  // component keeps @c Unknown rather than collapsing under a bool cast.
+  /** @brief The product's species: the join of the factors'.  Each factor's
+   *  answer is lifted into it and the conjunction is that species' @c AND, so
+   *  a Kleene factor keeps @c Unknown and a @c Chain<int> factor keeps its
+   *  grade (the carrier's own @c && would collapse both to @c bool). */
+  using logic_species =
+      join_logic_t<typename A::logic_species, typename B::logic_species>;
   template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p.first) && b(p.second);
+  constexpr typename logic_species::Ω operator()(const P& p) const {
+    using L = logic_species;
+    return L::AND(dedekind::category::lift_logic<L>(a(p.first)),
+                  dedekind::category::lift_logic<L>(b(p.second)));
   }
 };
 
@@ -1626,25 +1590,30 @@ struct product_cardinality<ℵ<M>, ℵ<N>> {
  */
 export template <typename T1, typename L1, typename P1, typename T2,
                  typename L2, typename P2, typename C1, typename C2>
-  requires std::same_as<L1, L2>
+  requires dedekind::category::HaveLogicJoin<
+      typename Comprehension<𝔸<T1, L1, C1>, P1>::logic_species,
+      typename Comprehension<𝔸<T2, L2, C2>, P2>::logic_species>
 constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
                                  const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
+  // Dispatch and reconcile on the factors' EFFECTIVE species (a comprehension
+  // may answer above its base's tag); the product lives in their join.
   using Pair = std::pair<T1, T2>;
   using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
                                  Comprehension<𝔸<T2, L2, C2>, P2>>;
   using CC = typename product_cardinality<C1, C2>::type;
-  return Comprehension<𝔸<Pair, L1, CC>, Pred>{Pred{a, b}};
+  return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
+      Pred{a, b}};
 }
 
 /** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
- *  product of two universes is the universe over the pair carrier (codomain leg
- *  #894: a universe is decided, so the result stays in the left species). */
+ *  product of two universes is the universe over the pair carrier, in the
+ *  join of the factors' species. */
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
-  requires std::same_as<LA, LB>
+  requires dedekind::category::HaveLogicJoin<LA, LB>
 constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return finalize_combine(𝔸<std::pair<A, B>, LA, CC>{});
+  return finalize_combine(𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{});
 }
 
 /** @brief A set object as a PLAIN set over its universe: itself when it already
@@ -1663,8 +1632,8 @@ constexpr auto plain_over_universe(const S& s) {
 /**
  * @brief Cartesian product over arbitrary set objects.
  *
- * Normalises each operand to a plain set over its universe, reconciles the
- * species at the join, and delegates to the plain × plain product.
+ * Normalises each operand to a plain set over its universe and delegates to
+ * the plain × plain product, which reconciles the species at their join.
  */
 export template <typename A, typename B>
   requires requires {
@@ -1677,22 +1646,9 @@ export template <typename A, typename B>
 constexpr auto cartesian_product(const A& a, const B& b) {
   // Normalise BOTH operands to plain sets over their universes; this is what
   // TERMINATES the generic dispatch (the plain × plain overload matches).  The
-  // species may differ (a node over 𝔸<int> is Boole, one over 𝔸<double,
-  // Kleene, ℶ_1> is Kleene): reconcile at the JOIN first, lifting only the
-  // lower side, and re-plain the lifted operand.
-  const auto left = plain_over_universe(a);
-  const auto right = plain_over_universe(b);
-  using LL = typename std::remove_cvref_t<decltype(left)>::logic_species;
-  using LR = typename std::remove_cvref_t<decltype(right)>::logic_species;
-  if constexpr (std::same_as<LL, LR>) {
-    return cartesian_product(left, right);
-  } else {
-    using L = join_logic_t<LL, LR>;
-    if constexpr (std::same_as<LL, L>)
-      return cartesian_product(left, plain_over_universe(lift_to<L>(right)));
-    else
-      return cartesian_product(plain_over_universe(lift_to<L>(left)), right);
-  }
+  // species are reconciled there, at their join: ProductMembership lifts each
+  // factor's answer into it.
+  return cartesian_product(plain_over_universe(a), plain_over_universe(b));
 }
 
 /**
