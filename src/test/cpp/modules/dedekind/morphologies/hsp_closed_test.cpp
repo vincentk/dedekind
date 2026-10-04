@@ -131,7 +131,8 @@ TEST_CASE(
     "[algebra][quotient][HSP][birkhoff][crown]") {
   /** @brief The Birkhoff crown: all three HSP operations applied to
    *         a base in V yield carriers still in V.  Pinned at compile
-   *         time via the propagation specs in :algebra::quotient. */
+   *         time via the construction rules in :total, read off the
+   *         :algebra::quotient declarations. */
   using H = hsp_closed_witnesses::H_image_of_Z6;
   using S = hsp_closed_witnesses::S_subalg_of_Z6;
   using P = hsp_closed_witnesses::P_product_of_Z6;

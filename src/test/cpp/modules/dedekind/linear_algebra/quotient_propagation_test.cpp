@@ -1,8 +1,8 @@
 // Tests for the HSP H/P + free-algebra trait propagation
-// (dedekind.algebra:quotient + :free).  The propagation rules lift
-// is_associative / is_commutative / is_distributive_v from a base algebra to
-// its declared HSP image, and totality is read off the construction
-// (is_total_by_construction).  The static_assert witnesses in the main
+// (dedekind.algebra:quotient + :free).  A carrier declares its construction
+// once (quotient_algebra_base / product_algebra_base / free_algebra_base), and
+// category:total reads its laws and totality off that declaration.  The
+// static_assert witnesses in the main
 // partition already pin the canonical instances; this file adds Catch2-visible
 // coverage for the propagation behaviour and the absence of
 // over-firing.

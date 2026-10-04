@@ -216,6 +216,53 @@ struct is_total_by_construction<D, std::multiplies<D>>
            is_total_v<typename construction_base<D>::type,
                       std::plus<typename construction_base<D>::type>>)> {};
 
+// --- Laws by construction ----------------------------------------------------
+// The equational laws are read off the construction the same way.  Every
+// construction adds componentwise (coefficientwise), so the laws of + are the
+// base's.  Where × stays the base's × (a product, a subalgebra) its laws are
+// the base's too; where × multiplies out (a quotient of a polynomial ring, the
+// Cauchy product) its associativity, commutativity and distributivity rest on
+// the base's commutative-ring laws --- + associative and commutative, ×
+// associative, × distributive over + --- and commutativity of × on the base's
+// as well.  A carrier whose × needs more registers its own, more specialised
+// rule (@c Complex<R> gates on @c IsRng<R>), which wins by specialisation.
+
+/** @brief The base's laws that a multiplied-out × rests on.
+ *  @tparam B the base carrier. */
+template <typename B>
+concept CommutativeRingLaws =
+    is_associative_v<B, std::plus<B>> && is_commutative_v<B, std::plus<B>> &&
+    is_associative_v<B, std::multiplies<B>> &&
+    is_distributive_v<B, std::multiplies<B>, std::plus<B>>;
+
+template <IsConstructed D>
+inline constexpr bool is_associative_v<D, std::plus<D>> =
+    is_associative_v<typename construction_base<D>::type,
+                     std::plus<typename construction_base<D>::type>>;
+template <IsConstructed D>
+inline constexpr bool is_commutative_v<D, std::plus<D>> =
+    is_commutative_v<typename construction_base<D>::type,
+                     std::plus<typename construction_base<D>::type>>;
+template <IsConstructed D>
+inline constexpr bool is_associative_v<D, std::multiplies<D>> =
+    is_associative_v<typename construction_base<D>::type,
+                     std::multiplies<typename construction_base<D>::type>> &&
+    (!construction_base<D>::times_mixes_plus ||
+     CommutativeRingLaws<typename construction_base<D>::type>);
+template <IsConstructed D>
+inline constexpr bool is_commutative_v<D, std::multiplies<D>> =
+    is_commutative_v<typename construction_base<D>::type,
+                     std::multiplies<typename construction_base<D>::type>> &&
+    (!construction_base<D>::times_mixes_plus ||
+     CommutativeRingLaws<typename construction_base<D>::type>);
+template <IsConstructed D>
+inline constexpr bool is_distributive_v<D, std::multiplies<D>, std::plus<D>> =
+    is_distributive_v<typename construction_base<D>::type,
+                      std::multiplies<typename construction_base<D>::type>,
+                      std::plus<typename construction_base<D>::type>> &&
+    (!construction_base<D>::times_mixes_plus ||
+     CommutativeRingLaws<typename construction_base<D>::type>);
+
 /**
  * @concept IsTotal
  * @brief The Master Safety Certificate for Level 0: @c is_total, as a concept.

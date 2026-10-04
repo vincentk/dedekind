@@ -86,44 +86,12 @@ using free_algebra_base_t = typename free_algebra_base<F>::type;
 export template <typename F>
 concept IsFreeAlgebra = requires { typename free_algebra_base<F>::type; };
 
-// --- Propagation: structural traits lift from Base to F. -------------------
-//
-// The free-algebra functor preserves the variety of the base under
-// the corresponding operations (associativity / commutativity /
-// distributivity / saturation).  Same shape as the H and P
-// propagation in @c :quotient.
+// --- Construction: coefficientwise +, Cauchy-product × ---------------------
+// (@c :total reads F's laws and totality off the declaration below: the × laws
+// rest on the base's commutative-ring laws, as for a polynomial ring).
 
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_associative_v<F, std::plus<F>> =
-    is_associative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_associative_v<F, std::multiplies<F>> =
-    is_associative_v<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_commutative_v<F, std::plus<F>> =
-    is_commutative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_commutative_v<F, std::multiplies<F>> =
-    is_commutative_v<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>>;
-
-template <typename F>
-  requires IsFreeAlgebra<F>
-inline constexpr bool is_distributive_v<F, std::multiplies<F>, std::plus<F>> =
-    is_distributive_v<free_algebra_base_t<F>,
-                      std::multiplies<free_algebra_base_t<F>>,
-                      std::plus<free_algebra_base_t<F>>>;
-
-// Totality by construction: + is coefficientwise; × is the Cauchy product,
-// computed with the base's × and +.
+// The construction, declared once: + is coefficientwise; × is the Cauchy
+// product, computed with the base's × and +.
 template <typename F>
   requires IsFreeAlgebra<F>
 struct construction_base<F> {

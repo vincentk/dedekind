@@ -29,8 +29,8 @@
  * This partition reifies that meta-
  * symmetry at the type level: the carrier-side declaration
  * @c quotient_algebra_base<Q>::type @c = @c Base records the
- * functorial relation, and the propagation specialisations below lift
- * the species-trait pins from @c Base to @c Q uniformly.
+ * functorial relation, and @c :total reads @c Q's laws and totality off that
+ * declaration.
  *
  * The arrow-side cousin is @c IsQuotientMorphism in @c :universal —
  * a declared homomorphism + declared surjectivity, naming the
@@ -104,54 +104,19 @@ export template <typename Q>
 concept IsQuotientAlgebra =
     requires { typename quotient_algebra_base<Q>::type; };
 
-// --- Propagation: structural traits lift from Base to Q. -------------------
+// --- Construction: Q's laws and totality are read off Base (@c :total). ----
 //
-// Each propagation rule expresses functoriality of the quotient
-// construction at the trait level: @c Q inherits the structural pin
-// from @c Base under the corresponding operation.  Together with the
-// carrier-site identity / inverse specialisations, this is sufficient
-// to lift @c IsAdditiveGroup, @c IsRing, @c IsModule on @c Q from the
-// strict gating on @c Base.
+// Q computes with Base's operations: its + is componentwise in the
+// coefficients and its × multiplies out, so the rules in @c :total derive Q's
+// associativity / commutativity / distributivity and its totality from Base's
+// (the × laws resting on Base's commutative-ring laws).  Together with the
+// carrier-site identity / inverse specialisations, this is sufficient to lift
+// @c IsAdditiveGroup, @c IsRing, @c IsModule on @c Q from the strict gating on
+// @c Base.
 
-// is_associative + is_commutative propagate via the @b variable-template
-// (not the struct): the species.cppm specs for primitives like
-// @c unsigned @c int are set directly on the variable template
-// (e.g.\ @c is_associative_v<T, @c std::plus<T>> @c = @c true), and a
-// struct-level inheritance would read the struct's default @c false.
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::multiplies<Q>> =
-    is_associative_v<quotient_algebra_base_t<Q>,
-                     std::multiplies<quotient_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-inline constexpr bool is_commutative_v<Q, std::plus<Q>> =
-    is_commutative_v<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-inline constexpr bool is_commutative_v<Q, std::multiplies<Q>> =
-    is_commutative_v<quotient_algebra_base_t<Q>,
-                     std::multiplies<quotient_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsQuotientAlgebra<Q>
-inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
-    is_distributive_v<quotient_algebra_base_t<Q>,
-                      std::multiplies<quotient_algebra_base_t<Q>>,
-                      std::plus<quotient_algebra_base_t<Q>>>;
-
-// Totality by construction (Path E, @c :total): a quotient computes with
-// the base's operations, and its × multiplies out, so it needs the base's +
-// as well.  No path is forwarded; @c IsTotal reads the construction.
+// The construction, declared once: a quotient computes with the base's
+// operations, and its × multiplies out, so it needs the base's + as well.
+// @c :total reads the laws and the totality off it; nothing is forwarded.
 template <typename Q>
   requires IsQuotientAlgebra<Q>
 struct construction_base<Q> {
@@ -312,45 +277,11 @@ using product_algebra_base_t = typename product_algebra_base<Q>::type;
 export template <typename Q>
 concept IsProductAlgebra = requires { typename product_algebra_base<Q>::type; };
 
-// --- Propagation: structural traits lift componentwise from Base. ----------
-//
-// Direct products preserve the same axioms as quotients do:
-// associativity / commutativity / distributivity / saturation all
-// lift componentwise from Base to Base × Base × ... × Base.
+// --- Construction: componentwise, so Q's laws and totality are Base's ------
+// (@c :total reads them off the declaration below).
 
-template <typename Q>
-  requires IsProductAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::plus<Q>> =
-    is_associative_v<product_algebra_base_t<Q>,
-                     std::plus<product_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-inline constexpr bool is_associative_v<Q, std::multiplies<Q>> =
-    is_associative_v<product_algebra_base_t<Q>,
-                     std::multiplies<product_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-inline constexpr bool is_commutative_v<Q, std::plus<Q>> =
-    is_commutative_v<product_algebra_base_t<Q>,
-                     std::plus<product_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-inline constexpr bool is_commutative_v<Q, std::multiplies<Q>> =
-    is_commutative_v<product_algebra_base_t<Q>,
-                     std::multiplies<product_algebra_base_t<Q>>>;
-
-template <typename Q>
-  requires IsProductAlgebra<Q>
-inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
-    is_distributive_v<product_algebra_base_t<Q>,
-                      std::multiplies<product_algebra_base_t<Q>>,
-                      std::plus<product_algebra_base_t<Q>>>;
-
-// Totality by construction: a product's operations are componentwise, so
-// each is total exactly when the factor's is.
+// The construction, declared once: a product's operations are componentwise,
+// so each law and the totality are the factor's.
 template <typename Q>
   requires IsProductAlgebra<Q>
 struct construction_base<Q> {
@@ -444,45 +375,11 @@ using subalgebra_base_t = typename subalgebra_base<S>::type;
 export template <typename S>
 concept IsSubalgebraOf = requires { typename subalgebra_base<S>::type; };
 
-// --- S (subalgebra) propagation: structural traits lift from Base. ---------
-//
-// A subalgebra @c S of @c Base inherits the same axioms as @c Base
-// for the corresponding operation, because @c S's operations are the
-// restrictions of @c Base's operations.  Identical propagation
-// pattern as the H (quotient_algebra_base) and P (product_algebra_base)
-// sections above.
+// --- Construction: S's operations are the restrictions of Base's ----------
+// (@c :total reads S's laws and totality off the declaration below).
 
-template <typename S>
-  requires IsSubalgebraOf<S>
-inline constexpr bool is_associative_v<S, std::plus<S>> =
-    is_associative_v<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>>;
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-inline constexpr bool is_associative_v<S, std::multiplies<S>> =
-    is_associative_v<subalgebra_base_t<S>,
-                     std::multiplies<subalgebra_base_t<S>>>;
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-inline constexpr bool is_commutative_v<S, std::plus<S>> =
-    is_commutative_v<subalgebra_base_t<S>, std::plus<subalgebra_base_t<S>>>;
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-inline constexpr bool is_commutative_v<S, std::multiplies<S>> =
-    is_commutative_v<subalgebra_base_t<S>,
-                     std::multiplies<subalgebra_base_t<S>>>;
-
-template <typename S>
-  requires IsSubalgebraOf<S>
-inline constexpr bool is_distributive_v<S, std::multiplies<S>, std::plus<S>> =
-    is_distributive_v<subalgebra_base_t<S>,
-                      std::multiplies<subalgebra_base_t<S>>,
-                      std::plus<subalgebra_base_t<S>>>;
-
-// Totality by construction: a subalgebra computes with the ambient's
-// operations as they are.
+// The construction, declared once: a subalgebra computes with the ambient's
+// operations as they are, so its laws and totality are the ambient's.
 template <typename S>
   requires IsSubalgebraOf<S>
 struct construction_base<S> {
