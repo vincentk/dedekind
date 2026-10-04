@@ -249,15 +249,15 @@ constexpr auto embed_uint_ℕ(S&& s) {
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
 static_assert(
-    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
-                     42u})
-            .pivot == dedekind::sets::finite_cardinality(42),
+    dedekind::sets::origin(embed_uint_ℕ(
+        dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{42u})) ==
+        dedekind::sets::finite_cardinality(42),
     "embed_uint_ℕ(Singleton<unsigned>{42}) lands at "
     "finite_cardinality(42) on the Cardinality carrier.");
 static_assert(
-    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
-                     0u})
-            .pivot == dedekind::sets::finite_cardinality(0),
+    dedekind::sets::origin(embed_uint_ℕ(
+        dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{0u})) ==
+        dedekind::sets::finite_cardinality(0),
     "embed_uint_ℕ(Singleton<unsigned>{0}) lands at "
     "finite_cardinality(0) on the Cardinality carrier.");
 

@@ -278,17 +278,18 @@ constexpr auto embed_sint_ℤ(S&& s) {
 // Mirrors PR #624 / #626 / #628's witnesses — same shape, different
 // (carrier, codomain) pair.
 static_assert(
-    embed_sint_ℤ(dedekind::sets::Singleton<int, dedekind::category::Boole>{42})
-            .pivot == dedekind::sets::finite_signed_cardinality(42),
+    dedekind::sets::origin(embed_sint_ℤ(
+        dedekind::sets::Singleton<int, dedekind::category::Boole>{42})) ==
+        dedekind::sets::finite_signed_cardinality(42),
     "embed_sint_ℤ(Singleton<int>{42}) lands at "
     "finite_signed_cardinality(42) on the SignedCardinality carrier.");
-static_assert(
-    embed_sint_ℤ(dedekind::sets::Singleton<int, dedekind::category::Boole>{-7})
-            .pivot == dedekind::sets::finite_signed_cardinality(-7),
-    "embed_sint_ℤ(Singleton<int>{-7}) lands at "
-    "finite_signed_cardinality(-7) on the SignedCardinality carrier "
-    "(negative-value witness — the symmetric complement to "
-    "embed_uint_ℕ's non-negative-only fragment).");
+static_assert(dedekind::sets::origin(embed_sint_ℤ(
+                  dedekind::sets::Singleton<int, dedekind::category::Boole>{
+                      -7})) == dedekind::sets::finite_signed_cardinality(-7),
+              "embed_sint_ℤ(Singleton<int>{-7}) lands at "
+              "finite_signed_cardinality(-7) on the SignedCardinality carrier "
+              "(negative-value witness — the symmetric complement to "
+              "embed_uint_ℕ's non-negative-only fragment).");
 
 // Concept-level witness: the result realises the categorical image
 // of the source set under the canonical mono int ↪ ℤ — Subobject
