@@ -1044,11 +1044,11 @@ static_assert(!static_cast<bool>(((𝔹 | (π == fix(true_c))) &
  * The point-free comprehension @c ℕ @c | @c pred reduces to a bare
  * @c Halfspace, whose species is the universe's (@c Boole): decidable
  * membership, with no carrier-axis resolver in between. */
-namespace detail_848_pointfree {
+namespace detail_pointfree_decidability {
 using PointFree = decltype(ℕ | (χ > fix(5_c)));
 static_assert(HasDecidableMembership<decltype(ℕ | (χ > fix(5_c)))>,
               "ℕ | x>5 is a decidable (Boole) set.");
-}  // namespace detail_848_pointfree
+}  // namespace detail_pointfree_decidability
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
