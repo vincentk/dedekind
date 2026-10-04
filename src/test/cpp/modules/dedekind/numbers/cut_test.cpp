@@ -1,8 +1,8 @@
 /** @file dedekind/numbers/cut_test.cpp
  *
  * @brief The decidable real interval @f$(-\sqrt2,\sqrt2)@f$ over the genuine
- * cut-real carrier @c Cut<>, hosted on order's value-carrying interval
- * @c Meet<Halfspace↑, Halfspace↓> (@c make_interval).
+ * cut-real carrier @c Cut<>, hosted on order's value-carrying two-sided cut
+ * @c Interval (@c make_interval).
  *
  * The load-bearing claim: a real interval whose bounds are @b irrational
  * (@f$\pm\sqrt2@f$) has @b decidable membership at every rational point, and
@@ -16,6 +16,7 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <type_traits>
 
 import dedekind.category; // Ternary (the ℚ-shadow's logic species)
 import dedekind.numbers;
@@ -78,5 +79,38 @@ TEST_CASE("(-√2, √2): a decidable real interval with irrational bounds",
     CHECK(two_root.contains(Q{1}));        // 1 < √2
     CHECK_FALSE(two_root.contains(Q{2}));  // ¬(2 < √2)
     CHECK((-two_root) < two_root);
+  }
+}
+
+TEST_CASE(
+    "the cut IS its lower set: a set over ℚ, and ℚ ↪ ℝ is the principal ray",
+    "[numbers][cut][real][sets]") {
+  SECTION("the lower set is a set over ℚ whose χ is contains") {
+    constexpr auto below_root = lower_set(two_root);  // {q ∈ ℚ | q < √2}
+    STATIC_CHECK(
+        dedekind::category::IsLSet<std::remove_cvref_t<decltype(below_root)>>);
+    STATIC_CHECK(below_root(Q{1}));
+    STATIC_CHECK(below_root(Q{7, 5}));
+    STATIC_CHECK_FALSE(below_root(Q{3, 2}));
+    STATIC_CHECK_FALSE(below_root(Q{2}));
+    CHECK(below_root(Q{1}) == two_root.contains(Q{1}));
+    CHECK(below_root(Q{2}) == two_root.contains(Q{2}));
+  }
+  SECTION("a rational's lower set is the order datum's ray {q < p}") {
+    constexpr Q p{3, 2};
+    constexpr auto ray = principal_ray(p);
+    constexpr auto down = lower_set(Cut<>{p});
+    STATIC_CHECK(dedekind::order::pivot(ray) == p);
+    STATIC_CHECK(ray(Q{1}) == down(Q{1}));
+    STATIC_CHECK(ray(p) == down(p));
+    STATIC_CHECK(ray(Q{2}) == down(Q{2}));
+    STATIC_CHECK_FALSE(ray(p));  // strict: the bound is not below itself
+    // The ray is the ORDER datum, so the order topology reads it: {q < p} is
+    // open, its complement {q ≥ p} closed, with the same bound.
+    using Ray = PrincipalRay<Q>;
+    using CoRay = std::remove_cvref_t<decltype(~ray)>;
+    STATIC_CHECK(dedekind::topology::IsOpen<Ray>);
+    STATIC_CHECK(dedekind::topology::IsClosed<CoRay>);
+    STATIC_CHECK(dedekind::order::pivot(~ray) == p);
   }
 }
