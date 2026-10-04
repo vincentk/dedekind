@@ -70,6 +70,18 @@ constexpr auto lift_classifier_constant(Constant&& value) {
 
 /** @section topoi__Point_Free_Composition_Engine */
 
+/** @brief An arrow that names its logic species and answers in it:
+ *  @c Cod<P> @c = @c P::logic_species::Ω.  The species vouches for an answer
+ *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
+export template <typename P>
+concept IsSpeciesTaggedArrow =
+    requires { typename std::remove_cvref_t<P>::logic_species; } &&
+    IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
+    std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
+    requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
+      { p(x) } -> std::same_as<Cod<P>>;
+    };
+
 /**
  * @brief The Predicate Morphism: the DSL's membership test, i.e. the
  *        characteristic arrow @f$\chi_A : A \to \Omega@f$.
@@ -96,22 +108,26 @@ constexpr auto lift_classifier_constant(Constant&& value) {
  * composition (p1 && p2) only occurs between rules that share a common
  * mathematical foundation.
  */
-/** @brief An arrow that names its logic species and answers in it:
- *  @c Cod<P> @c = @c P::logic_species::Ω.  The species vouches for an answer
- *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
-export template <typename P>
-concept IsSpeciesTaggedArrow =
-    requires { typename std::remove_cvref_t<P>::logic_species; } &&
-    IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
-    std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
-    requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
-      { p(x) } -> std::same_as<Cod<P>>;
-    };
-
 export template <typename P>
 concept IsPredicate =
     IsArrow<P> && !std::same_as<std::remove_cvref_t<P>, bool> &&
     ((IsΩ<Cod<P>> && LogicalMap<P, Dom<P>>) || IsSpeciesTaggedArrow<P>);
+
+/** @brief The logic species a predicate answers in: its own, when it names
+ *  one (@c IsSpeciesTaggedArrow), else the species of its answer type.  The
+ *  combinators and @c Subobject read this, so a @c Chain<int> set (answer
+ *  @c int, species @c Chain<int>) conjoins in @c Chain<int>. */
+template <typename P>
+struct predicate_logic {
+  using type = classifier_logic_t<Cod<P>>;
+};
+template <typename P>
+  requires IsSpeciesTaggedArrow<P>
+struct predicate_logic<P> {
+  using type = typename std::remove_cvref_t<P>::logic_species;
+};
+export template <typename P>
+using predicate_logic_t = typename predicate_logic<P>::type;
 
 /**
  * @concept IsCharacteristic
@@ -408,7 +424,10 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  */
 
 /** @brief An L-set: a subobject of a regular carrier with @f$\chi : X \to L@f$
- *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).
+ *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).  Pst is
+ *  asked of the @b species (an Ockham algebra whose @c Ω is totally ordered),
+ *  not of the bare @c Ω, so a @c Chain<int> set (@c Ω @c = @c int) qualifies
+ *  while a bare @c int never does.
  *  @tparam S the candidate set type (@c Domain, @c Codomain, @c logic_species,
  *          @c Member, @c ι, callable χ). */
 export template <typename S>
@@ -416,9 +435,6 @@ concept IsLSet =
     std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
     requires { typename S::logic_species; } &&
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
-    // Pst at the species: a chain species (an Ockham algebra whose Ω is
-    // totally ordered).  Asked of the species, not of the bare Ω, so a
-    // Chain<int> set (Ω = int) qualifies while a bare int never does.
     IsOckhamAlgebra<typename S::logic_species> &&
     std::totally_ordered<typename S::logic_species::Ω>;
 
@@ -451,12 +467,12 @@ export template <typename A, typename Chi>
 struct Subobject {
   using Domain = A;
 
-  /** @brief The logic species is read off the characteristic morphism's
-   *  codomain @c Cod<Chi> (@c classifier_logic_t: @c bool ↦ @c Boole,
+  /** @brief The logic species is the characteristic morphism's own when it
+   *  names one, else read off its codomain @c Cod<Chi> (@c bool ↦ @c Boole,
    *  @c Ternary ↦ @c Kleene, a wrapper's own @c logic_species), with no
    *  default.  Required by @c :lattice::IsSubobjectLattice as a CT-vocabulary
    *  metadata typedef. */
-  using logic_species = classifier_logic_t<Cod<Chi>>;
+  using logic_species = predicate_logic_t<Chi>;
 
   /** @brief χ: A ⟶ Ω: re-export the stored rule's @b own codomain @c Cod<Chi>
    *  (the classifier the predicate returns --- @c bool / @c Ternary, or a
@@ -635,7 +651,7 @@ concept IsQuotient = requires(Q q) {
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator&&(P&& p, Q&& q) {
-  using L = classifier_logic_t<Cod<P>>;
+  using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -648,7 +664,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
           requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator&&(C&& constant, P&& p) {
-  using L = classifier_logic_t<Cod<P>>;
+  using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -672,7 +688,7 @@ auto operator&&(P&& p, C&& constant) {
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator||(P&& p, Q&& q) {
-  using L = classifier_logic_t<Cod<P>>;
+  using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -685,7 +701,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
           requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator||(C&& constant, P&& p) {
-  using L = classifier_logic_t<Cod<P>>;
+  using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
@@ -708,7 +724,7 @@ auto operator||(P&& p, C&& constant) {
  */
 export template <IsPredicate P>
 auto operator!(P&& p) {
-  using L = classifier_logic_t<Cod<P>>;
+  using L = predicate_logic_t<P>;
   using A = Dom<P>;
 
   // Return a formal Morphism A -> Ω

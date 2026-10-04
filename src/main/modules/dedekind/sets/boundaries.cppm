@@ -383,10 +383,12 @@ struct 𝔸 final {
 
   /** @brief Symmetric difference with the universe is complement:
    *  @f$\top \,\triangle\, S = \neg S@f$ (every @c x is in ⊤, so it is in
-   *  exactly one of the two iff it is not in @c S). */
+   *  exactly one of the two iff it is not in @c S).  @c ~ is the SET
+   *  complement (a set object, found by ADL at instantiation); @c ! would be
+   *  the predicate complement, an arrow. */
   template <typename S>
   constexpr auto operator^(const S& s) const {
-    return !s;
+    return ~s;
   }
 };
 

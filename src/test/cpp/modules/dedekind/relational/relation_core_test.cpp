@@ -19,6 +19,17 @@ using namespace dedekind::sets;
 using namespace dedekind::relational;
 using namespace dedekind::category;  // Boole / Kleene / Ternary
 
+namespace {
+/** @brief A Kleene-valued relation predicate. */
+struct TriRel {
+  constexpr Ternary operator()(const std::pair<int, int>& p) const {
+    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
+    if (p.first == 3 && p.second == 7) return Ternary::True;
+    return Ternary::False;
+  }
+};
+}  // namespace
+
 TEST_CASE(
     "relation core: Relation / IsRelation / relates / is_single_valued_at",
     "[relational][relations]") {
@@ -62,13 +73,7 @@ TEST_CASE(
 
 TEST_CASE("relation core: witnesses preserve ternary logic",
           "[relational][relations][logic]") {
-  const auto tri_rel_pred = [](const std::pair<int, int>& p) {
-    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
-    if (p.first == 3 && p.second == 7) return Ternary::True;
-    return Ternary::False;
-  };
-
-  const Relation<int, int, Kleene, decltype(tri_rel_pred)> R{tri_rel_pred};
+  const Relation<int, int, Kleene, TriRel> R{TriRel{}};
 
   // R is explicitly Kleene-parameterised, so @c relates returns
   // @c Ternary directly --- these comparisons stay Ternary-valued regardless
@@ -76,24 +81,13 @@ TEST_CASE("relation core: witnesses preserve ternary logic",
   CHECK(relates(R, 3, 6) == Ternary::Unknown);
   CHECK(relates(R, 3, 7) == Ternary::True);
 
-  const SetFunction<int, int, Kleene, decltype(tri_rel_pred)> F{tri_rel_pred};
+  const SetFunction<int, int, Kleene, TriRel> F{TriRel{}};
   CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
 }
 
-namespace {
-/** @brief A Kleene-valued relation predicate, used over a Boole-tagged base. */
-struct TriRel {
-  constexpr Ternary operator()(const std::pair<int, int>& p) const {
-    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
-    if (p.first == 3 && p.second == 7) return Ternary::True;
-    return Ternary::False;
-  }
-};
-}  // namespace
-
 TEST_CASE(
     "relation core: a Kleene answer over a Boole-tagged base is a "
-    "Kleene relation (3a)",
+    "Kleene relation",
     "[relational][relations][logic][species]") {
   // The base says Boole; the answer says Kleene; the relation is Kleene, and
   // every query answers in the relation's own species.

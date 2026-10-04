@@ -659,6 +659,8 @@ TEST_CASE(
   CHECK(graded(7) == 7);  // ⊤ ∧ 7
   // No shipped species is above both K₃ and Chain<int>: no meet is offered.
   STATIC_CHECK(!Combinable<decltype(unknown), decltype(graded)>);
+  // The predicate combinators conjoin in the set's own species (min).
+  CHECK((graded && graded)(7) == 7);
   // A product of graded sets keeps the grade: the conjunction is Chain's min,
   // not the carrier's && (which would collapse 7 ∧ 3 to true).
   const auto grid = graded * graded;
@@ -667,7 +669,7 @@ TEST_CASE(
   CHECK(grid(std::pair{7, 3}) == 3);
 }
 
-TEST_CASE("Sets: the species on the classifier, not the base's tag (3a)",
+TEST_CASE("Sets: the species on the classifier, not the base's tag",
           "[sets][comprehension][species]") {
   // A Kleene answer over a Boole universe: the comprehension's species is
   // Kleene, whatever the base says.
@@ -687,7 +689,13 @@ TEST_CASE("Sets: the species on the classifier, not the base's tag (3a)",
   CHECK(sym(2) == Ternary::Unknown);  // ⊤ △ U = U
   CHECK(sym(3) == Ternary::Unknown);  // ⊥ △ U = U
 
-  // The boundaries' species tags are immaterial: ∅ and ⊤ are decided.
+  // The boundaries' species tags are immaterial: ∅ and ⊤ are decided, and
+  // the collapses are set objects (S △ ⊤ is the SET complement ~S).
   CHECK((unknown ^ Ø<int, Kleene>{})(0) == Ternary::Unknown);
-  CHECK((unknown ^ 𝔸<int, Kleene>{})(0) == Ternary::Unknown);  // ¬U = U
+  const auto complement = unknown ^ 𝔸<int, Kleene>{};
+  STATIC_CHECK(IsSetObject<decltype(complement)>);
+  CHECK(complement(0) == Ternary::Unknown);  // ¬U = U
+  const auto from_left = 𝔸<int, Kleene>{} ^ unknown;
+  STATIC_CHECK(IsSetObject<decltype(from_left)>);
+  CHECK(from_left(0) == Ternary::Unknown);
 }

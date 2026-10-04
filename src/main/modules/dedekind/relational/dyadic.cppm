@@ -228,12 +228,12 @@ constexpr auto apply(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
 /**
  * @brief Point-wise single-valuedness witness for a set-function relation.
  *
- * If both y1 and y2 are related to x, they must be equal.
+ * If both y1 and y2 are related to x, they must be equal.  Computed in the
+ * function's own species, not its base's tag.
  */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
                                    const T1& x, const T2& y1, const T2& y2) {
-  // The function's own species, not its base's tag.
   using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
   const auto m1 = relates(f, x, y1);
   const auto m2 = relates(f, x, y2);

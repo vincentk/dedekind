@@ -234,14 +234,15 @@ constexpr auto operator*(const Singleton<T1, L1>& a,
   return Singleton<std::pair<T1, T2>, L1>{std::pair{a.pivot, b.pivot}};
 }
 
+/** @brief @c {a} @c △ @c S for a comprehension @c S: both answers are lifted
+ *  into the @b join of the singleton's species and the comprehension's @b own
+ *  species (which may sit above its base's tag @c L2), and the symmetric
+ *  difference is computed there. */
 export template <typename T, typename L1, typename L2, typename P, typename C>
   requires dedekind::category::HaveLogicJoin<
       L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>
 constexpr auto operator^(const Singleton<T, L1>& s,
                          const Comprehension<𝔸<T, L2, C>, P>& other) {
-  // Both answers are lifted into the JOIN of the singleton's species and the
-  // comprehension's OWN species (which may sit above its base's tag L2), and
-  // the symmetric difference is computed there.
   using L = dedekind::category::join_logic_t<
       L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>;
   const auto xor_pred = [s, other](const T& x) {

@@ -333,17 +333,15 @@ static_assert(Comprehension{Ø<int>{}, UnknownPredicate<int>{}}(0) ==
  *  cross-species combine materialises pointwise rather than collapsing
  *  structurally.  Constrained to a registered inclusion, so a downward or
  *  unsupported lift is rejected at the gate. */
-export template <typename TargetL, typename S>
+export template <typename TargetL, IsSetObject S>
   requires dedekind::category::LiftsTo<typename S::logic_species, TargetL>
 constexpr auto lift_to(const S& s) {
   if constexpr (std::same_as<typename S::logic_species, TargetL>) {
     return s;
-  } else if constexpr (IsSetObject<S>) {
+  } else {
     return Comprehension{𝔸<typename S::Domain, TargetL,
                            typename universe_t<S>::cardinality_type>{},
                          s};
-  } else {
-    return Comprehension{𝔸<typename S::Domain, TargetL>{}, s};
   }
 }
 
@@ -920,8 +918,7 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
  *  combines are untouched (this overload requires the species to @b differ, so
  *  it never competes with the meet above). */
 export template <typename LHS, typename RHS>
-  requires IsSubobject<LHS, typename LHS::Domain> &&
-           IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
@@ -935,8 +932,7 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
 
 /** @brief Cross-species join, dual to the cross-species meet (#894, step i). */
 export template <typename LHS, typename RHS>
-  requires IsSubobject<LHS, typename LHS::Domain> &&
-           IsSubobject<RHS, typename RHS::Domain> &&
+  requires IsSetObject<LHS> && IsSetObject<RHS> &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
@@ -1433,12 +1429,14 @@ constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
 
 /** @brief @c Set @c ^ @c 𝔸 @c = @c ¬Set (symmetric difference with the
  *         universe is the complement).  Symmetric of @c 𝔸::operator^(S);
- *         the universe's species tag is immaterial (⊤ is decided). */
+ *         the universe's species tag is immaterial (⊤ is decided).  @c ~ is
+ *         the SET complement (a set object); @c ! would be the predicate
+ *         complement, an arrow. */
 export template <typename T, typename L, typename C, typename Predicate,
                  typename LB, typename CB>
 constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
                          const 𝔸<T, LB, CB>&) {
-  return !s;
+  return ~s;
 }
 
 /** @section expressions__Comprehension_Codomain
