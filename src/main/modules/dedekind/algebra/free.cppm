@@ -134,6 +134,23 @@ struct is_saturating<F, std::multiplies<F>>
     : is_saturating<free_algebra_base_t<F>,
                     std::multiplies<free_algebra_base_t<F>>> {};
 
+// Path D: + is coefficientwise, so exact when the base's + is; × is the Cauchy
+// product, built from the base's + and ×, so it needs both.
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_exact_total<F, std::plus<F>>
+    : is_exact_total<free_algebra_base_t<F>,
+                     std::plus<free_algebra_base_t<F>>> {};
+
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_exact_total<F, std::multiplies<F>>
+    : std::bool_constant<
+          is_exact_total_v<free_algebra_base_t<F>,
+                           std::multiplies<free_algebra_base_t<F>>> &&
+          is_exact_total_v<free_algebra_base_t<F>,
+                           std::plus<free_algebra_base_t<F>>>> {};
+
 template <typename F>
   requires IsFreeAlgebra<F>
 struct is_periodic<F, std::plus<F>>

@@ -829,12 +829,10 @@ struct is_exact_total : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
-// FIXME(#806-followup): Path D is not yet forwarded by the H/S/P trait
-// propagation (@c algebra:quotient's subalgebra_base / quotient_algebra_base
-// carry only periodic/idempotent/saturating).  The exact quotients in the tree
-// (@c Complex<R>, @c Dual<F> over ℚ / ℚ(√D)) forward Path D per-trait at their
-// own registration, so nothing is lost today; add exact-path forwarding to the
-// propagation when a quotient relies on it.
+// Path D is forwarded by the H / P / S / F trait propagation
+// (@c algebra:quotient, @c algebra:free) like the three machine-finite paths,
+// so a carrier built over an exact base (@c Vec2V<ℚ>, @c ℚ[x]) stays total.
+// @c Complex<R> / @c Dual<F> keep their own, stricter × registrations.
 
 /** @section species__totality
  *  Four pragmatic paths to totality, each a sufficient (not

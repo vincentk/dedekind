@@ -95,6 +95,12 @@ TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
   STATIC_CHECK(is_exact_total_v<Q, std::plus<Q>>);
   STATIC_CHECK_FALSE(is_saturating_v<Q, std::plus<Q>>);
+  // The P leg forwards the exact path: Vec2V<ℚ> is total because ℚ is.
+  using V2q = Vec2V<Q>;
+  STATIC_CHECK(is_exact_total_v<V2q, std::plus<V2q>>);
+  STATIC_CHECK(is_total_v<V2q, std::plus<V2q>>);
+  // ... and the F leg: ℚ[x] under the Cauchy product.
+  STATIC_CHECK(is_exact_total_v<PQ, std::multiplies<PQ>>);
   // unsigned int certifies IsTotal via is_periodic; P propagation
   // lifts it to Vec2V<unsigned int>.
   STATIC_CHECK(is_total_v<V2u, std::plus<V2u>>);
