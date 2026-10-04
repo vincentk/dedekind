@@ -153,11 +153,11 @@ concept IsRelation =
         std::remove_cvref_t<𝔸<T1, typename S::logic_species>>,
         std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
 
-/** @brief Relation membership witness: (a,b) ∈ R. */
+/** @brief Relation membership witness: (a,b) ∈ R, in the relation's @b own
+ *  species (the comprehension's, which may sit above its base's tag). */
 export template <typename T1, typename T2, typename L, typename P, typename C>
-constexpr typename L::Ω relates(
-    const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r, const T1& a,
-    const T2& b) {
+constexpr auto relates(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
+                       const T1& a, const T2& b) {
   return r(std::pair<T1, T2>{a, b});
 }
 
@@ -231,15 +231,16 @@ constexpr auto apply(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
  * If both y1 and y2 are related to x, they must be equal.
  */
 export template <typename T1, typename T2, typename L, typename P>
-constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
-                                            const T1& x, const T2& y1,
-                                            const T2& y2) {
+constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
+                                   const T1& x, const T2& y1, const T2& y2) {
+  // The function's own species, not its base's tag.
+  using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
   const auto m1 = relates(f, x, y1);
   const auto m2 = relates(f, x, y2);
-  const auto both_related = L::AND(m1, m2);
-  const auto equal_outputs = dedekind::category::lift_logic<L>(y1 == y2);
+  const auto both_related = Lf::AND(m1, m2);
+  const auto equal_outputs = dedekind::category::lift_logic<Lf>(y1 == y2);
   // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
-  return L::OR(L::RFL(both_related), equal_outputs);
+  return Lf::OR(Lf::RFL(both_related), equal_outputs);
 }
 
 // ── Meet / join of relational PREDICATES (RelAnd / RelOr) ───────────────────

@@ -601,6 +601,10 @@ struct ConfidentlyEven {
 struct GradeOf {
   constexpr int operator()(const int& x) const { return x; }
 };
+/** @brief Can two set objects be met?  A concept, so the question is a
+ *  substitution failure rather than a hard error. */
+template <typename A, typename B>
+concept Combinable = requires(const A& a, const B& b) { a & b; };
 }  // namespace
 
 TEST_CASE(
@@ -645,17 +649,45 @@ TEST_CASE(
       std::same_as<typename decltype(same_species)::logic_species, Percent>);
   CHECK(same_species(std::pair{2, 5}) == Percentage{50});
 
-  // An answer already in the base's Ω stays in the base's species.  (A
-  // Chain<int> set is not yet an L-set citizen: IsPredicate asks IsΩ of the
-  // bare int answer, which only the species can vouch for.)
+  // An answer already in the base's Ω stays in the base's species, and the
+  // species vouches for the int answer: a Chain<int> set is an L-set citizen.
   const auto graded = Comprehension{𝔸<int, Chain<int>>{}, GradeOf{}};
   STATIC_CHECK(
       std::same_as<typename decltype(graded)::logic_species, Chain<int>>);
+  STATIC_CHECK(IsLSet<decltype(graded)>);
+  STATIC_CHECK(IsSetObject<decltype(graded)>);
   CHECK(graded(7) == 7);  // ⊤ ∧ 7
+  // No shipped species is above both K₃ and Chain<int>: no meet is offered.
+  STATIC_CHECK(!Combinable<decltype(unknown), decltype(graded)>);
   // A product of graded sets keeps the grade: the conjunction is Chain's min,
   // not the carrier's && (which would collapse 7 ∧ 3 to true).
   const auto grid = graded * graded;
   STATIC_CHECK(
       std::same_as<typename decltype(grid)::logic_species, Chain<int>>);
   CHECK(grid(std::pair{7, 3}) == 3);
+}
+
+TEST_CASE("Sets: the species on the classifier, not the base's tag (3a)",
+          "[sets][comprehension][species]") {
+  // A Kleene answer over a Boole universe: the comprehension's species is
+  // Kleene, whatever the base says.
+  const auto unknown = Comprehension{𝔸<int>{}, UnknownPredicate<int>{}};
+
+  // Lifting is composition with the embedding: a comprehension over the
+  // target universe, not a wrapper type.
+  const auto lifted = lift_to<Percent>(unknown);
+  STATIC_CHECK(std::same_as<universe_t<decltype(lifted)>, 𝔸<int, Percent>>);
+  STATIC_CHECK(std::same_as<typename decltype(lifted)::logic_species, Percent>);
+  CHECK(lifted(0) == Percentage{50});
+
+  // Symmetric difference with a singleton computes in the join of the
+  // singleton's species and the comprehension's OWN species.
+  const auto sym = Singleton<int>{2} ^ unknown;
+  STATIC_CHECK(std::same_as<typename decltype(sym)::logic_species, Kleene>);
+  CHECK(sym(2) == Ternary::Unknown);  // ⊤ △ U = U
+  CHECK(sym(3) == Ternary::Unknown);  // ⊥ △ U = U
+
+  // The boundaries' species tags are immaterial: ∅ and ⊤ are decided.
+  CHECK((unknown ^ Ø<int, Kleene>{})(0) == Ternary::Unknown);
+  CHECK((unknown ^ 𝔸<int, Kleene>{})(0) == Ternary::Unknown);  // ¬U = U
 }

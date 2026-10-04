@@ -85,18 +85,33 @@ constexpr auto lift_classifier_constant(Constant&& value) {
  *
  * @req { p(x) } The candidate must be callable with an instance of the
  * Domain.
- * @req IsΩ<Cod<P>> The result type must be a truth-object: it either carries
- *      the closed logical operators @c && / @c || / @c ! (@c bool, @c Ternary)
- *      or declares a valid @c logic_species (a registered wrapper, e.g.\ @c
- *      Truth<L>).
+ * @req The result type must be a truth-object: either @c IsΩ<Cod<P>> on its
+ *      own (it carries the closed logical operators @c && / @c || / @c !, or
+ *      declares a valid @c logic_species, e.g.\ @c Truth<L>), or the
+ *      @b arrow names its species and answers in it
+ *      (@c IsSpeciesTaggedArrow: a @c Chain<int> set answers @c int, which
+ *      only its species can vouch for).
  *
  * @note By enforcing this contract, `dedekind` ensures that logical
  * composition (p1 && p2) only occurs between rules that share a common
  * mathematical foundation.
  */
+/** @brief An arrow that names its logic species and answers in it:
+ *  @c Cod<P> @c = @c P::logic_species::Ω.  The species vouches for an answer
+ *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
 export template <typename P>
-concept IsPredicate = IsArrow<P> && IsΩ<Cod<P>> && LogicalMap<P, Dom<P>> &&
-                      !std::same_as<std::remove_cvref_t<P>, bool>;
+concept IsSpeciesTaggedArrow =
+    requires { typename std::remove_cvref_t<P>::logic_species; } &&
+    IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
+    std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
+    requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
+      { p(x) } -> std::same_as<Cod<P>>;
+    };
+
+export template <typename P>
+concept IsPredicate =
+    IsArrow<P> && !std::same_as<std::remove_cvref_t<P>, bool> &&
+    ((IsΩ<Cod<P>> && LogicalMap<P, Dom<P>>) || IsSpeciesTaggedArrow<P>);
 
 /**
  * @concept IsCharacteristic
@@ -401,7 +416,11 @@ concept IsLSet =
     std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
     requires { typename S::logic_species; } &&
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
-    IsPst<typename S::logic_species::Ω>;
+    // Pst at the species: a chain species (an Ockham algebra whose Ω is
+    // totally ordered).  Asked of the species, not of the bare Ω, so a
+    // Chain<int> set (Ω = int) qualifies while a bare int never does.
+    IsOckhamAlgebra<typename S::logic_species> &&
+    std::totally_ordered<typename S::logic_species::Ω>;
 
 /** @brief A carrier that is a @b finite chain by its representation: totally
  *  ordered and either a machine integer or an enumeration (both finite by

@@ -79,3 +79,31 @@ TEST_CASE("relation core: witnesses preserve ternary logic",
   const SetFunction<int, int, Kleene, decltype(tri_rel_pred)> F{tri_rel_pred};
   CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
 }
+
+namespace {
+/** @brief A Kleene-valued relation predicate, used over a Boole-tagged base. */
+struct TriRel {
+  constexpr Ternary operator()(const std::pair<int, int>& p) const {
+    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
+    if (p.first == 3 && p.second == 7) return Ternary::True;
+    return Ternary::False;
+  }
+};
+}  // namespace
+
+TEST_CASE(
+    "relation core: a Kleene answer over a Boole-tagged base is a "
+    "Kleene relation (3a)",
+    "[relational][relations][logic][species]") {
+  // The base says Boole; the answer says Kleene; the relation is Kleene, and
+  // every query answers in the relation's own species.
+  const Relation<int, int, Boole, TriRel> R{TriRel{}};
+  STATIC_CHECK(std::same_as<typename decltype(R)::logic_species, Kleene>);
+  STATIC_CHECK(IsRelation<decltype(R), int, int>);
+  CHECK(relates(R, 3, 6) == Ternary::Unknown);
+  CHECK(relates(R, 3, 7) == Ternary::True);
+  CHECK(relates(R, 1, 1) == Ternary::False);
+
+  const SetFunction<int, int, Boole, TriRel> F{TriRel{}};
+  CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
+}

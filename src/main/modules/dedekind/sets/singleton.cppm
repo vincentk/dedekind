@@ -235,20 +235,21 @@ constexpr auto operator*(const Singleton<T1, L1>& a,
 }
 
 export template <typename T, typename L1, typename L2, typename P, typename C>
+  requires dedekind::category::HaveLogicJoin<
+      L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>
 constexpr auto operator^(const Singleton<T, L1>& s,
                          const Comprehension<𝔸<T, L2, C>, P>& other) {
-  // The asymmetry is one-sided: `singleton(v)` always lands in
-  // Boole, while `Set{x % 𝔸<T> | …}` ascends through
-  // NaturalLogic and routinely arrives as Kleene.  Take the
-  // result logic from that same side (L2): the singleton's bool lifts
-  // through `lift_logic<L2>` cleanly, and the Set's predicate is
-  // already in L2.
+  // Both answers are lifted into the JOIN of the singleton's species and the
+  // comprehension's OWN species (which may sit above its base's tag L2), and
+  // the symmetric difference is computed there.
+  using L = dedekind::category::join_logic_t<
+      L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>;
   const auto xor_pred = [s, other](const T& x) {
-    const auto a = dedekind::category::lift_logic<L2>(s(x));
-    const auto b = dedekind::category::lift_logic<L2>(other(x));
-    return L2::OR(L2::AND(a, L2::RFL(b)), L2::AND(L2::RFL(a), b));
+    const auto a = dedekind::category::lift_logic<L>(s(x));
+    const auto b = dedekind::category::lift_logic<L>(other(x));
+    return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
   };
-  return Comprehension{𝔸<T, L2>{}, xor_pred};
+  return Comprehension{𝔸<T, L>{}, xor_pred};
 }
 
 export template <typename T, typename L1, typename L2, typename P, typename C>

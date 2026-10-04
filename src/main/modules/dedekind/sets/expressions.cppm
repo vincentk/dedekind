@@ -323,47 +323,27 @@ static_assert(Comprehension{Ø<int>{}, UnknownPredicate<int>{}}(0) ==
 // `import :boundaries`; a new expressions-level operator needs only
 // `return finalize_combine(...)` and inherits the rule.
 
-/** @brief A subobject re-tagged to a more expressive codomain @c TargetL: its χ
- *  lifts through the Rosolini dominance (@c lift_logic) into @c TargetL::Ω.
- *
- *  @details Used to bring the operands of a cross-species combine to one
- * codomain before the reducer folds them (#894): the same-species meet/join
- * needs both χ valued in one Ω, and a mixed @c Meet term would shred the
- * reducer.  This is the
- *  @b naive lift --- it does @b not preserve the operand's structural type
- *  (interval / halfspace), so a cross-species combine materialises as a
- *  @c Meet / @c Join (membership correct, pointwise) rather than
- *  structurally collapsing.  The structure-preserving lift + codomain-follows-
- *  normal-form is the follow-up (see #894). */
-export template <typename S, typename TargetL>
-  requires dedekind::category::LiftsTo<typename S::logic_species, TargetL>
-struct SpeciesLifted
-    : SetExpr<SpeciesLifted<S, TargetL>, typename S::Domain, TargetL> {
-  /** @brief The wrapped subobject, whose χ is lifted into @c TargetL::Ω. */
-  S base;
-  /** @brief Wrap @c s; the lift is a no-op semantically, only the codomain
-   *  advertised by @c operator() changes. */
-  constexpr explicit SpeciesLifted(S s) : base(std::move(s)) {}
-  /** @brief χ at @c x, lifted through the dominance into @c TargetL::Ω. */
-  constexpr typename TargetL::Ω operator()(const typename S::Domain& x) const {
-    return dedekind::category::lift_logic<TargetL>(base(x));
-  }
-};
-
-/** @brief Bring a subobject to codomain @c TargetL: identity when it is already
- *  there, else wrap it in @c SpeciesLifted.  Constrained to a registered
- *  dominance inclusion (@c LiftsTo), so a downward or unsupported lift (e.g.
- *  @c lift_to<Boole> of a Kleene set) is rejected at the gate rather
- *  than failing inside @c lift_logic. */
+/** @brief Bring a set object to the species @c TargetL along the dominance:
+ *  the identity when it is already there, else the comprehension
+ *  @c {x ∈ 𝔸<T, TargetL> | s(x)}.  Its species is the join, which is
+ *  @c TargetL since @c s's species embeds into it, and its χ is
+ *  @c lift_logic<TargetL>(s(x)) (the universe answers ⊤): the lift @b is
+ *  composition with the dominance embedding, no wrapper type.  It does not
+ *  preserve the operand's structural type (interval / halfspace), so a
+ *  cross-species combine materialises pointwise rather than collapsing
+ *  structurally.  Constrained to a registered inclusion, so a downward or
+ *  unsupported lift is rejected at the gate. */
 export template <typename TargetL, typename S>
-  requires dedekind::category::LiftsTo<
-      typename std::remove_cvref_t<S>::logic_species, TargetL>
+  requires dedekind::category::LiftsTo<typename S::logic_species, TargetL>
 constexpr auto lift_to(const S& s) {
-  if constexpr (std::same_as<typename std::remove_cvref_t<S>::logic_species,
-                             TargetL>) {
+  if constexpr (std::same_as<typename S::logic_species, TargetL>) {
     return s;
+  } else if constexpr (IsSetObject<S>) {
+    return Comprehension{𝔸<typename S::Domain, TargetL,
+                           typename universe_t<S>::cardinality_type>{},
+                         s};
   } else {
-    return SpeciesLifted<std::remove_cvref_t<S>, TargetL>{s};
+    return Comprehension{𝔸<typename S::Domain, TargetL>{}, s};
   }
 }
 
@@ -1439,22 +1419,25 @@ constexpr auto image(F&& f, const S& s) {
 // defined right after the Set class (with @c & / @c |); see there.
 
 /** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
- *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
- *         this overload picks up @c S @c ^ @c Ø when the boundary is on
- *         the right, keeping the structural collapse type-level rather
- *         than falling through to the lambda. */
-export template <typename T, typename L, typename Predicate, typename C>
+ *         is identity).  Symmetric of @c Ø::operator^(S): picks up
+ *         @c S @c ^ @c Ø when the boundary is on the right, keeping the
+ *         structural collapse type-level.  The boundary's species tag is
+ *         immaterial (∅ is decided), so it is not matched against the
+ *         set's. */
+export template <typename T, typename L, typename Predicate, typename C,
+                 typename LB>
 constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
-                         const Ø<T, L>&) {
+                         const Ø<T, LB>&) {
   return s;
 }
 
 /** @brief @c Set @c ^ @c 𝔸 @c = @c ¬Set (symmetric difference with the
- *         universe is the complement; #469).  Symmetric of
- *         @c 𝔸::operator^(S) above. */
-export template <typename T, typename L, typename C, typename Predicate>
+ *         universe is the complement).  Symmetric of @c 𝔸::operator^(S);
+ *         the universe's species tag is immaterial (⊤ is decided). */
+export template <typename T, typename L, typename C, typename Predicate,
+                 typename LB, typename CB>
 constexpr auto operator^(const Comprehension<𝔸<T, L, C>, Predicate>& s,
-                         const 𝔸<T, L, C>&) {
+                         const 𝔸<T, LB, CB>&) {
   return !s;
 }
 
