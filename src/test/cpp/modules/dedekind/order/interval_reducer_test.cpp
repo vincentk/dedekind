@@ -27,8 +27,8 @@ using namespace dedekind::sets;
 using namespace dedekind::order;
 
 namespace {
-using Up = Halfspace<int, Direction::Upward, Strictness::Strict>;      // {x>lo}
-using Down = Halfspace<int, Direction::Downward, Strictness::Strict>;  // {x<hi}
+using Up = UpRay<int, Strictness::Strict>;      // {x>lo}
+using Down = DownRay<int, Strictness::Strict>;  // {x<hi}
 // (lo, hi): the two-sided cut, which make_interval builds; the crossing MEET of
 // the two rays is the node the reducer normalises to it by value.
 using OpenInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
@@ -103,9 +103,8 @@ TEST_CASE(
     // The one-point collapse needs successor / predecessor, which are an axiom
     // of the CATEGORY (the NNO) that the proxy witnesses, so (3,5) on ℕ folds
     // to {4} exactly as it does on int, and (5,5) to the empty set.
-    using NUp = Halfspace<Cardinality, Direction::Upward, Strictness::Strict>;
-    using NDown =
-        Halfspace<Cardinality, Direction::Downward, Strictness::Strict>;
+    using NUp = UpRay<Cardinality, Strictness::Strict>;
+    using NDown = DownRay<Cardinality, Strictness::Strict>;
     const auto point = subobject_reduce<Boole, SetCombine>(
         MakeMeet{}(NUp{finite_cardinality(3)}, NDown{finite_cardinality(5)}));
     CHECK(point.kind == SetKind::Singleton);

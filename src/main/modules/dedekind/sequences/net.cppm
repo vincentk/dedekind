@@ -279,7 +279,8 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
 
 /** @section net__Halfspace_As_Net_Witnesses — Sealing the IS-A relation (#665).
  *
- * A @c Halfspace<T,k,D,S,L> in @c :order:halfspace already exposes
+ * A ray @c UpRay<T,S,L> / @c DownRay<T,S,L> in @c :order:halfspace already
+ * exposes
  * @c Domain=T, @c Codomain=typename @c L::Ω, and
  * @c operator()(const @c T&) @c -> @c Codomain in the exact shape
  * @c IsArrow requires.  When @c T satisfies @c IsDirectedSet<T> (the
@@ -307,7 +308,7 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
  * textbook identity is sealed mechanically, not by prose.  Honest
  * Rejection comes free: a carrier that fails @c IsDirectedSet (e.g.\
  * @f$\mathbb{C}@f$ without a chosen order) fails
- * @c IsNet<Halfspace<ℂ,...>> at instantiation, with the diagnostic
+ * @c IsNet<UpRay<ℂ,...>> at instantiation, with the diagnostic
  * naming the missing textbook axiom.
  *
  * @note The companion identification --- @c Halfspace's @e extension as
@@ -321,20 +322,19 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
 
 // Halfspace IS-A IsArrow (carrier-independent: int suffices).
 static_assert(
-    dedekind::category::IsArrow<Halfspace<
-        int, Direction::Upward, Strictness::Strict, dedekind::category::Boole>>,
+    dedekind::category::IsArrow<
+        UpRay<int, Strictness::Strict, dedekind::category::Boole>>,
     "Halfspace exposes Domain / Codomain / operator() in the IsArrow shape.");
 
 // Halfspace IS-A IsNet on a directed carrier (std::size_t under ≤).
 static_assert(
-    IsNet<Halfspace<std::size_t, Direction::Upward, Strictness::Strict,
-                    dedekind::category::Boole>>,
+    IsNet<UpRay<std::size_t, Strictness::Strict, dedekind::category::Boole>>,
     "On a directed carrier, a Halfspace is structurally an indicator net.");
 
 // Downward direction is structurally symmetric.
 static_assert(
-    IsNet<Halfspace<std::size_t, Direction::Downward, Strictness::NonStrict,
-                    dedekind::category::Boole>>,
+    IsNet<
+        DownRay<std::size_t, Strictness::NonStrict, dedekind::category::Boole>>,
     "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
 
 // Interval (the meet of two halfspaces) inherits the same conformance ---

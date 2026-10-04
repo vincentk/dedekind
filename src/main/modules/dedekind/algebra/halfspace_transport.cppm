@@ -209,8 +209,8 @@ constexpr auto image(
   // is computed at constexpr (folds when the argument is constexpr) rather than
   // in the NTTPs.  Direction / strictness stay type-level (R is NTTP), so the
   // meet's complement-pair collapse remains type-sensitive.
-  return Halfspace<T, dir_of(R), strict_of(R), L>{
-      static_cast<T>(s.predicate.rp.value + K)};  // keep L
+  return make_ray<dir_of(R), strict_of(R), L>(
+      static_cast<T>(s.predicate.rp.value + K));  // keep L
 }
 
 /** @brief image of a restricted REFLECTION @c x↦c·x (@c c=±1) on @c {x⋈P}: the
@@ -239,8 +239,8 @@ constexpr auto image(
                         ProductRestrict<ProjMulConstProj<1, C, Rel::Eq, 2>,
                                         ProjBound<1, R, VT>>>& s) {
   constexpr Direction d = (C < 0) ? flip(dir_of(R)) : dir_of(R);
-  return Halfspace<T, d, strict_of(R), L>{
-      static_cast<T>(C * s.predicate.rp.value)};  // keep L
+  return make_ray<d, strict_of(R), L>(
+      static_cast<T>(C * s.predicate.rp.value));  // keep L
 }
 
 /** @brief @c is_function(R) --- the bracket-free query: @c R is a bona fide

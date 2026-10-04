@@ -371,7 +371,7 @@ struct Bounds {
 
   constexpr Bounds() = default;
   /** @brief A ray from its one bound.  Implicit and converting on purpose:
-   *  @c Halfspace<T, D, S, L>{v} reads as the ray at @c v through the
+   *  @c UpRay<T, S, L>{v} reads as the ray at @c v through the
    *  universe-only comprehension constructor, and a literal of another type is
    *  one user-defined conversion, the carrier's own. */
   template <typename U>
@@ -434,14 +434,18 @@ export template <typename T, Strictness S, typename L = Boole>
 using UpRay = Comprehension<𝔸<T, L>, Bounds<Bounded<S>, Unbounded, T>>;
 export template <typename T, Strictness S, typename L = Boole>
 using DownRay = Comprehension<𝔸<T, L>, Bounds<Unbounded, Bounded<S>, T>>;
-/** @brief The halfspace @c {x ⋈ p} by direction: a NAMING alias (@c D selects
- *  the bounded side, so it is not deducible); overloads pattern-match the
- *  @c Bounds sides instead.
- *  @tparam T the carrier, @tparam D the direction, @tparam S the strictness,
- *  @tparam L the species. */
-export template <typename T, Direction D, Strictness S, typename L = Boole>
-using Halfspace = std::conditional_t<D == Direction::Upward, UpRay<T, S, L>,
-                                     DownRay<T, S, L>>;
+/** @brief The ray at @c v by direction, for the sites that compute the
+ *  direction from a relation (@c dir_of(R)) or a reflection: a function, not a
+ *  type alias, so no non-deducible noun stands between the two rays and their
+ *  pattern.  @tparam D the direction, @tparam S the strictness, @tparam L the
+ *  species. */
+export template <Direction D, Strictness S, typename L = Boole, typename T>
+constexpr auto make_ray(T v) {
+  if constexpr (D == Direction::Upward)
+    return UpRay<T, S, L>{std::move(v)};
+  else
+    return DownRay<T, S, L>{std::move(v)};
+}
 /** @brief The interval @c {lo ⋈ x ⋈ hi}: both sides bounded.  Deducible.
  *  @tparam T the carrier, @tparam SL / @tparam SU the two strictnesses,
  *  @tparam L the species. */
@@ -484,7 +488,7 @@ constexpr auto make_halfspace() {
   else if constexpr (halfspace_is_moot<T, V, D, S>())
     return dedekind::sets::codomain_reduce_t<dedekind::sets::𝔸<T, L>>{};
   else
-    return Halfspace<T, D, S, L>{static_cast<T>(V)};  // V may be a wider pivot
+    return make_ray<D, S, L>(static_cast<T>(V));  // V may be a wider pivot
 }
 
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
@@ -510,11 +514,9 @@ constexpr auto operator~(
  *  @c AtMost<>{N} = {x<=N}.  The alias fixes carrier / direction / strictness;
  *  @c Above<> is the type, @c Above<>{N} the value (was @c Above<N>{}). */
 export template <typename L = Boole>
-using Above = Halfspace<dedekind::sets::Cardinality, Direction::Upward,
-                        Strictness::Strict, L>;
+using Above = UpRay<dedekind::sets::Cardinality, Strictness::Strict, L>;
 export template <typename L = Boole>
-using AtMost = Halfspace<dedekind::sets::Cardinality, Direction::Downward,
-                         Strictness::NonStrict, L>;
+using AtMost = DownRay<dedekind::sets::Cardinality, Strictness::NonStrict, L>;
 
 // A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
 // its own χ), though NOT a full ETCS @c IsSet: @c IsSet additionally demands
@@ -1501,7 +1503,7 @@ export template <IsRingIntegral auto I, typename TI, typename L,
                  IsRingIntegral auto Slot, Rel R, typename VT>
   requires(is_order_rel(R) && Slot == I)
 constexpr auto axis_factor(const ProjBound<Slot, R, VT>& pb) {
-  return Halfspace<TI, dir_of(R), strict_of(R), L>{static_cast<TI>(pb.value)};
+  return make_ray<dir_of(R), strict_of(R), L>(static_cast<TI>(pb.value));
 }
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection

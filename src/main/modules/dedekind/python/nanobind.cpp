@@ -276,8 +276,7 @@ NB_MODULE(_dedekind, module) {
     // decided in C++.  Keyed under "Nat" to avoid the NFKC collision with
     // `ℕ` → "N".
     using Naturals =
-        dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
-                                   dedekind::order::Strictness::NonStrict>;
+        dedekind::order::UpRay<int, dedekind::order::Strictness::NonStrict>;
     nb::class_<Naturals>(module, "NaturalClassifier",
                          "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0): "
                          "the discriminating native classifier.")
@@ -302,8 +301,7 @@ NB_MODULE(_dedekind, module) {
       [](const std::vector<int>& universe) {
         return dedekind::sets::ext(
             universe,
-            dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
-                                       dedekind::order::Strictness::NonStrict>{
+            dedekind::order::UpRay<int, dedekind::order::Strictness::NonStrict>{
                 0});
       },
       "Extensionalise a finite universe through the native ℕ⊂ℤ classifier χ "

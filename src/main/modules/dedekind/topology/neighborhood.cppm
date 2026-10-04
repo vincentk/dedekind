@@ -283,7 +283,7 @@ inline constexpr bool is_convex_v<Meet<A, B>> =
 // The dense-carrier witnesses (a strict ray on ℚ is open and NOT closed) live
 // downstream with the carriers that are genuinely dense and totally ordered:
 // numbers/neighborhood_test.  Here only the discrete reading is pinned.
-static_assert(IsClopen<Halfspace<int, Direction::Upward, Strictness::Strict>>,
+static_assert(IsClopen<UpRay<int, Strictness::Strict>>,
               "a ray on a discrete carrier is clopen");
 static_assert(IsConvex<Interval<int, Strictness::Strict, Strictness::Strict>>,
               "an interval is convex");

@@ -26,7 +26,7 @@ using namespace dedekind::topology;
 
 TEST_CASE("Topology: on a discrete carrier every shape is clopen by structure",
           "[topology][continuity]") {
-  using IntRay = Halfspace<int, Direction::Upward, Strictness::Strict>;
+  using IntRay = UpRay<int, Strictness::Strict>;
   using IntInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
   using ClosedIntInterval =
       Interval<int, Strictness::NonStrict, Strictness::NonStrict>;
@@ -95,7 +95,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   SECTION(
       "discrete carrier ⟹ every set clopen: an int ray is clopen by "
       "STRUCTURE, not by tag (#905), and decidable") {
-    using OpenRay = Halfspace<int, Direction::Upward, Strictness::Strict>;
+    using OpenRay = UpRay<int, Strictness::Strict>;
     STATIC_CHECK(HasDiscreteCarrier<OpenRay>);
     STATIC_CHECK(IsOpen<OpenRay> && IsClosed<OpenRay> && IsClopen<OpenRay>);
     STATIC_CHECK(HasDecidableMembership<OpenRay>);
@@ -104,8 +104,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   }
 
   SECTION("the ℕ proxy is a discrete carrier too (#937): its ray is clopen") {
-    using NatRay =
-        Halfspace<Cardinality, Direction::Upward, Strictness::Strict>;
+    using NatRay = UpRay<Cardinality, Strictness::Strict>;
     STATIC_CHECK(HasDiscreteCarrier<NatRay>);
     STATIC_CHECK(IsClopen<NatRay>);
     CHECK(IsClopen<NatRay>);

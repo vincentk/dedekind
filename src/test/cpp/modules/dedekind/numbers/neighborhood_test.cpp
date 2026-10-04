@@ -60,8 +60,7 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
     // open, not closed, and hence not clopen: the real open ⊋ clopen.
     using namespace dedekind::topology;
-    using QOpenRay =
-        Halfspace<Q, Direction::Upward, Strictness::Strict>;  // {x > p}
+    using QOpenRay = UpRay<Q, Strictness::Strict>;  // {x > p}
     STATIC_CHECK(!HasDiscreteCarrier<QOpenRay>);
     STATIC_CHECK(!HasDiscreteCarrier<QNbhd>);
     STATIC_CHECK(IsOpen<QOpenRay> && !IsClosed<QOpenRay> &&
@@ -78,10 +77,9 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
       "a mixed closure is neither") {
     using namespace dedekind::topology;
     using dedekind::category::Not;
-    using ClosedRay = Halfspace<Q, Direction::Upward, Strictness::NonStrict>;
+    using ClosedRay = UpRay<Q, Strictness::NonStrict>;
     STATIC_CHECK(IsClosed<ClosedRay> && !IsOpen<ClosedRay>);
-    STATIC_CHECK(
-        IsClosed<Not<Halfspace<Q, Direction::Upward, Strictness::Strict>>>);
+    STATIC_CHECK(IsClosed<Not<UpRay<Q, Strictness::Strict>>>);
     constexpr auto closed_iv =
         make_interval<Strictness::NonStrict, Strictness::NonStrict>(Q{0}, Q{3});
     constexpr auto left_closed =
