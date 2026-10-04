@@ -44,6 +44,5 @@ export import :expressions;
 export import :extensional;
 export import :quantifier;
 export import :singleton;
-export import :quotient;
 // :relational (Codd's σ ⋈ ∪ ∖) and :graph (graphs of arrows) were popped OUT of
 // :sets into the dedekind.relational module (above sets, below order; GH #792).
