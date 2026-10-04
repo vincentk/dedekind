@@ -149,31 +149,24 @@ TEST_CASE(
 }
 
 TEST_CASE(
-    "algebra:hsp_closed — S propagation: distributivity + is_periodic "
-    "also lift to subalgebras",
+    "algebra:hsp_closed — S propagation: distributivity lifts to subalgebras; "
+    "totality is read off the construction",
     "[algebra][quotient][HSP][birkhoff][S][completeness]") {
-  /** @brief The S-propagation specs added in this slice cover six
-   *         traits total: is_associative_v, is_commutative_v,
-   *         is_distributive_v, is_saturating, is_periodic,
-   *         is_idempotent.  The crown above only exercised the first
-   *         two; this test additionally exercises is_distributive_v
-   *         and is_periodic so silent regressions in those
-   *         propagation specs surface at compile time.
-   *
-   *         Modular<6> is distributive over (*, +) and periodic
-   *         under + by construction, so both legs fire on Z6 and
-   *         propagate to S via subalgebra_base. */
+  /** @brief Beyond the two axioms of the crown, the S leg forwards the third
+   *         law, distributivity; totality is not forwarded by path but read off
+   *         the construction (a subalgebra computes with the ambient's
+   *         operations, so it is total when they are).  Modular<6> is
+   *         distributive over (*, +) and total under + (it wraps), so both
+   *         hold on Z6 and reach S through subalgebra_base. */
   using S = hsp_closed_witnesses::S_subalg_of_Z6;
 
-  // Distributivity propagation:
+  // Distributivity propagation (a law of the variety):
   STATIC_CHECK(is_distributive_v<Z6, std::multiplies<Z6>, std::plus<Z6>>);
   STATIC_CHECK(is_distributive_v<S, std::multiplies<S>, std::plus<S>>);
 
-  // is_periodic propagation (struct trait; tests the struct-inheritance
-  // path of the propagation spec, complementing the variable-template
-  // paths covered above):
-  STATIC_CHECK(is_periodic_v<Z6, std::plus<Z6>>);
-  STATIC_CHECK(is_periodic_v<S, std::plus<S>>);
+  // Totality by construction (Path E): S's + is Z6's +, which is total.
+  STATIC_CHECK(is_total_v<Z6, std::plus<Z6>>);
+  STATIC_CHECK(is_total_v<S, std::plus<S>>);
 }
 
 TEST_CASE(
