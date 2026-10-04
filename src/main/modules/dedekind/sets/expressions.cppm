@@ -64,7 +64,7 @@ import :setobject;      // IsSetObject: the noun every set type here realises
 import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
                         // meet)
 import :mereology;      // For mereology lattice concepts
-import :computability;  // For NaturalLogic / HasDecidableMembership
+import :computability;  // HasDecidableMembership
 
 namespace dedekind::sets {
 using namespace dedekind::category;
@@ -184,7 +184,7 @@ struct Comprehension
     requires std::default_initializable<Base>
       : base{}, predicate(static_cast<Predicate&&>(p)) {}
 
-  // Forward Base's cardinality so NaturalLogic / IsCountable can read off
+  // Forward Base's cardinality so IsCountable can read off
   // the carrier axis on a comprehension's effective magnitude.  A
   // predicate-restricted comprehension is at most as large as its base
   // (P-restriction can only shrink the membership set), so inheriting the
@@ -1616,14 +1616,7 @@ constexpr auto plain_over_universe(const S& s) {
  * Normalises each operand to a plain set over its universe and delegates to
  * the plain × plain product, which reconciles the species at their join.
  */
-export template <typename A, typename B>
-  requires requires {
-    typename std::remove_cvref_t<A>::Domain;
-    typename std::remove_cvref_t<B>::Domain;
-    typename NaturalLogic<std::remove_cvref_t<A>>::type;
-    typename NaturalLogic<std::remove_cvref_t<B>>::type;
-  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
-                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
+export template <IsSetObject A, IsSetObject B>
 constexpr auto cartesian_product(const A& a, const B& b) {
   // Normalise BOTH operands to plain sets over their universes; this is what
   // TERMINATES the generic dispatch (the plain × plain overload matches).  The
@@ -1666,14 +1659,7 @@ constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
 }
 
 /** @brief Infix sugar for cartesian product over ambient species values. */
-export template <typename A, typename B>
-  requires requires {
-    typename std::remove_cvref_t<A>::Domain;
-    typename std::remove_cvref_t<B>::Domain;
-    typename NaturalLogic<std::remove_cvref_t<A>>::type;
-    typename NaturalLogic<std::remove_cvref_t<B>>::type;
-  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
-                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
+export template <IsSetObject A, IsSetObject B>
 constexpr auto operator*(const A& a, const B& b) {
   return cartesian_product(a, b);
 }

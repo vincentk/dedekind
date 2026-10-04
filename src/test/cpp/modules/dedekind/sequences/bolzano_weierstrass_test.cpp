@@ -9,7 +9,7 @@
  * The Cauchy⇒convergent collapse, and hence Bolzano–Weierstrass
  * ("every bounded sequence has a convergent subsequence"), is classically
  * true but constructively blocked (Specker).  The carrier-axis
- * cardinality cut (NaturalLogic) decides the regime:
+ * cardinality cut (convergence_logic) decides the regime:
  *
  *   - countable carrier (cardinality_type = ℵ_0) → Boole → the
  *     collapse fires, BW witness holds;
@@ -85,7 +85,7 @@ TEST_CASE(
   STATIC_CHECK(
       std::is_same_v<convergence_logic<Path<bw_witnesses::CountableReal>>,
                      dedekind::category::Boole>);
-  // double has no cardinality_type ⇒ NaturalLogic defaults to Ternary.
+  // double has no cardinality_type ⇒ the regime defaults to Kleene.
   STATIC_CHECK(std::is_same_v<convergence_logic<Path<double>>,
                               dedekind::category::Kleene>);
 }

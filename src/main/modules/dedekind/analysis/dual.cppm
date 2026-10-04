@@ -313,7 +313,8 @@ static_assert(
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
  *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
  *  same shape that gives @c ℂ its @c ℶ_1) — overriding @c 𝔸's @c ℵ_0
- *  default.
+ *  default.  It is the cardinality of the 𝔻 modelled, not a logic: equality
+ *  on ℚ(√2)[ε] is decidable, so @c 𝔻 answers in @c Boole.
  *
  *  Textbook construction: @c 𝔻 @c = @c ℝ[ε]/(ε²) — a polynomial
  *  quotient observable via the @c quotient operator from
@@ -323,13 +324,13 @@ static_assert(
  *  is the universal-algebra side of that same construction.
  */
 export inline constexpr auto 𝔻 =
-    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Kleene, ℶ_1>{};
+    dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>, Boole, ℶ_1>{};
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(𝔻)>,
                  dedekind::sets::𝔸<Dual<dedekind::numbers::QuadraticReal<2>>,
-                                   Kleene, ℶ_1>>,
-    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Kleene, ℶ_1> — the "
+                                   Boole, ℶ_1>>,
+    "𝔻 is the universe 𝔸<Dual<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger 𝔻 = Dual(ℝ) = ℝ[ε]/(ε²) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ and ℂ.");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,

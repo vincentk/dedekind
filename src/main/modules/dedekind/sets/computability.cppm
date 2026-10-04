@@ -58,53 +58,12 @@ import :cardinality;  // For Finite
 namespace dedekind::sets {
 using namespace dedekind::category;
 
-/**
- * @section mereology__Structural_Inference
- * @brief Deduce the governing logic species from the nature of the Base.
- *
- * Theorem (carrier-axis decidability resolver, post-#622):
- * If a Species's @c cardinality_type is @b Countable (@c Finite or @c ℵ_0),
- * its membership predicates are recognised as Classical (Δ⁰₁ on the carrier
- * axis).  If the cardinality is @b Uncountable (@c ℶ_1, …), the species is
- * a Kleene Topos (Ternary) — two independent ceilings stack to justify the
- * Ternary verdict:
- *   (a) Rice's theorem forbids recognising non-trivial semantic properties
- *       of arbitrary code, so opaque predicates over uncountable carriers
- *       cannot be promoted by inspection;
- *   (b) the float↔ℝ gap means a @c double-typed witness does not faithfully
- *       denote a real number, so even a structurally-Δ⁰₁ comparison
- *       (e.g.\ @c x @c > @c pivot) on ℝ-as-@c double is exact-as-@c double
- *       but unknown-as-ℝ.
- * Both ceilings agree on the verdict (Ternary) for independent reasons.
- *
- * Decidability is the load-bearing property; cardinality is its cheap
- * structural witness on the carrier axis.  Set-level and predicate-level
- * promotion axes (#692, #693) are tracked separately and compose by OR.
- */
-// Primary template: when @c Base exposes no @c cardinality_type the
-// resolver cannot make a structural claim on the carrier axis — fall
-// back to the honest default of @c Kleene.  This branch keeps the
-// resolver SFINAE-friendly for callers that probe @c NaturalLogic in a
-// @c requires-clause (e.g.\ the cartesian-product @c operator* overload
-// gate in @c :sets:expressions): non-Set carriers like @c
-// dedekind::ieee::IEEE<double> degrade gracefully rather than producing
-// a hard error.
-export template <typename Base, typename = void>
-struct NaturalLogic {
-  using species = Kleene;
-  using type = species;
-};
-
-// Specialisation: when @c Base exposes @c cardinality_type, read the
-// carrier-axis verdict per #622 — Countable (@c Finite, @c ℵ_0) →
-// @c Boole, Uncountable (@c ℶ_1, …) → @c Kleene.
-export template <typename Base>
-struct NaturalLogic<Base, std::void_t<typename Base::cardinality_type>> {
-  using species =
-      std::conditional_t<IsCountable<typename Base::cardinality_type>, Boole,
-                         Kleene>;
-  using type = species;
-};
+/** @section computability__Species_On_The_Classifier
+ *  There is no carrier-axis species resolver: a universe over a regular
+ *  carrier answers in @c Boole (its equality is decidable), and a set's species
+ *  is read off its classifier (@c category::classifier_logic_t, joined along
+ *  the dominance in @c :expressions).  Cardinality stays a cardinality
+ *  (@c IsCountable) and picks no logic. */
 
 /**
  * @concept HasDecidableMembership

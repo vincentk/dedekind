@@ -47,8 +47,8 @@ import dedekind.relational; // IsFunctional/IsEntire (:graph), used by the order
                             // relation witnesses below (#792)
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
-import :total;  // IsTotallyOrdered — the no-incomparable-element certificate
-                // that keeps the covering join sound (excludes NaZ carriers)
+import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / SetVal:
+                // the interval normal form lives on a certified chain
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -251,8 +251,8 @@ consteval bool halfspace_is_moot() {
  *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
  *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
  *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
- *  @c ℶ_1.  The bound only has to be tight enough for the @c NaturalLogic
- *  verdict (countable ⟹ decidable @c Boole, uncountable ⟹ @c Kleene). */
+ *  @c ℶ_1.  The bound only has to be tight enough for the countability
+ *  verdict (@c IsCountable). */
 // Module-private: the fallback is a halfspace-classification heuristic, not a
 // general carrier-cardinality authority (that is @c :sets:cardinality).  It
 // only feeds @c Halfspace::cardinality_type below; external carriers customise
@@ -262,8 +262,8 @@ consteval bool halfspace_is_moot() {
 // conservative countable BOUND @c bool already gets via @c IsRingIntegral, NOT
 // @c Finite.  @c Finite is the @c elevate_meet "return bare, do not @c Set
 // -wrap" signal (@c :expressions); a halfspace must not trigger it, and @c ℵ_0
-// keeps the pre-existing @c Set-wrapping path while @c NaturalLogic still
-// verdicts @c Boole (@c ℵ_0 is countable), matching @c Ternary's @c 𝕂3 ambient.
+// keeps the pre-existing @c Set-wrapping path and stays countable, matching
+// @c Ternary's @c 𝕂3 ambient.
 // The @c IsRingIntegral integers / ℕ,ℤ proxies are @c ℵ_0 likewise; the real
 // proxies are @c ℶ_1.
 template <typename T>
@@ -277,13 +277,12 @@ struct carrier_cardinality<T> {
   // Fires only when the self-declared alias is a genuine @c IsCardinality (a
   // carrier with an unrelated / incomplete @c cardinality_type falls to the
   // primary, not a hard error), and classifies it with the canonical
-  // @c IsCountable concept, as @c NaturalLogic does.  Collapse to the
+  // @c IsCountable concept.  Collapse to the
   // COUNTABILITY BOUND (never pass a bare @c Finite through): @c
   // ExtensionalCardinal declares @c Finite, and letting that reach @c
   // Halfspace::cardinality_type would trip @c elevate_meet's Finite "return
   // bare" path for an @c ExtensionalCardinal halfspace.  Countable (incl.\
-  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1; @c NaturalLogic's decidable/
-  // @c Boole verdict is unchanged by the countable collapse.
+  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1.
   using type =
       std::conditional_t<IsCountable<typename T::cardinality_type>, ℵ_0, ℶ_1>;
 };
@@ -332,8 +331,15 @@ static_assert(
  * Priestley §1.27/§2.20) is computed on the pivot VALUES by @c reduce_meet,
  * the carrier's own @c Sup / @c Inf supplying ∨ / ∧.  Strictness @c S is an
  * @c :order refinement (which boundary point is excised), combined locally.
+ *
+ * The carrier is gated on the @b registered chain (@c IsTotallyOrdered: the
+ * reflexive / transitive / antisymmetric laws plus comparability), not on the
+ * syntactic @c std::totally_ordered: ↑a∩↑b = ↑(a∨b) is a halfspace again only
+ * when every two pivots are comparable.  A carrier without a certified order
+ * (a raw float, whose NaN breaks reflexivity) is refused here, by name.
  */
 export template <typename T, Direction D, Strictness S, typename L = Boole>
+  requires IsTotallyOrdered<T>
 struct Halfspace : dedekind::sets::SetExpr<Halfspace<T, D, S, L>, T, L> {
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
@@ -558,6 +564,9 @@ static_assert(HasNNOStep<int>, "machine integers step by ±1.");
 static_assert(HasNNOStep<dedekind::sets::Cardinality>,
               "the ℕ proxy steps through its NNO successor / predecessor "
               "(the canonical NNO witness, found by ADL).");
+static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
+              "the ℤ proxy steps by ±1 through the same customization points, "
+              "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
 /** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
  *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
@@ -570,8 +579,12 @@ static_assert(HasNNOStep<dedekind::sets::Cardinality>,
  *  @c operator|, @c operator==, @c operator<=, membership @c operator() --- and
  *  through the @c half / @c point / @c empty / @c universe factories; do @b not
  *  build downstream on the @c kind / @c lo / @c hi fields, which will change.
+ *
+ *  The carrier is gated on the registered chain (@c IsTotallyOrdered) like
+ *  @c Halfspace: the interval arms are a normal form only on a chain.
  */
 export template <typename V = long long, typename L = Boole>
+  requires IsTotallyOrdered<V>
 struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   using Domain = V;
   SetKind kind = SetKind::Universe;
@@ -976,6 +989,7 @@ constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
 // union operator| on a Universe (that one takes a Set).
 export template <typename T, typename L, typename C, Direction D, Strictness S,
                  auto V>
+  requires IsTotallyOrdered<T>
 constexpr auto operator|(const 𝔸<T, L, C>&, const UnboundHalfspace<D, S, V>&) {
   // Through the factory (#837 review): a degenerate binder collapses like any
   // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
@@ -1040,37 +1054,16 @@ static_assert(!static_cast<bool>(((𝔹 | (π == fix(true_c))) &
 // see that overload; declared here it would resolve `&` to the generic sets
 // reducer (→ Meet) instead.  Same witness-ordering class as #935.
 
-/** @section halfspace__PointFree_Decidability_848
+/** @section halfspace__PointFree_Decidability
  *
- * #848 acceptance witness: the point-free comprehension @c ℕ @c | @c pred
- * reduces to a bare @c Halfspace, whose threaded @c cardinality_type (see the
- * struct, @c ℵ_0 over the countable @c ℕ) makes @c NaturalLogic read the
- * @c Boole verdict --- decidable membership.  Before the thread
- * @c NaturalLogic<Halfspace> hit its pessimistic primary-template fallback
- * (@c Kleene / @c TernaryLogic), mis-classifying the countable case. */
-namespace detail_848_pointfree {
+ * The point-free comprehension @c ℕ @c | @c pred reduces to a bare
+ * @c Halfspace, whose species is the universe's (@c Boole): decidable
+ * membership, with no carrier-axis resolver in between. */
+namespace detail_pointfree_decidability {
 using PointFree = decltype(ℕ | (χ > fix(5_c)));
-
-// The bare comprehension is carrier-axis countable (ℵ₀), hence Boole.
-static_assert(std::same_as<typename NaturalLogic<PointFree>::type, Boole>,
-              "#848: {x∈ℕ | x>5} is carrier-axis countable (ℵ₀), hence Boole "
-              "(decidable membership), NOT the Kleene fallback.");
-
-// Observable symptom: the Set-wrapped form is decidable (the Set CTAD keys the
-// logic species off NaturalLogic<inner>).
 static_assert(HasDecidableMembership<decltype(ℕ | (χ > fix(5_c)))>,
-              "#848: ℕ | x>5 is a decidable (ClassicalLogic) set.");
-
-// The continuum leg (ℝ) stays honestly ternary through the SAME thread: a real
-// halfspace is carrier-axis ℶ₁, so NaturalLogic keeps its Kleene verdict --- no
-// regression of the uncountable case the pre-fix Kleene fallback covered.
-static_assert(
-    std::same_as<
-        typename NaturalLogic<Halfspace<double, Direction::Upward,
-                                        Strictness::Strict, Kleene>>::type,
-        Kleene>,
-    "#848: a real (ℶ₁) halfspace stays Kleene/ternary.");
-}  // namespace detail_848_pointfree
+              "ℕ | x>5 is a decidable (Boole) set.");
+}  // namespace detail_pointfree_decidability
 
 /** @brief Comparison flavour for the relational predicates. */
 export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
@@ -2046,10 +2039,9 @@ constexpr auto operator&(const Halfspace<T, D, S, L>& h,
  *  greatest/least element is a @b partial-order notion, so the domain must
  *  certify @c IsPartiallyOrdered (dedekind's reflexive/transitive/antisymmetric
  *  axioms, which subsume @c std::totally_ordered one level up in
- *  @c IsTotallyOrdered).  A carrier that is not an ordered set --- e.g.\
- *  @c SignedCardinality, which carries the unordered @c NaZ like an IEEE NaN
- * --- is honestly rejected: you cannot take the max of a set that may contain a
- *  NaN. */
+ *  @c IsTotallyOrdered).  A carrier without a certified order --- a raw float,
+ *  whose NaN breaks reflexivity --- is honestly rejected: you cannot take the
+ *  max of a set that may contain a NaN. */
 export template <typename S>
   requires IsPartiallyOrdered<typename S::Domain> &&
            requires(const S& s) { s & upperbounds(s); }
@@ -2065,11 +2057,9 @@ constexpr auto min(const S& s) {
 
 inline constexpr auto ℤ =
     𝔸<SignedCardinality>{};  // local alias (:integer is downstream)
-// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality>, a registered
-// TOTAL order (⊃ partial).  @c ℤ = @c SignedCardinality carries the unordered
-// @c NaZ (NaN-like), so it is NOT an ordered set and the @c IsPartiallyOrdered
-// gate correctly rejects @c max/min on it; the max/min VALUES are identical on
-// ℕ (they are non-negative).
+// Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality> and ℤ =
+// @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
+// its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
 inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
 inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
@@ -2082,6 +2072,12 @@ static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 static_assert(max(ℕ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℕ.");
 static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
 static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ.");
+// ℤ: the same extrema, and the negative side ℕ cannot spell.
+static_assert(max(ℤ | (π <= fix(5_c)))(5), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ | (π <= fix(5_c)))(3), "3 is not the greatest element.");
+static_assert(min(ℤ | (π >= fix(-5_c)))(-5), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ | (π > fix(-5_c)))(-4), "−4 = min {x > −5} on ℤ.");
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift: structural equality on the graph, compile-time. */

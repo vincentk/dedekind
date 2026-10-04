@@ -123,8 +123,8 @@ struct Ø final {
   /**
    * @brief Cross-logic identity: the empty set under any logic species is the
    * empty set. Enables writing `Ø<int>` (L defaults to Boole) even
-   * when the RHS was produced by a Set whose NaturalLogic selected
-   * Kleene — mathematically ∅ = ∅ regardless of logic species.
+   * when the RHS answers in Kleene — mathematically ∅ = ∅ regardless of logic
+   * species.
    */
   template <typename OtherL>
     requires(!std::same_as<OtherL, L>)
@@ -254,7 +254,7 @@ struct default_cardinality<bool> {
 /** @brief The cardinality class a carrier declares by its representation:
  *  @c Finite for @c bool, @c ℵ_0 otherwise.  This is the default of @c 𝔸's
  *  third parameter, so @c 𝔸<bool> is classified @c Finite and
- *  @c NaturalLogic<𝔸<bool>> routes to @c Boole, not @c Kleene.
+ *  its cardinality metadata is honest (the species is @c Boole regardless).
  *  @tparam T the carrier. */
 export template <typename T>
 using default_cardinality_t = typename default_cardinality<T>::type;

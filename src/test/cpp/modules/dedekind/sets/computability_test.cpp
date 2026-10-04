@@ -2,7 +2,7 @@
  *
  * Unit coverage for the computability surface: @c HasDecidableMembership in
  * @c :sets:computability, @c IsExtensional in @c :sets:cardinality, the
- * carrier-axis resolver @c NaturalLogic, and the species rule of
+ * and the species rule of
  * @c Comprehension (join of base and answer).
  *
  * Tests in this file use ONLY @c dedekind.sets + @c dedekind.category so
@@ -41,10 +41,10 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
     // @c π/fix is unavailable here anyway.
     constexpr auto gt_five = [](const auto& v) { return v > 5u; };
     constexpr auto s = Comprehension{ℕ, gt_five};
-    // ℕ is countably infinite (ℵ_0) → NaturalLogic picks Boole on
-    // the carrier axis (#622).  Rice's theorem caps further promotion of
-    // the opaque predicate, but the carrier-axis witness is sufficient
-    // here: the resolver trusts the carrier and lets the predicate run.
+    // ℕ answers in Boole, so the comprehension does.  Rice's theorem caps
+    // further promotion of the opaque predicate, but the carrier-axis witness
+    // is sufficient here: the resolver trusts the carrier and lets the
+    // predicate run.
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);
   }
 }
@@ -90,45 +90,6 @@ TEST_CASE("sets:computability — IsDecidableSet: Σ-set vs Ω-set (#846)",
     STATIC_CHECK_FALSE(IsSet<𝔸<bool, Kleene>>);
     STATIC_CHECK_FALSE(HasDecidableMembership<𝔸<bool, Kleene>>);
     STATIC_CHECK_FALSE(IsDecidableSet<𝔸<bool, Kleene>>);
-  }
-}
-
-TEST_CASE("sets:computability — NaturalLogic carrier-axis cut (#622)",
-          "[sets][computability][resolver][622]") {
-  // Positive witnesses: countable carriers route to Boole on the
-  // carrier axis (Rice's theorem caps further promotion of opaque-λ
-  // predicates; the carrier-axis verdict is the cheap structural witness).
-  SECTION("Countable carriers → Boole") {
-    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<int>>::type, Boole>);
-    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<unsigned>>::type, Boole>);
-    STATIC_CHECK(std::same_as<typename NaturalLogic<𝔸<bool>>::type, Boole>);
-  }
-
-  // Negative witness: Mandelbrot-shaped Sets — uncountable carrier (ℶ_1)
-  // + structurally-Π⁰₁ predicate + no set-level shortcut → no axis fires
-  // → Kleene.  This is the canonical witness that the resolver
-  // doesn't over-promise on structurally-undecidable sets.  Two
-  // independent ceilings stack on uncountable carriers:
-  //   (a) Rice forbids recognising opaque predicates as Δ⁰₁;
-  //   (b) the float↔ℝ gap makes @c double-typed witnesses denote ℝ values
-  //       only approximately, so even structurally-Δ⁰₁ comparisons land
-  //       exact-as-@c double but unknown-as-ℝ.
-  SECTION("Uncountable carriers → Kleene (Mandelbrot-shape witness)") {
-    // ℶ_1-tagged Universe models the "carrier with ℝ-shaped
-    // cardinality" — the Mandelbrot canonical case is @c
-    // 𝔸<Complex<...>, _, ℶ_1>, mechanically equivalent here.
-    STATIC_CHECK(
-        std::same_as<typename NaturalLogic<𝔸<int, Boole, ℶ_1>>::type, Kleene>);
-  }
-
-  // SFINAE fallback: types without @c cardinality_type degrade to the
-  // honest default @c Kleene.  Required so @c NaturalLogic-probing
-  // @c requires-clauses (e.g.\ the cartesian-product operator gate in
-  // @c :expressions) substitute cleanly on non-Set carriers.
-  SECTION("No cardinality_type → Kleene fallback") {
-    struct NoCardinality {};
-    STATIC_CHECK(
-        std::same_as<typename NaturalLogic<NoCardinality>::type, Kleene>);
   }
 }
 

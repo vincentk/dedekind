@@ -56,9 +56,8 @@ using namespace dedekind::order;
 //     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
 constexpr auto S = ℕ | (π > fix(5_c));
 
-// Post-#622: ℕ = 𝔸<Cardinality> is countable on the carrier axis
-// (ℵ_0), so NaturalLogic routes the comprehension @c S to
-// @c Boole — @c S.contains(...) lands @c bool directly, no
+// ℕ = 𝔸<Cardinality> answers in @c Boole, so the comprehension @c S does ---
+// @c S.contains(...) lands @c bool directly, no
 // Kleene lift required.  Rice's theorem still caps further promotion of
 // the opaque λ inside the comprehension, but the carrier-axis witness
 // is sufficient at this layer.

@@ -320,20 +320,11 @@ TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
 
 TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
-  // #848: the point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
-  // Halfspace.  Before this fix that Halfspace exposed no cardinality_type, so
-  // NaturalLogic hit its pessimistic primary-template fallback (Kleene /
-  // TernaryLogic) and Set{ℕ | pred} mis-classified as undecidable.  The
-  // threaded Halfspace::cardinality_type closes the gap so the countable ℕ
-  // ambient classifies ClassicalLogic.  Pairs the module-level static_assert
-  // witnesses with a Codecov-visible runtime membership exercise.
+  // The point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
+  // Halfspace in the universe's species, Boole: decidable membership.  Pairs
+  // the module-level static_assert witness with a Codecov-visible runtime
+  // membership exercise.
   constexpr auto point_free = ℕ | (χ > fix(5_c));
-
-  // Carrier-axis verdict: the classifier reads Halfspace::cardinality_type.
-  STATIC_CHECK(
-      std::same_as<typename NaturalLogic<decltype(point_free)>::type, Boole>);
-
-  // Symptom 1: the Set-wrapped form is decidable.
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
@@ -579,6 +570,27 @@ TEST_CASE(
   STATIC_CHECK_FALSE(HasDecidableMembership<decltype(hs)>);
   CHECK(hs(6) == Kleene::True);
   CHECK(hs(5) == Kleene::False);
+}
+
+// Witness: a halfspace / SetVal lives on a REGISTERED chain
+// (IsTotallyOrdered), not merely a std::totally_ordered one.  The probe is a
+// concept because an unsatisfied class-template constraint is a hard error
+// outside a template.
+template <typename T>
+concept HalfspaceOver =
+    requires { typename Halfspace<T, Direction::Upward, Strictness::Strict>; };
+template <typename T>
+concept SetValOver = requires { typename SetVal<T>; };
+
+TEST_CASE("order:halfspace — the carrier gate is the registered chain",
+          "[order][halfspace][witness]") {
+  STATIC_CHECK(HalfspaceOver<int> && SetValOver<int>);
+  // ℤ: a chain under the posture that ±ℵ_0 / NaZ are the memory boundary.
+  STATIC_CHECK(HalfspaceOver<SignedCardinality> &&
+               SetValOver<SignedCardinality>);
+  // A raw float has no certified order (NaN breaks reflexivity).
+  STATIC_CHECK_FALSE(HalfspaceOver<double>);
+  STATIC_CHECK_FALSE(SetValOver<double>);
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

@@ -33,12 +33,14 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <type_traits>
 #include <utility>
 
 export module dedekind.category:topoi;
 
 import :logic;
+import :mereology;  // IsTotalOrder: the registered order laws
 import :morphism;
 import :cartesian;
 import :lattice;  // Meet / Join / Not: the species-carrying predicate nodes
@@ -429,8 +431,10 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).  Pst is
  *  asked of the @b species (an Ockham algebra whose @c Ω is totally ordered),
  *  not of the bare @c Ω, so a @c Chain<int> set (@c Ω @c = @c int) qualifies
- *  while a bare @c int never does; a floating @c Ω is refused (NaN breaks the
- *  chain).
+ *  while a bare @c int never does.  The chain is the @b registered total order
+ *  (@c IsTotalOrder: reflexive, transitive, antisymmetric, comparable), not the
+ *  syntactic @c std::totally_ordered, so an @c Ω without certified order laws
+ *  (a raw float, whose NaN breaks reflexivity) is refused honestly.
  *  @tparam S the candidate set type (@c Domain, @c Codomain, @c logic_species,
  *          @c Member, @c ι, callable χ). */
 export template <typename S>
@@ -439,9 +443,7 @@ concept IsLSet =
     requires { typename S::logic_species; } &&
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
     IsOckhamAlgebra<typename S::logic_species> &&
-    std::totally_ordered<typename S::logic_species::Ω> &&
-    // std::totally_ordered is a SYNTAX check; a NaN breaks the chain.
-    !std::floating_point<typename S::logic_species::Ω>;
+    IsTotalOrder<typename S::logic_species::Ω, std::less_equal<>, bool>;
 
 /** @brief A carrier that is a @b finite chain by its representation: totally
  *  ordered and either a machine integer or an enumeration (both finite by

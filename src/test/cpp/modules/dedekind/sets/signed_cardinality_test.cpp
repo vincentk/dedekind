@@ -380,3 +380,38 @@ TEST_CASE(
     CHECK(0 > neg_inf);
   }
 }
+
+// Pattern: unit.  The ℤ steps are otherwise consumed only at compile time (the
+// order layer's max / min witnesses), so their runtime semantics are pinned
+// here: the finite step through zero, the fixpoints, and escalation.
+TEST_CASE("SignedCardinality — successor / predecessor step by ±1",
+          "[sets][cardinality][signed][nno]") {
+  using dedekind::sets::predecessor;
+  using dedekind::sets::successor;
+  const auto pos_inf = SignedCardinality{PositiveInfinity{}};
+  const auto neg_inf = SignedCardinality{NegativeInfinity{}};
+  const auto naz = SignedCardinality{NaZ{}};
+
+  SECTION("Finite: ±1, through zero (no monus on ℤ)") {
+    CHECK(successor(finite_signed_cardinality(5)) ==
+          finite_signed_cardinality(6));
+    CHECK(predecessor(finite_signed_cardinality(5)) ==
+          finite_signed_cardinality(4));
+    CHECK(predecessor(finite_signed_cardinality(0)) ==
+          finite_signed_cardinality(-1));
+    CHECK(successor(finite_signed_cardinality(-1)) ==
+          finite_signed_cardinality(0));
+  }
+  SECTION("±ℵ_0 are fixpoints, NaZ propagates") {
+    CHECK(is_pos_inf(successor(pos_inf)));
+    CHECK(is_pos_inf(predecessor(pos_inf)));
+    CHECK(is_neg_inf(successor(neg_inf)));
+    CHECK(is_neg_inf(predecessor(neg_inf)));
+    CHECK(is_naz(successor(naz)));
+    CHECK(is_naz(predecessor(naz)));
+  }
+  SECTION("The word boundary escalates rather than wrapping") {
+    CHECK(is_pos_inf(successor(huge_positive())));
+    CHECK(is_neg_inf(predecessor(huge_negative())));
+  }
+}
