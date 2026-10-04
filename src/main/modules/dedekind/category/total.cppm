@@ -153,10 +153,13 @@ concept IsClosedUnderEither = IsClosedUnder<T, Op> || IsClosedUnderUnary<T, Op>;
  *  polynomial ring, the Cauchy product: the base's × @b and +) or stays
  *  componentwise (a product, a subalgebra: the base's × alone).  Declared once
  *  per construction leg in @c dedekind.algebra (H / P / S / F), never per
- *  carrier; a carrier declaring two legs is ambiguous here, honestly. */
+ *  carrier; a carrier declaring two legs is ambiguous here, honestly.
+ *  @tparam D the constructed carrier. */
 export template <typename D>
 struct construction_base {};
 
+/** @brief @c D declares a construction: a base and the shape of its ×.
+ *  @tparam D the candidate carrier. */
 export template <typename D>
 concept IsConstructed = requires {
   typename construction_base<D>::type;
@@ -164,16 +167,23 @@ concept IsConstructed = requires {
 };
 
 /** @brief Path E to totality: @b by @b construction.  Defined below
- *  @c is_total, which it recurses into on the base. */
+ *  @c is_total, which it recurses into on the base.
+ *  @tparam T the carrier.
+ *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 struct is_total_by_construction : std::false_type {};
 
+/** @brief Value form of @c is_total_by_construction.
+ *  @tparam T the carrier.
+ *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 inline constexpr bool is_total_by_construction_v =
     is_total_by_construction<T, Op>::value;
 
 /** @brief The certificate.  @c Op is taken up to cv/ref (a @c const @c Inf
- *  keys the same registration as @c Inf). */
+ *  keys the same registration as @c Inf).
+ *  @tparam T the carrier.
+ *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
@@ -184,6 +194,9 @@ struct is_total
           is_total_by_construction_v<T, std::remove_cvref_t<Op>>  // E: built
           > {};
 
+/** @brief Value form of @c is_total.
+ *  @tparam T the carrier.
+ *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 inline constexpr bool is_total_v = is_total<T, Op>::value;
 

@@ -10,7 +10,8 @@
  *
  *   1. @c bool                — the smallest Boolean algebra / @c 𝔽₂ / ℤ/2ℤ.
  *   2. @c Modular<6>          — the canonical finite cyclic ring.
- *   3. @c Rational<int>       — ℚ as @c Frac(ℤ), an HSP-H carrier.
+ *   3. @c Rational<int>       — ℚ as @c Frac(ℤ), a localization: it refuses
+ *      the H leg, which ℂ over ℚ witnesses instead.
  *   4. parity-quotient @c mod_2 — the @c int @c → @c bool homomorphism
  *      from Slice 4's First-Iso crown.
  *

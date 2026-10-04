@@ -503,7 +503,10 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 // ℤ ↪ ℚ embeds, nothing is collapsed, and fields are not a variety, so
 // Birkhoff's H leg does not apply and Rational<I> declares no
 // quotient_algebra_base.  The laws are registered directly, each gated on the
-// same law holding for I (the law of fractions is proved from the law on I).
+// same law holding for I AND on I not wrapping (FractionBacking): the law of
+// fractions is proved from the law on I only when no intermediate product
+// a*d, b*c wraps, so I must saturate or be exact under the op.  Over a
+// wrapping word (SignedExtensionalCardinal<W>) ℚ's laws are not certified.
 // Totality is the EXACT path (is_exact_total): ℚ's arithmetic is closed and
 // lossless up to the carrier's out-of-memory tripwire, which Rational raises
 // as std::domain_error rather than saturating.  The carrier-specific bits
@@ -512,38 +515,61 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 
 namespace dedekind::category {
 
-template <dedekind::morphologies::IsInteger I>
-  requires is_associative_v<I, std::plus<I>>
+/** @brief An integer backing over which fraction arithmetic obeys ℚ's laws
+ *  under @c Op: it does not wrap (it saturates, or is exact), so a wrapped
+ *  intermediate cross-product cannot silently break a law; the tripwire
+ *  rejects instead.
+ *  @tparam I the integer carrier.
+ *  @tparam Op the operation on @c I (@c std::plus / @c std::multiplies). */
+template <typename I, typename Op>
+concept FractionBacking = dedekind::morphologies::IsInteger<I> &&
+                          (is_saturating_v<I, Op> || is_exact_total_v<I, Op>);
+
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_associative_v<I, std::plus<I>>
 inline constexpr bool is_associative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
-template <dedekind::morphologies::IsInteger I>
-  requires is_associative_v<I, std::multiplies<I>>
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>> &&
+               is_associative_v<I, std::multiplies<I>>
 inline constexpr bool
     is_associative_v<dedekind::numbers::Rational<I>,
                      std::multiplies<dedekind::numbers::Rational<I>>> = true;
-template <dedekind::morphologies::IsInteger I>
-  requires is_commutative_v<I, std::plus<I>>
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_commutative_v<I, std::plus<I>>
 inline constexpr bool is_commutative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
-template <dedekind::morphologies::IsInteger I>
-  requires is_commutative_v<I, std::multiplies<I>>
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>> &&
+               is_commutative_v<I, std::multiplies<I>>
 inline constexpr bool
     is_commutative_v<dedekind::numbers::Rational<I>,
                      std::multiplies<dedekind::numbers::Rational<I>>> = true;
-template <dedekind::morphologies::IsInteger I>
-  requires is_distributive_v<I, std::multiplies<I>, std::plus<I>>
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+               FractionBacking<I, std::multiplies<I>> &&
+               is_distributive_v<I, std::multiplies<I>, std::plus<I>>
 inline constexpr bool
     is_distributive_v<dedekind::numbers::Rational<I>,
                       std::multiplies<dedekind::numbers::Rational<I>>,
                       std::plus<dedekind::numbers::Rational<I>>> = true;
 
-template <dedekind::morphologies::IsInteger I>
+// Fraction + uses I's + and ×; fraction × uses I's ×.  Exact over a
+// non-wrapping backing.
+template <typename I>
+  requires FractionBacking<I, std::plus<I>> &&
+           FractionBacking<I, std::multiplies<I>>
 struct is_exact_total<dedekind::numbers::Rational<I>,
                       std::plus<dedekind::numbers::Rational<I>>>
     : std::true_type {};
-template <dedekind::morphologies::IsInteger I>
+template <typename I>
+  requires FractionBacking<I, std::multiplies<I>>
 struct is_exact_total<dedekind::numbers::Rational<I>,
                       std::multiplies<dedekind::numbers::Rational<I>>>
     : std::true_type {};
@@ -1012,6 +1038,16 @@ static_assert(
     !dedekind::category::is_saturating_v<Rational<default_integer>,
                                          std::plus<Rational<default_integer>>>,
     "ℚ is exact, not saturating.");
+// Over a WRAPPING word the fraction laws are not certified: a wrapped
+// cross-product breaks associativity silently, so no field claim is made.
+static_assert(!dedekind::category::is_associative_v<
+                  Rational<SignedExtensionalCardinal<>>,
+                  std::plus<Rational<SignedExtensionalCardinal<>>>> &&
+                  !dedekind::category::IsField<
+                      Rational<SignedExtensionalCardinal<>>,
+                      std::plus<Rational<SignedExtensionalCardinal<>>>,
+                      std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
+              "fractions over a wrapping word are not certified a field.");
 // A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
 static_assert(
     dedekind::category::IsRing<Rational<default_integer>,

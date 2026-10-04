@@ -26,7 +26,6 @@ using dedekind::category::is_associative_v;
 using dedekind::category::is_commutative_v;
 using dedekind::category::is_exact_total_v;
 using dedekind::category::is_periodic_v;
-using dedekind::category::is_saturating_v;
 using dedekind::category::is_total_v;
 using dedekind::category::IsFreeAlgebra;
 using dedekind::category::IsProductAlgebra;
@@ -94,7 +93,6 @@ TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
   STATIC_CHECK(is_total_v<Q, std::plus<Q>>);
   STATIC_CHECK(is_total_v<Q, std::multiplies<Q>>);
   STATIC_CHECK(is_exact_total_v<Q, std::plus<Q>>);
-  STATIC_CHECK_FALSE(is_saturating_v<Q, std::plus<Q>>);
   // By construction: Vec2V<ℚ> is total because ℚ's + is (componentwise), and
   // ℚ[x] under the Cauchy product because ℚ's × and + are.  No path is
   // forwarded to the derived carrier.

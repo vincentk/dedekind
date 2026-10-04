@@ -23,10 +23,10 @@
  *
  * A "quotient over a bona fide algebra is itself a bona fide algebra".
  * Categorically: a structure-preserving functor @c F: @c C @c → @c C
- * (e.g.\ field-of-fractions @c Frac, complex extension @c Cplx, dual
- * extension @c Dual) preserves the algebraic surface — associativity,
- * commutativity, distributivity, and the totality / saturation
- * certificate — of its input.  This partition reifies that meta-
+ * (e.g.\ complex extension @c Cplx, dual extension @c Dual) preserves the
+ * algebraic surface — associativity, commutativity, distributivity — of its
+ * input, and totality is read off the construction (@c :total, Path E).
+ * This partition reifies that meta-
  * symmetry at the type level: the carrier-side declaration
  * @c quotient_algebra_base<Q>::type @c = @c Base records the
  * functorial relation, and the propagation specialisations below lift
@@ -40,11 +40,15 @@
  *   - @c IsQuotientAlgebra<Q>          (this partition; carrier side)
  *   - @c IsQuotientMorphism<Arrow>     (@c :universal; morphism side)
  *
- * Three concrete instantiations ship today (#498/#499 NEW-A):
+ * Two concrete instantiations ship today (#498/#499 NEW-A):
  *
- *   - @c Rational<I> @c = @c Frac(I)         (numbers:rational)
  *   - @c Complex<R>  @c = @c R[i]/(i² @c + @c 1)   (numbers:complex)
  *   - @c Dual<F>     @c = @c F[ε]/(ε²)             (analysis:dual)
+ *
+ * @c Rational<I> @c = @c Frac(I) is @b not one: the field of fractions is a
+ * localization (ℤ ↪ ℚ embeds, nothing is collapsed; fields are not a variety),
+ * so Birkhoff's H leg does not apply and ℚ registers its laws directly
+ * (numbers:rational).
  *
  * Each carrier site declares the quotient relation @b once via a
  * single @c quotient_algebra_base<Q> specialisation; the species
@@ -145,7 +149,7 @@ inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
                       std::multiplies<quotient_algebra_base_t<Q>>,
                       std::plus<quotient_algebra_base_t<Q>>>;
 
-// Totality by construction (Path E, @c :species): a quotient computes with
+// Totality by construction (Path E, @c :total): a quotient computes with
 // the base's operations, and its × multiplies out, so it needs the base's +
 // as well.  No path is forwarded; @c IsTotal reads the construction.
 template <typename Q>
