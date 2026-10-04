@@ -52,14 +52,11 @@ static_assert(
 static_assert(
     std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,
     "ℚ halfspace inherits the countable ℵ_0 the carrier self-declares.");
-// The NaturalLogic verdict therefore matches the ambient ℚ: decidable Boole.
+// The cut answers in the ambient's species, Boole: decidable membership.
 static_assert(
-    std::same_as<typename dedekind::sets::NaturalLogic<QHalfspace>::type,
-                 typename dedekind::sets::NaturalLogic<
-                     std::remove_cvref_t<decltype(ℚ)>>::type>,
-    "point-free ℚ halfspace classifies as the ambient ℚ does (parity).");
-static_assert(
-    std::same_as<typename dedekind::sets::NaturalLogic<QHalfspace>::type,
-                 dedekind::category::Boole>,
-    "a countable ℚ cut is decidable (Boole), not Kleene.");
+    std::same_as<typename QHalfspace::logic_species,
+                 typename std::remove_cvref_t<decltype(ℚ)>::logic_species>,
+    "point-free ℚ halfspace answers in the species of the ambient ℚ.");
+static_assert(dedekind::sets::HasDecidableMembership<QHalfspace>,
+              "a ℚ cut is decidable (Boole).");
 }  // namespace

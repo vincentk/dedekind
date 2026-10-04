@@ -782,8 +782,10 @@ static_assert(
 }  // namespace
 
 /** @brief The canonical complex-number universe ℂ =
- * 𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1> — the coat-hanger
- * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).
+ * 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the coat-hanger
+ * ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2) (mirroring ℝ and 𝔻).  Equality on
+ * ℚ(√2)[i] is decidable, so ℂ answers in @c Boole; @c ℶ_1 is the cardinality
+ * of the ℂ it models, not a logic.
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
@@ -803,12 +805,12 @@ static_assert(
  *  @c quotient_algebra_base<Complex<R>> = R (the sibling of 𝔻 = ℝ[ε]/(ε²)).
  */
 export inline constexpr auto ℂ =
-    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1>{};
+    dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>{};
 
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(ℂ)>,
-                 dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1>>,
-    "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Kleene, ℶ_1> — the "
+                 dedekind::sets::𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1>>,
+    "ℂ is the universe 𝔸<Complex<QuadraticReal<2>>, Boole, ℶ_1> — the "
     "coat-hanger ℂ = Cplx(ℝ) over the genuine ℝ = ℚ(√2), mirroring "
     "ℝ = 𝔸<QuadraticReal<2>> (#806).");
 static_assert(

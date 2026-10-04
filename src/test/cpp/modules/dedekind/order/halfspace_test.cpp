@@ -320,20 +320,11 @@ TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
 
 TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
-  // #848: the point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
-  // Halfspace.  Before this fix that Halfspace exposed no cardinality_type, so
-  // NaturalLogic hit its pessimistic primary-template fallback (Kleene /
-  // TernaryLogic) and Set{ℕ | pred} mis-classified as undecidable.  The
-  // threaded Halfspace::cardinality_type closes the gap so the countable ℕ
-  // ambient classifies ClassicalLogic.  Pairs the module-level static_assert
-  // witnesses with a Codecov-visible runtime membership exercise.
+  // The point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
+  // Halfspace in the universe's species, Boole: decidable membership.  Pairs
+  // the module-level static_assert witness with a Codecov-visible runtime
+  // membership exercise.
   constexpr auto point_free = ℕ | (χ > fix(5_c));
-
-  // Carrier-axis verdict: the classifier reads Halfspace::cardinality_type.
-  STATIC_CHECK(
-      std::same_as<typename NaturalLogic<decltype(point_free)>::type, Boole>);
-
-  // Symptom 1: the Set-wrapped form is decidable.
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()

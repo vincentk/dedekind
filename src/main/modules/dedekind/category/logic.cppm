@@ -1205,6 +1205,27 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
               "(reflexivity via the :species totally_ordered specialisation, "
               "transitivity / antisymmetry hand-registered for Ternary)");
 
+/** @brief @c Percentage's total order under @c <=: the 101-chain
+ *  @c 0 @c < @c 1 @c < @c … @c < @c 100, with a defaulted @c <=> on one
+ *  @c uint8_t, so the laws hold by construction.  Registered in both the
+ *  transparent and the typed spelling, as for @c Ternary, so @c Percent is a
+ *  chain species for @c IsLSet and @c Percentage a posetal carrier. */
+template <>
+inline constexpr bool is_reflexive_v<Percentage, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Percentage, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_antisymmetric_v<Percentage, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_transitive_v<Percentage, std::less_equal<Percentage>> =
+    true;
+template <>
+inline constexpr bool
+    is_antisymmetric_v<Percentage, std::less_equal<Percentage>> = true;
+static_assert(IsTotalOrder<Percentage, std::less_equal<>, bool> &&
+                  IsTotalOrder<Percentage, std::less_equal<Percentage>, bool>,
+              "Percentage is a certified total order under <=.");
+
 /** @brief The logic negation ¬ = @c L::RFL as a callable object.  It exists so
  *  the @c :involution machinery can witness that the negation is an involution
  *  (@c ¬¬ = @c id).  @c :sets consults the witness to eliminate double negation

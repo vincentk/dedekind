@@ -25,7 +25,7 @@ import dedekind.category; // is_periodic_v / cyclic_order_v — the orbit bridge
 import dedekind.order;    // IsOrderMeetSemilattice / IsOrderJoinSemilattice —
                           // the lattice prerequisite for order-convergence
                           // (#719 Slice 3)
-import dedekind.sets;     // NaturalLogic — the carrier-axis cardinality cut
+import dedekind.sets;     // IsCountable — the carrier's declared cardinality
                           // (countable→Classical, uncountable→Ternary) gating
                           // the Cauchy⇒convergent collapse (#719 Slice 5)
 
@@ -106,15 +106,27 @@ concept IsConvergentSequence = IsCauchySequence<Seq> && requires(Seq s) {
   { limit(s) } -> std::same_as<typename Seq::Codomain>;
 };
 
-/** @brief The logic regime governing @c Seq's limit-collapse, read off
- *         the carrier's cardinality via the @c :sets cardinality cut
- *         (@c NaturalLogic): a @b countable @c Codomain (@c ℵ_0 /
- *         @c Finite) lands in @c Boole, an @b uncountable one
- *         (the continuum, or a non-cardinality'd primitive) in
- *         @c Kleene. */
+/** @brief The regime of a carrier for the limit-collapse: @c Boole when the
+ *  carrier declares a @b countable @c cardinality_type (@c ℵ_0 / @c Finite),
+ *  @c Kleene when it is uncountable or declares none (the continuum, or a
+ *  non-cardinality'd primitive such as @c double).  This is a @b cardinality
+ *  question (Specker's theorem is about enumerability), not a species one. */
+template <typename C, typename = void>
+struct carrier_regime {
+  using type = dedekind::category::Kleene;
+};
+template <typename C>
+struct carrier_regime<C, std::void_t<typename C::cardinality_type>> {
+  using type = std::conditional_t<
+      dedekind::sets::IsCountable<typename C::cardinality_type>,
+      dedekind::category::Boole, dedekind::category::Kleene>;
+};
+
+/** @brief The logic regime governing @c Seq's limit-collapse, read off its
+ *  carrier's declared cardinality (see @c carrier_regime). */
 export template <typename Seq>
-using convergence_logic = typename dedekind::sets::NaturalLogic<
-    typename std::remove_cvref_t<Seq>::Codomain>::type;
+using convergence_logic = typename carrier_regime<
+    std::remove_cvref_t<typename std::remove_cvref_t<Seq>::Codomain>>::type;
 
 /**
  * @concept IsClassicallyConvergent
