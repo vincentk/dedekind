@@ -357,51 +357,24 @@ static_assert(
 // Architecture: NNO  →  Cardinality  →  ℕ.
 //   * NNO is the Form (universal property defined in @c :nno).
 //   * @c Cardinality is the canonical carrier witnessing the NNO,
-//     certified below by @c IsNNO<Cardinality, cardinality_zero,
-//     cardinality_succ>.  Saturating semantics (@c ℵ_0 escalation)
-//     honestly handles the transfinite case.
+//     certified below by @c IsNNO<Cardinality, ZeroElement<Cardinality>,
+//     Successor<Cardinality>> --- the :nno arrows over the carrier's own
+//     @c successor (saturating at @c ℵ_0, the carrier's honest sentinel
+//     beyond the textbook NNO).
 //   * @c ℕ is the name pointing to @c Cardinality (this partition's
 //     @c using ℕ alias, post-#427).
-//
-// The zero element @c z : 1 → ℕ is @c cardinality_zero, returning
-// @c finite_cardinality(0).  The successor @c s : ℕ → ℕ is @c
-// cardinality_succ, returning @c n + finite_cardinality(1) on the
-// finite fragment and absorbing into @c ℵ_0 on the saturation
-// regime.  The latter is @b the @b carrier's @b extra @b behaviour
-// beyond the textbook NNO — the abstract NNO is purely the
-// Peano-style universal property; @c Cardinality adds @c ℵ_0 as
-// the honest sentinel for values that exceed the machine
-// implementation's representable range.
-
-/** @brief The zero element @c 1 → @c ℕ for the NNO universal property
- *         witness on @c Cardinality.  Nullary callable, returns
- *         @c finite_cardinality(0). */
-export struct cardinality_zero {
-  constexpr Cardinality operator()() const noexcept {
-    return finite_cardinality(0);
-  }
-};
-
-/** @brief The successor map @c ℕ → @c ℕ for the NNO universal property
- *         witness on @c Cardinality.  On the finite fragment, returns
- *         @c n + 1; on @c ℵ_0, returns @c ℵ_0 (saturation). */
-export struct cardinality_succ {
-  constexpr Cardinality operator()(const Cardinality& n) const noexcept {
-    return successor(n);  // the one law, spelled in :sets:cardinality
-  }
-};
 
 static_assert(
-    dedekind::category::IsNNO<Cardinality, cardinality_zero, cardinality_succ>,
-    "Cardinality is the canonical NNO witness: "
-    "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
-    "saturation is the carrier's extra behaviour beyond "
-    "the textbook NNO — an honest sentinel for values "
-    "that exceed the machine implementation's range.");
+    IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>,
+    "Cardinality is the canonical NNO witness: Z = ZeroElement, S = "
+    "Successor, saturating at ℵ_0.");
+static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
+              "the carrier's default value is the NNO's zero.");
 
 /** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
  *         @b value: the saturation point, and the unique fixpoint of
- *         @c cardinality_succ (@c succ(ℵ₀) @c = @c ℵ₀).  A readable spelling of
+ *         @c Successor<Cardinality> (@c succ(ℵ₀) @c = @c ℵ₀).  A readable
+ *         spelling of
  *         @c Cardinality{ℵ_0{}}, sibling to @c finite_cardinality(n). */
 export inline constexpr Cardinality aleph_0 = Cardinality{ℵ_0{}};
 

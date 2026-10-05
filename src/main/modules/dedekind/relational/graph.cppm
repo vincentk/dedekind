@@ -513,14 +513,6 @@ constexpr auto is_graph_of(const R& r, F f, const DomRange& dom,
 
 /** @section graph__Formal_Verification_IsGraphOf */
 
-namespace {
-struct Succ {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int x) const { return x + 1; }
-};
-}  // namespace
-
 // The compiler knows graph(id) IS the graph of id over the finite domain [0,4).
 static_assert(is_graph_of(Γ_id, dedekind::category::Identity<int>{},
                           std::views::iota(0, 4), std::views::iota(0, 4)),
@@ -528,7 +520,8 @@ static_assert(is_graph_of(Γ_id, dedekind::category::Identity<int>{},
 
 // ...and distinguishes it from a different function: graph(succ) is NOT the
 // graph of id.  The witness genuinely decides equality on the finite sample.
-static_assert(!is_graph_of(graph(Succ{}), dedekind::category::Identity<int>{},
+static_assert(!is_graph_of(graph(dedekind::category::Successor<int>{}),
+                           dedekind::category::Identity<int>{},
                            std::views::iota(0, 4), std::views::iota(0, 4)),
               "graph(succ) differs from the graph of id on [0,4).");
 

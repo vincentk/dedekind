@@ -52,7 +52,7 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   //    normal form / membership is decided) is a property of the carrier, not
   //    of the arrow, the Galois-specialisation axis. ──
   {
-    constexpr cardinality_succ succ{};
+    constexpr Successor<Cardinality> succ{};
     static_assert(succ(finite_cardinality(3)) !=
                   finite_cardinality(3));     // none finite
     static_assert(succ(aleph_0) == aleph_0);  // fix(succ) = ℵ₀ (saturation)
@@ -62,9 +62,8 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
     constexpr auto gt5 =
         ℕ | (χ > fix(5_c));  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
     static_assert(HasDecidableMembership<decltype(gt5)>);
-    constexpr cardinality_succ succ;
-    constexpr auto s = arrow<Cardinality, Cardinality>(succ);  // ℕ → ℕ
-    constexpr auto img = image(s, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
+    constexpr Successor<Cardinality> succ;  // ℕ → ℕ, an arrow as it stands
+    constexpr auto img = image(succ, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω
     static_assert(std::same_as<typename decltype(img)::logic_species, Kleene>);
     static_assert(!HasDecidableMembership<decltype(img)>);
     // honestly Unknown, though set-theoretically 7 ∈ image(succ, {n>5})

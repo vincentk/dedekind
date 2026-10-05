@@ -17,16 +17,10 @@ import dedekind.category;
 
 using namespace dedekind::sets;
 using namespace dedekind::relational;
-using namespace dedekind::category;  // the arrow `>>` (Succ ∘ Succ) below
+using namespace dedekind::category;  // the arrow `>>` (Successor<int> ∘
+                                     // Successor<int>) below
 
 namespace {
-// A distinct arrow to separate from the identity: succ(x) = x + 1.
-struct Succ {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int x) const { return x + 1; }
-};
-
 // A TERNARY-logic set over int (Kleene): even → True, odd → False, 0 → Unknown.
 // Used to prove preimage PRESERVES Ternary::Unknown (no bool collapse).
 struct TriEven {
@@ -44,7 +38,7 @@ struct SuccPi1Arrow {
   using Domain = std::pair<int, int>;
   using Codomain = int;
   constexpr int operator()(const std::pair<int, int>& p) const {
-    return Succ{}(p.first);
+    return Successor<int>{}(p.first);
   }
 };
 struct Pi2Arrow {
@@ -58,7 +52,7 @@ struct Pi2Arrow {
 // adapter (dyadic.cppm's conceptual chain): Γ_succ is the equalizer subobject
 // of int×int of (succ∘π₁, π₂).  The :relational sibling of the affine
 // translation-graph equalizer witnessed in algebra:halfspace_transport (#876).
-static_assert(dedekind::category::IsEqualizer<decltype(graph(Succ{})),
+static_assert(dedekind::category::IsEqualizer<decltype(graph(Successor<int>{})),
                                               SuccPi1Arrow, Pi2Arrow>,
               "a functional graph IS an equalizer subobject of A×B: "
               "Γ_succ = equalizer(succ∘π₁, π₂).");
@@ -79,13 +73,16 @@ static_assert(dedekind::category::IsEqualizer<decltype(graph(Succ{})),
 // downstream, so this witness lives in a TU that imports BOTH.
 namespace graph_duality_witness {
 
-// MAP reading: Succ : int → int, Cod = B = int (the analytic arrow, :morphism).
-static_assert(IsArrow<Succ>, "map reading: the function IS an arrow.");
-static_assert(std::same_as<Dom<Succ>, int> && std::same_as<Cod<Succ>, int>,
-              "map reading: Succ : int → int (Cod = B = int).");
+// MAP reading: Successor<int> : int → int, Cod = B = int (the analytic arrow,
+// :morphism).
+static_assert(IsArrow<Successor<int>>,
+              "map reading: the function IS an arrow.");
+static_assert(std::same_as<Dom<Successor<int>>, int> &&
+                  std::same_as<Cod<Successor<int>>, int>,
+              "map reading: Successor<int> : int → int (Cod = B = int).");
 
 // RELATION reading, reached by APPLYING graph: graph(f) : A×B → Ω.
-using GammaSucc = Graph<Succ>;
+using GammaSucc = Graph<Successor<int>>;
 // (a) it is an arrow whose Domain is the PAIR type A×B and Codomain is Ω...
 static_assert(IsArrow<GammaSucc>, "relation reading: graph(f) IS an arrow.");
 static_assert(std::same_as<Dom<GammaSucc>, std::pair<int, int>>,
@@ -108,7 +105,7 @@ static_assert(IsRelation<GammaSucc, int, int>,
 // existing :relational adapter carries the whole duality with no arrow_traits
 // and no :morphism edit.  #950's spider-out use case needs NOTHING from #953.
 static_assert(
-    !std::same_as<Cod<Succ>, Cod<GammaSucc>>,
+    !std::same_as<Cod<Successor<int>>, Cod<GammaSucc>>,
     "the two readings differ ONLY by codomain (B = int vs Ω = bool).");
 
 }  // namespace graph_duality_witness
@@ -119,7 +116,7 @@ namespace graph_spider_witness {
 
 using X = std::pair<int, int>;                       // the relation carrier A×B
 using R = Graph<dedekind::category::Identity<int>>;  // R : X → Ω  (b == a)
-using S = Graph<Succ>;                               // S : X → Ω  (b == a+1)
+using S = Graph<Successor<int>>;                     // S : X → Ω  (b == a+1)
 
 // graph(f) itself satisfies NONE of the spider shape concepts: its Cod is Ω
 // (bool), not a product, and its Dom is A×B, not the square of Ω.  Honest
@@ -164,7 +161,7 @@ static_assert(std::same_as<Dom<GraphMeet>, X> &&
 
 TEST_CASE("graph: functional relative product Γ_f ; Γ_g = Γ_{f;g} at runtime",
           "[sets][graph][compose]") {
-  const Succ succ{};
+  const Successor<int> succ{};
   // Γ_succ ; Γ_succ = Γ_{x+2}: (a, a+2) lies on it, off-diagonal does not.  The
   // ∃b of the relative product is discharged by functionality (b = succ(a)),
   // so this composes over the int intermediate (not just a Boolean middle).
@@ -190,7 +187,7 @@ TEST_CASE("graph: is_graph_of decides equality on a finite domain",
   // graph(id) IS the graph of id... (int -> int, so codomain range == dom)
   CHECK(is_graph_of(graph(id), id, dom, dom));
   // ...and graph(succ) is NOT: the witness distinguishes the two functions.
-  CHECK_FALSE(is_graph_of(graph(Succ{}), id, dom, dom));
+  CHECK_FALSE(is_graph_of(graph(Successor<int>{}), id, dom, dom));
 }
 
 // NOTE: `preimage(f, S)` is defined here (:graph) but exercised where the
@@ -203,10 +200,11 @@ TEST_CASE("graph: is_graph_of decides equality on a finite domain",
 // the classifier-value fix (PreimagePredicate returns L::Ω, not bool == True).
 TEST_CASE("graph: preimage preserves Ternary::Unknown (no bool collapse)",
           "[sets][graph][preimage][ternary]") {
-  const auto pre = preimage(Succ{}, TriEven{});  // {a | succ(a) ∈ TriEven}
-  CHECK(pre(-1) == Ternary::Unknown);  // succ(-1)=0 → Unknown, PRESERVED
-  CHECK(pre(1) == Ternary::True);      // succ(1)=2 → even
-  CHECK(pre(2) == Ternary::False);     // succ(2)=3 → odd
+  const auto pre =
+      preimage(Successor<int>{}, TriEven{});  // {a | succ(a) ∈ TriEven}
+  CHECK(pre(-1) == Ternary::Unknown);         // succ(-1)=0 → Unknown, PRESERVED
+  CHECK(pre(1) == Ternary::True);             // succ(1)=2 → even
+  CHECK(pre(2) == Ternary::False);            // succ(2)=3 → odd
 }
 
 // #950 spider-out, at run time: the relational meet of two graphs built from
@@ -218,9 +216,9 @@ TEST_CASE("graph: relational meet via the generic spider Merge∘(R⊗S)∘Copy"
           "[sets][graph][spider][meet]") {
   using X = std::pair<int, int>;
   using R = Graph<dedekind::category::Identity<int>>;  // (a,b) ↦ b == a
-  using S = Graph<Succ>;                               // (a,b) ↦ b == a+1
+  using S = Graph<Successor<int>>;                     // (a,b) ↦ b == a+1
   const R r = graph(dedekind::category::Identity<int>{});
-  const S s = graph(Succ{});
+  const S s = graph(Successor<int>{});
   const Copy<X> copy{};
   const Tensor<R, S> both{r, s};
   const Merge<bool, std::logical_and<bool>> meet{};

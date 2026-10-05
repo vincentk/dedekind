@@ -431,8 +431,8 @@ export constexpr Cardinality operator+(const Cardinality& lhs,
  *  order layer's point collapse calls (@c category:nno, found here by ADL):
  *  successor is @c + @c finite_cardinality(1), saturating at @c ℵ_0 (its
  *  fixpoint); predecessor is the monus --- 0 is its fixpoint (ℕ has no
- *  negatives), and @c ℵ_0 is fixed again.  The @c :numbers NNO witness
- *  @c cardinality_succ delegates to @c successor, so the law is spelled once.
+ *  negatives), and @c ℵ_0 is fixed again.  The @c :nno arrow
+ *  @c Successor<Cardinality> delegates here, so the law is spelled once.
  */
 export constexpr Cardinality successor(const Cardinality& n) noexcept {
   return n + finite_cardinality(1);

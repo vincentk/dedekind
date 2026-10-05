@@ -217,6 +217,42 @@ concept HasNNOStep = requires(const T& n) {
   { predecessor(n) } -> std::convertible_to<T>;
 };
 
+/** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
+ *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
+ *  needed (@c image, @c graph, the NNO witness), in place of a struct per site.
+ *  @tparam N the carrier, with @c successor / @c predecessor. */
+export template <HasNNOStep N>
+struct Successor {
+  using Domain = N;
+  using Codomain = N;
+  /** @param n an element of the carrier.  @return its successor, by the
+   *  carrier's own @c successor; nothrow when that is. */
+  constexpr N operator()(const N& n) const noexcept(noexcept(successor(n))) {
+    return successor(n);
+  }
+};
+
+/** @brief The zero element @f$Z : 1 \to N@f$, the nullary @c IsNNO witness: the
+ *  carrier's default value, which is the NNO's zero for the integrals and for
+ *  @c Cardinality.  Nullary, so not an @c IsArrow (that concept asks for a
+ *  @c Domain); a composable @f$1 \to N@f$ arrow is not needed here.
+ *  @tparam N the carrier. */
+export template <std::default_initializable N>
+struct ZeroElement {
+  using Codomain = N;
+  /** @return the carrier's zero. */
+  constexpr N operator()() const
+      noexcept(std::is_nothrow_default_constructible_v<N>) {
+    return N{};
+  }
+};
+
+static_assert(IsArrow<Successor<int>>,
+              "the successor is an arrow N → N (Domain, Codomain, const χ).");
+static_assert(IsNNO<int, ZeroElement<int>, Successor<int>>,
+              "(int, Zero, Successor) has the NNO shape.");
+static_assert(Successor<int>{}(ZeroElement<int>{}()) == 1, "S(Z) = 1.");
+
 /**
  * @brief Recursion-via-universal-property (operational discharge).
  *
