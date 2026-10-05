@@ -201,14 +201,14 @@ static_assert(
 // On ℕ, P only retracts S (numbers:natural); and [Z, S] is not an iso here
 // (S(−1) = Z), so ℤ has the NNO shape without being the NNO: it is a group.
 namespace detail_step_adjunction {
-using Z = dedekind::sets::SignedCardinality;
-using S = dedekind::category::Successor<Z>;
-using P = dedekind::category::Predecessor<Z>;
+using Z = SignedCardinality;
+using S = Successor<Z>;
+using P = Predecessor<Z>;
 consteval bool galois_on_sample() {
   for (int a = -3; a <= 3; ++a)
     for (int b = -3; b <= 3; ++b) {
-      const Z x = dedekind::sets::finite_signed_cardinality(a);
-      const Z y = dedekind::sets::finite_signed_cardinality(b);
+      const Z x = finite_signed_cardinality(a);
+      const Z y = finite_signed_cardinality(b);
       if ((S{}(x) <= y) != (x <= P{}(y))) return false;
       if (P{}(S{}(x)) != x || S{}(P{}(x)) != x) return false;
     }
@@ -218,16 +218,16 @@ consteval bool galois_on_sample() {
 // is unpacked by hand: the standard's == would find the library's predicate &&
 // by ADL through the variant's arguments.)
 consteval bool lambek_fails_at_minus_one() {
-  using L = dedekind::category::Lambek<Z>;
-  const Z minus_one = dedekind::sets::finite_signed_cardinality(-1);
+  using L = Lambek<Z>;
+  const Z minus_one = finite_signed_cardinality(-1);
   const auto back = L::out(L::in(std::optional<Z>{minus_one}));
   if (!back.has_value()) return true;
   return *back != minus_one;
 }
 }  // namespace detail_step_adjunction
-static_assert(dedekind::category::IsGaloisConnection<detail_step_adjunction::S,
-                                                     detail_step_adjunction::P>,
-              "S ⊣ P on ℤ: both monotone, crossed carriers.");
+static_assert(
+    IsGaloisConnection<detail_step_adjunction::S, detail_step_adjunction::P>,
+    "S ⊣ P on ℤ: both monotone, crossed carriers.");
 static_assert(
     detail_step_adjunction::galois_on_sample(),
     "S(x) ≤ y ⟺ x ≤ P(y), and both units are identities, on [−3, 3].");

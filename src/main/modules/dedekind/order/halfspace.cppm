@@ -2307,7 +2307,7 @@ constexpr auto operator>>(
  *  @f$a < b \iff (a, b) \in \Gamma_S^{+}@f$ --- the one relation whose star is
  *  point-free here, because the chain's own @c < decides it. */
 namespace detail_cover_witness {
-using dedekind::category::Successor;
+using Successor;
 consteval bool order_is_cover_star(int k) {
   for (int a = 0; a < k; ++a)
     for (int b = 0; b < k; ++b) {
@@ -2338,18 +2338,16 @@ static_assert(SetVal<Cardinality>::bounded(finite_cardinality(3),
                                            Strictness::Strict)
                       .kind == SetKind::Empty,
               "…and on the ℕ proxy, through its own successor.");
-static_assert(SetVal<dedekind::category::Ternary>::bounded(
-                  dedekind::category::Ternary::False, Strictness::Strict,
-                  dedekind::category::Ternary::True, Strictness::Strict)
+static_assert(SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                       Ternary::True, Strictness::Strict)
                           .kind == SetKind::Singleton &&
-                  SetVal<dedekind::category::Ternary>::bounded(
-                      dedekind::category::Ternary::False, Strictness::Strict,
-                      dedekind::category::Ternary::True, Strictness::Strict)
-                          .lo == dedekind::category::Ternary::Unknown,
+                  SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                           Ternary::True, Strictness::Strict)
+                          .lo == Ternary::Unknown,
               "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
               "middle truth value.");
-static_assert(graph(dedekind::category::Successor<int>{})(std::pair{3, 4}) &&
-                  !graph(dedekind::category::Successor<int>{})(std::pair{3, 5}),
+static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
+                  !graph(Successor<int>{})(std::pair{3, 5}),
               "Γ_S = graph(S) is the cover relation.");
 static_assert(detail_cover_witness::order_is_cover_star(8),
               "on [0, 8): a < b ⟺ (a, b) ∈ Γ_S⁺ --- the order is the star of "
