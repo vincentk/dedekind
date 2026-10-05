@@ -22,7 +22,7 @@ using namespace dedekind::order;
 
 TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
           "[order][powerset]") {
-  constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt3{3};
+  constexpr UpRay<int, Strictness::Strict> gt3{3};
 
   SECTION("clear typing: 𝔓(S) is IsSet, Domain = Sub(C)") {
     constexpr auto P = 𝔓(gt3);
@@ -38,8 +38,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
 
   SECTION("membership X ⊆ S decides across the ordered families") {
     constexpr auto P = 𝔓(gt3);  // 𝔓({x>3})
-    constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt5{5};
-    constexpr Halfspace<int, Direction::Downward, Strictness::Strict> lt3{3};
+    constexpr UpRay<int, Strictness::Strict> gt5{5};
+    constexpr DownRay<int, Strictness::Strict> lt3{3};
     constexpr Singleton<int, Boole> s4{4};
     CHECK(bool(P(gt5)));        // {x>5} ⊆ {x>3}
     CHECK_FALSE(bool(P(lt3)));  // {x<3} ⊄ {x>3}
@@ -62,7 +62,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     STATIC_CHECK(requires {
       typename std::remove_cvref_t<decltype(Pu)>::is_universal_boundary;
     });
-    constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt5{5};
+    constexpr UpRay<int, Strictness::Strict> gt5{5};
     CHECK(bool(Pu(gt5)));       // X ⊆ 𝔸
     CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ 𝔸
   }
@@ -83,8 +83,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     using D = Sub<int, Boole>;
     // Mixed strictness that denotes the SAME subobject over a discrete carrier
     // must be ONE Sub value (effective-bound normalisation, the #835 sibling).
-    constexpr Halfspace<int, Direction::Upward, Strictness::Strict> gt3s{3};
-    constexpr Halfspace<int, Direction::Upward, Strictness::NonStrict> ge4{4};
+    constexpr UpRay<int, Strictness::Strict> gt3s{3};
+    constexpr UpRay<int, Strictness::NonStrict> ge4{4};
     constexpr D a = gt3s;  // {x>3}
     constexpr D b = ge4;   // {x>=4}
     STATIC_CHECK(a == b);  // same subobject, one value

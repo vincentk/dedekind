@@ -34,7 +34,7 @@ namespace {
 using dedekind::order::fix;
 using dedekind::order::operator""_c;
 // Derive the halfspace type from the PUBLIC point-free expression
-// `ℚ | (π > fix(5_c))`, not a hand-built Halfspace<Rational>: this way the
+// `ℚ | (π > fix(5_c))`, not a hand-built UpRay<Rational, ...>: this way the
 // witness fails if `ℚ | pred` stops binding to the Rational carrier or its
 // Boole logic (the actual surface under test), per #927 review.
 using QHalfspace =
@@ -42,11 +42,10 @@ using QHalfspace =
 // The public expression really does bind the ℚ carrier and the Above cut
 // (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
-    std::same_as<
-        QHalfspace,
-        dedekind::order::Halfspace<
-            Rational<default_integer>, dedekind::order::Direction::Upward,
-            dedekind::order::Strictness::Strict, dedekind::category::Boole>>,
+    std::same_as<QHalfspace,
+                 dedekind::order::UpRay<Rational<default_integer>,
+                                        dedekind::order::Strictness::Strict,
+                                        dedekind::category::Boole>>,
     "ℚ | (π > fix(5_c)) binds to the Above halfspace over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(

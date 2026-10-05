@@ -32,18 +32,15 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// The Boolean universe 𝔹 (= 𝔸<bool>{}) with
-// the canonical bool-domain predicate BooleanEqPredicate (a NAMED predicate):
-// the plain set Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>, the leaf
-// shape the complement-pair collapse below relies on.
+// The two points of the Boolean universe 𝔹 (= 𝔸<bool>{}), spelled as the set
+// former; their meet / join are the reducer's nodes, and == Ø / == 𝔹 are
+// decided by exhausting {false, true}.
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
-constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-    BooleanEqPredicate{false}};
+constexpr auto b_false = 𝔹 | (π == false);
 
 // { b ∈ 𝔹 | b == true } = the singleton {true} ⊂ 𝔹
-constexpr auto b_true =
-    Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{BooleanEqPredicate{true}};
+constexpr auto b_true = 𝔹 | (π == true);
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
 static_assert(Ø<bool, Boole>{} == (b_false & b_true));

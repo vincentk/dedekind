@@ -22,7 +22,8 @@
  * recovering the pre-image in @c unsigned is a @b strength reduction: the
  * composite predicate @f$u \mapsto (\Phi(u) \le 10)@f$ (embed through four
  * carriers, compare in @f$\mathbb{Q}(\sqrt2)@f$) collapses to the native
- * @f$u \le 10@f$ --- a first-class @c Halfspace<unsigned> pinned at 10 ---
+ * @f$u \le 10@f$ --- a first-class @c DownRay<unsigned, NonStrict> pinned at
+ * 10 ---
  * because @c Φ is monotone.
  *
  * The @b modular half: @c unsigned @c = @c ℤ/2^wℤ is the periodic base
@@ -88,9 +89,8 @@ static_assert(!Γ_Φ(std::pair{3u, R2::root()}), "(3, √2) does not.");
 
 // ==================  Strength reduction: {x ≤ 10} pulls back =================
 // The composite ℝ-predicate reduces to the native unsigned comparison — and the
-// reduced form is a first-class value Halfspace<unsigned, ≤> pinned at 10.
-using ReducedLeTen =
-    Halfspace<unsigned, Direction::Downward, Strictness::NonStrict>;
+// reduced form is a first-class value DownRay<unsigned, ≤> pinned at 10.
+using ReducedLeTen = DownRay<unsigned, Strictness::NonStrict>;
 constexpr ReducedLeTen native_le_ten{10u};  // pivot rides in the value
 
 // Boundary: 10 ∈ {x ≤ 10}, 11 ∉ — via the ℝ chain AND the native reduction.
@@ -116,7 +116,7 @@ static_assert(pulled(10u) == (native_le_ten(10u) == Boole::True),
 
 // The INTRINSIC clip: {x ≤ −3} pulls back to ∅ over unsigned BY CONSTRUCTION —
 // the predicate ranges over unsigned, so there is no negative u to try, and no
-// negative-pivot Halfspace<unsigned> is ever built (the ideal: unable to try).
+// negative-pivot DownRay<unsigned> is ever built (the ideal: unable to try).
 constexpr auto le_neg3_ℝ = ℝ | (π <= fix(-3_c));  // {x ≤ −3} on ℝ
 constexpr auto clipped = dedekind::relational::preimage(Φ, le_neg3_ℝ);
 static_assert(!clipped(0u) && !clipped(5u) && !clipped(100u),

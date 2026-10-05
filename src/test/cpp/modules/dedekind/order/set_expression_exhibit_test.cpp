@@ -42,8 +42,8 @@ namespace set_expression_exhibit {
 
 // A = { x < 5 } (downward, strict);  B = { x > -5 } (upward, strict).  The
 // pivot rides in the VALUE, so A / B are instances, not distinct types.
-using ADown = Halfspace<int, Direction::Downward, Strictness::Strict, Boole>;
-using BUp = Halfspace<int, Direction::Upward, Strictness::Strict, Boole>;
+using ADown = DownRay<int, Strictness::Strict, Boole>;
+using BUp = UpRay<int, Strictness::Strict, Boole>;
 constexpr ADown A{5};
 constexpr BUp B{-5};
 

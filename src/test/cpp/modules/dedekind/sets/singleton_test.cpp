@@ -16,10 +16,10 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 
   SECTION("2. The Pull from the Identity (ε)") {
     auto atom = singleton(42);
-    int value = atom.origin();
+    int value = origin(atom);
 
     REQUIRE(value == 42);
-    static_assert(singleton(7).origin() == 7, "The Round-trip Axiom.");
+    static_assert(origin(singleton(7)) == 7, "The Round-trip Axiom.");
   }
 }
 
@@ -32,8 +32,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO("Failed membership test.");
     REQUIRE(!_s(std::size_t{4}));
     INFO("A foreign type compares in the common type, never by narrowing.");
-    STATIC_REQUIRE(!Singleton<int>{1}(1.5));
-    STATIC_REQUIRE(Singleton<int>{1}(1.0));
+    STATIC_REQUIRE(!η(1)(1.5));
+    STATIC_REQUIRE(η(1)(1.0));
   }
   SECTION("Cardinality") {
     REQUIRE(_s.size() == 1);
@@ -53,23 +53,24 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     INFO(
         "On the two-element carrier the complement of a point is the other "
         "point (found from sets alone, no order namespace in scope).");
-    STATIC_REQUIRE(
-        std::same_as<decltype(~Singleton<bool>{true}), Singleton<bool>>);
-    STATIC_REQUIRE((~Singleton<bool>{true})(false));
-    STATIC_REQUIRE(!(~Singleton<bool>{true})(true));
+    STATIC_REQUIRE(std::same_as<decltype(~η(true)), Singleton<bool>>);
+    STATIC_REQUIRE((~η(true))(false));
+    STATIC_REQUIRE(!(~η(true))(true));
   }
   SECTION("Intersections") {
     // FIXME(#685): structural identity ({a}∩{a} == {a}, {a}∩¬{a} == Ø) is
-    // tracked there; today the self-meet is witnessed by its size.
+    // tracked there; today the self-meet is the reducer's Meet node of two
+    // value-carrying points, witnessed by membership.
     INFO("The intersection of a set with itself is a fixed point.");
-    REQUIRE((_s & _s).size() == 1);
+    REQUIRE((_s & _s)(std::size_t{42}));
+    REQUIRE_FALSE((_s & _s)(std::size_t{4}));
   }
   SECTION("Union") {
     // The union is the recoverable Join node, so it is tested by MEMBERSHIP
     // and by recovering both atoms from the type.
     INFO(
         "The union of a set with itself is a fixed point: {42} ∪ {42} = {42}.");
-    REQUIRE((_s | _s)(42));
+    REQUIRE((_s | _s)(std::size_t{42}));
     REQUIRE(!(_s | _s)(std::size_t{4}));
     // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
     // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
@@ -78,17 +79,13 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _t)(std::size_t{42}));
     REQUIRE((_s | _t)(std::size_t{7}));
     REQUIRE(!(_s | _t)(std::size_t{4}));
-    // The STRUCTURAL contract (#691/#842), which membership alone does not pin:
-    // the union is a RECOVERABLE Join node whose two atoms survive in the type
-    // (an opaque predicate with the same membership would pass the checks
-    // above).  Pin the result type and recover both pivots.
+    // The structural contract: the union is the reducer's Join node, both
+    // atoms recoverable from the type.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
-        std::same_as<
-            UnionT, Comprehension<𝔸<size_t, Boole>,
-                                  Join<Singleton<size_t>, Singleton<size_t>>>>);
-    REQUIRE((_s | _t).predicate.lhs.pivot == 42);
-    REQUIRE((_s | _t).predicate.rhs.pivot == 7);
+        std::same_as<UnionT, Join<Singleton<size_t>, Singleton<size_t>>>);
+    REQUIRE(origin((_s | _t).lhs) == 42);
+    REQUIRE(origin((_s | _t).rhs) == 7);
   }
 }
 
@@ -98,7 +95,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
  *
  * @details Rewritten from the original `into<Singleton>` /
  *          `extract<Singleton>` factory syntax to the current
- *          surface: `singleton(value)` for η, `s.origin()` for ε,
+ *          surface: `singleton(value)` for η, `origin(s)` for ε,
  *          `s >>= f` for Kleisli bind (all exported by `:sets:singleton`).
  *          The Set-monad structure lives directly on `Singleton`; this
  *          TEST_CASE exercises the composition behaviour at the value level.
@@ -125,11 +122,10 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
   SECTION("2. Compile-Time Semantic Mapping of Composition") {
     // Zero-overhead claim: the composition resolves to a constant 12.
     // Explicit left-fold parens on `>>=` (right-associative in C++).
-    static_assert(((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
-                   [](int x) {
-                     return singleton(x * 2);
-                   }).origin() == 12,
-                  "The Composition Axiom must be resolved at compile-time.");
+    static_assert(
+        origin((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
+               [](int x) { return singleton(x * 2); }) == 12,
+        "The Composition Axiom must be resolved at compile-time.");
   }
 }
 
@@ -139,8 +135,7 @@ TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
   // characteristic map (operator()) at RUNTIME so its L::AND-and-lift body is
   // exercised, not only compile-time-asserted.
   auto _s = ι<size_t>(42);
-  const auto self_meet = _s & _s;     // Comprehension<Universe, lambda>
+  const auto self_meet = _s & _s;     // the reducer's Meet node of two points
   CHECK(self_meet(size_t{42}));       // 42 ∈ {42} ∧ 42 ∈ {42}
   CHECK_FALSE(self_meet(size_t{7}));  // 7 ∉ {42}
-  CHECK(self_meet.size() == 1);
 }

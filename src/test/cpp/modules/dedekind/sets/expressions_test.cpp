@@ -268,16 +268,12 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   SECTION(
       "Stateful-predicate disjoint instances: type equality does NOT "
       "imply set equality (#469 regression test)") {
-    // Two Set<bool, L, BooleanEqPredicate> instances with the same
-    // Predicate TYPE but disjoint VALUES.  The XOR of {true} and
-    // {false} should be the full {true, false} universe, NOT empty.
-    // This regression test guards against a same-Predicate-type
-    // collapse that would wrongly fire on every BooleanEqPredicate
-    // pair regardless of the .expected field.
-    auto only_true = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-        BooleanEqPredicate{true}};
-    auto only_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-        BooleanEqPredicate{false}};
+    // Two points over 𝔹 with the same TYPE but disjoint VALUES.  The XOR of
+    // {true} and {false} should be the full {true, false} universe, NOT empty.
+    // This regression test guards against a same-type collapse that would
+    // wrongly fire on every pair of points regardless of the pivot.
+    auto only_true = 𝔹 | (π == true);
+    auto only_false = 𝔹 | (π == false);
     auto sym_diff = only_true ^ only_false;
     // The symmetric difference of two disjoint singletons is their
     // union — every element of {true, false} appears in exactly one,
@@ -395,13 +391,10 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   using BoolAmbient = 𝔸<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  // The Boolean-literal collapse is keyed on the leaf type
-  // Set<bool, L, BooleanEqPredicate>; spelled explicitly (Set{Comprehension{…}}
-  // now wraps the whole comprehension, #948).
-  constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-      BooleanEqPredicate{false}};
-  constexpr auto b_true = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-      BooleanEqPredicate{true}};
+  // The two points of 𝔹, spelled in the grammar.  Their meet / join are the
+  // reducer's nodes; == Ø and == 𝔹 are decided by exhausting {false, true}.
+  constexpr auto b_false = 𝔹 | (π == false);
+  constexpr auto b_true = 𝔹 | (π == true);
 
   STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));
@@ -417,25 +410,19 @@ TEST_CASE(
     "[sets][identities][boolean][variable-truthy]") {
   // The textbook DSL form `Set{b | b}` reads "elements of B for
   // which b holds" — the bare-b form is the truthy predicate, and
-  // should be recognised as semantically equivalent to b == true by
-  // the structured-and / FiniteBooleanSet collapse machinery.
+  // should be recognised as semantically equivalent to b == true.
   using BoolAmbient = 𝔸<bool, Boole, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  // Bare-b form (the issue's target ergonomics): the truthy predicate IS
-  // BooleanEqPredicate{true}, the canonical bool-domain predicate.
-  constexpr auto b_true_bare =
-      Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-          BooleanEqPredicate{true}};
-  // Equivalent comparison form.
-  constexpr auto b_true_eq = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-      BooleanEqPredicate{true}};
+  // Bare-b form (the issue's target ergonomics): the truthy predicate IS the
+  // point {true}, spelled as the set former.
+  constexpr auto b_true_bare = 𝔹 | (π == true);
+  // Equivalent comparison form: the same point by its factory.
+  constexpr auto b_true_eq = singleton(true);
   // Negated bare-b form.
-  constexpr auto b_false = Comprehension<𝔸<bool, Boole>, BooleanEqPredicate>{
-      BooleanEqPredicate{false}};
+  constexpr auto b_false = 𝔹 | (π == false);
 
-  // The collapse machinery treats both bare-b and (b == true) as the
-  // same predicate (BooleanEqPredicate{true}) so the static_asserts
+  // Both bare-b and (b == true) are the same point, so the static_asserts
   // pinning the Boolean partition laws fire on the bare-b form.
   STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true_bare));
   STATIC_CHECK(B_bool == (b_false | b_true_bare));
@@ -709,7 +696,7 @@ TEST_CASE("Sets: the species on the classifier, not the base's tag",
 
   // Symmetric difference with a singleton computes in the join of the
   // singleton's species and the comprehension's OWN species.
-  const auto sym = Singleton<int>{2} ^ unknown;
+  const auto sym = η(2) ^ unknown;
   STATIC_CHECK(std::same_as<typename decltype(sym)::logic_species, Kleene>);
   CHECK(sym(2) == Ternary::Unknown);  // ⊤ △ U = U
   CHECK(sym(3) == Ternary::Unknown);  // ⊥ △ U = U

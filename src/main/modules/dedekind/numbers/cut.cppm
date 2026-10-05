@@ -23,6 +23,13 @@
  * layer that grows @c Cut into the full field.  The order fabric decidable here
  * is exactly what a real @b interval (e.g.\ @f$(-\sqrt2,\sqrt2)@f$) needs.
  *
+ * @section cut__The_Cut_Is_Its_Lower_Set
+ * The real @b is its lower set: @c lower_set(r) is the comprehension of the cut
+ * over @c 𝔸<Q>, an @c IsLSet whose χ is @c contains.  A rational @f$p@f$ embeds
+ * as the principal cut, whose lower set is the order datum's ray @f$\{q<p\}@f$
+ * (@c principal_ray); a radical cut's lower set @f$\{q<0\lor q^2<c\}@f$ is not
+ * a ray over @f$\mathbb{Q}@f$, which is what makes it a new real.
+ *
  * @note "Ich sehe es, aber ich glaube es nicht." — Richard Dedekind
  *       (letter to Cantor, 1877).  [Trans: "I see it, but I don't believe it."]
  */
@@ -43,6 +50,11 @@ import :rational;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using dedekind::order::DownRay;
+using dedekind::order::Strictness;
+using dedekind::sets::Comprehension;
+using dedekind::sets::π;
+using dedekind::sets::𝔸;
 
 /**
  * @class Cut
@@ -99,7 +111,8 @@ class Cut {
   }
 
   /** @brief Is the rational @p q strictly below this real (@f$q\in@f$ the lower
-   *  cut)?  The decidable membership query the cut is @b defined by. */
+   *  cut)?  The decidable membership query the cut is @b defined by: the χ of
+   *  @c lower_set(*this). */
   constexpr bool contains(const Q& q) const {
     return compare(Cut{q}, *this) == std::strong_ordering::less;
   }
@@ -162,6 +175,42 @@ class Cut {
   bool neg_{false};  ///< Radical only: sign of the root.
 };
 
+/** @brief The datum of a real's lower set: the real itself, χ(q) =
+ *  @c real.contains(q).  @tparam Q the rational scalar carrier. */
+export template <IsRational Q>
+struct LowerCut {
+  using Domain = Q;
+  using Codomain = bool;
+  Cut<Q> real{};
+  constexpr bool operator()(const Q& q) const { return real.contains(q); }
+};
+
+/** @brief The lower set of a real, @f$\{q\in\mathbb{Q}\mid q<r\}@f$, as a set
+ *  over @f$\mathbb{Q}@f$.  @tparam Q the rational scalar carrier. */
+export template <IsRational Q = Rational<default_integer>>
+using LowerSet = Comprehension<𝔸<Q, Boole>, LowerCut<Q>>;
+
+/** @brief @f$r \mapsto \{q<r\}@f$: the real read as its lower set.
+ *  @tparam Q the rational scalar carrier. */
+export template <IsRational Q>
+constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
+  return 𝔸<Q>{} | LowerCut<Q>{r};
+}
+
+/** @brief The ray @f$\{q<p\}@f$ over @f$\mathbb{Q}@f$: the lower set of a
+ *  principal cut, @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ as the order datum.
+ *  @tparam Q the rational scalar carrier. */
+export template <IsRational Q = Rational<default_integer>>
+using PrincipalRay = DownRay<Q, Strictness::Strict>;
+
+/** @brief @f$p \mapsto \{q<p\}@f$: the rational embedded as the principal
+ *  ray, extensionally @c lower_set(Cut<Q>{p}).
+ *  @tparam Q the rational scalar carrier. */
+export template <IsRational Q>
+constexpr PrincipalRay<Q> principal_ray(const Q& p) {
+  return 𝔸<Q>{} | (π < p);
+}
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -219,5 +268,27 @@ static_assert(!Cut<>::sqrt(Rational<>{2}).contains(Rational<>{2}),
 
 // A perfect square radical is exactly its rational root (== via <=>).
 static_assert(Cut<>::sqrt(Rational<>{4}) == Cut<>{2}, "√4 = 2.");
+
+using dedekind::category::IsLSet;
+using dedekind::order::pivot;
+
+// The cut IS its lower set: a set over ℚ, with contains as its χ.
+static_assert(IsLSet<LowerSet<>>,
+              "the lower set of a real is a set over ℚ (IsLSet).");
+static_assert(lower_set(Cut<>::sqrt(Rational<>{2}))(Rational<>{1}) &&
+                  !lower_set(Cut<>::sqrt(Rational<>{2}))(Rational<>{2}),
+              "↓√2 ∋ 1, ∌ 2: the radical's lower set is decided by q² <=> 2.");
+// ℚ ↪ ℝ: a principal cut's lower set is the order datum's ray {q < p}.
+static_assert(IsLSet<PrincipalRay<>>,
+              "the principal ray is a set over ℚ (IsLSet).");
+static_assert(principal_ray(Rational<>{3})(Rational<>{2}) ==
+                      lower_set(Cut<>{Rational<>{3}})(Rational<>{2}) &&
+                  principal_ray(Rational<>{3})(Rational<>{3}) ==
+                      lower_set(Cut<>{Rational<>{3}})(Rational<>{3}) &&
+                  principal_ray(Rational<>{3})(Rational<>{4}) ==
+                      lower_set(Cut<>{Rational<>{3}})(Rational<>{4}),
+              "the principal cut at p and the ray {q < p} agree on ℚ.");
+static_assert(pivot(principal_ray(Rational<>{3})) == Rational<>{3},
+              "the embedded rational is the ray's bound.");
 
 }  // namespace dedekind::numbers

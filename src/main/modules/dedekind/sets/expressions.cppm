@@ -157,6 +157,20 @@ using comprehension_logic_t =
                      std::invoke_result_t<const Predicate&,
                                           const typename Base::Domain&>>::type>;
 
+/** @brief The cardinality bound a comprehension inherits: the datum's when it
+ *  declares one, else the base's.
+ *  @tparam Predicate the datum.
+ *  @tparam Base the base set. */
+template <typename Predicate, IsSetObject Base>
+struct datum_cardinality {
+  using type = typename Base::cardinality_type;
+};
+template <typename Predicate, IsSetObject Base>
+  requires requires { typename Predicate::cardinality_type; }
+struct datum_cardinality<Predicate, Base> {
+  using type = typename Predicate::cardinality_type;
+};
+
 export template <typename Base, typename Predicate>
 struct Comprehension
     : SetExpr<Comprehension<Base, Predicate>, typename Base::Domain,
@@ -181,14 +195,9 @@ struct Comprehension
     requires std::default_initializable<Base>
       : base{}, predicate(static_cast<Predicate&&>(p)) {}
 
-  // Forward Base's cardinality so IsCountable can read off
-  // the carrier axis on a comprehension's effective magnitude.  A
-  // predicate-restricted comprehension is at most as large as its base
-  // (P-restriction can only shrink the membership set), so inheriting the
-  // base's cardinality bound is sound for the carrier-axis resolver
-  // (#622).  Sharper bounds (singleton-bounded comprehensions etc.) are
-  // tracked via the @c size() probe below, not via this typedef.
-  using cardinality_type = typename Base::cardinality_type;
+  // The datum's bound when it declares one (a point is Finite whatever the
+  // universe), else the base's: a restriction can only shrink.
+  using cardinality_type = typename datum_cardinality<Predicate, Base>::type;
   constexpr cardinality_type cardinality() const { return {}; }
 
   /** @brief χ: the comprehension's characteristic map --- @c x @c ∈ @c {S @c |
@@ -204,37 +213,64 @@ struct Comprehension
     return L::AND(dedekind::category::lift_logic<L>(base(x)),
                   dedekind::category::lift_logic<L>(predicate(x)));
   }
+  /** @brief Heterogeneous χ: a value of a type @c U the datum @b declares it
+   *  admits (@c Predicate::admits<U>) is asked unnarrowed, so
+   *  @c Singleton<int>{1}(1.5) is @c False.  The universe is not asked
+   *  (@c χ_𝔸 @c ≡ @c ⊤); a proper base must itself admit @c U.
+   *  @tparam U the foreign carrier. */
+  template <typename U>
+    requires(!std::same_as<std::remove_cvref_t<U>, typename Base::Domain>) &&
+            requires { requires Predicate::template admits<U>; } &&
+            (Is𝔸<Base> || std::invocable<const Base&, const U&>)
+  constexpr auto operator()(const U& x) const {
+    using L = comprehension_logic_t<Base, Predicate>;
+    if constexpr (Is𝔸<Base>)
+      return dedekind::category::lift_logic<L>(predicate(x));
+    else
+      return L::AND(dedekind::category::lift_logic<L>(base(x)),
+                    dedekind::category::lift_logic<L>(predicate(x)));
+  }
 
-  /** @brief Size when the base exposes a probe element (@c pivot) and a
-   *         @c size().  For singleton-bounded bases (size 1), the
-   *         predicate is probed once at @c base.pivot and the result
-   *         is @c base.size() if the probe holds, @c 0 otherwise.
-   *         Larger enumerable bases would need iteration — out of
-   *         scope here (FIXME(#685)). */
+  /** @brief Size when the datum carries it and the base is the whole
+   *  universe: the point @c {p} over @c 𝔸<T> has size 1. */
   constexpr std::size_t size() const
-    requires requires(const Base& b, const Predicate& p) {
-      b.pivot;
-      b.size();
-      { p(b.pivot) } -> std::convertible_to<bool>;
+    requires Is𝔸<Base> && requires(const Predicate& p) {
+      { p.size() } -> std::convertible_to<std::size_t>;
     }
   {
-    return predicate(base.pivot) ? base.size() : 0;
+    return predicate.size();
+  }
+  /** @brief The ETCS cardinality bound a datum-sized comprehension exposes to
+   *  @c bound_meet / @c bound_join: its exact size. */
+  constexpr std::size_t upper_bound() const
+    requires Is𝔸<Base> && requires(const Predicate& p) {
+      { p.size() } -> std::convertible_to<std::size_t>;
+    }
+  {
+    return predicate.size();
   }
 };
 
-/** @brief Boolean equality predicate for compile-time pruning over 𝔹.
- *
- *  Defined here (rather than further down where the @c FiniteBooleanSet
- *  collapse machinery lives) because the bool-truthy comprehension form
- *  @c 𝔹 @c | @c BooleanEqPredicate{true} needs the type complete (#408).
- *  The collapse-machinery uses further down still see the same definition:
- *  it is the single source of truth for the bool-domain predicate.
- */
-export struct BooleanEqPredicate {
-  bool expected;
+/** @brief A datum over @c T: a predicate on @c T (an arrow into a truth
+ *  object) that is not itself a set.  @c Point, @c Bounds, @c LowerCut.
+ *  @tparam P the candidate.
+ *  @tparam T the carrier. */
+export template <typename P, typename T>
+concept IsDatum =
+    IsPredicate<P> && std::same_as<Dom<P>, T> && !IsSetObject<P> && !IsLSet<P>;
 
-  constexpr bool operator()(bool v) const { return v == expected; }
-};
+/** @brief The set former @c 𝔸<T, L>{} @c | @c P = @f$\{x \in T \mid P(x)\}@f$
+ *  for a datum @c P (a point @c π == v, a cut @c π > v).  A set is not a
+ *  datum: @c 𝔸 | S is the join.  The compile-time atoms @c π ⋈ fix(c) keep
+ *  their own binders in @c :order.
+ *  @tparam T the carrier.
+ *  @tparam L the species.
+ *  @tparam C the cardinality.
+ *  @tparam P the datum. */
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsDatum<T> P>
+constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+  return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
+}
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
@@ -350,122 +386,6 @@ constexpr auto lift_to(const S& s) {
 // @c IsComplementPair / @c IsNegatedPredicate_v traits, and the hand-rolled
 // @c !! peel / @c are_complement_sets_v collapse all fold into the reducer's
 // complement laws (#834 / #829 / #946).
-
-/** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
-export template <typename L>
-struct FiniteBooleanSet {
-  using Domain = bool;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  using cardinality_type = Finite;
-
-  typename L::Ω at_false;
-  typename L::Ω at_true;
-
-  constexpr typename L::Ω operator()(bool v) const {
-    return v ? at_true : at_false;
-  }
-
-  constexpr bool operator==(const Ø<bool, L>&) const {
-    return at_false == L::False && at_true == L::False;
-  }
-
-  constexpr bool operator==(const 𝔸<bool, L, Finite>&) const {
-    return at_false == L::True && at_true == L::True;
-  }
-
-  friend constexpr bool operator==(const Ø<bool, L>& empty,
-                                   const FiniteBooleanSet& s) {
-    return s == empty;
-  }
-
-  friend constexpr bool operator==(const 𝔸<bool, L, Finite>& universe,
-                                   const FiniteBooleanSet& s) {
-    return s == universe;
-  }
-
-  constexpr auto operator|(const FiniteBooleanSet& other) const {
-    return FiniteBooleanSet{
-        L::OR(at_false, other.at_false),
-        L::OR(at_true, other.at_true),
-    };
-  }
-
-  constexpr auto operator&(const FiniteBooleanSet& other) const {
-    return FiniteBooleanSet{
-        L::AND(at_false, other.at_false),
-        L::AND(at_true, other.at_true),
-    };
-  }
-};
-
-// The two-cell table is a set over bool: the full table is the universe, the
-// empty table is Ø (the Pst normal form on the smallest carrier).
-static_assert(
-    FiniteBooleanSet<dedekind::category::Boole>{
-        dedekind::category::Boole::True,
-        dedekind::category::Boole::True}(false) ==
-            dedekind::category::Boole::True &&
-        FiniteBooleanSet<dedekind::category::Boole>{}(true) ==
-            dedekind::category::Boole::False,
-    "FiniteBooleanSet: the full table contains both bools, the empty table "
-    "neither.");
-
-export template <typename L, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
-    const FiniteBooleanSet<L>& rhs) {
-  return FiniteBooleanSet<L>{
-      L::OR(lhs(false), rhs(false)),
-      L::OR(lhs(true), rhs(true)),
-  };
-}
-
-export template <typename L, typename C>
-constexpr auto operator|(
-    const FiniteBooleanSet<L>& lhs,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
-  return rhs | lhs;
-}
-
-export template <typename L, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& lhs,
-    const FiniteBooleanSet<L>& rhs) {
-  return FiniteBooleanSet<L>{
-      L::AND(lhs(false), rhs(false)),
-      L::AND(lhs(true), rhs(true)),
-  };
-}
-
-export template <typename L, typename C>
-constexpr auto operator&(
-    const FiniteBooleanSet<L>& lhs,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& rhs) {
-  return rhs & lhs;
-}
-
-/** @brief @c bool @c BooleanEqPredicate meet.  @c BooleanEqPredicate is
- *  RUNTIME-stateful (same TYPE, different @c expected field), so the generic
- *  reducer's TYPE-based idempotent law would wrongly collapse two distinct bool
- *  singletons.  Compute the finite meet directly, more specialised than the
- *  generic @c IsSubobject combinators, so it wins; a finite bool set is
- *  extensional, so the result is a @c FiniteBooleanSet. */
-export template <typename L, typename C>
-constexpr auto operator&(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
-  return FiniteBooleanSet<L>{L::AND(a(false), b(false)),
-                             L::AND(a(true), b(true))};
-}
-/** @brief @c bool @c BooleanEqPredicate join, dual to the meet above. */
-export template <typename L, typename C>
-constexpr auto operator|(
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& a,
-    const Comprehension<𝔸<bool, L, C>, BooleanEqPredicate>& b) {
-  return FiniteBooleanSet<L>{L::OR(a(false), b(false)),
-                             L::OR(a(true), b(true))};
-}
 
 // ---------------------------------------------------------------------------
 // Cross-carrier meet on the variant pair (existential proof, slice of #362)
@@ -613,17 +533,19 @@ constexpr auto operator|(const A& lhs, const B& rhs) {
 
 /** @brief Value-level elevate of a @c structured_and result to the meet's
  *  normal-form value: an empty reduction is the initial object @c Ø; a
- *  finite / static-singleton reduction is itself a set-like leaf (returned
- *  bare); any other reduction is a named predicate wrapped back into a @c Set.
+ *  finite reduction (a point) is itself a set-like leaf (returned bare); any
+ *  other reduction is a named predicate wrapped back into a comprehension.
  *  (Extracted verbatim from the pre-reducer @c operator& structured_and branch
- *  so @c SetCombine's type and this value stay in lockstep.) */
-export template <typename T, typename L, typename Reduced>
+ *  so @c SetCombine's type and this value stay in lockstep.)
+ *  @tparam T the carrier.
+ *  @tparam L the species.
+ *  @tparam Reduced the reducer's result: an @c EmptyPredicate, a sized leaf, or
+ *          a named predicate. */
+export template <typename T, IsOckhamAlgebra L, typename Reduced>
 constexpr auto elevate_meet(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
   if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
     return Ø<T, L>{};
-  } else if constexpr (requires { typename Result::is_static_singleton_tag; }) {
-    return reduced;
   } else if constexpr (requires { typename Result::cardinality_type; }) {
     // Nested (not &&-chained): a Result without cardinality_type must not
     // instantiate the inner probe.
@@ -734,7 +656,7 @@ constexpr auto universe(const Comprehension<Base, Predicate>&) {
 // A comprehension over a universe 𝔸<T,L> is the opaque arm: the default leg
 // applies and the predicate P is its χ datum --- the very object `operator&`
 // hands to `structured_and`, so the leg names what the reducer already reads.
-export template <typename T, typename L, typename P, typename C>
+export template <typename T, IsOckhamAlgebra L, typename P, IsCardinality C>
 constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
   return s.predicate;
 }
@@ -757,10 +679,11 @@ static_assert(
 
 namespace dedekind::category {
 // A Set's value is determined by its type only when its predicate is stateless.
-// A runtime-stateful predicate (a field-carrying P such as BooleanEqPredicate)
+// A runtime-stateful predicate (a field-carrying P such as a Point's pivot)
 // makes two same-type Sets potentially distinct, so the reducer's type-based
 // idempotence must NOT collapse them; gate it on the predicate's emptiness.
-template <typename T, typename L, typename P, typename C>
+template <typename T, IsOckhamAlgebra L, typename P,
+          dedekind::sets::IsCardinality C>
 inline constexpr bool idempotent_leaf_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<T, L, C>, P>> =
     std::is_empty_v<P>;
@@ -991,6 +914,22 @@ constexpr auto operator^(const LHS& a, const RHS& b) {
   } else {
     return (a & ~b) | (~a & b);
   }
+}
+
+/** @brief Cross-species symmetric difference: both operands are lifted into
+ *  the join of their species and @c △ is computed there (as for @c & and
+ *  @c |).  @tparam LHS / @tparam RHS set objects on one carrier, of different
+ *  species with a join. */
+export template <IsSetObject LHS, IsSetObject RHS>
+  requires std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+           (!std::same_as<typename LHS::logic_species,
+                          typename RHS::logic_species>) &&
+           dedekind::category::HaveLogicJoin<typename LHS::logic_species,
+                                             typename RHS::logic_species>
+constexpr auto operator^(const LHS& a, const RHS& b) {
+  using Log =
+      join_logic_t<typename LHS::logic_species, typename RHS::logic_species>;
+  return lift_to<Log>(a) ^ lift_to<Log>(b);
 }
 
 // The set-lattice operations ARE the operators @c operator& / @c operator| /

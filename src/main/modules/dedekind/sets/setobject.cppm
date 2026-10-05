@@ -61,7 +61,7 @@ using dedekind::category::IsSubobject;
  *     ≡ 𝔸<T, L, C>      𝔸 is its own universe: the fixpoint
  *
  *   CHARACTERISTIC (π_2)           one of two kinds of predicate
- *     STRUCTURED   ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ⊕ Meet<H↑,H↓> ⊕ ...
+ *     STRUCTURED   ⊥ ⊕ ⊤ ⊕ Halfspace ⊕ Singleton ⊕ Interval ⊕ ...
  *                  flat normal-form values, not trees; meet-closed;
  *                  ==/≤/∩ decided by arm-pair overloads (ADL, in the
  *                  carrier's own module)

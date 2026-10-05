@@ -149,11 +149,9 @@ TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹"
   // ambient: Disc only sees the cardinality / element identity; the
   // semiring upgrade sees the algebraic operations.
   //
-  // FIXME(#586): the canonical 𝔹 carrier @c FiniteBooleanSet<L>
-  // does not directly satisfy @c IsSet (no @c Ambient member), so we
-  // detour through @c ambient_set<bool>(...) here.  Issue #586 tracks
-  // dog-fooding the canonical carriers on the @c IsSet aggregator so
-  // tests can write @c discrete_lift_t<FiniteBooleanSet<L>> directly.
+  // FIXME(#586): dog-fooding the canonical carrier 𝔹 on the @c IsSet
+  // aggregator is tracked there; until then the lift detours through
+  // @c ambient_set<bool>(...).
   const auto bool_set =
       ambient_set<bool>([](const bool&) { return true; });  // 𝔹 = {0, 1}
   using BoolSet = decltype(bool_set);

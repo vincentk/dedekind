@@ -8,7 +8,8 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section ranges__Interval_as_Range
- * An interval is @c order's @c Meet<Halfspace↑, Halfspace↓> --- two bounds,
+ * An interval is @c order's two-sided cut @c Interval<T,SL,SU,L> --- two
+ * bounds,
  * values, over a discrete chain.  This partition reads it as the half-open
  * @c std::ranges::iota_view @c [start, @c bound) and back: @c to_iota_view
  * normalises the strictness of the bounds through the NNO step, and
@@ -56,7 +57,7 @@ using namespace dedekind::category;
  * @section ranges__Halfspace_To_Iota_View_Bridge
  *
  * @brief The interval ↔ iota_view bridge: order's value-carrying
- *        @c Interval<T,SL,SU,L> @c = @c Meet<Halfspace↑, Halfspace↓> read as
+ *        @c Interval<T,SL,SU,L> (the two-sided @c Bounds cut) read as
  *        the half-open @c std::ranges::iota_view @c [start, @c bound), and
  *        back, as a total inverse.
  *

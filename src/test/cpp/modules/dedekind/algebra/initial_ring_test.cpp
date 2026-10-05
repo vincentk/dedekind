@@ -191,11 +191,11 @@ TEST_CASE(
   // codomain.
   constexpr Singleton<bool, Boole> s_true{true};
   const auto image_set = embed_𝔹_𝕂3(s_true);
-  CHECK(image_set.pivot == Ternary::True);
+  CHECK(origin(image_set) == Ternary::True);
 
   constexpr Singleton<bool, Boole> s_false{false};
   const auto image_set_false = embed_𝔹_𝕂3(s_false);
-  CHECK(image_set_false.pivot == Ternary::False);
+  CHECK(origin(image_set_false) == Ternary::False);
 }
 
 // ===========================================================================

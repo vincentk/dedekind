@@ -111,22 +111,19 @@ constexpr auto embed_𝔹_𝕂3(S&& s) {
 // type.  Sister anchor to PR #624's @c embed_𝔹_ℕ witness in @c :natural ---
 // same shape, different codomain.  Lives next to the arrow itself so the
 // value-pin moves with the canonical surface.
-static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
-                  dedekind::category::Ternary::True,
-              "embed_𝔹_𝕂3(Singleton<true>) lands at Ternary::True on the 𝕂3 "
+static_assert(origin(embed_𝔹_𝕂3(η(true))) == dedekind::category::Ternary::True,
+              "embed_𝔹_𝕂3(η(true)) lands at Ternary::True on the 𝕂3 "
               "carrier.");
-static_assert(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
+static_assert(origin(embed_𝔹_𝕂3(η(false))) ==
                   dedekind::category::Ternary::False,
-              "embed_𝔹_𝕂3(Singleton<false>) lands at Ternary::False on the 𝕂3 "
+              "embed_𝔹_𝕂3(η(false)) lands at Ternary::False on the 𝕂3 "
               "carrier.");
 
 // Concept-level witness: the result realises the categorical image of
 // the source set under the canonical mono 𝔹 ↪ 𝕂3 — Subobject of
 // @c Cod<embed_𝔹_𝕂3_> = Ternary per @c :category:image.
 static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_𝔹_𝕂3(dedekind::sets::Singleton<bool, Boole>{true})),
-        decltype(embed_𝔹_𝕂3_)>,
+    IsImageOf<decltype(embed_𝔹_𝕂3(η(true))), decltype(embed_𝔹_𝕂3_)>,
     "embed_𝔹_𝕂3(S) realises IsImageOf<result, embed_𝔹_𝕂3_>: result is "
     "a Subobject of Cod<embed_𝔹_𝕂3_> = Ternary, witnessing the "
     "categorical image of S under the canonical mono 𝔹 ↪ 𝕂3.");

@@ -8,7 +8,7 @@
  * live inside this library the neighborhood must obey the Lwv laws: it is a
  * subobject of its carrier (Member + ι + χ, the ETCS axioms) over a regular
  * carrier (the Jlt value-semantics half), with a decidable characteristic map
- * and no enumeration.  Order's interval @c Meet<H↑,H↓> is a set object
+ * and no enumeration.  Order's two-sided cut @c Interval is a set object
  * (@c IsSetObject) whose openness reads off the strictness of its bounds, so
  * one open interval is all of these at once.
  *
@@ -27,16 +27,17 @@ import dedekind.topology; // IsOpen, IsClosed, IsNeighborhood (read off order's 
 
 using namespace dedekind::numbers;
 using dedekind::order::Direction;
-using dedekind::order::Halfspace;
+using dedekind::order::DownRay;
 using dedekind::order::make_interval;
 using dedekind::order::Strictness;
+using dedekind::order::UpRay;
 
 namespace {
 using Q = Rational<>;
 // A rational neighborhood (7/5, 3/2) ⊂ ℚ — an open interval between two ℚ.
 constexpr auto nbhd =
     make_interval<Strictness::Strict, Strictness::Strict>(Q{7, 5}, Q{3, 2});
-using QNbhd = std::remove_cvref_t<decltype(nbhd)>;  // Meet<H↑, H↓> over ℚ
+using QNbhd = std::remove_cvref_t<decltype(nbhd)>;  // the two-sided cut over ℚ
 }  // namespace
 
 TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
@@ -60,8 +61,7 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
     // open, not closed, and hence not clopen: the real open ⊋ clopen.
     using namespace dedekind::topology;
-    using QOpenRay =
-        Halfspace<Q, Direction::Upward, Strictness::Strict>;  // {x > p}
+    using QOpenRay = UpRay<Q, Strictness::Strict>;  // {x > p}
     STATIC_CHECK(!HasDiscreteCarrier<QOpenRay>);
     STATIC_CHECK(!HasDiscreteCarrier<QNbhd>);
     STATIC_CHECK(IsOpen<QOpenRay> && !IsClosed<QOpenRay> &&
@@ -78,10 +78,9 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
       "a mixed closure is neither") {
     using namespace dedekind::topology;
     using dedekind::category::Not;
-    using ClosedRay = Halfspace<Q, Direction::Upward, Strictness::NonStrict>;
+    using ClosedRay = UpRay<Q, Strictness::NonStrict>;
     STATIC_CHECK(IsClosed<ClosedRay> && !IsOpen<ClosedRay>);
-    STATIC_CHECK(
-        IsClosed<Not<Halfspace<Q, Direction::Upward, Strictness::Strict>>>);
+    STATIC_CHECK(IsClosed<Not<UpRay<Q, Strictness::Strict>>>);
     constexpr auto closed_iv =
         make_interval<Strictness::NonStrict, Strictness::NonStrict>(Q{0}, Q{3});
     constexpr auto left_closed =

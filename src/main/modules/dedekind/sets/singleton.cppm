@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sets/singleton.cppm
  * @partition :singleton
- * @brief The Atomic Body: Implementation of the Singleton Species {x}.
+ * @brief The equality atom: the point {x} as a comprehension over 𝔸<T>.
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -67,119 +67,90 @@ namespace dedekind::sets {
 
 using namespace dedekind::category;
 
-/** @brief @f$\{x\}@f$: the atom, the point @c {x : T | x == pivot}.  The pivot
- *  rides as a VALUE, so one type @c Singleton<T> covers every point and a
- *  @c constexpr instance still folds at compile time (@c {n | 3<n<5} is the
- *  constant @c Singleton<int>{4}).  Extensional of size 1, hence decidable
- *  whatever the ambient logic: @c cardinality_type is @c Finite.
- *  @tparam T the carrier (needs @c ==).
- *  @tparam L the logic species the membership answer is valued in. */
-export template <typename T, typename L = Boole>
-struct Singleton : SetExpr<Singleton<T, L>, T, L> {
+/** @brief The equality atom @c {x : T | x == pivot}, the datum of the pure
+ *  equality theory, the one leaf every regular carrier offers (a point in ℂ is
+ *  this).  On a chain the cut subsumes it, @c x == p ⟺ x ≥ p ∧ x ≤ p.  The
+ *  pivot is a value; the set is @c Finite whatever the species.
+ *  @tparam T the carrier, equality-comparable. */
+export template <std::equality_comparable T>
+struct Point {
+  using Domain = T;
+  using Codomain = bool;
   using cardinality_type = Finite;
-  using base_set_type = Singleton<T, L>;
-  using is_static_singleton_tag =
-      void;  // read by elevate_meet: a point stays bare
-
   T pivot{};
 
-  constexpr Singleton() = default;
-  constexpr explicit Singleton(T v) : pivot(v) {}
+  constexpr Point() = default;
+  /** @brief Implicit and converting, so a literal of another type is one
+   *  user-defined conversion, the carrier's own. */
+  template <std::convertible_to<T> U>
+  constexpr Point(U&& v)  // NOLINT(google-explicit-constructor)
+      : pivot(static_cast<T>(std::forward<U>(v))) {}
 
-  /** @section singleton__Algebraic_Axioms */
-  template <typename Op>
-  static constexpr bool is_associative_v =
-      std::is_same_v<Op, std::bit_and<base_set_type>> ||
-      std::is_same_v<Op, std::bit_or<base_set_type>>;
-  template <typename Op>
-  static constexpr bool is_idempotent_v =
-      std::is_same_v<Op, std::bit_and<base_set_type>> ||
-      std::is_same_v<Op, std::bit_or<base_set_type>>;
-
-  /** @brief χ(x) = [x == pivot], valued in @c L::Ω. */
-  constexpr typename L::Ω operator()(const T& v) const {
-    return (v == pivot) ? L::True : L::False;
-  }
-  /** @brief Heterogeneous membership: any value of another type @c U with a
-   *  cross-type @c == against @c T (the variant proxies @c Cardinality /
-   *  @c SignedCardinality against an @c int point, #423/#425; a @c double
-   *  against an @c int point).  The comparison happens in the pair's common
-   *  type, never by narrowing @c x to @c T: @c Singleton<int>{1}(1.5) is
-   *  @c False. */
+  /** @brief χ(x) = [x == pivot]. */
+  constexpr bool operator()(const T& v) const { return v == pivot; }
+  /** @brief The foreign carriers this datum admits: any @c U with a cross-type
+   *  @c == against @c T.  Read by the comprehension's heterogeneous χ. */
   template <typename U>
-    requires(!std::same_as<std::remove_cvref_t<U>, T>) &&
-            requires(const U& x, const T& v) {
-              { x == v } -> std::convertible_to<bool>;
-            }
-  constexpr typename L::Ω operator()(const U& x) const {
-    return (x == pivot) ? L::True : L::False;
+  static constexpr bool admits = !std::same_as<std::remove_cvref_t<U>, T> &&
+                                 requires(const U& x, const T& v) {
+                                   { x == v } -> std::convertible_to<bool>;
+                                 };
+  /** @brief Membership of a foreign value, compared unnarrowed:
+   *  @c Point<int>{1}(1.5) is @c false. */
+  template <typename U>
+    requires admits<U>
+  constexpr bool operator()(const U& x) const {
+    return x == pivot;
   }
 
-  constexpr T origin() const { return pivot; }
-  /** @section singleton__Extensionality_Proof */
   constexpr std::size_t size() const { return 1; }
-  constexpr std::size_t upper_bound() const { return 1; }
-  constexpr auto cardinality() const { return Finite{}; }
-
-  /** @brief Two points are the same set iff their pivots agree, whatever the
-   *  logic species each was tagged with. */
-  template <typename L2>
-  constexpr bool operator==(const Singleton<T, L2>& other) const {
-    return pivot == other.pivot;
-  }
-  auto operator<=>(const Singleton&) const = delete;
-
-  /** @brief @c {pivot} ⊆ S ⟺ pivot ∈ S, in the shared species @c L (the
-   *  universal set keeps its own @c X ⊆ 𝔸 overload). */
-  template <typename S>
-    requires IsLSet<S> && std::same_as<typename S::logic_species, L> &&
-             (!requires { typename S::is_universal_boundary; })
-  constexpr typename L::Ω operator<=(const S& other) const {
-    return other(pivot);
-  }
-
-  /** @brief Union of two atoms @f$\{a\}\cup\{b\}@f$ as the recoverable
-   *  reducer @c category::Join node: both pivots survive structurally
-   *  (reachable as @c .predicate().lhs / @c .rhs), the prerequisite for the
-   *  power-set monad's union-flatten @c μ (#691). */
-  template <typename U, typename L2>
-    requires std::same_as<L2, L>
-  constexpr auto operator|(const Singleton<U, L2>& other) const {
-    using Or = dedekind::category::Join<Singleton<T, L>, Singleton<U, L2>>;
-    return Comprehension<𝔸<T, L>, Or>{Or{*this, other}};
-  }
-  /** @brief Singleton-bounded meet, same species only (a cross-species meet
-   *  routes through the lifting overload in @c :expressions, #894). */
-  template <typename U, typename L2>
-    requires std::same_as<L2, L>
-  constexpr auto operator&(const Singleton<U, L2>& other) const& {
-    return Comprehension{*this, [s2 = other](const T& x) { return s2(x); }};
-  }
-  // FIXME(#992): de-lambda to a @c category::Meet node the way @c | was.
-  template <typename U, typename L2>
-    requires std::same_as<L2, L>
-  constexpr auto operator&(const Singleton<U, L2>& other) const&& {
-    const auto meet_pred = [s1 = *this, s2 = other](const T& x) {
-      return s1(x) && s2(x);
-    };
-    return Comprehension{𝔸<T, L>{}, meet_pred};
-  }
-  /** @brief Symmetric difference @c {a} @c △ @c {b}: empty when @c a == b,
-   *  else the two-element set, decided pointwise (the pivots are values, so
-   *  equal TYPES do not mean equal sets). */
-  template <typename U, typename L2>
-  constexpr auto operator^(const Singleton<U, L2>& other) const {
-    const auto xor_pred = [s1 = *this, s2 = other](const T& x) {
-      const auto a = dedekind::category::lift_logic<L>(s1(x));
-      const auto b = dedekind::category::lift_logic<L>(s2(x));
-      return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-    };
-    return Comprehension{𝔸<T, L>{}, xor_pred};
-  }
 };
-/** @brief CTAD: @c Singleton{4} deduces @c Singleton<int>. */
-export template <typename T>
-Singleton(T) -> Singleton<T>;
+
+/** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
+ *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
+ *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
+ *  @tparam T the carrier, a regular value type. */
+export template <std::regular T>
+  requires(!std::is_empty_v<T>)
+constexpr Point<T> operator==(Projection<0>, T v) {
+  return Point<T>{std::move(v)};
+}
+
+/** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
+ *  An alias, not a noun: its operators are every comprehension's (the
+ *  reducer's nodes); what is specific to a point follows as free functions.
+ *  @tparam T the carrier.
+ *  @tparam L the species the membership answer is valued in. */
+export template <std::equality_comparable T, IsOckhamAlgebra L = Boole>
+using Singleton = Comprehension<𝔸<T, L>, Point<T>>;
+
+/** @brief The pivot of a point, @c ε of the comonad reading (the counit
+ *  @c {x} ↦ @c x). */
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C>
+constexpr T origin(const Comprehension<𝔸<T, L, C>, Point<T>>& s) {
+  return s.predicate.pivot;
+}
+
+/** @brief Two points are the same set iff their pivots agree, whatever the
+ *  species each was tagged with. */
+export template <std::equality_comparable T, IsOckhamAlgebra L1,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C2>
+constexpr bool operator==(const Comprehension<𝔸<T, L1, C1>, Point<T>>& a,
+                          const Comprehension<𝔸<T, L2, C2>, Point<T>>& b) {
+  return a.predicate.pivot == b.predicate.pivot;
+}
+
+/** @brief @c {pivot} ⊆ S ⟺ pivot ∈ S, in the shared species @c L (the
+ *  universal set keeps its own @c X ⊆ 𝔸 overload). */
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+                 IsLSet S>
+  requires std::same_as<typename S::logic_species, L> &&
+           (!requires { typename S::is_universal_boundary; }) &&
+           (!std::same_as<S, Comprehension<𝔸<T, L, C>, Point<T>>>)
+constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
+                                   const S& other) {
+  return other(s.predicate.pivot);
+}
 
 /** @brief A point is the whole universe only on the unit carrier: @c {x} ==
  * 𝔸<T> iff @c T has exactly one value (@c category::One).  On every other
@@ -187,12 +158,16 @@ Singleton(T) -> Singleton<T>;
  *  (@c 𝔸<bool>{} | (π == fix(v)) collapses to a @c Singleton<bool>, and
  *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
  *  @c :order, so ADL finds it from @c sets-level generic code. */
-export template <typename T, typename L, typename L2, typename C>
-constexpr bool operator==(const Singleton<T, L>&, const 𝔸<T, L2, C>&) {
+export template <std::equality_comparable T, IsOckhamAlgebra L,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C>
+constexpr bool operator==(const Comprehension<𝔸<T, L, C1>, Point<T>>&,
+                          const 𝔸<T, L2, C>&) {
   return std::same_as<T, dedekind::category::One>;
 }
-export template <typename T, typename L, typename L2, typename C>
-constexpr bool operator==(const 𝔸<T, L2, C>& u, const Singleton<T, L>& s) {
+export template <std::equality_comparable T, IsOckhamAlgebra L,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C>
+constexpr bool operator==(const 𝔸<T, L2, C>& u,
+                          const Comprehension<𝔸<T, L, C1>, Point<T>>& s) {
   return s == u;
 }
 
@@ -201,63 +176,24 @@ constexpr bool operator==(const 𝔸<T, L2, C>& u, const Singleton<T, L>& s) {
  *  is not a point, so there is deliberately no overload there and the generic
  *  @c Not node applies.  Lives next to @c Singleton so ADL finds it wherever
  *  the type is used. */
-export template <typename L>
-constexpr auto operator~(const Singleton<bool, L>& s) {
-  return Singleton<bool, L>{!s.pivot};
+export template <IsOckhamAlgebra L, IsCardinality C>
+constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) {
+  return 𝔸<bool, L>{} | Point<bool>{!s.predicate.pivot};
 }
 
-// ---------------------------------------------------------------------------
-// Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
-// (#469 review-driven specialisations).
-//
-// Sound version: produce a lambda-Set whose predicate evaluates the
-// pointwise XOR.  When @c S has decidable (Boole) membership
-// the predicate could be specialised further at construction time:
-//   if pivot ∈ S → result = S - {pivot} → predicate s(x) && x != pivot
-//   if pivot ∉ S → result = S + {pivot} → predicate s(x) || x == pivot
-// That lossy-membership-pivot specialisation is a follow-on micro-
-// optimisation; this slice keeps the operator surface complete and
-// correct without engineering the predicate-rewrite branch.
-// ---------------------------------------------------------------------------
-
-/** @brief Product of two singletons: @f$\{a\}\times\{b\}=\{(a,b)\}@f$,
- * collapsed to the @c Singleton of the pair.  A structural collapse (the
- * product-side analogue of the complement-pair collapse), so a singleton
- * product is
+/** @brief Product of two points: @f$\{a\}\times\{b\}=\{(a,b)\}@f$, the
+ *  point of the pair.  A structural collapse (the product-side analogue of
+ *  the complement-pair collapse), so a product of points is
  *  @b equality-comparable, not merely membership-testable:
- *  @c η(a)*η(b) @c == @c η(std::pair{a,b}).  General (non-singleton) products
- *  keep the predicate-set form of @c :expressions cartesian_product. */
-export template <typename T1, typename L1, typename T2, typename L2>
-constexpr auto operator*(const Singleton<T1, L1>& a,
-                         const Singleton<T2, L2>& b) {
-  return Singleton<std::pair<T1, T2>, L1>{std::pair{a.pivot, b.pivot}};
-}
-
-/** @brief @c {a} @c △ @c S for a comprehension @c S: both answers are lifted
- *  into the @b join of the singleton's species and the comprehension's @b own
- *  species (which may sit above its base's tag @c L2), and the symmetric
- *  difference is computed there. */
-export template <typename T, typename L1, typename L2, typename P, typename C>
-  requires dedekind::category::HaveLogicJoin<
-      L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>
-constexpr auto operator^(const Singleton<T, L1>& s,
-                         const Comprehension<𝔸<T, L2, C>, P>& other) {
-  using L = dedekind::category::join_logic_t<
-      L1, typename Comprehension<𝔸<T, L2, C>, P>::logic_species>;
-  const auto xor_pred = [s, other](const T& x) {
-    const auto a = dedekind::category::lift_logic<L>(s(x));
-    const auto b = dedekind::category::lift_logic<L>(other(x));
-    return L::OR(L::AND(a, L::RFL(b)), L::AND(L::RFL(a), b));
-  };
-  return Comprehension{𝔸<T, L>{}, xor_pred};
-}
-
-export template <typename T, typename L1, typename L2, typename P, typename C>
-  requires dedekind::category::HaveLogicJoin<
-      L2, typename Comprehension<𝔸<T, L1, C>, P>::logic_species>
-constexpr auto operator^(const Comprehension<𝔸<T, L1, C>, P>& other,
-                         const Singleton<T, L2>& s) {
-  return s ^ other;
+ *  @c η(a)*η(b) @c == @c η(std::pair{a,b}).  General products keep the
+ *  predicate-set form of @c :expressions cartesian_product. */
+export template <std::equality_comparable T1, IsOckhamAlgebra L1,
+                 IsCardinality C1, std::equality_comparable T2,
+                 IsOckhamAlgebra L2, IsCardinality C2>
+constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, Point<T1>>& a,
+                         const Comprehension<𝔸<T2, L2, C2>, Point<T2>>& b) {
+  return Singleton<std::pair<T1, T2>, L1>{
+      std::pair{a.predicate.pivot, b.predicate.pivot}};
 }
 
 static_assert(IsSet<Singleton<int>>, "A singleton must be a set.");
@@ -284,10 +220,13 @@ static_assert(
  *  countable carrier) is #840. */
 
 /** @brief @c singleton: @f$T \to \mathrm{Singleton}\langle T\rangle@f$ ---
- *  the power-set monad's unit @f$\eta@f$ (see the section note). */
-export template <typename T>
+ *  the power-set monad's unit @f$\eta@f$ (see the section note).
+ *  @tparam L the species.
+ *  @tparam T the pivot's type (decayed into the carrier). */
+export template <IsOckhamAlgebra L = Boole, typename T>
 constexpr auto singleton(T&& value) {
-  return Singleton<std::decay_t<T>>{std::forward<T>(value)};
+  return 𝔸<std::decay_t<T>, L>{} |
+         Point<std::decay_t<T>>{std::forward<T>(value)};
 }
 
 /** @brief @c η --- the idiomatic spelling of @c singleton: the power-set
@@ -299,7 +238,7 @@ constexpr auto singleton(T&& value) {
  *  (union-flatten) and full hub are #691; the @b enumerated power set is
  *  #840; the @c Sub(C) subobject @b lattice @c 𝔓 is
  *  @c order:powerset (#830) --- three distinct reifications of the power
- * object, all sharing this unit. */
+ * object, all sharing this unit.  @tparam T the pivot's type. */
 export template <typename T>
 constexpr auto η(T&& value) {
   return singleton(std::forward<T>(value));
@@ -317,10 +256,11 @@ constexpr auto η(T&& value) {
  *  @c η; the name picks out the @b subobject-inclusion reading.
  *  @note This is mathematical motivation, not a concept claim: @c ι(x) returns
  * a
- *  @c Singleton (its callable is the membership classifier @f$T \to
+ *  point set (its callable is the membership classifier @f$T \to
  * \Omega@f$),
  *  @b not a reified arrow carrying an @c IsMonicArrow monicity witness
- *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step. */
+ *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step.
+ *  @tparam T the pivot's type. */
 export template <typename T>
 constexpr auto ι(T&& value) {
   return singleton(std::forward<T>(value));
@@ -338,24 +278,36 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  */
 
 /** @section singleton__Bind (>>=) */
-export template <typename T, typename L, typename Func>
-constexpr auto operator>>=(const Singleton<T, L>& s, Func&& f) {
+/** @brief Kleisli bind on a point, @c {x} >>= f = f(x): the power-set monad's
+ *  bind at cardinality one.
+ *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
+ *  @tparam Func the Kleisli arrow @c T → a set. */
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+                 std::invocable<const T&> Func>
+constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
+                           Func&& f) {
   /**
-   * @details Kleisli Bind for Singletons:
-   * 1. Sample the internal species (The Pull).
+   * @details Kleisli Bind for points:
+   * 1. Sample the pivot (The Pull).
    * 2. Apply the Kleisli Arrow f: T -> Singleton<U, L>.
    */
-  return std::forward<Func>(f)(s.pivot);
+  return std::forward<Func>(f)(s.predicate.pivot);
 }
 
 /** @section singleton__Singleton_CoKleisli_Triple */
 
 /** @section singleton__Extend (<<=) */
-export template <typename T, typename L, typename Func>
-constexpr auto operator<<=(const Singleton<T, L>& s, Func&& f) {
-  using U = std::invoke_result_t<Func, Singleton<T, L>>;
+/** @brief Co-Kleisli extend on a point, @c {x} <<= f = {f({x})}.
+ *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
+ *  @tparam Func the co-Kleisli arrow, a point @c → a value. */
+export template <
+    std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+    std::invocable<const Comprehension<𝔸<T, L, C>, Point<T>>&> Func>
+constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
+                           Func&& f) {
+  using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
   // Co-Kleisli Extend: apply contextual logic and re-wrap.
-  return Singleton<U, L>{std::forward<Func>(f)(s)};
+  return 𝔸<U, L>{} | Point<U>{std::forward<Func>(f)(s)};
 }
 
 /**
@@ -388,12 +340,12 @@ constexpr auto operator<<=(const Singleton<T, L>& s, Func&& f) {
  * is itself due for dissolution under #607's Juliet-clean refactor;
  * this slice lands the entry-point breadcrumbs in their current form.
  */
-export template <typename L, dedekind::category::IsArrow F>
+export template <IsOckhamAlgebra L, IsCardinality C, IsArrow F>
 constexpr auto image(
-    F&& f,
-    const Singleton<dedekind::category::Dom<std::remove_cvref_t<F>>, L>& s) {
-  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
-  return Singleton<U, L>{std::forward<F>(f)(s.pivot)};
+    F&& f, const Comprehension<𝔸<Dom<std::remove_cvref_t<F>>, L, C>,
+                               Point<Dom<std::remove_cvref_t<F>>>>& s) {
+  using U = Cod<std::remove_cvref_t<F>>;
+  return 𝔸<U, L>{} | Point<U>{std::forward<F>(f)(s.predicate.pivot)};
 }
 
 /** @section singleton__Image_Terminal_Morphism (#661)
@@ -406,18 +358,20 @@ constexpr auto image(
  *  - @c image(F, @c 𝔸<T, @c L, @c C>) →
  *    @c Singleton<One, @c L>{One{}} — inhabited source collapses
  *    to the singleton on @c One.
- *  - @c image(F, @c Singleton<T, @c L>) falls through to the
- *    generic @c image(F, @c Singleton) above (correct: returns
- *    @c Singleton<One, L>{F(pivot)} = @c Singleton<One, L>{One{}}).
+ *  - @c image(F, a point over @c T) falls through to the generic
+ *    @c image(F, point) above (correct: the point @c {F(pivot)} =
+ *    @c {One{}}).
  *
  *  Predicate-based @c Comprehension sources fall through to the
  *  symbolic-fallback @c image() in @c :expressions (inhabitation
- *  undecidable in general). */
-export template <typename L, typename T, typename C, typename F>
-  requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
-           std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+ *  undecidable in general).
+ *  @tparam L the species.  @tparam T the carrier.  @tparam C the cardinality.
+ *  @tparam F the terminal morphism @c T → 1. */
+export template <IsOckhamAlgebra L, typename T, IsCardinality C, typename F>
+  requires IsTerminalMorphism<std::remove_cvref_t<F>> &&
+           std::same_as<Dom<std::remove_cvref_t<F>>, T>
 constexpr auto image(F&&, const 𝔸<T, L, C>&) {
-  return Singleton<dedekind::category::One, L>{dedekind::category::One{}};
+  return singleton<L>(One{});
 }
 
 export template <typename L, typename T, typename F>

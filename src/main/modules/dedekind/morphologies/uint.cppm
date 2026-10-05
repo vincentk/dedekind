@@ -159,7 +159,7 @@ constexpr dedekind::sets::Cardinality embed_uint_ℕ(U v) {
                 "unsigned long long), a wider Cardinality finite-fragment "
                 "constructor or an explicit ℵ_0 escalation on overflow would "
                 "be needed.");
-  return dedekind::sets::finite_cardinality(static_cast<std::size_t>(v));
+  return finite_cardinality(static_cast<std::size_t>(v));
 }
 
 /**
@@ -238,37 +238,28 @@ constexpr auto embed_uint_ℕ(S&& s) {
 
 // (The no-narrowing pin in the @c requires-clause above is the substantive
 // guard.  Negative-witness @c static_asserts of the form
-// @c "!requires @c { @c embed_uint_ℕ(Singleton<int>{0}); @c }" trigger
+// @c "!requires @c { @c embed_uint_ℕ(η(0)); @c }" trigger
 // a hard "no matching function" diagnostic on clang-22 inside the
 // nested-requires context rather than absorbing as SFINAE; pin via
 // runtime tests in @c uint_test.cpp instead.)
 
-// Set-level lift witness: @c embed_uint_ℕ on @c Singleton<unsigned>{42}
+// Set-level lift witness: @c embed_uint_ℕ on @c η(42)
 // lands at @c finite_cardinality(42).  Pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
-static_assert(
-    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
-                     42u})
-            .pivot == dedekind::sets::finite_cardinality(42),
-    "embed_uint_ℕ(Singleton<unsigned>{42}) lands at "
-    "finite_cardinality(42) on the Cardinality carrier.");
-static_assert(
-    embed_uint_ℕ(dedekind::sets::Singleton<unsigned, dedekind::category::Boole>{
-                     0u})
-            .pivot == dedekind::sets::finite_cardinality(0),
-    "embed_uint_ℕ(Singleton<unsigned>{0}) lands at "
-    "finite_cardinality(0) on the Cardinality carrier.");
+static_assert(origin(embed_uint_ℕ(η(42u))) == finite_cardinality(42),
+              "embed_uint_ℕ(η(42)) lands at "
+              "finite_cardinality(42) on the Cardinality carrier.");
+static_assert(origin(embed_uint_ℕ(η(0u))) == finite_cardinality(0),
+              "embed_uint_ℕ(η(0)) lands at "
+              "finite_cardinality(0) on the Cardinality carrier.");
 
 // Concept-level witness: the result realises the categorical image of
 // the source set under the canonical mono unsigned ↪ ℕ — Subobject
 // of @c Cod<embed_uint_ℕ_> = Cardinality per @c :category:image.
 static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_uint_ℕ(dedekind::sets::Singleton<
-                              unsigned, dedekind::category::Boole>{42u})),
-        decltype(embed_uint_ℕ_)>,
+    IsImageOf<decltype(embed_uint_ℕ(η(42u))), decltype(embed_uint_ℕ_)>,
     "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "
     "is a Subobject of Cod<embed_uint_ℕ_> = Cardinality, witnessing the "
     "categorical image of S under the canonical mono unsigned ↪ ℕ.");

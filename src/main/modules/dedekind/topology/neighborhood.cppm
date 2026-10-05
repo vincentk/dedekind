@@ -114,12 +114,32 @@ inline constexpr bool is_order_open_v = false;
  *  @ref is_order_open_v. */
 export template <typename S>
 inline constexpr bool is_order_closed_v = false;
-template <typename T, Direction D, typename L>
-inline constexpr bool is_order_open_v<Halfspace<T, D, Strictness::Strict, L>> =
-    true;
-template <typename T, Direction D, typename L>
+// A cut is open when every present side is strict, closed when every present
+// side is non-strict (an absent side is both).
+template <IsSide Side>
+constexpr bool side_is_strict() {
+  if constexpr (is_bounded_side_v<Side>)
+    return Side::strictness == Strictness::Strict;
+  else
+    return true;
+}
+template <IsSide Side>
+constexpr bool side_is_nonstrict() {
+  if constexpr (is_bounded_side_v<Side>)
+    return Side::strictness == Strictness::NonStrict;
+  else
+    return true;
+}
+template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
+          IsSide Hi>
 inline constexpr bool
-    is_order_closed_v<Halfspace<T, D, Strictness::NonStrict, L>> = true;
+    is_order_open_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> =
+        side_is_strict<Lo>() && side_is_strict<Hi>();
+template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
+          IsSide Hi>
+inline constexpr bool
+    is_order_closed_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> =
+        side_is_nonstrict<Lo>() && side_is_nonstrict<Hi>();
 template <typename T, typename L>
 inline constexpr bool is_order_closed_v<Singleton<T, L>> = true;
 template <typename A, typename B>
@@ -252,8 +272,10 @@ concept IsConvex =
  */
 // Convexity of order's shapes: a principal up-/down-set and a point are
 // convex, and a finite meet of convex sets is convex.
-template <typename T, Direction D, Strictness St, typename L>
-inline constexpr bool is_convex_v<Halfspace<T, D, St, L>> = true;
+template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
+          IsSide Hi>
+inline constexpr bool
+    is_convex_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> = true;
 template <typename T, typename L>
 inline constexpr bool is_convex_v<Singleton<T, L>> = true;
 template <typename A, typename B>
@@ -263,7 +285,7 @@ inline constexpr bool is_convex_v<Meet<A, B>> =
 // The dense-carrier witnesses (a strict ray on ℚ is open and NOT closed) live
 // downstream with the carriers that are genuinely dense and totally ordered:
 // numbers/neighborhood_test.  Here only the discrete reading is pinned.
-static_assert(IsClopen<Halfspace<int, Direction::Upward, Strictness::Strict>>,
+static_assert(IsClopen<UpRay<int, Strictness::Strict>>,
               "a ray on a discrete carrier is clopen");
 static_assert(IsConvex<Interval<int, Strictness::Strict, Strictness::Strict>>,
               "an interval is convex");

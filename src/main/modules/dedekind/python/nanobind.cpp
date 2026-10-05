@@ -48,6 +48,10 @@ namespace nb = nanobind;
 
 namespace {
 
+// Nat = {x ∈ ℤ | x ≥ 0}: the subobject ℕ ⊂ ℤ as the ray {x ≥ 0} over int.
+using Naturals =
+    dedekind::order::UpRay<int, dedekind::order::Strictness::NonStrict>;
+
 // ── sequences: Python list ↔ dedekind.sequences ──────────────────────────
 // These functions accept and return std::vector<int> (Python list) because
 // they exercise the FinitePath / range adapters in dedekind.sequences.
@@ -271,13 +275,8 @@ NB_MODULE(_dedekind, module) {
         .def("__repr__", [](const NatUniverse&) { return std::string("ℕ"); });
     module.attr("N") = dedekind::sets::ℕ;  // source `ℕ` NFKC-normalises to "N"
 
-    // Nat = {x ∈ ℤ | x ≥ 0}, the subobject ℕ ⊂ ℤ as an :order halfspace over
-    // the machine int (χ: x ↦ x ≥ 0).  The money shot: `-7 not in Nat` is
-    // decided in C++.  Keyed under "Nat" to avoid the NFKC collision with
-    // `ℕ` → "N".
-    using Naturals =
-        dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
-                                   dedekind::order::Strictness::NonStrict>;
+    // `-7 not in Nat` is decided in C++.  Keyed under "Nat" to avoid the NFKC
+    // collision with `ℕ` → "N".
     nb::class_<Naturals>(module, "NaturalClassifier",
                          "The naturals as a subobject of ℤ (χ: x ↦ x ≥ 0): "
                          "the discriminating native classifier.")
@@ -300,11 +299,7 @@ NB_MODULE(_dedekind, module) {
   module.def(
       "ext",
       [](const std::vector<int>& universe) {
-        return dedekind::sets::ext(
-            universe,
-            dedekind::order::Halfspace<int, dedekind::order::Direction::Upward,
-                                       dedekind::order::Strictness::NonStrict>{
-                0});
+        return dedekind::sets::ext(universe, Naturals{0});
       },
       "Extensionalise a finite universe through the native ℕ⊂ℤ classifier χ "
       "into a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "

@@ -188,7 +188,7 @@ static_assert(IsArchimedeanField<double>,
  *         preserved on the codomain side.
  *   (iii) Kleisli factoring: @c image(f, @c s) is the cardinality-1
  *         instance of the powerset-monad bind @c s @c >>= @c (η @c ∘ @c f),
- *         witnessed by @c image(f, @c s) @c == @c singleton(f(s.pivot))
+ *         witnessed by @c image(f, @c s) @c == @c singleton(f(origin(s)))
  *         and @c image(f, @c s) @c == @c (s @c >>= @c (η @c ∘ @c f)).
  *
  * Placing the witness here rather than in @c :sets:singleton keeps the
@@ -197,6 +197,7 @@ static_assert(IsArchimedeanField<double>,
  * test (per PR #604 review).
  */
 namespace singleton_image_breadcrumb {
+using namespace dedekind::sets;
 
 struct succ_arrow {
   using Domain = int;
@@ -208,26 +209,22 @@ static_assert(dedekind::category::IsArrow<succ_arrow>,
               "Breadcrumb (i): the Peano-successor witness arrow "
               "S(x) = x + 1 satisfies IsArrow.");
 
-inline constexpr auto s0 = dedekind::sets::Singleton<int>{0};
-inline constexpr auto s1 = dedekind::sets::image(succ_arrow{}, s0);
+inline constexpr auto s0 = η(0);
+inline constexpr auto s1 = image(succ_arrow{}, s0);
 
-static_assert(
-    std::is_same_v<decltype(s1), const dedekind::sets::Singleton<int>>,
-    "Breadcrumb (ii): image preserves the Singleton shape; "
-    "Cod(F) == int folds back to Singleton<int>.");
-static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
+static_assert(std::is_same_v<decltype(s1), const Singleton<int>>,
+              "Breadcrumb (ii): image preserves the Singleton shape; "
+              "Cod(F) == int folds back to Singleton<int>.");
+static_assert(IsExtensional<decltype(s1)>,
               "Breadcrumb (ii): image preserves IsExtensional.");
 static_assert(s1.size() == 1,
               "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
 
-static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(s0.pivot)),
-              "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
+static_assert(s1 == singleton(succ_arrow{}(origin(s0))),
+              "Breadcrumb (iii): image(f, s) == singleton(f(origin(s))) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");
-static_assert(s1 == (s0 >>=
-                     [](int x) {
-                       return dedekind::sets::singleton(succ_arrow{}(x));
-                     }),
+static_assert(s1 == (s0 >>= [](int x) { return singleton(succ_arrow{}(x)); }),
               "Breadcrumb (iii): image factors through the existing "
               "Singleton-monad Kleisli bind (>>=).");
 

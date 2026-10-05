@@ -313,8 +313,8 @@ static_assert(embed_𝔹_ℕ_(false) == finite_cardinality(0),
 static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
               "embed_𝔹_ℕ_(true)  = 1 in the variant ℕ-proxy carrier.");
 
-// Set-level lift witnesses: @c embed_𝔹_ℕ on @c Singleton<true>
-// lands at @c finite_cardinality(1), and on @c Singleton<false>
+// Set-level lift witnesses: @c embed_𝔹_ℕ on @c η(true)
+// lands at @c finite_cardinality(1), and on @c η(false)
 // at @c finite_cardinality(0).  Both pinned at the @b value level so
 // the pivot equality is constant-evaluated, not just the codomain
 // type (the type-only form would only check that we land in some
@@ -323,25 +323,19 @@ static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
 // @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
-static_assert(
-    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true}).pivot ==
-        finite_cardinality(1),
-    "embed_𝔹_ℕ(Singleton<true>) lands at finite_cardinality(1) on the "
-    "Cardinality carrier.");
-static_assert(
-    embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{false}).pivot ==
-        finite_cardinality(0),
-    "embed_𝔹_ℕ(Singleton<false>) lands at finite_cardinality(0) on the "
-    "Cardinality carrier.");
+static_assert(origin(embed_𝔹_ℕ(η(true))) == finite_cardinality(1),
+              "embed_𝔹_ℕ(η(true)) lands at finite_cardinality(1) on the "
+              "Cardinality carrier.");
+static_assert(origin(embed_𝔹_ℕ(η(false))) == finite_cardinality(0),
+              "embed_𝔹_ℕ(η(false)) lands at finite_cardinality(0) on the "
+              "Cardinality carrier.");
 
 // Concept-level witness: the result of @c embed_𝔹_ℕ realises the
 // categorical image of the source set under the canonical mono
 // 𝔹 ↪ ℕ — i.e. it is a Subobject of @c Cod<embed_𝔹_ℕ_> = Cardinality
 // (smallest-such-subobject reading per @c :category:image).
 static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_𝔹_ℕ(dedekind::sets::Singleton<bool, Boole>{true})),
-        decltype(embed_𝔹_ℕ_)>,
+    IsImageOf<decltype(embed_𝔹_ℕ(η(true))), decltype(embed_𝔹_ℕ_)>,
     "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
     "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "
     "categorical image of S under the canonical mono 𝔹 ↪ ℕ.");
@@ -460,9 +454,7 @@ static_assert(IsMonotone<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ
 // (𝔸<Cardinality>, Ø, the exists/forall primaries) and morphologies (Modular,
 // Congruence), which are parallel branches meeting first at numbers.  The
 // overloads sit in namespace dedekind::sets so ADL on the Universe operand
-// finds them, as a sibling to sets:FiniteBooleanSet (folding the two into one
-// FiniteCarrierSet was not clean — the bool carrier is load-bearing;
-// FIXME(#798)).
+// finds them (FIXME(#798): a generic finite-carrier materialisation).
 // ───────────────────────────────────────────────────────────────────────────
 namespace dedekind::sets {
 
@@ -476,7 +468,7 @@ namespace dedekind::sets {
  * @brief The image of a Modular<N>-factoring predicate, materialised over the N
  *        residues of ℤ/Nℤ: @c at[r] is the membership of residue @c r.
  *
- * @details Sibling to @c FiniteBooleanSet.  Carries BOTH lattice-bound
+ * @details A finite-carrier materialisation.  Carries BOTH lattice-bound
  * comparisons (Eqn 2): @c ==Ø (scheme A anchor: every residue a non-member) and
  * @c ==𝔸 (scheme B anchor: every residue a member).  Emptiness of the
  * @f$\aleph_0@f$-sized @f$\{x\in\mathbb{N}\mid P(x)\}@f$ is decided on the
