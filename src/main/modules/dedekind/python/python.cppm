@@ -28,8 +28,11 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <limits>    // the integer window's ends
 #include <optional>  // the cover, the first element of a set
 #include <ranges>
+#include <stdexcept>  // std::overflow_error at the window's end
+#include <string>
 #include <utility>
 
 export module dedekind.python;
@@ -157,6 +160,43 @@ inline Arrow<bool> refl_bool() {
  *  a set is well-typed. */
 using Int = long long;
 
+/** @brief The window's end.  Python's @c int is ℤ; @c long @c long is its
+ *  64-bit window, on which the step is not closed.  Where ℤ continues and the
+ *  window cannot, the surface raises (@c std::overflow_error, Python's
+ *  @c OverflowError) rather than wrap --- ℕ's proxy saturates to ℵ₀ instead,
+ *  the total posture (@c pst).  FIXME(#1008): an erased composite
+ *  (@c succ @c >> @c succ) steps unchecked; the carrier that closes this is
+ *  @c SignedCardinality.
+ *  @param what the operation that reached the end. */
+[[noreturn]] inline void window_end(const char* what) {
+  throw std::overflow_error(std::string(what) +
+                            ": the 64-bit window ends here; ℤ does not");
+}
+/** @brief @c a @c + @c b inside the window, or @c window_end.
+ *  @param a a value in the window.  @param b the offset.
+ *  @param what the operation, for the message.  @return the sum. */
+constexpr Int add_in_window(Int a, Int b, const char* what) {
+  Int sum{};
+  if (__builtin_add_overflow(a, b, &sum)) window_end(what);
+  return sum;
+}
+/** @brief The step arrows applied inside the window: total on @c bool, and on
+ *  the integer window raising at its ends rather than overflowing.
+ *  @tparam T the carrier.  @param f the arrow.  @param x the argument.
+ *  @return @c f(x). */
+template <dedekind::category::HasNNOStep T>
+T step_in_window(const dedekind::category::Successor<T>& f, T x) {
+  if constexpr (std::same_as<T, Int>)
+    if (x == std::numeric_limits<Int>::max()) window_end("succ");
+  return f(x);
+}
+template <dedekind::category::HasNNOStep T>
+T step_in_window(const dedekind::category::Predecessor<T>& f, T x) {
+  if constexpr (std::same_as<T, Int>)
+    if (x == std::numeric_limits<Int>::min()) window_end("pred");
+  return f(x);
+}
+
 /** @brief @c refl on the integer chain: @c :logic's
  *  @c logic_complement<Chain<Int>> (@c = @c Chain<Int>::RFL @c = @c ~a, the
  *  order-reversing De Morgan involution), already witnessed as an involution
@@ -275,11 +315,11 @@ constexpr Set shift(const Set& s, long long k) {
   switch (s.kind) {
     case ord::SetKind::Singleton:
     case ord::SetKind::Interval:
-      r.lo += k;
-      r.hi += k;
+      r.lo = jlt::add_in_window(r.lo, k, "image");
+      r.hi = jlt::add_in_window(r.hi, k, "image");
       break;
     case ord::SetKind::Halfspace:
-      r.lo += k;
+      r.lo = jlt::add_in_window(r.lo, k, "image");
       break;
     default:
       break;
@@ -333,23 +373,28 @@ constexpr std::optional<long long> least(const Set& s) {
     case ord::SetKind::Singleton:
       return s.lo;
     case ord::SetKind::Interval:
-      return s.sl == ord::Strictness::Strict ? s.lo + 1 : s.lo;
+      return s.sl == ord::Strictness::Strict
+                 ? jlt::add_in_window(s.lo, 1, "least")
+                 : s.lo;
     case ord::SetKind::Halfspace:
       if (s.dir == ord::Direction::Upward)
-        return s.sl == ord::Strictness::Strict ? s.lo + 1 : s.lo;
+        return s.sl == ord::Strictness::Strict
+                   ? jlt::add_in_window(s.lo, 1, "least")
+                   : s.lo;
       return std::nullopt;
     default:
       return std::nullopt;
   }
 }
-/** @brief One past the greatest element, where the set is bounded above;
- *  @c nullopt on a ray: the unfold does not stop. */
-constexpr std::optional<long long> past_end(const Set& s) {
+/** @brief The greatest element, where the set is bounded above (a strict upper
+ *  bound is attained at its predecessor, which exists since the set is
+ *  inhabited); @c nullopt on a ray: the unfold does not stop. */
+constexpr std::optional<long long> greatest(const Set& s) {
   switch (s.kind) {
     case ord::SetKind::Singleton:
-      return s.lo + 1;
+      return s.lo;
     case ord::SetKind::Interval:
-      return s.su == ord::Strictness::Strict ? s.hi : s.hi + 1;
+      return s.su == ord::Strictness::Strict ? s.hi - 1 : s.hi;
     default:
       return std::nullopt;
   }

@@ -96,6 +96,45 @@ class SetSlicingByValueTest(unittest.TestCase):
             everything()[0:10:2]  # awaits the congruence sets
 
 
+class WindowBoundaryTest(unittest.TestCase):
+    """Python's int is ℤ; the carrier is its 64-bit window.  Where ℤ continues
+    and the window cannot, the surface raises OverflowError rather than wrap; a
+    bounded unfold that ends at the window's last value ends normally."""
+
+    LAST = 2**63 - 1
+    FIRST = -(2**63)
+
+    def test_step_at_the_ends_raises(self) -> None:
+        self.assertEqual(succ(int)(self.LAST - 1), self.LAST)
+        self.assertEqual(pred(int)(self.FIRST + 1), self.FIRST)
+        with self.assertRaises(OverflowError):
+            succ(int)(self.LAST)
+        with self.assertRaises(OverflowError):
+            pred(int)(self.FIRST)
+        with self.assertRaises((OverflowError, TypeError)):
+            succ(int)(2**63)  # not in the window at all
+
+    def test_image_past_the_end_raises(self) -> None:
+        with self.assertRaises(OverflowError):
+            image(succ(int), at_least(self.LAST))
+        with self.assertRaises(OverflowError):
+            preimage(succ(int), at_most(self.FIRST))
+
+    def test_bounded_unfold_ends_at_the_window_last_value(self) -> None:
+        self.assertEqual(list(singleton(self.LAST)), [self.LAST])
+        self.assertEqual(
+            list(at_least(self.LAST - 1) & at_most(self.LAST)),
+            [self.LAST - 1, self.LAST],
+        )
+
+    def test_ray_unfold_raises_where_the_window_ends(self) -> None:
+        it = iter(at_least(self.LAST - 1))
+        self.assertEqual(next(it), self.LAST - 1)
+        self.assertEqual(next(it), self.LAST)
+        with self.assertRaises(OverflowError):
+            next(it)
+
+
 class SetUnfoldTest(unittest.TestCase):
     def test_bounded_set_is_range(self) -> None:
         for a, b in ((3, 8), (0, 1), (-2, 2)):

@@ -17,6 +17,7 @@
  * canonical carrier witness, ℕ is the project-level alias.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <limits>    // the largest finite cardinal
 #include <optional>  // the cover / Lambek answers, 1 + N
 #include <utility>
 #include <variant>  // load-bearing for std::variant's operator== via ADL
@@ -180,6 +181,12 @@ TEST_CASE(
     REQUIRE(back.has_value());
     CHECK(*back == n);
   }
+  // ℕ's top: the largest finite cardinal and ℵ₀ both step to ℵ₀, so [Z, S] is
+  // not injective on the carrier.
+  const auto largest =
+      finite_cardinality(std::numeric_limits<std::size_t>::max());
+  CHECK(In<Cardinality>{}(std::optional<Cardinality>{largest}) ==
+        Cardinality{ℵ_0{}});
   // K₃: S saturates at ⊤, so out ∘ in misses True.
   CHECK(Out<Ternary>{}(In<Ternary>{}(Ternary::True)) == Ternary::Unknown);
   // int (ℤ): Z collides with S(−1).

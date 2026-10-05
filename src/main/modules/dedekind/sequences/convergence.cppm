@@ -518,14 +518,20 @@ template <typename T, typename Op, std::size_t N>
            N == dedekind::category::cyclic_order_v<T, Op>)
 inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
 
+using dedekind::category::HasCoveringStep;
+using dedekind::category::Ternary;
+using dedekind::order::IsTotallyOrdered;
+using dedekind::sets::Cardinality;
+
 /** @brief The orbit of a seed under the NNO step, @f$n \mapsto S^{n}(a)@f$:
  *  the unique morphism the universal property gives from ℕ into the carrier
  *  (@f$f(0) = a,\; f(n+1) = S(f(n))@f$), as a sequence --- the unfold
  *  @c iterate(a, Successor<N>{}) named, so the sequence-shape traits can attach
  *  to it.  Its shape classifies the carrier's posture at the bound: an
- *  injective infinite stream on an unbounded chain (the NNO proper), eventually
- *  constant on a saturating one (@c IsAbsorptiveSequence, the absorbing value
- *  the top), periodic on a wrapping one.
+ *  injective infinite stream on an unbounded chain (the NNO proper), monotone
+ *  and bounded on a saturating one --- eventually constant at ⊤ when the chain
+ *  is finite (K₃, @c IsAbsorptiveSequence), converging to ℵ₀ without reaching
+ *  it on ℕ's proxy --- periodic on a wrapping one.
  *
  *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
  *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, the ℕ proxy), and
@@ -553,24 +559,37 @@ struct SuccessorOrbit : Path<N> {
   }
 };
 
-/** @brief The saturating chains' orbits are eventually constant at their top:
- *  the K₃ orbit reaches ⊤ in two steps; the ℕ proxy's reaches ℵ₀ only when the
- *  finite fragment is exhausted, the memory boundary the carrier is honest
- *  about, so that registration states the posture, not a reachable index. */
+/** @brief Where the step covers, it is inflationary, so the orbit is monotone
+ *  from any seed; it is bounded where the chain has a top.  The K₃ orbit is
+ *  eventually constant at ⊤ from any seed, within two steps.  The ℕ proxy's is
+ *  not: from a finite seed the index type is exhausted one step before ℵ₀,
+ *  which is the orbit's supremum and not one of its terms --- the sequence
+ *  converges to the memory boundary without reaching it, so it is monotone and
+ *  bounded, not absorptive. */
+template <HasCoveringStep N>
+  requires IsTotallyOrdered<N>
+inline constexpr bool is_monotone_sequence_v<SuccessorOrbit<N>> = true;
 template <>
-inline constexpr bool
-    is_absorptive_sequence_v<SuccessorOrbit<dedekind::category::Ternary>> =
-        true;
+inline constexpr bool is_bounded_sequence_v<SuccessorOrbit<Ternary>> = true;
 template <>
-inline constexpr bool
-    is_absorptive_sequence_v<SuccessorOrbit<dedekind::sets::Cardinality>> =
-        true;
+inline constexpr bool is_bounded_sequence_v<SuccessorOrbit<Cardinality>> = true;
+template <>
+inline constexpr bool is_absorptive_sequence_v<SuccessorOrbit<Ternary>> = true;
 
 static_assert(IsSequence<SuccessorOrbit<int>> &&
-                  !IsFiniteSequence<SuccessorOrbit<int>>,
-              "the orbit of the unbounded chain is an infinite sequence.");
-static_assert(IsAbsorptiveSequence<SuccessorOrbit<dedekind::category::Ternary>>,
+                  !IsFiniteSequence<SuccessorOrbit<int>> &&
+                  IsMonotoneSequence<SuccessorOrbit<int>> &&
+                  !IsBoundedSequence<SuccessorOrbit<int>>,
+              "the orbit of the unbounded chain is an infinite monotone "
+              "sequence, unbounded above.");
+static_assert(IsAbsorptiveSequence<SuccessorOrbit<Ternary>> &&
+                  IsBoundedSequence<SuccessorOrbit<Ternary>>,
               "the K₃ orbit is eventually constant at ⊤.");
+static_assert(IsMonotoneSequence<SuccessorOrbit<Cardinality>> &&
+                  IsBoundedSequence<SuccessorOrbit<Cardinality>> &&
+                  !IsAbsorptiveSequence<SuccessorOrbit<Cardinality>>,
+              "the ℕ proxy's orbit is monotone and bounded by ℵ₀, and not "
+              "eventually constant: ℵ₀ is its supremum, not a term.");
 
 }  // namespace dedekind::sequences
 

@@ -59,20 +59,42 @@ void bind_rshift(nb::class_<S>& cls) {
       "arrow; same-object operands only.");
 }
 
-/** @brief Bind the arrow @b operators (apply @c (), same-object composition
- *  @c >>) to a bound arrow class @c S.  @c >> accepts only same-object
- *  operands, so cross-object composition raises automatically (no matching
- *  overload) --- the composability guard. */
+/** @brief Bind same-object composition @c >> to a bound arrow class @c S, one
+ *  overload per right operand.  @c >> accepts only same-object operands, so
+ *  cross-object composition raises automatically (no matching overload) ---
+ *  the composability guard. */
+template <typename S>
+void bind_compositions(nb::class_<S>& cls) {
+  using T = typename S::Domain;
+  bind_rshift<S, jlt::Id<T>>(cls);
+  bind_rshift<S, jlt::Arrow<T>>(cls);
+  bind_rshift<S, jlt::Succ<T>>(cls);
+  bind_rshift<S, jlt::Pred<T>>(cls);
+}
+
+/** @brief The arrow @b operators (apply @c (), composition @c >>) of a bound
+ *  arrow class @c S. */
 template <typename S>
 void bind_endo_operators(nb::class_<S>& cls) {
   using T = typename S::Domain;
   cls.def(
       "__call__", [](const S& f, T x) { return f(x); },
       "Apply the arrow to an object of its carrier.");
-  bind_rshift<S, jlt::Id<T>>(cls);
-  bind_rshift<S, jlt::Arrow<T>>(cls);
-  bind_rshift<S, jlt::Succ<T>>(cls);
-  bind_rshift<S, jlt::Pred<T>>(cls);
+  bind_compositions(cls);
+}
+
+/** @brief The arrow operators of a typed step @c S: @c __call__ through
+ *  @c jlt::step_in_window (total on @c bool; at the integer window's end it
+ *  raises @c OverflowError instead of overflowing), and @c >> as for every
+ *  endo-arrow. */
+template <typename S>
+void bind_step_operators(nb::class_<S>& cls) {
+  using T = typename S::Domain;
+  cls.def(
+      "__call__", [](const S& f, T x) { return jlt::step_in_window(f, x); },
+      "Apply the step; at the end of the 64-bit window it raises "
+      "OverflowError (ℤ continues, the window does not).");
+  bind_compositions(cls);
 }
 
 /** @brief Bind the step arrows on carrier @c T as their own classes, typed:
@@ -84,13 +106,13 @@ void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
       m, succ_name,
       "The successor arrow S : T -> T (the real :nno Successor), total and "
       "saturating at the chain's top.");
-  bind_endo_operators(succ);
+  bind_step_operators(succ);
   succ.def("__repr__", [](const jlt::Succ<T>&) { return "succ"; });
   auto pred = nb::class_<jlt::Pred<T>>(
       m, pred_name,
       "The predecessor arrow P : T -> T (the real :nno Predecessor), total and "
       "saturating at the chain's bottom (the monus on ℕ).");
-  bind_endo_operators(pred);
+  bind_step_operators(pred);
   pred.def("__repr__", [](const jlt::Pred<T>&) { return "pred"; });
   m.def("dom", [](const jlt::Succ<T>&) { return type_object<T>(); });
   m.def("cod", [](const jlt::Succ<T>&) { return type_object<T>(); });
@@ -184,7 +206,8 @@ NB_MODULE(_jlt, m) {
       },
       nb::arg("carrier"),
       "succ(T): the successor arrow on carrier T, the NNO step (saturating: "
-      "succ(bool)(True) is True).");
+      "succ(bool)(True) is True; on int the 64-bit window ends at 2**63 - 1 "
+      "and succ raises OverflowError there).");
   m.def(
       "pred",
       [](nb::handle t) -> nb::object {

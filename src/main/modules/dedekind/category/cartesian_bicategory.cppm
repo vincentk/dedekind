@@ -235,14 +235,13 @@ inline constexpr bool is_monotone_v<
  * @brief The STRUCTURAL shape of "the meet @c ∧ is the right adjoint of the
  *        diagonal @c Δ" (@c Δ⊣∧): the reified theory this slice postulates as a
  *        type-check.
- * @warning This is a structural SHAPE gate, NOT a dispatch-safe glb certifier.
- *          It names the crossed signatures + a posetal carrier + a definite
- *          variance; it CANNOT see whether the merge computes the glb (meet) or
- *          the lub (join), so the join @c Sup passes it too (see the labelled
- *          limitation witness below).  glb-correctness is the injected op's
- *          obligation, tightened later via #908 (reify predicate variance) plus
- *          the value-level product-order leg, FIXME(#946).  Do NOT branch
- *          dispatch on a positive result as if it guaranteed a meet.
+ * @note The shape (crossed signatures + a posetal carrier + matched variance)
+ *       cannot see whether the merge computes the glb or the lub; the law leg
+ *       @c is_adjoint_v can, because it is registered per glb (@c Inf on a
+ *       chain, @c ∧ on @c bool) next to the proof, so the join @c Sup is
+ *       rejected (the witness below).  A merge with another injected op is
+ *       rejected until its own fact is registered; #908 would derive the
+ *       variance structurally.
  * @details @c Δ:P→P×P (copy) is the left adjoint, @c ∧:P×P→P the right, so
  *          the pair @b is an @c IsGaloisConnection whose left leg is the
  *          diagonal (its codomain is the square of its domain). The Galois
@@ -256,12 +255,11 @@ inline constexpr bool is_monotone_v<
  *       was tightened (#946) to require MATCHED variance (both legs monotone,
  *       or both antitone), so both @c Cp and @c Mg must carry a declared, and
  *       agreeing, variance (see the @c is_monotone_v registrations above).
- *       That NARROWS the gap (a variance-less or mismatched-polarity merge is
- *       now rejected) but does NOT close the meet-vs-join residual: the join
- *       @c Sup is monotone too, so it still passes.  Which order-op the merge
- *       computes stays the value-level product-order leg, FIXME(#946).  #908
- *       (reify predicate variance) would derive the variance structurally;
- *       #791 certifies the monotone / join operations themselves.
+ *       That rejects a variance-less or mismatched-polarity merge; the
+ *       meet-vs-join residual is closed by the law leg @c is_adjoint_v,
+ *       registered per glb.  #908 (reify predicate variance) would derive the
+ *       variance structurally; #791 certifies the monotone / join operations
+ *       themselves.
  * @note @b Threaded @b orders (#950).  The Galois legs live on @c P×P (Copy's
  *       codomain, Merge's domain), so their variance is tested against the
  *       COMPONENTWISE product order @c ProductLeq<Leq,Leq> (@c ≤×), while the
@@ -274,11 +272,23 @@ inline constexpr bool is_monotone_v<
  * @tparam Mg the meet/merge @c ∧.
  * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>.  The
  *         product order on @c P×P is derived as @c ProductLeq<Leq,Leq>. */
-/** @brief The theorem Δ ⊣ ∧ in a meet-semilattice: @f$\Delta(a) \le_\times
- *  (x, y) \iff a \le x \wedge y@f$.  The law leg of @c IsMeetAsRightAdjoint. */
-template <IsCopy Cp, IsMerge Mg, typename Leq>
-  requires std::same_as<Dom<Cp>, Cod<Mg>>
-inline constexpr bool is_adjoint_v<Cp, Mg, ProductLeq<Leq, Leq>> = true;
+/** @brief The theorem Δ ⊣ ∧, @f$\Delta(a) \le_\times (x, y) \iff a \le x
+ *  \wedge y@f$, registered @b per @b glb: @c Inf (@c min) on a totally ordered
+ *  carrier under its own @c ≤, and @c ∧ on @c bool.  The shape @c IsMerge
+ *  cannot tell the glb from the lub (@c Sup is a monotone fold of the same
+ *  signature and is @b not the right adjoint of Δ), so the law leg is where
+ *  that distinction lives; a merge with another injected op registers its own
+ *  fact next to the proof that it is the glb.
+ *  @tparam P the totally ordered carrier. */
+template <std::totally_ordered P>
+inline constexpr bool
+    is_adjoint_v<Copy<P>, Merge<P, Inf>,
+                 ProductLeq<std::less_equal<P>, std::less_equal<P>>> = true;
+template <>
+inline constexpr bool
+    is_adjoint_v<Copy<bool>, Merge<bool, std::logical_and<bool>>,
+                 ProductLeq<std::less_equal<bool>, std::less_equal<bool>>> =
+        true;
 
 export template <typename Cp, typename Mg,
                  typename Leq = std::less_equal<Dom<Cp>>>
@@ -464,22 +474,14 @@ static_assert(
     "the meet on the integral chain must be the right adjoint of the diagonal "
     "(glb = min).");
 
-// STRUCTURAL LIMITATION, pinned --- NOT a soundness guarantee.  This assertion
-// is a KNOWN false positive, kept only so the gap stays compile-visible: if a
-// later revision (#908 + the value-level product-order leg) tightens the
-// concept to reject the join, this line fails and forces the narrative to be
-// updated.  It does NOT endorse @c Sup as a meet.  @c IsMeetAsRightAdjoint is a
-// structural SHAPE gate (crossed signatures + posetal carrier + definite
-// variance); it cannot see which order-op the merge computes, so the JOIN
-// (@c Sup = max) passes it too (the join is monotone, so the #946 variance
-// tightening does not reject it).  Certifying the merge is the glb and not the
-// lub is the injected op's obligation, exactly as with @c IsGaloisConnection.
+// The join is NOT the right adjoint of the diagonal.  The shape alone (crossed
+// signatures + posetal carrier + matched variance) could not see this: Sup is a
+// monotone fold of the same signature, and this line was a labelled false
+// positive.  The law leg is_adjoint_v, registered per glb, rejects it.
 static_assert(
-    IsMeetAsRightAdjoint<Copy<int>, Merge<int, Sup>>,
-    "STRUCTURAL LIMITATION (not a soundness guarantee): the JOIN (Sup) also "
-    "passes the shape gate IsMeetAsRightAdjoint; glb-vs-lub is the injected "
-    "op's obligation, NOT something this concept discharges.  Do not dispatch "
-    "on it.");
+    !IsMeetAsRightAdjoint<Copy<int>, Merge<int, Sup>>,
+    "the JOIN (Sup) is not Δ's right adjoint: the law leg is_adjoint_v is "
+    "registered for the glb (Inf, ∧), not for every monotone merge.");
 
 // Ternary (Kleene K₃): the 3-chain False < Unknown < True.  The injected glb is
 // @c Inf (min), which on this chain IS the Kleene AND.  Witnessable because

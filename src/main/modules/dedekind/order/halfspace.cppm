@@ -633,6 +633,7 @@ export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
 // carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
+using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
 using dedekind::category::predecessor;
 using dedekind::category::successor;
@@ -892,59 +893,100 @@ constexpr SetVal<T, L> to_setval(
  *  closed bounds.  On a dense carrier they are different sets, and the
  *  comparison stays structural. */
 namespace detail_setval_eq {
-/** @brief The closed bound a lower bound denotes on a discrete chain. */
-template <typename V>
-constexpr V closed_lower(const V& v, Strictness s) {
-  if constexpr (HasNNOStep<V>)
-    return s == Strictness::Strict ? successor(v) : v;
-  else
-    return v;
+/** @brief Close a strict lower bound at the next element, where the step moves;
+ *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
+ *  element to close at and the bound stays strict --- @c {x > ⊤} is not
+ *  @c {x ≥ ⊤}.  @tparam V the carrier. */
+template <HasCoveringStep V>
+constexpr void close_lower(V& v, Strictness& s) {
+  if (s != Strictness::Strict) return;
+  const V next = successor(v);
+  if (next == v) return;
+  v = next;
+  s = Strictness::NonStrict;
 }
-/** @brief The closed bound an upper bound denotes on a discrete chain. */
-template <typename V>
-constexpr V closed_upper(const V& v, Strictness s) {
-  if constexpr (HasNNOStep<V>)
-    return s == Strictness::Strict ? predecessor(v) : v;
-  else
-    return v;
+/** @brief The dual: close a strict upper bound at the previous element where
+ *  @c P moves; @c {x < ℵ₀}, the finite fragment, is not @c {x ≤ ℵ₀}.
+ *  @tparam V the carrier. */
+template <HasCoveringStep V>
+constexpr void close_upper(V& v, Strictness& s) {
+  if (s != Strictness::Strict) return;
+  const V prev = predecessor(v);
+  if (prev == v) return;
+  v = prev;
+  s = Strictness::NonStrict;
+}
+/** @brief The form compared: on a discrete chain every strict bound that can
+ *  close is closed, so @c (0, 3) and @c [1, 3) coincide; on a dense carrier
+ *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
+ */
+template <typename V, typename L>
+constexpr SetVal<V, L> canonical(SetVal<V, L> s) {
+  if constexpr (HasCoveringStep<V>) {
+    switch (s.kind) {
+      case SetKind::Halfspace:
+        if (s.dir == Direction::Upward)
+          close_lower(s.lo, s.sl);
+        else
+          close_upper(s.lo, s.sl);
+        break;
+      case SetKind::Interval:
+        close_lower(s.lo, s.sl);
+        close_upper(s.hi, s.su);
+        break;
+      default:
+        break;
+    }
+  }
+  return s;
 }
 }  // namespace detail_setval_eq
 export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
-  using detail_setval_eq::closed_lower;
-  using detail_setval_eq::closed_upper;
-  if (a.kind != b.kind) return L::False;
-  constexpr bool discrete = HasNNOStep<V>;
+  const SetVal<V, L> x = detail_setval_eq::canonical(a);
+  const SetVal<V, L> y = detail_setval_eq::canonical(b);
+  if (x.kind != y.kind) return L::False;
   bool eq = true;
-  switch (a.kind) {
+  switch (x.kind) {
     case SetKind::Empty:
     case SetKind::Universe:
       break;  // kind alone decides
     case SetKind::Singleton:
-      eq = a.lo == b.lo;
+      eq = x.lo == y.lo;
       break;
     case SetKind::Halfspace:
-      if (a.dir != b.dir)
-        eq = false;
-      else if (discrete)
-        eq = a.dir == Direction::Upward
-                 ? closed_lower(a.lo, a.sl) == closed_lower(b.lo, b.sl)
-                 : closed_upper(a.lo, a.sl) == closed_upper(b.lo, b.sl);
-      else
-        eq = a.lo == b.lo && a.sl == b.sl;
+      eq = x.dir == y.dir && x.lo == y.lo && x.sl == y.sl;
       break;
     case SetKind::Interval:
-      if (discrete)
-        eq = closed_lower(a.lo, a.sl) == closed_lower(b.lo, b.sl) &&
-             closed_upper(a.hi, a.su) == closed_upper(b.hi, b.su);
-      else
-        eq = a.lo == b.lo && a.hi == b.hi && a.sl == b.sl && a.su == b.su;
+      eq = x.lo == y.lo && x.hi == y.hi && x.sl == y.sl && x.su == y.su;
       break;
   }
   return eq ? L::True : L::False;
 }
+namespace detail_setval_eq {
+using dedekind::category::Ternary;
+using dedekind::sets::Cardinality;
+using dedekind::sets::ℵ_0;
+static_assert(
+    SetVal<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
+        SetVal<int>::bounded(1, Strictness::NonStrict, 3, Strictness::Strict),
+    "(0, 3) = [1, 3) on ℤ: the strict bound closes at the next element.");
+static_assert(
+    !(SetVal<Ternary>::half(Ternary::True, Direction::Upward,
+                            Strictness::Strict) ==
+      SetVal<Ternary>::half(Ternary::True, Direction::Upward,
+                            Strictness::NonStrict)),
+    "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
+    "form.");
+static_assert(
+    !(SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                Strictness::Strict) ==
+      SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                Strictness::NonStrict)),
+    "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
+}  // namespace detail_setval_eq
 
 /** @brief Bridge: compare a value set to a halfspace by the halfspace's own
  *  @c SetVal form, so the generic meet-subset identity accepts a bare
@@ -2082,7 +2124,7 @@ constexpr SetVal<T, L> upperbounds(
   // Discrete carriers attain the strict bound at the predecessor --- gated on
   // the NNO's step (an axiom of the category, which ℕ's proxy witnesses), not
   // on std::integral.
-  if constexpr (HasNNOStep<T>)
+  if constexpr (HasCoveringStep<T>)
     if (SU == Strictness::Strict) sup = predecessor(c.predicate.hi);
   return SetVal<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
 }
@@ -2097,7 +2139,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
 constexpr SetVal<T, L> lowerbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Bounded<SL>, Hi, T>>& c) {
   T inf = c.predicate.lo;
-  if constexpr (HasNNOStep<T>)
+  if constexpr (HasCoveringStep<T>)
     if (SL == Strictness::Strict) inf = successor(c.predicate.lo);
   return SetVal<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
 }

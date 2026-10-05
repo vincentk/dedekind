@@ -27,6 +27,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 
+#include <limits>
 #include <optional>
 #include <string>
 
@@ -42,11 +43,14 @@ namespace ord = dedekind::order;
 using Set = lwv::Set;
 
 /** @brief The unfold of a set of the discrete chain from its least element by
- *  the successor, stopping one past its greatest if it has one: a bounded set
- *  iterates like @c range, a ray like @c itertools.count.  @f$O(1)@f$ space. */
+ *  the successor, stopping after its greatest if it has one: a bounded set
+ *  iterates like @c range, a ray like @c itertools.count --- until the 64-bit
+ *  window ends, where the ray's unfold raises rather than wraps.  @f$O(1)@f$
+ *  space. */
 struct SetIter {
-  std::optional<long long> current;
-  std::optional<long long> stop;
+  std::optional<long long> current;  // nullopt once the unfold has ended
+  std::optional<long long> last;     // the greatest element, if bounded above
+  bool at_window_end = false;        // a ray reached the window's last value
 };
 
 const char* kind_name(ord::SetKind k) {
@@ -90,7 +94,7 @@ std::string repr(const Set& s) {
 
 // The FINITE cardinality where it is decidable (empty / singleton / integer
 // interval); std::nullopt for the infinite kinds (halfspace / universe).
-std::optional<long long> cardinality(const Set& s) {
+std::optional<unsigned long long> cardinality(const Set& s) {
   switch (s.kind) {
     case ord::SetKind::Empty:
       return 0;
@@ -99,7 +103,14 @@ std::optional<long long> cardinality(const Set& s) {
     case ord::SetKind::Interval: {
       const long long el = (s.sl == ord::Strictness::Strict) ? s.lo + 1 : s.lo;
       const long long eu = (s.su == ord::Strictness::Strict) ? s.hi - 1 : s.hi;
-      return eu >= el ? (eu - el + 1) : 0;
+      if (eu < el) return 0;
+      // Exact in the unsigned word for every interval short of the whole
+      // window; the whole window has 2^64 elements, one more than it holds.
+      const auto span = static_cast<unsigned long long>(eu) -
+                        static_cast<unsigned long long>(el);
+      if (span == std::numeric_limits<unsigned long long>::max())
+        jlt::window_end("len");
+      return span + 1;
     }
     default:
       return std::nullopt;
@@ -162,7 +173,7 @@ NB_MODULE(_lwv, m) {
               throw nb::type_error(
                   "no least element: a set unbounded below ({x < k}, 𝔸) has "
                   "no bottom on ℤ to unfold from");
-            return SetIter{first, lwv::past_end(s)};
+            return SetIter{first, lwv::greatest(s)};
           },
           "Unfold the set from its least element by the successor: a bounded "
           "set iterates like range(a, b), a ray like itertools.count(a).")
@@ -225,10 +236,15 @@ NB_MODULE(_lwv, m) {
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
       .def("__next__", [](SetIter& it) {
-        if (!it.current || (it.stop && *it.current >= *it.stop))
-          throw nb::stop_iteration();
+        if (it.at_window_end) jlt::window_end("iter");
+        if (!it.current) throw nb::stop_iteration();
         const long long value = *it.current;
-        ++*it.current;
+        if (it.last && value >= *it.last)
+          it.current = std::nullopt;
+        else if (value == std::numeric_limits<long long>::max())
+          it.at_window_end = true;
+        else
+          ++*it.current;
         return value;
       });
 

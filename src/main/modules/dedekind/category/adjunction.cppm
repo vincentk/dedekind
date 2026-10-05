@@ -421,7 +421,8 @@ concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
  *  leaf fact, with the one theorem derived here: a @b monotone @b isomorphism
  *  is adjoint to its inverse (@f$f(x) \le y \iff x \le f^{-1}(y)@f$, both
  *  legs monotone).  Other adjunctions register their fact where their theorem
- *  is stated (Δ ⊣ ∧ in @c :cartesian_bicategory, the antitone involution's
+ *  is stated (Δ ⊣ ∧ per glb in @c :cartesian_bicategory, @c S ⊣ P on the
+ *  saturating ℤ in @c numbers:integer, the antitone involution's
  *  self-adjunction in @c algebra:ordered_algebra).
  *  @tparam F the left adjoint.  @tparam G the right adjoint.  @tparam Op the
  *  order. */
