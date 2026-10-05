@@ -884,12 +884,39 @@ constexpr SetVal<T, L> to_setval(
  * on @c V having decidable equality (@c std::equality_comparable): an
  * undecidable carrier --- where value equality is not answerable --- is ruled
  * out at the type level, so the operator is simply absent rather than vouching
- * for a verdict it cannot compute. */
+ * for a verdict it cannot compute.
+ *
+ *  On a carrier with the NNO step the comparison is @b extensional: a strict
+ *  bound at @c a is the non-strict bound at @c S(a) (above: @c P(a)), so
+ *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
+ *  closed bounds.  On a dense carrier they are different sets, and the
+ *  comparison stays structural. */
+namespace detail_setval_eq {
+/** @brief The closed bound a lower bound denotes on a discrete chain. */
+template <typename V>
+constexpr V closed_lower(const V& v, Strictness s) {
+  if constexpr (HasNNOStep<V>)
+    return s == Strictness::Strict ? successor(v) : v;
+  else
+    return v;
+}
+/** @brief The closed bound an upper bound denotes on a discrete chain. */
+template <typename V>
+constexpr V closed_upper(const V& v, Strictness s) {
+  if constexpr (HasNNOStep<V>)
+    return s == Strictness::Strict ? predecessor(v) : v;
+  else
+    return v;
+}
+}  // namespace detail_setval_eq
 export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
+  using detail_setval_eq::closed_lower;
+  using detail_setval_eq::closed_upper;
   if (a.kind != b.kind) return L::False;
+  constexpr bool discrete = HasNNOStep<V>;
   bool eq = true;
   switch (a.kind) {
     case SetKind::Empty:
@@ -899,10 +926,21 @@ constexpr typename L::Ω operator==(const SetVal<V, L>& a,
       eq = a.lo == b.lo;
       break;
     case SetKind::Halfspace:
-      eq = a.lo == b.lo && a.dir == b.dir && a.sl == b.sl;
+      if (a.dir != b.dir)
+        eq = false;
+      else if (discrete)
+        eq = a.dir == Direction::Upward
+                 ? closed_lower(a.lo, a.sl) == closed_lower(b.lo, b.sl)
+                 : closed_upper(a.lo, a.sl) == closed_upper(b.lo, b.sl);
+      else
+        eq = a.lo == b.lo && a.sl == b.sl;
       break;
     case SetKind::Interval:
-      eq = a.lo == b.lo && a.hi == b.hi && a.sl == b.sl && a.su == b.su;
+      if (discrete)
+        eq = closed_lower(a.lo, a.sl) == closed_lower(b.lo, b.sl) &&
+             closed_upper(a.hi, a.su) == closed_upper(b.hi, b.su);
+      else
+        eq = a.lo == b.lo && a.hi == b.hi && a.sl == b.sl && a.su == b.su;
       break;
   }
   return eq ? L::True : L::False;
