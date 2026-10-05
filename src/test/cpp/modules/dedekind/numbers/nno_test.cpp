@@ -17,6 +17,7 @@
  * canonical carrier witness, ℕ is the project-level alias.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <optional>  // the cover / Lambek answers, 1 + N
 #include <utility>
 #include <variant>  // load-bearing for std::variant's operator== via ADL
 
@@ -154,16 +155,18 @@ TEST_CASE(
 
 TEST_CASE("category:nno — the cover is partial at ⊤ and ++ saturates there",
           "[category][nno][cover][saturation]") {
-  CHECK(cover(finite_cardinality(41)) == finite_cardinality(42));
-  CHECK_FALSE(cover(aleph_0).has_value());
+  const auto c41 = cover(finite_cardinality(41));
+  REQUIRE(c41.has_value());
+  CHECK(*c41 == finite_cardinality(42));
+  CHECK_FALSE(cover(Cardinality{ℵ_0{}}).has_value());
   CHECK(cover(Ternary::Unknown) == Ternary::True);
   CHECK_FALSE(cover(Ternary::True).has_value());
   Cardinality n = finite_cardinality(0);
   for (int i = 0; i < 5; ++i) ++n;
   CHECK(n == finite_cardinality(5));
-  Cardinality top = aleph_0;
+  Cardinality top{ℵ_0{}};
   ++top;
-  CHECK(top == aleph_0);
+  CHECK(top == Cardinality{ℵ_0{}});
 }
 
 TEST_CASE(
@@ -173,7 +176,9 @@ TEST_CASE(
   for (std::size_t k = 0; k < 6; ++k) {
     const auto n = finite_cardinality(k);
     CHECK(Lambek<Cardinality>::in(Lambek<Cardinality>::out(n)) == n);
-    CHECK(Lambek<Cardinality>::out(Lambek<Cardinality>::in(n)) == n);
+    const auto back = Lambek<Cardinality>::out(Lambek<Cardinality>::in(n));
+    REQUIRE(back.has_value());
+    CHECK(*back == n);
   }
   // K₃: S saturates at ⊤, so out ∘ in misses True.
   CHECK(Lambek<Ternary>::out(Lambek<Ternary>::in(Ternary::True)) ==

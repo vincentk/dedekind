@@ -374,14 +374,25 @@ static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
 // Lambek on the finite fragment: [Z, S] is an iso there, so ℕ's proxy IS the
 // NNO away from ℵ₀; at the top S saturates and the lemma fails, which is the
 // carrier's honest boundary, not the NNO's.
-static_assert(Lambek<Cardinality>::out(Lambek<Cardinality>::in(
-                  std::optional<Cardinality>{finite_cardinality(3)})) ==
-                      finite_cardinality(3) &&
+namespace detail_lambek_witness {
+// std::optional's == is spelled by hand here: inside the standard's own
+// operator== the library's predicate && is found by ADL through the variant's
+// arguments and builds a Meet node where a bool is due.
+constexpr bool holds(const std::optional<Cardinality>& o,
+                     const Cardinality& v) {
+  return o.has_value() && *o == v;
+}
+}  // namespace detail_lambek_witness
+static_assert(detail_lambek_witness::holds(
+                  Lambek<Cardinality>::out(Lambek<Cardinality>::in(
+                      std::optional<Cardinality>{finite_cardinality(3)})),
+                  finite_cardinality(3)) &&
                   Lambek<Cardinality>::in(Lambek<Cardinality>::out(
                       finite_cardinality(0))) == finite_cardinality(0),
               "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
-static_assert(!cover(aleph_0) &&
-                  cover(finite_cardinality(3)) == finite_cardinality(4),
+static_assert(!cover(Cardinality{ℵ_0{}}).has_value() &&
+                  detail_lambek_witness::holds(cover(finite_cardinality(3)),
+                                               finite_cardinality(4)),
               "the cover is partial at ℵ₀: the top has no cover.");
 // P only RETRACTS S on ℕ: P ∘ S = id, but S ∘ P ≠ id at 0 (the monus), so the
 // pair is not an adjunction here --- contrast ℤ (numbers:integer).

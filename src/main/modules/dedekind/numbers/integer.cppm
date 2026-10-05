@@ -16,6 +16,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <numeric>
+#include <optional>  // the cover / Lambek answers, 1 + N
 #include <type_traits>
 
 export module dedekind.numbers:integer;
@@ -213,6 +214,15 @@ consteval bool galois_on_sample() {
     }
   return true;
 }
+// out ∘ in misses −1: in(−1) = S(−1) = Z, and out(Z) is nothing.  (The optional
+// is unpacked by hand: the standard's == would find the library's predicate &&
+// by ADL through the variant's arguments.)
+consteval bool lambek_fails_at_minus_one() {
+  using L = dedekind::category::Lambek<Z>;
+  const Z minus_one = dedekind::sets::finite_signed_cardinality(-1);
+  const auto back = L::out(L::in(std::optional<Z>{minus_one}));
+  return !back.has_value() || *back != minus_one;
+}
 }  // namespace detail_step_adjunction
 static_assert(dedekind::category::IsGaloisConnection<detail_step_adjunction::S,
                                                      detail_step_adjunction::P>,
@@ -220,11 +230,6 @@ static_assert(dedekind::category::IsGaloisConnection<detail_step_adjunction::S,
 static_assert(
     detail_step_adjunction::galois_on_sample(),
     "S(x) ≤ y ⟺ x ≤ P(y), and both units are identities, on [−3, 3].");
-static_assert(dedekind::category::Lambek<detail_step_adjunction::Z>::out(
-                  dedekind::category::Lambek<detail_step_adjunction::Z>::in(
-                      std::optional<detail_step_adjunction::Z>{
-                          dedekind::sets::finite_signed_cardinality(-1)})) !=
-                  std::optional<detail_step_adjunction::Z>{
-                      dedekind::sets::finite_signed_cardinality(-1)},
+static_assert(detail_step_adjunction::lambek_fails_at_minus_one(),
               "[Z, S] is not an iso on ℤ: S(−1) = Z.  A group, not the NNO.");
 }  // namespace dedekind::numbers
