@@ -48,6 +48,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <optional>     // the equality-comparable witness below
 #include <type_traits>  // std::remove_cvref_t for the IsArrow Dom/Cod plumbing
 #include <utility>      // std::forward for the image() overload
 
@@ -109,12 +110,21 @@ struct Point {
 /** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
  *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
  *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
+ *  The slot is deduced, not fixed at @c 0, so that for any @c == whose left
+ *  operand is not a projection this candidate dies in deduction, before its
+ *  constraint is checked: a @c std::regular check on a deduced @c T that is
+ *  itself a standard @c optional / @c variant of a sets type re-enters this
+ *  very operator through ADL and the satisfaction depends on itself.
+ *  @tparam Slot the projection's slot, which must be the scalar's, @c 0.
  *  @tparam T the carrier, a regular value type. */
-export template <std::regular T>
-  requires(!std::is_empty_v<T>)
-constexpr Point<T> operator==(Projection<0>, T v) {
+export template <IsRingIntegral auto Slot, std::regular T>
+  requires(Slot == 0 && !std::is_empty_v<T>)
+constexpr Point<T> operator==(Projection<Slot>, T v) {
   return Point<T>{std::move(v)};
 }
+static_assert(std::equality_comparable<std::optional<Cardinality>>,
+              "the standard's == on an optional of a sets type is its own: no "
+              "sets operator== is a candidate for it.");
 
 /** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
  *  An alias, not a noun: its operators are every comprehension's (the

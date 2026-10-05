@@ -1412,10 +1412,8 @@ concept HasStructuredOr =
  *  arrow (a predicate, a set, a node over arrows) or a point-free relational
  *  fragment (@c π_1 @c ⋈ @c π_2, tagged @c is_rel_predicate, which meets its
  *  domain only at the former @c |).  A bare truth value is not a term:
- *  @c bool @c && @c bool stays the host language's --- an unconstrained head
- *  here was found by ADL inside the standard library's own @c operator== on an
- *  @c optional of a sets type and built a @c Meet node where a @c bool was due
- *  --- and a constant beside a predicate lifts through @c :topoi.
+ *  @c bool @c && @c bool stays the host language's, and a constant beside a
+ *  predicate lifts through @c :topoi.
  *  @tparam P the operand. */
 export template <typename P>
 concept IsLogicalTerm = IsArrow<std::remove_cvref_t<P>> || requires {

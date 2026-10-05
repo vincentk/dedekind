@@ -382,8 +382,8 @@ namespace detail_lambek_witness {
 inline constexpr Cardinality largest_finite =
     finite_cardinality(std::numeric_limits<std::size_t>::max());
 }  // namespace detail_lambek_witness
-// std::optional's own == throughout: the predicate && is constrained to terms
-// (sets), so the standard library's bool && bool is its own again.
+// std::optional's own == throughout: no sets operator== is a candidate for it
+// any more (the point datum's == deduces its projection slot, sets:singleton).
 static_assert(Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
                   finite_cardinality(3)})) ==
                       std::optional<Cardinality>{finite_cardinality(3)} &&
