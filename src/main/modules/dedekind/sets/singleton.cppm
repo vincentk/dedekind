@@ -48,6 +48,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <optional>     // the equality-comparable witness below
 #include <type_traits>  // std::remove_cvref_t for the IsArrow Dom/Cod plumbing
 #include <utility>      // std::forward for the image() overload
 
@@ -109,12 +110,22 @@ struct Point {
 /** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
  *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
  *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
- *  @tparam T the carrier, a regular value type. */
-export template <std::regular T>
+ *  Equality is @c Point's own constraint, checked when the body instantiates,
+ *  and deliberately @b not this head's: an @c equality_comparable check on a
+ *  deduced @c T asks for @c T @c == @c T, which finds this very operator by ADL
+ *  when @c T is a projection or a standard @c optional / @c variant of a sets
+ *  type, and the satisfaction depends on itself.
+ *  @tparam T the carrier, a value type (copyable, default-constructible) that
+ *          is not a grammar tag. */
+export template <std::semiregular T>
   requires(!std::is_empty_v<T>)
-constexpr Point<T> operator==(Projection<0>, T v) {
+constexpr auto operator==(Projection<0>, T v) {
   return Point<T>{std::move(v)};
 }
+static_assert(std::equality_comparable<std::optional<Cardinality>>,
+              "the standard's == on an optional of a sets type is its own: the "
+              "point datum's == above enters the candidate set by ADL and is "
+              "rejected as non-viable without probing equality on T.");
 
 /** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
  *  An alias, not a noun: its operators are every comprehension's (the
