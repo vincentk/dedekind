@@ -357,17 +357,18 @@ static_assert(
 // Architecture: NNO  →  Cardinality  →  ℕ.
 //   * NNO is the Form (universal property defined in @c :nno).
 //   * @c Cardinality is the canonical carrier witnessing the NNO,
-//     certified below by @c IsNNO<Cardinality, Zero<Cardinality>,
+//     certified below by @c IsNNO<Cardinality, ZeroElement<Cardinality>,
 //     Successor<Cardinality>> --- the :nno arrows over the carrier's own
 //     @c successor (saturating at @c ℵ_0, the carrier's honest sentinel
 //     beyond the textbook NNO).
 //   * @c ℕ is the name pointing to @c Cardinality (this partition's
 //     @c using ℕ alias, post-#427).
 
-static_assert(IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>>,
-              "Cardinality is the canonical NNO witness: Z = Zero, S = "
-              "Successor, saturating at ℵ_0.");
-static_assert(Zero<Cardinality>{}() == finite_cardinality(0),
+static_assert(
+    IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>,
+    "Cardinality is the canonical NNO witness: Z = ZeroElement, S = "
+    "Successor, saturating at ℵ_0.");
+static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
               "the carrier's default value is the NNO's zero.");
 
 /** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality

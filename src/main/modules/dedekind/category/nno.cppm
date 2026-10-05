@@ -228,20 +228,20 @@ struct Successor {
   constexpr N operator()(const N& n) const { return successor(n); }
 };
 
-/** @brief Zero @f$Z : 1 \to N@f$ as an arrow: the carrier's default value,
- *  which is the NNO's zero for the integrals and for @c Cardinality.
+/** @brief The zero element @f$Z : 1 \to N@f$ as an arrow: the carrier's default
+ * value, which is the NNO's zero for the integrals and for @c Cardinality.
  *  @tparam N the carrier. */
 export template <std::default_initializable N>
-struct Zero {
+struct ZeroElement {
   using Codomain = N;
   constexpr N operator()() const { return N{}; }
 };
 
 static_assert(IsArrow<Successor<int>>,
               "the successor is an arrow N → N (Domain, Codomain, const χ).");
-static_assert(IsNNO<int, Zero<int>, Successor<int>>,
+static_assert(IsNNO<int, ZeroElement<int>, Successor<int>>,
               "(int, Zero, Successor) has the NNO shape.");
-static_assert(Successor<int>{}(Zero<int>{}()) == 1, "S(Z) = 1.");
+static_assert(Successor<int>{}(ZeroElement<int>{}()) == 1, "S(Z) = 1.");
 
 /**
  * @brief Recursion-via-universal-property (operational discharge).

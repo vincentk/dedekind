@@ -32,7 +32,8 @@
  *
  * @note Row 9 is a @b witness of the NNO @e role, not an equality.  The genuine
  *       witness (carrying a zero and a successor) is
- *       @c IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>> in
+ *       @c IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>
+ in
  *       @c :numbers (@c natural.cppm), also reachable via @c :sets:cardinality
  *       (@c IsCountable).  @c unsigned is only a @b finite @b carrier
  *       @b stand-in: @c SpeciesTraits<unsigned> supplies the @c Domain /

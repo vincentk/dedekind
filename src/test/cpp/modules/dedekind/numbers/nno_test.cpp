@@ -33,10 +33,11 @@ using namespace dedekind::sets;
 // ===========================================================================
 
 TEST_CASE(
-    "category:nno — IsNNO<Cardinality, Zero<Cardinality>, "
+    "category:nno — IsNNO<Cardinality, ZeroElement<Cardinality>, "
     "Successor<Cardinality>> fires",
     "[category][nno][cardinality][witness]") {
-  STATIC_CHECK(IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>>);
+  STATIC_CHECK(
+      IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>);
   STATIC_CHECK(IsArrow<Successor<Cardinality>>);
 }
 
@@ -44,15 +45,16 @@ TEST_CASE(
 // (2) Zero and successor on Cardinality behave as the textbook NNO requires
 // ===========================================================================
 
-TEST_CASE("category:nno — Zero<Cardinality> returns finite_cardinality(0)",
-          "[category][nno][cardinality][zero]") {
-  constexpr Zero<Cardinality> z{};
+TEST_CASE(
+    "category:nno — ZeroElement<Cardinality> returns finite_cardinality(0)",
+    "[category][nno][cardinality][zero]") {
+  constexpr ZeroElement<Cardinality> z{};
   CHECK(z() == finite_cardinality(0));
 }
 
 TEST_CASE("category:nno — Successor<Cardinality> generates 1, 2, 3, ...",
           "[category][nno][cardinality][successor]") {
-  constexpr Zero<Cardinality> z{};
+  constexpr ZeroElement<Cardinality> z{};
   constexpr Successor<Cardinality> s{};
   const auto zero = z();
   const auto one = s(zero);
@@ -88,7 +90,7 @@ TEST_CASE(
   // Identity recursion: a₀ = 0, g = succ.  The unique f : ℕ → ℕ
   // produced by the universal property is the identity, materialised
   // at finite indices via nno_iterate.
-  const auto zero = Zero<Cardinality>{}();
+  const auto zero = ZeroElement<Cardinality>{}();
   const auto step = Successor<Cardinality>{};
   CHECK(nno_iterate(zero, step, 0u) == finite_cardinality(0));
   CHECK(nno_iterate(zero, step, 1u) == finite_cardinality(1));
@@ -132,10 +134,12 @@ TEST_CASE(
     "alias",
     "[category][nno][form-bias][architecture]") {
   // Layer 1: NNO is the Form (universal property; concept-level).
-  STATIC_CHECK(IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>>);
+  STATIC_CHECK(
+      IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>);
 
   // Layer 2: Cardinality is the canonical carrier inhabiting the Form.
-  STATIC_CHECK(std::same_as<decltype(Zero<Cardinality>{}()), Cardinality>);
+  STATIC_CHECK(
+      std::same_as<decltype(ZeroElement<Cardinality>{}()), Cardinality>);
   STATIC_CHECK(std::same_as<decltype(Successor<Cardinality>{}(Cardinality{})),
                             Cardinality>);
 
