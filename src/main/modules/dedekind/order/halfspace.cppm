@@ -2307,7 +2307,6 @@ constexpr auto operator>>(
  *  @f$a < b \iff (a, b) \in \Gamma_S^{+}@f$ --- the one relation whose star is
  *  point-free here, because the chain's own @c < decides it. */
 namespace detail_cover_witness {
-using Successor;
 consteval bool order_is_cover_star(int k) {
   for (int a = 0; a < k; ++a)
     for (int b = 0; b < k; ++b) {
