@@ -45,32 +45,34 @@ nb::object type_object<jlt::Int>() {
   return nb::borrow<nb::object>(reinterpret_cast<PyObject*>(&PyLong_Type));
 }
 
+/** @brief Bind @c f @c >> @c g for one right-operand type @c G.  The C++
+ *  @c operator>> itself returns a @c Compose node, one type per composition
+ *  shape, which the reducer wants and Python cannot hold; so the binding goes
+ *  through @c jlt::compose, which is @c operator>>, then @c cata, then the
+ *  erasure to the one handle type @c Arrow<T>.  Hence a lambda, not
+ *  @c nb::self @c >> @c nb::other. */
+template <typename S, typename G>
+void bind_rshift(nb::class_<S>& cls) {
+  cls.def(
+      "__rshift__", [](const S& f, const G& g) { return jlt::compose(f, g); },
+      "f >> g (apply f, then g): the reducer's composition, erased to an "
+      "arrow; same-object operands only.");
+}
+
 /** @brief Bind the arrow @b operators (apply @c (), same-object composition
- *  @c >>) to a bound arrow class @c S (an @c Id<T> or an @c Arrow<T>).  @c >>
- *  accepts only same-object operands, so cross-object composition raises
- *  automatically (no matching overload) --- the composability guard. */
+ *  @c >>) to a bound arrow class @c S.  @c >> accepts only same-object
+ *  operands, so cross-object composition raises automatically (no matching
+ *  overload) --- the composability guard. */
 template <typename S>
 void bind_endo_operators(nb::class_<S>& cls) {
   using T = typename S::Domain;
   cls.def(
-         "__call__", [](const S& f, T x) { return f(x); },
-         "Apply the arrow to an object of its carrier.")
-      .def(
-          "__rshift__",
-          [](const S& f, const jlt::Id<T>& g) { return jlt::compose(f, g); },
-          "f >> g (apply f, then g); same-object composition → Morphism.")
-      .def(
-          "__rshift__",
-          [](const S& f, const jlt::Arrow<T>& g) { return jlt::compose(f, g); },
-          "f >> g (apply f, then g); same-object composition → Morphism.")
-      .def(
-          "__rshift__",
-          [](const S& f, const jlt::Succ<T>& g) { return jlt::compose(f, g); },
-          "f >> succ.")
-      .def(
-          "__rshift__",
-          [](const S& f, const jlt::Pred<T>& g) { return jlt::compose(f, g); },
-          "f >> pred.");
+      "__call__", [](const S& f, T x) { return f(x); },
+      "Apply the arrow to an object of its carrier.");
+  bind_rshift<S, jlt::Id<T>>(cls);
+  bind_rshift<S, jlt::Arrow<T>>(cls);
+  bind_rshift<S, jlt::Succ<T>>(cls);
+  bind_rshift<S, jlt::Pred<T>>(cls);
 }
 
 /** @brief Bind the step arrows on carrier @c T as their own classes, typed:
