@@ -635,6 +635,7 @@ export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 // carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
 using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
+using dedekind::category::IsPst;
 using dedekind::category::predecessor;
 using dedekind::category::successor;
 // The gate is TRUE on both the machine integers and the ℕ proxy: the latter's
@@ -2430,49 +2431,18 @@ constexpr bool cut_is_empty(
     return false;
 }
 
-/** @brief A cut over the @b finite carrier @c bool decides emptiness /
- *  totality by exhausting @c {false, true} (the 𝔹 leg of the s|p quantifier).
- */
-export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi>
-constexpr bool operator==(
-    const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h,
-    const Ø<bool, L>&) {
-  return h(false) == L::False && h(true) == L::False;
-}
-export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi>
-constexpr bool operator==(
-    const Ø<bool, L>& e,
-    const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h) {
-  return h == e;
-}
-export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi,
-                 IsCardinality CU>
-constexpr bool operator==(
-    const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h,
-    const 𝔸<bool, L, CU>&) {
-  return h(false) == L::True && h(true) == L::True;
-}
-export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi,
-                 IsCardinality CU>
-constexpr bool operator==(
-    const 𝔸<bool, L, CU>& u,
-    const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h) {
-  return h == u;
-}
-
-/** @brief The general boundary-equality theorems: a ray is a @b proper cut by
- *  construction (@c make_halfspace collapses an empty cut to @c Ø, a moot cut
- *  to @c 𝔸), so it equals neither boundary; an interval is empty exactly when
- *  its bounds cross, and is never the universe.  The finite-@c bool overloads
- *  above are more specialised and still decide 𝔹 exactly. */
+// On a truth chain (𝔹, K₃) the boundaries decide these by exhausting the chain
+// (sets:boundaries); the structural cut law below is for the other chains.
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
+  requires(!IsPst<T>)
 constexpr bool operator==(
     const Ø<T, L>&, const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
   return cut_is_empty(h);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
+  requires(!IsPst<T>)
 constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
                           const Ø<T, L>&) {
   return cut_is_empty(h);
@@ -2492,12 +2462,14 @@ constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi, IsCardinality CU>
+  requires(!IsPst<T>)
 constexpr bool operator==(const 𝔸<T, L, CU>&,
                           const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&) {
   return false;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi, IsCardinality CU>
+  requires(!IsPst<T>)
 constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&,
                           const 𝔸<T, L, CU>&) {
   return false;

@@ -169,7 +169,9 @@ constexpr typename S::logic_species::Ω exists(const S& s, P p) {
 
 export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω forall(const S& s, P p) {
-  return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} = S, in L
+  // (B): S = {x ∈ S | P(x)}, in L.  S first: the species' Ω-valued == is
+  // then called directly; a reversed candidate would have to return bool.
+  return s == (s | std::move(p));
 }
 
 /** @section quantifier__Formal_Verification */
