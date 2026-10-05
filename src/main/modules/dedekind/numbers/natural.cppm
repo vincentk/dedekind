@@ -376,9 +376,9 @@ static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
 // NNO away from ℵ₀; at the top S saturates and the lemma fails, which is the
 // carrier's honest boundary, not the NNO's.
 namespace detail_lambek_witness {
-// std::optional's == is spelled by hand here: inside the standard's own
-// operator== the library's predicate && is found by ADL through the variant's
-// arguments and builds a Meet node where a bool is due.
+// FIXME(#1003): std::optional's == is spelled by hand here: inside the
+// standard's own operator== the library's predicate && is found by ADL through
+// the variant's arguments and builds a Meet node where a bool is due.
 constexpr bool holds(const std::optional<Cardinality>& o,
                      const Cardinality& v) {
   return o.has_value() && *o == v;

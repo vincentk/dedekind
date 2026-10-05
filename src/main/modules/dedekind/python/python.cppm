@@ -428,6 +428,8 @@ C at(std::size_t i) {
 }
 template <typename C>
 constexpr bool is_truth_object = dedekind::category::IsPst<C>;
+// FIXME(#1004): IsDiscrete is not exported yet; discreteness is read as
+// !is_dense.
 template <typename C>
 constexpr bool is_dense = dedekind::order::IsDense<C>;
 

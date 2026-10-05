@@ -234,7 +234,8 @@ NB_MODULE(_lwv, m) {
 
   // image / preimage (paper §4): the function algebra on sets, for the arrows
   // whose action on a value leaf has a normal form.  An erased composite is
-  // intensional and refused, not guessed.
+  // intensional and refused, not guessed.  FIXME(#1005): refl gets a typed
+  // arrow.
   const char* image_doc =
       "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
       "the bounds move, the kind stays.  image(succ(int), above(5)) == "
