@@ -199,14 +199,9 @@ static_assert(walks(chain_view{false, true}, false, true) &&
 static_assert(std::ranges::input_range<chain_view<int>> &&
                   std::ranges::view<chain_view<Ternary>>,
               "chain_view is a std::ranges input view.");
-consteval bool empty_when_crossed() {
-  for (const auto x : chain_view{5, 2}) {
-    (void)x;
-    return false;
-  }
-  return true;
-}
-static_assert(empty_when_crossed(), "lo > hi is the empty window.");
+static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
+                  chain_view{2, 2}.begin() != std::default_sentinel,
+              "lo > hi is the empty window; lo == hi the one-point window.");
 }  // namespace detail_chain_view_witness
 
 /** @brief Project an interval (the meet of its two halfspaces) to its
