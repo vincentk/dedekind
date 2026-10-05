@@ -147,3 +147,37 @@ TEST_CASE(
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℕ)>::Domain,
                             Cardinality>);
 }
+
+// ===========================================================================
+// (5) The cover, Lambek, and ++: the posture at the bounds, at runtime
+// ===========================================================================
+
+TEST_CASE("category:nno — the cover is partial at ⊤ and ++ saturates there",
+          "[category][nno][cover][saturation]") {
+  CHECK(cover(finite_cardinality(41)) == finite_cardinality(42));
+  CHECK_FALSE(cover(aleph_0).has_value());
+  CHECK(cover(Ternary::Unknown) == Ternary::True);
+  CHECK_FALSE(cover(Ternary::True).has_value());
+  Cardinality n = finite_cardinality(0);
+  for (int i = 0; i < 5; ++i) ++n;
+  CHECK(n == finite_cardinality(5));
+  Cardinality top = aleph_0;
+  ++top;
+  CHECK(top == aleph_0);
+}
+
+TEST_CASE(
+    "category:nno — Lambek's lemma separates the NNO from its look-alikes",
+    "[category][nno][lambek]") {
+  // ℕ's finite fragment: [Z, S] is an iso.
+  for (std::size_t k = 0; k < 6; ++k) {
+    const auto n = finite_cardinality(k);
+    CHECK(Lambek<Cardinality>::in(Lambek<Cardinality>::out(n)) == n);
+    CHECK(Lambek<Cardinality>::out(Lambek<Cardinality>::in(n)) == n);
+  }
+  // K₃: S saturates at ⊤, so out ∘ in misses True.
+  CHECK(Lambek<Ternary>::out(Lambek<Ternary>::in(Ternary::True)) ==
+        Ternary::Unknown);
+  // int (ℤ): Z collides with S(−1).
+  CHECK_FALSE(Lambek<int>::out(Lambek<int>::in(-1)).has_value());
+}

@@ -2261,6 +2261,62 @@ constexpr auto operator>>(
       ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
 }
 
+/** @section halfspace__Cover_And_Star  The successor is the cover; the order
+ *  is its star.  On a discrete chain nothing lies strictly between @c x and
+ *  @c S(x): the bounded meet @c (x, S(x)) is empty and @c (x, S(S(x))) is the
+ *  point @c S(x), both read off the one @c bounded law.  And the order is the
+ *  Kleene star of the cover relation @f$\Gamma_S = \mathrm{graph}(S)@f$:
+ *  @f$a < b \iff (a, b) \in \Gamma_S^{+}@f$ --- the one relation whose star is
+ *  point-free here, because the chain's own @c < decides it. */
+namespace detail_cover_witness {
+using dedekind::category::Successor;
+consteval bool order_is_cover_star(int k) {
+  for (int a = 0; a < k; ++a)
+    for (int b = 0; b < k; ++b) {
+      bool reached = false;
+      int x = a;
+      for (int n = 1; n < k; ++n) {
+        x = Successor<int>{}(x);
+        reached = reached || x == b;
+      }
+      if ((a < b) != reached) return false;
+    }
+  return true;
+}
+}  // namespace detail_cover_witness
+static_assert(
+    SetVal<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict).kind ==
+        SetKind::Empty,
+    "nothing lies strictly between 3 and S(3): the successor is the cover.");
+static_assert(
+    SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).kind ==
+            SetKind::Singleton &&
+        SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).lo ==
+            4,
+    "(3, S(S(3))) is the point S(3) = 4.");
+static_assert(SetVal<Cardinality>::bounded(finite_cardinality(3),
+                                           Strictness::Strict,
+                                           finite_cardinality(4),
+                                           Strictness::Strict)
+                      .kind == SetKind::Empty,
+              "…and on the ℕ proxy, through its own successor.");
+static_assert(SetVal<dedekind::category::Ternary>::bounded(
+                  dedekind::category::Ternary::False, Strictness::Strict,
+                  dedekind::category::Ternary::True, Strictness::Strict)
+                          .kind == SetKind::Singleton &&
+                  SetVal<dedekind::category::Ternary>::bounded(
+                      dedekind::category::Ternary::False, Strictness::Strict,
+                      dedekind::category::Ternary::True, Strictness::Strict)
+                          .lo == dedekind::category::Ternary::Unknown,
+              "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
+              "middle truth value.");
+static_assert(graph(dedekind::category::Successor<int>{})(std::pair{3, 4}) &&
+                  !graph(dedekind::category::Successor<int>{})(std::pair{3, 5}),
+              "Γ_S = graph(S) is the cover relation.");
+static_assert(detail_cover_witness::order_is_cover_star(8),
+              "on [0, 8): a < b ⟺ (a, b) ∈ Γ_S⁺ --- the order is the star of "
+              "the cover.");
+
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,
  *  compile-time. */

@@ -56,7 +56,8 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t (residue loop)
 #include <functional>
-#include <utility>  // std::forward (used in embed_𝔹_ℕ's set-level lift)
+#include <optional>  // std::nullopt (the cover at ℵ₀)
+#include <utility>   // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
 export module dedekind.numbers:natural;
 
@@ -370,6 +371,25 @@ static_assert(
     "Successor, saturating at ℵ_0.");
 static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
               "the carrier's default value is the NNO's zero.");
+// Lambek on the finite fragment: [Z, S] is an iso there, so ℕ's proxy IS the
+// NNO away from ℵ₀; at the top S saturates and the lemma fails, which is the
+// carrier's honest boundary, not the NNO's.
+static_assert(Lambek<Cardinality>::out(Lambek<Cardinality>::in(
+                  std::optional<Cardinality>{finite_cardinality(3)})) ==
+                      finite_cardinality(3) &&
+                  Lambek<Cardinality>::in(Lambek<Cardinality>::out(
+                      finite_cardinality(0))) == finite_cardinality(0),
+              "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
+static_assert(!cover(aleph_0) &&
+                  cover(finite_cardinality(3)) == finite_cardinality(4),
+              "the cover is partial at ℵ₀: the top has no cover.");
+// P only RETRACTS S on ℕ: P ∘ S = id, but S ∘ P ≠ id at 0 (the monus), so the
+// pair is not an adjunction here --- contrast ℤ (numbers:integer).
+static_assert(Predecessor<Cardinality>{}(Successor<Cardinality>{}(
+                  finite_cardinality(7))) == finite_cardinality(7) &&
+                  Successor<Cardinality>{}(Predecessor<Cardinality>{}(
+                      finite_cardinality(0))) == finite_cardinality(1),
+              "P ∘ S = id; S ∘ P moves 0 to 1: a retraction, not an iso.");
 
 /** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
  *         @b value: the saturation point, and the unique fixpoint of

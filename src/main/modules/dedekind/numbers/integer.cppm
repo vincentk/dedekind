@@ -22,6 +22,7 @@ export module dedekind.numbers:integer;
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.order; // IsTotallyOrdered gates the step arrows' monotonicity
 import dedekind.sets;
 import :natural;
 export import :cardinality;
@@ -193,4 +194,37 @@ static_assert(
         std::multiplies<dedekind::sets::SignedCardinality>>,
     "ℤ is NOT a field --- only ±1 are multiplicative units (ℚ is its field "
     "of fractions).");
+
+// S ⊣ P ⊣ S on ℤ: successor and predecessor are inverse order automorphisms,
+// so S(x) ≤ y ⟺ x ≤ P(y) --- a Galois connection with both units identities.
+// On ℕ, P only retracts S (numbers:natural); and [Z, S] is not an iso here
+// (S(−1) = Z), so ℤ has the NNO shape without being the NNO: it is a group.
+namespace detail_step_adjunction {
+using Z = dedekind::sets::SignedCardinality;
+using S = dedekind::category::Successor<Z>;
+using P = dedekind::category::Predecessor<Z>;
+consteval bool galois_on_sample() {
+  for (int a = -3; a <= 3; ++a)
+    for (int b = -3; b <= 3; ++b) {
+      const Z x = dedekind::sets::finite_signed_cardinality(a);
+      const Z y = dedekind::sets::finite_signed_cardinality(b);
+      if ((S{}(x) <= y) != (x <= P{}(y))) return false;
+      if (P{}(S{}(x)) != x || S{}(P{}(x)) != x) return false;
+    }
+  return true;
+}
+}  // namespace detail_step_adjunction
+static_assert(dedekind::category::IsGaloisConnection<detail_step_adjunction::S,
+                                                     detail_step_adjunction::P>,
+              "S ⊣ P on ℤ: both monotone, crossed carriers.");
+static_assert(
+    detail_step_adjunction::galois_on_sample(),
+    "S(x) ≤ y ⟺ x ≤ P(y), and both units are identities, on [−3, 3].");
+static_assert(dedekind::category::Lambek<detail_step_adjunction::Z>::out(
+                  dedekind::category::Lambek<detail_step_adjunction::Z>::in(
+                      std::optional<detail_step_adjunction::Z>{
+                          dedekind::sets::finite_signed_cardinality(-1)})) !=
+                  std::optional<detail_step_adjunction::Z>{
+                      dedekind::sets::finite_signed_cardinality(-1)},
+              "[Z, S] is not an iso on ℤ: S(−1) = Z.  A group, not the NNO.");
 }  // namespace dedekind::numbers
