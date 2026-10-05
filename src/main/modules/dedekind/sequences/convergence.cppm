@@ -486,8 +486,8 @@ concept WitnessesBolzanoWeierstrass =
  *  unification — a typed @c IterationSequence<f, seed> subsuming both
  *  — would let the periodicity bridge fire on Mandelbrot bulbs too;
  *  this slice keeps the group-orbit case (where @c cyclic_order_v
- *  gives the period) and leaves the unary generalisation as a
- *  named follow-up. */
+ *  gives the period); the unary case for the one step that matters
+ *  most, the NNO successor, is @c SuccessorOrbit below. */
 export template <typename T, typename Op>
 struct OrbitSequence : Path<T> {
   constexpr OrbitSequence(T gen, Op op) {
@@ -517,6 +517,60 @@ template <typename T, typename Op, std::size_t N>
   requires(N > 0 && dedekind::category::is_periodic_v<T, Op> &&
            N == dedekind::category::cyclic_order_v<T, Op>)
 inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
+
+/** @brief The orbit of a seed under the NNO step, @f$n \mapsto S^{n}(a)@f$:
+ *  the unique morphism the universal property gives from ℕ into the carrier
+ *  (@f$f(0) = a,\; f(n+1) = S(f(n))@f$), as a sequence --- the unfold
+ *  @c iterate(a, Successor<N>{}) named, so the sequence-shape traits can attach
+ *  to it.  Its shape classifies the carrier's posture at the bound: an
+ *  injective infinite stream on an unbounded chain (the NNO proper), eventually
+ *  constant on a saturating one (@c IsAbsorptiveSequence, the absorbing value
+ *  the top), periodic on a wrapping one.
+ *
+ *  @c at(n) is @f$O(1)@f$ where the carrier's @c + is the iterated step
+ *  (Peano addition, @f$S^{n}(a) = a + n@f$: the integrals, the ℕ proxy), and
+ *  the @f$O(n)@f$ walk otherwise (K₃).
+ *  @tparam N the carrier, with the NNO step. */
+export template <dedekind::category::HasNNOStep N>
+struct SuccessorOrbit : Path<N> {
+  constexpr explicit SuccessorOrbit(N seed) {
+    this->generator = [seed](std::size_t n) -> N {
+      if constexpr (std::integral<N>) {
+        return static_cast<N>(seed + static_cast<N>(n));
+      } else if constexpr (requires {
+                             {
+                               seed + dedekind::sets::finite_cardinality(n)
+                             } -> std::same_as<N>;
+                           }) {
+        return seed + dedekind::sets::finite_cardinality(n);
+      } else {
+        N acc = seed;
+        for (std::size_t i = 0; i < n; ++i)
+          acc = dedekind::category::Successor<N>{}(acc);
+        return acc;
+      }
+    };
+  }
+};
+
+/** @brief The saturating chains' orbits are eventually constant at their top:
+ *  the K₃ orbit reaches ⊤ in two steps; the ℕ proxy's reaches ℵ₀ only when the
+ *  finite fragment is exhausted, the memory boundary the carrier is honest
+ *  about, so that registration states the posture, not a reachable index. */
+template <>
+inline constexpr bool
+    is_absorptive_sequence_v<SuccessorOrbit<dedekind::category::Ternary>> =
+        true;
+template <>
+inline constexpr bool
+    is_absorptive_sequence_v<SuccessorOrbit<dedekind::sets::Cardinality>> =
+        true;
+
+static_assert(IsSequence<SuccessorOrbit<int>> &&
+                  !IsFiniteSequence<SuccessorOrbit<int>>,
+              "the orbit of the unbounded chain is an infinite sequence.");
+static_assert(IsAbsorptiveSequence<SuccessorOrbit<dedekind::category::Ternary>>,
+              "the K₃ orbit is eventually constant at ⊤.");
 
 }  // namespace dedekind::sequences
 
