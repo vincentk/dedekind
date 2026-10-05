@@ -37,8 +37,17 @@ namespace nb = nanobind;
 
 namespace {
 namespace lwv = dedekind::python::lwv;
+namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
 using Set = lwv::Set;
+
+/** @brief The unfold of a set of the discrete chain from its least element by
+ *  the successor, stopping one past its greatest if it has one: a bounded set
+ *  iterates like @c range, a ray like @c itertools.count.  @f$O(1)@f$ space. */
+struct SetIter {
+  std::optional<long long> current;
+  std::optional<long long> stop;
+};
 
 const char* kind_name(ord::SetKind k) {
   switch (k) {
@@ -126,6 +135,44 @@ NB_MODULE(_lwv, m) {
           "__and__", [](const Set& a, const Set& b) { return lwv::meet(a, b); },
           "a & b: intersection through the value-first reduce_meet (runtime).")
       .def("__repr__", [](const Set& s) { return repr(s); })
+      .def(
+          "__eq__", [](const Set& a, const Set& b) { return a == b; },
+          nb::is_operator(), "a == b: the same set (kind and bounds).")
+      .def(
+          "__bool__",
+          [](const Set& s) { return s.kind != ord::SetKind::Empty; },
+          "A set is truthy iff it is inhabited.")
+      .def(
+          "__len__",
+          [](const Set& s) -> std::size_t {
+            const auto c = cardinality(s);
+            if (!c)
+              throw nb::type_error(
+                  "ℵ₀ is not a Python int: the set is unbounded (see "
+                  "is_bounded)");
+            return static_cast<std::size_t>(*c);
+          },
+          "The number of elements of a bounded set; a ray or 𝔸 has none to "
+          "give.")
+      .def(
+          "__iter__",
+          [](const Set& s) {
+            const auto first = lwv::least(s);
+            if (!first && s.kind != ord::SetKind::Empty)
+              throw nb::type_error(
+                  "no least element: a set unbounded below ({x < k}, 𝔸) has "
+                  "no bottom on ℤ to unfold from");
+            return SetIter{first, lwv::past_end(s)};
+          },
+          "Unfold the set from its least element by the successor: a bounded "
+          "set iterates like range(a, b), a ray like itertools.count(a).")
+      .def_prop_ro(
+          "is_bounded", [](const Set& s) { return lwv::is_bounded(s); },
+          "Whether the set is bounded (has a least and a greatest element).")
+      .def_prop_ro(
+          "is_finite", [](const Set& s) { return lwv::is_bounded(s); },
+          "Whether the set is finite: on the discrete chain ℤ, exactly when it "
+          "is bounded.")
       .def_prop_ro(
           "kind", [](const Set& s) { return kind_name(s.kind); },
           "The structural kind: empty / universe / halfspace / singleton / "
@@ -151,4 +198,76 @@ NB_MODULE(_lwv, m) {
         "singleton(k): the point {k} = η(k), the value-based atom.");
   m.def("everything", &lwv::everything, "everything(): the universe 𝔸.");
   m.def("nothing", &lwv::nothing, "nothing(): the empty set Ø.");
+
+  nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
+      .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
+      .def("__next__", [](SetIter& it) {
+        if (!it.current || (it.stop && *it.current >= *it.stop))
+          throw nb::stop_iteration();
+        const long long value = *it.current;
+        ++*it.current;
+        return value;
+      });
+
+  // image / preimage (paper §4): the function algebra on sets, for the arrows
+  // whose action on a value leaf has a normal form.  An erased composite is
+  // intensional and refused, not guessed.
+  const char* image_doc =
+      "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
+      "the bounds move, the kind stays.  image(succ(int), above(5)) == "
+      "above(6).";
+  const char* preimage_doc =
+      "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
+      "pred).  preimage(succ(int), above(6)) == above(5).";
+  m.def(
+      "image",
+      [](const jlt::Id<jlt::Int>& f, const Set& s) { return lwv::image(f, s); },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "image",
+      [](const jlt::Succ<jlt::Int>& f, const Set& s) {
+        return lwv::image(f, s);
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "image",
+      [](const jlt::Pred<jlt::Int>& f, const Set& s) {
+        return lwv::image(f, s);
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "image",
+      [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {
+        throw nb::type_error(
+            "image of an erased composite arrow is intensional (Kleene-valued) "
+            "and has no value normal form; only id / succ / pred do");
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "preimage",
+      [](const jlt::Id<jlt::Int>& f, const Set& s) {
+        return lwv::preimage(f, s);
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  m.def(
+      "preimage",
+      [](const jlt::Succ<jlt::Int>& f, const Set& s) {
+        return lwv::preimage(f, s);
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  m.def(
+      "preimage",
+      [](const jlt::Pred<jlt::Int>& f, const Set& s) {
+        return lwv::preimage(f, s);
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  m.def(
+      "preimage",
+      [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {
+        throw nb::type_error(
+            "preimage of an erased composite arrow is intensional "
+            "(Kleene-valued) and has no value normal form; only id / succ / "
+            "pred do");
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
 }

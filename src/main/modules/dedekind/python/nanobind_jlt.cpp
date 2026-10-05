@@ -41,7 +41,7 @@ nb::object type_object<bool>() {
   return nb::borrow<nb::object>(reinterpret_cast<PyObject*>(&PyBool_Type));
 }
 template <>
-nb::object type_object<int>() {
+nb::object type_object<jlt::Int>() {
   return nb::borrow<nb::object>(reinterpret_cast<PyObject*>(&PyLong_Type));
 }
 
@@ -62,7 +62,38 @@ void bind_endo_operators(nb::class_<S>& cls) {
       .def(
           "__rshift__",
           [](const S& f, const jlt::Arrow<T>& g) { return jlt::compose(f, g); },
-          "f >> g (apply f, then g); same-object composition → Morphism.");
+          "f >> g (apply f, then g); same-object composition → Morphism.")
+      .def(
+          "__rshift__",
+          [](const S& f, const jlt::Succ<T>& g) { return jlt::compose(f, g); },
+          "f >> succ.")
+      .def(
+          "__rshift__",
+          [](const S& f, const jlt::Pred<T>& g) { return jlt::compose(f, g); },
+          "f >> pred.");
+}
+
+/** @brief Bind the step arrows on carrier @c T as their own classes, typed:
+ *  the real @c :nno @c Successor / @c Predecessor, composable like @c id, and
+ *  readable by @c lwv.image. */
+template <typename T>
+void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
+  auto succ = nb::class_<jlt::Succ<T>>(
+      m, succ_name,
+      "The successor arrow S : T -> T (the real :nno Successor), total and "
+      "saturating at the chain's top.");
+  bind_endo_operators(succ);
+  succ.def("__repr__", [](const jlt::Succ<T>&) { return "succ"; });
+  auto pred = nb::class_<jlt::Pred<T>>(
+      m, pred_name,
+      "The predecessor arrow P : T -> T (the real :nno Predecessor), total and "
+      "saturating at the chain's bottom (the monus on ℕ).");
+  bind_endo_operators(pred);
+  pred.def("__repr__", [](const jlt::Pred<T>&) { return "pred"; });
+  m.def("dom", [](const jlt::Succ<T>&) { return type_object<T>(); });
+  m.def("cod", [](const jlt::Succ<T>&) { return type_object<T>(); });
+  m.def("dom", [](const jlt::Pred<T>&) { return type_object<T>(); });
+  m.def("cod", [](const jlt::Pred<T>&) { return type_object<T>(); });
 }
 
 /** @brief Bind one carrier @c T: the real @c Identity<T> and the type-erased
@@ -115,7 +146,9 @@ NB_MODULE(_jlt, m) {
       "int) is not defined and raises.";
 
   bind_carrier<bool>(m, "IdentityBool", "MorphismBool");
-  bind_carrier<int>(m, "IdentityInt", "MorphismInt");
+  bind_carrier<jlt::Int>(m, "IdentityInt", "MorphismInt");
+  bind_steps<bool>(m, "SuccessorBool", "PredecessorBool");
+  bind_steps<jlt::Int>(m, "SuccessorInt", "PredecessorInt");
 
   // id(T) / refl(T): the primitive arrows on carrier T (a Python type object,
   // bool or int) -- mirroring :morphism's id<T>().  refl is :logic's reflection
@@ -125,7 +158,7 @@ NB_MODULE(_jlt, m) {
       "id",
       [](nb::handle t) -> nb::object {
         if (t.is(type_object<bool>())) return nb::cast(jlt::id<bool>());
-        if (t.is(type_object<int>())) return nb::cast(jlt::id<int>());
+        if (t.is(type_object<jlt::Int>())) return nb::cast(jlt::id<jlt::Int>());
         throw nb::type_error("id(T): T must be bool or int");
       },
       nb::arg("carrier"), "id(T): the identity arrow on carrier T.");
@@ -133,10 +166,32 @@ NB_MODULE(_jlt, m) {
       "refl",
       [](nb::handle t) -> nb::object {
         if (t.is(type_object<bool>())) return nb::cast(jlt::refl_bool());
-        if (t.is(type_object<int>())) return nb::cast(jlt::refl_int());
+        if (t.is(type_object<jlt::Int>())) return nb::cast(jlt::refl_int());
         throw nb::type_error("refl(T): T must be bool or int");
       },
       nb::arg("carrier"),
       "refl(T): the reflection involution on carrier T (not on bool, negation "
       "on int).");
+  m.def(
+      "succ",
+      [](nb::handle t) -> nb::object {
+        if (t.is(type_object<bool>())) return nb::cast(jlt::Succ<bool>{});
+        if (t.is(type_object<jlt::Int>()))
+          return nb::cast(jlt::Succ<jlt::Int>{});
+        throw nb::type_error("succ(T): T must be bool or int");
+      },
+      nb::arg("carrier"),
+      "succ(T): the successor arrow on carrier T, the NNO step (saturating: "
+      "succ(bool)(True) is True).");
+  m.def(
+      "pred",
+      [](nb::handle t) -> nb::object {
+        if (t.is(type_object<bool>())) return nb::cast(jlt::Pred<bool>{});
+        if (t.is(type_object<jlt::Int>()))
+          return nb::cast(jlt::Pred<jlt::Int>{});
+        throw nb::type_error("pred(T): T must be bool or int");
+      },
+      nb::arg("carrier"),
+      "pred(T): the predecessor arrow on carrier T (saturating at the bottom: "
+      "pred(bool)(False) is False).");
 }

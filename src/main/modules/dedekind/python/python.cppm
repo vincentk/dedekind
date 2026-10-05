@@ -28,6 +28,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <optional>  // the cover, the first element of a set
 #include <ranges>
 #include <utility>
 
@@ -150,15 +151,28 @@ inline Arrow<bool> refl_bool() {
       dedekind::category::logic_complement<dedekind::category::Boole>{}}};
 }
 
-/** @brief @c refl on @c int: the reflection of the integer bounded chain ---
- *  @c :logic's @c logic_complement<Chain<int>> (@c = @c Chain<int>::RFL @c =
- *  @c ~a, the order-reversing De Morgan involution), already witnessed as an
- *  involution there (@c is_involutive<logic_complement<Chain<int>>, @c int>).
- */
-inline Arrow<int> refl_int() {
-  return Arrow<int>{std::function<int(int)>{
-      dedekind::category::logic_complement<dedekind::category::Chain<int>>{}}};
+/** @brief The integer carrier the Python surface shares between the arrows
+ *  (@c jlt), the sets (@c lwv) and the chains (@c pst): @c long @c long, what a
+ *  Python @c int crosses the boundary as.  One carrier, so an arrow's image of
+ *  a set is well-typed. */
+using Int = long long;
+
+/** @brief @c refl on the integer chain: @c :logic's
+ *  @c logic_complement<Chain<Int>> (@c = @c Chain<Int>::RFL @c = @c ~a, the
+ *  order-reversing De Morgan involution), already witnessed as an involution
+ *  there. */
+inline Arrow<Int> refl_int() {
+  return Arrow<Int>{std::function<Int(Int)>{
+      dedekind::category::logic_complement<dedekind::category::Chain<Int>>{}}};
 }
+
+/** @brief The step arrows on a carrier, the real @c :nno @c Successor /
+ *  @c Predecessor, kept @b typed (not erased) so the set side can read them
+ *  structurally (@c lwv::image).  @tparam T the carrier, with the NNO step. */
+template <dedekind::category::HasNNOStep T>
+using Succ = dedekind::category::Successor<T>;
+template <dedekind::category::HasNNOStep T>
+using Pred = dedekind::category::Predecessor<T>;
 
 /** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
  * same-object endomorphisms, as a type-erased arrow.  It REUSES the real
@@ -253,6 +267,157 @@ constexpr Set meet(const Set& a, const Set& b) {
   return ord::reduce_meet(a, b);
 }
 
+/** @brief Translate every bound by @c k: the image of a value leaf under the
+ *  order automorphism @f$x \mapsto x + k@f$ of the chain keeps its kind and
+ *  moves its bounds; @c Ø and @c 𝔸 are fixed.  @f$O(1)@f$. */
+constexpr Set shift(const Set& s, long long k) {
+  Set r = s;
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+    case ord::SetKind::Interval:
+      r.lo += k;
+      r.hi += k;
+      break;
+    case ord::SetKind::Halfspace:
+      r.lo += k;
+      break;
+    default:
+      break;
+  }
+  return r;
+}
+/** @brief @f$f(S)@f$ and @f$f^{-1}(S)@f$ for the structural arrows, in closed
+ *  form: the successor shifts by one, the predecessor by minus one, the
+ *  identity not at all (paper §4: the image of @c {n > 5} under the successor
+ *  is @c {n > 6}, decided with no search of the domain).  An opaque composed
+ *  arrow has no such normal form; its image is intensional (Kleene-valued)
+ *  and is refused at the boundary rather than guessed. */
+constexpr Set image(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
+constexpr Set preimage(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
+constexpr Set image(const jlt::Succ<jlt::Int>&, const Set& s) {
+  return shift(s, 1);
+}
+constexpr Set preimage(const jlt::Succ<jlt::Int>&, const Set& s) {
+  return shift(s, -1);
+}
+constexpr Set image(const jlt::Pred<jlt::Int>&, const Set& s) {
+  return shift(s, -1);
+}
+constexpr Set preimage(const jlt::Pred<jlt::Int>&, const Set& s) {
+  return shift(s, 1);
+}
+
+/** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
+ *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
+constexpr bool is_bounded(const Set& s) {
+  return s.kind == ord::SetKind::Empty || s.kind == ord::SetKind::Singleton ||
+         s.kind == ord::SetKind::Interval;
+}
+/** @brief The least element, the unfold's seed: none for @c Ø, and none for a
+ *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
+constexpr std::optional<long long> least(const Set& s) {
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+      return s.lo;
+    case ord::SetKind::Interval:
+      return s.sl == ord::Strictness::Strict ? s.lo + 1 : s.lo;
+    case ord::SetKind::Halfspace:
+      if (s.dir == ord::Direction::Upward)
+        return s.sl == ord::Strictness::Strict ? s.lo + 1 : s.lo;
+      return std::nullopt;
+    default:
+      return std::nullopt;
+  }
+}
+/** @brief One past the greatest element, where the set is bounded above;
+ *  @c nullopt on a ray: the unfold does not stop. */
+constexpr std::optional<long long> past_end(const Set& s) {
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+      return s.lo + 1;
+    case ord::SetKind::Interval:
+      return s.su == ord::Strictness::Strict ? s.hi : s.hi + 1;
+    default:
+      return std::nullopt;
+  }
+}
+
 }  // namespace lwv
+
+// ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
+//
+// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), and
+// ℕ's proxy, a bounded chain in the same shape whose ⊤ is ℵ₀ (the memory
+// boundary), not a truth object.  A chain is its endpoints and its step; the
+// step is read twice --- total and saturating (the algebra side, @c Successor)
+// and partial (the coalgebra side, @c cover, nothing at ⊤) --- and the chain's
+// classification is whatever the C++ concepts decide.
+
+namespace pst {
+
+/** @brief A Pst chain by carrier: its name, endpoints and size.
+ *  @tparam C the carrier (@c bool, @c Ternary, @c Cardinality). */
+template <typename C>
+struct Chain;
+template <>
+struct Chain<bool> {
+  static constexpr const char* name = "𝔹";
+  static constexpr bool bottom = false;
+  static constexpr bool top = true;
+  static constexpr dedekind::sets::Cardinality cardinality =
+      dedekind::sets::finite_cardinality(2);
+};
+template <>
+struct Chain<dedekind::category::Ternary> {
+  static constexpr const char* name = "K₃";
+  static constexpr dedekind::category::Ternary bottom =
+      dedekind::category::Ternary::False;
+  static constexpr dedekind::category::Ternary top =
+      dedekind::category::Ternary::True;
+  static constexpr dedekind::sets::Cardinality cardinality =
+      dedekind::sets::finite_cardinality(3);
+};
+template <>
+struct Chain<dedekind::sets::Cardinality> {
+  static constexpr const char* name = "ℕ";
+  static constexpr dedekind::sets::Cardinality bottom =
+      dedekind::sets::finite_cardinality(0);
+  static constexpr dedekind::sets::Cardinality top =
+      dedekind::sets::Cardinality{dedekind::sets::ℵ_0{}};
+  static constexpr dedekind::sets::Cardinality cardinality = top;
+};
+
+/** @brief The step, both readings, and the classification, on a chain's
+ *  carrier.  @tparam C the carrier. */
+template <dedekind::category::HasNNOStep C>
+constexpr C succ(const C& x) {
+  return dedekind::category::Successor<C>{}(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr C pred(const C& x) {
+  return dedekind::category::Predecessor<C>{}(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr std::optional<C> cover(const C& x) {
+  return dedekind::category::cover(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr bool saturates() {
+  return succ(Chain<C>::top) == Chain<C>::top;
+}
+template <typename C>
+constexpr bool is_truth_object = dedekind::category::IsPst<C>;
+template <typename C>
+constexpr bool is_dense = dedekind::order::IsDense<C>;
+
+static_assert(is_truth_object<bool> &&
+                  is_truth_object<dedekind::category::Ternary> &&
+                  !is_truth_object<dedekind::sets::Cardinality>,
+              "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
+static_assert(saturates<bool>() && saturates<dedekind::category::Ternary>() &&
+                  saturates<dedekind::sets::Cardinality>(),
+              "the three chains saturate at ⊤.");
+
+}  // namespace pst
 
 }  // namespace dedekind::python

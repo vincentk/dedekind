@@ -42,8 +42,8 @@ wheel.packages = ["python/dedekind"]
 # directly with the full target set, so the test suite is untouched.
 # All extensions must be listed: they are install(TARGETS) targets, so a
 # missing one fails the wheel install (#961: _jlt is the Jlt arrow exhibit;
-# #965: _lwv is the Lwv set-comprehension exhibit).
-build.targets = ["_dedekind", "_jlt", "_lwv"]
+# #965: _lwv is the Lwv set-comprehension exhibit; #1001: _pst the Pst chains).
+build.targets = ["_dedekind", "_jlt", "_lwv", "_pst"]
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
