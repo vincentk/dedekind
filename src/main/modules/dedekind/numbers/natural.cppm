@@ -379,24 +379,17 @@ static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
 // so [Z, S] is no isomorphism of the carrier and nothing declares it one: the
 // memory boundary is where the carrier stops being the NNO.
 namespace detail_lambek_witness {
-// FIXME(#1003): std::optional's == is spelled by hand here: inside the
-// standard's own operator== the library's predicate && is found by ADL through
-// the variant's arguments and builds a Meet node where a bool is due.
-constexpr bool holds(const std::optional<Cardinality>& o,
-                     const Cardinality& v) {
-  return o.has_value() && *o == v;
-}
 inline constexpr Cardinality largest_finite =
     finite_cardinality(std::numeric_limits<std::size_t>::max());
 }  // namespace detail_lambek_witness
-static_assert(
-    detail_lambek_witness::holds(
-        Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
-            finite_cardinality(3)})),
-        finite_cardinality(3)) &&
-        In<Cardinality>{}(Out<Cardinality>{}(finite_cardinality(0))) ==
-            finite_cardinality(0),
-    "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
+// std::optional's own == throughout: the predicate && is constrained to terms
+// (sets), so the standard library's bool && bool is its own again.
+static_assert(Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
+                  finite_cardinality(3)})) ==
+                      std::optional<Cardinality>{finite_cardinality(3)} &&
+                  In<Cardinality>{}(Out<Cardinality>{}(
+                      finite_cardinality(0))) == finite_cardinality(0),
+              "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
 static_assert(
     In<Cardinality>{}(std::optional<Cardinality>{
         detail_lambek_witness::largest_finite}) ==
@@ -405,8 +398,7 @@ static_assert(
     "[Z, S] is not injective at the top: S(largest finite) = S(ℵ₀) = ℵ₀, so "
     "Lambek fails on the carrier and the concept says so.");
 static_assert(!cover(Cardinality{ℵ_0{}}).has_value() &&
-                  detail_lambek_witness::holds(cover(finite_cardinality(3)),
-                                               finite_cardinality(4)),
+                  cover(finite_cardinality(3)) == finite_cardinality(4),
               "the cover is partial at ℵ₀: the top has no cover.");
 // P only RETRACTS S on ℕ: P ∘ S = id, but S ∘ P ≠ id at 0 (the monus), so the
 // pair is not an adjunction here --- contrast ℤ (numbers:integer).

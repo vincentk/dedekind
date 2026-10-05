@@ -1408,13 +1408,28 @@ concept HasStructuredOr =
       { structured_or(p1, p2) };
     };
 
+/** @brief A term of the set grammar, the operand sort of @c && / @c ||: an
+ *  arrow (a predicate, a set, a node over arrows) or a point-free relational
+ *  fragment (@c π_1 @c ⋈ @c π_2, tagged @c is_rel_predicate, which meets its
+ *  domain only at the former @c |).  A bare truth value is not a term:
+ *  @c bool @c && @c bool stays the host language's --- an unconstrained head
+ *  here was found by ADL inside the standard library's own @c operator== on an
+ *  @c optional of a sets type and built a @c Meet node where a @c bool was due
+ *  --- and a constant beside a predicate lifts through @c :topoi.
+ *  @tparam P the operand. */
+export template <typename P>
+concept IsLogicalTerm = IsArrow<std::remove_cvref_t<P>> || requires {
+  typename std::remove_cvref_t<P>::is_rel_predicate;
+};
+
 /** @brief Predicate-level conjunction @c p1 @c && @c p2: @c structured_and when
  *  a domain collapse applies, else the reducer's @c Meet node, a callable
  *  predicate @f$\chi_1 \wedge \chi_2@f$ that also carries its operands via
  *  @c π_1 / @c π_2.  It is the @b same AST the set-level combinators use, so a
  *  set-builder @c Set{x @c | @c p1 @c && @c p2} shares one representation with
- *  @c A @c & @c B.  There is no separate @c AndPredicate. */
-export template <typename P1, typename P2>
+ *  @c A @c & @c B.  There is no separate @c AndPredicate.
+ *  @tparam P1 the left term.  @tparam P2 the right term. */
+export template <IsLogicalTerm P1, IsLogicalTerm P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {
     return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
@@ -1424,10 +1439,13 @@ constexpr auto operator&&(P1&& p1, P2&& p2) {
   }
 }
 
+static_assert(!IsLogicalTerm<bool> && !IsLogicalTerm<int>,
+              "a bare truth value is not a term: bool && bool is C++'s.");
+
 /** @brief Predicate-level disjunction @c p1 @c || @c p2, dual to @c operator&&:
  *  @c structured_or when a collapse applies, else the reducer's @c Join node.
- */
-export template <typename P1, typename P2>
+ *  @tparam P1 the left term.  @tparam P2 the right term. */
+export template <IsLogicalTerm P1, IsLogicalTerm P2>
 constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredOr<P1, P2>) {
     return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
