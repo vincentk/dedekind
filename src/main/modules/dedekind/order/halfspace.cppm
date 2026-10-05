@@ -945,6 +945,29 @@ constexpr auto structured_and(
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
   return reduce_meet(to_setval(a), to_setval(b));
 }
+/** @brief The meet of a cut with a value leaf, and of two value leaves: the one
+ *  @c reduce_meet.  Declared here, before @c axis_factor, so the recursion
+ *  over a @c RelAnd tree is closed over its own outputs whatever the
+ *  association (#872). */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
+                 IsSide Lo, IsSide Hi>
+constexpr SetVal<T, L> structured_and(
+    const SetVal<T, L>& s,
+    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
+  return reduce_meet(s, to_setval(h));
+}
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
+                 IsSide Lo, IsSide Hi>
+constexpr SetVal<T, L> structured_and(
+    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
+    const SetVal<T, L>& s) {
+  return reduce_meet(to_setval(h), s);
+}
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
+                                      const SetVal<V, L>& b) {
+  return reduce_meet(a, b);
+}
 
 /** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
  *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
@@ -1578,20 +1601,9 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
                        }) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
-    // BOTH constrain axis I.  fa/fb are recovered Halfspace SETS, so this is
-    // the set-level bare-halfspace meet: call structured_and DIRECTLY (the
-    // customization point operator& / && both forward to) so it collapses to
-    // the tighter bound / interval.  NOT the predicate-level && (a categorical
-    // Morphism, dropping the tightening), and not the set-level operator&
-    // either (declared below this point, so unreachable by ordinary lookup
-    // here).
-    //
-    // FIXME(#872): axis_factor is not closed over its recursive outputs.  With
-    // 3+ same-axis bounds a child reduces to an Interval/Singleton and
-    // structured_and(Interval, Halfspace) has no overload, so the relation
-    // fails to instantiate (association-dependent).  Two-bound meets work
-    // (witnessed below); the meet-lattice closure / RelAnd normalization is
-    // #872, out of this PR's meet/join scope.
+    // BOTH constrain axis I: the set-level meet of the recovered factors (a
+    // cut or, from a deeper meet, a SetVal), through structured_and directly
+    // --- the set-level operator& is declared below this point.
     return dedekind::order::structured_and(fa, fb);
   }
 }
@@ -1974,6 +1986,21 @@ static_assert(dom(ℕ* ℕ |
 static_assert(!dom(ℕ * ℕ |
                    (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(4)),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
+// Three same-axis bounds reduce to one factor whatever the association: the
+// meet lattice is closed over its own outputs (#872).
+static_assert(dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c)))
+                      .kind == SetKind::Interval,
+              "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
+static_assert(
+    dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c))).lo ==
+            finite_cardinality(2) &&
+        dom(ℕ * ℕ | (π1 >= fix(1_c) && (π1 <= fix(5_c) && π1 >= fix(2_c))))
+                .hi == finite_cardinality(5),
+    "…with the tighter lower bound 2 and the upper bound 5.");
+static_assert(
+    dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c))) ==
+        dom(ℕ * ℕ | (π1 >= fix(1_c) && (π1 <= fix(5_c) && π1 >= fix(2_c)))),
+    "the factor is independent of the association of the three bounds.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
@@ -2102,22 +2129,15 @@ constexpr auto operator|(
 /** @brief Meets involving the value @c SetVal route through the one
  *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
  *  upperbounds(s) collapses, since @c upperbounds now yields a @c SetVal. */
-export template <typename V, typename L>
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr SetVal<V, L> operator&(const SetVal<V, L>& a, const SetVal<V, L>& b) {
   return reduce_meet(a, b);
 }
-/** @brief The one meet / join law under the reducer's customization-point
- *  names, for two @b value leaves.  The lattice-term leaf-combine (@c
- *  SetCombine's value leg) dispatches on @c structured_and / @c structured_or
- *  by ADL; spelling the value law under those names lets a term whose leaves
- * are already @c SetVal --- the leaf type the Python surface builds ---
- * collapse through the same reducer as a term of bare halfspaces. */
-export template <typename V, typename L>
-constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
-                                      const SetVal<V, L>& b) {
-  return reduce_meet(a, b);
-}
-export template <typename V, typename L>
+/** @brief The join law under the reducer's customization-point name, for two
+ *  @b value leaves (the meet's sibling sits beside the cut meet above): a term
+ *  whose leaves are already @c SetVal --- the leaf type the Python surface
+ *  builds --- collapses through the same reducer as a term of bare cuts. */
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr SetVal<V, L> structured_or(const SetVal<V, L>& a,
                                      const SetVal<V, L>& b) {
   return reduce_join(a, b);
@@ -2284,7 +2304,7 @@ export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi>
 constexpr bool operator==(
     const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h,
     const Ø<bool, L>&) {
-  return !static_cast<bool>(h(false)) && !static_cast<bool>(h(true));
+  return h(false) == L::False && h(true) == L::False;
 }
 export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi>
 constexpr bool operator==(
@@ -2297,7 +2317,7 @@ export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi,
 constexpr bool operator==(
     const Comprehension<𝔸<bool, L, C>, Bounds<Lo, Hi, bool>>& h,
     const 𝔸<bool, L, CU>&) {
-  return static_cast<bool>(h(false)) && static_cast<bool>(h(true));
+  return h(false) == L::True && h(true) == L::True;
 }
 export template <IsOckhamAlgebra L, IsCardinality C, IsSide Lo, IsSide Hi,
                  IsCardinality CU>

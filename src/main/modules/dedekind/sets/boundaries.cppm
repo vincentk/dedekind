@@ -194,7 +194,8 @@ struct Ø final {
   template <IsExhaustibleBoolSet S>
     requires std::same_as<T, bool>
   constexpr bool operator==(const S& s) const {
-    return !static_cast<bool>(s(false)) && !static_cast<bool>(s(true));
+    using Log = predicate_logic_t<S>;
+    return s(false) == Log::False && s(true) == Log::False;
   }
 
   // The Duality: !∅ = V
@@ -383,7 +384,8 @@ struct 𝔸 final {
   template <IsExhaustibleBoolSet S>
     requires std::same_as<T, bool>
   constexpr bool operator==(const S& s) const {
-    return static_cast<bool>(s(false)) && static_cast<bool>(s(true));
+    using Log = predicate_logic_t<S>;
+    return s(false) == Log::True && s(true) == Log::True;
   }
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
