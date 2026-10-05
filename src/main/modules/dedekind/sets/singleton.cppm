@@ -110,16 +110,16 @@ struct Point {
 /** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
  *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
  *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
- *  The slot is deduced, not fixed at @c 0, so that for any @c == whose left
- *  operand is not a projection this candidate dies in deduction, before its
- *  constraint is checked: a @c std::regular check on a deduced @c T that is
- *  itself a standard @c optional / @c variant of a sets type re-enters this
- *  very operator through ADL and the satisfaction depends on itself.
- *  @tparam Slot the projection's slot, which must be the scalar's, @c 0.
- *  @tparam T the carrier, a regular value type. */
-export template <IsRingIntegral auto Slot, std::regular T>
-  requires(Slot == 0 && !std::is_empty_v<T>)
-constexpr Point<T> operator==(Projection<Slot>, T v) {
+ *  Equality is @c Point's own constraint, checked when the body instantiates,
+ *  and deliberately @b not this head's: an @c equality_comparable check on a
+ *  deduced @c T asks for @c T @c == @c T, which finds this very operator by ADL
+ *  when @c T is a projection or a standard @c optional / @c variant of a sets
+ *  type, and the satisfaction depends on itself.
+ *  @tparam T the carrier, a value type (copyable, default-constructible) that
+ *          is not a grammar tag. */
+export template <std::semiregular T>
+  requires(!std::is_empty_v<T>)
+constexpr auto operator==(Projection<0>, T v) {
   return Point<T>{std::move(v)};
 }
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
