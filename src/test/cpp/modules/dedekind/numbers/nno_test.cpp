@@ -175,14 +175,13 @@ TEST_CASE(
   // ℕ's finite fragment: [Z, S] is an iso.
   for (std::size_t k = 0; k < 6; ++k) {
     const auto n = finite_cardinality(k);
-    CHECK(Lambek<Cardinality>::in(Lambek<Cardinality>::out(n)) == n);
-    const auto back = Lambek<Cardinality>::out(Lambek<Cardinality>::in(n));
+    CHECK(In<Cardinality>{}(Out<Cardinality>{}(n)) == n);
+    const auto back = Out<Cardinality>{}(In<Cardinality>{}(n));
     REQUIRE(back.has_value());
     CHECK(*back == n);
   }
   // K₃: S saturates at ⊤, so out ∘ in misses True.
-  CHECK(Lambek<Ternary>::out(Lambek<Ternary>::in(Ternary::True)) ==
-        Ternary::Unknown);
+  CHECK(Out<Ternary>{}(In<Ternary>{}(Ternary::True)) == Ternary::Unknown);
   // int (ℤ): Z collides with S(−1).
-  CHECK_FALSE(Lambek<int>::out(Lambek<int>::in(-1)).has_value());
+  CHECK_FALSE(Out<int>{}(In<int>{}(-1)).has_value());
 }

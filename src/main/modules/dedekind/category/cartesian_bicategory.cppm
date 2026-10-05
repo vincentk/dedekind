@@ -274,6 +274,12 @@ inline constexpr bool is_monotone_v<
  * @tparam Mg the meet/merge @c ∧.
  * @tparam Leq the order on @c P; defaults to @c std::less_equal<P>.  The
  *         product order on @c P×P is derived as @c ProductLeq<Leq,Leq>. */
+/** @brief The theorem Δ ⊣ ∧ in a meet-semilattice: @f$\Delta(a) \le_\times
+ *  (x, y) \iff a \le x \wedge y@f$.  The law leg of @c IsMeetAsRightAdjoint. */
+template <IsCopy Cp, IsMerge Mg, typename Leq>
+  requires std::same_as<Dom<Cp>, Cod<Mg>>
+inline constexpr bool is_adjoint_v<Cp, Mg, ProductLeq<Leq, Leq>> = true;
+
 export template <typename Cp, typename Mg,
                  typename Leq = std::less_equal<Dom<Cp>>>
 concept IsMeetAsRightAdjoint =

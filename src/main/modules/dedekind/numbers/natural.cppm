@@ -65,6 +65,7 @@ import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmet
 import dedekind.category;
 import dedekind.morphologies; // Modular<N> / Congruence<N,R> — the finite quotient the ℕ quantifier factors through
 import dedekind.order;        // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.relational;   // graph / dagger: the step in the allegory
 import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Cardinality>)
 import dedekind.sets;
 import :scalars;
@@ -383,13 +384,14 @@ constexpr bool holds(const std::optional<Cardinality>& o,
   return o.has_value() && *o == v;
 }
 }  // namespace detail_lambek_witness
-static_assert(detail_lambek_witness::holds(
-                  Lambek<Cardinality>::out(Lambek<Cardinality>::in(
-                      std::optional<Cardinality>{finite_cardinality(3)})),
-                  finite_cardinality(3)) &&
-                  Lambek<Cardinality>::in(Lambek<Cardinality>::out(
-                      finite_cardinality(0))) == finite_cardinality(0),
-              "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
+static_assert(
+    detail_lambek_witness::holds(
+        Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
+            finite_cardinality(3)})),
+        finite_cardinality(3)) &&
+        In<Cardinality>{}(Out<Cardinality>{}(finite_cardinality(0))) ==
+            finite_cardinality(0),
+    "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
 static_assert(!cover(Cardinality{ℵ_0{}}).has_value() &&
                   detail_lambek_witness::holds(cover(finite_cardinality(3)),
                                                finite_cardinality(4)),
@@ -401,6 +403,15 @@ static_assert(Predecessor<Cardinality>{}(Successor<Cardinality>{}(
                   Successor<Cardinality>{}(Predecessor<Cardinality>{}(
                       finite_cardinality(0))) == finite_cardinality(1),
               "P ∘ S = id; S ∘ P moves 0 to 1: a retraction, not an iso.");
+// In the allegory every map is adjoint to its converse, Γ_S ⊣ Γ_S°.  On ℕ the
+// converse of the successor's graph is NOT the predecessor's graph: 0 has no
+// S-preimage, while the monus sends 0 to 0.  P is the saturating totalisation
+// of S°, which is what the monus is.
+static_assert(!dagger(graph(Successor<Cardinality>{}))(std::pair{
+                  finite_cardinality(0), finite_cardinality(0)}) &&
+                  graph(Predecessor<Cardinality>{})(std::pair{
+                      finite_cardinality(0), finite_cardinality(0)}),
+              "Γ_S° ≠ Γ_P on ℕ: (0, 0) is in Γ_P, not in Γ_S°.");
 
 /** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
  *         @b value: the saturation point, and the unique fixpoint of
@@ -412,6 +423,16 @@ export inline constexpr Cardinality aleph_0 = Cardinality{ℵ_0{}};
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
+
+/** @brief ℕ's proxy is the NNO on its finite fragment --- the honesty
+ *  obligation behind Lambek's lemma, answered by the round trips in the
+ *  numbers block above.  At ℵ₀ the step saturates and the lemma stops: the
+ *  carrier's memory boundary, not the NNO's. */
+template <>
+inline constexpr bool is_nno_carrier_v<dedekind::sets::Cardinality> = true;
+static_assert(IsIsomorphism<In<dedekind::sets::Cardinality>>,
+              "Lambek on ℕ: [Z, S] is an isomorphism, inverse Out --- the "
+              ":morphism concept, not a sample.");
 
 template <>
 inline constexpr bool

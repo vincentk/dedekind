@@ -24,6 +24,7 @@ export module dedekind.numbers:integer;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.order; // IsTotallyOrdered gates the step arrows' monotonicity
+import dedekind.relational; // graph / dagger: the step in the allegory
 import dedekind.sets;
 import :natural;
 export import :cardinality;
@@ -164,6 +165,15 @@ static_assert(
 
 }  // namespace dedekind::numbers
 
+namespace dedekind::category {
+/** @brief On ℤ the step is a bijection: @c S and @c P are inverse order
+ *  automorphisms, so @c inverse(Successor) @c = @c Predecessor and @c S ⊣ P is
+ *  derived (@c :adjunction), not sampled. */
+template <>
+inline constexpr bool is_step_bijective_v<dedekind::sets::SignedCardinality> =
+    true;
+}  // namespace dedekind::category
+
 namespace dedekind::numbers {
 // ℤ = @c SignedCardinality satisfies the STRICT @c category::IsRing.  This
 // holds via the carrier's @b saturating totality (@c is_saturating<SC,+/*> in
@@ -196,41 +206,54 @@ static_assert(
     "ℤ is NOT a field --- only ±1 are multiplicative units (ℚ is its field "
     "of fractions).");
 
-// S ⊣ P ⊣ S on ℤ: successor and predecessor are inverse order automorphisms,
-// so S(x) ≤ y ⟺ x ≤ P(y) --- a Galois connection with both units identities.
-// On ℕ, P only retracts S (numbers:natural); and [Z, S] is not an iso here
-// (S(−1) = Z), so ℤ has the NNO shape without being the NNO: it is a group.
+// S ⊣ P ⊣ S on ℤ: the step is a bijection (registered above), so
+// IsIsomorphism<S> holds and the adjunction is the THEOREM "a monotone iso is
+// adjoint to its inverse" (:adjunction), both ways --- no sample stands in for
+// the law.  What a sample still answers to is the registration itself: that P
+// really inverts S on values.  On ℕ, P only retracts S (numbers:natural); and
+// [Z, S] is not an iso here (S(−1) = Z), so ℤ has the NNO shape without being
+// the NNO: it is a group.
 namespace detail_step_adjunction {
 using Z = SignedCardinality;
 using S = Successor<Z>;
 using P = Predecessor<Z>;
-consteval bool galois_on_sample() {
+consteval bool inverse_on_sample() {
+  for (int a = -3; a <= 3; ++a) {
+    const Z x = finite_signed_cardinality(a);
+    if (P{}(S{}(x)) != x || S{}(P{}(x)) != x) return false;
+  }
+  return true;
+}
+// In the allegory every map is adjoint to its converse; on ℤ the converse of
+// the successor's graph IS the predecessor's graph, pointwise on a sample.
+consteval bool converse_is_predecessor_on_sample() {
   for (int a = -3; a <= 3; ++a)
     for (int b = -3; b <= 3; ++b) {
-      const Z x = finite_signed_cardinality(a);
-      const Z y = finite_signed_cardinality(b);
-      if ((S{}(x) <= y) != (x <= P{}(y))) return false;
-      if (P{}(S{}(x)) != x || S{}(P{}(x)) != x) return false;
+      const std::pair p{finite_signed_cardinality(a),
+                        finite_signed_cardinality(b)};
+      if (dagger(graph(S{}))(p) != graph(P{})(p)) return false;
     }
   return true;
 }
-// out ∘ in misses −1: in(−1) = S(−1) = Z, and out(Z) is nothing.  (The optional
-// is unpacked by hand: the standard's == would find the library's predicate &&
-// by ADL through the variant's arguments.)
 consteval bool lambek_fails_at_minus_one() {
-  using L = Lambek<Z>;
   const Z minus_one = finite_signed_cardinality(-1);
-  const auto back = L::out(L::in(std::optional<Z>{minus_one}));
+  const auto back = Out<Z>{}(In<Z>{}(std::optional<Z>{minus_one}));
   if (!back.has_value()) return true;
   return *back != minus_one;
 }
 }  // namespace detail_step_adjunction
-static_assert(
-    IsGaloisConnection<detail_step_adjunction::S, detail_step_adjunction::P>,
-    "S ⊣ P on ℤ: both monotone, crossed carriers.");
-static_assert(
-    detail_step_adjunction::galois_on_sample(),
-    "S(x) ≤ y ⟺ x ≤ P(y), and both units are identities, on [−3, 3].");
-static_assert(detail_step_adjunction::lambek_fails_at_minus_one(),
+static_assert(IsIsomorphism<detail_step_adjunction::S> &&
+                  IsGaloisConnection<detail_step_adjunction::S,
+                                     detail_step_adjunction::P> &&
+                  IsGaloisConnection<detail_step_adjunction::P,
+                                     detail_step_adjunction::S>,
+              "S ⊣ P ⊣ S on ℤ: the monotone isomorphism and its inverse.");
+static_assert(detail_step_adjunction::inverse_on_sample(),
+              "P inverts S on values: the registration's content, on [−3, 3].");
+static_assert(detail_step_adjunction::converse_is_predecessor_on_sample(),
+              "Γ_S° = Γ_P on ℤ: the order adjunction and the allegory's f ⊣ f° "
+              "coincide.");
+static_assert(!IsIsomorphism<In<detail_step_adjunction::Z>> &&
+                  detail_step_adjunction::lambek_fails_at_minus_one(),
               "[Z, S] is not an iso on ℤ: S(−1) = Z.  A group, not the NNO.");
 }  // namespace dedekind::numbers
