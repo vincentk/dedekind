@@ -214,6 +214,8 @@ static_assert(
 // [Z, S] is not an iso here (S(−1) = Z), so ℤ has the NNO shape without being
 // the NNO: it is a group.
 namespace detail_step_adjunction {
+using dedekind::relational::dagger;
+using dedekind::relational::graph;
 using Z = SignedCardinality;
 using S = Successor<Z>;
 using P = Predecessor<Z>;

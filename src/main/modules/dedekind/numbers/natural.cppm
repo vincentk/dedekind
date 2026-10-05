@@ -403,6 +403,8 @@ static_assert(Predecessor<Cardinality>{}(Successor<Cardinality>{}(
                   Successor<Cardinality>{}(Predecessor<Cardinality>{}(
                       finite_cardinality(0))) == finite_cardinality(1),
               "P ∘ S = id; S ∘ P moves 0 to 1: a retraction, not an iso.");
+using dedekind::relational::dagger;
+using dedekind::relational::graph;
 // In the allegory every map is adjoint to its converse, Γ_S ⊣ Γ_S°.  On ℕ the
 // converse of the successor's graph is NOT the predecessor's graph: 0 has no
 // S-preimage, while the monus sends 0 to 0.  P is the saturating totalisation
