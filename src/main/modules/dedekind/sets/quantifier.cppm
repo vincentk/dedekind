@@ -130,6 +130,18 @@ constexpr bool forall(const S& s, P p) {
  * exhaustion of a finite quotient. See the §3.1 exhibit.
  */
 
+/** @brief A where-clause over the set @c S: a fragment @c P for which
+ *  @c S @c | @c P is the comprehension @f$\{x \in S \mid P(x)\}@f$ --- a datum
+ *  (@c π @c == @c v, @c π @c > @c v) or a carrier-agnostic fragment (@c π @c ==
+ *  @c fix(c), @c π @c % @c fix(N) @c == @c fix(R)), which has no domain until
+ * the former binds it.  Not a set: @c S @c | @c T would be the union.
+ *  @tparam P the fragment.  @tparam S the set it refines. */
+export template <typename P, typename S>
+concept IsWhereClause = !dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
+                        requires(const S& s, P p) {
+                          { s | p } -> dedekind::category::IsLSet;
+                        };
+
 // A quantifier is one comparison of the intensional comprehension @c s|p
 // against a lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A),
 // @c forall against the input set @c S (scheme B); each recovers its partner by
@@ -148,18 +160,14 @@ constexpr bool forall(const S& s, P p) {
 // set-valued operand @c s|p resolves to set UNION (@c 𝔸|Ø = 𝔸), not the
 // comprehension, which would make @c exists(𝔸<bool>, Ø{}) wrongly true.
 // Excluding @c IsSet keeps @c | bound to the where-clause here.
-export template <dedekind::category::IsLSet S, typename P>
-  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
-           requires(const S& s, P p) { s | p; })
+export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω exists(const S& s, P p) {
   using L = typename S::logic_species;
   return L::RFL(Ø<typename S::Domain, L>{} ==
                 (s | std::move(p)));  // (A): ¬({x ∈ S | P(x)} = ∅), in L
 }
 
-export template <dedekind::category::IsLSet S, typename P>
-  requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
-           requires(const S& s, P p) { s | p; })
+export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω forall(const S& s, P p) {
   return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} = S, in L
 }
