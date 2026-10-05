@@ -10,7 +10,11 @@ classification attributes are the C++ concepts' verdicts, not Python flags.
 import itertools
 import unittest
 
-from dedekind.pst import B, K3, N, Ternary, aleph0
+from dedekind.pst import 𝔹, K₃, ℕ, ℵ₀, Ternary, aleph0
+
+# The written forms are the names: NFKC normalisation makes 𝔹 the identifier B,
+# K₃ the identifier K3, ℕ the identifier N; ℵ₀ is bound under its own form too.
+B, K3, N = 𝔹, K₃, ℕ
 
 
 class PstEndpointsAndStepTest(unittest.TestCase):
@@ -99,3 +103,9 @@ class PstClassificationTest(unittest.TestCase):
         self.assertEqual(K3.cardinality, 3)
         self.assertEqual(N.cardinality, aleph0)
         self.assertEqual(repr(aleph0), "ℵ₀")
+
+    def test_written_forms_are_the_names(self) -> None:
+        self.assertIs(ℵ₀, aleph0)
+        self.assertEqual(repr(𝔹), "𝔹")
+        self.assertEqual(repr(K₃), "K₃")
+        self.assertEqual(repr(ℕ), "ℕ")
