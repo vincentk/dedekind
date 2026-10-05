@@ -198,7 +198,8 @@ constexpr auto image(const Comprehension<𝔸<std::pair<T, T>, L, C>,
  *  it does not --- the image of @c {x≥5} under @c x+1 wraps @c UINT_MAX to @c
  * 0, which @c {y≥6} would miss --- so the modular groups are declined; the
  *  saturating ℕ (K≥0) and the ordered groups are admitted. */
-export template <typename T, auto K, Rel R, typename VT, typename L, typename C>
+export template <IsTotallyOrdered T, auto K, Rel R, typename VT,
+                 IsOckhamAlgebra L, IsCardinality C>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            IsEntireTranslationCarrier<T, K>)
 constexpr auto image(
@@ -229,8 +230,8 @@ constexpr auto image(
  *  @c x↦−x has no image; on a wrapping group (@c unsigned) modular negation
  * does NOT reverse the order (@c −x of @c {x<5} would admit @c 0 via @c
  * UINT_MAX), so both are declined. */
-export template <typename T, auto C, Rel R, typename VT, typename L,
-                 typename CU>
+export template <IsTotallyOrdered T, auto C, Rel R, typename VT,
+                 IsOckhamAlgebra L, IsCardinality CU>
   requires((R == Rel::Lt || R == Rel::Le || R == Rel::Gt || R == Rel::Ge) &&
            (C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)))
@@ -312,8 +313,8 @@ consteval bool is_entire(
  *  --- where a codomain bound @c P<K would pull the feasible domain empty while
  *  the formula still returned a negative singleton --- and @c unsigned alike.
  */
-export template <typename T, auto K, typename VT, auto V, auto W, typename L,
-                 typename C>
+export template <typename T, auto K, typename VT, auto V, auto W,
+                 IsOckhamAlgebra L, IsCardinality C>
   requires(dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            dedekind::sets::IsRingIntegral<T>)
 constexpr auto argmax(

@@ -161,11 +161,11 @@ using comprehension_logic_t =
  *  declares one, else the base's.
  *  @tparam Predicate the datum.
  *  @tparam Base the base set. */
-template <typename Predicate, typename Base>
+template <typename Predicate, IsSetObject Base>
 struct datum_cardinality {
   using type = typename Base::cardinality_type;
 };
-template <typename Predicate, typename Base>
+template <typename Predicate, IsSetObject Base>
   requires requires { typename Predicate::cardinality_type; }
 struct datum_cardinality<Predicate, Base> {
   using type = typename Predicate::cardinality_type;
@@ -536,8 +536,12 @@ constexpr auto operator|(const A& lhs, const B& rhs) {
  *  finite reduction (a point) is itself a set-like leaf (returned bare); any
  *  other reduction is a named predicate wrapped back into a comprehension.
  *  (Extracted verbatim from the pre-reducer @c operator& structured_and branch
- *  so @c SetCombine's type and this value stay in lockstep.) */
-export template <typename T, typename L, typename Reduced>
+ *  so @c SetCombine's type and this value stay in lockstep.)
+ *  @tparam T the carrier.
+ *  @tparam L the species.
+ *  @tparam Reduced the reducer's result: an @c EmptyPredicate, a sized leaf, or
+ *          a named predicate. */
+export template <typename T, IsOckhamAlgebra L, typename Reduced>
 constexpr auto elevate_meet(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
   if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
@@ -652,7 +656,7 @@ constexpr auto universe(const Comprehension<Base, Predicate>&) {
 // A comprehension over a universe 𝔸<T,L> is the opaque arm: the default leg
 // applies and the predicate P is its χ datum --- the very object `operator&`
 // hands to `structured_and`, so the leg names what the reducer already reads.
-export template <typename T, typename L, typename P, typename C>
+export template <typename T, IsOckhamAlgebra L, typename P, IsCardinality C>
 constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
   return s.predicate;
 }
@@ -678,7 +682,8 @@ namespace dedekind::category {
 // A runtime-stateful predicate (a field-carrying P such as a Point's pivot)
 // makes two same-type Sets potentially distinct, so the reducer's type-based
 // idempotence must NOT collapse them; gate it on the predicate's emptiness.
-template <typename T, typename L, typename P, typename C>
+template <typename T, IsOckhamAlgebra L, typename P,
+          dedekind::sets::IsCardinality C>
 inline constexpr bool idempotent_leaf_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<T, L, C>, P>> =
     std::is_empty_v<P>;
@@ -913,10 +918,10 @@ constexpr auto operator^(const LHS& a, const RHS& b) {
 
 /** @brief Cross-species symmetric difference: both operands are lifted into
  *  the join of their species and @c △ is computed there (as for @c & and
- *  @c |). */
-export template <typename LHS, typename RHS>
-  requires IsSetObject<LHS> && IsSetObject<RHS> &&
-           std::same_as<typename LHS::Domain, typename RHS::Domain> &&
+ *  @c |).  @tparam LHS / @tparam RHS set objects on one carrier, of different
+ *  species with a join. */
+export template <IsSetObject LHS, IsSetObject RHS>
+  requires std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
            dedekind::category::HaveLogicJoin<typename LHS::logic_species,

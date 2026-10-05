@@ -71,8 +71,8 @@ using namespace dedekind::category;
  *  equality theory, the one leaf every regular carrier offers (a point in ℂ is
  *  this).  On a chain the cut subsumes it, @c x == p ⟺ x ≥ p ∧ x ≤ p.  The
  *  pivot is a value; the set is @c Finite whatever the species.
- *  @tparam T the carrier (needs @c ==). */
-export template <typename T>
+ *  @tparam T the carrier, equality-comparable. */
+export template <std::equality_comparable T>
 struct Point {
   using Domain = T;
   using Codomain = bool;
@@ -82,8 +82,7 @@ struct Point {
   constexpr Point() = default;
   /** @brief Implicit and converting, so a literal of another type is one
    *  user-defined conversion, the carrier's own. */
-  template <typename U>
-    requires std::convertible_to<U&&, T>
+  template <std::convertible_to<T> U>
   constexpr Point(U&& v)  // NOLINT(google-explicit-constructor)
       : pivot(static_cast<T>(std::forward<U>(v))) {}
 
@@ -122,20 +121,20 @@ constexpr Point<T> operator==(Projection<0>, T v) {
  *  reducer's nodes); what is specific to a point follows as free functions.
  *  @tparam T the carrier.
  *  @tparam L the species the membership answer is valued in. */
-export template <typename T, IsOckhamAlgebra L = Boole>
+export template <std::equality_comparable T, IsOckhamAlgebra L = Boole>
 using Singleton = Comprehension<𝔸<T, L>, Point<T>>;
 
 /** @brief The pivot of a point, @c ε of the comonad reading (the counit
  *  @c {x} ↦ @c x). */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C>
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C>
 constexpr T origin(const Comprehension<𝔸<T, L, C>, Point<T>>& s) {
   return s.predicate.pivot;
 }
 
 /** @brief Two points are the same set iff their pivots agree, whatever the
  *  species each was tagged with. */
-export template <typename T, IsOckhamAlgebra L1, IsCardinality C1,
-                 IsOckhamAlgebra L2, IsCardinality C2>
+export template <std::equality_comparable T, IsOckhamAlgebra L1,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C2>
 constexpr bool operator==(const Comprehension<𝔸<T, L1, C1>, Point<T>>& a,
                           const Comprehension<𝔸<T, L2, C2>, Point<T>>& b) {
   return a.predicate.pivot == b.predicate.pivot;
@@ -143,7 +142,8 @@ constexpr bool operator==(const Comprehension<𝔸<T, L1, C1>, Point<T>>& a,
 
 /** @brief @c {pivot} ⊆ S ⟺ pivot ∈ S, in the shared species @c L (the
  *  universal set keeps its own @c X ⊆ 𝔸 overload). */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsLSet S>
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+                 IsLSet S>
   requires std::same_as<typename S::logic_species, L> &&
            (!requires { typename S::is_universal_boundary; }) &&
            (!std::same_as<S, Comprehension<𝔸<T, L, C>, Point<T>>>)
@@ -158,14 +158,14 @@ constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>
  *  (@c 𝔸<bool>{} | (π == fix(v)) collapses to a @c Singleton<bool>, and
  *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
  *  @c :order, so ADL finds it from @c sets-level generic code. */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsOckhamAlgebra L2, IsCardinality C>
+export template <std::equality_comparable T, IsOckhamAlgebra L,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C>
 constexpr bool operator==(const Comprehension<𝔸<T, L, C1>, Point<T>>&,
                           const 𝔸<T, L2, C>&) {
   return std::same_as<T, dedekind::category::One>;
 }
-export template <typename T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsOckhamAlgebra L2, IsCardinality C>
+export template <std::equality_comparable T, IsOckhamAlgebra L,
+                 IsCardinality C1, IsOckhamAlgebra L2, IsCardinality C>
 constexpr bool operator==(const 𝔸<T, L2, C>& u,
                           const Comprehension<𝔸<T, L, C1>, Point<T>>& s) {
   return s == u;
@@ -187,7 +187,8 @@ constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) 
  *  @b equality-comparable, not merely membership-testable:
  *  @c η(a)*η(b) @c == @c η(std::pair{a,b}).  General products keep the
  *  predicate-set form of @c :expressions cartesian_product. */
-export template <typename T1, IsOckhamAlgebra L1, IsCardinality C1, typename T2,
+export template <std::equality_comparable T1, IsOckhamAlgebra L1,
+                 IsCardinality C1, std::equality_comparable T2,
                  IsOckhamAlgebra L2, IsCardinality C2>
 constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, Point<T1>>& a,
                          const Comprehension<𝔸<T2, L2, C2>, Point<T2>>& b) {
@@ -219,7 +220,9 @@ static_assert(
  *  countable carrier) is #840. */
 
 /** @brief @c singleton: @f$T \to \mathrm{Singleton}\langle T\rangle@f$ ---
- *  the power-set monad's unit @f$\eta@f$ (see the section note). */
+ *  the power-set monad's unit @f$\eta@f$ (see the section note).
+ *  @tparam L the species.
+ *  @tparam T the pivot's type (decayed into the carrier). */
 export template <IsOckhamAlgebra L = Boole, typename T>
 constexpr auto singleton(T&& value) {
   return 𝔸<std::decay_t<T>, L>{} |
@@ -235,7 +238,7 @@ constexpr auto singleton(T&& value) {
  *  (union-flatten) and full hub are #691; the @b enumerated power set is
  *  #840; the @c Sub(C) subobject @b lattice @c 𝔓 is
  *  @c order:powerset (#830) --- three distinct reifications of the power
- * object, all sharing this unit. */
+ * object, all sharing this unit.  @tparam T the pivot's type. */
 export template <typename T>
 constexpr auto η(T&& value) {
   return singleton(std::forward<T>(value));
@@ -256,7 +259,8 @@ constexpr auto η(T&& value) {
  *  point set (its callable is the membership classifier @f$T \to
  * \Omega@f$),
  *  @b not a reified arrow carrying an @c IsMonicArrow monicity witness
- *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step. */
+ *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step.
+ *  @tparam T the pivot's type. */
 export template <typename T>
 constexpr auto ι(T&& value) {
   return singleton(std::forward<T>(value));
@@ -274,7 +278,12 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  */
 
 /** @section singleton__Bind (>>=) */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename Func>
+/** @brief Kleisli bind on a point, @c {x} >>= f = f(x): the power-set monad's
+ *  bind at cardinality one.
+ *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
+ *  @tparam Func the Kleisli arrow @c T → a set. */
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+                 std::invocable<const T&> Func>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   /**
@@ -288,7 +297,12 @@ constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
 /** @section singleton__Singleton_CoKleisli_Triple */
 
 /** @section singleton__Extend (<<=) */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename Func>
+/** @brief Co-Kleisli extend on a point, @c {x} <<= f = {f({x})}.
+ *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
+ *  @tparam Func the co-Kleisli arrow, a point @c → a value. */
+export template <
+    std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+    std::invocable<const Comprehension<𝔸<T, L, C>, Point<T>>&> Func>
 constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
@@ -350,7 +364,9 @@ constexpr auto image(
  *
  *  Predicate-based @c Comprehension sources fall through to the
  *  symbolic-fallback @c image() in @c :expressions (inhabitation
- *  undecidable in general). */
+ *  undecidable in general).
+ *  @tparam L the species.  @tparam T the carrier.  @tparam C the cardinality.
+ *  @tparam F the terminal morphism @c T → 1. */
 export template <IsOckhamAlgebra L, typename T, IsCardinality C, typename F>
   requires IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<Dom<std::remove_cvref_t<F>>, T>

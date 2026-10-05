@@ -369,8 +369,8 @@ struct Bounds {
   constexpr Bounds() = default;
   /** @brief A ray from its one bound; implicit and converting, so a literal of
    *  another type is one user-defined conversion, the carrier's own. */
-  template <typename U>
-    requires(has_lo != has_hi) && std::convertible_to<U&&, T>
+  template <std::convertible_to<T> U>
+    requires(has_lo != has_hi)
   constexpr Bounds(U&& bound) {  // NOLINT(google-explicit-constructor)
     if constexpr (has_lo)
       lo = static_cast<T>(std::forward<U>(bound));
@@ -481,9 +481,13 @@ constexpr T pivot(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
  *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
  * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
  * return type is heterogeneous but statically resolved by @c if @c constexpr
- * (no type erasure); every halfspace-producing surface routes through it. */
-export template <typename T, auto V, Direction D, Strictness S,
-                 typename L = Boole>
+ * (no type erasure); every halfspace-producing surface routes through it.
+ *  @tparam T the carrier, a registered chain.
+ *  @tparam V the compile-time pivot.
+ *  @tparam D the direction.  @tparam S the strictness.  @tparam L the species.
+ */
+export template <IsTotallyOrdered T, auto V, Direction D, Strictness S,
+                 IsOckhamAlgebra L = Boole>
 constexpr auto make_halfspace() {
   // Codomain leg (#894): a degenerate halfspace collapses to a decided
   // boundary, so it carries the Boolean codomain whatever the ambient.
@@ -518,9 +522,9 @@ constexpr auto operator~(
  *  (value-carrying: the pivot rides in the instance): @c Above<>{N} = {x>N},
  *  @c AtMost<>{N} = {x<=N}.  The alias fixes carrier / direction / strictness;
  *  @c Above<> is the type, @c Above<>{N} the value (was @c Above<N>{}). */
-export template <typename L = Boole>
+export template <IsOckhamAlgebra L = Boole>
 using Above = UpRay<Cardinality, Strictness::Strict, L>;
-export template <typename L = Boole>
+export template <IsOckhamAlgebra L = Boole>
 using AtMost = DownRay<Cardinality, Strictness::NonStrict, L>;
 
 // A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
@@ -539,19 +543,25 @@ static_assert(dedekind::sets::IsSetObject<Above<>>,
 static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
               "a Singleton is a set object: (universe 𝔹, χ = x == v).");
 
-/** @brief Build the interval from its two endpoints: the strictness pair in
- *  the type, the pivots as values. */
-export template <Strictness SL, Strictness SU, typename L = Boole, typename T>
+/** @brief The interval from its two endpoints.
+ *  @tparam SL the strictness of the lower bound.
+ *  @tparam SU the strictness of the upper bound.
+ *  @tparam L the species.
+ *  @tparam T the carrier, a registered chain. */
+export template <Strictness SL, Strictness SU, IsOckhamAlgebra L = Boole,
+                 IsTotallyOrdered T>
 constexpr Interval<T, SL, SU, L> make_interval(T lo, T hi) {
   return 𝔸<T, L>{} | Bounds<Bounded<SL>, Bounded<SU>, T>{lo, hi};
 }
 
-/** @brief The endpoints, read off the two halfspace legs. */
-export template <typename T, Strictness SL, Strictness SU, typename L>
+/** @brief The endpoints of an interval. */
+export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
+                 IsOckhamAlgebra L>
 constexpr T lower_pivot(const Interval<T, SL, SU, L>& iv) {
   return iv.predicate.lo;
 }
-export template <typename T, Strictness SL, Strictness SU, typename L>
+export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
+                 IsOckhamAlgebra L>
 constexpr T upper_pivot(const Interval<T, SL, SU, L>& iv) {
   return iv.predicate.hi;
 }
@@ -579,7 +589,8 @@ constexpr long long eff_upper(const Interval<T, SL, SU, L>& iv) {
  *  is empty; any other ordered carrier on endpoint degeneracy (@c hi<lo, or
  *  @c lo==hi with an open end --- @c [5,5] is the singleton).  Empty intervals
  *  are representable, so @c :inclusion recognises @f$∅ ⊆ X@f$. */
-export template <typename T, Strictness SL, Strictness SU, typename L>
+export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
+                 IsOckhamAlgebra L>
 constexpr bool is_empty(const Interval<T, SL, SU, L>& iv) {
   if constexpr (std::integral<T>) {
     return eff_lower(iv) > eff_upper(iv);
@@ -951,7 +962,7 @@ constexpr auto structured_and(
  *  either covers the line or leaves a gap (no @c SetVal kind), so it is left to
  *  the generic point-wise @c operator|| (value-carrying can't dispatch
  *  cover-vs-gap on a runtime pivot). */
-export template <typename V, typename L>
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr SetVal<V, L> reduce_join(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
   using K = SetKind;
@@ -1095,7 +1106,7 @@ constexpr auto operator|(const 𝔸<T, L, C>&, const UnboundHalfspace<D, S, V>&)
 // has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
 // vs int) would give the singleton the wrong carrier.  It is an honest compile
 // error there; a singleton over such a carrier needs a T-valued pivot.
-export template <typename T, typename L, typename C, auto V>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, auto V>
   requires std::same_as<T, decltype(V)>
 constexpr Singleton<decltype(V), L> operator|(const 𝔸<T, L, C>&,
                                               const UnboundSingleton<V>&) {
@@ -1543,7 +1554,7 @@ constexpr auto axis_factor(const P&) {
  *  type-identity: a @c ProjBound built from an @c int @c 1 and a query for an
  *  @c unsigned @c 1 name the same axis and must agree, rather than silently
  *  falling through to the universal factor (review #871). */
-export template <IsRingIntegral auto I, typename TI, typename L,
+export template <IsRingIntegral auto I, IsTotallyOrdered TI, IsOckhamAlgebra L,
                  IsRingIntegral auto Slot, Rel R, typename VT>
   requires(is_order_rel(R) && Slot == I)
 constexpr auto axis_factor(const ProjBound<Slot, R, VT>& pb) {
@@ -2032,11 +2043,11 @@ constexpr SetVal<T, L> lowerbounds(
   return {{}, SetKind::Empty};  // unbounded below: no lower bound
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
-export template <typename L, typename C>
+export template <IsOckhamAlgebra L, IsCardinality C>
 constexpr auto upperbounds(const 𝔸<bool, L, C>&) {
   return singleton<L>(true);
 }
-export template <typename L, typename C>
+export template <IsOckhamAlgebra L, IsCardinality C>
 constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
   return singleton<L>(false);
 }
