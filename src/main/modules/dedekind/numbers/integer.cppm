@@ -221,7 +221,8 @@ consteval bool lambek_fails_at_minus_one() {
   using L = dedekind::category::Lambek<Z>;
   const Z minus_one = dedekind::sets::finite_signed_cardinality(-1);
   const auto back = L::out(L::in(std::optional<Z>{minus_one}));
-  return !back.has_value() || *back != minus_one;
+  if (!back.has_value()) return true;
+  return *back != minus_one;
 }
 }  // namespace detail_step_adjunction
 static_assert(dedekind::category::IsGaloisConnection<detail_step_adjunction::S,
