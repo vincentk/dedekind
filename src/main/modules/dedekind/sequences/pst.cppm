@@ -263,18 +263,16 @@ class runs_view : public std::ranges::view_interface<runs_view<S>> {
       while (pos_ != std::default_sentinel) {
         const C x = *pos_;
         const typename L::Ω level = (*s_)(x);
-        if (level == L::False) {
-          ++pos_;
-          continue;
-        }
         if (!run_) {
-          run_ = value_type{level, x, x};
-        } else if (run_->level == level) {
+          if (level != L::False) run_ = value_type{level, x, x};
+          ++pos_;
+        } else if (level == run_->level) {
           run_->hi = x;
+          ++pos_;
         } else {
-          return;  // a different level starts here: this run is complete
+          return;  // the level changed (to ⊥ or to another level): this run is
+                   // complete, and pos_ stays on x for the next one
         }
-        ++pos_;
       }
     }
     const S* s_ = nullptr;
@@ -340,6 +338,22 @@ consteval bool one_run_u_to_top() {
 }
 static_assert(one_run_u_to_top(),
               "{x > ⊥} on K₃ is one run of level ⊤: [U, ⊤].");
+// A union with a gap is two runs: the gap closes the first run.
+inline constexpr auto above5_or_below3 =
+    (𝔸<int>{} | (π > 5)) | (𝔸<int>{} | (π < 3));
+consteval bool two_runs_with_a_gap() {
+  std::size_t n = 0;
+  Run<int, bool> first{}, second{};
+  for (const auto r : runs(above5_or_below3, 0, 9)) {
+    if (n == 0) first = r;
+    if (n == 1) second = r;
+    ++n;
+  }
+  return n == 2 && first == Run<int, bool>{true, 0, 2} &&
+         second == Run<int, bool>{true, 6, 9};
+}
+static_assert(two_runs_with_a_gap(),
+              "{x < 3} ∪ {x > 5} on [0, 9] is two runs: [0, 2] and [6, 9].");
 // A window on the integral chain: the ends are values.
 inline constexpr auto above5 = 𝔸<int>{} | (π > 5);
 inline constexpr auto at_least6 = 𝔸<int>{} | (π >= 6);
