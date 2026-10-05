@@ -445,6 +445,48 @@ export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
                      std::get<ExtensionalCardinal<>>(finite_cardinality(1))};
 }
 
+/** @brief @c ++n / @c n++: C++'s spelling of the arrow @c
+ * Successor<Cardinality> in place, saturating at ℵ₀; @c --n / @c n-- the monus
+ * step.  The ℕ proxy is thereby incrementable in the spirit of @c
+ * std::incrementable; the standard concept also wants a difference type, which
+ * the saturating carrier has no honest value for and does not declare.
+ *  @param n the element to step, in place.  @return the stepped element
+ *  (prefix) or the element before the step (postfix). */
+export constexpr Cardinality& operator++(Cardinality& n) noexcept {
+  n = successor(n);
+  return n;
+}
+export constexpr Cardinality operator++(Cardinality& n, int) noexcept {
+  const Cardinality before = n;
+  n = successor(n);
+  return before;
+}
+export constexpr Cardinality& operator--(Cardinality& n) noexcept {
+  n = predecessor(n);
+  return n;
+}
+export constexpr Cardinality operator--(Cardinality& n, int) noexcept {
+  const Cardinality before = n;
+  n = predecessor(n);
+  return before;
+}
+static_assert(
+    [] {
+      Cardinality n = finite_cardinality(2);
+      ++n;
+      n++;
+      --n;
+      return n == finite_cardinality(3);
+    }(),
+    "++ / -- step the ℕ proxy in place.");
+static_assert(
+    [] {
+      Cardinality a{ℵ_0{}};
+      ++a;
+      return a == Cardinality{ℵ_0{}};
+    }(),
+    "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
+
 /** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
 export constexpr Cardinality operator*(const Cardinality& lhs,
                                        const Cardinality& rhs) noexcept {

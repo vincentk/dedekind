@@ -298,6 +298,17 @@ static_assert(dedekind::category::IsContravariantFunctor<
               "-x on ℤ is a contravariant functor (order-reversing): "
               "variance-functor concept witnessed downstream.");
 
+}  // namespace dedekind::algebra
+namespace dedekind::category {
+/** @brief The theorem: an antitone involution is self-adjoint,
+ *  @f$a \le -b \iff b \le -a@f$.  The law leg of the witness below. */
+template <>
+inline constexpr bool is_adjoint_v<
+    dedekind::algebra::AdditiveInverse<dedekind::sets::SignedCardinality>,
+    dedekind::algebra::AdditiveInverse<dedekind::sets::SignedCardinality>,
+    std::less_equal<>> = true;
+}  // namespace dedekind::category
+namespace dedekind::algebra {
 // The additive inverse is an antitone INVOLUTION (-(-x) = x), hence a
 // SELF-ADJOINT antitone Galois connection: a ≤ -b ⟺ b ≤ -a.  It is the same
 // arrow on both legs (an endomorphism ℤ → ℤ), so the cross-pair carriers match

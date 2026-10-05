@@ -291,4 +291,9 @@ static_assert(principal_ray(Rational<>{3})(Rational<>{2}) ==
 static_assert(pivot(principal_ray(Rational<>{3})) == Rational<>{3},
               "the embedded rational is the ray's bound.");
 
+// Dedekind's density is the absence of a successor: no cover, no step.
+static_assert(!dedekind::category::HasNNOStep<Rational<>> &&
+                  !dedekind::category::HasNNOStep<Cut<>>,
+              "ℚ and ℝ are dense: no element covers another.");
+
 }  // namespace dedekind::numbers

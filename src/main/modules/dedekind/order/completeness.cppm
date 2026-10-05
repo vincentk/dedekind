@@ -135,3 +135,27 @@ static_assert(!IsDense<int>,
               "int is not dense: the step guard decides, not the arithmetic.");
 
 }  // namespace dedekind::order
+
+namespace dedekind::category {
+/** @brief The step arrows preserve the order of a registered chain,
+ *  @f$x \le y \Rightarrow S(x) \le S(y)@f$ and likewise for @c P: the
+ *  irreducible leaf facts the variance inference starts from (saturation at a
+ *  bound is monotone, wrapping is not --- hence the covering-step gate; the
+ *  chain gate supplies the order).
+ *  @tparam N a chain with the NNO step. */
+template <HasCoveringStep N>
+  requires dedekind::order::IsTotallyOrdered<N>
+inline constexpr bool is_monotone_v<Successor<N>, std::less_equal<>> = true;
+template <HasCoveringStep N>
+  requires dedekind::order::IsTotallyOrdered<N>
+inline constexpr bool is_monotone_v<Predecessor<N>, std::less_equal<>> = true;
+}  // namespace dedekind::category
+
+namespace dedekind::order {
+static_assert(IsMonotone<Successor<int>> && IsMonotone<Predecessor<int>>,
+              "the successor and predecessor are monotone arrows on a chain.");
+static_assert(!IsMonotone<Successor<unsigned>> &&
+                  !IsMonotone<Predecessor<unsigned>>,
+              "on a wrapping word S(2^w − 1) = 0 and P(0) = 2^w − 1: the step "
+              "is not registered monotone there.");
+}  // namespace dedekind::order

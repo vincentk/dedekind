@@ -633,6 +633,7 @@ export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
 // carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
+using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
 using dedekind::category::predecessor;
 using dedekind::category::successor;
@@ -884,29 +885,108 @@ constexpr SetVal<T, L> to_setval(
  * on @c V having decidable equality (@c std::equality_comparable): an
  * undecidable carrier --- where value equality is not answerable --- is ruled
  * out at the type level, so the operator is simply absent rather than vouching
- * for a verdict it cannot compute. */
+ * for a verdict it cannot compute.
+ *
+ *  On a carrier with the NNO step the comparison is @b extensional: a strict
+ *  bound at @c a is the non-strict bound at @c S(a) (above: @c P(a)), so
+ *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
+ *  closed bounds.  On a dense carrier they are different sets, and the
+ *  comparison stays structural. */
+namespace detail_setval_eq {
+/** @brief Close a strict lower bound at the next element, where the step moves;
+ *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
+ *  element to close at and the bound stays strict --- @c {x > ⊤} is not
+ *  @c {x ≥ ⊤}.  @tparam V the carrier. */
+template <HasCoveringStep V>
+constexpr void close_lower(V& v, Strictness& s) {
+  if (s != Strictness::Strict) return;
+  const V next = successor(v);
+  if (next == v) return;
+  v = next;
+  s = Strictness::NonStrict;
+}
+/** @brief The dual: close a strict upper bound at the previous element where
+ *  @c P moves; @c {x < ℵ₀}, the finite fragment, is not @c {x ≤ ℵ₀}.
+ *  @tparam V the carrier. */
+template <HasCoveringStep V>
+constexpr void close_upper(V& v, Strictness& s) {
+  if (s != Strictness::Strict) return;
+  const V prev = predecessor(v);
+  if (prev == v) return;
+  v = prev;
+  s = Strictness::NonStrict;
+}
+/** @brief The form compared: on a discrete chain every strict bound that can
+ *  close is closed, so @c (0, 3) and @c [1, 3) coincide; on a dense carrier
+ *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
+ */
+template <typename V, typename L>
+constexpr SetVal<V, L> canonical(SetVal<V, L> s) {
+  if constexpr (HasCoveringStep<V>) {
+    switch (s.kind) {
+      case SetKind::Halfspace:
+        if (s.dir == Direction::Upward)
+          close_lower(s.lo, s.sl);
+        else
+          close_upper(s.lo, s.sl);
+        break;
+      case SetKind::Interval:
+        close_lower(s.lo, s.sl);
+        close_upper(s.hi, s.su);
+        break;
+      default:
+        break;
+    }
+  }
+  return s;
+}
+}  // namespace detail_setval_eq
 export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
-  if (a.kind != b.kind) return L::False;
+  const SetVal<V, L> x = detail_setval_eq::canonical(a);
+  const SetVal<V, L> y = detail_setval_eq::canonical(b);
+  if (x.kind != y.kind) return L::False;
   bool eq = true;
-  switch (a.kind) {
+  switch (x.kind) {
     case SetKind::Empty:
     case SetKind::Universe:
       break;  // kind alone decides
     case SetKind::Singleton:
-      eq = a.lo == b.lo;
+      eq = x.lo == y.lo;
       break;
     case SetKind::Halfspace:
-      eq = a.lo == b.lo && a.dir == b.dir && a.sl == b.sl;
+      eq = x.dir == y.dir && x.lo == y.lo && x.sl == y.sl;
       break;
     case SetKind::Interval:
-      eq = a.lo == b.lo && a.hi == b.hi && a.sl == b.sl && a.su == b.su;
+      eq = x.lo == y.lo && x.hi == y.hi && x.sl == y.sl && x.su == y.su;
       break;
   }
   return eq ? L::True : L::False;
 }
+namespace detail_setval_eq {
+using dedekind::category::Ternary;
+using dedekind::sets::Cardinality;
+using dedekind::sets::ℵ_0;
+static_assert(
+    SetVal<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
+        SetVal<int>::bounded(1, Strictness::NonStrict, 3, Strictness::Strict),
+    "(0, 3) = [1, 3) on ℤ: the strict bound closes at the next element.");
+static_assert(
+    !(SetVal<Ternary>::half(Ternary::True, Direction::Upward,
+                            Strictness::Strict) ==
+      SetVal<Ternary>::half(Ternary::True, Direction::Upward,
+                            Strictness::NonStrict)),
+    "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
+    "form.");
+static_assert(
+    !(SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                Strictness::Strict) ==
+      SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                Strictness::NonStrict)),
+    "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
+}  // namespace detail_setval_eq
 
 /** @brief Bridge: compare a value set to a halfspace by the halfspace's own
  *  @c SetVal form, so the generic meet-subset identity accepts a bare
@@ -2044,7 +2124,7 @@ constexpr SetVal<T, L> upperbounds(
   // Discrete carriers attain the strict bound at the predecessor --- gated on
   // the NNO's step (an axiom of the category, which ℕ's proxy witnesses), not
   // on std::integral.
-  if constexpr (HasNNOStep<T>)
+  if constexpr (HasCoveringStep<T>)
     if (SU == Strictness::Strict) sup = predecessor(c.predicate.hi);
   return SetVal<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
 }
@@ -2059,7 +2139,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
 constexpr SetVal<T, L> lowerbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Bounded<SL>, Hi, T>>& c) {
   T inf = c.predicate.lo;
-  if constexpr (HasNNOStep<T>)
+  if constexpr (HasCoveringStep<T>)
     if (SL == Strictness::Strict) inf = successor(c.predicate.lo);
   return SetVal<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
 }
@@ -2260,6 +2340,59 @@ constexpr auto operator>>(
                        ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
       ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
 }
+
+/** @section halfspace__Cover_And_Star  The successor is the cover; the order
+ *  is its star.  On a discrete chain nothing lies strictly between @c x and
+ *  @c S(x): the bounded meet @c (x, S(x)) is empty and @c (x, S(S(x))) is the
+ *  point @c S(x), both read off the one @c bounded law.  And the order is the
+ *  Kleene star of the cover relation @f$\Gamma_S = \mathrm{graph}(S)@f$:
+ *  @f$a < b \iff (a, b) \in \Gamma_S^{+}@f$ --- the one relation whose star is
+ *  point-free here, because the chain's own @c < decides it. */
+namespace detail_cover_witness {
+consteval bool order_is_cover_star(int k) {
+  for (int a = 0; a < k; ++a)
+    for (int b = 0; b < k; ++b) {
+      bool reached = false;
+      int x = a;
+      for (int n = 1; n < k; ++n) {
+        x = Successor<int>{}(x);
+        reached = reached || x == b;
+      }
+      if ((a < b) != reached) return false;
+    }
+  return true;
+}
+}  // namespace detail_cover_witness
+static_assert(
+    SetVal<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict).kind ==
+        SetKind::Empty,
+    "nothing lies strictly between 3 and S(3): the successor is the cover.");
+static_assert(
+    SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).kind ==
+            SetKind::Singleton &&
+        SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).lo ==
+            4,
+    "(3, S(S(3))) is the point S(3) = 4.");
+static_assert(SetVal<Cardinality>::bounded(finite_cardinality(3),
+                                           Strictness::Strict,
+                                           finite_cardinality(4),
+                                           Strictness::Strict)
+                      .kind == SetKind::Empty,
+              "…and on the ℕ proxy, through its own successor.");
+static_assert(SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                       Ternary::True, Strictness::Strict)
+                          .kind == SetKind::Singleton &&
+                  SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                           Ternary::True, Strictness::Strict)
+                          .lo == Ternary::Unknown,
+              "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
+              "middle truth value.");
+static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
+                  !graph(Successor<int>{})(std::pair{3, 5}),
+              "Γ_S = graph(S) is the cover relation.");
+static_assert(detail_cover_witness::order_is_cover_star(8),
+              "on [0, 8): a < b ⟺ (a, b) ∈ Γ_S⁺ --- the order is the star of "
+              "the cover.");
 
 /** @brief Two halfspaces are the same set iff they share pivot, direction and
  *  strictness (the carrier and logic already match): structural set equality,

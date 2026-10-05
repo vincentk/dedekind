@@ -4,9 +4,10 @@ A fluent, point-free calculus over the *real* category arrows, exposed as
 duck-typed handles: an "arrow" is the protocol ``__call__`` / ``__rshift__``
 plus the free functions ``dom`` / ``cod``, not a base class.  The objects are
 the two carriers ``bool`` and ``int``; the primitive arrows on a carrier ``T``
-are ``id(T)`` (identity) and ``refl(T)`` (:logic's reflection involution
+are ``id(T)`` (identity), ``refl(T)`` (:logic's reflection involution
 ``logic_complement``: ``not`` (¬) on ``bool``, the order-reversing ``~`` on the
-``int`` chain).
+``int`` chain), and the NNO step ``succ(T)`` / ``pred(T)`` (#1001), total and
+saturating at the chain's bounds: ``succ(bool)(True) is True``.
 
     from dedekind.jlt import id, refl, dom, cod
 
@@ -28,6 +29,8 @@ is *intensional* and lives on the C++ side; it is vacuous here.  ``id`` /
 from ._jlt import cod
 from ._jlt import dom
 from ._jlt import id
+from ._jlt import pred
 from ._jlt import refl
+from ._jlt import succ
 
-__all__ = ["cod", "dom", "id", "refl"]
+__all__ = ["cod", "dom", "id", "pred", "refl", "succ"]

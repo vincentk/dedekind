@@ -15,13 +15,17 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <limits>  // the window's ends: the saturation witnesses
 #include <numeric>
+#include <optional>  // the cover / Lambek answers, 1 + N
 #include <type_traits>
 
 export module dedekind.numbers:integer;
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.order; // IsTotallyOrdered gates the step arrows' monotonicity
+import dedekind.relational; // graph / dagger: the step in the allegory
 import dedekind.sets;
 import :natural;
 export import :cardinality;
@@ -162,6 +166,22 @@ static_assert(
 
 }  // namespace dedekind::numbers
 
+namespace dedekind::category {
+using dedekind::sets::SignedCardinality;
+/** @brief @c S ⊣ P on the saturating ℤ.  Both legs are monotone
+ *  (@c order:completeness); the unit @f$x \le P(S(x))@f$ and the counit
+ *  @f$S(P(y)) \le y@f$ hold everywhere, at the ends by saturation
+ *  (@f$P(S(\max)) = P(+\aleph_0) = +\aleph_0 \ge \max@f$).  The reverse
+ *  @c P ⊣ S fails at the top, @f$P(S(\max)) = +\aleph_0 > \max@f$, and @c S is
+ *  no bijection, @f$S(\max) = S(+\aleph_0)@f$: saturation keeps one of the two
+ *  adjunctions ℤ proper has, and the witnesses in the numbers block say which.
+ */
+template <>
+inline constexpr bool
+    is_adjoint_v<Successor<SignedCardinality>, Predecessor<SignedCardinality>,
+                 std::less_equal<>> = true;
+}  // namespace dedekind::category
+
 namespace dedekind::numbers {
 // ℤ = @c SignedCardinality satisfies the STRICT @c category::IsRing.  This
 // holds via the carrier's @b saturating totality (@c is_saturating<SC,+/*> in
@@ -193,4 +213,78 @@ static_assert(
         std::multiplies<dedekind::sets::SignedCardinality>>,
     "ℤ is NOT a field --- only ±1 are multiplicative units (ℚ is its field "
     "of fractions).");
+
+// S ⊣ P on ℤ's proxy, registered above as the adjunction it is, and only that
+// way round: saturation at ±ℵ₀ keeps the unit and counit of S ⊣ P and breaks
+// the counit of P ⊣ S at the top.  Away from the ends P inverts S on values;
+// at the top S(max) = S(+ℵ₀), so S is no bijection and nothing declares it one.
+// [Z, S] is not an iso either (S(−1) = Z): ℤ has the NNO shape without being
+// the NNO.  It is a group.
+namespace detail_step_adjunction {
+using dedekind::relational::dagger;
+using dedekind::relational::graph;
+using Z = SignedCardinality;
+using S = Successor<Z>;
+using P = Predecessor<Z>;
+inline constexpr Z largest_finite = finite_signed_cardinality(
+    std::numeric_limits<SignedExtensionalCardinal<>::signed_type>::max());
+inline constexpr Z smallest_finite = finite_signed_cardinality(
+    std::numeric_limits<SignedExtensionalCardinal<>::signed_type>::min());
+consteval bool inverts_on_sample() {
+  for (int a = -3; a <= 3; ++a) {
+    const Z x = finite_signed_cardinality(a);
+    if (P{}(S{}(x)) != x || S{}(P{}(x)) != x) return false;
+  }
+  return true;
+}
+// The unit x ≤ P(S(x)) and the counit S(P(y)) ≤ y at the ends, where only
+// saturation holds them.
+consteval bool unit_and_counit_at_the_ends() {
+  return largest_finite <= P{}(S{}(largest_finite)) &&
+         S{}(P{}(smallest_finite)) <= smallest_finite;
+}
+// P ⊣ S would need P(S(x)) ≤ x; at the top P(S(max)) = +ℵ₀ > max.
+consteval bool reverse_counit_fails_at_the_top() {
+  return !(P{}(S{}(largest_finite)) <= largest_finite);
+}
+consteval bool saturation_breaks_the_bijection() {
+  return S{}(largest_finite) == S{}(Z{PositiveInfinity{}});
+}
+// In the allegory every map is adjoint to its converse; on ℤ the converse of
+// the successor's graph IS the predecessor's graph, pointwise on a sample.
+consteval bool converse_is_predecessor_on_sample() {
+  for (int a = -3; a <= 3; ++a)
+    for (int b = -3; b <= 3; ++b) {
+      const std::pair p{finite_signed_cardinality(a),
+                        finite_signed_cardinality(b)};
+      if (dagger(graph(S{}))(p) != graph(P{})(p)) return false;
+    }
+  return true;
+}
+consteval bool lambek_fails_at_minus_one() {
+  const Z minus_one = finite_signed_cardinality(-1);
+  const auto back = Out<Z>{}(In<Z>{}(std::optional<Z>{minus_one}));
+  if (!back.has_value()) return true;
+  return *back != minus_one;
+}
+}  // namespace detail_step_adjunction
+static_assert(
+    IsGaloisConnection<detail_step_adjunction::S, detail_step_adjunction::P> &&
+        !IsGaloisConnection<detail_step_adjunction::P,
+                            detail_step_adjunction::S> &&
+        !IsIsomorphism<detail_step_adjunction::S>,
+    "S ⊣ P on the saturating ℤ, and not P ⊣ S: the step is no "
+    "bijection at the top.");
+static_assert(detail_step_adjunction::inverts_on_sample() &&
+                  detail_step_adjunction::unit_and_counit_at_the_ends() &&
+                  detail_step_adjunction::reverse_counit_fails_at_the_top() &&
+                  detail_step_adjunction::saturation_breaks_the_bijection(),
+              "P inverts S on [−3, 3]; at the ends saturation holds S ⊣ P and "
+              "breaks P ⊣ S: P(S(max)) = +ℵ₀.");
+static_assert(detail_step_adjunction::converse_is_predecessor_on_sample(),
+              "Γ_S° = Γ_P on ℤ: the order adjunction and the allegory's f ⊣ f° "
+              "coincide.");
+static_assert(!IsIsomorphism<In<detail_step_adjunction::Z>> &&
+                  detail_step_adjunction::lambek_fails_at_minus_one(),
+              "[Z, S] is not an iso on ℤ: S(−1) = Z.  A group, not the NNO.");
 }  // namespace dedekind::numbers

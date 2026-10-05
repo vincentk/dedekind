@@ -17,6 +17,8 @@
  * canonical carrier witness, ℕ is the project-level alias.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <limits>    // the largest finite cardinal
+#include <optional>  // the cover / Lambek answers, 1 + N
 #include <utility>
 #include <variant>  // load-bearing for std::variant's operator== via ADL
 
@@ -146,4 +148,47 @@ TEST_CASE(
   // _means_ via the chain.
   STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℕ)>::Domain,
                             Cardinality>);
+}
+
+// ===========================================================================
+// (5) The cover, Lambek, and ++: the posture at the bounds, at runtime
+// ===========================================================================
+
+TEST_CASE("category:nno — the cover is partial at ⊤ and ++ saturates there",
+          "[category][nno][cover][saturation]") {
+  const auto c41 = cover(finite_cardinality(41));
+  REQUIRE(c41.has_value());
+  CHECK(*c41 == finite_cardinality(42));
+  CHECK_FALSE(cover(Cardinality{ℵ_0{}}).has_value());
+  CHECK(cover(Ternary::Unknown) == Ternary::True);
+  CHECK_FALSE(cover(Ternary::True).has_value());
+  Cardinality n = finite_cardinality(0);
+  for (int i = 0; i < 5; ++i) ++n;
+  CHECK(n == finite_cardinality(5));
+  Cardinality top{ℵ_0{}};
+  ++top;
+  CHECK(top == Cardinality{ℵ_0{}});
+}
+
+TEST_CASE(
+    "category:nno — Lambek's lemma separates the NNO from its look-alikes",
+    "[category][nno][lambek]") {
+  // ℕ's finite fragment: [Z, S] is an iso.
+  for (std::size_t k = 0; k < 6; ++k) {
+    const auto n = finite_cardinality(k);
+    CHECK(In<Cardinality>{}(Out<Cardinality>{}(n)) == n);
+    const auto back = Out<Cardinality>{}(In<Cardinality>{}(n));
+    REQUIRE(back.has_value());
+    CHECK(*back == n);
+  }
+  // ℕ's top: the largest finite cardinal and ℵ₀ both step to ℵ₀, so [Z, S] is
+  // not injective on the carrier.
+  const auto largest =
+      finite_cardinality(std::numeric_limits<std::size_t>::max());
+  CHECK(In<Cardinality>{}(std::optional<Cardinality>{largest}) ==
+        Cardinality{ℵ_0{}});
+  // K₃: S saturates at ⊤, so out ∘ in misses True.
+  CHECK(Out<Ternary>{}(In<Ternary>{}(Ternary::True)) == Ternary::Unknown);
+  // int (ℤ): Z collides with S(−1).
+  CHECK_FALSE(Out<int>{}(In<int>{}(-1)).has_value());
 }

@@ -28,7 +28,11 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <limits>    // the integer window's ends
+#include <optional>  // the cover, the first element of a set
 #include <ranges>
+#include <stdexcept>  // std::overflow_error at the window's end
+#include <string>
 #include <utility>
 
 export module dedekind.python;
@@ -150,15 +154,65 @@ inline Arrow<bool> refl_bool() {
       dedekind::category::logic_complement<dedekind::category::Boole>{}}};
 }
 
-/** @brief @c refl on @c int: the reflection of the integer bounded chain ---
- *  @c :logic's @c logic_complement<Chain<int>> (@c = @c Chain<int>::RFL @c =
- *  @c ~a, the order-reversing De Morgan involution), already witnessed as an
- *  involution there (@c is_involutive<logic_complement<Chain<int>>, @c int>).
- */
-inline Arrow<int> refl_int() {
-  return Arrow<int>{std::function<int(int)>{
-      dedekind::category::logic_complement<dedekind::category::Chain<int>>{}}};
+/** @brief The integer carrier the Python surface shares between the arrows
+ *  (@c jlt), the sets (@c lwv) and the chains (@c pst): @c long @c long, what a
+ *  Python @c int crosses the boundary as.  One carrier, so an arrow's image of
+ *  a set is well-typed. */
+using Int = long long;
+
+/** @brief The window's end.  Python's @c int is ℤ; @c long @c long is its
+ *  64-bit window, on which the step is not closed.  Where ℤ continues and the
+ *  window cannot, the surface raises (@c std::overflow_error, Python's
+ *  @c OverflowError) rather than wrap --- ℕ's proxy saturates to ℵ₀ instead,
+ *  the total posture (@c pst).  FIXME(#1008): an erased composite
+ *  (@c succ @c >> @c succ) steps unchecked; the carrier that closes this is
+ *  @c SignedCardinality.
+ *  @param what the operation that reached the end. */
+[[noreturn]] inline void window_end(const char* what) {
+  throw std::overflow_error(std::string(what) +
+                            ": the 64-bit window ends here; ℤ does not");
 }
+/** @brief @c a @c + @c b inside the window, or @c window_end.
+ *  @param a a value in the window.  @param b the offset.
+ *  @param what the operation, for the message.  @return the sum. */
+constexpr Int add_in_window(Int a, Int b, const char* what) {
+  Int sum{};
+  if (__builtin_add_overflow(a, b, &sum)) window_end(what);
+  return sum;
+}
+/** @brief The step arrows applied inside the window: total on @c bool, and on
+ *  the integer window raising at its ends rather than overflowing.
+ *  @tparam T the carrier.  @param f the arrow.  @param x the argument.
+ *  @return @c f(x). */
+template <dedekind::category::HasNNOStep T>
+T step_in_window(const dedekind::category::Successor<T>& f, T x) {
+  if constexpr (std::same_as<T, Int>)
+    if (x == std::numeric_limits<Int>::max()) window_end("succ");
+  return f(x);
+}
+template <dedekind::category::HasNNOStep T>
+T step_in_window(const dedekind::category::Predecessor<T>& f, T x) {
+  if constexpr (std::same_as<T, Int>)
+    if (x == std::numeric_limits<Int>::min()) window_end("pred");
+  return f(x);
+}
+
+/** @brief @c refl on the integer chain: @c :logic's
+ *  @c logic_complement<Chain<Int>> (@c = @c Chain<Int>::RFL @c = @c ~a, the
+ *  order-reversing De Morgan involution), already witnessed as an involution
+ *  there. */
+inline Arrow<Int> refl_int() {
+  return Arrow<Int>{std::function<Int(Int)>{
+      dedekind::category::logic_complement<dedekind::category::Chain<Int>>{}}};
+}
+
+/** @brief The step arrows on a carrier, the real @c :nno @c Successor /
+ *  @c Predecessor, kept @b typed (not erased) so the set side can read them
+ *  structurally (@c lwv::image).  @tparam T the carrier, with the NNO step. */
+template <dedekind::category::HasNNOStep T>
+using Succ = dedekind::category::Successor<T>;
+template <dedekind::category::HasNNOStep T>
+using Pred = dedekind::category::Predecessor<T>;
 
 /** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
  * same-object endomorphisms, as a type-erased arrow.  It REUSES the real
@@ -253,6 +307,185 @@ constexpr Set meet(const Set& a, const Set& b) {
   return ord::reduce_meet(a, b);
 }
 
+/** @brief Translate every bound by @c k: the image of a value leaf under the
+ *  order automorphism @f$x \mapsto x + k@f$ of the chain keeps its kind and
+ *  moves its bounds; @c Ø and @c 𝔸 are fixed.  @f$O(1)@f$. */
+constexpr Set shift(const Set& s, long long k) {
+  Set r = s;
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+    case ord::SetKind::Interval:
+      r.lo = jlt::add_in_window(r.lo, k, "image");
+      r.hi = jlt::add_in_window(r.hi, k, "image");
+      break;
+    case ord::SetKind::Halfspace:
+      r.lo = jlt::add_in_window(r.lo, k, "image");
+      break;
+    default:
+      break;
+  }
+  return r;
+}
+/** @brief @f$f(S)@f$ and @f$f^{-1}(S)@f$ for the structural arrows, in closed
+ *  form: the successor shifts by one, the predecessor by minus one, the
+ *  identity not at all (paper §4: the image of @c {n > 5} under the successor
+ *  is @c {n > 6}, decided with no search of the domain).  An opaque composed
+ *  arrow has no such normal form; its image is intensional (Kleene-valued)
+ *  and is refused at the boundary rather than guessed. */
+constexpr Set image(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
+constexpr Set preimage(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
+constexpr Set image(const jlt::Succ<jlt::Int>&, const Set& s) {
+  return shift(s, 1);
+}
+constexpr Set preimage(const jlt::Succ<jlt::Int>&, const Set& s) {
+  return shift(s, -1);
+}
+constexpr Set image(const jlt::Pred<jlt::Int>&, const Set& s) {
+  return shift(s, -1);
+}
+constexpr Set preimage(const jlt::Pred<jlt::Int>&, const Set& s) {
+  return shift(s, 1);
+}
+
+/** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
+ *  half-open interval (Python's own convention), an absent bound meaning the
+ *  ray.  @c s[:b] is the restriction to the lower cut at @c b.  One
+ *  @c reduce_meet, @f$O(1)@f$.  Not positional: a set has no enumeration to
+ *  index into; that reading belongs to a sequence. */
+constexpr Set restrict(const Set& s, std::optional<long long> lo,
+                       std::optional<long long> hi) {
+  Set r = s;
+  if (lo) r = meet(r, at_least(*lo));
+  if (hi) r = meet(r, below(*hi));
+  return r;
+}
+
+/** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
+ *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
+constexpr bool is_bounded(const Set& s) {
+  return s.kind == ord::SetKind::Empty || s.kind == ord::SetKind::Singleton ||
+         s.kind == ord::SetKind::Interval;
+}
+/** @brief The least element, the unfold's seed: none for @c Ø, and none for a
+ *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
+constexpr std::optional<long long> least(const Set& s) {
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+      return s.lo;
+    case ord::SetKind::Interval:
+      return s.sl == ord::Strictness::Strict
+                 ? jlt::add_in_window(s.lo, 1, "least")
+                 : s.lo;
+    case ord::SetKind::Halfspace:
+      if (s.dir == ord::Direction::Upward)
+        return s.sl == ord::Strictness::Strict
+                   ? jlt::add_in_window(s.lo, 1, "least")
+                   : s.lo;
+      return std::nullopt;
+    default:
+      return std::nullopt;
+  }
+}
+/** @brief The greatest element, where the set is bounded above (a strict upper
+ *  bound is attained at its predecessor, which exists since the set is
+ *  inhabited); @c nullopt on a ray: the unfold does not stop. */
+constexpr std::optional<long long> greatest(const Set& s) {
+  switch (s.kind) {
+    case ord::SetKind::Singleton:
+      return s.lo;
+    case ord::SetKind::Interval:
+      return s.su == ord::Strictness::Strict ? s.hi - 1 : s.hi;
+    default:
+      return std::nullopt;
+  }
+}
+
 }  // namespace lwv
+
+// ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
+//
+// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), and
+// ℕ's proxy, a bounded chain in the same shape whose ⊤ is ℵ₀ (the memory
+// boundary), not a truth object.  A chain is its endpoints and its step; the
+// step is read twice --- total and saturating (the algebra side, @c Successor)
+// and partial (the coalgebra side, @c cover, nothing at ⊤) --- and the chain's
+// classification is whatever the C++ concepts decide.
+
+namespace pst {
+
+/** @brief A Pst chain by carrier: its name, endpoints and size.
+ *  @tparam C the carrier (@c bool, @c Ternary, @c Cardinality). */
+template <typename C>
+struct Chain;
+template <>
+struct Chain<bool> {
+  static constexpr const char* name = "𝔹";
+  static constexpr bool bottom = false;
+  static constexpr bool top = true;
+  static constexpr dedekind::sets::Cardinality cardinality =
+      dedekind::sets::finite_cardinality(2);
+};
+template <>
+struct Chain<dedekind::category::Ternary> {
+  static constexpr const char* name = "K₃";
+  static constexpr dedekind::category::Ternary bottom =
+      dedekind::category::Ternary::False;
+  static constexpr dedekind::category::Ternary top =
+      dedekind::category::Ternary::True;
+  static constexpr dedekind::sets::Cardinality cardinality =
+      dedekind::sets::finite_cardinality(3);
+};
+template <>
+struct Chain<dedekind::sets::Cardinality> {
+  static constexpr const char* name = "ℕ";
+  static constexpr dedekind::sets::Cardinality bottom =
+      dedekind::sets::finite_cardinality(0);
+  static constexpr dedekind::sets::Cardinality top =
+      dedekind::sets::Cardinality{dedekind::sets::ℵ_0{}};
+  static constexpr dedekind::sets::Cardinality cardinality = top;
+};
+
+/** @brief The step, both readings, and the classification, on a chain's
+ *  carrier.  @tparam C the carrier. */
+template <dedekind::category::HasNNOStep C>
+constexpr C succ(const C& x) {
+  return dedekind::category::Successor<C>{}(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr C pred(const C& x) {
+  return dedekind::category::Predecessor<C>{}(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr std::optional<C> cover(const C& x) {
+  return dedekind::category::cover(x);
+}
+template <dedekind::category::HasNNOStep C>
+constexpr bool saturates() {
+  return succ(Chain<C>::top) == Chain<C>::top;
+}
+/** @brief Indexing by @b position: the element at position @c i from ⊥, the
+ *  chain read as its own enumeration (the orbit of ⊥ under the step), so
+ *  @c K3[1] is @c UNKNOWN and @c N[i] is @c i.  @f$O(1)@f$ on ℕ (Peano
+ *  addition), a walk bounded by the chain's length on 𝔹 and K₃. */
+template <dedekind::category::HasNNOStep C>
+C at(std::size_t i) {
+  return dedekind::sequences::SuccessorOrbit<C>{Chain<C>::bottom}.at(i);
+}
+template <typename C>
+constexpr bool is_truth_object = dedekind::category::IsPst<C>;
+// FIXME(#1004): IsDiscrete is not exported yet; discreteness is read as
+// !is_dense.
+template <typename C>
+constexpr bool is_dense = dedekind::order::IsDense<C>;
+
+static_assert(is_truth_object<bool> &&
+                  is_truth_object<dedekind::category::Ternary> &&
+                  !is_truth_object<dedekind::sets::Cardinality>,
+              "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
+static_assert(saturates<bool>() && saturates<dedekind::category::Ternary>() &&
+                  saturates<dedekind::sets::Cardinality>(),
+              "the three chains saturate at ⊤.");
+
+}  // namespace pst
 
 }  // namespace dedekind::python

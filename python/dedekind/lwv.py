@@ -37,6 +37,8 @@ the one ``reduce_meet`` (deletion).  See the design summary on #965.
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._lwv import Set
 from ._lwv import above
+from ._lwv import image
+from ._lwv import preimage
 from ._lwv import at_least
 from ._lwv import at_most
 from ._lwv import below
@@ -47,6 +49,8 @@ from ._lwv import singleton
 __all__ = [
     "Set",
     "above",
+    "image",
+    "preimage",
     "at_least",
     "at_most",
     "below",

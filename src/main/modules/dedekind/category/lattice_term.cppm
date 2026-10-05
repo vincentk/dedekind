@@ -176,8 +176,8 @@ using reduce_t = typename reduce<Term, Less, Ord, Combine>::type;
 // load-bearing: the reducer's meet path type-checks against the category-level
 // glb theory rather than importing an orphan partition.
 // This is the reducer EDGE type-check, so it stays next to the reducer: the
-// carrier-generic coherence witnesses (int / Ternary chains, the Sup false
-// positive, and the meet-trichotomy IsProduct bridge) live with the concept in
+// carrier-generic coherence witnesses (int / Ternary chains, the Sup
+// rejection, and the meet-trichotomy IsProduct bridge) live with the concept in
 // :cartesian_bicategory (#946).
 static_assert(
     IsMeetAsRightAdjoint<Copy<bool>, Merge<bool, std::logical_and<bool>>>,

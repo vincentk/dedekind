@@ -56,7 +56,9 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t (residue loop)
 #include <functional>
-#include <utility>  // std::forward (used in embed_𝔹_ℕ's set-level lift)
+#include <limits>    // the largest finite cardinal (the Lambek collision)
+#include <optional>  // std::nullopt (the cover at ℵ₀)
+#include <utility>   // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
 export module dedekind.numbers:natural;
 
@@ -64,6 +66,7 @@ import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmet
 import dedekind.category;
 import dedekind.morphologies; // Modular<N> / Congruence<N,R> — the finite quotient the ℕ quantifier factors through
 import dedekind.order;        // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.relational;   // graph / dagger: the step in the allegory
 import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Cardinality>)
 import dedekind.sets;
 import :scalars;
@@ -370,6 +373,59 @@ static_assert(
     "Successor, saturating at ℵ_0.");
 static_assert(ZeroElement<Cardinality>{}() == finite_cardinality(0),
               "the carrier's default value is the NNO's zero.");
+// Lambek on the finite fragment: the round trips hold there, and ℕ's proxy IS
+// ℕ there.  The carrier is ℕ ∪ {ℵ₀}, a bounded chain like K₃, and at the top S
+// is not injective --- the largest finite cardinal and ℵ₀ both step to ℵ₀ ---
+// so [Z, S] is no isomorphism of the carrier and nothing declares it one: the
+// memory boundary is where the carrier stops being the NNO.
+namespace detail_lambek_witness {
+// FIXME(#1003): std::optional's == is spelled by hand here: inside the
+// standard's own operator== the library's predicate && is found by ADL through
+// the variant's arguments and builds a Meet node where a bool is due.
+constexpr bool holds(const std::optional<Cardinality>& o,
+                     const Cardinality& v) {
+  return o.has_value() && *o == v;
+}
+inline constexpr Cardinality largest_finite =
+    finite_cardinality(std::numeric_limits<std::size_t>::max());
+}  // namespace detail_lambek_witness
+static_assert(
+    detail_lambek_witness::holds(
+        Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
+            finite_cardinality(3)})),
+        finite_cardinality(3)) &&
+        In<Cardinality>{}(Out<Cardinality>{}(finite_cardinality(0))) ==
+            finite_cardinality(0),
+    "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
+static_assert(
+    In<Cardinality>{}(std::optional<Cardinality>{
+        detail_lambek_witness::largest_finite}) ==
+            In<Cardinality>{}(std::optional<Cardinality>{Cardinality{ℵ_0{}}}) &&
+        !IsIsomorphism<In<Cardinality>>,
+    "[Z, S] is not injective at the top: S(largest finite) = S(ℵ₀) = ℵ₀, so "
+    "Lambek fails on the carrier and the concept says so.");
+static_assert(!cover(Cardinality{ℵ_0{}}).has_value() &&
+                  detail_lambek_witness::holds(cover(finite_cardinality(3)),
+                                               finite_cardinality(4)),
+              "the cover is partial at ℵ₀: the top has no cover.");
+// P only RETRACTS S on ℕ: P ∘ S = id, but S ∘ P ≠ id at 0 (the monus), so the
+// pair is not an adjunction here --- contrast ℤ (numbers:integer).
+static_assert(Predecessor<Cardinality>{}(Successor<Cardinality>{}(
+                  finite_cardinality(7))) == finite_cardinality(7) &&
+                  Successor<Cardinality>{}(Predecessor<Cardinality>{}(
+                      finite_cardinality(0))) == finite_cardinality(1),
+              "P ∘ S = id; S ∘ P moves 0 to 1: a retraction, not an iso.");
+using dedekind::relational::dagger;
+using dedekind::relational::graph;
+// In the allegory every map is adjoint to its converse, Γ_S ⊣ Γ_S°.  On ℕ the
+// converse of the successor's graph is NOT the predecessor's graph: 0 has no
+// S-preimage, while the monus sends 0 to 0.  P is the saturating totalisation
+// of S°, which is what the monus is.
+static_assert(!dagger(graph(Successor<Cardinality>{}))(std::pair{
+                  finite_cardinality(0), finite_cardinality(0)}) &&
+                  graph(Predecessor<Cardinality>{})(std::pair{
+                      finite_cardinality(0), finite_cardinality(0)}),
+              "Γ_S° ≠ Γ_P on ℕ: (0, 0) is in Γ_P, not in Γ_S°.");
 
 /** @brief The countably-infinite cardinal @f$\aleph_0@f$ as a @c Cardinality
  *         @b value: the saturation point, and the unique fixpoint of

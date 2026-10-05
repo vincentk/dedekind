@@ -128,11 +128,14 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>     // std::int8_t (the K₃ step)
 #include <functional>  // std::invoke
+#include <optional>    // std::optional = 1 + N, the NNO's functor
 #include <type_traits>
 
 export module dedekind.category:nno;
 
+import :logic;  // Ternary: the K₃ chain, whose step lives here
 import :morphism;
 
 namespace dedekind::category {
@@ -209,6 +212,27 @@ constexpr T successor(const T& n) {
   return T::successor(n);
 }
 
+/** @section nno__Pst_Chains  The step on the truth chains
+ *  @f$\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}@f$: a bounded chain's
+ *  cover saturates at ⊤ and its dual at ⊥, the posture @c Cardinality takes at
+ *  ℵ₀.  So the shipped truth chains 𝔹 and K₃ have the NNO step (a dense Pst
+ *  carrier such as the unit interval has none: density is the absence of a
+ *  cover), and the order layer's point collapse reads @c {x : ⊥ < x < ⊤} on K₃
+ *  as @c {Unknown}.  @c bool is
+ *  integral, so its successor already saturates (@c true + 1 narrows to
+ *  @c true); its predecessor must not wrap. */
+export constexpr bool predecessor(bool) noexcept { return false; }
+export constexpr Ternary successor(Ternary a) noexcept {
+  return a == Ternary::True
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) + 1);
+}
+export constexpr Ternary predecessor(Ternary a) noexcept {
+  return a == Ternary::False
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) - 1);
+}
+
 /** @brief A carrier with both NNO steps available: the shape a
  *  value-determined point collapse needs (@c succ(lo) @c == @c pred(hi)). */
 export template <typename T>
@@ -216,6 +240,17 @@ concept HasNNOStep = requires(const T& n) {
   { successor(n) } -> std::convertible_to<T>;
   { predecessor(n) } -> std::convertible_to<T>;
 };
+
+/** @brief A carrier whose step is the covering map of its order: the NNO step
+ *  without wrap-around.  An unsigned word is ℤ/2^w, where @c S(2^w − 1) @c = @c
+ * 0 covers nothing and @c P(0) @c = @c 2^w − 1 is covered by nothing;
+ * saturation at a bound (ℵ₀, ⊤) is allowed, and @c bool is the two-chain.  The
+ * cover, the Lambek arrows and the order layer's monotone-step facts gate on
+ * this, not on the bare step.
+ *  @tparam T the carrier. */
+export template <typename T>
+concept HasCoveringStep =
+    HasNNOStep<T> && (!std::unsigned_integral<T> || std::same_as<T, bool>);
 
 /** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
  *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
@@ -252,6 +287,105 @@ static_assert(IsArrow<Successor<int>>,
 static_assert(IsNNO<int, ZeroElement<int>, Successor<int>>,
               "(int, Zero, Successor) has the NNO shape.");
 static_assert(Successor<int>{}(ZeroElement<int>{}()) == 1, "S(Z) = 1.");
+
+/** @brief The predecessor @f$P : N \to N@f$ as an arrow, in the carrier's own
+ *  posture at ⊥: the monus on ℕ (0 a fixpoint), @c −1 on ℤ.
+ *  @tparam N the carrier, with @c successor / @c predecessor. */
+export template <HasNNOStep N>
+struct Predecessor {
+  using Domain = N;
+  using Codomain = N;
+  /** @param n an element of the carrier.  @return its predecessor, by the
+   *  carrier's own @c predecessor; nothrow when that is. */
+  constexpr N operator()(const N& n) const noexcept(noexcept(predecessor(n))) {
+    return predecessor(n);
+  }
+};
+
+/** @brief The cover @f$S^{+} : N \to 1 + N@f$: the successor read partially,
+ *  @c nullopt at a fixpoint of @c S, which on a saturating bounded chain is its
+ *  top (ℵ₀ on @c Cardinality, @c True on K₃); total on an unbounded chain.
+ *  @c std::optional<N> @b is @f$1 + N@f$, the NNO's own functor
+ *  @f$F(X) = 1 + X@f$.
+ *  @tparam N the carrier.
+ *  @param n an element.  @return the element covering @c n, if any. */
+export template <HasCoveringStep N>
+  requires std::equality_comparable<N>
+constexpr std::optional<N> cover(const N& n) {
+  const N s = successor(n);
+  if (s == n) return std::nullopt;
+  return s;
+}
+
+/** @brief The NNO's structure map @f$[Z, S] : 1 + N \to N@f$ as an arrow:
+ *  zero, or the successor of the element given.  @c std::optional<N> @b is
+ *  @f$1 + N@f$, the NNO's own functor @f$F(X) = 1 + X@f$.
+ *  @tparam N the carrier. */
+export template <HasCoveringStep N>
+  requires std::equality_comparable<N> && std::default_initializable<N>
+struct In {
+  using Domain = std::optional<N>;
+  using Codomain = N;
+  /** @param x nothing, or an element.  @return @c Z() or @c S(x). */
+  constexpr N operator()(const std::optional<N>& x) const {
+    return x ? Successor<N>{}(*x) : ZeroElement<N>{}();
+  }
+};
+/** @brief The destructor @f$\langle \text{is}\;Z?,\, P\rangle : N \to 1 + N@f$:
+ *  nothing at zero, else the predecessor.  @tparam N the carrier. */
+export template <HasCoveringStep N>
+  requires std::equality_comparable<N> && std::default_initializable<N>
+struct Out {
+  using Domain = N;
+  using Codomain = std::optional<N>;
+  /** @param n an element.  @return nothing at @c Z, else @c P(n). */
+  constexpr std::optional<N> operator()(const N& n) const {
+    if (n == ZeroElement<N>{}()) return std::nullopt;
+    return Predecessor<N>{}(n);
+  }
+};
+
+/** @section nno__Lambek  Lambek's lemma as the honesty obligation
+ *  The structure map @f$[Z, S] : 1 + N \to N@f$ of the @b initial algebra is an
+ *  isomorphism, with inverse @f$\langle \text{is}\;Z?,\, P\rangle@f$.  Here
+ * that reads @c IsIsomorphism<In<N>> (@c :morphism), which an @c inverse(In<N>)
+ *  overload would declare.  No shipped carrier declares one, each for its own
+ *  reason, witnessed on values below and in @c numbers: ℤ (@c int,
+ *  @c SignedCardinality) is a group, @c S(−1) @c = @c Z; the bounded chains
+ *  (K₃, ℕ's proxy) saturate, so @c S is not injective at ⊤ (the largest finite
+ *  cardinal and ℵ₀ both step to ℵ₀); and the signed machine integers have no
+ *  value at @c S(max) at all, the same refusal as their ring claim
+ *  (@c sets:cardinality).  Likewise no step is declared a bijection: ℤ's proxy
+ *  saturates, and @c S ⊣ P on it is registered as the adjunction it is
+ *  (@c numbers:integer), not derived from an iso it is not. */
+
+static_assert(cover(5) == 6, "the cover of 5 on the unbounded chain is S(5).");
+static_assert(In<int>{}(Out<int>{}(5)) == 5,
+              "In ∘ Out = id (every carrier with the step).");
+static_assert(
+    Out<int>{}(In<int>{}(std::optional<int>{-1})) != std::optional<int>{-1},
+    "Out ∘ In ≠ id on ℤ: S(−1) = Z, so [Z, S] is not an iso --- ℤ has "
+    "the NNO shape but is a group, not the NNO.");
+static_assert(!IsIsomorphism<In<int>> && !IsIsomorphism<Successor<int>>,
+              "on ℤ the structure map is not an iso, and the machine step is "
+              "not declared one: S(max) has no value.");
+static_assert(
+    HasCoveringStep<int> && HasCoveringStep<bool> && HasCoveringStep<Ternary> &&
+        !HasCoveringStep<unsigned>,
+    "the step covers on the chains; on a wrapping word S(2^w − 1) = 0 "
+    "covers nothing.");
+static_assert(successor(Ternary::False) == Ternary::Unknown &&
+                  successor(Ternary::Unknown) == Ternary::True &&
+                  successor(Ternary::True) == Ternary::True,
+              "the K₃ step: ⊥ → U → ⊤, saturating at ⊤.");
+static_assert(!cover(Ternary::True) && cover(Ternary::Unknown) == Ternary::True,
+              "the cover is partial at ⊤.");
+static_assert(Out<Ternary>{}(In<Ternary>{}(std::optional<Ternary>{
+                  Ternary::True})) != std::optional<Ternary>{Ternary::True} &&
+                  !IsIsomorphism<In<Ternary>> &&
+                  !IsIsomorphism<Successor<Ternary>>,
+              "Lambek fails on K₃: a bounded chain is not an NNO, and its step "
+              "is no bijection.");
 
 /**
  * @brief Recursion-via-universal-property (operational discharge).

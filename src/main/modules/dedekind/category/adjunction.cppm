@@ -373,8 +373,10 @@ concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
  *          f(x) ≤ y  ⟺  x ≤ g(y)
  *
  *        holds.  C++ concepts cannot quantify universally over @c x
- *        and @c y, so the equivalence is the engineer's honesty
- *        obligation; the structural shape names the @b signatures.
+ *        and @c y, so the equivalence is the law leg @c is_adjoint_v:
+ *        derived for a monotone isomorphism and its inverse, registered
+ *        where its theorem is stated otherwise; the structural shape names
+ *        the @b signatures.
  *
  *  @b Relationship @b to @b @c HasAdjunctionShape: a Galois
  *  connection @b is an adjunction in the simplest possible
@@ -415,11 +417,30 @@ concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
  * @tparam Op the order both legs' variance is tested against; defaults to
  *         @c std::less_equal<>.
  */
+/** @brief The adjunction law @f$f(x) \le y \iff x \le g(y)@f$ as an opt-in
+ *  leaf fact, with the one theorem derived here: a @b monotone @b isomorphism
+ *  is adjoint to its inverse (@f$f(x) \le y \iff x \le f^{-1}(y)@f$, both
+ *  legs monotone).  Other adjunctions register their fact where their theorem
+ *  is stated (Δ ⊣ ∧ per glb in @c :cartesian_bicategory, @c S ⊣ P on the
+ *  saturating ℤ in @c numbers:integer, the antitone involution's
+ *  self-adjunction in @c algebra:ordered_algebra).
+ *  @tparam F the left adjoint.  @tparam G the right adjoint.  @tparam Op the
+ *  order. */
+export template <typename F, typename G, typename Op = std::less_equal<>>
+inline constexpr bool is_adjoint_v = false;
+template <typename F, typename G, typename Op>
+  requires IsIsomorphism<F> && IsMonotone<F, Op> &&
+               std::same_as<std::remove_cvref_t<decltype(inverse(
+                                std::declval<const F&>()))>,
+                            G>
+inline constexpr bool is_adjoint_v<F, G, Op> = true;
+
 export template <typename F, typename G, typename Op = std::less_equal<>>
 concept IsGaloisConnection =
     ((IsCovariantFunctor<F, Op> && IsCovariantFunctor<G, Op>) ||
      (IsContravariantFunctor<F, Op> && IsContravariantFunctor<G, Op>)) &&
-    std::same_as<Dom<G>, Cod<F>> && std::same_as<Cod<G>, Dom<F>>;
+    std::same_as<Dom<G>, Cod<F>> && std::same_as<Cod<G>, Dom<F>> &&
+    is_adjoint_v<F, G, Op>;
 
 // Axiom flow, TYPE-CHECKED (not prose): the variance-functor concepts are
 // inhabited, and variance PROPAGATES through composition into them.  The base
