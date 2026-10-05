@@ -63,13 +63,8 @@ using namespace dedekind::sets;
 // arrow's domain; its species is the universe's (Boole here).
 constexpr auto gt_5 = ℕ | (χ > fix(5_c));
 
-// Arrow ℕ → ℕ wrapped via the project's typed-arrow factory so it
-// satisfies @c IsArrow (which gates on @c Domain / @c Codomain
-// typedefs that the bare @c cardinality_succ struct does not expose).
-// Semantically this is @c cardinality_succ — the NNO successor on
-// @c Cardinality, the canonical ℕ → ℕ arrow.
-constexpr auto succ_arrow = arrow<Cardinality, Cardinality>(
-    [](const Cardinality& m) noexcept { return m + finite_cardinality(1); });
+// The NNO successor on @c Cardinality, the canonical ℕ → ℕ arrow.
+constexpr auto succ_arrow = Successor<Cardinality>{};
 
 // Image of an intensional Set under the successor arrow.  Result is
 // itself an intensional Set on Cardinality with @c Kleene as the

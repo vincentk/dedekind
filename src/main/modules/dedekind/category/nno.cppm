@@ -217,6 +217,32 @@ concept HasNNOStep = requires(const T& n) {
   { predecessor(n) } -> std::convertible_to<T>;
 };
 
+/** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
+ *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
+ *  needed (@c image, @c graph, the NNO witness), in place of a struct per site.
+ *  @tparam N the carrier, with @c successor / @c predecessor. */
+export template <HasNNOStep N>
+struct Successor {
+  using Domain = N;
+  using Codomain = N;
+  constexpr N operator()(const N& n) const { return successor(n); }
+};
+
+/** @brief Zero @f$Z : 1 \to N@f$ as an arrow: the carrier's default value,
+ *  which is the NNO's zero for the integrals and for @c Cardinality.
+ *  @tparam N the carrier. */
+export template <std::default_initializable N>
+struct Zero {
+  using Codomain = N;
+  constexpr N operator()() const { return N{}; }
+};
+
+static_assert(IsArrow<Successor<int>>,
+              "the successor is an arrow N → N (Domain, Codomain, const χ).");
+static_assert(IsNNO<int, Zero<int>, Successor<int>>,
+              "(int, Zero, Successor) has the NNO shape.");
+static_assert(Successor<int>{}(Zero<int>{}()) == 1, "S(Z) = 1.");
+
 /**
  * @brief Recursion-via-universal-property (operational discharge).
  *

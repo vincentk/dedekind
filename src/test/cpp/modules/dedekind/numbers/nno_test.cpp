@@ -33,27 +33,27 @@ using namespace dedekind::sets;
 // ===========================================================================
 
 TEST_CASE(
-    "category:nno — IsNNO<Cardinality, cardinality_zero, "
-    "cardinality_succ> fires",
+    "category:nno — IsNNO<Cardinality, Zero<Cardinality>, "
+    "Successor<Cardinality>> fires",
     "[category][nno][cardinality][witness]") {
-  STATIC_CHECK(IsNNO<Cardinality, cardinality_zero, cardinality_succ>);
-  STATIC_CHECK(IsNNO<Cardinality, cardinality_zero, cardinality_succ>);
+  STATIC_CHECK(IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>>);
+  STATIC_CHECK(IsArrow<Successor<Cardinality>>);
 }
 
 // ===========================================================================
 // (2) Zero and successor on Cardinality behave as the textbook NNO requires
 // ===========================================================================
 
-TEST_CASE("category:nno — cardinality_zero returns finite_cardinality(0)",
+TEST_CASE("category:nno — Zero<Cardinality> returns finite_cardinality(0)",
           "[category][nno][cardinality][zero]") {
-  constexpr cardinality_zero z{};
+  constexpr Zero<Cardinality> z{};
   CHECK(z() == finite_cardinality(0));
 }
 
-TEST_CASE("category:nno — cardinality_succ generates 1, 2, 3, ...",
+TEST_CASE("category:nno — Successor<Cardinality> generates 1, 2, 3, ...",
           "[category][nno][cardinality][successor]") {
-  constexpr cardinality_zero z{};
-  constexpr cardinality_succ s{};
+  constexpr Zero<Cardinality> z{};
+  constexpr Successor<Cardinality> s{};
   const auto zero = z();
   const auto one = s(zero);
   const auto two = s(one);
@@ -64,7 +64,7 @@ TEST_CASE("category:nno — cardinality_succ generates 1, 2, 3, ...",
 }
 
 TEST_CASE(
-    "category:nno — cardinality_succ saturates honestly at ℵ_0 (the "
+    "category:nno — Successor<Cardinality> saturates honestly at ℵ_0 (the "
     "transfinite element)",
     "[category][nno][cardinality][saturation]") {
   // The abstract NNO admits no transfinite element; @c Cardinality
@@ -72,7 +72,7 @@ TEST_CASE(
   // succ(ℵ_0) stays at @c ℵ_0 (saturating absorbing element on the
   // monoid side).  This is the carrier's deviation from the
   // textbook NNO reified honestly rather than papered over.
-  constexpr cardinality_succ s{};
+  constexpr Successor<Cardinality> s{};
   const auto inf = Cardinality{ℵ_0{}};
   CHECK(s(inf) == inf);
 }
@@ -88,8 +88,8 @@ TEST_CASE(
   // Identity recursion: a₀ = 0, g = succ.  The unique f : ℕ → ℕ
   // produced by the universal property is the identity, materialised
   // at finite indices via nno_iterate.
-  const auto zero = cardinality_zero{}();
-  const auto step = cardinality_succ{};
+  const auto zero = Zero<Cardinality>{}();
+  const auto step = Successor<Cardinality>{};
   CHECK(nno_iterate(zero, step, 0u) == finite_cardinality(0));
   CHECK(nno_iterate(zero, step, 1u) == finite_cardinality(1));
   CHECK(nno_iterate(zero, step, 5u) == finite_cardinality(5));
@@ -132,12 +132,12 @@ TEST_CASE(
     "alias",
     "[category][nno][form-bias][architecture]") {
   // Layer 1: NNO is the Form (universal property; concept-level).
-  STATIC_CHECK(IsNNO<Cardinality, cardinality_zero, cardinality_succ>);
+  STATIC_CHECK(IsNNO<Cardinality, Zero<Cardinality>, Successor<Cardinality>>);
 
   // Layer 2: Cardinality is the canonical carrier inhabiting the Form.
-  STATIC_CHECK(std::same_as<decltype(cardinality_zero{}()), Cardinality>);
-  STATIC_CHECK(
-      std::same_as<decltype(cardinality_succ{}(Cardinality{})), Cardinality>);
+  STATIC_CHECK(std::same_as<decltype(Zero<Cardinality>{}()), Cardinality>);
+  STATIC_CHECK(std::same_as<decltype(Successor<Cardinality>{}(Cardinality{})),
+                            Cardinality>);
 
   // Layer 3: ℕ is the universe 𝔸<Cardinality> (post-#559).  The textbook
   // symbol practitioners use; the NNO universal property is what it

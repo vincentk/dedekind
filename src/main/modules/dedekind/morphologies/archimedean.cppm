@@ -198,19 +198,14 @@ static_assert(IsArchimedeanField<double>,
  */
 namespace singleton_image_breadcrumb {
 using namespace dedekind::sets;
+using dedekind::category::Successor;
 
-struct succ_arrow {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int x) const { return x + 1; }
-};
-
-static_assert(dedekind::category::IsArrow<succ_arrow>,
+static_assert(dedekind::category::IsArrow<Successor<int>>,
               "Breadcrumb (i): the Peano-successor witness arrow "
               "S(x) = x + 1 satisfies IsArrow.");
 
 inline constexpr auto s0 = η(0);
-inline constexpr auto s1 = image(succ_arrow{}, s0);
+inline constexpr auto s1 = image(Successor<int>{}, s0);
 
 static_assert(std::is_same_v<decltype(s1), const Singleton<int>>,
               "Breadcrumb (ii): image preserves the Singleton shape; "
@@ -220,11 +215,12 @@ static_assert(IsExtensional<decltype(s1)>,
 static_assert(s1.size() == 1,
               "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
 
-static_assert(s1 == singleton(succ_arrow{}(origin(s0))),
+static_assert(s1 == singleton(Successor<int>{}(origin(s0))),
               "Breadcrumb (iii): image(f, s) == singleton(f(origin(s))) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");
-static_assert(s1 == (s0 >>= [](int x) { return singleton(succ_arrow{}(x)); }),
+static_assert(s1 ==
+                  (s0 >>= [](int x) { return singleton(Successor<int>{}(x)); }),
               "Breadcrumb (iii): image factors through the existing "
               "Singleton-monad Kleisli bind (>>=).");
 
