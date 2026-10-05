@@ -75,6 +75,7 @@ using namespace dedekind::category;
 export template <typename T>
 struct Point {
   using Domain = T;
+  using Codomain = bool;
   using cardinality_type = Finite;
   T pivot{};
 

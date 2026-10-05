@@ -359,6 +359,7 @@ export template <IsSide Lo, IsSide Hi, IsTotallyOrdered T>
   requires(is_bounded_side_v<Lo> || is_bounded_side_v<Hi>)
 struct Bounds {
   using Domain = T;
+  using Codomain = bool;
   using cardinality_type = carrier_cardinality_t<T>;
   static constexpr bool has_lo = is_bounded_side_v<Lo>;
   static constexpr bool has_hi = is_bounded_side_v<Hi>;

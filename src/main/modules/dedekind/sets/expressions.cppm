@@ -251,20 +251,23 @@ struct Comprehension
   }
 };
 
+/** @brief A datum over @c T: a predicate on @c T (an arrow into a truth
+ *  object) that is not itself a set.  @c Point, @c Bounds, @c LowerCut.
+ *  @tparam P the candidate.
+ *  @tparam T the carrier. */
+export template <typename P, typename T>
+concept IsDatum =
+    IsPredicate<P> && std::same_as<Dom<P>, T> && !IsSetObject<P> && !IsLSet<P>;
+
 /** @brief The set former @c 𝔸<T, L>{} @c | @c P = @f$\{x \in T \mid P(x)\}@f$
- *  for a value-carrying datum @c P (a point @c π == v, a cut @c π > v, a
- *  lambda).  A datum naming its carrier (@c P::Domain) must name this one; a
- *  set is not a datum (@c 𝔸 | S is the join).  The compile-time atoms
- *  @c π ⋈ fix(c) keep their own binders in @c :order.
+ *  for a datum @c P (a point @c π == v, a cut @c π > v).  A set is not a
+ *  datum: @c 𝔸 | S is the join.  The compile-time atoms @c π ⋈ fix(c) keep
+ *  their own binders in @c :order.
  *  @tparam T the carrier.
  *  @tparam L the species.
  *  @tparam C the cardinality.
- *  @tparam P the datum, a predicate on @c T. */
-export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename P>
-  requires(!IsSetObject<P>) && (!dedekind::category::IsLSet<P>) &&
-          std::invocable<const P&, const T&> && (!requires {
-            typename P::Domain;
-          } || std::same_as<typename P::Domain, T>)
+ *  @tparam P the datum. */
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsDatum<T> P>
 constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }

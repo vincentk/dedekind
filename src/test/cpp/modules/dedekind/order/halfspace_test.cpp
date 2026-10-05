@@ -191,7 +191,7 @@ TEST_CASE(
   SECTION(
       "function-pointer predicate combines via the free operator& (an "
       "irreducible Meet node, itself a set object)") {
-    constexpr auto pos = 𝔸<int>{} | &is_pos;                    // x > 0
+    constexpr Comprehension<𝔸<int, Boole>, bool (*)(int)> pos{&is_pos};
     constexpr auto cap = DownRay<int, Strictness::Strict>{10};  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(

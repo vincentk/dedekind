@@ -180,6 +180,7 @@ class Cut {
 export template <IsRational Q>
 struct LowerCut {
   using Domain = Q;
+  using Codomain = bool;
   Cut<Q> real{};
   constexpr bool operator()(const Q& q) const { return real.contains(q); }
 };
