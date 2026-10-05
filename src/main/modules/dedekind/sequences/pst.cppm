@@ -87,24 +87,26 @@ static_assert(IsFiniteLSet<𝔸<bool>> && IsPstSet<𝔸<bool>>,
               "a leaf over a finite chain is a Pst set.");
 
 namespace detail_pst {
-/** @brief The monoid of @c exists: @f$acc \gets acc \vee \chi(x)@f$ in @c L.
+/** @brief The monoid of @c exists: @f$(acc, x) \mapsto acc \vee \chi(x)@f$ in
+ * @c L, a pure step returning the new accumulator.
  *  @tparam S the set. */
 template <IsPstSet S>
 struct JoinOfChi {
   const S& s;
-  constexpr void operator()(typename S::logic_species::Ω& acc,
-                            const typename S::Domain& x) const {
-    acc = S::logic_species::OR(acc, s(x));
+  constexpr typename S::logic_species::Ω operator()(
+      typename S::logic_species::Ω acc, const typename S::Domain& x) const {
+    return S::logic_species::OR(acc, s(x));
   }
 };
-/** @brief The monoid of @c forall: @f$acc \gets acc \wedge \chi(x)@f$ in @c L.
+/** @brief The monoid of @c forall: @f$(acc, x) \mapsto acc \wedge \chi(x)@f$ in
+ * @c L, a pure step.
  *  @tparam S the set. */
 template <IsPstSet S>
 struct MeetOfChi {
   const S& s;
-  constexpr void operator()(typename S::logic_species::Ω& acc,
-                            const typename S::Domain& x) const {
-    acc = S::logic_species::AND(acc, s(x));
+  constexpr typename S::logic_species::Ω operator()(
+      typename S::logic_species::Ω acc, const typename S::Domain& x) const {
+    return S::logic_species::AND(acc, s(x));
   }
 };
 /** @brief The monoid of @c equal: the tables agree at every point seen so far.
@@ -113,8 +115,8 @@ template <IsPstSet A, IsPstSet B>
 struct Agree {
   const A& a;
   const B& b;
-  constexpr void operator()(bool& acc, const typename A::Domain& x) const {
-    acc = acc && (a(x) == b(x));
+  constexpr bool operator()(bool acc, const typename A::Domain& x) const {
+    return acc && (a(x) == b(x));
   }
 };
 /** @brief The monoid of @c subset: @f$\chi_A \le \chi_B@f$ at every point seen
@@ -124,8 +126,8 @@ template <IsPstSet A, IsPstSet B>
 struct Below {
   const A& a;
   const B& b;
-  constexpr void operator()(bool& acc, const typename A::Domain& x) const {
-    acc = acc && (a(x) <= b(x));
+  constexpr bool operator()(bool acc, const typename A::Domain& x) const {
+    return acc && (a(x) <= b(x));
   }
 };
 }  // namespace detail_pst
