@@ -134,13 +134,13 @@ constexpr bool forall(const S& s, P p) {
  *  @c S @c | @c P is the comprehension @f$\{x \in S \mid P(x)\}@f$ --- a datum
  *  (@c π @c == @c v, @c π @c > @c v) or a carrier-agnostic fragment (@c π @c ==
  *  @c fix(c), @c π @c % @c fix(N) @c == @c fix(R)), which has no domain until
- * the former binds it.  Not a set: @c S @c | @c T would be the union.
+ * the former binds it.  Not a set: @c S @c | @c T would be the union.  What
+ *  the former returns is the fragment's business (a comprehension, a residue
+ *  set), so only its acceptance is asked.
  *  @tparam P the fragment.  @tparam S the set it refines. */
 export template <typename P, typename S>
 concept IsWhereClause = !dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
-                        requires(const S& s, P p) {
-                          { s | p } -> dedekind::category::IsLSet;
-                        };
+                        requires(const S& s, P p) { s | p; };
 
 // A quantifier is one comparison of the intensional comprehension @c s|p
 // against a lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A),
