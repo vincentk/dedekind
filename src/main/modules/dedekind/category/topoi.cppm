@@ -652,6 +652,18 @@ concept IsQuotient = requires(Q q) {
   requires IsProduct<Dom<decltype(q.r)>, A, A>;
 };
 
+/** @brief Two predicates over one object, answering in one species: the
+ *  operand sort of the predicate combinators below, which close on
+ *  @c IsPredicate.  Named so the set grammar's @c && / @c || (@c sets) can
+ *  take exactly the other pairs of terms (relational fragments, mixed terms,
+ *  the structured collapse) without overlapping these.
+ *  @tparam P the left predicate.  @tparam Q the right predicate. */
+export template <typename P, typename Q>
+concept IsPredicatePair =
+    IsPredicate<P> && IsPredicate<Q> && std::same_as<Dom<P>, Dom<Q>> &&
+    std::same_as<Cod<P>, Cod<Q>> &&
+    std::same_as<predicate_logic_t<P>, predicate_logic_t<Q>>;
+
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  *  @note Textbook term: meet (∧) in the internal Heyting/Boolean algebra of Ω.
  *  @details Equal codomains no longer imply equal species (two tagged
@@ -659,9 +671,8 @@ concept IsQuotient = requires(Q q) {
  *  required equal.  For species-tagged operands the result is the lattice's
  *  own @c Meet node, which carries the species, so the combinators close on
  *  @c IsPredicate; plain @c Ω-valued arrows get a plain arrow as before. */
-export template <IsPredicate P, IsPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>> &&
-           std::same_as<predicate_logic_t<P>, predicate_logic_t<Q>>
+export template <typename P, typename Q>
+  requires IsPredicatePair<P, Q>
 auto operator&&(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
@@ -703,9 +714,8 @@ auto operator&&(P&& p, C&& constant) {
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B.
  *  @note Textbook term: join (∨) in the internal Heyting/Boolean algebra of Ω.
  */
-export template <IsPredicate P, IsPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>> &&
-           std::same_as<predicate_logic_t<P>, predicate_logic_t<Q>>
+export template <typename P, typename Q>
+  requires IsPredicatePair<P, Q>
 auto operator||(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;

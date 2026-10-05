@@ -1425,9 +1425,12 @@ concept IsLogicalTerm = IsArrow<std::remove_cvref_t<P>> || requires {
  *  predicate @f$\chi_1 \wedge \chi_2@f$ that also carries its operands via
  *  @c π_1 / @c π_2.  It is the @b same AST the set-level combinators use, so a
  *  set-builder @c Set{x @c | @c p1 @c && @c p2} shares one representation with
- *  @c A @c & @c B.  There is no separate @c AndPredicate.
+ *  @c A @c & @c B.  There is no separate @c AndPredicate.  A pair of
+ *  predicates over one species is @c :topoi's conjunction (@c IsPredicatePair,
+ *  which closes on @c IsPredicate); this one takes every other pair of terms.
  *  @tparam P1 the left term.  @tparam P2 the right term. */
 export template <IsLogicalTerm P1, IsLogicalTerm P2>
+  requires(!IsPredicatePair<P1, P2>)
 constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredAnd<P1, P2>) {
     return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
@@ -1441,9 +1444,11 @@ static_assert(!IsLogicalTerm<bool> && !IsLogicalTerm<int>,
               "a bare truth value is not a term: bool && bool is C++'s.");
 
 /** @brief Predicate-level disjunction @c p1 @c || @c p2, dual to @c operator&&:
- *  @c structured_or when a collapse applies, else the reducer's @c Join node.
+ *  @c structured_or when a collapse applies, else the reducer's @c Join node;
+ *  a pair of predicates over one species is @c :topoi's (@c IsPredicatePair).
  *  @tparam P1 the left term.  @tparam P2 the right term. */
 export template <IsLogicalTerm P1, IsLogicalTerm P2>
+  requires(!IsPredicatePair<P1, P2>)
 constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (HasStructuredOr<P1, P2>) {
     return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
