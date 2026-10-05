@@ -2395,25 +2395,18 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
               "on [0, 8): a < b ⟺ (a, b) ∈ Γ_S⁺ --- the order is the star of "
               "the cover.");
 
-/** @brief Two halfspaces are the same set iff they share pivot, direction and
- *  strictness (the carrier and logic already match): structural set equality,
- *  compile-time. */
+/** @brief Two cuts are the same set iff their value forms agree: through
+ *  @c to_setval and the extensional @c SetVal equality, which on a discrete
+ *  carrier closes a strict bound where the step moves (@c {x > ⊥} is
+ *  @c {x ≥ U} on K₃) and stays structural on a dense one.  Answers in @c L. */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
                  IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
                  IsSide Hi2>
-constexpr bool operator==(
+  requires std::equality_comparable<T>
+constexpr typename L::Ω operator==(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  if constexpr (!std::same_as<Bounds<Lo1, Hi1, T>, Bounds<Lo2, Hi2, T>>) {
-    return false;
-  } else {
-    bool eq = true;
-    if constexpr (is_bounded_side_v<Lo1>)
-      eq = eq && a.predicate.lo == b.predicate.lo;
-    if constexpr (is_bounded_side_v<Hi1>)
-      eq = eq && a.predicate.hi == b.predicate.hi;
-    return eq;
-  }
+  return to_setval(a) == to_setval(b);
 }
 
 /** @brief Whether a cut denotes the empty set: never for a ray (a proper cut
