@@ -103,11 +103,13 @@ struct Relax {
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
-  /** @brief Relax @c e.head in place: @c d(head) ← d(head) ⊕ d(tail) ⊗
-   *  @c c(tail,head).  The @c fold op contract, @c op(acc&,Edge). */
-  constexpr void operator()(FiniteNet<S, Cap>& acc, const Edge& e) const {
+  /** @brief Relax @c e.head: @c d(head) ← d(head) ⊕ d(tail) ⊗ @c c(tail,head),
+   *  returning the new net --- the @c fold step @c op(acc, Edge). */
+  constexpr FiniteNet<S, Cap> operator()(FiniteNet<S, Cap> acc,
+                                         const Edge& e) const {
     acc.at(e.head) =
         Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
+    return acc;
   }
 };
 
@@ -210,15 +212,16 @@ struct CriticalPathStep {
   /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
   /** @brief Relax @c e.head and, when the candidate @c d(tail) ⊗ c(tail,head)
-   *  wins the selective join, record @c e.tail as its predecessor.  The
-   *  @c fold op contract, @c op(acc&,Edge). */
-  constexpr void operator()(CriticalPathState<S, Cap>& acc,
-                            const Edge& e) const {
+   *  wins the selective join, record @c e.tail as its predecessor; returns the
+   *  new state --- the @c fold step @c op(acc, Edge). */
+  constexpr CriticalPathState<S, Cap> operator()(CriticalPathState<S, Cap> acc,
+                                                 const Edge& e) const {
     const S cand = Mult{}(acc.d(e.tail), cost(e.tail, e.head));
     if (Add{}(acc.d(e.head), cand) != acc.d(e.head)) {  // cand wins the join
       acc.d.at(e.head) = cand;
       acc.pred.at(e.head) = e.tail;
     }
+    return acc;
   }
 };
 

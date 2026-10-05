@@ -149,16 +149,16 @@ constexpr auto necklace_path =
 // Value: fold the ⊗-costs along the path sequence to a scalar (= d(sink)).
 constexpr long long necklace_path_value = dedekind::sequences::fold(
     necklace_path, 0LL,
-    [](long long& acc, const dedekind::optimization::Edge& e) {
-      acc += static_cast<long long>(cpm_cost(e.tail, e.head).val);
+    [](long long acc, const dedekind::optimization::Edge& e) {
+      return acc + static_cast<long long>(cpm_cost(e.tail, e.head).val);
     });
 static_assert(necklace_path_value == 8);
 
 // Sensitivity is now membership: an edge is critical iff it lies on the path.
 constexpr auto on_path = [](const auto& path, std::size_t u, std::size_t v) {
   return dedekind::sequences::fold(
-      path, false, [u, v](bool& hit, const dedekind::optimization::Edge& e) {
-        hit = hit || (e.tail == u && e.head == v);
+      path, false, [u, v](bool hit, const dedekind::optimization::Edge& e) {
+        return hit || (e.tail == u && e.head == v);
       });
 };
 static_assert(on_path(necklace_path, nidx(0, 0),
