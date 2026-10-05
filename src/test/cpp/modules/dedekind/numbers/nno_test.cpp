@@ -29,16 +29,15 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 // ===========================================================================
-// (1) The IsNNO structural shape concept fires on the canonical witness
+// (1) The successor on the canonical witness is an arrow (the IsNNO shape
+//     itself is asserted at the definition site, numbers:natural)
 // ===========================================================================
 
-TEST_CASE(
-    "category:nno — IsNNO<Cardinality, ZeroElement<Cardinality>, "
-    "Successor<Cardinality>> fires",
-    "[category][nno][cardinality][witness]") {
-  STATIC_CHECK(
-      IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>);
+TEST_CASE("category:nno — Successor<Cardinality> is an arrow ℕ → ℕ",
+          "[category][nno][cardinality][witness]") {
   STATIC_CHECK(IsArrow<Successor<Cardinality>>);
+  STATIC_CHECK(std::same_as<Dom<Successor<Cardinality>>, Cardinality> &&
+               std::same_as<Cod<Successor<Cardinality>>, Cardinality>);
 }
 
 // ===========================================================================
@@ -133,9 +132,8 @@ TEST_CASE(
     "category:nno — three-layer chain: NNO Form → Cardinality carrier → ℕ "
     "alias",
     "[category][nno][form-bias][architecture]") {
-  // Layer 1: NNO is the Form (universal property; concept-level).
-  STATIC_CHECK(
-      IsNNO<Cardinality, ZeroElement<Cardinality>, Successor<Cardinality>>);
+  // Layer 1: NNO is the Form (universal property; concept-level), asserted
+  // where the witness is declared (numbers:natural).
 
   // Layer 2: Cardinality is the canonical carrier inhabiting the Form.
   STATIC_CHECK(

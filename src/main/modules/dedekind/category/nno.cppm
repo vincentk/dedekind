@@ -225,16 +225,26 @@ export template <HasNNOStep N>
 struct Successor {
   using Domain = N;
   using Codomain = N;
-  constexpr N operator()(const N& n) const { return successor(n); }
+  /** @param n an element of the carrier.  @return its successor, by the
+   *  carrier's own @c successor; nothrow when that is. */
+  constexpr N operator()(const N& n) const noexcept(noexcept(successor(n))) {
+    return successor(n);
+  }
 };
 
-/** @brief The zero element @f$Z : 1 \to N@f$ as an arrow: the carrier's default
- * value, which is the NNO's zero for the integrals and for @c Cardinality.
+/** @brief The zero element @f$Z : 1 \to N@f$, the nullary @c IsNNO witness: the
+ *  carrier's default value, which is the NNO's zero for the integrals and for
+ *  @c Cardinality.  Nullary, so not an @c IsArrow (that concept asks for a
+ *  @c Domain); a composable @f$1 \to N@f$ arrow is not needed here.
  *  @tparam N the carrier. */
 export template <std::default_initializable N>
 struct ZeroElement {
   using Codomain = N;
-  constexpr N operator()() const { return N{}; }
+  /** @return the carrier's zero. */
+  constexpr N operator()() const
+      noexcept(std::is_nothrow_default_constructible_v<N>) {
+    return N{};
+  }
 };
 
 static_assert(IsArrow<Successor<int>>,
