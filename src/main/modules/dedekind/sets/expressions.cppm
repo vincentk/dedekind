@@ -195,10 +195,8 @@ struct Comprehension
     requires std::default_initializable<Base>
       : base{}, predicate(static_cast<Predicate&&>(p)) {}
 
-  // The cardinality bound: the datum's when it declares one (a point is
-  // Finite whatever the universe), else the base's.  A predicate-restricted
-  // comprehension is at most as large as its base (P-restriction can only
-  // shrink the membership set), so inheriting the base's bound is sound.
+  // The datum's bound when it declares one (a point is Finite whatever the
+  // universe), else the base's: a restriction can only shrink.
   using cardinality_type = typename datum_cardinality<Predicate, Base>::type;
   constexpr cardinality_type cardinality() const { return {}; }
 
@@ -215,14 +213,11 @@ struct Comprehension
     return L::AND(dedekind::category::lift_logic<L>(base(x)),
                   dedekind::category::lift_logic<L>(predicate(x)));
   }
-  /** @brief Heterogeneous χ: a value of another type @c U that the datum
-   *  DECLARES it admits (@c Predicate::admits<U>, e.g.\ a point's cross-type
-   *  @c ==) is asked of the datum as it is, never narrowed to @c Domain
-   *  first: @c Singleton<int>{1}(1.5) is @c False.  The declaration, not mere
-   *  invocability, is the gate: a generic lambda is invocable with anything and
-   *  must keep converting to @c Domain as before.  Over the universe the base
-   *  is not asked (@c χ_𝔸 @c ≡ @c ⊤, and its signature would narrow); a
-   *  proper base must itself admit @c U. */
+  /** @brief Heterogeneous χ: a value of a type @c U the datum @b declares it
+   *  admits (@c Predicate::admits<U>) is asked unnarrowed, so
+   *  @c Singleton<int>{1}(1.5) is @c False.  The universe is not asked
+   *  (@c χ_𝔸 @c ≡ @c ⊤); a proper base must itself admit @c U.
+   *  @tparam U the foreign carrier. */
   template <typename U>
     requires(!std::same_as<std::remove_cvref_t<U>, typename Base::Domain>) &&
             requires { requires Predicate::template admits<U>; } &&
@@ -256,16 +251,16 @@ struct Comprehension
   }
 };
 
-/** @brief The set former of §3 at the value level: @c 𝔸<T, L>{} @c | @c P is
- *  @f$\{x \in T \mid P(x)\}@f$ for a value-carrying datum @c P --- a point
- *  (@c π @c == @c v), a cut (@c π @c > @c v), a lambda.  The compile-time atoms
- *  @c π @c ⋈ @c fix(c) have their own binders in @c :order (they collapse a
- *  degenerate cut to a boundary object at compile time); this one takes the
- *  datum as it is and leaves the degenerate cases to the value reducer.  A
- *  datum that names its carrier (@c P::Domain) must name this one: a cut over
- *  @c int is not a set over ℕ.  A set is not a datum: @c 𝔸 @c | @c S is the
- *  join (@c :boundaries). */
-export template <typename T, typename L, typename C, typename P>
+/** @brief The set former @c 𝔸<T, L>{} @c | @c P = @f$\{x \in T \mid P(x)\}@f$
+ *  for a value-carrying datum @c P (a point @c π == v, a cut @c π > v, a
+ *  lambda).  A datum naming its carrier (@c P::Domain) must name this one; a
+ *  set is not a datum (@c 𝔸 | S is the join).  The compile-time atoms
+ *  @c π ⋈ fix(c) keep their own binders in @c :order.
+ *  @tparam T the carrier.
+ *  @tparam L the species.
+ *  @tparam C the cardinality.
+ *  @tparam P the datum, a predicate on @c T. */
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename P>
   requires(!IsSetObject<P>) && (!dedekind::category::IsLSet<P>) &&
           std::invocable<const P&, const T&> && (!requires {
             typename P::Domain;

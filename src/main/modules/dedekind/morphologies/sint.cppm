@@ -193,7 +193,7 @@ constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
       "wider extended integer types), an explicit ±ℵ_0 escalation "
       "on out-of-range values would be needed; without it the "
       "conversion would silently truncate and break injectivity.");
-  return dedekind::sets::finite_signed_cardinality(v);
+  return finite_signed_cardinality(v);
 }
 
 /**
@@ -278,12 +278,10 @@ constexpr auto embed_sint_ℤ(S&& s) {
 // Mirrors PR #624 / #626 / #628's witnesses — same shape, different
 // (carrier, codomain) pair.
 static_assert(
-    dedekind::sets::origin(embed_sint_ℤ(dedekind::sets::η(42))) ==
-        dedekind::sets::finite_signed_cardinality(42),
+    origin(embed_sint_ℤ(η(42))) == finite_signed_cardinality(42),
     "embed_sint_ℤ(η(42)) lands at "
     "finite_signed_cardinality(42) on the SignedCardinality carrier.");
-static_assert(dedekind::sets::origin(embed_sint_ℤ(dedekind::sets::η(-7))) ==
-                  dedekind::sets::finite_signed_cardinality(-7),
+static_assert(origin(embed_sint_ℤ(η(-7))) == finite_signed_cardinality(-7),
               "embed_sint_ℤ(η(-7)) lands at "
               "finite_signed_cardinality(-7) on the SignedCardinality carrier "
               "(negative-value witness — the symmetric complement to "
@@ -293,8 +291,7 @@ static_assert(dedekind::sets::origin(embed_sint_ℤ(dedekind::sets::η(-7))) ==
 // of the source set under the canonical mono int ↪ ℤ — Subobject
 // of @c Cod<embed_sint_ℤ_> = SignedCardinality per @c :category:image.
 static_assert(
-    dedekind::category::IsImageOf<decltype(embed_sint_ℤ(dedekind::sets::η(42))),
-                                  decltype(embed_sint_ℤ_)>,
+    IsImageOf<decltype(embed_sint_ℤ(η(42))), decltype(embed_sint_ℤ_)>,
     "embed_sint_ℤ(S) realises IsImageOf<result, embed_sint_ℤ_>: result "
     "is a Subobject of Cod<embed_sint_ℤ_> = SignedCardinality, "
     "witnessing the categorical image of S under the canonical mono "

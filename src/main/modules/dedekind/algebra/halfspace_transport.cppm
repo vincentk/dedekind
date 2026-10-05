@@ -358,8 +358,8 @@ constexpr auto argmax(
  * order. On a wrapping @c unsigned the shifted bound would admit wrapped
  * values, so the modular groups are declined (the same gate the forward
  * pushforward carries). */
-export template <typename T, auto K, typename LG, typename C, typename LH,
-                 typename CH, IsSide Lo, IsSide Hi>
+export template <typename T, auto K, IsOckhamAlgebra LG, IsCardinality C,
+                 IsOckhamAlgebra LH, IsCardinality CH, IsSide Lo, IsSide Hi>
   requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
            (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 constexpr auto preimage(
@@ -387,8 +387,8 @@ constexpr auto preimage(
  *  @c IsOrderedAdditiveGroup --- a genuine order-REVERSING additive inverse (on
  *  a bounded-below rig or a wrapping group @f$x\mapsto -x@f$ does not reverse
  *  the order). */
-export template <typename T, auto C, typename LG, typename CU, typename LH,
-                 typename CH, IsSide Lo, IsSide Hi>
+export template <typename T, auto C, IsOckhamAlgebra LG, IsCardinality CU,
+                 IsOckhamAlgebra LH, IsCardinality CH, IsSide Lo, IsSide Hi>
   requires((C == 1 ||
             (C == -1 && dedekind::algebra::IsOrderedAdditiveGroup<T>)) &&
            (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>))
@@ -396,8 +396,7 @@ constexpr auto preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, CU>,
                         ProjMulConstProj<1, C, Rel::Eq, 2>>&,
     const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
-  // A reflection (C < 0) swaps the sides: the bound keeps its strictness and
-  // changes direction.
+  // A reflection (C < 0) swaps the sides.
   using B = std::conditional_t<(C < 0), Bounds<Hi, Lo, T>, Bounds<Lo, Hi, T>>;
   // The pivot P rides in the Halfspace VALUE; C·P (C=±1) is computed at
   // constexpr in the carrier's arithmetic, C lifted into the carrier first.

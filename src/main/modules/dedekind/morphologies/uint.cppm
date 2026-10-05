@@ -159,7 +159,7 @@ constexpr dedekind::sets::Cardinality embed_uint_ℕ(U v) {
                 "unsigned long long), a wider Cardinality finite-fragment "
                 "constructor or an explicit ℵ_0 escalation on overflow would "
                 "be needed.");
-  return dedekind::sets::finite_cardinality(static_cast<std::size_t>(v));
+  return finite_cardinality(static_cast<std::size_t>(v));
 }
 
 /**
@@ -248,12 +248,10 @@ constexpr auto embed_uint_ℕ(S&& s) {
 // the pivot equality is constant-evaluated, not just the codomain type.
 // Mirrors PR #624's witnesses for @c embed_𝔹_ℕ and PR #626's for
 // @c embed_𝔹_𝕂3 — same shape, different (carrier, codomain) pair.
-static_assert(dedekind::sets::origin(embed_uint_ℕ(dedekind::sets::η(42u))) ==
-                  dedekind::sets::finite_cardinality(42),
+static_assert(origin(embed_uint_ℕ(η(42u))) == finite_cardinality(42),
               "embed_uint_ℕ(η(42)) lands at "
               "finite_cardinality(42) on the Cardinality carrier.");
-static_assert(dedekind::sets::origin(embed_uint_ℕ(dedekind::sets::η(0u))) ==
-                  dedekind::sets::finite_cardinality(0),
+static_assert(origin(embed_uint_ℕ(η(0u))) == finite_cardinality(0),
               "embed_uint_ℕ(η(0)) lands at "
               "finite_cardinality(0) on the Cardinality carrier.");
 
@@ -261,9 +259,7 @@ static_assert(dedekind::sets::origin(embed_uint_ℕ(dedekind::sets::η(0u))) ==
 // the source set under the canonical mono unsigned ↪ ℕ — Subobject
 // of @c Cod<embed_uint_ℕ_> = Cardinality per @c :category:image.
 static_assert(
-    dedekind::category::IsImageOf<
-        decltype(embed_uint_ℕ(dedekind::sets::η(42u))),
-        decltype(embed_uint_ℕ_)>,
+    IsImageOf<decltype(embed_uint_ℕ(η(42u))), decltype(embed_uint_ℕ_)>,
     "embed_uint_ℕ(S) realises IsImageOf<result, embed_uint_ℕ_>: result "
     "is a Subobject of Cod<embed_uint_ℕ_> = Cardinality, witnessing the "
     "categorical image of S under the canonical mono unsigned ↪ ℕ.");

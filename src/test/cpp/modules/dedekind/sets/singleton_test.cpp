@@ -79,10 +79,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     REQUIRE((_s | _t)(std::size_t{42}));
     REQUIRE((_s | _t)(std::size_t{7}));
     REQUIRE(!(_s | _t)(std::size_t{4}));
-    // The STRUCTURAL contract, which membership alone does not pin: the union
-    // is the reducer's RECOVERABLE Join node whose two atoms survive in the
-    // type (an opaque predicate with the same membership would pass the checks
-    // above).  Pin the result type and recover both pivots.
+    // The structural contract: the union is the reducer's Join node, both
+    // atoms recoverable from the type.
     using UnionT = std::decay_t<decltype(_s | _t)>;
     STATIC_REQUIRE(
         std::same_as<UnionT, Join<Singleton<size_t>, Singleton<size_t>>>);

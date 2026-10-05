@@ -68,12 +68,9 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /** @brief The equality atom @c {x : T | x == pivot}, the datum of the pure
- *  equality theory: the one leaf every regular carrier offers (a point in ℂ is
- *  this, with no order pretended).  On a chain it is subsumed by the order
- *  theory's cut, @c x == p ⟺ x ≥ p ∧ x ≤ p, which the reducer discharges at
- *  the value level.  The pivot rides as a VALUE, so one @c Point<T> covers
- *  every point and a @c constexpr instance still folds.  Extensional of size
- *  1, hence @c Finite whatever the ambient species.
+ *  equality theory, the one leaf every regular carrier offers (a point in ℂ is
+ *  this).  On a chain the cut subsumes it, @c x == p ⟺ x ≥ p ∧ x ≤ p.  The
+ *  pivot is a value; the set is @c Finite whatever the species.
  *  @tparam T the carrier (needs @c ==). */
 export template <typename T>
 struct Point {
@@ -82,10 +79,7 @@ struct Point {
   T pivot{};
 
   constexpr Point() = default;
-  /** @brief Implicit on purpose, and converting: the set former
-   *  @c Singleton<T, L>{v} reads as the point @c {v} through the
-   *  universe-only comprehension constructor, which takes the datum; a
-   *  literal of another type (@c Singleton<Cardinality>{7}) is one
+  /** @brief Implicit and converting, so a literal of another type is one
    *  user-defined conversion, the carrier's own. */
   template <typename U>
     requires std::convertible_to<U&&, T>
@@ -95,17 +89,14 @@ struct Point {
   /** @brief χ(x) = [x == pivot]. */
   constexpr bool operator()(const T& v) const { return v == pivot; }
   /** @brief The foreign carriers this datum admits: any @c U with a cross-type
-   *  @c == against @c T (the variant proxies against an @c int point; a
-   *  @c double against an @c int point).  Read by the comprehension's
-   *  heterogeneous χ, which forwards only on this declaration. */
+   *  @c == against @c T.  Read by the comprehension's heterogeneous χ. */
   template <typename U>
   static constexpr bool admits = !std::same_as<std::remove_cvref_t<U>, T> &&
                                  requires(const U& x, const T& v) {
                                    { x == v } -> std::convertible_to<bool>;
                                  };
-  /** @brief Heterogeneous membership: the comparison happens in the pair's
-   *  common type, never by narrowing @c x to @c T: @c Point<int>{1}(1.5) is
-   *  @c false. */
+  /** @brief Membership of a foreign value, compared unnarrowed:
+   *  @c Point<int>{1}(1.5) is @c false. */
   template <typename U>
     requires admits<U>
   constexpr bool operator()(const U& x) const {
@@ -115,38 +106,35 @@ struct Point {
   constexpr std::size_t size() const { return 1; }
 };
 
-/** @brief @c π @c == @c v with a carrier @b value: the point datum, on any
- *  regular carrier (no order asked), which the set former binds:
- *  @c 𝔹 @c | @c (π @c == @c true) is the point @c {true}.  The grammar's own
- *  tags (@c Projection, @c Bound) are empty types, not values, so they are not
- *  admitted here; @c π @c == @c fix(c) keeps its compile-time binder in
- *  @c :order. */
-export template <typename T>
-  requires std::regular<T> && (!std::is_empty_v<T>)
+/** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
+ *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
+ *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
+ *  @tparam T the carrier, a regular value type. */
+export template <std::regular T>
+  requires(!std::is_empty_v<T>)
 constexpr Point<T> operator==(Projection<0>, T v) {
   return Point<T>{std::move(v)};
 }
 
-/** @brief @f$\{x\}@f$ as a set: the comprehension of the equality atom over
- *  the universe of @c T, @c {x ∈ 𝔸<T> | x == pivot}.  An alias, not a noun:
- *  its operator surface is the generic one of every comprehension (the
- *  reducer's @c Meet / @c Join / @c Not nodes), and only what is specific to
- *  a point lives below as free functions on this pattern.
+/** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
+ *  An alias, not a noun: its operators are every comprehension's (the
+ *  reducer's nodes); what is specific to a point follows as free functions.
  *  @tparam T the carrier.
  *  @tparam L the species the membership answer is valued in. */
-export template <typename T, typename L = Boole>
+export template <typename T, IsOckhamAlgebra L = Boole>
 using Singleton = Comprehension<𝔸<T, L>, Point<T>>;
 
 /** @brief The pivot of a point, @c ε of the comonad reading (the counit
  *  @c {x} ↦ @c x). */
-export template <typename T, typename L, typename C>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C>
 constexpr T origin(const Comprehension<𝔸<T, L, C>, Point<T>>& s) {
   return s.predicate.pivot;
 }
 
 /** @brief Two points are the same set iff their pivots agree, whatever the
  *  species each was tagged with. */
-export template <typename T, typename L1, typename C1, typename L2, typename C2>
+export template <typename T, IsOckhamAlgebra L1, IsCardinality C1,
+                 IsOckhamAlgebra L2, IsCardinality C2>
 constexpr bool operator==(const Comprehension<𝔸<T, L1, C1>, Point<T>>& a,
                           const Comprehension<𝔸<T, L2, C2>, Point<T>>& b) {
   return a.predicate.pivot == b.predicate.pivot;
@@ -154,8 +142,8 @@ constexpr bool operator==(const Comprehension<𝔸<T, L1, C1>, Point<T>>& a,
 
 /** @brief @c {pivot} ⊆ S ⟺ pivot ∈ S, in the shared species @c L (the
  *  universal set keeps its own @c X ⊆ 𝔸 overload). */
-export template <typename T, typename L, typename C, typename S>
-  requires IsLSet<S> && std::same_as<typename S::logic_species, L> &&
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsLSet S>
+  requires std::same_as<typename S::logic_species, L> &&
            (!requires { typename S::is_universal_boundary; }) &&
            (!std::same_as<S, Comprehension<𝔸<T, L, C>, Point<T>>>)
 constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
@@ -169,12 +157,14 @@ constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>
  *  (@c 𝔸<bool>{} | (π == fix(v)) collapses to a @c Singleton<bool>, and
  *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
  *  @c :order, so ADL finds it from @c sets-level generic code. */
-export template <typename T, typename L, typename C1, typename L2, typename C>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C1,
+                 IsOckhamAlgebra L2, IsCardinality C>
 constexpr bool operator==(const Comprehension<𝔸<T, L, C1>, Point<T>>&,
                           const 𝔸<T, L2, C>&) {
   return std::same_as<T, dedekind::category::One>;
 }
-export template <typename T, typename L, typename C1, typename L2, typename C>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C1,
+                 IsOckhamAlgebra L2, IsCardinality C>
 constexpr bool operator==(const 𝔸<T, L2, C>& u,
                           const Comprehension<𝔸<T, L, C1>, Point<T>>& s) {
   return s == u;
@@ -185,7 +175,7 @@ constexpr bool operator==(const 𝔸<T, L2, C>& u,
  *  is not a point, so there is deliberately no overload there and the generic
  *  @c Not node applies.  Lives next to @c Singleton so ADL finds it wherever
  *  the type is used. */
-export template <typename L, typename C>
+export template <IsOckhamAlgebra L, IsCardinality C>
 constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) {
   return 𝔸<bool, L>{} | Point<bool>{!s.predicate.pivot};
 }
@@ -196,8 +186,8 @@ constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) 
  *  @b equality-comparable, not merely membership-testable:
  *  @c η(a)*η(b) @c == @c η(std::pair{a,b}).  General products keep the
  *  predicate-set form of @c :expressions cartesian_product. */
-export template <typename T1, typename L1, typename C1, typename T2,
-                 typename L2, typename C2>
+export template <typename T1, IsOckhamAlgebra L1, IsCardinality C1, typename T2,
+                 IsOckhamAlgebra L2, IsCardinality C2>
 constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, Point<T1>>& a,
                          const Comprehension<𝔸<T2, L2, C2>, Point<T2>>& b) {
   return Singleton<std::pair<T1, T2>, L1>{
@@ -229,7 +219,7 @@ static_assert(
 
 /** @brief @c singleton: @f$T \to \mathrm{Singleton}\langle T\rangle@f$ ---
  *  the power-set monad's unit @f$\eta@f$ (see the section note). */
-export template <typename L = Boole, typename T>
+export template <IsOckhamAlgebra L = Boole, typename T>
 constexpr auto singleton(T&& value) {
   return 𝔸<std::decay_t<T>, L>{} |
          Point<std::decay_t<T>>{std::forward<T>(value)};
@@ -283,7 +273,7 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  */
 
 /** @section singleton__Bind (>>=) */
-export template <typename T, typename L, typename C, typename Func>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename Func>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   /**
@@ -297,7 +287,7 @@ constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
 /** @section singleton__Singleton_CoKleisli_Triple */
 
 /** @section singleton__Extend (<<=) */
-export template <typename T, typename L, typename C, typename Func>
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename Func>
 constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
@@ -335,12 +325,11 @@ constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
  * is itself due for dissolution under #607's Juliet-clean refactor;
  * this slice lands the entry-point breadcrumbs in their current form.
  */
-export template <typename L, typename C, dedekind::category::IsArrow F>
+export template <IsOckhamAlgebra L, IsCardinality C, IsArrow F>
 constexpr auto image(
-    F&& f, const Comprehension<
-               𝔸<dedekind::category::Dom<std::remove_cvref_t<F>>, L, C>,
-               Point<dedekind::category::Dom<std::remove_cvref_t<F>>>>& s) {
-  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+    F&& f, const Comprehension<𝔸<Dom<std::remove_cvref_t<F>>, L, C>,
+                               Point<Dom<std::remove_cvref_t<F>>>>& s) {
+  using U = Cod<std::remove_cvref_t<F>>;
   return 𝔸<U, L>{} | Point<U>{std::forward<F>(f)(s.predicate.pivot)};
 }
 
@@ -361,11 +350,11 @@ constexpr auto image(
  *  Predicate-based @c Comprehension sources fall through to the
  *  symbolic-fallback @c image() in @c :expressions (inhabitation
  *  undecidable in general). */
-export template <typename L, typename T, typename C, typename F>
-  requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
-           std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+export template <IsOckhamAlgebra L, typename T, IsCardinality C, typename F>
+  requires IsTerminalMorphism<std::remove_cvref_t<F>> &&
+           std::same_as<Dom<std::remove_cvref_t<F>>, T>
 constexpr auto image(F&&, const 𝔸<T, L, C>&) {
-  return singleton<L>(dedekind::category::One{});
+  return singleton<L>(One{});
 }
 
 export template <typename L, typename T, typename F>

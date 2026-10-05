@@ -24,8 +24,12 @@ import dedekind.order;
 import dedekind.topology;
 
 using namespace dedekind::numbers;
+using dedekind::category::IsLSet;
 using dedekind::order::make_interval;
+using dedekind::order::pivot;
 using dedekind::order::Strictness;
+using dedekind::topology::IsClosed;
+using dedekind::topology::IsOpen;
 
 namespace {
 using Q = Rational<>;
@@ -87,8 +91,7 @@ TEST_CASE(
     "[numbers][cut][real][sets]") {
   SECTION("the lower set is a set over ℚ whose χ is contains") {
     constexpr auto below_root = lower_set(two_root);  // {q ∈ ℚ | q < √2}
-    STATIC_CHECK(
-        dedekind::category::IsLSet<std::remove_cvref_t<decltype(below_root)>>);
+    STATIC_CHECK(IsLSet<std::remove_cvref_t<decltype(below_root)>>);
     STATIC_CHECK(below_root(Q{1}));
     STATIC_CHECK(below_root(Q{7, 5}));
     STATIC_CHECK_FALSE(below_root(Q{3, 2}));
@@ -100,17 +103,16 @@ TEST_CASE(
     constexpr Q p{3, 2};
     constexpr auto ray = principal_ray(p);
     constexpr auto down = lower_set(Cut<>{p});
-    STATIC_CHECK(dedekind::order::pivot(ray) == p);
+    STATIC_CHECK(pivot(ray) == p);
     STATIC_CHECK(ray(Q{1}) == down(Q{1}));
     STATIC_CHECK(ray(p) == down(p));
     STATIC_CHECK(ray(Q{2}) == down(Q{2}));
     STATIC_CHECK_FALSE(ray(p));  // strict: the bound is not below itself
-    // The ray is the ORDER datum, so the order topology reads it: {q < p} is
-    // open, its complement {q ≥ p} closed, with the same bound.
+    // The order topology reads the datum: {q < p} open, {q ≥ p} closed.
     using Ray = PrincipalRay<Q>;
     using CoRay = std::remove_cvref_t<decltype(~ray)>;
-    STATIC_CHECK(dedekind::topology::IsOpen<Ray>);
-    STATIC_CHECK(dedekind::topology::IsClosed<CoRay>);
-    STATIC_CHECK(dedekind::order::pivot(~ray) == p);
+    STATIC_CHECK(IsOpen<Ray>);
+    STATIC_CHECK(IsClosed<CoRay>);
+    STATIC_CHECK(pivot(~ray) == p);
   }
 }

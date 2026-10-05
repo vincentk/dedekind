@@ -323,12 +323,10 @@ static_assert(embed_𝔹_ℕ_(true) == finite_cardinality(1),
 // @c sets:singleton; the named @c embed_𝔹_ℕ surface delegates
 // through it.  Sister anchor to PR #626's @c embed_𝔹_𝕂3 witness in
 // @c :boolean --- same shape, different codomain.
-static_assert(origin(embed_𝔹_ℕ(dedekind::sets::η(true))) ==
-                  finite_cardinality(1),
+static_assert(origin(embed_𝔹_ℕ(η(true))) == finite_cardinality(1),
               "embed_𝔹_ℕ(η(true)) lands at finite_cardinality(1) on the "
               "Cardinality carrier.");
-static_assert(origin(embed_𝔹_ℕ(dedekind::sets::η(false))) ==
-                  finite_cardinality(0),
+static_assert(origin(embed_𝔹_ℕ(η(false))) == finite_cardinality(0),
               "embed_𝔹_ℕ(η(false)) lands at finite_cardinality(0) on the "
               "Cardinality carrier.");
 
@@ -337,8 +335,7 @@ static_assert(origin(embed_𝔹_ℕ(dedekind::sets::η(false))) ==
 // 𝔹 ↪ ℕ — i.e. it is a Subobject of @c Cod<embed_𝔹_ℕ_> = Cardinality
 // (smallest-such-subobject reading per @c :category:image).
 static_assert(
-    dedekind::category::IsImageOf<decltype(embed_𝔹_ℕ(dedekind::sets::η(true))),
-                                  decltype(embed_𝔹_ℕ_)>,
+    IsImageOf<decltype(embed_𝔹_ℕ(η(true))), decltype(embed_𝔹_ℕ_)>,
     "embed_𝔹_ℕ(S) realises IsImageOf<result, embed_𝔹_ℕ_>: result is a "
     "Subobject of Cod<embed_𝔹_ℕ_> = Cardinality, witnessing the "
     "categorical image of S under the canonical mono 𝔹 ↪ ℕ.");
