@@ -202,14 +202,16 @@ struct Ø final {
     return std::ranges::begin(s) == std::ranges::end(s);
   }
 
-  // (iii) a set over a truth chain: empty iff it holds nowhere, ⊥ to ⊤.
+  // (iii) a set over a truth chain: Ø = S is ⋀_x ¬χ(x) in the set's own L, the
+  // chain exhausted ⊥ to ⊤; ⊥ annihilates the meet, so the walk stops there.
   template <IsExhaustibleSet S>
     requires std::same_as<T, Dom<S>>
-  constexpr bool operator==(const S& s) const {
+  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
+    typename Log::Ω acc = Log::True;
     for (T x = chain_bottom<T>();; x = successor(x)) {
-      if (s(x) != Log::False) return false;
-      if (x == chain_top<T>()) return true;
+      acc = Log::AND(acc, Log::RFL(s(x)));
+      if (acc == Log::False || x == chain_top<T>()) return acc;
     }
   }
 
@@ -393,16 +395,19 @@ struct 𝔸 final {
     return true;
   }
 
-  /** @brief @c 𝔸 @c == @c S on a truth chain: the universe iff @c S holds at
-   *  every point, ⊥ to ⊤.  An infinite carrier has no catch-all (the Rice
-   *  wall).  @tparam S a set over the chain, see @c IsExhaustibleSet. */
+  /** @brief @c 𝔸 @c == @c S on a truth chain: @f$\bigwedge_x \chi(x)@f$ in
+   *  the set's own @c L --- the universal quantifier, @c Unknown an honest
+   *  verdict on @f$K_3@f$ --- the chain exhausted ⊥ to ⊤, stopping at ⊥.  An
+   *  infinite carrier has no catch-all (the Rice wall).
+   *  @tparam S a set over the chain, see @c IsExhaustibleSet. */
   template <IsExhaustibleSet S>
     requires std::same_as<T, Dom<S>>
-  constexpr bool operator==(const S& s) const {
+  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
+    typename Log::Ω acc = Log::True;
     for (T x = chain_bottom<T>();; x = successor(x)) {
-      if (s(x) != Log::True) return false;
-      if (x == chain_top<T>()) return true;
+      acc = Log::AND(acc, s(x));
+      if (acc == Log::False || x == chain_top<T>()) return acc;
     }
   }
 
@@ -511,20 +516,27 @@ static_assert(
     dedekind::category::IsProduct<𝔸<std::pair<int, bool>>, 𝔸<int>, 𝔸<bool>>,
     "the universe of a pair carrier is the product of the factor universes.");
 
-/** @brief Two sets over one truth chain, in one species, are equal iff their
- *  finite tables agree at every point, ⊥ to ⊤: the Pst fragment's extensional
- *  equality, decided by exhaustion.  The quantifiers (@c :quantifier) and the
- *  subset identity ride on it; the more specialised equalities (points, value
- *  sets, the boundaries) keep winning by partial ordering.
- *  @tparam A the left set.  @tparam B the right set. */
+/** @brief Two sets over one truth chain, in one species: @f$\bigwedge_x
+ *  (\chi_A(x) \Leftrightarrow \chi_B(x))@f$ in @c L, the internal logic's
+ *  equality with @f$a \Leftrightarrow b = (a \wedge b) \vee (\neg a \wedge
+ *  \neg b)@f$, the chain exhausted ⊥ to ⊤.  On @f$\mathbb{B}@f$ this is table
+ *  equality; on @f$K_3@f$ it is reflexive only up to the excluded middle (a set
+ *  agrees with itself to degree @c U where it is @c U).  The quantifiers
+ *  (@c :quantifier) and the subset identity ride on it; the more specialised
+ *  equalities (points, value sets, the boundaries) keep winning by partial
+ *  ordering.  @tparam A the left set.  @tparam B the right set. */
 export template <IsExhaustibleSet A, IsExhaustibleSet B>
   requires std::same_as<Dom<A>, Dom<B>> &&
            std::same_as<predicate_logic_t<A>, predicate_logic_t<B>>
-constexpr bool operator==(const A& a, const B& b) {
+constexpr typename predicate_logic_t<A>::Ω operator==(const A& a, const B& b) {
+  using Log = predicate_logic_t<A>;
   using C = Dom<A>;
+  typename Log::Ω acc = Log::True;
   for (C x = chain_bottom<C>();; x = successor(x)) {
-    if (a(x) != b(x)) return false;
-    if (x == chain_top<C>()) return true;
+    const auto l = a(x), r = b(x);
+    acc = Log::AND(acc,
+                   Log::OR(Log::AND(l, r), Log::AND(Log::RFL(l), Log::RFL(r))));
+    if (acc == Log::False || x == chain_top<C>()) return acc;
   }
 }
 

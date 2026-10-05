@@ -31,6 +31,14 @@ struct Hedge {
   using Codomain = Ternary;
   constexpr Ternary operator()(const Ternary& x) const { return x; }
 };
+/** @brief @c U at ⊥, @c ⊤ above: a set that is everything "at least maybe". */
+struct AtLeastMaybe {
+  using Domain = Ternary;
+  using Codomain = Ternary;
+  constexpr Ternary operator()(const Ternary& x) const {
+    return x == Ternary::False ? Ternary::Unknown : Ternary::True;
+  }
+};
 
 template <typename View>
 std::vector<std::ranges::range_value_t<View>> collect(View v) {
@@ -85,14 +93,20 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
         std::vector{Run<int, bool>{true, 0, 2}, Run<int, bool>{true, 6, 9}});
 }
 
-TEST_CASE("sequences:pst — 1b: a K₃-valued set has an Unknown level",
+TEST_CASE("sequences:pst — 1b: a K₃-valued set answers in K₃",
           "[sequences][pst][kleene]") {
   constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Hedge{};
   STATIC_CHECK(IsPstSet<decltype(hedge)>);
-  // ∃ / ∀ answer in bool: inhabited to some degree, equal to the domain.
-  CHECK(exists(𝔸<Ternary, Kleene>{}, Hedge{}));
-  CHECK_FALSE(forall(𝔸<Ternary, Kleene>{}, Hedge{}));
-  CHECK(hedge == hedge);
+  // ∃ = ⋁χ and ∀ = ⋀χ in K₃, through == alone: Unknown is a verdict.
+  CHECK(exists(𝔸<Ternary, Kleene>{}, Hedge{}) == Ternary::True);
+  CHECK(forall(𝔸<Ternary, Kleene>{}, Hedge{}) == Ternary::False);
+  CHECK(forall(𝔸<Ternary, Kleene>{}, AtLeastMaybe{}) == Ternary::Unknown);
+  CHECK(exists(Ø<Ternary, Kleene>{}, AtLeastMaybe{}) == Ternary::False);
+  // Equality is the internal biconditional: reflexive only up to the excluded
+  // middle, so a set agrees with itself to degree U where it is U.
+  CHECK((hedge == hedge) == Ternary::Unknown);
+  CHECK(((𝔸<Ternary, Kleene>{} | AtLeastMaybe{}) == 𝔸<Ternary, Kleene>{}) ==
+        Ternary::Unknown);
   // Two runs, two levels: the α-cuts {χ ≥ U} = [U, ⊤] and {χ ≥ ⊤} = [⊤, ⊤].
   CHECK(collect(runs(hedge)) ==
         std::vector{Run<Ternary, Ternary>{Ternary::Unknown, Ternary::Unknown,

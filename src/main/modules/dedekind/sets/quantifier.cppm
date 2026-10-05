@@ -37,12 +37,13 @@
  * honest Rice wall, a compile error rather than a fabricated answer.
  *
  * @section quantifier__L_Valued
- * The set-level forms take any L-set (Goguen), not only a Boolean one, and
- * answer @c bool: @f$\exists@f$ is "not empty", @f$\forall@f$ is "equal to the
- * domain", both decided by whatever @c == the fragment supplies --- on a truth
- * chain the exhaustion of @c :boundaries, so the quantifiers reach @f$K_3@f$
- * carriers and Kleene-valued sets with no separate fold.  The L-valued join
- * @f$\bigvee \chi@f$ itself, where @c Unknown would be the verdict, is #980.
+ * The set-level forms take any L-set (Goguen) and answer in its @c L: with
+ * @c == the internal logic's equality @f$\bigwedge_x (\chi \Leftrightarrow
+ * \chi')@f$, @f$\forall = ((S|P) = S) = \bigwedge \chi_P@f$ and
+ * @f$\exists = \neg(\varnothing = S|P) = \bigvee \chi_P@f$ by De Morgan.  So
+ * @c Unknown is a verdict, not a failure, and there is still no separate fold:
+ * whatever @c == a fragment supplies (on a truth chain, the exhaustion of
+ * @c :boundaries) is the quantifier.  Boolean sets answer @c bool as before.
  *
  * @build_order after :cardinality
  * @dependency :category
@@ -150,16 +151,17 @@ constexpr bool forall(const S& s, P p) {
 export template <dedekind::category::IsLSet S, typename P>
   requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
-constexpr bool exists(const S& s, P p) {
-  return !(Ø<typename S::Domain, typename S::logic_species>{} ==
-           (s | std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
+constexpr typename S::logic_species::Ω exists(const S& s, P p) {
+  using L = typename S::logic_species;
+  return L::RFL(Ø<typename S::Domain, L>{} ==
+                (s | std::move(p)));  // (A): ¬({x ∈ S | P(x)} = ∅), in L
 }
 
 export template <dedekind::category::IsLSet S, typename P>
   requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
-constexpr bool forall(const S& s, P p) {
-  return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} == S
+constexpr typename S::logic_species::Ω forall(const S& s, P p) {
+  return (s | std::move(p)) == s;  // (B): {x ∈ S | P(x)} = S, in L
 }
 
 /** @section quantifier__Formal_Verification */
