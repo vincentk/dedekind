@@ -8,14 +8,14 @@
  *
  * @section pst__Overview
  * A set over a finite chain is a finite table @f$\chi : C \to L@f$, read off
- * @c chain_view(lo, hi) as it is walked: @f$\exists = \bigvee \chi@f$ and
- * @f$\forall = \bigwedge \chi@f$ in @f$L@f$ (the Goguen quantifiers, the
- * finite-chain filling of @c sets:quantifier's L-valued reading, #980), @c ==
- * and @c ⊆ decided in @c bool, and the runs of constant level @f$\ne \bot@f$
- * (the α-cuts) as a @c std::ranges pipeline.  O(N) steps, O(1) state, nothing
- * stored.  The window's ends are values; a truth chain supplies its own.  Not
- * here: ℤ (the walk would have to jump between the term's cut points) and the
- * dense carriers (no step).
+ * @c chain_view(lo, hi) as it is walked.  Equality, and with it the quantifiers
+ * and the subset identity, is exhaustion of the chain and lives upstream
+ * (@c sets:boundaries, @c sets:quantifier); what needs the range view is here:
+ * the @b runs of constant level @f$\ne \bot@f$ (the α-cuts) as a
+ * @c std::ranges pipeline, on a window whose ends are values or on a whole
+ * truth chain.  O(N) steps, O(1) state, nothing stored.  Not here: ℤ (the walk
+ * would have to jump between the term's cut points) and the dense carriers (no
+ * step).
  */
 module;
 
@@ -48,64 +48,8 @@ export template <typename S>
 concept IsPstSet = dedekind::sets::IsSetObject<S> &&
                    IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
                    requires { typename std::remove_cvref_t<S>::logic_species; };
-/** @brief Two Pst sets over one chain, answering in one species.
- *  @tparam A the left set.  @tparam B the right set. */
-export template <typename A, typename B>
-concept IsPstPair =
-    IsPstSet<A> && IsPstSet<B> &&
-    std::same_as<typename A::Domain, typename B::Domain> &&
-    std::same_as<typename A::logic_species, typename B::logic_species>;
-
-/** @brief A truth chain's ends, from its species.  @tparam C the chain. */
-export template <IsPst C>
-constexpr C chain_bottom() {
-  return classifier_logic_t<C>::False;
-}
-export template <IsPst C>
-constexpr C chain_top() {
-  return classifier_logic_t<C>::True;
-}
-
-/** @brief The finite table @f$\chi@f$ on the window, as a range. */
-template <IsPstSet S>
-constexpr auto table(const S& s, const typename S::Domain& lo,
-                     const typename S::Domain& hi) {
-  return chain_view{lo, hi} | std::views::transform(s);
-}
-
-/** @brief @f$\exists x \in [lo, hi].\,\chi(x) = \bigvee \chi@f$ in @c L.
- *  @tparam S the set.  @param s the set.  @param lo the window's bottom.
- *  @param hi its top. */
-export template <IsPstSet S>
-constexpr typename S::logic_species::Ω exists(const S& s,
-                                              const typename S::Domain& lo,
-                                              const typename S::Domain& hi) {
-  using L = typename S::logic_species;
-  return fold(table(s, lo, hi), L::False, L::OR);
-}
-/** @brief @f$\forall x \in [lo, hi].\,\chi(x) = \bigwedge \chi@f$ in @c L. */
-export template <IsPstSet S>
-constexpr typename S::logic_species::Ω forall(const S& s,
-                                              const typename S::Domain& lo,
-                                              const typename S::Domain& hi) {
-  using L = typename S::logic_species;
-  return fold(table(s, lo, hi), L::True, L::AND);
-}
-/** @brief The tables agree at every point of the window: decided. */
-export template <typename A, typename B>
-  requires IsPstPair<A, B>
-constexpr bool equal(const A& a, const B& b, const typename A::Domain& lo,
-                     const typename A::Domain& hi) {
-  return std::ranges::equal(table(a, lo, hi), table(b, lo, hi));
-}
-/** @brief Goguen's L-subset, @f$\chi_A \le \chi_B@f$ pointwise: decided. */
-export template <typename A, typename B>
-  requires IsPstPair<A, B>
-constexpr bool subset(const A& a, const B& b, const typename A::Domain& lo,
-                      const typename A::Domain& hi) {
-  return std::ranges::equal(table(a, lo, hi), table(b, lo, hi),
-                            std::less_equal<>{});
-}
+using dedekind::sets::chain_bottom;
+using dedekind::sets::chain_top;
 
 /** @brief A maximal run of constant level @f$\ne \bot@f$.
  *  @tparam C the chain.  @tparam Ω the species' truth values. */
@@ -161,32 +105,8 @@ constexpr auto runs(const S& s, const typename S::Domain& lo,
          std::views::transform(detail_pst::ToRun{});
 }
 
-/** @brief The whole-chain forms for a truth chain, ⊥ to ⊤.
+/** @brief The runs over a whole truth chain, ⊥ to ⊤.
  *  @tparam S a set over a truth chain. */
-export template <IsPstSet S>
-  requires IsPst<typename S::Domain>
-constexpr auto exists(const S& s) {
-  using C = typename S::Domain;
-  return exists(s, chain_bottom<C>(), chain_top<C>());
-}
-export template <IsPstSet S>
-  requires IsPst<typename S::Domain>
-constexpr auto forall(const S& s) {
-  using C = typename S::Domain;
-  return forall(s, chain_bottom<C>(), chain_top<C>());
-}
-export template <typename A, typename B>
-  requires IsPstPair<A, B> && IsPst<typename A::Domain>
-constexpr bool equal(const A& a, const B& b) {
-  using C = typename A::Domain;
-  return equal(a, b, chain_bottom<C>(), chain_top<C>());
-}
-export template <typename A, typename B>
-  requires IsPstPair<A, B> && IsPst<typename A::Domain>
-constexpr bool subset(const A& a, const B& b) {
-  using C = typename A::Domain;
-  return subset(a, b, chain_bottom<C>(), chain_top<C>());
-}
 export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr auto runs(const S& s) {
@@ -209,27 +129,22 @@ consteval auto summary(View v) {
   }
   return std::tuple{n, first, last};
 }
-inline constexpr auto top = 𝔸<bool>{} | (π == true);
-static_assert(exists(top) && !forall(top) && equal(top, top) &&
-                  !equal(top, 𝔸<bool>{}) && subset(top, 𝔸<bool>{}) &&
-                  !subset(𝔸<bool>{}, top) && !exists(Ø<bool>{}),
-              "{⊤} on 𝔹: ∃, ∀, ==, ⊆ decided on the finite table.");
 inline constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
-static_assert(forall(above_bottom, Ternary::Unknown, Ternary::True) &&
-                  summary(runs(above_bottom)) ==
-                      std::tuple{std::size_t{1},
-                                 Run{true, Ternary::Unknown, Ternary::True},
-                                 Run{true, Ternary::Unknown, Ternary::True}},
-              "{x > ⊥} on K₃: ∀ on [U, ⊤], and one run of level ⊤.");
+static_assert(summary(runs(above_bottom)) ==
+                  std::tuple{std::size_t{1},
+                             Run{true, Ternary::Unknown, Ternary::True},
+                             Run{true, Ternary::Unknown, Ternary::True}},
+              "{x > ⊥} on K₃ is one run of level ⊤: [U, ⊤].");
 inline constexpr auto above5 = 𝔸<int>{} | (π > 5);
 inline constexpr auto below3 = 𝔸<int>{} | (π < 3);
-static_assert(equal(above5, 𝔸<int>{} | (π >= 6), 0, 20) &&
-                  !exists(above5 & below3, 0, 20) &&
+static_assert(std::ranges::equal(runs(above5, 0, 20),
+                                 runs(𝔸<int>{} | (π >= 6), 0, 20)) &&
+                  std::ranges::empty(runs(above5 & below3, 0, 20)) &&
                   summary(runs(above5 | below3, 0, 9)) ==
                       std::tuple{std::size_t{2}, Run{true, 0, 2},
                                  Run{true, 6, 9}},
-              "on a window: {x > 5} = {x ≥ 6}, (x > 5) ∧ (x < 3) = Ø by "
-              "evaluation, and a union with a gap is two runs.");
+              "on a window: {x > 5} = {x ≥ 6} by their runs, (x > 5) ∧ (x < 3) "
+              "has none, and a union with a gap has two.");
 }  // namespace detail_pst_witness
 
 }  // namespace dedekind::sequences

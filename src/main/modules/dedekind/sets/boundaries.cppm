@@ -70,14 +70,26 @@ namespace dedekind::sets {
  *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
  *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
  *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
-/** @brief A set over the finite carrier @c bool whose @c == Ø and @c == 𝔸 are
- *  decided by exhausting @c {false, true}: a predicate on @c bool that is
- * neither a boundary object nor sized (a sized set answers by its size).
+/** @brief A set over a truth chain (@c 𝔹, @f$K_3@f$: an @c IsPst carrier)
+ *  whose @c == Ø, @c == 𝔸 and set equality are decided by exhausting the chain
+ *  from ⊥ to ⊤ by the step: a predicate on the chain that is neither a boundary
+ *  object nor sized (a sized set answers by its size).  The Pst fragment's
+ *  normalisation by evaluation, in its simplest form.
  *  @tparam S the candidate. */
 export template <typename S>
-concept IsExhaustibleBoolSet =
-    IsPredicate<S> && std::same_as<Dom<S>, bool> && !IsBoundaryObject<S> &&
+concept IsExhaustibleSet =
+    IsPredicate<S> && IsPst<Dom<S>> && !IsBoundaryObject<S> &&
     !requires(const S& s) { s.size(); };
+
+/** @brief A truth chain's ends, from its species.  @tparam C the chain. */
+export template <IsPst C>
+constexpr C chain_bottom() {
+  return classifier_logic_t<C>::False;
+}
+export template <IsPst C>
+constexpr C chain_top() {
+  return classifier_logic_t<C>::True;
+}
 
 export template <typename T = std::nullptr_t, typename L = Boole>
 struct Ø final {
@@ -190,12 +202,15 @@ struct Ø final {
     return std::ranges::begin(s) == std::ranges::end(s);
   }
 
-  // (iii) a set over 𝔹: empty iff it holds at neither false nor true.
-  template <IsExhaustibleBoolSet S>
-    requires std::same_as<T, bool>
+  // (iii) a set over a truth chain: empty iff it holds nowhere, ⊥ to ⊤.
+  template <IsExhaustibleSet S>
+    requires std::same_as<T, Dom<S>>
   constexpr bool operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
-    return s(false) == Log::False && s(true) == Log::False;
+    for (T x = chain_bottom<T>();; x = successor(x)) {
+      if (s(x) != Log::False) return false;
+      if (x == chain_top<T>()) return true;
+    }
   }
 
   // The Duality: !∅ = V
@@ -378,14 +393,17 @@ struct 𝔸 final {
     return true;
   }
 
-  /** @brief @c 𝔸<bool> @c == @c S: the universe iff @c S holds at both
-   *  @c false and @c true.  An infinite carrier has no catch-all (the Rice
-   *  wall).  @tparam S a set over @c bool, see @c IsExhaustibleBoolSet. */
-  template <IsExhaustibleBoolSet S>
-    requires std::same_as<T, bool>
+  /** @brief @c 𝔸 @c == @c S on a truth chain: the universe iff @c S holds at
+   *  every point, ⊥ to ⊤.  An infinite carrier has no catch-all (the Rice
+   *  wall).  @tparam S a set over the chain, see @c IsExhaustibleSet. */
+  template <IsExhaustibleSet S>
+    requires std::same_as<T, Dom<S>>
   constexpr bool operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
-    return s(false) == Log::True && s(true) == Log::True;
+    for (T x = chain_bottom<T>();; x = successor(x)) {
+      if (s(x) != Log::True) return false;
+      if (x == chain_top<T>()) return true;
+    }
   }
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
@@ -492,6 +510,23 @@ static_assert(std::same_as<universe_t<Ø<int>>, 𝔸<int>> &&
 static_assert(
     dedekind::category::IsProduct<𝔸<std::pair<int, bool>>, 𝔸<int>, 𝔸<bool>>,
     "the universe of a pair carrier is the product of the factor universes.");
+
+/** @brief Two sets over one truth chain, in one species, are equal iff their
+ *  finite tables agree at every point, ⊥ to ⊤: the Pst fragment's extensional
+ *  equality, decided by exhaustion.  The quantifiers (@c :quantifier) and the
+ *  subset identity ride on it; the more specialised equalities (points, value
+ *  sets, the boundaries) keep winning by partial ordering.
+ *  @tparam A the left set.  @tparam B the right set. */
+export template <IsExhaustibleSet A, IsExhaustibleSet B>
+  requires std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<predicate_logic_t<A>, predicate_logic_t<B>>
+constexpr bool operator==(const A& a, const B& b) {
+  using C = Dom<A>;
+  for (C x = chain_bottom<C>();; x = successor(x)) {
+    if (a(x) != b(x)) return false;
+    if (x == chain_top<C>()) return true;
+  }
+}
 
 }  // namespace dedekind::sets
 

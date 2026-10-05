@@ -24,10 +24,11 @@ using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
 namespace {
-/** @brief The identity classifier on K₃, valued in K₃: χ(x) = x.  The simplest
- *  predicate with a genuine @c Unknown level; the comprehension over
- *  @c 𝔸<Ternary, Kleene> makes it the set. */
+/** @brief The identity classifier on K₃, valued in K₃: χ(x) = x, the simplest
+ *  datum with a genuine @c Unknown level. */
 struct Hedge {
+  using Domain = Ternary;
+  using Codomain = Ternary;
   constexpr Ternary operator()(const Ternary& x) const { return x; }
 };
 
@@ -50,22 +51,23 @@ TEST_CASE("sequences:pst — chain_view agrees with iota and with the orbit",
 
 TEST_CASE("sequences:pst — 1a: Boole-valued sets over 𝔹 and K₃ are decided",
           "[sequences][pst][boole]") {
-  constexpr auto top = 𝔸<bool>{} | (π == true);
-  STATIC_CHECK(IsPstSet<decltype(top)>);
-  CHECK(exists(top));
-  CHECK_FALSE(forall(top));
-  CHECK(equal(top, top));
-  CHECK_FALSE(equal(top, 𝔸<bool>{}));
-  CHECK(subset(top, 𝔸<bool>{}));
-  CHECK_FALSE(subset(𝔸<bool>{}, top));
-  CHECK(collect(runs(top)) == std::vector{Run<bool, bool>{true, true, true}});
-
+  // The quantifiers are sets' own: ∃ = not empty, ∀ = equal to the domain,
+  // both decided by exhausting the truth chain (sets:boundaries).
+  CHECK(exists(𝔸<bool>{}, π == true));
+  CHECK_FALSE(forall(𝔸<bool>{}, π == true));
+  CHECK(exists(𝔸<Ternary>{}, π > Ternary::False));
+  CHECK_FALSE(forall(𝔸<Ternary>{}, π > Ternary::False));
+  CHECK(forall(𝔸<Ternary>{}, π >= Ternary::False));
+  // Set equality on a truth chain is table equality.
   constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
-  CHECK(exists(above_bottom));
-  CHECK_FALSE(forall(above_bottom));
-  CHECK(forall(above_bottom, Ternary::Unknown, Ternary::True));
+  constexpr auto at_least_u = 𝔸<Ternary>{} | (π >= Ternary::Unknown);
+  STATIC_CHECK(IsPstSet<decltype(above_bottom)>);
+  CHECK(above_bottom == at_least_u);
+  CHECK_FALSE(above_bottom == 𝔸<Ternary>{});
   CHECK(collect(runs(above_bottom)) ==
         std::vector{Run<Ternary, bool>{true, Ternary::Unknown, Ternary::True}});
+  CHECK(collect(runs(𝔸<bool>{} | (π == true))) ==
+        std::vector{Run<bool, bool>{true, true, true}});
 }
 
 TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
@@ -73,15 +75,11 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
   constexpr auto above5 = 𝔸<int>{} | (π > 5);
   constexpr auto at_least6 = 𝔸<int>{} | (π >= 6);
   constexpr auto below3 = 𝔸<int>{} | (π < 3);
-  CHECK(equal(above5, at_least6, 0, 20));
-  CHECK(exists(above5, 0, 20));
-  CHECK_FALSE(exists(above5, 0, 5));
-  CHECK(forall(above5, 6, 20));
+  CHECK(std::ranges::equal(runs(above5, 0, 20), runs(at_least6, 0, 20)));
   // The #365 showcase, by evaluation: no distributivity rule is involved.
   const auto meet = above5 & below3;
   STATIC_CHECK(IsPstSet<decltype(meet)>);
-  CHECK_FALSE(exists(meet, 0, 20));
-  CHECK(equal(meet, Ø<int>{}, 0, 20));
+  CHECK(collect(runs(meet, 0, 20)).empty());
   CHECK(collect(runs(above5, 0, 9)) == std::vector{Run<int, bool>{true, 6, 9}});
   CHECK(collect(runs(above5 | below3, 0, 9)) ==
         std::vector{Run<int, bool>{true, 0, 2}, Run<int, bool>{true, 6, 9}});
@@ -89,19 +87,16 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
 
 TEST_CASE("sequences:pst — 1b: a K₃-valued set has an Unknown level",
           "[sequences][pst][kleene]") {
-  constexpr auto hedge = Comprehension{𝔸<Ternary, Kleene>{}, Hedge{}};
+  constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Hedge{};
   STATIC_CHECK(IsPstSet<decltype(hedge)>);
-  CHECK(exists(hedge) == Ternary::True);
-  CHECK(forall(hedge) == Ternary::False);
-  // On the window [U, ⊤] the meet is U: the honest Kleene verdict.
-  CHECK(forall(hedge, Ternary::Unknown, Ternary::True) == Ternary::Unknown);
-  CHECK(exists(hedge, Ternary::False, Ternary::Unknown) == Ternary::Unknown);
+  // ∃ / ∀ answer in bool: inhabited to some degree, equal to the domain.
+  CHECK(exists(𝔸<Ternary, Kleene>{}, Hedge{}));
+  CHECK_FALSE(forall(𝔸<Ternary, Kleene>{}, Hedge{}));
+  CHECK(hedge == hedge);
   // Two runs, two levels: the α-cuts {χ ≥ U} = [U, ⊤] and {χ ≥ ⊤} = [⊤, ⊤].
   CHECK(collect(runs(hedge)) ==
         std::vector{Run<Ternary, Ternary>{Ternary::Unknown, Ternary::Unknown,
                                           Ternary::Unknown},
                     Run<Ternary, Ternary>{Ternary::True, Ternary::True,
                                           Ternary::True}});
-  CHECK(equal(hedge, hedge));
-  CHECK(subset(hedge, hedge));
 }

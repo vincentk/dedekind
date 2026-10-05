@@ -37,13 +37,12 @@
  * honest Rice wall, a compile error rather than a fabricated answer.
  *
  * @section quantifier__L_Valued
- * For an L-set @f$\chi : A \to L@f$ (Goguen) the quantifiers are the join and
- * the meet of χ over the universe, @f$\exists = \bigvee \chi@f$ and
- * @f$\forall = \bigwedge \chi@f$ in @f$L@f$, so the answer is an @c L::Ω and
- * @c Unknown is an honest verdict.  Whether that join is @b computable is a
- * slot filled per fragment: on a finite chain it is one fold along the chain
- * (@c sequences:pst, @c exists(S) / @c forall(S) over @c IsFiniteLSet); the
- * Boolean forms here are the @f$L = \mathbb{B}@f$ case, decided by emptiness.
+ * The set-level forms take any L-set (Goguen), not only a Boolean one, and
+ * answer @c bool: @f$\exists@f$ is "not empty", @f$\forall@f$ is "equal to the
+ * domain", both decided by whatever @c == the fragment supplies --- on a truth
+ * chain the exhaustion of @c :boundaries, so the quantifiers reach @f$K_3@f$
+ * carriers and Kleene-valued sets with no separate fold.  The L-valued join
+ * @f$\bigvee \chi@f$ itself, where @c Unknown would be the verdict, is #980.
  *
  * @build_order after :cardinality
  * @dependency :category
@@ -148,7 +147,7 @@ constexpr bool forall(const S& s, P p) {
 // set-valued operand @c s|p resolves to set UNION (@c 𝔸|Ø = 𝔸), not the
 // comprehension, which would make @c exists(𝔸<bool>, Ø{}) wrongly true.
 // Excluding @c IsSet keeps @c | bound to the where-clause here.
-export template <dedekind::category::IsSet S, typename P>
+export template <dedekind::category::IsLSet S, typename P>
   requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
 constexpr bool exists(const S& s, P p) {
@@ -156,7 +155,7 @@ constexpr bool exists(const S& s, P p) {
            (s | std::move(p)));  // (A): {x ∈ S | P(x)} ≠ ∅
 }
 
-export template <dedekind::category::IsSet S, typename P>
+export template <dedekind::category::IsLSet S, typename P>
   requires(!dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
            requires(const S& s, P p) { s | p; })
 constexpr bool forall(const S& s, P p) {
