@@ -132,8 +132,8 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
  *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
  *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
  *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
- *  @c to_iota_view above is this view's integral face.  O(1) state: the
- *  current element and the end.
+ *  @c to_iota_view above is this view's integral face.  A forward view (the
+ *  walk restarts from @c lo), O(1) state: the current element and the end.
  *  @tparam C the chain, with the covering step. */
 export template <HasCoveringStep C>
   requires std::totally_ordered<C>
@@ -143,7 +143,7 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
    public:
     using value_type = C;
     using difference_type = std::ptrdiff_t;
-    using iterator_concept = std::input_iterator_tag;
+    using iterator_concept = std::forward_iterator_tag;
     constexpr iterator() = default;
     constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
     constexpr C operator*() const { return current_; }
@@ -157,7 +157,13 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
       }
       return *this;
     }
-    constexpr void operator++(int) { ++*this; }
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      ++*this;
+      return before;
+    }
+    friend constexpr bool operator==(const iterator&,
+                                     const iterator&) = default;
     friend constexpr bool operator==(const iterator& it,
                                      std::default_sentinel_t) {
       return !it.live_;
@@ -196,9 +202,9 @@ static_assert(walks(chain_view{false, true}, false, true) &&
                   walks(chain_view{true, true}, true) &&
                   walks(chain_view{3, 6}, 3, 4, 5, 6),
               "𝔹, a one-point window, and an integral window.");
-static_assert(std::ranges::input_range<chain_view<int>> &&
+static_assert(std::ranges::forward_range<chain_view<int>> &&
                   std::ranges::view<chain_view<Ternary>>,
-              "chain_view is a std::ranges input view.");
+              "chain_view is a std::ranges forward view.");
 static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
                   chain_view{2, 2}.begin() != std::default_sentinel,
               "lo > hi is the empty window; lo == hi the one-point window.");
