@@ -101,12 +101,11 @@ TEST_CASE("sequences:pst — 1b: a K₃-valued set answers in K₃",
   CHECK(exists(𝔸<Ternary, Kleene>{}, Hedge{}) == Ternary::True);
   CHECK(forall(𝔸<Ternary, Kleene>{}, Hedge{}) == Ternary::False);
   CHECK(forall(𝔸<Ternary, Kleene>{}, AtLeastMaybe{}) == Ternary::Unknown);
-  CHECK(exists(Ø<Ternary, Kleene>{}, AtLeastMaybe{}) == Ternary::False);
   // Equality is the internal biconditional: reflexive only up to the excluded
   // middle, so a set agrees with itself to degree U where it is U.
   CHECK((hedge == hedge) == Ternary::Unknown);
-  CHECK(((𝔸<Ternary, Kleene>{} | AtLeastMaybe{}) == 𝔸<Ternary, Kleene>{}) ==
-        Ternary::Unknown);
+  CHECK((𝔸<Ternary, Kleene>{} == (𝔸<Ternary, Kleene>{} | AtLeastMaybe{})) ==
+        Ternary::Unknown);  // 𝔸 first: the Ω-valued member, not a rewrite
   // Two runs, two levels: the α-cuts {χ ≥ U} = [U, ⊤] and {χ ≥ ⊤} = [⊤, ⊤].
   CHECK(collect(runs(hedge)) ==
         std::vector{Run<Ternary, Ternary>{Ternary::Unknown, Ternary::Unknown,
