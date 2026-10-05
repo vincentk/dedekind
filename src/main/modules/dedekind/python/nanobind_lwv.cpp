@@ -173,6 +173,29 @@ NB_MODULE(_lwv, m) {
           "is_finite", [](const Set& s) { return lwv::is_bounded(s); },
           "Whether the set is finite: on the discrete chain ℤ, exactly when it "
           "is bounded.")
+      .def(
+          "__getitem__",
+          [](const Set& s, nb::handle key) -> Set {
+            if (!nb::isinstance<nb::slice>(key))
+              throw nb::type_error(
+                  "a set is sliced by value, s[a:b] = s ∩ [a, b); positional "
+                  "indexing presupposes an enumeration, which is a sequence's");
+            if (!key.attr("step").is_none())
+              throw nb::type_error(
+                  "a stepped slice is the meet with a residue class, which "
+                  "awaits the congruence sets");
+            const auto bound = [](nb::handle v) -> std::optional<long long> {
+              if (v.is_none()) return std::nullopt;
+              return nb::cast<long long>(v);
+            };
+            return lwv::restrict(s, bound(key.attr("start")),
+                                 bound(key.attr("stop")));
+          },
+          nb::arg("key"),
+          "s[a:b] = s ∩ [a, b), slicing by VALUE (pandas' .loc, not .iloc): "
+          "the "
+          "meet with the half-open interval; s[:b] is the lower cut at b, "
+          "s[a:] the upper ray.  One reduce_meet.")
       .def_prop_ro(
           "kind", [](const Set& s) { return kind_name(s.kind); },
           "The structural kind: empty / universe / halfspace / singleton / "

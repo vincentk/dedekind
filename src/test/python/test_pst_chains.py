@@ -61,6 +61,29 @@ class PstUnfoldTest(unittest.TestCase):
         )
 
 
+class PstIndexingByPositionTest(unittest.TestCase):
+    """C[i] is the element at position i from ⊥: pandas' .iloc on the enumeration."""
+
+    def test_finite_chains_index_like_their_lists(self) -> None:
+        self.assertEqual(len(B), 2)
+        self.assertEqual(len(K3), 3)
+        self.assertIs(B[0], False)
+        self.assertIs(B[-1], True)
+        self.assertEqual(K3[1], Ternary.UNKNOWN)
+        self.assertEqual(K3[-1], Ternary.TRUE)
+        self.assertEqual([K3[i] for i in range(len(K3))], list(K3))
+        with self.assertRaises(IndexError):
+            K3[3]
+
+    def test_natural_chain_indexes_itself(self) -> None:
+        self.assertEqual(N[0], 0)
+        self.assertEqual(N[10**9], 10**9)  # O(1): Peano addition, not a walk
+        with self.assertRaises(IndexError):
+            N[-1]  # no end to count from
+        with self.assertRaises(TypeError):
+            len(N)  # ℵ₀
+
+
 class PstClassificationTest(unittest.TestCase):
     def test_concept_verdicts(self) -> None:
         for chain in (B, K3, N):

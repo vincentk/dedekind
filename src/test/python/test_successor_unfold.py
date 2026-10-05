@@ -75,6 +75,27 @@ class ImagePreimageTest(unittest.TestCase):
             image(succ(int) >> succ(int), above(5))
 
 
+class SetSlicingByValueTest(unittest.TestCase):
+    """s[a:b] is s ∩ [a, b): pandas' .loc, never .iloc."""
+
+    def test_slice_is_the_meet_with_the_interval(self) -> None:
+        self.assertEqual(everything()[3:8], at_least(3) & below(8))
+        self.assertEqual(list(everything()[3:8]), list(range(3, 8)))
+        self.assertEqual(above(0)[-5:3], at_least(1) & below(3))  # -5 is a VALUE
+        self.assertEqual(at_least(3)[:8], at_least(3) & below(8))  # the lower cut
+        self.assertEqual(below(8)[3:], at_least(3) & below(8))  # the upper ray
+        self.assertEqual(everything()[:], everything())
+        self.assertEqual(singleton(4)[0:4], nothing())
+
+    def test_positional_and_stepped_forms_are_refused(self) -> None:
+        with self.assertRaises(TypeError):
+            above(3)[0]  # no enumeration to index into
+        with self.assertRaises(TypeError):
+            above(3)[-1]
+        with self.assertRaises(TypeError):
+            everything()[0:10:2]  # awaits the congruence sets
+
+
 class SetUnfoldTest(unittest.TestCase):
     def test_bounded_set_is_range(self) -> None:
         for a, b in ((3, 8), (0, 1), (-2, 2)):

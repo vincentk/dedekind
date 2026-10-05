@@ -307,6 +307,19 @@ constexpr Set preimage(const jlt::Pred<jlt::Int>&, const Set& s) {
   return shift(s, 1);
 }
 
+/** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
+ *  half-open interval (Python's own convention), an absent bound meaning the
+ *  ray.  @c s[:b] is the restriction to the lower cut at @c b.  One
+ *  @c reduce_meet, @f$O(1)@f$.  Not positional: a set has no enumeration to
+ *  index into; that reading belongs to a sequence. */
+constexpr Set restrict(const Set& s, std::optional<long long> lo,
+                       std::optional<long long> hi) {
+  Set r = s;
+  if (lo) r = meet(r, at_least(*lo));
+  if (hi) r = meet(r, below(*hi));
+  return r;
+}
+
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
  *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
 constexpr bool is_bounded(const Set& s) {
@@ -404,6 +417,14 @@ constexpr std::optional<C> cover(const C& x) {
 template <dedekind::category::HasNNOStep C>
 constexpr bool saturates() {
   return succ(Chain<C>::top) == Chain<C>::top;
+}
+/** @brief Indexing by @b position: the element at position @c i from ⊥, the
+ *  chain read as its own enumeration (the orbit of ⊥ under the step), so
+ *  @c K3[1] is @c UNKNOWN and @c N[i] is @c i.  @f$O(1)@f$ on ℕ (Peano
+ *  addition), a walk bounded by the chain's length on 𝔹 and K₃. */
+template <dedekind::category::HasNNOStep C>
+C at(std::size_t i) {
+  return dedekind::sequences::SuccessorOrbit<C>{Chain<C>::bottom}.at(i);
 }
 template <typename C>
 constexpr bool is_truth_object = dedekind::category::IsPst<C>;

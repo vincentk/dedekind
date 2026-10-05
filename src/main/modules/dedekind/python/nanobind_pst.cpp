@@ -151,6 +151,37 @@ void bind_chain(nb::module_& m, const char* cls, const char* iter_cls,
           "cardinality",
           [](const Ch&) { return to_py_cardinality(Ch::cardinality); },
           "The number of elements: 2, 3, or ℵ₀.")
+      .def(
+          "__getitem__",
+          [](const Ch&, long long i) {
+            if constexpr (std::same_as<C, Cardinality>) {
+              if (i < 0) throw nb::index_error("ℕ has no end to count from");
+              return to_py<C>(pst::at<C>(static_cast<std::size_t>(i)));
+            } else {
+              const auto n = static_cast<long long>(
+                  std::get<dedekind::sets::ExtensionalCardinal<>>(
+                      Ch::cardinality)
+                      .value);
+              if (i < 0) i += n;
+              if (i < 0 || i >= n)
+                throw nb::index_error("position outside the chain");
+              return to_py<C>(pst::at<C>(static_cast<std::size_t>(i)));
+            }
+          },
+          nb::arg("i"),
+          "C[i]: the element at position i from ⊥, the chain as its own "
+          "enumeration (pandas' .iloc, not .loc): K3[1] is UNKNOWN, N[i] is i.")
+      .def(
+          "__len__",
+          [](const Ch&) -> std::size_t {
+            if constexpr (std::same_as<C, Cardinality>)
+              throw nb::type_error("ℵ₀ is not a Python int (see cardinality)");
+            else
+              return std::get<dedekind::sets::ExtensionalCardinal<>>(
+                         Ch::cardinality)
+                  .value;
+          },
+          "The number of elements of a finite chain.")
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 }  // namespace
