@@ -36,6 +36,15 @@
  * A genuinely opaque, non-enumerable operand matches no @c == overload: the
  * honest Rice wall, a compile error rather than a fabricated answer.
  *
+ * @section quantifier__L_Valued
+ * For an L-set @f$\chi : A \to L@f$ (Goguen) the quantifiers are the join and
+ * the meet of χ over the universe, @f$\exists = \bigvee \chi@f$ and
+ * @f$\forall = \bigwedge \chi@f$ in @f$L@f$, so the answer is an @c L::Ω and
+ * @c Unknown is an honest verdict.  Whether that join is @b computable is a
+ * slot filled per fragment: on a finite chain it is one fold along the chain
+ * (@c sequences:pst, @c exists(S) / @c forall(S) over @c IsFiniteLSet); the
+ * Boolean forms here are the @f$L = \mathbb{B}@f$ case, decided by emptiness.
+ *
  * @build_order after :cardinality
  * @dependency :category
  */

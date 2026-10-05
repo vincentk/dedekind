@@ -36,6 +36,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>  // std::default_sentinel_t (chain_view)
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -125,6 +126,88 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
   const auto b = detail::iota_bounds(s);
   return std::ranges::views::iota(b.start, b.bound);
 }
+
+/** @section ranges__Chain_View
+ *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
+ *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
+ *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
+ *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
+ *  @c to_iota_view above is this view's integral face.  O(1) state: the
+ *  current element and the end.
+ *  @tparam C the chain, with the covering step. */
+export template <HasCoveringStep C>
+  requires std::totally_ordered<C>
+class chain_view : public std::ranges::view_interface<chain_view<C>> {
+ public:
+  class iterator {
+   public:
+    using value_type = C;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::input_iterator_tag;
+    constexpr iterator() = default;
+    constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
+    constexpr C operator*() const { return current_; }
+    constexpr iterator& operator++() {
+      if (current_ == hi_) {
+        live_ = false;
+      } else if (const auto next = cover(current_); next.has_value()) {
+        current_ = *next;
+      } else {
+        live_ = false;  // a saturating top short of hi: nothing above it
+      }
+      return *this;
+    }
+    constexpr void operator++(int) { ++*this; }
+    friend constexpr bool operator==(const iterator& it,
+                                     std::default_sentinel_t) {
+      return !it.live_;
+    }
+
+   private:
+    C current_{};
+    C hi_{};
+    bool live_ = false;
+  };
+  constexpr chain_view() = default;
+  constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
+  constexpr iterator begin() const { return {lo_, hi_}; }
+  constexpr std::default_sentinel_t end() const { return {}; }
+
+ private:
+  C lo_{};
+  C hi_{};
+};
+
+namespace detail_chain_view_witness {
+consteval bool walks(auto view, auto... expected) {
+  std::array<std::common_type_t<decltype(expected)...>, sizeof...(expected)>
+      want{expected...};
+  std::size_t i = 0;
+  for (const auto x : view) {
+    if (i >= want.size() || x != want[i]) return false;
+    ++i;
+  }
+  return i == want.size();
+}
+static_assert(walks(chain_view{Ternary::False, Ternary::True}, Ternary::False,
+                    Ternary::Unknown, Ternary::True),
+              "K₃ walked ⊥ → U → ⊤ by the cover.");
+static_assert(walks(chain_view{false, true}, false, true) &&
+                  walks(chain_view{true, true}, true) &&
+                  walks(chain_view{3, 6}, 3, 4, 5, 6),
+              "𝔹, a one-point window, and an integral window.");
+static_assert(std::ranges::input_range<chain_view<int>> &&
+                  std::ranges::view<chain_view<Ternary>>,
+              "chain_view is a std::ranges input view.");
+consteval bool empty_when_crossed() {
+  for (const auto x : chain_view{5, 2}) {
+    (void)x;
+    return false;
+  }
+  return true;
+}
+static_assert(empty_when_crossed(), "lo > hi is the empty window.");
+}  // namespace detail_chain_view_witness
 
 /** @brief Project an interval (the meet of its two halfspaces) to its
  *  iota_view through its @c SetVal --- one bounds law. */
