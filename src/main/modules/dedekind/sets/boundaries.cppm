@@ -57,17 +57,17 @@ import :cardinality;
 import :setobject;  // IsSetObject: Ø and 𝔸 are the ⊥ / ⊤ set objects
 
 using namespace dedekind::category;
-// The two-step for the NNO step (category:nno): the using-declaration lets the
-// generic integral / enum successor compete with this namespace's own
-// Cardinality overloads, so successor(bool) is the two-chain's step, not a
-// conversion to a cardinal.
-using dedekind::category::successor;
 
 /**
  * @section boundaries__Mereology
  * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
+// The two-step for the NNO step (category:nno): the using-declaration lets the
+// generic integral / enum successor compete with this namespace's own
+// Cardinality overloads, so successor(bool) is the two-chain's step, not a
+// conversion to a cardinal.
+using dedekind::category::successor;
 
 /** @brief ∅: The Initial Object. Extensional (Size 0).
  *
