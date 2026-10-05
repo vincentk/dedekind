@@ -382,8 +382,9 @@ namespace detail_lambek_witness {
 inline constexpr Cardinality largest_finite =
     finite_cardinality(std::numeric_limits<std::size_t>::max());
 }  // namespace detail_lambek_witness
-// std::optional's own == throughout: no sets operator== is a candidate for it
-// any more (the point datum's == deduces its projection slot, sets:singleton).
+// std::optional's own == throughout: the point datum's == (sets:singleton) is
+// still found by ADL here, but its head no longer probes equality on the
+// deduced T, so it is rejected as non-viable without re-entering itself.
 static_assert(Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
                   finite_cardinality(3)})) ==
                       std::optional<Cardinality>{finite_cardinality(3)} &&

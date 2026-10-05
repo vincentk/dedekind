@@ -123,8 +123,9 @@ constexpr auto operator==(Projection<0>, T v) {
   return Point<T>{std::move(v)};
 }
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
-              "the standard's == on an optional of a sets type is its own: no "
-              "sets operator== is a candidate for it.");
+              "the standard's == on an optional of a sets type is its own: the "
+              "point datum's == above enters the candidate set by ADL and is "
+              "rejected as non-viable without probing equality on T.");
 
 /** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
  *  An alias, not a noun: its operators are every comprehension's (the
