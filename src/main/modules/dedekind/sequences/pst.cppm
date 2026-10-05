@@ -73,10 +73,23 @@ constexpr C chain_top() {
   return classifier_logic_t<C>::True;
 }
 
+/** @brief A set object over a finite chain, as the sets layer represents it:
+ *  a leaf (@c IsFiniteLSet) or a lattice node over leaves, each a finite table
+ *  @f$\chi : C \to L@f$.  The lattice nodes carry @c Domain and
+ *  @c logic_species but not the subobject vocabulary (@c Member, @c ι), so the
+ *  gate is @c sets::IsSetObject rather than @c IsLSet.
+ *  @tparam S the set. */
+export template <typename S>
+concept IsPstSet = dedekind::sets::IsSetObject<S> &&
+                   IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
+                   requires { typename std::remove_cvref_t<S>::logic_species; };
+static_assert(IsFiniteLSet<𝔸<bool>> && IsPstSet<𝔸<bool>>,
+              "a leaf over a finite chain is a Pst set.");
+
 namespace detail_pst {
 /** @brief The monoid of @c exists: @f$acc \gets acc \vee \chi(x)@f$ in @c L.
  *  @tparam S the set. */
-template <IsFiniteLSet S>
+template <IsPstSet S>
 struct JoinOfChi {
   const S& s;
   constexpr void operator()(typename S::logic_species::Ω& acc,
@@ -86,7 +99,7 @@ struct JoinOfChi {
 };
 /** @brief The monoid of @c forall: @f$acc \gets acc \wedge \chi(x)@f$ in @c L.
  *  @tparam S the set. */
-template <IsFiniteLSet S>
+template <IsPstSet S>
 struct MeetOfChi {
   const S& s;
   constexpr void operator()(typename S::logic_species::Ω& acc,
@@ -96,7 +109,7 @@ struct MeetOfChi {
 };
 /** @brief The monoid of @c equal: the tables agree at every point seen so far.
  *  @tparam A the left set.  @tparam B the right set. */
-template <IsFiniteLSet A, IsFiniteLSet B>
+template <IsPstSet A, IsPstSet B>
 struct Agree {
   const A& a;
   const B& b;
@@ -107,7 +120,7 @@ struct Agree {
 /** @brief The monoid of @c subset: @f$\chi_A \le \chi_B@f$ at every point seen
  *  so far, in the chain order of @c L::Ω.
  *  @tparam A the left set.  @tparam B the right set. */
-template <IsFiniteLSet A, IsFiniteLSet B>
+template <IsPstSet A, IsPstSet B>
 struct Below {
   const A& a;
   const B& b;
@@ -122,7 +135,7 @@ struct Below {
  *  @tparam A the left set.  @tparam B the right set. */
 export template <typename A, typename B>
 concept IsPstPair =
-    IsFiniteLSet<A> && IsFiniteLSet<B> &&
+    IsPstSet<A> && IsPstSet<B> &&
     std::same_as<typename A::Domain, typename B::Domain> &&
     std::same_as<typename A::logic_species, typename B::logic_species>;
 
@@ -132,7 +145,7 @@ concept IsPstPair =
  *  @tparam S the set over a finite chain.
  *  @param s the set.  @param lo the window's bottom.  @param hi its top.
  *  @return the join of χ over the window, in @c L::Ω. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
 constexpr typename S::logic_species::Ω exists(const S& s,
                                               const typename S::Domain& lo,
                                               const typename S::Domain& hi) {
@@ -141,7 +154,7 @@ constexpr typename S::logic_species::Ω exists(const S& s,
 }
 /** @brief @f$\exists@f$ over the whole truth chain, ⊥ to ⊤.
  *  @tparam S the set over a truth chain. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr typename S::logic_species::Ω exists(const S& s) {
   using C = typename S::Domain;
@@ -152,7 +165,7 @@ constexpr typename S::logic_species::Ω exists(const S& s) {
  *  @tparam S the set over a finite chain.
  *  @param s the set.  @param lo the window's bottom.  @param hi its top.
  *  @return the meet of χ over the window, in @c L::Ω. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
 constexpr typename S::logic_species::Ω forall(const S& s,
                                               const typename S::Domain& lo,
                                               const typename S::Domain& hi) {
@@ -161,7 +174,7 @@ constexpr typename S::logic_species::Ω forall(const S& s,
 }
 /** @brief @f$\forall@f$ over the whole truth chain, ⊥ to ⊤.
  *  @tparam S the set over a truth chain. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr typename S::logic_species::Ω forall(const S& s) {
   using C = typename S::Domain;
@@ -215,7 +228,7 @@ struct Run {
 /** @brief The runs of a set over a window, as a view: the normal form read off
  *  the chain while it is walked, one run in flight.  O(1) state.
  *  @tparam S the set over a finite chain. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
 class runs_view : public std::ranges::view_interface<runs_view<S>> {
  public:
   using C = typename S::Domain;
@@ -283,14 +296,14 @@ class runs_view : public std::ranges::view_interface<runs_view<S>> {
 /** @brief The runs of @c s on the window @c [lo, hi].
  *  @tparam S the set over a finite chain.  @param s the set.  @param lo the
  *  window's bottom.  @param hi its top. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
 constexpr runs_view<S> runs(const S& s, const typename S::Domain& lo,
                             const typename S::Domain& hi) {
   return {s, lo, hi};
 }
 /** @brief The runs of @c s over the whole truth chain.
  *  @tparam S the set over a truth chain. */
-export template <IsFiniteLSet S>
+export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr runs_view<S> runs(const S& s) {
   using C = typename S::Domain;

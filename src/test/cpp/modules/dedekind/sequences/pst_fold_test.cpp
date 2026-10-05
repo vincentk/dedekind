@@ -25,11 +25,9 @@ using namespace dedekind::sets;
 
 namespace {
 /** @brief The identity classifier on K₃, valued in K₃: χ(x) = x.  The simplest
- *  set with a genuine @c Unknown level. */
+ *  predicate with a genuine @c Unknown level; the comprehension over
+ *  @c 𝔸<Ternary, Kleene> makes it the set. */
 struct Hedge {
-  using Domain = Ternary;
-  using Codomain = Ternary;
-  using logic_species = Kleene;
   constexpr Ternary operator()(const Ternary& x) const { return x; }
 };
 
@@ -53,7 +51,7 @@ TEST_CASE("sequences:pst — chain_view agrees with iota and with the orbit",
 TEST_CASE("sequences:pst — 1a: Boole-valued sets over 𝔹 and K₃ are decided",
           "[sequences][pst][boole]") {
   constexpr auto top = 𝔸<bool>{} | (π == true);
-  STATIC_CHECK(IsFiniteLSet<decltype(top)>);
+  STATIC_CHECK(IsPstSet<decltype(top)>);
   CHECK(exists(top));
   CHECK_FALSE(forall(top));
   CHECK(equal(top, top));
@@ -81,6 +79,7 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
   CHECK(forall(above5, 6, 20));
   // The #365 showcase, by evaluation: no distributivity rule is involved.
   const auto meet = above5 & below3;
+  STATIC_CHECK(IsPstSet<decltype(meet)>);
   CHECK_FALSE(exists(meet, 0, 20));
   CHECK(equal(meet, Ø<int>{}, 0, 20));
   CHECK(collect(runs(above5, 0, 9)) == std::vector{Run<int, bool>{true, 6, 9}});
@@ -90,8 +89,8 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
 
 TEST_CASE("sequences:pst — 1b: a K₃-valued set has an Unknown level",
           "[sequences][pst][kleene]") {
-  constexpr Hedge hedge{};
-  STATIC_CHECK(IsFiniteLSet<Hedge>);
+  constexpr auto hedge = Comprehension{𝔸<Ternary, Kleene>{}, Hedge{}};
+  STATIC_CHECK(IsPstSet<decltype(hedge)>);
   CHECK(exists(hedge) == Ternary::True);
   CHECK(forall(hedge) == Ternary::False);
   // On the window [U, ⊤] the meet is U: the honest Kleene verdict.
