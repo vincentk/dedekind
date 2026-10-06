@@ -22,3 +22,5 @@ export import :samples;
 export import :tail;
 export import :curve;
 export import :ranges;
+export import :pst;  // the Pst fragment decided by one fold along the chain
+                     // (#975)

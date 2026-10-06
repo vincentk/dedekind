@@ -38,6 +38,7 @@ module;
                      // Domain/Codomain, so it is gated structurally, not by
                      // IsArrow (which models a unary morphism); see below.
 #include <cstddef>
+#include <type_traits>  // std::invoke_result_t (the fold-step witness)
 
 export module dedekind.optimization:closure;
 
@@ -78,12 +79,12 @@ constexpr FiniteSeq<Edge, Cap> ext(Pred edge) {
  * closure structure --- which @c cost the fold threads --- is an inspectable
  * type rather than a nameless closure.  The semiring ops @c ⊕ / @c ⊗ are fixed
  * by the carrier @c S itself (@c semiring_ops<S>) rather than exposed as
- * parameters, so @c cost is the only captured state.  Models the @c fold op
- * shape @c op(acc&,Edge).
+ * parameters, so @c cost is the only captured state.  Models the @c fold step
+ * @c op(acc, Edge), returning the new net.
  *
  * @note The ops are the carrier's canonical semiring (the @c IsSemiring gate).
- * @c cost is a bare BINARY callable (edge → weight, e.g.\ the raw lambda the
- * necklace showcase passes) with no @c Domain / @c Codomain, so it is gated
+ * @c cost is a bare BINARY callable (edge → weight, a raw lambda at the call
+ * site) with no @c Domain / @c Codomain, so it is gated
  * structurally (a @c requires on @c cost), NOT by @c IsArrow, which models a
  * unary morphism and would reject every caller.
  */
@@ -103,11 +104,13 @@ struct Relax {
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
-  /** @brief Relax @c e.head in place: @c d(head) ← d(head) ⊕ d(tail) ⊗
-   *  @c c(tail,head).  The @c fold op contract, @c op(acc&,Edge). */
-  constexpr void operator()(FiniteNet<S, Cap>& acc, const Edge& e) const {
+  /** @brief Relax @c e.head: @c d(head) ← d(head) ⊕ d(tail) ⊗ @c c(tail,head),
+   *  returning the new net --- the @c fold step @c op(acc, Edge). */
+  constexpr FiniteNet<S, Cap> operator()(FiniteNet<S, Cap> acc,
+                                         const Edge& e) const {
     acc.at(e.head) =
         Add{}(acc(e.head), Mult{}(acc(e.tail), cost(e.tail, e.head)));
+    return acc;
   }
 };
 
@@ -173,8 +176,8 @@ struct CriticalPathState {
  * selective @c ⊕ test @c (d(head) ⊕ cand != d(head)) is what makes the recorded
  * @c pred single-valued; see @ref annotate for the further selectivity
  * precondition.  The ops are fixed by the carrier @c S (@c semiring_ops<S>), so
- * @c cost is the only captured state.  Models the @c fold op shape
- * @c op(acc&,Edge).
+ * @c cost is the only captured state.  Models the @c fold step @c op(acc,
+ * Edge), returning the new state.
  *
  * @note Gated on @c IsTropical (idempotent @c ⊕), NOT bare @c IsSemiring: the
  * update overwrites @c d(head) with @c cand alone when @c (d(head) ⊕ cand)
@@ -210,15 +213,16 @@ struct CriticalPathStep {
   /** @brief The edge-cost function @c c(tail,head); the only captured state. */
   CostFn cost;
   /** @brief Relax @c e.head and, when the candidate @c d(tail) ⊗ c(tail,head)
-   *  wins the selective join, record @c e.tail as its predecessor.  The
-   *  @c fold op contract, @c op(acc&,Edge). */
-  constexpr void operator()(CriticalPathState<S, Cap>& acc,
-                            const Edge& e) const {
+   *  wins the selective join, record @c e.tail as its predecessor; returns the
+   *  new state --- the @c fold step @c op(acc, Edge). */
+  constexpr CriticalPathState<S, Cap> operator()(CriticalPathState<S, Cap> acc,
+                                                 const Edge& e) const {
     const S cand = Mult{}(acc.d(e.tail), cost(e.tail, e.head));
     if (Add{}(acc.d(e.head), cand) != acc.d(e.head)) {  // cand wins the join
       acc.d.at(e.head) = cand;
       acc.pred.at(e.head) = e.tail;
     }
+    return acc;
   }
 };
 
@@ -264,18 +268,19 @@ constexpr FiniteSeq<Edge, Cap> critical_path(
   return p;
 }
 
-// Type-level witness (#920): the named fold steps model the @c fold op shape
-// @c op(acc&,Edge), so @ref semiring_closure / @ref annotate thread them
-// exactly as the @c relax / @c step lambdas they replaced.  Paired with the
-// runtime necklace showcase (@c showcase_13_necklace_critical_path), whose @c
-// witness_* functions and value @c static_asserts fold these very functors to
-// concrete costs (@c static_asserts are invisible to coverage on their own).
+// Type-level witness: the named fold steps are steps of @c fold, @c acc @c =
+// @c op(acc, Edge) --- they take the accumulator by value and return one of the
+// same type, so @ref semiring_closure / @ref annotate thread them as values.
 static_assert(
-    std::invocable<const Relax<bool, 4>&, FiniteNet<bool, 4>&, const Edge&>,
-    "Relax is a fold op op(FiniteNet&, Edge).");
-static_assert(std::invocable<const CriticalPathStep<bool, 4>&,
-                             CriticalPathState<bool, 4>&, const Edge&>,
-              "CriticalPathStep is a fold op op(CriticalPathState&, Edge).");
+    std::same_as<std::invoke_result_t<const Relax<bool, 4>&, FiniteNet<bool, 4>,
+                                      const Edge&>,
+                 FiniteNet<bool, 4>>,
+    "Relax is a fold step FiniteNet → FiniteNet per edge.");
+static_assert(
+    std::same_as<std::invoke_result_t<const CriticalPathStep<bool, 4>&,
+                                      CriticalPathState<bool, 4>, const Edge&>,
+                 CriticalPathState<bool, 4>>,
+    "CriticalPathStep is a fold step CriticalPathState → CriticalPathState.");
 
 // The idempotent-⊕ gate on @ref CriticalPathStep is load-bearing, not
 // decoration: its selective overwrite is valid only for an idempotent @c ⊕, so

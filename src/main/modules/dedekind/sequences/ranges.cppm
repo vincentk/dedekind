@@ -36,6 +36,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>  // std::default_sentinel_t (chain_view)
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -125,6 +126,101 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
   const auto b = detail::iota_bounds(s);
   return std::ranges::views::iota(b.start, b.bound);
 }
+
+/** @section ranges__Chain_View
+ *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
+ *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
+ *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
+ *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
+ *  @c to_iota_view above is this view's integral face.  A forward view (the
+ *  walk restarts from @c lo), O(1) state: the current element and the end.
+ *  @tparam C the chain, with the covering step. */
+export template <HasCoveringStep C>
+  requires std::totally_ordered<C>
+class chain_view : public std::ranges::view_interface<chain_view<C>> {
+ public:
+  /** @brief The walk's position: the current element, the end, and whether
+   *  the walk is still live. */
+  class iterator {
+   public:
+    using value_type = C;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::forward_iterator_tag;
+    constexpr iterator() = default;
+    /** @param lo the first element.  @param hi the last; an empty walk when
+     *  @c lo @c > @c hi. */
+    constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
+    /** @return the current element, by value. */
+    constexpr C operator*() const { return current_; }
+    /** @brief Step to the cover of the current element; the walk ends after
+     *  @c hi, or at a saturating top short of it.  @return this iterator. */
+    constexpr iterator& operator++() {
+      if (current_ == hi_) {
+        live_ = false;
+      } else if (const auto next = cover(current_); next.has_value()) {
+        current_ = *next;
+      } else {
+        live_ = false;  // a saturating top short of hi: nothing above it
+      }
+      return *this;
+    }
+    /** @return the position before the step. */
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      ++*this;
+      return before;
+    }
+    friend constexpr bool operator==(const iterator&,
+                                     const iterator&) = default;
+    /** @return whether the walk has ended. */
+    friend constexpr bool operator==(const iterator& it,
+                                     std::default_sentinel_t) {
+      return !it.live_;
+    }
+
+   private:
+    C current_{};
+    C hi_{};
+    bool live_ = false;
+  };
+  constexpr chain_view() = default;
+  /** @param lo the window's bottom.  @param hi its top (inclusive). */
+  constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
+  /** @return the walk, starting at @c lo. */
+  constexpr iterator begin() const { return {lo_, hi_}; }
+  /** @return the sentinel the walk compares equal to once it has ended. */
+  constexpr std::default_sentinel_t end() const { return {}; }
+
+ private:
+  C lo_{};
+  C hi_{};
+};
+
+namespace detail_chain_view_witness {
+consteval bool walks(auto view, auto... expected) {
+  std::array<std::common_type_t<decltype(expected)...>, sizeof...(expected)>
+      want{expected...};
+  std::size_t i = 0;
+  for (const auto x : view) {
+    if (i >= want.size() || x != want[i]) return false;
+    ++i;
+  }
+  return i == want.size();
+}
+static_assert(walks(chain_view{Ternary::False, Ternary::True}, Ternary::False,
+                    Ternary::Unknown, Ternary::True),
+              "K₃ walked ⊥ → U → ⊤ by the cover.");
+static_assert(walks(chain_view{false, true}, false, true) &&
+                  walks(chain_view{true, true}, true) &&
+                  walks(chain_view{3, 6}, 3, 4, 5, 6),
+              "𝔹, a one-point window, and an integral window.");
+static_assert(std::ranges::forward_range<chain_view<int>> &&
+                  std::ranges::view<chain_view<Ternary>>,
+              "chain_view is a std::ranges forward view.");
+static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
+                  chain_view{2, 2}.begin() != std::default_sentinel,
+              "lo > hi is the empty window; lo == hi the one-point window.");
+}  // namespace detail_chain_view_witness
 
 /** @brief Project an interval (the meet of its two halfspaces) to its
  *  iota_view through its @c SetVal --- one bounds law. */

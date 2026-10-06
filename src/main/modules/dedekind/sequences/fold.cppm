@@ -17,7 +17,7 @@
  */
 module;
 
-#include <utility>
+#include <utility>  // std::move: the accumulator is threaded, not copied
 
 export module dedekind.sequences:fold;
 
@@ -26,19 +26,25 @@ namespace dedekind::sequences {
 /**
  * @brief Strict left fold over an enumerable range @c xs.
  *
- * Threads the accumulator through @c op(acc, x) left to right, in place, and
- * returns it.  A scalar accumulator recovers the familiar reduction (sum,
- * product); a structured accumulator (e.g.\ a potential vector) recovers a
- * stateful pass, without copying the accumulator at each step.
+ * Threads the accumulator through @c op(acc, x) left to right and returns
+ * it.  A scalar accumulator recovers the familiar reduction (sum, product); a
+ * structured accumulator (a potential vector) a stateful pass.
+ *
+ * The step is a function of the accumulator and the element, @c acc @c =
+ * @c op(acc, x): the textbook @f$\mathrm{fold}(\oplus, e)@f$, with no effect on
+ * anything but its result.  The accumulator is moved into the step and moved
+ * out, so a cheaply movable accumulator costs nothing per step; a
+ * fixed-capacity array (the closure's potential net) is copied by its move,
+ * which is the honest price of a fold that is a fold.
  *
  * @param xs   any range with @c begin / @c end (e.g.\ a @c constexpr array,
  *             which folds to a constant at translation time).
  * @param acc  the seed accumulator (returned, threaded).
- * @param op   @c op(acc&, x): updates @c acc in place, applied left to right.
+ * @param op   @c op(acc, x): the new accumulator, applied left to right.
  */
 export template <typename Range, typename Acc, typename Op>
 constexpr Acc fold(const Range& xs, Acc acc, Op op) {
-  for (const auto& x : xs) op(acc, x);
+  for (const auto& x : xs) acc = op(std::move(acc), x);
   return acc;
 }
 

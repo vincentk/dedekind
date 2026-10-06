@@ -63,6 +63,11 @@ using namespace dedekind::category;
  * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
+// The two-step for the NNO step (category:nno): the using-declaration lets the
+// generic integral / enum successor compete with this namespace's own
+// Cardinality overloads, so successor(bool) is the two-chain's step, not a
+// conversion to a cardinal.
+using dedekind::category::successor;
 
 /** @brief ∅: The Initial Object. Extensional (Size 0).
  *
@@ -70,14 +75,29 @@ namespace dedekind::sets {
  *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
  *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
  *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
-/** @brief A set over the finite carrier @c bool whose @c == Ø and @c == 𝔸 are
- *  decided by exhausting @c {false, true}: a predicate on @c bool that is
- * neither a boundary object nor sized (a sized set answers by its size).
+/** @brief A set over a truth chain (@c 𝔹, @f$K_3@f$: an @c IsPst carrier)
+ *  whose @c == Ø, @c == 𝔸 and set equality are decided by exhausting the chain
+ *  from ⊥ to ⊤ by the step: a predicate on the chain that is neither a boundary
+ *  object nor sized (a sized set answers by its size).  The Pst fragment's
+ *  normalisation by evaluation, in its simplest form.
  *  @tparam S the candidate. */
 export template <typename S>
-concept IsExhaustibleBoolSet =
-    IsPredicate<S> && std::same_as<Dom<S>, bool> && !IsBoundaryObject<S> &&
-    !requires(const S& s) { s.size(); };
+concept IsExhaustibleSet =
+    IsPredicate<S> && IsPst<Dom<S>> && HasCoveringStep<Dom<S>> &&
+    !IsBoundaryObject<S> && !requires(const S& s) { s.size(); };
+
+/** @brief A truth chain's bottom, its species' ⊥.  @tparam C the chain.
+ *  @return @c False of the species whose @c Ω is @c C. */
+export template <IsPst C>
+constexpr C chain_bottom() {
+  return classifier_logic_t<C>::False;
+}
+/** @brief A truth chain's top, its species' ⊤.  @tparam C the chain.
+ *  @return @c True of the species whose @c Ω is @c C. */
+export template <IsPst C>
+constexpr C chain_top() {
+  return classifier_logic_t<C>::True;
+}
 
 export template <typename T = std::nullptr_t, typename L = Boole>
 struct Ø final {
@@ -190,12 +210,17 @@ struct Ø final {
     return std::ranges::begin(s) == std::ranges::end(s);
   }
 
-  // (iii) a set over 𝔹: empty iff it holds at neither false nor true.
-  template <IsExhaustibleBoolSet S>
-    requires std::same_as<T, bool>
-  constexpr bool operator==(const S& s) const {
+  // (iii) a set over a truth chain: Ø = S is ⋀_x ¬χ(x) in the set's own L, the
+  // chain exhausted ⊥ to ⊤; ⊥ annihilates the meet, so the walk stops there.
+  template <IsExhaustibleSet S>
+    requires std::same_as<T, Dom<S>>
+  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
-    return s(false) == Log::False && s(true) == Log::False;
+    typename Log::Ω acc = Log::True;
+    for (T x = chain_bottom<T>();; x = successor(x)) {
+      acc = Log::AND(acc, Log::RFL(s(x)));
+      if (acc == Log::False || x == chain_top<T>()) return acc;
+    }
   }
 
   // The Duality: !∅ = V
@@ -378,14 +403,20 @@ struct 𝔸 final {
     return true;
   }
 
-  /** @brief @c 𝔸<bool> @c == @c S: the universe iff @c S holds at both
-   *  @c false and @c true.  An infinite carrier has no catch-all (the Rice
-   *  wall).  @tparam S a set over @c bool, see @c IsExhaustibleBoolSet. */
-  template <IsExhaustibleBoolSet S>
-    requires std::same_as<T, bool>
-  constexpr bool operator==(const S& s) const {
+  /** @brief @c 𝔸 @c == @c S on a truth chain: @f$\bigwedge_x \chi(x)@f$ in
+   *  the set's own @c L --- the universal quantifier, @c Unknown an honest
+   *  verdict on @f$K_3@f$ --- the chain exhausted ⊥ to ⊤, stopping at ⊥.  An
+   *  infinite carrier has no catch-all (the Rice wall).
+   *  @tparam S a set over the chain, see @c IsExhaustibleSet. */
+  template <IsExhaustibleSet S>
+    requires std::same_as<T, Dom<S>>
+  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
     using Log = predicate_logic_t<S>;
-    return s(false) == Log::True && s(true) == Log::True;
+    typename Log::Ω acc = Log::True;
+    for (T x = chain_bottom<T>();; x = successor(x)) {
+      acc = Log::AND(acc, s(x));
+      if (acc == Log::False || x == chain_top<T>()) return acc;
+    }
   }
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
@@ -492,6 +523,30 @@ static_assert(std::same_as<universe_t<Ø<int>>, 𝔸<int>> &&
 static_assert(
     dedekind::category::IsProduct<𝔸<std::pair<int, bool>>, 𝔸<int>, 𝔸<bool>>,
     "the universe of a pair carrier is the product of the factor universes.");
+
+/** @brief Two sets over one truth chain, in one species: @f$\bigwedge_x
+ *  (\chi_A(x) \Leftrightarrow \chi_B(x))@f$ in @c L, the internal logic's
+ *  equality with @f$a \Leftrightarrow b = (a \wedge b) \vee (\neg a \wedge
+ *  \neg b)@f$, the chain exhausted ⊥ to ⊤.  On @f$\mathbb{B}@f$ this is table
+ *  equality; on @f$K_3@f$ it is reflexive only up to the excluded middle (a set
+ *  agrees with itself to degree @c U where it is @c U).  The quantifiers
+ *  (@c :quantifier) and the subset identity ride on it; the more specialised
+ *  equalities (points, value sets, the boundaries) keep winning by partial
+ *  ordering.  @tparam A the left set.  @tparam B the right set. */
+export template <IsExhaustibleSet A, IsExhaustibleSet B>
+  requires std::same_as<Dom<A>, Dom<B>> &&
+           std::same_as<predicate_logic_t<A>, predicate_logic_t<B>>
+constexpr typename predicate_logic_t<A>::Ω operator==(const A& a, const B& b) {
+  using Log = predicate_logic_t<A>;
+  using C = Dom<A>;
+  typename Log::Ω acc = Log::True;
+  for (C x = chain_bottom<C>();; x = successor(x)) {
+    const auto l = a(x), r = b(x);
+    acc = Log::AND(acc,
+                   Log::OR(Log::AND(l, r), Log::AND(Log::RFL(l), Log::RFL(r))));
+    if (acc == Log::False || x == chain_top<C>()) return acc;
+  }
+}
 
 }  // namespace dedekind::sets
 
