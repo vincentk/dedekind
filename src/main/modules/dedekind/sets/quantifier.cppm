@@ -39,10 +39,11 @@
  * @section quantifier__L_Valued
  * The set-level forms take any L-set (Goguen) and answer in its @c L: with
  * @c == the internal logic's equality @f$\bigwedge_x (\chi \Leftrightarrow
- * \chi')@f$, @f$\forall = ((S|P) = S) = \bigwedge \chi_P@f$ and
- * @f$\exists = \neg(\varnothing = S|P) = \bigvee \chi_P@f$ by De Morgan.  So
- * @c Unknown is a verdict, not a failure, and there is still no separate fold:
- * whatever @c == a fragment supplies (on a truth chain, the exhaustion of
+ * \chi')@f$, @f$\exists = \neg(\varnothing = S|P) = \bigvee (\chi_S \wedge
+ * \chi_P)@f$ by De Morgan, and @f$\forall = ((S|P) = S) = \bigwedge \chi_P@f$
+ * on a @b crisp @c S (@c IsCrispSet: Boolean, or a boundary in any species).
+ * So @c Unknown is a verdict, not a failure, and there is still no separate
+ * fold: whatever @c == a fragment supplies (on a truth chain, the exhaustion of
  * @c :boundaries) is the quantifier.  Boolean sets answer @c bool as before.
  *
  * @build_order after :cardinality
@@ -160,18 +161,44 @@ concept IsWhereClause = !dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
 // set-valued operand @c s|p resolves to set UNION (@c 𝔸|Ø = 𝔸), not the
 // comprehension, which would make @c exists(𝔸<bool>, Ø{}) wrongly true.
 // Excluding @c IsSet keeps @c | bound to the where-clause here.
+/** @brief A verdict in the species @c L: an @c == that answers in @c L::Ω
+ *  passes through, one that answers @c bool (a sized or structural equality)
+ *  is lifted to ⊥ / ⊤.  @tparam L the species.  @param v the verdict. */
+template <typename L>
+constexpr typename L::Ω in_species(auto v) {
+  if constexpr (std::same_as<std::remove_cvref_t<decltype(v)>, typename L::Ω>)
+    return v;
+  else
+    return v ? L::True : L::False;
+}
+
+/** @brief A crisp L-set: its χ takes only ⊥ and ⊤ --- a Boolean set, or a
+ *  boundary (@c 𝔸, @c Ø) in any species.  On a crisp @c S the identity
+ *  @f$\forall x \in S.\,P \iff (S|P = S)@f$ holds in @c L; on a non-crisp
+ *  @c S the bounded @f$\forall@f$ is @f$\bigwedge (\chi_S \Rightarrow
+ *  \chi_P)@f$ with the species' implication, which is not offered yet (#980).
+ *  @tparam S the set. */
+export template <typename S>
+concept IsCrispSet =
+    dedekind::category::IsLSet<S> &&
+    (std::same_as<typename S::logic_species, dedekind::category::Boole> ||
+     dedekind::category::IsBoundaryObject<S>);
+
 export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω exists(const S& s, P p) {
   using L = typename S::logic_species;
-  return L::RFL(Ø<typename S::Domain, L>{} ==
-                (s | std::move(p)));  // (A): ¬({x ∈ S | P(x)} = ∅), in L
+  // (A): ¬({x ∈ S | P(x)} = ∅) = ⋁ (χ_S ∧ χ_P), in L.
+  return L::RFL(
+      in_species<L>(Ø<typename S::Domain, L>{} == (s | std::move(p))));
 }
 
-export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
+export template <IsCrispSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω forall(const S& s, P p) {
-  // (B): S = {x ∈ S | P(x)}, in L.  S first: the species' Ω-valued == is
-  // then called directly; a reversed candidate would have to return bool.
-  return s == (s | std::move(p));
+  using L = typename S::logic_species;
+  // (B): S = {x ∈ S | P(x)} = ⋀ χ_P on a crisp S, in L.  S first: the
+  // species' Ω-valued == is then called directly; a reversed candidate would
+  // have to return bool.
+  return in_species<L>(s == (s | std::move(p)));
 }
 
 /** @section quantifier__Formal_Verification */

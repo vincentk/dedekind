@@ -27,9 +27,8 @@ namespace dedekind::sequences {
  * @brief Strict left fold over an enumerable range @c xs.
  *
  * Threads the accumulator through @c op(acc, x) left to right and returns
- * it.  A scalar accumulator recovers the familiar reduction (sum,
- * product); a structured accumulator (e.g.\ a potential vector) recovers a
- * stateful pass, without copying the accumulator at each step.
+ * it.  A scalar accumulator recovers the familiar reduction (sum, product); a
+ * structured accumulator (a potential vector) a stateful pass.
  *
  * The step is a function of the accumulator and the element, @c acc @c =
  * @c op(acc, x): the textbook @f$\mathrm{fold}(\oplus, e)@f$, with no effect on

@@ -139,14 +139,21 @@ export template <HasCoveringStep C>
   requires std::totally_ordered<C>
 class chain_view : public std::ranges::view_interface<chain_view<C>> {
  public:
+  /** @brief The walk's position: the current element, the end, and whether
+   *  the walk is still live. */
   class iterator {
    public:
     using value_type = C;
     using difference_type = std::ptrdiff_t;
     using iterator_concept = std::forward_iterator_tag;
     constexpr iterator() = default;
+    /** @param lo the first element.  @param hi the last; an empty walk when
+     *  @c lo @c > @c hi. */
     constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
+    /** @return the current element, by value. */
     constexpr C operator*() const { return current_; }
+    /** @brief Step to the cover of the current element; the walk ends after
+     *  @c hi, or at a saturating top short of it.  @return this iterator. */
     constexpr iterator& operator++() {
       if (current_ == hi_) {
         live_ = false;
@@ -157,6 +164,7 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
       }
       return *this;
     }
+    /** @return the position before the step. */
     constexpr iterator operator++(int) {
       iterator before = *this;
       ++*this;
@@ -164,6 +172,7 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
     }
     friend constexpr bool operator==(const iterator&,
                                      const iterator&) = default;
+    /** @return whether the walk has ended. */
     friend constexpr bool operator==(const iterator& it,
                                      std::default_sentinel_t) {
       return !it.live_;
@@ -175,8 +184,11 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
     bool live_ = false;
   };
   constexpr chain_view() = default;
+  /** @param lo the window's bottom.  @param hi its top (inclusive). */
   constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
+  /** @return the walk, starting at @c lo. */
   constexpr iterator begin() const { return {lo_, hi_}; }
+  /** @return the sentinel the walk compares equal to once it has ended. */
   constexpr std::default_sentinel_t end() const { return {}; }
 
  private:

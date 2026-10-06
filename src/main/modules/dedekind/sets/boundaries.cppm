@@ -83,14 +83,17 @@ using dedekind::category::successor;
  *  @tparam S the candidate. */
 export template <typename S>
 concept IsExhaustibleSet =
-    IsPredicate<S> && IsPst<Dom<S>> && !IsBoundaryObject<S> &&
-    !requires(const S& s) { s.size(); };
+    IsPredicate<S> && IsPst<Dom<S>> && HasCoveringStep<Dom<S>> &&
+    !IsBoundaryObject<S> && !requires(const S& s) { s.size(); };
 
-/** @brief A truth chain's ends, from its species.  @tparam C the chain. */
+/** @brief A truth chain's bottom, its species' ⊥.  @tparam C the chain.
+ *  @return @c False of the species whose @c Ω is @c C. */
 export template <IsPst C>
 constexpr C chain_bottom() {
   return classifier_logic_t<C>::False;
 }
+/** @brief A truth chain's top, its species' ⊤.  @tparam C the chain.
+ *  @return @c True of the species whose @c Ω is @c C. */
 export template <IsPst C>
 constexpr C chain_top() {
   return classifier_logic_t<C>::True;

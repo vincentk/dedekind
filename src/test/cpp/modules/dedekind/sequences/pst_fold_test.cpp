@@ -48,7 +48,7 @@ std::vector<std::ranges::range_value_t<View>> collect(View v) {
 }
 }  // namespace
 
-TEST_CASE("sequences:pst — chain_view agrees with iota and with the orbit",
+TEST_CASE("sequences:pst: chain_view agrees with iota and with the orbit",
           "[sequences][pst][chain]") {
   CHECK(std::ranges::equal(chain_view{3, 7}, std::views::iota(3, 8)));
   const auto prefix_37 = prefix(SuccessorOrbit<int>{3}, 5);
@@ -57,7 +57,7 @@ TEST_CASE("sequences:pst — chain_view agrees with iota and with the orbit",
         std::vector{Ternary::False, Ternary::Unknown, Ternary::True});
 }
 
-TEST_CASE("sequences:pst — 1a: Boole-valued sets over 𝔹 and K₃ are decided",
+TEST_CASE("sequences:pst: 1a: Boole-valued sets over 𝔹 and K₃ are decided",
           "[sequences][pst][boole]") {
   // The quantifiers are sets' own: ∃ = not empty, ∀ = equal to the domain,
   // both decided by exhausting the truth chain (sets:boundaries).
@@ -78,7 +78,7 @@ TEST_CASE("sequences:pst — 1a: Boole-valued sets over 𝔹 and K₃ are decide
         std::vector{Run<bool, bool>{true, true, true}});
 }
 
-TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
+TEST_CASE("sequences:pst: a window on the integral chain, ends as values",
           "[sequences][pst][window]") {
   constexpr auto above5 = 𝔸<int>{} | (π > 5);
   constexpr auto at_least6 = 𝔸<int>{} | (π >= 6);
@@ -93,7 +93,7 @@ TEST_CASE("sequences:pst — a window on the integral chain, ends as values",
         std::vector{Run<int, bool>{true, 0, 2}, Run<int, bool>{true, 6, 9}});
 }
 
-TEST_CASE("sequences:pst — 1b: a K₃-valued set answers in K₃",
+TEST_CASE("sequences:pst: 1b: a K₃-valued set answers in K₃",
           "[sequences][pst][kleene]") {
   constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Hedge{};
   STATIC_CHECK(IsPstSet<decltype(hedge)>);
@@ -106,10 +106,15 @@ TEST_CASE("sequences:pst — 1b: a K₃-valued set answers in K₃",
   CHECK((hedge == hedge) == Ternary::Unknown);
   CHECK((𝔸<Ternary, Kleene>{} == (𝔸<Ternary, Kleene>{} | AtLeastMaybe{})) ==
         Ternary::Unknown);  // 𝔸 first: the Ω-valued member, not a rewrite
-  // Two runs, two levels: the α-cuts {χ ≥ U} = [U, ⊤] and {χ ≥ ⊤} = [⊤, ⊤].
+  // The fibres of χ: two runs of constant level.
   CHECK(collect(runs(hedge)) ==
         std::vector{Run<Ternary, Ternary>{Ternary::Unknown, Ternary::Unknown,
                                           Ternary::Unknown},
                     Run<Ternary, Ternary>{Ternary::True, Ternary::True,
                                           Ternary::True}});
+  // The α-cuts, nested: {χ ≥ U} = [U, ⊤] and {χ ≥ ⊤} = [⊤, ⊤].
+  CHECK(collect(alpha_cut(hedge, Ternary::Unknown)) ==
+        std::vector{Run<Ternary, bool>{true, Ternary::Unknown, Ternary::True}});
+  CHECK(collect(alpha_cut(hedge, Ternary::True)) ==
+        std::vector{Run<Ternary, bool>{true, Ternary::True, Ternary::True}});
 }
