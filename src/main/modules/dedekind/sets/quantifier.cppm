@@ -41,9 +41,10 @@
  * @c == the internal logic's equality @f$\bigwedge_x (\chi \Leftrightarrow
  * \chi')@f$, @f$\exists = \neg(\varnothing = S|P) = \bigvee (\chi_S \wedge
  * \chi_P)@f$ by De Morgan, and @f$\forall = ((S|P) = S) = \bigwedge \chi_P@f$
- * on a @b crisp @c S (@c IsCrispSet: Boolean, or a boundary in any species).
- * So @c Unknown is a verdict, not a failure, and there is still no separate
- * fold: whatever @c == a fragment supplies (on a truth chain, the exhaustion of
+ * on a @b decidable @c S (@c HasDecidableMembership, or a boundary in any
+ * species). So @c Unknown is a verdict, not a failure, and there is still no
+ * separate fold: whatever @c == a fragment supplies (on a truth chain, the
+ * exhaustion of
  * @c :boundaries) is the quantifier.  Boolean sets answer @c bool as before.
  *
  * @build_order after :cardinality
@@ -60,6 +61,8 @@ export module dedekind.sets:quantifier;
 import dedekind.category; // IsSet, ambient_set (the domain-is-a-set witness)
 import :boundaries;       // Ø — the emptiness anchor the quantifiers compare to
 import :expressions;      // the set former and the reducer's nodes over 𝔹
+import :computability;    // HasDecidableMembership: the Δ-reader the bounded ∀
+                          // asks of S
 
 namespace dedekind::sets {
 
@@ -172,18 +175,6 @@ constexpr typename L::Ω in_species(auto v) {
     return v ? L::True : L::False;
 }
 
-/** @brief A crisp L-set: its χ takes only ⊥ and ⊤ --- a Boolean set, or a
- *  boundary (@c 𝔸, @c Ø) in any species.  On a crisp @c S the identity
- *  @f$\forall x \in S.\,P \iff (S|P = S)@f$ holds in @c L; on a non-crisp
- *  @c S the bounded @f$\forall@f$ is @f$\bigwedge (\chi_S \Rightarrow
- *  \chi_P)@f$ with the species' implication, which is not offered yet (#980).
- *  @tparam S the set. */
-export template <typename S>
-concept IsCrispSet =
-    dedekind::category::IsLSet<S> &&
-    (std::same_as<typename S::logic_species, dedekind::category::Boole> ||
-     dedekind::category::IsBoundaryObject<S>);
-
 export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
 constexpr typename S::logic_species::Ω exists(const S& s, P p) {
   using L = typename S::logic_species;
@@ -192,12 +183,22 @@ constexpr typename S::logic_species::Ω exists(const S& s, P p) {
       in_species<L>(Ø<typename S::Domain, L>{} == (s | std::move(p))));
 }
 
-export template <IsCrispSet S, IsWhereClause<S> P>
+/** @brief Bounded @f$\forall@f$ over a @b decidable @c S (its χ in 𝔹: the Δ
+ *  grade, @c HasDecidableMembership) or a boundary in any species (χ constant).
+ *  There the identity @f$\forall x \in S.\,P \iff (S|P = S)@f$ holds in @c L,
+ *  because for two-valued @f$\chi_S@f$ the internal equality
+ *  @f$(\chi_S \wedge \chi_P \Leftrightarrow \chi_S)@f$ coincides with the
+ *  implication @f$\chi_S \Rightarrow \chi_P@f$.  In a Heyting algebra that is
+ *  a theorem for every @f$\chi_S@f$; Ω here is a De Morgan chain (#901) whose
+ *  material implication is not a residuum, so over an L-valued @c S the
+ *  bounded @f$\forall = \bigwedge (\chi_S \Rightarrow \chi_P)@f$ needs the
+ *  chain's residuated implication, which is #980's remainder. */
+export template <dedekind::category::IsLSet S, IsWhereClause<S> P>
+  requires HasDecidableMembership<S> || dedekind::category::IsBoundaryObject<S>
 constexpr typename S::logic_species::Ω forall(const S& s, P p) {
   using L = typename S::logic_species;
-  // (B): S = {x ∈ S | P(x)} = ⋀ χ_P on a crisp S, in L.  S first: the
-  // species' Ω-valued == is then called directly; a reversed candidate would
-  // have to return bool.
+  // (B): S = {x ∈ S | P(x)} = ⋀ χ_P, in L.  S first: the species' Ω-valued ==
+  // is then called directly; a reversed candidate would have to return bool.
   return in_species<L>(s == (s | std::move(p)));
 }
 
