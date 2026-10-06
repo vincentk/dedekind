@@ -2398,11 +2398,13 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
 /** @brief Two cuts are the same set iff their value forms agree: through
  *  @c to_setval and the extensional @c SetVal equality, which on a discrete
  *  carrier closes a strict bound where the step moves (@c {x > ⊥} is
- *  @c {x ≥ U} on K₃) and stays structural on a dense one.  Answers in @c L. */
+ *  @c {x ≥ U} on K₃) and stays structural on a dense one.  Answers in @c L.
+ *  On a truth chain the boundaries' exhaustion decides instead (it also sees
+ *  that @c {x > ⊤} and @c {x < ⊥} are both empty, which no cut law does). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
                  IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
                  IsSide Hi2>
-  requires std::equality_comparable<T>
+  requires std::equality_comparable<T> && (!IsPst<T>)
 constexpr typename L::Ω operator==(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
