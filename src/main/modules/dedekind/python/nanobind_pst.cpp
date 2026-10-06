@@ -432,10 +432,20 @@ nb::object on_set_and_datum(nb::handle s, nb::handle d, const char* what) {
         nb::cast<pst::Set<Ternary, Boole>>(s),
         nb::cast<pst::Datum<Ternary>>(d)));
   if (nb::isinstance<pst::Set<Ternary, Kleene>>(s) &&
-      nb::isinstance<pst::Datum<Ternary>>(d))
-    return nb::cast(Query::template apply<Ternary, Kleene>(
-        nb::cast<pst::Set<Ternary, Kleene>>(s),
-        nb::cast<pst::Datum<Ternary>>(d)));
+      nb::isinstance<pst::Datum<Ternary>>(d)) {
+    if constexpr (requires(const pst::Set<Ternary, Kleene>& ks,
+                           const pst::Datum<Ternary>& kd) {
+                    Query::template apply<Ternary, Kleene>(ks, kd);
+                  })
+      return nb::cast(Query::template apply<Ternary, Kleene>(
+          nb::cast<pst::Set<Ternary, Kleene>>(s),
+          nb::cast<pst::Datum<Ternary>>(d)));
+    else
+      throw nb::type_error(
+          "forall over an L-valued set awaits the chain's residuated "
+          "implication (#980); quantify over its α-cut: forall(S.cut(level), "
+          "P)");
+  }
   const std::string message = std::string(what) +
                               "(S, P): S a set over 𝔹 or K₃ and P a datum "
                               "over the same chain";
@@ -449,6 +459,7 @@ struct Exists {
 };
 struct Forall {
   template <typename C, typename L>
+    requires std::same_as<L, Boole>
   static auto apply(const pst::Set<C, L>& s, const pst::Datum<C>& d) {
     return pst::forall(s, d);
   }
@@ -594,7 +605,8 @@ NB_MODULE(_pst, m) {
         return on_set_and_datum<Forall>(s, p, "forall");
       },
       nb::arg("S"), nb::arg("P"),
-      "forall(S, P) = ⋀ (χ_S ⇒ P), in S's species: equal to the domain.");
+      "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
+      "L-valued S is refused (see #980), quantify over S.cut(level).");
   m.attr("any") = m.attr("exists");
   m.attr("all") = m.attr("forall");
   m.def(

@@ -48,6 +48,8 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertIs(exists(Ø(K3), π >= F), False)
         self.assertIs(pst.any(A(K3), π == U), True)
         self.assertIs(pst.all(A(K3) | (π > F), π >= U), True)
+        self.assertIs(forall(A(K3) | (π > F), π == T), False)
+        self.assertIs(forall(Ø(K3), π == T), True)  # vacuous
 
     def test_runs_are_the_normal_form(self) -> None:
         S = A(K3) | (π > F)
@@ -85,8 +87,10 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(H(U), U)
         self.assertIn(T, H)  # `in` is the decided membership χ(x) = ⊤
         self.assertNotIn(U, H)
-        self.assertEqual(exists(H, π >= F), T)  # ⋁ χ
-        self.assertEqual(forall(H, π >= F), F)  # ⋀ χ: ⊥ at ⊥
+        self.assertEqual(exists(H, π >= F), T)  # ⋁ (χ ∧ P)
+        with self.assertRaises(TypeError):
+            forall(H, π >= F)  # a bounded ∀ over an L-valued set awaits #980
+        self.assertIs(forall(H.cut(U), π >= U), True)  # over its cut, decided
         # Equality is the internal biconditional: reflexive only up to the
         # excluded middle, so H agrees with itself to degree U where it is U.
         self.assertEqual(H == H, U)

@@ -610,8 +610,8 @@ Set<C, L> complement(const Set<C, L>& a) {
 
 /** @brief The queries, each the library's, in @c L: @c == is the internal
  *  equality by exhaustion, @c ⊆ the identity @f$(A \cap B) = A@f$, @c ∃ / @c ∀
- *  the quantifiers of @c sets:quantifier over the universe with the restricted
- *  set as the where-clause (so the general @c S is reached through @c 𝔸).
+ *  @c ∃ the quantifier of @c sets:quantifier over the universe with the
+ *  restricted set as the where-clause, @f$\bigvee (\chi_S \wedge P)@f$.
  *  @tparam C the chain.  @tparam L the species. */
 template <dedekind::category::IsPst C, dedekind::category::IsOckhamAlgebra L>
 typename L::Ω equal(const Set<C, L>& a, const Set<C, L>& b) {
@@ -626,10 +626,13 @@ typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
   return dedekind::sets::exists(dedekind::sets::𝔸<C, L>{},
                                 former(s, d).predicate);
 }
-template <dedekind::category::IsPst C, dedekind::category::IsOckhamAlgebra L>
-typename L::Ω forall(const Set<C, L>& s, const Datum<C>& d) {
-  return dedekind::sets::forall(dedekind::sets::𝔸<C, L>{},
-                                former(s, d).predicate);
+/** @brief Bounded @f$\forall@f$ over a @b decidable set: the identity
+ *  @f$S = S|P@f$, the library's own @c forall, exact for two-valued χ_S.  An
+ *  L-valued @c S has no bounded ∀ until the species has a residuated
+ *  implication (#980); the binding refuses it and points at the α-cut. */
+template <dedekind::category::IsPst C>
+bool forall(const Set<C, dedekind::category::Boole>& s, const Datum<C>& d) {
+  return equal(s, former(s, d));
 }
 /** @brief The runs of a decidable set, materialised for the handle. */
 template <dedekind::category::IsPst C>
