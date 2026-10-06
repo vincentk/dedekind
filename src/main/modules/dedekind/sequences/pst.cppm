@@ -118,10 +118,16 @@ struct ToRun {
 export template <IsPstSet S>
 constexpr auto runs(const S& s, const typename S::Domain& lo,
                     const typename S::Domain& hi) {
-  return chain_view{lo, hi} | std::views::transform(detail_pst::Table<S>{s}) |
-         std::views::chunk_by(detail_pst::SameMembership{}) |
-         std::views::filter(detail_pst::Inhabited{}) |
-         std::views::transform(detail_pst::ToRun{});
+  // Spelled as calls, not as a | pipeline: the library's own operator| family
+  // (the set former, the join) is in scope wherever a set type is, and the
+  // adaptor closure's operator| is not what overload resolution then finds.
+  return std::views::transform(
+      std::views::filter(
+          std::views::chunk_by(std::views::transform(chain_view{lo, hi},
+                                                     detail_pst::Table<S>{s}),
+                               detail_pst::SameMembership{}),
+          detail_pst::Inhabited{}),
+      detail_pst::ToRun{});
 }
 /** @brief The runs over a whole truth chain, ⊥ to ⊤.
  *  @tparam S a set over a truth chain. */

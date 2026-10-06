@@ -436,9 +436,10 @@ nb::object on_set_and_datum(nb::handle s, nb::handle d, const char* what) {
     return nb::cast(Query::template apply<Ternary, Kleene>(
         nb::cast<pst::Set<Ternary, Kleene>>(s),
         nb::cast<pst::Datum<Ternary>>(d)));
-  throw nb::type_error(std::string(what) +
-                       "(S, P): S a set over 𝔹 or K₃ and P a datum over the "
-                       "same chain");
+  const std::string message = std::string(what) +
+                              "(S, P): S a set over 𝔹 or K₃ and P a datum "
+                              "over the same chain";
+  throw nb::type_error(message.c_str());
 }
 struct Exists {
   template <typename C, typename L>
