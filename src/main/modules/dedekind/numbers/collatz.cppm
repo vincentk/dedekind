@@ -38,6 +38,7 @@
 module;
 
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -61,11 +62,22 @@ using namespace dedekind::sets;
 
 /** @brief The recurrence, spelled out @b explicitly as a named function (not a
  *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on
- * the native @c size_t shadow (halving and @c 3n+1 are exact below the wrap);
- * the canonical ℕ is the ideal it faithfully shadows. */
+ * the native @c size_t shadow, which @b saturates where @c 3n+1 would leave
+ * the word, the posture of ℕ's proxy (the point-free relation on
+ * @c Cardinality saturates to ℵ₀ the same way).  The word's top is odd, so it
+ * is a fixpoint of the rule: an orbit that reaches it never reaches 1, and the
+ * verdict below stays @c Unknown rather than wrapping into a false @c True. */
 export constexpr std::size_t collatz_rule(std::size_t n) {
-  return (n % 2 == 0) ? n / 2 : 3 * n + 1;
+  if (n % 2 == 0) return n / 2;
+  std::size_t m{};
+  if (__builtin_mul_overflow(n, std::size_t{3}, &m) ||
+      __builtin_add_overflow(m, std::size_t{1}, &m))
+    return std::numeric_limits<std::size_t>::max();
+  return m;
 }
+static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
+                  std::numeric_limits<std::size_t>::max(),
+              "the word's top is a fixpoint of the saturating rule: no wrap");
 
 /** @brief The parity discriminant @f$\{(n,m) : n \text{ even}\}@f$ --- the axis
  *  restriction spelled @b once, so @f$T@f$ never repeats the @f$\pi_1 \bmod
@@ -229,17 +241,26 @@ export constexpr auto collatz_orbit(std::size_t n) {
   return iterate(n, collatz_rule);
 }
 
+/** @brief The reach indicator's type: a @c Path<Ternary> monotone in
+ *  @c {Unknown, True} (@c True absorbs), constructible only through
+ *  @c collatz_reach_path, which guarantees that shape; registered absorptive
+ *  in @c sequences below, as @c :mandelbrot's @c DivergencePath is. */
+export struct ReachPath : Path<Ternary> {
+ private:
+  constexpr explicit ReachPath(Path<Ternary> p) : Path<Ternary>{std::move(p)} {}
+  friend constexpr ReachPath collatz_reach_path(std::size_t n);
+};
 /** @brief @c True once 1 is present, @c Unknown before --- a monotone
- *         @c {Unknown,True} absorptive @c Path<Ternary> (the ℕ analogue of
- *         Mandelbrot's escape indicator). */
-export constexpr auto collatz_reach_path(std::size_t n) {
-  return scan(
+ *         @c {Unknown,True} absorptive path (the ℕ analogue of Mandelbrot's
+ *         escape indicator).  @param n the seed. */
+export constexpr ReachPath collatz_reach_path(std::size_t n) {
+  return ReachPath{scan(
       [](const FinitePath<std::size_t>& p) -> Ternary {
         return exists(p, [](std::size_t v) { return v == 1; })
                    ? Ternary::True
                    : Ternary::Unknown;
       },
-      collatz_orbit(n));
+      collatz_orbit(n))};
 }
 
 /** @brief The first index @f$k \le@f$ @c budget at which the orbit hits 1, else
@@ -247,11 +268,11 @@ export constexpr auto collatz_reach_path(std::size_t n) {
 export constexpr std::optional<std::size_t> collatz_reach_time(
     std::size_t n, std::size_t budget) {
   std::size_t v = n;
-  for (std::size_t i = 0; i <= budget; ++i) {
+  for (std::size_t i = 0;; ++i) {
     if (v == 1) return i;
+    if (i == budget) return std::nullopt;  // the budget's step is never taken
     v = collatz_rule(v);
   }
-  return std::nullopt;
 }
 
 /** @brief The Rosolini-dominance verdict: reaches 1 within @c budget @c ⟹
@@ -287,8 +308,24 @@ static_assert(reaches_1_within(6, 7) == Ternary::Unknown,
 // below 1000 is 178, at n = 871) — a decidable ∀, at compile time.
 static_assert(all_reach_1_within<1000, 300>(),
               "every 1 <= n < 1000 reaches 1 within 300 steps");
-// The reach indicator is a genuine (absorptive) sequence.
-static_assert(IsSequence<decltype(collatz_reach_path(27))>,
-              "the reaches-1 indicator is a Path<Ternary>");
+// An orbit that leaves the word saturates at its top and stays undecided.
+static_assert(reaches_1_within(std::numeric_limits<std::size_t>::max(), 8) ==
+                  Ternary::Unknown,
+              "the saturated orbit never reaches 1: U, not a wrapped True");
 
+}  // namespace dedekind::numbers
+
+namespace dedekind::sequences {
+/** @brief Opt-in: every @c ReachPath is absorptive (eventually constant:
+ *  @c True once 1 is seen, or the constant @c Unknown).  The shape is
+ *  guaranteed by its only constructor, so the registration is sound. */
+export template <>
+inline constexpr bool is_absorptive_sequence_v<dedekind::numbers::ReachPath> =
+    true;
+}  // namespace dedekind::sequences
+
+namespace dedekind::numbers {
+// The reach indicator is a genuine absorptive sequence, as a type-level fact.
+static_assert(IsAbsorptiveSequence<decltype(collatz_reach_path(27))>,
+              "the reaches-1 indicator is an absorptive Path<Ternary>");
 }  // namespace dedekind::numbers

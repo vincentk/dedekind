@@ -233,6 +233,9 @@ export template <typename Rel, typename T1>
 struct FibrePredicate {
   Rel relation;
   T1 point;
+  // Available exactly when the relation and the point compare.
+  friend constexpr bool operator==(const FibrePredicate&,
+                                   const FibrePredicate&) = default;
   template <typename T2>
   constexpr auto operator()(const T2& b) const {
     return relation(std::pair<T1, T2>{point, b});

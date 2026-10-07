@@ -10,6 +10,9 @@
  *        (@c R;R, @c (R;R);(R;R), …) stays bounded --- the semantic for-loop of
  *        bounded transitive closure (#795).
  *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
  * @section relprod__Why_Here
  * Homed downstream of @c relational (where the Boolean @c >> lives): the bound
  * @c M is read from an @b order-level @c ProjBound (the half-space cut @c
@@ -20,8 +23,14 @@
  * the bare @c >> via @c using @c namespace @c dedekind::sequences.  The
  * @f$\exists@f$ itself is @c sets::exists (@b upstream, short-circuiting).
  *
- * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
+ * Wikipedia: Composition of relations, Transitive closure, Relation algebra
+ *
+ * @note "The logical theory which is called the calculus of (binary)
+ *       relations, and the development of which is the subject of this paper,
+ *       has had a strange and rather capricious line of historical
+ *       development."
+ *       -- Alfred Tarski, On the Calculus of Relations, Journal of Symbolic
+ *       Logic 6 (1941), §1.
  */
 module;
 

@@ -8,10 +8,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <limits>
 #include <utility>
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.sequences;
 import dedekind.sets;
 
 using namespace dedekind::numbers;
@@ -29,6 +31,23 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
   CHECK(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}));
   CHECK(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}));
   CHECK(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}));
+  // The shadow saturates where 3n+1 leaves the word; the top is a fixpoint.
+  constexpr auto top = std::numeric_limits<std::size_t>::max();
+  CHECK(collatz_rule(top) == top);
+  CHECK(collatz_rule(top / 3 + 1) == top);  // odd, and 3n+1 overflows
+}
+
+TEST_CASE("numbers:collatz — two steps, and the attractor's pre-image",
+          "[numbers][collatz][relational]") {
+  const auto n = [](std::size_t i) { return finite_cardinality(i); };
+  CHECK(collatz2(std::pair{n(4), n(1)}));   // 4 → 2 → 1
+  CHECK(collatz2(std::pair{n(6), n(10)}));  // 6 → 3 → 10
+  CHECK(!collatz2(std::pair{n(6), n(5)}));
+  CHECK(converged_2(n(4)));   // captured by {1, 2, 4}
+  CHECK(converged_2(n(1)));   // already inside the cycle
+  CHECK(!converged_2(n(3)));  // 3 → 10 → 5
+  CHECK(pending_2(n(3)));
+  CHECK(!pending_2(n(4)));
 }
 
 TEST_CASE("numbers:collatz — reach time is the first index hitting 1",
@@ -48,6 +67,9 @@ TEST_CASE("numbers:collatz — the Rosolini verdict: IN / U (never OUT)",
   CHECK(reaches_1_within(27, 50) == Ternary::Unknown);
   CHECK(reaches_1_within(6, 8) == Ternary::True);
   CHECK(reaches_1_within(6, 7) == Ternary::Unknown);
+  CHECK(reaches_1_within(2, 0) == Ternary::Unknown);  // budget 0: no step
+  CHECK(reaches_1_within(std::numeric_limits<std::size_t>::max(), 8) ==
+        Ternary::Unknown);  // saturated orbit: undecided, never wrapped
   // There is no False: an undecided answer negates to itself under the honest
   // dominance — "never reaches 1" has no finite certificate for standard
   // Collatz, so the classifier only ever answers True or Unknown.
@@ -67,6 +89,7 @@ TEST_CASE("numbers:collatz — orbit and reach-indicator are sequences",
   CHECK(orbit.at(8) == 1u);
   // The reach indicator is Unknown before 1 appears and absorbs to True after.
   const auto reach = collatz_reach_path(6);
+  STATIC_CHECK(dedekind::sequences::IsAbsorptiveSequence<decltype(reach)>);
   CHECK(reach.at(0) == Ternary::Unknown);  // 6 ≠ 1
   CHECK(reach.at(20) == Ternary::True);    // reached (step 8) and stays True
 }
