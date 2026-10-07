@@ -25,6 +25,7 @@ module;
 #include <functional>
 #include <limits>     // the integer window's ends
 #include <optional>   // the cover, the first element of a set
+#include <ranges>     // the window's view
 #include <stdexcept>  // std::overflow_error at the window's end
 #include <string>
 #include <utility>

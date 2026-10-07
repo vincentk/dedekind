@@ -27,6 +27,7 @@
 #include <vector>
 
 import dedekind.category;  // Ternary
+import dedekind.numbers;   // collatz_reach_time
 import dedekind.python;    // dedekind::python::collatz, ::lwv
 import dedekind.sequences; // Path
 
