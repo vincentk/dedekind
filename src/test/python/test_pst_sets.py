@@ -133,6 +133,10 @@ class MixedSpeciesTest(unittest.TestCase):
         self.assertEqual((S | H)(F), F)
         self.assertEqual((H | S)(U), T)  # U ∨ ⊤
         self.assertEqual(lift(S) == (S & A(K3, Kleene)), T)
+        # ^ across species: (⊤ ⊕ U) = U at U, ⊤ ⊕ ⊤ = ⊥ at ⊤, in K₃ either way.
+        for X in (S ^ H, H ^ S):
+            self.assertFalse(X.is_decidable)
+            self.assertEqual((X(F), X(U), X(T)), (F, U, F))
 
     def test_queries_in_the_join(self) -> None:
         S = A(K3) | (π > F)
@@ -145,6 +149,9 @@ class MixedSpeciesTest(unittest.TestCase):
         self.assertEqual(S <= H, U)
         self.assertEqual(H <= S, U)
         self.assertEqual(S != H, U)
+        # >= on unequal sets, both orders: 𝔸 ⊇ S holds, S ⊇ 𝔸 fails at ⊥.
+        self.assertEqual(A(K3, Kleene) >= S, T)
+        self.assertEqual(S >= A(K3, Kleene), F)
 
 
 class RefusalsTest(unittest.TestCase):

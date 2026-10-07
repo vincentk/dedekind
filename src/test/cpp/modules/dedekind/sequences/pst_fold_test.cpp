@@ -105,7 +105,9 @@ TEST_CASE(
   // Across species, compared in their join: {x > ⊥} (Boolean) against χ = id
   // (K₃-valued) agrees at ⊥ and ⊤, and at U to degree U.
   constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
-  CHECK((above_bottom == hedge) == Ternary::Unknown);
+  STATIC_CHECK((above_bottom == hedge) == Ternary::Unknown);
+  STATIC_CHECK((hedge == above_bottom) == Ternary::Unknown);
+  CHECK((above_bottom == hedge) == Ternary::Unknown);  // the runtime companions
   CHECK((hedge == above_bottom) == Ternary::Unknown);
   // ⊥ against U is itself only U; {x < U} (Boolean) against χ = id differs
   // outright at ⊥, ⊤ against ⊥, and the biconditional's meet is ⊥.
