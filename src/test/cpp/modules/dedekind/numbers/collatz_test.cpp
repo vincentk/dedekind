@@ -89,7 +89,8 @@ TEST_CASE("numbers:collatz — orbit and reach-indicator are sequences",
   CHECK(orbit.at(8) == 1u);
   // The reach indicator is Unknown before 1 appears and absorbs to True after.
   const auto reach = collatz_reach_path(6);
-  STATIC_CHECK(dedekind::sequences::IsAbsorptiveSequence<decltype(reach)>);
+  STATIC_CHECK(dedekind::sequences::IsAbsorptiveSequence<ReachPath>);  // the
+  // registration is on the type; a const-qualified decltype is not it
   CHECK(reach.at(0) == Ternary::Unknown);  // 6 ≠ 1
   CHECK(reach.at(20) == Ternary::True);    // reached (step 8) and stays True
 }
