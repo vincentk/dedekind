@@ -46,6 +46,7 @@ namespace nb = nanobind;
 namespace {
 namespace pst = dedekind::python::pst;
 using dedekind::category::Boole;
+using dedekind::category::join_logic_t;
 using dedekind::category::Kleene;
 using dedekind::category::Ternary;
 using dedekind::sets::Cardinality;
@@ -374,7 +375,7 @@ void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
       .def(
           "__ne__",
           [](const S& a, const O& b) {
-            return nb::cast(pst::Joined<L1, L2>::RFL(pst::equal(a, b)));
+            return nb::cast(join_logic_t<L1, L2>::RFL(pst::equal(a, b)));
           },
           nb::is_operator())
       .def(
