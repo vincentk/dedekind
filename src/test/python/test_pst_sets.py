@@ -7,9 +7,10 @@ set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 
 import unittest
 
-from dedekind.pst import 𝔸, Ø, η, π, χ, 𝔹, K3, Ternary, Boole, Kleene
-from dedekind.pst import exists, forall, runs, lift
-from dedekind import pst
+from dedekind.pst import (
+    𝔸, Ø, η, π, χ, 𝔹, K3, Ternary, Boole, Kleene, exists, forall, runs, lift,
+    any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
+)
 
 A, B = 𝔸, 𝔹  # the written forms are the names, under NFKC
 F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
@@ -46,8 +47,8 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertIs(forall(A(K3), π > F), False)
         self.assertIs(forall(A(K3), π >= F), True)
         self.assertIs(exists(Ø(K3), π >= F), False)
-        self.assertIs(pst.any(A(K3), π == U), True)
-        self.assertIs(pst.all(A(K3) | (π > F), π >= U), True)
+        self.assertIs(any_(A(K3), π == U), True)
+        self.assertIs(all_(A(K3) | (π > F), π >= U), True)
         self.assertIs(forall(A(K3) | (π > F), π == T), False)
         self.assertIs(forall(Ø(K3), π == T), True)  # vacuous
 

@@ -218,7 +218,7 @@ struct ProjectionTag {};
 template <typename C>
 std::string written_runs(const pst::Set<C, Boole>& s) {
   std::string out;
-  for (const auto& r : pst::runs<C>(s)) {
+  for (const auto& r : pst::run_list<C>(s)) {
     if (!out.empty()) out += " ∪ ";
     out += r.lo == r.hi ? "{" + symbol(r.lo) + "}"
                         : "[" + symbol(r.lo) + ", " + symbol(r.hi) + "]";
@@ -318,7 +318,7 @@ void bind_set(nb::module_& m, const char* cls, const char* doc) {
            "runs",
            [](const S& s) {
              nb::list out;
-             for (const auto& r : pst::runs<C>(s))
+             for (const auto& r : pst::run_list<C>(s))
                out.append(nb::make_tuple(to_py<C>(r.lo), to_py<C>(r.hi)));
              return out;
            },

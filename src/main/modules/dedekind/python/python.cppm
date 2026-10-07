@@ -488,6 +488,29 @@ static_assert(saturates<bool>() && saturates<dedekind::category::Ternary>() &&
               "the three chains saturate at ⊤.");
 
 // ── Sets over a truth chain, per the paper's Lwv grammar (#975, PR two) ─────
+// The names the block uses, once: the category vocabulary, the sets' generators
+// and atoms, the sequences' runs.
+using dedekind::category::Boole;
+using dedekind::category::classifier_logic_t;
+using dedekind::category::Dom;
+using dedekind::category::HasCoveringStep;
+using dedekind::category::Identity;
+using dedekind::category::IsFiniteChain;
+using dedekind::category::IsOckhamAlgebra;
+using dedekind::category::IsPredicate;
+using dedekind::category::IsPst;
+using dedekind::category::Kleene;
+using dedekind::category::lift_logic;
+using dedekind::category::preimage;
+using dedekind::sequences::Run;
+using dedekind::sets::Comprehension;
+using dedekind::sets::exists;
+using dedekind::sets::forall;
+using dedekind::sets::Ø;
+using dedekind::sets::η;
+using dedekind::sets::π;
+using dedekind::sets::𝔸;
+
 //
 // A Python set is a REAL library set: a Comprehension over 𝔸<C, L> whose datum
 // is the type-erased classifier Chi<C, L>.  Every operator (& | ^ ~ and the
@@ -501,14 +524,12 @@ static_assert(saturates<bool>() && saturates<dedekind::category::Ternary>() &&
  *  equality (@c sets:boundaries) and the runs (@c sequences:pst) require, said
  *  once here so no handle enters a body-level failure.  @tparam C the chain. */
 template <typename C>
-concept IsTruthChain =
-    dedekind::category::IsPst<C> && dedekind::category::IsFiniteChain<C> &&
-    dedekind::category::HasCoveringStep<C>;
+concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 
 /** @brief The classifier a Python handle holds: type-erased, tagged with its
  *  species, an @c IsPredicate over the chain.  @tparam C the chain.
  *  @tparam L the species the set is valued in. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 struct Chi {
   using Domain = C;
   using Codomain = typename L::Ω;
@@ -517,102 +538,99 @@ struct Chi {
   Codomain operator()(const C& x) const { return f(x); }
 };
 /** @brief A set over the chain @c C valued in @c L, as Python holds it. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
-using Set = dedekind::sets::Comprehension<dedekind::sets::𝔸<C, L>, Chi<C, L>>;
+template <IsTruthChain C, IsOckhamAlgebra L>
+using Set = Comprehension<𝔸<C, L>, Chi<C, L>>;
 /** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
  *  Boolean, carrier-bound, waiting for a former. */
 template <IsTruthChain C>
-using Datum = Chi<C, dedekind::category::Boole>;
+using Datum = Chi<C, Boole>;
 
 /** @brief A predicate's answer lifted into @c L along the dominance, as a named
  *  callable (what the erased classifier stores).  @tparam L the species.
  *  @tparam P the predicate. */
-template <dedekind::category::IsOckhamAlgebra L,
-          dedekind::category::IsPredicate P>
+template <IsOckhamAlgebra L, IsPredicate P>
 struct Lifted {
   P p;
-  typename L::Ω operator()(const dedekind::category::Dom<P>& x) const {
-    return dedekind::category::lift_logic<L>(p(x));
+  typename L::Ω operator()(const Dom<P>& x) const {
+    return lift_logic<L>(p(x));
   }
 };
 /** @brief Erase any predicate over @c C into the handle's type, lifting a
  *  Boolean answer where @c L is wider.  @tparam C the chain.  @tparam L the
  *  species.  @tparam P the predicate (a datum, a node, a boundary). */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L,
-          dedekind::category::IsPredicate P>
-  requires std::same_as<dedekind::category::Dom<P>, C>
+template <IsTruthChain C, IsOckhamAlgebra L, IsPredicate P>
+  requires std::same_as<Dom<P>, C>
 Set<C, L> erase(P p) {
   return Set<C, L>{Chi<C, L>{
       std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
 }
-template <IsTruthChain C, dedekind::category::IsPredicate P>
-  requires std::same_as<dedekind::category::Dom<P>, C>
+template <IsTruthChain C, IsPredicate P>
+  requires std::same_as<Dom<P>, C>
 Datum<C> datum(P p) {
-  return Datum<C>{std::function<bool(const C&)>{
-      Lifted<dedekind::category::Boole, P>{std::move(p)}}};
+  return Datum<C>{
+      std::function<bool(const C&)>{Lifted<Boole, P>{std::move(p)}}};
 }
 
 /** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
  *  @c π @c ⋈ @c v as data.  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> universe() {
-  return erase<C, L>(dedekind::sets::𝔸<C, L>{});
+  return erase<C, L>(𝔸<C, L>{});
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> empty() {
-  return erase<C, L>(dedekind::sets::Ø<C, L>{});
+  return erase<C, L>(Ø<C, L>{});
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> point(const C& v) {
-  return erase<C, L>(dedekind::sets::η(v));
+  return erase<C, L>(η(v));
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return datum<C>(dedekind::sets::π > v);
+  return datum<C>(π > v);
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return datum<C>(dedekind::sets::π >= v);
+  return datum<C>(π >= v);
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return datum<C>(dedekind::sets::π < v);
+  return datum<C>(π < v);
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return datum<C>(dedekind::sets::π <= v);
+  return datum<C>(π <= v);
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
-  return datum<C>(dedekind::sets::π == v);
+  return datum<C>(π == v);
 }
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
  *  chain's own species --- the simplest set with every level inhabited. */
 template <IsTruthChain C>
-Set<C, dedekind::category::classifier_logic_t<C>> identity() {
-  return erase<C, dedekind::category::classifier_logic_t<C>>(
-      dedekind::category::Identity<C>{});
+Set<C, classifier_logic_t<C>> identity() {
+  return erase<C, classifier_logic_t<C>>(Identity<C>{});
 }
 
 /** @brief The former @c S @c | @c P, and the lattice operations, each the
  *  library's node erased back.  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return erase<C, L>(s & (dedekind::sets::𝔸<C, L>{} | d));
+  return erase<C, L>(s & (𝔸<C, L>{} | d));
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> meet(const Set<C, L>& a, const Set<C, L>& b) {
   return erase<C, L>(a & b);
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> join(const Set<C, L>& a, const Set<C, L>& b) {
   return erase<C, L>(a | b);
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> sym_diff(const Set<C, L>& a, const Set<C, L>& b) {
   return erase<C, L>(a ^ b);
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> complement(const Set<C, L>& a) {
   return erase<C, L>(~a);
 }
@@ -622,32 +640,30 @@ Set<C, L> complement(const Set<C, L>& a) {
  *  @c ∃ the quantifier of @c sets:quantifier over the universe with the
  *  restricted set as the where-clause, @f$\bigvee (\chi_S \wedge P)@f$.
  *  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω equal(const Set<C, L>& a, const Set<C, L>& b) {
   return a == b;
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω subset(const Set<C, L>& a, const Set<C, L>& b) {
   return (a & b) == a;
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
+template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
-  return dedekind::sets::exists(dedekind::sets::𝔸<C, L>{},
-                                former(s, d).predicate);
+  return exists(𝔸<C, L>{}, former(s, d).predicate);
 }
 /** @brief Bounded @f$\forall@f$ over a @b decidable set: the identity
  *  @f$S = S|P@f$, the library's own @c forall, exact for two-valued χ_S.  An
  *  L-valued @c S has no bounded ∀ until the species has a residuated
  *  implication (#980); the binding refuses it and points at the α-cut. */
 template <IsTruthChain C>
-bool forall(const Set<C, dedekind::category::Boole>& s, const Datum<C>& d) {
+bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
   return equal(s, former(s, d));
 }
 /** @brief The runs of a decidable set, materialised for the handle. */
 template <IsTruthChain C>
-std::vector<dedekind::sequences::Run<C>> runs(
-    const Set<C, dedekind::category::Boole>& s) {
-  std::vector<dedekind::sequences::Run<C>> out;
+std::vector<Run<C>> run_list(const Set<C, Boole>& s) {
+  std::vector<Run<C>> out;
   for (const auto r : dedekind::sequences::runs(s)) out.push_back(r);
   return out;
 }
@@ -655,26 +671,19 @@ std::vector<dedekind::sequences::Run<C>> runs(
  *  along χ with the generic @c preimage: the α-cut @f$\{\chi \ge \ell\}@f$ and
  *  the fibre @f$\chi^{-1}(\ell)@f$.  @tparam C the chain.  @tparam L the
  *  species. */
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
-Set<C, dedekind::category::Boole> cut(const Set<C, L>& s, typename L::Ω level) {
+template <IsTruthChain C, IsOckhamAlgebra L>
+Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
   using Ω = typename L::Ω;
-  return erase<C, dedekind::category::Boole>(
-      dedekind::sets::𝔸<C>{} |
-      dedekind::category::preimage(
-          s, dedekind::sets::𝔸<Ω>{} | (dedekind::sets::π >= level)));
+  return erase<C, Boole>(𝔸<C>{} | preimage(s, 𝔸<Ω>{} | (π >= level)));
 }
-template <IsTruthChain C, dedekind::category::IsOckhamAlgebra L>
-Set<C, dedekind::category::Boole> fibre(const Set<C, L>& s,
-                                        typename L::Ω level) {
-  return erase<C, dedekind::category::Boole>(
-      dedekind::sets::𝔸<C>{} |
-      dedekind::category::preimage(s, dedekind::sets::η(level)));
+template <IsTruthChain C, IsOckhamAlgebra L>
+Set<C, Boole> fibre(const Set<C, L>& s, typename L::Ω level) {
+  return erase<C, Boole>(𝔸<C>{} | preimage(s, η(level)));
 }
 /** @brief A Boolean set lifted along the dominance into Kleene's species. */
 template <IsTruthChain C>
-Set<C, dedekind::category::Kleene> lift(
-    const Set<C, dedekind::category::Boole>& s) {
-  return erase<C, dedekind::category::Kleene>(s);
+Set<C, Kleene> lift(const Set<C, Boole>& s) {
+  return erase<C, Kleene>(s);
 }
 
 }  // namespace pst

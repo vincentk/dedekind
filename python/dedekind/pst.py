@@ -3,7 +3,7 @@
 ``Pst := Jlt ∩ Chain`` (paper §3).  Three chains, handles over the real C++
 carriers: ``B`` (𝔹 = {False < True}) and ``K3`` (Kleene's
 {FALSE < UNKNOWN < TRUE}) are truth objects; ``N`` is ℕ's proxy, a bounded
-chain of the same shape whose top is ``aleph0``.  A chain exposes its ends
+chain of the same shape whose top is ``ℵ_0``.  A chain exposes its ends
 ``bottom`` / ``top``, its step read twice (the total, saturating ``succ`` /
 ``pred``; the partial ``cover``, ``None`` at ⊤), its order ``le``, its
 classification as the C++ concepts decide it, and iterates from ⊥ by the cover.
@@ -33,8 +33,8 @@ library's exhaustion of the chain.  Reduction stays in C++.
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as
-written.  Subscript digits are not identifier characters, so ``K₃`` and ``ℵ₀``
-are ``K3`` and ``aleph0``.  ``∃`` / ``∀`` are not identifiers either: the
+written.  Subscript digits are not identifier characters, so ``K₃`` is ``K3``
+and ``ℵ₀`` is ``ℵ_0`` (the C++ spelling; ``aleph0`` remains an alias).  ``∃`` / ``∀`` are not identifiers either: the
 grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
 (importable by name; not star-exported, since they shadow the builtins).
 """
@@ -58,12 +58,16 @@ from ._pst import η
 from ._pst import π
 from ._pst import χ
 
+# ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
+# digit is not, so the C++ spelling ℵ_0 is the Python one too.
+ℵ_0 = aleph0
+
 # The aliases: deliberately not in __all__ (they shadow the builtins when
 # star-imported); `from dedekind.pst import any, all` is the explicit opt-in.
 any = exists  # noqa: A001
 all = forall  # noqa: A001
 
 __all__ = [
-    "A", "B", "K3", "N", "Ternary", "aleph0", "Boole", "Kleene",
+    "A", "B", "K3", "N", "Ternary", "ℵ_0", "aleph0", "Boole", "Kleene",
     "Ø", "η", "π", "χ", "exists", "forall", "runs", "lift",
 ]
