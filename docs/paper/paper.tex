@@ -129,10 +129,8 @@
     Draft intended for submission to \emph{Programming}~\cite{programming_journal},
     the journal for programming-related research.
     The paper's scope is deliberately narrower than the companion project
-    report: this document focuses on the compile-time treatment of a small
-    network optimization, the critical path of a directed acyclic graph by
-    semiring closure, under the disciplined fragment of C++23 described
-    here.
+    report: this document focuses on the disciplined fragment of C++23
+    described here and the set language built on it.
     The implementation is open source as \texttt{dedekind}~\cite{dedekind2026};
     the broader library (categorical foundations, algebra, numbers,
     geometry, linear algebra, morphologies, Python facade) is
@@ -160,9 +158,6 @@ On this foundation an embedded, lazy domain-specific language is built which sup
 \item symbolic algebra $\mathbf{Ddk} = \mathbf{Trsk} \cap \mathbf{Alg}$ built on operations over the canonical sets $\mathbb B, \mathbb N, \ldots$ ($(x, y, z) \in S^3 \mid z = f(x, y)$, \cppinline{S * S * S | z == f(x, y)}).
 \end{enumerate}
 The embedded domain-specific language spells out the corresponding algebraic laws as types, enabling the compiler to verify and optimize the expression tree.
-% Demonstration of the Principle by way of a worked non-trivial example:
-A worked example demonstrates feasibility: the critical path of a directed acyclic network, computed by semiring closure and cast entirely in the type system.
-When every argument is known at compile time, the compiler constant-folds the optimum and the emitted LLVM IR is a single literal, typed to the semiring of the cost function (the Boolean semiring for reachability, max-plus over $\mathbb N$ for cost, max-plus over dual numbers for sensitivity analysis).
 % Concluding remarks:
 The approach should port to other systems programming languages with a rich enough type system, specifically Rust.
 \end{abstract}
@@ -175,8 +170,7 @@ The approach should port to other systems programming languages with a rich enou
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
 parameters; compile-time verification; Axiomatic Systems Programming;
-type-directed collapse; semiring closure; critical path; forward-mode
-automatic differentiation.
+type-directed collapse.
 
 % ============================================================
 \section{Introduction}
@@ -314,14 +308,12 @@ The difference here is only the checker, an optimising C++ compiler rather than 
 Guided by the rule ``name the structure in the type, let the compiler discharge the laws,'' the library systematically constructs an algebraic hierarchy entirely at compile time.
 From a handful of structural primitives (morphisms and small categories), \texttt{dedekind} builds a domain specific language to describe sets, a poset of numbers ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, \ldots) and a point-free linear algebra layer, among other things,
 Programs are partially or fully evaluated at compile-time as they are brought to single static assignment form potentially resulting in operator fusion or complete reduction to a statically computed constant result.
-The resulting capabilities are demonstrated by the compile-time critical path of a directed acyclic network, computed by semiring closure, in Section~\ref{sec:optimization_lp}.
 This categorical vocabulary is not decorative; intensional sets acting as predicates into a subobject classifier are the uniform engine driving both type-level structural pruning and compile-time law enforcement.
 
 \paragraph{Contributions.} Specifically, this paper provides:
 \begin{itemize} 
 \item \textbf{The Juliet Posture Framework:} A formal characterization of a structurally typed fragment of C++23 under a System~F reading, enabling type-checked semantic constraints without custom compiler extensions.
 \item \textbf{A Categorical Linear Algebra Architecture:} A novel method for representing linear maps as stateless topological operators over graph complexes rather than dense arrays, natively optimized for coordinate-free network systems.
-\item \textbf{A Zero-Overhead Optimization Exhibit:} A checked-in source-and-IR demonstration of a network critical path, computed by semiring closure, that folds to literal constant returns in the emitted LLVM IR when the endpoints are static and leaves a specialised runtime-parametric residual when they are not, built on the set-level type-directed collapse of §\ref{sec:ddk_comprehension}.
 \item \textbf{An Empirical Software Artifact:} A fully realized, open-source library (\texttt{dedekind}) verifying the fundamental laws of arithmetic, calculus, and automatic differentiation at translation time.
 \end{itemize}
 
@@ -333,7 +325,7 @@ The remainder of this paper substantiates these contributions by evaluating thre
 Section~\ref{sec:jlt_posture} isolates the disciplined fragment of C++23, the Juliet Posture.
 Section~\ref{sec:intensional_sets} bootstraps intensional sets as type-checked predicates and the type-directed collapse they license, and Section~\ref{sec:relations_functions_blueprint} lifts these to point-free mappings between sets.
 Section~\ref{sec:algebraic_lattice_carriers} builds the universal-algebra poset of carriers, and Section~\ref{sec:operational_calculus} recasts linear algebra as coordinate-free, matrix-free operators over them.
-Section~\ref{sec:optimization_lp} works the network critical path by semiring closure as the compile-time centrepiece; Section~\ref{sec:evaluation_benchmarks} models its cost, and Section~\ref{sec:discussion} sets out the limitations and follow-up.
+Section~\ref{sec:discussion} sets out the limitations and follow-up.
 
 
 % ============================================================
@@ -989,7 +981,7 @@ This value-lift is distinct from the whole-arrow \cppinline{graph} lift below.
 \textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
 The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}, so a triple predicate reads as $z = f(x,y)$.
 \textbf{\texttt{query}} adds the closed properties \cppinline{IsFunctional}/\cppinline{IsEntire}; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
-The reflexive-transitive closure $R^{*}$ is not point-free here (\S\ref{sec:optimization_lp}); the whole-arrow \cppinline{graph} lift (arrow $\to$ \cppinline{Comprehension<𝔸<pair>, P>}) is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred} --- unlike the point-free value-lift \cppinline{ap} above, which stays in.}
+The reflexive-transitive closure $R^{*}$ is not point-free here; the whole-arrow \cppinline{graph} lift (arrow $\to$ \cppinline{Comprehension<𝔸<pair>, P>}) is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred} --- unlike the point-free value-lift \cppinline{ap} above, which stays in.}
 \label{lst:relation-grammar}
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
@@ -1089,8 +1081,7 @@ involution & \multicolumn{2}{l}{$(\cdot)^{\circ}$ converse: $\;(R\odot S)^{\circ
 The multiplicative monoid is composition $R \gg S$ with unit the \emph{diagonal} $\Delta = \{\pi_1 = \pi_2\}$; it is what makes the structure a dioid and what the \emph{product} buys, since a bare set has one coordinate, nothing to compose and no diagonal to compare.
 The additive monoid is idempotent ($R\cup R = R$), a join-semilattice; that half coincides with the Boolean-lattice join a relation carries \emph{as a set} (Section~\ref{sec:intensional_sets}, Table~\ref{tab:lattice-lift}), which is why the two units differ: $\varnothing$ is the semilattice bottom, $\Delta$ the composition one, and the lattice top $A\times B$ is neither.
 $\Delta$ is $\mathrm{graph}(\mathrm{id})$, definable on every carrier because equality is universal.
-\cppinline{ext} (Table~\ref{tab:relation-matrix-map}) sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.
-A weighted $\mathrm{Mat}(S)$, shortest path and the wider algebraic path problem, is one semiring swap away (Table~\ref{tab:semirings}), taken there through the extensional matrix since the point-free product $\mathbin{;}$ composes only through a Boolean middle.}
+\cppinline{ext} sends this dioid into the Boolean matrix semiring $\mathrm{Mat}(\mathbb{B})$ as a homomorphism, $\varnothing\mapsto 0$, $\Delta\mapsto I$, $\cup\mapsto\oplus$, $\mathbin{;}\mapsto\otimes$; that instance is reachability.}
 \label{tab:relation-dioid}
 \end{table}
 
@@ -1642,7 +1633,7 @@ exemplar             & $\mathbb{Z}/N\mathbb{Z}$, $F[\varepsilon]/(\varepsilon^2)
 \end{tikzpicture}}
 \\[0.3ex]{\footnotesize (c) HSP on \texttt{size\_t}: full H/S/P; H reduces $\mathbb{Z}/2^{k}\mathbb{Z}\to\mathbb{B}$}
 \end{minipage}
-\caption{The primitive carriers, two readings stacked.  \textbf{(a)} The \emph{shadow plot} (vertical axis): each machine type is a shadow of a finite modular Form --- \emph{exact} where the Form is finite (\texttt{bool}$=\mathbb{B}$, \texttt{size\_t}$=\mathbb{Z}/2^{w}\mathbb{Z}$), and exact only on a \emph{closed subset} otherwise.  \texttt{int} is a \emph{partial} $\mathbb{Z}$ (signed overflow is undefined); \texttt{double} is exact on its integer / bounded-dyadic subset --- closed and associative there ($1+1+2$ is exact), while general $+$ rounds, the price of leaving it --- approximating $\mathbb{Q}\bmod L$.  The ideals ($\mathbb{N},\mathbb{Z},\mathbb{R}$) are \emph{approached}, not lost: as the period grows ($w,L\to\infty$) the Form becomes an ever more faithful shadow, and $\mathbb{R}$ is the \emph{completion} no finite stage reaches (Equation~\ref{eqn:model-materialise}).  The horizontal tower is \emph{not} one construction; that lateral structure lives in the cubes, not a single arrow.  \textbf{(b,c)} Two Forms opened as HSP-varieties (Figure~\ref{fig:hub-spoke-bnz}'s constructions, re-based).  On \texttt{bool}, S and H are trivial ($\mathbb{B}$ is simple), so P carries it: $\mathbb{B}^{n}$ and the \emph{componentwise} $\mathbb{B}^{n\times m}$ (all finite Boolean algebras, by Stone).  On \texttt{size\_t} all three legs are live over the \emph{additive group} $(\mathbb{Z}/2^{w}\mathbb{Z},+)$ --- P the componentwise arrays, S the subgroups $2^{k}\mathbb{Z}/2^{w}\mathbb{Z}$, H the quotient groups $\mathbb{Z}/2^{k}\mathbb{Z}$ (at $k=1$, $\mathbb{B}$, so the \texttt{bool} cube \emph{is} the H-corner); the multiplicative structure would leave S trivial ($1$ generates the whole ring).  Birkhoff P is \emph{componentwise}; the relational / matrix product $M_n(\mathbb{B})=\mathbf{Rel}$ (summing over an index) is the separate \emph{endomorphism} construction --- composition, \S\ref{sec:relations_functions_blueprint} and \S\ref{sec:optimization_lp} (Table~\ref{tab:constructions}) --- not P.  HSP furnishes the cubes; matrix multiplication and the vertical limits are the axes it does not span.}
+\caption{The primitive carriers, two readings stacked.  \textbf{(a)} The \emph{shadow plot} (vertical axis): each machine type is a shadow of a finite modular Form --- \emph{exact} where the Form is finite (\texttt{bool}$=\mathbb{B}$, \texttt{size\_t}$=\mathbb{Z}/2^{w}\mathbb{Z}$), and exact only on a \emph{closed subset} otherwise.  \texttt{int} is a \emph{partial} $\mathbb{Z}$ (signed overflow is undefined); \texttt{double} is exact on its integer / bounded-dyadic subset --- closed and associative there ($1+1+2$ is exact), while general $+$ rounds, the price of leaving it --- approximating $\mathbb{Q}\bmod L$.  The ideals ($\mathbb{N},\mathbb{Z},\mathbb{R}$) are \emph{approached}, not lost: as the period grows ($w,L\to\infty$) the Form becomes an ever more faithful shadow, and $\mathbb{R}$ is the \emph{completion} no finite stage reaches (Equation~\ref{eqn:model-materialise}).  The horizontal tower is \emph{not} one construction; that lateral structure lives in the cubes, not a single arrow.  \textbf{(b,c)} Two Forms opened as HSP-varieties (Figure~\ref{fig:hub-spoke-bnz}'s constructions, re-based).  On \texttt{bool}, S and H are trivial ($\mathbb{B}$ is simple), so P carries it: $\mathbb{B}^{n}$ and the \emph{componentwise} $\mathbb{B}^{n\times m}$ (all finite Boolean algebras, by Stone).  On \texttt{size\_t} all three legs are live over the \emph{additive group} $(\mathbb{Z}/2^{w}\mathbb{Z},+)$ --- P the componentwise arrays, S the subgroups $2^{k}\mathbb{Z}/2^{w}\mathbb{Z}$, H the quotient groups $\mathbb{Z}/2^{k}\mathbb{Z}$ (at $k=1$, $\mathbb{B}$, so the \texttt{bool} cube \emph{is} the H-corner); the multiplicative structure would leave S trivial ($1$ generates the whole ring).  Birkhoff P is \emph{componentwise}; the relational / matrix product $M_n(\mathbb{B})=\mathbf{Rel}$ (summing over an index) is the separate \emph{endomorphism} construction --- composition, \S\ref{sec:relations_functions_blueprint} (Table~\ref{tab:constructions}) --- not P.  HSP furnishes the cubes; matrix multiplication and the vertical limits are the axes it does not span.}
 \label{fig:primitive-reconciliation}
 \end{figure}
 
@@ -1838,245 +1829,8 @@ static_assert(is_endomorphism_ring_v<M, V>); // operator: M₂ = End(V)
 \end{cpp}
 \end{listing}
 
-Coordinate-free, an operator never builds the grid: the coboundary $\delta$, with $(\delta d)(u \to v) = d(v) - d(u)$, and its adjoint the boundary $\partial$ are expressions over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} lifted from sets to operators, and they are what §\ref{sec:optimization_lp} is written in.
+Coordinate-free, an operator never builds the grid: the coboundary $\delta$, with $(\delta d)(u \to v) = d(v) - d(u)$, and its adjoint the boundary $\partial$ are expressions over the incidence structure, the intensional reading of §\ref{sec:intensional_sets} lifted from sets to operators.
 The practical rule is one line: constrain generic code on the concept, not the carrier; a routine bounded by \cppinline{IsVectorSpace<V, F>} admits every carrier the closed core certifies, from $\mathbb{Q}$-vector-spaces to matrices over the dual numbers, and outside the core the certificate is the engineer's to supply.
-
-\section{Optimization by Semiring Closure}
-\label{sec:optimization_lp}
-
-We turn from the set primitives to a high-utility application, and the step is a short one, because a graph is already a relation.
-A directed graph on a node set $\mathcal{V}$ is a relation $E \subseteq \mathcal{V} \times \mathcal{V}$, which the comprehension DSL of §\ref{sec:ddk_comprehension} expresses \emph{intensionally}, as a predicate on a pair of nodes rather than as a stored edge list.
-This is the algebraic reading of relational data that has lately been revisited on its own terms~\cite{wang2026relational}, here carried down to the type level.
-It is worth pausing on how little the formulation needs, because the whole of it is already in Tarski's calculus of relations~\cite{tarski1941calculus}, written without a single vertex, edge, or bound variable.
-There a directed graph is a binary relation $R$, path concatenation is the relative product $R \circ R$, and reachability is the reflexive-transitive closure
-\begin{equation}
-    R^{*} \;=\; I \,\cup\, R \,\cup\, R^{2} \,\cup\, R^{3} \,\cup\, \cdots.
-\end{equation}
-Acyclicity is the statement $R^{n} \cap I = \varnothing$ for every $n \ge 1$, and it is exactly what makes that join finite: on a directed acyclic graph no path is longer than $|\mathcal{V}| - 1$ edges, so $R^{k}$ is empty beyond that and $R^{*}$ is a finite sum.
-
-Attach a cost to each edge and the single-source \emph{closure} of the graph is the least fixed point
-\begin{equation}
-    d[v] \;=\; d[v] \;\oplus\; \bigoplus_{u}\, d[u] \otimes c(u,v),
-    \qquad d[\mathrm{source}] = \bar{1},
-\end{equation}
-which is Tarski's closure with the join $\cup$ and the relative product $\circ$ generalised to a semiring's $\oplus$ and $\otimes$, the Kleene star over $(S, \oplus, \otimes)$, and, loosely speaking, the linear-algebraic content of the coboundary framing of §\ref{sec:geometric_mappings}.
-The Boolean semiring recovers $R^{*}$ itself, that is, reachability; other semirings weight the same paths differently.
-The choice of semiring \emph{is} the choice of problem, one branch of the algebra apart.
-
-Stacked over the nodes, that scalar fixed point is a linear system read in the semiring.
-Write $A$ for the weighted adjacency matrix, $A_{vu} = c(u,v)$ so that row $v$ gathers the edges into $v$, and $b$ for the source indicator, $\bar{1}$ at the source and $\bar{0}$ elsewhere.
-The potentials solve
-\begin{equation}
-    d \;=\; A \otimes d \;\oplus\; b,
-    \qquad\text{with least solution}\qquad
-    d \;=\; A^{*} \otimes b,
-    \quad A^{*} = \bigoplus_{k \ge 0} A^{\otimes k}.
-    \label{eq:semiring_linear_system}
-\end{equation}
-The classical case is one branch away.
-Over the ring $(\mathbb{R}, +, \times)$ the identical fixed point $x = A x + b$ has the solution $x = (I - A)^{-1} b = \sum_{k \ge 0} A^{k} b$, the Neumann series, and $(I - A)^{-1}$ is the matrix inverse behind solving a linear system, the normal equations of least squares among them.
-Replace the ring $(+, \times)$ by the tropical dioid $(\max, +)$ and the same inverse $A^{*}$ is the critical path.
-A general dioid has no subtraction, so $A^{*}$ is not literally $(I - A)^{-1}$ but its role-equivalent, the Neumann series standing in where the inverse cannot be formed.
-The choice of semiring is thus equally the choice of linear algebra.
-This is the \emph{algebraic path problem}: semiring linear algebra in the sense of Dolan's functional pearl~\cite{dolan2013semirings}, with the matrix closure $A^{*}$ its star, and categorically Master's open version~\cite{master2021openapp}.
-The algebra is theirs; what we add is the \emph{delivery}: the same closure in C++ and hence in an optimizing compiler toolchain, where it folds to a literal at compile time (Listing~\ref{lst:necklace-ir}) for a mainstream developer, rather than from a hand-written functional typeclass.
-
-\begin{table}[htbp]
-\centering
-\caption{One closure, three problems, selected by the semiring.}
-\label{tab:semirings}
-\begin{tabular}{@{}lll@{}}
-\toprule
-semiring $S$ & $\oplus\;/\;\otimes$ & the closure computes \\
-\midrule
-Boolean & $\vee\;/\;\wedge$ & reachability \\
-\cppinline{MaxPlus} (tropical) & $\max\;/\;+$ & longest path (critical path) \\
-\cppinline{MaxPlus<Dual<F>>} & tropical over dual numbers & path value \emph{and} cost sensitivity \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The longest path over a single-source, single-sink directed acyclic graph is the \emph{critical path} of operations-research scheduling.
-It is also the dual of a network-flow linear program: the flow variables live on the edges, the dual potentials live on the nodes, and total unimodularity of the node-arc incidence makes both optima integral.
-Computing the critical path is therefore solving one side of a linear program, and complementary slackness reads off the other side, namely which edges carry flow and so which activities are critical, in the sense of carrying zero float.
-
-The closure is gated on the \emph{algebraic} concept \cppinline{IsSemiring} rather than a syntactic operator list, and no longer takes explicit \cppinline{Add}/\cppinline{Mult} operator parameters.
-Its operation pair $(\oplus, \otimes)$ is fixed by the carrier's canonical \cppinline{semiring_ops<S>}, so no call site spells the operators out.
-Its \emph{net fiber} (Table~\ref{tab:relation-matrix-map}) is a \cppinline{fold} over the graph's edges relaxing one potential per edge, $d[\mathrm{head}] := d[\mathrm{head}] \oplus d[\mathrm{tail}] \otimes c$, in one topological pass on a DAG; the checked-in \cppinline{semiring_closure} is that fold, threading its potential net in place under \cppinline{constexpr}.
-
-The tropical carrier \cppinline{Tropical<T>} $= T \cup \{\infty\}$ is a certified \cppinline{IsSemiring}, and in fact a \emph{dioid}: its addition $\oplus$ is the order-extremum (\cppinline{max} for the longest path), an idempotent semilattice, while its multiplication $\otimes$ is the carrier's own $+$.
-That idempotence is the whole difference from the naturals; the concept \cppinline{IsTropical} names it as \cppinline{IsSemiring} refined by an idempotent $\oplus$.
-\cppinline{MaxPlus<T>} aliases the longest-path direction, with $\infty$ the saturating sentinel the extended cardinal's $\aleph_0$ already plays.\footnote{The finite carrier is \cppinline{unsigned} and the tropical $\otimes$ \emph{saturates} (clamps at \cppinline{max} on overflow rather than wrapping): saturating addition is total \emph{and} monotone over \cppinline{max}, so this is a genuine \emph{bounded max-plus dioid}: the \cppinline{IsSemiring} distributivity certificate is honest all the way to the wraparound boundary, not merely below it (wrapping alone would fail, e.g. $1 + \max(2^{64}{-}1, 0) = 0 \ne 1$).  Signed \cppinline{long long} is correctly not certifiable (overflow is not a magma).  This is the same discipline the library applies to \textsc{ieee} and signed integers: an operation is certified only where the hardware genuinely closes it.}
-
-\subsection{A worked exhibit: the diamond necklace}
-\label{subsec:necklace}
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[x=0.9cm, y=0.7cm, thick,
-    dot/.style={circle, draw, fill=white, inner sep=1.6pt},
-    every node/.style={font=\scriptsize}]
-  \foreach \x in {0,2,4,6,8} \node[dot] (m\x) at (\x,0) {};
-  \foreach \x in {1,3,5,7} {\node[dot] (t\x) at (\x,1) {}; \node[dot] (b\x) at (\x,-1) {};}
-  \draw (m0)--(t1)--(m2)--(t3)--(m4)--(t5)--(m6)--(t7)--(m8);
-  \draw (m0)--(b1)--(m2)--(b3)--(m4)--(b5)--(m6)--(b7)--(m8);
-  \draw[line width=1.4pt] (m0)--(t1)--(m2)--(t3)--(m4)--(b5)--(m6)--(b7)--(m8);
-  \node[left=2pt] at (m0) {source};
-  \node[right=2pt] at (m8) {sink};
-\end{tikzpicture}
-\caption{The diamond necklace, with the critical path drawn heavy: up early, down late.  Nodes are lattice points $(x, y)$ with $y \in \{-1,0,1\}$; merges sit on the axis.}
-\label{fig:necklace}
-\end{figure}
-
-The exhibit is a necklace of diamonds on a coordinate lattice with $y \in \{-1, 0, 1\}$ (Figure~\ref{fig:necklace}).
-The edge relation is one analytic rule on the pair of nodes, and because $y$ ranges over $\{-1,0,1\}$ it generates the diamonds on its own:
-\begin{equation}
-    E\big((x,y),(x',y')\big) \iff x' = x + 1 \;\wedge\; |y' - y| = 1.
-\end{equation}
-The cost of arriving at $(x', y')$ is $\max\big(y'(K - x'),\, 0\big)$, a non-negative duration (a CPM activity cannot take negative time), so the carrier is \cppinline{unsigned}.
-It is $0$ on the axis, so merges are free, positive at the early peaks and late valleys, and clamped to $0$ where $y'(K - x') < 0$; the critical chevron is already non-negative, so the clamp leaves its value unchanged.
-Up pays early and down pays late, so the longest path is a chevron, up, up, down, down, of value $3 + 1 + 1 + 3 = 8$.
-
-The checked-in showcase drives this one closure over three semirings, reachability, the critical-path value, and its edge-cost sensitivity; Listing~\ref{lst:necklace-ir} is the LLVM IR it emits.
-The idiomatic, rank-1 rendering of the same exhibit is Listing~\ref{lst:transfer-necklace} in \S\ref{subsec:transfer-necklace}.
-
-\begin{listing}[htbp]
-\caption{The emitted IR at \texttt{-O2}: a literal load per witness, no solver and no loop.  These are checked-in fixtures, not a specification.}
-\label{lst:necklace-ir}
-\begin{cpp}
-define i64 @witness_necklace_reachable()            { ret i64 1 }  ; reachable
-define i64 @witness_necklace_critical()             { ret i64 8 }  ; critical path
-define i64 @witness_necklace_sensitivity_critical() { ret i64 1 }  ; on-path branch
-define i64 @witness_necklace_sensitivity_floated()  { ret i64 0 }  ; floated branch
-\end{cpp}
-\end{listing}
-
-The same closure, driven from the same intensional relation, folds to \texttt{ret i64 1} under the Boolean semiring, to \texttt{ret i64 8} under the tropical semiring, and to \texttt{ret i64 1} and \texttt{ret i64 0} under the tropical dual-number semiring, for an on-path branch and a floated branch respectively.
-No solver, no active-set search, and no loop survive in these compile-time witnesses; each is a single literal load.
-
-\paragraph{Compile-time evaluation is optional.}
-The closure is an ordinary \cppinline{constexpr} function, so the identical call runs at run time when the endpoints are runtime arguments; the emitted code is then the fold over the edges rather than a constant (the \cppinline{witness_necklace_critical_between} fixture).
-The template parameters fix the structure, the semiring and the topology; the value arguments may be static or dynamic.
-So the compiler is a partial evaluator~\cite{jones1993partial}: freeze a whole instance and it folds to a constant, freeze only the algebra and a runtime-parametric residual over the data remains.
-This is the Juliet Posture's two-way bridge for graphs, and what carries the approach past the fully-static regime.
-
-\paragraph{Sensitivity as the envelope theorem.}
-The tropical dual-number instantiation carries $\partial(\mathrm{optimum}) / \partial c_e$ in its tangent.
-Because $\max$ selects the winning branch and forwards that branch's derivative, the tangent is $1$ on an edge that lies on the critical path and $0$ on an edge with float, which is exactly the primal flow recovered from the dual by complementary slackness.
-This is forward-mode automatic differentiation in Elliott's sense~\cite{elliott2018simple}, the value-and-derivative product $(f, f')$, with the chain rule falling out of the dual-number ring laws, and the \cppinline{Dual<F>} carrier drops into the closure without special-casing.
-
-\subsection{The same closure, as rank-1 linear algebra}
-\label{subsec:transfer-necklace}
-
-The net fold above is one \emph{instance} of the closure $A^{*}$ of Equation~\ref{eq:semiring_linear_system}, read as the least fixpoint of $S \mapsto X \sqcup Y(S)$ (the closure of a seed under a one-step expansion): reachability is $R^{*} = \mathrm{closure}(\Delta,\ \lambda S.\, S ; R)$ over the Boolean semiring, the critical path the same closure over the tropical dioid, and the iteration bound is the finite-subgraph selection a partial evaluation performs (Appendix~\ref{app:partial-eval}).
-The necklace carries more structure: each diamond is a \emph{rank-1} transfer, its two parallel branches a bra and a ket, so its gain is their tropical inner product, the max-plus eigenvalue
-\begin{equation}
-\label{eqn:braket}
-\lambda_m \;=\; \langle w_m \mid v_m \rangle \;=\; \bigoplus_k w_{m,k} \otimes v_{m,k} \;=\; \max(\mathrm{peak}_m,\ \mathrm{trough}_m).
-\end{equation}
-A rank-1 transfer collapses under composition over a commutative semiring, where $\lambda$ is central (the tropical carriers here are commutative; a noncommutative semiring keeps the middle scalar, $M^2(i,j) = v_i \otimes \lambda \otimes w_j$), so its power never iterates,
-\begin{equation}
-\label{eqn:rank1}
-M^{2} \;=\; \lambda\, M, \qquad M^{n} \;=\; \lambda^{\,n-1}\, M,
-\end{equation}
-and the entire memo is the single scalar $\lambda$: the rank is the dimension of the minimal linear realization, and here it is one.
-The closure is then the $\otimes$-fold of the eigenvalues, with no potential net and no edge list,
-\begin{equation}
-\label{eqn:transfer-closure}
-\mathrm{value} \;=\; \bigotimes_{m} \lambda_m .
-\end{equation}
-The semiring is still the choice of problem, and because the transfer asks only for \cppinline{IsSemiring} the same fold carries the sensitivity of \S\ref{subsec:necklace} on the dual-number semiring, its tangent the winning branch's derivative by the envelope theorem.
-The optimum is the filtration of Equation~\ref{eqn:argmax}, realized to an extensional set only at the end by \cppinline{ext}.
-The finiteness is carried by the domain type: \cppinline{ext} scans a finite \cppinline{OrderInterval} (or the \cppinline{BoundedSet} an \cppinline{argmax} returns), so an unbounded domain has no such type and never reaches the realize step.
-\cppinline{ext} is the realize boundary, our \cppinline{runST}~\cite{launchbury1994st}: the enumeration runs inside at runtime, and the finite domain type is the guarantee that makes extraction sound. That is the role the rank-2 $\forall s$ plays for state locality, played here for finiteness.
-
-\begin{listing}[htbp]
-\caption{Equations~\ref{eqn:braket}--\ref{eqn:transfer-closure} and Equation~\ref{eqn:argmax}, as code (abridged from the checked-in transfer showcase).}
-\label{lst:transfer-necklace}
-\begin{cpp}
-// Bead: a rank-1 transfer; its two branches are a bra.ket.       (Eqn braket)
-template <class S>
-constexpr S bead(int m) { return inner_product<2>(exit_bra<S>{}, ket_of<S>(m)); }
-
-// Closure = the tensor-fold of the eigenvalues, an instance of   (Eqns rank1,
-// closure(X, Y).  One closure, four problems a semiring apart:   transfer-closure)
-static_assert( transfer_chain<4>(bead<Bool>)                 );  // reachability
-static_assert( transfer_chain<4>(bead<MaxPlus>).val     == 8 );  // critical path
-static_assert( transfer_chain<4>(bead<MinPlus>).val     == 0 );  // shortest path
-static_assert( bead<MaxPlus<Dual>>(0).val.der           == 1 );  // sensitivity (AD)
-
-// Optimum: the forall-filter, realized at one ext step.           (Eqn argmax)
-constexpr OrderInterval<int, 0, 6, Strictness::NonStrict,
-                        Strictness::NonStrict, Boole> dom6{};
-const auto opt = ext(argmax(dom6, [](int x){ return x*(6-x); }));  // {3}
-\end{cpp}
-\end{listing}
-
-The joint is not a black box: which matrix a relation materialises to is fixed by its \emph{classification}, so \cppinline{ext} is a structure-preserving functor rather than a dense dump (Table~\ref{tab:relation-matrix-map}).
-The dense fiber is provided for a binary endorelation on a semiring, the generic base case; the rank-1 fiber is the transfer's own \cppinline{OuterProduct}, whose power collapses to $\lambda^{n-1}M$ by Equation~\ref{eqn:rank1}.
-The remaining fibers are read off the four properties the relation calculus already infers (\S\ref{sec:relations_functions_blueprint}): a functional relation is sparse, and a bijection is a permutation, a $0$/$1$ orthogonal matrix, the dagger of the same calculus.
-
-\begin{table}[htbp]
-\centering
-\caption{The relation-to-matrix map: \cppinline{ext} as a structure-preserving functor, the relation's classification fixing the matrix type. The dense and rank-1 fibers are implemented; the rest are read off the inferred four properties.}
-\label{tab:relation-matrix-map}
-\begin{tabular}{lll}
-\toprule
-relation classification & matrix type & status \\
-\midrule
-binary endorelation, codomain a semiring & dense operator over the semiring & implemented \\
-rank-1 (outer product) & low-rank \cppinline{OuterProduct} ($M^n = \lambda^{n-1}M$) & implemented \\
-functional & sparse (one entry per row) & follows \\
-bijective & permutation / $0$-$1$ orthogonal (the dagger) & follows \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\section{Compile-Time Cost and Complexity}
-\label{sec:evaluation_benchmarks}
-
-The architecture makes a deliberate trade: work is moved out of run time and into the translation-time template engine.
-Rather than extrapolate that trade from a single benchmark point, we characterise it in terms of the two parameters that actually govern it, the template instantiation depth and the size of the graph the closure relaxes.
-
-\subsection{Translation-time cost}
-\label{sec:translation_overhead_analysis}
-
-The compiler evaluates \cppinline{constexpr} reductions with an abstract-syntax-tree interpreter, so translation-time work is interpretive rather than compiled, and its absolute magnitude is not small.
-Its \emph{scaling}, though, is fixed by structure.
-The first parameter is the template instantiation depth.
-The disciplined fragment of §\ref{sec:jlt_posture} admits no unbounded type-level recursion, so the depth stays bounded and each reduction remains inside a decidable cone rather than diverging; the carrier poset, for instance, is capped at scalar, shape, and quotient axes, a depth of at most three in the current surface.
-Point-free relational composition (§\ref{sec:relations_functions_blueprint}) is the case that stresses this parameter: a chain $R \gg S \gg \dots$ trades the runtime existential loop it circumvents for compile-time type-expansion, each link nesting a union cascade into the intermediate type, so a deep chain migrates the resource strain onto the instantiation depth rather than onto a runtime search.
-The second parameter is the size of the graph the closure relaxes.
-For the necklace of §\ref{sec:optimization_lp}, each round scans the edge relation once, and an acyclic graph stabilises within a number of rounds bounded by its depth, so the work is polynomial in the edge count $E$.
-Composing the two, the translation-time cost is polynomial in the problem size at bounded instantiation depth, precisely because the depth is capped.
-An unbounded-depth formulation would forfeit that guarantee; the bounded-depth discipline is what buys both termination and a predictable cost curve, and it is the honest content of the ``severe compilation cost'' the approach is often charged with.
-
-\subsection{Runtime payoff}
-\label{sec:runtime_payoff_analysis}
-
-The payoff is structural rather than merely quantitative.
-When the graph is declared statically, the reduction resolves the optimum to a typed constant, the critical-path value of §\ref{sec:optimization_lp}, and the backend receives an already constant-folded kernel.
-The runtime cost of the resulting binary is therefore $\mathcal{O}(1)$: a literal load, with no solver, no active-set search, and no dynamic indexing left in the emitted code, as the checked-in IR of Listing~\ref{lst:necklace-ir} shows.
-The same discipline that folds an empty intersection to \texttt{ret i1 false} (§\ref{sec:ddk_comprehension}) discards the network's redundant constraint paths before code generation, so the emitted pass branches on none of the pruned structure.
-
-This is where the trade pays for itself.
-The translation-time cost is $\mathcal{O}(V^{2} + E)$, the $V^{2}$ to materialise the intensional rule over node pairs and the $E$ for the fold, incurred once; the runtime cost of the compiled kernel is $\mathcal{O}(1)$ and is paid on every invocation.
-For a workload that runs the same statically-resolved kernel repeatedly, the fixed build-time cost amortises towards zero per invocation, which is the regime the architecture targets: build-time patience exchanged for runtime that is constant by construction, as wanted in real-time embedded control, signal processing, or edge robotics.
-The static case is not forced, however: the same kernel accepts a runtime graph as a partially-evaluated residual (Appendix~\ref{app:partial-eval}), so the compile-time versus runtime split is chosen per call site rather than baked into the architecture.
-
-\subsection{The observable is the complexity class}
-\label{sec:complexity_class}
-
-Underneath both costs sits a single complexity fact, and it is algebraic rather than empirical.
-The necklace has $2^{k}$ distinct source-to-sink paths for its $k$ diamonds, exponential in the graph, yet the closure resolves the critical path in polynomial time and never enumerates a path ($\mathcal{O}(V^{2} + E)$: the $V^{2}$ node-pair materialisation plus the $\mathcal{O}(E)$ fold).
-The reason it need not enumerate is the distributivity of the semiring, $a \otimes (b \oplus c) = (a \otimes b) \oplus (a \otimes c)$: distributivity is exactly what lets the sum over all paths be computed as a fold over the $V$ nodes, which is dynamic programming stated as an axiom.
-So the \cppinline{IsSemiring} gate of §\ref{sec:optimization_lp} is not only the correctness condition; its distributive law is the \emph{complexity guarantee}, and the polynomial residual the compiler ships is a theorem about the algebra rather than a measured quantity.
-
-This is why the paper reports no benchmark.
-A single measured cost curve fixes one machine, one toolchain, and one problem size, none of which the structural claim depends on.
-That claim, that the exponential path space collapses to a polynomial fold and that a statically-declared instance collapses further to $\mathcal{O}(1)$, is portable across any conforming C++23 optimiser that constant-folds \cppinline{constexpr}, and it would only be obscured by pinning it to one observation.
-The observable is the move to a sensible complexity class, and that is the whole of the empirical claim.
 
 % ============================================================
 \section{Discussion and Future Work}
@@ -2086,16 +1840,16 @@ The observable is the move to a sensible complexity class, and that is the whole
 Two limitations of the present artefact point in the same direction.
 First, the real numbers are handled only rudimentarily.
 \texttt{dedekind}'s $\mathbb{R}$ is a Dedekind-cut carrier whose comparison is only semi-decidable, and most numeric work still bottoms out in IEEE \cppinline{double}, which is not cleanly algebraic: rounding defeats associativity and \texttt{NaN} punctures the order.
-Second, the optimisation and differentiation exhibits fold at compile time only over exact carriers such as $\mathbb{Q}$ and $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$, not over the floating-point types production code runs on.
+Second, the symbolic algebra folds at compile time only over exact carriers such as $\mathbb{Q}$ and $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$, not over the floating-point types production code runs on.
 
 A natural way to reconcile the two is a \emph{controlled boundary}, in the sense of staged, multi-stage programming~\cite{taha2000metaml}.
 Write the computation as a symbolic algebraic expression over an exact ring where the laws genuinely hold, let $\mathbf{Jlt}$ simplify and prune it at translation time, and only then lower the residual to IEEE floating-point for execution.
 The rewrites are sound because they happen on the exact ring.
 The lossy step is a single explicit evaluation map at the boundary, not a silent assumption threaded through every operation.
 Exactness earns a second dividend, on an axis orthogonal to that lowering.
-The lowering changes an expression's \emph{representation}, from the exact ring to floating-point, and that map is lossy; changing only \emph{when} the expression is evaluated, from translation time to runtime, is not (Appendix~\ref{app:partial-eval}).
+The lowering changes an expression's \emph{representation}, from the exact ring to floating-point, and that map is lossy; changing only \emph{when} the expression is evaluated, from translation time to runtime, is not.
 So the single lossy crossing is the representation map, and it is independent of where evaluation falls: an exact term yields the same value folded early or computed late.
-This is the ring-swap machinery the \cppinline{Dual<F>} sensitivity exhibit (§\ref{sec:optimization_lp}) already uses in miniature, generalised from computing a derivative exactly to computing the whole expression exactly and rounding once.
+This is the ring-swap machinery the \cppinline{Dual<F>} carrier already uses in miniature, generalised from computing a derivative exactly to computing the whole expression exactly and rounding once.
 Whether the type system can carry that boundary crossing as a first-class, mechanically-checked seam rather than a convention is the question we would pursue next.
 
 A complementary direction widens the family of structural specialisations the compiler recognises (§\ref{sec:ddk_comprehension}) toward a law-indexed reduction surface: gating the collapse rules on algebraic-law concepts such as \cppinline{IsMonoid} and \cppinline{IsSemilattice} rather than on named carriers.
@@ -2606,49 +2360,6 @@ $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppin
 
 %%%
 \clearpage
-\section{Partial Evaluation on the Analytic Necklace}
-\label{app:partial-eval}
-
-The diamond necklace of §\ref{sec:optimization_lp} is an \emph{analytic} graph: its edges are a rule on a pair of nodes, $E((x,y),(x',y')) \iff x' = x+1 \wedge |y'-y| = 1$, with no intrinsic size.
-The closure materialises a finite window of it as a budget, and where its endpoints are fixed decides how much of the computation the compiler performs.
-
-\paragraph{Endpoints at compile time: full collapse.}
-When source and sink are compile-time constants, the whole reduction is a constant expression and folds to a literal, the \texttt{ret i64 8} of Listing~\ref{lst:necklace-ir}.
-Nothing of the graph, the semiring, or the traversal survives into the binary.
-
-\paragraph{Endpoints at run time: a specialised residual.}
-When source and sink instead arrive as runtime arguments, the identical \cppinline{semiring_closure} cannot fold, and the emitted code is its \emph{residual}.
-That residual is not a generic solver: the semiring is specialised in ($\oplus = \max$ is a \cppinline{select}, $\otimes = {+}$ is an \cppinline{add}), the topology rule is the inlined coordinate decode, and the cost formula $y'(K-x')$ is inlined arithmetic; what remains parametric is only the pair of runtime endpoints.
-This is partial evaluation~\cite{jones1993partial} in the precise sense: freezing the structure and leaving the data specialises one expression into a family of optimised kernels, one per graph query, with the query itself as the runtime-parametric continuation.
-
-\begin{listing}[htbp]
-\caption{The same necklace closure, two call sites (checked-in witnesses).  Static endpoints fold to a constant; runtime endpoints leave a specialised residual.}
-\label{lst:partial-eval}
-\begin{cpp}
-// Endpoints static  -> constant expression -> ret i64 8 (full collapse).
-constexpr auto opt = semiring_closure<MaxPlus<unsigned long long>, Cap>(
-    SRC, SINK, edges, cpm_cost);            // SRC, SINK literals
-
-// Endpoints runtime -> residual: the fold over the edges, max/add inlined,
-// indexed by (source, sink); no generic solver, no dispatch.
-int64_t critical_between(std::size_t source, std::size_t sink) {
-  if (source >= Cap || sink >= Cap) return -1;   // out-of-range query
-  const auto d = semiring_closure<MaxPlus<unsigned long long>, Cap>(
-      source, sink, edges, cpm_cost);            // source, sink runtime
-  return d.finite ? d.val : -1;                  // unreachable -> -1, not 0
-}
-\end{cpp}
-\end{listing}
-
-The residual is the fold over the edge sequence rather than a straight-line kernel: the optimiser keeps the loop that threads the potential, specialised but not flattened.
-The point the two call sites make is that the collapse is optional and the boundary is the programmer's to place.
-
-The constant-evaluation limit bounds the boundary from the other side, and the two evaluation contexts behave differently.
-Where a value is \emph{required} to be constant, a \cppinline{static_assert} or a template argument, a fold too deep for the limit is ill-formed, so a deep exact computation is kept out of that position and written as an ordinary call.
-Such a call the compiler folds when it is cheap enough and emits as runtime code when it is not; because the carrier is exact either choice yields the same value, so the fallback costs only the folding and never the answer.
-
-%%%
-\clearpage
 \section{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
 %%% 
@@ -2855,7 +2566,7 @@ So: not ``a faster way to do set algebra'', but a rewrite rule that
 happens to live in the C++ type system, and whose action is
 monotone-ascending in a lattice of decidability. The halfspace case is
 the smallest non-trivial instance we know how to prove mechanically.
-Four further axes appear to obey the same pattern; the project tracker
+Three further axes appear to obey the same pattern; the project tracker
 carries one existential proof per axis (one worked instance, one IR
 fixture, one compile-time witness) rather than a general framework.
 We would rather ship one reduction that fully collapses than four
@@ -2864,7 +2575,6 @@ sketches that do not.
 % Tracker cross-reference for maintainers (invisible in PDF):
 %   Carrier tightening      -> issue #362
 %   Smooth optimization     -> issue #363
-%   Linear programming      -> issue #364  (demonstrated here)
 %   Lattice-law rewriting   -> issue #365
 \begin{itemize}
   \item \textbf{Carrier tightening.} Intersecting a subset of
@@ -2885,12 +2595,6 @@ sketches that do not.
     instantiation time.  Quadratic $f$ is the worked-instance
     boundary; non-linear extensions are post-paper work tracked
     under \#363.
-  \item \textbf{Network critical path, a linear-programming dual}
-    (demonstrated in Section~\ref{sec:optimization_lp}).
-    The critical path of a directed acyclic network reduces, at
-    compile time, to a typed constant; the same closure over a
-    dual-number carrier yields edge-cost sensitivity with no extra code
-    path: the solver is the compiler.
   \item \textbf{Lattice-law rewriting.} Distributivity and
     absorption applied at the type level rewrite
     $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local

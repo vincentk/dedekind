@@ -47,6 +47,7 @@ export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
 export import :lattice;     // Integer lattices over ℝ_d
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
+export import :collatz;     // Bounded Collatz reachability (§4 exhibit)
 
 /** @section numbers__Non_Standard_Analysis */
 // :dual moved to dedekind.analysis:dual at PR #513 --- the carrier is

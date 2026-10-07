@@ -1,0 +1,133 @@
+/**
+ * @file dedekind/sequences/relprod.cppm
+ * @partition :relprod
+ * @brief The relative product @f$R;S@f$ over a FINITE ℕ-prefix middle: the
+ *        generalization of @c :relational's Boolean-middle @c >> (which
+ *        enumerates @c {false,true}) to a bounded ℕ carrier @f$[0,M)@f$.  The
+ *        @f$\exists@f$-over-the-middle is a @b short-circuiting scan (@c
+ *        sets::exists: it stops at the first witness), and
+ *        the bound @c M is carried on the composed type so repeated squaring
+ *        (@c R;R, @c (R;R);(R;R), …) stays bounded --- the semantic for-loop of
+ *        bounded transitive closure (#795).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section relprod__Why_Here
+ * Homed downstream of @c relational (where the Boolean @c >> lives): the bound
+ * @c M is read from an @b order-level @c ProjBound (the half-space cut @c
+ * collatz @c | @c (π1 @c < @c fix(M_c))), which @c relational --- @b upstream
+ * of @c order --- cannot see, so the bounded @c >> cannot live beside its
+ * Boolean sibling.  It sits in @c sequences (the first module below both @c
+ * order and @c relational that the exhibit already imports); consumers reach
+ * the bare @c >> via @c using @c namespace @c dedekind::sequences.  The
+ * @f$\exists@f$ itself is @c sets::exists (@b upstream, short-circuiting).
+ *
+ * Wikipedia: Composition of relations, Transitive closure, Relation algebra
+ *
+ * @note "The logical theory which is called the calculus of (binary)
+ *       relations, and the development of which is the subject of this paper,
+ *       has had a strange and rather capricious line of historical
+ *       development."
+ *       -- Alfred Tarski, On the Calculus of Relations, Journal of Symbolic
+ *       Logic 6 (1941), §1.
+ */
+module;
+
+#include <concepts>  // std::convertible_to
+#include <cstddef>
+#include <ranges>
+#include <utility>
+
+export module dedekind.sequences:relprod;
+
+import dedekind.sets; // Comprehension / 𝔸, finite_cardinality, exists (short-circuit ∃)
+import dedekind.order; // ProjBound, ProductRestrict, Rel, IsRelPredicate
+
+namespace dedekind::sequences {
+using dedekind::order::IsRelPredicate;
+using dedekind::sets::Comprehension;
+using dedekind::sets::exists;
+using dedekind::sets::finite_cardinality;
+using dedekind::sets::IsCardinality;
+using dedekind::sets::𝔸;
+
+/** @brief The composed predicate for @f$R;S@f$ over the finite ℕ-prefix
+ *  @f$[0,M)@f$ middle.  Carries @c M (so the bound survives repeated squaring)
+ *  and the two operand @c IsRelPredicate operands.  The
+ *  @f$\exists@f$-over-the-middle is the @b short-circuiting @c sets::exists
+ * over a @b lazy @c iota generator: @c filter's @c begin() advances only to the
+ *  @e first witness @f$b@f$, so a hit returns immediately (@f$\top \vee x =
+ *  \top@f$) --- O(1) memory (no bool accumulator threaded), O(M) steps
+ *  @e worst-case, @b no array. */
+export template <IsRelPredicate PR, IsRelPredicate PS>
+struct ComposePrefixPred {
+  using is_rel_predicate = void;
+  PR r;
+  PS s;
+  std::size_t bound;  // the finite ℕ-prefix middle [0, bound): a VALUE, so the
+                      // chain composes over runtime as well as constexpr bounds
+  /** @param ac the endpoint pair @f$(a,c)@f$ --- any @c .first / @c .second
+   *  carrier the operands accept. */
+  template <typename Pair>
+    requires requires(const Pair& ac) {
+      ac.first;
+      ac.second;
+    }
+  constexpr bool operator()(const Pair& ac) const {
+    // ∃ b ∈ [0,M). R(a,b) ∧ S(b,c) --- exists stops at the first witness b.
+    return exists(std::views::iota(std::size_t{0}, bound), [&](std::size_t i) {
+      const auto b = finite_cardinality(i);
+      return static_cast<bool>(r(std::pair{ac.first, b})) &&
+             static_cast<bool>(s(std::pair{b, ac.second}));
+    });
+  }
+};
+
+/** @brief @c prefix_bound(p) --- recover the finite-prefix bound @c M carried
+ *  by a bounded relation's predicate @c p: either from the half-space
+ *  restriction (a @c ProductRestrict wrapping a @c ProjBound<1,Lt,VT> domain
+ *  cut, whose pivot is a VALUE), or from a prior compose (@c ComposePrefixPred
+ *  carries its bound).  Left @b undefined otherwise --- an unbounded relation
+ *  has no finite middle to compose over, so its @c >> stays the honest Rice
+ *  wall.  A function, not a trait: since the pivot rides in the value, so does
+ *  the bound; it still folds at compile time when the relation is constexpr. */
+template <typename Pp, typename VT>
+constexpr std::size_t prefix_bound(
+    const dedekind::order::ProductRestrict<
+        Pp, dedekind::order::ProjBound<1, dedekind::order::Rel::Lt, VT>>& p) {
+  return static_cast<std::size_t>(p.rp.value);
+}
+template <typename PR, typename PS>
+constexpr std::size_t prefix_bound(const ComposePrefixPred<PR, PS>& p) {
+  return p.bound;
+}
+
+/** @brief A relation is @b bounded (composable over a finite middle) iff its
+ *  predicate carries a @c prefix_bound. */
+template <typename P>
+concept HasPrefixBound = requires(const P& p) {
+  { prefix_bound(p) } -> std::convertible_to<std::size_t>;
+};
+
+/** @brief @c R @c >> @c S over the finite ℕ-prefix middle @b inferred from
+ *  @c R's bound (no middle argument): @f$(R;S)(a,c) = \exists b \in [0,M).\,
+ *  R(a,b) \wedge S(b,c)@f$, streamed as an OR-fold.  The result is @b itself
+ *  bounded (@c ComposePrefixPred carries @c M), so the squaring chain
+ *  @c collatzM @c >> @c collatzM @c >> @c … composes without re-supplying the
+ *  middle.  Generalizes @c :relational's Boolean-middle @c >> to a bounded ℕ
+ *  carrier (#795).  Gated on @c HasPrefixBound so the unbounded @c >> is
+ *  non-viable here (it stays the Boolean case in @c :relational). */
+export template <typename A, typename B, typename C, typename L,
+                 IsCardinality K1, IsCardinality K2, IsRelPredicate PR,
+                 IsRelPredicate PS>
+  requires HasPrefixBound<PR>
+constexpr auto operator>>(
+    const Comprehension<𝔸<std::pair<A, B>, L, K1>, PR>& r,
+    const Comprehension<𝔸<std::pair<B, C>, L, K2>, PS>& s) {
+  using CP = ComposePrefixPred<PR, PS>;
+  return Comprehension<𝔸<std::pair<A, C>, L>, CP>{
+      CP{r.predicate, s.predicate, prefix_bound(r.predicate)}};
+}
+
+}  // namespace dedekind::sequences
