@@ -308,6 +308,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/pst.py
         COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/collatz.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/collatz.py
+        COPYONLY)
 
     nanobind_add_module(_dedekind PROTECT_STACK
         src/main/modules/dedekind/python/nanobind.cpp)
@@ -357,12 +361,26 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_pst PRIVATE -Wno-sign-conversion)
     target_link_libraries(_pst PRIVATE dedekind_python)
 
-    install(TARGETS _dedekind _jlt _lwv _pst LIBRARY DESTINATION dedekind)
+    # The bounded Collatz exhibit (#861) is its own private native module,
+    # dedekind._collatz (the orbit, the budgeted verdict in K₃, the window ∀),
+    # re-exported by dedekind.collatz.
+    nanobind_add_module(_collatz PROTECT_STACK
+        src/main/modules/dedekind/python/nanobind_collatz.cpp)
+    set_target_properties(_collatz PROPERTIES
+        CXX_SCAN_FOR_MODULES ON
+        LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    target_compile_options(_collatz PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(_collatz PRIVATE -Wno-sign-conversion)
+    target_link_libraries(_collatz PRIVATE dedekind_python)
+
+    install(TARGETS _dedekind _jlt _lwv _pst _collatz LIBRARY DESTINATION dedekind)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/lwv.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/collatz.py
         DESTINATION dedekind)
 
     add_test(

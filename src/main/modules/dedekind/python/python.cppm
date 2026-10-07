@@ -20,6 +20,7 @@
 
 module;
 
+#include <algorithm>  // the window's fold
 #include <concepts>
 #include <functional>
 #include <limits>     // the integer window's ends
@@ -61,14 +62,20 @@ using dedekind::category::lift_logic;
 using dedekind::category::logic_complement;
 using dedekind::category::Morphism;
 using dedekind::category::Predecessor;
+using dedekind::category::predicate_logic_t;
 using dedekind::category::preimage;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
+using dedekind::numbers::collatz_orbit;
+using dedekind::numbers::collatz_reach_time;
+using dedekind::numbers::reaches_1_within;
 using dedekind::order::Direction;
 using dedekind::order::reduce_meet;
 using dedekind::order::SetKind;
 using dedekind::order::SetVal;
 using dedekind::order::Strictness;
+using dedekind::sequences::chain_view;
+using dedekind::sequences::Path;
 using dedekind::sequences::Run;
 using dedekind::sequences::runs;
 using dedekind::sequences::SuccessorOrbit;
@@ -339,7 +346,59 @@ constexpr std::optional<long long> greatest(const Set& s) {
   }
 }
 
+/** @brief Bounded @f$\forall x \in S.\, P(x)@f$ in @c P's species: the meet
+ *  of @c P along the window the leaf spans, from its least to its greatest
+ *  element (the empty set vacuously @c ⊤).  A ray or @c 𝔸 has no window; on ℤ
+ *  that @f$\forall@f$ is the Rice wall, and the binding refuses it.
+ *  @tparam P a predicate on the integer window.  @param s a bounded leaf
+ *  (@c is_bounded).  @param p the predicate.  @return the meet, in @c P's Ω. */
+template <IsPredicate P>
+  requires std::same_as<Dom<P>, long long>
+typename predicate_logic_t<P>::Ω forall(const Set& s, const P& p) {
+  using L = predicate_logic_t<P>;
+  const auto lo = least(s);
+  const auto hi = greatest(s);
+  if (!lo || !hi) return L::True;
+  return std::ranges::fold_left(std::views::transform(chain_view{*lo, *hi}, p),
+                                L::True, L::AND);
+}
+
 }  // namespace lwv
+
+// ── Collatz: the budgeted verdict on the integer window (#861) ───────────────
+//
+// numbers:collatz says the problem three ways; the Python exhibit holds two of
+// them: the orbit as a Path, and the Rosolini verdict "reaches 1 within the
+// budget" as a predicate on the window, valued in K₃.  There is no predicate
+// without a budget: the unbounded closure has no former in the library, which
+// is the open problem stated as an absence.
+
+namespace collatz {
+
+/** @brief The verdict "n reaches 1 within the budget" as an @c IsPredicate on
+ *  the integer window, valued in K₃: @c ⊤ once the orbit is seen to arrive,
+ *  @c U when the budget runs out, never @c ⊥ (nothing refutes).  A negative
+ *  seed is outside ℕ and is refused. */
+struct ReachesWithin {
+  using Domain = jlt::Int;
+  using Codomain = Ternary;
+  using logic_species = Kleene;
+  std::size_t budget;
+  Ternary operator()(const jlt::Int& n) const {
+    if (n < 0)
+      throw std::domain_error(
+          "Collatz is a relation on ℕ: a negative seed has no orbit");
+    return reaches_1_within(static_cast<std::size_t>(n), budget);
+  }
+};
+static_assert(IsPredicate<ReachesWithin>,
+              "the budgeted verdict is a K₃-valued predicate on the window");
+
+/** @brief The orbit of a seed under the rule: the real @c :numbers iterate, a
+ *  lazy @c Path.  @param n the seed, in ℕ. */
+inline Path<std::size_t> orbit(std::size_t n) { return collatz_orbit(n); }
+
+}  // namespace collatz
 
 // ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
 //
