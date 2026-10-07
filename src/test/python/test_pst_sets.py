@@ -140,7 +140,8 @@ class MixedSpeciesTest(unittest.TestCase):
         # ⋀ (χ_S ⇔ χ_H): agree at ⊥ and ⊤, to degree U at U.
         self.assertEqual(S == H, U)
         self.assertEqual(H == S, U)
-        self.assertEqual(η(T) == H, F)  # differ at U: ⊥ against U
+        self.assertEqual(η(T) == H, U)  # ⊥ against U at U is only U
+        self.assertEqual(η(F) == H, F)  # ⊤ against ⊥ at ⊥: differ outright
         self.assertEqual(S <= H, U)
         self.assertEqual(H <= S, U)
         self.assertEqual(S != H, U)
