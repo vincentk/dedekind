@@ -40,9 +40,10 @@
 #include <unordered_set>
 #include <vector>
 
-import dedekind.python;
-import dedekind.sets; // Cardinality: the ℕ carrier for the canonical native sets
-import dedekind.order; // Halfspace: ℕ ⊂ ℤ as the subobject {x ∈ ℤ | x ≥ 0}
+import dedekind.linear_algebra; // the GraphBLAS stub's capability bit
+import dedekind.order;     // Halfspace: ℕ ⊂ ℤ as the subobject {x ∈ ℤ | x ≥ 0}
+import dedekind.sequences; // FinitePath: from_range / as_range
+import dedekind.sets;      // ExtensionalSet: from_std / to_std; Cardinality
 
 namespace nb = nanobind;
 
@@ -58,24 +59,24 @@ using Naturals =
 
 auto ordered_set_roundtrip(const std::vector<int>& values) -> std::vector<int> {
   const std::set<int> ordered(values.begin(), values.end());
-  const auto ext = dedekind::python::from_std(ordered);
-  const auto back = dedekind::python::to_std<std::set<int>>(ext);
+  const auto ext = dedekind::sets::from_std(ordered);
+  const auto back = dedekind::sets::to_std<std::set<int>>(ext);
   return {back.begin(), back.end()};
 }
 
 auto unordered_set_roundtrip(const std::vector<int>& values)
     -> std::vector<int> {
   const std::unordered_set<int> unordered(values.begin(), values.end());
-  const auto ext = dedekind::python::from_std(unordered);
-  const auto back = dedekind::python::to_std<std::unordered_set<int>>(ext);
+  const auto ext = dedekind::sets::from_std(unordered);
+  const auto back = dedekind::sets::to_std<std::unordered_set<int>>(ext);
   std::vector<int> materialized(back.begin(), back.end());
   std::sort(materialized.begin(), materialized.end());
   return materialized;
 }
 
 auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
-  const auto path = dedekind::python::from_range(values);
-  const auto& view = dedekind::python::as_range(path);
+  const auto path = dedekind::sequences::from_range(values);
+  const auto& view = dedekind::sequences::as_range(path);
   return {view.begin(), view.end()};
 }
 
@@ -111,15 +112,15 @@ template <typename T>
 auto ext_union(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
   std::set<T> merged(a);
   merged.insert(b.begin(), b.end());
-  const auto ext = dedekind::python::from_std(merged);
-  return dedekind::python::to_std<std::set<T>>(ext);
+  const auto ext = dedekind::sets::from_std(merged);
+  return dedekind::sets::to_std<std::set<T>>(ext);
 }
 
 template <typename T>
 auto ext_intersection(const std::set<T>& a, const std::set<T>& b)
     -> std::set<T> {
-  const auto ext_a = dedekind::python::from_std(a);
-  const auto ext_b = dedekind::python::from_std(b);
+  const auto ext_a = dedekind::sets::from_std(a);
+  const auto ext_b = dedekind::sets::from_std(b);
   std::set<T> result;
   for (const auto& v : ext_a) {
     if (ext_b.contains(v)) result.insert(v);
@@ -129,8 +130,8 @@ auto ext_intersection(const std::set<T>& a, const std::set<T>& b)
 
 template <typename T>
 auto ext_difference(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
-  const auto ext_a = dedekind::python::from_std(a);
-  const auto ext_b = dedekind::python::from_std(b);
+  const auto ext_a = dedekind::sets::from_std(a);
+  const auto ext_b = dedekind::sets::from_std(b);
   std::set<T> result;
   for (const auto& v : ext_a) {
     if (!ext_b.contains(v)) result.insert(v);
@@ -140,7 +141,7 @@ auto ext_difference(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
 
 template <typename T>
 auto ext_cardinality(const std::set<T>& s) -> std::size_t {
-  return dedekind::python::from_std(s).size();
+  return dedekind::sets::from_std(s).size();
 }
 
 // Convenience: register all four set-algebra overloads for one element type.
@@ -306,8 +307,12 @@ NB_MODULE(_dedekind, module) {
       "μ: Int ⇀ Ext; χ runs in C++, not Python.");
 
   // ── linear_algebra / graphblas middleware ────────────────────────────────
-  module.def("graphblas_backend_stub_available",
-             &dedekind::python::graphblas_backend_stub_available,
-             "Return whether the middleware advertises GraphBLAS backend "
-             "capability for future validation/prototyping.");
+  module.def(
+      "graphblas_backend_stub_available",
+      [] {
+        return dedekind::linear_algebra::GraphBLASBackendStub::
+            supports_sparse_linear_operators;
+      },
+      "Return whether the middleware advertises GraphBLAS backend "
+      "capability for future validation/prototyping.");
 }

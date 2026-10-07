@@ -31,8 +31,9 @@
 #include <optional>
 #include <string>
 
-import dedekind.python; // dedekind::python::lwv: Set, above/below/..., meet
-import dedekind.order;  // dedekind::order::SetKind / Direction / Strictness
+import dedekind.category; // Identity, Successor, Predecessor
+import dedekind.order;    // SetKind / Direction / Strictness, reduce_meet
+import dedekind.python;   // dedekind::python::lwv: Set, ray, image, restrict
 
 namespace nb = nanobind;
 
@@ -41,6 +42,21 @@ namespace lwv = dedekind::python::lwv;
 namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
 using Set = lwv::Set;
+using dedekind::category::Identity;
+using dedekind::category::Predecessor;
+using dedekind::category::Successor;
+
+/** @brief @c image / @c preimage for one structural arrow type @c F. */
+template <typename F>
+void bind_images(nb::module_& m, const char* image_doc,
+                 const char* preimage_doc) {
+  m.def(
+      "image", [](const F& f, const Set& s) { return lwv::image(f, s); },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "preimage", [](const F& f, const Set& s) { return lwv::preimage(f, s); },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+}
 
 /** @brief The unfold of a set of the discrete chain from its least element by
  *  the successor, stopping after its greatest if it has one: a bounded set
@@ -143,7 +159,8 @@ NB_MODULE(_lwv, m) {
           [](const Set& s, long long x) { return s.contains(x); }, nb::arg("x"),
           "x in s: the same membership test.")
       .def(
-          "__and__", [](const Set& a, const Set& b) { return lwv::meet(a, b); },
+          "__and__",
+          [](const Set& a, const Set& b) { return ord::reduce_meet(a, b); },
           "a & b: intersection through the value-first reduce_meet (runtime).")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
@@ -220,18 +237,20 @@ NB_MODULE(_lwv, m) {
           "The finite cardinality where decidable (0 / 1 / interval count); "
           "None for the infinite kinds (halfspace, universe).");
 
-  m.def("above", &lwv::above, nb::arg("k"),
-        "above(k): the open upper halfspace {x | x > k} = ↑k.");
-  m.def("at_least", &lwv::at_least, nb::arg("k"),
-        "at_least(k): the closed upper halfspace {x | x >= k}.");
-  m.def("below", &lwv::below, nb::arg("k"),
-        "below(k): the open lower halfspace {x | x < k} = ↓k.");
-  m.def("at_most", &lwv::at_most, nb::arg("k"),
-        "at_most(k): the closed lower halfspace {x | x <= k}.");
-  m.def("singleton", &lwv::singleton, nb::arg("k"),
+  m.def("above", &lwv::ray<ord::Direction::Upward, ord::Strictness::Strict>,
+        nb::arg("k"), "above(k): the open upper halfspace {x | x > k} = ↑k.");
+  m.def("at_least",
+        &lwv::ray<ord::Direction::Upward, ord::Strictness::NonStrict>,
+        nb::arg("k"), "at_least(k): the closed upper halfspace {x | x >= k}.");
+  m.def("below", &lwv::ray<ord::Direction::Downward, ord::Strictness::Strict>,
+        nb::arg("k"), "below(k): the open lower halfspace {x | x < k} = ↓k.");
+  m.def("at_most",
+        &lwv::ray<ord::Direction::Downward, ord::Strictness::NonStrict>,
+        nb::arg("k"), "at_most(k): the closed lower halfspace {x | x <= k}.");
+  m.def("singleton", &Set::point, nb::arg("k"),
         "singleton(k): the point {k} = η(k), the value-based atom.");
-  m.def("everything", &lwv::everything, "everything(): the universe 𝔸.");
-  m.def("nothing", &lwv::nothing, "nothing(): the empty set Ø.");
+  m.def("everything", &Set::universe, "everything(): the universe 𝔸.");
+  m.def("nothing", &Set::empty, "nothing(): the empty set Ø.");
 
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
@@ -259,22 +278,9 @@ NB_MODULE(_lwv, m) {
   const char* preimage_doc =
       "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
       "pred).  preimage(succ(int), above(6)) == above(5).";
-  m.def(
-      "image",
-      [](const jlt::Id<jlt::Int>& f, const Set& s) { return lwv::image(f, s); },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "image",
-      [](const jlt::Succ<jlt::Int>& f, const Set& s) {
-        return lwv::image(f, s);
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "image",
-      [](const jlt::Pred<jlt::Int>& f, const Set& s) {
-        return lwv::image(f, s);
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
+  bind_images<Identity<jlt::Int>>(m, image_doc, preimage_doc);
+  bind_images<Successor<jlt::Int>>(m, image_doc, preimage_doc);
+  bind_images<Predecessor<jlt::Int>>(m, image_doc, preimage_doc);
   m.def(
       "image",
       [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {
@@ -283,24 +289,6 @@ NB_MODULE(_lwv, m) {
             "and has no value normal form; only id / succ / pred do");
       },
       nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "preimage",
-      [](const jlt::Id<jlt::Int>& f, const Set& s) {
-        return lwv::preimage(f, s);
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
-  m.def(
-      "preimage",
-      [](const jlt::Succ<jlt::Int>& f, const Set& s) {
-        return lwv::preimage(f, s);
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
-  m.def(
-      "preimage",
-      [](const jlt::Pred<jlt::Int>& f, const Set& s) {
-        return lwv::preimage(f, s);
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
   m.def(
       "preimage",
       [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {

@@ -24,12 +24,18 @@
 
 #include <nanobind/nanobind.h>
 
-import dedekind.python; // dedekind::python::jlt: Id<T>, Arrow<T>, id/refl/compose
+import dedekind.category; // Identity, Successor, Predecessor, the species
+import dedekind.python;   // dedekind::python::jlt: Arrow<T>, refl, compose
 
 namespace nb = nanobind;
 
 namespace {
 namespace jlt = dedekind::python::jlt;
+using dedekind::category::Boole;
+using dedekind::category::Chain;
+using dedekind::category::Identity;
+using dedekind::category::Predecessor;
+using dedekind::category::Successor;
 
 /** @brief @c dom / @c cod as a Python @b type object (numpy/pandas dtype
  * style):
@@ -66,10 +72,10 @@ void bind_rshift(nb::class_<S>& cls) {
 template <typename S>
 void bind_compositions(nb::class_<S>& cls) {
   using T = typename S::Domain;
-  bind_rshift<S, jlt::Id<T>>(cls);
+  bind_rshift<S, Identity<T>>(cls);
   bind_rshift<S, jlt::Arrow<T>>(cls);
-  bind_rshift<S, jlt::Succ<T>>(cls);
-  bind_rshift<S, jlt::Pred<T>>(cls);
+  bind_rshift<S, Successor<T>>(cls);
+  bind_rshift<S, Predecessor<T>>(cls);
 }
 
 /** @brief The arrow @b operators (apply @c (), composition @c >>) of a bound
@@ -102,22 +108,22 @@ void bind_step_operators(nb::class_<S>& cls) {
  *  readable by @c lwv.image. */
 template <typename T>
 void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
-  auto succ = nb::class_<jlt::Succ<T>>(
+  auto succ = nb::class_<Successor<T>>(
       m, succ_name,
       "The successor arrow S : T -> T (the real :nno Successor), total and "
       "saturating at the chain's top.");
   bind_step_operators(succ);
-  succ.def("__repr__", [](const jlt::Succ<T>&) { return "succ"; });
-  auto pred = nb::class_<jlt::Pred<T>>(
+  succ.def("__repr__", [](const Successor<T>&) { return "succ"; });
+  auto pred = nb::class_<Predecessor<T>>(
       m, pred_name,
       "The predecessor arrow P : T -> T (the real :nno Predecessor), total and "
       "saturating at the chain's bottom (the monus on ℕ).");
   bind_step_operators(pred);
-  pred.def("__repr__", [](const jlt::Pred<T>&) { return "pred"; });
-  m.def("dom", [](const jlt::Succ<T>&) { return type_object<T>(); });
-  m.def("cod", [](const jlt::Succ<T>&) { return type_object<T>(); });
-  m.def("dom", [](const jlt::Pred<T>&) { return type_object<T>(); });
-  m.def("cod", [](const jlt::Pred<T>&) { return type_object<T>(); });
+  pred.def("__repr__", [](const Predecessor<T>&) { return "pred"; });
+  m.def("dom", [](const Successor<T>&) { return type_object<T>(); });
+  m.def("cod", [](const Successor<T>&) { return type_object<T>(); });
+  m.def("dom", [](const Predecessor<T>&) { return type_object<T>(); });
+  m.def("cod", [](const Predecessor<T>&) { return type_object<T>(); });
 }
 
 /** @brief Bind one carrier @c T: the real @c Identity<T> and the type-erased
@@ -126,12 +132,12 @@ void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
 template <typename T>
 void bind_carrier(nb::module_& m, const char* identity_name,
                   const char* morphism_name) {
-  auto identity = nb::class_<jlt::Id<T>>(
+  auto identity = nb::class_<Identity<T>>(
       m, identity_name,
       "The identity arrow id: T -> T (the monoid unit).  A real :morphism "
       "Identity<T>.");
   bind_endo_operators(identity);
-  identity.def("__repr__", [](const jlt::Id<T>&) { return "id"; });
+  identity.def("__repr__", [](const Identity<T>&) { return "id"; });
 
   auto morphism = nb::class_<jlt::Arrow<T>>(
       m, morphism_name,
@@ -141,13 +147,13 @@ void bind_carrier(nb::module_& m, const char* identity_name,
   morphism.def("__repr__", [](const jlt::Arrow<T>&) { return "<arrow>"; });
 
   m.def(
-      "dom", [](const jlt::Id<T>&) { return type_object<T>(); },
+      "dom", [](const Identity<T>&) { return type_object<T>(); },
       "dom(f): the domain object (a type).");
   m.def(
       "dom", [](const jlt::Arrow<T>&) { return type_object<T>(); },
       "dom(f): the domain object (a type).");
   m.def(
-      "cod", [](const jlt::Id<T>&) { return type_object<T>(); },
+      "cod", [](const Identity<T>&) { return type_object<T>(); },
       "cod(f): the codomain object (a type).");
   m.def(
       "cod", [](const jlt::Arrow<T>&) { return type_object<T>(); },
@@ -181,16 +187,18 @@ NB_MODULE(_jlt, m) {
   m.def(
       "id",
       [](nb::handle t) -> nb::object {
-        if (t.is(type_object<bool>())) return nb::cast(jlt::id<bool>());
-        if (t.is(type_object<jlt::Int>())) return nb::cast(jlt::id<jlt::Int>());
+        if (t.is(type_object<bool>())) return nb::cast(Identity<bool>{});
+        if (t.is(type_object<jlt::Int>()))
+          return nb::cast(Identity<jlt::Int>{});
         throw nb::type_error("id(T): T must be bool or int");
       },
       nb::arg("carrier"), "id(T): the identity arrow on carrier T.");
   m.def(
       "refl",
       [](nb::handle t) -> nb::object {
-        if (t.is(type_object<bool>())) return nb::cast(jlt::refl_bool());
-        if (t.is(type_object<jlt::Int>())) return nb::cast(jlt::refl_int());
+        if (t.is(type_object<bool>())) return nb::cast(jlt::refl<Boole>());
+        if (t.is(type_object<jlt::Int>()))
+          return nb::cast(jlt::refl<Chain<jlt::Int>>());
         throw nb::type_error("refl(T): T must be bool or int");
       },
       nb::arg("carrier"),
@@ -199,9 +207,9 @@ NB_MODULE(_jlt, m) {
   m.def(
       "succ",
       [](nb::handle t) -> nb::object {
-        if (t.is(type_object<bool>())) return nb::cast(jlt::Succ<bool>{});
+        if (t.is(type_object<bool>())) return nb::cast(Successor<bool>{});
         if (t.is(type_object<jlt::Int>()))
-          return nb::cast(jlt::Succ<jlt::Int>{});
+          return nb::cast(Successor<jlt::Int>{});
         throw nb::type_error("succ(T): T must be bool or int");
       },
       nb::arg("carrier"),
@@ -211,9 +219,9 @@ NB_MODULE(_jlt, m) {
   m.def(
       "pred",
       [](nb::handle t) -> nb::object {
-        if (t.is(type_object<bool>())) return nb::cast(jlt::Pred<bool>{});
+        if (t.is(type_object<bool>())) return nb::cast(Predecessor<bool>{});
         if (t.is(type_object<jlt::Int>()))
-          return nb::cast(jlt::Pred<jlt::Int>{});
+          return nb::cast(Predecessor<jlt::Int>{});
         throw nb::type_error("pred(T): T must be bool or int");
       },
       nb::arg("carrier"),

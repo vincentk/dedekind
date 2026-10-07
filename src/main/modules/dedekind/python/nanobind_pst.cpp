@@ -36,7 +36,8 @@
 #include <string>
 #include <variant>
 
-import dedekind.category;  // Ternary, Boole, Kleene, IsPst
+import dedekind.category;  // Ternary, Boole, Kleene, IsPst, the step
+import dedekind.order;     // IsDense
 import dedekind.python;    // dedekind::python::pst
 import dedekind.sequences; // Run
 import dedekind.sets;      // Cardinality, ℵ_0, finite_cardinality
@@ -46,9 +47,14 @@ namespace nb = nanobind;
 namespace {
 namespace pst = dedekind::python::pst;
 using dedekind::category::Boole;
+using dedekind::category::cover;
+using dedekind::category::IsPst;
 using dedekind::category::join_logic_t;
 using dedekind::category::Kleene;
+using dedekind::category::Predecessor;
+using dedekind::category::Successor;
 using dedekind::category::Ternary;
+using dedekind::order::IsDense;
 using dedekind::sets::Cardinality;
 using dedekind::sets::ℵ_0;
 
@@ -112,7 +118,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def("__next__", [](ChainIter<C>& it) {
         if (!it.current) throw nb::stop_iteration();
         const C value = *it.current;
-        it.current = pst::cover<C>(value);
+        it.current = cover(value);
         return to_py<C>(value);
       });
   return nb::class_<Ch>(m, cls, doc)
@@ -128,21 +134,21 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def(
           "succ",
           [](const Ch&, nb::handle x) {
-            return to_py<C>(pst::succ<C>(from_py_as<C>(x)));
+            return to_py<C>(Successor<C>{}(from_py_as<C>(x)));
           },
           nb::arg("x"),
           "S(x): the successor, total and saturating at ⊤ (the algebra side).")
       .def(
           "pred",
           [](const Ch&, nb::handle x) {
-            return to_py<C>(pst::pred<C>(from_py_as<C>(x)));
+            return to_py<C>(Predecessor<C>{}(from_py_as<C>(x)));
           },
           nb::arg("x"),
           "P(x): the predecessor, total and saturating at ⊥ (the monus on ℕ).")
       .def(
           "cover",
           [](const Ch&, nb::handle x) -> nb::object {
-            const auto c = pst::cover<C>(from_py_as<C>(x));
+            const auto c = cover(from_py_as<C>(x));
             return c ? to_py<C>(*c) : nb::none();
           },
           nb::arg("x"),
@@ -161,10 +167,11 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           "is_bounded", [](const Ch&) { return true; },
           "Every Pst chain is bounded: it has ⊥ and ⊤.")
       .def_prop_ro(
-          "is_truth_object", [](const Ch&) { return pst::is_truth_object<C>; },
+          "is_truth_object", [](const Ch&) { return IsPst<C>; },
           "IsPst<C>: whether the chain is a truth object (carries ∧, ∨, ¬).")
+      // FIXME(#1004): IsDiscrete is not exported yet; read as !is_dense.
       .def_prop_ro(
-          "is_dense", [](const Ch&) { return pst::is_dense<C>; },
+          "is_dense", [](const Ch&) { return IsDense<C>; },
           "IsDense<C>: whether a midpoint always exists (never, on a chain "
           "with the step).")
       .def_prop_ro(
@@ -276,24 +283,21 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "__invert__", [](const S& a) { return pst::complement(a); },
           "~A: the complement, the species' reflection pointwise.")
       .def(
-          "__eq__",
-          [](const S& a, const S& b) { return nb::cast(pst::equal(a, b)); },
+          "__eq__", [](const S& a, const S& b) { return nb::cast((a == b)); },
           nb::is_operator(),
           "A == B in the set's species: ⋀ (χ_A ⇔ χ_B) by exhaustion of the "
           "chain; Unknown is a verdict on a K₃-valued set.")
       .def(
           "__ne__",
-          [](const S& a, const S& b) {
-            return nb::cast(L::RFL(pst::equal(a, b)));
-          },
+          [](const S& a, const S& b) { return nb::cast(L::RFL((a == b))); },
           nb::is_operator(), "A != B: the reflection of A == B.")
       .def(
           "__le__",
-          [](const S& a, const S& b) { return nb::cast(pst::subset(a, b)); },
+          [](const S& a, const S& b) { return nb::cast(((a & b) == a)); },
           nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
       .def(
           "__ge__",
-          [](const S& a, const S& b) { return nb::cast(pst::subset(b, a)); },
+          [](const S& a, const S& b) { return nb::cast(((b & a) == b)); },
           nb::is_operator(), "A >= B: B ⊆ A.")
       .def_prop_ro(
           "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
@@ -369,22 +373,21 @@ void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
           "__xor__", [](const S& a, const O& b) { return pst::sym_diff(a, b); },
           "A ^ B across species.")
       .def(
-          "__eq__",
-          [](const S& a, const O& b) { return nb::cast(pst::equal(a, b)); },
+          "__eq__", [](const S& a, const O& b) { return nb::cast((a == b)); },
           nb::is_operator(), "A == B across species, in their join.")
       .def(
           "__ne__",
           [](const S& a, const O& b) {
-            return nb::cast(join_logic_t<L1, L2>::RFL(pst::equal(a, b)));
+            return nb::cast(join_logic_t<L1, L2>::RFL((a == b)));
           },
           nb::is_operator())
       .def(
           "__le__",
-          [](const S& a, const O& b) { return nb::cast(pst::subset(a, b)); },
+          [](const S& a, const O& b) { return nb::cast(((a & b) == a)); },
           nb::is_operator(), "A <= B across species.")
       .def(
           "__ge__",
-          [](const S& a, const O& b) { return nb::cast(pst::subset(b, a)); },
+          [](const S& a, const O& b) { return nb::cast(((b & a) == b)); },
           nb::is_operator());
 }
 
