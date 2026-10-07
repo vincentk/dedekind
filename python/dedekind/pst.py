@@ -8,7 +8,9 @@ chain of the same shape whose top is ``aleph0``.  A chain exposes its ends
 ``pred``; the partial ``cover``, ``None`` at ⊤), its order ``le``, its
 classification as the C++ concepts decide it, and iterates from ⊥ by the cover.
 
-Sets over 𝔹 and K₃ follow the paper's Lwv grammar, verbatim::
+Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
+as the paper spells it (scalar carriers; products and composed predicates are
+not bound here)::
 
     from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE

@@ -12,7 +12,8 @@
  * @c dedekind.pst).  The @b chains @c B (𝔹), @c K3 (Kleene's three) and @c N
  * (ℕ's proxy, ⊤ = ℵ₀) are handles over the real carriers: endpoints, the step
  * in both readings, the order, their classification, and the unfold by the
- * cover.  The @b sets over 𝔹 and K₃ are the grammar, verbatim: generators
+ * cover.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv grammar
+ * (scalar carriers; no products, no composed predicates): generators
  * @c 𝔸(chain) / @c Ø(chain) / @c η(v), the former @c S @c | @c (π @c > @c v),
  * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c S(x), the
  * queries @c == and @c <= answering in the set's own species (@c Unknown is a
@@ -396,10 +397,9 @@ void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
           nb::arg("v"), "{v}: η(v).");
 }
 
-/** @brief Which truth chain a Python value belongs to: bool → 𝔹, Ternary → K₃.
- *  Builds the datum for one relation on either.  @tparam Make the factory. */
-template <template <typename> class Factory>
-struct DatumOf;
+/** @brief The datum for one relation, over the chain a Python value belongs
+ *  to: a @c bool is 𝔹's, a @c Ternary is K₃'s.  One factory struct per
+ *  relation, written out by the macro below. */
 #define DEDEKIND_DATUM_OF(NAME)                                    \
   struct NAME {                                                    \
     static nb::object make(nb::handle v) {                         \
@@ -573,8 +573,13 @@ NB_MODULE(_pst, m) {
       "Ø",
       [](nb::handle chain, nb::handle species) -> nb::object {
         const bool kleene = nb::isinstance<KleeneTag>(species);
-        if (nb::isinstance<pst::Chain<bool>>(chain) && !kleene)
+        if (!species.is_none() && !kleene && !nb::isinstance<BooleTag>(species))
+          throw nb::type_error("the species is Boole or Kleene");
+        if (nb::isinstance<pst::Chain<bool>>(chain)) {
+          if (kleene)
+            throw nb::type_error("a K₃-valued set over 𝔹 is not bound; use K3");
           return nb::cast(pst::empty<bool, Boole>());
+        }
         if (nb::isinstance<pst::Chain<Ternary>>(chain))
           return kleene ? nb::cast(pst::empty<Ternary, Kleene>())
                         : nb::cast(pst::empty<Ternary, Boole>());
