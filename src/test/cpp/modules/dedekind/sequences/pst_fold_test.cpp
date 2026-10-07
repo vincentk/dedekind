@@ -107,7 +107,8 @@ TEST_CASE(
   constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
   CHECK((above_bottom == hedge) == Ternary::Unknown);
   CHECK((hedge == above_bottom) == Ternary::Unknown);
-  CHECK((η(Ternary::True) == hedge) == Ternary::False);  // differ at U: ⊥ vs U
+  // {x > U} (Boolean) against χ = id differs at U outright: ⊥ against U.
+  CHECK(((𝔸<Ternary>{} | (π > Ternary::Unknown)) == hedge) == Ternary::False);
   CHECK((𝔸<Ternary, Kleene>{} == (𝔸<Ternary, Kleene>{} | AtLeastMaybe{})) ==
         Ternary::Unknown);  // 𝔸 first: the Ω-valued member, not a rewrite
   // The α-cuts, nested, as preimages of the upper rays on Ω: {χ ≥ U} = [U, ⊤]
