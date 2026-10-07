@@ -10,11 +10,11 @@ classification attributes are the C++ concepts' verdicts, not Python flags.
 import itertools
 import unittest
 
-from dedekind.pst import 𝔹, K3, ℕ, Ternary, aleph0
+from dedekind.pst import 𝔹, K3, ℕ, Ternary, ℵ_0
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B
 # and ℕ the identifier N.  Subscript digits are not identifier characters, so K₃
-# and ℵ₀ are spelled K3 and aleph0 and print as themselves.
+# and ℵ₀ are spelled K3 and ℵ_0 and print as themselves.
 B, N = 𝔹, ℕ
 
 
@@ -41,14 +41,14 @@ class PstEndpointsAndStepTest(unittest.TestCase):
 
     def test_natural_chain(self) -> None:
         self.assertEqual(N.bottom, 0)
-        self.assertEqual(N.top, aleph0)
+        self.assertEqual(N.top, ℵ_0)
         self.assertEqual(N.succ(41), 42)
-        self.assertEqual(N.succ(aleph0), aleph0)  # saturating at the top
+        self.assertEqual(N.succ(ℵ_0), ℵ_0)  # saturating at the top
         self.assertEqual(N.pred(0), 0)  # the monus: 0 is a fixpoint
-        self.assertEqual(N.pred(aleph0), aleph0)
+        self.assertEqual(N.pred(ℵ_0), ℵ_0)
         self.assertEqual(N.cover(41), 42)
-        self.assertIsNone(N.cover(aleph0))  # ⊤ has no cover
-        self.assertTrue(N.le(3, aleph0))
+        self.assertIsNone(N.cover(ℵ_0))  # ⊤ has no cover
+        self.assertTrue(N.le(3, ℵ_0))
         with self.assertRaises(ValueError):
             N.succ(-1)  # ℕ has no negatives
 
@@ -102,8 +102,8 @@ class PstClassificationTest(unittest.TestCase):
     def test_cardinalities(self) -> None:
         self.assertEqual(B.cardinality, 2)
         self.assertEqual(K3.cardinality, 3)
-        self.assertEqual(N.cardinality, aleph0)
-        self.assertEqual(repr(aleph0), "ℵ₀")
+        self.assertEqual(N.cardinality, ℵ_0)
+        self.assertEqual(repr(ℵ_0), "ℵ₀")
 
     def test_written_forms_are_the_names(self) -> None:
         self.assertEqual(repr(𝔹), "𝔹")
