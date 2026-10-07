@@ -34,7 +34,7 @@ TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
   // The shadow saturates where 3n+1 leaves the word; the top is a fixpoint.
   constexpr auto top = std::numeric_limits<std::size_t>::max();
   CHECK(collatz_rule(top) == top);
-  CHECK(collatz_rule(top / 3 + 1) == top);  // odd, and 3n+1 overflows
+  CHECK(collatz_rule(top / 3 + 2) == top);  // odd, and 3n+1 overflows
 }
 
 TEST_CASE("numbers:collatz — two steps, and the attractor's pre-image",
