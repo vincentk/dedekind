@@ -21,7 +21,9 @@
  * the normal form @c runs.  Every handle is a real library set
  * (@c Comprehension over @c 𝔸 with a type-erased classifier); every operator
  * runs the library's node, every query the library's exhaustion of the chain.
- * Reduction stays in C++; Python holds handles.
+ * Two species of one carrier mix in their join (𝔹 ↪ K₃): a Boolean set beside
+ * a K₃-valued one is met, joined and compared in K₃.  Different carriers do not
+ * mix.  Reduction stays in C++; Python holds handles.
  */
 
 #include <nanobind/nanobind.h>
@@ -241,7 +243,8 @@ void bind_datum(nb::module_& m, const char* cls, const char* doc) {
 }
 
 template <typename C, typename L>
-void bind_set(nb::module_& m, const char* cls, const char* doc) {
+nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
+                                    const char* doc) {
   using S = pst::Set<C, L>;
   using Ω = typename L::Ω;
   auto set = nb::class_<S>(m, cls, doc);
@@ -344,6 +347,44 @@ void bind_set(nb::module_& m, const char* cls, const char* doc) {
                  "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
         });
   }
+  return set;
+}
+
+/** @brief The lattice and the queries across two species of one carrier, the
+ *  result valued in their join (a Boolean set beside a K₃-valued one is
+ *  compared, met and joined in K₃).  @tparam C the chain.  @tparam L1 the
+ *  class's species.  @tparam L2 the other operand's. */
+template <typename C, typename L1, typename L2>
+void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
+  using S = pst::Set<C, L1>;
+  using O = pst::Set<C, L2>;
+  cls.def(
+         "__and__", [](const S& a, const O& b) { return pst::meet(a, b); },
+         "A & B across species: met in their join.")
+      .def(
+          "__or__", [](const S& a, const O& b) { return pst::join(a, b); },
+          "A | B across species: joined in their join.")
+      .def(
+          "__xor__", [](const S& a, const O& b) { return pst::sym_diff(a, b); },
+          "A ^ B across species.")
+      .def(
+          "__eq__",
+          [](const S& a, const O& b) { return nb::cast(pst::equal(a, b)); },
+          nb::is_operator(), "A == B across species, in their join.")
+      .def(
+          "__ne__",
+          [](const S& a, const O& b) {
+            return nb::cast(pst::Joined<L1, L2>::RFL(pst::equal(a, b)));
+          },
+          nb::is_operator())
+      .def(
+          "__le__",
+          [](const S& a, const O& b) { return nb::cast(pst::subset(a, b)); },
+          nb::is_operator(), "A <= B across species.")
+      .def(
+          "__ge__",
+          [](const S& a, const O& b) { return nb::cast(pst::subset(b, a)); },
+          nb::is_operator());
 }
 
 /** @brief Sugar on a truth chain: the grammar's sets with the chain as the
@@ -512,10 +553,12 @@ NB_MODULE(_pst, m) {
   bind_datum<Ternary>(m, "DatumK3",
                       "A datum over K₃: π ⋈ v, waiting for a former.");
   bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
-  bind_set<Ternary, Boole>(m, "SetK3",
-                           "A set over K₃, valued in 𝔹 (decidable).");
-  bind_set<Ternary, Kleene>(m, "SetK3Kleene",
-                            "A set over K₃, valued in K₃: Unknown is a level.");
+  auto set_k3 = bind_set<Ternary, Boole>(
+      m, "SetK3", "A set over K₃, valued in 𝔹 (decidable).");
+  auto set_k3_kleene = bind_set<Ternary, Kleene>(
+      m, "SetK3Kleene", "A set over K₃, valued in K₃: Unknown is a level.");
+  bind_mixed<Ternary, Boole, Kleene>(set_k3);
+  bind_mixed<Ternary, Kleene, Boole>(set_k3_kleene);
   bind_chain_sets<bool>(chain_b);
   bind_chain_sets<Ternary>(chain_k3);
   m.attr("B") = pst::Chain<bool>{};

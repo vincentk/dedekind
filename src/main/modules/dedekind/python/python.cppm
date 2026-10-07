@@ -494,11 +494,13 @@ using dedekind::category::Boole;
 using dedekind::category::classifier_logic_t;
 using dedekind::category::Dom;
 using dedekind::category::HasCoveringStep;
+using dedekind::category::HaveLogicJoin;
 using dedekind::category::Identity;
 using dedekind::category::IsFiniteChain;
 using dedekind::category::IsOckhamAlgebra;
 using dedekind::category::IsPredicate;
 using dedekind::category::IsPst;
+using dedekind::category::join_logic_t;
 using dedekind::category::Kleene;
 using dedekind::category::lift_logic;
 using dedekind::category::preimage;
@@ -618,17 +620,28 @@ template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
   return erase<C, L>(s & (𝔸<C, L>{} | d));
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> meet(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a & b);
+/** @brief Two species a pair of handles may mix: comparable in the species
+ *  semilattice (𝔹 at the bottom), the result valued in their join. */
+template <typename L1, typename L2>
+concept Mixable =
+    IsOckhamAlgebra<L1> && IsOckhamAlgebra<L2> && HaveLogicJoin<L1, L2>;
+template <typename L1, typename L2>
+using Joined = join_logic_t<L1, L2>;
+
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires Mixable<L1, L2>
+Set<C, Joined<L1, L2>> meet(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return erase<C, Joined<L1, L2>>(a & b);
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> join(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a | b);
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires Mixable<L1, L2>
+Set<C, Joined<L1, L2>> join(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return erase<C, Joined<L1, L2>>(a | b);
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> sym_diff(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a ^ b);
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires Mixable<L1, L2>
+Set<C, Joined<L1, L2>> sym_diff(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return erase<C, Joined<L1, L2>>(a ^ b);
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> complement(const Set<C, L>& a) {
@@ -640,12 +653,14 @@ Set<C, L> complement(const Set<C, L>& a) {
  *  @c ∃ the quantifier of @c sets:quantifier over the universe with the
  *  restricted set as the where-clause, @f$\bigvee (\chi_S \wedge P)@f$.
  *  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-typename L::Ω equal(const Set<C, L>& a, const Set<C, L>& b) {
-  return a == b;
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires Mixable<L1, L2>
+typename Joined<L1, L2>::Ω equal(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return a == b;  // the exhaustion in the join species (sets:boundaries)
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-typename L::Ω subset(const Set<C, L>& a, const Set<C, L>& b) {
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires Mixable<L1, L2>
+typename Joined<L1, L2>::Ω subset(const Set<C, L1>& a, const Set<C, L2>& b) {
   return (a & b) == a;
 }
 template <IsTruthChain C, IsOckhamAlgebra L>

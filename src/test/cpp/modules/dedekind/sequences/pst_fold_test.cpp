@@ -102,6 +102,12 @@ TEST_CASE(
   // Equality is the internal biconditional: reflexive only up to the excluded
   // middle, so a set agrees with itself to degree U where it is U.
   CHECK((hedge == hedge) == Ternary::Unknown);
+  // Across species, compared in their join: {x > ⊥} (Boolean) against χ = id
+  // (K₃-valued) agrees at ⊥ and ⊤, and at U to degree U.
+  constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
+  CHECK((above_bottom == hedge) == Ternary::Unknown);
+  CHECK((hedge == above_bottom) == Ternary::Unknown);
+  CHECK((η(Ternary::True) == hedge) == Ternary::False);  // differ at U: ⊥ vs U
   CHECK((𝔸<Ternary, Kleene>{} == (𝔸<Ternary, Kleene>{} | AtLeastMaybe{})) ==
         Ternary::Unknown);  // 𝔸 first: the Ω-valued member, not a rewrite
   // The α-cuts, nested, as preimages of the upper rays on Ω: {χ ≥ U} = [U, ⊤]
