@@ -119,6 +119,41 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(L.cut(U) == S, True)
 
 
+class MixedSpeciesTest(unittest.TestCase):
+    """A Boolean set and a K₃-valued set over one chain mix in their join, K₃."""
+
+    def test_lattice_in_the_join(self) -> None:
+        S = A(K3) | (π > F)  # Boolean: {U, ⊤}
+        H = K3.identity  # K₃-valued: χ(x) = x
+        M = S & H
+        self.assertFalse(M.is_decidable)
+        self.assertEqual(M(U), U)  # ⊤ ∧ U
+        self.assertEqual(M(T), T)
+        self.assertEqual(M(F), F)
+        self.assertEqual((S | H)(F), F)
+        self.assertEqual((H | S)(U), T)  # U ∨ ⊤
+        self.assertEqual(lift(S) == (S & A(K3, Kleene)), T)
+        # ^ across species: (⊤ ⊕ U) = U at U, ⊤ ⊕ ⊤ = ⊥ at ⊤, in K₃ either way.
+        for X in (S ^ H, H ^ S):
+            self.assertFalse(X.is_decidable)
+            self.assertEqual((X(F), X(U), X(T)), (F, U, F))
+
+    def test_queries_in_the_join(self) -> None:
+        S = A(K3) | (π > F)
+        H = K3.identity
+        # ⋀ (χ_S ⇔ χ_H): agree at ⊥ and ⊤, to degree U at U.
+        self.assertEqual(S == H, U)
+        self.assertEqual(H == S, U)
+        self.assertEqual(η(T) == H, U)  # ⊥ against U at U is only U
+        self.assertEqual(η(F) == H, F)  # ⊤ against ⊥ at ⊥: differ outright
+        self.assertEqual(S <= H, U)
+        self.assertEqual(H <= S, U)
+        self.assertEqual(S != H, U)
+        # >= on unequal sets, both orders: 𝔸 ⊇ S holds, S ⊇ 𝔸 fails at ⊥.
+        self.assertEqual(A(K3, Kleene) >= S, T)
+        self.assertEqual(S >= A(K3, Kleene), F)
+
+
 class RefusalsTest(unittest.TestCase):
     def test_species_and_carriers_do_not_mix(self) -> None:
         with self.assertRaises(TypeError):

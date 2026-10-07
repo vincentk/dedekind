@@ -6,18 +6,12 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section python__Description
- * This layer is intentionally positioned at the end of the build chain.
- * It provides a narrow, auditable facade that downstream wrappers
- * (e.g. Python bindings) can expose without importing the full internal
- * module graph directly.
- *
- * MVP exposure contract:
- * - Include explicit set interop boundaries (`from_std` / `to_std`).
- * - Include sequence/range adapters (`from_range` / `as_range`).
- * - Pull in downstream numeric/order/topology specializations transitively via
- *   `dedekind.numbers`, so wrappers need not manage fine-grained ownership.
- * - Keep the surface small and deterministic for notebook-facing demos.
- * - Defer broad symbolic expression builders and deep internal abstractions.
+ * The last layer of the build chain: what the Python bindings hold, and nothing
+ * the library does not already say.  Three namespaces follow the paper's
+ * fragments, @c jlt (arrows), @c lwv (sets over the integer window) and
+ * @c pst (the bounded chains and the sets over them).  Each adds only what
+ * crossing the boundary needs: the type erasure to one handle type per
+ * fragment, and the 64-bit window's ends.  Reduction stays in C++.
  *
  * @note "Le vrai n'est pas le tout, mais le tout dans sa structure."
  *       -- Gaston Bachelard, paraphrase
@@ -28,9 +22,8 @@ module;
 
 #include <concepts>
 #include <functional>
-#include <limits>    // the integer window's ends
-#include <optional>  // the cover, the first element of a set
-#include <ranges>
+#include <limits>     // the integer window's ends
+#include <optional>   // the cover, the first element of a set
 #include <stdexcept>  // std::overflow_error at the window's end
 #include <string>
 #include <utility>
@@ -39,67 +32,57 @@ module;
 export module dedekind.python;
 
 import dedekind.category;
-import dedekind.linear_algebra;
-import dedekind.numbers;
-import dedekind.order; // Lwv halfspaces: Halfspace / structured_and (#965)
+import dedekind.numbers; // the carriers' order registrations
+import dedekind.order;
 import dedekind.sequences;
 import dedekind.sets;
 
 export namespace dedekind::python {
 
-/** @brief Alias for the extensional carrier exposed to wrappers. */
-template <typename T, typename L = dedekind::category::Boole,
-          typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
-using FiniteSet = dedekind::sets::ExtensionalSet<T, L, Hash, Equal>;
-
-/** @brief Alias for finite path values intended for range-friendly adapters. */
-template <typename T>
-using FinitePath = dedekind::sequences::FinitePath<T>;
-
-/** @brief Backend-kind alias surfaced for runtime wrapper routing. */
-using LinearAlgebraBackendKind = dedekind::linear_algebra::BackendKind;
-
-/** @brief GraphBLAS-stub backend alias for validation and prototyping hooks. */
-using GraphBLASBackend = dedekind::linear_algebra::GraphBLASBackendStub;
-
-/** @brief Explicit std-container materialization bridge. */
-template <typename StdSetLike, typename T, typename L, typename Hash,
-          typename Equal>
-constexpr auto to_std(
-    const dedekind::sets::ExtensionalSet<T, L, Hash, Equal>& src)
-    -> StdSetLike {
-  return dedekind::sets::to_std<StdSetLike>(src);
-}
-
-/** @brief Explicit bridge from supported std set-like carriers. */
-template <typename StdSetLike>
-constexpr auto from_std(const StdSetLike& src) {
-  return dedekind::sets::from_std(src);
-}
-
-/** @brief Adapt an input range into a finite path materialization. */
-template <typename R>
-  requires std::ranges::input_range<R>
-constexpr auto from_range(R&& range) {
-  return dedekind::sequences::from_range(std::forward<R>(range));
-}
-
-/** @brief View-compatible finite-path adapter for std::ranges APIs. */
-template <typename T>
-constexpr const FinitePath<T>& as_range(const FinitePath<T>& path) {
-  return dedekind::sequences::as_range(path);
-}
-
-/** @brief Rvalue-safe finite-path adapter for std::ranges APIs. */
-template <typename T>
-constexpr FinitePath<T> as_range(FinitePath<T>&& path) {
-  return std::move(path);
-}
-
-/** @brief Expose GraphBLAS-stub capability for wrapper-level smoke tests. */
-constexpr bool graphblas_backend_stub_available() {
-  return GraphBLASBackend::supports_sparse_linear_operators;
-}
+// The library's names, said once for the partition; the fragments below add
+// only the handles' erasure and the window.
+using dedekind::category::Boole;
+using dedekind::category::cata;
+using dedekind::category::classifier_logic_t;
+using dedekind::category::cover;
+using dedekind::category::Dom;
+using dedekind::category::HasCoveringStep;
+using dedekind::category::HasNNOStep;
+using dedekind::category::HaveLogicJoin;
+using dedekind::category::Identity;
+using dedekind::category::IsEndomorphism;
+using dedekind::category::IsFiniteChain;
+using dedekind::category::IsOckhamAlgebra;
+using dedekind::category::IsPredicate;
+using dedekind::category::IsPst;
+using dedekind::category::join_logic_t;
+using dedekind::category::Kleene;
+using dedekind::category::lift_logic;
+using dedekind::category::logic_complement;
+using dedekind::category::Morphism;
+using dedekind::category::Predecessor;
+using dedekind::category::preimage;
+using dedekind::category::Successor;
+using dedekind::category::Ternary;
+using dedekind::order::Direction;
+using dedekind::order::reduce_meet;
+using dedekind::order::SetKind;
+using dedekind::order::SetVal;
+using dedekind::order::Strictness;
+using dedekind::sequences::Run;
+using dedekind::sequences::runs;
+using dedekind::sequences::SuccessorOrbit;
+using dedekind::sets::Cardinality;
+using dedekind::sets::chain_bottom;
+using dedekind::sets::chain_top;
+using dedekind::sets::Comprehension;
+using dedekind::sets::finite_cardinality;
+using dedekind::sets::IsSetObject;
+using dedekind::sets::Ø;
+using dedekind::sets::η;
+using dedekind::sets::π;
+using dedekind::sets::ℵ_0;
+using dedekind::sets::𝔸;
 
 // ── Jlt: a fluent DSL over the real category arrows (#961) ────────────────
 //
@@ -130,29 +113,19 @@ namespace jlt {
 
 /** @brief The exhibit's type-erased arrow @c T→T: the real @c :morphism
  *  @c Morphism with a @c std::function transform.  This IS a category arrow
- *  (@c IsArrow / @c IsEndomorphism hold), not a bespoke wrapper. */
+ *  (@c IsArrow / @c IsEndomorphism hold), not a bespoke wrapper.
+ *  @tparam T the carrier. */
 template <typename T>
-using Arrow = dedekind::category::Morphism<T, T, std::function<T(T)>>;
+using Arrow = Morphism<T, T, std::function<T(T)>>;
 
-/** @brief The identity arrow's type on @c T: the real @c :morphism
- *  @c Identity<T> (the monoid unit). */
-template <typename T>
-using Id = dedekind::category::Identity<T>;
-
-/** @brief The identity arrow on @c T --- exactly @c :morphism's @c id<T>(). */
-template <typename T>
-inline Id<T> id() {
-  return {};
-}
-
-/** @brief @c refl on @c bool: the reflection @c ¬ of the 2-chain --- reusing
- *  @c :logic's pre-configured @c logic_complement<Boole> (@c = @c Boole::RFL
- *  @c = @c !a), already witnessed as an involution there
- *  (@c is_involutive<logic_complement<Boole>, @c bool>).  No hand-rolled map.
- */
-inline Arrow<bool> refl_bool() {
-  return Arrow<bool>{std::function<bool(bool)>{
-      dedekind::category::logic_complement<dedekind::category::Boole>{}}};
+/** @brief @c refl on a chain: @c :logic's pre-configured reflection
+ *  @c logic_complement<L> (@c L::RFL: @c ¬ on @c Boole, the order-reversing
+ *  @c ~ on @c Chain<Int>), already witnessed an involution there, erased.
+ *  @tparam L the species whose @c Ω is the carrier. */
+template <IsOckhamAlgebra L>
+Arrow<typename L::Ω> refl() {
+  using T = typename L::Ω;
+  return Arrow<T>{std::function<T(T)>{logic_complement<L>{}}};
 }
 
 /** @brief The integer carrier the Python surface shares between the arrows
@@ -181,39 +154,23 @@ constexpr Int add_in_window(Int a, Int b, const char* what) {
   if (__builtin_add_overflow(a, b, &sum)) window_end(what);
   return sum;
 }
-/** @brief The step arrows applied inside the window: total on @c bool, and on
- *  the integer window raising at its ends rather than overflowing.
- *  @tparam T the carrier.  @param f the arrow.  @param x the argument.
+/** @brief A step arrow applied inside the window: total on @c bool, and on
+ *  the integer window raising at the end it would cross rather than
+ *  overflowing.  @tparam T the carrier.  @tparam Step the successor or the
+ *  predecessor on it.  @param f the arrow.  @param x the argument.
  *  @return @c f(x). */
-template <dedekind::category::HasNNOStep T>
-T step_in_window(const dedekind::category::Successor<T>& f, T x) {
-  if constexpr (std::same_as<T, Int>)
-    if (x == std::numeric_limits<Int>::max()) window_end("succ");
+template <HasNNOStep T, typename Step>
+  requires std::same_as<Step, Successor<T>> ||
+           std::same_as<Step, Predecessor<T>>
+T step_in_window(const Step& f, T x) {
+  if constexpr (std::same_as<T, Int>) {
+    constexpr bool up = std::same_as<Step, Successor<T>>;
+    if (x == (up ? std::numeric_limits<Int>::max()
+                 : std::numeric_limits<Int>::min()))
+      window_end(up ? "succ" : "pred");
+  }
   return f(x);
 }
-template <dedekind::category::HasNNOStep T>
-T step_in_window(const dedekind::category::Predecessor<T>& f, T x) {
-  if constexpr (std::same_as<T, Int>)
-    if (x == std::numeric_limits<Int>::min()) window_end("pred");
-  return f(x);
-}
-
-/** @brief @c refl on the integer chain: @c :logic's
- *  @c logic_complement<Chain<Int>> (@c = @c Chain<Int>::RFL @c = @c ~a, the
- *  order-reversing De Morgan involution), already witnessed as an involution
- *  there. */
-inline Arrow<Int> refl_int() {
-  return Arrow<Int>{std::function<Int(Int)>{
-      dedekind::category::logic_complement<dedekind::category::Chain<Int>>{}}};
-}
-
-/** @brief The step arrows on a carrier, the real @c :nno @c Successor /
- *  @c Predecessor, kept @b typed (not erased) so the set side can read them
- *  structurally (@c lwv::image).  @tparam T the carrier, with the NNO step. */
-template <dedekind::category::HasNNOStep T>
-using Succ = dedekind::category::Successor<T>;
-template <dedekind::category::HasNNOStep T>
-using Pred = dedekind::category::Predecessor<T>;
 
 /** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
  * same-object endomorphisms, as a type-erased arrow.  It REUSES the real
@@ -226,12 +183,11 @@ using Pred = dedekind::category::Predecessor<T>;
  *  @c same_as<Dom<F>,Dom<G>> constraint IS the composability law (@c cod(f) @c
  * =
  *  @c dom(g) for endomorphisms): a cross-object compose does not type-check. */
-template <dedekind::category::IsEndomorphism F,
-          dedekind::category::IsEndomorphism G>
-  requires std::same_as<dedekind::category::Dom<F>, dedekind::category::Dom<G>>
-inline Arrow<dedekind::category::Dom<F>> compose(const F& f, const G& g) {
-  using T = dedekind::category::Dom<F>;
-  return Arrow<T>{std::function<T(T)>{dedekind::category::cata(f >> g)}};
+template <IsEndomorphism F, IsEndomorphism G>
+  requires std::same_as<Dom<F>, Dom<G>>
+inline Arrow<Dom<F>> compose(const F& f, const G& g) {
+  using T = Dom<F>;
+  return Arrow<T>{std::function<T(T)>{cata(f >> g)}};
 }
 
 }  // namespace jlt
@@ -260,52 +216,23 @@ inline Arrow<dedekind::category::Dom<F>> compose(const F& f, const G& g) {
 
 namespace lwv {
 
-namespace ord = dedekind::order;
-
-/** @brief A value-based set handle (iteration 2, #965): the pivot rides as a
- *  VALUE, so a single constructor covers all pivots (runtime), unifying the
- *  earlier one-constant-per-pivot stopgap.  Carrier @c long @c long (Python
- *  @c int).  @c ord::SetVal is a @c :order value-first set; @c meet routes
- *  through the @b same @c constexpr @c reduce_meet the compile-time
- *  @c static_assert exhibit folds, so there is no Python-side reducer and the
- *  law lives in ONE place (value-oriented relational form: a halfspace is a
- *  point plus a direction, the pivot in the value @c η(p)). */
-using Set = ord::SetVal<long long>;
+/** @brief A value-based set handle (#965): the pivot rides as a VALUE, so one
+ *  constructor covers all pivots at runtime.  Carrier @c long @c long (Python
+ *  @c int).  @c SetVal is a @c :order value-first set; its meet is the same
+ *  @c constexpr @c reduce_meet the compile-time exhibits fold, so there is no
+ *  Python-side reducer. */
+using Set = SetVal<long long>;
 // Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
-// χ) --- and this is the compile-time MUST for it (RFC 2119): a type that does
-// not conform cannot be the exported Set.
-static_assert(dedekind::sets::IsSetObject<Set>,
+// χ) --- and this is the compile-time MUST for it (RFC 2119).
+static_assert(IsSetObject<Set>,
               "the Python surface's Set must be a set object (IsSetObject).");
 
-/** @brief @c {x | x > k} = ↑k (open).  Scalar spelling @c χ > fix(k). */
-constexpr Set above(long long k) {
-  return Set::half(k, ord::Direction::Upward, ord::Strictness::Strict);
-}
-/** @brief @c {x | x >= k} = ↑k (closed). */
-constexpr Set at_least(long long k) {
-  return Set::half(k, ord::Direction::Upward, ord::Strictness::NonStrict);
-}
-/** @brief @c {x | x < k} = ↓k (open). */
-constexpr Set below(long long k) {
-  return Set::half(k, ord::Direction::Downward, ord::Strictness::Strict);
-}
-/** @brief @c {x | x <= k} = ↓k (closed). */
-constexpr Set at_most(long long k) {
-  return Set::half(k, ord::Direction::Downward, ord::Strictness::NonStrict);
-}
-/** @brief @c {k}: the singleton / point @c η(k) --- the value-based atom. */
-constexpr Set singleton(long long k) { return Set::point(k); }
-/** @brief @c 𝔸: the universe (meet unit). */
-constexpr Set everything() { return Set::universe(); }
-/** @brief @c Ø: the empty set (meet annihilator). */
-constexpr Set nothing() { return Set::empty(); }
-
-/** @brief The meet @c a @c ∩ @c b, through the value-first @c :order
- *  @c reduce_meet (the ONE law; @c static_assert folds it at compile time, the
- *  Python surface runs it at runtime).  @c above(3) @c & @c below(5) collapses
- *  to @c singleton(4). */
-constexpr Set meet(const Set& a, const Set& b) {
-  return ord::reduce_meet(a, b);
+/** @brief The rays @c {x ⋈ k}: the principal filter ↑k and ideal ↓k, open or
+ *  closed, as the value leaf.  @tparam D the direction.  @tparam S the
+ *  strictness.  @param k the pivot. */
+template <Direction D, Strictness S>
+constexpr Set ray(long long k) {
+  return Set::half(k, D, S);
 }
 
 /** @brief Translate every bound by @c k: the image of a value leaf under the
@@ -314,12 +241,12 @@ constexpr Set meet(const Set& a, const Set& b) {
 constexpr Set shift(const Set& s, long long k) {
   Set r = s;
   switch (s.kind) {
-    case ord::SetKind::Singleton:
-    case ord::SetKind::Interval:
+    case SetKind::Singleton:
+    case SetKind::Interval:
       r.lo = jlt::add_in_window(r.lo, k, "image");
       r.hi = jlt::add_in_window(r.hi, k, "image");
       break;
-    case ord::SetKind::Halfspace:
+    case SetKind::Halfspace:
       r.lo = jlt::add_in_window(r.lo, k, "image");
       break;
     default:
@@ -327,61 +254,72 @@ constexpr Set shift(const Set& s, long long k) {
   }
   return r;
 }
-/** @brief @f$f(S)@f$ and @f$f^{-1}(S)@f$ for the structural arrows, in closed
- *  form: the successor shifts by one, the predecessor by minus one, the
- *  identity not at all (paper §4: the image of @c {n > 5} under the successor
- *  is @c {n > 6}, decided with no search of the domain).  An opaque composed
- *  arrow has no such normal form; its image is intensional (Kleene-valued)
- *  and is refused at the boundary rather than guessed. */
-constexpr Set image(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
-constexpr Set preimage(const jlt::Id<jlt::Int>&, const Set& s) { return s; }
-constexpr Set image(const jlt::Succ<jlt::Int>&, const Set& s) {
-  return shift(s, 1);
+/** @brief The arrows whose image of a value leaf has a closed form: the
+ *  identity, the successor and the predecessor on the integer window.  An
+ *  opaque composed arrow has no such normal form; its image is intensional
+ *  (Kleene-valued) and is refused at the boundary rather than guessed.
+ *  @tparam F the arrow. */
+template <typename F>
+concept IsStructuralArrow = std::same_as<F, Identity<jlt::Int>> ||
+                            std::same_as<F, Successor<jlt::Int>> ||
+                            std::same_as<F, Predecessor<jlt::Int>>;
+/** @brief How far the arrow moves a bound: 0, +1, −1.  @tparam F the arrow. */
+template <IsStructuralArrow F>
+consteval long long offset() {
+  if constexpr (std::same_as<F, Successor<jlt::Int>>)
+    return 1;
+  else if constexpr (std::same_as<F, Predecessor<jlt::Int>>)
+    return -1;
+  else
+    return 0;
 }
-constexpr Set preimage(const jlt::Succ<jlt::Int>&, const Set& s) {
-  return shift(s, -1);
+/** @brief @f$f(S)@f$ and @f$f^{-1}(S)@f$ for a structural arrow, in closed
+ *  form (paper §4: the image of @c {n > 5} under the successor is @c {n > 6},
+ *  decided with no search of the domain).  @tparam F the arrow. */
+template <IsStructuralArrow F>
+constexpr Set image(const F&, const Set& s) {
+  return shift(s, offset<F>());
 }
-constexpr Set image(const jlt::Pred<jlt::Int>&, const Set& s) {
-  return shift(s, -1);
-}
-constexpr Set preimage(const jlt::Pred<jlt::Int>&, const Set& s) {
-  return shift(s, 1);
+template <IsStructuralArrow F>
+constexpr Set preimage(const F&, const Set& s) {
+  return shift(s, -offset<F>());
 }
 
 /** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
  *  half-open interval (Python's own convention), an absent bound meaning the
- *  ray.  @c s[:b] is the restriction to the lower cut at @c b.  One
- *  @c reduce_meet, @f$O(1)@f$.  Not positional: a set has no enumeration to
- *  index into; that reading belongs to a sequence. */
+ *  ray.  One @c reduce_meet, @f$O(1)@f$.  Not positional: a set has no
+ *  enumeration to index into; that reading belongs to a sequence. */
 constexpr Set restrict(const Set& s, std::optional<long long> lo,
                        std::optional<long long> hi) {
   Set r = s;
-  if (lo) r = meet(r, at_least(*lo));
-  if (hi) r = meet(r, below(*hi));
+  if (lo)
+    r = reduce_meet(r, ray<Direction::Upward, Strictness::NonStrict>(*lo));
+  if (hi) r = reduce_meet(r, ray<Direction::Downward, Strictness::Strict>(*hi));
   return r;
 }
 
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
  *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
 constexpr bool is_bounded(const Set& s) {
-  return s.kind == ord::SetKind::Empty || s.kind == ord::SetKind::Singleton ||
-         s.kind == ord::SetKind::Interval;
+  return s.kind == SetKind::Empty || s.kind == SetKind::Singleton ||
+         s.kind == SetKind::Interval;
+}
+/** @brief The lower bound as attained: a strict one at its successor.
+ *  @param s a leaf bounded below. */
+constexpr long long attained_lo(const Set& s) {
+  return s.sl == Strictness::Strict ? jlt::add_in_window(s.lo, 1, "least")
+                                    : s.lo;
 }
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 constexpr std::optional<long long> least(const Set& s) {
   switch (s.kind) {
-    case ord::SetKind::Singleton:
+    case SetKind::Singleton:
       return s.lo;
-    case ord::SetKind::Interval:
-      return s.sl == ord::Strictness::Strict
-                 ? jlt::add_in_window(s.lo, 1, "least")
-                 : s.lo;
-    case ord::SetKind::Halfspace:
-      if (s.dir == ord::Direction::Upward)
-        return s.sl == ord::Strictness::Strict
-                   ? jlt::add_in_window(s.lo, 1, "least")
-                   : s.lo;
+    case SetKind::Interval:
+      return attained_lo(s);
+    case SetKind::Halfspace:
+      if (s.dir == Direction::Upward) return attained_lo(s);
       return std::nullopt;
     default:
       return std::nullopt;
@@ -392,10 +330,10 @@ constexpr std::optional<long long> least(const Set& s) {
  *  inhabited); @c nullopt on a ray: the unfold does not stop. */
 constexpr std::optional<long long> greatest(const Set& s) {
   switch (s.kind) {
-    case ord::SetKind::Singleton:
+    case SetKind::Singleton:
       return s.lo;
-    case ord::SetKind::Interval:
-      return s.su == ord::Strictness::Strict ? s.hi - 1 : s.hi;
+    case SetKind::Interval:
+      return s.su == Strictness::Strict ? s.hi - 1 : s.hi;
     default:
       return std::nullopt;
   }
@@ -414,102 +352,60 @@ constexpr std::optional<long long> greatest(const Set& s) {
 
 namespace pst {
 
-/** @brief A Pst chain by carrier: its name, endpoints and size.
- *  @tparam C the carrier (@c bool, @c Ternary, @c Cardinality). */
+/** @brief A Pst chain by carrier: its name, endpoints and size.  The truth
+ *  chains take their endpoints from their species (@c sets:boundaries); ℕ's
+ *  proxy has ℵ₀ for its top.  @tparam C the carrier. */
 template <typename C>
 struct Chain;
 template <>
 struct Chain<bool> {
   static constexpr const char* name = "𝔹";
-  static constexpr bool bottom = false;
-  static constexpr bool top = true;
-  static constexpr dedekind::sets::Cardinality cardinality =
-      dedekind::sets::finite_cardinality(2);
+  static constexpr bool bottom = chain_bottom<bool>();
+  static constexpr bool top = chain_top<bool>();
+  static constexpr Cardinality cardinality = finite_cardinality(2);
 };
 template <>
-struct Chain<dedekind::category::Ternary> {
+struct Chain<Ternary> {
   static constexpr const char* name = "K₃";
-  static constexpr dedekind::category::Ternary bottom =
-      dedekind::category::Ternary::False;
-  static constexpr dedekind::category::Ternary top =
-      dedekind::category::Ternary::True;
-  static constexpr dedekind::sets::Cardinality cardinality =
-      dedekind::sets::finite_cardinality(3);
+  static constexpr Ternary bottom = chain_bottom<Ternary>();
+  static constexpr Ternary top = chain_top<Ternary>();
+  static constexpr Cardinality cardinality = finite_cardinality(3);
 };
 template <>
-struct Chain<dedekind::sets::Cardinality> {
+struct Chain<Cardinality> {
   static constexpr const char* name = "ℕ";
-  static constexpr dedekind::sets::Cardinality bottom =
-      dedekind::sets::finite_cardinality(0);
-  static constexpr dedekind::sets::Cardinality top =
-      dedekind::sets::Cardinality{dedekind::sets::ℵ_0{}};
-  static constexpr dedekind::sets::Cardinality cardinality = top;
+  static constexpr Cardinality bottom = finite_cardinality(0);
+  static constexpr Cardinality top = Cardinality{ℵ_0{}};
+  static constexpr Cardinality cardinality = top;
 };
 
-/** @brief The step, both readings, and the classification, on a chain's
- *  carrier.  @tparam C the carrier. */
-template <dedekind::category::HasNNOStep C>
-constexpr C succ(const C& x) {
-  return dedekind::category::Successor<C>{}(x);
-}
-template <dedekind::category::HasNNOStep C>
-constexpr C pred(const C& x) {
-  return dedekind::category::Predecessor<C>{}(x);
-}
-template <dedekind::category::HasNNOStep C>
-constexpr std::optional<C> cover(const C& x) {
-  return dedekind::category::cover(x);
-}
-template <dedekind::category::HasNNOStep C>
+/** @brief Whether @f$S(\top) = \top@f$: the step's posture at the top.
+ *  @tparam C the carrier. */
+template <HasNNOStep C>
 constexpr bool saturates() {
-  return succ(Chain<C>::top) == Chain<C>::top;
+  return Successor<C>{}(Chain<C>::top) == Chain<C>::top;
 }
 /** @brief Indexing by @b position: the element at position @c i from ⊥, the
  *  chain read as its own enumeration (the orbit of ⊥ under the step), so
  *  @c K3[1] is @c UNKNOWN and @c N[i] is @c i.  @f$O(1)@f$ on ℕ (Peano
- *  addition), a walk bounded by the chain's length on 𝔹 and K₃. */
-template <dedekind::category::HasNNOStep C>
+ *  addition), a walk bounded by the chain's length on 𝔹 and K₃.
+ *  @tparam C the carrier.  @param i the position. */
+template <HasNNOStep C>
 C at(std::size_t i) {
-  return dedekind::sequences::SuccessorOrbit<C>{Chain<C>::bottom}.at(i);
+  return SuccessorOrbit<C>{Chain<C>::bottom}.at(i);
 }
-template <typename C>
-constexpr bool is_truth_object = dedekind::category::IsPst<C>;
-// FIXME(#1004): IsDiscrete is not exported yet; discreteness is read as
-// !is_dense.
-template <typename C>
-constexpr bool is_dense = dedekind::order::IsDense<C>;
 
-static_assert(is_truth_object<bool> &&
-                  is_truth_object<dedekind::category::Ternary> &&
-                  !is_truth_object<dedekind::sets::Cardinality>,
+static_assert(IsPst<bool> && IsPst<Ternary> && !IsPst<Cardinality>,
               "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
-static_assert(saturates<bool>() && saturates<dedekind::category::Ternary>() &&
-                  saturates<dedekind::sets::Cardinality>(),
+static_assert(saturates<bool>() && saturates<Ternary>() &&
+                  saturates<Cardinality>(),
               "the three chains saturate at ⊤.");
 
 // ── Sets over a truth chain, per the paper's Lwv grammar (#975, PR two) ─────
-// The names the block uses, once: the category vocabulary, the sets' generators
-// and atoms, the sequences' runs.
-using dedekind::category::Boole;
-using dedekind::category::classifier_logic_t;
-using dedekind::category::Dom;
-using dedekind::category::HasCoveringStep;
-using dedekind::category::Identity;
-using dedekind::category::IsFiniteChain;
-using dedekind::category::IsOckhamAlgebra;
-using dedekind::category::IsPredicate;
-using dedekind::category::IsPst;
-using dedekind::category::Kleene;
-using dedekind::category::lift_logic;
-using dedekind::category::preimage;
-using dedekind::sequences::Run;
-using dedekind::sets::Comprehension;
+// The sets' quantifiers join this namespace's own overload set (the handle
+// versions below forward to them).
 using dedekind::sets::exists;
 using dedekind::sets::forall;
-using dedekind::sets::Ø;
-using dedekind::sets::η;
-using dedekind::sets::π;
-using dedekind::sets::𝔸;
 
 //
 // A Python set is a REAL library set: a Comprehension over 𝔸<C, L> whose datum
@@ -567,8 +463,7 @@ Set<C, L> erase(P p) {
 template <IsTruthChain C, IsPredicate P>
   requires std::same_as<Dom<P>, C>
 Datum<C> datum(P p) {
-  return Datum<C>{
-      std::function<bool(const C&)>{Lifted<Boole, P>{std::move(p)}}};
+  return erase<C, Boole>(std::move(p)).predicate;
 }
 
 /** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
@@ -618,36 +513,35 @@ template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
   return erase<C, L>(s & (𝔸<C, L>{} | d));
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> meet(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a & b);
+// Two species mix when comparable in the species semilattice (HaveLogicJoin,
+// 𝔹 at the bottom); the result is valued in their join.
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires HaveLogicJoin<L1, L2>
+Set<C, join_logic_t<L1, L2>> meet(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return erase<C, join_logic_t<L1, L2>>(a & b);
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> join(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a | b);
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires HaveLogicJoin<L1, L2>
+Set<C, join_logic_t<L1, L2>> join(const Set<C, L1>& a, const Set<C, L2>& b) {
+  return erase<C, join_logic_t<L1, L2>>(a | b);
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> sym_diff(const Set<C, L>& a, const Set<C, L>& b) {
-  return erase<C, L>(a ^ b);
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires HaveLogicJoin<L1, L2>
+Set<C, join_logic_t<L1, L2>> sym_diff(const Set<C, L1>& a,
+                                      const Set<C, L2>& b) {
+  return erase<C, join_logic_t<L1, L2>>(a ^ b);
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> complement(const Set<C, L>& a) {
   return erase<C, L>(~a);
 }
 
-/** @brief The queries, each the library's, in @c L: @c == is the internal
- *  equality by exhaustion, @c ⊆ the identity @f$(A \cap B) = A@f$, @c ∃ / @c ∀
- *  @c ∃ the quantifier of @c sets:quantifier over the universe with the
- *  restricted set as the where-clause, @f$\bigvee (\chi_S \wedge P)@f$.
+/** @brief The quantifiers, the library's, in @c L: @c ∃ is @c sets:quantifier's
+ *  over the universe with the restricted set as the where-clause,
+ *  @f$\bigvee (\chi_S \wedge P)@f$.  (Equality and @c ⊆ need no handle
+ *  version: the sets' own @c == is the exhaustion in the join species and
+ *  @c ⊆ is the identity @f$(A \cap B) = A@f$.)
  *  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-typename L::Ω equal(const Set<C, L>& a, const Set<C, L>& b) {
-  return a == b;
-}
-template <IsTruthChain C, IsOckhamAlgebra L>
-typename L::Ω subset(const Set<C, L>& a, const Set<C, L>& b) {
-  return (a & b) == a;
-}
 template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
   return exists(𝔸<C, L>{}, former(s, d).predicate);
@@ -658,13 +552,13 @@ typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
  *  implication (#980); the binding refuses it and points at the α-cut. */
 template <IsTruthChain C>
 bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
-  return equal(s, former(s, d));
+  return s == former(s, d);
 }
 /** @brief The runs of a decidable set, materialised for the handle. */
 template <IsTruthChain C>
 std::vector<Run<C>> run_list(const Set<C, Boole>& s) {
   std::vector<Run<C>> out;
-  for (const auto r : dedekind::sequences::runs(s)) out.push_back(r);
+  for (const auto r : runs(s)) out.push_back(r);
   return out;
 }
 /** @brief An L-valued set read through its decidable sets on Ω, pulled back
