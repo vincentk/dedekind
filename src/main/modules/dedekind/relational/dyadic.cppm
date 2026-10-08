@@ -724,19 +724,18 @@ using dedekind::category::is_left_cylinder_v;
 using dedekind::category::Join;
 using dedekind::category::Meet;
 using dedekind::category::Not;
-using dedekind::order::IsRelPredicate;
 
 /** @brief A guard, normalised to the relpred it tests and whether it is the
  *  complement: a bare left-cylinder relpred, the set over it, or its @c Not. */
 template <typename X>
 struct guard_norm;
-template <IsRelPredicate P>
-  requires is_left_cylinder_v<P>
+template <typename P>
+  requires requires { typename P::is_rel_predicate; } && is_left_cylinder_v<P>
 struct guard_norm<P> {
   using pred = P;
   static constexpr bool negated = false;
 };
-template <typename U, IsRelPredicate P>
+template <typename U, typename P>
   requires is_left_cylinder_v<P>
 struct guard_norm<Comprehension<U, P>> {
   using pred = P;
