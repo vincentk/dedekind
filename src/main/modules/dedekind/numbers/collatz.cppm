@@ -7,7 +7,7 @@
  * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$ (an @c IsRelation
  * --- whether the even/odd guard-union is inferred @c IsFunction is a
  * follow-up), and then @b finitely iterated via its native @c size_t shadow @c
- * collatz_rule.
+ * collatz_step.
  *
  * The set @f$\{\, n : \text{the orbit of } n \text{ reaches } 1 \,\}@f$ is @b
  * de
@@ -50,6 +50,7 @@ import dedekind.order;
 import dedekind.relational;
 import dedekind.sequences;
 import dedekind.sets;
+import :natural;  // Affine / FloorDiv / Mod, the shadow's arrows
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -60,24 +61,19 @@ using namespace dedekind::sets;
 
 // ─── The recurrence, spelled once as an IsFunction on ℕ (Trsk) ────────────
 
-/** @brief The recurrence, spelled out @b explicitly as a named function (not a
- *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on
- * the native @c size_t shadow, which @b saturates where @c 3n+1 would leave
- * the word, the posture of ℕ's proxy (the point-free relation on
- * @c Cardinality saturates to ℵ₀ the same way).  The word's top is odd, so it
- * is a fixpoint of the rule: an orbit that reaches it never reaches 1, and the
- * verdict below stays @c Unknown rather than wrapping into a false @c True. */
-export constexpr std::size_t collatz_rule(std::size_t n) {
-  if (n % 2 == 0) return n / 2;
-  std::size_t m{};
-  if (__builtin_mul_overflow(n, std::size_t{3}, &m) ||
-      __builtin_add_overflow(m, std::size_t{1}, &m))
-    return std::numeric_limits<std::size_t>::max();
-  return m;
-}
-static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
+/** @brief The recurrence as an @b arrow, a term in the shadow's arithmetic:
+ *  McCarthy's conditional over the parity test, @c n/2 where even, @c 3n+1
+ *  where odd.  The affine leg saturates at the word's top, which is odd and so
+ *  a fixpoint: an orbit that leaves the word never reaches 1, and the verdict
+ *  below stays @c Unknown rather than wrapping into a false @c True.  The
+ *  Python exhibit rebuilds this very term from the same combinators. */
+export inline constexpr auto collatz_step =
+    Cond{preimage(Mod<std::size_t>{2}, η(std::size_t{0})),
+         FloorDiv<std::size_t>{2}, Affine<std::size_t>{3, 1}};
+static_assert(collatz_step(6) == 3 && collatz_step(7) == 22, "6 ↦ 3, 7 ↦ 22");
+static_assert(collatz_step(std::numeric_limits<std::size_t>::max()) ==
                   std::numeric_limits<std::size_t>::max(),
-              "the word's top is a fixpoint of the saturating rule: no wrap");
+              "the word's top is a fixpoint of the saturating step: no wrap");
 
 /** @brief The parity discriminant @f$\{(n,m) : n \text{ even}\}@f$ --- the axis
  *  restriction spelled @b once, so @f$T@f$ never repeats the @f$\pi_1 \bmod
@@ -238,7 +234,7 @@ static_assert(!pending_2(finite_cardinality(4)),
 /** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
  * --- a lazy @c Path<std::size_t>. */
 export constexpr auto collatz_orbit(std::size_t n) {
-  return iterate(n, collatz_rule);
+  return iterate(n, collatz_step);
 }
 
 /** @brief The reach indicator's type: a @c Path<Ternary> monotone in
@@ -271,7 +267,7 @@ export constexpr std::optional<std::size_t> collatz_reach_time(
   for (std::size_t i = 0;; ++i) {
     if (v == 1) return i;
     if (i == budget) return std::nullopt;  // the budget's step is never taken
-    v = collatz_rule(v);
+    v = collatz_step(v);
   }
 }
 

@@ -46,6 +46,8 @@ export namespace dedekind::python {
 using dedekind::category::Boole;
 using dedekind::category::cata;
 using dedekind::category::classifier_logic_t;
+using dedekind::category::Compose;
+using dedekind::category::Cond;
 using dedekind::category::cover;
 using dedekind::category::Dom;
 using dedekind::category::HasCoveringStep;
@@ -65,17 +67,21 @@ using dedekind::category::Morphism;
 using dedekind::category::Predecessor;
 using dedekind::category::predicate_logic_t;
 using dedekind::category::preimage;
+using dedekind::category::Semidecided;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
-using dedekind::numbers::collatz_orbit;
-using dedekind::numbers::collatz_reach_time;
-using dedekind::numbers::reaches_1_within;
+using dedekind::numbers::Affine;
+using dedekind::numbers::collatz_step;
+using dedekind::numbers::FloorDiv;
+using dedekind::numbers::Mod;
 using dedekind::order::Direction;
 using dedekind::order::reduce_meet;
 using dedekind::order::SetKind;
 using dedekind::order::SetVal;
 using dedekind::order::Strictness;
 using dedekind::sequences::chain_view;
+using dedekind::sequences::first_where;
+using dedekind::sequences::iterate;
 using dedekind::sequences::Path;
 using dedekind::sequences::Run;
 using dedekind::sequences::runs;
@@ -91,6 +97,43 @@ using dedekind::sets::η;
 using dedekind::sets::π;
 using dedekind::sets::ℵ_0;
 using dedekind::sets::𝔸;
+
+// ── The handles' erasure: one classifier type per (carrier, species) ─────────
+
+/** @brief The classifier a Python handle holds: type-erased, tagged with its
+ *  species, an @c IsPredicate over the carrier.  @tparam C the carrier.
+ *  @tparam L the species the set is valued in. */
+template <std::regular C, IsOckhamAlgebra L>
+struct Chi {
+  using Domain = C;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  std::function<Codomain(const C&)> f;
+  Codomain operator()(const C& x) const { return f(x); }
+};
+/** @brief A set over @c C valued in @c L as Python holds it: the comprehension
+ *  over @c 𝔸 whose datum is the erased classifier. */
+template <std::regular C, IsOckhamAlgebra L>
+using Erased = Comprehension<𝔸<C, L>, Chi<C, L>>;
+/** @brief A predicate's answer lifted into @c L along the dominance, as a named
+ *  callable (what the erased classifier stores).  @tparam L the species.
+ *  @tparam P the predicate. */
+template <IsOckhamAlgebra L, IsPredicate P>
+struct Lifted {
+  P p;
+  typename L::Ω operator()(const Dom<P>& x) const {
+    return lift_logic<L>(p(x));
+  }
+};
+/** @brief Erase any predicate over @c C into the handle's type, lifting a
+ *  Boolean answer where @c L is wider.  @tparam C the carrier.  @tparam L the
+ *  species.  @tparam P the predicate (a datum, a node, a boundary). */
+template <std::regular C, IsOckhamAlgebra L, IsPredicate P>
+  requires std::same_as<Dom<P>, C>
+Erased<C, L> erase(P p) {
+  return Erased<C, L>{Chi<C, L>{
+      std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
+}
 
 // ── Jlt: a fluent DSL over the real category arrows (#961) ────────────────
 //
@@ -351,53 +394,65 @@ constexpr std::optional<long long> greatest(const Set& s) {
  *  of @c P along the window the leaf spans, from its least to its greatest
  *  element (the empty set vacuously @c ⊤).  A ray or @c 𝔸 has no window; on ℤ
  *  that @f$\forall@f$ is the Rice wall, and the binding refuses it.
- *  @tparam P a predicate on the integer window.  @param s a bounded leaf
- *  (@c is_bounded).  @param p the predicate.  @return the meet, in @c P's Ω. */
+ *  @tparam P a predicate on an integral carrier, the window's or ℕ's shadow
+ *  (a window with negatives is then not a window of the predicate's domain;
+ *  the binding refuses it).  @param s a bounded leaf (@c is_bounded).
+ *  @param p the predicate.  @return the meet, in @c P's Ω. */
 template <IsPredicate P>
-  requires std::same_as<Dom<P>, long long>
+  requires std::integral<Dom<P>>
+struct OnWindow {
+  P p;
+  auto operator()(long long x) const { return p(static_cast<Dom<P>>(x)); }
+};
+template <IsPredicate P>
+  requires std::integral<Dom<P>>
 typename predicate_logic_t<P>::Ω forall(const Set& s, const P& p) {
   using L = predicate_logic_t<P>;
   const auto lo = least(s);
   const auto hi = greatest(s);
   if (!lo || !hi) return L::True;
-  return std::ranges::fold_left(std::views::transform(chain_view{*lo, *hi}, p),
-                                L::True, L::AND);
+  return std::ranges::fold_left(
+      std::views::transform(chain_view{*lo, *hi}, OnWindow<P>{p}), L::True,
+      L::AND);
 }
 
 }  // namespace lwv
 
-// ── Collatz: the budgeted verdict on the integer window (#861) ───────────────
+// ── Collatz: the rule as an arrow, the orbit as its iterate, the verdict as a
+// semi-decision (#861) ───────────────────────────────────────────────────────
 //
-// numbers:collatz says the problem three ways; the Python exhibit holds two of
-// them: the orbit as a Path, and the Rosolini verdict "reaches 1 within the
-// budget" as a predicate on the window, valued in K₃.  There is no predicate
-// without a budget: the unbounded closure has no former in the library, which
-// is the open problem stated as an absence.
+// The Python exhibit builds the rule from the shadow's arithmetic arrows and
+// McCarthy's conditional, the very term numbers:collatz's collatz_step is;
+// iterates it with sequences' iterate; searches the orbit's prefix with
+// first_where; and reads the search along the dominance with Σ.  Nothing here
+// is Collatz-specific but the names.
 
 namespace collatz {
 
-/** @brief The verdict "n reaches 1 within the budget" as an @c IsPredicate on
- *  the integer window, valued in K₃: @c ⊤ once the orbit is seen to arrive,
- *  @c U when the budget runs out, never @c ⊥ (nothing refutes).  A negative
- *  seed is outside ℕ and is refused. */
+/** @brief ℕ's machine shadow, the carrier the arrows run on. */
+using Nat = std::size_t;
+/** @brief The handle for an arrow ℕ → ℕ: erased, as @c jlt erases. */
+using ArrowN = jlt::Arrow<Nat>;
+/** @brief The handle for a Boolean test on ℕ: the erased set. */
+using PredN = Erased<Nat, Boole>;
+
+/** @brief The verdict "the orbit of @c n under @c step reaches 1 within the
+ *  budget" as an @c IsPredicate on ℕ valued in K₃: @c Σ of the bounded search
+ *  @c first_where along the iterate.  @c ⊤ once seen to arrive, @c U when the
+ *  budget runs out, never @c ⊥. */
 struct ReachesWithin {
-  using Domain = jlt::Int;
+  using Domain = Nat;
   using Codomain = Ternary;
   using logic_species = Kleene;
+  ArrowN step;
   std::size_t budget;
-  Ternary operator()(const jlt::Int& n) const {
-    if (n < 0)
-      throw std::domain_error(
-          "Collatz is a relation on ℕ: a negative seed has no orbit");
-    return reaches_1_within(static_cast<std::size_t>(n), budget);
+  Ternary operator()(const Nat& n) const {
+    return Semidecided{}(
+        first_where(iterate(n, step), η(Nat{1}), budget).has_value());
   }
 };
 static_assert(IsPredicate<ReachesWithin>,
-              "the budgeted verdict is a K₃-valued predicate on the window");
-
-/** @brief The orbit of a seed under the rule: the real @c :numbers iterate, a
- *  lazy @c Path.  @param n the seed, in ℕ. */
-inline Path<std::size_t> orbit(std::size_t n) { return collatz_orbit(n); }
+              "the budgeted verdict is a K₃-valued predicate on ℕ");
 
 }  // namespace collatz
 
@@ -482,44 +537,14 @@ using dedekind::sets::forall;
 template <typename C>
 concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 
-/** @brief The classifier a Python handle holds: type-erased, tagged with its
- *  species, an @c IsPredicate over the chain.  @tparam C the chain.
- *  @tparam L the species the set is valued in. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-struct Chi {
-  using Domain = C;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  std::function<Codomain(const C&)> f;
-  Codomain operator()(const C& x) const { return f(x); }
-};
 /** @brief A set over the chain @c C valued in @c L, as Python holds it. */
 template <IsTruthChain C, IsOckhamAlgebra L>
-using Set = Comprehension<𝔸<C, L>, Chi<C, L>>;
+using Set = Erased<C, L>;
 /** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
  *  Boolean, carrier-bound, waiting for a former. */
 template <IsTruthChain C>
 using Datum = Chi<C, Boole>;
 
-/** @brief A predicate's answer lifted into @c L along the dominance, as a named
- *  callable (what the erased classifier stores).  @tparam L the species.
- *  @tparam P the predicate. */
-template <IsOckhamAlgebra L, IsPredicate P>
-struct Lifted {
-  P p;
-  typename L::Ω operator()(const Dom<P>& x) const {
-    return lift_logic<L>(p(x));
-  }
-};
-/** @brief Erase any predicate over @c C into the handle's type, lifting a
- *  Boolean answer where @c L is wider.  @tparam C the chain.  @tparam L the
- *  species.  @tparam P the predicate (a datum, a node, a boundary). */
-template <IsTruthChain C, IsOckhamAlgebra L, IsPredicate P>
-  requires std::same_as<Dom<P>, C>
-Set<C, L> erase(P p) {
-  return Set<C, L>{Chi<C, L>{
-      std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
-}
 template <IsTruthChain C, IsPredicate P>
   requires std::same_as<Dom<P>, C>
 Datum<C> datum(P p) {

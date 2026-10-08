@@ -586,4 +586,54 @@ static_assert(
                             π % fix(3_c) == fix(0_c)),
     "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 
+// ─── The shadow's arithmetic as arrows ─────────────────────────────────────
+//
+// On ℕ's machine shadow (an unsigned word) the affine maps, the floor division
+// and the remainder are the arrows a recurrence is spelled with, so a rule such
+// as Collatz's is a term in them, not a hand-written function.  The affine map
+// saturates where it would leave the word: the word's top is the shadow's ℵ₀,
+// as the Cardinality carrier's own addition saturates.
+
+/** @brief @f$n \mapsto a n + b@f$ on the unsigned word, saturating at its top.
+ *  @tparam N the unsigned carrier. */
+export template <std::unsigned_integral N>
+struct Affine final {
+  using Domain = N;
+  using Codomain = N;
+  N a;
+  N b;
+  constexpr N operator()(const N& n) const {
+    N m{};
+    if (__builtin_mul_overflow(a, n, &m) || __builtin_add_overflow(m, b, &m))
+      return std::numeric_limits<N>::max();
+    return m;
+  }
+};
+/** @brief @f$n \mapsto \lfloor n / d \rfloor@f$, @c d positive.
+ *  @tparam N the unsigned carrier. */
+export template <std::unsigned_integral N>
+struct FloorDiv final {
+  using Domain = N;
+  using Codomain = N;
+  N d;
+  constexpr N operator()(const N& n) const { return n / d; }
+};
+/** @brief @f$n \mapsto n \bmod m@f$, @c m positive.
+ *  @tparam N the unsigned carrier. */
+export template <std::unsigned_integral N>
+struct Mod final {
+  using Domain = N;
+  using Codomain = N;
+  N m;
+  constexpr N operator()(const N& n) const { return n % m; }
+};
+static_assert(IsArrow<Affine<std::size_t>> && IsArrow<FloorDiv<std::size_t>> &&
+                  IsArrow<Mod<std::size_t>>,
+              "the shadow's arithmetic arrows are arrows");
+static_assert(Affine<std::size_t>{3, 1}(27) == 82 &&
+                  Affine<std::size_t>{
+                      3, 1}(std::numeric_limits<std::size_t>::max()) ==
+                      std::numeric_limits<std::size_t>::max(),
+              "3·27 + 1 = 82; the top saturates");
+
 }  // namespace dedekind::numbers

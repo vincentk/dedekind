@@ -838,6 +838,27 @@ struct Compose final {
   constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
 };
 
+/** @brief McCarthy's conditional @f$[f, g] \circ \langle p \rangle@f$: the
+ *  copairing of two parallel arrows over the decidable split by @c p, one arrow
+ *  @c A→B that is @c f where @c p holds and @c g where it does not; the arrow
+ *  twin of the relational @f$(p \cap f) \cup (\bar p \cap g)@f$.
+ *  @tparam P the Boolean test @c A→𝔹.  @tparam F the arrow taken where @c p.
+ *  @tparam G the arrow taken where @c ¬p, parallel to @c F. */
+export template <IsArrow P, IsArrow F, IsArrow G>
+  requires std::same_as<Cod<P>, bool> && std::same_as<Dom<P>, Dom<F>> &&
+           std::same_as<Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>>
+struct Cond final {
+  using Domain = Dom<F>;
+  using Codomain = Cod<F>;
+  P p;
+  F f;
+  G g;
+  /** @brief @c p(x) ? f(x) : g(x). */
+  constexpr Codomain operator()(const Domain& x) const {
+    return p(x) ? f(x) : g(x);
+  }
+};
+
 /** @brief The contravariant @b substitution / pullback @c f*: pull a codomain
  *  predicate (or arrow) @c P back along @c f, @c preimage(f,P) @c = @c P∘f
  *  @c = @c Compose<F,P>.
