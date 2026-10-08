@@ -32,11 +32,12 @@
 #include <utility>
 #include <vector>
 
-import dedekind.category;  // Identity, Compose, Cond, Semidecided
-import dedekind.numbers;   // Affine, FloorDiv, Mod, collatz_step
-import dedekind.python;    // dedekind::python::collatz, ::lwv, erase
-import dedekind.sequences; // Path, iterate, first_where
-import dedekind.sets;      // η
+import dedekind.category;   // Identity, Compose, Cond, Semidecided
+import dedekind.numbers;    // Affine, FloorDiv, Mod, collatz_step, collatz
+import dedekind.relational; // IsFunctional / IsEntire
+import dedekind.python;     // dedekind::python::collatz, ::lwv, erase
+import dedekind.sequences;  // Path, iterate, first_where
+import dedekind.sets;       // η, finite_cardinality
 
 namespace nb = nanobind;
 
@@ -60,7 +61,13 @@ using dedekind::python::erase;
 using dedekind::sequences::first_where;
 using dedekind::sequences::iterate;
 using dedekind::sequences::Path;
+using dedekind::sets::finite_cardinality;
 using dedekind::sets::η;
+
+/** @brief The library's own Collatz relation on ℕ × ℕ, (even ∩ halve) ∪ (odd ∩
+ *  triple), a function by structure (relational:dyadic's guarded-union rule).
+ */
+using Rel = std::remove_cvref_t<decltype(dedekind::numbers::collatz)>;
 
 /** @brief Erase an arrow ℕ → ℕ into the one handle type, as jlt::compose does.
  */
@@ -252,6 +259,33 @@ NB_MODULE(_collatz, m) {
         return "Σ ∘ first_where(π == 1, " + std::to_string(p.budget) +
                ") ∘ iterate(step)";
       });
+
+  nb::class_<Rel>(
+      m, "CollatzRelation",
+      "The rule as a relation T ⊆ ℕ × ℕ, spelled point-free in C++: "
+      "(π1 % 2 == 0) & (π1 / 2 == π2) | ~(π1 % 2 == 0) & (3·π1 + 1 == "
+      "π2).  A function by structure: the guarded union of two total "
+      "function graphs over complementary guards on π1.")
+      .def(
+          "__call__",
+          [](const Rel& r, long long n, long long m) {
+            return r(std::pair{finite_cardinality(nat(n, "T(n, m)")),
+                               finite_cardinality(nat(m, "T(n, m)"))});
+          },
+          nb::arg("n"), nb::arg("m"), "(n, m) ∈ T: whether T(n) = m.")
+      .def_prop_ro(
+          "is_function",
+          [](const Rel&) {
+            return dedekind::relational::IsFunctional<Rel> &&
+                   dedekind::relational::IsEntire<Rel>;
+          },
+          "Whether the relation is certified functional and entire at compile "
+          "time, by the structure of its spelling.")
+      .def("__repr__", [](const Rel&) {
+        return "(ℕ×ℕ | π1 % 2 == 0) & (ℕ×ℕ | π1 / 2 == π2) | ~(ℕ×ℕ | π1 % 2 == "
+               "0) & (ℕ×ℕ | 3·π1 + 1 == π2)";
+      });
+  m.attr("collatz_relation") = nb::cast(dedekind::numbers::collatz);
 
   m.attr("π") = nb::cast(arrow(Identity<Nat>{}));
   m.attr("identity") = m.attr("π");

@@ -5,7 +5,8 @@ import itertools
 import unittest
 
 from dedekind.collatz import (
-    Ternary, at_least, below, collatz_step, cond, everything, forall, iterate,
+    Ternary, at_least, below, collatz_relation, collatz_step, cond, everything,
+    forall, iterate,
     nothing, reaches_within, singleton, Σ, π,
 )
 
@@ -25,6 +26,17 @@ class ArrowTest(unittest.TestCase):
         self.assertFalse((π % 2 == 0)(7))
         self.assertIn(4, π % 2 == 0)
         self.assertEqual((π >> (π + 1))(1), 2)
+
+    def test_the_relation_is_a_function_by_structure(self) -> None:
+        self.assertTrue(collatz_relation(27, 82))
+        self.assertTrue(collatz_relation(6, 3))
+        self.assertFalse(collatz_relation(27, 83))
+        self.assertFalse(collatz_relation(6, 4))
+        self.assertTrue(collatz_relation.is_function)
+        for n in range(1, 50):
+            self.assertTrue(collatz_relation(n, step(n)))  # graph(step) ⊆ T
+        with self.assertRaises(ValueError):
+            collatz_relation(-1, 0)
 
     def test_refusals(self) -> None:
         with self.assertRaises(ValueError):

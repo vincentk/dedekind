@@ -9,6 +9,8 @@ it, and ``cond(p, f, g)`` McCarthy's conditional::
     U, T = Ternary.UNKNOWN, Ternary.TRUE
 
     step = cond(π % 2 == 0, π // 2, 3*π + 1)   # the rule; collatz_step is the library's own
+    collatz_relation(27, 82)                  # the same rule as a relation T ⊆ ℕ×ℕ (spelled in C++)
+    collatz_relation.is_function              # True: a function by structure (the guarded-union rule)
     step(27)                                  # 82
     o = iterate(step, 27)                     # the orbit, a lazy path
     o[:6]                                     # [27, 82, 41, 124, 62, 31]
@@ -41,9 +43,11 @@ from .lwv import everything
 from .lwv import nothing
 from .lwv import singleton
 from ._collatz import ArrowN
+from ._collatz import CollatzRelation
 from ._collatz import PathN
 from ._collatz import PredN
 from ._collatz import ReachesWithin
+from ._collatz import collatz_relation
 from ._collatz import collatz_step
 from ._collatz import cond
 from ._collatz import forall
@@ -56,6 +60,7 @@ from ._collatz import π
 
 __all__ = [
     "ArrowN",
+    "CollatzRelation",
     "PathN",
     "PredN",
     "ReachesWithin",
@@ -65,6 +70,7 @@ __all__ = [
     "at_least",
     "at_most",
     "below",
+    "collatz_relation",
     "collatz_step",
     "cond",
     "everything",
