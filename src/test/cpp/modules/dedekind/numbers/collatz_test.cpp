@@ -78,8 +78,10 @@ TEST_CASE("numbers:collatz — the Rosolini verdict: IN / U (never OUT)",
 TEST_CASE("numbers:collatz — the collapse: a windowed+budgeted decidable ∀",
           "[numbers][collatz][collapse]") {
   // The open ∀-conjecture, restricted to a finite window and budget, decides.
-  CHECK(all_reach_1_within<100, 200>());
-  CHECK(all_reach_1_within<1000, 300>());
+  CHECK(all_reach_1_within<100, 118>());
+  CHECK_FALSE(all_reach_1_within<100, 117>());  // 97 needs 118
+  CHECK(all_reach_1_within<1000, 178>());
+  CHECK_FALSE(all_reach_1_within<1000, 177>());  // 871 needs 178
 }
 
 TEST_CASE("numbers:collatz — orbit and reach-indicator are sequences",

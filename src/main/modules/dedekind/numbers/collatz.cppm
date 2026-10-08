@@ -108,7 +108,8 @@ static_assert(dedekind::sets::IsSetObject<decltype(collatz)>,
               "node over set objects, structurally)");
 static_assert(IsRelation<decltype(collatz), Cardinality, Cardinality>,
               "T ⊆ ℕ × ℕ is an IsRelation");
-static_assert(IsFunctional<decltype(collatz)> && IsEntire<decltype(collatz)>,
+static_assert(IsFunctional<std::remove_cvref_t<decltype(collatz)>> &&
+                  IsEntire<std::remove_cvref_t<decltype(collatz)>>,
               "T is a FUNCTION by structure: the guarded union of two total "
               "function graphs over complementary left cylinders");
 static_assert(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}),
@@ -304,10 +305,13 @@ static_assert(reaches_1_within(27, 50) == Ternary::Unknown,
 static_assert(reaches_1_within(6, 8) == Ternary::True, "6 reaches 1 at step 8");
 static_assert(reaches_1_within(6, 7) == Ternary::Unknown,
               "6 not decided one step short");
-// The collapse: every n < 1000 reaches 1 within 300 steps (max stopping time
-// below 1000 is 178, at n = 871) — a decidable ∀, at compile time.
-static_assert(all_reach_1_within<1000, 300>(),
-              "every 1 <= n < 1000 reaches 1 within 300 steps");
+// The collapse: every n < 100 reaches 1 within 118 steps and not within 117
+// (the max stopping time below 100 is 118, at n = 97) — a decidable ∀ with a
+// sharp edge, at compile time.  The wider window [1, 1000) at budget 178 is the
+// runtime companion (collatz_test): the arrow term costs constexpr steps per
+// iteration that the compiler's budget does not stretch to a thousand seeds.
+static_assert(all_reach_1_within<100, 118>() && !all_reach_1_within<100, 117>(),
+              "every 1 <= n < 100 reaches 1 within 118 steps, not within 117");
 // An orbit that leaves the word saturates at its top and stays undecided.
 static_assert(reaches_1_within(std::numeric_limits<std::size_t>::max(), 8) ==
                   Ternary::Unknown,
