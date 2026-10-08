@@ -1962,6 +1962,15 @@ export template <IsRingIntegral auto I, auto V>
 constexpr ProjMulConst<I, V> operator*(Projection<I>, Bound<V>) {
   return {};
 }
+/** @brief @f$\pi_I / \mathrm{fix}(V)@f$ --- projection floor-divided by a
+ *  positive constant, awaiting a comparison; the halving graph's value side. */
+export template <IsRingIntegral auto I, auto V>
+struct ProjDivConst {};
+export template <IsRingIntegral auto I, auto V>
+  requires(V > 0)
+constexpr ProjDivConst<I, V> operator/(Projection<I>, Bound<V>) {
+  return {};
+}
 
 /** @brief @f$(\pi_I + \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the
  * successor-shaped graph @f$b = a + V@f$. */
@@ -2002,6 +2011,25 @@ struct ProjMulConstProj {
 };
 export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
 constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
+                                                        Projection<J>) {
+  return {};
+}
+
+/** @brief @f$(\pi_I / \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the floor-division
+ *  graph @f$b = \lfloor a / V \rfloor@f$ (e.g. the halving @f$b = n/2@f$, total
+ *  on every @c a and the exact half on the evens). */
+export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
+struct ProjDivConstProj {
+  using is_rel_predicate = void;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    const auto a = coord<I>(p);
+    using C = std::remove_cvref_t<decltype(a)>;
+    return rel_apply<R>(std::divides<C>{}(a, static_cast<C>(V)), coord<J>(p));
+  }
+};
+export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
+constexpr ProjDivConstProj<I, V, Rel::Eq, J> operator==(ProjDivConst<I, V>,
                                                         Projection<J>) {
   return {};
 }
@@ -2703,6 +2731,34 @@ inline constexpr bool is_right_unique_v<
                                   dedekind::order::ProductRestrict<P, RP>>> =
     is_right_unique_v<dedekind::sets::Comprehension<
         dedekind::sets::𝔸<std::pair<A, B>, L, C>, P>>;
+
+// LEAVES: the scaling, affine and floor-division graphs b = V·a, b = A·a + B,
+// b = ⌊a / V⌋ are FUNCTIONAL on any carrier: each is the graph of a map of a.
+template <typename T, auto V, typename L, typename C>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
+    dedekind::order::ProjMulConstProj<1, V, dedekind::order::Rel::Eq, 2>>> =
+    true;
+template <typename T, auto A, auto B, typename L, typename C>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<T, T>, L, C>,
+                                  dedekind::order::ProjAffineConstProj<
+                                      1, A, B, dedekind::order::Rel::Eq, 2>>> =
+    true;
+template <typename T, auto V, typename L, typename C>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
+    dedekind::order::ProjDivConstProj<1, V, dedekind::order::Rel::Eq, 2>>> =
+    true;
+
+// GUARDS: a predicate on π1 alone (a bound, a residue class) is a LEFT
+// CYLINDER, π1⁻¹(S): it restricts the domain and relates nothing by itself.
+template <dedekind::order::Rel R, typename VT>
+inline constexpr bool is_left_cylinder_v<dedekind::order::ProjBound<1, R, VT>> =
+    true;
+template <auto V, dedekind::order::Rel R, auto W>
+inline constexpr bool
+    is_left_cylinder_v<dedekind::order::ProjModConstBound<1, V, R, W>> = true;
 
 // NODE (the compositional closure) for ComposePred's FUNCTIONALITY moved to
 // dedekind.relational:dyadic (PR #797, Copilot review) --- it is

@@ -710,3 +710,115 @@ static_assert(is_left_total_v<decltype(dedekind::relational::diag<bool>() >>
                                        dedekind::relational::diag<bool>())>,
               "Δ;Δ is ENTIRE: the NODE rule composes through >>.");
 }  // namespace dedekind::category
+
+// ── The guarded union: McCarthy's conditional as a relational idiom ──────────
+//
+// (P ∩ F) ∪ (¬P ∩ G) with P a LEFT CYLINDER (a guard on π1) is the relational
+// twin of the arrow cond(p, f, g): for each a exactly one branch is live, so
+// the union is FUNCTIONAL when F and G are, and ENTIRE when F and G are (the
+// guards P, ¬P cover every a).  A meet with anything keeps single-valuedness.
+// The two spellings a set meet takes (an irreducible Meet node; a collapsed
+// RelAnd leaf) and the two operand orders are all read.
+namespace dedekind::relational {
+using dedekind::category::is_left_cylinder_v;
+using dedekind::category::Join;
+using dedekind::category::Meet;
+using dedekind::category::Not;
+using dedekind::order::IsRelPredicate;
+
+/** @brief A guard, normalised to the relpred it tests and whether it is the
+ *  complement: a bare left-cylinder relpred, the set over it, or its @c Not. */
+template <typename X>
+struct guard_norm;
+template <IsRelPredicate P>
+  requires is_left_cylinder_v<P>
+struct guard_norm<P> {
+  using pred = P;
+  static constexpr bool negated = false;
+};
+template <typename U, IsRelPredicate P>
+  requires is_left_cylinder_v<P>
+struct guard_norm<Comprehension<U, P>> {
+  using pred = P;
+  static constexpr bool negated = false;
+};
+template <typename X>
+  requires requires { typename guard_norm<X>::pred; }
+struct guard_norm<Not<X>> {
+  using pred = typename guard_norm<X>::pred;
+  static constexpr bool negated = !guard_norm<X>::negated;
+};
+template <typename X>
+concept IsGuard = requires { typename guard_norm<X>::pred; };
+
+/** @brief A guarded branch @f$P \cap F@f$: the guard and the relation @c F it
+ *  restricts, read off a @c Meet node or a collapsed @c RelAnd leaf in either
+ *  operand order.  @tparam M the meet. */
+template <typename M>
+struct guarded;
+template <typename G, typename F>
+  requires IsGuard<G> && (!IsGuard<F>)
+struct guarded<Meet<G, F>> {
+  using guard = guard_norm<G>;
+  using branch = F;
+};
+template <typename F, typename G>
+  requires IsGuard<G> && (!IsGuard<F>)
+struct guarded<Meet<F, G>> {
+  using guard = guard_norm<G>;
+  using branch = F;
+};
+template <typename U, typename G, typename F>
+  requires IsGuard<G> && (!IsGuard<F>)
+struct guarded<Comprehension<U, RelAnd<G, F>>> {
+  using guard = guard_norm<G>;
+  using branch = Comprehension<U, F>;
+};
+template <typename U, typename F, typename G>
+  requires IsGuard<G> && (!IsGuard<F>)
+struct guarded<Comprehension<U, RelAnd<F, G>>> {
+  using guard = guard_norm<G>;
+  using branch = Comprehension<U, F>;
+};
+template <typename M>
+concept IsGuardedBranch = requires { typename guarded<M>::branch; };
+/** @brief Two guarded branches whose guards are one test and its complement. */
+template <typename M1, typename M2>
+concept Complementary =
+    IsGuardedBranch<M1> && IsGuardedBranch<M2> &&
+    std::same_as<typename guarded<M1>::guard::pred,
+                 typename guarded<M2>::guard::pred> &&
+    (guarded<M1>::guard::negated != guarded<M2>::guard::negated);
+}  // namespace dedekind::relational
+
+namespace dedekind::category {
+// The cylinder property lifts to the set over the relpred and survives ¬.
+template <typename U, typename P>
+inline constexpr bool is_left_cylinder_v<dedekind::sets::Comprehension<U, P>> =
+    is_left_cylinder_v<P>;
+template <typename X>
+inline constexpr bool is_left_cylinder_v<Not<X>> = is_left_cylinder_v<X>;
+
+// MEET: a meet removes pairs and never adds, so it is single-valued when either
+// operand is (a restricted function is a partial function), in both spellings.
+template <typename A, typename B>
+inline constexpr bool is_right_unique_v<Meet<A, B>> =
+    is_right_unique_v<A> || is_right_unique_v<B>;
+template <typename U, typename A, typename B>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<U, dedekind::relational::RelAnd<A, B>>> =
+    is_right_unique_v<dedekind::sets::Comprehension<U, A>> ||
+    is_right_unique_v<dedekind::sets::Comprehension<U, B>>;
+
+// GUARDED UNION: functional and entire exactly when both branches are.
+template <typename M1, typename M2>
+  requires dedekind::relational::Complementary<M1, M2>
+inline constexpr bool is_right_unique_v<Join<M1, M2>> =
+    is_right_unique_v<typename dedekind::relational::guarded<M1>::branch> &&
+    is_right_unique_v<typename dedekind::relational::guarded<M2>::branch>;
+template <typename M1, typename M2>
+  requires dedekind::relational::Complementary<M1, M2>
+inline constexpr bool is_left_total_v<Join<M1, M2>> =
+    is_left_total_v<typename dedekind::relational::guarded<M1>::branch> &&
+    is_left_total_v<typename dedekind::relational::guarded<M2>::branch>;
+}  // namespace dedekind::category

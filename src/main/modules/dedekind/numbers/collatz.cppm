@@ -4,10 +4,10 @@
  * @brief Bounded Collatz reachability — a §4 relational exhibit on ℕ.
  *
  * The recurrence is spelled @b once, @b point-free, as the @c Trsk relation
- * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$ (an @c IsRelation
- * --- whether the even/odd guard-union is inferred @c IsFunction is a
- * follow-up), and then @b finitely iterated via its native @c size_t shadow @c
- * collatz_step.
+ * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$, a function by
+ * structure (the guarded union of two total function graphs over complementary
+ * left cylinders, @c :dyadic), and then @b finitely iterated as the arrow
+ * @c collatz_step on its native @c size_t shadow, the same term.
  *
  * The set @f$\{\, n : \text{the orbit of } n \text{ reaches } 1 \,\}@f$ is @b
  * de
@@ -68,7 +68,7 @@ using namespace dedekind::sets;
  *  below stays @c Unknown rather than wrapping into a false @c True.  The
  *  Python exhibit rebuilds this very term from the same combinators. */
 export inline constexpr auto collatz_step =
-    Cond{preimage(Mod<std::size_t>{2}, η(std::size_t{0})),
+    Cond{Compose{Mod<std::size_t>{2}, η(std::size_t{0})},
          FloorDiv<std::size_t>{2}, Affine<std::size_t>{3, 1}};
 static_assert(collatz_step(6) == 3 && collatz_step(7) == 22, "6 ↦ 3, 7 ↦ 22");
 static_assert(collatz_step(std::numeric_limits<std::size_t>::max()) ==
@@ -81,9 +81,10 @@ static_assert(collatz_step(std::numeric_limits<std::size_t>::max()) ==
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
 constexpr auto n_even = ℕ * ℕ | π1 % fix(2_c) == fix(0_c);
-/** @brief The even step @f$m = n/2@f$, spelled without division as
- *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = ℕ * ℕ | π2 * fix(2_c) == π1;
+/** @brief The even step @f$m = \lfloor n/2 \rfloor@f$, the floor-division
+ *  graph: a @b total function on ℕ that is the exact half on the evens, where
+ *  the guard admits it (@c FloorDiv on the shadow, the same arrow). */
+constexpr auto halve = ℕ * ℕ | π1 / fix(2_c) == π2;
 /** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
 constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
 
@@ -95,18 +96,21 @@ constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
  *  uniform set-grammar: @c & (meet), @c ~ (complement), @c | (join, the
  *  structural @c OrPredicate union of #365).  Mirrors the divides relation of
  *  §4; the parity test appears exactly once.
- * @note Whether the DSL infers @c IsFunction across the (disjoint, total)
- *       case split is the next investigation --- functionality is inferred from
- * a graph-shaped leaf or through @c >>, not yet across @f$\cap/\cup@f$. */
+ * @note @c IsFunction is @b inferred: the guards are complementary left
+ *       cylinders and both branches are total function graphs, so the guarded
+ *       union is functional and entire by the @c :dyadic rule (the relational
+ *       twin of @c Cond). */
 export inline constexpr auto collatz =
     (n_even & halve) | (~n_even & triple_plus_1);
 
 static_assert(dedekind::sets::IsSetObject<decltype(collatz)>,
               "the point-free recurrence is a set object on ℕ × ℕ (a lattice "
               "node over set objects, structurally)");
-static_assert(
-    IsRelation<decltype(collatz), Cardinality, Cardinality>,
-    "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
+static_assert(IsRelation<decltype(collatz), Cardinality, Cardinality>,
+              "T ⊆ ℕ × ℕ is an IsRelation");
+static_assert(IsFunctional<decltype(collatz)> && IsEntire<decltype(collatz)>,
+              "T is a FUNCTION by structure: the guarded union of two total "
+              "function graphs over complementary left cylinders");
 static_assert(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}),
               "6 is even: 2·3 == 6, so 6 ↦ 3");
 static_assert(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}),

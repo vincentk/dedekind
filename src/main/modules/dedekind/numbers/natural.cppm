@@ -637,3 +637,44 @@ static_assert(Affine<std::size_t>{3, 1}(27) == 82 &&
               "3·27 + 1 = 82; the top saturates");
 
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+// ENTIRE on ℕ: the scaling, affine and floor-division graphs are total maps of
+// the first coordinate, because Cardinality's ·, + (saturating to ℵ₀) and / by
+// a positive constant are total.  The algebraic half of IsFunction for these
+// leaves, registered where the carrier's arithmetic is known.
+template <auto V, typename L, typename C>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<
+        std::pair<dedekind::sets::Cardinality, dedekind::sets::Cardinality>, L,
+        C>,
+    dedekind::order::ProjMulConstProj<1, V, dedekind::order::Rel::Eq, 2>>> =
+    true;
+template <auto A, auto B, typename L, typename C>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<
+        std::pair<dedekind::sets::Cardinality, dedekind::sets::Cardinality>, L,
+        C>,
+    dedekind::order::ProjAffineConstProj<1, A, B, dedekind::order::Rel::Eq,
+                                         2>>> = true;
+template <auto V, typename L, typename C>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<
+        std::pair<dedekind::sets::Cardinality, dedekind::sets::Cardinality>, L,
+        C>,
+    dedekind::order::ProjDivConstProj<1, V, dedekind::order::Rel::Eq, 2>>> =
+    true;
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+static_assert(
+    dedekind::relational::IsFunctional<
+        decltype(ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)> &&
+        dedekind::relational::IsEntire<
+            decltype(ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)> &&
+        dedekind::relational::IsFunctional<decltype(ℕ * ℕ |
+                                                    π1 / fix(2_c) == π2)> &&
+        dedekind::relational::IsEntire<decltype(ℕ * ℕ | π1 / fix(2_c) == π2)>,
+    "3n+1 and ⌊n/2⌋ are total functions on ℕ, by structure and by the "
+    "carrier's total arithmetic.");
+}  // namespace dedekind::numbers

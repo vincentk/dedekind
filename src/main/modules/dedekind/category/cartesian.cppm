@@ -621,6 +621,16 @@ inline constexpr bool is_left_total_v = false;
 export template <typename R>
 inline constexpr bool is_right_unique_v = false;
 
+/** @brief A @b left @b cylinder: a relation (or pair predicate) that constrains
+ *  the first coordinate only, @f$\pi_1^{-1}(S)@f$ for some @f$S \subseteq A@f$,
+ *  so it is a @b guard on the domain and relates nothing on its own.  Opt-in
+ *  like its siblings; registered on the relpreds that mention @c π1 alone and
+ *  closed under the complement.  The guarded union
+ *  @f$(P \cap F) \cup (\bar P \cap G)@f$ reads its functionality and
+ *  entireness off @c F and @c G exactly when @c P is one. */
+export template <typename R>
+inline constexpr bool is_left_cylinder_v = false;
+
 /**
  * @concept IsBinaryFunction
  * @brief A binary relation @c R @c ⊆ @c A @c × @c B is a @b function

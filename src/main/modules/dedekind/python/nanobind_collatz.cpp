@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-import dedekind.category;  // Identity, Compose, Cond, Semidecided, preimage
+import dedekind.category;  // Identity, Compose, Cond, Semidecided
 import dedekind.numbers;   // Affine, FloorDiv, Mod, collatz_step
 import dedekind.python;    // dedekind::python::collatz, ::lwv, erase
 import dedekind.sequences; // Path, iterate, first_where
@@ -50,7 +50,6 @@ using dedekind::category::Boole;
 using dedekind::category::Compose;
 using dedekind::category::Cond;
 using dedekind::category::Identity;
-using dedekind::category::preimage;
 using dedekind::category::Semidecided;
 using dedekind::category::Ternary;
 using dedekind::numbers::Affine;
@@ -158,7 +157,7 @@ NB_MODULE(_collatz, m) {
       .def(
           "__eq__",
           [](const ArrowN& f, long long k) -> PredN {
-            return erase<Nat, Boole>(preimage(f, η(nat(k, "f == k"))));
+            return erase<Nat, Boole>(Compose{f, η(nat(k, "f == k"))});
           },
           nb::is_operator(),
           "f == k: the Boolean test {n | f(n) = k}, the preimage of the point.")
