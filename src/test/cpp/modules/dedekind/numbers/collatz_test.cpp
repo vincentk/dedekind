@@ -23,18 +23,18 @@ using dedekind::sets::finite_cardinality;
 TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
           "[numbers][collatz]") {
   // The explicit named rule ℕ → ℕ.
-  CHECK(collatz_rule(1) == 4);    // odd: 3·1+1
-  CHECK(collatz_rule(4) == 2);    // even: 4/2
-  CHECK(collatz_rule(2) == 1);    // even: 2/2
-  CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
+  CHECK(collatz_step(1) == 4);    // odd: 3·1+1
+  CHECK(collatz_step(4) == 2);    // even: 4/2
+  CHECK(collatz_step(2) == 1);    // even: 2/2
+  CHECK(collatz_step(27) == 82);  // odd: 3·27+1
   // The point-free relation, validated on pairs (ℕ = 𝔸<Cardinality>).
   CHECK(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}));
   CHECK(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}));
   CHECK(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}));
   // The shadow saturates where 3n+1 leaves the word; the top is a fixpoint.
   constexpr auto top = std::numeric_limits<std::size_t>::max();
-  CHECK(collatz_rule(top) == top);
-  CHECK(collatz_rule(top / 3 + 2) == top);  // odd, and 3n+1 overflows
+  CHECK(collatz_step(top) == top);
+  CHECK(collatz_step(top / 3 + 2) == top);  // odd, and 3n+1 overflows
 }
 
 TEST_CASE("numbers:collatz — two steps, and the attractor's pre-image",
@@ -78,8 +78,10 @@ TEST_CASE("numbers:collatz — the Rosolini verdict: IN / U (never OUT)",
 TEST_CASE("numbers:collatz — the collapse: a windowed+budgeted decidable ∀",
           "[numbers][collatz][collapse]") {
   // The open ∀-conjecture, restricted to a finite window and budget, decides.
-  CHECK(all_reach_1_within<100, 200>());
-  CHECK(all_reach_1_within<1000, 300>());
+  CHECK(all_reach_1_within<100, 118>());
+  CHECK_FALSE(all_reach_1_within<100, 117>());  // 97 needs 118
+  CHECK(all_reach_1_within<1000, 178>());
+  CHECK_FALSE(all_reach_1_within<1000, 177>());  // 871 needs 178
 }
 
 TEST_CASE("numbers:collatz — orbit and reach-indicator are sequences",

@@ -4,10 +4,10 @@
  * @brief Bounded Collatz reachability — a §4 relational exhibit on ℕ.
  *
  * The recurrence is spelled @b once, @b point-free, as the @c Trsk relation
- * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$ (an @c IsRelation
- * --- whether the even/odd guard-union is inferred @c IsFunction is a
- * follow-up), and then @b finitely iterated via its native @c size_t shadow @c
- * collatz_rule.
+ * @c collatz @f$= T \subseteq \mathbb{N}\times\mathbb{N}@f$, a function by
+ * structure (the guarded union of two total function graphs over complementary
+ * left cylinders, @c :dyadic), and then @b finitely iterated as the arrow
+ * @c collatz_step on its native @c size_t shadow, the same term.
  *
  * The set @f$\{\, n : \text{the orbit of } n \text{ reaches } 1 \,\}@f$ is @b
  * de
@@ -50,6 +50,7 @@ import dedekind.order;
 import dedekind.relational;
 import dedekind.sequences;
 import dedekind.sets;
+import :natural;  // Affine / FloorDiv / Mod, the shadow's arrows
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -60,24 +61,19 @@ using namespace dedekind::sets;
 
 // ─── The recurrence, spelled once as an IsFunction on ℕ (Trsk) ────────────
 
-/** @brief The recurrence, spelled out @b explicitly as a named function (not a
- *         lambda): @c n even @c ↦ @c n/2, @c n odd @c ↦ @c 3n+1.  Computed on
- * the native @c size_t shadow, which @b saturates where @c 3n+1 would leave
- * the word, the posture of ℕ's proxy (the point-free relation on
- * @c Cardinality saturates to ℵ₀ the same way).  The word's top is odd, so it
- * is a fixpoint of the rule: an orbit that reaches it never reaches 1, and the
- * verdict below stays @c Unknown rather than wrapping into a false @c True. */
-export constexpr std::size_t collatz_rule(std::size_t n) {
-  if (n % 2 == 0) return n / 2;
-  std::size_t m{};
-  if (__builtin_mul_overflow(n, std::size_t{3}, &m) ||
-      __builtin_add_overflow(m, std::size_t{1}, &m))
-    return std::numeric_limits<std::size_t>::max();
-  return m;
-}
-static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
+/** @brief The recurrence as an @b arrow, a term in the shadow's arithmetic:
+ *  McCarthy's conditional over the parity test, @c n/2 where even, @c 3n+1
+ *  where odd.  The affine leg saturates at the word's top, which is odd and so
+ *  a fixpoint: an orbit that leaves the word never reaches 1, and the verdict
+ *  below stays @c Unknown rather than wrapping into a false @c True.  The
+ *  Python exhibit rebuilds this very term from the same combinators. */
+export inline constexpr auto collatz_step =
+    Cond{Compose{Mod<std::size_t>{2}, η(std::size_t{0})},
+         FloorDiv<std::size_t>{2}, Affine<std::size_t>{3, 1}};
+static_assert(collatz_step(6) == 3 && collatz_step(7) == 22, "6 ↦ 3, 7 ↦ 22");
+static_assert(collatz_step(std::numeric_limits<std::size_t>::max()) ==
                   std::numeric_limits<std::size_t>::max(),
-              "the word's top is a fixpoint of the saturating rule: no wrap");
+              "the word's top is a fixpoint of the saturating step: no wrap");
 
 /** @brief The parity discriminant @f$\{(n,m) : n \text{ even}\}@f$ --- the axis
  *  restriction spelled @b once, so @f$T@f$ never repeats the @f$\pi_1 \bmod
@@ -85,9 +81,10 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
 constexpr auto n_even = ℕ * ℕ | π1 % fix(2_c) == fix(0_c);
-/** @brief The even step @f$m = n/2@f$, spelled without division as
- *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = ℕ * ℕ | π2 * fix(2_c) == π1;
+/** @brief The even step @f$m = \lfloor n/2 \rfloor@f$, the floor-division
+ *  graph: a @b total function on ℕ that is the exact half on the evens, where
+ *  the guard admits it (@c FloorDiv on the shadow, the same arrow). */
+constexpr auto halve = ℕ * ℕ | π1 / fix(2_c) == π2;
 /** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
 constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
 
@@ -99,18 +96,22 @@ constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
  *  uniform set-grammar: @c & (meet), @c ~ (complement), @c | (join, the
  *  structural @c OrPredicate union of #365).  Mirrors the divides relation of
  *  §4; the parity test appears exactly once.
- * @note Whether the DSL infers @c IsFunction across the (disjoint, total)
- *       case split is the next investigation --- functionality is inferred from
- * a graph-shaped leaf or through @c >>, not yet across @f$\cap/\cup@f$. */
+ * @note @c IsFunction is @b inferred: the guards are complementary left
+ *       cylinders and both branches are total function graphs, so the guarded
+ *       union is functional and entire by the @c :dyadic rule (the relational
+ *       twin of @c Cond). */
 export inline constexpr auto collatz =
     (n_even & halve) | (~n_even & triple_plus_1);
 
 static_assert(dedekind::sets::IsSetObject<decltype(collatz)>,
               "the point-free recurrence is a set object on ℕ × ℕ (a lattice "
               "node over set objects, structurally)");
-static_assert(
-    IsRelation<decltype(collatz), Cardinality, Cardinality>,
-    "T ⊆ ℕ × ℕ is an IsRelation (IsFunction is the next investigation)");
+static_assert(IsRelation<decltype(collatz), Cardinality, Cardinality>,
+              "T ⊆ ℕ × ℕ is an IsRelation");
+static_assert(IsFunctional<std::remove_cvref_t<decltype(collatz)>> &&
+                  IsEntire<std::remove_cvref_t<decltype(collatz)>>,
+              "T is a FUNCTION by structure: the guarded union of two total "
+              "function graphs over complementary left cylinders");
 static_assert(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}),
               "6 is even: 2·3 == 6, so 6 ↦ 3");
 static_assert(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}),
@@ -238,7 +239,7 @@ static_assert(!pending_2(finite_cardinality(4)),
 /** @brief The orbit @f$\{n\} ; T^{\le N}@f$ presented as the arrow's iterate
  * --- a lazy @c Path<std::size_t>. */
 export constexpr auto collatz_orbit(std::size_t n) {
-  return iterate(n, collatz_rule);
+  return iterate(n, collatz_step);
 }
 
 /** @brief The reach indicator's type: a @c Path<Ternary> monotone in
@@ -271,7 +272,7 @@ export constexpr std::optional<std::size_t> collatz_reach_time(
   for (std::size_t i = 0;; ++i) {
     if (v == 1) return i;
     if (i == budget) return std::nullopt;  // the budget's step is never taken
-    v = collatz_rule(v);
+    v = collatz_step(v);
   }
 }
 
@@ -304,10 +305,13 @@ static_assert(reaches_1_within(27, 50) == Ternary::Unknown,
 static_assert(reaches_1_within(6, 8) == Ternary::True, "6 reaches 1 at step 8");
 static_assert(reaches_1_within(6, 7) == Ternary::Unknown,
               "6 not decided one step short");
-// The collapse: every n < 1000 reaches 1 within 300 steps (max stopping time
-// below 1000 is 178, at n = 871) — a decidable ∀, at compile time.
-static_assert(all_reach_1_within<1000, 300>(),
-              "every 1 <= n < 1000 reaches 1 within 300 steps");
+// The collapse: every n < 100 reaches 1 within 118 steps and not within 117
+// (the max stopping time below 100 is 118, at n = 97) — a decidable ∀ with a
+// sharp edge, at compile time.  The wider window [1, 1000) at budget 178 is the
+// runtime companion (collatz_test): the arrow term costs constexpr steps per
+// iteration that the compiler's budget does not stretch to a thousand seeds.
+static_assert(all_reach_1_within<100, 118>() && !all_reach_1_within<100, 117>(),
+              "every 1 <= n < 100 reaches 1 within 118 steps, not within 117");
 // An orbit that leaves the word saturates at its top and stays undecided.
 static_assert(reaches_1_within(std::numeric_limits<std::size_t>::max(), 8) ==
                   Ternary::Unknown,

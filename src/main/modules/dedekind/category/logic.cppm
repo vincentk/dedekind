@@ -830,6 +830,22 @@ constexpr auto lift_logic(T value) {
   }
 }
 
+/** @brief The verdict of a bounded search, read in K₃ along the dominance
+ *  @f$\Sigma \hookrightarrow \Omega@f$: a witness found is @c ⊤, none found so
+ *  far is @c U, and nothing is ever @c ⊥, since the absence of a witness within
+ *  a budget refutes nothing.  The one arrow by which "undecided" enters a
+ *  computation. */
+export struct Semidecided final {
+  using Domain = bool;
+  using Codomain = Ternary;
+  constexpr Ternary operator()(bool found) const {
+    return found ? Ternary::True : Ternary::Unknown;
+  }
+};
+static_assert(Semidecided{}(true) == Ternary::True &&
+                  Semidecided{}(false) == Ternary::Unknown,
+              "Σ: a witness ↦ ⊤, none so far ↦ U, never ⊥");
+
 // The semilattice, pinned on the shipped species.
 static_assert(LiftsTo<Boole, Kleene> && LiftsTo<Boole, Percent> &&
                   LiftsTo<Boole, Chain<int>> && LiftsTo<Kleene, Percent>,
