@@ -612,7 +612,7 @@ constexpr auto operator!(const RelOr<A, B>& p) {
 // ── Binding ─────────────────────────────────────────────────────────────────
 
 /** @brief The value type a term takes at a point of type @c X. */
-template <typename X, typename T>
+export template <typename X, typename T>
 using value_at_t = std::remove_cvref_t<decltype(term_value(
     std::declval<const T&>(), std::declval<const X&>()))>;
 
@@ -669,6 +669,78 @@ constexpr void bind_operands(const A& a, const B& b) {
 }
 
 /** @section terms__Formal_Verification */
+// ── Certificates ────────────────────────────────────────────────────────────
+// Rules over a term's structure, read by the relation traits (functional,
+// entire) where the relation is built.  Each is sufficient, not necessary:
+// false means not certified.
+
+/** @brief The operator @c Op typed at the carrier @c C, the key totality is
+ *  registered under: @c std::plus<> at @c C is @c std::plus<C>. */
+template <typename Op, typename C>
+struct at_carrier {
+  using type = Op;
+};
+template <template <typename> class F, typename C>
+struct at_carrier<F<void>, C> {
+  using type = F<C>;
+};
+
+/** @brief A term total at every point of type @c X: slots and constants are;
+ *  @c a @c op @c b is when both operands are and @c op is total on their
+ *  carrier (@c category::IsTotal); a conditional, a comparison or a connective
+ *  when every part is; an applied arrow when the arrow is total.
+ *  @tparam X the point type.  @tparam T the term. */
+export template <typename X, typename T>
+inline constexpr bool is_total_term_v = false;
+template <typename X, IsRingIntegral auto I>
+inline constexpr bool is_total_term_v<X, Projection<I>> = true;
+template <typename X, typename K>
+inline constexpr bool is_total_term_v<X, Const<K>> = true;
+template <typename X, typename Op, typename A, typename B>
+inline constexpr bool is_total_term_v<X, BinOp<Op, A, B>> =
+    is_total_term_v<X, A> && is_total_term_v<X, B> &&
+    dedekind::category::IsTotal<
+        value_at_t<X, BinOp<Op, A, B>>,
+        typename at_carrier<Op, value_at_t<X, BinOp<Op, A, B>>>::type>;
+template <typename X, Rel R, typename A, typename B>
+inline constexpr bool is_total_term_v<X, Cmp<R, A, B>> =
+    is_total_term_v<X, A> && is_total_term_v<X, B>;
+template <typename X, typename Pr, typename A, typename B>
+inline constexpr bool is_total_term_v<X, CondT<Pr, A, B>> =
+    is_total_term_v<X, Pr> && is_total_term_v<X, A> && is_total_term_v<X, B>;
+template <typename X, typename A, typename B>
+inline constexpr bool is_total_term_v<X, RelAnd<A, B>> =
+    is_total_term_v<X, A> && is_total_term_v<X, B>;
+template <typename X, typename A, typename B>
+inline constexpr bool is_total_term_v<X, RelOr<A, B>> =
+    is_total_term_v<X, A> && is_total_term_v<X, B>;
+template <typename X, typename F, typename A>
+inline constexpr bool is_total_term_v<X, Ap<F, A>> =
+    is_total_term_v<X, A> &&
+    dedekind::category::IsTotalArrow<std::remove_cvref_t<F>>;
+
+/** @brief @c π2 @c == @c t, or @c t @c == @c π2, with @c t mentioning only the
+ *  first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
+ *  @tparam P the atom. */
+template <typename P>
+struct graph_atom : std::false_type {};
+template <typename T>
+  requires(only_slot(slots_v<T>, 1))
+struct graph_atom<Cmp<Rel::Eq, T, Projection<2>>> : std::true_type {
+  using term = T;
+};
+template <typename T>
+  requires(only_slot(slots_v<T>, 1))
+struct graph_atom<Cmp<Rel::Eq, Projection<2>, T>> : std::true_type {
+  using term = T;
+};
+/** @brief An atom that is the graph of a function of the first slot. */
+export template <typename P>
+concept IsGraphAtom = graph_atom<P>::value;
+/** @brief The term of a graph atom.  @tparam P the atom. */
+export template <IsGraphAtom P>
+using graph_term_t = typename graph_atom<P>::term;
+
 namespace detail_terms_witness {
 using P = std::pair<int, int>;
 inline constexpr auto succ_graph = π1 + 1 == π2;
@@ -691,6 +763,16 @@ inline constexpr auto on_naturals = π1 + 1 == π2;
 static_assert(on_naturals(std::pair{finite_cardinality(4),
                                     finite_cardinality(5)}),
               "the constant 1 meets ℕ as the cardinal 1");
+using N2 = std::pair<Cardinality, Cardinality>;
+static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
+              "3·x + 1 is total on ℕ: + and · saturate");
+static_assert(!is_total_term_v<P, decltype(π1 + 1)>,
+              "x + 1 on int is closed but not total: signed overflow");
+static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
+                  !IsGraphAtom<decltype(π2 * π2 == π1 * π1)> &&
+                  !IsGraphAtom<decltype(π1 == π2 || π1 == π2 * -1)>,
+              "π2 == t(π1) is a graph; y² == x² and y == ±x are not "
+              "certified");
 }  // namespace detail_terms_witness
 
 }  // namespace dedekind::sets

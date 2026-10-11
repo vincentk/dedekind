@@ -62,20 +62,6 @@ using namespace dedekind::category;
 
 namespace dedekind::order {
 
-/**
- * @concept IsEntireTranslationCarrier
- * @brief The carriers on which a translation @f$x \mapsto x+k@f$ is a @b total
- *        (entire) function: an @c algebra::IsOrderedAdditiveGroup carrier
- *        (ℤ-like, closed under @c +k for any @c k), or ℕ = @c Cardinality,
- * where a constant cannot be negative (it is refused when it meets ℕ), so the
- *        translation is the total successor-like @c x+k.  Excludes the cyclic
- *        (wrapping) carriers (@c unsigned, @c bool).  @tparam T the carrier.
- */
-export template <typename T>
-concept IsEntireTranslationCarrier =
-    dedekind::algebra::IsOrderedAdditiveGroup<T> ||
-    std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality>;
-
 /** @brief A cylinder atom @c π_I @c ⋈ @c c.  @tparam R the comparison.
  *  @tparam I the slot.  @tparam K the constant's type. */
 template <Rel R, IsRingIntegral auto I, typename K>
@@ -122,10 +108,12 @@ constexpr auto image(
 /** @brief image of a translation graph restricted to @c {x⋈p}: the affine
  *  pushforward @c {y⋈p+k}, a halfspace of the same shape.  Order comparisons
  *  only (equality restricts to a point, not a halfspace), and only where the
- *  translation preserves the order (@c IsEntireTranslationCarrier). */
+ *  translation preserves the order: an ordered additive group, or ℕ (a
+ *  constant cannot be negative there); a wrapping carrier is excluded. */
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality C>
-  requires(is_order_rel(R) && IsEntireTranslationCarrier<T>)
+  requires(is_order_rel(R) && (dedekind::algebra::IsOrderedAdditiveGroup<T> ||
+                               std::same_as<T, dedekind::sets::Cardinality>))
 constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&
@@ -158,23 +146,22 @@ constexpr SetVal<T, L> image(
   throw std::domain_error("the image of a ray under x ↦ c·x, c ≠ ±1");
 }
 
-/** @brief @c is_function(R): a translation graph is single-valued and, where
- *  @c x+k stays in the carrier, total. */
-export template <typename T, typename K, typename L, typename C>
-  requires IsEntireTranslationCarrier<T>
-consteval bool is_function(
-    const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>&) {
+/** @brief @c is_function(R) for a relation the certificates decide:
+ *  functional and entire.  No overload where they are silent. */
+export template <typename R>
+  requires dedekind::category::is_right_unique_v<R> &&
+           dedekind::category::is_left_total_v<R>
+consteval bool is_function(const R&) {
   return true;
 }
 
-/** @brief @c is_entire(R): the bare translation graph is total; a codomain
+/** @brief @c is_entire(R): true for a relation certified entire; a codomain
  *  bound (alone or with a residue) on the unbounded ℤ-like carrier pulls the
  *  domain back to a proper subset.  ℕ is not matched for the codomain cases: a
  *  lower bound there can be vacuous, so no false non-entire claim is made. */
-export template <typename T, typename K, typename L, typename C>
-  requires IsEntireTranslationCarrier<T>
-consteval bool is_entire(
-    const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>&) {
+export template <typename R>
+  requires dedekind::category::is_left_total_v<R>
+consteval bool is_entire(const R&) {
   return true;
 }
 export template <typename T, typename K, Rel R, typename V, typename L,
@@ -259,21 +246,3 @@ constexpr SetVal<T, LH> preimage(
 }
 
 }  // namespace dedekind::order
-
-// ── Entireness inference (Table 3), the algebraic half: a translation is total
-// exactly where the carrier keeps x+k in it; the diagonal is total anywhere.
-namespace dedekind::category {
-
-template <typename T, typename K, typename L, typename C>
-inline constexpr bool is_left_total_v<
-    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<T, T>, L, C>,
-                                  dedekind::order::Translation<K>>> =
-    dedekind::order::IsEntireTranslationCarrier<T>;
-
-template <typename T, typename L, typename C>
-inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
-    dedekind::sets::Cmp<dedekind::sets::Rel::Eq, dedekind::sets::Projection<1>,
-                        dedekind::sets::Projection<2>>>> = true;
-
-}  // namespace dedekind::category

@@ -1756,6 +1756,32 @@ constexpr auto 𝔓(const Ø<T, L>&) {
  *  @ref SetExpr and supplying the χ.  Witnessed over the universal and empty
  *  bases (the two extremes of the subobject lattice); the same holds for any
  *  @c IsSet base a comprehension refines. */
+}  // namespace dedekind::sets
+
+// ── Functional and entire by structure (Table 3): a graph atom is the graph
+// of x ↦ t(x), so functional; entire too where t is total on the first
+// carrier and lands in the second.
+namespace dedekind::category {
+
+template <typename A, typename B, typename L, typename C, typename P>
+  requires dedekind::sets::IsGraphAtom<P>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, B>, L, C>, P>> = true;
+
+template <typename A, typename B, typename L, typename C, typename P>
+  requires dedekind::sets::IsGraphAtom<P>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, B>, L, C>, P>> =
+    std::same_as<dedekind::sets::value_at_t<std::pair<A, B>,
+                                            dedekind::sets::graph_term_t<P>>,
+                 B> &&
+    dedekind::sets::is_total_term_v<std::pair<A, B>,
+                                    dedekind::sets::graph_term_t<P>>;
+
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+
 namespace detail_setexpr_witness {
 struct all_in {
   constexpr bool operator()(int) const { return true; }

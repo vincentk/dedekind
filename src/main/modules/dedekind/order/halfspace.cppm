@@ -1893,30 +1893,10 @@ static_assert(
 // composes.
 namespace dedekind::category {
 
-// This block carries only FUNCTIONALITY (@c is_right_unique_v), the STRUCTURAL
-// half: a graph is single-valued by its shape, decidable in @c order alone.
-// ENTIRENESS (@c is_left_total_v) is the ALGEBRAIC half --- a translation is
-// total iff the carrier is an ordered additive group --- so those
-// specialisations live in @c dedekind.algebra:halfspace_transport, alongside
-// the transport operations.  (The @c ProductRestrict entireness is left at its
-// primary false there and in the primary: a restriction MAY drop the domain, so
-// entireness is conservatively not certified through a joint.)
-
-// LEAF: π2 == T, or T == π2, with T mentioning only the first slot is the
-// graph of a function of the first coordinate, whatever T is: a translation, a
-// scaling, the diagonal π1 == π2, an arrow applied to π1.
-template <typename A, typename B, typename L, typename C, typename T>
-  requires(dedekind::sets::only_slot(dedekind::sets::slots_v<T>, 1))
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, B>, L, C>,
-    dedekind::sets::Cmp<dedekind::sets::Rel::Eq, T,
-                        dedekind::sets::Projection<2>>>> = true;
-template <typename A, typename B, typename L, typename C, typename T>
-  requires(dedekind::sets::only_slot(dedekind::sets::slots_v<T>, 1))
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, B>, L, C>,
-    dedekind::sets::Cmp<dedekind::sets::Rel::Eq, dedekind::sets::Projection<2>,
-                        T>>> = true;
+// The graph atoms are certified functional (and, where their term is total,
+// entire) in sets:expressions.  This block carries restriction: functionality
+// survives it, entireness is not certified through it (a restriction may drop
+// the domain).
 
 // RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
 // FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
