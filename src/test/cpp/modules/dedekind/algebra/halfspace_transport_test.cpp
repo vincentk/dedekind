@@ -253,7 +253,8 @@ TEST_CASE(
   STATIC_CHECK(is_function(f));
   // A shift ℕ cannot hold is refused when the graph is built, so the
   // entireness certificate only ever meets a bound constant.
-  CHECK_THROWS_AS(ℕ * ℕ | (π1 + -1 == π2), std::domain_error);
+  constexpr auto N = 𝔸<dedekind::sets::Cardinality>{};
+  CHECK_THROWS_AS(N * N | (π1 + -1 == π2), std::domain_error);
 
   volatile int ten = 10;
   CHECK(inverse(f)(std::pair{int(ten), 7}));        // (10,7) ∈ f⁻¹ (converse)
