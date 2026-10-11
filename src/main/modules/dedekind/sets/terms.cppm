@@ -501,8 +501,9 @@ constexpr auto operand_values(const A& a, const B& b, const P& p) {
 export template <typename Op, typename A, typename B, typename P>
 constexpr auto term_value(const BinOp<Op, A, B>& t, const P& p) {
   const auto [x, y] = operand_values(t.a, t.b, p);
-  static_assert(dedekind::category::IsClosedUnder<decltype(x), Op>,
-                "the carrier is not closed under this operator");
+  static_assert(
+      dedekind::category::IsClosedUnder<std::remove_cvref_t<decltype(x)>, Op>,
+      "the carrier is not closed under this operator");
   return Op{}(x, y);
 }
 export template <typename F, typename A, typename P>
