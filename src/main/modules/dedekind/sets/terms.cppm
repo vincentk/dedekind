@@ -409,54 +409,41 @@ export constexpr bool only_slot(unsigned mask, unsigned slot) {
 
 // ── Evaluation ──────────────────────────────────────────────────────────────
 
+template <std::integral T, std::floating_point F>
+constexpr bool in_integer_range(F x) {
+  return x >= static_cast<F>(std::numeric_limits<T>::min()) &&
+         x < static_cast<F>(std::numeric_limits<T>::max() / 2 + 1) * 2;
+}
+
 /** @brief A constant converted into the carrier @c C it meets: exactly, or not
- *  at all (a negative constant meeting ℕ, an out-of-range one meeting a
- *  machine word, a fraction meeting an integer, raise).  Between built-in
- *  types the check is range and round trip; a class carrier converts by its
- *  own constructor, which owns the check.  @tparam C the carrier.
- *  @tparam K the constant's type.  @param k the constant. */
+ *  at all.  Between built-in types: in range, then a round trip that keeps the
+ *  sign.  A carrier with its own rule states it beside its definition as
+ *  @c carrier_cast(std::type_identity<C>, k), found by ADL (ℕ refuses a
+ *  negative constant); any other class carrier converts by its constructor.
+ *  @tparam C the carrier.  @tparam K the constant's type.  @param k the
+ *  constant. */
 export template <typename C, typename K>
 constexpr C carrier_cast(const K& k) {
-  if constexpr (std::same_as<C, K>) {
-    return k;
-  } else if constexpr (std::same_as<C, Cardinality> && std::integral<K>) {
-    if (k < K{}) throw std::domain_error("a negative constant meets ℕ");
-    return finite_cardinality(static_cast<std::size_t>(k));
-  } else if constexpr (std::same_as<C, SignedCardinality> && std::integral<K>) {
-    return finite_signed_cardinality(k);
-  } else if constexpr (std::same_as<C, bool> && std::integral<K>) {
-    if (k != K{0} && k != K{1})
-      throw std::domain_error("a constant other than 0 or 1 meets 𝔹");
-    return k != K{0};
-  } else if constexpr (std::integral<C> && std::integral<K>) {
-    if (!std::in_range<C>(k))
-      throw std::domain_error("a constant outside the carrier's range");
-    return static_cast<C>(k);
-  } else if constexpr (std::integral<C> && std::floating_point<K>) {
-    constexpr K lo = static_cast<K>(std::numeric_limits<C>::min());
-    constexpr K hi = static_cast<K>(std::numeric_limits<C>::max() / 2 + 1) * 2;
-    if (!(k >= lo && k < hi))
-      throw std::domain_error("a constant outside the carrier's range");
+  if constexpr (std::is_arithmetic_v<C> && std::is_arithmetic_v<K>) {
+    if constexpr (std::integral<C> && std::floating_point<K>) {
+      if (!in_integer_range<C>(k))
+        throw std::domain_error("a constant outside the carrier's range");
+    } else if constexpr (std::floating_point<C> && std::floating_point<K>) {
+      if (k > std::numeric_limits<C>::max() ||
+          k < std::numeric_limits<C>::lowest())
+        throw std::domain_error("a constant outside the carrier's range");
+    }
     const C c = static_cast<C>(k);
-    if (static_cast<K>(c) != k)
-      throw std::domain_error("a fraction meets an integer carrier");
-    return c;
-  } else if constexpr (std::floating_point<C> && std::integral<K>) {
-    if constexpr (std::numeric_limits<K>::digits >
-                  std::numeric_limits<C>::digits) {
-      constexpr K lim = K{1} << std::numeric_limits<C>::digits;
-      if (k > lim || (std::is_signed_v<K> && k < K{0} - lim))
+    if constexpr (std::floating_point<C> && std::integral<K>) {
+      if (!in_integer_range<K>(c))
         throw std::domain_error("a constant the carrier cannot hold exactly");
     }
-    return static_cast<C>(k);
-  } else if constexpr (std::floating_point<C> && std::floating_point<K>) {
-    const C c = static_cast<C>(k);
-    if (static_cast<K>(c) != k)
+    if (static_cast<K>(c) != k || ((k < K{}) != (c < C{})))
       throw std::domain_error("a constant the carrier cannot hold exactly");
     return c;
+  } else if constexpr (requires { carrier_cast(std::type_identity<C>{}, k); }) {
+    return carrier_cast(std::type_identity<C>{}, k);
   } else {
-    static_assert(std::constructible_from<C, const K&>,
-                  "a constant must convert into the carrier it meets");
     return C(k);
   }
 }

@@ -35,6 +35,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
 #include <variant>
@@ -936,6 +937,21 @@ export constexpr bool is_finite(const SignedCardinality& v) noexcept {
 export template <std::integral S>
 constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
   return SignedCardinality{SignedExtensionalCardinal<>{value}};
+}
+
+/** @brief An integer constant meeting ℕ or ℤ, the hook the term grammar's
+ *  @c carrier_cast reaches by ADL: exactly, or a domain error for a negative
+ *  constant meeting ℕ.  @tparam K the constant's type.  @param k the constant.
+ */
+export template <std::integral K>
+constexpr Cardinality carrier_cast(std::type_identity<Cardinality>, K k) {
+  if (k < K{}) throw std::domain_error("a negative constant meets ℕ");
+  return finite_cardinality(static_cast<std::size_t>(k));
+}
+export template <std::integral K>
+constexpr SignedCardinality carrier_cast(std::type_identity<SignedCardinality>,
+                                         K k) {
+  return finite_signed_cardinality(k);
 }
 
 /** @brief Unary negation: swaps signs and ±ℵ_0; preserves NaZ. */
