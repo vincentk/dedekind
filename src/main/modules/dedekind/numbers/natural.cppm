@@ -527,7 +527,8 @@ struct ResidueClass {
 export template <typename L, typename C, std::integral K1, std::integral K2>
 constexpr ResidueClass<L> operator|(
     const 𝔸<Cardinality, L, C>&,
-    const Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<0>, Const<K1>>, Const<K2>>& c) {
+    const Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<0>, Const<K1>>,
+              Const<K2>>& c) {
   const long long n = static_cast<long long>(c.a.b.value);
   if (n <= 0) throw std::domain_error("a residue modulus must be positive");
   const long long r0 = static_cast<long long>(c.b.value) % n;

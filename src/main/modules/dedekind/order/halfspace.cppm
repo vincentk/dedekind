@@ -1555,8 +1555,8 @@ export template <typename K>
 using Translation =
     Cmp<Rel::Eq, BinOp<std::plus<>, Projection<1>, Const<K>>, Projection<2>>;
 export template <typename K>
-using Scaling =
-    Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>, Projection<2>>;
+using Scaling = Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>,
+                    Projection<2>>;
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift, read in the carrier.  Gated on @c IsSaturating: the shift arithmetic
