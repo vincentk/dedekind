@@ -1019,6 +1019,7 @@ struct ProductRestrict {
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
 constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
+  bind_check<std::pair<T1, T2>>(rp);
   return Comprehension<𝔸<std::pair<T1, T2>, L>, RP>{rp};
 }
 
@@ -1038,6 +1039,7 @@ export template <typename S, IsRelPredicate RP>
     typename S::Domain::second_type;
   }
 constexpr auto operator|(const S& prod, RP rp) {
+  bind_check<typename S::Domain>(rp);
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
   return Comprehension<𝔸<typename S::Domain, typename S::logic_species>,
                        ProductRestrict<X, RP>>{

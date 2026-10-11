@@ -109,12 +109,13 @@ struct Point {
 };
 
 /** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
- *  set former binds (@c 𝔹 | (π == true) is @c {true}).   *  Equality is @c
- * Point's own constraint, checked when the body instantiates, and deliberately
- * @b not this head's: an @c equality_comparable check on a deduced @c T asks
- * for @c T @c == @c T, which finds this very operator by ADL when @c T is a
- * projection or a standard @c optional / @c variant of a sets type, and the
- * satisfaction depends on itself.
+ *  set former binds (@c 𝔹 | (π == true) is @c {true}).
+ *
+ *  Equality is @c Point's own constraint, checked when the body instantiates,
+ *  and deliberately @b not this head's: an @c equality_comparable check on a
+ *  deduced @c T asks for @c T @c == @c T, which finds this very operator by
+ *  ADL when @c T is a projection or a standard @c optional / @c variant of a
+ *  sets type, and the satisfaction depends on itself.
  *  @tparam T the carrier, a value type (copyable, default-constructible) that
  *          is not a grammar tag. */
 export template <std::semiregular T>

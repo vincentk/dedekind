@@ -55,9 +55,10 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t (residue loop)
 #include <functional>
-#include <limits>    // the largest finite cardinal (the Lambek collision)
-#include <optional>  // std::nullopt (the cover at ℵ₀)
-#include <utility>   // std::forward (used in embed_𝔹_ℕ's set-level lift)
+#include <limits>     // the largest finite cardinal (the Lambek collision)
+#include <optional>   // std::nullopt (the cover at ℵ₀)
+#include <stdexcept>  // std::domain_error (a non-positive modulus)
+#include <utility>    // std::forward (used in embed_𝔹_ℕ's set-level lift)
 
 export module dedekind.numbers:natural;
 
@@ -528,6 +529,7 @@ constexpr ResidueClass<L> operator|(
     const 𝔸<Cardinality, L, C>&,
     const Cmp<Rel::Eq, BinOp<Rem, Projection<0>, Const<K1>>, Const<K2>>& c) {
   const long long n = static_cast<long long>(c.a.b.value);
+  if (n <= 0) throw std::domain_error("a residue modulus must be positive");
   const long long r0 = static_cast<long long>(c.b.value) % n;
   return ResidueClass<L>{n, r0 < 0 ? r0 + n : r0};
 }

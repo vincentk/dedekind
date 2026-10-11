@@ -1261,8 +1261,8 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 // Cross-type relational operators between the variant ℕ-/ℤ-proxy
 // carriers and built-in @c std::floating_point values.  Mirrors the
 // @c std::integral overloads above; needed for showcase callsites like
-// @c (var<ℤ> @c > @c -21.0) where @c bound<V>'s NTTP type is
-// @c double and the carrier is the variant.  Returns @c
+// @c (var<ℤ> @c > @c -21.0) where the literal is a @c double and
+// the carrier is the variant.  Returns @c
 // std::partial_ordering throughout — a NaN @c rhs (or @c NaZ on @c
 // lhs) propagates as @c unordered, IEEE-NaN-style.
 //

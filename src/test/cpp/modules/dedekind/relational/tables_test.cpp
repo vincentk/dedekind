@@ -13,21 +13,9 @@ using namespace dedekind::relational;
 // ---------------------------------------------------------------------------
 namespace {
 
-// Even integers in [0, 10)
-// FLAG(#895 L3): mixed bound + congruence.  A :relational test may not import
-// :order, so the point-free `π < 10 && π % 2 == 0` grammar
-// is unavailable here; these stay NAMED-predicate comprehensions (not inline
-// lambdas).
-constexpr auto even_below_ten = [](const auto& v) {
-  return (v < 10u) && (v % 2u == 0u);
-};
-constexpr auto evens_0_10 = Comprehension{ℕ, even_below_ten};
-
-// Multiples of 3 in [0, 10)
-constexpr auto three_below_ten = [](const auto& v) {
-  return (v < 10u) && (v % 3u == 0u);
-};
-constexpr auto threes_0_10 = Comprehension{ℕ, three_below_ten};
+// Even numbers and multiples of 3 in [0, 10).
+constexpr auto evens_0_10 = ℕ | (π < 10 && π % 2 == 0);
+constexpr auto threes_0_10 = ℕ | (π < 10 && π % 3 == 0);
 
 }  // namespace
 

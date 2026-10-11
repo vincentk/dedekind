@@ -32,8 +32,8 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Cardinality>),
-// with pivots (5 and 3) carried as NTTPs via fix().  A halfspace IS a set, so
-// no Set{} wrapper.
+// with the pivots 5 and 3 carried as values in the terms.  A halfspace IS a
+// set, so no Set{} wrapper.
 constexpr auto gt_5 = ℕ | (χ > 5);
 constexpr auto lt_3 = ℕ | (χ < 3);
 

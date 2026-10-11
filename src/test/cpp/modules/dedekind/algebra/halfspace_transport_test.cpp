@@ -15,6 +15,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <functional>  // std::plus (equalizer parallel-pair arrow)
 #include <limits>
+#include <stdexcept>
 #include <type_traits>  // std::is_same_v (𝔽64 converse type witness)
 #include <utility>
 
@@ -250,6 +251,9 @@ TEST_CASE(
   const auto f = Z * Z | π1 + 3 == π2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
+  // A shift ℕ cannot hold is refused when the graph is built, so the
+  // entireness certificate only ever meets a bound constant.
+  CHECK_THROWS_AS(ℕ * ℕ | (π1 + -1 == π2), std::domain_error);
 
   volatile int ten = 10;
   CHECK(inverse(f)(std::pair{int(ten), 7}));        // (10,7) ∈ f⁻¹ (converse)

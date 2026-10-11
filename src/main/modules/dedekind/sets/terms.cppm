@@ -46,6 +46,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -441,7 +442,10 @@ export constexpr bool only_slot(unsigned mask, unsigned slot) {
 
 /** @brief A constant converted into the carrier @c C it meets: exactly, or not
  *  at all (a negative constant meeting ℕ, an out-of-range one meeting a
- *  machine word, raise).  @tparam C the carrier.  @param k the constant. */
+ *  machine word, a fraction meeting an integer, raise).  Between built-in
+ *  types the check is range and round trip; a class carrier converts by its
+ *  own constructor, which owns the check.  @tparam C the carrier.
+ *  @tparam K the constant's type.  @param k the constant. */
 export template <typename C, typename K>
 constexpr C carrier_cast(const K& k) {
   if constexpr (std::same_as<C, K>) {
@@ -459,8 +463,32 @@ constexpr C carrier_cast(const K& k) {
     if (!std::in_range<C>(k))
       throw std::domain_error("a constant outside the carrier's range");
     return static_cast<C>(k);
-  } else {
+  } else if constexpr (std::integral<C> && std::floating_point<K>) {
+    constexpr K lo = static_cast<K>(std::numeric_limits<C>::min());
+    constexpr K hi = static_cast<K>(std::numeric_limits<C>::max() / 2 + 1) * 2;
+    if (!(k >= lo && k < hi))
+      throw std::domain_error("a constant outside the carrier's range");
+    const C c = static_cast<C>(k);
+    if (static_cast<K>(c) != k)
+      throw std::domain_error("a fraction meets an integer carrier");
+    return c;
+  } else if constexpr (std::floating_point<C> && std::integral<K>) {
+    if constexpr (std::numeric_limits<K>::digits >
+                  std::numeric_limits<C>::digits) {
+      constexpr K lim = K{1} << std::numeric_limits<C>::digits;
+      if (k > lim || (std::is_signed_v<K> && k < K{0} - lim))
+        throw std::domain_error("a constant the carrier cannot hold exactly");
+    }
     return static_cast<C>(k);
+  } else if constexpr (std::floating_point<C> && std::floating_point<K>) {
+    const C c = static_cast<C>(k);
+    if (static_cast<K>(c) != k)
+      throw std::domain_error("a constant the carrier cannot hold exactly");
+    return c;
+  } else {
+    static_assert(std::constructible_from<C, const K&>,
+                  "a constant must convert into the carrier it meets");
+    return C(k);
   }
 }
 
@@ -597,6 +625,75 @@ constexpr RelOr<A, B> structured_or(A a, B b) {
 export template <Rel R, typename A, typename B>
 constexpr Cmp<negate(R), A, B> operator!(const Cmp<R, A, B>& c) {
   return {c.a, c.b};
+}
+/** @brief De Morgan on the connectives: @c !(p && q) is @c !p || !q, and
+ *  dually.  @param p the conjunction or disjunction. */
+export template <typename A, typename B>
+constexpr auto operator!(const RelAnd<A, B>& p) {
+  return RelOr<decltype(!p.a), decltype(!p.b)>{!p.a, !p.b};
+}
+export template <typename A, typename B>
+constexpr auto operator!(const RelOr<A, B>& p) {
+  return RelAnd<decltype(!p.a), decltype(!p.b)>{!p.a, !p.b};
+}
+
+// ── Binding ─────────────────────────────────────────────────────────────────
+
+/** @brief The value type a term takes at a point of type @c X. */
+template <typename X, typename T>
+using value_at_t = std::remove_cvref_t<decltype(term_value(
+    std::declval<const T&>(), std::declval<const X&>()))>;
+
+template <typename X, typename A, typename B>
+constexpr void bind_operands(const A& a, const B& b);
+
+/** @brief Bind a term or atom to the points @c X it is evaluated at: every
+ *  constant meets the carrier of the term beside it now, so a constant the
+ *  carrier cannot hold raises at construction, not at the first evaluation
+ *  (a compile error in @c constexpr code).  A leaf binds trivially.
+ *  @tparam X the point type.  @tparam T the term. */
+export template <typename X, typename T>
+constexpr void bind_check(const T&) {}
+export template <typename X, typename Op, typename A, typename B>
+constexpr void bind_check(const BinOp<Op, A, B>& t) {
+  bind_operands<X>(t.a, t.b);
+}
+export template <typename X, Rel R, typename A, typename B>
+constexpr void bind_check(const Cmp<R, A, B>& t) {
+  bind_operands<X>(t.a, t.b);
+}
+export template <typename X, typename Pr, typename A, typename B>
+constexpr void bind_check(const CondT<Pr, A, B>& t) {
+  bind_check<X>(t.p);
+  bind_operands<X>(t.a, t.b);
+}
+export template <typename X, typename F, typename A>
+constexpr void bind_check(const Ap<F, A>& t) {
+  if constexpr (is_const_v<A>)
+    (void)carrier_cast<typename std::remove_cvref_t<F>::Domain>(t.a.value);
+  else
+    bind_check<X>(t.a);
+}
+export template <typename X, typename A, typename B>
+constexpr void bind_check(const RelAnd<A, B>& t) {
+  bind_check<X>(t.a);
+  bind_check<X>(t.b);
+}
+export template <typename X, typename A, typename B>
+constexpr void bind_check(const RelOr<A, B>& t) {
+  bind_check<X>(t.a);
+  bind_check<X>(t.b);
+}
+template <typename X, typename A, typename B>
+constexpr void bind_operands(const A& a, const B& b) {
+  if constexpr (is_const_v<A> && !is_const_v<B>)
+    (void)carrier_cast<value_at_t<X, B>>(a.value);
+  else
+    bind_check<X>(a);
+  if constexpr (is_const_v<B> && !is_const_v<A>)
+    (void)carrier_cast<value_at_t<X, A>>(b.value);
+  else
+    bind_check<X>(b);
 }
 
 /** @section terms__Formal_Verification */

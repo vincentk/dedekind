@@ -52,7 +52,7 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
-//     refined by the projection predicate `π > fix(5)`.  Reads "the set of
+//     refined by the projection predicate `π > 5`.  Reads "the set of
 //     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
 constexpr auto S = ℕ | (π > 5);
 

@@ -280,6 +280,7 @@ export template <typename T, IsOckhamAlgebra L, IsCardinality C,
   requires(only_slot(slots_v<P>, 0)) &&
           std::convertible_to<std::invoke_result_t<const P&, const T&>, bool>
 constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+  bind_check<T>(p);
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }
 

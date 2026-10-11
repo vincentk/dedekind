@@ -14,7 +14,7 @@ import dedekind.sets;
 using namespace dedekind::sets;
 using P = std::pair<int, int>;
 
-TEST_CASE("sets:terms — terms compose and evaluate at a point",
+TEST_CASE("sets:terms: terms compose and evaluate at a point",
           "[sets][terms]") {
   const auto step = cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2;
   CHECK(step(P{6, 3}));
@@ -26,7 +26,7 @@ TEST_CASE("sets:terms — terms compose and evaluate at a point",
   CHECK(slots_v<decltype(π1 * 3 + 1)> == 0b10u);
 }
 
-TEST_CASE("sets:terms — a constant meets the carrier beside it",
+TEST_CASE("sets:terms: a constant meets the carrier beside it",
           "[sets][terms][constants]") {
   const auto succ = π1 + 1 == π2;
   CHECK(succ(std::pair{finite_cardinality(4), finite_cardinality(5)}));
@@ -36,9 +36,20 @@ TEST_CASE("sets:terms — a constant meets the carrier beside it",
   CHECK_THROWS_AS(carrier_cast<bool>(2), std::domain_error);
 }
 
-TEST_CASE("sets:terms — a division by the constant 0 is refused when built",
+TEST_CASE("sets:terms: a division by the constant 0 is refused when built",
           "[sets][terms][constants]") {
   CHECK_THROWS_AS(π1 / 0, std::domain_error);
   CHECK_THROWS_AS(π1 % 0, std::domain_error);
   CHECK_NOTHROW(π1 / 2);
+}
+
+TEST_CASE("sets:terms: a constant is checked when the term is bound",
+          "[sets][terms][constants]") {
+  CHECK_THROWS_AS(𝔸<Cardinality>{} | (π + -1 == 3), std::domain_error);
+  CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
+  CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
+  CHECK(carrier_cast<int>(2.0) == 2);
+  const auto both = !(π1 < 3 && π2 > 5);
+  CHECK(both(P{3, 0}));
+  CHECK_FALSE(both(P{2, 6}));
 }
