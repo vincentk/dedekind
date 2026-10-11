@@ -340,6 +340,37 @@ constexpr auto operator|(const 𝔸<T, L, C>& u, const Bounds<Lo, Hi, K>& b) {
     return u | Bounds<Lo, Hi, T>{carrier_cast<T>(b.hi)};
 }
 
+/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
+export constexpr Direction dir_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
+                                        : Direction::Downward;
+}
+/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
+export constexpr Strictness strict_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
+                                        : Strictness::NonStrict;
+}
+/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
+export constexpr bool is_order_rel(Rel r) {
+  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
+}
+
+/** @brief An order atom @c π @c ⋈ @c k on a chain is the cut it names, whatever
+ *  the constant's type: the constant meets the carrier exactly or the binding
+ *  raises.  @tparam T the carrier.  @tparam R the order relation.
+ *  @tparam K the constant's type. */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, Rel R,
+                 typename K>
+  requires(is_order_rel(R))
+constexpr auto operator|(const 𝔸<T, L, C>& u,
+                         const Cmp<R, Projection<0>, Const<K>>& c) {
+  const T k = carrier_cast<T>(c.b.value);
+  if constexpr (dir_of(R) == Direction::Upward)
+    return u | Bounds<Bounded<strict_of(R)>, Unbounded, T>{k};
+  else
+    return u | Bounds<Unbounded, Bounded<strict_of(R)>, T>{k};
+}
+
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
  *  value, flipped direction + strictness.  (value-carrying, so the
  *  boundary-collapse to Ø/𝔸 that the NTTP factory did at compile time is now a
@@ -1142,21 +1173,6 @@ constexpr auto operator*(
  * The order-layer overloads specialise the sets-layer @c 𝔸<T1> fallback (they
  * win by @c IsRelPredicate).
  */
-
-/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
-export constexpr Direction dir_of(Rel r) {
-  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
-                                        : Direction::Downward;
-}
-/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
-export constexpr Strictness strict_of(Rel r) {
-  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
-                                        : Strictness::NonStrict;
-}
-/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
-export constexpr bool is_order_rel(Rel r) {
-  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
-}
 
 /** @brief Recover the axis-@c I factor from a relational predicate.  Default:
  *  no axis-@c I structure, so the declared universe @c 𝔸<TI>. */
