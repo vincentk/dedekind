@@ -675,7 +675,7 @@ The algebra of Listing~\ref{lst:set-grammar} adds the lattice operations and the
 
 Listing~\ref{lst:set-grammar} gives worked examples and the generic grammar of $\mathbf{Lwv}$.
 A set expression (\texttt{setexpr}) builds a set from canonical or user-defined values and combines them through set operations or filtration with a predicate.
-A predicate (\texttt{pred}) can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to compile-time constants (\texttt{fix}) or set element aliases (\texttt{elem}).
+A predicate (\texttt{pred}) can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to constants or set element aliases (\texttt{elem}).
 The cartesian \texttt{product} \cppinline{S * T} changes the carrier ($\mathbf{Set}\langle A\rangle \times \mathbf{Set}\langle B\rangle \to \mathbf{Set}\langle A \times B\rangle$), and forms the foundation for the relational algebra discussed in §\ref{sec:relations_functions_blueprint}.
 The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via set equality and the non-strict subset order $A \subseteq B$ (and its converse).
 \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points allowing for specializations such as those presented in Listing~\ref{lst:extrema_def}.
@@ -696,7 +696,7 @@ The grammar is sound; \emph{decidability} is the separate, certified question, s
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto T = 𝔹 | π == fix(true_c);
+constexpr auto T = 𝔹 | π == true;
 constexpr auto F = ~T;
 static_assert(
    T(true) && !F(true)
@@ -744,7 +744,7 @@ pred ::= atom
   | <any elem → 𝔹>
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
-  | elem '==' 'fix' '(' const ')'
+  | elem '==' const
 elem ::= 'χ' | 'π' | 'π1' | 'π2'
 \end{minted}
 \end{minipage}
@@ -764,7 +764,7 @@ cmp  ::= '<' | '<=' | '>' | '>='  | '=='
 \end{minipage}
 \end{listing}
 
-By comprehension, \cppinline{ℕ | π > fix(5_c)} denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
+By comprehension, \cppinline{ℕ | π > 5} denotes $\{x \in \mathbb{N} \mid x > 5\}$, a \cppinline{Halfspace}, with no wrapper (Listing~\ref{lst:pruning}).
 
 The set operations are then the algebra on these predicates.
 Intersection (\cppinline{&}) and union (\cppinline{|}) compose these predicates through a generic lattice-law term reducer, which normalises them at instantiation time by the laws of the subset order $\mathrm{Sub}(T)$ (Listing~\ref{lst:pruning}); complement (\cppinline{~}) is handled separately, as an involution.
@@ -791,7 +791,7 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 % ============================================================
 
 The algebra so far asks only \emph{equality} of the carrier: membership, the Boolean lattice, and the subset order $\subseteq$ --- the rightmost column of Table~\ref{tab:lattice-lift} --- are all pointwise lifts of the order on $\Omega$, so they hold for any \cppinline{std::regular} carrier.
-A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > fix(5)}), the halfspaces they cut by comprehension, the quantifiers over them, and the extrema below all become available.
+A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > 5}), the halfspaces they cut by comprehension, the quantifiers over them, and the extrema below all become available.
 This is the first rung that asks the carrier for more than equality; its grammar extension is Listing~\ref{lst:extrema_def}.
 
 \begin{listing}[htbp]
@@ -824,19 +824,19 @@ constexpr bool forall(S s, P p) {
 \noindent
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto div3 = π % fix(3_c) == fix(0_c);
-static_assert( exists(𝔹, π == fix(true_c)));
-static_assert(!forall(𝔹, π == fix(true_c)));
+constexpr auto div3 = π % 3 == 0;
+static_assert( exists(𝔹, π == true));
+static_assert(!forall(𝔹, π == true));
 static_assert( exists(ℕ, div3));
 static_assert(!forall(ℕ, div3));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr auto gt5 = ℕ | π > fix(5_c);
+constexpr auto gt5 = ℕ | π > 5;
 static_assert(bool(gt5(6)) && !bool(gt5(5)));
 static_assert(min(𝔹)(false));
-static_assert(max(ℕ | π <= fix(5_c))(5));
+static_assert(max(ℕ | π <= 5)(5));
 static_assert(bool(𝔓(gt5)(gt5)));
 \end{cpp}
 \end{minipage}
@@ -855,7 +855,7 @@ setexpr +::= ('max' | 'min') '(' setexpr ')'
 \begin{minted}[fontsize=\footnotesize]{text}
 pred +::= ('forall' | 'exists') '(' setexpr ',' pred ')'
 atom +::= elem cmp elem
-        |  elem cmp 'fix' '(' const ')'
+        |  elem cmp const
 \end{minted}
 \end{minipage}
 \end{listing}
@@ -924,11 +924,11 @@ This is the extensional/intensional database distinction of deductive databases,
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 std::set<int> xs{2, 3, 5};       // finite universe
-auto gt3 = ℕ | π > fix(3_c);     // {x > 3}
+auto gt3 = ℕ | π > 3;     // {x > 3}
 // μ: keep the members χ accepts (runtime)
 assert(ext(xs, gt3)
        == std::set<int>{5});
-assert(ext(xs, ℕ | π > fix(5_c))
+assert(ext(xs, ℕ | π > 5)
        == std::set<int>{});
 \end{cpp}
 \end{minipage}\hfill
@@ -936,8 +936,8 @@ assert(ext(xs, ℕ | π > fix(5_c))
 \begin{cpp}
 // <= decides structurally, at compile time
 static_assert(
-  bool((ℕ | π > fix(5_c))
-       <= (ℕ | π > fix(3_c))));
+  bool((ℕ | π > 5)
+       <= (ℕ | π > 3)));
 \end{cpp}
 \end{minipage}
 
@@ -973,7 +973,7 @@ Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, bu
 \caption{The grammar of \textbf{relation expressions}, a refinement of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, so complement, union \cppinline{|}, meet \cppinline{&} and the product \cppinline{*} are \emph{inherited} from \texttt{setexpr}.
 Operators are grouped by tradition and attached to their \emph{result sort}, keeping the grammar compositional.
 \textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T | relpred}.
-\textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares projections $\pi_1,\pi_2$ (with affine \cppinline{fix(k)} offsets) and inherits \cppinline{!}, \cppinline{&&}, \cppinline{||}, \cppinline{cmp} from \texttt{pred}.
+\textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares terms built from the projections $\pi_1,\pi_2$ by arithmetic, \cppinline{ap} and \cppinline{cond}, its constants carried as values, and inherits \cppinline{!}, \cppinline{&&}, \cppinline{||}, \cppinline{cmp} from \texttt{pred}.
 It also lifts an arrow's \emph{value} into a \texttt{relpred} atom: \cppinline{𝑦 == ap(f, 𝑥)} is the point-free $y=f(x)$; forward membership needs only a decidable-equality codomain, while a \emph{retractable} \cppinline{f} (one carrying a \cppinline{retract} hook) additionally makes the image decidable (its factorisation class becomes the relation's decidability class); a bare isomorphism qualifies only once it exposes that retract.
 This value-lift is distinct from the whole-arrow \cppinline{graph} lift below.
 \textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
@@ -1000,14 +1000,12 @@ relexpr ::= setexpr
 {\footnotesize\textbf{pair predicates (extends \texttt{pred})}}
 \begin{minted}[fontsize=\footnotesize]{text}
 relpred +::= ratom
-ratom    ::= proj cmp proj
-           | proj cmp 'fix' '(' const ')'
-           | proj '==' 'ap' '(' arrow ',' proj ')'
-           | 'ap' '(' arrow ',' proj ')' '==' proj
-proj     ::= 'π1' | 'π2' | 'π3'
-           | '𝑥' | '𝑦' | '𝑧'
-           | proj arith 'fix' '(' const ')'
-arith    ::= '+' | '*' | '%'
+ratom    ::= term cmp term
+term     ::= proj | const | term arith term
+           | 'ap' '(' arrow ',' term ')'
+           | 'cond' '(' relpred ',' term ',' term ')'
+proj     ::= 'π1' | 'π2' | 'π3' | '𝑥' | '𝑦' | '𝑧'
+arith    ::= '+' | '-' | '*' | '/' | '%'
 \end{minted}
 \end{minipage}
 
@@ -1178,9 +1176,9 @@ IsInjective = is_left_unique_v<R>;
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
 // inferred, not declared: leaf AND composite are functions BY STRUCTURE:
-static_assert(IsFunctional<decltype(ℤ*ℤ | π1+fix(3_c)==π2)>);  // leaf: x+3
+static_assert(IsFunctional<decltype(ℤ*ℤ | π1+3==π2)>);  // leaf: x+3
 static_assert(IsFunctional<decltype(                           // composite:
-  (ℤ*ℤ | π1+fix(3_c)==π2) >> (ℤ*ℤ | π1+fix(2_c)==π2))>);       //  inherited via >>
+  (ℤ*ℤ | π1+3==π2) >> (ℤ*ℤ | π1+2==π2))>);       //  inherited via >>
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -1190,7 +1188,7 @@ static_assert(IsFunctional<decltype(                           // composite:
 \label{lst:intensional_relation_validation}
 \begin{cpp}
 constexpr auto R
-  = ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c));
+  = ℕ * ℕ | (π1 != 0 && π2 % π1 == 0);
 static_assert( R(pair{2,6}));
 static_assert(!R(pair{4,6}));
 \end{cpp}
@@ -1253,10 +1251,10 @@ static_assert(
   (ℕ * ℕ | π1 < π2)
   (pair{2,5}));
 static_assert(
-  (ℕ * ℕ | π1 + fix(1_c) == π2)
+  (ℕ * ℕ | π1 + 1 == π2)
   (pair{4,5}));
 static_assert(
-  (ℕ * ℕ | π1 * fix(2_c) == π2)
+  (ℕ * ℕ | π1 * 2 == π2)
   (pair{3,6}));
 \end{cpp}
 \end{minipage}
@@ -1272,8 +1270,8 @@ The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so i
 \label{lst:restricted_product}
 \begin{cpp}
 constexpr auto R =
-  (ℕ | (π <= fix(5_c))) * ℕ
-  | π1 + fix(1_c) == π2;
+  (ℕ | (π <= 5)) * ℕ
+  | π1 + 1 == π2;
 static_assert( R(pair{4,5}));
 static_assert(!R(pair{7,8}));
 \end{cpp}
@@ -1348,7 +1346,7 @@ The refinement runs one way (an ordinary mono need not be an isometry), and part
 
 \begin{listing}[htbp]
 \caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
-\textbf{Left}: \cppinline{f = ℤ*ℤ | π1+fix(3_c)==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
+\textbf{Left}: \cppinline{f = ℤ*ℤ | π1+3==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
 \textbf{Right}: composition \cppinline{>>} is symbolic (the shifts add, no $\exists$ over the intermediate), so closure, the inverse-of-a-composite law $(f\circ g)^{-1}=g^{-1}\circ f^{-1}$, and \emph{associativity, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes.
 The law is contravariant in general, but this group is abelian, so the order-reversal is degenerate here ($g^{-1}\circ f^{-1}=f^{-1}\circ g^{-1}$); the non-abelian affine group exercises it.
 For an invertible map the inverse \emph{is} the retract, so this is retract composition in the total case (abridged from the checked-in witnesses).}
@@ -1357,20 +1355,20 @@ For an invertible map the inverse \emph{is} the retract, so this is retract comp
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto f =                  // x ↦ x+3
-  ℤ * ℤ | π1 + fix(3_c) == π2;
+  ℤ * ℤ | π1 + 3 == π2;
 static_assert(is_function(f));
 static_assert(inverse(f)            // converse: x−3
-  == (ℤ*ℤ | π1+fix(-3_c)==π2));
-static_assert(image(f|π1<=fix(5_c)) // {x≤5}↦{y≤8}
-  == (ℤ | π<=fix(8_c)));
+  == (ℤ*ℤ | π1+-3==π2));
+static_assert(image(f|π1<=5) // {x≤5}↦{y≤8}
+  == (ℤ | π<=8));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto g =                  // x ↦ x+2
-  ℤ * ℤ | π1 + fix(2_c) == π2;
+  ℤ * ℤ | π1 + 2 == π2;
 static_assert((f >> g)              // closure: T₃∘T₂=T₅
-  == (ℤ*ℤ | π1+fix(5_c)==π2));
+  == (ℤ*ℤ | π1+5==π2));
 static_assert(inverse(f >> g)       // contravariant: (f∘g)⁻¹=g⁻¹∘f⁻¹
   == (inverse(g) >> inverse(f)));
 static_assert(                      // g∘f∘g⁻¹ = f (abelian)
@@ -1393,10 +1391,10 @@ This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_bl
 Non-injective yet analytic: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch's preimage $-3$, where the canonical $+3 \notin \{x<0\}$ that a lone retract names says nothing: soundness from the fibre join, no enumeration (checked-in witnesses).}
 \label{lst:functional_image_fold}
 \begin{cpp}
-constexpr auto absPos = ℤ*ℤ | π1*fix(1_c)==π2  | π1>=fix(0_c);  // x ↦  x  on x≥0
-constexpr auto absNeg = ℤ*ℤ | π1*fix(-1_c)==π2 | π1< fix(0_c);  // x ↦ −x  on x<0
-static_assert(image(absPos) == (ℤ | π>=fix(0_c)));  // {y≥0}
-static_assert(image(absNeg) == (ℤ | π> fix(0_c)));  // {y>0}: negate flips the sense
+constexpr auto absPos = ℤ*ℤ | π1*1==π2  | π1>=0;  // x ↦  x  on x≥0
+constexpr auto absNeg = ℤ*ℤ | π1*-1==π2 | π1< 0;  // x ↦ −x  on x<0
+static_assert(image(absPos) == (ℤ | π>=0));  // {y≥0}
+static_assert(image(absNeg) == (ℤ | π> 0));  // {y>0}: negate flips the sense
 static_assert( image(absNeg)(3));   // 3 ∈ abs({x<0}) via −3, no fibre walk
 static_assert(!image(absNeg)(-2));  // abs is never negative
 \end{cpp}
@@ -1426,10 +1424,10 @@ Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto succ =        // as a graph
-  ℕ * ℕ | π1 + fix(1_c) == π2;
+  ℕ * ℕ | π1 + 1 == π2;
 static_assert(
-  image(succ | π1 > fix(5_c))  // {n>5}
-  == (ℕ | π > fix(6_c)));      //  ↦ {n>6}
+  image(succ | π1 > 5)  // {n>5}
+  == (ℕ | π > 6));      //  ↦ {n>6}
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -1438,7 +1436,7 @@ constexpr auto op =          // opaque λ
   arrow<Cardinality,Cardinality>(
     [](Cardinality m){ return m + 1; });
 constexpr auto img =
-  image(op, ℕ | (π > fix(5_c)));
+  image(op, ℕ | (π > 5));
 static_assert(               // honest wall
   img(finite_cardinality(7)) == Ternary::Unknown);
 \end{cpp}
@@ -1472,9 +1470,9 @@ Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) 
 Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
 \label{lst:argmax_def}
 \begin{cpp}
-constexpr auto g = ℤ * ℤ | π1 + fix(3_c) == π2   // x ↦ x+3 ...
-                     | (π2 <= fix(8_c)             //   ... into a bounded ...
-                        && π2 % fix(3_c) == fix(0_c)); // ... residue codomain
+constexpr auto g = ℤ * ℤ | π1 + 3 == π2   // x ↦ x+3 ...
+                     | (π2 <= 8             //   ... into a bounded ...
+                        && π2 % 3 == 0); // ... residue codomain
 static_assert(!is_entire(g));                       // a partial function now
 static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
 static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3

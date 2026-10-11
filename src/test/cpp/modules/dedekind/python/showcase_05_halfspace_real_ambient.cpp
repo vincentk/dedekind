@@ -35,8 +35,8 @@ using namespace dedekind::order;
 // @c ℝ_d = @c 𝔸<𝕃<double>, Boole, ℶ_1>: the finite doubles, NaN excluded by
 // the carrier.  A bare point-free @c Halfspace IS a set.
 using Rd = typename decltype(ℝ_d)::Domain;
-constexpr auto gt_five = ℝ_d | (χ > bound<5.0>);
-constexpr auto lt_three = ℝ_d | (χ < bound<3.0>);
+constexpr auto gt_five = ℝ_d | (χ > 5.0);
+constexpr auto lt_three = ℝ_d | (χ < 3.0);
 
 // Compile-time theorem: the meet folds value-first to the empty SetVal on ℝ ---
 // the crossing-bound emptiness test fires on a continuous carrier just as on ℕ.

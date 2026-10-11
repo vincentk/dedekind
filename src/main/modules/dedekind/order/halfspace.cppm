@@ -9,15 +9,15 @@
  * @section halfspace__Halfspaces_As_Types
  * Structured compile-time halfspace predicates over an ordered carrier. The
  * pivot is carried in the predicate's TYPE as a non-type template parameter,
- * which is what lets `(n > bound<5>) && (n < bound<3>)` collapse structurally
+ * which is what lets `(n > 5) && (n < 3)` collapse structurally
  * to an empty predicate at compile time. Contrast with the lambda-returning
  * scout operators in `dedekind.sets`, which erase the pivot into a closure.
  *
  * @section halfspace__DSL_Surface
  *
  *     inline constexpr auto n = element<𝔸<ℕ>>;
- *     inline constexpr auto big   = Set{n | (n > bound<5>)};
- *     inline constexpr auto small = Set{n | (n < bound<3>)};
+ *     inline constexpr auto big   = Set{n | (n > 5)};
+ *     inline constexpr auto small = Set{n | (n < 3)};
  *     // (big ∩ small) = ∅  — witnessed at compile time via structured_and
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
@@ -79,81 +79,6 @@ export enum class Direction { Upward, Downward };
  */
 export enum class Strictness { Strict, NonStrict };
 
-/** @brief Compile-time bound tag: `bound<5>` carries `5` in its type.
- *
- * Exported (post-#664) so downstream partitions outside `:halfspace`
- * (e.g.\ `:algebra:ordered_algebra`) can declare overloads on `Bound<V>`
- * directly; previously only the `bound` variable template was exported,
- * which made cross-partition operator signatures awkward.
- */
-export template <auto V>
-struct Bound {
-  using value_type = decltype(V);
-  static constexpr value_type value = V;
-};
-
-/** @brief Variable-template factory for compile-time bounds. */
-export template <auto V>
-inline constexpr Bound<V> bound{};
-
-/**
- * @brief Compile-time integer literal: @c 5_c carries @c 5 in its type as a
- *        @c std::integral_constant.
- *
- * @details The bracket-free way to lift a value to the type level: a
- * user-defined literal encodes the value in the *type* of the returned object
- * with no @c <> in sight.  Paired with @c fix below, so the DSL surface spells
- * a compile-time bound @c fix(5_c) instead of @c bound<5>.  Decimal digits
- * only: a non-decimal spelling (@c 1.5_c, @c 0x10_c) is a hard error, not a
- * silently mis-parsed value.
- */
-export template <char... Cs>
-  requires((('0' <= Cs && Cs <= '9') && ...))
-consteval auto operator""_c() {
-  constexpr int v = [] {
-    int r = 0;
-    ((r = r * 10 + (Cs - '0')), ...);
-    return r;
-  }();
-  return std::integral_constant<int, v>{};
-}
-
-/** @brief Unary minus on a compile-time @c _c constant, so a NEGATIVE pivot or
- *  shift spells @c -3_c (@c = @c integral_constant<int,-3>) and @c fix(-3_c) is
- *  @c Bound<-3> --- e.g. the converse of a translation graph, @c fix(-K). */
-export template <int V>
-consteval std::integral_constant<int, -V> operator-(
-    std::integral_constant<int, V>) {
-  return {};
-}
-
-/** @brief Named compile-time boolean constants; @c true / @c false are not
- *  literal tokens a user-defined literal can suffix, so @c true_c / @c false_c
- *  are the @c bool analogues of @c 5_c for @c fix(true_c). */
-export inline constexpr std::integral_constant<bool, true> true_c{};
-export inline constexpr std::integral_constant<bool, false> false_c{};
-
-/**
- * @brief @c fix lifts a compile-time constant to a @c Bound pivot --- the
- *        bracket-free spelling of @c bound<V>, so @c fix(5_c) @b is @c
- * bound<5>.
- *
- * @details The runtime companion @c fix(v) (a value-level bound, for the
- * dynamic / future-Python path) is a separate overload added with the
- * value-carrier machinery; this one is the compile-time, type-level lift.
- */
-export template <typename T, T V>
-consteval Bound<V> fix(std::integral_constant<T, V>) {
-  return {};
-}
-
-// The compile-time literal round-trips to the existing bound tag.
-static_assert(std::same_as<decltype(fix(5_c)), Bound<5>>,
-              "fix(5_c) is the bracket-free spelling of bound<5>.");
-static_assert(fix(5_c).value == 5, "5_c carries its value in the type.");
-static_assert(std::same_as<decltype(fix(true_c)), Bound<true>>,
-              "fix(true_c) is bound<true>, the bool analogue.");
-
 /** @brief Flip a @c Direction --- the direction half of a halfspace complement
  *  (@c ~{x>P} is @c {x≤P}).  Reused by the reflection-image pushforward
  *  (@c dedekind.algebra:halfspace_transport) to flip a halfspace's sense under
@@ -165,80 +90,6 @@ export constexpr Direction flip(Direction d) {
  *  (@c ~{x>P} is @c {x≤P}: @c > relaxes to @c ≤). */
 export constexpr Strictness flip(Strictness s) {
   return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
-}
-
-/** @brief A carrier bounded below at @c 0 --- @c bool, an @c unsigned machine
- *  integer, and the ℕ proxy @c Cardinality --- so no value is @c < @c 0.
- *  @b Not the signed ℤ proxy @c SignedCardinality, which is @c IsSaturating too
- *  but is unbounded below: the trap the bare @c IsSaturating floor test fell
- *  into (#837 review) --- it rejected the valid cut @c {x<0} on ℤ and misread
- *  @c {x≥0} as moot.  The dedicated lower-bound classification for the
- *  emptiness oracles below. */
-template <typename T>
-concept HasZeroFloor =
-    std::unsigned_integral<T> || std::same_as<T, dedekind::sets::Cardinality>;
-
-/** @brief Is the strict lower cut @c {x<p} empty (i.e. @c p at/below the
- *  carrier's least element)?  The @c if constexpr isolates @c numeric_limits so
- *  it is instantiated ONLY for a signed machine int --- a floor-0 carrier (ℕ /
- *  unsigned / bool) tests @c p≤0, a dense/unbounded-below carrier never
- * empties.
- */
-template <typename T, auto p>
-consteval bool strict_lower_cut_empty() {
-  if constexpr (std::signed_integral<T>)
-    return p <= std::numeric_limits<T>::min();
-  else if constexpr (HasZeroFloor<T>)
-    return p <= 0;
-  else
-    return false;
-}
-/** @brief Is the strict upper cut @c {x>p} empty (@c p at/above the carrier's
- *  greatest element)?  Only a bounded MACHINE integer (@c numeric_limits::max)
- *  can empty here; ℕ is unbounded above and a dense carrier never empties. */
-template <typename T, auto p>
-consteval bool strict_upper_cut_empty() {
-  if constexpr (std::integral<T>)
-    return p >= std::numeric_limits<T>::max();
-  else
-    return false;
-}
-
-/** @brief Does the halfspace @f$\{x \mathbin{\lrcorner} p\}@f$ denote the empty
- *  set on carrier @c T?  The single emptiness oracle over all four
- *  direction/strictness combinations: the strict cuts reuse the tests above; a
- *  @b non-strict cut empties only when its pivot escapes the carrier's range
- *  entirely (@c {x≥p} with @c p above @c max(T), @c {x≤p} with @c p below @c
- *  min(T)) --- impossible for a representable pivot, so @c false for an
- * ordinary halfspace and @c true only at the machine ceiling / floor. */
-template <typename T, auto Pivot, Direction D, Strictness S>
-consteval bool halfspace_is_empty() {
-  if constexpr (D == Direction::Upward) {
-    if constexpr (S == Strictness::Strict)
-      return strict_upper_cut_empty<T, Pivot>();  // {x>p}: p ≥ max
-    else if constexpr (std::integral<T>)
-      return Pivot > std::numeric_limits<T>::max();  // {x≥p}: p > max
-    else
-      return false;
-  } else {  // Downward
-    if constexpr (S == Strictness::Strict)
-      return strict_lower_cut_empty<T, Pivot>();  // {x<p}: p ≤ min
-    else if constexpr (std::signed_integral<T>)
-      return Pivot < std::numeric_limits<T>::min();  // {x≤p}: p < min
-    else if constexpr (HasZeroFloor<T>)
-      return Pivot < 0;  // floor-0 carrier: {x≤p} empty iff p < 0
-    else
-      return false;
-  }
-}
-
-/** @brief Is the halfspace @b moot --- its χ ≡ ⊤, so it is all of @c T (e.g.
- *  @c {x≥0} on ℕ, or @c {x>−1} below the floor)?  A halfspace is universal iff
- *  its complement is empty, so this is exactly @c halfspace_is_empty on the
- *  flipped cut --- one oracle, both boundary degeneracies. */
-template <typename T, auto Pivot, Direction D, Strictness S>
-consteval bool halfspace_is_moot() {
-  return halfspace_is_empty<T, Pivot, flip(D), flip(S)>();
 }
 
 /** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
@@ -407,12 +258,12 @@ struct Bounds {
 };
 
 /** @brief Which side a ray bounds, and that side's strictness. */
-template <IsSide Lo, IsSide Hi>
+export template <IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 consteval Direction direction_of() {
   return is_bounded_side_v<Lo> ? Direction::Upward : Direction::Downward;
 }
-template <IsSide Lo, IsSide Hi>
+export template <IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 consteval Strictness ray_strictness() {
   if constexpr (is_bounded_side_v<Lo>)
@@ -468,36 +319,48 @@ constexpr T pivot(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
 
 /** @section halfspace__Leaf_Surface
  *
- * The ray's own surface: the factory (a degenerate cut collapses to the
- * boundary object), the complement (a ray's complement is the opposite ray at
- * the same bound; an interval's is not a cut and stays the generic @c Not
+ * The ray's own surface: the complement (a ray's complement is the opposite ray
+ * at the same bound; an interval's is not a cut and stays the generic @c Not
  * node), the telling aliases.  Every other operation is a comprehension's.
  */
 
-/** @brief The halfspace factory (#832): a @c Halfspace @b value denotes a
- *  @b proper cut by construction.  A degenerate configuration collapses to the
- *  canonical boundary set instead --- an empty cut to @c Ø, a moot cut to the
- *  universe @c 𝔸 --- so @f$\emptyset = \text{Halfspace}@f$ and
- *  @f$\mathbb{A} = \text{Halfspace}@f$ never arise as values and the boundary
- * cases are decided by @c Ø / @c 𝔸's own initial / terminal machinery.  The
- * return type is heterogeneous but statically resolved by @c if @c constexpr
- * (no type erasure); every halfspace-producing surface routes through it.
- *  @tparam T the carrier, a registered chain.
- *  @tparam V the compile-time pivot.
- *  @tparam D the direction.  @tparam S the strictness.  @tparam L the species.
- */
-export template <IsTotallyOrdered T, auto V, Direction D, Strictness S,
-                 IsOckhamAlgebra L = Boole>
-constexpr auto make_halfspace() {
-  // Codomain leg (#894): a degenerate halfspace collapses to a decided
-  // boundary, so it carries the Boolean codomain whatever the ambient.
-  if constexpr (halfspace_is_empty<T, V, D, S>())
-    return dedekind::sets::codomain_reduce_t<dedekind::sets::Ø<T, L>>{};
-  else if constexpr (halfspace_is_moot<T, V, D, S>())
-    return dedekind::sets::codomain_reduce_t<dedekind::sets::𝔸<T, L>>{};
-  else
-    return make_ray<D, S, L>(static_cast<T>(V));  // V may be a wider pivot
+/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
+export constexpr Direction dir_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
+                                        : Direction::Downward;
 }
+/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
+export constexpr Strictness strict_of(Rel r) {
+  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
+                                        : Strictness::NonStrict;
+}
+/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
+export constexpr bool is_order_rel(Rel r) {
+  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
+}
+
+}  // namespace dedekind::order
+namespace dedekind::sets {
+/** @brief An order atom @c π @c ⋈ @c k on a chain is the cut it names, whatever
+ *  the constant's type: the constant meets the carrier exactly or the binding
+ *  raises.  Declared in the namespace of @c 𝔸 and the atom, so ADL finds it.
+ *  @tparam T the carrier.  @tparam R the order relation.
+ *  @tparam K the constant's type. */
+export template <dedekind::order::IsTotallyOrdered T,
+                 dedekind::category::IsOckhamAlgebra L, IsCardinality C, Rel R,
+                 typename K>
+  requires(dedekind::order::is_order_rel(R))
+constexpr auto operator|(const 𝔸<T, L, C>& u,
+                         const Cmp<R, Projection<0>, Const<K>>& c) {
+  using namespace dedekind::order;
+  const T k = carrier_cast<T>(c.b.value);
+  if constexpr (dedekind::order::dir_of(R) == Direction::Upward)
+    return u | Bounds<Bounded<strict_of(R)>, Unbounded, T>{k};
+  else
+    return u | Bounds<Unbounded, Bounded<strict_of(R)>, T>{k};
+}
+}  // namespace dedekind::sets
+namespace dedekind::order {
 
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
  *  value, flipped direction + strictness.  (value-carrying, so the
@@ -1106,385 +969,23 @@ constexpr auto structured_or(
   return reduce_join(to_setval(a), to_setval(b));
 }
 
-/** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
-
-// Projection tags + coord moved to :sets:expressions (#878 inc 1); reached via
-// import dedekind.sets + `using namespace dedekind::sets`.
-
-/** @brief Unbound predicates: shape fixed, @c Domain deferred until a carrier
- *  binds them via @c operator| below. */
-export template <Direction D, Strictness S, auto V>
-struct UnboundHalfspace {};
-export template <auto V>
-struct UnboundSingleton {};
-
-// π ⋈ fix(V) → the unbound halfspace / singleton (pivot fixed, carrier open).
-export template <auto V>
-constexpr UnboundHalfspace<Direction::Upward, Strictness::Strict, V> operator>(
-    Projection<0>, Bound<V>) {
-  return {};
-}
-export template <auto V>
-constexpr UnboundHalfspace<Direction::Upward, Strictness::NonStrict, V>
-operator>=(Projection<0>, Bound<V>) {
-  return {};
-}
-export template <auto V>
-constexpr UnboundHalfspace<Direction::Downward, Strictness::Strict, V>
-operator<(Projection<0>, Bound<V>) {
-  return {};
-}
-export template <auto V>
-constexpr UnboundHalfspace<Direction::Downward, Strictness::NonStrict, V>
-operator<=(Projection<0>, Bound<V>) {
-  return {};
-}
-export template <auto V>
-constexpr UnboundSingleton<V> operator==(Projection<0>, Bound<V>) {
-  return {};
-}
-
-/** @brief @c π @c ⋈ @c v with a carrier @b value: the @c Bounds datum, which
- *  the set former binds (@c 𝔸<Q>{} | (π < p) is @c {q < p}).  Unlike
- *  @c π ⋈ fix(c), a value cannot collapse a degenerate cut at compile time; the
- *  value reducer does.  Declared beside @c π so ADL finds them through it.
- *  @tparam T the carrier, a registered chain. */
-}  // namespace dedekind::order
-namespace dedekind::sets {
-using dedekind::order::Bounded;
-using dedekind::order::Bounds;
-using dedekind::order::IsTotallyOrdered;
-using dedekind::order::Strictness;
-using dedekind::order::Unbounded;
-export template <IsTotallyOrdered T>
-constexpr Bounds<Bounded<Strictness::Strict>, Unbounded, T> operator>(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Bounded<Strictness::NonStrict>, Unbounded, T> operator>=(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Unbounded, Bounded<Strictness::Strict>, T> operator<(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Unbounded, Bounded<Strictness::NonStrict>, T> operator<=(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-}  // namespace dedekind::sets
-namespace dedekind::order {
-
-/** @brief @c !pred on an unbound halfspace: negate the predicate by flipping
- *  the halfspace's sense, @c !(x @c > @c V) @c = @c (x @c <= @c V).
- *
- *  @details The predicate-level dual of @c operator~ on a @b bound
- *  @c Halfspace (a SET, line ~422): same @c flip(D)/flip(S), one level up on
- *  the unbound comprehension query.  This is the @c p1 of the §3 grammar
- *  (Listing~\\ref{lst:set-grammar}): @c ! negates a @b predicate, @c ~
- *  complements a @b set.  Only the atom level is covered here; the wider
- *  discipline (compound De Morgan, retiring @c !set) is FIXME(#829). */
-export template <Direction D, Strictness S, auto V>
-constexpr UnboundHalfspace<flip(D), flip(S), V> operator!(
-    const UnboundHalfspace<D, S, V>&) {
-  return {};
-}
-
-// carrier | unbound → the Domain-bound predicate, reusing Halfspace /
-// Singleton. The RHS type is distinct from Set, so this does not clash with the
-// union operator| on a Universe (that one takes a Set).
-export template <typename T, typename L, typename C, Direction D, Strictness S,
-                 auto V>
-  requires IsTotallyOrdered<T>
-constexpr auto operator|(const 𝔸<T, L, C>&, const UnboundHalfspace<D, S, V>&) {
-  // Through the factory (#837 review): a degenerate binder collapses like any
-  // other construction --- @c 𝔸<bool> | (π > fix(true_c)) is @c {x>true} = Ø,
-  // not a raw (gate-tripping) halfspace.
-  return make_halfspace<T, V, D, S, L>();
-}
-// Restricted to a carrier whose value type IS the pivot's type: Singleton<V,L>
-// has Domain = decltype(V), so a mismatch (e.g. ℕ | π == fix(5_c), Cardinality
-// vs int) would give the singleton the wrong carrier.  It is an honest compile
-// error there; a singleton over such a carrier needs a T-valued pivot.
-export template <typename T, IsOckhamAlgebra L, IsCardinality C, auto V>
-  requires std::same_as<T, decltype(V)>
-constexpr Singleton<decltype(V), L> operator|(const 𝔸<T, L, C>&,
-                                              const UnboundSingleton<V>&) {
-  return singleton<L>(V);
-}
-
-// The point-free surface reproduces the existing halfspace exactly (the
-// type is Above<> = {x>·}; the pivot 5 is the VALUE).
-static_assert(std::same_as<decltype(ℕ | (π > fix(5_c))), Above<>>,
-              "ℕ | π > fix(5_c) is an Above<> halfspace, spelled point-free.");
-static_assert(pivot(ℕ | (π > fix(5_c))) == 5, "…with pivot value 5.");
-
-// And the equality shape gives the extensional Singleton, membership-checked.
-// Value-carrying: the type is Singleton<bool>; the point is the VALUE.
-static_assert(
-    std::same_as<decltype(𝔹 | (π == fix(true_c))), Singleton<bool, Boole>>,
-    "𝔹 | π == fix(true_c) is a Singleton<bool>, spelled point-free.");
-static_assert(origin(𝔹 | (π == fix(true_c))) == true,
-              "…and its pivot value is true (the point {true}).");
-static_assert(static_cast<bool>((𝔹 | (π == fix(true_c)))(true)),
-              "true ∈ {true}.");
-static_assert(!static_cast<bool>((𝔹 | (π == fix(true_c)))(false)),
-              "false ∉ {true}.");
-
-// !pred (grammar p1): negating an unbound halfspace flips its sense, and binds
-// to the same set as the flipped comparison — the predicate-level dual of ~set.
-static_assert(
-    std::same_as<decltype(!(π > fix(5_c))), decltype(π <= fix(5_c))>,
-    "!(π > fix(5)) is π <= fix(5): the unbound (predicate) complement.");
-static_assert(std::same_as<decltype(!(π >= fix(5_c))), decltype(π < fix(5_c))>,
-              "!(π >= fix(5)) is π < fix(5).");
-static_assert(
-    std::same_as<decltype(ℕ | !(π > fix(5_c))), decltype(ℕ | (π <= fix(5_c)))>,
-    "ℕ | !(π > fix(5)) binds to the same halfspace as ℕ | π <= fix(5).");
-
-// (the complement-pair collapse to Ø now happens value-side in
-// reduce_meet, not via a same-pivot operator& overload; witnessed in the value
-// tests.  The old type-level `& ~ == Ø` witness is dropped.)
-// Value-carrying singletons, so {true} ∩ ¬{true} is empty EXTENSIONALLY
-// (no bool inhabits both) rather than collapsing to the type Ø --- the
-// singleton non-contradiction recast to a membership check (the deleted
-// Singleton∩Singleton type-collapse can't survive a value pivot).
-static_assert(!static_cast<bool>(((𝔹 | (π == fix(true_c))) &
-                                  ~(𝔹 | (π == fix(true_c))))(true)) &&
-                  !static_cast<bool>(((𝔹 | (π == fix(true_c))) &
-                                      ~(𝔹 | (π == fix(true_c))))(false)),
-              "point-free: {true} ∩ ¬{true} is empty (no bool in both).");
-
-// NOTE(#895): the DISTINCT-pivot bare disjoint-meet witness ({x>5} ∩ {x<3} → Ø)
-// lives BELOW the general Halfspace operator& (search "#895") because it must
-// see that overload; declared here it would resolve `&` to the generic sets
-// reducer (→ Meet) instead.  Same witness-ordering class as #935.
-
 /** @section halfspace__PointFree_Decidability
  *
  * The point-free comprehension @c ℕ @c | @c pred reduces to a bare
  * @c Halfspace, whose species is the universe's (@c Boole): decidable
  * membership, with no carrier-axis resolver in between. */
 namespace detail_pointfree_decidability {
-using PointFree = decltype(ℕ | (χ > fix(5_c)));
-static_assert(HasDecidableMembership<decltype(ℕ | (χ > fix(5_c)))>,
+using PointFree = decltype(ℕ | (χ > 5));
+static_assert(HasDecidableMembership<decltype(ℕ | (χ > 5))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 }  // namespace detail_pointfree_decidability
 
-/** @brief Comparison flavour for the relational predicates. */
-export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
-
-template <Rel R, typename X, typename Y>
-constexpr bool rel_apply(const X& x, const Y& y) {
-  if constexpr (R == Rel::Lt)
-    return x < y;
-  else if constexpr (R == Rel::Le)
-    return x <= y;
-  else if constexpr (R == Rel::Gt)
-    return x > y;
-  else if constexpr (R == Rel::Ge)
-    return x >= y;
-  else if constexpr (R == Rel::Eq)
-    return x == y;
-  else
-    return x != y;
-}
-
-/** @brief The De Morgan dual of a comparison flavour: @c !(x @c R @c y) is
- *  @c x @c negate(R) @c y.  Drives @c operator! on the relational predicates.
- */
-constexpr Rel negate(Rel r) {
-  switch (r) {
-    case Rel::Lt:
-      return Rel::Ge;
-    case Rel::Le:
-      return Rel::Gt;
-    case Rel::Gt:
-      return Rel::Le;
-    case Rel::Ge:
-      return Rel::Lt;
-    case Rel::Eq:
-      return Rel::Ne;
-    case Rel::Ne:
-      return Rel::Eq;
-  }
-  return r;  // unreachable; all six flavours are covered above.
-}
-
-/** @brief Nested-typedef marker so the predicate-level @c && / @c || fire only
- *  on relational predicates (and gate the @c 𝔸<pair> @c | @c relpred
- *  comprehension); kept off the class hierarchy so the predicates stay
- *  aggregates.
- */
-export template <typename T>
-concept IsRelPredicate = requires { typename T::is_rel_predicate; };
-
-/** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair.
- */
-export template <IsRingIntegral auto I, Rel R, IsRingIntegral auto J>
-struct ProjProj {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p), coord<J>(p));
-  }
-};
-
-/** @brief @f$\pi_I \bowtie \mathrm{fix}(v)@f$ --- a strongly-typed pair
- *  predicate.  Value-carrying, the bound @c value is a member (the axis
- *  @c I and comparison @c R stay in the type). */
-export template <IsRingIntegral auto I, Rel R, typename VT = long long>
-struct ProjBound {
-  using is_rel_predicate = void;
-  VT value{};
-  constexpr ProjBound() = default;
-  constexpr explicit ProjBound(VT v) : value(v) {}
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p), value);
-  }
-};
-
-// RelAnd (the meet predicate carrier) moved DOWN to dedekind.relational:dyadic
-// (#792); halfspace still USES it (the predicate-level meet --- now
-// structured_and, reached via the generic &&, #824 --- axis_factor, the >>
-// functional trait) as dedekind::relational::RelAnd, imported from :dyadic.
-// Its dual RelOr (structured_or, via ||) was re-added (#824); the set-level
-// join stays the set-grammar | / Join node (:sets, #365).
-
-// π_I ⋈ π_J  →  ProjProj (projection-vs-projection).
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Lt, J> operator<(Projection<I>, Projection<J>) {
-  return {};
-}
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Le, J> operator<=(Projection<I>, Projection<J>) {
-  return {};
-}
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Gt, J> operator>(Projection<I>, Projection<J>) {
-  return {};
-}
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Ge, J> operator>=(Projection<I>, Projection<J>) {
-  return {};
-}
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Eq, J> operator==(Projection<I>, Projection<J>) {
-  return {};
-}
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjProj<I, Rel::Ne, J> operator!=(Projection<I>, Projection<J>) {
-  return {};
-}
-
-// !pred on the relational predicates: negate the comparison flavour (the
-// De Morgan dual), the unbound-predicate analogue of set complement.  See the
-// UnboundHalfspace overload above and FIXME(#829).
-export template <IsRingIntegral auto I, Rel R, IsRingIntegral auto J>
-constexpr ProjProj<I, negate(R), J> operator!(const ProjProj<I, R, J>&) {
-  return {};
-}
-export template <IsRingIntegral auto I, Rel R, typename VT>
-constexpr ProjBound<I, negate(R), VT> operator!(const ProjBound<I, R, VT>& pb) {
-  return ProjBound<I, negate(R), VT>{pb.value};
-}
-
-// π_I ⋈ fix(V), I >= 1  →  ProjBound (I == 0 is the unary π of §M1 above).
-// The compile-time Bound<V> supplies the value into the value ProjBound.
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Lt, decltype(V)> operator<(Projection<I>,
-                                                       Bound<V>) {
-  return ProjBound<I, Rel::Lt, decltype(V)>{V};
-}
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Le, decltype(V)> operator<=(Projection<I>,
-                                                        Bound<V>) {
-  return ProjBound<I, Rel::Le, decltype(V)>{V};
-}
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Gt, decltype(V)> operator>(Projection<I>,
-                                                       Bound<V>) {
-  return ProjBound<I, Rel::Gt, decltype(V)>{V};
-}
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Ge, decltype(V)> operator>=(Projection<I>,
-                                                        Bound<V>) {
-  return ProjBound<I, Rel::Ge, decltype(V)>{V};
-}
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Eq, decltype(V)> operator==(Projection<I>,
-                                                        Bound<V>) {
-  return ProjBound<I, Rel::Eq, decltype(V)>{V};
-}
-export template <IsRingIntegral auto I, auto V>
-  requires(I >= 1)
-constexpr ProjBound<I, Rel::Ne, decltype(V)> operator!=(Projection<I>,
-                                                        Bound<V>) {
-  return ProjBound<I, Rel::Ne, decltype(V)>{V};
-}
-
-// !pred witnesses on the relational predicates (grammar p1): negation flips the
-// comparison flavour on both ProjProj and ProjBound, covering every negate(Rel)
-// mapping including the Eq/Ne branch.  The set-level dual is ~ (complement);
-// see the UnboundHalfspace witnesses above and FIXME(#829).
-static_assert(std::same_as<decltype(!(π1 < π2)), decltype(π1 >= π2)>,
-              "!(π1 < π2) is π1 >= π2 (Lt->Ge).");
-static_assert(std::same_as<decltype(!(π1 <= π2)), decltype(π1 > π2)>,
-              "!(π1 <= π2) is π1 > π2 (Le->Gt).");
-static_assert(std::same_as<decltype(!(π1 > π2)), decltype(π1 <= π2)>,
-              "!(π1 > π2) is π1 <= π2 (Gt->Le).");
-static_assert(std::same_as<decltype(!(π1 >= π2)), decltype(π1 < π2)>,
-              "!(π1 >= π2) is π1 < π2 (Ge->Lt).");
-static_assert(std::same_as<decltype(!(π1 == π2)), decltype(π1 != π2)>,
-              "!(π1 == π2) is π1 != π2 (Eq->Ne).");
-static_assert(std::same_as<decltype(!(π1 != π2)), decltype(π1 == π2)>,
-              "!(π1 != π2) is π1 == π2 (Ne->Eq).");
-static_assert(
-    std::same_as<decltype(!(π1 > fix(5_c))), decltype(π1 <= fix(5_c))>,
-    "!(π1 > fix(5)) is π1 <= fix(5) (ProjBound Gt->Le).");
-static_assert(
-    std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
-    "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
-
-// Meet / join of relational PREDICATES is the pointwise && / || over the
-// operands' OWN truth-value carrier (Boolean, or Kleene ∧/∨ over a
-// Kleene relation --- RelAnd/RelOr return auto, not bool, to keep
-// Unknown), distinct from set intersection/union & / | (the vectorized
-// {truth-value}ⁿ ops on Sets).  Rather than defining operator&& / operator||
-// here (which would be ambiguous with the generic predicate operator&& /
-// operator|| in :sets:expressions), we hook the STRUCTURED forms: the generic
-// operators dispatch to structured_and / structured_or via ADL, and these
-// return the marker-preserving RelAnd / RelOr (which the generic Meet /
-// Join nodes are NOT, so their result could not feed the 𝔸<pair> | relpred
-// comprehension)
-// (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
-// / RelOr live in :dyadic (#792).
-//
-// FIXME(#824): these hooks live in :order, so ADL reaches them only when an
-// operand is :order-native (ProjProj/ProjBound — every current meet).  A pair
-// of :relational-native rel-predicates (e.g. two DiagPred) does NOT find them
-// and falls back to the marker-less Meet/Join nodes.  The clean fix is
-// to unify the projection+equality DSL in ONE namespace (relocate it to
-// :relational, where relations live and order is not required) — done in the
-// graph/arrow-lift follow-up, not here.
-export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelAnd<A, B> structured_and(A a, B b) {
-  return {a, b};
-}
-export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelOr<A, B> structured_or(A a, B b) {
-  return {a, b};
-}
+// The comparison an atom makes, its evaluation and its De Morgan dual, and the
+// relational-predicate concept, are the term grammar's (sets:terms).
+export using dedekind::sets::IsRelPredicate;
+export using dedekind::sets::negate;
+export using dedekind::sets::Rel;
+export using dedekind::sets::rel_apply;
 
 /** @brief The product's own membership conjoined with a relational
  *  restriction, so a bind over a @b restricted product keeps that membership
@@ -1518,6 +1019,7 @@ struct ProductRestrict {
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
 constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
+  bind_check<std::pair<T1, T2>>(rp);
   return Comprehension<𝔸<std::pair<T1, T2>, L>, RP>{rp};
 }
 
@@ -1537,6 +1039,7 @@ export template <typename S, IsRelPredicate RP>
     typename S::Domain::second_type;
   }
 constexpr auto operator|(const S& prod, RP rp) {
+  bind_check<typename S::Domain>(rp);
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
   return Comprehension<𝔸<typename S::Domain, typename S::logic_species>,
                        ProductRestrict<X, RP>>{
@@ -1552,10 +1055,9 @@ constexpr auto operator|(const S& prod, RP rp) {
  * the two @b cylinders @f$A\times B = \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$.  A
  * total factor's cylinder is the whole universe (nothing to add); a halfspace
  * factor @f$\{x \bowtie p\}@f$ lifts to the projection halfspace
- * @f$\pi_I \bowtie \mathrm{fix}(p)@f$ --- the @b same @c ProjBound
- * rel-predicate the graph surface uses, so a restricted domain and a functional
- * graph read in one vocabulary and @c dom can recover the factor from the @c
- * π_I conjunct.
+ * @f$\pi_I \bowtie p@f$ --- the @b same comparison atom the graph surface uses,
+ * so a restricted domain and a functional graph read in one vocabulary and @c
+ * dom can recover the factor from the @c π_I conjunct.
  */
 
 /** @brief The comparison a halfspace @c (Direction, Strictness) lifts to. */
@@ -1567,16 +1069,16 @@ export constexpr Rel rel_of(Direction d, Strictness s) {
 }
 
 /** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
- *  @f$\pi_I \bowtie \mathrm{fix}(\text{pivot})@f$ on the product. */
+ *  @f$\pi_I \bowtie \text{pivot}@f$ on the product, an atom of the grammar. */
 export template <IsRingIntegral auto I, IsTotallyOrdered T, IsOckhamAlgebra L,
                  IsCardinality C, IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 constexpr auto cylinder(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return ProjBound<I, rel_of(direction_of<Lo, Hi>(), ray_strictness<Lo, Hi>()),
-                   T>{pivot(h)};
+  return Cmp<rel_of(direction_of<Lo, Hi>(), ray_strictness<Lo, Hi>()),
+             Projection<I>, Const<T>>{{}, {pivot(h)}};
 }
 
-// restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ fix(p)).
+// restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ p).
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi, typename T2, IsOckhamAlgebra L2,
                  IsCardinality C2>
@@ -1587,7 +1089,7 @@ constexpr auto operator*(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& 
   return 𝔸<std::pair<T, T2>, L>{} | cylinder<1>(a);
 }
 
-// total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ fix(q)).
+// total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ q).
 export template <typename T1, IsOckhamAlgebra L1, IsCardinality C1,
                  IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
@@ -1599,7 +1101,7 @@ constexpr auto operator*(
   return 𝔸<std::pair<T1, T>, L>{} | cylinder<2>(b);
 }
 
-// restricted × restricted:  𝔸<pair> | (π1 ⋈ fix(p)) && (π2 ⋈ fix(q)).
+// restricted × restricted:  𝔸<pair> | (π1 ⋈ p) && (π2 ⋈ q).
 export template <IsTotallyOrdered Ta, IsOckhamAlgebra La, IsCardinality Ca,
                  IsSide LoA, IsSide HiA, IsTotallyOrdered Tb,
                  IsOckhamAlgebra Lb, IsCardinality Cb, IsSide LoB, IsSide HiB>
@@ -1619,30 +1121,14 @@ constexpr auto operator*(
  *
  * @details These are the @b π_A / π_B side of Table 3 (the four properties of a
  * relation): @c dom is @f$\pi_A(R)@f$, @c cod is @f$\pi_B(R)@f$.  Read off the
- * axis-@f$I@f$ cylinder @c ProjBound structurally: a comparison bound becomes
+ * axis-@f$I@f$ cylinder atom structurally: a comparison bound becomes
  * the halfspace factor, no axis-@f$I@f$ bound leaves the declared universe
  * @c 𝔸<T_I> (honest exactly when @c R is entire on that side).  This is the
  * @b free case; the @b existential @f$\{a\mid\exists b.R(a,b)\}@f$ that a
  * coupled, non-entire relation needs is the separate Rice-gated operation.
  * The order-layer overloads specialise the sets-layer @c 𝔸<T1> fallback (they
- * win by @c IsRelPredicate, and ADL reaches them through the @c ProjBound
- * predicate's own namespace).
+ * win by @c IsRelPredicate).
  */
-
-/** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
-export constexpr Direction dir_of(Rel r) {
-  return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
-                                        : Direction::Downward;
-}
-/** @brief The @c Strictness a comparison @c Rel lifts a halfspace to. */
-export constexpr Strictness strict_of(Rel r) {
-  return (r == Rel::Gt || r == Rel::Lt) ? Strictness::Strict
-                                        : Strictness::NonStrict;
-}
-/** @brief Whether a @c Rel is one of the four order comparisons (not Eq/Ne). */
-export constexpr bool is_order_rel(Rel r) {
-  return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
-}
 
 /** @brief Recover the axis-@c I factor from a relational predicate.  Default:
  *  no axis-@c I structure, so the declared universe @c 𝔸<TI>. */
@@ -1651,18 +1137,15 @@ constexpr auto axis_factor(const P&) {
   return 𝔸<TI, L>{};  // preserve the relation's logic species
 }
 
-/** @brief A cylinder @c ProjBound on axis @c I: the halfspace it lifted from
- *  (only an order comparison is a halfspace; Eq/Ne fall to the default).
- *  @note The predicate's own slot @c Slot is deduced separately and matched to
- *  the requested axis @c I @b by value (@c Slot @c == @c I), @b not by NTTP
- *  type-identity: a @c ProjBound built from an @c int @c 1 and a query for an
- *  @c unsigned @c 1 name the same axis and must agree, rather than silently
- *  falling through to the universal factor (review #871). */
+/** @brief A cylinder on axis @c I, @c π_I @c ⋈ @c c: the halfspace it lifted
+ *  from (only an order comparison is a halfspace; Eq/Ne fall to the default).
+ *  The slot is matched to the axis by value, so two integral spellings of one
+ *  axis agree. */
 export template <IsRingIntegral auto I, IsTotallyOrdered TI, IsOckhamAlgebra L,
-                 IsRingIntegral auto Slot, Rel R, typename VT>
+                 IsRingIntegral auto Slot, Rel R, typename K>
   requires(is_order_rel(R) && Slot == I)
-constexpr auto axis_factor(const ProjBound<Slot, R, VT>& pb) {
-  return make_ray<dir_of(R), strict_of(R), L>(static_cast<TI>(pb.value));
+constexpr auto axis_factor(const Cmp<R, Projection<Slot>, Const<K>>& c) {
+  return make_ray<dir_of(R), strict_of(R), L>(carrier_cast<TI>(c.b.value));
 }
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
@@ -1722,10 +1205,9 @@ static_assert(!(𝔹 * 𝔹 | π1 < π2)(std::pair{true, true}),
               "(true, true) ∉ {(x,y) | x < y}.");
 
 // a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
-static_assert((𝔹 * 𝔹 | (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, true}),
+static_assert((𝔹 * 𝔹 | (π1 <= π2 && π2 == true))(std::pair{false, true}),
               "(false, true) satisfies x ≤ y ∧ y = true.");
-static_assert(!(𝔹 * 𝔹 |
-                (π1 <= π2 && π2 == fix(true_c)))(std::pair{false, false}),
+static_assert(!(𝔹 * 𝔹 | (π1 <= π2 && π2 == true))(std::pair{false, false}),
               "(false, false) fails y = true.");
 
 // NESTED meet: BOTH operands of the outer && are themselves RelAnd (relational-
@@ -1735,10 +1217,9 @@ static_assert(!(𝔹 * 𝔹 |
 // relpred is therefore closed under &&/|| for the projection sub-grammar; the
 // fall-through only bites non-projection rel-predicates (e.g. two diag()).
 static_assert(
-    IsRelPredicate<decltype((π1 <= π2 && π2 == fix(true_c)) &&
-                            (π1 <= π2 && π1 < π2))>,
+    IsRelPredicate<decltype((π1 <= π2 && π2 == true) && (π1 <= π2 && π1 < π2))>,
     "nested (RelAnd && RelAnd) stays IsRelPredicate via ADL on the atom args.");
-static_assert((𝔹 * 𝔹 | ((π1 <= π2 && π2 == fix(true_c)) &&
+static_assert((𝔹 * 𝔹 | ((π1 <= π2 && π2 == true) &&
                         (π1 <= π2 && π1 < π2)))(std::pair{false, true}),
               "(false, true) satisfies (x ≤ y ∧ y = true) ∧ (x ≤ y ∧ x < y).");
 
@@ -1754,333 +1235,50 @@ static_assert(converse(𝔹* 𝔹 | π1 < π2)(std::pair{true, false}),
 static_assert(is_relation(𝔹* 𝔹 | π1 < π2),
               "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
 
-// ── Projection arithmetic (for the divides relation, Listing 7) ────────────
-/** @brief @f$\pi_I \% \pi_J@f$ --- a value expression on a pair, awaiting a
- *  comparison to a bound. */
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-struct ProjMod {};
-export template <IsRingIntegral auto I, IsRingIntegral auto J>
-constexpr ProjMod<I, J> operator%(Projection<I>, Projection<J>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I \% \pi_J) \bowtie \mathrm{fix}(V)@f$ --- a strongly-typed
- *  pair predicate (the modular / divisibility shape). */
-export template <IsRingIntegral auto I, IsRingIntegral auto J, Rel R, auto V>
-struct ProjModBound {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p) % coord<J>(p), V);
-  }
-};
-export template <IsRingIntegral auto I, IsRingIntegral auto J, auto V>
-constexpr ProjModBound<I, J, Rel::Eq, V> operator==(ProjMod<I, J>, Bound<V>) {
-  return {};
-}
-
-// divides: {(a,b) | b % a == 0 ∧ a != 0} = ℕ*ℕ | (π1 != fix(0_c) && π2 % π1 ==
-// fix(0_c)).  The guard is spelled FIRST so RelAnd's && short-circuits it
-// before the %, and a == 0 never reaches the division.
-static_assert((ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
-                  finite_cardinality(2), finite_cardinality(6)}),
-              "6 % 2 == 0: (2,6) ∈ divides.");
-static_assert(!(ℕ * ℕ | (π1 != fix(0_c) && π2 % π1 == fix(0_c)))(std::pair{
-                  finite_cardinality(4), finite_cardinality(6)}),
-              "6 % 4 != 0: (4,6) ∉ divides.");
-
-// ── The arrow lift: f(π_I) into the relpred DSL (#871 / #824) ────────────────
-/** @brief @f$f(\pi_I)@f$ --- an @c IsArrow @c f applied to the @c I-th
- *  coordinate: a value expression on a pair awaiting a comparison (the arrow
- *  LIFT into the projection DSL, sibling of @c ProjMod).  Built by
- *  @c ap(f, π_I).
- *
- *  @note The coordinate index is a constrained-auto NTTP gated by
- *  @c IsRingIntegral (a structural integral).  Axis identity is matched @b by
- *  value, not by NTTP type-identity (see @c axis_factor), so two spellings of
- *  the same axis (@c int @c 1 vs @c unsigned @c 1) agree rather than silently
- *  diverging (CP review #871).  @c IsRingIntegral admits neither ℕ/Cardinality
- *  (a @c std::variant, non-structural) nor enums (not @c std::integral); it is
- *  the structural integers.  @b Provisional: this whole projection surface
- *  belongs with @c category::IsProductProjection in @c :limit, not in
- *  @c :halfspace --- relocation (and the attendant deletion) is tracked in
- *  #878. */
-export template <IsRingIntegral auto I, typename F>
-struct ProjApply {
-  F f;
-};
-
-/** @brief @c ap(f, π_I) --- lift the arrow @c f into the relpred DSL as
- *  @f$f(\pi_I)@f$.  Gated on @c IsArrow<F> (a pure, terminating map, §2.2).
- *  @c f is taken by value and @c std::move'd into the wrapper, so the @b lift
- *  step itself never copies the arrow.
- *  @note This does @b not promise end-to-end move-only support: the relpred is
- *  a value carried by the comprehension binders (@c operator| and the
- *  restricted-product overloads copy their stored predicate), so the DSL is
- *  value-semantics throughout and arrows used in @c 𝔸<pair> @c | @c (...)
- * should be copyable.  The @c std::move here is a local optimisation, not a
- *  move-only guarantee (CP review #871). */
-export template <IsRingIntegral auto I, typename F>
-  requires dedekind::category::IsArrow<F>
-constexpr ProjApply<I, std::remove_cvref_t<F>> ap(F f, Projection<I>) {
-  return {std::move(f)};
-}
-
-/** @brief @f$\pi_J = f(\pi_I)@f$ --- the arrow-lift relpred: coordinate @c J
- *  equals @c f of coordinate @c I.  This is the point-free @f$y = f(x)@f$ that
- *  will redefine @c graph (#871).
- *
- *  @details @b Forward membership @f$b = f(a)@f$ is decidable exactly when the
- *  arrow's @c Codomain has decidable equality (@c std::equality_comparable) ---
- *  the corrected gate from the #870 CP review: monicity is neither necessary
- *  nor sufficient for this direction.  The @b pre-image direction (recover
- *  @c a from @c b) is a separate capability gated on @c IsRetractableArrow /
- *  iso (consuming the retract / dagger witness); it is @b not required here and
- *  is the graph/preimage follow-up. */
-export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
-  requires std::equality_comparable<typename std::remove_cvref_t<F>::Codomain>
-struct ProjApplyEq {
-  F f;
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    // @c IsArrow only guarantees @c f(x) is @b convertible to @c Codomain, not
-    // that its (possibly proxy) result compares directly with the coordinate.
-    // Normalise to the declared @c Codomain --- the type the @c
-    // equality_comparable gate actually vouches for --- before the compare.
-    using Cod = typename std::remove_cvref_t<F>::Codomain;
-    return static_cast<Cod>(f(coord<I>(p))) == coord<J>(p);
-  }
-};
-
-/** @brief @f$\pi_J = \mathrm{ap}(f, \pi_I)@f$ → @c ProjApplyEq (the
- *  @c 𝑦 @c == @c ap(f, @c 𝑥) blackboard spelling). */
-export template <IsRingIntegral auto J, IsRingIntegral auto I, typename F>
-constexpr ProjApplyEq<J, I, F> operator==(Projection<J>, ProjApply<I, F> a) {
-  return {std::move(a.f)};
-}
-/** @brief The symmetric spelling @f$\mathrm{ap}(f, \pi_I) = \pi_J@f$. */
-export template <IsRingIntegral auto I, IsRingIntegral auto J, typename F>
-constexpr ProjApplyEq<J, I, F> operator==(ProjApply<I, F> a, Projection<J>) {
-  return {std::move(a.f)};
-}
-
-// The lift in action: 𝑦 == ap(id, 𝑥) is the diagonal Δ = {(x,x)}.
+// divides: {(a,b) | b % a == 0 ∧ a != 0}.  The guard comes FIRST so the
+// conjunction short-circuits before the %, and a == 0 never reaches it.
+static_assert((ℕ * ℕ | (π1 != 0 && π2 % π1 == 0))(std::pair{
+                  finite_cardinality(2), finite_cardinality(6)}) &&
+                  !(ℕ * ℕ | (π1 != 0 && π2 % π1 == 0))(std::pair{
+                      finite_cardinality(4), finite_cardinality(6)}),
+              "6 % 2 == 0, 6 % 4 != 0: divides, with its guard first.");
+// The arrow lift 𝑦 == ap(f, 𝑥) is the graph of f; for the identity, Δ.
 static_assert((𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
-                                𝑥)))(std::pair{true, true}),
-              "(true,true) ∈ {(x,y) | y = id(x)} = Δ.");
-static_assert(!(𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
-                                 𝑥)))(std::pair{true, false}),
-              "(true,false) ∉ Δ: false ≠ id(true).");
+                                𝑥)))(std::pair{true, true}) &&
+                  !(𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                                     𝑥)))(std::pair{true, false}),
+              "𝑦 == ap(id, 𝑥) is the diagonal.");
 
-/** @brief @f$\pi_I \% \mathrm{fix}(V)@f$ --- projection mod a @b constant, a
- *  value expression on a pair awaiting a comparison (sibling of @c ProjMod,
- *  whose modulus is the projection @c π_J rather than a fixed @c V). */
-export template <IsRingIntegral auto I, auto V>
-struct ProjModConst {};
-// The modulus must be positive: @c coord % 0 is undefined behaviour (and fails
-// constant evaluation), matching the @c Modular<N> requirement @c N>0.
-export template <IsRingIntegral auto I, auto V>
-  requires(V > 0)
-constexpr ProjModConst<I, V> operator%(Projection<I>, Bound<V>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \pi_J@f$ --- compare a
- *  projection-mod-constant to another projection: the residue-class graph
- *  @f$b = a \bmod V@f$. */
-export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
-struct ProjModConstProj {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    return rel_apply<R>(coord<I>(p) % V, coord<J>(p));
-  }
-};
-export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
-constexpr ProjModConstProj<I, V, Rel::Eq, J> operator==(ProjModConst<I, V>,
-                                                        Projection<J>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I \% \mathrm{fix}(V)) \bowtie \mathrm{fix}(W)@f$ --- a
- *  @b congruence @b class predicate @f$\pi_I \equiv W \pmod V@f$ (sibling of
- *  @c ProjModConstProj, whose right side is the projection @c π_J rather than a
- *  fixed residue @c W).  Restricts an axis to a residue class. */
-export template <IsRingIntegral auto I, auto V, Rel R, auto W>
-struct ProjModConstBound {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    // The MATHEMATICAL residue class, not C++ remainder: normalise both sides
-    // into [0,V) so signed values agree with the congruence (C++ −2 % 3 == −2,
-    // but −2 ≡ 1 (mod 3)), keeping this consistent with argmax's residue
-    // normalisation and the finite-residue materialisation.  Add V only to a
-    // negative remainder (which is already in (−V,0)), so the intermediate
-    // never overflows for a large valid modulus.
-    const auto a = coord<I>(p);
-    using C = std::remove_cvref_t<decltype(a)>;
-    const auto lhs0 = a % static_cast<C>(V);
-    // Add V through std::plus<C> (same narrow-carrier reason as
-    // ProjAddConstProj): +V on the carrier, never a bare C + int (which is
-    // ambiguous on Cardinality).  Unsigned carriers never take this branch.
-    const auto lhs = lhs0 < static_cast<C>(0)
-                         ? std::plus<C>{}(lhs0, static_cast<C>(V))
-                         : lhs0;
-    constexpr auto rhs0 = W % V;
-    constexpr auto rhs = rhs0 < 0 ? rhs0 + V : rhs0;
-    return rel_apply<R>(lhs, static_cast<C>(rhs));
-  }
-};
-export template <IsRingIntegral auto I, auto V, auto W>
-constexpr ProjModConstBound<I, V, Rel::Eq, W> operator==(ProjModConst<I, V>,
-                                                         Bound<W>) {
-  return {};
-}
-
-// residue-class graph: {(a,b) | b = a % 17} = ℕ * ℕ | π1 % fix(17_c) == π2.
-static_assert((ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
-                                                       finite_cardinality(3)}),
-              "20 % 17 == 3: (20,3) ∈ the residue graph.");
-static_assert(!(ℕ * ℕ | π1 % fix(17_c) == π2)(std::pair{finite_cardinality(20),
-                                                        finite_cardinality(4)}),
-              "20 % 17 != 4: (20,4) ∉ the residue graph.");
-
-/** @brief @f$\pi_I + \mathrm{fix}(V)@f$ / @f$\pi_I \cdot \mathrm{fix}(V)@f$ ---
- *  a projection plus / times a @b constant, a value expression on a pair
- *  awaiting a comparison to another projection (siblings of @c ProjModConst).
- *  Enough to spell the successor and scaling graphs natively point-free. */
-export template <IsRingIntegral auto I, auto V>
-struct ProjAddConst {};
-export template <IsRingIntegral auto I, auto V>
-constexpr ProjAddConst<I, V> operator+(Projection<I>, Bound<V>) {
-  return {};
-}
-export template <IsRingIntegral auto I, auto V>
-struct ProjMulConst {};
-export template <IsRingIntegral auto I, auto V>
-constexpr ProjMulConst<I, V> operator*(Projection<I>, Bound<V>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I + \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the
- * successor-shaped graph @f$b = a + V@f$. */
-export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
-struct ProjAddConstProj {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    const auto a = coord<I>(p);
-    using C = std::remove_cvref_t<decltype(a)>;
-    // Add through @c std::plus<C>, NOT the bare @c +: on a narrow carrier
-    // (@c unsigned @c char) bare @c + promotes to @c int, so @c 255+1 becomes
-    // @c 256 and the graph would omit @c (255,0); @c std::plus<C> converts back
-    // to @c C, keeping the carrier's certified (modular) semantics.
-    return rel_apply<R>(std::plus<C>{}(a, static_cast<C>(V)), coord<J>(p));
-  }
-};
-export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
-constexpr ProjAddConstProj<I, V, Rel::Eq, J> operator==(ProjAddConst<I, V>,
-                                                        Projection<J>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I \cdot \mathrm{fix}(V)) \bowtie \pi_J@f$ --- the scaling
- *  graph @f$b = a \cdot V@f$ (e.g. the doubler @f$b = 2a@f$). */
-export template <IsRingIntegral auto I, auto V, Rel R, IsRingIntegral auto J>
-struct ProjMulConstProj {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    const auto a = coord<I>(p);
-    using C = std::remove_cvref_t<decltype(a)>;
-    // Multiply through @c std::multiplies<C> (same narrow-promotion reason as
-    // @c ProjAddConstProj): keep the carrier's certified semantics.
-    return rel_apply<R>(std::multiplies<C>{}(a, static_cast<C>(V)),
-                        coord<J>(p));
-  }
-};
-export template <IsRingIntegral auto I, auto V, IsRingIntegral auto J>
-constexpr ProjMulConstProj<I, V, Rel::Eq, J> operator==(ProjMulConst<I, V>,
-                                                        Projection<J>) {
-  return {};
-}
-
-// (The monic-gated arrow lift 𝑦 == apply(f, 𝑥) → ProjApply/ProjApplyEq moved to
-// its own effort: CP review showed monicity ≠ a computable pre-image (that
-// needs IsRetractableArrow), the codomain-== gate was missing, and it
-// duplicated the existing GraphPredicate — so it is reworked as the
-// graph-redefinition PR, in :relational, alongside the projection-DSL
-// relocation.  See #824.)
-
-/** @brief @f$\pi_I \cdot A + B@f$ --- the @b affine value expression on a pair,
- *  the natural completion of @c ProjMulConst (scaling @f$a \cdot A@f$) and
- *  @c ProjAddConst (successor @f$a + B@f$): @c ProjMulConst closed under
- *  @f$+\,\mathrm{fix}(B)@f$.  Spells the affine graph @f$b = A\cdot a + B@f$
- *  natively point-free --- e.g. the Collatz odd branch @f$3n+1@f$
- *  (@c :collatz).  Awaits a comparison to another projection. */
-export template <IsRingIntegral auto I, auto A, auto B>
-struct ProjAffineConst {};
-export template <IsRingIntegral auto I, auto A, auto B>
-constexpr ProjAffineConst<I, A, B> operator+(ProjMulConst<I, A>, Bound<B>) {
-  return {};
-}
-
-/** @brief @f$(\pi_I \cdot A + B) \bowtie \pi_J@f$ --- the affine graph
- *  @f$b = A\cdot a + B@f$ (e.g. the doubling-and-shift @f$3a+1@f$). */
-export template <IsRingIntegral auto I, auto A, auto B, Rel R,
-                 IsRingIntegral auto J>
-struct ProjAffineConstProj {
-  using is_rel_predicate = void;
-  template <typename P>
-  constexpr bool operator()(const P& p) const {
-    const auto a = coord<I>(p);
-    using C = std::remove_cvref_t<decltype(a)>;
-    // Multiply then add through std::multiplies / std::plus (same
-    // narrow-carrier reason as ProjMulConstProj / ProjAddConstProj): keep the
-    // carrier's certified (modular) semantics rather than promoting to int.
-    return rel_apply<R>(
-        std::plus<C>{}(std::multiplies<C>{}(a, static_cast<C>(A)),
-                       static_cast<C>(B)),
-        coord<J>(p));
-  }
-};
-export template <IsRingIntegral auto I, auto A, auto B, IsRingIntegral auto J>
-constexpr ProjAffineConstProj<I, A, B, Rel::Eq, J> operator==(
-    ProjAffineConst<I, A, B>, Projection<J>) {
-  return {};
-}
-
-// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + fix(1_c) == π2.
-static_assert((ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
-                                                      finite_cardinality(5)}),
+// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π1 + 1 == π2.
+static_assert((ℕ * ℕ | π1 + 1 == π2)(std::pair{finite_cardinality(4),
+                                               finite_cardinality(5)}),
               "4 + 1 == 5: (4,5) ∈ the successor graph.");
-static_assert(!(ℕ * ℕ | π1 + fix(1_c) == π2)(std::pair{finite_cardinality(4),
-                                                       finite_cardinality(6)}),
+static_assert(!(ℕ * ℕ | π1 + 1 == π2)(std::pair{finite_cardinality(4),
+                                                finite_cardinality(6)}),
               "4 + 1 != 6: (4,6) ∉ the successor graph.");
 // A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
 // the ≤5 bound by lifting it to the π1 cylinder, so x = 7 is excluded even
 // though 8 = 7+1: the factor predicate is not dropped.
-static_assert(((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+static_assert(((ℕ | (π <= 5)) * ℕ | π1 + 1 == π2)(std::pair{
                   finite_cardinality(4), finite_cardinality(5)}),
               "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
-static_assert(!((ℕ | (π <= fix(5_c))) * ℕ | π1 + fix(1_c) == π2)(std::pair{
+static_assert(!((ℕ | (π <= 5)) * ℕ | π1 + 1 == π2)(std::pair{
                   finite_cardinality(7), finite_cardinality(8)}),
               "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
-// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π1 * fix(2_c) == π2.
-static_assert((ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
-                                                      finite_cardinality(6)}),
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π1 * 2 == π2.
+static_assert((ℕ * ℕ | π1 * 2 == π2)(std::pair{finite_cardinality(3),
+                                               finite_cardinality(6)}),
               "3 * 2 == 6: (3,6) ∈ the doubling graph.");
-static_assert(!(ℕ * ℕ | π1 * fix(2_c) == π2)(std::pair{finite_cardinality(3),
-                                                       finite_cardinality(7)}),
+static_assert(!(ℕ * ℕ | π1 * 2 == π2)(std::pair{finite_cardinality(3),
+                                                finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
-// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2
+// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ | π1 * 3 + 1 == π2
 // (the Collatz odd branch, :collatz).
-static_assert((ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)(std::pair{
-                  finite_cardinality(7), finite_cardinality(22)}),
+static_assert((ℕ * ℕ | π1 * 3 + 1 == π2)(std::pair{finite_cardinality(7),
+                                                   finite_cardinality(22)}),
               "3·7+1 == 22: (7,22) ∈ the affine graph.");
-static_assert(!(ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)(std::pair{
-                  finite_cardinality(7), finite_cardinality(21)}),
+static_assert(!(ℕ * ℕ | π1 * 3 + 1 == π2)(std::pair{finite_cardinality(7),
+                                                    finite_cardinality(21)}),
               "3·7+1 != 21: (7,21) ∉ the affine graph.");
 
 // dom / cod are the projections π_A / π_B (Table 3), recovered from the graph's
@@ -2090,60 +1288,56 @@ static_assert(!(ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2)(std::pair{
 // declared ℕ --- its EFFECTIVE second projection is only the residue class
 // {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
 // (§3.3), so cod does not claim surjectivity here.
-static_assert(dom(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(100)),
+static_assert(dom(ℕ* ℕ | π1 % 17 == π2)(finite_cardinality(100)),
               "π_A of the residue graph = declared ℕ (entire), contains 100.");
-static_assert(cod(ℕ* ℕ | π1 % fix(17_c) == π2)(finite_cardinality(3)),
+static_assert(cod(ℕ* ℕ | π1 % 17 == π2)(finite_cardinality(3)),
               "π_B = declared codomain ℕ, contains 3 (NOT the effective "
               "{0,…,16} residue image, which would need the ∃-projection).");
 
 // With a RESTRICTED factor, dom recovers the halfspace off the π1 cylinder:
 // π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
-static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(4)),
+static_assert(dom((ℕ | (π <= 5)) * ℕ)(finite_cardinality(4)),
               "π_A recovers {a ≤ 5}: 4 ≤ 5.");
-static_assert(!dom((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(7)),
+static_assert(!dom((ℕ | (π <= 5)) * ℕ)(finite_cardinality(7)),
               "π_A recovers {a ≤ 5}: 7 ≰ 5.");
-static_assert(cod((ℕ | (π <= fix(5_c))) * ℕ)(finite_cardinality(99)),
+static_assert(cod((ℕ | (π <= 5)) * ℕ)(finite_cardinality(99)),
               "π_B is unrestricted ℕ: contains 99.");
 // The restriction survives a graph refinement (dom digs through
 // ProductRestrict).
-static_assert(dom((ℕ | (π <= fix(5_c))) * ℕ |
-                  π1 + fix(1_c) == π2)(finite_cardinality(4)),
+static_assert(dom((ℕ | (π <= 5)) * ℕ | π1 + 1 == π2)(finite_cardinality(4)),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
 
 // TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
 // not either bound alone.  Guards axis_factor's both-branch: the factors are
 // recovered Halfspace SETS, so their meet is the set-level & collapse; the
 // predicate-level && would build a categorical Morphism and lose dom/cod.
-static_assert(dom(ℕ* ℕ |
-                  (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(3)),
+static_assert(dom(ℕ* ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(3)),
               "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
-static_assert(!dom(ℕ * ℕ |
-                   (π1 <= fix(5_c) && π1 <= fix(3_c)))(finite_cardinality(4)),
+static_assert(!dom(ℕ * ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(4)),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
-static_assert(dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c)))
-                      .kind == SetKind::Interval,
+static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)).kind ==
+                  SetKind::Interval,
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
+static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)).lo ==
+                      finite_cardinality(2) &&
+                  dom(ℕ * ℕ | (π1 >= 1 && (π1 <= 5 && π1 >= 2))).hi ==
+                      finite_cardinality(5),
+              "…with the tighter lower bound 2 and the upper bound 5.");
 static_assert(
-    dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c))).lo ==
-            finite_cardinality(2) &&
-        dom(ℕ * ℕ | (π1 >= fix(1_c) && (π1 <= fix(5_c) && π1 >= fix(2_c))))
-                .hi == finite_cardinality(5),
-    "…with the tighter lower bound 2 and the upper bound 5.");
-static_assert(
-    dom(ℕ* ℕ | ((π1 >= fix(1_c) && π1 <= fix(5_c)) && π1 >= fix(2_c))) ==
-        dom(ℕ * ℕ | (π1 >= fix(1_c) && (π1 <= fix(5_c) && π1 >= fix(2_c)))),
+    dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
+        dom(ℕ * ℕ | (π1 >= 1 && (π1 <= 5 && π1 >= 2))),
     "the factor is independent of the association of the three bounds.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
 static_assert(
-    dedekind::relational::apply(ℕ* ℕ | π1 % fix(17_c) == π2,
+    dedekind::relational::apply(ℕ* ℕ | π1 % 17 == π2,
                                 finite_cardinality(20))(finite_cardinality(3)),
     "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
 static_assert(
-    !dedekind::relational::apply(ℕ * ℕ | π1 % fix(17_c) == π2,
+    !dedekind::relational::apply(ℕ * ℕ | π1 % 17 == π2,
                                  finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
@@ -2242,8 +1436,7 @@ constexpr auto operator&(
 }
 
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty SetVal kind.
-static_assert(((ℕ | (π > fix(5_c))) & (ℕ | (π < fix(3_c)))).kind ==
-                  SetKind::Empty,
+static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))).kind == SetKind::Empty,
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
 /** @brief @c | IS the join on bare order operands, dual to the @c & meet: a
@@ -2336,8 +1529,8 @@ inline constexpr auto ℤ =
 // Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality> and ℤ =
 // @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
 // its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
-inline constexpr auto le5 = ℕ | (π <= fix(5_c));  // {x ∈ ℕ | x ≤ 5}
-inline constexpr auto ge5 = ℕ | (π >= fix(5_c));  // {x ∈ ℕ | x ≥ 5}
+inline constexpr auto le5 = ℕ | (π <= 5);  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = ℕ | (π >= 5);  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
 static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
@@ -2345,54 +1538,53 @@ static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 // DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅; the
 // bound is reached through the NNO's step on the Cardinality proxy, exactly as
 // on a machine integer.
-static_assert(max(ℕ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℕ.");
-static_assert(!max(ℕ | (π < fix(5_c)))(5), "5 ∉ {x < 5}, so not its max.");
-static_assert(min(ℕ | (π > fix(5_c)))(6), "6 = min {x > 5} on ℕ.");
+static_assert(max(ℕ | (π < 5))(4), "4 = max {x < 5} on ℕ.");
+static_assert(!max(ℕ | (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ | (π > 5))(6), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
-static_assert(max(ℤ | (π <= fix(5_c)))(5), "5 = max {x ≤ 5} on ℤ.");
-static_assert(!max(ℤ | (π <= fix(5_c)))(3), "3 is not the greatest element.");
-static_assert(min(ℤ | (π >= fix(-5_c)))(-5), "−5 = min {x ≥ −5} on ℤ.");
-static_assert(max(ℤ | (π < fix(5_c)))(4), "4 = max {x < 5} on ℤ (the step).");
-static_assert(min(ℤ | (π > fix(-5_c)))(-4), "−4 = min {x > −5} on ℤ.");
+static_assert(max(ℤ | (π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ | (π <= 5))(3), "3 is not the greatest element.");
+static_assert(min(ℤ | (π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ | (π < 5))(4), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ | (π > -5))(-4), "−4 = min {x > −5} on ℤ.");
+
+/** @brief The translation graph @c π1 @c + @c k @c == @c π2 and the scaling
+ *  graph @c π1 @c * @c k @c == @c π2, as the atoms the grammar builds for them.
+ *  @tparam K the constant's type. */
+export template <typename K>
+using Translation =
+    Cmp<Rel::Eq, BinOp<std::plus<>, Projection<1>, Const<K>>, Projection<2>>;
+export template <typename K>
+using Scaling = Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>,
+                    Projection<2>>;
 
 /** @brief Two translation graphs are the same relation iff they carry the same
- *  shift: structural equality on the graph, compile-time. */
-// Gated on @c IsSaturating: the shift arithmetic is only FAITHFUL on a carrier
-// whose @c + is well-behaved (the ℕ/ℤ proxies escalate).  On @c bool the shift
-// is cast into the carrier (@c +fix(1_c) and @c +fix(2_c) both become @c +true,
-// the SAME graph {false→true}), so a raw @c K1==K2 would wrongly separate them;
-// bool is declined rather than compared incorrectly.
-export template <typename T, auto K1, auto K2, typename L, typename C,
+ *  shift, read in the carrier.  Gated on @c IsSaturating: the shift arithmetic
+ *  is faithful only where the carrier's @c + is (on @c bool, @c +1 and @c +2
+ *  are the same graph, so a comparison of shifts would separate them). */
+export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
   requires dedekind::category::IsSaturating<T>
 constexpr bool operator==(
-    const Comprehension<𝔸<std::pair<T, T>, L, C>,
-                        ProjAddConstProj<1, K1, Rel::Eq, 2>>&,
-    const Comprehension<𝔸<std::pair<T, T>, L, CU>,
-                        ProjAddConstProj<1, K2, Rel::Eq, 2>>&) {
-  return K1 == K2;
+    const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
+    const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
+  return carrier_cast<T>(a.predicate.a.b.value) ==
+         carrier_cast<T>(b.predicate.a.b.value);
 }
 
-/** @brief @b Symbolic composition of translation graphs: @f$T_a \circ T_b =
- *  T_{a+b}@f$, the shifts added, with @b no @f$\exists@f$ over the intermediate
- *  (contrast the Boolean relative product below).  This is the group law read
- *  off the structure; @c + commutes, so the order of composition is immaterial
- *  --- the abelian translation group, at compile time.  Gated on @c
- *  IsSaturating: the symbolic @c a+b equals the actual composite only where the
- *  carrier's @c + is faithful.  On @c bool the @c +1 graph is @c {false→true}
- *  and composing it with itself is EMPTY, while the symbolic @c +2 graph is
- *  non-empty --- so bool is declined rather than rewritten wrongly. */
-export template <typename T, auto A, auto B, typename L, typename C,
+/** @brief @b Symbolic composition of translation graphs, @f$T_a \circ T_b =
+ *  T_{a+b}@f$: the shifts added in the carrier, with @b no @f$\exists@f$ over
+ *  the intermediate.  Gated on @c IsSaturating, where the symbolic @c a+b is
+ * the actual composite. */
+export template <typename T, typename K1, typename K2, typename L, typename C,
                  typename CU>
   requires dedekind::category::IsSaturating<T>
 constexpr auto operator>>(
-    const Comprehension<𝔸<std::pair<T, T>, L, C>,
-                        ProjAddConstProj<1, A, Rel::Eq, 2>>&,
-    const Comprehension<𝔸<std::pair<T, T>, L, CU>,
-                        ProjAddConstProj<1, B, Rel::Eq, 2>>&) {
-  return Comprehension<𝔸<std::pair<T, T>, L>,
-                       ProjAddConstProj<1, A + B, Rel::Eq, 2>>{
-      ProjAddConstProj<1, A + B, Rel::Eq, 2>{}};
+    const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
+    const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
+  const T shift = carrier_cast<T>(a.predicate.a.b.value) +
+                  carrier_cast<T>(b.predicate.a.b.value);
+  return 𝔸<std::pair<T, T>, L>{} | (π1 + shift == π2);
 }
 
 /** @section halfspace__Cover_And_Star  The successor is the cover; the order
@@ -2464,9 +1656,29 @@ constexpr typename L::Ω operator==(
   return to_setval(a) == to_setval(b);
 }
 
-/** @brief Whether a cut denotes the empty set: never for a ray (a proper cut
- *  by construction), for an interval exactly when its bounds cross, read off
- *  the one @c bounded law. */
+/** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
+ *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
+ *  floor is 0), or a closed one beyond it.  A pivot is a value, so this is a
+ *  value fact.  @tparam T the carrier.  @param p the pivot.  @param d the
+ *  direction.  @param s the strictness. */
+template <IsTotallyOrdered T>
+constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
+  if (d == Direction::Upward) {
+    if constexpr (std::integral<T>)
+      return s == Strictness::Strict && p == std::numeric_limits<T>::max();
+    else
+      return false;
+  }
+  if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
+    return s == Strictness::Strict && p == T{};
+  else if constexpr (std::signed_integral<T>)
+    return s == Strictness::Strict && p == std::numeric_limits<T>::min();
+  else
+    return false;
+}
+
+/** @brief Whether a cut denotes the empty set: a ray at the carrier's end, an
+ *  interval whose bounds cross. */
 template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
           IsSide Hi>
 constexpr bool cut_is_empty(
@@ -2476,7 +1688,20 @@ constexpr bool cut_is_empty(
                                  Hi::strictness)
                .kind == SetKind::Empty;
   else
+    return ray_is_empty(pivot(c), direction_of<Lo, Hi>(),
+                        ray_strictness<Lo, Hi>());
+}
+/** @brief Whether a cut is all of its carrier: a ray whose complement is
+ *  empty (@c {x ≥ 0} on ℕ).  An interval never is. */
+template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
+          IsSide Hi>
+constexpr bool cut_is_universe(
+    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
+  if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
     return false;
+  else
+    return ray_is_empty(pivot(c), flip(direction_of<Lo, Hi>()),
+                        flip(ray_strictness<Lo, Hi>()));
 }
 
 // On a truth chain (𝔹, K₃) the boundaries decide these by exhausting the chain
@@ -2511,16 +1736,16 @@ constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const 𝔸<T, L, CU>&,
-                          const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&) {
-  return false;
+constexpr bool operator==(
+    const 𝔸<T, L, CU>&, const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
+  return cut_is_universe(h);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&,
+constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
                           const 𝔸<T, L, CU>&) {
-  return false;
+  return cut_is_universe(h);
 }
 
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
@@ -2529,11 +1754,11 @@ constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&
 // (the R/∋ division) decided by the counterexample set {x≤5} ∩ {x>5} collapsing
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
-static_assert(max(le5)(5) == (le5(5) && (le5 & (ℕ | (π > fix(5_c)))).kind ==
-                                            SetKind::Empty),
+static_assert(max(le5)(5) ==
+                  (le5(5) && (le5 & (ℕ | (π > 5))).kind == SetKind::Empty),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
-static_assert(min(ge5)(5) == (ge5(5) && (ge5 & (ℕ | (π < fix(5_c)))).kind ==
-                                            SetKind::Empty),
+static_assert(min(ge5)(5) ==
+                  (ge5(5) && (ge5 & (ℕ | (π < 5))).kind == SetKind::Empty),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
@@ -2548,7 +1773,7 @@ static_assert(!min(𝔹)(true), "true is not the least element of 𝔹.");
 // specific max(𝔹) models the abstract (∈) ∩ (R/∋): at false the dominance
 // ∀a∈𝔹. a ≤ false FAILS (true ⋠ false), spelled as the halfspace {a ≤ false},
 // so false is correctly NOT the max.
-static_assert(max(𝔹)(false) == (𝔹(false) && forall(𝔹, π <= fix(false_c))),
+static_assert(max(𝔹)(false) == (𝔹(false) && forall(𝔹, π <= false)),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---
@@ -2573,7 +1798,7 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π1 <= π2) >>
 // ── Relation algebra: union (the set-grammar |), the diagonal, and the
 // reflexive / symmetric closures.  The relation | / operator& (union / meet),
 // the
-// diagonal Δ (reframed from ProjProj<Eq> to a plain equality DiagPred), and the
+// diagonal Δ (a plain equality DiagPred), and the
 // reflexive / symmetric closures moved DOWN to dedekind.relational:dyadic
 // (#792) --- pure Set<pair> algebra.  The ordered witnesses below stay and
 // reach them by ADL on their dedekind::sets::Set arguments.
@@ -2668,30 +1893,10 @@ static_assert(
 // composes.
 namespace dedekind::category {
 
-// This block carries only FUNCTIONALITY (@c is_right_unique_v), the STRUCTURAL
-// half: a graph is single-valued by its shape, decidable in @c order alone.
-// ENTIRENESS (@c is_left_total_v) is the ALGEBRAIC half --- a translation is
-// total iff the carrier is an ordered additive group --- so those
-// specialisations live in @c dedekind.algebra:halfspace_transport, alongside
-// the transport operations.  (The @c ProductRestrict entireness is left at its
-// primary false there and in the primary: a restriction MAY drop the domain, so
-// entireness is conservatively not certified through a joint.)
-
-// LEAF: a translation graph x ↦ x+K is FUNCTIONAL on any carrier (single-valued
-// by construction).
-template <typename T, auto K, typename L, typename C>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
-    dedekind::order::ProjAddConstProj<1, K, dedekind::order::Rel::Eq, 2>>> =
-    true;
-
-// LEAF: the diagonal π1==π2 (the identity relation) is functional on any
-// carrier
-// -- a ↦ a, single-valued.
-template <typename T, typename L, typename C>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<T, T>, L, C>,
-    dedekind::order::ProjProj<1, dedekind::order::Rel::Eq, 2>>> = true;
+// The graph atoms are certified functional (and, where their term is total,
+// entire) in sets:expressions.  This block carries restriction: functionality
+// survives it, entireness is not certified through it (a restriction may drop
+// the domain).
 
 // RESTRICTION preserves single-valuedness (it removes pairs, never adds), so
 // FUNCTIONALITY propagates through ProductRestrict: a restricted graph is still
@@ -2719,10 +1924,10 @@ namespace dedekind::order {
 // -- but NOT entire (the restriction drops the domain), so it is not a total
 // function, matching the paper's partial-function reading.
 static_assert(
-    dedekind::relational::IsFunctional<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
-                                                π1 <= fix(5_c))> &&
-        !dedekind::relational::IsEntire<decltype((ℤ * ℤ | π1 + fix(3_c) == π2) |
-                                                 π1 <= fix(5_c))>,
+    dedekind::relational::IsFunctional<decltype((ℤ * ℤ | π1 + 3 == π2) |
+                                                π1 <= 5)> &&
+        !dedekind::relational::IsEntire<decltype((ℤ * ℤ | π1 + 3 == π2) |
+                                                 π1 <= 5)>,
     "a restricted translation graph is a functional-but-not-entire partial "
     "function, inferred through ProductRestrict.");
 }  // namespace dedekind::order

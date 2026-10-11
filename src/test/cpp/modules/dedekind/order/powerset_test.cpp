@@ -127,7 +127,7 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     // ordered overload.  A general filtered set {x ∈ ℤ | x > 0} is exactly such
     // a base.
     // NOTE(#895 L3): kept a NAMED-predicate comprehension, NOT the point-free
-    // `𝔸<int> | (π > fix(0_c))` halfspace: this case's whole premise is a
+    // `𝔸<int> | (π > 0)` halfspace: this case's whole premise is a
     // general filtered set with NO convex Sub(C) coercion (@c !SubReifiable); a
     // halfspace IS convex/reifiable and would defeat the assertion below.
     constexpr auto is_positive = [](const auto& v) { return v > 0; };

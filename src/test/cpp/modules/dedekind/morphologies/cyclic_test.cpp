@@ -53,8 +53,7 @@ TEST_CASE("Congruence residue preimage: {x≡R mod N} ⟵ x↦x+K rotates by −
   // residue's own integer type (unsigned = decltype(N)).
   constexpr auto ℤ4 = 𝔸<unsigned>{};
   // preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4}: the class rotates by −1.
-  constexpr auto pre =
-      preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2, Congruence<4u, 2u>{});
+  constexpr auto pre = preimage(ℤ4 * ℤ4 | π1 + 1 == π2, Congruence<4u, 2u>{});
   CHECK(pre(1u));        // 1 ≡ 1 (mod 4)
   CHECK(pre(5u));        // 5 ≡ 1 (mod 4)
   CHECK_FALSE(pre(2u));  // 2 ≢ 1 (mod 4)

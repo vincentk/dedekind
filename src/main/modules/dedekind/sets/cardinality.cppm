@@ -35,6 +35,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
 #include <variant>
@@ -938,6 +939,21 @@ constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
   return SignedCardinality{SignedExtensionalCardinal<>{value}};
 }
 
+/** @brief An integer constant meeting ℕ or ℤ, the hook the term grammar's
+ *  @c carrier_cast reaches by ADL: exactly, or a domain error for a negative
+ *  constant meeting ℕ.  @tparam K the constant's type.  @param k the constant.
+ */
+export template <std::integral K>
+constexpr Cardinality carrier_cast(std::type_identity<Cardinality>, K k) {
+  if (k < K{}) throw std::domain_error("a negative constant meets ℕ");
+  return finite_cardinality(static_cast<std::size_t>(k));
+}
+export template <std::integral K>
+constexpr SignedCardinality carrier_cast(std::type_identity<SignedCardinality>,
+                                         K k) {
+  return finite_signed_cardinality(k);
+}
+
 /** @brief Unary negation: swaps signs and ±ℵ_0; preserves NaZ. */
 export constexpr SignedCardinality operator-(
     const SignedCardinality& v) noexcept {
@@ -1191,7 +1207,7 @@ export constexpr std::partial_ordering operator<=>(
 // (@c Cardinality, @c SignedCardinality) and built-in @c std::integral
 // values.  The load-bearing path is the halfspace machinery's
 // @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy and
-// @c Pivot is the @c int NTTP from @c bound<-21>: previously this
+// @c Pivot is the @c int NTTP from @c -21: previously this
 // required an explicit lift of the literal to the variant alternative.
 //
 // Defining @c operator<=> together with @c operator== lets the C++20
@@ -1261,8 +1277,8 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 // Cross-type relational operators between the variant ℕ-/ℤ-proxy
 // carriers and built-in @c std::floating_point values.  Mirrors the
 // @c std::integral overloads above; needed for showcase callsites like
-// @c (var<ℤ> @c > @c bound<-21.0>) where @c bound<V>'s NTTP type is
-// @c double and the carrier is the variant.  Returns @c
+// @c (var<ℤ> @c > @c -21.0) where the literal is a @c double and
+// the carrier is the variant.  Returns @c
 // std::partial_ordering throughout — a NaN @c rhs (or @c NaZ on @c
 // lhs) propagates as @c unordered, IEEE-NaN-style.
 //

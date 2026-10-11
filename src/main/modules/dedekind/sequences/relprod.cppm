@@ -15,8 +15,8 @@
  *
  * @section relprod__Why_Here
  * Homed downstream of @c relational (where the Boolean @c >> lives): the bound
- * @c M is read from an @b order-level @c ProjBound (the half-space cut @c
- * collatz @c | @c (π1 @c < @c fix(M_c))), which @c relational --- @b upstream
+ * @c M is read from an @b order-level @c ProductRestrict (the domain cut
+ * @c R @c | @c (π1 @c < @c M)), which @c relational --- @b upstream
  * of @c order --- cannot see, so the bounded @c >> cannot live beside its
  * Boolean sibling.  It sits in @c sequences (the first module below both @c
  * order and @c relational that the exhibit already imports); consumers reach
@@ -42,7 +42,7 @@ module;
 export module dedekind.sequences:relprod;
 
 import dedekind.sets; // Comprehension / 𝔸, finite_cardinality, exists (short-circuit ∃)
-import dedekind.order; // ProjBound, ProductRestrict, Rel, IsRelPredicate
+import dedekind.order; // ProductRestrict, IsRelPredicate
 
 namespace dedekind::sequences {
 using dedekind::order::IsRelPredicate;
@@ -86,17 +86,19 @@ struct ComposePrefixPred {
 
 /** @brief @c prefix_bound(p) --- recover the finite-prefix bound @c M carried
  *  by a bounded relation's predicate @c p: either from the half-space
- *  restriction (a @c ProductRestrict wrapping a @c ProjBound<1,Lt,VT> domain
- *  cut, whose pivot is a VALUE), or from a prior compose (@c ComposePrefixPred
+ *  restriction (a @c ProductRestrict wrapping the domain cut @c π1 @c < @c M,
+ *  whose bound is a VALUE), or from a prior compose (@c ComposePrefixPred
  *  carries its bound).  Left @b undefined otherwise --- an unbounded relation
  *  has no finite middle to compose over, so its @c >> stays the honest Rice
  *  wall.  A function, not a trait: since the pivot rides in the value, so does
  *  the bound; it still folds at compile time when the relation is constexpr. */
-template <typename Pp, typename VT>
+template <typename Pp, typename K>
 constexpr std::size_t prefix_bound(
     const dedekind::order::ProductRestrict<
-        Pp, dedekind::order::ProjBound<1, dedekind::order::Rel::Lt, VT>>& p) {
-  return static_cast<std::size_t>(p.rp.value);
+        Pp, dedekind::sets::Cmp<dedekind::sets::Rel::Lt,
+                                dedekind::sets::Projection<1>,
+                                dedekind::sets::Const<K>>>& p) {
+  return static_cast<std::size_t>(p.rp.b.value);
 }
 template <typename PR, typename PS>
 constexpr std::size_t prefix_bound(const ComposePrefixPred<PR, PS>& p) {

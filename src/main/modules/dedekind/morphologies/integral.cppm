@@ -191,7 +191,8 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  *
  * @brief preimage of a residue class through the translation @f$x\mapsto
  * x+K@f$: again a residue class, shifted.  @f$\{x \mid x+K \equiv R \pmod N\} =
- *        \{x \mid x \equiv R-K \pmod N\} =@f$ @c Congruence<N, (R−K) mod N>.
+ *        \{x \mid x \equiv R-K \pmod N\}@f$, the grammar's residue atom
+ *        @c π @c % @c N @c == @c (R−K) @c mod @c N over the carrier.
  *
  * @details The RESIDUE sibling of the halfspace @c preimage
  * (@c :halfspace_transport): where a bound's pivot shifts by @c −K, a residue
@@ -224,40 +225,29 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
  * saturation breaks residue-equivalence, and which @c Congruence cannot reduce)
  * are declined by construction.
  */
-export template <typename T, auto K, auto N, decltype(N) R, typename L,
+export template <typename T, typename K, auto N, decltype(N) R, typename L,
                  typename C>
   requires std::same_as<std::remove_cvref_t<T>, decltype(N)> &&
            std::unsigned_integral<decltype(N)> &&
            (std::has_single_bit(
                static_cast<std::make_unsigned_t<decltype(N)>>(N)))
 constexpr auto preimage(
-    const Comprehension<𝔸<std::pair<T, T>, L, C>,
-                        ProjAddConstProj<1, K, Rel::Eq, 2>>&,
+    const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>& g,
     Congruence<N, R>) {
-  // Compute in the carrier's own arithmetic (unsigned ℤ/2^w): apply the graph's
-  // static_cast<T>(K) FIRST (so a huge shift folds exactly as the graph sees
-  // it), then the modular subtraction.  The unsigned wrap of (R − k) is
-  // harmless because N | 2^w (has_single_bit): 2^w ≡ 0 (mod N), so (R − k) mod
-  // N is the true residue with no widening and no signed overflow.
-  constexpr decltype(N) k = static_cast<decltype(N)>(K);  // the graph's shift
-  constexpr decltype(N) r = static_cast<decltype(N)>(R - k) % N;
-  return Congruence<N, r>{};
+  // In the carrier's own arithmetic (unsigned ℤ/2^w): the shift folds exactly
+  // as the graph sees it, then the modular subtraction, whose wrap is harmless
+  // because N | 2^w.
+  const T k = carrier_cast<T>(g.predicate.a.b.value);
+  const T r = static_cast<T>(R - k) % N;
+  return 𝔸<T, L>{} | (π % N == r);
 }
 
 namespace {
-// The residue rotates by −K (mod N) on ℤ/N.  Witnessed on the CYCLIC carrier
-// unsigned = ℤ/2^wℤ with N=4 a power of two (N | 2^w) --- the discrete circle
-// ℤ/L the torus rotates on.  The graph carrier is the residue's own integer
-// type (T = decltype(N) = unsigned), so the result is homogeneous.
+// The residue rotates by −k (mod N) on the cyclic carrier unsigned = ℤ/2^wℤ.
 inline constexpr auto ℤ4 = dedekind::sets::𝔸<unsigned>{};
-static_assert(std::same_as<decltype(preimage(ℤ4 * ℤ4 | π1 + fix(1_c) == π2,
-                                             Congruence<4u, 2u>{})),
-                           Congruence<4u, 1u>>,
-              "preimage(x↦x+1, {x≡2 mod4}) = {x≡1 mod4} on ℤ/2^w.");
-static_assert(std::same_as<decltype(preimage(ℤ4 * ℤ4 | π1 + fix(3_c) == π2,
-                                             Congruence<4u, 2u>{})),
-                           Congruence<4u, 3u>>,
-              "preimage(x↦x+3, {x≡2 mod4}) = {x≡3 mod4} (2−3 ≡ 3 mod 4).");
+static_assert(preimage(ℤ4* ℤ4 | π1 + 1u == π2, Congruence<4u, 2u>{})(1u) &&
+                  !preimage(ℤ4 * ℤ4 | π1 + 1u == π2, Congruence<4u, 2u>{})(2u),
+              "preimage(x↦x+1, {x≡2 mod 4}) = {x≡1 mod 4} on ℤ/2^w.");
 }  // namespace
 
 /** @section integral__Classifier_Partition_Witnesses

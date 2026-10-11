@@ -52,9 +52,9 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // (1) Rule.  Intensional ℕ-comprehension, point-free: the ambient set ℕ
-//     refined by the projection predicate `π > fix(5)`.  Reads "the set of
+//     refined by the projection predicate `π > 5`.  Reads "the set of
 //     x ∈ ℕ such that x > 5".  This is the textbook membership shape.
-constexpr auto S = ℕ | (π > fix(5_c));
+constexpr auto S = ℕ | (π > 5);
 
 // ℕ = 𝔸<Cardinality> answers in @c Boole, so the comprehension @c S does ---
 // @c S.contains(...) lands @c bool directly, no
@@ -73,7 +73,7 @@ static_assert(S(7u));
 //     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
 //     interval [6, 6]) is a future DSL refinement; membership on T still
 //     constant-folds via the predicate.
-constexpr auto T = set_difference(S, ℕ | (π > fix(10_c)));
+constexpr auto T = set_difference(S, ℕ | (π > 10));
 static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
@@ -83,7 +83,7 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     point collapse gates on the NNO's successor / predecessor --- an axiom of
 //     the category, which the ℕ proxy witnesses --- not on `std::integral`, so
 //     ℕ collapses exactly as a machine integer does.
-constexpr auto a = S & (ℕ | (π < fix(7_c)));  // the point {6}
+constexpr auto a = S & (ℕ | (π < 7));  // the point {6}
 static_assert(a.kind == SetKind::Singleton && a.lo == 6,
               "the meet folds to the point {6} at compile time");
 static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&

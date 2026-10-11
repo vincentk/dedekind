@@ -40,6 +40,7 @@ export import :setobject;  // the noun: IsSetObject, upstream of everything
 export import :cardinality;
 export import :boundaries;
 export import :computability;
+export import :terms;  // the term grammar: projections, constants, atoms
 export import :expressions;
 export import :extensional;
 export import :quantifier;

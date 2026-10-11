@@ -49,7 +49,7 @@
 
 import dedekind.category;
 import dedekind.numbers;
-import dedekind.order; // For bound<V> (NTTP-pivoted halfspace builder)
+import dedekind.order; // For the halfspace grammar (halfspace builder)
 import dedekind.sets;
 
 using namespace dedekind::category;
@@ -61,7 +61,7 @@ using namespace dedekind::sets;
 // the pivot 5 as a value over the Cardinality carrier (the variant ℕ-proxy).
 // A halfspace IS a set object, and image() takes any set object over the
 // arrow's domain; its species is the universe's (Boole here).
-constexpr auto gt_5 = ℕ | (χ > fix(5_c));
+constexpr auto gt_5 = ℕ | (χ > 5);
 
 // The NNO successor on @c Cardinality, the canonical ℕ → ℕ arrow.
 constexpr auto succ_arrow = Successor<Cardinality>{};

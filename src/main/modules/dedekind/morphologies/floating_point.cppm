@@ -259,7 +259,7 @@ class safe_float {
   friend constexpr bool operator==(const safe_float&,
                                    const safe_float&) noexcept = default;
 
-  /** @brief Compare against a raw @c F pivot (a @c bound<5.0> in a
+  /** @brief Compare against a raw @c F pivot (a @c 5.0 in a
    *  point-free predicate).  Partial: a NaN pivot is unordered. */
   friend constexpr std::partial_ordering operator<=>(const safe_float& a,
                                                      F b) noexcept {

@@ -64,8 +64,9 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
   }
 }
 
-TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
-          "[order][halfspace][dsl]") {
+TEST_CASE(
+    "order:halfspace — Variable DSL constructs Halfspace from a value bound",
+    "[order][halfspace][dsl]") {
   // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order`
   // in the build DAG.  Post-#559 ℕ is the universe value 𝔸<Cardinality>;
@@ -75,34 +76,34 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // The DSL binds the pivot-less Halfspace TYPE; the pivot 7 rides in the
   // instance (checked via .pivot).
   SECTION("> constructs Upward/Strict") {
-    constexpr auto h = ℕ | (χ > fix(7_c));
+    constexpr auto h = ℕ | (χ > 7);
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, UpRay<Cardinality, Strictness::Strict>>);
     STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
-    constexpr auto h = ℕ | (χ >= fix(7_c));
+    constexpr auto h = ℕ | (χ >= 7);
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, UpRay<Cardinality, Strictness::NonStrict>>);
     STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION("< constructs Downward/Strict") {
-    constexpr auto h = ℕ | (χ < fix(7_c));
+    constexpr auto h = ℕ | (χ < 7);
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, DownRay<Cardinality, Strictness::Strict>>);
     STATIC_CHECK(pivot(h) == 7);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
-    constexpr auto h = ℕ | (χ <= fix(7_c));
+    constexpr auto h = ℕ | (χ <= 7);
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<H, DownRay<Cardinality, Strictness::NonStrict>>);
     STATIC_CHECK(pivot(h) == 7);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
-  // signed pivots on unsigned carriers (e.g. `ℕ | (χ > fix(-1_c))` does not
+  // signed pivots on unsigned carriers (e.g. `ℕ | (χ > -1)` does not
   // compile, where previously int→unsigned conversion would
   // wrap -1 to UINT_MAX silently).  The regression is exercised
   // implicitly: dropping the constraint would not break any existing
@@ -160,7 +161,7 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)
   // dual of the contradiction B ∩ ¬B = Ø.  A value pivot cannot dispatch the
   // cover structurally, so the union is the honest point-wise set; it still
   // DECIDES membership --- every pair lands in B or its complement.
-  constexpr auto B = ℕ * ℕ | π1 > fix(5_c);
+  constexpr auto B = ℕ * ℕ | π1 > 5;
   constexpr auto cover = B | ~B;
   CHECK(static_cast<bool>(
       cover(std::pair{finite_cardinality(6), finite_cardinality(0)})));
@@ -209,8 +210,8 @@ TEST_CASE(
     // stay IsRelPredicate (so the result can feed the 𝔸<pair> | relpred
     // comprehension) --- unlike the generic AndPredicate / OrPredicate, which
     // would drop the marker (#824).
-    constexpr auto p = π1 > fix(5_c);
-    constexpr auto q = π2 > fix(3_c);
+    constexpr auto p = π1 > 5;
+    constexpr auto q = π2 > 3;
     using AndP = std::decay_t<decltype(p && q)>;
     using OrP = std::decay_t<decltype(p || q)>;
     STATIC_CHECK(
@@ -301,11 +302,11 @@ TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
 
 TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
-  // The point-free comprehension ℕ | (χ > fix(5_c)) reduces to a bare
+  // The point-free comprehension ℕ | (χ > 5) reduces to a bare
   // Halfspace in the universe's species, Boole: decidable membership.  Pairs
   // the module-level static_assert witness with a Codecov-visible runtime
   // membership exercise.
-  constexpr auto point_free = ℕ | (χ > fix(5_c));
+  constexpr auto point_free = ℕ | (χ > 5);
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
@@ -348,15 +349,15 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
   const auto A = finite_cardinality(std::size_t(a));  // 4
   const auto M = finite_cardinality(std::size_t(m));  // 20
 
-  const auto succ = ℕ * ℕ | π1 + fix(1_c) == π2;  // b = a + 1
+  const auto succ = ℕ * ℕ | π1 + 1 == π2;  // b = a + 1
   CHECK(succ(std::pair{A, finite_cardinality(5)}));
   CHECK_FALSE(succ(std::pair{A, finite_cardinality(6)}));
 
-  const auto dbl = ℕ * ℕ | π1 * fix(2_c) == π2;  // b = 2a
+  const auto dbl = ℕ * ℕ | π1 * 2 == π2;  // b = 2a
   CHECK(dbl(std::pair{finite_cardinality(3), finite_cardinality(6)}));
   CHECK_FALSE(dbl(std::pair{finite_cardinality(3), finite_cardinality(7)}));
 
-  const auto res = ℕ * ℕ | π1 % fix(17_c) == π2;  // b = a % 17
+  const auto res = ℕ * ℕ | π1 % 17 == π2;  // b = a % 17
   CHECK(res(std::pair{M, finite_cardinality(3)}));
   CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
 }
@@ -485,62 +486,22 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
   }
 }
 
-TEST_CASE("order:halfspace — the factory makes a Halfspace a proper cut (#832)",
-          "[order][halfspace][subset]") {
-  SECTION("empty cut → Ø, moot cut → the universe, proper cut → Halfspace") {
-    // {x>INT_MAX} admits nothing → Ø.
-    static_assert(
-        std::same_as<
-            decltype(make_halfspace<int, std::numeric_limits<int>::max(),
-                                    Direction::Upward, Strictness::Strict>()),
-            Ø<int, Boole>>,
-        "{x>INT_MAX} = Ø");
-    // {x≥0} on ℕ is all of ℕ → the universe (halfspace(ℕ,·,Upper) = ℕ).
-    static_assert(
-        std::same_as<decltype(make_halfspace<Cardinality, 0, Direction::Upward,
-                                             Strictness::NonStrict>()),
-                     𝔸<Cardinality, Boole>>,
-        "{x≥0} on ℕ = ℕ (moot constraint drops)");
-    // An interior cut stays a proper Halfspace.
-    static_assert(
-        std::same_as<decltype(make_halfspace<int, 5, Direction::Upward,
-                                             Strictness::Strict>()),
-                     UpRay<int, Strictness::Strict, Boole>>,
-        "{x>5} is a proper cut");
-  }
-
-  SECTION("the DSL routes through the factory") {
-    // The DSL surface collapses a moot cut: {x≥0} on ℕ = ℕ.
-    static_assert(std::same_as<std::decay_t<decltype(ℕ | (χ >= fix(0_c)))>,
-                               𝔸<Cardinality, Boole>>,
-                  "ℕ | (χ >= fix(0_c)) = ℕ");
-  }
-
-  SECTION(
-      "the signed ℤ-proxy has no floor: {z<0} is a proper cut (#837 review)") {
-    // SignedCardinality is IsSaturating but unbounded below, so {z<0} is
-    // inhabited (must NOT collapse to Ø) and {z≥0} is not all of ℤ (not moot).
-    // The bare IsSaturating floor test got both wrong; HasZeroFloor fixes it.
-    static_assert(
-        std::same_as<
-            decltype(make_halfspace<SignedCardinality, 0, Direction::Downward,
-                                    Strictness::Strict>()),
-            DownRay<SignedCardinality, Strictness::Strict, Boole>>,
-        "{z<0} on ℤ is a proper cut, not Ø");
-    static_assert(
-        std::same_as<
-            decltype(make_halfspace<SignedCardinality, 0, Direction::Upward,
-                                    Strictness::NonStrict>()),
-            UpRay<SignedCardinality, Strictness::NonStrict, Boole>>,
-        "{z≥0} on ℤ is a proper cut, not the universe");
-  }
+TEST_CASE("order:halfspace — a ray at the carrier's end is a value fact",
+          "[order][halfspace][boundary]") {
+  // The pivot is a value: {x ≥ 0} on ℕ is all of ℕ, {x > INT_MAX} is empty,
+  // and on ℤ (no floor) {z < 0} is neither.
+  STATIC_CHECK((ℕ | (π >= 0)) == ℕ);
+  STATIC_CHECK((𝔸<int>{} | (π > std::numeric_limits<int>::max())) == Ø<int>{});
+  STATIC_CHECK(!((𝔸<SignedCardinality>{} | (π < 0)) == Ø<SignedCardinality>{}));
+  STATIC_CHECK(
+      !((𝔸<SignedCardinality>{} | (π >= 0)) == 𝔸<SignedCardinality>{}));
 }
 
 TEST_CASE(
     "order:halfspace — the point-free former threads the universe's species "
     "into the halfspace",
     "[order][halfspace][species]") {
-  constexpr auto hs = 𝔸<int, Kleene>{} | (π > fix(5_c));  // {x > 5}, L = Kleene
+  constexpr auto hs = 𝔸<int, Kleene>{} | (π > 5);  // {x > 5}, L = Kleene
   STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
   STATIC_CHECK(
       std::same_as<typename decltype(hs)::Codomain, typename Kleene::Ω>);
