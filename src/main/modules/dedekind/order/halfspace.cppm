@@ -339,21 +339,28 @@ export constexpr bool is_order_rel(Rel r) {
   return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
 }
 
+}  // namespace dedekind::order
+namespace dedekind::sets {
 /** @brief An order atom @c π @c ⋈ @c k on a chain is the cut it names, whatever
  *  the constant's type: the constant meets the carrier exactly or the binding
- *  raises.  @tparam T the carrier.  @tparam R the order relation.
+ *  raises.  Declared in the namespace of @c 𝔸 and the atom, so ADL finds it.
+ *  @tparam T the carrier.  @tparam R the order relation.
  *  @tparam K the constant's type. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, Rel R,
+export template <dedekind::order::IsTotallyOrdered T,
+                 dedekind::category::IsOckhamAlgebra L, IsCardinality C, Rel R,
                  typename K>
-  requires(is_order_rel(R))
+  requires(dedekind::order::is_order_rel(R))
 constexpr auto operator|(const 𝔸<T, L, C>& u,
                          const Cmp<R, Projection<0>, Const<K>>& c) {
+  using namespace dedekind::order;
   const T k = carrier_cast<T>(c.b.value);
-  if constexpr (dir_of(R) == Direction::Upward)
+  if constexpr (dedekind::order::dir_of(R) == Direction::Upward)
     return u | Bounds<Bounded<strict_of(R)>, Unbounded, T>{k};
   else
     return u | Bounds<Unbounded, Bounded<strict_of(R)>, T>{k};
 }
+}  // namespace dedekind::sets
+namespace dedekind::order {
 
 /** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
  *  value, flipped direction + strictness.  (value-carrying, so the
