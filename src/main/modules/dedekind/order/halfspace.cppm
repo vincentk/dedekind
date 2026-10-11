@@ -1275,53 +1275,12 @@ static_assert(HasDecidableMembership<decltype(ℕ | (χ > fix(5_c)))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 }  // namespace detail_pointfree_decidability
 
-/** @brief Comparison flavour for the relational predicates. */
-export enum class Rel { Lt, Le, Gt, Ge, Eq, Ne };
-
-template <Rel R, typename X, typename Y>
-constexpr bool rel_apply(const X& x, const Y& y) {
-  if constexpr (R == Rel::Lt)
-    return x < y;
-  else if constexpr (R == Rel::Le)
-    return x <= y;
-  else if constexpr (R == Rel::Gt)
-    return x > y;
-  else if constexpr (R == Rel::Ge)
-    return x >= y;
-  else if constexpr (R == Rel::Eq)
-    return x == y;
-  else
-    return x != y;
-}
-
-/** @brief The De Morgan dual of a comparison flavour: @c !(x @c R @c y) is
- *  @c x @c negate(R) @c y.  Drives @c operator! on the relational predicates.
- */
-constexpr Rel negate(Rel r) {
-  switch (r) {
-    case Rel::Lt:
-      return Rel::Ge;
-    case Rel::Le:
-      return Rel::Gt;
-    case Rel::Gt:
-      return Rel::Le;
-    case Rel::Ge:
-      return Rel::Lt;
-    case Rel::Eq:
-      return Rel::Ne;
-    case Rel::Ne:
-      return Rel::Eq;
-  }
-  return r;  // unreachable; all six flavours are covered above.
-}
-
-/** @brief Nested-typedef marker so the predicate-level @c && / @c || fire only
- *  on relational predicates (and gate the @c 𝔸<pair> @c | @c relpred
- *  comprehension); kept off the class hierarchy so the predicates stay
- *  aggregates.
- */
-export template <typename T>
-concept IsRelPredicate = requires { typename T::is_rel_predicate; };
+// The comparison an atom makes, its evaluation and its De Morgan dual, and the
+// relational-predicate concept, are the term grammar's (sets:terms).
+export using dedekind::sets::IsRelPredicate;
+export using dedekind::sets::negate;
+export using dedekind::sets::Rel;
+export using dedekind::sets::rel_apply;
 
 /** @brief @f$\pi_I \bowtie \pi_J@f$ --- a strongly-typed predicate on a pair.
  */
@@ -1456,35 +1415,9 @@ static_assert(
     std::same_as<decltype(!(π1 == fix(5_c))), decltype(π1 != fix(5_c))>,
     "!(π1 == fix(5)) is π1 != fix(5) (ProjBound Eq->Ne).");
 
-// Meet / join of relational PREDICATES is the pointwise && / || over the
-// operands' OWN truth-value carrier (Boolean, or Kleene ∧/∨ over a
-// Kleene relation --- RelAnd/RelOr return auto, not bool, to keep
-// Unknown), distinct from set intersection/union & / | (the vectorized
-// {truth-value}ⁿ ops on Sets).  Rather than defining operator&& / operator||
-// here (which would be ambiguous with the generic predicate operator&& /
-// operator|| in :sets:expressions), we hook the STRUCTURED forms: the generic
-// operators dispatch to structured_and / structured_or via ADL, and these
-// return the marker-preserving RelAnd / RelOr (which the generic Meet /
-// Join nodes are NOT, so their result could not feed the 𝔸<pair> | relpred
-// comprehension)
-// (#824).  This is the same mechanism the Halfspace lattice uses above.  RelAnd
-// / RelOr live in :dyadic (#792).
-//
-// FIXME(#824): these hooks live in :order, so ADL reaches them only when an
-// operand is :order-native (ProjProj/ProjBound — every current meet).  A pair
-// of :relational-native rel-predicates (e.g. two DiagPred) does NOT find them
-// and falls back to the marker-less Meet/Join nodes.  The clean fix is
-// to unify the projection+equality DSL in ONE namespace (relocate it to
-// :relational, where relations live and order is not required) — done in the
-// graph/arrow-lift follow-up, not here.
-export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelAnd<A, B> structured_and(A a, B b) {
-  return {a, b};
-}
-export template <IsRelPredicate A, IsRelPredicate B>
-constexpr dedekind::relational::RelOr<A, B> structured_or(A a, B b) {
-  return {a, b};
-}
+// Meet / join of relational predicates is the pointwise && / || of the term
+// grammar (sets:terms): @c && on two relational predicates builds @c RelAnd,
+// @c || builds @c RelOr, whatever namespace the operands come from.
 
 /** @brief The product's own membership conjoined with a relational
  *  restriction, so a bind over a @b restricted product keeps that membership

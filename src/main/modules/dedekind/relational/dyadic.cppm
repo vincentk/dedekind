@@ -290,46 +290,10 @@ constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
 }
 
 // ── Meet / join of relational PREDICATES (RelAnd / RelOr) ───────────────────
-// Marker-preserving pointwise combinators for the predicate-level && / || on
-// relpreds.  Distinct from the SET-level relation & / | (intersection / union
-// of two Set<pair>): those combine whole relations, RelAnd / RelOr combine bare
-// pair-predicates and stay IsRelPredicate (usable in 𝔸<pair> | relpred).
-/** @brief Meet (conjunction) of two relational predicates. */
-export template <typename A, typename B>
-struct RelAnd {
-  using is_rel_predicate = void;
-  A a;
-  B b;
-  // @c auto (not @c bool): the result inherits the operands' own logic, so over
-  // a @c Kleene relation this is the Kleene @c ∧ (a @c bool cast would
-  // collapse @c Unknown).  FIXME(#780): mixed Boolean/Ternary operands (a
-  // ternary relation @c & @c diag()) still need a lift on the bool side.
-  template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p) && b(p);
-  }
-};
-
-/** @brief Join (disjunction) of two relational PREDICATES --- the dual of
- *  @c RelAnd, and the marker-preserving carrier for the pointwise @c || on
- *  @c relpred.  Distinct from relation UNION at the SET level (@c r @c | @c s,
- *  the @c Join of two @c Set<pair>): @c RelOr composes two bare
- *  pair-PREDICATES so the result is itself an @c IsRelPredicate (usable in the
- *  comprehension @c 𝔸<pair> @c | @c relpred).  (#864 dropped the old
- *  @c operator+ spelling; this is the @c && / @c || dual re-introduced (#824)
- *  as the @c structured_or result, not a competing operator.) */
-export template <typename A, typename B>
-struct RelOr {
-  using is_rel_predicate = void;
-  A a;
-  B b;
-  // @c auto (not @c bool): inherit the operands' logic (Kleene @c ∨ over
-  // Kleene), mirroring @c RelAnd.
-  template <typename P>
-  constexpr auto operator()(const P& p) const {
-    return a(p) || b(p);
-  }
-};
+// The pointwise connectives of relational predicates belong to the term grammar
+// (sets:terms); their names stay reachable here for the relation algebra.
+export using dedekind::sets::RelAnd;
+export using dedekind::sets::RelOr;
 
 // Relation UNION at the SET level is the set-grammar join @c |: two relations
 // over the same product are two @c Set<pair>, so @c r @c | @c s is their

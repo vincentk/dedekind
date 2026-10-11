@@ -59,6 +59,7 @@ import dedekind.category;
 import :cardinality;
 import :boundaries;
 import :expressions;
+import :terms;  // Projection: π == v
 
 /**
  * @section singleton__Mereology
