@@ -234,9 +234,8 @@ concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
  * arrows sit @b between inclusion relations.  This is the allegory-arrow
  * composition on the function subcategory; it @b recovers the two arrows (via
  * @c GraphPredicate) and re-graphs their composite under the @b general arrow
- * @c ∘ --- the general-carrier sibling of the affine @c ProjAddConstProj @c ;
- * in
- * @c :halfspace (which adds pivots).
+ * @c ∘ --- the general-carrier sibling of the translation graphs' @c >> in
+ * @c :halfspace (which adds shifts).
  *
  * @note No overload clash: for a non-@c bool intermediate the dyadic @c ; (@c
  * requires @c same_as<B,bool>) is non-viable; on a @c bool middle this overload

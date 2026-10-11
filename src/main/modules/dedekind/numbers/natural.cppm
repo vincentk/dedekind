@@ -52,7 +52,6 @@
  */
 module;
 
-#include <array>  // FiniteResidueSet: membership per residue of ℤ/Nℤ
 #include <concepts>
 #include <cstddef>  // std::size_t (residue loop)
 #include <functional>
@@ -482,75 +481,62 @@ namespace dedekind::sets {
 
 // (The element<ℕ> % Modular<N> == bound<R> scout that reified Congruence<N,R>
 // lived here; retired with the S | P fold --- the point-free congruence
-// fragment is π % fix(N) == fix(R), materialised by the operator| bridge
+// fragment is π % N == R, materialised by the operator| bridge
 // below.)
 
 /**
- * @struct FiniteResidueSet
- * @brief The image of a Modular<N>-factoring predicate, materialised over the N
- *        residues of ℤ/Nℤ: @c at[r] is the membership of residue @c r.
+ * @struct ResidueClass
+ * @brief The class @f$\{x \in \mathbb{N} \mid x \equiv r \pmod n\}@f$,
+ *        read analytically: the materialisation of @c ℕ @c | @c (π @c % @c n
+ *        @c == @c r).
  *
- * @details A finite-carrier materialisation.  Carries BOTH lattice-bound
- * comparisons (Eqn 2): @c ==Ø (scheme A anchor: every residue a non-member) and
- * @c ==𝔸 (scheme B anchor: every residue a member).  Emptiness of the
- * @f$\aleph_0@f$-sized @f$\{x\in\mathbb{N}\mid P(x)\}@f$ is decided on the
- * finite quotient: no residue is a member iff no natural is, since every
- * natural has a residue.
+ * @details Both lattice-bound comparisons (Eqn 2) are decided without
+ * enumerating anything: a residue class of a positive modulus is never empty
+ * (@c r itself, normalised into @f$[0, n)@f$, is a member), and it is all of
+ * ℕ exactly when @f$n = 1@f$.  The modulus is positive by construction: a
+ * division by the constant 0 is refused when the term is built.
+ * @tparam L the species.
  */
-export template <auto N, typename L>
-struct FiniteResidueSet {
-  std::array<typename L::Ω, N> at;
+export template <typename L>
+struct ResidueClass {
+  long long modulus;
+  long long residue;  // normalised into [0, modulus)
 
-  constexpr bool operator==(const Ø<Cardinality, L>&) const {
-    for (const auto& v : at)
-      if (!(v == L::False)) return false;
-    return true;  // (A) ∅ iff every residue is a non-member
-  }
+  constexpr bool operator==(const Ø<Cardinality, L>&) const { return false; }
   template <typename C>
   constexpr bool operator==(const 𝔸<Cardinality, L, C>&) const {
-    for (const auto& v : at)
-      if (!(v == L::True)) return false;
-    return true;  // (B) 𝔸 iff every residue is a member
+    return modulus == 1;
   }
   friend constexpr bool operator==(const Ø<Cardinality, L>& e,
-                                   const FiniteResidueSet& s) {
+                                   const ResidueClass& s) {
     return s == e;
   }
   template <typename C>
   friend constexpr bool operator==(const 𝔸<Cardinality, L, C>& u,
-                                   const FiniteResidueSet& s) {
+                                   const ResidueClass& s) {
     return s == u;
   }
 };
 
-/** @brief @c ℕ @c | @c (π % fix(N) == fix(R)): the point-free residue class,
- *  materialised over the N residues of @f$\mathbb{Z}/N\mathbb{Z}@f$.  The
- *  where-clause form of the finite-quotient comprehension --- @c
- *  ProjModConstBound is the order-layer congruence fragment (@c π % fix(N) ==
- *  fix(R)), and this is @c {x ∈ ℕ | x ≡ R mod N} decided on the N residues.
- *  ADL finds it through the @c 𝔸<Cardinality> (sets) operand. */
-export template <typename L, typename C, auto N, auto R>
-constexpr auto operator|(
+/** @brief @c ℕ @c | @c (π @c % @c n @c == @c r): the residue class, decided
+ *  analytically.  @c r is normalised into @f$[0, n)@f$ as the mathematical
+ *  residue, so @c π @c % @c 3 @c == @c 3 and @c == @c -1 name the classes of 0
+ *  and 2.  ADL finds it through the @c 𝔸<Cardinality> operand.
+ *  @tparam K1 the modulus's type.  @tparam K2 the residue's type. */
+export template <typename L, typename C, std::integral K1, std::integral K2>
+constexpr ResidueClass<L> operator|(
     const 𝔸<Cardinality, L, C>&,
-    dedekind::order::ProjModConstBound<0, N, dedekind::order::Rel::Eq, R>) {
-  // Normalise R into [0,N) exactly as ProjModConstBound does (mathematical
-  // residue, not raw value), so equivalent fragments like π%fix(3_c)==fix(3_c)
-  // or fix(-1_c) materialise as residues 0 and N−1, not empty.  Add N only when
-  // the first remainder is negative, so the intermediate never overflows for a
-  // large valid residue (R%N is already in (−N,N), so R%N+N stays in range).
-  constexpr auto r0 = R % N;
-  constexpr auto Rn = r0 < 0 ? r0 + N : r0;
-  std::array<typename L::Ω, N> at{};
-  for (std::size_t r = 0; r < static_cast<std::size_t>(N); ++r)
-    at[r] = (r == static_cast<std::size_t>(Rn)) ? L::True : L::False;
-  return FiniteResidueSet<N, L>{at};
+    const Cmp<Rel::Eq, BinOp<Rem, Projection<0>, Const<K1>>, Const<K2>>& c) {
+  const long long n = static_cast<long long>(c.a.b.value);
+  const long long r0 = static_cast<long long>(c.b.value) % n;
+  return ResidueClass<L>{n, r0 < 0 ? r0 + n : r0};
 }
 
 // ∃ / ∀ over 𝔸<Cardinality> are the generic structural quantifiers of
 // :quantifier (template <IsSet S, typename P> with !IsSet<P>, folded onto s |
-// p; the point-free fragment is NOT an IsPredicate): the congruence fragment π
-// % fix(N) == fix(R) materialises through the operator| above into a
-// FiniteResidueSet, whose == Ø / == 𝔸 decide.
+// p; the point-free fragment is NOT an IsPredicate): the congruence fragment
+// π % n == r materialises through the operator| above into a ResidueClass,
+// whose == Ø / == 𝔸 decide.
 
 }  // namespace dedekind::sets
 
@@ -560,30 +546,23 @@ namespace dedekind::numbers {
 // template <IsSet S, IsPredicate P> exists / forall of :quantifier against the
 // two lattice bounds (Eqn 2): ∃ vs ∅ (A), ∀ vs the input set S (B).
 
-using dedekind::order::fix;
-using dedekind::order::true_c;
-using dedekind::sets::π;  // projection scout, moved to :sets:expressions
-                          // (#878)
-using dedekind::order::operator""_c;
+using dedekind::sets::π;
 
 // 𝔹 = 𝔸<bool>, a finite carrier: the point-free membership fragment
-// π == fix(true_c) materialises over {false, true} through s | p.
-static_assert(dedekind::sets::exists(𝔹, π == fix(true_c)),
+// π == true materialises over {false, true} through s | p.
+static_assert(dedekind::sets::exists(𝔹, π == true),
               "∃b∈𝔹. b — true is a member.");
-static_assert(!dedekind::sets::forall(𝔹, π == fix(true_c)),
+static_assert(!dedekind::sets::forall(𝔹, π == true),
               "¬∀b∈𝔹. b — false is a counterexample.");
 
 // ℕ = 𝔸<Cardinality>, infinite: the point-free congruence fragment
-// π % fix(3_c) == fix(0_c) (≡ 0 mod 3).  ∃/∀ are decided in FINITE time by the
-// three residues of ℤ/3ℤ: ∃ finds residue 0 against ∅; ∀ fails on residues 1,2
-// against S --- s | p materialises the fragment into a FiniteResidueSet.
-static_assert(
-    dedekind::sets::exists(dedekind::sets::𝔸<dedekind::sets::Cardinality>{},
-                           π % fix(3_c) == fix(0_c)),
-    "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
-static_assert(
-    !dedekind::sets::forall(dedekind::sets::𝔸<dedekind::sets::Cardinality>{},
-                            π % fix(3_c) == fix(0_c)),
-    "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
+// π % 3 == 0 (≡ 0 mod 3).  ∃/∀ are decided without enumeration: the class is
+// never empty, and it is not all of ℕ since 3 ≠ 1.
+static_assert(dedekind::sets::exists(
+                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 0),
+              "∃x∈ℕ. 3∣x — residue 0 is divisible by 3.");
+static_assert(!dedekind::sets::forall(
+                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 0),
+              "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
 
 }  // namespace dedekind::numbers

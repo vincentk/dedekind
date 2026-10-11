@@ -1191,7 +1191,7 @@ export constexpr std::partial_ordering operator<=>(
 // (@c Cardinality, @c SignedCardinality) and built-in @c std::integral
 // values.  The load-bearing path is the halfspace machinery's
 // @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy and
-// @c Pivot is the @c int NTTP from @c bound<-21>: previously this
+// @c Pivot is the @c int NTTP from @c -21: previously this
 // required an explicit lift of the literal to the variant alternative.
 //
 // Defining @c operator<=> together with @c operator== lets the C++20
@@ -1261,7 +1261,7 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 // Cross-type relational operators between the variant ℕ-/ℤ-proxy
 // carriers and built-in @c std::floating_point values.  Mirrors the
 // @c std::integral overloads above; needed for showcase callsites like
-// @c (var<ℤ> @c > @c bound<-21.0>) where @c bound<V>'s NTTP type is
+// @c (var<ℤ> @c > @c -21.0) where @c bound<V>'s NTTP type is
 // @c double and the carrier is the variant.  Returns @c
 // std::partial_ordering throughout — a NaN @c rhs (or @c NaZ on @c
 // lhs) propagates as @c unordered, IEEE-NaN-style.

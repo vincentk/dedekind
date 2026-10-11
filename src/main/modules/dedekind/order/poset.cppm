@@ -147,7 +147,7 @@ concept HasPartialOrderOperators = requires(const T a, const T b) {
  * e.g.\ @c SignedCardinality @c < @c int (the load-bearing path for
  * the halfspace machinery's @c (x @c > @c Pivot) substitution where
  * @c x is the variant ℤ-proxy carrier and @c Pivot is the @c int NTTP
- * from @c bound<-21>).
+ * from @c -21).
  *
  * @c L defaults to @c Boole, mirroring the homogeneous
  * sibling above and @c IsPreOrdered / @c IsPartiallyOrdered.

@@ -48,9 +48,8 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
   {
     static_assert(
         dedekind::category::IsSet<decltype(ℕ)>);  // the universe IS an ETCS set
-    constexpr Above<> gt_5 =
-        ℕ | (π > fix(5_c));           // {x > 5} ⊂ ℕ (pivot in value)
-    constexpr AtMost<> le_5 = ~gt_5;  // {x <= 5}, the complement
+    constexpr Above<> gt_5 = ℕ | (π > 5);  // {x > 5} ⊂ ℕ (pivot in value)
+    constexpr AtMost<> le_5 = ~gt_5;       // {x <= 5}, the complement
     // LEM (⊤): {x≤5} ∪ {x>5} covers ℕ.  Value-carrying cannot dispatch the
     // opposite-direction cover-vs-gap on a runtime pivot, so the union is
     // the honest point-wise set (not a structural 𝔸); it still DECIDES

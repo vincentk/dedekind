@@ -818,7 +818,7 @@ static_assert(IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
  *  (@c bool, @c Cardinality, @c SignedExtensionalCardinal<>, ...) in
  *  template-type-parameter positions; the math symbols denote the sets.
  *
- *  This makes @c ℕ @c | @c (π @c ⋈ @c fix(c)) the canonical spelling for a
+ *  This makes @c ℕ @c | @c (π @c ⋈ @c c) the canonical spelling for a
  *  subset of the natural-numbers universe, close to textbook notation.
  *
  *  Pre-#559 the spelling was @c using @c ℕ @c = @c
@@ -840,7 +840,7 @@ export inline constexpr auto ℕ = 𝔸<Cardinality>{};
 
 // The canonical witnesses for ℕ; downstream partitions build on these.  The
 // subobject "ℕ ⊂ ℤ" over a signed carrier is not a second ℕ: it is the
-// halfspace 𝔸<int>{} | (π >= fix(0_c)) in :order.
+// halfspace 𝔸<int>{} | (π >= 0) in :order.
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>> &&
                   std::same_as<𝔸<Cardinality>::Domain, Cardinality> &&
                   IsSet<𝔸<Cardinality>>,
@@ -851,7 +851,7 @@ static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>
  *  downstream code refers to (no partition re-exports or re-aliases it); the
  *  carrier is @c bool and is spelled directly in type positions.  Companion
  *  to @c ℕ for the point-free set-builder surface
- *  @c 𝔹 @c | @c π @c == @c fix(true_c).
+ *  @c 𝔹 @c | @c π @c == @c true.
  */
 export inline constexpr auto 𝔹 = 𝔸<bool>{};
 

@@ -32,19 +32,19 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
   }
 
   SECTION("𝔹 = 𝔸<bool>: finite carrier, materialised over {false, true}") {
-    // Point-free membership fragment: π == fix(true_c), materialised via s | p.
+    // Point-free membership fragment: π == true, materialised via s | p.
     CHECK(exists(𝔹,
-                 π == fix(true_c)));  // (A) {b | b} ≠ ∅ — true a member
+                 π == true));  // (A) {b | b} ≠ ∅ — true a member
     CHECK_FALSE(forall(𝔹,
-                       π == fix(true_c)));  // (B) ≠ S — false a counterexample
+                       π == true));  // (B) ≠ S — false a counterexample
   }
 
   SECTION("ℕ = 𝔸<Cardinality>: infinite carrier, factored through ℤ/3ℤ") {
-    // Point-free congruence fragment π % fix(3_c) == fix(0_c) (≡ 0 mod 3); s |
+    // Point-free congruence fragment π % 3 == 0 (≡ 0 mod 3); s |
     // p materialises it over the three residues of ℤ/3ℤ.
     CHECK(exists(𝔸<Cardinality>{},
-                 π % fix(3_c) == fix(0_c)));  // (A) ∃ x ≡ 0 (residue 0 vs ∅)
+                 π % 3 == 0));  // (A) ∃ x ≡ 0 (residue 0 vs ∅)
     CHECK_FALSE(forall(𝔸<Cardinality>{},
-                       π % fix(3_c) == fix(0_c)));  // (B) residues 1,2 vs S
+                       π % 3 == 0));  // (B) residues 1,2 vs S
   }
 }

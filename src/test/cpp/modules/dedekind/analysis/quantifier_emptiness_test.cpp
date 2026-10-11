@@ -39,8 +39,8 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     collapse).  This is the counterexample set of ∀x>5. x≥3, namely
   //     {x>5 ∧ x<3}, decided empty at compile time on the bare point-free
   //     grammar; no `Set{}` wrap is involved.
-  constexpr auto gt5 = ℕ | (π > fix(5_c));
-  constexpr auto lt3 = ℕ | (π < fix(3_c));
+  constexpr auto gt5 = ℕ | (π > 5);
+  constexpr auto lt3 = ℕ | (π < 3);
   static_assert((gt5 & lt3).kind == SetKind::Empty,
                 "{x>5 ∧ x<3} folds to the empty set at compile time.");
   CHECK((gt5 & lt3).kind == SetKind::Empty);  // runtime (Codecov)

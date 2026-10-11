@@ -109,13 +109,12 @@ struct Point {
 };
 
 /** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
- *  set former binds (@c 𝔹 | (π == true) is @c {true}).  The grammar's tags are
- *  empty types, not values; @c π == fix(c) keeps its binder in @c :order.
- *  Equality is @c Point's own constraint, checked when the body instantiates,
- *  and deliberately @b not this head's: an @c equality_comparable check on a
- *  deduced @c T asks for @c T @c == @c T, which finds this very operator by ADL
- *  when @c T is a projection or a standard @c optional / @c variant of a sets
- *  type, and the satisfaction depends on itself.
+ *  set former binds (@c 𝔹 | (π == true) is @c {true}).   *  Equality is @c
+ * Point's own constraint, checked when the body instantiates, and deliberately
+ * @b not this head's: an @c equality_comparable check on a deduced @c T asks
+ * for @c T @c == @c T, which finds this very operator by ADL when @c T is a
+ * projection or a standard @c optional / @c variant of a sets type, and the
+ * satisfaction depends on itself.
  *  @tparam T the carrier, a value type (copyable, default-constructible) that
  *          is not a grammar tag. */
 export template <std::semiregular T>
@@ -123,6 +122,16 @@ export template <std::semiregular T>
 constexpr auto operator==(Projection<0>, T v) {
   return Point<T>{std::move(v)};
 }
+/** @brief A point written with a literal of another type, @c ℕ @c | @c (π @c ==
+ *  @c 5): the value meets the carrier exactly, or the binding raises.
+ *  @tparam T the carrier.  @tparam K the literal's type. */
+export template <std::semiregular T, IsOckhamAlgebra L, IsCardinality C,
+                 std::semiregular K>
+  requires(!std::same_as<T, K>) && requires(const K& k) { carrier_cast<T>(k); }
+constexpr auto operator|(const 𝔸<T, L, C>& u, const Point<K>& p) {
+  return u | Point<T>{carrier_cast<T>(p.pivot)};
+}
+
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
               "the standard's == on an optional of a sets type is its own: the "
               "point datum's == above enters the candidate set by ADL and is "
@@ -167,7 +176,7 @@ constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>
 /** @brief A point is the whole universe only on the unit carrier: @c {x} ==
  * 𝔸<T> iff @c T has exactly one value (@c category::One).  On every other
  * carrier it is @c false --- the @c forall leg for the @c == fragment
- *  (@c 𝔸<bool>{} | (π == fix(v)) collapses to a @c Singleton<bool>, and
+ *  (@c 𝔸<bool>{} | (π == v) collapses to a @c Singleton<bool>, and
  *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
  *  @c :order, so ADL finds it from @c sets-level generic code. */
 export template <std::equality_comparable T, IsOckhamAlgebra L,

@@ -22,12 +22,9 @@
  *
  * These combinators moved DOWN out of @c order/halfspace.cppm (#792): they are
  * pure @c Set<pair> algebra with @b no ordering, so they belong below @c order.
- * @c order keeps its projection DSL (@c π1/π2, @c ProjProj, the ordered
- * comparisons @c π1<π2, and the predicate-level meet @c && --- @c
- * structured_and → @c RelAnd, #824 --- over @c IsRelPredicate for building
- * cylinder predicates) and its relation @b witnesses, now consuming these
- * combinators via @c using @c namespace @c dedekind::relational (order imports
- * @c dedekind.relational).
+ * The term grammar (projections, atoms, @c && / @c ||) lives in @c sets:terms;
+ * @c order keeps the reading of order atoms as halfspaces and the relation
+ * @b witnesses that need an order.
  *
  * @section dyadic__Base_Of_The_Others
  * @c :graph (graphs of arrows) and @c :tables (Codd's n-ary model) both build
@@ -465,9 +462,7 @@ struct Intersect {
 
 /** @brief The equality-of-coordinates predicate for the diagonal
  *  @f$\Delta = \{(a,a)\}@f$.  A plain @c std::equality_comparable check ---
- *  the sets-level reframing of what @c order/halfspace spelled as
- *  @c ProjProj<1,Eq,2> (which needed the ordered projection DSL); the diagonal
- *  is pure equality, no ordering, so it lives here at the base. */
+ *  the diagonal is pure equality, no ordering, so it lives here at the base. */
 export template <typename A>
 struct DiagPred {
   using is_rel_predicate = void;
@@ -620,11 +615,11 @@ static_assert(
 // defined in THIS partition (Δ = @c DiagPred, the relative product =
 // @c ComposePred), so they live here: a client importing only
 // @c dedekind.relational sees them, without pulling in @c order / @c algebra.
-// The @c ProjProj / @c ProjAddConstProj DSL spellings keep their OWN
-// certificates in @c order/halfspace + @c algebra/halfspace_transport (those
-// depend on the ordered projection machinery).  Moved here in PR #797 (Copilot
-// review) so relation semantics are self-contained; a dropped certificate is
-// invisible to a build, so each is witnessed below (compile error on regress).
+// The term grammar's graphs (@c π2 @c == @c T) carry their certificates in
+// @c order/halfspace + @c algebra/halfspace_transport.  Moved here in PR #797
+// (Copilot review) so relation semantics are self-contained; a dropped
+// certificate is invisible to a build, so each is witnessed below (compile
+// error on regress).
 namespace dedekind::category {
 
 // LEAF: the diagonal Δ = {(a,a)} is a TOTAL FUNCTION (a ↦ a) --- single-valued

@@ -34,8 +34,8 @@ using namespace dedekind::order;
 // Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Cardinality>),
 // with pivots (5 and 3) carried as NTTPs via fix().  A halfspace IS a set, so
 // no Set{} wrapper.
-constexpr auto gt_5 = ℕ | (χ > fix(5_c));
-constexpr auto lt_3 = ℕ | (χ < fix(3_c));
+constexpr auto gt_5 = ℕ | (χ > 5);
+constexpr auto lt_3 = ℕ | (χ < 3);
 
 // Compile-time theorem: the meet folds value-first to the empty SetVal on ℕ.
 constexpr auto empty_meet = gt_5 & lt_3;

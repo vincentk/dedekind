@@ -25,7 +25,7 @@
  *
  * @section expressions__Canonical_Examples
  * ```cpp
- * const auto xs = ℕ | (χ < fix(512_c));  // {n in ℕ | n < 512}
+ * const auto xs = ℕ | (χ < 512);  // {n in ℕ | n < 512}
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
@@ -262,13 +262,23 @@ concept IsDatum =
 
 /** @brief The set former @c 𝔸<T, L>{} @c | @c P = @f$\{x \in T \mid P(x)\}@f$
  *  for a datum @c P (a point @c π == v, a cut @c π > v).  A set is not a
- *  datum: @c 𝔸 | S is the join.  The compile-time atoms @c π ⋈ fix(c) keep
- *  their own binders in @c :order.
+ *  datum: @c 𝔸 | S is the join.
  *  @tparam T the carrier.
  *  @tparam L the species.
  *  @tparam C the cardinality.
  *  @tparam P the datum. */
 export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsDatum<T> P>
+constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+  return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
+}
+
+/** @brief @c 𝔸<T> @c | @c atom for an atom on the unary @c π
+ *  (@c ℕ @c | @c (π @c % @c 3 @c == @c 0)): the atom evaluated at each element.
+ *  @tparam T the carrier.  @tparam P the atom. */
+export template <typename T, IsOckhamAlgebra L, IsCardinality C,
+                 IsRelPredicate P>
+  requires(only_slot(slots_v<P>, 0)) &&
+          std::convertible_to<std::invoke_result_t<const P&, const T&>, bool>
 constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }

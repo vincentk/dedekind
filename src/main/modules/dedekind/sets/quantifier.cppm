@@ -126,18 +126,17 @@ constexpr bool forall(const S& s, P p) {
  *        finite quotient rather than by enumeration.
  *
  * @details The comprehension is the where-clause @c S @c | @c P: on
- * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==fix(v) to a @c
- * Singleton, @c π⋈fix(v) to a @c Halfspace), each carrying a finite @c ==Ø /
- * @c ==𝔸 over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%fix(N)==
- * fix(R) materialises to a @c FiniteResidueSet over
- * @f$\mathbb{Z}/N\mathbb{Z}@f$. No range, no @c begin/end walk: the proof is
- * exhaustion of a finite quotient. See the §3.1 exhibit.
+ * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==v to a @c
+ * Singleton, @c π⋈v to a @c Halfspace), each carrying a finite @c ==Ø /
+ * @c ==𝔸 over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%n==r
+ * materialises to a @c ResidueClass, decided analytically. No range, no
+ * @c begin/end walk. See the §3.1 exhibit.
  */
 
 /** @brief A where-clause over the set @c S: a fragment @c P for which
  *  @c S @c | @c P is the comprehension @f$\{x \in S \mid P(x)\}@f$ --- a datum
  *  (@c π @c == @c v, @c π @c > @c v) or a carrier-agnostic fragment (@c π @c ==
- *  @c fix(c), @c π @c % @c fix(N) @c == @c fix(R)), which has no domain until
+ *  @c c, @c π @c % @c n @c == @c r), which has no domain until
  * the former binds it.  Not a set: @c S @c | @c T would be the union.  What
  *  the former returns is the fragment's business (a comprehension, a residue
  *  set), so only its acceptance is asked.
@@ -154,7 +153,7 @@ concept IsWhereClause = !dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
 // retired
 // @c set(S,P) / @c IsPredicate surface): the @c | materialises the
 // comprehension per carrier (@c 𝔹 here, ℤ/Nℤ in :numbers). The point-free query
-// @c P is an UNBOUND fragment (@c π == fix(v), @c π % fix(N) == fix(R), a
+// @c P is an UNBOUND fragment (@c π == v, @c π % n == r, a
 // halfspace) --- it has no @c Domain, so it is not
 // @c IsPredicate; the gate is simply that @c s @c | @c p is well-formed (the
 // where-clause materialises the comprehension).  A raw lambda has no @c

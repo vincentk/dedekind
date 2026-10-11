@@ -53,7 +53,7 @@ import dedekind.sets;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
-using namespace dedekind::order;  // operator""_c (the fix(N_c) literals)
+using namespace dedekind::order;  // the cylinders and translations
 using namespace dedekind::relational;
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
@@ -84,12 +84,12 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  * 2@f$ test.  Its complement @f$\sim@f$@c n_even is @f$\{n \text{ odd}\}@f$ (on
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
-constexpr auto n_even = ℕ * ℕ | π1 % fix(2_c) == fix(0_c);
+constexpr auto n_even = ℕ * ℕ | π1 % 2 == 0;
 /** @brief The even step @f$m = n/2@f$, spelled without division as
  *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = ℕ * ℕ | π2 * fix(2_c) == π1;
+constexpr auto halve = ℕ * ℕ | π2 * 2 == π1;
 /** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
-constexpr auto triple_plus_1 = ℕ * ℕ | π1 * fix(3_c) + fix(1_c) == π2;
+constexpr auto triple_plus_1 = ℕ * ℕ | π1 * 3 + 1 == π2;
 
 /** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
  *  spelled @b point-free as the McCarthy conditional
@@ -148,7 +148,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 //
 // @c collatz;collatz needs @f$\exists b@f$ over the ℕ middle --- the Rice wall
 // on all of ℕ.  Bounding the domain to a finite prefix makes it DECIDABLE: the
-// half-space contraction @c collatz @c | @c (π1 @c < @c fix(M_c)) tags the
+// half-space contraction @c collatz @c | @c (π1 @c < @c M) tags the
 // relation with the bound @c M in its pivot value, and the bounded @c >> (@c
 // :sequences) reads @c M and streams the @f$\exists@f$-over-the-middle as an
 // OR-fold over @f$[0,M)@f$ --- O(1) memory, O(M) steps, no array.  The result
@@ -159,7 +159,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
  *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
-constexpr auto collatzM = collatz | (π1 < fix(64_c));
+constexpr auto collatzM = collatz | (π1 < 64);
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  *  @f$[0,64)@f$ middle --- two steps, the bare relative product, middle

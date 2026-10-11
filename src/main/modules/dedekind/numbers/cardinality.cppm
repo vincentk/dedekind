@@ -138,7 +138,7 @@ static_assert(!dedekind::order::IsDense<dedekind::sets::SignedCardinality>,
 //
 // The load-bearing pair is @c (SignedCardinality, int) --- the halfspace
 // machinery's @c (x @c > @c Pivot) substitution where @c x is the
-// variant ℤ-proxy and @c Pivot is the @c int NTTP from @c bound<-21>.
+// variant ℤ-proxy and @c Pivot is the @c int NTTP from @c -21.
 // @c HasPartialOrderOperatorsWith is symmetric in @c T and @c U
 // (mirrors @c std::three_way_comparable_with), so a single witness per
 // pair pins both directions of the relational surface.
@@ -148,7 +148,7 @@ using Card = dedekind::sets::Cardinality;
 
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, int>,
               "SignedCardinality must accept partial-order comparison "
-              "with int (the halfspace bound<-21> NTTP path).");
+              "with int (the halfspace -21 NTTP path).");
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, long>,
               "SignedCardinality must accept partial-order comparison "
               "with long (cross-width signed integral).");
@@ -165,7 +165,7 @@ static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, bool>,
               "the make_unsigned_t<bool>-undefined trap).");
 
 // Floating-point cross-type comparison (closes #428).  Load-bearing for
-// the real-pivot showcases (e.g.\ @c var<ℤ> @c > @c bound<-21.0> in
+// the real-pivot showcases (e.g.\ @c var<ℤ> @c > @c -21.0 in
 // showcase 07) where the bound's NTTP type is @c double and the carrier
 // is the variant.  @c HasPartialOrderOperatorsWith is symmetric, so one
 // witness per pair pins both directions.

@@ -34,7 +34,7 @@
 import dedekind.category; // IsArrow, identity_v
 import dedekind.algebra;  // MaxPlus, semiring_ops
 import dedekind.sets;     // ℕ, Cardinality, finite_cardinality, the product (*)
-import dedekind.order;    // π1, π2, fix, _c — the relational-predicate DSL
+import dedekind.order;    // the relational-predicate DSL
 import dedekind.relational; // the relational-predicate machinery (converse, …)
 import dedekind.linear_algebra; // OuterProduct — the rank-1 dyad carrier
 
@@ -69,10 +69,9 @@ constexpr OuterProduct<LogWeight, LogWeight, TropMult> kValue{LogWeight{},
 
 // (S1) The band SUPPORT |y−x| ≤ 1 as the DISJUNCTION of three adjacency graphs,
 //   point-free over ℕ×ℕ — intensional, infinite basis:
-const auto kBand = (ℕ * ℕ | π1 == π2)  // y = x       (main diagonal)
-                   |
-                   (ℕ * ℕ | π1 + fix(1_c) == π2)  // y = x + 1 (super-diagonal)
-                   | (ℕ * ℕ | π2 + fix(1_c) == π1);  // x = y + 1 (sub-diagonal)
+const auto kBand = (ℕ * ℕ | π1 == π2)         // y = x       (main diagonal)
+                   | (ℕ * ℕ | π1 + 1 == π2)   // y = x + 1 (super-diagonal)
+                   | (ℕ * ℕ | π2 + 1 == π1);  // x = y + 1 (sub-diagonal)
 
 // Named helpers (no lambdas): the ℕ×ℕ index pair, and the masked band entry.
 constexpr std::pair<Cardinality, Cardinality> at(std::size_t x, std::size_t y) {

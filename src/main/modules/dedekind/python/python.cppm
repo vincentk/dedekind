@@ -198,7 +198,7 @@ inline Arrow<Dom<F>> compose(const F& f, const G& g) {
 // Lwv := Jlt ∩ Set (paper.tex:158): intensional sets over a Jlt carrier, a set
 // being a membership test @c {x ∈ S | P(x)} rather than a listing.  The
 // canonical README exhibit is the two overlapping halfspaces
-// @c {x>3} ∩ {x<5} = {4}: a halfspace @c ℕ|(χ ⋈ fix(k)) is the principal
+// @c {x>3} ∩ {x<5} = {4}: a halfspace @c ℕ|(χ ⋈ k) is the principal
 // filter/ideal @c ↑k / @c ↓k of the carrier order, and its meet routes through
 // the @b real @b :order reducer @c structured_and (the value-first crossing law
 // @c ↑a ∩ ↓b = [a,b], collapsing to a @c Singleton over an integral carrier).

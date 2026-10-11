@@ -21,8 +21,8 @@ using namespace dedekind::numbers;
 TEST_CASE("extensional ∩ intensional composes and always materialises",
           "[sets][ext][composition]") {
   std::set<int> xs{2, 3, 5};
-  auto gt3 = ℕ | π > fix(3_c);  // {x > 3}, a halfspace (intensional)
-  auto gt5 = ℕ | π > fix(5_c);  // {x > 5}
+  auto gt3 = ℕ | π > 3;  // {x > 3}, a halfspace (intensional)
+  auto gt5 = ℕ | π > 5;  // {x > 5}
   CHECK(ext(xs, gt3) == std::set<int>{5});  // {2,3,5} ∩ {x>3}
   CHECK(ext(xs, gt5) == std::set<int>{});   // {2,3,5} ∩ {x>5}
 }

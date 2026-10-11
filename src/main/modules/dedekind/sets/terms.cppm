@@ -64,12 +64,10 @@ using namespace dedekind::category;
 /**
  * @brief @c π --- the point-free variable, naming no carrier.
  *
- * @details @c π leaves the carrier open.  A comparison @c π @c ⋈ @c fix(V)
- * fixes only the @b shape (direction and pivot) as an @c UnboundHalfspace / @c
- * UnboundSingleton; a later @c carrier @c | @c ... instantiates it at the
- * carrier's @c Domain, reusing
- * @c Halfspace / @c Singleton.  @c π is the unary projection; the product
- * coordinates @c π1 / @c π2 follow with the relational surface (#783).
+ * @details @c π leaves the carrier open: @c π @c > @c 5 is a cut datum, @c π
+ * @c == @c v a point, and the former @c carrier @c | @c ... binds it, the
+ * constant meeting the carrier exactly.  @c π is the unary projection; the
+ * product coordinates @c π1 / @c π2 follow.
  *
  * @note @c Projection itself is an @b empty symbolic tag (not callable), so it
  * does @b not satisfy @c category::IsProductProjection --- it is the DSL
@@ -79,10 +77,7 @@ using namespace dedekind::category;
  * canonical projections in @c :limit) and IS a certified
  * @c IsProductProjection --- the static_assert after @c coord pins that
  * agreement.  So @c π1 / @c π2 (tags) and @c category::π_1 / @c π_2 (accessors)
- * are two spellings of one notion, bridged by @c coord.  The symbolic-tag
- * surface + its comparison operators (which build @c ProjRel / @c ProjBound in
- * @c :order) grew up with the comprehension DSL; unifying it with @c :limit is
- * a @b non-urgent follow-up (#878).
+ * are two spellings of one notion, bridged by @c coord.
  * @see dedekind::category::π_1, dedekind::category::π_2
  * @see dedekind::category::IsProductProjection
  */
@@ -92,7 +87,7 @@ struct Projection {};
 export inline constexpr Projection<0> π{};
 // Cosmetic alias for the sole projection π (the bound element of a
 // single-carrier comprehension): a plain element also reads as @c χ,
-// e.g. @c ℕ @c | @c χ @c <= @c fix(5_c).  Same type and behaviour as π (a
+// e.g. @c ℕ @c | @c χ @c <= @c 5.  Same type and behaviour as π (a
 // distinct inline object, so a distinct address), just a second spelling.
 // (Plain @c x is deliberately not offered: it shadows the pervasive local
 // element parameter named @c x and would trip @c -Wshadow.)
@@ -103,12 +98,12 @@ export inline constexpr Projection<0> χ{};
  * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
  *        variables of the point-free relational surface.
  *
- * @details A comparison @c π_I @c ⋈ @c π_J or @c π_I @c ⋈ @c fix(V) builds a
+ * @details A comparison of terms over @c π_I builds a
  * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
  * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
  * and @c product @c | @c predicate restricts the product to the relation.
  * @c && binds looser than @c |, so the comprehension parenthesises the meet:
- * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c fix(5_c)) is the relation
+ * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c 5) is the relation
  * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
  */
 export inline constexpr Projection<1> π1{};
@@ -391,7 +386,7 @@ constexpr auto operator%(A a, B b) {
  *  @tparam F the arrow.  @tparam A the term. */
 export template <typename F, typename A>
   requires IsArrow<std::remove_cvref_t<F>> && IsTerm<A>
-constexpr Ap<std::remove_cvref_t<F>, A> ap_term(F f, A a) {
+constexpr Ap<std::remove_cvref_t<F>, A> ap(F f, A a) {
   return {std::move(f), std::move(a)};
 }
 
@@ -454,6 +449,8 @@ constexpr C carrier_cast(const K& k) {
   } else if constexpr (std::same_as<C, Cardinality> && std::integral<K>) {
     if (k < K{}) throw std::domain_error("a negative constant meets ℕ");
     return finite_cardinality(static_cast<std::size_t>(k));
+  } else if constexpr (std::same_as<C, SignedCardinality> && std::integral<K>) {
+    return finite_signed_cardinality(k);
   } else if constexpr (std::same_as<C, bool> && std::integral<K>) {
     if (k != K{0} && k != K{1})
       throw std::domain_error("a constant other than 0 or 1 meets 𝔹");
@@ -581,6 +578,19 @@ export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator>=(A a, B b) {
   return make_cmp<Rel::Ge>(std::move(a), std::move(b));
+}
+
+/** @brief The meet and join of two relational predicates under the reducer's
+ *  customization-point names, so the set-level @c & / @c | on two relations
+ *  over one product collapse to one comprehension.  @tparam A,B the operands.
+ */
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelAnd<A, B> structured_and(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelOr<A, B> structured_or(A a, B b) {
+  return {std::move(a), std::move(b)};
 }
 
 /** @brief @c !atom flips the comparison.  @param c the atom. */

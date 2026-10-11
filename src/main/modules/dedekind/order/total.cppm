@@ -23,7 +23,7 @@
  * in @c :poset — fill the seam between the homogeneous @c <=>-shape
  * (which only describes @c T @c <=> @c T) and the real-world need to
  * compare a variant carrier (e.g.\ @c SignedCardinality) with an
- * integer NTTP literal (e.g.\ from @c bound<-21>).  Names the
+ * integer NTTP literal (e.g.\ from @c -21).  Names the
  * cross-type shape that the halfspace machinery silently relies on.
  * Per #415 / cross-issue note on PR #422.
  *
@@ -106,7 +106,7 @@ concept HasTotalOrderOperators =
  * cross-carrier comparisons — e.g.\ @c SignedCardinality @c <=> @c int
  * (the load-bearing path for the halfspace machinery's
  * @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy
- * and @c Pivot is the @c int NTTP from @c bound<-21>).
+ * and @c Pivot is the @c int NTTP from @c -21).
  *
  * Sibling of the homogeneous @c HasTotalOrderOperators above and
  * @c HasPartialOrderOperatorsWith in @c :poset.  @c L defaults to

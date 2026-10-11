@@ -10,7 +10,7 @@
  * multiplicative/affine TEST_CASEs went with that layer; this
  * point-free block --- which never depended on GroupScout --- stays.
  *
- * The claim: a point-free ℚ halfspace @c ℚ @c | @c (π @c > @c fix(5_c))
+ * The claim: a point-free ℚ halfspace @c ℚ @c | @c (π @c > @c 5)
  * classifies IDENTICALLY to the ambient ℚ.  ℚ is countable, so the cut
  * is decidable (Boole), not Kleene.  The @c Halfspace lives in @c :order,
  * which is upstream of @c :numbers and cannot see that @c Rational is
@@ -31,14 +31,11 @@ import dedekind.sets;
 using namespace dedekind::numbers;
 
 namespace {
-using dedekind::order::fix;
-using dedekind::order::operator""_c;
 // Derive the halfspace type from the PUBLIC point-free expression
-// `ℚ | (π > fix(5_c))`, not a hand-built UpRay<Rational, ...>: this way the
+// `ℚ | (π > 5)`, not a hand-built UpRay<Rational, ...>: this way the
 // witness fails if `ℚ | pred` stops binding to the Rational carrier or its
 // Boole logic (the actual surface under test), per #927 review.
-using QHalfspace =
-    std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > fix(5_c)))>;
+using QHalfspace = std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > 5))>;
 // The public expression really does bind the ℚ carrier and the Above cut
 // (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
@@ -46,7 +43,7 @@ static_assert(
                  dedekind::order::UpRay<Rational<default_integer>,
                                         dedekind::order::Strictness::Strict,
                                         dedekind::category::Boole>>,
-    "ℚ | (π > fix(5_c)) binds to the Above halfspace over Rational.");
+    "ℚ | (π > 5) binds to the Above halfspace over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(
     std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,

@@ -15,7 +15,7 @@ namespace {
 
 // Even integers in [0, 10)
 // FLAG(#895 L3): mixed bound + congruence.  A :relational test may not import
-// :order, so the point-free `π < fix(10_c) && π % fix(2_c) == fix(0_c)` grammar
+// :order, so the point-free `π < 10 && π % 2 == 0` grammar
 // is unavailable here; these stay NAMED-predicate comprehensions (not inline
 // lambdas).
 constexpr auto even_below_ten = [](const auto& v) {
