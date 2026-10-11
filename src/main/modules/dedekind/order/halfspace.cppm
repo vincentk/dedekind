@@ -324,22 +324,6 @@ constexpr T pivot(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
  * node), the telling aliases.  Every other operation is a comprehension's.
  */
 
-/** @brief A cut written with a literal of another type, @c ℕ @c | @c (π @c > @c
- * 5): the bound meets the carrier exactly, or the binding raises (a compile
- * error in @c constexpr code).  @tparam T the carrier.  @tparam K the bound's
- * type. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, IsTotallyOrdered K>
-  requires(!std::same_as<T, K>)
-constexpr auto operator|(const 𝔸<T, L, C>& u, const Bounds<Lo, Hi, K>& b) {
-  if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return u | Bounds<Lo, Hi, T>{carrier_cast<T>(b.lo), carrier_cast<T>(b.hi)};
-  else if constexpr (is_bounded_side_v<Lo>)
-    return u | Bounds<Lo, Hi, T>{carrier_cast<T>(b.lo)};
-  else
-    return u | Bounds<Lo, Hi, T>{carrier_cast<T>(b.hi)};
-}
-
 /** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
 export constexpr Direction dir_of(Rel r) {
   return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
@@ -977,43 +961,6 @@ constexpr auto structured_or(
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
   return reduce_join(to_setval(a), to_setval(b));
 }
-
-/** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
-
-/** @brief @c π @c ⋈ @c v with a carrier @b value: the @c Bounds datum, which
- *  the set former binds (@c 𝔸<Q>{} | (π < p) is @c {q < p}).  A degenerate cut
- * is a value fact, decided by the value laws.  Declared beside @c π so ADL
- * finds them through it.
- *  @tparam T the carrier, a registered chain. */
-}  // namespace dedekind::order
-namespace dedekind::sets {
-using dedekind::order::Bounded;
-using dedekind::order::Bounds;
-using dedekind::order::IsTotallyOrdered;
-using dedekind::order::Strictness;
-using dedekind::order::Unbounded;
-export template <IsTotallyOrdered T>
-constexpr Bounds<Bounded<Strictness::Strict>, Unbounded, T> operator>(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Bounded<Strictness::NonStrict>, Unbounded, T> operator>=(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Unbounded, Bounded<Strictness::Strict>, T> operator<(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-export template <IsTotallyOrdered T>
-constexpr Bounds<Unbounded, Bounded<Strictness::NonStrict>, T> operator<=(
-    Projection<0>, T v) {
-  return {std::move(v)};
-}
-}  // namespace dedekind::sets
-namespace dedekind::order {
 
 /** @section halfspace__PointFree_Decidability
  *
