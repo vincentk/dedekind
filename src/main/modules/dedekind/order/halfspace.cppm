@@ -1417,7 +1417,17 @@ static_assert(
 
 // Meet / join of relational predicates is the pointwise && / || of the term
 // grammar (sets:terms): @c && on two relational predicates builds @c RelAnd,
-// @c || builds @c RelOr, whatever namespace the operands come from.
+// @c || builds @c RelOr.  The set-level @c & / @c | on two relations collapse
+// through the @c structured_and / @c structured_or hooks below, reached by ADL
+// on these atoms.
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelAnd<A, B> structured_and(A a, B b) {
+  return {a, b};
+}
+export template <IsRelPredicate A, IsRelPredicate B>
+constexpr RelOr<A, B> structured_or(A a, B b) {
+  return {a, b};
+}
 
 /** @brief The product's own membership conjoined with a relational
  *  restriction, so a bind over a @b restricted product keeps that membership
