@@ -49,6 +49,8 @@ TEST_CASE("sets:terms: a constant is checked when the term is bound",
   CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
   CHECK(carrier_cast<int>(2.0) == 2);
+  const auto safe = cond(π1 != 0, π2 / π1, 0) == π2;
+  CHECK(safe(P{0, 0}));  // the unselected π2 / π1 is never evaluated
   const auto both = !(π1 < 3 && π2 > 5);
   CHECK(both(P{3, 0}));
   CHECK_FALSE(both(P{2, 6}));

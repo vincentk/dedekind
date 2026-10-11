@@ -492,21 +492,24 @@ namespace dedekind::sets {
  *        @c == @c r).
  *
  * @details Both lattice-bound comparisons (Eqn 2) are decided without
- * enumerating anything: a residue class of a positive modulus is never empty
- * (@c r itself, normalised into @f$[0, n)@f$, is a member), and it is all of
- * ℕ exactly when @f$n = 1@f$.  The modulus is positive by construction: a
- * division by the constant 0 is refused when the term is built.
+ * enumerating anything: since @c x @c % @c n lies in @f$[0, n)@f$, the class
+ * is inhabited exactly when @c r does (@c r itself is a member), and it is all
+ * of ℕ exactly when it is inhabited and @f$n = 1@f$.  The modulus is positive
+ * by construction: a negative constant meeting ℕ raises, and a division by
+ * the constant 0 is refused when the term is built.
  * @tparam L the species.
  */
 export template <typename L>
 struct ResidueClass {
-  long long modulus;
-  long long residue;  // normalised into [0, modulus)
+  std::size_t modulus;
+  bool inhabited;  // the residue lies in [0, modulus)
 
-  constexpr bool operator==(const Ø<Cardinality, L>&) const { return false; }
+  constexpr bool operator==(const Ø<Cardinality, L>&) const {
+    return !inhabited;
+  }
   template <typename C>
   constexpr bool operator==(const 𝔸<Cardinality, L, C>&) const {
-    return modulus == 1;
+    return inhabited && modulus == 1;
   }
   friend constexpr bool operator==(const Ø<Cardinality, L>& e,
                                    const ResidueClass& s) {
@@ -520,19 +523,19 @@ struct ResidueClass {
 };
 
 /** @brief @c ℕ @c | @c (π @c % @c n @c == @c r): the residue class, decided
- *  analytically.  @c r is normalised into @f$[0, n)@f$ as the mathematical
- *  residue, so @c π @c % @c 3 @c == @c 3 and @c == @c -1 name the classes of 0
- *  and 2.  ADL finds it through the @c 𝔸<Cardinality> operand.
+ *  analytically.  A residue outside @f$[0, n)@f$ is never met, so
+ *  @c π @c % @c 3 @c == @c 3 is empty.  ADL finds it through the
+ *  @c 𝔸<Cardinality> operand.
  *  @tparam K1 the modulus's type.  @tparam K2 the residue's type. */
 export template <typename L, typename C, std::integral K1, std::integral K2>
 constexpr ResidueClass<L> operator|(
     const 𝔸<Cardinality, L, C>&,
     const Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<0>, Const<K1>>,
               Const<K2>>& c) {
-  const long long n = static_cast<long long>(c.a.b.value);
-  if (n <= 0) throw std::domain_error("a residue modulus must be positive");
-  const long long r0 = static_cast<long long>(c.b.value) % n;
-  return ResidueClass<L>{n, r0 < 0 ? r0 + n : r0};
+  const std::size_t n = carrier_cast<std::size_t>(c.a.b.value);
+  const K2 r = c.b.value;
+  return ResidueClass<L>{n,
+                         std::cmp_greater_equal(r, 0) && std::cmp_less(r, n)};
 }
 
 // ∃ / ∀ over 𝔸<Cardinality> are the generic structural quantifiers of
@@ -567,5 +570,8 @@ static_assert(dedekind::sets::exists(
 static_assert(!dedekind::sets::forall(
                   dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 0),
               "¬∀x∈ℕ. 3∣x — residues 1,2 are counterexamples.");
+static_assert(!dedekind::sets::exists(
+                  dedekind::sets::𝔸<dedekind::sets::Cardinality>{}, π % 3 == 3),
+              "¬∃x∈ℕ. x mod 3 = 3 — a residue is below its modulus.");
 
 }  // namespace dedekind::numbers

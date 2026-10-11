@@ -468,6 +468,14 @@ export template <typename K, typename P>
 constexpr K term_value(const Const<K>& c, const P&) {
   return c.value;
 }
+/** @brief One operand's value in the carrier @c V. */
+template <typename V, typename T, typename P>
+constexpr V operand_in(const T& x, const P& p) {
+  if constexpr (is_const_v<T>)
+    return carrier_cast<V>(x.value);
+  else
+    return static_cast<V>(term_value(x, p));
+}
 /** @brief Two operand values in one carrier: a constant takes the other's. */
 template <typename A, typename B, typename P>
 constexpr auto operand_values(const A& a, const B& b, const P& p) {
@@ -499,12 +507,13 @@ constexpr auto term_value(const Ap<F, A>& t, const P& p) {
   if constexpr (is_const_v<A>)
     return t.f(carrier_cast<X>(t.a.value));
   else
-    return t.f(static_cast<X>(term_value(t.a, p)));
+    return t.f(carrier_cast<X>(term_value(t.a, p)));
 }
 export template <typename Pr, typename A, typename B, typename P>
 constexpr auto term_value(const CondT<Pr, A, B>& t, const P& p) {
-  const auto [x, y] = operand_values(t.a, t.b, p);
-  return static_cast<bool>(t.p(p)) ? x : y;
+  using V = typename decltype(operand_values(t.a, t.b, p))::first_type;
+  return static_cast<bool>(t.p(p)) ? operand_in<V>(t.a, p)
+                                   : operand_in<V>(t.b, p);
 }
 
 // ── Atoms ───────────────────────────────────────────────────────────────────
@@ -675,7 +684,8 @@ struct at_carrier<F<void>, C> {
 /** @brief A term total at every point of type @c X: slots and constants are;
  *  @c a @c op @c b is when both operands are and @c op is total on their
  *  carrier (@c category::IsTotal); a conditional, a comparison or a connective
- *  when every part is; an applied arrow when the arrow is total.
+ *  when every part is; an applied arrow when the arrow is total and its
+ *  argument already has the arrow's domain (a conversion may fail).
  *  @tparam X the point type.  @tparam T the term. */
 export template <typename X, typename T>
 inline constexpr bool is_total_term_v = false;
@@ -704,6 +714,8 @@ inline constexpr bool is_total_term_v<X, RelOr<A, B>> =
 template <typename X, typename F, typename A>
 inline constexpr bool is_total_term_v<X, Ap<F, A>> =
     is_total_term_v<X, A> &&
+    (is_const_v<A> ||
+     std::same_as<value_at_t<X, A>, typename std::remove_cvref_t<F>::Domain>) &&
     dedekind::category::IsTotalArrow<std::remove_cvref_t<F>>;
 
 /** @brief @c π2 @c == @c t, or @c t @c == @c π2, with @c t mentioning only the
