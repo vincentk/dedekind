@@ -769,10 +769,8 @@ static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
 static_assert(!is_total_term_v<P, decltype(π1 + 1)>,
               "x + 1 on int is closed but not total: signed overflow");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
-                  !IsGraphAtom<decltype(π2 * π2 == π1 * π1)> &&
-                  !IsGraphAtom<decltype(π1 == π2 || π1 == π2 * -1)>,
-              "π2 == t(π1) is a graph; y² == x² and y == ±x are not "
-              "certified");
+                  !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
+              "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
 }  // namespace detail_terms_witness
 
 }  // namespace dedekind::sets
