@@ -482,19 +482,19 @@ Set<C, L> point(const C& v) {
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return datum<C>(π > v);
+  return datum<C>((𝔸<C>{} | (π > v)).predicate);
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return datum<C>(π >= v);
+  return datum<C>((𝔸<C>{} | (π >= v)).predicate);
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return datum<C>(π < v);
+  return datum<C>((𝔸<C>{} | (π < v)).predicate);
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return datum<C>(π <= v);
+  return datum<C>((𝔸<C>{} | (π <= v)).predicate);
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {

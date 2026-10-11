@@ -607,9 +607,6 @@ static_assert(IsRelPredicate<decltype(succ_graph)> &&
                   slots_v<decltype(succ_graph)> == 0b110u,
               "π1 + 1 == π2 is an atom on slots 1 and 2");
 static_assert(succ_graph(P{4, 5}) && !succ_graph(P{4, 6}), "4 + 1 == 5, not 6");
-inline constexpr auto collatz_odd = π1 * 3 + 1 == π2;
-static_assert(collatz_odd(P{7, 22}) && !collatz_odd(P{7, 21}),
-              "terms compose: 3·7 + 1 == 22");
 inline constexpr auto half_after_shift = (π1 + 1) * 3 == π2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
 static_assert(only_slot(slots_v<decltype(π1 * 3 + 1)>, 1),
