@@ -90,15 +90,14 @@ using Residue = Cmp<Rel::Eq, BinOp<Rem, Projection<I>, Const<M>>, Const<W>>;
  *  @c IsGroup guarantees a group inverse, not a negation operator, and on a
  *  characteristic-two field the two differ.  Gated on @c IsGroup under the very
  *  @c std::plus the graph evaluates.  On a wrapping group such as @c unsigned
- *  the inverse folds modulo capacity, the correct converse of a bijection. */
+ *  the inverse folds modulo capacity, the correct converse of a bijection;
+ *  so the inverse is taken in the carrier, after the shift is cast into it. */
 export template <typename T, typename K, typename L, typename C>
-  requires dedekind::category::IsGroup<T, std::plus<T>> && requires(K k) {
-    { dedekind::category::inverse_v<K, std::plus<K>>(k) } -> std::same_as<K>;
-  }
+  requires dedekind::category::IsGroup<T, std::plus<T>>
 constexpr auto inverse(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>& g) {
-  const K neg =
-      dedekind::category::inverse_v<K, std::plus<K>>(g.predicate.a.b.value);
+  const T neg = dedekind::category::inverse_v<T, std::plus<T>>(
+      carrier_cast<T>(g.predicate.a.b.value));
   return 𝔸<std::pair<T, T>, L>{} | (π1 + neg == π2);
 }
 
