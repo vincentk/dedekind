@@ -258,12 +258,12 @@ struct Bounds {
 };
 
 /** @brief Which side a ray bounds, and that side's strictness. */
-export export template <IsSide Lo, IsSide Hi>
+export template <IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 consteval Direction direction_of() {
   return is_bounded_side_v<Lo> ? Direction::Upward : Direction::Downward;
 }
-export export template <IsSide Lo, IsSide Hi>
+export template <IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
 consteval Strictness ray_strictness() {
   if constexpr (is_bounded_side_v<Lo>)
