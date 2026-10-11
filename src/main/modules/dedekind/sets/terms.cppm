@@ -412,24 +412,29 @@ constexpr auto cond(P p, A a, B b) {
  *  (bit @c i for @c π_i, bit 0 for the unary @c π).  A predicate the grammar
  *  does not know mentions every slot, so no certificate reads more into it
  *  than it says.  @tparam T the term or predicate. */
+template <typename T>
+inline constexpr unsigned slots_of = ~0u;
+/** @brief The public reading, through any cv-ref (a @c constexpr variable's
+ *  @c decltype is @c const).  @tparam T the term or predicate. */
 export template <typename T>
-inline constexpr unsigned slots_v = ~0u;
+inline constexpr unsigned slots_v = slots_of<std::remove_cvref_t<T>>;
+
 template <IsRingIntegral auto I>
-inline constexpr unsigned slots_v<Projection<I>> =
+inline constexpr unsigned slots_of<Projection<I>> =
     1u << static_cast<unsigned>(I);
 template <typename K>
-inline constexpr unsigned slots_v<Const<K>> = 0u;
+inline constexpr unsigned slots_of<Const<K>> = 0u;
 template <typename Op, typename A, typename B>
-inline constexpr unsigned slots_v<BinOp<Op, A, B>> = slots_v<A> | slots_v<B>;
+inline constexpr unsigned slots_of<BinOp<Op, A, B>> = slots_v<A> | slots_v<B>;
 template <typename F, typename A>
-inline constexpr unsigned slots_v<Ap<F, A>> = slots_v<A>;
+inline constexpr unsigned slots_of<Ap<F, A>> = slots_v<A>;
 template <typename P, typename A, typename B>
-inline constexpr unsigned slots_v<CondT<P, A, B>> =
+inline constexpr unsigned slots_of<CondT<P, A, B>> =
     slots_v<P> | slots_v<A> | slots_v<B>;
 template <typename A, typename B>
-inline constexpr unsigned slots_v<RelAnd<A, B>> = slots_v<A> | slots_v<B>;
+inline constexpr unsigned slots_of<RelAnd<A, B>> = slots_v<A> | slots_v<B>;
 template <typename A, typename B>
-inline constexpr unsigned slots_v<RelOr<A, B>> = slots_v<A> | slots_v<B>;
+inline constexpr unsigned slots_of<RelOr<A, B>> = slots_v<A> | slots_v<B>;
 
 /** @brief Whether a mask names at most the given slot.  @param mask the slots.
  *  @param slot the one allowed. */
@@ -535,7 +540,7 @@ struct Cmp {
   }
 };
 template <Rel R, typename A, typename B>
-inline constexpr unsigned slots_v<Cmp<R, A, B>> = slots_v<A> | slots_v<B>;
+inline constexpr unsigned slots_of<Cmp<R, A, B>> = slots_v<A> | slots_v<B>;
 
 template <Rel R, typename A, typename B>
 constexpr auto make_cmp(A a, B b) {
