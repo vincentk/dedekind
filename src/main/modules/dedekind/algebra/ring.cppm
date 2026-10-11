@@ -57,14 +57,14 @@ using namespace dedekind::category;
  * the right concept to gate templated bodies whose strict half
  * cannot fire.  The strict categorical counterpart is
  * @c dedekind::category::IsRing<T, Add, Mult> in @c category:total.
+ *
+ * Built as @c HasGroupOperatorsAdd and @c category::IsClosedUnder for @c *,
+ * so the shape subsumes each per-operator closure.
  */
 export template <typename T>
-concept HasRingOperators = requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  { -a } -> std::same_as<T>;
-  { a * b } -> std::same_as<T>;
-};
+concept HasRingOperators =
+    HasGroupOperatorsAdd<T> &&
+    dedekind::category::IsClosedUnder<T, std::multiplies<>>;
 
 // HasRingOperatorsFor was previously a 5-line concept here, checking
 // `add(a, b) -> T` and `mult(a, b) -> T`.  The universal-algebra

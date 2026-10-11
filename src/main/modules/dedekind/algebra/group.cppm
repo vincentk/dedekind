@@ -48,14 +48,15 @@ namespace dedekind::algebra {
  * project adopts (#393).
  *
  * Introduced under #394 as the additive-group companion of
- * @c HasRingOperators / @c HasFieldOperators.
+ * @c HasRingOperators / @c HasFieldOperators.  A conjunction of
+ * @c category::IsClosedUnder, one operator each, so the shape subsumes
+ * every per-operator closure it names.
  */
 export template <typename T>
-concept HasGroupOperatorsAdd = requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  { -a } -> std::same_as<T>;
-};
+concept HasGroupOperatorsAdd =
+    dedekind::category::IsClosedUnder<T, std::plus<>> &&
+    dedekind::category::IsClosedUnder<T, std::minus<>> &&
+    dedekind::category::IsClosedUnderUnary<T, std::negate<>>;
 
 /**
  * @concept HasGroupOperatorsMul
@@ -94,11 +95,9 @@ concept HasGroupOperatorsAdd = requires(T a, T b) {
  * Introduced under #394.
  */
 export template <typename T>
-concept HasGroupOperatorsMul = requires(T a, T b) {
-  { a * b } -> std::same_as<T>;
-  { a / b } -> std::same_as<T>;
-  T{1};
-};
+concept HasGroupOperatorsMul =
+    dedekind::category::IsClosedUnder<T, std::multiplies<>> &&
+    dedekind::category::IsClosedUnder<T, std::divides<>> && requires { T{1}; };
 
 /**
  * @concept HasSuccessorOperators
