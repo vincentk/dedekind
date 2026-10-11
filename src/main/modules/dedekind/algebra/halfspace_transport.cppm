@@ -82,7 +82,7 @@ template <Rel R, IsRingIntegral auto I, typename K>
 using Cylinder = Cmp<R, Projection<I>, Const<K>>;
 /** @brief The residue atom @c π_I @c % @c m @c == @c w. */
 template <IsRingIntegral auto I, typename M, typename W>
-using Residue = Cmp<Rel::Eq, BinOp<Rem, Projection<I>, Const<M>>, Const<W>>;
+using Residue = Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<I>, Const<M>>, Const<W>>;
 
 /** @brief @c inverse of a translation graph = its CONVERSE, the translation by
  *  the group inverse of the shift, again a graph.  The inverse is the group's

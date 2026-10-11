@@ -1553,10 +1553,10 @@ static_assert(min(ℤ | (π > -5))(-4), "−4 = min {x > −5} on ℤ.");
  *  @tparam K the constant's type. */
 export template <typename K>
 using Translation =
-    Cmp<Rel::Eq, BinOp<Plus, Projection<1>, Const<K>>, Projection<2>>;
+    Cmp<Rel::Eq, BinOp<std::plus<>, Projection<1>, Const<K>>, Projection<2>>;
 export template <typename K>
 using Scaling =
-    Cmp<Rel::Eq, BinOp<Times, Projection<1>, Const<K>>, Projection<2>>;
+    Cmp<Rel::Eq, BinOp<std::multiplies<>, Projection<1>, Const<K>>, Projection<2>>;
 
 /** @brief Two translation graphs are the same relation iff they carry the same
  *  shift, read in the carrier.  Gated on @c IsSaturating: the shift arithmetic

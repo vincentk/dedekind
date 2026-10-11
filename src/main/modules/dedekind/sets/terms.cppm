@@ -245,41 +245,9 @@ struct Const {
   K value;
 };
 
-/** @brief The arithmetic operators of the grammar, each applied in one carrier
- *  @c C (the constant beside a term has already been converted to it). */
-export struct Plus {
-  template <typename C>
-  static constexpr C apply(const C& a, const C& b) {
-    return static_cast<C>(a + b);
-  }
-};
-export struct Minus {
-  template <typename C>
-  static constexpr C apply(const C& a, const C& b) {
-    return static_cast<C>(a - b);
-  }
-};
-export struct Times {
-  template <typename C>
-  static constexpr C apply(const C& a, const C& b) {
-    return static_cast<C>(a * b);
-  }
-};
-/** @brief The quotient, rounded towards zero (the floor on ℕ). */
-export struct Quot {
-  template <typename C>
-  static constexpr C apply(const C& a, const C& b) {
-    return static_cast<C>(a / b);
-  }
-};
-export struct Rem {
-  template <typename C>
-  static constexpr C apply(const C& a, const C& b) {
-    return static_cast<C>(a % b);
-  }
-};
-
-/** @brief @c a @c op @c b.  @tparam Op the operator.  @tparam A,B the terms. */
+/** @brief @c a @c op @c b, the operator a standard functor (@c std::plus<>,
+ *  @c minus, @c multiplies, @c divides, @c modulus) applied in one carrier.
+ *  @tparam Op the operator.  @tparam A,B the terms. */
 export template <typename Op, typename A, typename B>
 struct BinOp {
   A a;
@@ -347,7 +315,8 @@ template <typename Op, typename A, typename B>
 constexpr auto make_binop(A a, B b) {
   auto ta = term_of(std::move(a));
   auto tb = term_of(std::move(b));
-  if constexpr (std::same_as<Op, Quot> || std::same_as<Op, Rem>) {
+  if constexpr (std::same_as<Op, std::divides<>> ||
+                std::same_as<Op, std::modulus<>>) {
     if constexpr (requires { tb.value; }) {
       if (tb.value == decltype(tb.value){})
         throw std::domain_error("a division by the constant 0");
@@ -360,27 +329,27 @@ constexpr auto make_binop(A a, B b) {
 export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator+(A a, B b) {
-  return make_binop<Plus>(std::move(a), std::move(b));
+  return make_binop<std::plus<>>(std::move(a), std::move(b));
 }
 export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator-(A a, B b) {
-  return make_binop<Minus>(std::move(a), std::move(b));
+  return make_binop<std::minus<>>(std::move(a), std::move(b));
 }
 export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator*(A a, B b) {
-  return make_binop<Times>(std::move(a), std::move(b));
+  return make_binop<std::multiplies<>>(std::move(a), std::move(b));
 }
 export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator/(A a, B b) {
-  return make_binop<Quot>(std::move(a), std::move(b));
+  return make_binop<std::divides<>>(std::move(a), std::move(b));
 }
 export template <typename A, typename B>
   requires TermOperands<A, B>
 constexpr auto operator%(A a, B b) {
-  return make_binop<Rem>(std::move(a), std::move(b));
+  return make_binop<std::modulus<>>(std::move(a), std::move(b));
 }
 
 /** @brief @c ap(f, a): the arrow @c f applied to the term @c a.
@@ -532,7 +501,9 @@ constexpr auto operand_values(const A& a, const B& b, const P& p) {
 export template <typename Op, typename A, typename B, typename P>
 constexpr auto term_value(const BinOp<Op, A, B>& t, const P& p) {
   const auto [x, y] = operand_values(t.a, t.b, p);
-  return Op::apply(x, y);
+  static_assert(dedekind::category::IsClosedUnder<decltype(x), Op>,
+                "the carrier is not closed under this operator");
+  return Op{}(x, y);
 }
 export template <typename F, typename A, typename P>
 constexpr auto term_value(const Ap<F, A>& t, const P& p) {
