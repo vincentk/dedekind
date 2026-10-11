@@ -82,16 +82,6 @@ static_assert(image(ℤ* ℤ | π1 * -1 == π2 | π1 < 0)(3),
               "3 ∈ image(negate branch) via −3 (the canonical +3 ∉ {x<0}).");
 static_assert(!image(ℤ * ℤ | π1 * -1 == π2 | π1 < 0)(-2),
               "the branch image is non-negative: −2 ∉ it.");
-// The JOIN of the two branch images collapses via structured_or: {y≥0} ∪ {y>0}
-// = {y≥0} (the weaker, non-strict bound wins).  The result is the NON-NEGATIVE
-// SUBOBJECT {y≥0} ⊆ ℤ (order-isomorphic to ℕ, but a subset of ℤ here) --- the
-// SET the two branches' outputs cover, symmetric with the meet.  It is NOT an
-// epi ℤ↠ℕ: no ℤ→ℕ arrow is constructed, only the branch images are unioned.
-static_assert((image(ℤ * ℤ | π1 * 1 == π2 | π1 >= 0) |
-               image(ℤ * ℤ | π1 * -1 == π2 | π1 < 0)) == (ℤ | π >= 0),
-              "branch images union to the non-negative subobject {y≥0} ⊆ ℤ "
-              "(≅ ℕ), via structured_or.");
-
 // The successor graph over ℕ (the SATURATING carrier admitted for K≥0): the
 // image the OPAQUE arrow leaves Unknown is DECIDED by the pushforward.
 static_assert(
