@@ -498,7 +498,7 @@ Datum<C> at_most(const C& v) {
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
-  return datum<C>(π == v);
+  return datum<C>((𝔸<C>{} | (π == v)).predicate);
 }
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
  *  chain's own species --- the simplest set with every level inhabited. */

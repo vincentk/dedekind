@@ -59,7 +59,7 @@ import dedekind.category;
 import :cardinality;
 import :boundaries;
 import :expressions;
-import :terms;  // Projection: π == v
+import :terms;  // the equality atom π == v
 
 /**
  * @section singleton__Mereology
@@ -108,35 +108,21 @@ struct Point {
   constexpr std::size_t size() const { return 1; }
 };
 
-/** @brief @c π @c == @c v with a carrier @b value: the point datum, which the
- *  set former binds (@c 𝔹 | (π == true) is @c {true}).
- *
- *  Equality is @c Point's own constraint, checked when the body instantiates,
- *  and deliberately @b not this head's: an @c equality_comparable check on a
- *  deduced @c T asks for @c T @c == @c T, which finds this very operator by
- *  ADL when @c T is a projection or a standard @c optional / @c variant of a
- *  sets type, and the satisfaction depends on itself.
- *  @tparam T the carrier, a value type (copyable, default-constructible) that
- *          is not a grammar tag. */
-export template <std::semiregular T>
-  requires(!std::is_empty_v<T>)
-constexpr auto operator==(Projection<0>, T v) {
-  return Point<T>{std::move(v)};
-}
-/** @brief A point written with a literal of another type, @c ℕ @c | @c (π @c ==
- *  @c 5): the value meets the carrier exactly, or the binding raises.
- *  @tparam T the carrier.  @tparam K the literal's type. */
+/** @brief @c 𝔸<T> @c | @c (π @c == @c v): the singleton @c {v}, the constant
+ *  converted into the carrier exactly or the binding raising.  Declared beside
+ *  @c 𝔸 and the atom, so ADL finds it.  @tparam T the carrier.
+ *  @tparam K the constant's type. */
 export template <std::semiregular T, IsOckhamAlgebra L, IsCardinality C,
-                 std::semiregular K>
-  requires(!std::same_as<T, K>) && requires(const K& k) { carrier_cast<T>(k); }
-constexpr auto operator|(const 𝔸<T, L, C>& u, const Point<K>& p) {
-  return u | Point<T>{carrier_cast<T>(p.pivot)};
+                 typename K>
+constexpr auto operator|(const 𝔸<T, L, C>& u,
+                         const Cmp<Rel::Eq, Projection<0>, Const<K>>& c) {
+  return u | Point<T>{carrier_cast<T>(c.b.value)};
 }
 
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
               "the standard's == on an optional of a sets type is its own: the "
-              "point datum's == above enters the candidate set by ADL and is "
-              "rejected as non-viable without probing equality on T.");
+              "grammar's == enters the candidate set by ADL and is rejected "
+              "as non-viable without probing equality on T.");
 
 /** @brief @f$\{x\}@f$ as a set: the equality atom over the universe of @c T.
  *  An alias, not a noun: its operators are every comprehension's (the
