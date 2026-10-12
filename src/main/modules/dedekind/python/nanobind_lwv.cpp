@@ -70,18 +70,19 @@ struct SetIter {
 };
 
 std::string repr(const Set& s) {
-  if (!s.inhabited) return "Ø";
-  if (!s.lower && !s.upper) return "𝔸";
-  if (s.lower && s.upper && s.lower->at == s.upper->at)
-    return "{" + std::to_string(s.lower->at) + "}";
-  if (s.lower && s.upper) {
-    const char* lb = s.lower->strictness == ord::Strictness::Strict ? "(" : "[";
-    const char* rb = s.upper->strictness == ord::Strictness::Strict ? ")" : "]";
-    return lb + std::to_string(s.lower->at) + ", " +
-           std::to_string(s.upper->at) + rb;
+  if (!s.span()) return "Ø";
+  const auto& [lower, upper] = *s.span();
+  if (!lower && !upper) return "𝔸";
+  if (lower && upper && lower->at == upper->at)
+    return "{" + std::to_string(lower->at) + "}";
+  if (lower && upper) {
+    const char* lb = lower->strictness == ord::Strictness::Strict ? "(" : "[";
+    const char* rb = upper->strictness == ord::Strictness::Strict ? ")" : "]";
+    return lb + std::to_string(lower->at) + ", " + std::to_string(upper->at) +
+           rb;
   }
-  const bool up = s.lower.has_value();
-  const auto& b = up ? *s.lower : *s.upper;
+  const bool up = lower.has_value();
+  const auto& b = up ? *lower : *upper;
   const bool strict = b.strictness == ord::Strictness::Strict;
   const char* op = up ? (strict ? ">" : ">=") : (strict ? "<" : "<=");
   return std::string("{x | x ") + op + " " + std::to_string(b.at) + "}";
@@ -90,7 +91,7 @@ std::string repr(const Set& s) {
 // The FINITE cardinality where it is decidable (a bounded set); std::nullopt
 // for a ray or 𝔸.
 std::optional<unsigned long long> cardinality(const Set& s) {
-  if (!s.inhabited) return 0;
+  if (!s.span()) return 0;
   if (!lwv::is_bounded(s)) return std::nullopt;
   const long long el = *lwv::least(s);
   const long long eu = *lwv::greatest(s);
@@ -138,7 +139,7 @@ NB_MODULE(_lwv, m) {
           "__eq__", [](const Set& a, const Set& b) { return a == b; },
           nb::is_operator(), "a == b: the same set.")
       .def(
-          "__bool__", [](const Set& s) { return s.inhabited; },
+          "__bool__", [](const Set& s) { return s.span().has_value(); },
           "A set is truthy iff it is inhabited.")
       .def(
           "__len__",
@@ -156,7 +157,7 @@ NB_MODULE(_lwv, m) {
           "__iter__",
           [](const Set& s) {
             const auto first = lwv::least(s);
-            if (!first && s.inhabited)
+            if (!first && s.span())
               throw nb::type_error(
                   "no least element: a set unbounded below ({x < k}, 𝔸) has "
                   "no bottom on ℤ to unfold from");

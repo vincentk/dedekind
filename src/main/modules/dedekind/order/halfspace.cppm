@@ -501,6 +501,15 @@ struct Bound {
   Strictness strictness = Strictness::NonStrict;
   friend constexpr bool operator==(const Bound&, const Bound&) = default;
 };
+/** @brief The sides of an inhabited convex set; an absent side is unbounded.
+ *  @tparam V the carrier. */
+export template <typename V>
+  requires IsTotallyOrdered<V>
+struct Span {
+  std::optional<Bound<V>> lower;
+  std::optional<Bound<V>> upper;
+  friend constexpr bool operator==(const Span&, const Span&) = default;
+};
 
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
@@ -524,8 +533,8 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
  *  a union or a complement leaves it unless one operand covers the other.  No
- * side is the universe; both sides closed at one value is a point; @c inhabited
- * @c == @c false is the one empty set, to which crossing bounds normalise.  The
+ * side is the universe; both sides closed at one value is a point; no @c Span
+ * at all is the one empty set, to which crossing bounds normalise.  The
  * bounds ride as values, never as NTTPs.  Consume it through @c &, @c |, @c ==,
  * @c <=, membership and the @c half / @c point / @c empty / @c universe / @c
  * bounded factories.
@@ -538,9 +547,12 @@ export template <typename V = long long, typename L = Boole>
   requires IsTotallyOrdered<V>
 struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
   using Domain = V;
-  bool inhabited = true;
-  std::optional<Bound<V>> lower;
-  std::optional<Bound<V>> upper;
+
+  /** @brief The universe, 𝔸. */
+  constexpr ConvexSet() = default;
+  /** @brief The sides, or @c nullopt for Ø: a convex set is @c 1 @c + @c Span.
+   *  Built only through the factories below, so always in normal form. */
+  constexpr const std::optional<Span<V>>& span() const { return span_; }
 
   /** @brief χ(x): runtime membership, decided from the value fields.
    *
@@ -553,13 +565,14 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
    *  @c false.  A small front inlines, the loads from the constant fold, and
    *  the bounded call is dead code. */
   constexpr bool contains(const V& x) const {
-    if (!inhabited) return false;
-    if (!lower && !upper) return true;
+    if (!span_) return false;
+    if (!span_->lower && !span_->upper) return true;
     return contains_bounded(x);
   }
 
   /** @brief The sides' comparisons against the carrier. */
   constexpr bool contains_bounded(const V& x) const {
+    const auto& [lower, upper] = *span_;
     const bool lo_ok =
         !lower || (lower->strictness == Strictness::Strict ? x > lower->at
                                                            : x >= lower->at);
@@ -575,16 +588,17 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
   }
 
   static constexpr ConvexSet half(V pivot, Direction d, Strictness s) {
-    if (d == Direction::Upward) return {{}, true, Bound<V>{pivot, s}, {}};
-    return {{}, true, {}, Bound<V>{pivot, s}};
+    if (d == Direction::Upward)
+      return ConvexSet{Span<V>{Bound<V>{pivot, s}, {}}};
+    return ConvexSet{Span<V>{{}, Bound<V>{pivot, s}}};
   }
   static constexpr ConvexSet point(V pivot) {
-    return {{}, true, Bound<V>{pivot}, Bound<V>{pivot}};
+    return ConvexSet{Span<V>{Bound<V>{pivot}, Bound<V>{pivot}}};
   }
   /** @brief The two boundary sets as values --- the meet's annihilator (@c Ø)
    *  and unit (@c 𝔸).  Factories (not raw aggregate init) so callers never
    * spell the empty-base brace of the @c SetExpr aggregate. */
-  static constexpr ConvexSet empty() { return {{}, false, {}, {}}; }
+  static constexpr ConvexSet empty() { return ConvexSet{std::nullopt}; }
   static constexpr ConvexSet universe() { return {}; }
   /** @brief The bounded meet @c [lo, hi] with its strictness pair, collapsed:
    *  empty if the bounds cross, the single point where the chain admits exactly
@@ -603,7 +617,7 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
       if (el > eu) return empty();
       if (el == eu) return point(el);
     }
-    return {{}, true, Bound<V>{lo, sl}, Bound<V>{hi, su}};
+    return ConvexSet{Span<V>{Bound<V>{lo, sl}, Bound<V>{hi, su}}};
   }
   /** @brief The set with the given sides: through @c bounded when both are
    *  present, so it is collapsed.  @param lo the lower side.  @param hi the
@@ -612,8 +626,13 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
                                       const std::optional<Bound<V>>& hi) {
     if (lo && hi)
       return bounded(lo->at, lo->strictness, hi->at, hi->strictness);
-    return {{}, true, lo, hi};
+    return ConvexSet{Span<V>{lo, hi}};
   }
+
+ private:
+  std::optional<Span<V>> span_ = Span<V>{};
+  constexpr explicit ConvexSet(std::optional<Span<V>> s)
+      : span_(std::move(s)) {}
 };
 
 // The value set is a set OBJECT --- (reified universe, χ) --- so whatever the
@@ -675,9 +694,10 @@ export template <typename V, typename L>
 constexpr ConvexSet<V, L> reduce_meet(const ConvexSet<V, L>& a,
                                       const ConvexSet<V, L>& b) {
   using S = ConvexSet<V, L>;
-  if (!a.inhabited || !b.inhabited) return S::empty();
-  return S::of_sides(detail_convex::tighter_lower(a.lower, b.lower),
-                     detail_convex::tighter_upper(a.upper, b.upper));
+  if (!a.span() || !b.span()) return S::empty();
+  return S::of_sides(
+      detail_convex::tighter_lower(a.span()->lower, b.span()->lower),
+      detail_convex::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
 /** @brief A cut as a @c ConvexSet: its present sides, collapsed (crossing
@@ -740,8 +760,8 @@ constexpr void close_upper(V& v, Strictness& s) {
  *  close is closed, so @c (0, 3) and @c [1, 3) coincide; on a dense carrier
  *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
  */
-template <typename V, typename L>
-constexpr ConvexSet<V, L> canonical(ConvexSet<V, L> s) {
+template <typename V>
+constexpr Span<V> canonical(Span<V> s) {
   if constexpr (HasCoveringStep<V>) {
     if (s.lower) close_lower(s.lower->at, s.lower->strictness);
     if (s.upper) close_upper(s.upper->at, s.upper->strictness);
@@ -753,10 +773,11 @@ export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const ConvexSet<V, L>& a,
                                    const ConvexSet<V, L>& b) {
-  const ConvexSet<V, L> x = detail_convex_eq::canonical(a);
-  const ConvexSet<V, L> y = detail_convex_eq::canonical(b);
-  const bool eq = x.inhabited == y.inhabited &&
-                  (!x.inhabited || (x.lower == y.lower && x.upper == y.upper));
+  const auto& x = a.span();
+  const auto& y = b.span();
+  const bool eq = (!x || !y) ? (!x && !y)
+                             : detail_convex_eq::canonical(*x) ==
+                                   detail_convex_eq::canonical(*y);
   return eq ? L::True : L::False;
 }
 /** @brief A value set against the boundaries: @c Ø is the uninhabited one, @c 𝔸
@@ -765,22 +786,22 @@ constexpr typename L::Ω operator==(const ConvexSet<V, L>& a,
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
 constexpr bool operator==(const Ø<T, L>&, const ConvexSet<T, L>& s) {
-  return !s.inhabited;
+  return !s.span();
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
 constexpr bool operator==(const ConvexSet<T, L>& s, const Ø<T, L>&) {
-  return !s.inhabited;
+  return !s.span();
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
 constexpr bool operator==(const 𝔸<T, L, CU>&, const ConvexSet<T, L>& s) {
-  return s.inhabited && !s.lower && !s.upper;
+  return s.span() && !s.span()->lower && !s.span()->upper;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
 constexpr bool operator==(const ConvexSet<T, L>& s, const 𝔸<T, L, CU>&) {
-  return s.inhabited && !s.lower && !s.upper;
+  return s.span() && !s.span()->lower && !s.span()->upper;
 }
 namespace detail_convex_eq {
 using dedekind::category::Ternary;
@@ -887,14 +908,16 @@ constexpr ConvexSet<V, L> structured_and(const ConvexSet<V, L>& a,
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr ConvexSet<V, L> reduce_join(const ConvexSet<V, L>& a,
                                       const ConvexSet<V, L>& b) {
-  if (!a.inhabited) return b;
-  if (!b.inhabited) return a;
+  if (!a.span()) return b;
+  if (!b.span()) return a;
+  const Span<V>& x = *a.span();
+  const Span<V>& y = *b.span();
   // One side covering the other on both ends: the union is the cover.
-  if (detail_convex::lower_covers(a.lower, b.lower) &&
-      detail_convex::upper_covers(a.upper, b.upper))
+  if (detail_convex::lower_covers(x.lower, y.lower) &&
+      detail_convex::upper_covers(x.upper, y.upper))
     return a;
-  if (detail_convex::lower_covers(b.lower, a.lower) &&
-      detail_convex::upper_covers(b.upper, a.upper))
+  if (detail_convex::lower_covers(y.lower, x.lower) &&
+      detail_convex::upper_covers(y.upper, x.upper))
     return b;
   // No interval normal form (a crossing union, a point outside, two disjoint
   // intervals): refused, not guessed.
@@ -1625,7 +1648,8 @@ constexpr bool cut_is_empty(
   if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
     return !ConvexSet<T, L>::bounded(c.predicate.lo, Lo::strictness,
                                      c.predicate.hi, Hi::strictness)
-                .inhabited;
+                .span()
+                .has_value();
   else
     return ray_is_empty(pivot(c), direction_of<Lo, Hi>(),
                         ray_strictness<Lo, Hi>());

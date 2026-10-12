@@ -98,13 +98,14 @@ struct IotaBounds {
 template <std::integral T, typename L>
 constexpr IotaBounds<T> iota_bounds(const dedekind::order::ConvexSet<T, L>& s) {
   using S = dedekind::order::Strictness;
-  if (!s.inhabited || !s.lower || !s.upper) return {T{}, T{}};
-  const T lo = s.lower->at;
-  const T hi = s.upper->at;
-  const T start =
-      s.lower->strictness == S::Strict ? static_cast<T>(lo + 1) : lo;
+  if (!s.span() || !s.span()->lower || !s.span()->upper) return {T{}, T{}};
+  const auto& lower = *s.span()->lower;
+  const auto& upper = *s.span()->upper;
+  const T lo = lower.at;
+  const T hi = upper.at;
+  const T start = lower.strictness == S::Strict ? static_cast<T>(lo + 1) : lo;
   const T raw_bound =
-      s.upper->strictness == S::Strict ? hi : static_cast<T>(hi + 1);
+      upper.strictness == S::Strict ? hi : static_cast<T>(hi + 1);
   // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp so
   // the resulting iota_view is honestly empty rather than wrapped.
   return {start, raw_bound < start ? start : raw_bound};
