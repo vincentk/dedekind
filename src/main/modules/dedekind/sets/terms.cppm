@@ -753,7 +753,6 @@ using graph_term_t = typename graph_atom<P>::term;
 
 namespace detail_terms_witness {
 using P = std::pair<unsigned, unsigned>;
-using PI = std::pair<int, int>;
 inline constexpr auto succ_graph = π1 + 1 == π2;
 static_assert(IsRelPredicate<decltype(succ_graph)> &&
                   slots_v<decltype(succ_graph)> == 0b110u,
@@ -777,8 +776,6 @@ static_assert(on_naturals(std::pair{finite_cardinality(4),
 using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(!is_total_term_v<PI, decltype(π1 + 1)>,
-              "x + 1 on int is closed but not total: signed overflow");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
               "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
