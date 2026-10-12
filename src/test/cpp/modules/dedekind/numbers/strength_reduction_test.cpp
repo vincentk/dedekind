@@ -90,8 +90,7 @@ static_assert(!Γ_Φ(std::pair{3u, R2::root()}), "(3, √2) does not.");
 // ==================  Strength reduction: {x ≤ 10} pulls back =================
 // The composite ℝ-predicate reduces to the native unsigned comparison — and the
 // reduced form is a first-class value Interval<unsigned>, {u ≤ 10}.
-using ReducedLeTen = Interval<unsigned>;
-constexpr ReducedLeTen native_le_ten{10u};  // pivot rides in the value
+constexpr auto native_le_ten = 𝔸<unsigned>{} | (π <= 10u);
 
 // Boundary: 10 ∈ {x ≤ 10}, 11 ∉ — via the ℝ chain AND the native reduction.
 static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == Boole::True));
