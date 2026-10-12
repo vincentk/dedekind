@@ -21,8 +21,8 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
-// a transfinite carrier collapses to a named extensional Singleton, at
-// compile time, with no lambdas and no predicate erasure.
+// a transfinite carrier collapses to the point {4}, a convex-set value,
+// at compile time, with no lambdas and no predicate erasure.
 constexpr auto gt_3 = ℕ | (χ > 3);          // { x ∈ ℕ | x > 3 }
 constexpr auto lt_5 = ℕ | (χ < 5);          // { x ∈ ℕ | x < 5 }
 

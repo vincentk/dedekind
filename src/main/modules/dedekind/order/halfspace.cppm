@@ -479,12 +479,10 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
  *
  *  @details The meet is written ONCE here, over a @c ConvexSet whose pivot is a
  *  @b value.  Being @c constexpr it serves BOTH phases (the
- * compile-time/runtime optionality): the type-level @c structured_and below @b
- * delegates to it (it lifts its NTTP pivots to values, calls @c reduce_meet,
- * and lifts the result kind back to @c Singleton / @c Interval / @c
- * EmptyPredicate), and the Python @c dedekind.lwv surface calls the @b same
- * function on runtime pivots. No NTTP is read off at runtime; the pivot never
- * needs to live in a type.
+ * compile-time/runtime optionality): the set-level @c structured_and below
+ * delegates to it, so the meet of two cuts is a @c ConvexSet whatever their
+ * pivots, and the Python @c dedekind.lwv surface calls the @b same function on
+ * runtime pivots.  The pivot never needs to live in a type.
  *
  *  Value-oriented relational grounding: a halfspace is a point plus a
  * direction,
@@ -497,6 +495,7 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
  *  @c Bound is one side of a cut as a value: the bound and whether it is
  *  attained (non-strict) or not (strict).  @tparam V the carrier. */
 export template <typename V>
+  requires IsTotallyOrdered<V>
 struct Bound {
   V at;
   Strictness strictness = Strictness::NonStrict;
@@ -681,7 +680,8 @@ constexpr ConvexSet<V, L> reduce_meet(const ConvexSet<V, L>& a,
                      detail_convex::tighter_upper(a.upper, b.upper));
 }
 
-/** @brief A cut as a @c ConvexSet: its present sides, as written. */
+/** @brief A cut as a @c ConvexSet: its present sides, collapsed (crossing
+ *  bounds to @c Ø, a single admitted element to its point). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
 constexpr ConvexSet<T, L> to_convex_set(
@@ -691,7 +691,7 @@ constexpr ConvexSet<T, L> to_convex_set(
     lo = Bound<T>{c.predicate.lo, Lo::strictness};
   if constexpr (is_bounded_side_v<Hi>)
     hi = Bound<T>{c.predicate.hi, Hi::strictness};
-  return {{}, true, lo, hi};
+  return ConvexSet<T, L>::of_sides(lo, hi);
 }
 
 /** @brief Equality of two value sets: both empty, or the same sides.  The

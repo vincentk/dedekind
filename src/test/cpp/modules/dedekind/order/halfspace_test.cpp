@@ -14,6 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -530,3 +531,16 @@ TEST_CASE("order:halfspace — the carrier gate is the registered chain",
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
+
+TEST_CASE("order:halfspace — the join of convex sets: the cover, or a refusal",
+          "[order][halfspace][join]") {
+  using S = ConvexSet<int>;
+  constexpr auto closed = Strictness::NonStrict;
+  const auto wide = S::bounded(0, closed, 10, closed);
+  const auto narrow = S::bounded(2, closed, 5, closed);
+  CHECK(reduce_join(wide, narrow) == wide);  // [0, 10] covers [2, 5]
+  CHECK(reduce_join(narrow, wide) == wide);
+  // Disjoint intervals: the union is no interval, refused rather than guessed.
+  CHECK_THROWS_AS(reduce_join(narrow, S::bounded(20, closed, 30, closed)),
+                  std::domain_error);
+}

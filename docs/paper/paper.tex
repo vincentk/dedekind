@@ -2399,11 +2399,11 @@ is decidable'').
 Every showcase of Section~\ref{sec:ddk_comprehension} is a motion inside this
 lattice.
 Showcases~3 and~4 both act over $\mathbb{N}$, whose membership is already classical, so they start at $(\mathrm{Int},\mathrm{Cl},\mathrm{Opq})$, not at $\bot$.
-Their reductions move up the representation and knowledge axes to $\top$ in one step: the empty-halfspace meet of Showcase~3 lands on $\varnothing$, and the cardinality-1 meet of Showcase~4 lands on a \cppinline{Singleton<4>}.
+Their reductions move up the representation and knowledge axes to $\top$ in one step: the empty-halfspace meet of Showcase~3 lands on $\varnothing$, and the cardinality-1 meet of Showcase~4 lands on the point $\{4\}$.
 The logic axis is already at $\mathrm{Cl}$ and does not move; a genuine $\mathrm{K3} \mapsto \mathrm{Cl}$ (restoring decidability) needs a carrier whose membership is three-valued, not a halfspace on $\mathbb{N}$.
 The reductions never slide downward. With that in hand:
 
-\begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
+\begin{theorem}[Collapse of a halfspace meet, totally-ordered 1D case]
 \label{thm:type-directed-collapse-1d}
 Let $T$ be a totally ordered carrier, and let
 \[
@@ -2412,8 +2412,7 @@ Let $T$ be a totally ordered carrier, and let
   Q_j(x) \;=\; (x \le b_j), \quad j = 1, \dots, n,
 \]
 be lower-bound and upper-bound halfspace predicates over $T$ whose
-pivots $a_i, b_j \in T$ are carried at the type level as non-type
-template parameters. Define the effective bounds
+pivots $a_i, b_j \in T$ are constants. Define the effective bounds
 $a^\star \coloneqq \max_i a_i$ if $m \ge 1$ and $a^\star \coloneqq
 \bot$ if $m = 0$, and $b^\star \coloneqq \min_j b_j$ if $n \ge 1$
 and $b^\star \coloneqq \top$ if $n = 0$ (where $\bot, \top$ denote
@@ -2424,30 +2423,30 @@ $\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
         \;\cap\;
         \bigcap_{j=1}^{n} \{x \in T \mid Q_j(x)\}
 \]
-is resolved at compile time to exactly one of:
+reduces, in constant evaluation, to exactly one value of
+\cppinline{ConvexSet<T>}:
 \begin{enumerate}
   \item $\varnothing$, when $a^\star > b^\star$;
-  \item a \cppinline{Singleton<v>}, when $T$ is integral and
+  \item the point $\{v\}$, when $T$ is integral and
         $a^\star = b^\star = v$;
-  \item an \cppinline{OrderInterval}~$[a^\star, b^\star]$
-        otherwise.
+  \item the interval $[a^\star, b^\star]$ otherwise.
 \end{enumerate}
 \end{theorem}
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzcd}[column sep=3em, row sep=4em, ampersand replacement=\&]
-\& \mathrm{Halfspace}\langle x \geq a^\star\rangle \,\cap\, \mathrm{Halfspace}\langle x \leq b^\star\rangle
+\& \{x \geq a^\star\} \,\cap\, \{x \leq b^\star\}
   \arrow[dl, "{[a^\star < b^\star]}"']
   \arrow[d, "{[a^\star = b^\star,\, T \text{ integral}]}"']
   \arrow[dr, "{[a^\star > b^\star]}"] \& \\
-\mathrm{OrderInterval}\langle a^\star, b^\star\rangle \& \mathrm{Singleton}\langle v\rangle \& \mathrm{EmptyPredicate}\langle T\rangle
+{[a^\star, b^\star]} \& \{v\} \& \varnothing
 \end{tikzcd}
-\caption{The 1D type-directed collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
-The meet of the effective lower- and upper-bound halfspaces resolves at compile time into exactly one of three typed constants, selected by the side condition on the pivots: an \cppinline{OrderInterval<a*, b*>} for the generic bounded case ($a^\star < b^\star$); a \cppinline{Singleton<v>} for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (the integrality guard from Theorem~\ref{thm:type-directed-collapse-1d} case 2; on a non-integral $T$ the equality case stays in the (degenerate) \cppinline{OrderInterval<a*, a*>} branch instead); and \cppinline{EmptyPredicate<T>} (lifted to $\varnothing$ at the topos level) for the contradiction case ($a^\star > b^\star$).
-The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the target type the side-condition selects.
-Implementation hook: the meet is realised by \cppinline{structured_and(Halfspace<...,Upward,...>, Halfspace<...,Downward,...>)} in \texttt{dedekind.order:halfspace}, which case-splits the pivot comparison at compile time and returns the corresponding typed constant directly; the empty-result type \cppinline{EmptyPredicate<T>} lives in \texttt{dedekind.order} and lifts to \cppinline{Ø<T,L>} in \texttt{dedekind.sets:boundaries}.
-Mechanically witnessed by Showcase~3 (\cppinline{EmptyPredicate<T>} branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (\cppinline{Singleton<4>} branch: on the integral carrier $\mathbb{N}$ the strict halfspaces $x>3$, $x<5$ normalise to $x\ge 4$, $x\le 4$, so this is the $a^\star=b^\star=4$ case of Theorem~\ref{thm:type-directed-collapse-1d}); both fold to constant IR returns under \texttt{-O2}, as the bottom panel of Listing~\ref{lst:pruning} demonstrates for the empty-meet branch.}
+\caption{The 1D collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
+The meet of the effective lower- and upper-bound halfspaces reduces to exactly one value of \cppinline{ConvexSet<T>}, selected by the side condition on the pivots: the interval $[a^\star, b^\star]$ for the generic bounded case ($a^\star < b^\star$); the point $\{v\}$ for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (on a non-integral $T$ the equality case stays the degenerate interval $[a^\star, a^\star]$); and $\varnothing$ for the contradiction case ($a^\star > b^\star$).
+The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the value the side condition selects.
+Implementation hook: the meet is \cppinline{reduce_meet} in \texttt{dedekind.order:halfspace}, the tighter bound on each side followed by one collapse law; it is \cppinline{constexpr}, so constant pivots fold at compile time and runtime pivots reduce at runtime.
+Mechanically witnessed by Showcase~3 (the empty branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (the point branch: on the integral carrier $\mathbb{N}$ the strict halfspaces $x>3$, $x<5$ normalise to $x\ge 4$, $x\le 4$, so this is the $a^\star=b^\star=4$ case of Theorem~\ref{thm:type-directed-collapse-1d}); both fold to constant IR returns under \texttt{-O2}, as the bottom panel of Listing~\ref{lst:pruning} demonstrates for the empty-meet branch.}
 \label{fig:type-directed-collapse-1d}
 \end{figure}
 
@@ -2508,11 +2507,11 @@ filled.
 \paragraph{Existential anchor.}
 The theorem is realised in the library by witnesses that
 materialise at the static-assertion layer; the canonical exhibit on
-$\mathbb{N}$ is the typed-constant collapse
+$\mathbb{N}$ is the collapse
 \[
   \{x \in \mathbb{N} \mid x \ge 2\} \,\cap\, \{x \in \mathbb{N} \mid x \le 5\}
   \;\longrightarrow\;
-  \texttt{OrderInterval}\langle 2, 5\rangle,
+  [2, 5],
 \]
 checked at compile time. Section~\ref{sec:ddk_comprehension} catalogues these
 witnesses; the LLVM~IR fixtures pin the resulting machine-code
@@ -2582,7 +2581,7 @@ sketches that do not.
     \cppinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
-    \cppinline{Singleton<x*>} with the minimizer in the template parameter.
+    the point $\{x^\star\}$, the minimizer carried as a value.
     Same reduction pattern, applied at the extremum operator.
     \emph{Scope note:} the polytope / linear-programming domain is not
     incidental.  Active-set enumeration over halfspaces is
