@@ -12,7 +12,7 @@
 import dedekind.sets;
 
 using namespace dedekind::sets;
-using P = std::pair<int, int>;
+using P = std::pair<unsigned, unsigned>;
 
 TEST_CASE("sets:terms: terms compose and evaluate at a point",
           "[sets][terms]") {
@@ -49,8 +49,9 @@ TEST_CASE("sets:terms: a constant is checked when the term is bound",
   CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
   CHECK(carrier_cast<int>(2.0) == 2);
-  const auto safe = cond(π1 != 0, π2 / π1, 0) == π2;
-  CHECK(safe(P{0, 0}));  // the unselected π2 / π1 is never evaluated
+  // The unselected branch is never evaluated: its constant −1 would raise when
+  // it met the unsigned carrier.
+  CHECK_NOTHROW((cond(π1 >= 0, π1, π1 + -1) == π2)(P{3, 3}));
   const auto both = !(π1 < 3 && π2 > 5);
   CHECK(both(P{3, 0}));
   CHECK_FALSE(both(P{2, 6}));

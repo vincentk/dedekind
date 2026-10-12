@@ -718,6 +718,15 @@ struct SignedExtensionalCardinal {
     return CheckedResult{sum, overflowed};
   }
 
+  static constexpr CheckedResult checked_sub(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal difference;
+    const bool overflowed =
+        __builtin_sub_overflow(lhs.value, rhs.value, &difference.value);
+    return CheckedResult{difference, overflowed};
+  }
+
   static constexpr CheckedResult checked_mul(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
@@ -992,11 +1001,37 @@ export constexpr SignedCardinality operator+(
   return SignedCardinality{checked.result};
 }
 
-/** @brief Subtraction: @c a - b @c == a + (-b). */
+/** @brief Subtraction, computed directly so that only an overflowing
+ *  difference saturates (@c a + (−b) would saturate @c −min first, so
+ *  @c min − min would not be 0).  Infinities as for @c a + (−b). */
 export constexpr SignedCardinality operator-(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
-  return lhs + (-rhs);
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
+  if ((sc_is_pos_inf(lhs) && sc_is_pos_inf(rhs)) ||
+      (sc_is_neg_inf(lhs) && sc_is_neg_inf(rhs)))
+    return SignedCardinality{NaZ{}};
+  if (sc_is_pos_inf(lhs) || sc_is_neg_inf(rhs))
+    return SignedCardinality{PositiveInfinity{}};
+  if (sc_is_neg_inf(lhs) || sc_is_pos_inf(rhs))
+    return SignedCardinality{NegativeInfinity{}};
+  const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
+  const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  const auto checked = SignedExtensionalCardinal<>::checked_sub(a, b);
+  if (checked.overflowed) {
+    return a.negative() ? SignedCardinality{NegativeInfinity{}}
+                        : SignedCardinality{PositiveInfinity{}};
+  }
+  return SignedCardinality{checked.result};
 }
+static_assert(
+    finite_signed_cardinality(
+        std::numeric_limits<SignedExtensionalCardinal<>::signed_type>::min()) -
+            finite_signed_cardinality(
+                std::numeric_limits<
+                    SignedExtensionalCardinal<>::signed_type>::min()) ==
+        finite_signed_cardinality(0),
+    "min − min is 0: only an overflowing difference saturates.");
 
 /** @brief The step up on the ℤ proxy, the free customization point the order
  *  layer's point collapse calls (@c category:nno, found here by ADL), as on
@@ -2091,6 +2126,10 @@ struct is_saturating<SC, std::plus<SC>> : std::true_type {};
 
 template <>
 struct is_saturating<SC, std::multiplies<SC>> : std::true_type {};
+
+// Subtraction is x + (−y): it saturates exactly as addition does.
+template <>
+struct is_saturating<SC, std::minus<SC>> : std::true_type {};
 
 // The defining ℤ trait exposes unary `-` as the operation used by
 // the additive-inverse machinery.  -ℵ_0 maps to +ℵ_0 and vice versa;

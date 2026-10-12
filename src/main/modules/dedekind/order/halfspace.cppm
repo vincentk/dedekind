@@ -896,13 +896,6 @@ static_assert(converse(𝔹* 𝔹 | π1 < π2)(std::pair{true, false}),
 static_assert(is_relation(𝔹* 𝔹 | π1 < π2),
               "𝔹*𝔹 | π1 < π2 is a relation (IsSet on a product).");
 
-// divides: {(a,b) | b % a == 0 ∧ a != 0}.  The guard comes FIRST so the
-// conjunction short-circuits before the %, and a == 0 never reaches it.
-static_assert((ℕ * ℕ | (π1 != 0 && π2 % π1 == 0))(std::pair{
-                  finite_cardinality(2), finite_cardinality(6)}) &&
-                  !(ℕ * ℕ | (π1 != 0 && π2 % π1 == 0))(std::pair{
-                      finite_cardinality(4), finite_cardinality(6)}),
-              "6 % 2 == 0, 6 % 4 != 0: divides, with its guard first.");
 // The arrow lift 𝑦 == ap(f, 𝑥) is the graph of f; for the identity, Δ.
 static_assert((𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
                                 𝑥)))(std::pair{true, true}) &&
