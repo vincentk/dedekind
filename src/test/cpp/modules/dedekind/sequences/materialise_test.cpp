@@ -26,7 +26,7 @@ using dedekind::order::Strictness;
 namespace {
 // [0, 4] — a closed integer interval, the finite prefix {0,1,2,3,4} of ℕ.  An
 // interval is the meet of two halfspaces; its endpoints are values.
-inline constexpr auto prefix5 = Interval<dedekind::order::int>::bounded(
+inline constexpr auto prefix5 = dedekind::order::Interval<int>::bounded(
     0, Strictness::NonStrict, 4, Strictness::NonStrict);
 
 // A sequence (index → value) — the bra/ket / Path shape.
@@ -76,7 +76,7 @@ TEST_CASE("ext: the filtered form realises argmax over a finite domain",
 TEST_CASE("ext(argmax(interval, cost)): the endorsed one-liner",
           "[sequences][ranges][ext][argmax]") {
   // A unique optimum: the concave cap x·(6−x) over [0,6] peaks at x=3.
-  constexpr auto dom6 = Interval<dedekind::order::int>::bounded(
+  constexpr auto dom6 = dedekind::order::Interval<int>::bounded(
       0, Strictness::NonStrict, 6, Strictness::NonStrict);
 
   // Type-level regression (#915): argmax's refinement is the NAMED
@@ -99,7 +99,7 @@ TEST_CASE("ext(argmax(interval, cost)): the endorsed one-liner",
   CHECK(peak.contains(3));
 
   // A tie: parity x mod 2 over [0,5] is maximal (=1) at every odd argument.
-  constexpr auto dom5 = Interval<dedekind::order::int>::bounded(
+  constexpr auto dom5 = dedekind::order::Interval<int>::bounded(
       0, Strictness::NonStrict, 5, Strictness::NonStrict);
   const auto odds = ext(argmax(dom5, [](int x) { return x % 2; }));
   CHECK(odds.size() == 3);  // {1,3,5} — argmax is a proper relation
