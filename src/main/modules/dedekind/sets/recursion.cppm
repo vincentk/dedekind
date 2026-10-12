@@ -57,9 +57,6 @@ import :expressions;  // 𝔸, Comprehension
 import :singleton;    // π == v, for the witnesses
 
 namespace dedekind::sets {
-using dedekind::category::Join;
-using dedekind::category::Meet;
-using dedekind::category::Not;
 
 /** @brief A carrier a descent terminates on: the unsigned words, ℕ's shadows,
  *  with 0 at the bottom.  (Cardinality joins once its monus is a term.) */
@@ -156,7 +153,7 @@ export struct ChiTag {
 export inline constexpr ChiTag χ{};
 
 template <typename... Ts>
-inline constexpr bool contains_self_v<Self<Ts...>> = true;
+inline constexpr bool is_self_v<Self<Ts...>> = true;
 
 /** @brief Whether a term descends at points of type @c X: a descent on a
  *  well-founded slot.  @tparam Term the term.  @tparam X the point type. */
@@ -167,27 +164,32 @@ template <IsRingIntegral auto I, typename K, typename X>
 inline constexpr bool
     descends_v<BinOp<std::minus<>, Projection<I>, Const<K>>, X> = true;
 
+/** @brief The structural-recursion algebra at the points @c X: a @c χ node
+ *  descends when one of its terms does, a node when all its legs do, any other
+ *  leaf vacuously.  @tparam X the point type. */
+template <typename X>
+struct SelfDescends {
+  template <typename Leaf>
+  constexpr std::true_type operator()(const Leaf&) const {
+    return {};
+  }
+  template <typename... Ts>
+  constexpr std::bool_constant<(descends_v<Ts, X> || ...)> operator()(
+      const Self<Ts...>&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+  constexpr std::bool_constant<(R::value && ...)> operator()(const Node&,
+                                                             R...) const {
+    return {};
+  }
+};
 /** @brief The structural-recursion gate: every @c Self in a body descends on
- *  some coordinate.  Vacuous without a @c Self. */
+ *  some coordinate.  Vacuous without a @c Self.  @tparam Node the body.
+ *  @tparam T the point type. */
 export template <typename Node, typename T>
-inline constexpr bool self_descends_v = true;
-template <typename T, typename... Ts>
-inline constexpr bool self_descends_v<Self<Ts...>, T> =
-    (descends_v<Ts, T> || ...);
-template <typename A, typename B, typename T>
-inline constexpr bool self_descends_v<Meet<A, B>, T> =
-    self_descends_v<A, T> && self_descends_v<B, T>;
-template <typename A, typename B, typename T>
-inline constexpr bool self_descends_v<Join<A, B>, T> =
-    self_descends_v<A, T> && self_descends_v<B, T>;
-template <typename A, typename T>
-inline constexpr bool self_descends_v<Not<A>, T> = self_descends_v<A, T>;
-template <typename A, typename B, typename T>
-inline constexpr bool self_descends_v<RelAnd<A, B>, T> =
-    self_descends_v<A, T> && self_descends_v<B, T>;
-template <typename A, typename B, typename T>
-inline constexpr bool self_descends_v<RelOr<A, B>, T> =
-    self_descends_v<A, T> && self_descends_v<B, T>;
+inline constexpr bool self_descends_v = decltype(dedekind::category::cata(
+    SelfDescends<T>{}, std::declval<const Node&>()))::value;
 
 /** @brief The recursion, closed: the base's membership, then the body evaluated
  *  with this very predicate in scope for its @c Self nodes.  @tparam S the base

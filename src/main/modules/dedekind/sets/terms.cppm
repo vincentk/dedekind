@@ -821,25 +821,29 @@ template <typename T>
 struct graph_atom<Cmp<Rel::Eq, Projection<2>, T>> : std::true_type {
   using term = T;
 };
-/** @brief Whether a term or predicate mentions the set under definition (a
- *  @c χ node, :recursion); the connectives pass it up.  @tparam T the node. */
+/** @brief Whether a leaf is the set under definition, a @c χ node;
+ *  @c :recursion registers it.  @tparam T the leaf. */
 export template <typename T>
-inline constexpr bool contains_self_v = false;
-template <typename A, typename B>
-inline constexpr bool contains_self_v<RelAnd<A, B>> =
-    contains_self_v<A> || contains_self_v<B>;
-template <typename A, typename B>
-inline constexpr bool contains_self_v<RelOr<A, B>> =
-    contains_self_v<A> || contains_self_v<B>;
-template <typename A, typename B>
-inline constexpr bool contains_self_v<dedekind::category::Meet<A, B>> =
-    contains_self_v<A> || contains_self_v<B>;
-template <typename A, typename B>
-inline constexpr bool contains_self_v<dedekind::category::Join<A, B>> =
-    contains_self_v<A> || contains_self_v<B>;
-template <typename A>
-inline constexpr bool contains_self_v<dedekind::category::Not<A>> =
-    contains_self_v<A>;
+inline constexpr bool is_self_v = false;
+/** @brief The self algebra: a term or predicate mentions the set under
+ *  definition when one of its leaves is a @c χ node; every node passes it up.
+ */
+struct MentionsSelf {
+  template <typename Leaf>
+  constexpr std::bool_constant<is_self_v<Leaf>> operator()(const Leaf&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+  constexpr std::bool_constant<(R::value || ...)> operator()(const Node&,
+                                                             R...) const {
+    return {};
+  }
+};
+/** @brief Whether @c T mentions the set under definition.  @tparam T the term
+ *  or predicate. */
+export template <typename T>
+inline constexpr bool contains_self_v = decltype(cata(
+    MentionsSelf{}, std::declval<const std::remove_cvref_t<T>&>()))::value;
 
 /** @brief An atom that is the graph of a function of the first slot. */
 export template <typename P>
