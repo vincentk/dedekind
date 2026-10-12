@@ -268,19 +268,17 @@ static_assert(IsLatticeCategory<int>,
  *  pair; no change to @c :species or duplicate concept surface.
  */
 
-/** @brief The abstract bottom of the lattice over @c (T, @c Rel): the initial
- *         object, as a value the complement law can produce.  Specialise to
- *         register a carrier's own bottom (with its @c value). */
+/** @brief The abstract bottom of the lattice over @c (T, @c Rel), as a value
+ *         the complement law can produce.  Untagged: a carrier registers its
+ *         own bottom (with its @c value and the initial-object tag) by
+ *         specialising, so the bare placeholder opts nothing into
+ *         @c IsInitialObject. */
 export template <typename T, typename Rel>
-struct LatticeBottom {
-  using is_initial_object_tag = void;
-};
+struct LatticeBottom {};
 
 /** @brief The abstract top of the lattice over @c (T, @c Rel), dually. */
 export template <typename T, typename Rel>
-struct LatticeTop {
-  using is_terminal_object_tag = void;
-};
+struct LatticeTop {};
 
 /** @brief Canonical specialisation: @b integral carriers under
  *         @c std::less_equal have bottom @c = @c numeric_limits<T>::min().

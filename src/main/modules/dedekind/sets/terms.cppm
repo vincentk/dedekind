@@ -777,20 +777,26 @@ struct Total {
   constexpr std::bool_constant<IsTerm<Leaf>> operator()(const Leaf&) const {
     return {};
   }
+  // A leg that is not total ends the question before this node's carrier is
+  // computed: value_at_t of a non-admitted leg would hit the value algebra's
+  // refusal, so it is formed only behind the legs' verdict.
   template <typename Op, typename A, typename B, typename RA, typename RB>
-  constexpr std::bool_constant<
-      RA::value && RB::value &&
-      admits_v<Op, meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>, B>>
-  operator()(const BinOp<Op, A, B>&, RA, RB) const {
-    return {};
+  constexpr auto operator()(const BinOp<Op, A, B>&, RA, RB) const {
+    if constexpr (RA::value && RB::value)
+      return std::bool_constant<
+          admits_v<Op, meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>, B>>{};
+    else
+      return std::false_type{};
   }
   template <typename F, typename A, typename R>
-  constexpr std::bool_constant<
-      R::value &&
-      (is_const_v<A> || std::same_as<value_at_t<X, A>, typename F::Domain>) &&
-      dedekind::category::IsTotalArrow<F>>
-  operator()(const Ap<F, A>&, R) const {
-    return {};
+  constexpr auto operator()(const Ap<F, A>&, R) const {
+    if constexpr (R::value)
+      return std::bool_constant<
+          (is_const_v<A> ||
+           std::same_as<value_at_t<X, A>, typename F::Domain>) &&
+          dedekind::category::IsTotalArrow<F>>{};
+    else
+      return std::false_type{};
   }
   template <typename Node, typename... R>
   constexpr std::bool_constant<(R::value && ...)> operator()(const Node&,
@@ -852,9 +858,11 @@ using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
 static_assert(is_total_term_v<P, decltype(π1 % 3)> &&
-                  !is_total_term_v<P, decltype(π1 % π2)>,
+                  !is_total_term_v<P, decltype(π1 % π2)> &&
+                  !is_total_term_v<P, decltype((π1 % π2) + 1)>,
               "a remainder by a nonzero constant is total, by a term it is not "
-              "certified (the divisor could be 0)");
+              "certified (the divisor could be 0), and the verdict propagates "
+              "up without asking the value algebra");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
               "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
