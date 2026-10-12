@@ -4,8 +4,10 @@ Each test encodes one claim from #1006's prose (and the operator surface of
 #1018, the Pst definition on #981).  A universe is the factory: terms name no
 carrier, and ``A(carrier) | term`` binds them, casting the constants and
 checking the operators against that carrier.  The carriers are primitive ones
-Python users know: ``u64`` (an unsigned word, ℤ/2⁶⁴: + − · wrap) and ``B``
-(``bool``).  A test runs as soon as the names it needs are bound and is skipped
+Python users know: ``u64`` and ``i64`` (the ring ℤ/2⁶⁴ with unsigned and signed
+representatives: + − · wrap), ``Mod(n)`` (ℤ/n, a field when n is prime) and
+``B`` (``bool``).  An ordered word takes an integer constant by the checked
+cast; a residue ring takes it by the quotient map ℤ → ℤ/n.  A test runs as soon as the names it needs are bound and is skipped
 until then, so this file is the acceptance spec of the binding: the claims are
 stated now, and switch on as the binding lands.
 """
@@ -110,6 +112,38 @@ class TheTotalOperatorSurface(unittest.TestCase):
         # A constant divisor is checked when the term is written.
         with self.assertRaises(ValueError):
             π % 0
+
+    @_needs("dedekind.pst", "A", "i64", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
+    def test_on_a_signed_word(self) -> None:
+        from dedekind.pst import A, i64, π, π1, π2
+
+        U = A(i64)  # ℤ/2⁶⁴ again, with representatives in [−2⁶³, 2⁶³)
+        negatives = U | (π < 0)
+        self.assertIn(-1, negatives)
+        self.assertNotIn(0, negatives)
+        U * U | (π2 == π1 - 1)  # total: it wraps at −2⁶³
+        with self.assertRaises(ValueError):
+            U | (π > 2**63)  # the word cannot hold it
+
+    @_needs("dedekind.pst", "A", "Mod", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
+    def test_on_a_prime_field(self) -> None:
+        from dedekind.pst import A, Mod, π, π1, π2
+
+        F = A(Mod(7))
+        # The quotient map: 9 meets ℤ/7 as 2.
+        self.assertIn(2, F | (π == 9))
+        # Field division by a nonzero constant multiplies by its inverse:
+        # 3 · 5 ≡ 1 (mod 7), so π / 3 == π · 5.
+        third = F * F | (π2 == π1 / 3)
+        self.assertTrue(third((3, 1)))
+        self.assertTrue(third((1, 5)))
+        # A term divisor could be 0; a residue ring has no compatible order.
+        with self.assertRaises(TypeError):
+            F * F | (π2 == π1 / π2)
+        with self.assertRaises(TypeError):
+            F | (π < 3)
+        with self.assertRaises(ValueError):
+            π / 0
 
     @_needs("dedekind.pst", "A", "B", "π", exhibit="exhibit 3 (terms)")
     def test_on_the_truth_chain(self) -> None:
