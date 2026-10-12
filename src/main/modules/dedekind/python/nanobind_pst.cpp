@@ -220,7 +220,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
 /** @brief The species tags a universe is valued in: @c 𝔸(K3, Kleene). */
 struct BooleTag {};
 struct KleeneTag {};
-/** @brief The grammar's element @c π (also written @c χ): @c π @c > @c v builds
+/** @brief The grammar's element @c π: @c π @c > @c v builds
  *  a datum over the carrier the value belongs to. */
 struct ProjectionTag {};
 
@@ -570,7 +570,7 @@ NB_MODULE(_pst, m) {
   m.attr("N") = pst::Chain<Cardinality>{};
 
   nb::class_<ProjectionTag>(m, "Projection",
-                            "The grammar's element π (also χ): π > v, π >= v, "
+                            "The grammar's element π: π > v, π >= v, "
                             "π < v, π <= v, π == v are the data of the former.")
       .def(
           "__gt__",
@@ -594,7 +594,6 @@ NB_MODULE(_pst, m) {
           nb::is_operator())
       .def("__repr__", [](const ProjectionTag&) { return std::string("π"); });
   m.attr("π") = ProjectionTag{};
-  m.attr("χ") = ProjectionTag{};
 
   m.def(
       "A",

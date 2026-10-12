@@ -1,96 +1,117 @@
 /** @file dedekind/numbers/collatz_test.cpp
  *
- * Runtime coverage for the bounded-Collatz reachability exhibit (§4).  The
- * load-bearing facts are compile-time @c static_assert s in @c :collatz; these
- * runtime @c CHECK s make the same witnesses visible to Codecov and pin the
- * operational behaviour (a @c static_assert is invisible to line coverage).
+ * The Collatz case study (docs/python/notebooks/03_collatz_by_budget.ipynb)
+ * mirrored in C++: the library supplies the combinators, the Collatz-specific
+ * terms are spelled here, as in the notebook, and nowhere in a library module.
+ * The step as one relation (a function by structure) and its arrow, the orbit
+ * as the iterate, the bounded search read in K₃ by Σ, the set C by recursion
+ * on the budget through χ, and the window ∀.  Compile-time witnesses where the
+ * constant-evaluation budget allows, runtime companions beyond it.
  */
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
-#include <limits>
+#include <optional>
 #include <utility>
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.order;
+import dedekind.relational;
 import dedekind.sequences;
 import dedekind.sets;
 
-using namespace dedekind::numbers;
-using dedekind::category::Ternary;
-using dedekind::sets::finite_cardinality;
+namespace {
+using namespace dedekind::category;
+using namespace dedekind::order;  // the product binders
+using namespace dedekind::relational;
+using namespace dedekind::sequences;
+using namespace dedekind::sets;
+using N = std::size_t;
+constexpr Cardinality n_(N n) { return finite_cardinality(n); }
 
-TEST_CASE("numbers:collatz — the recurrence, explicit and as a relation",
-          "[numbers][collatz]") {
-  // The explicit named rule ℕ → ℕ.
-  CHECK(collatz_rule(1) == 4);    // odd: 3·1+1
-  CHECK(collatz_rule(4) == 2);    // even: 4/2
-  CHECK(collatz_rule(2) == 1);    // even: 2/2
-  CHECK(collatz_rule(27) == 82);  // odd: 3·27+1
-  // The point-free relation, validated on pairs (ℕ = 𝔸<Cardinality>).
-  CHECK(collatz(std::pair{finite_cardinality(6), finite_cardinality(3)}));
-  CHECK(collatz(std::pair{finite_cardinality(7), finite_cardinality(22)}));
-  CHECK(!collatz(std::pair{finite_cardinality(6), finite_cardinality(4)}));
-  // The shadow saturates where 3n+1 leaves the word; the top is a fixpoint.
-  constexpr auto top = std::numeric_limits<std::size_t>::max();
-  CHECK(collatz_rule(top) == top);
-  CHECK(collatz_rule(top / 3 + 2) == top);  // odd, and 3n+1 overflows
+// ── The step, as one relation on ℕ × ℕ: n/2 where even, 3n+1 where odd ──────
+inline constexpr auto collatz =
+    ℕ * ℕ | (π2 == cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1));
+static_assert(IsFunctional<std::remove_cvref_t<decltype(collatz)>> &&
+                  IsEntire<std::remove_cvref_t<decltype(collatz)>>,
+              "T is a function by structure: π2 equals a term in π1 alone, "
+              "every operator of it total on ℕ");
+// ── and as the arrow that relation names ────────────────────────────────────
+inline constexpr auto step = arrow_of(collatz);
+static_assert(step(n_(6)) == n_(3) && step(n_(7)) == n_(22), "6 ↦ 3, 7 ↦ 22");
+
+// ── The orbit, the search, and Σ ────────────────────────────────────────────
+/** @brief Σ ∘ first_where(π == 1, B) ∘ iterate(step): the verdict in K₃.
+ *  Runtime only: a Path holds a std::function, which constant evaluation does
+ *  not admit. */
+Ternary reaches_within(N n, N budget) {
+  return Semidecided{}(
+      first_where(iterate(n_(n), step), η(n_(1)), budget).has_value());
 }
 
-TEST_CASE("numbers:collatz — two steps, and the attractor's pre-image",
-          "[numbers][collatz][relational]") {
-  const auto n = [](std::size_t i) { return finite_cardinality(i); };
-  CHECK(collatz2(std::pair{n(4), n(1)}));   // 4 → 2 → 1
-  CHECK(collatz2(std::pair{n(6), n(10)}));  // 6 → 3 → 10
-  CHECK(!collatz2(std::pair{n(6), n(5)}));
-  CHECK(converged_2(n(4)));   // captured by {1, 2, 4}
-  CHECK(converged_2(n(1)));   // already inside the cycle
-  CHECK(!converged_2(n(3)));  // 3 → 10 → 5
-  CHECK(pending_2(n(3)));
-  CHECK(!pending_2(n(4)));
+// ── The set C by recursion on the budget: the notebook's two rules ───────────
+//   C(N, K) :- N = 1.
+//   C(N, K) :- N > 1, K > 1, f(N, M), C(M, K − 1).
+inline constexpr auto collatz_within =
+    ((ℕ | (π > 0)) * (𝔸<N>{} | (π > 0))) |
+    ((π1 == 1) || ((π1 > 1) && (π2 > 1) && χ(ap(step, π1), π2 - 1)));
+constexpr bool within(N n, N k) { return collatz_within(std::pair{n_(n), k}); }
+static_assert(IsSetObject<decltype(collatz_within)>,
+              "C is a set object on ℕ⁺ × ℕ⁺");
+static_assert(
+    within(1, 1) && !within(2, 1) && within(2, 2) && within(6, 9) &&
+        !within(6, 8),
+    "C(n, k) is 'within k − 1 steps': 1 at any budget, 2 at one step, "
+    "6 at eight");
+}  // namespace
+
+TEST_CASE("Collatz — the step is a relation and the arrow it names",
+          "[numbers][collatz][exhibit]") {
+  CHECK(step(n_(27)) == n_(82));
+  for (N n = 1; n < 100; ++n) CHECK(collatz(std::pair{n_(n), step(n_(n))}));
+  CHECK_FALSE(collatz(std::pair{n_(6), n_(4)}));
+  // The converse fibre at 1 and the bounded relative product (a finite middle).
+  const auto converges_in_1 = fibre(converse(collatz), n_(1));
+  CHECK(converges_in_1(n_(2)));
+  CHECK_FALSE(converges_in_1(n_(1)));
+  const auto collatzM = collatz | (π1 < 64);
+  const auto collatz2 = collatzM >> collatzM;
+  CHECK(collatz2(std::pair{n_(4), n_(1)}));
+  CHECK(collatz2(std::pair{n_(6), n_(10)}));
+  CHECK_FALSE(collatz2(std::pair{n_(6), n_(5)}));
 }
 
-TEST_CASE("numbers:collatz — reach time is the first index hitting 1",
-          "[numbers][collatz]") {
-  // 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1  (reaches 1 at index 8).
-  REQUIRE(collatz_reach_time(6, 100).has_value());
-  CHECK(collatz_reach_time(6, 100).value() == 8u);
-  CHECK(collatz_reach_time(1, 0).value() == 0u);  // 1 is already there
-  // Budget one step short of the trajectory: no reach witnessed.
-  CHECK_FALSE(collatz_reach_time(6, 7).has_value());
+TEST_CASE("Collatz — the orbit, the search, Σ", "[numbers][collatz][exhibit]") {
+  const auto orbit = iterate(n_(27), step);
+  CHECK(orbit.at(1) == n_(82));
+  CHECK(first_where(orbit, η(n_(1)), 120) == std::optional<std::size_t>{111});
+  CHECK_FALSE(first_where(orbit, η(n_(1)), 50).has_value());
+  CHECK(reaches_within(6, 8) ==
+        Ternary::True);  // 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1
+  CHECK(reaches_within(6, 7) == Ternary::Unknown);
+  CHECK(reaches_within(27, 120) == Ternary::True);
+  CHECK(reaches_within(27, 50) == Ternary::Unknown);
 }
 
-TEST_CASE("numbers:collatz — the Rosolini verdict: IN / U (never OUT)",
-          "[numbers][collatz][dominance]") {
-  // 27 reaches 1 in ~111 steps: sufficient budget → IN, short budget → U.
-  CHECK(reaches_1_within(27, 120) == Ternary::True);
-  CHECK(reaches_1_within(27, 50) == Ternary::Unknown);
-  CHECK(reaches_1_within(6, 8) == Ternary::True);
-  CHECK(reaches_1_within(6, 7) == Ternary::Unknown);
-  CHECK(reaches_1_within(2, 0) == Ternary::Unknown);  // budget 0: no step
-  CHECK(reaches_1_within(std::numeric_limits<std::size_t>::max(), 8) ==
-        Ternary::Unknown);  // saturated orbit: undecided, never wrapped
-  // There is no False: an undecided answer negates to itself under the honest
-  // dominance — "never reaches 1" has no finite certificate for standard
-  // Collatz, so the classifier only ever answers True or Unknown.
+TEST_CASE("Collatz — C by recursion agrees with the iterated verdict",
+          "[numbers][collatz][exhibit][recursion]") {
+  CHECK(within(27, 112));
+  CHECK_FALSE(within(27, 111));
+  for (N n = 1; n < 60; ++n)
+    for (N k = 1; k < 130; ++k)
+      CHECK(within(n, k) == (reaches_within(n, k - 1) == Ternary::True));
 }
 
-TEST_CASE("numbers:collatz — the collapse: a windowed+budgeted decidable ∀",
-          "[numbers][collatz][collapse]") {
-  // The open ∀-conjecture, restricted to a finite window and budget, decides.
-  CHECK(all_reach_1_within<100, 200>());
-  CHECK(all_reach_1_within<1000, 300>());
-}
-
-TEST_CASE("numbers:collatz — orbit and reach-indicator are sequences",
-          "[numbers][collatz][sequence]") {
-  const auto orbit = collatz_orbit(6);
-  CHECK(orbit.at(0) == 6u);
-  CHECK(orbit.at(8) == 1u);
-  // The reach indicator is Unknown before 1 appears and absorbs to True after.
-  const auto reach = collatz_reach_path(6);
-  STATIC_CHECK(dedekind::sequences::IsAbsorptiveSequence<ReachPath>);  // the
-  // registration is on the type; a const-qualified decltype is not it
-  CHECK(reach.at(0) == Ternary::Unknown);  // 6 ≠ 1
-  CHECK(reach.at(20) == Ternary::True);    // reached (step 8) and stays True
+TEST_CASE("Collatz — the window decides with a sufficient budget",
+          "[numbers][collatz][exhibit]") {
+  // ∀ n ∈ [1, 1000): within 178 steps (871 is the slowest seed), not within
+  // 177.
+  bool all_178 = true, all_177 = true;
+  for (N n = 1; n < 1000; ++n) {
+    all_178 = all_178 && reaches_within(n, 178) == Ternary::True;
+    all_177 = all_177 && reaches_within(n, 177) == Ternary::True;
+  }
+  CHECK(all_178);
+  CHECK_FALSE(all_177);
 }

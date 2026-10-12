@@ -177,7 +177,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
   // A :sets test may not import :order, so the §469 halfspace-style sets are
   // built from NAMED opaque predicates (comprehension) rather than the
-  // point-free χ/fix halfspace grammar; this also preserves the capturing-
+  // point-free π/fix halfspace grammar; this also preserves the capturing-
   // predicate Set shape these structural (^ / & / !) collapse tests exercise.
   constexpr auto gt_10 = [](const auto& v) { return v > 10u; };
   constexpr auto lt_5 = [](const auto& v) { return v < 5u; };

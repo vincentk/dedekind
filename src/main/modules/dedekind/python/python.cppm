@@ -20,10 +20,12 @@
 
 module;
 
+#include <algorithm>  // the window's fold
 #include <concepts>
 #include <functional>
 #include <limits>     // the integer window's ends
 #include <optional>   // the cover, the first element of a set
+#include <ranges>     // the window's view
 #include <stdexcept>  // std::overflow_error at the window's end
 #include <string>
 #include <utility>
@@ -61,6 +63,7 @@ using dedekind::category::lift_logic;
 using dedekind::category::logic_complement;
 using dedekind::category::Morphism;
 using dedekind::category::Predecessor;
+using dedekind::category::predicate_logic_t;
 using dedekind::category::preimage;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
@@ -68,6 +71,7 @@ using dedekind::order::Direction;
 using dedekind::order::Interval;
 using dedekind::order::reduce_meet;
 using dedekind::order::Strictness;
+using dedekind::sequences::chain_view;
 using dedekind::sequences::Run;
 using dedekind::sequences::runs;
 using dedekind::sequences::SuccessorOrbit;
@@ -82,6 +86,43 @@ using dedekind::sets::η;
 using dedekind::sets::π;
 using dedekind::sets::ℵ_0;
 using dedekind::sets::𝔸;
+
+// ── The handles' erasure: one classifier type per (carrier, species) ─────────
+
+/** @brief The classifier a Python handle holds: type-erased, tagged with its
+ *  species, an @c IsPredicate over the carrier.  @tparam C the carrier.
+ *  @tparam L the species the set is valued in. */
+template <std::regular C, IsOckhamAlgebra L>
+struct Chi {
+  using Domain = C;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  std::function<Codomain(const C&)> f;
+  Codomain operator()(const C& x) const { return f(x); }
+};
+/** @brief A set over @c C valued in @c L as Python holds it: the comprehension
+ *  over @c 𝔸 whose datum is the erased classifier. */
+template <std::regular C, IsOckhamAlgebra L>
+using Erased = Comprehension<𝔸<C, L>, Chi<C, L>>;
+/** @brief A predicate's answer lifted into @c L along the dominance, as a named
+ *  callable (what the erased classifier stores).  @tparam L the species.
+ *  @tparam P the predicate. */
+template <IsOckhamAlgebra L, IsPredicate P>
+struct Lifted {
+  P p;
+  typename L::Ω operator()(const Dom<P>& x) const {
+    return lift_logic<L>(p(x));
+  }
+};
+/** @brief Erase any predicate over @c C into the handle's type, lifting a
+ *  Boolean answer where @c L is wider.  @tparam C the carrier.  @tparam L the
+ *  species.  @tparam P the predicate (a datum, a node, a boundary). */
+template <std::regular C, IsOckhamAlgebra L, IsPredicate P>
+  requires std::same_as<Dom<P>, C>
+Erased<C, L> erase(P p) {
+  return Erased<C, L>{Chi<C, L>{
+      std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
+}
 
 // ── Jlt: a fluent DSL over the real category arrows (#961) ────────────────
 //
@@ -316,6 +357,40 @@ constexpr std::optional<long long> greatest(const Set& s) {
   return hi.strictness == Strictness::Strict ? hi.at - 1 : hi.at;
 }
 
+/** @brief Bounded @f$\forall x \in S.\, P(x)@f$ in @c P's species: the meet
+ *  of @c P along the window the leaf spans, from its least to its greatest
+ *  element (the empty set vacuously @c ⊤).  A ray or @c 𝔸 has no window; on ℤ
+ *  that @f$\forall@f$ is the Rice wall, and the binding refuses it.
+ *  @tparam P a predicate on an integral carrier, the window's or ℕ's shadow
+ *  (a window with negatives is then not a window of the predicate's domain;
+ *  the binding refuses it).  @param s a bounded leaf (@c is_bounded).
+ *  @param p the predicate.  @return the meet, in @c P's Ω. */
+template <IsPredicate P>
+  requires std::integral<Dom<P>>
+struct OnWindow {
+  P p;
+  auto operator()(long long x) const { return p(static_cast<Dom<P>>(x)); }
+};
+template <IsPredicate P>
+  requires std::integral<Dom<P>>
+typename predicate_logic_t<P>::Ω forall(const Set& s, const P& p) {
+  using L = predicate_logic_t<P>;
+  const auto lo = least(s);
+  const auto hi = greatest(s);
+  if (!lo || !hi) return L::True;
+  return std::ranges::fold_left(
+      std::views::transform(chain_view{*lo, *hi}, OnWindow<P>{p}), L::True,
+      L::AND);
+}
+/** @brief The bounded ∀ of an atom on the unary @c π: bound on the window's
+ *  carrier first, so the grammar's @c π @c > @c 0 quantifies like a datum.
+ *  @tparam P the atom.  @param s a bounded leaf.  @param p the atom. */
+template <dedekind::sets::IsRelPredicate P>
+  requires(dedekind::sets::only_slot(dedekind::sets::slots_v<P>, 0))
+auto forall(const Set& s, const P& p) {
+  return forall(s, 𝔸<jlt::Int>{} | p);
+}
+
 }  // namespace lwv
 
 // ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
@@ -399,44 +474,14 @@ using dedekind::sets::forall;
 template <typename C>
 concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 
-/** @brief The classifier a Python handle holds: type-erased, tagged with its
- *  species, an @c IsPredicate over the chain.  @tparam C the chain.
- *  @tparam L the species the set is valued in. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-struct Chi {
-  using Domain = C;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  std::function<Codomain(const C&)> f;
-  Codomain operator()(const C& x) const { return f(x); }
-};
 /** @brief A set over the chain @c C valued in @c L, as Python holds it. */
 template <IsTruthChain C, IsOckhamAlgebra L>
-using Set = Comprehension<𝔸<C, L>, Chi<C, L>>;
+using Set = Erased<C, L>;
 /** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
  *  Boolean, carrier-bound, waiting for a former. */
 template <IsTruthChain C>
 using Datum = Chi<C, Boole>;
 
-/** @brief A predicate's answer lifted into @c L along the dominance, as a named
- *  callable (what the erased classifier stores).  @tparam L the species.
- *  @tparam P the predicate. */
-template <IsOckhamAlgebra L, IsPredicate P>
-struct Lifted {
-  P p;
-  typename L::Ω operator()(const Dom<P>& x) const {
-    return lift_logic<L>(p(x));
-  }
-};
-/** @brief Erase any predicate over @c C into the handle's type, lifting a
- *  Boolean answer where @c L is wider.  @tparam C the chain.  @tparam L the
- *  species.  @tparam P the predicate (a datum, a node, a boundary). */
-template <IsTruthChain C, IsOckhamAlgebra L, IsPredicate P>
-  requires std::same_as<Dom<P>, C>
-Set<C, L> erase(P p) {
-  return Set<C, L>{Chi<C, L>{
-      std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
-}
 template <IsTruthChain C, IsPredicate P>
   requires std::same_as<Dom<P>, C>
 Datum<C> datum(P p) {

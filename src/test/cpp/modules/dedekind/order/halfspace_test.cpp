@@ -191,7 +191,7 @@ TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
 
 TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)",
           "[order][halfspace][computability][point-free]") {
-  // The point-free comprehension ℕ | (χ > 5) reduces to a bare
+  // The point-free comprehension ℕ | (π > 5) reduces to a bare
   // Halfspace in the universe's species, Boole: decidable membership.  Pairs
   // the module-level static_assert witness with a Codecov-visible runtime
   // membership exercise.

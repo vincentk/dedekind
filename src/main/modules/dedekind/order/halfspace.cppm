@@ -637,8 +637,8 @@ constexpr Interval<V, L> reduce_join(const Interval<V, L>& a,
  * @c Halfspace, whose species is the universe's (@c Boole): decidable
  * membership, with no carrier-axis resolver in between. */
 namespace detail_pointfree_decidability {
-using PointFree = decltype(ℕ | (χ > 5));
-static_assert(HasDecidableMembership<decltype(ℕ | (χ > 5))>,
+using PointFree = decltype(ℕ | (π > 5));
+static_assert(HasDecidableMembership<decltype(ℕ | (π > 5))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 }  // namespace detail_pointfree_decidability
 
@@ -680,6 +680,7 @@ struct ProductRestrict {
  *  @return @c Set<pair<T1,T2>, L, RP>. */
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
+  requires(!dedekind::sets::contains_self_v<RP>)  // a χ closes in :recursion
 constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
   bind_check<std::pair<T1, T2>>(rp);
   return Comprehension<𝔸<std::pair<T1, T2>, L>, RP>{rp};
@@ -696,10 +697,13 @@ constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
  *  @param prod the product set object; @param rp the rel-predicate on pairs.
  *  @return @c Set<Domain, L, ProductRestrict<classifier, RP>>. */
 export template <typename S, IsRelPredicate RP>
-  requires dedekind::sets::IsSetObject<S> && requires {
-    typename S::Domain::first_type;  // a pair carrier: both coordinates
-    typename S::Domain::second_type;
-  }
+  requires dedekind::sets::IsSetObject<S> &&
+           requires {
+             typename S::Domain::first_type;  // a pair carrier: both
+                                              // coordinates
+             typename S::Domain::second_type;
+           } &&
+           (!dedekind::sets::contains_self_v<RP>)  // a χ closes in :recursion
 constexpr auto operator|(const S& prod, RP rp) {
   bind_check<typename S::Domain>(rp);
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
@@ -918,7 +922,7 @@ static_assert(!(ℕ * ℕ | π1 * 2 == π2)(std::pair{finite_cardinality(3),
                                                 finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
 // affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ | π1 * 3 + 1 == π2
-// (the Collatz odd branch, :collatz).
+// (an odd branch 3n+1, as in the Collatz case study's test).
 static_assert((ℕ * ℕ | π1 * 3 + 1 == π2)(std::pair{finite_cardinality(7),
                                                    finite_cardinality(22)}),
               "3·7+1 == 22: (7,22) ∈ the affine graph.");

@@ -32,7 +32,7 @@ classifier); every operator runs the library's node and every query is the
 library's exhaustion of the chain.  Reduction stays in C++.
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
-and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as
+and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π`` are names as
 written.  Subscript digits are not identifier characters, so ``K₃`` is ``K3``
 and ``ℵ₀`` is ``ℵ_0`` (the C++ spelling; ``aleph0`` remains an alias).  ``∃`` / ``∀`` are not identifiers either: the
 grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
@@ -56,7 +56,6 @@ from ._pst import runs
 from ._pst import Ø
 from ._pst import η
 from ._pst import π
-from ._pst import χ
 
 # ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
 # digit is not, so the C++ spelling ℵ_0 is the Python one too.
@@ -69,5 +68,5 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "ℵ_0", "aleph0", "Boole", "Kleene",
-    "Ø", "η", "π", "χ", "exists", "forall", "runs", "lift",
+    "Ø", "η", "π", "exists", "forall", "runs", "lift",
 ]

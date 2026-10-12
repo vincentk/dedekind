@@ -19,9 +19,9 @@
  *   - `:lattice`      — meet / join / lattice / distributive lattice.
  *   - `:completeness` — successor, Archimedean, dense / discrete,
  *                       Dedekind-complete.
- *   - `:halfspace`    — NTTP halfspace DSL (`bound<V>`, `Halfspace`,
- *                       `Interval`, `Singleton`,
- *                       `structured_and`).
+ *   - `:halfspace`    — the order reading of the term grammar: cuts
+ *                       (`Bounds`, `Interval`), their value leaf `SetVal`,
+ *                       and the cylinders of a product.
  *
  * Wikipedia: Partially ordered set, Total order, Half-space (geometry)
  *

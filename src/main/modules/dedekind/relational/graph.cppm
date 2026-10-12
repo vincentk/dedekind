@@ -146,9 +146,9 @@ using Graph =
  *       @c element scout.
  *
  * @note @b Related surfaces (#824).  The point-free arrow lift now exists as
- *       @c ap(f, π_I) → @c ProjApplyEq (the @c 𝑦 @c == @c f(𝑥) relpred) in
- *       @c :order, and image-membership decidability is read off the arrow's
- *       certificate in @c :category:image (@c ImageChi specialised for
+ *       the term @c 𝑦 @c == @c ap(f, 𝑥) of @c sets:terms, and image-membership
+ * decidability is read off the arrow's certificate in @c :category:image (@c
+ * ImageChi specialised for
  *       @c IsRetractableArrow → @c Boole / decidable, else the default
  *       @c Ternary::Unknown).  Redefining @c graph @b itself as sugar over
  *       @c ap (@c graph(f) @c := @c 𝔸<X>*𝔸<Y> @c | @c (𝑦==ap(f,𝑥))) is
@@ -219,6 +219,31 @@ concept IsEntire = dedekind::category::is_left_total_v<R>;
 export template <typename R, typename A, typename B>
 concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
                      IsFunctional<R> && IsEntire<R>;
+
+/** @brief The arrow a function's graph atom names, the converse of @c graph:
+ *  a relation @c A×B @c | @c (π2 @c == @c t) certified a function is the arrow
+ *  @c a ↦ t(a).  @tparam A,B the carriers.  @tparam P the graph atom. */
+export template <typename A, typename B, typename P>
+  requires dedekind::sets::IsGraphAtom<P> && std::default_initializable<B>
+struct GraphArrow {
+  using Domain = A;
+  using Codomain = B;
+  P atom;
+  constexpr B operator()(const A& a) const {
+    return dedekind::sets::term_value(dedekind::sets::graph_term(atom),
+                                      std::pair<A, B>{a, B{}});
+  }
+};
+/** @brief @c arrow_of(R): the arrow of a relation certified a function.
+ *  @param r the relation, a graph atom over @c A×B. */
+export template <typename A, typename B, typename L, typename C, typename P>
+  requires dedekind::sets::IsGraphAtom<P> &&
+           IsFunctional<Comprehension<𝔸<std::pair<A, B>, L, C>, P>> &&
+           IsEntire<Comprehension<𝔸<std::pair<A, B>, L, C>, P>>
+constexpr GraphArrow<A, B, P> arrow_of(
+    const Comprehension<𝔸<std::pair<A, B>, L, C>, P>& r) {
+  return {r.predicate};
+}
 
 /**
  * @brief Relative product of two @b functional relations (graphs), over @b any
