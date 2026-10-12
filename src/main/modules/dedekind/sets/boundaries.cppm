@@ -732,24 +732,17 @@ constexpr auto Ø<T, L>::operator!() const {
 // below), so the reducer materialises them back to the concrete boundary.  This
 // is the forward dual of that recognition: the bounded law RECOGNISES Ø/𝔸 as
 // bounds; the complement law GENERATES them.
-template <typename R>
-inline constexpr bool is_subobject_bottom_v = false;
 template <typename T, typename L>
-inline constexpr bool
-    is_subobject_bottom_v<LatticeBottom<T, subobject_order<L>>> = true;
-template <typename R>
-inline constexpr bool is_subobject_top_v = false;
+constexpr Ø<T, L> materialize_bounds(LatticeBottom<T, subobject_order<L>>) {
+  return {};
+}
 template <typename T, typename L>
-inline constexpr bool is_subobject_top_v<LatticeTop<T, subobject_order<L>>> =
-    true;
-template <typename T, typename L, typename R>
-constexpr auto materialize_bounds(R r) {
-  if constexpr (is_subobject_bottom_v<R>)
-    return Ø<T, L>{};
-  else if constexpr (is_subobject_top_v<R>)
-    return 𝔸<T, L>{};
-  else
-    return r;
+constexpr 𝔸<T, L> materialize_bounds(LatticeTop<T, subobject_order<L>>) {
+  return {};
+}
+template <typename R>
+constexpr R materialize_bounds(R r) {
+  return r;
 }
 
 /** @brief The domain reduce: fold a subobject lattice @c Node @b value (a
@@ -778,7 +771,7 @@ constexpr auto subobject_reduce(const Node& node) {
   // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
   // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
   // to let a value-determined collapse reach the normal form.
-  auto reduced = finalize_combine(materialize_bounds<typename Node::Domain, L>(
+  auto reduced = finalize_combine(materialize_bounds(
       cata(Reduce<subobject_order<L>, subobject_order<L>, Combine>{}, node)));
   static_assert(IsSetObject<decltype(reduced)>,
                 "subobject_reduce: the reduced term must be a set object.");
