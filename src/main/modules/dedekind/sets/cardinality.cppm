@@ -2121,7 +2121,7 @@ struct inverse_trait<SC, std::plus<SC>> {
 // non-finite alternatives are the out-of-memory boundary of the finite
 // backing, not inhabitants of ℤ --- NaZ is the indeterminate-form
 // tripwire, never a point of the integers.  ℤ = 𝔸<SignedCardinality> is
-// thereby a certified chain like ℕ = 𝔸<Cardinality>: halfspaces, SetVal
+// thereby a certified chain like ℕ = 𝔸<Cardinality>: halfspaces, ConvexSet
 // and max / min admit it on the same footing.
 template <>
 inline constexpr bool is_reflexive_v<SC, std::less_equal<>> = true;

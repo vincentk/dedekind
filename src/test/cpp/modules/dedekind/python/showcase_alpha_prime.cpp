@@ -78,26 +78,26 @@ static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
 static_assert(!T(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  The value-first meet of two bare halfspaces folds through
-//     `structured_and` to a `SetVal`: `S` (= {x > 5}) meet {x < 7} on ℕ has
+//     `structured_and` to a `ConvexSet`: `S` (= {x > 5}) meet {x < 7} on ℕ has
 //     exactly one inhabitant, and the meet folds it to the point {6}.  The
 //     point collapse gates on the NNO's successor / predecessor --- an axiom of
 //     the category, which the ℕ proxy witnesses --- not on `std::integral`, so
 //     ℕ collapses exactly as a machine integer does.
 constexpr auto a = S & (ℕ | (π < 7));  // the point {6}
-static_assert(a == SetVal<Cardinality>::point(finite_cardinality(6)),
+static_assert(a == ConvexSet<Cardinality>::point(finite_cardinality(6)),
               "the meet folds to the point {6} at compile time");
 static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
                   !static_cast<bool>(a(7u)),
               "the folded point is exactly 6");
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
-//     complement.  The value-first meet folds `S ∩ ¬S` to the empty `SetVal` at
-//     compile time — the law of excluded middle, value-directed.
+//     complement.  The value-first meet folds `S ∩ ¬S` to the empty `ConvexSet`
+//     at compile time — the law of excluded middle, value-directed.
 constexpr auto b = S & ~S;
 static_assert(b == Ø<Cardinality>{},
               "S ∩ ¬S folds to the empty set at compile time");
 
-// (6) Certified.  Both reductions are finite constexpr `SetVal`s — the point
+// (6) Certified.  Both reductions are finite constexpr `ConvexSet`s — the point
 //     {6} (cardinality 1) and the empty set (cardinality 0) — decided at
 //     compile time even though their parent `S` is a transfinite intensional
 //     description.  The reduction crosses the realisation boundary value-first:

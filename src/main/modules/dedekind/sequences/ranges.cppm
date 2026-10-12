@@ -82,7 +82,7 @@ namespace detail {
 
 /** @brief The @c [start, bound) iota_view bounds a finite value set normalises
  *  to (shared between @c to_iota_view and @c from_iota_view): the Interval /
- *  Singleton / Empty kinds of a @c SetVal, read off its value endpoints.  An
+ *  Singleton / Empty kinds of a @c ConvexSet, read off its value endpoints.  An
  *  unbounded kind (Halfspace / Universe) has no finite range and yields the
  *  empty bounds; a per-arm overload will refuse it once the set is a coproduct
  *  (#970).
@@ -96,7 +96,7 @@ struct IotaBounds {
 };
 
 template <std::integral T, typename L>
-constexpr IotaBounds<T> iota_bounds(const dedekind::order::SetVal<T, L>& s) {
+constexpr IotaBounds<T> iota_bounds(const dedekind::order::ConvexSet<T, L>& s) {
   using S = dedekind::order::Strictness;
   if (!s.inhabited || !s.lower || !s.upper) return {T{}, T{}};
   const T lo = s.lower->at;
@@ -118,7 +118,7 @@ constexpr IotaBounds<T> iota_bounds(const dedekind::order::SetVal<T, L>& s) {
  *  rather than a predicate. */
 export template <std::integral T, typename L>
 constexpr std::ranges::iota_view<T, T> to_iota_view(
-    const dedekind::order::SetVal<T, L>& s) {
+    const dedekind::order::ConvexSet<T, L>& s) {
   const auto b = detail::iota_bounds(s);
   return std::ranges::views::iota(b.start, b.bound);
 }
@@ -219,12 +219,12 @@ static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
 }  // namespace detail_chain_view_witness
 
 /** @brief Project an interval (the meet of its two halfspaces) to its
- *  iota_view through its @c SetVal --- one bounds law. */
+ *  iota_view through its @c ConvexSet --- one bounds law. */
 export template <std::integral T, dedekind::order::Strictness SL,
                  dedekind::order::Strictness SU, typename L>
 constexpr std::ranges::iota_view<T, T> to_iota_view(
     const dedekind::order::Interval<T, SL, SU, L>& oi) {
-  return to_iota_view(dedekind::order::to_setval(oi));
+  return to_iota_view(dedekind::order::to_convex_set(oi));
 }
 
 /** @section ranges__Materialize — the last plank of the bridge

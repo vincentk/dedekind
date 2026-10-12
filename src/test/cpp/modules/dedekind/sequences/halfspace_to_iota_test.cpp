@@ -183,7 +183,7 @@ TEST_CASE(
 TEST_CASE("ranges:halfspace ↔ iota — the bridge respects meet (#703 Slice 3a)",
           "[ranges][halfspace][iota][meet]") {
   // The interval ∧ composes with to_iota_view: the image's bounds are exactly
-  // the set-intersection bounds.  The meet is the reduced VALUE (a SetVal),
+  // the set-intersection bounds.  The meet is the reduced VALUE (a ConvexSet),
   // which to_iota_view reads directly.
   constexpr auto A =
       make_interval<Strictness::NonStrict, Strictness::Strict>(2, 8);

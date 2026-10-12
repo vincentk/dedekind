@@ -7,12 +7,12 @@
  *
  * collapse the meet to the bounded open interval (-5, 5).  The collapse is a
  * VALUE collapse, not a type collapse: the pivot rides in the halfspace
- * INSTANCE, so `structured_and(A, B)` folds to a `SetVal`, a cut whose sides
+ * INSTANCE, so `structured_and(A, B)` folds to a `ConvexSet`, a cut whose sides
  * are value fields.  The point
  * is the OPTIONALITY: the SAME `constexpr` folds at compile time (a
  * `static_assert` that `meet` is the interval (-5, 5)) AND runs at runtime (the
  * identical `meet.contains(x)`).  A value pivot cannot dispatch a distinct
- * return TYPE per outcome, so the meet returns one unified `SetVal`.
+ * return TYPE per outcome, so the meet returns one unified `ConvexSet`.
  *
  * The crossing JOIN (A | B) does NOT structurally collapse: the opposing cover
  * cannot be dispatched on a runtime pivot, so the union is the honest
@@ -50,8 +50,8 @@ constexpr BUp B{-5};
 // ── Compile-time collapse proof (the "wow"): the reduced form is a VALUE that
 //    folds at constexpr, not an unevaluated AndPredicate. ────────────────────
 constexpr auto meet = structured_and(A, B);  // {x<5} ∩ {x>-5}
-static_assert(meet == SetVal<int>::bounded(-5, Strictness::Strict, 5,
-                                           Strictness::Strict),
+static_assert(meet == ConvexSet<int>::bounded(-5, Strictness::Strict, 5,
+                                              Strictness::Strict),
               "A & B collapsed to the bounded interval (-5, 5).");
 
 }  // namespace set_expression_exhibit
@@ -68,8 +68,8 @@ TEST_CASE("Exhibit: two overlapping halfspaces collapse (value-first, #888)",
     // The collapse IS the point: pin the reduced KIND + bounds, not just
     // membership — else the exhibit would pass even if the meet stopped
     // collapsing.
-    STATIC_CHECK(meet == SetVal<int>::bounded(-5, Strictness::Strict, 5,
-                                              Strictness::Strict));
+    STATIC_CHECK(meet == ConvexSet<int>::bounded(-5, Strictness::Strict, 5,
+                                                 Strictness::Strict));
     STATIC_CHECK(meet.contains(0));
     STATIC_CHECK(meet.contains(4));
     STATIC_CHECK(meet.contains(-4));

@@ -49,7 +49,7 @@ import dedekind.relational; // IsFunctional/IsEntire (:graph), used by the order
                             // relation witnesses below (#792)
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
-import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / SetVal:
+import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / ConvexSet:
                 // the interval normal form lives on a certified chain
 
 namespace dedekind::order {
@@ -477,7 +477,7 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
 
 /** @section halfspace__Value_First_Meet — the ONE meet law, value-first.
  *
- *  @details The meet is written ONCE here, over a @c SetVal whose pivot is a
+ *  @details The meet is written ONCE here, over a @c ConvexSet whose pivot is a
  *  @b value.  Being @c constexpr it serves BOTH phases (the
  * compile-time/runtime optionality): the type-level @c structured_and below @b
  * delegates to it (it lifts its NTTP pivots to values, calls @c reduce_meet,
@@ -490,7 +490,8 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
  * direction,
  *  @f$\{x \mid x \bowtie p\} = \pi_1(\,S \times \eta(p) \mid \pi_1 \bowtie
  *  \pi_2\,)@f$, the pivot in the value @f$\eta(p)@f$ (a @c Singleton); the
- *  singleton is the degenerate point @c SetVal::point.  House spelling @c χ /
+ *  singleton is the degenerate point @c ConvexSet::point.  House spelling @c χ
+ * /
  *  @c π₁,π₂.
  *
  *  @c Bound is one side of a cut as a value: the bound and whether it is
@@ -521,13 +522,14 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
-/** @brief A set as a VALUE: a cut of the chain, each side an optional
- *  @c Bound, with a runtime-evaluable membership χ.  No side is the universe;
- *  both sides closed at one value is a point; @c inhabited @c == @c false is
- *  the one empty set, to which crossing bounds normalise.  The bounds ride as
- *  values, never as NTTPs.  Consume it through @c &, @c |, @c ==, @c <=,
- *  membership and the @c half / @c point / @c empty / @c universe / @c bounded
- *  factories.
+/** @brief A convex subset of a chain as a VALUE --- an interval: each side an
+ *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
+ *  a union or a complement leaves it unless one operand covers the other.  No
+ * side is the universe; both sides closed at one value is a point; @c inhabited
+ * @c == @c false is the one empty set, to which crossing bounds normalise.  The
+ * bounds ride as values, never as NTTPs.  Consume it through @c &, @c |, @c ==,
+ * @c <=, membership and the @c half / @c point / @c empty / @c universe / @c
+ * bounded factories.
  *
  *  The carrier is gated on the registered chain (@c IsTotallyOrdered): a cut
  *  is a normal form only on a chain.
@@ -535,7 +537,7 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
  */
 export template <typename V = long long, typename L = Boole>
   requires IsTotallyOrdered<V>
-struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
+struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
   using Domain = V;
   bool inhabited = true;
   std::optional<Bound<V>> lower;
@@ -548,7 +550,7 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
    *  exhibits: on a variant carrier (ℕ = @c Cardinality) the comparisons are
    *  heavy enough that the inliner declines a single fat function, and a
-   *  constant @c SetVal then stays a call instead of folding to @c ret @c i1
+   *  constant @c ConvexSet then stays a call instead of folding to @c ret @c i1
    *  @c false.  A small front inlines, the loads from the constant fold, and
    *  the bounded call is dead code. */
   constexpr bool contains(const V& x) const {
@@ -573,25 +575,25 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
     return contains(x) ? L::True : L::False;
   }
 
-  static constexpr SetVal half(V pivot, Direction d, Strictness s) {
+  static constexpr ConvexSet half(V pivot, Direction d, Strictness s) {
     if (d == Direction::Upward) return {{}, true, Bound<V>{pivot, s}, {}};
     return {{}, true, {}, Bound<V>{pivot, s}};
   }
-  static constexpr SetVal point(V pivot) {
+  static constexpr ConvexSet point(V pivot) {
     return {{}, true, Bound<V>{pivot}, Bound<V>{pivot}};
   }
   /** @brief The two boundary sets as values --- the meet's annihilator (@c Ø)
    *  and unit (@c 𝔸).  Factories (not raw aggregate init) so callers never
    * spell the empty-base brace of the @c SetExpr aggregate. */
-  static constexpr SetVal empty() { return {{}, false, {}, {}}; }
-  static constexpr SetVal universe() { return {}; }
+  static constexpr ConvexSet empty() { return {{}, false, {}, {}}; }
+  static constexpr ConvexSet universe() { return {}; }
   /** @brief The bounded meet @c [lo, hi] with its strictness pair, collapsed:
    *  empty if the bounds cross, the single point where the chain admits exactly
    *  one element, else the interval.  The ONE collapse law every meet rides.
    *  The point collapse gates on the NNO steps (@c HasNNOStep: successor /
    *  predecessor, an axiom of the category), so the ℕ proxy @c Cardinality
    *  collapses to its point exactly as a machine integer does. */
-  static constexpr SetVal bounded(V lo, Strictness sl, V hi, Strictness su) {
+  static constexpr ConvexSet bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
         sl == Strictness::Strict || su == Strictness::Strict;
     if (either_strict ? (lo >= hi) : (lo > hi)) return empty();
@@ -607,8 +609,8 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   /** @brief The set with the given sides: through @c bounded when both are
    *  present, so it is collapsed.  @param lo the lower side.  @param hi the
    *  upper side. */
-  static constexpr SetVal of_sides(const std::optional<Bound<V>>& lo,
-                                   const std::optional<Bound<V>>& hi) {
+  static constexpr ConvexSet of_sides(const std::optional<Bound<V>>& lo,
+                                      const std::optional<Bound<V>>& hi) {
     if (lo && hi)
       return bounded(lo->at, lo->strictness, hi->at, hi->strictness);
     return {{}, true, lo, hi};
@@ -616,15 +618,16 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
 };
 
 // The value set is a set OBJECT --- (reified universe, χ) --- so whatever the
-// Python surface exports (it exports SetVal) conforms to IsSetObject by
+// Python surface exports (it exports ConvexSet) conforms to IsSetObject by
 // construction.  A MUST for the exported type, pinned here at its definition.
 static_assert(
-    dedekind::sets::IsSetObject<SetVal<int>>,
-    "SetVal is a set object: the value normal form over its universe.");
-static_assert(dedekind::sets::IsSetObject<SetVal<long long>>,
-              "the Python surface's Set (SetVal<long long>) is a set object.");
+    dedekind::sets::IsSetObject<ConvexSet<int>>,
+    "ConvexSet is a set object: the value normal form over its universe.");
+static_assert(
+    dedekind::sets::IsSetObject<ConvexSet<long long>>,
+    "the Python surface's Set (ConvexSet<long long>) is a set object.");
 
-namespace detail_setval {
+namespace detail_convex {
 /** @brief The tighter of two lower sides: the larger bound; at a tie the
  *  strict one.  An absent side is no constraint.  @tparam V the carrier. */
 template <typename V>
@@ -664,24 +667,24 @@ constexpr bool upper_covers(const std::optional<Bound<V>>& a,
   return a->strictness == Strictness::NonStrict ||
          b->strictness == Strictness::Strict;
 }
-}  // namespace detail_setval
+}  // namespace detail_convex
 
 /** @brief The ONE meet law: the tighter side on each end, collapsed by
  *  @c bounded (crossing sides to @c Ø, a single admitted element to its point).
  *  @c constexpr, so evaluable at compile time or runtime. */
 export template <typename V, typename L>
-constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
-                                   const SetVal<V, L>& b) {
-  using S = SetVal<V, L>;
+constexpr ConvexSet<V, L> reduce_meet(const ConvexSet<V, L>& a,
+                                      const ConvexSet<V, L>& b) {
+  using S = ConvexSet<V, L>;
   if (!a.inhabited || !b.inhabited) return S::empty();
-  return S::of_sides(detail_setval::tighter_lower(a.lower, b.lower),
-                     detail_setval::tighter_upper(a.upper, b.upper));
+  return S::of_sides(detail_convex::tighter_lower(a.lower, b.lower),
+                     detail_convex::tighter_upper(a.upper, b.upper));
 }
 
-/** @brief A cut as a @c SetVal: its present sides, as written. */
+/** @brief A cut as a @c ConvexSet: its present sides, as written. */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
-constexpr SetVal<T, L> to_setval(
+constexpr ConvexSet<T, L> to_convex_set(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
   std::optional<Bound<T>> lo, hi;
   if constexpr (is_bounded_side_v<Lo>)
@@ -694,7 +697,7 @@ constexpr SetVal<T, L> to_setval(
 /** @brief Equality of two value sets: both empty, or the same sides.  The
  * value-first counterpart of the old type-level set equality; it is what the
  * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
- * meet returns a @c SetVal.
+ * meet returns a @c ConvexSet.
  *
  *  @details The verdict is returned in the ambient logic @c L::Ω (so it
  * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
@@ -709,7 +712,7 @@ constexpr SetVal<T, L> to_setval(
  *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
  *  closed bounds.  On a dense carrier they are different sets, and the
  *  comparison stays structural. */
-namespace detail_setval_eq {
+namespace detail_convex_eq {
 /** @brief Close a strict lower bound at the next element, where the step moves;
  *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
  *  element to close at and the bound stays strict --- @c {x > ⊤} is not
@@ -738,20 +741,20 @@ constexpr void close_upper(V& v, Strictness& s) {
  *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
  */
 template <typename V, typename L>
-constexpr SetVal<V, L> canonical(SetVal<V, L> s) {
+constexpr ConvexSet<V, L> canonical(ConvexSet<V, L> s) {
   if constexpr (HasCoveringStep<V>) {
     if (s.lower) close_lower(s.lower->at, s.lower->strictness);
     if (s.upper) close_upper(s.upper->at, s.upper->strictness);
   }
   return s;
 }
-}  // namespace detail_setval_eq
+}  // namespace detail_convex_eq
 export template <typename V, typename L>
   requires std::equality_comparable<V>
-constexpr typename L::Ω operator==(const SetVal<V, L>& a,
-                                   const SetVal<V, L>& b) {
-  const SetVal<V, L> x = detail_setval_eq::canonical(a);
-  const SetVal<V, L> y = detail_setval_eq::canonical(b);
+constexpr typename L::Ω operator==(const ConvexSet<V, L>& a,
+                                   const ConvexSet<V, L>& b) {
+  const ConvexSet<V, L> x = detail_convex_eq::canonical(a);
+  const ConvexSet<V, L> y = detail_convex_eq::canonical(b);
   const bool eq = x.inhabited == y.inhabited &&
                   (!x.inhabited || (x.lower == y.lower && x.upper == y.upper));
   return eq ? L::True : L::False;
@@ -761,65 +764,66 @@ constexpr typename L::Ω operator==(const SetVal<V, L>& a,
  *  exhausting the chain instead (sets:boundaries). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
-constexpr bool operator==(const Ø<T, L>&, const SetVal<T, L>& s) {
+constexpr bool operator==(const Ø<T, L>&, const ConvexSet<T, L>& s) {
   return !s.inhabited;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
-constexpr bool operator==(const SetVal<T, L>& s, const Ø<T, L>&) {
+constexpr bool operator==(const ConvexSet<T, L>& s, const Ø<T, L>&) {
   return !s.inhabited;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const 𝔸<T, L, CU>&, const SetVal<T, L>& s) {
+constexpr bool operator==(const 𝔸<T, L, CU>&, const ConvexSet<T, L>& s) {
   return s.inhabited && !s.lower && !s.upper;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const SetVal<T, L>& s, const 𝔸<T, L, CU>&) {
+constexpr bool operator==(const ConvexSet<T, L>& s, const 𝔸<T, L, CU>&) {
   return s.inhabited && !s.lower && !s.upper;
 }
-namespace detail_setval_eq {
+namespace detail_convex_eq {
 using dedekind::category::Ternary;
 using dedekind::sets::Cardinality;
 using dedekind::sets::ℵ_0;
 static_assert(
-    SetVal<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
-        SetVal<int>::bounded(1, Strictness::NonStrict, 3, Strictness::Strict),
+    ConvexSet<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
+        ConvexSet<int>::bounded(1, Strictness::NonStrict, 3,
+                                Strictness::Strict),
     "(0, 3) = [1, 3) on ℤ: the strict bound closes at the next element.");
 static_assert(
-    !(SetVal<Ternary>::half(Ternary::True, Direction::Upward,
-                            Strictness::Strict) ==
-      SetVal<Ternary>::half(Ternary::True, Direction::Upward,
-                            Strictness::NonStrict)),
+    !(ConvexSet<Ternary>::half(Ternary::True, Direction::Upward,
+                               Strictness::Strict) ==
+      ConvexSet<Ternary>::half(Ternary::True, Direction::Upward,
+                               Strictness::NonStrict)),
     "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
     "form.");
 static_assert(
-    !(SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                Strictness::Strict) ==
-      SetVal<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                Strictness::NonStrict)),
+    !(ConvexSet<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                   Strictness::Strict) ==
+      ConvexSet<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                   Strictness::NonStrict)),
     "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
-}  // namespace detail_setval_eq
+}  // namespace detail_convex_eq
 
 /** @brief Bridge: compare a value set to a halfspace by the halfspace's own
- *  @c SetVal form, so the generic meet-subset identity accepts a bare
+ *  @c ConvexSet form, so the generic meet-subset identity accepts a bare
  *  @c Halfspace operand (@c (a & b) == a with @c a a halfspace). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
   requires std::equality_comparable<T>
 constexpr typename L::Ω operator==(
-    const SetVal<T, L>& s,
+    const ConvexSet<T, L>& s,
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return s == to_setval(h);
+  return s == to_convex_set(h);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
   requires std::equality_comparable<T>
 constexpr typename L::Ω operator==(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-    const SetVal<T, L>& s) {
-  return s == to_setval(h);
+    const ConvexSet<T, L>& s) {
+  return s == to_convex_set(h);
 }
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -829,16 +833,16 @@ constexpr typename L::Ω operator==(
  * reduce_meet on the pivot VALUES.  Value-carrying pivots mean the
  * result KIND (empty / point / interval / halfspace) depends on runtime values,
  * so a function cannot pick a distinct return TYPE --- the meet returns the
- * unified value @c SetVal (a cut by its sides), and the type-directed collapse
- * becomes value-directed (a @c constexpr @c SetVal still folds at compile
- * time). */
+ * unified value @c ConvexSet (a cut by its sides), and the type-directed
+ * collapse becomes value-directed (a @c constexpr @c ConvexSet still folds at
+ * compile time). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
                  IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
                  IsSide Hi2>
 constexpr auto structured_and(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return reduce_meet(to_setval(a), to_setval(b));
+  return reduce_meet(to_convex_set(a), to_convex_set(b));
 }
 /** @brief The meet of a cut with a value leaf, and of two value leaves: the one
  *  @c reduce_meet.  Declared here, before @c axis_factor, so the recursion
@@ -846,21 +850,21 @@ constexpr auto structured_and(
  *  association (#872). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
-constexpr SetVal<T, L> structured_and(
-    const SetVal<T, L>& s,
+constexpr ConvexSet<T, L> structured_and(
+    const ConvexSet<T, L>& s,
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return reduce_meet(s, to_setval(h));
+  return reduce_meet(s, to_convex_set(h));
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
-constexpr SetVal<T, L> structured_and(
+constexpr ConvexSet<T, L> structured_and(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-    const SetVal<T, L>& s) {
-  return reduce_meet(to_setval(h), s);
+    const ConvexSet<T, L>& s) {
+  return reduce_meet(to_convex_set(h), s);
 }
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
-                                      const SetVal<V, L>& b) {
+constexpr ConvexSet<V, L> structured_and(const ConvexSet<V, L>& a,
+                                         const ConvexSet<V, L>& b) {
   return reduce_meet(a, b);
 }
 
@@ -881,16 +885,16 @@ constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
  *  the generic point-wise @c operator|| (value-carrying can't dispatch
  *  cover-vs-gap on a runtime pivot). */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr SetVal<V, L> reduce_join(const SetVal<V, L>& a,
-                                   const SetVal<V, L>& b) {
+constexpr ConvexSet<V, L> reduce_join(const ConvexSet<V, L>& a,
+                                      const ConvexSet<V, L>& b) {
   if (!a.inhabited) return b;
   if (!b.inhabited) return a;
   // One side covering the other on both ends: the union is the cover.
-  if (detail_setval::lower_covers(a.lower, b.lower) &&
-      detail_setval::upper_covers(a.upper, b.upper))
+  if (detail_convex::lower_covers(a.lower, b.lower) &&
+      detail_convex::upper_covers(a.upper, b.upper))
     return a;
-  if (detail_setval::lower_covers(b.lower, a.lower) &&
-      detail_setval::upper_covers(b.upper, a.upper))
+  if (detail_convex::lower_covers(b.lower, a.lower) &&
+      detail_convex::upper_covers(b.upper, a.upper))
     return b;
   // No interval normal form (a crossing union, a point outside, two disjoint
   // intervals): refused, not guessed.
@@ -907,7 +911,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
 constexpr auto structured_or(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return reduce_join(to_setval(a), to_setval(b));
+  return reduce_join(to_convex_set(a), to_convex_set(b));
 }
 
 /** @section halfspace__PointFree_Decidability
@@ -1107,7 +1111,7 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
     // BOTH constrain axis I: the set-level meet of the recovered factors (a
-    // cut or, from a deeper meet, a SetVal), through structured_and directly
+    // cut or, from a deeper meet, a ConvexSet), through structured_and directly
     // --- the set-level operator& is declared below this point.
     return dedekind::order::structured_and(fa, fb);
   }
@@ -1259,10 +1263,10 @@ static_assert(!dom(ℕ * ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(4)),
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
 static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
-                  SetVal<Cardinality>::bounded(finite_cardinality(2),
-                                               Strictness::NonStrict,
-                                               finite_cardinality(5),
-                                               Strictness::NonStrict),
+                  ConvexSet<Cardinality>::bounded(finite_cardinality(2),
+                                                  Strictness::NonStrict,
+                                                  finite_cardinality(5),
+                                                  Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
     dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
@@ -1299,13 +1303,13 @@ static_assert(
  *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
  *  absent (unbounded), to @c Ø. */
 /** @brief Upper bounds of a downward halfspace {x ⋈ p} = {x ≥ sup}
- *  (value-carrying, returns SetVal).  Discrete strict: sup = predecessor(p)
+ *  (value-carrying, returns ConvexSet).  Discrete strict: sup = predecessor(p)
  *  (attained), so the meet {x<p} ∩ {x≥p−1} = {p−1}; else sup = p (dense strict
  *  → the meet is empty, no max).  (The machine-boundary empty-cut → 𝔸 edge is
  *  simplified out; FIXME(#970) restore it with the coproduct arms.) */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, Strictness SU>
-constexpr SetVal<T, L> upperbounds(
+constexpr ConvexSet<T, L> upperbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Bounded<SU>, T>>& c) {
   T sup = c.predicate.hi;
   // Discrete carriers attain the strict bound at the predecessor --- gated on
@@ -1313,28 +1317,28 @@ constexpr SetVal<T, L> upperbounds(
   // on std::integral.
   if constexpr (HasCoveringStep<T>)
     if (SU == Strictness::Strict) sup = predecessor(c.predicate.hi);
-  return SetVal<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
+  return ConvexSet<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo>
-constexpr SetVal<T, L> upperbounds(
+constexpr ConvexSet<T, L> upperbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Unbounded, T>>&) {
-  return SetVal<T, L>::empty();  // unbounded above: no upper bound
+  return ConvexSet<T, L>::empty();  // unbounded above: no upper bound
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  Strictness SL, IsSide Hi>
-constexpr SetVal<T, L> lowerbounds(
+constexpr ConvexSet<T, L> lowerbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Bounded<SL>, Hi, T>>& c) {
   T inf = c.predicate.lo;
   if constexpr (HasCoveringStep<T>)
     if (SL == Strictness::Strict) inf = successor(c.predicate.lo);
-  return SetVal<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
+  return ConvexSet<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Hi>
-constexpr SetVal<T, L> lowerbounds(
+constexpr ConvexSet<T, L> lowerbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Unbounded, Hi, T>>&) {
-  return SetVal<T, L>::empty();  // unbounded below: no lower bound
+  return ConvexSet<T, L>::empty();  // unbounded below: no lower bound
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <IsOckhamAlgebra L, IsCardinality C>
@@ -1369,7 +1373,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
 constexpr auto operator&(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  // The meet is the one value law; the disjoint case is the empty SetVal
+  // The meet is the one value law; the disjoint case is the empty ConvexSet
   // kind (no separate Ø<T,L> canonicalisation needed).
   return structured_and(a, b);
 }
@@ -1392,34 +1396,35 @@ constexpr auto operator|(
 {
   return structured_or(a, b);
 }
-/** @brief Meets involving the value @c SetVal route through the one
+/** @brief Meets involving the value @c ConvexSet route through the one
  *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
- *  upperbounds(s) collapses, since @c upperbounds now yields a @c SetVal. */
+ *  upperbounds(s) collapses, since @c upperbounds now yields a @c ConvexSet. */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr SetVal<V, L> operator&(const SetVal<V, L>& a, const SetVal<V, L>& b) {
+constexpr ConvexSet<V, L> operator&(const ConvexSet<V, L>& a,
+                                    const ConvexSet<V, L>& b) {
   return reduce_meet(a, b);
 }
 /** @brief The join law under the reducer's customization-point name, for two
  *  @b value leaves (the meet's sibling sits beside the cut meet above): a term
- *  whose leaves are already @c SetVal --- the leaf type the Python surface
+ *  whose leaves are already @c ConvexSet --- the leaf type the Python surface
  *  builds --- collapses through the same reducer as a term of bare cuts. */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr SetVal<V, L> structured_or(const SetVal<V, L>& a,
-                                     const SetVal<V, L>& b) {
+constexpr ConvexSet<V, L> structured_or(const ConvexSet<V, L>& a,
+                                        const ConvexSet<V, L>& b) {
   return reduce_join(a, b);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
 constexpr auto operator&(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                         const SetVal<T, L>& s) {
-  return reduce_meet(to_setval(h), s);
+                         const ConvexSet<T, L>& s) {
+  return reduce_meet(to_convex_set(h), s);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
 constexpr auto operator&(
-    const SetVal<T, L>& s,
+    const ConvexSet<T, L>& s,
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return reduce_meet(s, to_setval(h));
+  return reduce_meet(s, to_convex_set(h));
 }
 
 /** @brief @c Ø absorbs the meet (no upper bound ⟹ no max). */
@@ -1549,21 +1554,22 @@ consteval bool order_is_cover_star(int k) {
 }
 }  // namespace detail_cover_witness
 static_assert(
-    SetVal<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict) ==
-        SetVal<int>::empty(),
+    ConvexSet<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict) ==
+        ConvexSet<int>::empty(),
     "nothing lies strictly between 3 and S(3): the successor is the cover.");
-static_assert(SetVal<int>::bounded(3, Strictness::Strict, 5,
-                                   Strictness::Strict) == SetVal<int>::point(4),
+static_assert(ConvexSet<int>::bounded(3, Strictness::Strict, 5,
+                                      Strictness::Strict) ==
+                  ConvexSet<int>::point(4),
               "(3, S(S(3))) is the point S(3) = 4.");
-static_assert(SetVal<Cardinality>::bounded(finite_cardinality(3),
-                                           Strictness::Strict,
-                                           finite_cardinality(4),
-                                           Strictness::Strict) ==
-                  SetVal<Cardinality>::empty(),
+static_assert(ConvexSet<Cardinality>::bounded(finite_cardinality(3),
+                                              Strictness::Strict,
+                                              finite_cardinality(4),
+                                              Strictness::Strict) ==
+                  ConvexSet<Cardinality>::empty(),
               "…and on the ℕ proxy, through its own successor.");
-static_assert(SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
-                                       Ternary::True, Strictness::Strict) ==
-                  SetVal<Ternary>::point(Ternary::Unknown),
+static_assert(ConvexSet<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                          Ternary::True, Strictness::Strict) ==
+                  ConvexSet<Ternary>::point(Ternary::Unknown),
               "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
               "middle truth value.");
 static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
@@ -1574,8 +1580,8 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
               "the cover.");
 
 /** @brief Two cuts are the same set iff their value forms agree: through
- *  @c to_setval and the extensional @c SetVal equality, which on a discrete
- *  carrier closes a strict bound where the step moves (@c {x > ⊥} is
+ *  @c to_convex_set and the extensional @c ConvexSet equality, which on a
+ * discrete carrier closes a strict bound where the step moves (@c {x > ⊥} is
  *  @c {x ≥ U} on K₃) and stays structural on a dense one.  Answers in @c L.
  *  On a truth chain the boundaries' exhaustion decides instead (it also sees
  *  that @c {x > ⊤} and @c {x < ⊥} are both empty, which no cut law does). */
@@ -1586,7 +1592,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
 constexpr typename L::Ω operator==(
     const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
     const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return to_setval(a) == to_setval(b);
+  return to_convex_set(a) == to_convex_set(b);
 }
 
 /** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
@@ -1617,8 +1623,8 @@ template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
 constexpr bool cut_is_empty(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
   if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return !SetVal<T, L>::bounded(c.predicate.lo, Lo::strictness,
-                                  c.predicate.hi, Hi::strictness)
+    return !ConvexSet<T, L>::bounded(c.predicate.lo, Lo::strictness,
+                                     c.predicate.hi, Hi::strictness)
                 .inhabited;
   else
     return ray_is_empty(pivot(c), direction_of<Lo, Hi>(),

@@ -5,7 +5,7 @@
  * and the interval `Interval<T, SL, SU, L>` as comprehensions of the `Bounds`
  * datum (typed sides, value bounds, built by the point-free former and
  * `make_interval`), the point `Singleton<T, L>{v}`, and the `structured_and`
- * that folds them value-first (`reduce_meet` / `SetVal`).
+ * that folds them value-first (`reduce_meet` / `ConvexSet`).
  *
  * Each SECTION exercises one structural branch independently of the Set
  * wrapper; end-to-end Set-level behaviour is covered by the IR showcases.
@@ -124,21 +124,21 @@ constexpr bool is_pos(int x) { return x > 0; }
 
 TEST_CASE("order:halfspace — structured_or joins halfspaces (#365)",
           "[order][halfspace][structured_or]") {
-  // A same-direction union collapses to a value SetVal (the weaker/wider bound
-  // wins).  A crossing union has no cut on a runtime pivot, so it is
-  // the honest point-wise set (decided by membership).
+  // A same-direction union collapses to a value ConvexSet (the weaker/wider
+  // bound wins).  A crossing union has no cut on a runtime pivot, so it is the
+  // honest point-wise set (decided by membership).
   SECTION("Upward ∪ Upward: the weaker (wider) pivot wins") {
     constexpr auto r = structured_or(UpRay<int, Strictness::Strict>{5},
                                      UpRay<int, Strictness::Strict>{7});
-    STATIC_CHECK(r ==
-                 SetVal<int>::half(5, Direction::Upward, Strictness::Strict));
+    STATIC_CHECK(
+        r == ConvexSet<int>::half(5, Direction::Upward, Strictness::Strict));
   }
 
   SECTION("Downward ∪ Downward: the wider (larger) pivot wins") {
     constexpr auto r = structured_or(DownRay<int, Strictness::Strict>{5},
                                      DownRay<int, Strictness::Strict>{3});
-    STATIC_CHECK(r ==
-                 SetVal<int>::half(5, Direction::Downward, Strictness::Strict));
+    STATIC_CHECK(
+        r == ConvexSet<int>::half(5, Direction::Downward, Strictness::Strict));
   }
 
   SECTION("Covering opposing (x≥3 ∪ x≤5 overlap [3,5]) covers ℤ") {
@@ -509,24 +509,24 @@ TEST_CASE(
   CHECK(hs(5) == Kleene::False);
 }
 
-// Witness: a halfspace / SetVal lives on a REGISTERED chain
+// Witness: a halfspace / ConvexSet lives on a REGISTERED chain
 // (IsTotallyOrdered), not merely a std::totally_ordered one.  The probe is a
 // concept because an unsatisfied class-template constraint is a hard error
 // outside a template.
 template <typename T>
 concept HalfspaceOver = requires { typename UpRay<T, Strictness::Strict>; };
 template <typename T>
-concept SetValOver = requires { typename SetVal<T>; };
+concept ConvexSetOver = requires { typename ConvexSet<T>; };
 
 TEST_CASE("order:halfspace — the carrier gate is the registered chain",
           "[order][halfspace][witness]") {
-  STATIC_CHECK(HalfspaceOver<int> && SetValOver<int>);
+  STATIC_CHECK(HalfspaceOver<int> && ConvexSetOver<int>);
   // ℤ: a chain under the posture that ±ℵ_0 / NaZ are the memory boundary.
   STATIC_CHECK(HalfspaceOver<SignedCardinality> &&
-               SetValOver<SignedCardinality>);
+               ConvexSetOver<SignedCardinality>);
   // A raw float has no certified order (NaN breaks reflexivity).
   STATIC_CHECK_FALSE(HalfspaceOver<double>);
-  STATIC_CHECK_FALSE(SetValOver<double>);
+  STATIC_CHECK_FALSE(ConvexSetOver<double>);
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.

@@ -125,23 +125,23 @@ constexpr auto image(
 
 /** @brief image of a restricted scaling @c x↦c·x, @c c=±1, on @c {x⋈p}: the
  *  ray scaled by @c c, its sense flipped when @c c<0.  The sense depends on
- *  the constant's value, so the result is the value leaf @c SetVal.  @c c=−1
+ *  the constant's value, so the result is the value leaf @c ConvexSet.  @c c=−1
  *  needs a genuine order-reversing additive inverse (@c
  * IsOrderedAdditiveGroup); any other scale has no ray for an image here and is
  * refused. */
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality CU>
   requires(is_order_rel(R))
-constexpr SetVal<T, L> image(
+constexpr ConvexSet<T, L> image(
     const Comprehension<𝔸<std::pair<T, T>, L, CU>,
                         ProductRestrict<Scaling<K>, Cylinder<R, 1, V>>>& s) {
   const T c = carrier_cast<T>(s.predicate.product.a.b.value);
   const T p = carrier_cast<T>(s.predicate.rp.b.value);
   if (c == carrier_cast<T>(1))
-    return SetVal<T, L>::half(p, dir_of(R), strict_of(R));
+    return ConvexSet<T, L>::half(p, dir_of(R), strict_of(R));
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
     if (c == carrier_cast<T>(-1))
-      return SetVal<T, L>::half(c * p, flip(dir_of(R)), strict_of(R));
+      return ConvexSet<T, L>::half(c * p, flip(dir_of(R)), strict_of(R));
   }
   throw std::domain_error("the image of a ray under x ↦ c·x, c ≠ ±1");
 }
@@ -231,16 +231,16 @@ constexpr auto preimage(
 export template <typename T, typename K, IsOckhamAlgebra LG, IsCardinality CU,
                  IsOckhamAlgebra LH, IsCardinality CH, IsSide Lo, IsSide Hi>
   requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr SetVal<T, LH> preimage(
+constexpr ConvexSet<T, LH> preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, CU>, Scaling<K>>& g,
     const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
   const T c = carrier_cast<T>(g.predicate.a.b.value);
   constexpr Direction d = direction_of<Lo, Hi>();
   constexpr Strictness s = ray_strictness<Lo, Hi>();
-  if (c == carrier_cast<T>(1)) return SetVal<T, LH>::half(pivot(h), d, s);
+  if (c == carrier_cast<T>(1)) return ConvexSet<T, LH>::half(pivot(h), d, s);
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
     if (c == carrier_cast<T>(-1))
-      return SetVal<T, LH>::half(c * pivot(h), flip(d), s);
+      return ConvexSet<T, LH>::half(c * pivot(h), flip(d), s);
   }
   throw std::domain_error("the preimage of a ray under x ↦ c·x, c ≠ ±1");
 }
