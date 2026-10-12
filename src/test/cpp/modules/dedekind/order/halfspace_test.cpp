@@ -125,22 +125,20 @@ constexpr bool is_pos(int x) { return x > 0; }
 TEST_CASE("order:halfspace — structured_or joins halfspaces (#365)",
           "[order][halfspace][structured_or]") {
   // A same-direction union collapses to a value SetVal (the weaker/wider bound
-  // wins).  A crossing union has no SetVal kind on a runtime pivot, so it is
+  // wins).  A crossing union has no cut on a runtime pivot, so it is
   // the honest point-wise set (decided by membership).
   SECTION("Upward ∪ Upward: the weaker (wider) pivot wins") {
     constexpr auto r = structured_or(UpRay<int, Strictness::Strict>{5},
                                      UpRay<int, Strictness::Strict>{7});
-    STATIC_CHECK(r.kind == SetKind::Halfspace);
-    STATIC_CHECK(r.lo == 5);
-    STATIC_CHECK(r.dir == Direction::Upward);
+    STATIC_CHECK(r ==
+                 SetVal<int>::half(5, Direction::Upward, Strictness::Strict));
   }
 
   SECTION("Downward ∪ Downward: the wider (larger) pivot wins") {
     constexpr auto r = structured_or(DownRay<int, Strictness::Strict>{5},
                                      DownRay<int, Strictness::Strict>{3});
-    STATIC_CHECK(r.kind == SetKind::Halfspace);
-    STATIC_CHECK(r.lo == 5);
-    STATIC_CHECK(r.dir == Direction::Downward);
+    STATIC_CHECK(r ==
+                 SetVal<int>::half(5, Direction::Downward, Strictness::Strict));
   }
 
   SECTION("Covering opposing (x≥3 ∪ x≤5 overlap [3,5]) covers ℤ") {

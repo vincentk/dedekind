@@ -66,7 +66,6 @@ using dedekind::category::Successor;
 using dedekind::category::Ternary;
 using dedekind::order::Direction;
 using dedekind::order::reduce_meet;
-using dedekind::order::SetKind;
 using dedekind::order::SetVal;
 using dedekind::order::Strictness;
 using dedekind::sequences::Run;
@@ -240,18 +239,8 @@ constexpr Set ray(long long k) {
  *  moves its bounds; @c Ø and @c 𝔸 are fixed.  @f$O(1)@f$. */
 constexpr Set shift(const Set& s, long long k) {
   Set r = s;
-  switch (s.kind) {
-    case SetKind::Singleton:
-    case SetKind::Interval:
-      r.lo = jlt::add_in_window(r.lo, k, "image");
-      r.hi = jlt::add_in_window(r.hi, k, "image");
-      break;
-    case SetKind::Halfspace:
-      r.lo = jlt::add_in_window(r.lo, k, "image");
-      break;
-    default:
-      break;
-  }
+  if (r.lower) r.lower->at = jlt::add_in_window(r.lower->at, k, "image");
+  if (r.upper) r.upper->at = jlt::add_in_window(r.upper->at, k, "image");
   return r;
 }
 /** @brief The arrows whose image of a value leaf has a closed form: the
@@ -301,42 +290,28 @@ constexpr Set restrict(const Set& s, std::optional<long long> lo,
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
  *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
 constexpr bool is_bounded(const Set& s) {
-  return s.kind == SetKind::Empty || s.kind == SetKind::Singleton ||
-         s.kind == SetKind::Interval;
+  return !s.inhabited || (s.lower && s.upper);
 }
 /** @brief The lower bound as attained: a strict one at its successor.
  *  @param s a leaf bounded below. */
 constexpr long long attained_lo(const Set& s) {
-  return s.sl == Strictness::Strict ? jlt::add_in_window(s.lo, 1, "least")
-                                    : s.lo;
+  return s.lower->strictness == Strictness::Strict
+             ? jlt::add_in_window(s.lower->at, 1, "least")
+             : s.lower->at;
 }
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 constexpr std::optional<long long> least(const Set& s) {
-  switch (s.kind) {
-    case SetKind::Singleton:
-      return s.lo;
-    case SetKind::Interval:
-      return attained_lo(s);
-    case SetKind::Halfspace:
-      if (s.dir == Direction::Upward) return attained_lo(s);
-      return std::nullopt;
-    default:
-      return std::nullopt;
-  }
+  if (!s.inhabited || !s.lower) return std::nullopt;
+  return attained_lo(s);
 }
-/** @brief The greatest element, where the set is bounded above (a strict upper
- *  bound is attained at its predecessor, which exists since the set is
- *  inhabited); @c nullopt on a ray: the unfold does not stop. */
+/** @brief The greatest element, where the set is bounded (a strict upper bound
+ *  is attained at its predecessor, which exists since the set is inhabited);
+ *  @c nullopt on a ray or @c 𝔸: the unfold does not stop. */
 constexpr std::optional<long long> greatest(const Set& s) {
-  switch (s.kind) {
-    case SetKind::Singleton:
-      return s.lo;
-    case SetKind::Interval:
-      return s.su == Strictness::Strict ? s.hi - 1 : s.hi;
-    default:
-      return std::nullopt;
-  }
+  if (!is_bounded(s) || !s.inhabited) return std::nullopt;
+  return s.upper->strictness == Strictness::Strict ? s.upper->at - 1
+                                                   : s.upper->at;
 }
 
 }  // namespace lwv

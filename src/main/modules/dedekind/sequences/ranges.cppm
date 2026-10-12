@@ -97,21 +97,17 @@ struct IotaBounds {
 
 template <std::integral T, typename L>
 constexpr IotaBounds<T> iota_bounds(const dedekind::order::SetVal<T, L>& s) {
-  using K = dedekind::order::SetKind;
   using S = dedekind::order::Strictness;
-  switch (s.kind) {
-    case K::Singleton:
-      return {s.lo, static_cast<T>(s.lo + 1)};
-    case K::Interval: {
-      const T start = s.sl == S::Strict ? static_cast<T>(s.lo + 1) : s.lo;
-      const T raw_bound = s.su == S::Strict ? s.hi : static_cast<T>(s.hi + 1);
-      // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp
-      // so the resulting iota_view is honestly empty rather than wrapped.
-      return {start, raw_bound < start ? start : raw_bound};
-    }
-    default:  // Empty, and the unbounded kinds (no finite range)
-      return {T{}, T{}};
-  }
+  if (!s.inhabited || !s.lower || !s.upper) return {T{}, T{}};
+  const T lo = s.lower->at;
+  const T hi = s.upper->at;
+  const T start =
+      s.lower->strictness == S::Strict ? static_cast<T>(lo + 1) : lo;
+  const T raw_bound =
+      s.upper->strictness == S::Strict ? hi : static_cast<T>(hi + 1);
+  // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp so
+  // the resulting iota_view is honestly empty rather than wrapped.
+  return {start, raw_bound < start ? start : raw_bound};
 }
 
 }  // namespace detail

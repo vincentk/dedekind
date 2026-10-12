@@ -89,7 +89,7 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
   // The contradiction folds value-first to the empty SetVal (kind Empty).
   constexpr auto empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet.kind == SetKind::Empty);
+  STATIC_CHECK(empty_meet == Ø<Cardinality>{});
 
   SECTION("Reduction folds an intensional pair to a finite value") {
     // gt_five is an intensional predicate on ℕ (no materialised members); the
@@ -114,8 +114,7 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   // category, which the ℕ proxy witnesses --- so ℕ folds exactly as a machine
   // integer does; the point is a constexpr VALUE, not a distinct type.
   constexpr auto in_between = gt_3 & lt_5;
-  STATIC_CHECK(in_between.kind == SetKind::Singleton);
-  STATIC_CHECK(in_between.lo == 4);
+  STATIC_CHECK(in_between == SetVal<Cardinality>::point(finite_cardinality(4)));
   STATIC_CHECK(bool(in_between(4)) && !bool(in_between(3)) &&
                !bool(in_between(5)));
 
@@ -137,7 +136,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
   // The contradiction folds value-first to the empty SetVal, on a continuous
   // carrier just as on ℕ.
   constexpr auto empty_meet = gt_five & lt_three;
-  STATIC_CHECK(empty_meet.kind == SetKind::Empty);
+  STATIC_CHECK(empty_meet == Ø<typename decltype(ℝ_d)::Domain>{});
 
   SECTION("Continuous carrier: parents not finite, reduced set is empty") {
     STATIC_CHECK(empty_meet(typename decltype(ℝ_d)::Domain{4.0}) ==

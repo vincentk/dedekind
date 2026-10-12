@@ -57,8 +57,8 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     constexpr auto cover = le_5 | gt_5;
     static_assert(static_cast<bool>(cover(3u)) && static_cast<bool>(cover(6u)));
     // non-contradiction (⊥): {x≤5} ∩ {x>5} is empty --- the crossing meet still
-    // collapses STRUCTURALLY to the empty SetVal kind.
-    static_assert((le_5 & gt_5).kind == SetKind::Empty);
+    // collapses to the empty set.
+    static_assert((le_5 & gt_5) == Ø<Cardinality>{});
   }
   // ── generator η, symmetric difference ^, product * (source for paper
   // Listing 2).  Singleton products collapse to a value Singleton, so they

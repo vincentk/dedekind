@@ -12,7 +12,7 @@ iteration-1 one-constant-per-pivot stopgap)::
     4 in gt                      # True
     region = above(3) & below(5) # {x>3} ∩ {x<5}, through the value-first reducer
     region                       # {4}
-    region.kind                  # 'singleton'
+    region == singleton(4)       # True
     region.cardinality           # 1
 
 Constructors: ``above(k)`` / ``at_least(k)`` (``>`` / ``>=``), ``below(k)`` /

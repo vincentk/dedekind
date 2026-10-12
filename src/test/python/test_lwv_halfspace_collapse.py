@@ -49,7 +49,7 @@ class LwvMeetCollapseTest(unittest.TestCase):
     def test_readme_collapse_to_singleton(self) -> None:
         # {x>3} ∩ {x<5} = {4}: the crossing law, folded at Python runtime.
         region = above(3) & below(5)
-        self.assertEqual(region.kind, "singleton")
+        self.assertEqual(region, singleton(4))
         self.assertEqual(region.cardinality, 1)
         self.assertEqual(repr(region), "{4}")
         self.assertTrue(region(4))
@@ -59,7 +59,7 @@ class LwvMeetCollapseTest(unittest.TestCase):
     def test_crossing_interval(self) -> None:
         # A wider crossing stays an interval (more than one inhabitant).
         region = above(3) & below(20)
-        self.assertEqual(region.kind, "interval")
+        self.assertEqual(region, at_least(4) & at_most(19))
         self.assertEqual(region.cardinality, 16)  # {4..19}
         self.assertTrue(region(10))
         self.assertFalse(region(3))
@@ -67,31 +67,31 @@ class LwvMeetCollapseTest(unittest.TestCase):
 
     def test_disjoint_is_empty(self) -> None:
         region = above(5) & below(3)
-        self.assertEqual(region.kind, "empty")
+        self.assertEqual(region, nothing())
         self.assertEqual(region.cardinality, 0)
         self.assertFalse(region(4))
 
     def test_same_direction_keeps_tighter(self) -> None:
         # ↑3 ∩ ↑5 = ↑5 (larger pivot wins); ↓5 ∩ ↓3 = ↓3 (smaller wins).
         up = above(3) & above(5)
-        self.assertEqual(up.kind, "halfspace")
+        self.assertEqual(up, above(5))
         self.assertFalse(up(4))  # excluded: 4 not > 5
         self.assertTrue(up(6))
         down = below(5) & below(3)
-        self.assertEqual(down.kind, "halfspace")
+        self.assertEqual(down, below(3))
         self.assertTrue(down(2))
         self.assertFalse(down(4))  # excluded: 4 not < 3
 
     def test_boundary_units(self) -> None:
         # 𝔸 is the meet unit, Ø the annihilator.
         gt = above(3)
-        self.assertEqual((gt & everything()).kind, "halfspace")
-        self.assertEqual((gt & nothing()).kind, "empty")
+        self.assertEqual(gt & everything(), gt)
+        self.assertEqual(gt & nothing(), nothing())
 
     def test_singleton_meet(self) -> None:
         # {4} ∩ {x>3} = {4} (the point is in the halfspace); ∩ {x>10} = Ø.
-        self.assertEqual((singleton(4) & above(3)).kind, "singleton")
-        self.assertEqual((singleton(4) & above(10)).kind, "empty")
+        self.assertEqual(singleton(4) & above(3), singleton(4))
+        self.assertEqual(singleton(4) & above(10), nothing())
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@ module;
 #include <cstddef>
 #include <functional>  // std::plus (the argmax carrier's additive-group gate)
 #include <limits>      // std::numeric_limits (machine-carrier boundary check)
+#include <optional>    // a cut's sides
 #include <stdexcept>   // std::domain_error (reduce_join: no normal form)
 #include <type_traits>
 #include <utility>
@@ -490,8 +491,16 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
  *  @f$\{x \mid x \bowtie p\} = \pi_1(\,S \times \eta(p) \mid \pi_1 \bowtie
  *  \pi_2\,)@f$, the pivot in the value @f$\eta(p)@f$ (a @c Singleton); the
  *  singleton is the degenerate point @c SetVal::point.  House spelling @c χ /
- *  @c π₁,π₂. */
-export enum class SetKind { Empty, Universe, Halfspace, Singleton, Interval };
+ *  @c π₁,π₂.
+ *
+ *  @c Bound is one side of a cut as a value: the bound and whether it is
+ *  attained (non-strict) or not (strict).  @tparam V the carrier. */
+export template <typename V>
+struct Bound {
+  V at;
+  Strictness strictness = Strictness::NonStrict;
+  friend constexpr bool operator==(const Bound&, const Bound&) = default;
+};
 
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
@@ -512,69 +521,51 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
-/** @brief A set as a VALUE: kind + pivot(s) + direction/strictness, with a
- *  runtime-evaluable membership χ.  The pivot rides in @c lo (Halfspace /
- *  Singleton) or @c lo/@c hi (Interval), as a value --- never an NTTP.
+/** @brief A set as a VALUE: a cut of the chain, each side an optional
+ *  @c Bound, with a runtime-evaluable membership χ.  No side is the universe;
+ *  both sides closed at one value is a point; @c inhabited @c == @c false is
+ *  the one empty set, to which crossing bounds normalise.  The bounds ride as
+ *  values, never as NTTPs.  Consume it through @c &, @c |, @c ==, @c <=,
+ *  membership and the @c half / @c point / @c empty / @c universe / @c bounded
+ *  factories.
  *
- *  @note PROVISIONAL REPRESENTATION (FIXME #970): the kind-flag + shared-fields
- *  layout is runtime type-dispatch by flag, a first-iteration stand-in for a
- *  proper coproduct (@c std::variant / @c IsCoproduct, tied to the variance
- *  architecture).  Consume sets through the stable INTERFACE --- @c operator&,
- *  @c operator|, @c operator==, @c operator<=, membership @c operator() --- and
- *  through the @c half / @c point / @c empty / @c universe factories; do @b not
- *  build downstream on the @c kind / @c lo / @c hi fields, which will change.
- *
- *  The carrier is gated on the registered chain (@c IsTotallyOrdered) like
- *  @c Halfspace: the interval arms are a normal form only on a chain.
+ *  The carrier is gated on the registered chain (@c IsTotallyOrdered): a cut
+ *  is a normal form only on a chain.
+ *  @tparam V the carrier.  @tparam L the species.
  */
 export template <typename V = long long, typename L = Boole>
   requires IsTotallyOrdered<V>
 struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   using Domain = V;
-  SetKind kind = SetKind::Universe;
-  V lo{};
-  V hi{};
-  Direction dir = Direction::Upward;
-  Strictness sl = Strictness::NonStrict;
-  Strictness su = Strictness::NonStrict;
+  bool inhabited = true;
+  std::optional<Bound<V>> lower;
+  std::optional<Bound<V>> upper;
 
   /** @brief χ(x): runtime membership, decided from the value fields.
    *
-   *  @details The two DECIDED arms (⊥ / ⊤) need no carrier comparison, so they
-   *  are answered in this small front and the carrier comparisons live in
+   *  @details The two DECIDED cases (⊥ / ⊤) need no carrier comparison, so
+   *  they are answered in this small front and the carrier comparisons live in
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
    *  exhibits: on a variant carrier (ℕ = @c Cardinality) the comparisons are
    *  heavy enough that the inliner declines a single fat function, and a
    *  constant @c SetVal then stays a call instead of folding to @c ret @c i1
-   *  @c false.  A small front inlines, the load of @c kind from the constant
-   *  folds, and the bounded call is dead code. */
+   *  @c false.  A small front inlines, the loads from the constant fold, and
+   *  the bounded call is dead code. */
   constexpr bool contains(const V& x) const {
-    if (kind == SetKind::Empty) return false;
-    if (kind == SetKind::Universe) return true;
+    if (!inhabited) return false;
+    if (!lower && !upper) return true;
     return contains_bounded(x);
   }
 
-  /** @brief The bounded arms of χ: point, halfspace, interval --- the arms that
-   *  compare against the carrier. */
+  /** @brief The sides' comparisons against the carrier. */
   constexpr bool contains_bounded(const V& x) const {
-    switch (kind) {
-      case SetKind::Empty:
-        return false;
-      case SetKind::Universe:
-        return true;
-      case SetKind::Singleton:
-        return x == lo;
-      case SetKind::Halfspace:
-        return dir == Direction::Upward
-                   ? (sl == Strictness::Strict ? x > lo : x >= lo)
-                   : (sl == Strictness::Strict ? x < lo : x <= lo);
-      case SetKind::Interval: {
-        const bool lo_ok = (sl == Strictness::Strict) ? x > lo : x >= lo;
-        const bool hi_ok = (su == Strictness::Strict) ? x < hi : x <= hi;
-        return lo_ok && hi_ok;
-      }
-    }
-    return false;
+    const bool lo_ok =
+        !lower || (lower->strictness == Strictness::Strict ? x > lower->at
+                                                           : x >= lower->at);
+    const bool hi_ok =
+        !upper || (upper->strictness == Strictness::Strict ? x < upper->at
+                                                           : x <= upper->at);
+    return lo_ok && hi_ok;
   }
 
   /** @brief ETCS χ: @c contains lifted to the logic species @c L. */
@@ -583,43 +574,44 @@ struct SetVal : dedekind::sets::SetExpr<SetVal<V, L>, V, L> {
   }
 
   static constexpr SetVal half(V pivot, Direction d, Strictness s) {
-    return {{}, SetKind::Halfspace, pivot, V{}, d, s, Strictness::NonStrict};
+    if (d == Direction::Upward) return {{}, true, Bound<V>{pivot, s}, {}};
+    return {{}, true, {}, Bound<V>{pivot, s}};
   }
   static constexpr SetVal point(V pivot) {
-    return {{},
-            SetKind::Singleton,
-            pivot,
-            pivot,
-            Direction::Upward,
-            Strictness::NonStrict,
-            Strictness::NonStrict};
+    return {{}, true, Bound<V>{pivot}, Bound<V>{pivot}};
   }
   /** @brief The two boundary sets as values --- the meet's annihilator (@c Ø)
    *  and unit (@c 𝔸).  Factories (not raw aggregate init) so callers never
    * spell the empty-base brace of the @c SetExpr aggregate. */
-  static constexpr SetVal empty() { return {{}, SetKind::Empty}; }
-  static constexpr SetVal universe() { return {{}, SetKind::Universe}; }
+  static constexpr SetVal empty() { return {{}, false, {}, {}}; }
+  static constexpr SetVal universe() { return {}; }
   /** @brief The bounded meet @c [lo, hi] with its strictness pair, collapsed:
-   *  empty if the bounds cross, the single point on a built-in integral carrier
-   *  admitting exactly one integer, else the interval.  The ONE collapse law
-   *  the crossing-halfspace meet and the interval meet both ride.  The point
-   *  collapse gates on the NNO steps (@c HasNNOStep: successor / predecessor,
-   *  an axiom of the category), so the ℕ proxy @c Cardinality collapses to its
-   *  point exactly as a machine integer does. */
+   *  empty if the bounds cross, the single point where the chain admits exactly
+   *  one element, else the interval.  The ONE collapse law every meet rides.
+   *  The point collapse gates on the NNO steps (@c HasNNOStep: successor /
+   *  predecessor, an axiom of the category), so the ℕ proxy @c Cardinality
+   *  collapses to its point exactly as a machine integer does. */
   static constexpr SetVal bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
         sl == Strictness::Strict || su == Strictness::Strict;
     if (either_strict ? (lo >= hi) : (lo > hi)) return empty();
-    // The point collapse gates on the NNO's successor / predecessor (an axiom
-    // of the category), not on std::integral: the ℕ proxy Cardinality steps
-    // too.  With lo < hi already established, pred(hi) is defined (hi ≥ 1).
+    // With lo < hi already established, pred(hi) is defined (hi ≥ 1).
     if constexpr (HasNNOStep<V>) {
       const V el = sl == Strictness::Strict ? successor(lo) : lo;
       const V eu = su == Strictness::Strict ? predecessor(hi) : hi;
       if (el > eu) return empty();
       if (el == eu) return point(el);
     }
-    return {{}, SetKind::Interval, lo, hi, Direction::Upward, sl, su};
+    return {{}, true, Bound<V>{lo, sl}, Bound<V>{hi, su}};
+  }
+  /** @brief The set with the given sides: through @c bounded when both are
+   *  present, so it is collapsed.  @param lo the lower side.  @param hi the
+   *  upper side. */
+  static constexpr SetVal of_sides(const std::optional<Bound<V>>& lo,
+                                   const std::optional<Bound<V>>& hi) {
+    if (lo && hi)
+      return bounded(lo->at, lo->strictness, hi->at, hi->strictness);
+    return {{}, true, lo, hi};
   }
 };
 
@@ -632,116 +624,77 @@ static_assert(
 static_assert(dedekind::sets::IsSetObject<SetVal<long long>>,
               "the Python surface's Set (SetVal<long long>) is a set object.");
 
-/** @brief The ONE meet law: @c ↑a∩↑b=↑(a∨b) / @c ↓a∩↓b=↓(a∧b) (same direction,
- *  the tighter pivot wins) and @c ↑a∩↓b=[a,b] (crossing), the interval
- *  collapsing by integer cardinality to a @c point or empty.  @c constexpr, so
- *  evaluable at compile time or runtime. */
+namespace detail_setval {
+/** @brief The tighter of two lower sides: the larger bound; at a tie the
+ *  strict one.  An absent side is no constraint.  @tparam V the carrier. */
+template <typename V>
+constexpr std::optional<Bound<V>> tighter_lower(
+    const std::optional<Bound<V>>& a, const std::optional<Bound<V>>& b) {
+  if (!a) return b;
+  if (!b) return a;
+  if (a->at != b->at) return a->at > b->at ? a : b;
+  return a->strictness == Strictness::Strict ? a : b;
+}
+/** @brief The dual: the smaller bound; at a tie the strict one. */
+template <typename V>
+constexpr std::optional<Bound<V>> tighter_upper(
+    const std::optional<Bound<V>>& a, const std::optional<Bound<V>>& b) {
+  if (!a) return b;
+  if (!b) return a;
+  if (a->at != b->at) return a->at < b->at ? a : b;
+  return a->strictness == Strictness::Strict ? a : b;
+}
+/** @brief Whether the lower side @c a admits everything @c b does. */
+template <typename V>
+constexpr bool lower_covers(const std::optional<Bound<V>>& a,
+                            const std::optional<Bound<V>>& b) {
+  if (!a) return true;
+  if (!b) return false;
+  if (a->at != b->at) return a->at < b->at;
+  return a->strictness == Strictness::NonStrict ||
+         b->strictness == Strictness::Strict;
+}
+/** @brief Whether the upper side @c a admits everything @c b does. */
+template <typename V>
+constexpr bool upper_covers(const std::optional<Bound<V>>& a,
+                            const std::optional<Bound<V>>& b) {
+  if (!a) return true;
+  if (!b) return false;
+  if (a->at != b->at) return a->at > b->at;
+  return a->strictness == Strictness::NonStrict ||
+         b->strictness == Strictness::Strict;
+}
+}  // namespace detail_setval
+
+/** @brief The ONE meet law: the tighter side on each end, collapsed by
+ *  @c bounded (crossing sides to @c Ø, a single admitted element to its point).
+ *  @c constexpr, so evaluable at compile time or runtime. */
 export template <typename V, typename L>
 constexpr SetVal<V, L> reduce_meet(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
-  using K = SetKind;
   using S = SetVal<V, L>;
-  if (a.kind == K::Empty || b.kind == K::Empty) return {{}, K::Empty};
-  if (a.kind == K::Universe) return b;
-  if (b.kind == K::Universe) return a;
-  // A singleton meet is the point iff it lies in the other set (discharged ∃).
-  if (a.kind == K::Singleton) return b.contains(a.lo) ? a : S{{}, K::Empty};
-  if (b.kind == K::Singleton) return a.contains(b.lo) ? b : S{{}, K::Empty};
-  if (a.kind == K::Halfspace && b.kind == K::Halfspace) {
-    if (a.dir == b.dir) {
-      const bool up = a.dir == Direction::Upward;
-      if (a.lo == b.lo)
-        return S::half(
-            a.lo, a.dir,
-            (a.sl == Strictness::Strict || b.sl == Strictness::Strict)
-                ? Strictness::Strict
-                : Strictness::NonStrict);
-      const bool a_wins = up ? (a.lo > b.lo) : (a.lo < b.lo);
-      return a_wins ? a : b;
-    }
-    // Crossing ↑lo ∩ ↓hi = [lo, hi]; normalise lower = Upward, upper =
-    // Downward.
-    const S lower = (a.dir == Direction::Upward) ? a : b;
-    const S upper = (a.dir == Direction::Upward) ? b : a;
-    const V lo = lower.lo;
-    const V hi = upper.lo;
-    const Strictness sl = lower.sl;
-    const Strictness su = upper.sl;
-    return S::bounded(lo, sl, hi, su);
-  }
-  // An Interval operand (against an Interval or a halfspace): each operand
-  // contributes a lower bound iff it is an Interval or an Upward halfspace, and
-  // an upper bound iff an Interval or a Downward halfspace (a halfspace keeps
-  // its pivot in @c lo whatever its direction).  The tighter lower / tighter
-  // upper wins, the strictest strictness at a tie; the bounded result then
-  // collapses through the one @c bounded law.  One operand being an Interval,
-  // both sides are always present.
-  if (a.kind == K::Interval || b.kind == K::Interval) {
-    const bool a_iv = a.kind == K::Interval;
-    const bool b_iv = b.kind == K::Interval;
-    const bool a_has_lo = a_iv || a.dir == Direction::Upward;
-    const bool a_has_hi = a_iv || a.dir == Direction::Downward;
-    const bool b_has_lo = b_iv || b.dir == Direction::Upward;
-    const bool b_has_hi = b_iv || b.dir == Direction::Downward;
-    const V a_hi = a_iv ? a.hi : a.lo;
-    const V b_hi = b_iv ? b.hi : b.lo;
-    const Strictness a_su = a_iv ? a.su : a.sl;
-    const Strictness b_su = b_iv ? b.su : b.sl;
-    V lo = a_has_lo ? a.lo : b.lo;
-    Strictness sl = a_has_lo ? a.sl : b.sl;
-    if (a_has_lo && b_has_lo) {
-      if (b.lo > a.lo) {
-        lo = b.lo;
-        sl = b.sl;
-      } else if (a.lo == b.lo) {
-        sl = (a.sl == Strictness::Strict || b.sl == Strictness::Strict)
-                 ? Strictness::Strict
-                 : Strictness::NonStrict;
-      }
-    }
-    V hi = a_has_hi ? a_hi : b_hi;
-    Strictness su = a_has_hi ? a_su : b_su;
-    if (a_has_hi && b_has_hi) {
-      if (b_hi < a_hi) {
-        hi = b_hi;
-        su = b_su;
-      } else if (a_hi == b_hi) {
-        su = (a_su == Strictness::Strict || b_su == Strictness::Strict)
-                 ? Strictness::Strict
-                 : Strictness::NonStrict;
-      }
-    }
-    return S::bounded(lo, sl, hi, su);
-  }
-  return {{}, K::Universe};
+  if (!a.inhabited || !b.inhabited) return S::empty();
+  return S::of_sides(detail_setval::tighter_lower(a.lower, b.lower),
+                     detail_setval::tighter_upper(a.upper, b.upper));
 }
 
-/** @brief A cut as a @c SetVal: a ray to the @c Halfspace kind, an interval to
- *  the raw @c Interval kind that @c reduce_meet normalises. */
+/** @brief A cut as a @c SetVal: its present sides, as written. */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo, IsSide Hi>
 constexpr SetVal<T, L> to_setval(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
-  if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return {{},
-            SetKind::Interval,
-            c.predicate.lo,
-            c.predicate.hi,
-            Direction::Upward,
-            Lo::strictness,
-            Hi::strictness};
-  else if constexpr (is_bounded_side_v<Lo>)
-    return SetVal<T, L>::half(c.predicate.lo, Direction::Upward,
-                              Lo::strictness);
-  else
-    return SetVal<T, L>::half(c.predicate.hi, Direction::Downward,
-                              Hi::strictness);
+  std::optional<Bound<T>> lo, hi;
+  if constexpr (is_bounded_side_v<Lo>)
+    lo = Bound<T>{c.predicate.lo, Lo::strictness};
+  if constexpr (is_bounded_side_v<Hi>)
+    hi = Bound<T>{c.predicate.hi, Hi::strictness};
+  return {{}, true, lo, hi};
 }
 
-/** @brief Structural equality of two value sets: same kind and the fields that
- *  kind uses.  The value-first counterpart of the old type-level set equality;
- *  it is what the subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides
- *  on now that the meet returns a @c SetVal.
+/** @brief Equality of two value sets: both empty, or the same sides.  The
+ * value-first counterpart of the old type-level set equality; it is what the
+ * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
+ * meet returns a @c SetVal.
  *
  *  @details The verdict is returned in the ambient logic @c L::Ω (so it
  * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
@@ -787,20 +740,8 @@ constexpr void close_upper(V& v, Strictness& s) {
 template <typename V, typename L>
 constexpr SetVal<V, L> canonical(SetVal<V, L> s) {
   if constexpr (HasCoveringStep<V>) {
-    switch (s.kind) {
-      case SetKind::Halfspace:
-        if (s.dir == Direction::Upward)
-          close_lower(s.lo, s.sl);
-        else
-          close_upper(s.lo, s.sl);
-        break;
-      case SetKind::Interval:
-        close_lower(s.lo, s.sl);
-        close_upper(s.hi, s.su);
-        break;
-      default:
-        break;
-    }
+    if (s.lower) close_lower(s.lower->at, s.lower->strictness);
+    if (s.upper) close_upper(s.upper->at, s.upper->strictness);
   }
   return s;
 }
@@ -811,23 +752,32 @@ constexpr typename L::Ω operator==(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
   const SetVal<V, L> x = detail_setval_eq::canonical(a);
   const SetVal<V, L> y = detail_setval_eq::canonical(b);
-  if (x.kind != y.kind) return L::False;
-  bool eq = true;
-  switch (x.kind) {
-    case SetKind::Empty:
-    case SetKind::Universe:
-      break;  // kind alone decides
-    case SetKind::Singleton:
-      eq = x.lo == y.lo;
-      break;
-    case SetKind::Halfspace:
-      eq = x.dir == y.dir && x.lo == y.lo && x.sl == y.sl;
-      break;
-    case SetKind::Interval:
-      eq = x.lo == y.lo && x.hi == y.hi && x.sl == y.sl && x.su == y.su;
-      break;
-  }
+  const bool eq = x.inhabited == y.inhabited &&
+                  (!x.inhabited || (x.lower == y.lower && x.upper == y.upper));
   return eq ? L::True : L::False;
+}
+/** @brief A value set against the boundaries: @c Ø is the uninhabited one, @c 𝔸
+ *  the inhabited one with no side.  On a truth chain the boundaries decide by
+ *  exhausting the chain instead (sets:boundaries). */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L>
+  requires(!IsPst<T>)
+constexpr bool operator==(const Ø<T, L>&, const SetVal<T, L>& s) {
+  return !s.inhabited;
+}
+export template <IsTotallyOrdered T, IsOckhamAlgebra L>
+  requires(!IsPst<T>)
+constexpr bool operator==(const SetVal<T, L>& s, const Ø<T, L>&) {
+  return !s.inhabited;
+}
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
+  requires(!IsPst<T>)
+constexpr bool operator==(const 𝔸<T, L, CU>&, const SetVal<T, L>& s) {
+  return s.inhabited && !s.lower && !s.upper;
+}
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
+  requires(!IsPst<T>)
+constexpr bool operator==(const SetVal<T, L>& s, const 𝔸<T, L, CU>&) {
+  return s.inhabited && !s.lower && !s.upper;
 }
 namespace detail_setval_eq {
 using dedekind::category::Ternary;
@@ -879,8 +829,9 @@ constexpr typename L::Ω operator==(
  * reduce_meet on the pivot VALUES.  Value-carrying pivots mean the
  * result KIND (empty / point / interval / halfspace) depends on runtime values,
  * so a function cannot pick a distinct return TYPE --- the meet returns the
- * unified value @c SetVal (kind-tagged), and the type-directed collapse becomes
- *  value-directed (a @c constexpr @c SetVal still folds at compile time). */
+ * unified value @c SetVal (a cut by its sides), and the type-directed collapse
+ * becomes value-directed (a @c constexpr @c SetVal still folds at compile
+ * time). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
                  IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
                  IsSide Hi2>
@@ -926,32 +877,22 @@ constexpr SetVal<V, L> structured_and(const SetVal<V, L>& a,
 /** @brief The value-first same-direction JOIN law: ↑a∪↑b = ↑min(a,b),
  *  ↓a∪↓b = ↓max(a,b) --- the WEAKER bound wins (non-strict on a tie).  Only the
  *  same-direction union always collapses to a halfspace; a crossing union
- *  either covers the line or leaves a gap (no @c SetVal kind), so it is left to
+ *  either covers the line or leaves a gap (no cut), so it is left to
  *  the generic point-wise @c operator|| (value-carrying can't dispatch
  *  cover-vs-gap on a runtime pivot). */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr SetVal<V, L> reduce_join(const SetVal<V, L>& a,
                                    const SetVal<V, L>& b) {
-  using K = SetKind;
-  using S = SetVal<V, L>;
-  if (a.kind == K::Empty) return b;
-  if (b.kind == K::Empty) return a;
-  if (a.kind == K::Universe || b.kind == K::Universe) return S::universe();
-  // A point already inside the other set adds nothing.
-  if (a.kind == K::Singleton && b.contains(a.lo)) return b;
-  if (b.kind == K::Singleton && a.contains(b.lo)) return a;
-  if (a.kind == K::Halfspace && b.kind == K::Halfspace && a.dir == b.dir) {
-    const bool up = a.dir == Direction::Upward;
-    if (a.lo == b.lo)
-      return S::half(
-          a.lo, a.dir,
-          (a.sl == Strictness::NonStrict || b.sl == Strictness::NonStrict)
-              ? Strictness::NonStrict
-              : Strictness::Strict);
-    const bool a_wins = up ? (a.lo < b.lo) : (a.lo > b.lo);  // weaker bound
-    return a_wins ? a : b;
-  }
-  // No interval normal form (a crossing union, a point outside, two
+  if (!a.inhabited) return b;
+  if (!b.inhabited) return a;
+  // One side covering the other on both ends: the union is the cover.
+  if (detail_setval::lower_covers(a.lower, b.lower) &&
+      detail_setval::upper_covers(a.upper, b.upper))
+    return a;
+  if (detail_setval::lower_covers(b.lower, a.lower) &&
+      detail_setval::upper_covers(b.upper, a.upper))
+    return b;
+  // No interval normal form (a crossing union, a point outside, two disjoint
   // intervals): refused, not guessed.
   throw std::domain_error("reduce_join: the union has no interval normal form");
 }
@@ -1317,14 +1258,9 @@ static_assert(!dom(ℕ * ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(4)),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
-static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)).kind ==
-                  SetKind::Interval,
+static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
+                  ((ℕ | (π >= 2)) & (ℕ | (π <= 5))),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
-static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)).lo ==
-                      finite_cardinality(2) &&
-                  dom(ℕ * ℕ | (π1 >= 1 && (π1 <= 5 && π1 >= 2))).hi ==
-                      finite_cardinality(5),
-              "…with the tighter lower bound 2 and the upper bound 5.");
 static_assert(
     dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
         dom(ℕ * ℕ | (π1 >= 1 && (π1 <= 5 && π1 >= 2))),
@@ -1380,7 +1316,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Lo>
 constexpr SetVal<T, L> upperbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Unbounded, T>>&) {
-  return {{}, SetKind::Empty};  // unbounded above: no upper bound
+  return SetVal<T, L>::empty();  // unbounded above: no upper bound
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  Strictness SL, IsSide Hi>
@@ -1395,7 +1331,7 @@ export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
                  IsSide Hi>
 constexpr SetVal<T, L> lowerbounds(
     const Comprehension<𝔸<T, L, C>, Bounds<Unbounded, Hi, T>>&) {
-  return {{}, SetKind::Empty};  // unbounded below: no lower bound
+  return SetVal<T, L>::empty();  // unbounded below: no lower bound
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <IsOckhamAlgebra L, IsCardinality C>
@@ -1435,8 +1371,8 @@ constexpr auto operator&(
   return structured_and(a, b);
 }
 
-// #895/#932: a disjoint bare halfspace-meet collapses to the empty SetVal kind.
-static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))).kind == SetKind::Empty,
+// #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
+static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
 /** @brief @c | IS the join on bare order operands, dual to the @c & meet: a
@@ -1610,27 +1546,21 @@ consteval bool order_is_cover_star(int k) {
 }
 }  // namespace detail_cover_witness
 static_assert(
-    SetVal<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict).kind ==
-        SetKind::Empty,
+    SetVal<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict) ==
+        SetVal<int>::empty(),
     "nothing lies strictly between 3 and S(3): the successor is the cover.");
-static_assert(
-    SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).kind ==
-            SetKind::Singleton &&
-        SetVal<int>::bounded(3, Strictness::Strict, 5, Strictness::Strict).lo ==
-            4,
-    "(3, S(S(3))) is the point S(3) = 4.");
+static_assert(SetVal<int>::bounded(3, Strictness::Strict, 5,
+                                   Strictness::Strict) == SetVal<int>::point(4),
+              "(3, S(S(3))) is the point S(3) = 4.");
 static_assert(SetVal<Cardinality>::bounded(finite_cardinality(3),
                                            Strictness::Strict,
                                            finite_cardinality(4),
-                                           Strictness::Strict)
-                      .kind == SetKind::Empty,
+                                           Strictness::Strict) ==
+                  SetVal<Cardinality>::empty(),
               "…and on the ℕ proxy, through its own successor.");
 static_assert(SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
-                                       Ternary::True, Strictness::Strict)
-                          .kind == SetKind::Singleton &&
-                  SetVal<Ternary>::bounded(Ternary::False, Strictness::Strict,
-                                           Ternary::True, Strictness::Strict)
-                          .lo == Ternary::Unknown,
+                                       Ternary::True, Strictness::Strict) ==
+                  SetVal<Ternary>::point(Ternary::Unknown),
               "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
               "middle truth value.");
 static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
@@ -1684,9 +1614,9 @@ template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
 constexpr bool cut_is_empty(
     const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
   if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return SetVal<T, L>::bounded(c.predicate.lo, Lo::strictness, c.predicate.hi,
-                                 Hi::strictness)
-               .kind == SetKind::Empty;
+    return !SetVal<T, L>::bounded(c.predicate.lo, Lo::strictness,
+                                  c.predicate.hi, Hi::strictness)
+                .inhabited;
   else
     return ray_is_empty(pivot(c), direction_of<Lo, Hi>(),
                         ray_strictness<Lo, Hi>());
@@ -1755,10 +1685,10 @@ constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
 static_assert(max(le5)(5) ==
-                  (le5(5) && (le5 & (ℕ | (π > 5))).kind == SetKind::Empty),
+                  (le5(5) && (le5 & (ℕ | (π > 5))) == Ø<Cardinality>{}),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
 static_assert(min(ge5)(5) ==
-                  (ge5(5) && (ge5 & (ℕ | (π < 5))).kind == SetKind::Empty),
+                  (ge5(5) && (ge5 & (ℕ | (π < 5))) == Ø<Cardinality>{}),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic

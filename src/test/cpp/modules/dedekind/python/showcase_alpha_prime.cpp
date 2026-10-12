@@ -84,7 +84,7 @@ static_assert(!T(11u));  // 11 > 10 ✗
 //     the category, which the ℕ proxy witnesses --- not on `std::integral`, so
 //     ℕ collapses exactly as a machine integer does.
 constexpr auto a = S & (ℕ | (π < 7));  // the point {6}
-static_assert(a.kind == SetKind::Singleton && a.lo == 6,
+static_assert(a == SetVal<Cardinality>::point(finite_cardinality(6)),
               "the meet folds to the point {6} at compile time");
 static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
                   !static_cast<bool>(a(7u)),
@@ -94,7 +94,7 @@ static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
 //     complement.  The value-first meet folds `S ∩ ¬S` to the empty `SetVal` at
 //     compile time — the law of excluded middle, value-directed.
 constexpr auto b = S & ~S;
-static_assert(b.kind == SetKind::Empty,
+static_assert(b == Ø<Cardinality>{},
               "S ∩ ¬S folds to the empty set at compile time");
 
 // (6) Certified.  Both reductions are finite constexpr `SetVal`s — the point

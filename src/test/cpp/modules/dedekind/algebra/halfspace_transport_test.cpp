@@ -95,8 +95,7 @@ static_assert(
 // composition.
 static_assert(
     (image(((ℤ * ℤ | π1 + 2 == π2) >> (ℤ * ℤ | π1 + 3 == π2)) | π1 <= 1) &
-     (ℤ | (π > 6)))
-            .kind == SetKind::Empty,
+     (ℤ | (π > 6))) == Ø<SignedCardinality>{},
     "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
 // ── is_function / is_entire, and argmax over a partial function ──────────────

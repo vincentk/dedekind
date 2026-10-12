@@ -7,10 +7,10 @@
  *
  * collapse the meet to the bounded open interval (-5, 5).  The collapse is a
  * VALUE collapse, not a type collapse: the pivot rides in the halfspace
- * INSTANCE, so `structured_and(A, B)` folds to a `SetVal` (kind-tagged: Empty /
- * Halfspace / Singleton / Interval) whose bounds are value fields.  The point
+ * INSTANCE, so `structured_and(A, B)` folds to a `SetVal`, a cut whose sides
+ * are value fields.  The point
  * is the OPTIONALITY: the SAME `constexpr` folds at compile time (a
- * `static_assert` on `meet.kind` / `meet.lo`) AND runs at runtime (the
+ * `static_assert` that `meet` is the interval (-5, 5)) AND runs at runtime (the
  * identical `meet.contains(x)`).  A value pivot cannot dispatch a distinct
  * return TYPE per outcome, so the meet returns one unified `SetVal`.
  *
@@ -50,10 +50,9 @@ constexpr BUp B{-5};
 // ── Compile-time collapse proof (the "wow"): the reduced form is a VALUE that
 //    folds at constexpr, not an unevaluated AndPredicate. ────────────────────
 constexpr auto meet = structured_and(A, B);  // {x<5} ∩ {x>-5}
-static_assert(meet.kind == SetKind::Interval,
+static_assert(meet == SetVal<int>::bounded(-5, Strictness::Strict, 5,
+                                           Strictness::Strict),
               "A & B collapsed to the bounded interval (-5, 5).");
-static_assert(meet.lo == -5, "A & B collapsed to lower bound -5.");
-static_assert(meet.hi == 5, "A & B collapsed to upper bound 5.");
 static_assert(meet.sl == Strictness::Strict && meet.su == Strictness::Strict,
               "the open interval (-5, 5).");
 
@@ -71,7 +70,8 @@ TEST_CASE("Exhibit: two overlapping halfspaces collapse (value-first, #888)",
     // The collapse IS the point: pin the reduced KIND + bounds, not just
     // membership — else the exhibit would pass even if the meet stopped
     // collapsing.
-    STATIC_CHECK(meet.kind == SetKind::Interval);
+    STATIC_CHECK(meet == SetVal<int>::bounded(-5, Strictness::Strict, 5,
+                                              Strictness::Strict));
     STATIC_CHECK(meet.contains(0));
     STATIC_CHECK(meet.contains(4));
     STATIC_CHECK(meet.contains(-4));
@@ -98,11 +98,11 @@ TEST_CASE("Exhibit: two overlapping halfspaces collapse (value-first, #888)",
   }
 
   // Complement laws (the lattice ⊥/⊤): ~ = the opposite halfspace with the same
-  // pivot (~{x<5} = {x≥5}).  The MEET collapses STRUCTURALLY to the empty
-  // SetVal kind; the JOIN is decided by membership (the crossing cover).
+  // pivot (~{x<5} = {x≥5}).  The MEET collapses to the empty set; the JOIN is
+  // decided by membership (the crossing cover).
   SECTION("A & ~A → Ø (contradiction), A | ~A covers ℤ (excluded middle)") {
     constexpr auto contradiction = structured_and(A, ~A);  // {x<5} ∩ {x≥5}
-    STATIC_CHECK(contradiction.kind == SetKind::Empty);
+    STATIC_CHECK(contradiction == Ø<int>{});
     STATIC_CHECK_FALSE(contradiction.contains(0));
     STATIC_CHECK_FALSE(contradiction.contains(4));
     STATIC_CHECK_FALSE(contradiction.contains(5));

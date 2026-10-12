@@ -41,7 +41,7 @@ constexpr auto lt_three = ℝ_d | (χ < 3.0);
 // Compile-time theorem: the meet folds value-first to the empty SetVal on ℝ ---
 // the crossing-bound emptiness test fires on a continuous carrier just as on ℕ.
 constexpr auto empty_meet = gt_five & lt_three;
-static_assert(empty_meet.kind == SetKind::Empty);
+static_assert(empty_meet == Ø<typename decltype(ℝ_d)::Domain>{});
 static_assert(empty_meet(Rd{4.0}) ==
               decltype(empty_meet)::logic_species::False);
 
