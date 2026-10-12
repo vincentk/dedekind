@@ -69,13 +69,11 @@ static_assert(S(7u));
 // (3) Trimmed.  Set difference: A ∖ B = {x | x ∈ A ∧ x ∉ B}.  The textbook
 //     `S \ T` would be the natural spelling; substituted here as
 //     `set_difference(S, T)` (free function in :sets:relational) since `\`
-//     is not a C++ operator.  T is a lazy lambda-Set: structural reduction
-//     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
-//     interval [6, 6]) is a future DSL refinement; membership on T still
-//     constant-folds via the predicate.
-constexpr auto T = set_difference(S, ℕ | (π > 10));
-static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
-static_assert(!T(11u));  // 11 > 10 ✗
+//     is not a C++ operator.  The difference S ∩ ¬{x > 10} is a run list,
+//     the normal form of sets built from intervals, so it is computed inside
+//     each check (its storage is transient in constant evaluation).
+static_assert(set_difference(S, ℕ | (π > 10))(8u));    // 5 < 8 ≤ 10 ✓
+static_assert(!set_difference(S, ℕ | (π > 10))(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  The value-first meet of two bare halfspaces folds through
 //     `structured_and` to a `Interval`: `S` (= {x > 5}) meet {x < 7} on ℕ has
