@@ -319,12 +319,9 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
     return contains(x) ? L::True : L::False;
   }
 
-  /** @brief The ray @c {x ⋈ pivot}: @c Ø at the carrier's end beyond it,
-   *  @c 𝔸 where it admits the whole carrier. */
+  /** @brief The ray @c {x ⋈ pivot}.  Whether it is empty, or all of the
+   *  carrier, at the carrier's end is read by @c == @c Ø / @c == @c 𝔸. */
   static constexpr Interval half(V pivot, Direction d, Strictness s) {
-    if (detail_interval::ray_is_empty(pivot, d, s)) return empty();
-    if (detail_interval::ray_is_empty(pivot, flip(d), flip(s)))
-      return universe();
     if (d == Direction::Upward)
       return Interval{Span<V>{Bound<V>{pivot, s}, {}}};
     return Interval{Span<V>{{}, Bound<V>{pivot, s}}};
@@ -539,22 +536,39 @@ constexpr typename L::Ω operator==(const Interval<V, L>& a,
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
 constexpr bool operator==(const Ø<T, L>&, const Interval<T, L>& s) {
-  return !s.span();
+  if (!s.span()) return true;
+  const auto& [lo, hi] = *s.span();
+  if (lo && !hi)
+    return detail_interval::ray_is_empty(lo->at, Direction::Upward,
+                                         lo->strictness);
+  if (hi && !lo)
+    return detail_interval::ray_is_empty(hi->at, Direction::Downward,
+                                         hi->strictness);
+  return false;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>&) {
-  return !s.span();
+constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>& e) {
+  return e == s;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
 constexpr bool operator==(const 𝔸<T, L, CU>&, const Interval<T, L>& s) {
-  return s.span() && !s.span()->lower && !s.span()->upper;
+  if (!s.span()) return false;
+  const auto& [lo, hi] = *s.span();
+  if (!lo && !hi) return true;
+  if (lo && !hi)
+    return detail_interval::ray_is_empty(lo->at, Direction::Downward,
+                                         flip(lo->strictness));
+  if (hi && !lo)
+    return detail_interval::ray_is_empty(hi->at, Direction::Upward,
+                                         flip(hi->strictness));
+  return false;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>&) {
-  return s.span() && !s.span()->lower && !s.span()->upper;
+constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>& u) {
+  return u == s;
 }
 namespace detail_interval_eq {
 using dedekind::category::Ternary;
