@@ -7,9 +7,10 @@ checking the operators against that carrier.  The carriers are primitive ones
 Python users know: ``u64`` and ``i64`` (the ring ℤ/2⁶⁴ with unsigned and signed
 representatives: + − · wrap), ``Mod(n)`` (ℤ/n, a field when n is prime) and
 ``B`` (``bool``).  An ordered word takes an integer constant by the checked
-cast; a residue ring takes it by the quotient map ℤ → ℤ/n.  A test runs as soon as the names it needs are bound and is skipped
-until then, so this file is the acceptance spec of the binding: the claims are
-stated now, and switch on as the binding lands.
+cast; a residue ring takes it by the quotient map ℤ → ℤ/n.  A test runs as
+soon as the names it needs are bound and is skipped until then, so this file is
+the acceptance spec of the binding: the claims are stated now, and switch on as
+the binding lands.
 """
 
 import importlib
