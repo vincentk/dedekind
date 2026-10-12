@@ -2,13 +2,13 @@
  *
  * Unit coverage for the order reading of the term grammar: an order atom
  * `π ⋈ c` on a chain binds to an `Interval<T, L>` value, intervals meet,
- * join and complement, and the point `Singleton<T, L>{v}`.
+ * their unions and complements are run lists, and the point
+ * `Singleton<T, L>{v}`.
  */
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <limits>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -53,30 +53,25 @@ TEST_CASE("order:halfspace — an order atom binds to the ray it names",
   CHECK_FALSE(le(6));
 }
 
-TEST_CASE("order:halfspace — the union of two intervals",
-          "[order][halfspace][union]") {
-  // One operand covering the other: the cover (the weaker bound wins).
-  STATIC_CHECK(reduce_join(up(5, strict), up(7, strict)) == up(5, strict));
-  STATIC_CHECK(reduce_join(down(5, strict), down(3, strict)) ==
-               down(5, strict));
-  // Overlapping opposite rays: the union is the Join node, deciding by
-  // membership, and it covers the line.
-  constexpr auto u = up(3, closed) | down(5, closed);
-  STATIC_CHECK(static_cast<bool>(u(0)));
-  STATIC_CHECK(static_cast<bool>(u(4)));
-  STATIC_CHECK(static_cast<bool>(u(100)));
-}
-
-TEST_CASE("order:halfspace — the complement of an interval",
-          "[order][halfspace][complement]") {
-  // A ray's complement is the opposite ray; a bounded interval's is the two
-  // rays around it, a Join of two intervals.
-  constexpr auto gaps = ~I::bounded(2, closed, 5, closed);
-  CHECK(static_cast<bool>(gaps(1)));
-  CHECK_FALSE(static_cast<bool>(gaps(3)));
-  CHECK(static_cast<bool>(gaps(6)));
-  STATIC_CHECK((I::bounded(2, closed, 5, closed) & gaps) == Ø<int>{});
+TEST_CASE("order:halfspace — the union and complement of intervals are runs",
+          "[order][halfspace][runs]") {
+  // A union or a complement leaves the intervals: it is a run list, decided
+  // pointwise and compared extensionally.  (A run list is computed inside the
+  // check: its storage is transient in constant evaluation.)
+  STATIC_CHECK((up(5, strict) | up(7, strict)) == up(5, strict));
+  STATIC_CHECK((up(3, closed) | down(5, closed)) == 𝔸<int>{});
+  STATIC_CHECK((~I::bounded(2, closed, 5, closed))(1) &&
+               !(~I::bounded(2, closed, 5, closed))(3) &&
+               (~I::bounded(2, closed, 5, closed))(6));
+  STATIC_CHECK((I::bounded(2, closed, 5, closed) &
+                ~I::bounded(2, closed, 5, closed)) == Ø<int>{});
   STATIC_CHECK((up(5, strict) & ~up(5, strict)) == Ø<int>{});
+  STATIC_CHECK(~up(5, strict) == down(5, closed));
+  const auto disjoint =
+      I::bounded(2, closed, 5, closed) | I::bounded(20, closed, 30, closed);
+  CHECK(intervals(disjoint).size() == 2);
+  CHECK(disjoint(4));
+  CHECK_FALSE(disjoint(10));
 }
 
 TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)",
@@ -382,15 +377,3 @@ TEST_CASE("order:halfspace — the carrier gate is the registered chain",
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
-
-TEST_CASE("order:halfspace — the join of intervals: the cover, or a refusal",
-          "[order][halfspace][join]") {
-  using S = I;
-  const auto wide = S::bounded(0, closed, 10, closed);
-  const auto narrow = S::bounded(2, closed, 5, closed);
-  CHECK(reduce_join(wide, narrow) == wide);  // [0, 10] covers [2, 5]
-  CHECK(reduce_join(narrow, wide) == wide);
-  // Disjoint intervals: the union is no interval, refused rather than guessed.
-  CHECK_THROWS_AS(reduce_join(narrow, S::bounded(20, closed, 30, closed)),
-                  std::domain_error);
-}

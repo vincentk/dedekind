@@ -18,23 +18,26 @@
  *
  * The headline still holds and now at genuine runtime: @c above(3) @c &
  * @c below(5) collapses to @c singleton(4), routed through the @b same
- * @c constexpr @c :order @c reduce_meet the compile-time @c static_assert
- * exhibit folds (no Python-side reducer).  Value-oriented relational reading: a
- * halfspace is a point plus a direction, @c {x|x⋈p} = π₁(S × η(p) | π₁⋈π₂),
- * the pivot in the value @c η(p); the @c singleton is the degenerate point.
+ * @c constexpr lattice reducer the compile-time @c static_assert exhibits fold
+ * (no Python-side reducer).  A set is a run list (@c order:runs), so unions
+ * and complements are sets of the same type.  Value-oriented relational
+ * reading: a halfspace is a point plus a direction, @c {x|x⋈p} = π₁(S × η(p) |
+ * π₁⋈π₂), the pivot in the value @c η(p); the @c singleton is the degenerate
+ * point.
  */
 
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 #include <limits>
 #include <optional>
 #include <string>
+#include <vector>
 
-import dedekind.category; // Identity, Successor, Predecessor, Join
-import dedekind.order;    // Direction / Strictness, Interval
-import dedekind.sets;     // IsSetObject
+import dedekind.category; // Identity, Successor, Predecessor
+import dedekind.order;    // Direction / Strictness, intervals
+import dedekind.sets;     // Ø
 import dedekind.python;   // dedekind::python::lwv: Set, ray, image, restrict
 
 namespace nb = nanobind;
@@ -44,13 +47,6 @@ namespace lwv = dedekind::python::lwv;
 namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
 using Set = lwv::Set;
-/** @brief A union of two intervals, the reducer's own @c Join node: the
- *  complement of an interval (the parts below and above it), or what a meet
- *  distributes into.  A set object in its own right, so @c & with a @c Set
- *  folds through the same reducer. */
-using Union = dedekind::category::Join<Set, Set>;
-static_assert(dedekind::sets::IsSetObject<Union>,
-              "a union of two intervals is a set object (the Join node).");
 using dedekind::category::Identity;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
@@ -73,13 +69,14 @@ void bind_images(nb::module_& m, const char* image_doc,
  *  window ends, where the ray's unfold raises rather than wraps.  @f$O(1)@f$
  *  space. */
 struct SetIter {
+  Set set;
   std::optional<long long> current;  // nullopt once the unfold has ended
   std::optional<long long> last;     // the greatest element, if bounded above
   bool at_window_end = false;        // a ray reached the window's last value
 };
 
-std::string repr(const Set& s) {
-  if (!s.span()) return "Ø";
+/** @brief One run, written: @c {4}, @c [3, 8), @c {x | x > 5}, @c 𝔸. */
+std::string repr(const lwv::Leaf& s) {
   const auto& [lower, upper] = *s.span();
   if (!lower && !upper) return "𝔸";
   if (lower && upper && lower->at == upper->at)
@@ -96,23 +93,31 @@ std::string repr(const Set& s) {
   const char* op = up ? (strict ? ">" : ">=") : (strict ? "<" : "<=");
   return std::string("{x | x ") + op + " " + std::to_string(b.at) + "}";
 }
-std::string repr(const Union& u) { return repr(u.lhs) + " ∪ " + repr(u.rhs); }
+/** @brief A set, written as its runs joined by @c ∪; @c Ø without any. */
+std::string repr(const Set& s) {
+  std::string out;
+  for (const auto& r : ord::intervals(s)) {
+    if (!out.empty()) out += " ∪ ";
+    out += repr(r);
+  }
+  return out.empty() ? "Ø" : out;
+}
 
 // The FINITE cardinality where it is decidable (a bounded set); std::nullopt
-// for a ray or 𝔸.
+// for a set unbounded at either end.
 std::optional<unsigned long long> cardinality(const Set& s) {
-  if (!s.span()) return 0;
   if (!lwv::is_bounded(s)) return std::nullopt;
-  const long long el = *lwv::least(s);
-  const long long eu = *lwv::greatest(s);
-  if (eu < el) return 0;
-  // Exact in the unsigned word for every interval short of the whole window;
-  // the whole window has 2^64 elements, one more than it holds.
-  const auto span =
-      static_cast<unsigned long long>(eu) - static_cast<unsigned long long>(el);
-  if (span == std::numeric_limits<unsigned long long>::max())
-    jlt::window_end("len");
-  return span + 1;
+  unsigned long long n = 0;
+  for (const auto& r : ord::intervals(s)) {
+    // Exact in the unsigned word for every run short of the whole window; the
+    // whole window has 2^64 elements, one more than it holds.
+    const auto span = static_cast<unsigned long long>(lwv::greatest(r)) -
+                      static_cast<unsigned long long>(lwv::least(r));
+    if (span == std::numeric_limits<unsigned long long>::max() ||
+        __builtin_add_overflow(n, span + 1, &n))
+      jlt::window_end("len");
+  }
+  return n;
 }
 }  // namespace
 
@@ -123,17 +128,17 @@ NB_MODULE(_lwv, m) {
       "halfspaces / singletons over int as duck-typed handles whose pivot is a "
       "runtime value.  Construct with above(k)/at_least(k)/below(k)/at_most(k)/"
       "singleton(k) (and everything()/nothing()); membership via `s(x)` / "
-      "`x in s`; meet via `a & b`.  `above(3) & below(5)` collapses to "
-      "`singleton(4)` through the same constexpr lattice reducer the "
-      "compile-time exhibits fold -- runtime reduction, no Python-side "
-      "reducer.  `~s` is the union of the parts below and above s; `a & ~b` "
-      "distributes through the reducer's own law.";
+      "`x in s`; meet, join and complement via `a & b`, `a | b`, `~a`.  "
+      "`above(3) & below(5)` collapses to `singleton(4)` through the same "
+      "constexpr lattice reducer the compile-time exhibits fold -- runtime "
+      "reduction, no Python-side reducer.  A set is a run list, the normal "
+      "form of unions of intervals: `~singleton(5)` is two runs.";
 
   nb::class_<Set>(
       m, "Set",
-      "A value-based Lwv set: a halfspace / singleton / interval / boundary "
-      "whose pivot(s) are runtime values.  Membership `s(x)` / `x in s`; meet "
-      "`a & b` routes through the value-first :order reducer.")
+      "A value-based Lwv set: a run list, finitely many disjoint intervals "
+      "whose bounds are runtime values.  Membership `s(x)` / `x in s`; "
+      "`a & b`, `a | b`, `~a` route through the lattice reducer.")
       .def(
           "__call__", [](const Set& s, long long x) { return s.contains(x); },
           nb::arg("x"), "Membership χ(x): whether x is in the set.")
@@ -146,18 +151,28 @@ NB_MODULE(_lwv, m) {
           "a & b: the meet, folded by the lattice reducer at runtime (its "
           "leaf-combine is the interval meet).")
       .def(
-          "__and__", [](const Set& a, const Union& u) { return a & u; },
-          "a & (b ∪ c): the reducer distributes the meet over the union.")
+          "__or__", [](const Set& a, const Set& b) { return a | b; },
+          "a | b: the join, a run list again.")
       .def(
           "__invert__", [](const Set& s) { return ~s; },
-          "~s: the complement, the union of the parts below and above s.")
+          "~s: the complement, the parts below, between and above s's runs.")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
           "__eq__", [](const Set& a, const Set& b) { return a == b; },
           nb::is_operator(), "a == b: the same set.")
       .def(
-          "__bool__", [](const Set& s) { return s.span().has_value(); },
+          "__bool__",
+          [](const Set& s) { return !(dedekind::sets::Ø<long long>{} == s); },
           "A set is truthy iff it is inhabited.")
+      .def(
+          "runs",
+          [](const Set& s) {
+            std::vector<Set> out;
+            for (const auto& r : ord::intervals(s)) out.push_back(Set::of(r));
+            return out;
+          },
+          "The maximal runs, in order along the chain, each a set of one "
+          "interval: the normal form, read off.")
       .def(
           "__len__",
           [](const Set& s) -> std::size_t {
@@ -174,11 +189,11 @@ NB_MODULE(_lwv, m) {
           "__iter__",
           [](const Set& s) {
             const auto first = lwv::least(s);
-            if (!first && s.span())
+            if (!first && !(dedekind::sets::Ø<long long>{} == s))
               throw nb::type_error(
                   "no least element: a set unbounded below ({x < k}, 𝔸) has "
                   "no bottom on ℤ to unfold from");
-            return SetIter{first, lwv::greatest(s)};
+            return SetIter{s, first, lwv::greatest(s)};
           },
           "Unfold the set from its least element by the successor: a bounded "
           "set iterates like range(a, b), a ray like itertools.count(a).")
@@ -211,7 +226,7 @@ NB_MODULE(_lwv, m) {
           "s[a:b] = s ∩ [a, b), slicing by VALUE (pandas' .loc, not .iloc): "
           "the "
           "meet with the half-open interval; s[:b] is the lower cut at b, "
-          "s[a:] the upper ray.  One reduce_meet.")
+          "s[a:] the upper ray.")
       .def_prop_ro(
           "cardinality",
           [](const Set& s) -> nb::object {
@@ -219,7 +234,7 @@ NB_MODULE(_lwv, m) {
             return c ? nb::cast(*c) : nb::none();
           },
           "The finite cardinality where decidable (a bounded set); None for a "
-          "ray or 𝔸.");
+          "set unbounded at either end.");
 
   m.def("above", &lwv::ray<ord::Direction::Upward, ord::Strictness::Strict>,
         nb::arg("k"), "above(k): the open upper halfspace {x | x > k} = ↑k.");
@@ -231,44 +246,10 @@ NB_MODULE(_lwv, m) {
   m.def("at_most",
         &lwv::ray<ord::Direction::Downward, ord::Strictness::NonStrict>,
         nb::arg("k"), "at_most(k): the closed lower halfspace {x | x <= k}.");
-  m.def("singleton", &Set::point, nb::arg("k"),
+  m.def("singleton", &lwv::point, nb::arg("k"),
         "singleton(k): the point {k} = η(k), the value-based atom.");
   m.def("everything", &Set::universe, "everything(): the universe 𝔸.");
   m.def("nothing", &Set::empty, "nothing(): the empty set Ø.");
-
-  nb::class_<Union>(
-      m, "Union",
-      "A union of two intervals (the reducer's Join node): what `~s` yields, "
-      "and what `a & ~b` distributes into.  Membership `u(x)` / `x in u`; "
-      "`u & s` folds through the reducer.  A union of more than two intervals "
-      "has no handle yet (#975).")
-      .def(
-          "__call__",
-          [](const Union& u, long long x) { return static_cast<bool>(u(x)); },
-          nb::arg("x"), "Membership χ(x): in either part.")
-      .def(
-          "__contains__",
-          [](const Union& u, long long x) { return static_cast<bool>(u(x)); },
-          nb::arg("x"), "x in u: the same membership test.")
-      .def(
-          "__and__", [](const Union& u, const Set& s) { return u & s; },
-          "(a ∪ b) & s: the reducer distributes the meet over the union.")
-      .def("__repr__", [](const Union& u) { return repr(u); })
-      .def(
-          "__eq__",
-          [](const Union& a, const Union& b) {
-            return a.lhs == b.lhs && a.rhs == b.rhs;
-          },
-          nb::is_operator(), "a == b: the same two parts.")
-      .def(
-          "__bool__",
-          [](const Union& u) {
-            return u.lhs.span().has_value() || u.rhs.span().has_value();
-          },
-          "A union is truthy iff a part is inhabited.")
-      .def_prop_ro(
-          "parts", [](const Union& u) { return std::pair{u.lhs, u.rhs}; },
-          "The two intervals, below and above.");
 
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
@@ -281,7 +262,7 @@ NB_MODULE(_lwv, m) {
         else if (value == std::numeric_limits<long long>::max())
           it.at_window_end = true;
         else
-          ++*it.current;
+          it.current = lwv::next_member(it.set, value);
         return value;
       });
 

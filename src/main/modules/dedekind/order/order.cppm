@@ -37,5 +37,6 @@ export import :total;
 export import :lattice;
 export import :completeness;
 export import :halfspace;
+export import :runs;  // run lists: the normal form of sets built from intervals
 export import :inclusion;
 export import :powerset;

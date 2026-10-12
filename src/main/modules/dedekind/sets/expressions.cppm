@@ -616,7 +616,28 @@ export struct SetCombine {
   static constexpr auto join_value(const RA& a, const RB& b) {
     return structured_or(a, b);
   }
+  /** @brief The carrier's own complement of a leaf, where it has one in normal
+   *  form (an interval's is a run list); a complement that is only the formal
+   *  @c Not node is not a normal form, so it is no leg. */
+  template <typename RA>
+    requires requires(const RA& a) { ~a; } &&
+             (!dedekind::category::is_not_node_v<
+                 std::remove_cvref_t<decltype(~std::declval<const RA&>())>>)
+  static constexpr auto complement_value(const RA& a) {
+    return ~a;
+  }
 };
+
+/** @brief The normal form of a set term: the one reducer, with the carrier's
+ *  own meet, join and complement at the leaves (@c SetCombine).  The set
+ *  operators @c &, @c | and @c ~ normalise this way as they go; a term built
+ *  from the lattice nodes directly (@c Meet{a, b}, @c MakeMeet, @c Not{a}) is
+ *  kept as written, and evaluated pointwise, until it is normalised here.
+ *  @tparam T the term.  @param t the term. */
+export template <IsSetObject T>
+constexpr auto normalise(const T& t) {
+  return subobject_reduce<typename T::logic_species, SetCombine>(t);
+}
 
 // ── The set-object legs of the opaque arm (IsSetObject, :setobject) ──────────
 //

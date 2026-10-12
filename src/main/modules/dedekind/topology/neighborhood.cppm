@@ -132,6 +132,22 @@ constexpr bool is_order_closed(const Interval<T, L>& s) {
   return (!lo || lo->strictness == Strictness::NonStrict) &&
          (!hi || hi->strictness == Strictness::NonStrict);
 }
+/** @brief Whether a run list is order-open: it enters each run just above a
+ *  value and leaves it just below one, so no member sits on an edge. */
+export template <IsTotallyOrdered T, typename L>
+constexpr bool is_order_open(const Runs<T, L>& r) {
+  for (const auto& s : r.steps())
+    if ((s.value == L::True) != (s.at.side == Side::Above)) return false;
+  return true;
+}
+/** @brief Whether a run list is order-closed: it enters each run at a value
+ *  and leaves it at one, the dual of @ref is_order_open. */
+export template <IsTotallyOrdered T, typename L>
+constexpr bool is_order_closed(const Runs<T, L>& r) {
+  for (const auto& s : r.steps())
+    if ((s.value == L::True) != (s.at.side == Side::Below)) return false;
+  return true;
+}
 template <typename T, typename L>
 inline constexpr bool is_order_closed_v<Singleton<T, L>> = true;
 template <typename A, typename B>

@@ -66,7 +66,10 @@ using dedekind::category::Successor;
 using dedekind::category::Ternary;
 using dedekind::order::Direction;
 using dedekind::order::Interval;
-using dedekind::order::reduce_meet;
+using dedekind::order::intervals;
+using dedekind::order::Position;
+using dedekind::order::Runs;
+using dedekind::order::Side;
 using dedekind::order::Strictness;
 using dedekind::sequences::Run;
 using dedekind::sequences::runs;
@@ -199,61 +202,64 @@ inline Arrow<Dom<F>> compose(const F& f, const G& g) {
 // canonical README exhibit is the two overlapping halfspaces
 // @c {x>3} ∩ {x<5} = {4}: a halfspace @c ℕ|(χ ⋈ k) is the principal
 // filter/ideal @c ↑k / @c ↓k of the carrier order, and its meet routes through
-// the @b real @b :order reducer @c structured_and (the value-first crossing law
-// @c ↑a ∩ ↓b = [a,b], collapsing to a @c Singleton over an integral carrier).
-// This exhibit is the SET twin of the @c jlt ARROW exhibit above: it binds the
-// real reducer, NOT a Python-side reimplementation (handle-only).
-//
-// Carrier is @c int here (the collapse is carrier-agnostic over any integral
-// carrier; the README's @c ℕ is the Cardinality variant, whose Python
-// value-conversion is deferred).  The pivots are compile-time NTTPs, so this
-// first iteration binds the curated README sets --- exactly as @c jlt binds the
-// fixed generators @c id / @c refl over @c bool / @c int.  A general fluent
-// constructor over @b runtime pivots is the next iteration, gated on the
-// value-first subobject reducer's leaf-combine leg (#922 slice 2) --- until
-// then a runtime pivot cannot index a compile-time halfspace type.
+// the @b real lattice reducer: the meet of two intervals is the value-first
+// crossing law @c ↑a ∩ ↓b = [a,b] (collapsing to a point over an integral
+// carrier), and unions and complements are run lists (@c order:runs), the
+// normal form of the sets of a chain built from intervals.  This exhibit is the
+// SET twin of the @c jlt ARROW exhibit above: it binds the real reducer, NOT a
+// Python-side reimplementation (handle-only).
 
 namespace lwv {
 
-/** @brief A value-based set handle (#965): the pivot rides as a VALUE, so one
- *  constructor covers all pivots at runtime.  Carrier @c long @c long (Python
- *  @c int).  @c Interval is a @c :order value-first set; its meet is the same
- *  @c constexpr @c reduce_meet the compile-time exhibits fold, so there is no
- *  Python-side reducer. */
-using Set = Interval<long long>;
+/** @brief A value-based set handle (#965): a run list over @c long @c long
+ *  (Python's @c int, ℤ read through the 64-bit window), its positions values,
+ *  so one constructor covers all pivots at runtime.  Its @c &, @c | and @c ~
+ *  are the same @c constexpr operations the compile-time exhibits fold. */
+using Set = Runs<long long>;
+/** @brief One run of a set: an interval. */
+using Leaf = Interval<long long>;
 // Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
 // χ) --- and this is the compile-time MUST for it (RFC 2119).
 static_assert(IsSetObject<Set>,
               "the Python surface's Set must be a set object (IsSetObject).");
 
 /** @brief The rays @c {x ⋈ k}: the principal filter ↑k and ideal ↓k, open or
- *  closed, as the value leaf.  @tparam D the direction.  @tparam S the
- *  strictness.  @param k the pivot. */
+ *  closed.  @tparam D the direction.  @tparam S the strictness.  @param k the
+ *  pivot. */
 template <Direction D, Strictness S>
 constexpr Set ray(long long k) {
-  return Set::half(k, D, S);
+  return Set::of(Leaf::half(k, D, S));
 }
+/** @brief The point @c {k}.  @param k the point. */
+constexpr Set point(long long k) { return Set::of(Leaf::point(k)); }
 
-/** @brief Translate every bound by @c k: the image of a value leaf under the
- *  order automorphism @f$x \mapsto x + k@f$ of the chain keeps its kind and
- *  moves its bounds; @c Ø and @c 𝔸 are fixed.  @f$O(1)@f$. */
+/** @brief Translate every step by @c k: the image under the order
+ *  automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image leaves the
+ *  window --- a step past its last value, or members moved below its first ---
+ *  ℤ continues and the window cannot, so it raises rather than truncate.
+ *  @c Ø and @c 𝔸 are fixed. */
 constexpr Set shift(const Set& s, long long k) {
-  if (!s.span()) return s;
-  auto [lo, hi] = *s.span();
-  if (lo) lo->at = jlt::add_in_window(lo->at, k, "image");
-  if (hi) hi->at = jlt::add_in_window(hi->at, k, "image");
-  return Set::of_sides(lo, hi);
+  std::vector<Set::Step> out;
+  for (Set::Step st : s.steps()) {
+    st.at.at = jlt::add_in_window(st.at.at, k, "image");
+    using W = std::numeric_limits<long long>;
+    const bool leaves =
+        st.value ? st.at == Position<long long>{W::max(), Side::Above}
+                 : st.at == Position<long long>{W::min(), Side::Below};
+    if (leaves) jlt::window_end("image");
+    out.push_back(st);
+  }
+  return Set::normal(s.first(), std::move(out));
 }
-/** @brief The arrows whose image of a value leaf has a closed form: the
- *  identity, the successor and the predecessor on the integer window.  An
- *  opaque composed arrow has no such normal form; its image is intensional
- *  (Kleene-valued) and is refused at the boundary rather than guessed.
- *  @tparam F the arrow. */
+/** @brief The arrows whose image of a set has a closed form: the identity, the
+ *  successor and the predecessor on the integer window.  An opaque composed
+ *  arrow has no such normal form; its image is intensional (Kleene-valued) and
+ *  is refused at the boundary rather than guessed.  @tparam F the arrow. */
 template <typename F>
 concept IsStructuralArrow = std::same_as<F, Identity<jlt::Int>> ||
                             std::same_as<F, Successor<jlt::Int>> ||
                             std::same_as<F, Predecessor<jlt::Int>>;
-/** @brief How far the arrow moves a bound: 0, +1, −1.  @tparam F the arrow. */
+/** @brief How far the arrow moves a step: 0, +1, −1.  @tparam F the arrow. */
 template <IsStructuralArrow F>
 consteval long long offset() {
   if constexpr (std::same_as<F, Successor<jlt::Int>>)
@@ -277,43 +283,57 @@ constexpr Set preimage(const F&, const Set& s) {
 
 /** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
  *  half-open interval (Python's own convention), an absent bound meaning the
- *  ray.  One @c reduce_meet, @f$O(1)@f$.  Not positional: a set has no
- *  enumeration to index into; that reading belongs to a sequence. */
+ *  ray.  Not positional: a set has no enumeration to index into; that reading
+ *  belongs to a sequence. */
 constexpr Set restrict(const Set& s, std::optional<long long> lo,
                        std::optional<long long> hi) {
-  Set r = s;
+  Leaf window = Leaf::universe();
   if (lo)
-    r = reduce_meet(r, ray<Direction::Upward, Strictness::NonStrict>(*lo));
-  if (hi) r = reduce_meet(r, ray<Direction::Downward, Strictness::Strict>(*hi));
-  return r;
+    window = window & Leaf::half(*lo, Direction::Upward, Strictness::NonStrict);
+  if (hi)
+    window = window & Leaf::half(*hi, Direction::Downward, Strictness::Strict);
+  return s & Set::of(window);
 }
 
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
- *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
+ *  finite): nothing at either end of the chain. */
 constexpr bool is_bounded(const Set& s) {
-  return !s.span() || (s.span()->lower && s.span()->upper);
+  return !s.first() && (s.steps().empty() || !s.steps().back().value);
 }
-/** @brief The lower bound as attained: a strict one at its successor.
- *  @param s a leaf bounded below. */
-constexpr long long attained_lo(const Set& s) {
-  const auto& lo = *s.span()->lower;
+/** @brief The least element of a run bounded below, a strict bound attained
+ *  at its successor.  @param r the run. */
+constexpr long long least(const Leaf& r) {
+  const auto& lo = *r.span()->lower;
   return lo.strictness == Strictness::Strict
              ? jlt::add_in_window(lo.at, 1, "least")
              : lo.at;
 }
+/** @brief The greatest element of a run bounded above.  @param r the run. */
+constexpr long long greatest(const Leaf& r) {
+  const auto& hi = *r.span()->upper;
+  return hi.strictness == Strictness::Strict ? hi.at - 1 : hi.at;
+}
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 constexpr std::optional<long long> least(const Set& s) {
-  if (!s.span() || !s.span()->lower) return std::nullopt;
-  return attained_lo(s);
+  const auto runs = intervals(s);
+  if (runs.empty() || !runs.front().span()->lower) return std::nullopt;
+  return least(runs.front());
 }
-/** @brief The greatest element, where the set is bounded (a strict upper bound
- *  is attained at its predecessor, which exists since the set is inhabited);
- *  @c nullopt on a ray or @c 𝔸: the unfold does not stop. */
+/** @brief The greatest element, where the set is bounded; @c nullopt on a
+ *  set unbounded above: the unfold does not stop. */
 constexpr std::optional<long long> greatest(const Set& s) {
-  if (!s.span() || !is_bounded(s)) return std::nullopt;
-  const auto& hi = *s.span()->upper;
-  return hi.strictness == Strictness::Strict ? hi.at - 1 : hi.at;
+  const auto runs = intervals(s);
+  if (runs.empty() || !is_bounded(s)) return std::nullopt;
+  return greatest(runs.back());
+}
+/** @brief The least member above @c x: @c x + 1, or the start of the next
+ *  run; none past the last run.  @param x a member below the window's end. */
+constexpr std::optional<long long> next_member(const Set& s, long long x) {
+  if (s.contains(x + 1)) return x + 1;
+  for (const auto& r : intervals(s))
+    if (r.span()->lower && least(r) > x) return least(r);
+  return std::nullopt;
 }
 
 }  // namespace lwv

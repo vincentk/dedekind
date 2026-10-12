@@ -166,8 +166,9 @@ concept Fires = !std::same_as<std::remove_cvref_t<R>, law_inactive>;
  *  time: one law, two binding times.
  *  @tparam Less the injected total order (canonicalisation).  @tparam Ord the
  *  semantic lattice order (boundedness, glb, distributivity).  @tparam Combine
- *  the carrier's domain meet / join of two leaves, @c meet_value / @c
- *  join_value, each present only where the carrier combines that pair. */
+ *  the carrier's domain meet / join of two leaves and complement of one,
+ *  @c meet_value / @c join_value / @c complement_value, each present only
+ *  where the carrier has it. */
 export template <typename Less, typename Ord = canonical_order,
                  typename Combine = no_leaf_combine>
 struct Reduce {
@@ -234,6 +235,10 @@ struct Reduce {
   constexpr auto operator()(const Not<A>&, const RA& a) const {
     if constexpr (Fires<decltype(de_morgan_law<Ord>(a))>) {
       return cata(*this, de_morgan_law<Ord>(a));
+    } else if constexpr (requires { Combine::complement_value(a); }) {
+      // The carrier's own complement of a leaf (an interval's is a run list),
+      // folded again.
+      return cata(*this, Combine::complement_value(a));
     } else {
       return Not<RA>{a};
     }

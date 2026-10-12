@@ -35,7 +35,6 @@ module;
 #include <functional>  // std::plus (the argmax carrier's additive-group gate)
 #include <limits>      // std::numeric_limits (machine-carrier boundary check)
 #include <optional>    // a cut's sides
-#include <stdexcept>   // std::domain_error (reduce_join: no normal form)
 #include <type_traits>
 #include <utility>
 
@@ -237,36 +236,127 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
-namespace detail_interval {
-/** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
- *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
- *  floor is 0, @c {n > ℵ₀} on ℕ, @c {z < −ℵ₀} on ℤ).  A pivot is a value, so
- * this is a value fact.
- *  @tparam T the carrier.  @param p the pivot.  @param d the direction.
- *  @param s the strictness. */
-template <IsTotallyOrdered T>
-constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
-  if (s != Strictness::Strict) return false;
-  if (d == Direction::Upward) {
-    if constexpr (std::integral<T>)
-      return p == std::numeric_limits<T>::max();
-    else if constexpr (std::same_as<T, Cardinality>)
-      return p == Cardinality{ℵ_0{}};
-    else if constexpr (std::same_as<T, SignedCardinality>)
-      return p == SignedCardinality{PositiveInfinity{}};
-    else
-      return false;
+/** @section halfspace__Positions
+ *  The places on a chain a side can sit: just below a value or just above it,
+ *  a Dedekind cut named by the value beside it.  An interval's sides and a run
+ *  list's steps are positions, so both compare, close and read the carrier's
+ *  ends through this one layer. */
+
+/** @brief Which side of its value a position sits on. */
+export enum class Side : bool { Below, Above };
+
+/** @brief A position on the chain: just below @c at, or just above it.
+ *  @tparam V the carrier. */
+export template <typename V>
+  requires IsTotallyOrdered<V>
+struct Position {
+  V at;
+  Side side;
+  friend constexpr bool operator==(const Position&, const Position&) = default;
+  /** @brief Along the chain: by value, and below a value before above it. */
+  friend constexpr bool operator<(const Position& a, const Position& b) {
+    return a.at < b.at ||
+           (a.at == b.at && a.side == Side::Below && b.side == Side::Above);
   }
-  if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
-    return p == T{};
-  else if constexpr (std::signed_integral<T>)
-    return p == std::numeric_limits<T>::min();
-  else if constexpr (std::same_as<T, SignedCardinality>)
-    return p == SignedCardinality{NegativeInfinity{}};
-  else
-    return false;
+};
+
+namespace detail_position {
+/** @brief The position a lower side starts at: below an attained bound, above a
+ *  strict one.  @tparam V the carrier. */
+template <typename V>
+constexpr Position<V> start_of(const Bound<V>& b) {
+  return {b.at,
+          b.strictness == Strictness::NonStrict ? Side::Below : Side::Above};
 }
-}  // namespace detail_interval
+/** @brief The position an upper side ends at: above an attained bound, below a
+ *  strict one.  @tparam V the carrier. */
+template <typename V>
+constexpr Position<V> end_of(const Bound<V>& b) {
+  return {b.at,
+          b.strictness == Strictness::NonStrict ? Side::Above : Side::Below};
+}
+/** @brief The lower side starting at @c p.  @tparam V the carrier. */
+template <typename V>
+constexpr Bound<V> lower_at(const Position<V>& p) {
+  return {p.at,
+          p.side == Side::Below ? Strictness::NonStrict : Strictness::Strict};
+}
+/** @brief The upper side ending at @c p.  @tparam V the carrier. */
+template <typename V>
+constexpr Bound<V> upper_at(const Position<V>& p) {
+  return {p.at,
+          p.side == Side::Above ? Strictness::NonStrict : Strictness::Strict};
+}
+/** @brief The carrier's least element, where it has one as a value.
+ *  @tparam V the carrier. */
+template <typename V>
+constexpr std::optional<V> least() {
+  if constexpr (std::integral<V>)
+    return std::numeric_limits<V>::min();
+  else if constexpr (std::same_as<V, Cardinality>)
+    return V{};
+  else if constexpr (std::same_as<V, SignedCardinality>)
+    return V{NegativeInfinity{}};
+  else if constexpr (IsPst<V>)
+    return dedekind::sets::chain_bottom<V>();
+  else
+    return std::nullopt;
+}
+/** @brief The carrier's greatest element, where it has one as a value (ℵ₀ on
+ *  ℕ).  @tparam V the carrier. */
+template <typename V>
+constexpr std::optional<V> greatest() {
+  if constexpr (std::integral<V>)
+    return std::numeric_limits<V>::max();
+  else if constexpr (std::same_as<V, Cardinality>)
+    return V{ℵ_0{}};
+  else if constexpr (std::same_as<V, SignedCardinality>)
+    return V{PositiveInfinity{}};
+  else if constexpr (IsPst<V>)
+    return dedekind::sets::chain_top<V>();
+  else
+    return std::nullopt;
+}
+/** @brief The element covering @c x: none at the greatest element (a saturating
+ *  step stays put there) or on a carrier without the step.  @tparam V the
+ *  carrier. */
+template <typename V>
+constexpr std::optional<V> next_above(const V& x) {
+  if constexpr (std::integral<V>) {
+    if (x == std::numeric_limits<V>::max()) return std::nullopt;
+    return successor(x);
+  } else if constexpr (HasNNOStep<V>) {
+    const V s = successor(x);
+    if (s == x) return std::nullopt;
+    return s;
+  } else {
+    return std::nullopt;
+  }
+}
+/** @brief A position in its canonical form: just above a value is just below
+ *  the element covering it, where there is one, so on a discrete chain
+ *  @c (0, 3) and @c [1, 3) have the same positions.  @tparam V the carrier. */
+template <typename V>
+constexpr Position<V> canonical(Position<V> p) {
+  if (p.side == Side::Above)
+    if (const auto n = next_above(p.at)) return {*n, Side::Below};
+  return p;
+}
+/** @brief Whether @c p lies before every element of the carrier.
+ *  @tparam V the carrier. */
+template <typename V>
+constexpr bool before_all(const Position<V>& p) {
+  const auto lo = least<V>();
+  return lo && !(Position<V>{*lo, Side::Below} < p);
+}
+/** @brief Whether @c p lies after every element of the carrier.
+ *  @tparam V the carrier. */
+template <typename V>
+constexpr bool after_all(const Position<V>& p) {
+  const auto hi = greatest<V>();
+  return hi && !(p < Position<V>{*hi, Side::Above});
+}
+}  // namespace detail_position
 
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
@@ -428,26 +518,6 @@ constexpr std::optional<Bound<V>> tighter_upper(
   if (a->at != b->at) return a->at < b->at ? a : b;
   return a->strictness == Strictness::Strict ? a : b;
 }
-/** @brief Whether the lower side @c a admits everything @c b does. */
-template <typename V>
-constexpr bool lower_covers(const std::optional<Bound<V>>& a,
-                            const std::optional<Bound<V>>& b) {
-  if (!a) return true;
-  if (!b) return false;
-  if (a->at != b->at) return a->at < b->at;
-  return a->strictness == Strictness::NonStrict ||
-         b->strictness == Strictness::Strict;
-}
-/** @brief Whether the upper side @c a admits everything @c b does. */
-template <typename V>
-constexpr bool upper_covers(const std::optional<Bound<V>>& a,
-                            const std::optional<Bound<V>>& b) {
-  if (!a) return true;
-  if (!b) return false;
-  if (a->at != b->at) return a->at > b->at;
-  return a->strictness == Strictness::NonStrict ||
-         b->strictness == Strictness::Strict;
-}
 }  // namespace detail_interval
 
 /** @brief The ONE meet law: the tighter side on each end, collapsed by
@@ -463,87 +533,66 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
-/** @brief Equality of two value sets: both empty, or the same sides.  The
- * value-first counterpart of the old type-level set equality; it is what the
- * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
- * meet returns a @c Interval.
- *
- *  @details The verdict is returned in the ambient logic @c L::Ω (so it
- * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
- * ambient rather than silently narrowing a @c bool).  The comparison is gated
- * on @c V having decidable equality (@c std::equality_comparable): an
- * undecidable carrier --- where value equality is not answerable --- is ruled
- * out at the type level, so the operator is simply absent rather than vouching
- * for a verdict it cannot compute.
- *
- *  On a carrier with the NNO step the comparison is @b extensional: a strict
- *  bound at @c a is the non-strict bound at @c S(a) (above: @c P(a)), so
- *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
- *  closed bounds.  On a dense carrier they are different sets, and the
- *  comparison stays structural. */
-namespace detail_interval_eq {
-/** @brief Close a strict lower bound at the next element, where the step moves;
- *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
- *  element to close at and the bound stays strict --- @c {x > ⊤} is not
- *  @c {x ≥ ⊤}.  @tparam V the carrier. */
-template <HasCoveringStep V>
-constexpr void close_lower(V& v, Strictness& s) {
-  if (s != Strictness::Strict) return;
-  const V next = successor(v);
-  if (next == v) return;
-  v = next;
-  s = Strictness::NonStrict;
-}
-/** @brief The dual: close a strict upper bound at the previous element where
- *  @c P moves; @c {x < ℵ₀}, the finite fragment, is not @c {x ≤ ℵ₀}.
+namespace detail_interval {
+/** @brief Where an inhabited interval starts and ends: its sides' positions in
+ *  canonical form, an absent side the carrier's own end where it has one.
  *  @tparam V the carrier. */
-template <HasCoveringStep V>
-constexpr void close_upper(V& v, Strictness& s) {
-  if (s != Strictness::Strict) return;
-  const V prev = predecessor(v);
-  if (prev == v) return;
-  v = prev;
-  s = Strictness::NonStrict;
-}
-/** @brief The form compared: on a discrete chain every strict bound that can
- *  close is closed, so @c (0, 3) and @c [1, 3) coincide; on a dense carrier
- *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
- */
 template <typename V>
-constexpr Span<V> canonical(Span<V> s) {
-  if constexpr (HasCoveringStep<V>) {
-    if (s.lower) close_lower(s.lower->at, s.lower->strictness);
-    if (s.upper) close_upper(s.upper->at, s.upper->strictness);
-  }
-  return s;
+constexpr std::pair<std::optional<Position<V>>, std::optional<Position<V>>>
+extent(const Span<V>& s) {
+  using detail_position::canonical;
+  return {s.lower
+              ? std::optional{canonical(detail_position::start_of(*s.lower))}
+              : std::nullopt,
+          s.upper ? std::optional{canonical(detail_position::end_of(*s.upper))}
+                  : std::nullopt};
 }
-}  // namespace detail_interval_eq
+/** @brief Whether an interval has no element: no sides at all, or sides that
+ *  meet or cross, or a side beyond the carrier's end ({x > max}, {x < 0} on
+ *  ℕ, {n > ℵ₀}).  @tparam V the carrier. */
+template <typename V, typename L>
+constexpr bool is_empty(const Interval<V, L>& s) {
+  if (!s.span()) return true;
+  const auto [lo, hi] = extent(*s.span());
+  if (lo && detail_position::after_all(*lo)) return true;
+  if (hi && detail_position::before_all(*hi)) return true;
+  return lo && hi && !(*lo < *hi);
+}
+/** @brief Whether an interval is the whole carrier: each present side at or
+ *  past the carrier's end ({x ≤ ℵ₀} on ℕ).  @tparam V the carrier. */
+template <typename V, typename L>
+constexpr bool is_whole(const Interval<V, L>& s) {
+  if (!s.span()) return false;
+  const auto [lo, hi] = extent(*s.span());
+  return (!lo || detail_position::before_all(*lo)) &&
+         (!hi || detail_position::after_all(*hi));
+}
+}  // namespace detail_interval
+
+/** @brief Equality of two intervals as sets of the carrier, in the ambient
+ *  logic @c L::Ω: both empty, or the same sides compared as canonical
+ *  positions.  On a carrier with the step this is @b extensional: a strict
+ *  bound at @c a is attained at the element covering @c a, so @c (0, 3) and
+ *  @c [1, 3) are the same set of ℤ and compare equal; on a dense carrier they
+ *  differ.  Gated on decidable equality of the carrier. */
 export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const Interval<V, L>& a,
                                    const Interval<V, L>& b) {
-  const auto& x = a.span();
-  const auto& y = b.span();
-  const bool eq = (!x || !y) ? (!x && !y)
-                             : detail_interval_eq::canonical(*x) ==
-                                   detail_interval_eq::canonical(*y);
+  const bool ea = detail_interval::is_empty(a);
+  const bool eb = detail_interval::is_empty(b);
+  const bool eq = (ea || eb) ? (ea && eb)
+                             : detail_interval::extent(*a.span()) ==
+                                   detail_interval::extent(*b.span());
   return eq ? L::True : L::False;
 }
-/** @brief A value set against the boundaries: @c Ø is the uninhabited one, @c 𝔸
- *  the inhabited one with no side.  On a truth chain the boundaries decide by
- *  exhausting the chain instead (sets:boundaries). */
+/** @brief An interval against the boundaries: @c Ø when it has no element,
+ *  @c 𝔸 when its sides reach the carrier's ends.  On a truth chain the
+ *  boundaries decide by exhausting the chain instead (sets:boundaries). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
 constexpr bool operator==(const Ø<T, L>&, const Interval<T, L>& s) {
-  if (!s.span()) return true;
-  const auto& [lo, hi] = *s.span();
-  if (lo && !hi)
-    return detail_interval::ray_is_empty(lo->at, Direction::Upward,
-                                         lo->strictness);
-  if (hi && !lo)
-    return detail_interval::ray_is_empty(hi->at, Direction::Downward,
-                                         hi->strictness);
-  return false;
+  return detail_interval::is_empty(s);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
@@ -553,23 +602,14 @@ constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>& e) {
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
 constexpr bool operator==(const 𝔸<T, L, CU>&, const Interval<T, L>& s) {
-  if (!s.span()) return false;
-  const auto& [lo, hi] = *s.span();
-  if (!lo && !hi) return true;
-  if (lo && !hi)
-    return detail_interval::ray_is_empty(lo->at, Direction::Downward,
-                                         flip(lo->strictness));
-  if (hi && !lo)
-    return detail_interval::ray_is_empty(hi->at, Direction::Upward,
-                                         flip(hi->strictness));
-  return false;
+  return detail_interval::is_whole(s);
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
 constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }
-namespace detail_interval_eq {
+namespace detail_interval_witness {
 using dedekind::category::Ternary;
 using dedekind::sets::Cardinality;
 using dedekind::sets::ℵ_0;
@@ -590,7 +630,15 @@ static_assert(
       Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
                                   Strictness::NonStrict)),
     "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
-}  // namespace detail_interval_eq
+static_assert(Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
+                                              Direction::Upward,
+                                              Strictness::Strict) &&
+                  𝔸<Cardinality>{} ==
+                      Interval<Cardinality>::half(Cardinality{ℵ_0{}},
+                                                  Direction::Downward,
+                                                  Strictness::NonStrict),
+              "the carrier's ends: {x > max} is Ø, {n ≤ ℵ₀} is 𝔸.");
+}  // namespace detail_interval_witness
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
@@ -605,31 +653,9 @@ constexpr Interval<V, L> structured_and(const Interval<V, L>& a,
 }
 
 /** @section halfspace__Union_And_Complement
- *  The union of two intervals is the reducer's @c Join node, decided by
- *  membership: one interval or two disjoint ones, both modelled.  The
- *  complement of an interval is the @c Join of the parts below and above it.
- *  @c reduce_join names the case where one operand covers the other. */
-
-/** @brief The union of two intervals where one covers the other: the cover.
- *  Otherwise refused; @c | then keeps both as a @c Join. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Interval<V, L> reduce_join(const Interval<V, L>& a,
-                                     const Interval<V, L>& b) {
-  if (!a.span()) return b;
-  if (!b.span()) return a;
-  const Span<V>& x = *a.span();
-  const Span<V>& y = *b.span();
-  // One side covering the other on both ends: the union is the cover.
-  if (detail_interval::lower_covers(x.lower, y.lower) &&
-      detail_interval::upper_covers(x.upper, y.upper))
-    return a;
-  if (detail_interval::lower_covers(y.lower, x.lower) &&
-      detail_interval::upper_covers(y.upper, x.upper))
-    return b;
-  // No interval normal form (a crossing union, a point outside, two disjoint
-  // intervals): refused, not guessed.
-  throw std::domain_error("reduce_join: the union has no interval normal form");
-}
+ *  The union of two intervals and the complement of one leave the intervals:
+ *  they are run lists (@c order:runs), the normal form of sets of a chain
+ *  built from intervals. */
 
 /** @section halfspace__PointFree_Decidability
  *
@@ -1042,39 +1068,6 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
 static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
-
-/** @brief The complement of an interval: the parts below and above it, a
- *  @c Join of at most two intervals (@c Ø's complement is @c 𝔸). */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr auto operator~(const Interval<V, L>& s) {
-  using S = Interval<V, L>;
-  using J = dedekind::category::Join<S, S>;
-  if (!s.span()) return J{S::universe(), S::empty()};
-  const auto& [lo, hi] = *s.span();
-  return J{lo ? S::half(lo->at, Direction::Downward, flip(lo->strictness))
-              : S::empty(),
-           hi ? S::half(hi->at, Direction::Upward, flip(hi->strictness))
-              : S::empty()};
-}
-// An interval met with an interval, or with a union of two: the set-level
-// @c & (@c sets:expressions, found through @c SetExpr), i.e. the one lattice
-// reducer, whose leaf-combine is @c structured_and above and whose distributive
-// law spreads a meet over the union.
-/** @brief A union of two intervals is empty exactly when both are. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-  requires(!IsPst<V>)
-constexpr bool operator==(
-    const Ø<V, L>&,
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j) {
-  return !j.lhs.span() && !j.rhs.span();
-}
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-  requires(!IsPst<V>)
-constexpr bool operator==(
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j,
-    const Ø<V, L>&) {
-  return !j.lhs.span() && !j.rhs.span();
-}
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
  *  @f$\forall@f$-dominators, @f$S \cap \mathrm{upperbounds}(S)@f$.  @c min is

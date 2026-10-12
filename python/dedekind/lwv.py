@@ -18,28 +18,26 @@ iteration-1 one-constant-per-pivot stopgap)::
 Constructors: ``above(k)`` / ``at_least(k)`` (``>`` / ``>=``), ``below(k)`` /
 ``at_most(k)`` (``<`` / ``<=``), ``singleton(k)`` (the point ``η(k)``, the
 value-based atom), and ``everything()`` / ``nothing()`` (``𝔸`` / ``Ø``).
-Membership is ``s(x)`` / ``x in s``; the meet is ``a & b``; the complement
-``~s`` is the ``Union`` of the parts below and above ``s``, and a meet with a
-union, ``a & ~b`` or ``(a & ~b) & c``, distributes into a union again.
+Membership is ``s(x)`` / ``x in s``; the meet, join and complement are
+``a & b``, ``a | b`` and ``~a``.  A set is a run list, finitely many disjoint
+intervals in order (``s.runs()``), the normal form of unions of intervals, so
+``~singleton(5)`` and ``at_least(0) & ~singleton(5)`` are sets like any other.
 
 Every operator folds through the **same** lattice reducer (``category::Reduce``
 under ``cata``) the compile-time ``static_assert`` exhibits fold: its leaf
 combine is the interval meet, so ``above(3) & below(5)`` runs the crossing law
 ``↑a ∩ ↓b = [a,b]`` (collapsing to the singleton ``{4}`` by integer
-cardinality), and its distributive law rebuilds ``a & (b ∪ c)`` as
-``(a & b) ∪ (a & c)`` from the run-time pivots.  No Python-side reducer.  This
+cardinality), and unions and complements are run lists, computed on the
+run-time pivots.  No Python-side reducer.  This
 is the compile-time / runtime *optionality*: one law, either phase, chosen by
 the evaluation context.  Value-oriented relational grounding (the pivot never
 lives in a type): ``{x | x ≤ p} == preimage₁( S × η(p) | (χ/π₁ ≤ π₂) )``.
 
-FIXME(#975): the union ``|`` is not bound: a union of more than two intervals
-has no handle until the run-list normal form lands.
 """
 
 # `_lwv` is the exhibit's own private native extension module (dedekind._lwv),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._lwv import Set
-from ._lwv import Union
 from ._lwv import above
 from ._lwv import image
 from ._lwv import preimage
@@ -52,7 +50,6 @@ from ._lwv import singleton
 
 __all__ = [
     "Set",
-    "Union",
     "above",
     "image",
     "preimage",
