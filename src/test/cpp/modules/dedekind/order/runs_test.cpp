@@ -74,8 +74,9 @@ TEST_CASE("order:runs — a set valued in K₃ is a run list of K₃ values",
   using K = Runs<int, Kleene>;
   using IK = Interval<int, Kleene>;
   // Unknown on [0, 9], true on [3, 5]: three values along the line.
-  const K maybe = K::of(IK::bounded(0, closed, 9, closed), Ternary::Unknown);
-  const K surely = K::of(IK::bounded(3, closed, 5, closed));
+  const K maybe =
+      K::of(IK::bounded(0, closed, 9, closed).span(), Ternary::Unknown);
+  const K surely = K(IK::bounded(3, closed, 5, closed));
   const K both = maybe | surely;
   CHECK(both(-1) == Ternary::False);
   CHECK(both(1) == Ternary::Unknown);
@@ -98,8 +99,7 @@ TEST_CASE("order:runs — a step at the carrier's end is kept, equality reads it
   CHECK(at_most_max.steps().size() == 1);
   // ... and is the whole carrier as a set of it, while {x > max} is empty.
   CHECK(at_most_max == 𝔸<int>{});
-  CHECK(R::of(I::half(W::max(), Direction::Upward, strict)) == Ø<int>{});
+  CHECK(R(I::half(W::max(), Direction::Upward, strict)) == Ø<int>{});
   // On a discrete chain a strict bound is closed: (0, 3) = [1, 2].
-  CHECK(R::of(I::bounded(0, strict, 3, strict)).steps() ==
-        R::of(span(1, 2)).steps());
+  CHECK(R(I::bounded(0, strict, 3, strict)).steps() == R(span(1, 2)).steps());
 }

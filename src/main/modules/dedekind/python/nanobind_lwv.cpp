@@ -108,11 +108,11 @@ std::string repr(const Set& s) {
 std::optional<unsigned long long> cardinality(const Set& s) {
   if (!lwv::is_bounded(s)) return std::nullopt;
   unsigned long long n = 0;
-  for (const auto& r : ord::intervals(s)) {
+  for (const auto& r : ord::runs(s)) {
     // Exact in the unsigned word for every run short of the whole window; the
     // whole window has 2^64 elements, one more than it holds.
-    const auto span = static_cast<unsigned long long>(lwv::greatest(r)) -
-                      static_cast<unsigned long long>(lwv::least(r));
+    const auto span = static_cast<unsigned long long>(r.hi) -
+                      static_cast<unsigned long long>(r.lo);
     if (span == std::numeric_limits<unsigned long long>::max() ||
         __builtin_add_overflow(n, span + 1, &n))
       jlt::window_end("len");
@@ -168,7 +168,7 @@ NB_MODULE(_lwv, m) {
           "runs",
           [](const Set& s) {
             std::vector<Set> out;
-            for (const auto& r : ord::intervals(s)) out.push_back(Set::of(r));
+            for (const auto& r : ord::intervals(s)) out.push_back(Set(r));
             return out;
           },
           "The maximal runs, in order along the chain, each a set of one "

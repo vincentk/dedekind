@@ -18,9 +18,9 @@
  * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c S(x), the
  * queries @c == and @c <= answering in the set's own species (@c Unknown is a
  * verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
- * the normal form @c runs.  Every handle is a real library set
- * (@c Comprehension over @c 𝔸 with a type-erased classifier); every operator
- * runs the library's node, every query the library's exhaustion of the chain.
+ * the normal form @c runs.  Every handle is a run list (@c order:runs), the
+ * library's normal form of these sets, valued in its species; every operator
+ * and every query is the library's, on it.
  * Two species of one carrier mix in their join (𝔹 ↪ K₃): a Boolean set beside
  * a K₃-valued one is met, joined and compared in K₃.  Different carriers do not
  * mix.  Reduction stays in C++; Python holds handles.
@@ -39,7 +39,7 @@
 import dedekind.category;  // Ternary, Boole, Kleene, IsPst, the step
 import dedekind.order;     // IsDense
 import dedekind.python;    // dedekind::python::pst
-import dedekind.sequences; // Run
+import dedekind.sequences; // the chains' orbit
 import dedekind.sets;      // Cardinality, ℵ_0, finite_cardinality
 
 namespace nb = nanobind;
@@ -250,6 +250,49 @@ void bind_datum(nb::module_& m, const char* cls, const char* doc) {
       });
 }
 
+/** @brief The lattice and the queries over two species of one carrier, the
+ *  result valued in their join (a Boolean set beside a K₃-valued one is
+ *  compared, met and joined in K₃; one species is its own join).  @tparam C the
+ * chain.  @tparam L1 the class's species.  @tparam L2 the other operand's. */
+template <typename C, typename L1, typename L2>
+void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
+  using S = pst::Set<C, L1>;
+  using O = pst::Set<C, L2>;
+  cls.def(
+         "__and__", [](const S& a, const O& b) { return pst::meet(a, b); },
+         "A & B: the meet, in the species' join.")
+      .def(
+          "__or__", [](const S& a, const O& b) { return pst::join(a, b); },
+          "A | B: the join.")
+      .def(
+          "__xor__", [](const S& a, const O& b) { return pst::sym_diff(a, b); },
+          "A ^ B: the symmetric difference.")
+      .def(
+          "__eq__",
+          [](const S& a, const O& b) { return nb::cast(pst::equal(a, b)); },
+          nb::is_operator(),
+          "A == B: ⋀ (χ_A ⇔ χ_B), read off the run lists; Unknown is a "
+          "verdict on a K₃-valued set.")
+      .def(
+          "__ne__",
+          [](const S& a, const O& b) {
+            return nb::cast(join_logic_t<L1, L2>::RFL(pst::equal(a, b)));
+          },
+          nb::is_operator())
+      .def(
+          "__le__",
+          [](const S& a, const O& b) {
+            return nb::cast(pst::equal(pst::meet(a, b), a));
+          },
+          nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
+      .def(
+          "__ge__",
+          [](const S& a, const O& b) {
+            return nb::cast(pst::equal(pst::meet(b, a), b));
+          },
+          nb::is_operator());
+}
+
 template <typename C, typename L>
 nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
                                     const char* doc) {
@@ -267,38 +310,12 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           },
           nb::arg("x"), "x in S: whether χ(x) = ⊤.  For the L-valued χ, S(x).")
       .def(
-          "__and__", [](const S& a, const S& b) { return pst::meet(a, b); },
-          "A & B: the meet, the library's node erased back.")
-      .def(
-          "__or__", [](const S& a, const S& b) { return pst::join(a, b); },
-          "A | B: the join.")
-      .def(
           "__or__",
           [](const S& s, const pst::Datum<C>& d) { return pst::former(s, d); },
           "S | (π ⋈ v): the former, {x ∈ S | P(x)}.")
       .def(
-          "__xor__", [](const S& a, const S& b) { return pst::sym_diff(a, b); },
-          "A ^ B: the symmetric difference.")
-      .def(
-          "__invert__", [](const S& a) { return pst::complement(a); },
+          "__invert__", [](const S& a) { return ~a; },
           "~A: the complement, the species' reflection pointwise.")
-      .def(
-          "__eq__", [](const S& a, const S& b) { return nb::cast((a == b)); },
-          nb::is_operator(),
-          "A == B in the set's species: ⋀ (χ_A ⇔ χ_B) by exhaustion of the "
-          "chain; Unknown is a verdict on a K₃-valued set.")
-      .def(
-          "__ne__",
-          [](const S& a, const S& b) { return nb::cast(L::RFL((a == b))); },
-          nb::is_operator(), "A != B: the reflection of A == B.")
-      .def(
-          "__le__",
-          [](const S& a, const S& b) { return nb::cast(((a & b) == a)); },
-          nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
-      .def(
-          "__ge__",
-          [](const S& a, const S& b) { return nb::cast(((b & a) == b)); },
-          nb::is_operator(), "A >= B: B ⊆ A.")
       .def_prop_ro(
           "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
           "HasDecidableMembership: whether χ answers in 𝔹.")
@@ -352,43 +369,8 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
                  "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
         });
   }
+  bind_mixed<C, L, L>(set);
   return set;
-}
-
-/** @brief The lattice and the queries across two species of one carrier, the
- *  result valued in their join (a Boolean set beside a K₃-valued one is
- *  compared, met and joined in K₃).  @tparam C the chain.  @tparam L1 the
- *  class's species.  @tparam L2 the other operand's. */
-template <typename C, typename L1, typename L2>
-void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
-  using S = pst::Set<C, L1>;
-  using O = pst::Set<C, L2>;
-  cls.def(
-         "__and__", [](const S& a, const O& b) { return pst::meet(a, b); },
-         "A & B across species: met in their join.")
-      .def(
-          "__or__", [](const S& a, const O& b) { return pst::join(a, b); },
-          "A | B across species: joined in their join.")
-      .def(
-          "__xor__", [](const S& a, const O& b) { return pst::sym_diff(a, b); },
-          "A ^ B across species.")
-      .def(
-          "__eq__", [](const S& a, const O& b) { return nb::cast((a == b)); },
-          nb::is_operator(), "A == B across species, in their join.")
-      .def(
-          "__ne__",
-          [](const S& a, const O& b) {
-            return nb::cast(join_logic_t<L1, L2>::RFL((a == b)));
-          },
-          nb::is_operator())
-      .def(
-          "__le__",
-          [](const S& a, const O& b) { return nb::cast(((a & b) == a)); },
-          nb::is_operator(), "A <= B across species.")
-      .def(
-          "__ge__",
-          [](const S& a, const O& b) { return nb::cast(((b & a) == b)); },
-          nb::is_operator());
 }
 
 /** @brief Sugar on a truth chain: the grammar's sets with the chain as the
@@ -518,8 +500,8 @@ NB_MODULE(_pst, m) {
       "K₃ per the Lwv grammar: A(chain) | (π > v), Ø(chain), η(v), the lattice "
       "& | ^ ~, membership x in S / S(x), the queries == and <= in the set's "
       "species, exists / forall (any / all), and runs, the normal form.  Every "
-      "handle is a real library set; every query is decided in C++ by "
-      "exhausting the chain.";
+      "handle is a run list, the library's normal form of these sets; every "
+      "query is decided in C++ on it.";
 
   nb::enum_<Ternary>(m, "Ternary", "Kleene's three truth values, a chain.")
       .value("FALSE", Ternary::False)

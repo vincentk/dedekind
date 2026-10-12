@@ -68,11 +68,10 @@ using dedekind::order::Direction;
 using dedekind::order::Interval;
 using dedekind::order::intervals;
 using dedekind::order::Position;
+using dedekind::order::Run;
 using dedekind::order::Runs;
 using dedekind::order::Side;
 using dedekind::order::Strictness;
-using dedekind::sequences::Run;
-using dedekind::sequences::runs;
 using dedekind::sequences::SuccessorOrbit;
 using dedekind::sets::Cardinality;
 using dedekind::sets::chain_bottom;
@@ -228,10 +227,10 @@ static_assert(IsSetObject<Set>,
  *  pivot. */
 template <Direction D, Strictness S>
 constexpr Set ray(long long k) {
-  return Set::of(Leaf::half(k, D, S));
+  return Set(Leaf::half(k, D, S));
 }
 /** @brief The point @c {k}.  @param k the point. */
-constexpr Set point(long long k) { return Set::of(Leaf::point(k)); }
+constexpr Set point(long long k) { return Set(Leaf::point(k)); }
 
 /** @brief Translate every step by @c k: the image under the order
  *  automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image leaves the
@@ -292,7 +291,7 @@ constexpr Set restrict(const Set& s, std::optional<long long> lo,
     window = window & Leaf::half(*lo, Direction::Upward, Strictness::NonStrict);
   if (hi)
     window = window & Leaf::half(*hi, Direction::Downward, Strictness::Strict);
-  return s & Set::of(window);
+  return s & Set(window);
 }
 
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
@@ -300,39 +299,28 @@ constexpr Set restrict(const Set& s, std::optional<long long> lo,
 constexpr bool is_bounded(const Set& s) {
   return !s.first() && (s.steps().empty() || !s.steps().back().value);
 }
-/** @brief The least element of a run bounded below, a strict bound attained
- *  at its successor.  @param r the run. */
-constexpr long long least(const Leaf& r) {
-  const auto& lo = *r.span()->lower;
-  return lo.strictness == Strictness::Strict
-             ? jlt::add_in_window(lo.at, 1, "least")
-             : lo.at;
-}
-/** @brief The greatest element of a run bounded above.  @param r the run. */
-constexpr long long greatest(const Leaf& r) {
-  const auto& hi = *r.span()->upper;
-  return hi.strictness == Strictness::Strict ? hi.at - 1 : hi.at;
-}
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 constexpr std::optional<long long> least(const Set& s) {
-  const auto runs = intervals(s);
-  if (runs.empty() || !runs.front().span()->lower) return std::nullopt;
-  return least(runs.front());
+  const auto rs = dedekind::order::runs(s);
+  if (s.first() || rs.empty()) return std::nullopt;
+  return rs.front().lo;
 }
 /** @brief The greatest element, where the set is bounded; @c nullopt on a
  *  set unbounded above: the unfold does not stop. */
 constexpr std::optional<long long> greatest(const Set& s) {
-  const auto runs = intervals(s);
-  if (runs.empty() || !is_bounded(s)) return std::nullopt;
-  return greatest(runs.back());
+  const auto rs = dedekind::order::runs(s);
+  if (!is_bounded(s) || rs.empty()) return std::nullopt;
+  return rs.back().hi;
 }
-/** @brief The least member above @c x: @c x + 1, or the start of the next
- *  run; none past the last run.  @param x a member below the window's end. */
+/** @brief The least member above @c x: @c x + 1 inside a run, else the start
+ *  of the next run; none past the last.  @param x a member below the window's
+ *  end. */
 constexpr std::optional<long long> next_member(const Set& s, long long x) {
-  if (s.contains(x + 1)) return x + 1;
-  for (const auto& r : intervals(s))
-    if (r.span()->lower && least(r) > x) return least(r);
+  for (const auto& r : dedekind::order::runs(s)) {
+    if (x < r.lo) return r.lo;
+    if (x < r.hi) return x + 1;
+  }
   return std::nullopt;
 }
 
@@ -398,183 +386,180 @@ static_assert(saturates<bool>() && saturates<Ternary>() &&
                   saturates<Cardinality>(),
               "the three chains saturate at ⊤.");
 
-// ── Sets over a truth chain, per the paper's Lwv grammar (#975, PR two) ─────
-// The sets' quantifiers join this namespace's own overload set (the handle
-// versions below forward to them).
-using dedekind::sets::exists;
-using dedekind::sets::forall;
-
+// ── Sets over a truth chain, per the paper's Lwv grammar (#975) ─────────────
 //
-// A Python set is a REAL library set: a Comprehension over 𝔸<C, L> whose datum
-// is the type-erased classifier Chi<C, L>.  Every operator (& | ^ ~ and the
-// former |) runs the library's own node and erases the result back into this
-// one type, as jlt::compose does for arrows; every query (==, ⊆, ∃, ∀, runs) is
-// the library's, decided by exhausting the chain (sets:boundaries,
-// sets:quantifier, sequences:pst).  Nothing is reduced in Python.
+// A Python set over a truth chain is a run list (order:runs) valued in its
+// species: the normal form of every set the grammar builds.  Every operator
+// (& | ^ ~ and the former |) is the library's own on run lists, and every
+// query (==, ⊆, ∃, ∀, runs) reads the normal form.  Nothing is reduced in
+// Python.
 
-/** @brief A truth chain the queries can exhaust: a Pst carrier that is finite
- *  by its representation and has the covering step --- what the exhaustion
- *  equality (@c sets:boundaries) and the runs (@c sequences:pst) require, said
- *  once here so no handle enters a body-level failure.  @tparam C the chain. */
+/** @brief A truth chain the queries can read: a Pst carrier that is finite by
+ *  its representation and has the covering step.  @tparam C the chain. */
 template <typename C>
 concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 
-/** @brief The classifier a Python handle holds: type-erased, tagged with its
- *  species, an @c IsPredicate over the chain.  @tparam C the chain.
- *  @tparam L the species the set is valued in. */
+/** @brief A set over the chain @c C valued in @c L, as Python holds it: its
+ *  run list. */
 template <IsTruthChain C, IsOckhamAlgebra L>
-struct Chi {
-  using Domain = C;
-  using Codomain = typename L::Ω;
-  using logic_species = L;
-  std::function<Codomain(const C&)> f;
-  Codomain operator()(const C& x) const { return f(x); }
-};
-/** @brief A set over the chain @c C valued in @c L, as Python holds it. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-using Set = Comprehension<𝔸<C, L>, Chi<C, L>>;
+using Set = Runs<C, L>;
 /** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
- *  Boolean, carrier-bound, waiting for a former. */
+ *  a two-valued ray or point waiting for a former, a type of its own so that a
+ *  set is never taken for a where-clause.  @tparam C the chain. */
 template <IsTruthChain C>
-using Datum = Chi<C, Boole>;
+struct Datum {
+  Runs<C> set;
+  constexpr bool operator()(const C& x) const { return set(x); }
+};
 
-/** @brief A predicate's answer lifted into @c L along the dominance, as a named
- *  callable (what the erased classifier stores).  @tparam L the species.
- *  @tparam P the predicate. */
-template <IsOckhamAlgebra L, IsPredicate P>
-struct Lifted {
-  P p;
-  typename L::Ω operator()(const Dom<P>& x) const {
-    return lift_logic<L>(p(x));
+/** @brief The lift of a value along the dominance into @c L, as a named
+ *  function.  @tparam L the target species. */
+template <IsOckhamAlgebra L>
+struct LiftInto {
+  template <typename Ω>
+  constexpr typename L::Ω operator()(Ω v) const {
+    if constexpr (std::same_as<Ω, typename L::Ω>)
+      return v;
+    else
+      return lift_logic<L>(v);
   }
 };
-/** @brief Erase any predicate over @c C into the handle's type, lifting a
- *  Boolean answer where @c L is wider.  @tparam C the chain.  @tparam L the
- *  species.  @tparam P the predicate (a datum, a node, a boundary). */
-template <IsTruthChain C, IsOckhamAlgebra L, IsPredicate P>
-  requires std::same_as<Dom<P>, C>
-Set<C, L> erase(P p) {
-  return Set<C, L>{Chi<C, L>{
-      std::function<typename L::Ω(const C&)>{Lifted<L, P>{std::move(p)}}}};
-}
-template <IsTruthChain C, IsPredicate P>
-  requires std::same_as<Dom<P>, C>
-Datum<C> datum(P p) {
-  return erase<C, Boole>(std::move(p)).predicate;
+/** @brief A set valued in @c L, read in the wider species @c J.
+ *  @tparam J the target species. */
+template <IsOckhamAlgebra J, IsTruthChain C, IsOckhamAlgebra L>
+Set<C, J> to(const Set<C, L>& s) {
+  return dedekind::order::relabel<J>(s, LiftInto<J>{});
 }
 
 /** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
  *  @c π @c ⋈ @c v as data.  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> universe() {
-  return erase<C, L>(𝔸<C, L>{});
+  return Set<C, L>::universe();
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> empty() {
-  return erase<C, L>(Ø<C, L>{});
+  return Set<C, L>::empty();
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> point(const C& v) {
-  return erase<C, L>(η(v));
+  return Set<C, L>(Interval<C, L>::point(v));
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return datum<C>(𝔸<C>{} | (π > v));
+  return {Runs<C>(𝔸<C>{} | (π > v))};
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return datum<C>(𝔸<C>{} | (π >= v));
+  return {Runs<C>(𝔸<C>{} | (π >= v))};
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return datum<C>(𝔸<C>{} | (π < v));
+  return {Runs<C>(𝔸<C>{} | (π < v))};
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return datum<C>(𝔸<C>{} | (π <= v));
+  return {Runs<C>(𝔸<C>{} | (π <= v))};
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
-  return datum<C>((𝔸<C>{} | (π == v)).predicate);
+  return {Runs<C>(Interval<C>::point(v))};
 }
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
- *  chain's own species --- the simplest set with every level inhabited. */
+ *  chain's own species --- the simplest set with every level inhabited: one
+ *  step at every element. */
 template <IsTruthChain C>
 Set<C, classifier_logic_t<C>> identity() {
-  return erase<C, classifier_logic_t<C>>(Identity<C>{});
+  using S = Set<C, classifier_logic_t<C>>;
+  std::vector<typename S::Step> steps;
+  for (auto x = cover(chain_bottom<C>()); x; x = cover(*x))
+    steps.push_back({Position<C>{*x, Side::Below}, *x});
+  return S::normal(chain_bottom<C>(), std::move(steps));
 }
 
 /** @brief The former @c S @c | @c P, and the lattice operations, each the
- *  library's node erased back.  @tparam C the chain.  @tparam L the species. */
+ *  library's own on run lists.  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return erase<C, L>(s & (𝔸<C, L>{} | d));
+  return s & to<L>(d.set);
 }
 // Two species mix when comparable in the species semilattice (HaveLogicJoin,
 // 𝔹 at the bottom); the result is valued in their join.
 template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> meet(const Set<C, L1>& a, const Set<C, L2>& b) {
-  return erase<C, join_logic_t<L1, L2>>(a & b);
+  using J = join_logic_t<L1, L2>;
+  return to<J>(a) & to<J>(b);
 }
 template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> join(const Set<C, L1>& a, const Set<C, L2>& b) {
-  return erase<C, join_logic_t<L1, L2>>(a | b);
+  using J = join_logic_t<L1, L2>;
+  return to<J>(a) | to<J>(b);
 }
 template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> sym_diff(const Set<C, L1>& a,
                                       const Set<C, L2>& b) {
-  return erase<C, join_logic_t<L1, L2>>(a ^ b);
+  using J = join_logic_t<L1, L2>;
+  return to<J>(a) ^ to<J>(b);
 }
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> complement(const Set<C, L>& a) {
-  return erase<C, L>(~a);
+/** @brief Equality across species, in their join: ⋀ (χ_A ⇔ χ_B).
+ *  @tparam C the chain. */
+template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
+  requires HaveLogicJoin<L1, L2>
+typename join_logic_t<L1, L2>::Ω equal(const Set<C, L1>& a,
+                                       const Set<C, L2>& b) {
+  using J = join_logic_t<L1, L2>;
+  return to<J>(a) == to<J>(b);
 }
 
-/** @brief The quantifiers, the library's, in @c L: @c ∃ is @c sets:quantifier's
- *  over the universe with the restricted set as the where-clause,
- *  @f$\bigvee (\chi_S \wedge P)@f$.  (Equality and @c ⊆ need no handle
- *  version: the sets' own @c == is the exhaustion in the join species and
- *  @c ⊆ is the identity @f$(A \cap B) = A@f$.)
+/** @brief The quantifiers, in @c L: @c ∃ is ⋁ (χ_S ∧ P), the existential of
+ *  the former; @c ∀ over a @b decidable set is @f$S \subseteq P@f$.  An
+ *  L-valued @c S has no bounded ∀ until the species has a residuated
+ *  implication (#980); the binding refuses it and points at the α-cut.
  *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
-  return exists(𝔸<C, L>{}, former(s, d).predicate);
+  return dedekind::order::exists(former(s, d));
 }
-/** @brief Bounded @f$\forall@f$ over a @b decidable set: the identity
- *  @f$S = S|P@f$, the library's own @c forall, exact for two-valued χ_S.  An
- *  L-valued @c S has no bounded ∀ until the species has a residuated
- *  implication (#980); the binding refuses it and points at the α-cut. */
 template <IsTruthChain C>
 bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
   return s == former(s, d);
 }
-/** @brief The runs of a decidable set, materialised for the handle. */
+/** @brief The runs of a decidable set, read off its normal form. */
 template <IsTruthChain C>
 std::vector<Run<C>> run_list(const Set<C, Boole>& s) {
-  std::vector<Run<C>> out;
-  for (const auto r : runs(s)) out.push_back(r);
-  return out;
+  return dedekind::order::runs(s);
 }
-/** @brief An L-valued set read through its decidable sets on Ω, pulled back
- *  along χ with the generic @c preimage: the α-cut @f$\{\chi \ge \ell\}@f$ and
- *  the fibre @f$\chi^{-1}(\ell)@f$.  @tparam C the chain.  @tparam L the
- *  species. */
+/** @brief Whether a value reaches a level, and whether it is the level, as
+ *  named functions: the α-cut and the fibre read pointwise.  @tparam Ω the
+ *  species' truth values. */
+template <typename Ω>
+struct AtLeast {
+  Ω level;
+  constexpr bool operator()(Ω v) const { return !(v < level); }
+};
+template <typename Ω>
+struct EqualTo {
+  Ω level;
+  constexpr bool operator()(Ω v) const { return v == level; }
+};
+/** @brief An L-valued set read through its decidable sets: the α-cut
+ *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
+ *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
-  using Ω = typename L::Ω;
-  return erase<C, Boole>(𝔸<C>{} | preimage(s, 𝔸<Ω>{} | (π >= level)));
+  return dedekind::order::relabel<Boole>(s, AtLeast<typename L::Ω>{level});
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> fibre(const Set<C, L>& s, typename L::Ω level) {
-  return erase<C, Boole>(𝔸<C>{} | preimage(s, η(level)));
+  return dedekind::order::relabel<Boole>(s, EqualTo<typename L::Ω>{level});
 }
 /** @brief A Boolean set lifted along the dominance into Kleene's species. */
 template <IsTruthChain C>
 Set<C, Kleene> lift(const Set<C, Boole>& s) {
-  return erase<C, Kleene>(s);
+  return to<Kleene>(s);
 }
 
 }  // namespace pst

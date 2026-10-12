@@ -1,8 +1,8 @@
 /**
  * @file dedekind/sequences/pst.cppm
  * @partition :pst
- * @brief The Pst fragment's run-lists: a decidable set over a finite chain,
- * read off the chain as it is walked.
+ * @brief The Pst fragment's normal form: a decidable set over a finite chain,
+ * folded into its run list as the chain is walked.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -11,10 +11,10 @@
  * A set over a finite chain is a finite table @f$\chi : C \to L@f$.  Equality,
  * and with it the quantifiers and the subset identity, is exhaustion of the
  * chain and lives upstream (@c sets:boundaries, @c sets:quantifier).  What
- * needs the range view is here: the @b runs of a decidable set, its maximal
- * runs of membership along the chain, as a @c std::ranges pipeline over
- * @c chain_view, on a window whose ends are values or on a whole truth chain.
- * O(N) steps, O(1) state, nothing stored.
+ * needs the walk is here: a decidable set whose χ is opaque reaches its normal
+ * form, a run list (@c order:runs), by exhausting the chain along
+ * @c chain_view, on a window whose ends are values or on a whole truth chain;
+ * its @b runs are then read off that normal form.  O(N) steps.
  *
  * An L-valued set is read through its decidable sets on @f$\Omega@f$, pulled
  * back along χ with the generic @c preimage (@c category:morphism): the
@@ -43,11 +43,11 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
-#include <functional>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 export module dedekind.sequences:pst;
 
@@ -74,60 +74,28 @@ concept IsPstSet =
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
     HasCoveringStep<typename std::remove_cvref_t<S>::Domain>;
 
-/** @brief A maximal run of membership, @c [lo, hi].  @tparam C the chain. */
-export template <typename C>
-struct Run {
-  C lo;
-  C hi;
-  friend constexpr bool operator==(const Run&, const Run&) = default;
-};
-
-namespace detail_pst {
-/** @brief A point of the table: @c (x, χ(x)).  @tparam S the set. */
-template <IsPstSet S>
-struct Table {
-  S s;
-  constexpr std::pair<typename S::Domain, bool> operator()(
-      const typename S::Domain& x) const {
-    return {x, s(x)};
-  }
-};
-struct SameMembership {
-  constexpr bool operator()(const auto& a, const auto& b) const {
-    return a.second == b.second;
-  }
-};
-struct Inhabited {
-  constexpr bool operator()(const auto& chunk) const {
-    return (*chunk.begin()).second;
-  }
-};
-struct ToRun {
-  constexpr auto operator()(const auto& chunk) const {
-    auto first = *chunk.begin();
-    auto last = first;
-    for (const auto& p : chunk) last = p;
-    return Run{first.first, last.first};
-  }
-};
-}  // namespace detail_pst
-
-/** @brief The runs of @c s on the window: the table chunked by membership, the
- *  non-member chunks dropped.  @tparam S the set.  @param s the set.
- *  @param lo the window's bottom.  @param hi its top. */
+/** @brief The normal form of @c s on the window @c [lo, hi], by exhaustion:
+ *  the run list that agrees with χ there and is ⊥ outside it.  @tparam S the
+ *  set.  @param s the set.  @param lo the window's bottom.  @param hi its top.
+ */
+export template <IsPstSet S>
+constexpr auto normal_form(const S& s, const typename S::Domain& lo,
+                           const typename S::Domain& hi) {
+  using C = typename S::Domain;
+  using R = dedekind::order::Runs<C>;
+  using dedekind::order::Position;
+  using dedekind::order::Side;
+  std::vector<typename R::Step> steps;
+  for (const C& x : chain_view{lo, hi})
+    steps.push_back({Position<C>{x, Side::Below}, static_cast<bool>(s(x))});
+  steps.push_back({Position<C>{hi, Side::Above}, false});
+  return R::normal(false, std::move(steps));
+}
+/** @brief The runs of @c s on the window, read off its normal form. */
 export template <IsPstSet S>
 constexpr auto runs(const S& s, const typename S::Domain& lo,
                     const typename S::Domain& hi) {
-  // Spelled as calls, not as a | pipeline: the library's own operator| family
-  // (the set former, the join) is in scope wherever a set type is, and the
-  // adaptor closure's operator| is not what overload resolution then finds.
-  return std::views::transform(
-      std::views::filter(
-          std::views::chunk_by(std::views::transform(chain_view{lo, hi},
-                                                     detail_pst::Table<S>{s}),
-                               detail_pst::SameMembership{}),
-          detail_pst::Inhabited{}),
-      detail_pst::ToRun{});
+  return dedekind::order::runs(normal_form(s, lo, hi));
 }
 /** @brief The runs over a whole truth chain, ⊥ to ⊤.
  *  @tparam S a set over a truth chain. */
@@ -140,9 +108,10 @@ constexpr auto runs(const S& s) {
 
 /** @section pst__Formal_Verification */
 namespace detail_pst_witness {
+using dedekind::order::Run;
 using dedekind::sets::η;
 using dedekind::sets::π;
-/** @brief A view's runs as (count, first, last). */
+/** @brief A run list's runs as (count, first, last). */
 template <typename View>
 consteval auto summary(View v) {
   std::size_t n = 0;

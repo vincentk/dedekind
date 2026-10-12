@@ -10,8 +10,8 @@
  * The order reading of the term grammar on a chain: an order atom @c π @c ⋈ @c
  * c on @c 𝔸<T> is an @c Interval, a value whose sides (each an optional bound,
  * open or closed) and pivots are values.  Meets reduce in constant evaluation
- * where the pivots are constants and at runtime otherwise; the complement of an
- * interval is a @c Join of at most two intervals.
+ * where the pivots are constants and at runtime otherwise; unions and
+ * complements are run lists (@c :runs), of which an interval is the generator.
  *
  * @section halfspace__DSL_Surface
  *
@@ -37,6 +37,7 @@ module;
 #include <optional>    // a cut's sides
 #include <type_traits>
 #include <utility>
+#include <vector>  // a set's runs as intervals
 
 export module dedekind.order:halfspace;
 
@@ -48,6 +49,7 @@ import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
 import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / Interval:
                 // the interval normal form lives on a certified chain
+import :runs;   // positions, bounds and run lists: an interval's sets
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -69,102 +71,6 @@ using dedekind::relational::operator&;   // relation meet R & S
 // on @c std::integral and the cardinal carriers, so it belongs at the
 // cardinality authority, not accreted here.  Reached via @c import
 // @c dedekind.sets (already imported above).
-
-/** @brief Orientation of a halfspace along the chain. */
-export enum class Direction { Upward, Downward };
-
-/** @brief Whether the boundary is strict (`>`, `<`) or inclusive (`>=`, `<=`).
- */
-export enum class Strictness { Strict, NonStrict };
-
-/** @brief Flip a @c Direction --- the direction half of a halfspace complement
- *  (@c ~{x>P} is @c {x≤P}).  Reused by the reflection-image pushforward
- *  (@c dedekind.algebra:halfspace_transport) to flip a halfspace's sense under
- *  @f$x \mapsto -x@f$. */
-export constexpr Direction flip(Direction d) {
-  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
-}
-/** @brief Flip a @c Strictness --- the strictness half of the same complement
- *  (@c ~{x>P} is @c {x≤P}: @c > relaxes to @c ≤). */
-export constexpr Strictness flip(Strictness s) {
-  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
-}
-
-/** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
- *  @details A carrier that declares its own @c cardinality_type is the
- *  authority (e.g.\ @c numbers::Rational → @c ℵ_0, @c ExtensionalCardinal →
- *  @c Finite): this partition (@c :order) is @b upstream of @c :numbers, so a
- *  countable @b non-integral carrier such as ℚ cannot be recognised
- *  structurally here (@c IsRingIntegral is false on @c Rational), and must
- *  self-declare so the point-free @c A|pred halfspace classifies identically
- *  to the scout comprehension (which inherits the ambient @c C directly).
- *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
- *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
- *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
- *  @c ℶ_1.  The bound only has to be tight enough for the countability
- *  verdict (@c IsCountable). */
-// Module-private: the fallback is a halfspace-classification heuristic, not a
-// general carrier-cardinality authority (that is @c :sets:cardinality).  It
-// only feeds @c Halfspace::cardinality_type below; external carriers customise
-// through their own @c T::cardinality_type, not this helper.  A finite @b enum
-// carrier (e.g.\ @c Ternary) cannot self-declare a member typedef, so it is
-// recognised structurally as countable and classified @c ℵ_0 --- the same
-// conservative countable BOUND @c bool already gets via @c IsRingIntegral, NOT
-// @c Finite.  @c Finite is the @c elevate_meet "return bare, do not @c Set
-// -wrap" signal (@c :expressions); a halfspace must not trigger it, and @c ℵ_0
-// keeps the pre-existing @c Set-wrapping path and stays countable, matching
-// @c Ternary's @c 𝕂3 ambient.
-// The @c IsRingIntegral integers / ℕ,ℤ proxies are @c ℵ_0 likewise; the real
-// proxies are @c ℶ_1.
-template <typename T>
-struct carrier_cardinality {
-  using type =
-      std::conditional_t<std::is_enum_v<T> || IsRingIntegral<T>, ℵ_0, ℶ_1>;
-};
-template <typename T>
-  requires IsCardinality<typename T::cardinality_type>
-struct carrier_cardinality<T> {
-  // Fires only when the self-declared alias is a genuine @c IsCardinality (a
-  // carrier with an unrelated / incomplete @c cardinality_type falls to the
-  // primary, not a hard error), and classifies it with the canonical
-  // @c IsCountable concept.  Collapse to the
-  // COUNTABILITY BOUND (never pass a bare @c Finite through): @c
-  // ExtensionalCardinal declares @c Finite, and letting that reach @c
-  // Halfspace::cardinality_type would trip @c elevate_meet's Finite "return
-  // bare" path for an @c ExtensionalCardinal halfspace.  Countable (incl.\
-  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1.
-  using type =
-      std::conditional_t<IsCountable<typename T::cardinality_type>, ℵ_0, ℶ_1>;
-};
-template <typename T>
-using carrier_cardinality_t = typename carrier_cardinality<T>::type;
-
-// A finite enum carrier classifies ℵ_0 (a conservative countable bound, like
-// bool), so a Ternary halfspace stays decidable (Boole), not Kleene (#927), and
-// does NOT trip the elevate_meet Finite "return bare" path.
-static_assert(std::same_as<carrier_cardinality_t<Ternary>, ℵ_0>,
-              "a finite enum carrier (e.g. Ternary) is countable ℵ_0, not the "
-              "continuum ℶ_1 (and not Finite, the elevate_meet bare signal).");
-// A self-declared @c Finite carrier is likewise collapsed to @c ℵ_0, so its
-// halfspace stays Set-wrapped by @c elevate_meet (not returned bare).
-static_assert(std::same_as<carrier_cardinality_t<ExtensionalCardinal<>>, ℵ_0>,
-              "a self-declared Finite carrier collapses to the countable bound "
-              "ℵ_0, never the bare-signal Finite.");
-namespace detail_halfspace_witness {
-// A carrier whose @c cardinality_type alias is NOT an @c IsCardinality: the
-// self-declaring specialization must @b not fire (its IsCardinality constraint
-// fails), so @c carrier_cardinality falls back to the primary rather than
-// hard-erroring on the missing @c is_countable member.
-struct UnrelatedCardinalityAlias {
-  using cardinality_type = int;  // not a cardinality (no is_countable etc.)
-};
-}  // namespace detail_halfspace_witness
-static_assert(
-    std::same_as<carrier_cardinality_t<
-                     detail_halfspace_witness::UnrelatedCardinalityAlias>,
-                 ℶ_1>,
-    "a carrier with an unrelated/incomplete cardinality_type falls back to the "
-    "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
 /** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
 export constexpr Direction dir_of(Rel r) {
@@ -196,26 +102,7 @@ export constexpr bool is_order_rel(Rel r) {
  *  \pi_2\,)@f$, the pivot in the value @f$\eta(p)@f$ (a @c Singleton); the
  *  singleton is the degenerate point @c Interval::point.  House spelling @c χ
  * /
- *  @c π₁,π₂.
- *
- *  @c Bound is one side of a cut as a value: the bound and whether it is
- *  attained (non-strict) or not (strict).  @tparam V the carrier. */
-export template <typename V>
-  requires IsTotallyOrdered<V>
-struct Bound {
-  V at;
-  Strictness strictness = Strictness::NonStrict;
-  friend constexpr bool operator==(const Bound&, const Bound&) = default;
-};
-/** @brief The sides of an inhabited convex set; an absent side is unbounded.
- *  @tparam V the carrier. */
-export template <typename V>
-  requires IsTotallyOrdered<V>
-struct Span {
-  std::optional<Bound<V>> lower;
-  std::optional<Bound<V>> upper;
-  friend constexpr bool operator==(const Span&, const Span&) = default;
-};
+ *  @c π₁,π₂. */
 
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
@@ -235,128 +122,6 @@ static_assert(HasNNOStep<dedekind::sets::Cardinality>,
 static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
-
-/** @section halfspace__Positions
- *  The places on a chain a side can sit: just below a value or just above it,
- *  a Dedekind cut named by the value beside it.  An interval's sides and a run
- *  list's steps are positions, so both compare, close and read the carrier's
- *  ends through this one layer. */
-
-/** @brief Which side of its value a position sits on. */
-export enum class Side : bool { Below, Above };
-
-/** @brief A position on the chain: just below @c at, or just above it.
- *  @tparam V the carrier. */
-export template <typename V>
-  requires IsTotallyOrdered<V>
-struct Position {
-  V at;
-  Side side;
-  friend constexpr bool operator==(const Position&, const Position&) = default;
-  /** @brief Along the chain: by value, and below a value before above it. */
-  friend constexpr bool operator<(const Position& a, const Position& b) {
-    return a.at < b.at ||
-           (a.at == b.at && a.side == Side::Below && b.side == Side::Above);
-  }
-};
-
-namespace detail_position {
-/** @brief The position a lower side starts at: below an attained bound, above a
- *  strict one.  @tparam V the carrier. */
-template <typename V>
-constexpr Position<V> start_of(const Bound<V>& b) {
-  return {b.at,
-          b.strictness == Strictness::NonStrict ? Side::Below : Side::Above};
-}
-/** @brief The position an upper side ends at: above an attained bound, below a
- *  strict one.  @tparam V the carrier. */
-template <typename V>
-constexpr Position<V> end_of(const Bound<V>& b) {
-  return {b.at,
-          b.strictness == Strictness::NonStrict ? Side::Above : Side::Below};
-}
-/** @brief The lower side starting at @c p.  @tparam V the carrier. */
-template <typename V>
-constexpr Bound<V> lower_at(const Position<V>& p) {
-  return {p.at,
-          p.side == Side::Below ? Strictness::NonStrict : Strictness::Strict};
-}
-/** @brief The upper side ending at @c p.  @tparam V the carrier. */
-template <typename V>
-constexpr Bound<V> upper_at(const Position<V>& p) {
-  return {p.at,
-          p.side == Side::Above ? Strictness::NonStrict : Strictness::Strict};
-}
-/** @brief The carrier's least element, where it has one as a value.
- *  @tparam V the carrier. */
-template <typename V>
-constexpr std::optional<V> least() {
-  if constexpr (std::integral<V>)
-    return std::numeric_limits<V>::min();
-  else if constexpr (std::same_as<V, Cardinality>)
-    return V{};
-  else if constexpr (std::same_as<V, SignedCardinality>)
-    return V{NegativeInfinity{}};
-  else if constexpr (IsPst<V>)
-    return dedekind::sets::chain_bottom<V>();
-  else
-    return std::nullopt;
-}
-/** @brief The carrier's greatest element, where it has one as a value (ℵ₀ on
- *  ℕ).  @tparam V the carrier. */
-template <typename V>
-constexpr std::optional<V> greatest() {
-  if constexpr (std::integral<V>)
-    return std::numeric_limits<V>::max();
-  else if constexpr (std::same_as<V, Cardinality>)
-    return V{ℵ_0{}};
-  else if constexpr (std::same_as<V, SignedCardinality>)
-    return V{PositiveInfinity{}};
-  else if constexpr (IsPst<V>)
-    return dedekind::sets::chain_top<V>();
-  else
-    return std::nullopt;
-}
-/** @brief The element covering @c x: none at the greatest element (a saturating
- *  step stays put there) or on a carrier without the step.  @tparam V the
- *  carrier. */
-template <typename V>
-constexpr std::optional<V> next_above(const V& x) {
-  if constexpr (std::integral<V>) {
-    if (x == std::numeric_limits<V>::max()) return std::nullopt;
-    return successor(x);
-  } else if constexpr (HasNNOStep<V>) {
-    const V s = successor(x);
-    if (s == x) return std::nullopt;
-    return s;
-  } else {
-    return std::nullopt;
-  }
-}
-/** @brief A position in its canonical form: just above a value is just below
- *  the element covering it, where there is one, so on a discrete chain
- *  @c (0, 3) and @c [1, 3) have the same positions.  @tparam V the carrier. */
-template <typename V>
-constexpr Position<V> canonical(Position<V> p) {
-  if (p.side == Side::Above)
-    if (const auto n = next_above(p.at)) return {*n, Side::Below};
-  return p;
-}
-/** @brief Whether @c p lies before every element of the carrier.
- *  @tparam V the carrier. */
-template <typename V>
-constexpr bool before_all(const Position<V>& p) {
-  const auto lo = least<V>();
-  return lo && !(Position<V>{*lo, Side::Below} < p);
-}
-/** @brief Whether @c p lies after every element of the carrier.
- *  @tparam V the carrier. */
-template <typename V>
-constexpr bool after_all(const Position<V>& p) {
-  const auto hi = greatest<V>();
-  return hi && !(p < Position<V>{*hi, Side::Above});
-}
-}  // namespace detail_position
 
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
@@ -383,6 +148,8 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
   /** @brief The sides, or @c nullopt for Ø: a convex set is @c 1 @c + @c Span.
    *  Built only through the factories below, so always in normal form. */
   constexpr const std::optional<Span<V>>& span() const { return span_; }
+  /** @brief The interval as a run list, the normal form it generates. */
+  constexpr operator Runs<V, L>() const { return Runs<V, L>::of(span_); }
 
   /** @brief χ(x): runtime membership, decided from the value fields.
    *
@@ -533,80 +300,43 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
-namespace detail_interval {
-/** @brief Where an inhabited interval starts and ends: its sides' positions in
- *  canonical form, an absent side the carrier's own end where it has one.
- *  @tparam V the carrier. */
-template <typename V>
-constexpr std::pair<std::optional<Position<V>>, std::optional<Position<V>>>
-extent(const Span<V>& s) {
-  using detail_position::canonical;
-  return {s.lower
-              ? std::optional{canonical(detail_position::start_of(*s.lower))}
-              : std::nullopt,
-          s.upper ? std::optional{canonical(detail_position::end_of(*s.upper))}
-                  : std::nullopt};
-}
-/** @brief Whether an interval has no element: no sides at all, or sides that
- *  meet or cross, or a side beyond the carrier's end ({x > max}, {x < 0} on
- *  ℕ, {n > ℵ₀}).  @tparam V the carrier. */
-template <typename V, typename L>
-constexpr bool is_empty(const Interval<V, L>& s) {
-  if (!s.span()) return true;
-  const auto [lo, hi] = extent(*s.span());
-  if (lo && detail_position::after_all(*lo)) return true;
-  if (hi && detail_position::before_all(*hi)) return true;
-  return lo && hi && !(*lo < *hi);
-}
-/** @brief Whether an interval is the whole carrier: each present side at or
- *  past the carrier's end ({x ≤ ℵ₀} on ℕ).  @tparam V the carrier. */
-template <typename V, typename L>
-constexpr bool is_whole(const Interval<V, L>& s) {
-  if (!s.span()) return false;
-  const auto [lo, hi] = extent(*s.span());
-  return (!lo || detail_position::before_all(*lo)) &&
-         (!hi || detail_position::after_all(*hi));
-}
-}  // namespace detail_interval
-
 /** @brief Equality of two intervals as sets of the carrier, in the ambient
- *  logic @c L::Ω: both empty, or the same sides compared as canonical
- *  positions.  On a carrier with the step this is @b extensional: a strict
- *  bound at @c a is attained at the element covering @c a, so @c (0, 3) and
- *  @c [1, 3) are the same set of ℤ and compare equal; on a dense carrier they
- *  differ.  Gated on decidable equality of the carrier. */
+ *  logic: the equality of their run lists, so on a carrier with the step it is
+ *  extensional (@c (0, 3) and @c [1, 3) are the same set of ℤ). */
 export template <typename V, typename L>
   requires std::equality_comparable<V>
 constexpr typename L::Ω operator==(const Interval<V, L>& a,
                                    const Interval<V, L>& b) {
-  const bool ea = detail_interval::is_empty(a);
-  const bool eb = detail_interval::is_empty(b);
-  const bool eq = (ea || eb) ? (ea && eb)
-                             : detail_interval::extent(*a.span()) ==
-                                   detail_interval::extent(*b.span());
-  return eq ? L::True : L::False;
+  return Runs<V, L>(a) == Runs<V, L>(b);
 }
-/** @brief An interval against the boundaries: @c Ø when it has no element,
- *  @c 𝔸 when its sides reach the carrier's ends.  On a truth chain the
- *  boundaries decide by exhausting the chain instead (sets:boundaries). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Ø<T, L>&, const Interval<T, L>& s) {
-  return detail_interval::is_empty(s);
+/** @brief An interval or a run list of the chain @c T valued in @c L. */
+template <typename S, typename T, typename L>
+concept IsChainSetOf =
+    std::same_as<S, Interval<T, L>> || std::same_as<S, Runs<T, L>>;
+/** @brief A set of a chain against the boundaries, through its run list: @c Ø
+ *  when it has no element, @c 𝔸 when it is all of the carrier.  On a truth
+ *  chain the boundaries decide by exhausting the chain instead
+ *  (sets:boundaries). */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
+  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+constexpr bool operator==(const Ø<T, L>&, const S& s) {
+  return static_cast<bool>(Runs<T, L>(s) == Runs<T, L>::empty());
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>& e) {
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
+  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+constexpr bool operator==(const S& s, const Ø<T, L>& e) {
   return e == s;
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(const 𝔸<T, L, CU>&, const Interval<T, L>& s) {
-  return detail_interval::is_whole(s);
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
+                 typename S>
+  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+constexpr bool operator==(const 𝔸<T, L, CU>&, const S& s) {
+  return static_cast<bool>(Runs<T, L>(s) == Runs<T, L>::universe());
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>& u) {
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
+                 typename S>
+  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+constexpr bool operator==(const S& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }
 namespace detail_interval_witness {
@@ -625,19 +355,16 @@ static_assert(
     "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
     "form.");
 static_assert(
-    !(Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                  Strictness::Strict) ==
-      Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                  Strictness::NonStrict)),
-    "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
-static_assert(Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
-                                              Direction::Upward,
-                                              Strictness::Strict) &&
-                  𝔸<Cardinality>{} ==
-                      Interval<Cardinality>::half(Cardinality{ℵ_0{}},
-                                                  Direction::Downward,
-                                                  Strictness::NonStrict),
-              "the carrier's ends: {x > max} is Ø, {n ≤ ℵ₀} is 𝔸.");
+    Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
+                                    Direction::Upward, Strictness::Strict) &&
+        𝔸<Cardinality>{} ==
+            Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                        Strictness::NonStrict) &&
+        !(𝔸<Cardinality>{} == Interval<Cardinality>::half(Cardinality{ℵ_0{}},
+                                                          Direction::Downward,
+                                                          Strictness::Strict)),
+    "the carrier's ends: {x > max} is Ø, {n ≤ ℵ₀} is 𝔸, and the "
+    "finite fragment {n < ℵ₀} is not.");
 }  // namespace detail_interval_witness
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
@@ -654,8 +381,35 @@ constexpr Interval<V, L> structured_and(const Interval<V, L>& a,
 
 /** @section halfspace__Union_And_Complement
  *  The union of two intervals and the complement of one leave the intervals:
- *  they are run lists (@c order:runs), the normal form of sets of a chain
- *  built from intervals. */
+ *  they are run lists (@c :runs), the normal form an interval generates. */
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+constexpr Runs<V, L> structured_or(const Interval<V, L>& a,
+                                   const Interval<V, L>& b) {
+  return structured_or(Runs<V, L>(a), Runs<V, L>(b));
+}
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+constexpr Runs<V, L> operator~(const Interval<V, L>& a) {
+  return ~Runs<V, L>(a);
+}
+/** @brief The runs of a two-valued set as intervals, in order along the
+ *  chain: the maximal pieces on which it holds.  @param r the run list. */
+export template <IsTotallyOrdered V>
+constexpr std::vector<Interval<V, Boole>> intervals(const Runs<V, Boole>& r) {
+  using I = Interval<V, Boole>;
+  std::vector<I> out;
+  std::optional<Bound<V>> lo;
+  for (const auto& s : r.steps()) {
+    if (s.value) {
+      lo = detail_position::lower_at(s.at);
+    } else {
+      out.push_back(I::of_sides(lo, detail_position::upper_at(s.at)));
+      lo.reset();
+    }
+  }
+  if (r.steps().empty() ? r.first() : r.steps().back().value)
+    out.push_back(I::of_sides(lo, std::nullopt));
+  return out;
+}
 
 /** @section halfspace__PointFree_Decidability
  *

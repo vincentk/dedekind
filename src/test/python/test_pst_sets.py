@@ -1,7 +1,7 @@
 """Sets over the truth chains, per the paper's Lwv grammar (#975, PR two).
 
-Every handle is a real C++ set and every query is decided in C++ by exhausting
-the chain; the Python side only spells the grammar.  Queries answer in the
+Every handle is a run list, the C++ normal form of these sets, and every query
+is decided in C++ on it; the Python side only spells the grammar.  Queries answer in the
 set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 """
 
