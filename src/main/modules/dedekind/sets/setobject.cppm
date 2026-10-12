@@ -12,7 +12,7 @@
  * two trivial set objects (Ø and 𝔸) and asserts against it at their
  * definition, @c :expressions supplies the CRTP spelling (@c SetExpr) and the
  * opaque arm (@c Comprehension), and the @c :order arms (@c Halfspace,
- * @c Singleton, @c SetVal) are the structured normal forms.  Whatever leaves
+ * @c Singleton, @c Interval) are the structured normal forms.  Whatever leaves
  * the library --- the Python surface's @c Set --- is pinned against it as a
  * MUST (RFC 2119).
  *
@@ -82,7 +82,7 @@ using dedekind::category::IsSubobject;
  * the category, not of an object, so successor is deliberately absent here;
  * and whether @c == is decidable is a property of the universe's carrier, not a
  * requirement of being a set.  @c SetExpr (@c :expressions) is the CRTP mixin
- * that realises this surface (@c Singleton, @c Halfspace, @c SetVal derive
+ * that realises this surface (@c Singleton, @c Halfspace, @c Interval derive
  * from it); @c Set realises it by hand.
  *
  * @section setobject__Legs

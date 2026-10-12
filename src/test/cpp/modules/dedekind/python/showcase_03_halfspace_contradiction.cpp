@@ -37,9 +37,9 @@ using namespace dedekind::order;
 constexpr auto gt_5 = ℕ | (χ > 5);
 constexpr auto lt_3 = ℕ | (χ < 3);
 
-// Compile-time theorem: the meet folds value-first to the empty SetVal on ℕ.
+// Compile-time theorem: the meet folds value-first to the empty Interval on ℕ.
 constexpr auto empty_meet = gt_5 & lt_3;
-static_assert(empty_meet.kind == SetKind::Empty);
+static_assert(empty_meet == Ø<Cardinality>{});
 
 // gt_5 is an intensional predicate on ℕ (decidable membership, no materialised
 // members); the meet folds it value-first to the empty set --- witnessed by the

@@ -22,7 +22,8 @@ using namespace dedekind::order;
 
 TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
           "[order][powerset]") {
-  constexpr UpRay<int, Strictness::Strict> gt3{3};
+  constexpr auto gt3 =
+      Interval<int>::half(3, Direction::Upward, Strictness::Strict);
 
   SECTION("clear typing: 𝔓(S) is IsSet, Domain = Sub(C)") {
     constexpr auto P = 𝔓(gt3);
@@ -38,8 +39,10 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
 
   SECTION("membership X ⊆ S decides across the ordered families") {
     constexpr auto P = 𝔓(gt3);  // 𝔓({x>3})
-    constexpr UpRay<int, Strictness::Strict> gt5{5};
-    constexpr DownRay<int, Strictness::Strict> lt3{3};
+    constexpr auto gt5 =
+        Interval<int>::half(5, Direction::Upward, Strictness::Strict);
+    constexpr auto lt3 =
+        Interval<int>::half(3, Direction::Downward, Strictness::Strict);
     constexpr Singleton<int, Boole> s4{4};
     CHECK(bool(P(gt5)));        // {x>5} ⊆ {x>3}
     CHECK_FALSE(bool(P(lt3)));  // {x<3} ⊄ {x>3}
@@ -62,7 +65,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     STATIC_CHECK(requires {
       typename std::remove_cvref_t<decltype(Pu)>::is_universal_boundary;
     });
-    constexpr UpRay<int, Strictness::Strict> gt5{5};
+    constexpr auto gt5 =
+        Interval<int>::half(5, Direction::Upward, Strictness::Strict);
     CHECK(bool(Pu(gt5)));       // X ⊆ 𝔸
     CHECK(bool(Pu(Ø<int>{})));  // Ø ⊆ 𝔸
   }
@@ -70,8 +74,8 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
   SECTION(
       "empty intervals canonicalise: all spellings of ∅ are one Sub value") {
     using D = Sub<int, Boole>;
-    constexpr auto oi_empty =
-        make_interval<Strictness::Strict, Strictness::Strict>(5, 5);  // (5,5)=∅
+    constexpr auto oi_empty = Interval<int>::bounded(
+        5, Strictness::Strict, 5, Strictness::Strict);  // (5,5)=∅
     constexpr D from_oi = oi_empty;        // empty, dead bounds lo=hi=5
     constexpr D from_bottom = Ø<int>{};    // empty, bounds default
     STATIC_CHECK(from_oi == from_bottom);  // one ∅, regardless of spelling
@@ -83,8 +87,10 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     using D = Sub<int, Boole>;
     // Mixed strictness that denotes the SAME subobject over a discrete carrier
     // must be ONE Sub value (effective-bound normalisation, the #835 sibling).
-    constexpr UpRay<int, Strictness::Strict> gt3s{3};
-    constexpr UpRay<int, Strictness::NonStrict> ge4{4};
+    constexpr auto gt3s =
+        Interval<int>::half(3, Direction::Upward, Strictness::Strict);
+    constexpr auto ge4 =
+        Interval<int>::half(4, Direction::Upward, Strictness::NonStrict);
     constexpr D a = gt3s;  // {x>3}
     constexpr D b = ge4;   // {x>=4}
     STATIC_CHECK(a == b);  // same subobject, one value
@@ -93,9 +99,9 @@ TEST_CASE("order:powerset — 𝔓(S) is a bona-fide IsSet over Sub(C) (#830)",
     CHECK(bool(P(gt3s)));       // {x>3} ⊆ {x>=4} (extensionally equal)
     // open (1,4) and closed [2,3] both denote {2,3}:
     constexpr auto open14 =
-        make_interval<Strictness::Strict, Strictness::Strict>(1, 4);
-    constexpr auto closed23 =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(2, 3);
+        Interval<int>::bounded(1, Strictness::Strict, 4, Strictness::Strict);
+    constexpr auto closed23 = Interval<int>::bounded(2, Strictness::NonStrict,
+                                                     3, Strictness::NonStrict);
     STATIC_CHECK(static_cast<D>(open14) == static_cast<D>(closed23));
   }
 

@@ -50,7 +50,7 @@ import :rational;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
-using dedekind::order::DownRay;
+using dedekind::order::Interval;
 using dedekind::order::Strictness;
 using dedekind::sets::Comprehension;
 using dedekind::sets::π;
@@ -201,7 +201,7 @@ constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
  *  principal cut, @f$\mathbb{Q}\hookrightarrow\mathbb{R}@f$ as the order datum.
  *  @tparam Q the rational scalar carrier. */
 export template <IsRational Q = Rational<default_integer>>
-using PrincipalRay = DownRay<Q, Strictness::Strict>;
+using PrincipalRay = Interval<Q>;
 
 /** @brief @f$p \mapsto \{q<p\}@f$: the rational embedded as the principal
  *  ray, extensionally @c lower_set(Cut<Q>{p}).
@@ -270,7 +270,6 @@ static_assert(!Cut<>::sqrt(Rational<>{2}).contains(Rational<>{2}),
 static_assert(Cut<>::sqrt(Rational<>{4}) == Cut<>{2}, "√4 = 2.");
 
 using dedekind::category::IsLSet;
-using dedekind::order::pivot;
 
 // The cut IS its lower set: a set over ℚ, with contains as its χ.
 static_assert(IsLSet<LowerSet<>>,
@@ -288,7 +287,7 @@ static_assert(principal_ray(Rational<>{3})(Rational<>{2}) ==
                   principal_ray(Rational<>{3})(Rational<>{4}) ==
                       lower_set(Cut<>{Rational<>{3}})(Rational<>{4}),
               "the principal cut at p and the ray {q < p} agree on ℚ.");
-static_assert(pivot(principal_ray(Rational<>{3})) == Rational<>{3},
+static_assert(principal_ray(Rational<>{3}).span()->upper->at == Rational<>{3},
               "the embedded rational is the ray's bound.");
 
 // Dedekind's density is the absence of a successor: no cover, no step.

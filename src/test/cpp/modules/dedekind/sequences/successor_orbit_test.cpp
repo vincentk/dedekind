@@ -45,8 +45,8 @@ TEST_CASE(
   CHECK(std::ranges::equal(as_range(prefix_ab), std::views::iota(a, b)));
   CHECK(std::ranges::equal(
       as_range(prefix_ab),
-      to_iota_view(
-          make_interval<Strictness::NonStrict, Strictness::Strict>(a, b))));
+      to_iota_view(Interval<int>::bounded(a, Strictness::NonStrict, b,
+                                          Strictness::Strict))));
   // The empty interval is the empty prefix.
   CHECK(prefix(SuccessorOrbit<int>{a}, 0).size() == 0u);
 }

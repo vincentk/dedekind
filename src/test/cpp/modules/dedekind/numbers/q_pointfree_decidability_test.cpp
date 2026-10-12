@@ -32,7 +32,7 @@ using namespace dedekind::numbers;
 
 namespace {
 // Derive the halfspace type from the PUBLIC point-free expression
-// `ℚ | (π > 5)`, not a hand-built UpRay<Rational, ...>: this way the
+// `ℚ | (π > 5)`, not a hand-built Interval<Rational, ...>: this way the
 // witness fails if `ℚ | pred` stops binding to the Rational carrier or its
 // Boole logic (the actual surface under test), per #927 review.
 using QHalfspace = std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > 5))>;
@@ -40,10 +40,9 @@ using QHalfspace = std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > 5))>
 // (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
     std::same_as<QHalfspace,
-                 dedekind::order::UpRay<Rational<default_integer>,
-                                        dedekind::order::Strictness::Strict,
-                                        dedekind::category::Boole>>,
-    "ℚ | (π > 5) binds to the Above halfspace over Rational.");
+                 dedekind::order::Interval<Rational<default_integer>,
+                                           dedekind::category::Boole>>,
+    "ℚ | (π > 5) binds to an interval over Rational.");
 // Carrier-axis magnitude is countable ℵ_0, matching the ambient's own C.
 static_assert(
     std::same_as<typename QHalfspace::cardinality_type, dedekind::sets::ℵ_0>,

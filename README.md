@@ -21,8 +21,8 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
-// a transfinite carrier collapses to a named extensional Singleton, at
-// compile time, with no lambdas and no predicate erasure.
+// a transfinite carrier collapses to the point {4}, an interval value,
+// at compile time, with no lambdas and no predicate erasure.
 constexpr auto gt_3 = ℕ | (χ > 3);          // { x ∈ ℕ | x > 3 }
 constexpr auto lt_5 = ℕ | (χ < 5);          // { x ∈ ℕ | x < 5 }
 
@@ -31,13 +31,10 @@ static_assert(in_between(4) && !in_between(5));
 
 // Decidability is not the contrast: a halfspace on ℕ decides membership
 // by a comparison, so both parents and the result are decidable.  The
-// collapse gains extensionality.  The intersection IS the theorem:
+// collapse gains a known element.  The intersection IS the theorem:
 // { x ∈ ℕ | x > 3 } ∩ { x ∈ ℕ | x < 5 } = {4}.
 static_assert(HasDecidableMembership<decltype(gt_3)>);
-static_assert(!IsExtensional<decltype(gt_3)>);
-
-static_assert(HasDecidableMembership<decltype(in_between)>);
-static_assert(IsExtensional<decltype(in_between)>);
+static_assert(in_between == Interval<Cardinality>::point(finite_cardinality(4)));
 ```
 
 The example above is showcase 4, checked in as a `STATIC_CHECK` in

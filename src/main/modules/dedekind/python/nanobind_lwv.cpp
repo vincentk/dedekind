@@ -32,7 +32,7 @@
 #include <string>
 
 import dedekind.category; // Identity, Successor, Predecessor
-import dedekind.order;    // SetKind / Direction / Strictness, reduce_meet
+import dedekind.order;    // Direction / Strictness, reduce_meet
 import dedekind.python;   // dedekind::python::lwv: Set, ray, image, restrict
 
 namespace nb = nanobind;
@@ -69,68 +69,40 @@ struct SetIter {
   bool at_window_end = false;        // a ray reached the window's last value
 };
 
-const char* kind_name(ord::SetKind k) {
-  switch (k) {
-    case ord::SetKind::Empty:
-      return "empty";
-    case ord::SetKind::Universe:
-      return "universe";
-    case ord::SetKind::Halfspace:
-      return "halfspace";
-    case ord::SetKind::Singleton:
-      return "singleton";
-    case ord::SetKind::Interval:
-      return "interval";
-  }
-  return "?";
-}
-
 std::string repr(const Set& s) {
-  switch (s.kind) {
-    case ord::SetKind::Empty:
-      return "Ø";
-    case ord::SetKind::Universe:
-      return "𝔸";
-    case ord::SetKind::Singleton:
-      return "{" + std::to_string(s.lo) + "}";
-    case ord::SetKind::Halfspace: {
-      const char* op = s.dir == ord::Direction::Upward
-                           ? (s.sl == ord::Strictness::Strict ? ">" : ">=")
-                           : (s.sl == ord::Strictness::Strict ? "<" : "<=");
-      return std::string("{x | x ") + op + " " + std::to_string(s.lo) + "}";
-    }
-    case ord::SetKind::Interval: {
-      const char* lb = s.sl == ord::Strictness::Strict ? "(" : "[";
-      const char* rb = s.su == ord::Strictness::Strict ? ")" : "]";
-      return lb + std::to_string(s.lo) + ", " + std::to_string(s.hi) + rb;
-    }
+  if (!s.span()) return "Ø";
+  const auto& [lower, upper] = *s.span();
+  if (!lower && !upper) return "𝔸";
+  if (lower && upper && lower->at == upper->at)
+    return "{" + std::to_string(lower->at) + "}";
+  if (lower && upper) {
+    const char* lb = lower->strictness == ord::Strictness::Strict ? "(" : "[";
+    const char* rb = upper->strictness == ord::Strictness::Strict ? ")" : "]";
+    return lb + std::to_string(lower->at) + ", " + std::to_string(upper->at) +
+           rb;
   }
-  return "?";
+  const bool up = lower.has_value();
+  const auto& b = up ? *lower : *upper;
+  const bool strict = b.strictness == ord::Strictness::Strict;
+  const char* op = up ? (strict ? ">" : ">=") : (strict ? "<" : "<=");
+  return std::string("{x | x ") + op + " " + std::to_string(b.at) + "}";
 }
 
-// The FINITE cardinality where it is decidable (empty / singleton / integer
-// interval); std::nullopt for the infinite kinds (halfspace / universe).
+// The FINITE cardinality where it is decidable (a bounded set); std::nullopt
+// for a ray or 𝔸.
 std::optional<unsigned long long> cardinality(const Set& s) {
-  switch (s.kind) {
-    case ord::SetKind::Empty:
-      return 0;
-    case ord::SetKind::Singleton:
-      return 1;
-    case ord::SetKind::Interval: {
-      const long long el = (s.sl == ord::Strictness::Strict) ? s.lo + 1 : s.lo;
-      const long long eu = (s.su == ord::Strictness::Strict) ? s.hi - 1 : s.hi;
-      if (eu < el) return 0;
-      // Exact in the unsigned word for every interval short of the whole
-      // window; the whole window has 2^64 elements, one more than it holds.
-      const auto span = static_cast<unsigned long long>(eu) -
-                        static_cast<unsigned long long>(el);
-      if (span == std::numeric_limits<unsigned long long>::max())
-        jlt::window_end("len");
-      return span + 1;
-    }
-    default:
-      return std::nullopt;
-  }
+  if (!s.span()) return 0;
+  if (!lwv::is_bounded(s)) return std::nullopt;
+  const long long el = *lwv::least(s);
+  const long long eu = *lwv::greatest(s);
+  if (eu < el) return 0;
+  // Exact in the unsigned word for every interval short of the whole window;
+  // the whole window has 2^64 elements, one more than it holds.
+  const auto span =
+      static_cast<unsigned long long>(eu) - static_cast<unsigned long long>(el);
+  if (span == std::numeric_limits<unsigned long long>::max())
+    jlt::window_end("len");
+  return span + 1;
 }
 }  // namespace
 
@@ -165,10 +137,9 @@ NB_MODULE(_lwv, m) {
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
           "__eq__", [](const Set& a, const Set& b) { return a == b; },
-          nb::is_operator(), "a == b: the same set (kind and bounds).")
+          nb::is_operator(), "a == b: the same set.")
       .def(
-          "__bool__",
-          [](const Set& s) { return s.kind != ord::SetKind::Empty; },
+          "__bool__", [](const Set& s) { return s.span().has_value(); },
           "A set is truthy iff it is inhabited.")
       .def(
           "__len__",
@@ -186,7 +157,7 @@ NB_MODULE(_lwv, m) {
           "__iter__",
           [](const Set& s) {
             const auto first = lwv::least(s);
-            if (!first && s.kind != ord::SetKind::Empty)
+            if (!first && s.span())
               throw nb::type_error(
                   "no least element: a set unbounded below ({x < k}, 𝔸) has "
                   "no bottom on ℤ to unfold from");
@@ -225,17 +196,13 @@ NB_MODULE(_lwv, m) {
           "meet with the half-open interval; s[:b] is the lower cut at b, "
           "s[a:] the upper ray.  One reduce_meet.")
       .def_prop_ro(
-          "kind", [](const Set& s) { return kind_name(s.kind); },
-          "The structural kind: empty / universe / halfspace / singleton / "
-          "interval.")
-      .def_prop_ro(
           "cardinality",
           [](const Set& s) -> nb::object {
             const auto c = cardinality(s);
             return c ? nb::cast(*c) : nb::none();
           },
-          "The finite cardinality where decidable (0 / 1 / interval count); "
-          "None for the infinite kinds (halfspace, universe).");
+          "The finite cardinality where decidable (a bounded set); None for a "
+          "ray or 𝔸.");
 
   m.def("above", &lwv::ray<ord::Direction::Upward, ord::Strictness::Strict>,
         nb::arg("k"), "above(k): the open upper halfspace {x | x > k} = ↑k.");

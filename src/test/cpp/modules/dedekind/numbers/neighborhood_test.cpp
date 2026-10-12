@@ -27,17 +27,18 @@ import dedekind.topology; // IsOpen, IsClosed, IsNeighborhood (read off order's 
 
 using namespace dedekind::numbers;
 using dedekind::order::Direction;
-using dedekind::order::DownRay;
-using dedekind::order::make_interval;
+using dedekind::order::Interval;
 using dedekind::order::Strictness;
-using dedekind::order::UpRay;
+using dedekind::topology::is_order_closed;
+using dedekind::topology::is_order_open;
 
 namespace {
 using Q = Rational<>;
+constexpr auto open_ = Strictness::Strict;
+constexpr auto closed_ = Strictness::NonStrict;
 // A rational neighborhood (7/5, 3/2) ⊂ ℚ — an open interval between two ℚ.
-constexpr auto nbhd =
-    make_interval<Strictness::Strict, Strictness::Strict>(Q{7, 5}, Q{3, 2});
-using QNbhd = std::remove_cvref_t<decltype(nbhd)>;  // the two-sided cut over ℚ
+constexpr auto nbhd = Interval<Q>::bounded(Q{7, 5}, open_, Q{3, 2}, open_);
+using QNbhd = std::remove_cvref_t<decltype(nbhd)>;
 }  // namespace
 
 TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
@@ -47,47 +48,31 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
     STATIC_CHECK(std::regular<Q>);  // the Jlt value-semantics half of Lwv
   }
 
-  SECTION("topology: an open neighborhood of its points") {
-    STATIC_CHECK(dedekind::topology::IsOpen<QNbhd>);
-    STATIC_CHECK(dedekind::topology::IsNeighborhood<QNbhd, Q>);
-  }
-
   SECTION(
-      "dense carrier ⟹ the GENUINE open-⊋-clopen witness (#905): ℚ is not "
-      "discrete, so open shapes are open-but-NOT-closed") {
-    // This is the independence direction that int (discrete) CANNOT provide:
-    // #905 makes every set on int clopen, so the "decidable but NOT clopen"
-    // witness the #904 shapes test used to place on an int ray must live on a
-    // DENSE carrier.  ℚ is dense (!HasDiscreteCarrier), so its open shapes are
-    // open, not closed, and hence not clopen: the real open ⊋ clopen.
-    using namespace dedekind::topology;
-    using QOpenRay = UpRay<Q, Strictness::Strict>;  // {x > p}
-    STATIC_CHECK(!HasDiscreteCarrier<QOpenRay>);
+      "dense carrier ⟹ the genuine open-⊋-clopen witness (#905): ℚ is not "
+      "discrete, so an open interval is open but NOT closed") {
+    // The independence direction int (discrete) cannot provide: on a dense
+    // carrier an open shape is open, not closed, hence not clopen --- yet its
+    // membership is Boole-decidable.
+    using dedekind::topology::HasDiscreteCarrier;
+    constexpr auto ray = Interval<Q>::half(Q{1}, Direction::Upward, open_);
     STATIC_CHECK(!HasDiscreteCarrier<QNbhd>);
-    STATIC_CHECK(IsOpen<QOpenRay> && !IsClosed<QOpenRay> &&
-                 !IsClopen<QOpenRay>);
-    STATIC_CHECK(IsOpen<QNbhd> && !IsClosed<QNbhd> && !IsClopen<QNbhd>);
-    // Yet membership is Boole-decidable: decidable does NOT imply clopen (the
-    // #904 independence direction, relocated here to a dense carrier).
-    STATIC_CHECK(dedekind::sets::HasDecidableMembership<QOpenRay>);
-    CHECK(!IsClopen<QOpenRay>);
+    STATIC_CHECK(is_order_open(ray) && !is_order_closed(ray));
+    STATIC_CHECK(is_order_open(nbhd) && !is_order_closed(nbhd));
+    STATIC_CHECK(dedekind::sets::HasDecidableMembership<QNbhd>);
+    CHECK(!is_order_closed(ray));
   }
 
   SECTION(
-      "dense carrier: open / closed are read off strictness, ¬ swaps them, "
-      "a mixed closure is neither") {
-    using namespace dedekind::topology;
-    using dedekind::category::Not;
-    using ClosedRay = UpRay<Q, Strictness::NonStrict>;
-    STATIC_CHECK(IsClosed<ClosedRay> && !IsOpen<ClosedRay>);
-    STATIC_CHECK(IsClosed<Not<UpRay<Q, Strictness::Strict>>>);
+      "dense carrier: open / closed are read off the sides; a mixed one is "
+      "neither") {
+    using dedekind::topology::IsConvex;
     constexpr auto closed_iv =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(Q{0}, Q{3});
+        Interval<Q>::bounded(Q{0}, closed_, Q{3}, closed_);
     constexpr auto left_closed =
-        make_interval<Strictness::NonStrict, Strictness::Strict>(Q{0}, Q{3});
-    STATIC_CHECK(IsClosed<decltype(closed_iv)> && !IsOpen<decltype(closed_iv)>);
-    STATIC_CHECK(!IsOpen<decltype(left_closed)> &&
-                 !IsClosed<decltype(left_closed)>);
+        Interval<Q>::bounded(Q{0}, closed_, Q{3}, open_);
+    STATIC_CHECK(is_order_closed(closed_iv) && !is_order_open(closed_iv));
+    STATIC_CHECK(!is_order_open(left_closed) && !is_order_closed(left_closed));
     STATIC_CHECK(IsConvex<decltype(left_closed)>);
     STATIC_CHECK(static_cast<bool>(closed_iv(Q{3})));     // closed: 3 ∈ [0,3]
     STATIC_CHECK(!static_cast<bool>(left_closed(Q{3})));  // open above: 3 ∉
@@ -102,24 +87,17 @@ TEST_CASE("a rational neighborhood is a topological neighborhood AND a Lwv set",
   }
 
   SECTION("completion: a rational neighborhood PINS a real — (7/5,3/2) ∋ √2") {
-    // The same open interval, read over the real carrier, catches √2: the
-    // continuum is the limit of shrinking rational neighborhoods.  And it is
-    // STILL a first-class ETCS set (over the reals now).
-    constexpr auto rn = make_interval<Strictness::Strict, Strictness::Strict>(
-        Cut<>{Q{7, 5}}, Cut<>{Q{3, 2}});
+    constexpr auto rn =
+        Interval<Cut<>>::bounded(Cut<>{Q{7, 5}}, open_, Cut<>{Q{3, 2}}, open_);
     STATIC_CHECK(dedekind::sets::IsSetObject<decltype(rn)>);
     STATIC_CHECK(static_cast<bool>(rn(Cut<>::sqrt(Q{2}))));  // 7/5 < √2 < 3/2
     CHECK(static_cast<bool>(rn(Cut<>::sqrt(Q{2}))));         // codecov
   }
 
-  SECTION("non-Boolean logic: a Kleene interval composes through L::AND") {
-    // The interval's operator() must combine its rays via L::AND, not built-in
-    // &&, so it works for a non-Boolean classifier (Ternary is a scoped enum).
-    // Guards against a regression on interval.cppm's membership.
+  SECTION("non-Boolean logic: a Kleene interval answers in its species") {
     using dedekind::category::Kleene;
     using dedekind::category::Ternary;
-    constexpr auto ti =
-        make_interval<Strictness::Strict, Strictness::Strict, Kleene>(1, 5);
+    constexpr auto ti = Interval<int, Kleene>::bounded(1, open_, 5, open_);
     STATIC_CHECK(ti(3) == Ternary::True);   // 1 < 3 < 5
     STATIC_CHECK(ti(0) == Ternary::False);  // 0 ≤ 1 (open lower)
     STATIC_CHECK(ti(5) == Ternary::False);  // 5 ≥ 5 (open upper)

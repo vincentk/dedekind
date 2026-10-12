@@ -114,32 +114,24 @@ inline constexpr bool is_order_open_v = false;
  *  @ref is_order_open_v. */
 export template <typename S>
 inline constexpr bool is_order_closed_v = false;
-// A cut is open when every present side is strict, closed when every present
-// side is non-strict (an absent side is both).
-template <IsSide Side>
-constexpr bool side_is_strict() {
-  if constexpr (is_bounded_side_v<Side>)
-    return Side::strictness == Strictness::Strict;
-  else
-    return true;
+/** @brief Whether an interval is order-open: every present side strict (an
+ *  absent side is both open and closed).  A value fact, as the sides are. */
+export template <IsTotallyOrdered T, typename L>
+constexpr bool is_order_open(const Interval<T, L>& s) {
+  if (!s.span()) return true;
+  const auto& [lo, hi] = *s.span();
+  return (!lo || lo->strictness == Strictness::Strict) &&
+         (!hi || hi->strictness == Strictness::Strict);
 }
-template <IsSide Side>
-constexpr bool side_is_nonstrict() {
-  if constexpr (is_bounded_side_v<Side>)
-    return Side::strictness == Strictness::NonStrict;
-  else
-    return true;
+/** @brief Whether an interval is order-closed: every present side non-strict.
+ */
+export template <IsTotallyOrdered T, typename L>
+constexpr bool is_order_closed(const Interval<T, L>& s) {
+  if (!s.span()) return true;
+  const auto& [lo, hi] = *s.span();
+  return (!lo || lo->strictness == Strictness::NonStrict) &&
+         (!hi || hi->strictness == Strictness::NonStrict);
 }
-template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
-          IsSide Hi>
-inline constexpr bool
-    is_order_open_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> =
-        side_is_strict<Lo>() && side_is_strict<Hi>();
-template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
-          IsSide Hi>
-inline constexpr bool
-    is_order_closed_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> =
-        side_is_nonstrict<Lo>() && side_is_nonstrict<Hi>();
 template <typename T, typename L>
 inline constexpr bool is_order_closed_v<Singleton<T, L>> = true;
 template <typename A, typename B>
@@ -272,10 +264,8 @@ concept IsConvex =
  */
 // Convexity of order's shapes: a principal up-/down-set and a point are
 // convex, and a finite meet of convex sets is convex.
-template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
-          IsSide Hi>
-inline constexpr bool
-    is_convex_v<Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>> = true;
+template <typename T, typename L>
+inline constexpr bool is_convex_v<Interval<T, L>> = true;
 template <typename T, typename L>
 inline constexpr bool is_convex_v<Singleton<T, L>> = true;
 template <typename A, typename B>
@@ -285,9 +275,13 @@ inline constexpr bool is_convex_v<Meet<A, B>> =
 // The dense-carrier witnesses (a strict ray on ℚ is open and NOT closed) live
 // downstream with the carriers that are genuinely dense and totally ordered:
 // numbers/neighborhood_test.  Here only the discrete reading is pinned.
-static_assert(IsClopen<UpRay<int, Strictness::Strict>>,
-              "a ray on a discrete carrier is clopen");
-static_assert(IsConvex<Interval<int, Strictness::Strict, Strictness::Strict>>,
-              "an interval is convex");
+static_assert(IsClopen<Interval<int>>,
+              "an interval on a discrete carrier is clopen");
+static_assert(IsConvex<Interval<int>>, "an interval is convex");
+static_assert(is_order_open(Interval<int>::half(5, Direction::Upward,
+                                                Strictness::Strict)) &&
+                  !is_order_closed(Interval<int>::half(5, Direction::Upward,
+                                                       Strictness::Strict)),
+              "{x > 5}: every present side strict, so order-open");
 
 }  // namespace dedekind::topology

@@ -7,7 +7,7 @@
  *   (a) COMPILE time: the `&` meet combinator (dedekind.sets) dispatches to the
  *       halfspace `structured_and` @b specialization (dedekind.order), which
  *       folds two disjoint halfspaces to the empty set value-first, so
- *       `(gt5 & lt3).kind == Empty` is a static_assert.  The fold is the
+ *       `(gt5 & lt3) == Ø` is a static_assert.  The fold is the
  *       downstream specialization firing, reachable at any call site below
  *       `order`.
  *   (b) RUN time: `set(S, P)` (dedekind.sets) filters an IsExtensional carrier,
@@ -41,9 +41,9 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, two regimes",
   //     grammar; no `Set{}` wrap is involved.
   constexpr auto gt5 = ℕ | (π > 5);
   constexpr auto lt3 = ℕ | (π < 3);
-  static_assert((gt5 & lt3).kind == SetKind::Empty,
+  static_assert((gt5 & lt3) == Ø<Cardinality>{},
                 "{x>5 ∧ x<3} folds to the empty set at compile time.");
-  CHECK((gt5 & lt3).kind == SetKind::Empty);  // runtime (Codecov)
+  CHECK((gt5 & lt3) == Ø<Cardinality>{});  // runtime (Codecov)
 
   // (b) RUN time, pure sets: over an enumerable domain, set(S, P) is a lazy
   //     views::filter and Ø == … decides emptiness by begin == end, short-

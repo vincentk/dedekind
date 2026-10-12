@@ -279,7 +279,7 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
 
 /** @section net__Halfspace_As_Net_Witnesses — Sealing the IS-A relation (#665).
  *
- * A ray @c UpRay<T,S,L> / @c DownRay<T,S,L> in @c :order:halfspace already
+ * An interval @c Interval<T,L> in @c :order:halfspace already
  * exposes
  * @c Domain=T, @c Codomain=typename @c L::Ω, and
  * @c operator()(const @c T&) @c -> @c Codomain in the exact shape
@@ -308,7 +308,7 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
  * textbook identity is sealed mechanically, not by prose.  Honest
  * Rejection comes free: a carrier that fails @c IsDirectedSet (e.g.\
  * @f$\mathbb{C}@f$ without a chosen order) fails
- * @c IsNet<UpRay<ℂ,...>> at instantiation, with the diagnostic
+ * @c IsNet<Interval<ℂ>> at instantiation, with the diagnostic
  * naming the missing textbook axiom.
  *
  * @note The companion identification --- @c Halfspace's @e extension as
@@ -322,32 +322,13 @@ static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
 
 // Halfspace IS-A IsArrow (carrier-independent: int suffices).
 static_assert(
-    dedekind::category::IsArrow<
-        UpRay<int, Strictness::Strict, dedekind::category::Boole>>,
+    dedekind::category::IsArrow<Interval<int, dedekind::category::Boole>>,
     "Halfspace exposes Domain / Codomain / operator() in the IsArrow shape.");
 
 // Halfspace IS-A IsNet on a directed carrier (std::size_t under ≤).
 static_assert(
-    IsNet<UpRay<std::size_t, Strictness::Strict, dedekind::category::Boole>>,
+    IsNet<Interval<std::size_t, dedekind::category::Boole>>,
     "On a directed carrier, a Halfspace is structurally an indicator net.");
-
-// Downward direction is structurally symmetric.
-static_assert(
-    IsNet<
-        DownRay<std::size_t, Strictness::NonStrict, dedekind::category::Boole>>,
-    "Downward halfspaces inhabit IsNet symmetrically (eventually-False net).");
-
-// Interval (the meet of two halfspaces) inherits the same conformance ---
-// two-sided indicator.
-static_assert(dedekind::category::IsArrow<
-                  Interval<int, Strictness::NonStrict, Strictness::NonStrict,
-                           dedekind::category::Boole>>,
-              "Interval exposes the IsArrow shape.");
-
-static_assert(IsNet<Interval<std::size_t, Strictness::NonStrict,
-                             Strictness::NonStrict, dedekind::category::Boole>>,
-              "On a directed carrier, Interval is an indicator net "
-              "(eventually-False past the upper pivot).");
 
 // Singleton inhabits IsArrow at the predicate level --- the degenerate case.
 static_assert(

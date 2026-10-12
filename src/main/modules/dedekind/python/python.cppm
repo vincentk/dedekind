@@ -65,9 +65,8 @@ using dedekind::category::preimage;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
 using dedekind::order::Direction;
+using dedekind::order::Interval;
 using dedekind::order::reduce_meet;
-using dedekind::order::SetKind;
-using dedekind::order::SetVal;
 using dedekind::order::Strictness;
 using dedekind::sequences::Run;
 using dedekind::sequences::runs;
@@ -218,10 +217,10 @@ namespace lwv {
 
 /** @brief A value-based set handle (#965): the pivot rides as a VALUE, so one
  *  constructor covers all pivots at runtime.  Carrier @c long @c long (Python
- *  @c int).  @c SetVal is a @c :order value-first set; its meet is the same
+ *  @c int).  @c Interval is a @c :order value-first set; its meet is the same
  *  @c constexpr @c reduce_meet the compile-time exhibits fold, so there is no
  *  Python-side reducer. */
-using Set = SetVal<long long>;
+using Set = Interval<long long>;
 // Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
 // χ) --- and this is the compile-time MUST for it (RFC 2119).
 static_assert(IsSetObject<Set>,
@@ -239,20 +238,11 @@ constexpr Set ray(long long k) {
  *  order automorphism @f$x \mapsto x + k@f$ of the chain keeps its kind and
  *  moves its bounds; @c Ø and @c 𝔸 are fixed.  @f$O(1)@f$. */
 constexpr Set shift(const Set& s, long long k) {
-  Set r = s;
-  switch (s.kind) {
-    case SetKind::Singleton:
-    case SetKind::Interval:
-      r.lo = jlt::add_in_window(r.lo, k, "image");
-      r.hi = jlt::add_in_window(r.hi, k, "image");
-      break;
-    case SetKind::Halfspace:
-      r.lo = jlt::add_in_window(r.lo, k, "image");
-      break;
-    default:
-      break;
-  }
-  return r;
+  if (!s.span()) return s;
+  auto [lo, hi] = *s.span();
+  if (lo) lo->at = jlt::add_in_window(lo->at, k, "image");
+  if (hi) hi->at = jlt::add_in_window(hi->at, k, "image");
+  return Set::of_sides(lo, hi);
 }
 /** @brief The arrows whose image of a value leaf has a closed form: the
  *  identity, the successor and the predecessor on the integer window.  An
@@ -301,42 +291,29 @@ constexpr Set restrict(const Set& s, std::optional<long long> lo,
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
  *  finite): the point, the interval, the empty set; not a ray or @c 𝔸. */
 constexpr bool is_bounded(const Set& s) {
-  return s.kind == SetKind::Empty || s.kind == SetKind::Singleton ||
-         s.kind == SetKind::Interval;
+  return !s.span() || (s.span()->lower && s.span()->upper);
 }
 /** @brief The lower bound as attained: a strict one at its successor.
  *  @param s a leaf bounded below. */
 constexpr long long attained_lo(const Set& s) {
-  return s.sl == Strictness::Strict ? jlt::add_in_window(s.lo, 1, "least")
-                                    : s.lo;
+  const auto& lo = *s.span()->lower;
+  return lo.strictness == Strictness::Strict
+             ? jlt::add_in_window(lo.at, 1, "least")
+             : lo.at;
 }
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 constexpr std::optional<long long> least(const Set& s) {
-  switch (s.kind) {
-    case SetKind::Singleton:
-      return s.lo;
-    case SetKind::Interval:
-      return attained_lo(s);
-    case SetKind::Halfspace:
-      if (s.dir == Direction::Upward) return attained_lo(s);
-      return std::nullopt;
-    default:
-      return std::nullopt;
-  }
+  if (!s.span() || !s.span()->lower) return std::nullopt;
+  return attained_lo(s);
 }
-/** @brief The greatest element, where the set is bounded above (a strict upper
- *  bound is attained at its predecessor, which exists since the set is
- *  inhabited); @c nullopt on a ray: the unfold does not stop. */
+/** @brief The greatest element, where the set is bounded (a strict upper bound
+ *  is attained at its predecessor, which exists since the set is inhabited);
+ *  @c nullopt on a ray or @c 𝔸: the unfold does not stop. */
 constexpr std::optional<long long> greatest(const Set& s) {
-  switch (s.kind) {
-    case SetKind::Singleton:
-      return s.lo;
-    case SetKind::Interval:
-      return s.su == Strictness::Strict ? s.hi - 1 : s.hi;
-    default:
-      return std::nullopt;
-  }
+  if (!s.span() || !is_bounded(s)) return std::nullopt;
+  const auto& hi = *s.span()->upper;
+  return hi.strictness == Strictness::Strict ? hi.at - 1 : hi.at;
 }
 
 }  // namespace lwv
@@ -482,19 +459,19 @@ Set<C, L> point(const C& v) {
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return datum<C>((𝔸<C>{} | (π > v)).predicate);
+  return datum<C>(𝔸<C>{} | (π > v));
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return datum<C>((𝔸<C>{} | (π >= v)).predicate);
+  return datum<C>(𝔸<C>{} | (π >= v));
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return datum<C>((𝔸<C>{} | (π < v)).predicate);
+  return datum<C>(𝔸<C>{} | (π < v));
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return datum<C>((𝔸<C>{} | (π <= v)).predicate);
+  return datum<C>(𝔸<C>{} | (π <= v));
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {

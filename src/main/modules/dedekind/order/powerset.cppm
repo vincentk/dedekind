@@ -104,25 +104,20 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
         hi_unbounded_(false),
         lo_strict_(Strictness::NonStrict),
         hi_strict_(Strictness::NonStrict) {}
-  template <Strictness S>
-  constexpr Sub(const UpRay<C, S, L>& h)
-      : lo_(h.predicate.lo), lo_unbounded_(false), lo_strict_(S) {
-    normalize();
-  }  // (P, +∞)
-  template <Strictness S>
-  constexpr Sub(const DownRay<C, S, L>& h)
-      : hi_(h.predicate.hi), hi_unbounded_(false), hi_strict_(S) {
-    normalize();
-  }  // (−∞, P)
-  template <Strictness SL, Strictness SU>
-  constexpr Sub(const Interval<C, SL, SU, L>& iv)
-      : lo_(lower_pivot(iv)),
-        hi_(upper_pivot(iv)),
-        lo_unbounded_(false),
-        hi_unbounded_(false),
-        lo_strict_(SL),
-        hi_strict_(SU),
-        empty_(is_empty(iv)) {
+  constexpr Sub(const Interval<C, L>& iv) : empty_(!iv.span()) {
+    if (iv.span()) {
+      const auto& [lo, hi] = *iv.span();
+      if (lo) {
+        lo_ = lo->at;
+        lo_unbounded_ = false;
+        lo_strict_ = lo->strictness;
+      }
+      if (hi) {
+        hi_ = hi->at;
+        hi_unbounded_ = false;
+        hi_strict_ = hi->strictness;
+      }
+    }
     normalize();
   }
 
@@ -183,12 +178,12 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   bool empty_ = false;
 
   /** @brief Canonicalise to @b effective closed bounds on a DISCRETE carrier
-   * --- the runtime sibling of the #835 @c eff_lower / @c eff_upper
-   * normalisation. Over an @c IsRingIntegral carrier @c {x>3} and @c {x>=4} are
-   * the same subobject, and @c (1,4) = @c [2,3]; folding every strict finite
-   * bound to its closed successor / predecessor makes those ONE @c Sub value,
-   * so both @c == and @c <= (and hence @c 𝔓 membership) match extension.  A @b
-   * continuous carrier keeps its open/closed distinction untouched (@c (1,4) !=
+   * --- the runtime sibling of the interval's own closing of strict bounds.
+   * Over an @c IsRingIntegral carrier @c {x>3} and @c {x>=4} are the same
+   * subobject, and @c (1,4) = @c [2,3]; folding every strict finite bound to
+   * its closed successor / predecessor makes those ONE @c Sub value, so both @c
+   * == and @c <= (and hence @c 𝔓 membership) match extension.  A @b continuous
+   * carrier keeps its open/closed distinction untouched (@c (1,4) !=
    * @c [1,4]). Empty (any carrier) collapses to a single canonical
    * @f$\emptyset@f$.
    *  FIXME(#838): a strict bound AT the carrier extremum overflows the

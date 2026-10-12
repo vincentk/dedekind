@@ -40,6 +40,7 @@ module;
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <type_traits>
 
 export module dedekind.sequences:ranges;
@@ -57,15 +58,12 @@ using namespace dedekind::category;
 /**
  * @section ranges__Halfspace_To_Iota_View_Bridge
  *
- * @brief The interval ↔ iota_view bridge: order's value-carrying
- *        @c Interval<T,SL,SU,L> (the two-sided @c Bounds cut) read as
- *        the half-open @c std::ranges::iota_view @c [start, @c bound), and
- *        back, as a total inverse.
+ * @brief The interval ↔ iota_view bridge: order's @c Interval<T,L>, a
+ *        value, read as the half-open @c std::ranges::iota_view
+ *        @c [start, @c bound), and back, as a total inverse.
  *
- * @details The interval's endpoints are @b values (the pivots of its two
- * halfspaces); the strictness pair @c (SL, SU) is the only thing in the type.
- * @c to_iota_view normalises the four strictness combinations to iota_view's
- * canonical shape through the NNO step:
+ * @details @c to_iota_view normalises the four strictness combinations to
+ * iota_view's canonical shape through the NNO step:
  *
  *   - lower @c Strict     ⇒ @c start = succ(lo)   (predicate @c x > lo)
  *   - lower @c NonStrict  ⇒ @c start = lo         (predicate @c x ≥ lo)
@@ -73,16 +71,16 @@ using namespace dedekind::category;
  *   - upper @c NonStrict  ⇒ @c bound = succ(hi)   (predicate @c x ≤ hi)
  *
  * and @c from_iota_view<SL,SU> undoes the offsets and constructs the interval
- * directly with @c make_interval --- total, no rejection path: every half-open
- * @c [start, @c bound) is an interval (the empty view is the empty interval,
- * which @c is_empty reports).  Both directions are @c constexpr and the
- * round-trip is witnessed as values in @c sequences/halfspace_to_iota_test.
+ * with @c Interval::bounded --- total, no rejection path: every half-open
+ * @c [start, @c bound) is an interval (the empty view is the empty interval).
+ * Both directions are @c constexpr and the round-trip is witnessed as values in
+ * @c sequences/halfspace_to_iota_test.
  */
 namespace detail {
 
 /** @brief The @c [start, bound) iota_view bounds a finite value set normalises
  *  to (shared between @c to_iota_view and @c from_iota_view): the Interval /
- *  Singleton / Empty kinds of a @c SetVal, read off its value endpoints.  An
+ *  Singleton / Empty kinds of a @c Interval, read off its value endpoints.  An
  *  unbounded kind (Halfspace / Universe) has no finite range and yields the
  *  empty bounds; a per-arm overload will refuse it once the set is a coproduct
  *  (#970).
@@ -96,22 +94,24 @@ struct IotaBounds {
 };
 
 template <std::integral T, typename L>
-constexpr IotaBounds<T> iota_bounds(const dedekind::order::SetVal<T, L>& s) {
-  using K = dedekind::order::SetKind;
+constexpr IotaBounds<T> iota_bounds(const dedekind::order::Interval<T, L>& s) {
   using S = dedekind::order::Strictness;
-  switch (s.kind) {
-    case K::Singleton:
-      return {s.lo, static_cast<T>(s.lo + 1)};
-    case K::Interval: {
-      const T start = s.sl == S::Strict ? static_cast<T>(s.lo + 1) : s.lo;
-      const T raw_bound = s.su == S::Strict ? s.hi : static_cast<T>(s.hi + 1);
-      // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp
-      // so the resulting iota_view is honestly empty rather than wrapped.
-      return {start, raw_bound < start ? start : raw_bound};
-    }
-    default:  // Empty, and the unbounded kinds (no finite range)
-      return {T{}, T{}};
-  }
+  if (!s.span() || !s.span()->lower || !s.span()->upper) return {T{}, T{}};
+  const auto& lower = *s.span()->lower;
+  const auto& upper = *s.span()->upper;
+  const T lo = lower.at;
+  const T hi = upper.at;
+  // A half-open view cannot start after the carrier's top or end past it.
+  if ((lower.strictness == S::Strict && lo == std::numeric_limits<T>::max()) ||
+      (upper.strictness == S::NonStrict && hi == std::numeric_limits<T>::max()))
+    throw std::domain_error(
+        "an interval reaching the carrier's top has no half-open iota view");
+  const T start = lower.strictness == S::Strict ? static_cast<T>(lo + 1) : lo;
+  const T raw_bound =
+      upper.strictness == S::Strict ? hi : static_cast<T>(hi + 1);
+  // Empty intervals (e.g. {x : 5 < x < 5}) yield raw_bound < start; clamp so
+  // the resulting iota_view is honestly empty rather than wrapped.
+  return {start, raw_bound < start ? start : raw_bound};
 }
 
 }  // namespace detail
@@ -122,7 +122,7 @@ constexpr IotaBounds<T> iota_bounds(const dedekind::order::SetVal<T, L>& s) {
  *  rather than a predicate. */
 export template <std::integral T, typename L>
 constexpr std::ranges::iota_view<T, T> to_iota_view(
-    const dedekind::order::SetVal<T, L>& s) {
+    const dedekind::order::Interval<T, L>& s) {
   const auto b = detail::iota_bounds(s);
   return std::ranges::views::iota(b.start, b.bound);
 }
@@ -222,15 +222,6 @@ static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
               "lo > hi is the empty window; lo == hi the one-point window.");
 }  // namespace detail_chain_view_witness
 
-/** @brief Project an interval (the meet of its two halfspaces) to its
- *  iota_view through its @c SetVal --- one bounds law. */
-export template <std::integral T, dedekind::order::Strictness SL,
-                 dedekind::order::Strictness SU, typename L>
-constexpr std::ranges::iota_view<T, T> to_iota_view(
-    const dedekind::order::Interval<T, SL, SU, L>& oi) {
-  return to_iota_view(dedekind::order::to_setval(oi));
-}
-
 /** @section ranges__Materialize — the last plank of the bridge
  *  @c intensional @c → @c intensional-finite @c → @c ext @c → @c
  *  extensional.
@@ -246,9 +237,8 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
  *         @c argmax (or any) predicate; the one-argument form realises the
  * whole interval (@c chi @c = @c ⊤).
  */
-export template <std::integral T, dedekind::order::Strictness SL,
-                 dedekind::order::Strictness SU, typename L, typename Chi>
-auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi, Chi chi) {
+export template <std::integral T, typename L, typename Chi>
+auto ext(const dedekind::order::Interval<T, L>& oi, Chi chi) {
   return dedekind::sets::from_std(dedekind::sets::ext(to_iota_view(oi), chi));
 }
 
@@ -256,9 +246,8 @@ auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi, Chi chi) {
  *  member kept).  The @c chi @c = @c ⊤ case of the two-argument @ref ext ---
  *  it delegates there with the canonical tautology / top predicate
  *  @c dedekind::category::classifier_true. */
-export template <std::integral T, dedekind::order::Strictness SL,
-                 dedekind::order::Strictness SU, typename L>
-auto ext(const dedekind::order::Interval<T, SL, SU, L>& oi) {
+export template <std::integral T, typename L>
+auto ext(const dedekind::order::Interval<T, L>& oi) {
   // The whole-interval realisation keeps every member: the characteristic map
   // is the canonical tautology / top predicate ⊤ (@ref
   // dedekind::category::classifier_true), not an ad-hoc always-true lambda.
@@ -328,7 +317,9 @@ struct BoundedSet
   }
   /** @brief The domain's cardinality as an addressable @c size_t.  Metadata
    *  (the finite bound), not a gate @ref ext reads. */
-  constexpr std::size_t size() const { return dedekind::order::size(domain); }
+  constexpr std::size_t size() const {
+    return static_cast<std::size_t>(to_iota_view(domain).size());
+  }
 };
 
 /** @brief Witness: @c BoundedSet @b is a set.  @c IsSet is reached by
@@ -336,10 +327,7 @@ struct BoundedSet
  *  @c dedekind::sets::SetExpr and supplying the χ --- the same opt-in surface
  *  @c Comprehension uses; nominal, never a precondition. */
 namespace detail_boundedset_witness {
-using WOI =
-    dedekind::order::Interval<int, dedekind::order::Strictness::NonStrict,
-                              dedekind::order::Strictness::NonStrict,
-                              dedekind::category::Boole>;
+using WOI = dedekind::order::Interval<int, dedekind::category::Boole>;
 // The refinement is the canonical tautology ⊤ (@ref classifier_true), reused
 // rather than a bespoke always-true functor.
 static_assert(
@@ -384,17 +372,16 @@ struct DominanceRefinement {
  *         domain, so @c ext realises it.  IsSet-valued: @c ∅ /
  * singleton (unique optimiser, a function) / larger (ties, a proper relation).
  */
-export template <std::integral T, dedekind::order::Strictness SL,
-                 dedekind::order::Strictness SU, typename L, typename Cost,
+export template <std::integral T, typename L, typename Cost,
                  typename Order = std::less_equal<>>
-constexpr auto argmax(const dedekind::order::Interval<T, SL, SU, L>& dom,
-                      Cost cost, Order order = {}) {
+constexpr auto argmax(const dedekind::order::Interval<T, L>& dom, Cost cost,
+                      Order order = {}) {
   // @c x is optimal iff @c ∀x'∈dom. @c order(cost(x'), cost(x)) --- "no x'
   // beats x under @c order".  @c Order defaults to @c ≤ (argmax); pass @c
   // std::greater_equal for @b argmin, or a semiring @c ⊕-relative comparator to
   // rank by a dioid's order rather than the codomain's.  The refinement is the
   // named @ref DominanceRefinement functor, not a capturing lambda.
-  using OI = dedekind::order::Interval<T, SL, SU, L>;
+  using OI = dedekind::order::Interval<T, L>;
   using Pred = DominanceRefinement<T, OI, Cost, Order>;
   return BoundedSet<OI, Pred>{dom, Pred{dom, cost, order}};
 }
@@ -427,8 +414,8 @@ constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N> ext(
 
 /** @brief The runtime→typed half of the iso, a @b total inverse: rebuild the
  *  interval from the iota_view's @c [start, bound) by undoing the strictness
- *  offsets.  The strictness pair is the type; the endpoints are values, so
- *  every iota_view names an interval (an empty view names an empty interval).
+ *  offsets, read as the strictness pair asked for; every iota_view names an
+ *  interval (an empty view names the empty interval).
  *
  *  @details The NTTP form could only @em verify a view against a target type,
  *  since the bounds lived in the type; with the endpoints as values the inverse
@@ -437,32 +424,35 @@ constexpr std::array<typename std::remove_cvref_t<Seq>::Codomain, N> ext(
  *  the @c to_iota_view precondition. */
 export template <dedekind::order::Strictness SL, dedekind::order::Strictness SU,
                  typename L = dedekind::category::Boole, std::integral T>
-constexpr dedekind::order::Interval<T, SL, SU, L> from_iota_view(
+constexpr dedekind::order::Interval<T, L> from_iota_view(
     const std::ranges::iota_view<T, T>& iv) {
   using S = dedekind::order::Strictness;
   // Read start and bound directly from the iterators (as IotaIntersection
   // does): no size arithmetic to narrow or wrap.
   const T start = *iv.begin();
   const T bound = *iv.end();
+  if (!(start < bound)) return dedekind::order::Interval<T, L>::empty();
+  // A strict lower side below the carrier's bottom is not representable.
+  if (SL == S::Strict && start == std::numeric_limits<T>::min())
+    throw std::domain_error(
+        "a strict lower side below the carrier's bottom is not representable");
   const T lo = SL == S::Strict ? static_cast<T>(start - 1) : start;
   const T hi = SU == S::Strict ? bound : static_cast<T>(bound - 1);
-  return dedekind::order::make_interval<SL, SU, L>(lo, hi);
+  return dedekind::order::Interval<T, L>::bounded(lo, SL, hi, SU);
 }
 
 /** @section ranges__Halfspace_Iota_Round_Trip
  *  The iso witness: a value-level round-trip on a representative
  *  @c Interval value pins that @c from_iota_view ∘ @c to_iota_view is the
  *  identity on it; @c from_iota_view is total, so there is no mismatch case
- *  (the empty view round-trips to an interval @c is_empty reports). */
+ *  (the empty view round-trips to the empty interval). */
 namespace halfspace_iota_witness {
 using dedekind::order::Strictness;
-constexpr auto oi =
-    dedekind::order::make_interval<Strictness::NonStrict, Strictness::Strict>(
-        3, 8);  // [3, 8)
+constexpr auto oi = dedekind::order::Interval<int>::bounded(
+    3, Strictness::NonStrict, 8, Strictness::Strict);  // [3, 8)
 constexpr auto back =
     from_iota_view<Strictness::NonStrict, Strictness::Strict>(to_iota_view(oi));
-static_assert(dedekind::order::lower_pivot(back) == 3 &&
-                  dedekind::order::upper_pivot(back) == 8,
+static_assert(back == oi,
               "Iso witness: from_iota_view ∘ to_iota_view is the identity on "
               "the canonical [3, 8) interval's endpoints.");
 }  // namespace halfspace_iota_witness
@@ -475,12 +465,10 @@ static_assert(dedekind::order::lower_pivot(back) == 3 &&
  *  @c iota_bounds_of helper. */
 namespace bridge_meet_witness {
 using dedekind::order::Strictness;
-constexpr auto A =
-    dedekind::order::make_interval<Strictness::NonStrict, Strictness::Strict>(
-        2, 8);  // [2, 8)
-constexpr auto B =
-    dedekind::order::make_interval<Strictness::NonStrict, Strictness::Strict>(
-        5, 10);                                                // [5, 10)
+constexpr auto A = dedekind::order::Interval<int>::bounded(
+    2, Strictness::NonStrict, 8, Strictness::Strict);  // [2, 8)
+constexpr auto B = dedekind::order::Interval<int>::bounded(
+    5, Strictness::NonStrict, 10, Strictness::Strict);         // [5, 10)
 constexpr auto AandB = dedekind::order::structured_and(A, B);  // [5, 8)
 
 static_assert(detail::iota_bounds(AandB).start == 5,
@@ -491,12 +479,10 @@ static_assert(detail::iota_bounds(AandB).bound == 8,
 // Disjoint case: [0, 3) ∩ [5, 10) ⇒ the empty value (clamped to an empty
 // iota_view) --- the meet is closed on the value carrier, so the bridge
 // composes uniformly.
-constexpr auto D1 =
-    dedekind::order::make_interval<Strictness::NonStrict, Strictness::Strict>(
-        0, 3);
-constexpr auto D2 =
-    dedekind::order::make_interval<Strictness::NonStrict, Strictness::Strict>(
-        5, 10);
+constexpr auto D1 = dedekind::order::Interval<int>::bounded(
+    0, Strictness::NonStrict, 3, Strictness::Strict);
+constexpr auto D2 = dedekind::order::Interval<int>::bounded(
+    5, Strictness::NonStrict, 10, Strictness::Strict);
 constexpr auto D1andD2 = dedekind::order::structured_and(D1, D2);
 static_assert(detail::iota_bounds(D1andD2).start ==
                   detail::iota_bounds(D1andD2).bound,
