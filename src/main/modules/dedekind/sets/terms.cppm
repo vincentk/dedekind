@@ -604,11 +604,12 @@ struct Value {
   }
   /** @brief McCarthy's conditional evaluates only the branch it selects, so
    *  the algebra steers the recursion into the legs itself (see @c cata). */
-  template <typename Pr, typename A, typename B, typename Recur>
-  constexpr auto steer(const CondT<Pr, A, B>& t, Recur recur) const {
-    using C = meet_t<A, B, decltype(recur(t.a)), decltype(recur(t.b))>;
-    return static_cast<bool>(recur(t.p)) ? into<C, A>(recur(t.a))
-                                         : into<C, B>(recur(t.b));
+  template <typename Pr, typename A, typename B>
+  constexpr auto steer(const CondT<Pr, A, B>& t) const {
+    using C =
+        meet_t<A, B, decltype(cata(*this, t.a)), decltype(cata(*this, t.b))>;
+    return static_cast<bool>(cata(*this, t.p)) ? into<C, A>(cata(*this, t.a))
+                                               : into<C, B>(cata(*this, t.b));
   }
 };
 
@@ -770,16 +771,8 @@ constexpr void bind_check(const T& t) {
  *  does not know is not certified.  @tparam X the point type. */
 template <typename X>
 struct Total {
-  template <IsRingIntegral auto I>
-  constexpr std::true_type operator()(Projection<I>) const {
-    return {};
-  }
-  template <typename K>
-  constexpr std::true_type operator()(const Const<K>&) const {
-    return {};
-  }
   template <typename Leaf>
-  constexpr std::false_type operator()(const Leaf&) const {
+  constexpr std::bool_constant<IsTerm<Leaf>> operator()(const Leaf&) const {
     return {};
   }
   template <typename Op, typename A, typename B, typename RA, typename RB>

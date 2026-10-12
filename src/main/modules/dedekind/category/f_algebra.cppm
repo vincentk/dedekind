@@ -219,39 +219,6 @@ static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
               "structurally the F-coalgebra structure map for "
               "identity_functor on InitialCategory with carrier Zero.");
 
-/**
- * @concept IsBinaryTerm
- * @brief The @c (X @c × @c X) summand of the term functor @c F(X) @c =
- *        @c Atom @c + @c X @c × @c X: a binary term node is a @b
- *        categorical product read through its projections.
- *
- * @details Rather than restate the @c π_1 / @c π_2 projection clause,
- * this @b delegates to @c :limit's @c IsProduct (whose defining clause
- * IS those two projections), deducing the leg types from the nodes's own
- * @c π_1 / @c π_2.  @c Compose is the first such node (#892:
- * @c IsProduct<Compose<F,G>, @c F, @c G>).  The leading @c requires
- * guards the @c decltype so a node without projections is simply @b not
- * a binary term (SFINAE), not a hard error.  @c cata reads the children
- * @b structurally through the projections --- no injected profile or
- * tag.
- */
-export template <typename P>
-concept IsBinaryTerm =
-    requires(const P& p) {
-      π_1(p);
-      π_2(p);
-    } &&
-    IsProduct<P, std::remove_cvref_t<decltype(π_1(std::declval<const P&>()))>,
-              std::remove_cvref_t<decltype(π_2(std::declval<const P&>()))>>;
-
-// A bare product (std::pair) IS IsBinaryTerm but is NOT an arrow, so the
-// IsArrow gate on the binary legs keeps it out of the term universe:
-// product-ness alone does not make a term.  (The leaf / node split over
-// arrows is witnessed after cata below.)
-static_assert(IsBinaryTerm<std::pair<int, bool>> &&
-                  !IsArrow<std::pair<int, bool>>,
-              "a bare product is not an arrow, hence not a cata term");
-
 /** @name reduce_β for a Compose node --- the canonical β exhibit
  *
  *  @brief @c reduce_β is the @b β (F-algebra structure map, i.e. the
@@ -293,24 +260,20 @@ constexpr Identity<T> reduce_β(const Compose<F, G>&, const Identity<T>& i,
 /** @section f_algebra__The_Term_Functor
  *
  *  @c legs is the term functor's @c out @c : @c μF @c → @c F(μF), stated
- *  @b once per node: the tuple of the sub-terms a node is built from.  A
- *  type without @c legs is a leaf.  The binary summand is read through the
- *  projections below; a node of another arity (a unary @c Not, a ternary
- *  conditional) states its own @c legs beside its definition, found by ADL.
- *  Every reading of a term (a rewrite to normal form, a certificate, its
- *  value) is then an @b algebra over this one functor, and @c cata is the
- *  one engine that folds it.
+ *  @b once per node: the tuple of the sub-terms a node is built from, found
+ *  by ADL beside the node's definition.  A type without @c legs is a leaf.
+ *  @c Compose is the first node, its legs the two arrows it composes (its
+ *  product projections, #892); a bare product that is not an arrow is not a
+ *  term and has no legs.  Every reading of a term (a rewrite to normal form,
+ *  a certificate, its value) is then an @b algebra over this one functor, and
+ *  @c cata is the one engine that folds it.
  */
 
-/** @brief The legs of a binary term node, through its projections.
- *  @details The @c IsArrow constraint (alongside @c IsBinaryTerm) closes the
- *  binary summand to arrows: a bare product that is not an arrow is not a
- *  term.  @tparam P a binary term node (e.g. @c Compose).  @param p the node.
- */
-export template <typename P>
-  requires IsArrow<P> && IsBinaryTerm<P>
-constexpr auto legs(const P& p) {
-  return std::tuple{π_1(p), π_2(p)};
+/** @brief The legs of a composite: the arrows it composes.  @param c the
+ *  node. */
+export template <IsArrow F, IsArrow G>
+constexpr auto legs(const Compose<F, G>& c) {
+  return std::tuple{π_1(c), π_2(c)};
 }
 
 /** @brief A node of the term functor: a type that exposes its legs. */
@@ -319,17 +282,6 @@ concept IsTermNode = requires(const T& t) { legs(t); };
 
 export template <typename β, typename T>
 constexpr auto cata(const β& alg, const T& t);
-
-/** @brief The recursion @c cata(β, -) handed to an algebra that steers it
- *  (see @c cata).  @tparam β the algebra. */
-export template <typename β>
-struct Recur {
-  const β& alg;
-  template <typename T>
-  constexpr auto operator()(const T& t) const {
-    return cata(alg, t);
-  }
-};
 
 namespace detail_f_algebra {
 template <typename β, typename T, std::size_t... I>
@@ -365,10 +317,9 @@ constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
  *
  * @b Steering (Mendler style): a strict fold evaluates every leg.  Where
  * an algebra must not (McCarthy's conditional evaluates only the branch
- * it selects), it defines @c β.steer(node, @c recur) and is handed the
- * recursion @c recur @c = @c cata(β, @c -) to apply to the legs it
- * chooses.  The engine tries @c steer first, then the strict fold, then
- * the leaf.
+ * it selects), it defines @c β.steer(node) and recurses with
+ * @c cata(β, @c leg) into the legs it chooses.  The engine tries @c steer
+ * first, then the strict fold, then the leaf.
  *
  * @note A grow-then-shrink @c β re-invokes @c cata on its result to
  * reach a fixpoint; the laws here are shrink-only, so one pass suffices.
@@ -379,8 +330,8 @@ constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
  */
 export template <typename β, typename T>
 constexpr auto cata(const β& alg, const T& t) {
-  if constexpr (requires { alg.steer(t, Recur<β>{alg}); }) {
-    return alg.steer(t, Recur<β>{alg});
+  if constexpr (requires { alg.steer(t); }) {
+    return alg.steer(t);
   } else if constexpr (IsTermNode<T>) {
     return detail_f_algebra::fold_legs(
         alg, t,
@@ -425,6 +376,7 @@ static_assert(IsArrow<Identity<int>> && !IsTermNode<Identity<int>>,
               "cata leaf: an atom arrow has no legs");
 static_assert(IsTermNode<Compose<Identity<int>, Identity<int>>> &&
                   !IsTermNode<std::pair<int, bool>>,
-              "cata node: a Compose exposes its two legs; a bare pair none");
+              "cata node: a Compose exposes its two legs; a bare product is "
+              "not an arrow, hence not a term");
 
 }  // namespace dedekind::category
