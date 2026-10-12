@@ -270,7 +270,6 @@ static_assert(!Cut<>::sqrt(Rational<>{2}).contains(Rational<>{2}),
 static_assert(Cut<>::sqrt(Rational<>{4}) == Cut<>{2}, "√4 = 2.");
 
 using dedekind::category::IsLSet;
-using dedekind::order::pivot;
 
 // The cut IS its lower set: a set over ℚ, with contains as its χ.
 static_assert(IsLSet<LowerSet<>>,
