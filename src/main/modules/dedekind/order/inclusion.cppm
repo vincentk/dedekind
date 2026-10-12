@@ -104,46 +104,12 @@ constexpr typename A::logic_species::Ω operator>(const A& a, const B& b) {
   return L::AND(b <= a, (a == b) ? L::False : L::True);  // A ⊋ B := B ⊊ A
 }
 
-/** @brief @f$[a,b] \subseteq [c,d]@f$ by endpoint + strictness comparison
- *  (#831): an interval is the meet of an upward and a downward halfspace, so
- *  containment is the two halfspace containments --- decidable directly on the
- *  endpoint values, no meet materialisation.  The per-carrier specialisation
- *  for intervals; it wins over the generic @c <= by partial ordering.
- *
- *  An empty left interval (a degenerate construction like @c (5,5), which the
- *  interval represents rather than forbids) short-circuits to @c True:
- *  @f$\emptyset \subseteq X@f$ for every @c X, and the endpoint test alone
- *  would wrongly report @c False (#835 review). */
-export template <typename T, Strictness ASL, Strictness ASU, Strictness BSL,
-                 Strictness BSU, typename L>
-constexpr typename L::Ω operator<=(const Interval<T, ASL, ASU, L>& a,
-                                   const Interval<T, BSL, BSU, L>& b) {
-  if (is_empty(a)) return L::True;  // ∅ ⊆ X
-  if constexpr (std::integral<T>) {
-    // Discrete: nest the EFFECTIVE carrier bounds, the same normalisation
-    // is_empty / size use, so intervals denoting the same set agree ---
-    // @c (1,4) ⊆ @c [2,3] (both @c {2,3} over @c int) decides True, where a
-    // syntactic endpoint compare would wrongly reject it (#835 review).
-    const bool lower = eff_lower(a) >= eff_lower(b);
-    const bool upper = eff_upper(a) <= eff_upper(b);
-    return (lower && upper) ? L::True : L::False;
-  } else {
-    // Continuous (and, pending the heterogeneous-pivot restoration #970, the
-    // variant ℕ-/ℤ-proxies): distinct endpoints are distinct sets.  A's lower
-    // end sits inside B, and dually its upper end; a NonStrict end is not
-    // inside a Strict end at the same pivot.
-    const T alo = lower_pivot(a);
-    const T ahi = upper_pivot(a);
-    const T blo = lower_pivot(b);
-    const T bhi = upper_pivot(b);
-    const bool lower =
-        blo < alo || (alo == blo && !(ASL == Strictness::NonStrict &&
-                                      BSL == Strictness::Strict));
-    const bool upper =
-        ahi < bhi || (ahi == bhi && !(ASU == Strictness::NonStrict &&
-                                      BSU == Strictness::Strict));
-    return (lower && upper) ? L::True : L::False;
-  }
+/** @brief @f$A \subseteq B@f$ on intervals: @f$A \cap B = A@f$, extensional
+ *  since interval equality closes strict bounds on a discrete carrier. */
+export template <typename T, typename L>
+constexpr typename L::Ω operator<=(const Interval<T, L>& a,
+                                   const Interval<T, L>& b) {
+  return reduce_meet(a, b) == a;
 }
 
 }  // namespace dedekind::order

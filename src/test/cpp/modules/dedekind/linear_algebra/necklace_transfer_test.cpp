@@ -57,10 +57,9 @@ constexpr MP necklace_value() {
 // The critical (max-cost) branch of diamond m, as the §3 forall-filter over the
 // two-branch interval [0,1]: `dedekind::sequences::argmax`, ordered by the raw
 // arrival cost so it selects the branch on the longest (critical) path.
-inline constexpr auto branch_interval =
-    dedekind::order::make_interval<dedekind::order::Strictness::NonStrict,
-                                   dedekind::order::Strictness::NonStrict>(0,
-                                                                           1);
+inline constexpr auto branch_interval = dedekind::order::Interval<int>::bounded(
+    0, dedekind::order::Strictness::NonStrict, 1,
+    dedekind::order::Strictness::NonStrict);
 
 constexpr auto diamond_argmax(int m) {
   return dedekind::sequences::argmax(branch_interval, [m](int k) {

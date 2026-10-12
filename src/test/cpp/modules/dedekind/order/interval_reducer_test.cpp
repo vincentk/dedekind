@@ -27,15 +27,17 @@ using namespace dedekind::sets;
 using namespace dedekind::order;
 
 namespace {
-using Up = UpRay<int, Strictness::Strict>;      // {x>lo}
-using Down = DownRay<int, Strictness::Strict>;  // {x<hi}
-// (lo, hi): the two-sided cut, which make_interval builds; the crossing MEET of
-// the two rays is the node the reducer normalises to it by value.
-using OpenInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
-static_assert(
-    std::same_as<
-        OpenInterval,
-        decltype(make_interval<Strictness::Strict, Strictness::Strict>(0, 0))>);
+using I = Interval<int>;
+// The crossing MEET of the two rays is the node the reducer normalises to an
+// interval by value.
+template <typename T>
+constexpr Interval<T> Up(T lo) {  // {x > lo}
+  return Interval<T>::half(lo, Direction::Upward, Strictness::Strict);
+}
+template <typename T>
+constexpr Interval<T> Down(T hi) {  // {x < hi}
+  return Interval<T>::half(hi, Direction::Downward, Strictness::Strict);
+}
 }  // namespace
 
 TEST_CASE(
@@ -43,7 +45,7 @@ TEST_CASE(
     "reducer",
     "[order][halfspace][reducer][value-first]") {
   SECTION("a semantically empty interval (5,5) reduces to the empty set") {
-    const auto iv = MakeMeet{}(Up{5}, Down{5});  // {x>5} ∩ {x<5} = ∅
+    const auto iv = MakeMeet{}(Up(5), Down(5));  // {x>5} ∩ {x<5} = ∅
     const auto r = subobject_reduce<Boole, SetCombine>(iv);
     CHECK(r == Ø<int>{});
     CHECK(!static_cast<bool>(r(5)));
@@ -52,40 +54,40 @@ TEST_CASE(
 
   SECTION("an inverted interval (7,3) reduces to the empty set") {
     const auto r =
-        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up{7}, Down{3}));
+        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up(7), Down(3)));
     CHECK(r == Ø<int>{});
   }
 
   SECTION("a one-point interval (3,5) reduces to the point {4}") {
     const auto r =
-        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up{3}, Down{5}));
-    CHECK(r == ConvexSet<int>::point(4));
+        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up(3), Down(5)));
+    CHECK(r == Interval<int>::point(4));
     CHECK(static_cast<bool>(r(4)));
     CHECK(!static_cast<bool>(r(3)));
   }
 
   SECTION("a wide interval (-21,21) stays an interval with its bounds") {
     const auto r =
-        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up{-21}, Down{21}));
-    CHECK(r == ConvexSet<int>::bounded(-21, Strictness::Strict, 21,
-                                       Strictness::Strict));
+        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up(-21), Down(21)));
+    CHECK(r == Interval<int>::bounded(-21, Strictness::Strict, 21,
+                                      Strictness::Strict));
     CHECK(static_cast<bool>(r(0)));
     CHECK(!static_cast<bool>(r(21)));
   }
 
   SECTION("dual-phase: the empty collapse folds in constant evaluation") {
     constexpr auto r =
-        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up{5}, Down{5}));
+        subobject_reduce<Boole, SetCombine>(MakeMeet{}(Up(5), Down(5)));
     STATIC_REQUIRE(r == Ø<int>{});
   }
 
   SECTION(
-      "value leaves: a Meet of two ConvexSet halfspaces collapses the same") {
+      "value leaves: a Meet of two Interval halfspaces collapses the same") {
     // The leaf type the Python surface builds.  The value leg dispatches on
     // structured_and by ADL, so the same law fires on value leaves as on bare
     // halfspaces: a contradicting pair reduces to the empty set, not to an
     // interval that is merely logically empty.
-    using V = ConvexSet<int, Boole>;
+    using V = Interval<int, Boole>;
     const auto empty = subobject_reduce<Boole, SetCombine>(
         Meet<V, V>{V::half(5, Direction::Upward, Strictness::Strict),
                    V::half(5, Direction::Downward, Strictness::Strict)});
@@ -101,13 +103,11 @@ TEST_CASE(
     // The one-point collapse needs successor / predecessor, which are an axiom
     // of the CATEGORY (the NNO) that the proxy witnesses, so (3,5) on ℕ folds
     // to {4} exactly as it does on int, and (5,5) to the empty set.
-    using NUp = UpRay<Cardinality, Strictness::Strict>;
-    using NDown = DownRay<Cardinality, Strictness::Strict>;
     const auto point = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(NUp{finite_cardinality(3)}, NDown{finite_cardinality(5)}));
-    CHECK(point == ConvexSet<Cardinality>::point(finite_cardinality(4)));
+        MakeMeet{}(Up(finite_cardinality(3)), Down(finite_cardinality(5))));
+    CHECK(point == Interval<Cardinality>::point(finite_cardinality(4)));
     const auto empty = subobject_reduce<Boole, SetCombine>(
-        MakeMeet{}(NUp{finite_cardinality(5)}, NDown{finite_cardinality(5)}));
+        MakeMeet{}(Up(finite_cardinality(5)), Down(finite_cardinality(5))));
     CHECK(empty == Ø<Cardinality>{});
   }
 
@@ -116,10 +116,9 @@ TEST_CASE(
     // the irreducible Meet of two distinct leaves --- is reconstructed as-is.
     // It still decides membership pointwise; it just cannot SEE that it is
     // empty.
-    const auto iv = MakeMeet{}(Up{5}, Down{5});
+    const auto iv = MakeMeet{}(Up(5), Down(5));
     const auto r = subobject_reduce<Boole>(iv);
-    STATIC_REQUIRE(
-        std::same_as<std::remove_cvref_t<decltype(r)>, Meet<Up, Down>>);
+    STATIC_REQUIRE(std::same_as<std::remove_cvref_t<decltype(r)>, Meet<I, I>>);
     CHECK(!static_cast<bool>(r(5)));
   }
 }

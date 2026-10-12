@@ -26,10 +26,9 @@ using namespace dedekind::topology;
 
 TEST_CASE("Topology: on a discrete carrier every shape is clopen by structure",
           "[topology][continuity]") {
-  using IntRay = UpRay<int, Strictness::Strict>;
-  using IntInterval = Interval<int, Strictness::Strict, Strictness::Strict>;
-  using ClosedIntInterval =
-      Interval<int, Strictness::NonStrict, Strictness::NonStrict>;
+  using IntRay = Interval<int>;
+  using IntInterval = Interval<int>;
+  using ClosedIntInterval = Interval<int>;
 
   SECTION("clopen, whatever the strictness") {
     STATIC_CHECK(HasDiscreteCarrier<IntRay>);
@@ -48,7 +47,7 @@ TEST_CASE("Topology: on a discrete carrier every shape is clopen by structure",
 
   SECTION("an open interval is a neighbourhood of its points") {
     constexpr auto nbhd =
-        make_interval<Strictness::Strict, Strictness::Strict>(0, 3);
+        Interval<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict);
     STATIC_CHECK(IsNeighborhood<decltype(nbhd), int>);
     STATIC_CHECK(nbhd(1) == Boole::True);
     STATIC_CHECK(nbhd(0) == Boole::False);
@@ -58,11 +57,11 @@ TEST_CASE("Topology: on a discrete carrier every shape is clopen by structure",
 
   SECTION("boundary semantics of the three closures") {
     const auto open_iv =
-        make_interval<Strictness::Strict, Strictness::Strict>(0, 3);
-    const auto closed_iv =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(0, 3);
+        Interval<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict);
+    const auto closed_iv = Interval<int>::bounded(0, Strictness::NonStrict, 3,
+                                                  Strictness::NonStrict);
     const auto left_closed =
-        make_interval<Strictness::NonStrict, Strictness::Strict>(0, 3);
+        Interval<int>::bounded(0, Strictness::NonStrict, 3, Strictness::Strict);
     CHECK(open_iv(0) == Boole::False);
     CHECK(open_iv(1) == Boole::True);
     CHECK(open_iv(3) == Boole::False);
@@ -95,7 +94,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   SECTION(
       "discrete carrier ⟹ every set clopen: an int ray is clopen by "
       "STRUCTURE, not by tag (#905), and decidable") {
-    using OpenRay = UpRay<int, Strictness::Strict>;
+    using OpenRay = Interval<int>;
     STATIC_CHECK(HasDiscreteCarrier<OpenRay>);
     STATIC_CHECK(IsOpen<OpenRay> && IsClosed<OpenRay> && IsClopen<OpenRay>);
     STATIC_CHECK(HasDecidableMembership<OpenRay>);
@@ -104,7 +103,7 @@ TEST_CASE("Topology: Ø/𝔸 in the clopen ∩ decidable boundary core (Stone)",
   }
 
   SECTION("the ℕ proxy is a discrete carrier too (#937): its ray is clopen") {
-    using NatRay = UpRay<Cardinality, Strictness::Strict>;
+    using NatRay = Interval<Cardinality>;
     STATIC_CHECK(HasDiscreteCarrier<NatRay>);
     STATIC_CHECK(IsClopen<NatRay>);
     CHECK(IsClopen<NatRay>);

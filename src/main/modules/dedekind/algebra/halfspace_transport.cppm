@@ -38,9 +38,10 @@
  */
 module;
 
-#include <concepts>     // std::same_as
-#include <functional>   // std::plus
-#include <limits>       // std::numeric_limits (overflow-safe pivot guards)
+#include <concepts>    // std::same_as
+#include <functional>  // std::plus
+#include <limits>      // std::numeric_limits (overflow-safe pivot guards)
+#include <optional>
 #include <stdexcept>    // std::domain_error (a scale other than ±1)
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
@@ -118,30 +119,31 @@ constexpr auto image(
     const Comprehension<𝔸<std::pair<T, T>, L, C>,
                         ProductRestrict<Translation<K>, Cylinder<R, 1, V>>>&
         s) {
-  return make_ray<dir_of(R), strict_of(R), L>(
+  return Interval<T, L>::half(
       carrier_cast<T>(s.predicate.rp.b.value) +
-      carrier_cast<T>(s.predicate.product.a.b.value));
+          carrier_cast<T>(s.predicate.product.a.b.value),
+      dir_of(R), strict_of(R));
 }
 
 /** @brief image of a restricted scaling @c x↦c·x, @c c=±1, on @c {x⋈p}: the
  *  ray scaled by @c c, its sense flipped when @c c<0.  The sense depends on
- *  the constant's value, so the result is the value leaf @c ConvexSet.  @c c=−1
+ *  the constant's value, so the result is the value leaf @c Interval.  @c c=−1
  *  needs a genuine order-reversing additive inverse (@c
  * IsOrderedAdditiveGroup); any other scale has no ray for an image here and is
  * refused. */
 export template <IsTotallyOrdered T, typename K, Rel R, typename V,
                  IsOckhamAlgebra L, IsCardinality CU>
   requires(is_order_rel(R))
-constexpr ConvexSet<T, L> image(
+constexpr Interval<T, L> image(
     const Comprehension<𝔸<std::pair<T, T>, L, CU>,
                         ProductRestrict<Scaling<K>, Cylinder<R, 1, V>>>& s) {
   const T c = carrier_cast<T>(s.predicate.product.a.b.value);
   const T p = carrier_cast<T>(s.predicate.rp.b.value);
   if (c == carrier_cast<T>(1))
-    return ConvexSet<T, L>::half(p, dir_of(R), strict_of(R));
+    return Interval<T, L>::half(p, dir_of(R), strict_of(R));
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
     if (c == carrier_cast<T>(-1))
-      return ConvexSet<T, L>::half(c * p, flip(dir_of(R)), strict_of(R));
+      return Interval<T, L>::half(c * p, flip(dir_of(R)), strict_of(R));
   }
   throw std::domain_error("the image of a ray under x ↦ c·x, c ≠ ±1");
 }
@@ -212,37 +214,43 @@ argmax(const Comprehension<
 // image pushes a domain halfspace forward along an affine map; preimage pulls a
 // codomain halfspace back, in closed form.  preimage(f, P)(a) == P(f(a)).
 
-/** @brief preimage of @c {y⋈P} under @f$x\mapsto x+k@f$: @c {x⋈P−k}, same
- *  direction and strictness.  Gated on a translation-invariant order. */
+/** @brief preimage of an interval under @f$x\mapsto x+k@f$: both sides moved
+ *  by @c −k, strictness kept.  Gated on a translation-invariant order. */
 export template <typename T, typename K, IsOckhamAlgebra LG, IsCardinality C,
-                 IsOckhamAlgebra LH, IsCardinality CH, IsSide Lo, IsSide Hi>
-  requires dedekind::algebra::IsOrderedAdditiveGroup<T> &&
-           (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr auto preimage(
+                 IsOckhamAlgebra L>
+  requires dedekind::algebra::IsOrderedAdditiveGroup<T>
+constexpr Interval<T, L> preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, C>, Translation<K>>& g,
-    const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
-  return 𝔸<T, LH>{} |
-         Bounds<Lo, Hi, T>{pivot(h) - carrier_cast<T>(g.predicate.a.b.value)};
+    const Interval<T, L>& h) {
+  if (!h.span()) return h;
+  const T k = carrier_cast<T>(g.predicate.a.b.value);
+  auto [lo, hi] = *h.span();
+  if (lo) lo->at = lo->at - k;
+  if (hi) hi->at = hi->at - k;
+  return Interval<T, L>::of_sides(lo, hi);
 }
 
-/** @brief preimage of @c {y⋈P} under @f$x\mapsto c\cdot x@f$, @c c=±1:
- *  @c {x⋈'c·P}, the sense flipped when @c c<0, so the value leaf.  @c c=−1
- *  needs an order-reversing additive inverse. */
+/** @brief preimage of an interval under @f$x\mapsto c\cdot x@f$, @c c=±1: the
+ *  interval itself, or reflected (each side to the other, negated, strictness
+ *  kept).  @c c=−1 needs an order-reversing additive inverse. */
 export template <typename T, typename K, IsOckhamAlgebra LG, IsCardinality CU,
-                 IsOckhamAlgebra LH, IsCardinality CH, IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr ConvexSet<T, LH> preimage(
+                 IsOckhamAlgebra L>
+constexpr Interval<T, L> preimage(
     const Comprehension<𝔸<std::pair<T, T>, LG, CU>, Scaling<K>>& g,
-    const Comprehension<𝔸<T, LH, CH>, Bounds<Lo, Hi, T>>& h) {
+    const Interval<T, L>& h) {
   const T c = carrier_cast<T>(g.predicate.a.b.value);
-  constexpr Direction d = direction_of<Lo, Hi>();
-  constexpr Strictness s = ray_strictness<Lo, Hi>();
-  if (c == carrier_cast<T>(1)) return ConvexSet<T, LH>::half(pivot(h), d, s);
+  if (c == carrier_cast<T>(1)) return h;
   if constexpr (dedekind::algebra::IsOrderedAdditiveGroup<T>) {
-    if (c == carrier_cast<T>(-1))
-      return ConvexSet<T, LH>::half(c * pivot(h), flip(d), s);
+    if (c == carrier_cast<T>(-1)) {
+      if (!h.span()) return h;
+      const auto& [lo, hi] = *h.span();
+      std::optional<Bound<T>> rlo, rhi;
+      if (hi) rlo = Bound<T>{c * hi->at, hi->strictness};
+      if (lo) rhi = Bound<T>{c * lo->at, lo->strictness};
+      return Interval<T, L>::of_sides(rlo, rhi);
+    }
   }
-  throw std::domain_error("the preimage of a ray under x ↦ c·x, c ≠ ±1");
+  throw std::domain_error("the preimage of an interval under x ↦ c·x, c ≠ ±1");
 }
 
 }  // namespace dedekind::order

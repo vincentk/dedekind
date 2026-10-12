@@ -1,14 +1,8 @@
 /** @file dedekind/order/halfspace_test.cpp
  *
- * Unit coverage for the value-carrying cut DSL: the rays `UpRay<T, S, L>` /
- * `DownRay<T, S, L>`
- * and the interval `Interval<T, SL, SU, L>` as comprehensions of the `Bounds`
- * datum (typed sides, value bounds, built by the point-free former and
- * `make_interval`), the point `Singleton<T, L>{v}`, and the `structured_and`
- * that folds them value-first (`reduce_meet` / `ConvexSet`).
- *
- * Each SECTION exercises one structural branch independently of the Set
- * wrapper; end-to-end Set-level behaviour is covered by the IR showcases.
+ * Unit coverage for the order reading of the term grammar: an order atom
+ * `π ⋈ c` on a chain binds to an `Interval<T, L>` value, intervals meet,
+ * join and complement, and the point `Singleton<T, L>{v}`.
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -27,139 +21,68 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
 
-TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
-          "[order][halfspace]") {
-  SECTION("Upward, strict: n > 5") {
-    constexpr UpRay<int, Strictness::Strict> h{5};
-    using Logic = typename decltype(h)::logic_species;
-
-    STATIC_CHECK(h(6) == Logic::True);
-    STATIC_CHECK(h(5) == Logic::False);  // boundary excluded
-    STATIC_CHECK(h(4) == Logic::False);
-  }
-
-  SECTION("Upward, non-strict: n >= 5") {
-    constexpr UpRay<int, Strictness::NonStrict> h{5};
-    using Logic = typename decltype(h)::logic_species;
-
-    STATIC_CHECK(h(5) == Logic::True);  // boundary included
-    STATIC_CHECK(h(6) == Logic::True);
-    STATIC_CHECK(h(4) == Logic::False);
-  }
-
-  SECTION("Downward, strict: n < 5") {
-    constexpr DownRay<int, Strictness::Strict> h{5};
-    using Logic = typename decltype(h)::logic_species;
-
-    STATIC_CHECK(h(4) == Logic::True);
-    STATIC_CHECK(h(5) == Logic::False);
-  }
-
-  SECTION("Downward, non-strict: n <= 5") {
-    constexpr DownRay<int, Strictness::NonStrict> h{5};
-    using Logic = typename decltype(h)::logic_species;
-
-    STATIC_CHECK(h(5) == Logic::True);
-    STATIC_CHECK(h(4) == Logic::True);
-    STATIC_CHECK(h(6) == Logic::False);
-  }
-}
-
-TEST_CASE(
-    "order:halfspace — Variable DSL constructs Halfspace from a value bound",
-    "[order][halfspace][dsl]") {
-  // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
-  // lives in `dedekind.numbers`, which is downstream of `dedekind.order`
-  // in the build DAG.  Post-#559 ℕ is the universe value 𝔸<Cardinality>;
-  // the underlying carrier is Cardinality (the variant ℕ-proxy from
-  // #402), so the test exercises `UpRay<Cardinality, ...>`
-  // instantiations.
-  // The DSL binds the pivot-less Halfspace TYPE; the pivot 7 rides in the
-  // instance (checked via .pivot).
-  SECTION("> constructs Upward/Strict") {
-    constexpr auto h = ℕ | (χ > 7);
-    using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, UpRay<Cardinality, Strictness::Strict>>);
-    STATIC_CHECK(pivot(h) == 7);
-  }
-
-  SECTION(">= constructs Upward/NonStrict") {
-    constexpr auto h = ℕ | (χ >= 7);
-    using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, UpRay<Cardinality, Strictness::NonStrict>>);
-    STATIC_CHECK(pivot(h) == 7);
-  }
-
-  SECTION("< constructs Downward/Strict") {
-    constexpr auto h = ℕ | (χ < 7);
-    using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, DownRay<Cardinality, Strictness::Strict>>);
-    STATIC_CHECK(pivot(h) == 7);
-  }
-
-  SECTION("<= constructs Downward/NonStrict") {
-    constexpr auto h = ℕ | (χ <= 7);
-    using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, DownRay<Cardinality, Strictness::NonStrict>>);
-    STATIC_CHECK(pivot(h) == 7);
-  }
-  // Note (post-#409 review): the DSL constraint also rejects negative
-  // signed pivots on unsigned carriers (e.g. `ℕ | (χ > -1)` does not
-  // compile, where previously int→unsigned conversion would
-  // wrap -1 to UINT_MAX silently).  The regression is exercised
-  // implicitly: dropping the constraint would not break any existing
-  // test, but enabling it does not break any either, so the rejection
-  // is observable only via the constraint-level diagnostic at any
-  // would-be call site.  A direct `static_assert(!requires { ... })`
-  // witness is not stable here because the generic relational
-  // operators in `:expressions` propagate substitution failure as a
-  // hard error inside the requires-clause; tightening those is
-  // tracked under the bare-`Domain` audit (#411).
-}
-
 namespace {
+using I = Interval<int>;
+constexpr auto strict = Strictness::Strict;
+constexpr auto closed = Strictness::NonStrict;
+constexpr I up(int p, Strictness s) { return I::half(p, Direction::Upward, s); }
+constexpr I down(int p, Strictness s) {
+  return I::half(p, Direction::Downward, s);
+}
 // A function-pointer predicate (not a class functor): a Set over one must still
 // combine through the free set operators (exercised via a Meet below).
 constexpr bool is_pos(int x) { return x > 0; }
 }  // namespace
 
-TEST_CASE("order:halfspace — structured_or joins halfspaces (#365)",
-          "[order][halfspace][structured_or]") {
-  // A same-direction union collapses to a value ConvexSet (the weaker/wider
-  // bound wins).  A crossing union has no cut on a runtime pivot, so it is the
-  // honest point-wise set (decided by membership).
-  SECTION("Upward ∪ Upward: the weaker (wider) pivot wins") {
-    constexpr auto r = structured_or(UpRay<int, Strictness::Strict>{5},
-                                     UpRay<int, Strictness::Strict>{7});
-    STATIC_CHECK(
-        r == ConvexSet<int>::half(5, Direction::Upward, Strictness::Strict));
-  }
+TEST_CASE("order:halfspace — an order atom binds to the ray it names",
+          "[order][halfspace]") {
+  constexpr auto gt = 𝔸<int>{} | (π > 5);
+  constexpr auto ge = 𝔸<int>{} | (π >= 5);
+  constexpr auto lt = 𝔸<int>{} | (π < 5);
+  constexpr auto le = 𝔸<int>{} | (π <= 5);
+  STATIC_CHECK(gt == up(5, strict));
+  STATIC_CHECK(ge == up(5, closed));
+  STATIC_CHECK(lt == down(5, strict));
+  STATIC_CHECK(le == down(5, closed));
+  CHECK(gt(6));
+  CHECK_FALSE(gt(5));  // boundary excluded
+  CHECK(ge(5));        // boundary included
+  CHECK(lt(4));
+  CHECK_FALSE(lt(5));
+  CHECK(le(5));
+  CHECK_FALSE(le(6));
+}
 
-  SECTION("Downward ∪ Downward: the wider (larger) pivot wins") {
-    constexpr auto r = structured_or(DownRay<int, Strictness::Strict>{5},
-                                     DownRay<int, Strictness::Strict>{3});
-    STATIC_CHECK(
-        r == ConvexSet<int>::half(5, Direction::Downward, Strictness::Strict));
-  }
+TEST_CASE("order:halfspace — the union of two intervals",
+          "[order][halfspace][union]") {
+  // One operand covering the other: the cover (the weaker bound wins).
+  STATIC_CHECK(reduce_join(up(5, strict), up(7, strict)) == up(5, strict));
+  STATIC_CHECK(reduce_join(down(5, strict), down(3, strict)) ==
+               down(5, strict));
+  // Overlapping opposite rays: the union is the Join node, deciding by
+  // membership, and it covers the line.
+  constexpr auto u = up(3, closed) | down(5, closed);
+  STATIC_CHECK(static_cast<bool>(u(0)));
+  STATIC_CHECK(static_cast<bool>(u(4)));
+  STATIC_CHECK(static_cast<bool>(u(100)));
+}
 
-  SECTION("Covering opposing (x≥3 ∪ x≤5 overlap [3,5]) covers ℤ") {
-    // The opposing-cover-to-universe structural collapse is gone (a value pivot
-    // cannot dispatch cover-vs-gap); the union is the point-wise set that still
-    // covers every element.
-    constexpr auto u = UpRay<int, Strictness::NonStrict>{3} |
-                       DownRay<int, Strictness::NonStrict>{5};
-    STATIC_CHECK(static_cast<bool>(u(0)));
-    STATIC_CHECK(static_cast<bool>(u(4)));
-    STATIC_CHECK(static_cast<bool>(u(100)));
-  }
+TEST_CASE("order:halfspace — the complement of an interval",
+          "[order][halfspace][complement]") {
+  // A ray's complement is the opposite ray; a bounded interval's is the two
+  // rays around it, a Join of two intervals.
+  constexpr auto gaps = ~I::bounded(2, closed, 5, closed);
+  CHECK(static_cast<bool>(gaps(1)));
+  CHECK_FALSE(static_cast<bool>(gaps(3)));
+  CHECK(static_cast<bool>(gaps(6)));
+  STATIC_CHECK((I::bounded(2, closed, 5, closed) & gaps) == Ø<int>{});
+  STATIC_CHECK((up(5, strict) & ~up(5, strict)) == Ø<int>{});
 }
 
 TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)",
           "[order][halfspace][set][complement]") {
-  // The user's law: a set unioned with its complement covers the ambient, the
-  // dual of the contradiction B ∩ ¬B = Ø.  A value pivot cannot dispatch the
-  // cover structurally, so the union is the honest point-wise set; it still
-  // DECIDES membership --- every pair lands in B or its complement.
+  // A set unioned with its complement covers the ambient, the dual of the
+  // contradiction B ∩ ¬B = Ø; decided by membership.
   constexpr auto B = ℕ * ℕ | π1 > 5;
   constexpr auto cover = B | ~B;
   CHECK(static_cast<bool>(
@@ -170,15 +93,10 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)
 
 TEST_CASE("order:halfspace — covering XOR stays an IsSet (#864 CP review)",
           "[order][halfspace][set][xor]") {
-  // {x > 10} △ {x < 100}: the union covers the line.  A dormant covering-XOR
-  // branch that structured_or once activated returned ¬(A ∩ B) by negating a
-  // bare Interval — a Morphism, not a Set.  Removed; the general path must
-  // keep △ closed over Set.
-  constexpr auto a = UpRay<int, Strictness::Strict>{10};
-  constexpr auto b = DownRay<int, Strictness::Strict>{100};
-  STATIC_CHECK(
-      IsSetObject<decltype(a ^ b)>);  // a node: a set object, structurally
-  // △ = in exactly one: {x ≤ 10} ∪ {x ≥ 100} (the complement of the overlap).
+  // {x > 10} △ {x < 100}: in exactly one, {x ≤ 10} ∪ {x ≥ 100}.
+  constexpr auto a = up(10, strict);
+  constexpr auto b = down(100, strict);
+  STATIC_CHECK(IsSetObject<decltype(a ^ b)>);
   CHECK((a ^ b)(5));         // in b, not a
   CHECK((a ^ b)(200));       // in a, not b
   CHECK_FALSE((a ^ b)(50));  // in both → excluded
@@ -192,11 +110,10 @@ TEST_CASE(
       "function-pointer predicate combines via the free operator& (an "
       "irreducible Meet node, itself a set object)") {
     constexpr Comprehension<𝔸<int, Boole>, bool (*)(int)> pos{&is_pos};
-    constexpr auto cap = DownRay<int, Strictness::Strict>{10};  // x < 10
+    constexpr auto cap = down(10, strict);  // x < 10
     using M = std::decay_t<decltype(pos & cap)>;
     STATIC_CHECK(
-        std::same_as<M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>,
-                             DownRay<int, Strictness::Strict>>>);
+        std::same_as<M, Meet<Comprehension<𝔸<int, Boole>, bool (*)(int)>, I>>);
     CHECK((pos & cap)(5));         // 0 < 5 < 10
     CHECK_FALSE((pos & cap)(-1));  // not > 0
     CHECK_FALSE((pos & cap)(20));  // not < 10
@@ -247,40 +164,13 @@ TEST_CASE("order:halfspace — Singleton identity and cross-L equality",
   SECTION("Size is 1") { STATIC_CHECK(s_classical.size() == 1u); }
 }
 
-TEST_CASE("order:halfspace — Interval size across strictness pairs",
+TEST_CASE("order:halfspace — interval membership matches its sides",
           "[order][halfspace][order_interval]") {
-  // An interval is the meet of two halfspaces; its endpoints are values.
-  SECTION("strict/strict on ℤ: [1, 4] open") {
-    // {n : int | 1 < n < 4} = {2, 3} → size 2
-    constexpr auto iv =
-        make_interval<Strictness::Strict, Strictness::Strict>(1, 4);
-    STATIC_CHECK(dedekind::order::size(iv) == 2u);
-  }
-
-  SECTION("strict/non-strict on ℤ: (1, 4]") {
-    // {n : int | 1 < n <= 4} = {2, 3, 4} → size 3
-    constexpr auto iv =
-        make_interval<Strictness::Strict, Strictness::NonStrict>(1, 4);
-    STATIC_CHECK(dedekind::order::size(iv) == 3u);
-  }
-
-  SECTION("non-strict/non-strict on ℤ: [1, 4]") {
-    // {n : int | 1 <= n <= 4} = {1, 2, 3, 4} → size 4
-    constexpr auto iv =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(1, 4);
-    STATIC_CHECK(dedekind::order::size(iv) == 4u);
-  }
-
-  SECTION("Membership matches boundary semantics") {
-    constexpr auto iv =
-        make_interval<Strictness::Strict, Strictness::NonStrict>(1, 4);
-    using Logic = typename decltype(iv)::logic_species;
-
-    STATIC_CHECK(iv(1) == Logic::False);  // strict lower: 1 excluded
-    STATIC_CHECK(iv(2) == Logic::True);
-    STATIC_CHECK(iv(4) == Logic::True);  // non-strict upper: 4 included
-    STATIC_CHECK(iv(5) == Logic::False);
-  }
+  constexpr auto iv = I::bounded(1, strict, 4, closed);  // (1, 4]
+  STATIC_CHECK(!static_cast<bool>(iv(1)));  // strict lower: 1 excluded
+  STATIC_CHECK(static_cast<bool>(iv(2)));
+  STATIC_CHECK(static_cast<bool>(iv(4)));  // non-strict upper: 4 included
+  STATIC_CHECK(!static_cast<bool>(iv(5)));
 }
 
 TEST_CASE("order:halfspace — Singleton satisfies the consolidated tiers",
@@ -305,7 +195,7 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
   // Halfspace in the universe's species, Boole: decidable membership.  Pairs
   // the module-level static_assert witness with a Codecov-visible runtime
   // membership exercise.
-  constexpr auto point_free = ℕ | (χ > 5);
+  constexpr auto point_free = ℕ | (π > 5);
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
@@ -318,10 +208,8 @@ TEST_CASE(
     "order:halfspace — the product of two intervals is the generic "
     "cartesian product (a box)",
     "[order][halfspace][product]") {
-  constexpr auto a =
-      make_interval<Strictness::Strict, Strictness::Strict>(0, 5);
-  constexpr auto b =
-      make_interval<Strictness::Strict, Strictness::Strict>(0, 3);
+  constexpr auto a = I::bounded(0, strict, 5, strict);
+  constexpr auto b = I::bounded(0, strict, 3, strict);
   // a = {1,2,3,4}, b = {1,2}
   constexpr auto box = a * b;
   STATIC_CHECK(IsSetObject<decltype(box)>);
@@ -363,11 +251,11 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
 
 TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
           "[order][halfspace][subset]") {
-  constexpr UpRay<int, Strictness::Strict> gt5{5};
-  constexpr UpRay<int, Strictness::Strict> gt3{3};
-  constexpr UpRay<int, Strictness::NonStrict> ge5{5};
-  constexpr DownRay<int, Strictness::Strict> lt3{3};
-  constexpr DownRay<int, Strictness::Strict> lt5{5};
+  constexpr auto gt5 = up(5, strict);
+  constexpr auto gt3 = up(3, strict);
+  constexpr auto ge5 = up(5, closed);
+  constexpr auto lt3 = down(3, strict);
+  constexpr auto lt5 = down(5, strict);
 
   SECTION("subset via the lattice identity A ⊆ B ⟺ A ∩ B = A") {
     static_assert(bool(gt5 <= gt3), "{x>5} ⊆ {x>3}");
@@ -416,11 +304,9 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     CHECK(bool(gt3 > gt5));
   }
 
-  SECTION("interval subset decides by endpoints; derived ⊇ rides it") {
-    constexpr auto i25 =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(2, 5);
-    constexpr auto i16 =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(1, 6);
+  SECTION("interval subset; derived ⊇ rides it") {
+    constexpr auto i25 = I::bounded(2, closed, 5, closed);
+    constexpr auto i16 = I::bounded(1, closed, 6, closed);
     static_assert(bool(i25 <= i16), "[2,5] ⊆ [1,6]");
     static_assert(!bool(i16 <= i25), "[1,6] ⊄ [2,5]");
     static_assert(bool(i16 >= i25), "[1,6] ⊇ [2,5] (derived, rides <=)");
@@ -428,60 +314,30 @@ TEST_CASE("order:halfspace — structural subset ⊆ and derived >=,<,> (#831)",
     CHECK_FALSE(bool(i16 <= i25));
   }
 
-  SECTION("empty interval ⊆ every interval (#835 review: ∅ ⊆ X)") {
-    // (5,5) is a representable empty interval (χ ≡ False, size 0); the
-    // endpoint test alone would wrongly report it ⊄ a disjoint interval.
-    constexpr auto empty =
-        make_interval<Strictness::Strict, Strictness::Strict>(5, 5);
-    static_assert(is_empty(empty));
-    static_assert(dedekind::order::size(empty) == 0u);
-    constexpr auto i01 =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(0, 1);
+  SECTION("empty intervals: ∅ ⊆ X, and the collapse is sign-safe") {
+    constexpr auto empty = I::bounded(5, strict, 5, strict);
+    constexpr auto i01 = I::bounded(0, closed, 1, closed);
+    static_assert(empty == Ø<int>{});
     static_assert(bool(empty <= i01), "∅ ⊆ [0,1] despite disjoint endpoints");
-    static_assert(bool(i01 >= empty), "[0,1] ⊇ ∅ (derived)");
+    static_assert(
+        Interval<unsigned>::bounded(5u, strict, 3u, strict) == Ø<unsigned>{},
+        "(5u,3u) is empty, not a wrapped unsigned span");
+    static_assert(I::bounded(5, strict, 6, strict) == Ø<int>{},
+                  "(5,6) has no integer strictly between");
+    static_assert(
+        !(I::bounded(std::numeric_limits<int>::min(), closed,
+                     std::numeric_limits<int>::max(), closed) == Ø<int>{}),
+        "[INT_MIN,INT_MAX] is non-empty");
     CHECK(bool(empty <= i01));
   }
 
-  SECTION("emptiness/subset are overflow- and sign-safe (#835 re-review)") {
-    // (a) Inverted endpoints on an UNSIGNED carrier must NOT wrap to a huge
-    //     span: (5u,3u) is empty, though a naive `hi - lo` (3u-5u) wraps to a
-    //     large positive span and reads non-empty (#835 re-review).
-    static_assert(
-        is_empty(make_interval<Strictness::Strict, Strictness::Strict>(5u, 3u)),
-        "(5u,3u) is empty, not a wrapped unsigned span");
-    // (b) A full-range interval: INT_MAX - INT_MIN overflows int, so the
-    //     effective bounds are computed in long long.
-    constexpr auto full =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(
-            std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
-    static_assert(!is_empty(full), "[INT_MIN,INT_MAX] is non-empty");
-    // (c) Open integer gap (5,6): adjacent endpoints, no member.
-    static_assert(
-        is_empty(make_interval<Strictness::Strict, Strictness::Strict>(5, 6)),
-        "(5,6) has no integer strictly between");
-    // (d) size of a full range is the exact count in a wide span, not a
-    //     wrapped `hi - lo + 1`: |[INT_MIN,INT_MAX]| = 2^32.
-    static_assert(dedekind::order::size(full) == 4294967296ull,
-                  "|[INT_MIN,INT_MAX]| = 2^32");
-  }
-
-  SECTION(
-      "discrete intervals normalize to effective carrier bounds (#835 rd 4)") {
-    // (1,4) and [2,3] both denote {2,3} over int, so they must compare equal
-    // --- a syntactic endpoint compare would wrongly reject (1,4) ⊆ [2,3].
-    constexpr auto open14 =
-        make_interval<Strictness::Strict, Strictness::Strict>(1, 4);  // {2,3}
-    constexpr auto clos23 =
-        make_interval<Strictness::NonStrict, Strictness::NonStrict>(
-            2,
-            3);  // {2,3}
-    static_assert(!is_empty(open14) && !is_empty(clos23));
-    static_assert(dedekind::order::size(open14) == 2u &&
-                  dedekind::order::size(clos23) == 2u);
-    static_assert(bool(open14 <= clos23), "(1,4) ⊆ [2,3] (both {2,3})");
-    static_assert(bool(clos23 <= open14), "[2,3] ⊆ (1,4) (both {2,3})");
-    CHECK(bool(open14 <= clos23));
-    CHECK(bool(clos23 <= open14));
+  SECTION("discrete intervals compare by their closed bounds (#835)") {
+    // (1,4) and [2,3] both denote {2,3} over int.
+    constexpr auto open14 = I::bounded(1, strict, 4, strict);
+    constexpr auto clos23 = I::bounded(2, closed, 3, closed);
+    static_assert(open14 == clos23);
+    static_assert(bool(open14 <= clos23) && bool(clos23 <= open14));
+    CHECK(open14 == clos23);
   }
 }
 
@@ -510,32 +366,26 @@ TEST_CASE(
   CHECK(hs(5) == Kleene::False);
 }
 
-// Witness: a halfspace / ConvexSet lives on a REGISTERED chain
-// (IsTotallyOrdered), not merely a std::totally_ordered one.  The probe is a
-// concept because an unsatisfied class-template constraint is a hard error
-// outside a template.
+// Witness: an Interval lives on a REGISTERED chain (IsTotallyOrdered), not
+// merely a std::totally_ordered one.  The probe is a concept because an
+// unsatisfied class-template constraint is a hard error outside a template.
 template <typename T>
-concept HalfspaceOver = requires { typename UpRay<T, Strictness::Strict>; };
-template <typename T>
-concept ConvexSetOver = requires { typename ConvexSet<T>; };
+concept IntervalOver = requires { typename Interval<T>; };
 
 TEST_CASE("order:halfspace — the carrier gate is the registered chain",
           "[order][halfspace][witness]") {
-  STATIC_CHECK(HalfspaceOver<int> && ConvexSetOver<int>);
+  STATIC_CHECK(IntervalOver<int>);
   // ℤ: a chain under the posture that ±ℵ_0 / NaZ are the memory boundary.
-  STATIC_CHECK(HalfspaceOver<SignedCardinality> &&
-               ConvexSetOver<SignedCardinality>);
+  STATIC_CHECK(IntervalOver<SignedCardinality>);
   // A raw float has no certified order (NaN breaks reflexivity).
-  STATIC_CHECK_FALSE(HalfspaceOver<double>);
-  STATIC_CHECK_FALSE(ConvexSetOver<double>);
+  STATIC_CHECK_FALSE(IntervalOver<double>);
 }
 
 // The power set 𝔓 (#830) is exercised in order/powerset_test.cpp.
 
-TEST_CASE("order:halfspace — the join of convex sets: the cover, or a refusal",
+TEST_CASE("order:halfspace — the join of intervals: the cover, or a refusal",
           "[order][halfspace][join]") {
-  using S = ConvexSet<int>;
-  constexpr auto closed = Strictness::NonStrict;
+  using S = I;
   const auto wide = S::bounded(0, closed, 10, closed);
   const auto narrow = S::bounded(2, closed, 5, closed);
   CHECK(reduce_join(wide, narrow) == wide);  // [0, 10] covers [2, 5]

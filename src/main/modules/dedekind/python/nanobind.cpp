@@ -50,8 +50,10 @@ namespace nb = nanobind;
 namespace {
 
 // Nat = {x ∈ ℤ | x ≥ 0}: the subobject ℕ ⊂ ℤ as the ray {x ≥ 0} over int.
-using Naturals =
-    dedekind::order::UpRay<int, dedekind::order::Strictness::NonStrict>;
+using Naturals = dedekind::order::Interval<int>;
+const Naturals naturals =
+    Naturals::half(0, dedekind::order::Direction::Upward,
+                   dedekind::order::Strictness::NonStrict);
 
 // ── sequences: Python list ↔ dedekind.sequences ──────────────────────────
 // These functions accept and return std::vector<int> (Python list) because
@@ -286,7 +288,7 @@ NB_MODULE(_dedekind, module) {
             [](const Naturals& s, int x) { return static_cast<bool>(s(x)); },
             "x ∈ ℕ⊂ℤ via the native classifier (Nat(-7) == False).")
         .def("__repr__", [](const Naturals&) { return std::string("ℕ⊂ℤ"); });
-    module.attr("Nat") = Naturals{0};  // ASCII key, distinct from `ℕ` → "N"
+    module.attr("Nat") = naturals;  // ASCII key, distinct from `ℕ` → "N"
   }
 
   // ── ext: the native retraction μ: Int ⇀ Ext (#886) ─────────────────────
@@ -300,7 +302,7 @@ NB_MODULE(_dedekind, module) {
   module.def(
       "ext",
       [](const std::vector<int>& universe) {
-        return dedekind::sets::ext(universe, Naturals{0});
+        return dedekind::sets::ext(universe, naturals);
       },
       "Extensionalise a finite universe through the native ℕ⊂ℤ classifier χ "
       "into a Python set: ext([-2, -1, 0, 1, 2]) == {0, 1, 2}.  The retraction "

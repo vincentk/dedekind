@@ -64,8 +64,8 @@ using dedekind::category::Predecessor;
 using dedekind::category::preimage;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
-using dedekind::order::ConvexSet;
 using dedekind::order::Direction;
+using dedekind::order::Interval;
 using dedekind::order::reduce_meet;
 using dedekind::order::Strictness;
 using dedekind::sequences::Run;
@@ -217,10 +217,10 @@ namespace lwv {
 
 /** @brief A value-based set handle (#965): the pivot rides as a VALUE, so one
  *  constructor covers all pivots at runtime.  Carrier @c long @c long (Python
- *  @c int).  @c ConvexSet is a @c :order value-first set; its meet is the same
+ *  @c int).  @c Interval is a @c :order value-first set; its meet is the same
  *  @c constexpr @c reduce_meet the compile-time exhibits fold, so there is no
  *  Python-side reducer. */
-using Set = ConvexSet<long long>;
+using Set = Interval<long long>;
 // Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
 // χ) --- and this is the compile-time MUST for it (RFC 2119).
 static_assert(IsSetObject<Set>,
@@ -459,19 +459,19 @@ Set<C, L> point(const C& v) {
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return datum<C>((𝔸<C>{} | (π > v)).predicate);
+  return datum<C>(𝔸<C>{} | (π > v));
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return datum<C>((𝔸<C>{} | (π >= v)).predicate);
+  return datum<C>(𝔸<C>{} | (π >= v));
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return datum<C>((𝔸<C>{} | (π < v)).predicate);
+  return datum<C>(𝔸<C>{} | (π < v));
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return datum<C>((𝔸<C>{} | (π <= v)).predicate);
+  return datum<C>(𝔸<C>{} | (π <= v));
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {

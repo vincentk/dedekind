@@ -2,7 +2,7 @@
  *
  * @brief The decidable real interval @f$(-\sqrt2,\sqrt2)@f$ over the genuine
  * cut-real carrier @c Cut<>, hosted on order's value-carrying two-sided cut
- * @c Interval (@c make_interval).
+ * @c Interval.
  *
  * The load-bearing claim: a real interval whose bounds are @b irrational
  * (@f$\pm\sqrt2@f$) has @b decidable membership at every rational point, and
@@ -25,18 +25,18 @@ import dedekind.topology;
 
 using namespace dedekind::numbers;
 using dedekind::category::IsLSet;
-using dedekind::order::make_interval;
-using dedekind::order::pivot;
+using dedekind::order::Direction;
+using dedekind::order::Interval;
 using dedekind::order::Strictness;
-using dedekind::topology::IsClosed;
-using dedekind::topology::IsOpen;
+using dedekind::topology::is_order_closed;
+using dedekind::topology::is_order_open;
 
 namespace {
 using Q = Rational<>;
 constexpr Cut<> two_root = Cut<>::sqrt(Q{2});  // √2
 // (−√2, √2) as a real interval — irrational, runtime-pivot bounds.
-constexpr auto band =
-    make_interval<Strictness::Strict, Strictness::Strict>(-two_root, two_root);
+constexpr auto band = Interval<Cut<>>::bounded(-two_root, Strictness::Strict,
+                                               two_root, Strictness::Strict);
 
 // Membership of a rational point q, decided by q² <=> 2.
 constexpr bool in_band(long n) { return static_cast<bool>(band(Cut<>{n})); }
@@ -103,16 +103,16 @@ TEST_CASE(
     constexpr Q p{3, 2};
     constexpr auto ray = principal_ray(p);
     constexpr auto down = lower_set(Cut<>{p});
-    STATIC_CHECK(pivot(ray) == p);
+    STATIC_CHECK(ray.span()->upper->at == p);
     STATIC_CHECK(ray(Q{1}) == down(Q{1}));
     STATIC_CHECK(ray(p) == down(p));
     STATIC_CHECK(ray(Q{2}) == down(Q{2}));
     STATIC_CHECK_FALSE(ray(p));  // strict: the bound is not below itself
-    // The order topology reads the datum: {q < p} open, {q ≥ p} closed.
-    using Ray = PrincipalRay<Q>;
-    using CoRay = std::remove_cvref_t<decltype(~ray)>;
-    STATIC_CHECK(IsOpen<Ray>);
-    STATIC_CHECK(IsClosed<CoRay>);
-    STATIC_CHECK(pivot(~ray) == p);
+    // The order topology reads the sides: {q < p} open, its complement
+    // {q ≥ p} closed.
+    STATIC_CHECK(is_order_open(ray));
+    STATIC_CHECK((~ray).rhs == Interval<Q>::half(p, Direction::Upward,
+                                                 Strictness::NonStrict));
+    STATIC_CHECK(is_order_closed((~ray).rhs));
   }
 }

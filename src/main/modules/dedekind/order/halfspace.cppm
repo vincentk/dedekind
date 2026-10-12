@@ -6,22 +6,20 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section halfspace__Halfspaces_As_Types
- * Structured compile-time halfspace predicates over an ordered carrier. The
- * pivot is carried in the predicate's TYPE as a non-type template parameter,
- * which is what lets `(n > 5) && (n < 3)` collapse structurally
- * to an empty predicate at compile time. Contrast with the lambda-returning
- * scout operators in `dedekind.sets`, which erase the pivot into a closure.
+ * @section halfspace__Intervals_As_Values
+ * The order reading of the term grammar on a chain: an order atom @c π @c ⋈ @c
+ * c on @c 𝔸<T> is an @c Interval, a value whose sides (each an optional bound,
+ * open or closed) and pivots are values.  Meets reduce in constant evaluation
+ * where the pivots are constants and at runtime otherwise; the complement of an
+ * interval is a @c Join of at most two intervals.
  *
  * @section halfspace__DSL_Surface
  *
- *     inline constexpr auto n = element<𝔸<ℕ>>;
- *     inline constexpr auto big   = Set{n | (n > 5)};
- *     inline constexpr auto small = Set{n | (n < 3)};
- *     // (big ∩ small) = ∅  — witnessed at compile time via structured_and
+ *     constexpr auto big   = ℕ | (π > 5);
+ *     constexpr auto small = ℕ | (π < 3);
+ *     static_assert((big & small) == Ø<Cardinality>{});
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
- * Non-type template parameter
  *
  * @note "Was beweisbar ist, soll in der Wissenschaft nicht ohne Beweis
  *       geglaubt werden."
@@ -49,7 +47,7 @@ import dedekind.relational; // IsFunctional/IsEntire (:graph), used by the order
                             // relation witnesses below (#792)
 import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
-import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / ConvexSet:
+import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / Interval:
                 // the interval normal form lives on a certified chain
 
 namespace dedekind::order {
@@ -169,162 +167,6 @@ static_assert(
     "a carrier with an unrelated/incomplete cardinality_type falls back to the "
     "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
-/** @brief A side of a cut: no bound, or a bound of strictness @c S.  Typed, so
- *  direction and strictness stay concept-visible (the order topology, @c ~ and
- *  @c upperbounds read them); only the bound values ride in the instance.
- *  @tparam S the strictness of the bound. */
-export struct Unbounded {};
-export template <Strictness S>
-struct Bounded {
-  static constexpr Strictness strictness = S;
-};
-/** @brief Whether @c Side is a bound.  @tparam Side a side type. */
-export template <typename Side>
-inline constexpr bool is_bounded_side_v = false;
-export template <Strictness S>
-inline constexpr bool is_bounded_side_v<Bounded<S>> = true;
-/** @brief A side of a cut.  @tparam Side @c Unbounded or a @c Bounded. */
-export template <typename Side>
-concept IsSide = std::same_as<Side, Unbounded> || is_bounded_side_v<Side>;
-/** @brief The complement's side: a bound flips its strictness.
- *  @tparam Side the side to flip. */
-template <IsSide Side>
-struct flipped_side {
-  using type = Unbounded;
-};
-template <Strictness S>
-struct flipped_side<Bounded<S>> {
-  using type = Bounded<flip(S)>;
-};
-export template <IsSide Side>
-using flipped_side_t = typename flipped_side<Side>::type;
-
-/** @brief The cut, the datum of the order theory on a chain: a lower and an
- *  upper side in the type, the bound values @c lo / @c hi in the instance.  A
- *  ray has one side, an interval both; the point (@c lo == hi) and the empty
- *  set (crossed bounds) are value facts the reducer discharges; the universe
- *  (no side) is @c 𝔸.
- *  @tparam Lo the lower side.
- *  @tparam Hi the upper side.
- *  @tparam T the carrier, a registered chain. */
-export template <IsSide Lo, IsSide Hi, IsTotallyOrdered T>
-  requires(is_bounded_side_v<Lo> || is_bounded_side_v<Hi>)
-struct Bounds {
-  using Domain = T;
-  using Codomain = bool;
-  using cardinality_type = carrier_cardinality_t<T>;
-  static constexpr bool has_lo = is_bounded_side_v<Lo>;
-  static constexpr bool has_hi = is_bounded_side_v<Hi>;
-  T lo{};
-  T hi{};
-
-  constexpr Bounds() = default;
-  /** @brief A ray from its one bound; implicit and converting, so a literal of
-   *  another type is one user-defined conversion, the carrier's own. */
-  template <std::convertible_to<T> U>
-    requires(has_lo != has_hi)
-  constexpr Bounds(U&& bound) {  // NOLINT(google-explicit-constructor)
-    if constexpr (has_lo)
-      lo = static_cast<T>(std::forward<U>(bound));
-    else
-      hi = static_cast<T>(std::forward<U>(bound));
-  }
-  /** @brief An interval from both bounds. */
-  constexpr Bounds(T lower, T upper)
-    requires(has_lo && has_hi)
-      : lo(lower), hi(upper) {}
-
-  /** @brief The foreign carriers this datum admits: any @c U the order compares
-   *  against @c T.  Read by the comprehension's heterogeneous χ. */
-  template <typename U>
-  static constexpr bool admits = !std::same_as<std::remove_cvref_t<U>, T> &&
-                                 requires(const U& x, const T& p) {
-                                   { x < p } -> std::convertible_to<bool>;
-                                   { x > p } -> std::convertible_to<bool>;
-                                   { x <= p } -> std::convertible_to<bool>;
-                                   { x >= p } -> std::convertible_to<bool>;
-                                 };
-
-  /** @brief χ(x): the present sides' comparisons, conjoined. */
-  template <typename U>
-    requires std::same_as<std::remove_cvref_t<U>, T> || admits<U>
-  constexpr bool operator()(const U& x) const {
-    bool ok = true;
-    if constexpr (has_lo)
-      ok = ok && (Lo::strictness == Strictness::Strict ? (x > lo) : (x >= lo));
-    if constexpr (has_hi)
-      ok = ok && (Hi::strictness == Strictness::Strict ? (x < hi) : (x <= hi));
-    return ok;
-  }
-};
-
-/** @brief Which side a ray bounds, and that side's strictness. */
-export template <IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-consteval Direction direction_of() {
-  return is_bounded_side_v<Lo> ? Direction::Upward : Direction::Downward;
-}
-export template <IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-consteval Strictness ray_strictness() {
-  if constexpr (is_bounded_side_v<Lo>)
-    return Lo::strictness;
-  else
-    return Hi::strictness;
-}
-
-/** @brief The rays @c {x > p} (lower-bounded) and @c {x < p} (upper-bounded)
- *  as comprehensions of the datum over the universe of @c T.
- *  @tparam T the carrier, a registered chain.
- *  @tparam S the strictness of the bound.
- *  @tparam L the species the membership answer is valued in. */
-export template <IsTotallyOrdered T, Strictness S, IsOckhamAlgebra L = Boole>
-using UpRay = Comprehension<𝔸<T, L>, Bounds<Bounded<S>, Unbounded, T>>;
-export template <IsTotallyOrdered T, Strictness S, IsOckhamAlgebra L = Boole>
-using DownRay = Comprehension<𝔸<T, L>, Bounds<Unbounded, Bounded<S>, T>>;
-/** @brief The ray at @c v by direction, for the sites that compute the
- *  direction (@c dir_of(R), a reflection).
- *  @tparam D the direction.
- *  @tparam S the strictness.
- *  @tparam L the species.
- *  @tparam T the carrier, a registered chain. */
-export template <Direction D, Strictness S, IsOckhamAlgebra L = Boole,
-                 IsTotallyOrdered T>
-constexpr auto make_ray(T v) {
-  if constexpr (D == Direction::Upward)
-    return 𝔸<T, L>{} | Bounds<Bounded<S>, Unbounded, T>{std::move(v)};
-  else
-    return 𝔸<T, L>{} | Bounds<Unbounded, Bounded<S>, T>{std::move(v)};
-}
-/** @brief The interval @c {lo ⋈ x ⋈ hi}: both sides bounded.
- *  @tparam T the carrier, a registered chain.
- *  @tparam SL the strictness of the lower bound.
- *  @tparam SU the strictness of the upper bound.
- *  @tparam L the species. */
-export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
-                 IsOckhamAlgebra L = Boole>
-using Interval = Comprehension<𝔸<T, L>, Bounds<Bounded<SL>, Bounded<SU>, T>>;
-
-/** @brief The bound of a ray.
- *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
- *  @tparam Lo / @tparam Hi the sides, exactly one bounded. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr T pivot(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
-  if constexpr (is_bounded_side_v<Lo>)
-    return r.predicate.lo;
-  else
-    return r.predicate.hi;
-}
-
-/** @section halfspace__Leaf_Surface
- *
- * The ray's own surface: the complement (a ray's complement is the opposite ray
- * at the same bound; an interval's is not a cut and stays the generic @c Not
- * node), the telling aliases.  Every other operation is a comprehension's.
- */
-
 /** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
 export constexpr Direction dir_of(Rel r) {
   return (r == Rel::Gt || r == Rel::Ge) ? Direction::Upward
@@ -340,147 +182,12 @@ export constexpr bool is_order_rel(Rel r) {
   return r == Rel::Lt || r == Rel::Le || r == Rel::Gt || r == Rel::Ge;
 }
 
-}  // namespace dedekind::order
-namespace dedekind::sets {
-/** @brief An order atom @c π @c ⋈ @c k on a chain is the cut it names, whatever
- *  the constant's type: the constant meets the carrier exactly or the binding
- *  raises.  Declared in the namespace of @c 𝔸 and the atom, so ADL finds it.
- *  @tparam T the carrier.  @tparam R the order relation.
- *  @tparam K the constant's type. */
-export template <dedekind::order::IsTotallyOrdered T,
-                 dedekind::category::IsOckhamAlgebra L, IsCardinality C, Rel R,
-                 typename K>
-  requires(dedekind::order::is_order_rel(R))
-constexpr auto operator|(const 𝔸<T, L, C>& u,
-                         const Cmp<R, Projection<0>, Const<K>>& c) {
-  using namespace dedekind::order;
-  const T k = carrier_cast<T>(c.b.value);
-  if constexpr (dedekind::order::dir_of(R) == Direction::Upward)
-    return u | Bounds<Bounded<strict_of(R)>, Unbounded, T>{k};
-  else
-    return u | Bounds<Unbounded, Bounded<strict_of(R)>, T>{k};
-}
-}  // namespace dedekind::sets
-namespace dedekind::order {
-
-/** @brief Complement of a halfspace: the opposite halfspace with the SAME pivot
- *  value, flipped direction + strictness.  (value-carrying, so the
- *  boundary-collapse to Ø/𝔸 that the NTTP factory did at compile time is now a
- *  value-level concern of @c reduce_meet, not a type-level branch here.) */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr auto operator~(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& r) {
-  using B = Bounds<flipped_side_t<Hi>, flipped_side_t<Lo>, T>;
-  return 𝔸<T, L, C>{} | B{pivot(r)};
-}
-
-// The same-pivot complement-pair @c operator| / @c operator& (union → 𝔸,
-// meet → Ø) are DELETED --- they gated on a shared NTTP pivot, which a value
-// pivot cannot express at the type level.  The meet is subsumed by
-// @c structured_and → @c reduce_meet (a strict complement pair reduces to
-// empty, a closed one to the boundary point); the join by @c structured_or.
-
-/** @brief Telling aliases for the two ℕ halfspaces the §3 listing uses
- *  (value-carrying: the pivot rides in the instance): @c Above<>{N} = {x>N},
- *  @c AtMost<>{N} = {x<=N}.  The alias fixes carrier / direction / strictness;
- *  @c Above<> is the type, @c Above<>{N} the value (was @c Above<N>{}). */
-export template <IsOckhamAlgebra L = Boole>
-using Above = UpRay<Cardinality, Strictness::Strict, L>;
-export template <IsOckhamAlgebra L = Boole>
-using AtMost = DownRay<Cardinality, Strictness::NonStrict, L>;
-
-// A bare Halfspace / Singleton is a first-class @c IsSubobject (ι: S ↣ A plus
-// its own χ), though NOT a full ETCS @c IsSet: @c IsSet additionally demands
-// the ETCS-axiom surface (@c HasETCSAxioms + the CCC witness) that only the
-// ambient universe @c 𝔸<T> carries.  Subobject-hood is the right membership —
-// it is what the complement-lattice operators above operate on.
-static_assert(IsSubobject<Above<>, dedekind::sets::Cardinality>,
-              "a Halfspace is a first-class subobject ι: S ↣ ℕ.");
-static_assert(IsSubobject<Singleton<bool>, bool>,
-              "a static Singleton is a first-class subobject.");
-// ... and both are set OBJECTS in the (reified universe, χ) sense: a structured
-// normal form over its ambient, χ into the named logic species.
-static_assert(dedekind::sets::IsSetObject<Above<>>,
-              "a Halfspace is a set object: (universe ℕ, χ = x > p).");
-static_assert(dedekind::sets::IsSetObject<Singleton<bool>>,
-              "a Singleton is a set object: (universe 𝔹, χ = x == v).");
-
-/** @brief The interval from its two endpoints.
- *  @tparam SL the strictness of the lower bound.
- *  @tparam SU the strictness of the upper bound.
- *  @tparam L the species.
- *  @tparam T the carrier, a registered chain. */
-export template <Strictness SL, Strictness SU, IsOckhamAlgebra L = Boole,
-                 IsTotallyOrdered T>
-constexpr Interval<T, SL, SU, L> make_interval(T lo, T hi) {
-  return 𝔸<T, L>{} | Bounds<Bounded<SL>, Bounded<SU>, T>{lo, hi};
-}
-
-/** @brief The endpoints of an interval. */
-export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
-                 IsOckhamAlgebra L>
-constexpr T lower_pivot(const Interval<T, SL, SU, L>& iv) {
-  return iv.predicate.lo;
-}
-export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
-                 IsOckhamAlgebra L>
-constexpr T upper_pivot(const Interval<T, SL, SU, L>& iv) {
-  return iv.predicate.hi;
-}
-
-/** @brief Effective integer bounds on a built-in integral carrier: the
- *  tightest admitted integers after the strictness offset (an integral endpoint
- *  carries no fractional part to floor / ceil).  Decided on the values, so the
- *  same normalisation serves emptiness, cardinality and the subset test, and
- *  distinct endpoints denoting the same set agree (@c (1,4) and @c [2,3] over
- *  @c int).  The variant ℕ-/ℤ-proxies await the heterogeneous-pivot
- *  restoration (#970). */
-export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr long long eff_lower(const Interval<T, SL, SU, L>& iv) {
-  const auto lo = static_cast<long long>(lower_pivot(iv));
-  return SL == Strictness::Strict ? lo + 1 : lo;
-}
-export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr long long eff_upper(const Interval<T, SL, SU, L>& iv) {
-  const auto hi = static_cast<long long>(upper_pivot(iv));
-  return SU == Strictness::Strict ? hi - 1 : hi;
-}
-
-/** @brief Whether the interval denotes the empty set (χ ≡ False).  A built-in
- *  integral carrier decides on the effective bounds, so the open gap @c (5,6)
- *  is empty; any other ordered carrier on endpoint degeneracy (@c hi<lo, or
- *  @c lo==hi with an open end --- @c [5,5] is the singleton).  Empty intervals
- *  are representable, so @c :inclusion recognises @f$∅ ⊆ X@f$. */
-export template <IsTotallyOrdered T, Strictness SL, Strictness SU,
-                 IsOckhamAlgebra L>
-constexpr bool is_empty(const Interval<T, SL, SU, L>& iv) {
-  if constexpr (std::integral<T>) {
-    return eff_lower(iv) > eff_upper(iv);
-  } else {
-    const T lo = lower_pivot(iv);
-    const T hi = upper_pivot(iv);
-    return hi < lo ||
-           (lo == hi && (SL == Strictness::Strict || SU == Strictness::Strict));
-  }
-}
-
-/** @brief The finite cardinality of an interval on a built-in integral
- *  carrier (0 when empty). */
-export template <std::integral T, Strictness SL, Strictness SU, typename L>
-constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
-  const long long lo = eff_lower(iv);
-  const long long hi = eff_upper(iv);
-  return hi < lo ? 0u : static_cast<std::size_t>(hi - lo + 1);
-}
-
 /** @section halfspace__Value_First_Meet — the ONE meet law, value-first.
  *
- *  @details The meet is written ONCE here, over a @c ConvexSet whose pivot is a
+ *  @details The meet is written ONCE here, over a @c Interval whose pivot is a
  *  @b value.  Being @c constexpr it serves BOTH phases (the
  * compile-time/runtime optionality): the set-level @c structured_and below
- * delegates to it, so the meet of two cuts is a @c ConvexSet whatever their
+ * delegates to it, so the meet of two cuts is a @c Interval whatever their
  * pivots, and the Python @c dedekind.lwv surface calls the @b same function on
  * runtime pivots.  The pivot never needs to live in a type.
  *
@@ -488,7 +195,7 @@ constexpr std::size_t size(const Interval<T, SL, SU, L>& iv) {
  * direction,
  *  @f$\{x \mid x \bowtie p\} = \pi_1(\,S \times \eta(p) \mid \pi_1 \bowtie
  *  \pi_2\,)@f$, the pivot in the value @f$\eta(p)@f$ (a @c Singleton); the
- *  singleton is the degenerate point @c ConvexSet::point.  House spelling @c χ
+ *  singleton is the degenerate point @c Interval::point.  House spelling @c χ
  * /
  *  @c π₁,π₂.
  *
@@ -530,6 +237,29 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
 
+namespace detail_interval {
+/** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
+ *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
+ *  floor is 0).  A pivot is a value, so this is a value fact.
+ *  @tparam T the carrier.  @param p the pivot.  @param d the direction.
+ *  @param s the strictness. */
+template <IsTotallyOrdered T>
+constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
+  if (d == Direction::Upward) {
+    if constexpr (std::integral<T>)
+      return s == Strictness::Strict && p == std::numeric_limits<T>::max();
+    else
+      return false;
+  }
+  if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
+    return s == Strictness::Strict && p == T{};
+  else if constexpr (std::signed_integral<T>)
+    return s == Strictness::Strict && p == std::numeric_limits<T>::min();
+  else
+    return false;
+}
+}  // namespace detail_interval
+
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
  *  a union or a complement leaves it unless one operand covers the other.  No
@@ -545,11 +275,13 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
  */
 export template <typename V = long long, typename L = Boole>
   requires IsTotallyOrdered<V>
-struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
+struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
   using Domain = V;
+  using Codomain = typename L::Ω;
+  using cardinality_type = carrier_cardinality_t<V>;
 
   /** @brief The universe, 𝔸. */
-  constexpr ConvexSet() = default;
+  constexpr Interval() = default;
   /** @brief The sides, or @c nullopt for Ø: a convex set is @c 1 @c + @c Span.
    *  Built only through the factories below, so always in normal form. */
   constexpr const std::optional<Span<V>>& span() const { return span_; }
@@ -561,7 +293,7 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
    *  @c contains_bounded behind it.  The split is load-bearing for the IR
    *  exhibits: on a variant carrier (ℕ = @c Cardinality) the comparisons are
    *  heavy enough that the inliner declines a single fat function, and a
-   *  constant @c ConvexSet then stays a call instead of folding to @c ret @c i1
+   *  constant @c Interval then stays a call instead of folding to @c ret @c i1
    *  @c false.  A small front inlines, the loads from the constant fold, and
    *  the bounded call is dead code. */
   constexpr bool contains(const V& x) const {
@@ -587,26 +319,31 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
     return contains(x) ? L::True : L::False;
   }
 
-  static constexpr ConvexSet half(V pivot, Direction d, Strictness s) {
+  /** @brief The ray @c {x ⋈ pivot}: @c Ø at the carrier's end beyond it,
+   *  @c 𝔸 where it admits the whole carrier. */
+  static constexpr Interval half(V pivot, Direction d, Strictness s) {
+    if (detail_interval::ray_is_empty(pivot, d, s)) return empty();
+    if (detail_interval::ray_is_empty(pivot, flip(d), flip(s)))
+      return universe();
     if (d == Direction::Upward)
-      return ConvexSet{Span<V>{Bound<V>{pivot, s}, {}}};
-    return ConvexSet{Span<V>{{}, Bound<V>{pivot, s}}};
+      return Interval{Span<V>{Bound<V>{pivot, s}, {}}};
+    return Interval{Span<V>{{}, Bound<V>{pivot, s}}};
   }
-  static constexpr ConvexSet point(V pivot) {
-    return ConvexSet{Span<V>{Bound<V>{pivot}, Bound<V>{pivot}}};
+  static constexpr Interval point(V pivot) {
+    return Interval{Span<V>{Bound<V>{pivot}, Bound<V>{pivot}}};
   }
   /** @brief The two boundary sets as values --- the meet's annihilator (@c Ø)
    *  and unit (@c 𝔸).  Factories (not raw aggregate init) so callers never
    * spell the empty-base brace of the @c SetExpr aggregate. */
-  static constexpr ConvexSet empty() { return ConvexSet{std::nullopt}; }
-  static constexpr ConvexSet universe() { return {}; }
+  static constexpr Interval empty() { return Interval{std::nullopt}; }
+  static constexpr Interval universe() { return {}; }
   /** @brief The bounded meet @c [lo, hi] with its strictness pair, collapsed:
    *  empty if the bounds cross, the single point where the chain admits exactly
    *  one element, else the interval.  The ONE collapse law every meet rides.
    *  The point collapse gates on the NNO steps (@c HasNNOStep: successor /
    *  predecessor, an axiom of the category), so the ℕ proxy @c Cardinality
    *  collapses to its point exactly as a machine integer does. */
-  static constexpr ConvexSet bounded(V lo, Strictness sl, V hi, Strictness su) {
+  static constexpr Interval bounded(V lo, Strictness sl, V hi, Strictness su) {
     const bool either_strict =
         sl == Strictness::Strict || su == Strictness::Strict;
     if (either_strict ? (lo >= hi) : (lo > hi)) return empty();
@@ -617,35 +354,56 @@ struct ConvexSet : dedekind::sets::SetExpr<ConvexSet<V, L>, V, L> {
       if (el > eu) return empty();
       if (el == eu) return point(el);
     }
-    return ConvexSet{Span<V>{Bound<V>{lo, sl}, Bound<V>{hi, su}}};
+    return Interval{Span<V>{Bound<V>{lo, sl}, Bound<V>{hi, su}}};
   }
   /** @brief The set with the given sides: through @c bounded when both are
    *  present, so it is collapsed.  @param lo the lower side.  @param hi the
    *  upper side. */
-  static constexpr ConvexSet of_sides(const std::optional<Bound<V>>& lo,
-                                      const std::optional<Bound<V>>& hi) {
+  static constexpr Interval of_sides(const std::optional<Bound<V>>& lo,
+                                     const std::optional<Bound<V>>& hi) {
     if (lo && hi)
       return bounded(lo->at, lo->strictness, hi->at, hi->strictness);
-    return ConvexSet{Span<V>{lo, hi}};
+    if (lo) return half(lo->at, Direction::Upward, lo->strictness);
+    if (hi) return half(hi->at, Direction::Downward, hi->strictness);
+    return universe();
   }
 
  private:
   std::optional<Span<V>> span_ = Span<V>{};
-  constexpr explicit ConvexSet(std::optional<Span<V>> s)
-      : span_(std::move(s)) {}
+  constexpr explicit Interval(std::optional<Span<V>> s) : span_(std::move(s)) {}
 };
 
 // The value set is a set OBJECT --- (reified universe, χ) --- so whatever the
-// Python surface exports (it exports ConvexSet) conforms to IsSetObject by
+// Python surface exports (it exports Interval) conforms to IsSetObject by
 // construction.  A MUST for the exported type, pinned here at its definition.
 static_assert(
-    dedekind::sets::IsSetObject<ConvexSet<int>>,
-    "ConvexSet is a set object: the value normal form over its universe.");
+    dedekind::sets::IsSetObject<Interval<int>>,
+    "Interval is a set object: the value normal form over its universe.");
 static_assert(
-    dedekind::sets::IsSetObject<ConvexSet<long long>>,
-    "the Python surface's Set (ConvexSet<long long>) is a set object.");
+    dedekind::sets::IsSetObject<Interval<long long>>,
+    "the Python surface's Set (Interval<long long>) is a set object.");
 
-namespace detail_convex {
+}  // namespace dedekind::order
+namespace dedekind::sets {
+/** @brief An order atom @c π @c ⋈ @c k on a chain is the ray it names,
+ *  whatever the constant's type: the constant meets the carrier exactly or the
+ *  binding raises.  Declared beside @c 𝔸 and the atom, so ADL finds it.
+ *  @tparam T the carrier.  @tparam R the order relation.
+ *  @tparam K the constant's type. */
+export template <dedekind::order::IsTotallyOrdered T,
+                 dedekind::category::IsOckhamAlgebra L, IsCardinality C, Rel R,
+                 typename K>
+  requires(dedekind::order::is_order_rel(R))
+constexpr dedekind::order::Interval<T, L> operator|(
+    const 𝔸<T, L, C>&, const Cmp<R, Projection<0>, Const<K>>& c) {
+  return dedekind::order::Interval<T, L>::half(carrier_cast<T>(c.b.value),
+                                               dedekind::order::dir_of(R),
+                                               dedekind::order::strict_of(R));
+}
+}  // namespace dedekind::sets
+namespace dedekind::order {
+
+namespace detail_interval {
 /** @brief The tighter of two lower sides: the larger bound; at a tie the
  *  strict one.  An absent side is no constraint.  @tparam V the carrier. */
 template <typename V>
@@ -685,39 +443,25 @@ constexpr bool upper_covers(const std::optional<Bound<V>>& a,
   return a->strictness == Strictness::NonStrict ||
          b->strictness == Strictness::Strict;
 }
-}  // namespace detail_convex
+}  // namespace detail_interval
 
 /** @brief The ONE meet law: the tighter side on each end, collapsed by
  *  @c bounded (crossing sides to @c Ø, a single admitted element to its point).
  *  @c constexpr, so evaluable at compile time or runtime. */
 export template <typename V, typename L>
-constexpr ConvexSet<V, L> reduce_meet(const ConvexSet<V, L>& a,
-                                      const ConvexSet<V, L>& b) {
-  using S = ConvexSet<V, L>;
+constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
+                                     const Interval<V, L>& b) {
+  using S = Interval<V, L>;
   if (!a.span() || !b.span()) return S::empty();
   return S::of_sides(
-      detail_convex::tighter_lower(a.span()->lower, b.span()->lower),
-      detail_convex::tighter_upper(a.span()->upper, b.span()->upper));
-}
-
-/** @brief A cut as a @c ConvexSet: its present sides, collapsed (crossing
- *  bounds to @c Ø, a single admitted element to its point). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr ConvexSet<T, L> to_convex_set(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
-  std::optional<Bound<T>> lo, hi;
-  if constexpr (is_bounded_side_v<Lo>)
-    lo = Bound<T>{c.predicate.lo, Lo::strictness};
-  if constexpr (is_bounded_side_v<Hi>)
-    hi = Bound<T>{c.predicate.hi, Hi::strictness};
-  return ConvexSet<T, L>::of_sides(lo, hi);
+      detail_interval::tighter_lower(a.span()->lower, b.span()->lower),
+      detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
 /** @brief Equality of two value sets: both empty, or the same sides.  The
  * value-first counterpart of the old type-level set equality; it is what the
  * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
- * meet returns a @c ConvexSet.
+ * meet returns a @c Interval.
  *
  *  @details The verdict is returned in the ambient logic @c L::Ω (so it
  * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
@@ -732,7 +476,7 @@ constexpr ConvexSet<T, L> to_convex_set(
  *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
  *  closed bounds.  On a dense carrier they are different sets, and the
  *  comparison stays structural. */
-namespace detail_convex_eq {
+namespace detail_interval_eq {
 /** @brief Close a strict lower bound at the next element, where the step moves;
  *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
  *  element to close at and the bound stays strict --- @c {x > ⊤} is not
@@ -768,16 +512,16 @@ constexpr Span<V> canonical(Span<V> s) {
   }
   return s;
 }
-}  // namespace detail_convex_eq
+}  // namespace detail_interval_eq
 export template <typename V, typename L>
   requires std::equality_comparable<V>
-constexpr typename L::Ω operator==(const ConvexSet<V, L>& a,
-                                   const ConvexSet<V, L>& b) {
+constexpr typename L::Ω operator==(const Interval<V, L>& a,
+                                   const Interval<V, L>& b) {
   const auto& x = a.span();
   const auto& y = b.span();
   const bool eq = (!x || !y) ? (!x && !y)
-                             : detail_convex_eq::canonical(*x) ==
-                                   detail_convex_eq::canonical(*y);
+                             : detail_interval_eq::canonical(*x) ==
+                                   detail_interval_eq::canonical(*y);
   return eq ? L::True : L::False;
 }
 /** @brief A value set against the boundaries: @c Ø is the uninhabited one, @c 𝔸
@@ -785,156 +529,84 @@ constexpr typename L::Ω operator==(const ConvexSet<V, L>& a,
  *  exhausting the chain instead (sets:boundaries). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
-constexpr bool operator==(const Ø<T, L>&, const ConvexSet<T, L>& s) {
+constexpr bool operator==(const Ø<T, L>&, const Interval<T, L>& s) {
   return !s.span();
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L>
   requires(!IsPst<T>)
-constexpr bool operator==(const ConvexSet<T, L>& s, const Ø<T, L>&) {
+constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>&) {
   return !s.span();
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const 𝔸<T, L, CU>&, const ConvexSet<T, L>& s) {
+constexpr bool operator==(const 𝔸<T, L, CU>&, const Interval<T, L>& s) {
   return s.span() && !s.span()->lower && !s.span()->upper;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
   requires(!IsPst<T>)
-constexpr bool operator==(const ConvexSet<T, L>& s, const 𝔸<T, L, CU>&) {
+constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>&) {
   return s.span() && !s.span()->lower && !s.span()->upper;
 }
-namespace detail_convex_eq {
+namespace detail_interval_eq {
 using dedekind::category::Ternary;
 using dedekind::sets::Cardinality;
 using dedekind::sets::ℵ_0;
 static_assert(
-    ConvexSet<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
-        ConvexSet<int>::bounded(1, Strictness::NonStrict, 3,
-                                Strictness::Strict),
+    Interval<int>::bounded(0, Strictness::Strict, 3, Strictness::Strict) ==
+        Interval<int>::bounded(1, Strictness::NonStrict, 3, Strictness::Strict),
     "(0, 3) = [1, 3) on ℤ: the strict bound closes at the next element.");
 static_assert(
-    !(ConvexSet<Ternary>::half(Ternary::True, Direction::Upward,
-                               Strictness::Strict) ==
-      ConvexSet<Ternary>::half(Ternary::True, Direction::Upward,
-                               Strictness::NonStrict)),
+    !(Interval<Ternary>::half(Ternary::True, Direction::Upward,
+                              Strictness::Strict) ==
+      Interval<Ternary>::half(Ternary::True, Direction::Upward,
+                              Strictness::NonStrict)),
     "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
     "form.");
 static_assert(
-    !(ConvexSet<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                   Strictness::Strict) ==
-      ConvexSet<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                   Strictness::NonStrict)),
+    !(Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                  Strictness::Strict) ==
+      Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                  Strictness::NonStrict)),
     "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
-}  // namespace detail_convex_eq
-
-/** @brief Bridge: compare a value set to a halfspace by the halfspace's own
- *  @c ConvexSet form, so the generic meet-subset identity accepts a bare
- *  @c Halfspace operand (@c (a & b) == a with @c a a halfspace). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires std::equality_comparable<T>
-constexpr typename L::Ω operator==(
-    const ConvexSet<T, L>& s,
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return s == to_convex_set(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires std::equality_comparable<T>
-constexpr typename L::Ω operator==(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-    const ConvexSet<T, L>& s) {
-  return s == to_convex_set(h);
-}
+}  // namespace detail_interval_eq
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
 
-/** @brief The halfspace meet: ONE overload, delegating to the one @c
- * reduce_meet on the pivot VALUES.  Value-carrying pivots mean the
- * result KIND (empty / point / interval / halfspace) depends on runtime values,
- * so a function cannot pick a distinct return TYPE --- the meet returns the
- * unified value @c ConvexSet (a cut by its sides), and the type-directed
- * collapse becomes value-directed (a @c constexpr @c ConvexSet still folds at
- * compile time). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
-                 IsSide Hi2>
-constexpr auto structured_and(
-    const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
-    const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return reduce_meet(to_convex_set(a), to_convex_set(b));
-}
-/** @brief The meet of a cut with a value leaf, and of two value leaves: the one
- *  @c reduce_meet.  Declared here, before @c axis_factor, so the recursion
- *  over a @c RelAnd tree is closed over its own outputs whatever the
- *  association (#872). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr ConvexSet<T, L> structured_and(
-    const ConvexSet<T, L>& s,
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return reduce_meet(s, to_convex_set(h));
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr ConvexSet<T, L> structured_and(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-    const ConvexSet<T, L>& s) {
-  return reduce_meet(to_convex_set(h), s);
-}
+/** @brief The meet of two intervals, under the reducer's customization-point
+ *  name: the one @c reduce_meet.  Declared here, before @c axis_factor, so the
+ *  recursion over a @c RelAnd tree is closed over its own outputs (#872). */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr ConvexSet<V, L> structured_and(const ConvexSet<V, L>& a,
-                                         const ConvexSet<V, L>& b) {
+constexpr Interval<V, L> structured_and(const Interval<V, L>& a,
+                                        const Interval<V, L>& b) {
   return reduce_meet(a, b);
 }
 
-/** @section halfspace__Halfspace_Structural_Join — @c structured_or, the JOIN
- *  (∪) dual of @c structured_and: it makes the union COLLAPSE symmetrically to
- *  the meet, so the join is no longer a declared-but-unimplemented hook.
- *  Same-direction rays union to the WEAKER bound (the smaller pivot up /
- *  larger pivot down, non-strict winning at an equal pivot).  A crossing union
- *  (a cover or a gap) has no cut normal form, so no overload matches and @c |
- *  falls to the reducer's honest @c Join node, decided by membership.  This is
- *  why @c image(abs) = @c image(x↦x on x≥0) ∪
- *  @c image(x↦−x on x<0) = @c {y≥0} ∪ @c {y>0} collapses to @c {y≥0}. */
+/** @section halfspace__Union_And_Complement
+ *  The union of two intervals is the reducer's @c Join node, decided by
+ *  membership: one interval or two disjoint ones, both modelled.  The
+ *  complement of an interval is the @c Join of the parts below and above it.
+ *  @c reduce_join names the case where one operand covers the other. */
 
-/** @brief The value-first same-direction JOIN law: ↑a∪↑b = ↑min(a,b),
- *  ↓a∪↓b = ↓max(a,b) --- the WEAKER bound wins (non-strict on a tie).  Only the
- *  same-direction union always collapses to a halfspace; a crossing union
- *  either covers the line or leaves a gap (no cut), so it is left to
- *  the generic point-wise @c operator|| (value-carrying can't dispatch
- *  cover-vs-gap on a runtime pivot). */
+/** @brief The union of two intervals where one covers the other: the cover.
+ *  Otherwise refused; @c | then keeps both as a @c Join. */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr ConvexSet<V, L> reduce_join(const ConvexSet<V, L>& a,
-                                      const ConvexSet<V, L>& b) {
+constexpr Interval<V, L> reduce_join(const Interval<V, L>& a,
+                                     const Interval<V, L>& b) {
   if (!a.span()) return b;
   if (!b.span()) return a;
   const Span<V>& x = *a.span();
   const Span<V>& y = *b.span();
   // One side covering the other on both ends: the union is the cover.
-  if (detail_convex::lower_covers(x.lower, y.lower) &&
-      detail_convex::upper_covers(x.upper, y.upper))
+  if (detail_interval::lower_covers(x.lower, y.lower) &&
+      detail_interval::upper_covers(x.upper, y.upper))
     return a;
-  if (detail_convex::lower_covers(y.lower, x.lower) &&
-      detail_convex::upper_covers(y.upper, x.upper))
+  if (detail_interval::lower_covers(y.lower, x.lower) &&
+      detail_interval::upper_covers(y.upper, x.upper))
     return b;
   // No interval normal form (a crossing union, a point outside, two disjoint
   // intervals): refused, not guessed.
   throw std::domain_error("reduce_join: the union has no interval normal form");
-}
-
-/** @brief Same-direction halfspace union, through the one @c reduce_join. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
-                 IsSide Hi2>
-  requires(is_bounded_side_v<Lo1> != is_bounded_side_v<Hi1>) &&
-          (is_bounded_side_v<Lo1> == is_bounded_side_v<Lo2>) &&
-          (is_bounded_side_v<Hi1> == is_bounded_side_v<Hi2>)
-constexpr auto structured_or(
-    const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
-    const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return reduce_join(to_convex_set(a), to_convex_set(b));
 }
 
 /** @section halfspace__PointFree_Decidability
@@ -1036,50 +708,33 @@ export constexpr Rel rel_of(Direction d, Strictness s) {
   return s == Strictness::Strict ? Rel::Lt : Rel::Le;
 }
 
-/** @brief @f$\pi_I^{-1}@f$ of a halfspace factor: the cylinder
- *  @f$\pi_I \bowtie \text{pivot}@f$ on the product, an atom of the grammar. */
-export template <IsRingIntegral auto I, IsTotallyOrdered T, IsOckhamAlgebra L,
-                 IsCardinality C, IsSide Lo, IsSide Hi>
-  requires(is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr auto cylinder(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return Cmp<rel_of(direction_of<Lo, Hi>(), ray_strictness<Lo, Hi>()),
-             Projection<I>, Const<T>>{{}, {pivot(h)}};
-}
+/** @brief @f$\pi_I^{-1}(S)@f$: the cylinder of a set @c S on axis @c I of a
+ *  pair, a relational predicate.  @tparam I the axis.  @tparam S the set. */
+export template <IsRingIntegral auto I, typename S>
+struct InSlot {
+  using is_rel_predicate = void;
+  S set;
+  template <typename P>
+  constexpr bool operator()(const P& p) const {
+    return static_cast<bool>(set(coord<I>(p)));
+  }
+};
 
-// restricted × total:  {x ⋈ p} × 𝔸  =  𝔸<pair> | (π1 ⋈ p).
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, typename T2, IsOckhamAlgebra L2,
+// restricted × total, total × restricted, restricted × restricted.
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename T2,
                  IsCardinality C2>
-  requires std::same_as<L, L2> &&
-           (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr auto operator*(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& a,
-                         const 𝔸<T2, L2, C2>&) {
-  return 𝔸<std::pair<T, T2>, L>{} | cylinder<1>(a);
+constexpr auto operator*(const Interval<T, L>& a, const 𝔸<T2, L, C2>&) {
+  return 𝔸<std::pair<T, T2>, L>{} | InSlot<1, Interval<T, L>>{a};
 }
-
-// total × restricted:  𝔸 × {y ⋈ q}  =  𝔸<pair> | (π2 ⋈ q).
-export template <typename T1, IsOckhamAlgebra L1, IsCardinality C1,
-                 IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires std::same_as<L1, L> &&
-           (is_bounded_side_v<Lo> != is_bounded_side_v<Hi>)
-constexpr auto operator*(
-    const 𝔸<T1, L1, C1>&,
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& b) {
-  return 𝔸<std::pair<T1, T>, L>{} | cylinder<2>(b);
+export template <typename T1, IsCardinality C1, IsTotallyOrdered T,
+                 IsOckhamAlgebra L>
+constexpr auto operator*(const 𝔸<T1, L, C1>&, const Interval<T, L>& b) {
+  return 𝔸<std::pair<T1, T>, L>{} | InSlot<2, Interval<T, L>>{b};
 }
-
-// restricted × restricted:  𝔸<pair> | (π1 ⋈ p) && (π2 ⋈ q).
-export template <IsTotallyOrdered Ta, IsOckhamAlgebra La, IsCardinality Ca,
-                 IsSide LoA, IsSide HiA, IsTotallyOrdered Tb,
-                 IsOckhamAlgebra Lb, IsCardinality Cb, IsSide LoB, IsSide HiB>
-  requires std::same_as<La, Lb> &&
-           (is_bounded_side_v<LoA> != is_bounded_side_v<HiA>) &&
-           (is_bounded_side_v<LoB> != is_bounded_side_v<HiB>)
-constexpr auto operator*(
-    const Comprehension<𝔸<Ta, La, Ca>, Bounds<LoA, HiA, Ta>>& a,
-    const Comprehension<𝔸<Tb, Lb, Cb>, Bounds<LoB, HiB, Tb>>& b) {
-  return 𝔸<std::pair<Ta, Tb>, La>{} | (cylinder<1>(a) && cylinder<2>(b));
+export template <IsTotallyOrdered Ta, IsTotallyOrdered Tb, IsOckhamAlgebra L>
+constexpr auto operator*(const Interval<Ta, L>& a, const Interval<Tb, L>& b) {
+  return 𝔸<std::pair<Ta, Tb>, L>{} |
+         (InSlot<1, Interval<Ta, L>>{a} && InSlot<2, Interval<Tb, L>>{b});
 }
 
 /**
@@ -1105,15 +760,22 @@ constexpr auto axis_factor(const P&) {
   return 𝔸<TI, L>{};  // preserve the relation's logic species
 }
 
-/** @brief A cylinder on axis @c I, @c π_I @c ⋈ @c c: the halfspace it lifted
- *  from (only an order comparison is a halfspace; Eq/Ne fall to the default).
- *  The slot is matched to the axis by value, so two integral spellings of one
- *  axis agree. */
+/** @brief An order atom on axis @c I, @c π_I @c ⋈ @c c: the ray it names
+ *  (Eq/Ne fall to the default).  The slot is matched to the axis by value, so
+ *  two integral spellings of one axis agree. */
 export template <IsRingIntegral auto I, IsTotallyOrdered TI, IsOckhamAlgebra L,
                  IsRingIntegral auto Slot, Rel R, typename K>
   requires(is_order_rel(R) && Slot == I)
 constexpr auto axis_factor(const Cmp<R, Projection<Slot>, Const<K>>& c) {
-  return make_ray<dir_of(R), strict_of(R), L>(carrier_cast<TI>(c.b.value));
+  return Interval<TI, L>::half(carrier_cast<TI>(c.b.value), dir_of(R),
+                               strict_of(R));
+}
+/** @brief A cylinder on axis @c I: its set. */
+export template <IsRingIntegral auto I, IsTotallyOrdered TI, IsOckhamAlgebra L,
+                 IsRingIntegral auto Slot, typename S>
+  requires(Slot == I)
+constexpr S axis_factor(const InSlot<Slot, S>& c) {
+  return c.set;
 }
 
 /** @brief A meet of cylinders: the factor on axis @c I is the @b intersection
@@ -1134,7 +796,7 @@ constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
     // BOTH constrain axis I: the set-level meet of the recovered factors (a
-    // cut or, from a deeper meet, a ConvexSet), through structured_and directly
+    // cut or, from a deeper meet, a Interval), through structured_and directly
     // --- the set-level operator& is declared below this point.
     return dedekind::order::structured_and(fa, fb);
   }
@@ -1286,10 +948,10 @@ static_assert(!dom(ℕ * ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(4)),
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
 static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
-                  ConvexSet<Cardinality>::bounded(finite_cardinality(2),
-                                                  Strictness::NonStrict,
-                                                  finite_cardinality(5),
-                                                  Strictness::NonStrict),
+                  Interval<Cardinality>::bounded(finite_cardinality(2),
+                                                 Strictness::NonStrict,
+                                                 finite_cardinality(5),
+                                                 Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
     dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
@@ -1325,43 +987,32 @@ static_assert(
  * pivot
  *  (@c {x≤p} ∩ @c {x≥p} = @c {p}) or, when the sup is unattained (strict) or
  *  absent (unbounded), to @c Ø. */
-/** @brief Upper bounds of a downward halfspace {x ⋈ p} = {x ≥ sup}
- *  (value-carrying, returns ConvexSet).  Discrete strict: sup = predecessor(p)
- *  (attained), so the meet {x<p} ∩ {x≥p−1} = {p−1}; else sup = p (dense strict
- *  → the meet is empty, no max).  (The machine-boundary empty-cut → 𝔸 edge is
- *  simplified out; FIXME(#970) restore it with the coproduct arms.) */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, Strictness SU>
-constexpr ConvexSet<T, L> upperbounds(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Bounded<SU>, T>>& c) {
-  T sup = c.predicate.hi;
-  // Discrete carriers attain the strict bound at the predecessor --- gated on
-  // the NNO's step (an axiom of the category, which ℕ's proxy witnesses), not
-  // on std::integral.
+/** @brief Upper bounds of an interval, @c {x ≥ sup}: a strict upper bound is
+ *  attained at its predecessor on a discrete carrier (so @c max @c {x<p} is
+ *  @c p−1), and kept on a dense one (so the meet is empty, no max); an interval
+ *  unbounded above has none; everything bounds @c Ø. */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L>
+constexpr Interval<T, L> upperbounds(const Interval<T, L>& s) {
+  using S = Interval<T, L>;
+  if (!s.span()) return S::universe();
+  if (!s.span()->upper) return S::empty();
+  const Bound<T>& b = *s.span()->upper;
+  T sup = b.at;
   if constexpr (HasCoveringStep<T>)
-    if (SU == Strictness::Strict) sup = predecessor(c.predicate.hi);
-  return ConvexSet<T, L>::half(sup, Direction::Upward, Strictness::NonStrict);
+    if (b.strictness == Strictness::Strict) sup = predecessor(b.at);
+  return S::half(sup, Direction::Upward, Strictness::NonStrict);
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo>
-constexpr ConvexSet<T, L> upperbounds(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Unbounded, T>>&) {
-  return ConvexSet<T, L>::empty();  // unbounded above: no upper bound
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 Strictness SL, IsSide Hi>
-constexpr ConvexSet<T, L> lowerbounds(
-    const Comprehension<𝔸<T, L, C>, Bounds<Bounded<SL>, Hi, T>>& c) {
-  T inf = c.predicate.lo;
+/** @brief The dual: lower bounds, @c {x ≤ inf}. */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L>
+constexpr Interval<T, L> lowerbounds(const Interval<T, L>& s) {
+  using S = Interval<T, L>;
+  if (!s.span()) return S::universe();
+  if (!s.span()->lower) return S::empty();
+  const Bound<T>& b = *s.span()->lower;
+  T inf = b.at;
   if constexpr (HasCoveringStep<T>)
-    if (SL == Strictness::Strict) inf = successor(c.predicate.lo);
-  return ConvexSet<T, L>::half(inf, Direction::Downward, Strictness::NonStrict);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Hi>
-constexpr ConvexSet<T, L> lowerbounds(
-    const Comprehension<𝔸<T, L, C>, Bounds<Unbounded, Hi, T>>&) {
-  return ConvexSet<T, L>::empty();  // unbounded below: no lower bound
+    if (b.strictness == Strictness::Strict) inf = successor(b.at);
+  return S::half(inf, Direction::Downward, Strictness::NonStrict);
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.
 export template <IsOckhamAlgebra L, IsCardinality C>
@@ -1373,96 +1024,60 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
   return singleton<L>(false);
 }
 
-/** @brief @c & IS the meet on bare order operands: it forwards to the
- *  @c structured_and customization point, exactly as @c operator& does for
- *  wrapped predicates, so no @c Set{} wrapping is needed.  The complement-pair
- *  @c operator& above (opposite direction AND flipped strictness → @c Ø) is
- * more specialized and still claims its case; every other halfspace pair
- *  (overlapping, same-direction) routes here.
- *
- *  @details A @b disjoint pair (@c structured_and yields @c EmptyPredicate<T>)
- *  canonicalises to the empty set @c Ø<T,L> here, mirroring the sets-layer
- *  @c elevate_meet and the complement-pair meet above.  Before #895 this bare
- *  meet returned the raw @c EmptyPredicate<T>, which has no @c == against
- *  @c Ø<T,L>, so @c A @c & @c B on bare halfspaces disagreed with the
- *  @c Set{A} @c & @c Set{B} spelling (that reaches @c elevate_meet) and forced
- * a defensive @c Set{} re-wrap at the disjoint-emptiness call sites.  Routing
- * the empty result through the SAME @c Ø<T,L> the sets layer produces makes the
- * two spellings type-identical.  Non-empty results (an @c Interval, a
- *  @c Singleton) are returned exactly as @c structured_and shapes them. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
-                 IsSide Hi2>
-constexpr auto operator&(
-    const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
-    const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  // The meet is the one value law; the disjoint case is the empty ConvexSet
-  // kind (no separate Ø<T,L> canonicalisation needed).
-  return structured_and(a, b);
-}
-
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
 static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
-/** @brief @c | IS the join on bare order operands, dual to the @c & meet: a
- *  same-direction union of rays collapses via @c structured_or.  A crossing
- *  union has no interval normal form, so this overload is not viable there and
- *  the generic set @c | (the reducer's @c Join node) decides by membership. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
-                 IsSide Hi2>
-constexpr auto operator|(
-    const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
-    const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b)
-  requires requires { structured_or(a, b); }
-{
-  return structured_or(a, b);
-}
-/** @brief Meets involving the value @c ConvexSet route through the one
+/** @brief Meets involving the value @c Interval route through the one
  *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
- *  upperbounds(s) collapses, since @c upperbounds now yields a @c ConvexSet. */
+ *  upperbounds(s) collapses, since @c upperbounds now yields a @c Interval. */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr ConvexSet<V, L> operator&(const ConvexSet<V, L>& a,
-                                    const ConvexSet<V, L>& b) {
+constexpr Interval<V, L> operator&(const Interval<V, L>& a,
+                                   const Interval<V, L>& b) {
   return reduce_meet(a, b);
 }
-/** @brief The join law under the reducer's customization-point name, for two
- *  @b value leaves (the meet's sibling sits beside the cut meet above): a term
- *  whose leaves are already @c ConvexSet --- the leaf type the Python surface
- *  builds --- collapses through the same reducer as a term of bare cuts. */
+/** @brief The complement of an interval: the parts below and above it, a
+ *  @c Join of at most two intervals (@c Ø's complement is @c 𝔸). */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr ConvexSet<V, L> structured_or(const ConvexSet<V, L>& a,
-                                        const ConvexSet<V, L>& b) {
-  return reduce_join(a, b);
+constexpr auto operator~(const Interval<V, L>& s) {
+  using S = Interval<V, L>;
+  using J = dedekind::category::Join<S, S>;
+  if (!s.span()) return J{S::universe(), S::empty()};
+  const auto& [lo, hi] = *s.span();
+  return J{lo ? S::half(lo->at, Direction::Downward, flip(lo->strictness))
+              : S::empty(),
+           hi ? S::half(hi->at, Direction::Upward, flip(hi->strictness))
+              : S::empty()};
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr auto operator&(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                         const ConvexSet<T, L>& s) {
-  return reduce_meet(to_convex_set(h), s);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
+/** @brief An interval met with a union of two intervals: the union of the two
+ *  meets. */
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
 constexpr auto operator&(
-    const ConvexSet<T, L>& s,
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return reduce_meet(s, to_convex_set(h));
+    const Interval<V, L>& a,
+    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j) {
+  return dedekind::category::Join<Interval<V, L>, Interval<V, L>>{
+      reduce_meet(a, j.lhs), reduce_meet(a, j.rhs)};
 }
-
-/** @brief @c Ø absorbs the meet (no upper bound ⟹ no max). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, IsOckhamAlgebra LZ>
-constexpr auto operator&(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>&,
-                         Ø<T, LZ>) {
-  return dedekind::sets::codomain_reduce_t<Ø<T, L>>{};
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+constexpr auto operator&(
+    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j,
+    const Interval<V, L>& a) {
+  return a & j;
 }
-/** @brief @c 𝔸 is the meet IDENTITY: @c {x⋈p} ∩ 𝔸 = @c {x⋈p}. */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, IsOckhamAlgebra LU, IsCardinality CU>
-constexpr auto operator&(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                         const 𝔸<T, LU, CU>&) {
-  return h;
+/** @brief A union of two intervals is empty exactly when both are. */
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+  requires(!IsPst<V>)
+constexpr bool operator==(
+    const Ø<V, L>&,
+    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j) {
+  return !j.lhs.span() && !j.rhs.span();
+}
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+  requires(!IsPst<V>)
+constexpr bool operator==(
+    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j,
+    const Ø<V, L>&) {
+  return !j.lhs.span() && !j.rhs.span();
 }
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
@@ -1577,22 +1192,22 @@ consteval bool order_is_cover_star(int k) {
 }
 }  // namespace detail_cover_witness
 static_assert(
-    ConvexSet<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict) ==
-        ConvexSet<int>::empty(),
+    Interval<int>::bounded(3, Strictness::Strict, 4, Strictness::Strict) ==
+        Interval<int>::empty(),
     "nothing lies strictly between 3 and S(3): the successor is the cover.");
-static_assert(ConvexSet<int>::bounded(3, Strictness::Strict, 5,
-                                      Strictness::Strict) ==
-                  ConvexSet<int>::point(4),
+static_assert(Interval<int>::bounded(3, Strictness::Strict, 5,
+                                     Strictness::Strict) ==
+                  Interval<int>::point(4),
               "(3, S(S(3))) is the point S(3) = 4.");
-static_assert(ConvexSet<Cardinality>::bounded(finite_cardinality(3),
-                                              Strictness::Strict,
-                                              finite_cardinality(4),
-                                              Strictness::Strict) ==
-                  ConvexSet<Cardinality>::empty(),
+static_assert(Interval<Cardinality>::bounded(finite_cardinality(3),
+                                             Strictness::Strict,
+                                             finite_cardinality(4),
+                                             Strictness::Strict) ==
+                  Interval<Cardinality>::empty(),
               "…and on the ℕ proxy, through its own successor.");
-static_assert(ConvexSet<Ternary>::bounded(Ternary::False, Strictness::Strict,
-                                          Ternary::True, Strictness::Strict) ==
-                  ConvexSet<Ternary>::point(Ternary::Unknown),
+static_assert(Interval<Ternary>::bounded(Ternary::False, Strictness::Strict,
+                                         Ternary::True, Strictness::Strict) ==
+                  Interval<Ternary>::point(Ternary::Unknown),
               "{x : ⊥ < x < ⊤} = {Unknown}: on K₃ the cover isolates the "
               "middle truth value.");
 static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
@@ -1601,115 +1216,6 @@ static_assert(graph(Successor<int>{})(std::pair{3, 4}) &&
 static_assert(detail_cover_witness::order_is_cover_star(8),
               "on [0, 8): a < b ⟺ (a, b) ∈ Γ_S⁺ --- the order is the star of "
               "the cover.");
-
-/** @brief Two cuts are the same set iff their value forms agree: through
- *  @c to_convex_set and the extensional @c ConvexSet equality, which on a
- * discrete carrier closes a strict bound where the step moves (@c {x > ⊥} is
- *  @c {x ≥ U} on K₃) and stays structural on a dense one.  Answers in @c L.
- *  On a truth chain the boundaries' exhaustion decides instead (it also sees
- *  that @c {x > ⊤} and @c {x < ⊥} are both empty, which no cut law does). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C1,
-                 IsCardinality C2, IsSide Lo1, IsSide Hi1, IsSide Lo2,
-                 IsSide Hi2>
-  requires std::equality_comparable<T> && (!IsPst<T>)
-constexpr typename L::Ω operator==(
-    const Comprehension<𝔸<T, L, C1>, Bounds<Lo1, Hi1, T>>& a,
-    const Comprehension<𝔸<T, L, C2>, Bounds<Lo2, Hi2, T>>& b) {
-  return to_convex_set(a) == to_convex_set(b);
-}
-
-/** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
- *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
- *  floor is 0), or a closed one beyond it.  A pivot is a value, so this is a
- *  value fact.  @tparam T the carrier.  @param p the pivot.  @param d the
- *  direction.  @param s the strictness. */
-template <IsTotallyOrdered T>
-constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
-  if (d == Direction::Upward) {
-    if constexpr (std::integral<T>)
-      return s == Strictness::Strict && p == std::numeric_limits<T>::max();
-    else
-      return false;
-  }
-  if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
-    return s == Strictness::Strict && p == T{};
-  else if constexpr (std::signed_integral<T>)
-    return s == Strictness::Strict && p == std::numeric_limits<T>::min();
-  else
-    return false;
-}
-
-/** @brief Whether a cut denotes the empty set: a ray at the carrier's end, an
- *  interval whose bounds cross. */
-template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
-          IsSide Hi>
-constexpr bool cut_is_empty(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
-  if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return !ConvexSet<T, L>::bounded(c.predicate.lo, Lo::strictness,
-                                     c.predicate.hi, Hi::strictness)
-                .span()
-                .has_value();
-  else
-    return ray_is_empty(pivot(c), direction_of<Lo, Hi>(),
-                        ray_strictness<Lo, Hi>());
-}
-/** @brief Whether a cut is all of its carrier: a ray whose complement is
- *  empty (@c {x ≥ 0} on ℕ).  An interval never is. */
-template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C, IsSide Lo,
-          IsSide Hi>
-constexpr bool cut_is_universe(
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& c) {
-  if constexpr (is_bounded_side_v<Lo> && is_bounded_side_v<Hi>)
-    return false;
-  else
-    return ray_is_empty(pivot(c), flip(direction_of<Lo, Hi>()),
-                        flip(ray_strictness<Lo, Hi>()));
-}
-
-// On a truth chain (𝔹, K₃) the boundaries decide these by exhausting the chain
-// (sets:boundaries); the structural cut law below is for the other chains.
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires(!IsPst<T>)
-constexpr bool operator==(
-    const Ø<T, L>&, const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return cut_is_empty(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                          const Ø<T, L>&) {
-  return cut_is_empty(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr bool operator==(
-    const dedekind::sets::EmptyPredicate<T>&,
-    const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return cut_is_empty(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi>
-constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                          const dedekind::sets::EmptyPredicate<T>&) {
-  return cut_is_empty(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(
-    const 𝔸<T, L, CU>&, const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h) {
-  return cut_is_universe(h);
-}
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality C,
-                 IsSide Lo, IsSide Hi, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Comprehension<𝔸<T, L, C>, Bounds<Lo, Hi, T>>& h,
-                          const 𝔸<T, L, CU>&) {
-  return cut_is_universe(h);
-}
 
 // Modelling witness ("Theorems for Free", type-checked): the SPECIFIC pivot
 // overload AGREES with the ABSTRACT definition max R = (∈) ∩ (R/∋) at the
