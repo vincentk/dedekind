@@ -95,15 +95,13 @@ TEST_CASE("Exhibit: two overlapping halfspaces collapse (value-first, #888)",
     STATIC_CHECK(static_cast<bool>(join(-5)));
   }
 
-  // Complement laws (the lattice ⊥/⊤): ~ = the opposite halfspace with the same
-  // pivot (~{x<5} = {x≥5}).  The MEET collapses to the empty set; the JOIN is
-  // decided by membership (the crossing cover).
+  // Complement laws (the lattice ⊥/⊤): ~{x<5} is the part above, {x≥5}.  The
+  // MEET collapses to the empty set; the JOIN is decided by membership.
   SECTION("A & ~A → Ø (contradiction), A | ~A covers ℤ (excluded middle)") {
-    constexpr auto contradiction = structured_and(A, ~A);  // {x<5} ∩ {x≥5}
+    constexpr auto contradiction = A & ~A;  // {x<5} ∩ {x≥5}
     STATIC_CHECK(contradiction == Ø<int>{});
-    STATIC_CHECK_FALSE(contradiction.contains(0));
-    STATIC_CHECK_FALSE(contradiction.contains(4));
-    STATIC_CHECK_FALSE(contradiction.contains(5));
+    STATIC_CHECK_FALSE(static_cast<bool>(contradiction(4)));
+    STATIC_CHECK_FALSE(static_cast<bool>(contradiction(5)));
     constexpr auto excluded_middle = A | ~A;  // {x<5} ∪ {x≥5}
     STATIC_CHECK(static_cast<bool>(excluded_middle(0)));
     STATIC_CHECK(static_cast<bool>(excluded_middle(4)));
