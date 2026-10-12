@@ -53,8 +53,6 @@ constexpr auto meet = structured_and(A, B);  // {x<5} ∩ {x>-5}
 static_assert(meet == SetVal<int>::bounded(-5, Strictness::Strict, 5,
                                            Strictness::Strict),
               "A & B collapsed to the bounded interval (-5, 5).");
-static_assert(meet.sl == Strictness::Strict && meet.su == Strictness::Strict,
-              "the open interval (-5, 5).");
 
 }  // namespace set_expression_exhibit
 
