@@ -571,7 +571,8 @@ struct Value {
   constexpr K operator()(const Const<K>& c) const {
     return c.value;
   }
-  template <IsRelPredicate Q>
+  template <typename Q>
+    requires requires(const Q& q, const P& x) { q(x); }
   constexpr auto operator()(const Q& q) const {
     return q(p);
   }
