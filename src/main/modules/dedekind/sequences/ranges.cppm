@@ -40,6 +40,7 @@ module;
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <type_traits>
 
 export module dedekind.sequences:ranges;
@@ -100,6 +101,11 @@ constexpr IotaBounds<T> iota_bounds(const dedekind::order::Interval<T, L>& s) {
   const auto& upper = *s.span()->upper;
   const T lo = lower.at;
   const T hi = upper.at;
+  // A half-open view cannot start after the carrier's top or end past it.
+  if ((lower.strictness == S::Strict && lo == std::numeric_limits<T>::max()) ||
+      (upper.strictness == S::NonStrict && hi == std::numeric_limits<T>::max()))
+    throw std::domain_error(
+        "an interval reaching the carrier's top has no half-open iota view");
   const T start = lower.strictness == S::Strict ? static_cast<T>(lo + 1) : lo;
   const T raw_bound =
       upper.strictness == S::Strict ? hi : static_cast<T>(hi + 1);
@@ -425,6 +431,11 @@ constexpr dedekind::order::Interval<T, L> from_iota_view(
   // does): no size arithmetic to narrow or wrap.
   const T start = *iv.begin();
   const T bound = *iv.end();
+  if (!(start < bound)) return dedekind::order::Interval<T, L>::empty();
+  // A strict lower side below the carrier's bottom is not representable.
+  if (SL == S::Strict && start == std::numeric_limits<T>::min())
+    throw std::domain_error(
+        "a strict lower side below the carrier's bottom is not representable");
   const T lo = SL == S::Strict ? static_cast<T>(start - 1) : start;
   const T hi = SU == S::Strict ? bound : static_cast<T>(bound - 1);
   return dedekind::order::Interval<T, L>::bounded(lo, SL, hi, SU);

@@ -240,21 +240,29 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
 namespace detail_interval {
 /** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
  *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
- *  floor is 0).  A pivot is a value, so this is a value fact.
+ *  floor is 0, @c {n > ℵ₀} on ℕ, @c {z < −ℵ₀} on ℤ).  A pivot is a value, so
+ * this is a value fact.
  *  @tparam T the carrier.  @param p the pivot.  @param d the direction.
  *  @param s the strictness. */
 template <IsTotallyOrdered T>
 constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
+  if (s != Strictness::Strict) return false;
   if (d == Direction::Upward) {
     if constexpr (std::integral<T>)
-      return s == Strictness::Strict && p == std::numeric_limits<T>::max();
+      return p == std::numeric_limits<T>::max();
+    else if constexpr (std::same_as<T, Cardinality>)
+      return p == Cardinality{ℵ_0{}};
+    else if constexpr (std::same_as<T, SignedCardinality>)
+      return p == SignedCardinality{PositiveInfinity{}};
     else
       return false;
   }
   if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
-    return s == Strictness::Strict && p == T{};
+    return p == T{};
   else if constexpr (std::signed_integral<T>)
-    return s == Strictness::Strict && p == std::numeric_limits<T>::min();
+    return p == std::numeric_limits<T>::min();
+  else if constexpr (std::same_as<T, SignedCardinality>)
+    return p == SignedCardinality{NegativeInfinity{}};
   else
     return false;
 }
@@ -274,7 +282,7 @@ constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
  *  @tparam V the carrier.  @tparam L the species.
  */
 export template <typename V = long long, typename L = Boole>
-  requires IsTotallyOrdered<V>
+  requires IsTotallyOrdered<V> && IsOckhamAlgebra<L>
 struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
   using Domain = V;
   using Codomain = typename L::Ω;

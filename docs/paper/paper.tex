@@ -2399,7 +2399,8 @@ is decidable'').
 Every showcase of Section~\ref{sec:ddk_comprehension} is a motion inside this
 lattice.
 Showcases~3 and~4 both act over $\mathbb{N}$, whose membership is already classical, so they start at $(\mathrm{Int},\mathrm{Cl},\mathrm{Opq})$, not at $\bot$.
-Their reductions move up the representation and knowledge axes to $\top$ in one step: the empty-halfspace meet of Showcase~3 lands on $\varnothing$, and the cardinality-1 meet of Showcase~4 lands on the point $\{4\}$.
+Their reductions move up the knowledge axis in one step: the empty-halfspace meet of Showcase~3 lands on $\varnothing$, and the cardinality-1 meet of Showcase~4 lands on the point $\{4\}$, an element known as a value.
+The representation axis does not move: the element rides in the value, not in a template parameter, by design, so that runtime pivots reduce through the same law.
 The logic axis is already at $\mathrm{Cl}$ and does not move; a genuine $\mathrm{K3} \mapsto \mathrm{Cl}$ (restoring decidability) needs a carrier whose membership is three-valued, not a halfspace on $\mathbb{N}$.
 The reductions never slide downward. With that in hand:
 
@@ -2424,7 +2425,7 @@ $\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
         \bigcap_{j=1}^{n} \{x \in T \mid Q_j(x)\}
 \]
 reduces, in constant evaluation, to exactly one value of
-\cppinline{ConvexSet<T>}:
+\cppinline{Interval<T>}:
 \begin{enumerate}
   \item $\varnothing$, when $a^\star > b^\star$;
   \item the point $\{v\}$, when $T$ is integral and
@@ -2443,7 +2444,7 @@ reduces, in constant evaluation, to exactly one value of
 {[a^\star, b^\star]} \& \{v\} \& \varnothing
 \end{tikzcd}
 \caption{The 1D collapse as a diagram chase (Theorem~\ref{thm:type-directed-collapse-1d}).
-The meet of the effective lower- and upper-bound halfspaces reduces to exactly one value of \cppinline{ConvexSet<T>}, selected by the side condition on the pivots: the interval $[a^\star, b^\star]$ for the generic bounded case ($a^\star < b^\star$); the point $\{v\}$ for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (on a non-integral $T$ the equality case stays the degenerate interval $[a^\star, a^\star]$); and $\varnothing$ for the contradiction case ($a^\star > b^\star$).
+The meet of the effective lower- and upper-bound halfspaces reduces to exactly one value of \cppinline{Interval<T>}, selected by the side condition on the pivots: the interval $[a^\star, b^\star]$ for the generic bounded case ($a^\star < b^\star$); the point $\{v\}$ for the degenerate equality case ($a^\star = b^\star = v$) \emph{when $T$ is integral} (on a non-integral $T$ the equality case stays the degenerate interval $[a^\star, a^\star]$); and $\varnothing$ for the contradiction case ($a^\star > b^\star$).
 The diagram commutes on elements: $x$ inhabits the source meet iff $x$ inhabits the value the side condition selects.
 Implementation hook: the meet is \cppinline{reduce_meet} in \texttt{dedekind.order:halfspace}, the tighter bound on each side followed by one collapse law; it is \cppinline{constexpr}, so constant pivots fold at compile time and runtime pivots reduce at runtime.
 Mechanically witnessed by Showcase~3 (the empty branch, \texttt{showcase\_03\_halfspace\_contradiction.cpp}) and Showcase~4 (the point branch: on the integral carrier $\mathbb{N}$ the strict halfspaces $x>3$, $x<5$ normalise to $x\ge 4$, $x\le 4$, so this is the $a^\star=b^\star=4$ case of Theorem~\ref{thm:type-directed-collapse-1d}); both fold to constant IR returns under \texttt{-O2}, as the bottom panel of Listing~\ref{lst:pruning} demonstrates for the empty-meet branch.}
@@ -2580,7 +2581,7 @@ sketches that do not.
     existing canonical embeddings (\cppinline{embed_uint_sint_},
     \cppinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
-    $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
+    $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to
     the point $\{x^\star\}$, the minimizer carried as a value.
     Same reduction pattern, applied at the extremum operator.
     \emph{Scope note:} the polytope / linear-programming domain is not
