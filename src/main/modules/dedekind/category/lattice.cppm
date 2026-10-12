@@ -155,7 +155,7 @@ module;
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
 #include <ranges>       // std::ranges::iota_view, range_value_t — Slice 10
-#include <tuple>        // std::tie — the legs of a node, for cata
+#include <tuple>        // std::tie: the legs of a node, for cata
                         // niebloid-identity / tripwire pins.
 #include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
@@ -390,27 +390,29 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *         sweet spot; @c bool the optimal witness), the more laws fire and the
  *         further a term collapses.
  *
- *  @details A law consumes two @b already-reduced operands and returns a
- *  @c std::type_identity of either the rewritten form or @c law_inactive (the
- *  law did not fire — the assembler then tries the next).  Order-dependent laws
- *  (units, glb/lub collapse) are keyed to the @b injected order @c Ord so that
- *  the
- *  boundary / comparison they use is the one this lattice's `∧`/`∨` induce, not
- *  another order the same carrier happens to bear (e.g. the numeric chain vs
- *  @c order::bit_subset_eq on an integer). */
+ *  @details A law is a @c constexpr function on two @b already-reduced operand
+ *  values; it returns the rewritten value or @c law_inactive (the law did not
+ *  fire: the assembler then tries the next).  Where the operand types differ
+ *  the decision is on the types, so the result's type is the normal form's
+ *  type and the assembler reads it inside @c decltype; the same function runs
+ *  on values at run time.  Order-dependent laws (units, glb/lub collapse) are
+ *  keyed to the @b injected order @c Ord so that the boundary / comparison they
+ *  use is the one this lattice's `∧`/`∨` induce, not another order the same
+ *  carrier happens to bear (e.g. the numeric chain vs @c order::bit_subset_eq
+ *  on an integer). */
 
-/** @brief The type-level term AST.  Leaves are lattice-carrier types; the nodes
- *  combine them.
+/** @brief The term AST.  Leaves are lattice-carrier types; the nodes combine
+ *  them.
  *
  *  @section lattice__AST_dual_nature
- *  Primarily a @b compile-time tree: the reducer names @c Meet<A,B> only in
- *  @c type_identity / @c same_as contexts, which never instantiate the class,
- *  so for the reducer these stay empty tags with no completeness or
- *  default-construction obligation on the operands.
+ *  A node is the combined set VALUE: constructed from operand values (aggregate
+ *  init @c Meet<A,B>{a,b}), reduced as a value by the one fold, and its type is
+ *  the compile-time reading of that same fold (@c reduce_t), so the type-level
+ *  exhibits name @c Meet<A,B> in @c same_as contexts without instantiating a
+ *  value.
  *
- *  Secondarily, a node @b is the combined set VALUE when it is actually
- *  constructed from operand values (aggregate init @c Meet<A,B>{a,b}): it
- *  carries the operands and evaluates pointwise through the operands' shared
+ *  When it is constructed from operand values, a node @b is the combined set:
+ * it carries the operands and evaluates pointwise through the operands' shared
  *  @c logic_species (@c ∧ = @c L::AND, @c ∨ = @c L::OR, @c ¬ = @c L::RFL).  The
  *  @c operator() is @b guarded, so it exists only when the operands are
  *  callable predicates over one logic.  The type-level tag use is unaffected.

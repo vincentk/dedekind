@@ -10,7 +10,7 @@ iteration-1 one-constant-per-pivot stopgap)::
 
     gt = above(3)                # {x | x > 3}   -- runtime pivot
     4 in gt                      # True
-    region = above(3) & below(5) # {x>3} ∩ {x<5}, through the value-first reducer
+    region = above(3) & below(5) # {x>3} ∩ {x<5}, through the lattice reducer
     region                       # {4}
     region == singleton(4)       # True
     region.cardinality           # 1
@@ -18,19 +18,22 @@ iteration-1 one-constant-per-pivot stopgap)::
 Constructors: ``above(k)`` / ``at_least(k)`` (``>`` / ``>=``), ``below(k)`` /
 ``at_most(k)`` (``<`` / ``<=``), ``singleton(k)`` (the point ``η(k)``, the
 value-based atom), and ``everything()`` / ``nothing()`` (``𝔸`` / ``Ø``).
-Membership is ``s(x)`` / ``x in s``; intersection is ``a & b``.
+Membership is ``s(x)`` / ``x in s``; the meet is ``a & b``; the complement
+``~s`` is the ``Union`` of the parts below and above ``s``, and a meet with a
+union, ``a & ~b`` or ``(a & ~b) & c``, distributes into a union again.
 
-The meet ``&`` dispatches to the **same** ``constexpr`` ``:order`` ``reduce_meet``
-the compile-time ``static_assert`` exhibit folds -- so ``above(3) & below(5)``
-runs the crossing law ``↑a ∩ ↓b = [a,b]`` (collapsing to the singleton ``{4}``
-by integer cardinality) at Python **runtime**, no Python-side reducer.  This is
-the compile-time / runtime *optionality*: one law, either phase, chosen by the
-evaluation context.  Value-oriented relational grounding (the pivot never lives
-in a type): ``{x | x ≤ p} == preimage₁( S × η(p) | (χ/π₁ ≤ π₂) )``.
+Every operator folds through the **same** lattice reducer (``category::Reduce``
+under ``cata``) the compile-time ``static_assert`` exhibits fold: its leaf
+combine is the interval meet, so ``above(3) & below(5)`` runs the crossing law
+``↑a ∩ ↓b = [a,b]`` (collapsing to the singleton ``{4}`` by integer
+cardinality), and its distributive law rebuilds ``a & (b ∪ c)`` as
+``(a & b) ∪ (a & c)`` from the run-time pivots.  No Python-side reducer.  This
+is the compile-time / runtime *optionality*: one law, either phase, chosen by
+the evaluation context.  Value-oriented relational grounding (the pivot never
+lives in a type): ``{x | x ≤ p} == preimage₁( S × η(p) | (χ/π₁ ≤ π₂) )``.
 
-FIXME(#965): follow-up slices -- union (``|``), complement (``~``),
-interval-operand chaining, and folding the type-level ``structured_and`` through
-the one ``reduce_meet`` (deletion).  See the design summary on #965.
+FIXME(#975): the union ``|`` is not bound: a union of more than two intervals
+has no handle until the run-list normal form lands.
 """
 
 # `_lwv` is the exhibit's own private native extension module (dedekind._lwv),

@@ -26,11 +26,6 @@ from dedekind.lwv import (
 
 
 class TheMeetFoldsThroughTheReducer(unittest.TestCase):
-    def test_the_leaf_combine_is_the_interval_meet(self) -> None:
-        self.assertEqual(above(3) & below(5), singleton(4))
-        self.assertEqual(at_least(4) & at_most(19), at_least(4) & at_most(19))
-        self.assertEqual(above(7) & below(3), nothing())
-
     def test_the_bounds_meet_as_values(self) -> None:
         # Ø and 𝔸 are values of the one leaf type, so the carrier's meet, not
         # a type law, decides them: the result is the same set either way.

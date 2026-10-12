@@ -1,9 +1,9 @@
 /**
  * @file dedekind/category/lattice_term.cppm
  * @partition :lattice_term
- * @brief The assembled lattice-law term reducer — the normal form of a term
+ * @brief The assembled lattice-law term reducer: the normal form of a term
  *        over a bounded lattice, built from the induced laws in @c :lattice,
- *        as one algebra for @c cata: its type at compile time, its value at
+ *        as one algebra for @c cata, its type at compile time and its value at
  *        run time.
  *
  * @copyright 2026 The Dedekind Authors
@@ -16,7 +16,7 @@
  * is the algebra that folds those parts into one normal form under @c cata
  * (@c :f_algebra), applying exactly the laws the carrier proves; @c reduce_t
  * is that normal form's type.  Reduction power scales with the carrier's
- * structure — a bounded chain collapses the most, and @c bool (the two-element
+ * structure: a bounded chain collapses the most, and @c bool (the two-element
  * Boolean lattice) is the optimal witness where every law fires.
  *
  * It is the engine of the set-expression collapse (epic #888/#890): @c sets
@@ -73,7 +73,7 @@ import :f_algebra;  // cata: the ONE catamorphism engine (#961).  A lattice is a
 
 namespace dedekind::category {
 
-/** @brief The logic species a comparator reports in — @c Boole (a
+/** @brief The logic species a comparator reports in: @c Boole (a
  *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
  *  @c Kleene, so an @b undecidable comparison can be @c Unknown). */
 export template <typename Less>
@@ -112,7 +112,7 @@ concept IsLatticeLess =
     };
 
 /** @brief Did the comparator decide @b definitely @c True? (`Unknown`/`False`
- *  ⟹ don't reorder — keep authoring order.) */
+ *  ⟹ don't reorder: keep authoring order.) */
 export template <typename Less, typename X, typename Y>
 consteval bool lattice_definitely_less() {
   if constexpr (IsLatticeLess<Less, X, Y>) {

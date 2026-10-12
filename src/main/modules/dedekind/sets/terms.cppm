@@ -594,16 +594,18 @@ struct Value {
     using C = meet_t<A, B, X, Y>;
     return rel_apply<R>(into<C, A>(x), into<C, B>(y));
   }
-  template <typename A, typename B, typename X, typename Y>
-  constexpr auto operator()(const RelAnd<A, B>&, const X& x, const Y& y) const {
-    return x && y;
+  /** @brief The connectives short-circuit as the built-in @c && / @c || do,
+   *  and McCarthy's conditional evaluates only the branch it selects: these
+   *  nodes steer the recursion into their legs themselves (see @c cata), so a
+   *  leg the operator does not reach is never evaluated. */
+  template <typename A, typename B>
+  constexpr auto steer(const RelAnd<A, B>& t) const {
+    return cata(*this, t.a) && cata(*this, t.b);
   }
-  template <typename A, typename B, typename X, typename Y>
-  constexpr auto operator()(const RelOr<A, B>&, const X& x, const Y& y) const {
-    return x || y;
+  template <typename A, typename B>
+  constexpr auto steer(const RelOr<A, B>& t) const {
+    return cata(*this, t.a) || cata(*this, t.b);
   }
-  /** @brief McCarthy's conditional evaluates only the branch it selects, so
-   *  the algebra steers the recursion into the legs itself (see @c cata). */
   template <typename Pr, typename A, typename B>
   constexpr auto steer(const CondT<Pr, A, B>& t) const {
     using C =
