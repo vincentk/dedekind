@@ -458,6 +458,15 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
+/** @brief Meets involving the value @c Interval route through the one
+ *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
+ *  upperbounds(s) collapses, since @c upperbounds now yields a @c Interval. */
+export template <IsTotallyOrdered V, IsOckhamAlgebra L>
+constexpr Interval<V, L> operator&(const Interval<V, L>& a,
+                                   const Interval<V, L>& b) {
+  return reduce_meet(a, b);
+}
+
 /** @brief Equality of two value sets: both empty, or the same sides.  The
  * value-first counterpart of the old type-level set equality; it is what the
  * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
@@ -1028,14 +1037,6 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
-/** @brief Meets involving the value @c Interval route through the one
- *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
- *  upperbounds(s) collapses, since @c upperbounds now yields a @c Interval. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Interval<V, L> operator&(const Interval<V, L>& a,
-                                   const Interval<V, L>& b) {
-  return reduce_meet(a, b);
-}
 /** @brief The complement of an interval: the parts below and above it, a
  *  @c Join of at most two intervals (@c Ø's complement is @c 𝔸). */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
