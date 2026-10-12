@@ -1259,7 +1259,10 @@ static_assert(!dom(ℕ * ℕ | (π1 <= 5 && π1 <= 3))(finite_cardinality(4)),
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
 static_assert(dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
-                  ((ℕ | (π >= 2)) & (ℕ | (π <= 5))),
+                  SetVal<Cardinality>::bounded(finite_cardinality(2),
+                                               Strictness::NonStrict,
+                                               finite_cardinality(5),
+                                               Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
     dom(ℕ* ℕ | ((π1 >= 1 && π1 <= 5) && π1 >= 2)) ==
