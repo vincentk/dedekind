@@ -678,6 +678,7 @@ A set expression (\texttt{setexpr}) builds a set from canonical or user-defined 
 A predicate (\texttt{pred}) can be assembled from an atomic equality operation, a set membership test and boolean composition rules applied to constants or set element aliases (\texttt{elem}).
 The cartesian \texttt{product} \cppinline{S * T} changes the carrier ($\mathbf{Set}\langle A\rangle \times \mathbf{Set}\langle B\rangle \to \mathbf{Set}\langle A \times B\rangle$), and forms the foundation for the relational algebra discussed in §\ref{sec:relations_functions_blueprint}.
 The \texttt{query} nonterminal defines the \emph{closed} partial order on sets via set equality and the non-strict subset order $A \subseteq B$ (and its converse).
+Inside a comprehension, \cppinline{χ} names the characteristic arrow of the set being formed, so \cppinline{ℕ | ((π == 0) || χ(π - 1))} defines a set by induction; the grammar admits \cppinline{χ} only at a descent, so every such definition is structurally recursive and general recursion has no spelling.
 \cppinline{<any elem → 𝔹>} and \cppinline{<any IsSet>} are extension points allowing for specializations such as those presented in Listing~\ref{lst:extrema_def}.
 Together with a pluggable \cppinline{logic_species} (the classifier codomain), these are the points at which further species of (un)decidability enter: the coordinate of a query is \emph{inferred} by the compiler, not enumerated by the grammar.
 
@@ -741,11 +742,12 @@ pred ::= atom
   | '!' pred
   | pred p2 pred
   | setexpr '(' elem ')'
+  | 'χ' '(' elem '-' const ')'
   | <any elem → 𝔹>
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' const
-elem ::= 'χ' | 'π' | 'π1' | 'π2'
+elem ::= 'π' | 'π1' | 'π2'
 \end{minted}
 \end{minipage}
 
@@ -1265,7 +1267,7 @@ Restricting a factor lifts its predicate onto the matching projection, the same 
 
 \begin{listing}[htbp]
 \caption{A restricted domain is a cylinder on the product.
-The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so it survives into the relation instead of being discarded.}
+The bound $\le 5$ on the first factor lifts to $\pi_1 \le 5$, so it survives into the relation instead of being discarded.}
 \label{lst:restricted_product}
 \begin{cpp}
 constexpr auto R =

@@ -8,7 +8,7 @@ set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 import unittest
 
 from dedekind.pst import (
-    𝔸, Ø, η, π, χ, 𝔹, K3, Ternary, Boole, Kleene, exists, forall, runs, lift,
+    𝔸, Ø, η, π, 𝔹, K3, Ternary, Boole, Kleene, exists, forall, runs, lift,
     any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
 )
 
@@ -24,7 +24,6 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertNotIn(F, S)
         self.assertIs(S(U), True)
         self.assertIs(S(F), False)
-        self.assertIs((A(K3) | (χ == U))(U), True)  # χ is a second spelling of π
 
     def test_equality_is_extensional_and_decided(self) -> None:
         self.assertIs((A(K3) | (π > F)) == (A(K3) | (π >= U)), True)

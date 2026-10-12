@@ -25,7 +25,7 @@
  *
  * @section expressions__Canonical_Examples
  * ```cpp
- * const auto xs = ℕ | (χ < 512);  // {n in ℕ | n < 512}
+ * const auto xs = ℕ | (π < 512);  // {n in ℕ | n < 512}
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
@@ -277,7 +277,7 @@ constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
  *  @tparam T the carrier.  @tparam P the atom. */
 export template <typename T, IsOckhamAlgebra L, IsCardinality C,
                  IsRelPredicate P>
-  requires(only_slot(slots_v<P>, 0)) &&
+  requires(only_slot(slots_v<P>, 0)) && (!contains_self_v<P>) &&
           std::convertible_to<std::invoke_result_t<const P&, const T&>, bool>
 constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
   bind_check<T>(p);

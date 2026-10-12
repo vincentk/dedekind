@@ -116,7 +116,7 @@ concept HasPrefixBound = requires(const P& p) {
  *  @c R's bound (no middle argument): @f$(R;S)(a,c) = \exists b \in [0,M).\,
  *  R(a,b) \wedge S(b,c)@f$, streamed as an OR-fold.  The result is @b itself
  *  bounded (@c ComposePrefixPred carries @c M), so the squaring chain
- *  @c collatzM @c >> @c collatzM @c >> @c … composes without re-supplying the
+ *  @c R_M @c >> @c R_M @c >> @c … composes without re-supplying the
  *  middle.  Generalizes @c :relational's Boolean-middle @c >> to a bounded ℕ
  *  carrier (#795).  Gated on @c HasPrefixBound so the unbounded @c >> is
  *  non-viable here (it stays the Boolean case in @c :relational). */

@@ -84,8 +84,8 @@ TEST_CASE("Pruning showcase 2: {0..3}² lattice × [½,1½]² in ℝ² = {(1,1)}
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto gt_five = ℕ | (χ > 5);
-  constexpr auto lt_three = ℕ | (χ < 3);
+  constexpr auto gt_five = ℕ | (π > 5);
+  constexpr auto lt_three = ℕ | (π < 3);
 
   // The contradiction folds value-first to the empty Interval (kind Empty).
   constexpr auto empty_meet = gt_five & lt_three;
@@ -106,8 +106,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   // Canonical point-free grammar (the paper form): the canonical set ℕ, the
   // sole projection χ (the element scout, reads as x), and a compile-time bound
   // spelled 3.  No Set{} wrapper.
-  constexpr auto gt_3 = ℕ | (χ > 3);
-  constexpr auto lt_5 = ℕ | (χ < 5);
+  constexpr auto gt_3 = ℕ | (π > 3);
+  constexpr auto lt_5 = ℕ | (π < 5);
 
   // The punch line: the meet COLLAPSES to the point {4} at compile time.  The
   // collapse gates on the NNO's successor / predecessor --- an axiom of the
@@ -131,8 +131,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
 
 TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
-  constexpr auto gt_five = ℝ_d | (χ > 5.0);
-  constexpr auto lt_three = ℝ_d | (χ < 3.0);
+  constexpr auto gt_five = ℝ_d | (π > 5.0);
+  constexpr auto lt_three = ℝ_d | (π < 3.0);
 
   // The contradiction folds value-first to the empty Interval, on a continuous
   // carrier just as on ℕ.
