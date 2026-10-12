@@ -60,47 +60,44 @@ using N5 = Lit<std::size_t{5}>;
 
 // meet_bounded_law (induced by a bounded lattice): ⊥ annihilates, ⊤ is unit.
 static_assert(
-    std::same_as<decltype(meet_bounded_law<BotI, I5, canonical_order>())::type,
+    std::same_as<decltype(meet_bounded_law<canonical_order>(BotI{}, I5{})),
                  BotI>,
     "⊥ ∧ X = ⊥ (annihilator).");
 static_assert(
-    std::same_as<decltype(meet_bounded_law<TopI, I5, canonical_order>())::type,
-                 I5>,
+    std::same_as<decltype(meet_bounded_law<canonical_order>(TopI{}, I5{})), I5>,
     "⊤ ∧ X = X (unit).");
 static_assert(
-    std::same_as<decltype(meet_bounded_law<I5, I3, canonical_order>())::type,
+    std::same_as<decltype(meet_bounded_law<canonical_order>(I5{}, I3{})),
                  law_inactive>,
     "no bound present ⟹ the bounded law does not fire.");
 
 // join_bounded_law: the dual — ⊤ annihilates, ⊥ is the unit.
 static_assert(
-    std::same_as<decltype(join_bounded_law<TopI, I5, canonical_order>())::type,
+    std::same_as<decltype(join_bounded_law<canonical_order>(TopI{}, I5{})),
                  TopI>,
     "⊤ ∨ X = ⊤ (annihilator, dual).");
 static_assert(
-    std::same_as<decltype(join_bounded_law<BotI, I5, canonical_order>())::type,
-                 I5>,
+    std::same_as<decltype(join_bounded_law<canonical_order>(BotI{}, I5{})), I5>,
     "⊥ ∨ X = X (unit, dual).");
 
 // idempotent_law (induced by a semilattice): X ∧ X = X.  Structural — it fires
 // regardless of the carrier's order, even for order-opaque leaves.
-static_assert(std::same_as<decltype(idempotent_law<I5, I5>())::type, I5>,
+static_assert(std::same_as<decltype(idempotent_law(I5{}, I5{})), I5>,
               "X ∧ X = X (idempotent).");
-static_assert(
-    std::same_as<decltype(idempotent_law<I5, I3>())::type, law_inactive>,
-    "distinct operands ⟹ idempotence does not fire.");
+static_assert(std::same_as<decltype(idempotent_law(I5{}, I3{})), law_inactive>,
+              "distinct operands ⟹ idempotence does not fire.");
 
 // meet_glb_law (induced by the order-meet consistency): ≤-comparable operands
 // collapse to the glb (meet = min on a chain); the dual join to the lub.  This
 // is NOT structural absorption a∧(a∨b)=a (deferred) — only comparable operands.
 static_assert(
-    std::same_as<decltype(meet_glb_law<I5, I3, canonical_order>())::type, I3>,
+    std::same_as<decltype(meet_glb_law<canonical_order>(I5{}, I3{})), I3>,
     "5 ∧ 3 = 3 (glb / meet = min).");
 static_assert(
-    std::same_as<decltype(join_lub_law<I5, I3, canonical_order>())::type, I5>,
+    std::same_as<decltype(join_lub_law<canonical_order>(I5{}, I3{})), I5>,
     "5 ∨ 3 = 5 (lub / join = max).");
 static_assert(
-    std::same_as<decltype(meet_glb_law<I5, I3, NumLess>())::type, law_inactive>,
+    std::same_as<decltype(meet_glb_law<NumLess>(I5{}, I3{})), law_inactive>,
     "NumLess is not a registered poset for int ⟹ glb collapse inactive.");
 
 // The semantic order is INJECTED; `canonical_order` resolves to the carrier's
@@ -123,11 +120,10 @@ static_assert(!is_lattice_bottom_for_v<BotI, BitSubsetOrd>,
 
 // Mixed-carrier fail-closed: an int ⊤ is NOT the unit of a bool leaf — the
 // boundary law requires both operands share a carrier (SameCarrier).
-static_assert(
-    std::same_as<
-        decltype(meet_bounded_law<TopI, Lit<true>, canonical_order>())::type,
-        law_inactive>,
-    "mixed-carrier term ⟹ boundary law inactive (fail-closed).");
+static_assert(std::same_as<decltype(meet_bounded_law<canonical_order>(
+                               TopI{}, Lit<true>{})),
+                           law_inactive>,
+              "mixed-carrier term ⟹ boundary law inactive (fail-closed).");
 
 // …but the carrier PROPAGATES through composites, so ⊤ ∧ X = X still applies
 // when X is a same-carrier subterm that has not collapsed (not only a leaf) —
@@ -318,21 +314,20 @@ static_assert(std::same_as<reduce_t<Meet<UA, UB>, RuntimeLess>, Meet<UA, UB>>,
 
 // The law in isolation:
 static_assert(
-    std::same_as<
-        decltype(meet_structural_absorption_law<UA, Join<UA, UB>>())::type, UA>,
+    std::same_as<decltype(meet_structural_absorption_law(UA{}, Join<UA, UB>{})),
+                 UA>,
     "a ∧ (a ∨ b) = a.");
 static_assert(
-    std::same_as<
-        decltype(meet_structural_absorption_law<Join<UB, UA>, UA>())::type, UA>,
+    std::same_as<decltype(meet_structural_absorption_law(Join<UB, UA>{}, UA{})),
+                 UA>,
     "(b ∨ a) ∧ a = a (operand order in the join irrelevant).");
 static_assert(
-    std::same_as<
-        decltype(meet_structural_absorption_law<UA, Join<UB, UB>>())::type,
-        law_inactive>,
+    std::same_as<decltype(meet_structural_absorption_law(UA{}, Join<UB, UB>{})),
+                 law_inactive>,
     "a ∧ (b ∨ b): a absent from the join ⟹ inactive.");
 static_assert(
-    std::same_as<
-        decltype(join_structural_absorption_law<UA, Meet<UA, UB>>())::type, UA>,
+    std::same_as<decltype(join_structural_absorption_law(UA{}, Meet<UA, UB>{})),
+                 UA>,
     "a ∨ (a ∧ b) = a (join dual).");
 
 // Assembled through reduce<> (TernLess keeps the opaque inner node
@@ -389,12 +384,12 @@ using DC = DLit<Mask{0b100}>;
 // computes the actual glb/lub of two order-incomparable leaves.
 struct BitCombine {
   template <typename RA, typename RB>
-  static consteval auto meet() {
-    return std::type_identity<DLit<Mask(RA::value & RB::value)>>{};
+  static constexpr auto meet_value(const RA&, const RB&) {
+    return DLit<Mask(RA::value & RB::value)>{};
   }
   template <typename RA, typename RB>
-  static consteval auto join() {
-    return std::type_identity<DLit<Mask(RA::value | RB::value)>>{};
+  static constexpr auto join_value(const RA&, const RB&) {
+    return DLit<Mask(RA::value | RB::value)>{};
   }
 };
 }  // namespace dist_toy
@@ -418,17 +413,15 @@ namespace dist_toy {
 using namespace dedekind::category;
 
 // The distributivity law in isolation: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).
-static_assert(
-    std::same_as<
-        decltype(meet_distributivity_law<DC, Join<DA, DB>, BitSubset>())::type,
-        Join<Meet<DC, DA>, Meet<DC, DB>>>,
-    "distributivity law: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).");
+static_assert(std::same_as<decltype(meet_distributivity_law<BitSubset>(
+                               DC{}, Join<DA, DB>{})),
+                           Join<Meet<DC, DA>, Meet<DC, DB>>>,
+              "distributivity law: X ∧ (P ∨ Q) → (X∧P) ∨ (X∧Q).");
 // Gated OFF for an order not asserted distributive:
-static_assert(
-    std::same_as<
-        decltype(meet_distributivity_law<DC, Join<DA, DB>, NonDistOrd>())::type,
-        law_inactive>,
-    "…inactive for an order not asserted distributive (gated).");
+static_assert(std::same_as<decltype(meet_distributivity_law<NonDistOrd>(
+                               DC{}, Join<DA, DB>{})),
+                           law_inactive>,
+              "…inactive for an order not asserted distributive (gated).");
 // Assembled: c ∧ (a ∨ b) collapses to the DNF (c∧a) ∨ (c∧b); the sub-meets are
 // incomparable so they stay symbolic (a genuine DNF).
 static_assert(
@@ -454,7 +447,7 @@ static_assert(
 // bounds, where ⊤∧¬⊤ collapses via the unit law first).  ⊥/⊤ are the carrier's
 // LatticeBottom/Top over its resolved order.
 static_assert(
-    std::same_as<decltype(meet_complement_law<DA, Not<DA>, BitSubset>())::type,
+    std::same_as<decltype(meet_complement_law<BitSubset>(DA{}, Not<DA>{})),
                  LatticeBottom<Mask, BitSubset>>,
     "law: a ∧ ¬a → ⊥.");
 static_assert(std::same_as<reduce_t<Meet<DA, Not<DA>>, KeepOrder, BitSubset>,

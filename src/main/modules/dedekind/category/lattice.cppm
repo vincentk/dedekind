@@ -268,15 +268,19 @@ static_assert(IsLatticeCategory<int>,
  *  pair; no change to @c :species or duplicate concept surface.
  */
 
-/** @brief Primary template: undefined — no value, no tag.  Specialise
- *         to register the bottom of the lattice over @c (T, @c Rel). */
+/** @brief The abstract bottom of the lattice over @c (T, @c Rel): the initial
+ *         object, as a value the complement law can produce.  Specialise to
+ *         register a carrier's own bottom (with its @c value). */
 export template <typename T, typename Rel>
-struct LatticeBottom;
+struct LatticeBottom {
+  using is_initial_object_tag = void;
+};
 
-/** @brief Primary template: undefined.  Specialise to register the
- *         top of the lattice over @c (T, @c Rel). */
+/** @brief The abstract top of the lattice over @c (T, @c Rel), dually. */
 export template <typename T, typename Rel>
-struct LatticeTop;
+struct LatticeTop {
+  using is_terminal_object_tag = void;
+};
 
 /** @brief Canonical specialisation: @b integral carriers under
  *         @c std::less_equal have bottom @c = @c numeric_limits<T>::min().
@@ -826,42 +830,51 @@ export template <typename A, typename B>
 concept SameCarrier = !std::same_as<carrier_of_t<A>, void> &&
                       std::same_as<carrier_of_t<A>, carrier_of_t<B>>;
 
+/** @section lattice__Laws_As_Value_Functions
+ *  Each law is a @c constexpr function on the two reduced operand @b values,
+ *  returning the reduced value or @c law_inactive.  Where the operand types
+ *  differ the decision is on the types (the result's type depends on it); where
+ *  they coincide a law may decide on the values.  The same function therefore
+ *  runs at compile time (the normal form's type is its @c decltype) and at run
+ *  time, on values built from Python: one law, two binding times. */
+
 /** @brief Law induced by a @b bounded lattice (IsBoundedLatticeCategory): the
  *  unit and annihilator.  Meet: @c ⊥∧X=⊥ (annihilator), @c ⊤∧X=X (unit).
- *  Fires only when both operands share a carrier (mixed-carrier ⟹ inactive). */
-export template <typename RA, typename RB, typename Ord>
-consteval auto meet_bounded_law() {
+ *  Fires only when both operands share a carrier (mixed-carrier ⟹ inactive).
+ *  @tparam Ord the lattice order. */
+export template <typename Ord, typename RA, typename RB>
+constexpr auto meet_bounded_law(const RA& a, const RB& b) {
   if constexpr (!SameCarrier<RA, RB>) {
-    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+    return law_inactive{};  // mixed carrier ⟹ fail closed
   } else if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
-    return std::type_identity<RA>{};  // ⊥ ∧ X = ⊥
+    return a;  // ⊥ ∧ X = ⊥
   } else if constexpr (is_lattice_bottom_for_v<RB, Ord>) {
-    return std::type_identity<RB>{};
+    return b;
   } else if constexpr (is_lattice_top_for_v<RA, Ord>) {
-    return std::type_identity<RB>{};  // ⊤ ∧ X = X
+    return b;  // ⊤ ∧ X = X
   } else if constexpr (is_lattice_top_for_v<RB, Ord>) {
-    return std::type_identity<RA>{};
+    return a;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
 /** @brief The join dual: @c ⊤∨X=⊤ (annihilator), @c ⊥∨X=X (unit).
  *  Likewise fires only when both operands share a carrier. */
-export template <typename RA, typename RB, typename Ord>
-consteval auto join_bounded_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto join_bounded_law(const RA& a, const RB& b) {
   if constexpr (!SameCarrier<RA, RB>) {
-    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+    return law_inactive{};  // mixed carrier ⟹ fail closed
   } else if constexpr (is_lattice_top_for_v<RA, Ord>) {
-    return std::type_identity<RA>{};  // ⊤ ∨ X = ⊤
+    return a;  // ⊤ ∨ X = ⊤
   } else if constexpr (is_lattice_top_for_v<RB, Ord>) {
-    return std::type_identity<RB>{};
+    return b;
   } else if constexpr (is_lattice_bottom_for_v<RA, Ord>) {
-    return std::type_identity<RB>{};  // ⊥ ∨ X = X
+    return b;  // ⊥ ∨ X = X
   } else if constexpr (is_lattice_bottom_for_v<RB, Ord>) {
-    return std::type_identity<RA>{};
+    return a;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
@@ -913,11 +926,11 @@ concept IsIdempotentLeaf = idempotent_leaf_v<T>;
  *  opaque leaves.  It is gated on @c idempotent_leaf_v, so a runtime-stateful
  *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
-consteval auto idempotent_law() {
+constexpr auto idempotent_law(const RA& a, const RB&) {
   if constexpr (std::same_as<RA, RB> && IsIdempotentLeaf<RA>) {
-    return std::type_identity<RA>{};
+    return a;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
@@ -945,30 +958,30 @@ inline constexpr bool is_meet_containing_v<Elem, Meet<A, B>> =
  *  same recursive fail-closed invariant as @c carrier_of / the boundary laws;
  *  the all-opaque (unknown-carrier) case still fires. */
 export template <typename RA, typename RB>
-consteval auto meet_structural_absorption_law() {
+constexpr auto meet_structural_absorption_law(const RA& a, const RB& b) {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
-    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+    return law_inactive{};  // mixed carrier ⟹ fail closed
   } else if constexpr (is_join_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
-    return std::type_identity<RA>{};  // a ∧ (a ∨ b) = a
+    return a;  // a ∧ (a ∨ b) = a
   } else if constexpr (is_join_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
-    return std::type_identity<RB>{};  // (a ∨ b) ∧ a = a
+    return b;  // (a ∨ b) ∧ a = a
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
 /** @brief The join dual: @c a∨(a∧b)=a.  Likewise fails closed on mixed
  * carriers. */
 export template <typename RA, typename RB>
-consteval auto join_structural_absorption_law() {
+constexpr auto join_structural_absorption_law(const RA& a, const RB& b) {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
-    return std::type_identity<law_inactive>{};  // mixed carrier ⟹ fail closed
+    return law_inactive{};  // mixed carrier ⟹ fail closed
   } else if constexpr (is_meet_containing_v<RA, RB> && IsIdempotentLeaf<RA>) {
-    return std::type_identity<RA>{};  // a ∨ (a ∧ b) = a
+    return a;  // a ∨ (a ∧ b) = a
   } else if constexpr (is_meet_containing_v<RB, RA> && IsIdempotentLeaf<RB>) {
-    return std::type_identity<RB>{};
+    return b;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
@@ -1026,28 +1039,28 @@ consteval bool order_leq() {
  *  @c a∧(a∨b)=a (which needs no comparison); that is the separate
  *  @c meet_structural_absorption_law.  Here only comparable operands collapse.
  */
-export template <typename RA, typename RB, typename Ord>
-consteval auto meet_glb_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto meet_glb_law(const RA& a, const RB& b) {
   if constexpr (order_leq<RA, RB, Ord>()) {
-    return std::type_identity<RA>{};
+    return a;
   } else if constexpr (order_leq<RB, RA, Ord>()) {
-    return std::type_identity<RB>{};
+    return b;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
 /** @brief The join dual: for comparable operands the join is their @b lub (the
  *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is the
  *  separate @c join_structural_absorption_law.) */
-export template <typename RA, typename RB, typename Ord>
-consteval auto join_lub_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto join_lub_law(const RA& a, const RB& b) {
   if constexpr (order_leq<RA, RB, Ord>()) {
-    return std::type_identity<RB>{};
+    return b;
   } else if constexpr (order_leq<RB, RA, Ord>()) {
-    return std::type_identity<RA>{};
+    return a;
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
@@ -1075,13 +1088,13 @@ inline constexpr bool is_distributive_lattice_for_v =
     std::same_as<resolved_order_t<T, Ord>, std::less_equal<T>> &&
     IsLatticeCategory<T> && IsOrderDistributiveLatticeOperations<T>;
 
-// Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q).
-template <typename X, typename JoinNode>
-struct distribute_meet_over;
+// Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q), built
+// from the values.
 template <typename X, typename P, typename Q>
-struct distribute_meet_over<X, Join<P, Q>> {
-  using type = Join<Meet<X, P>, Meet<X, Q>>;
-};
+constexpr auto distribute_meet_over(const X& x, const Join<P, Q>& j) {
+  return Join<Meet<X, P>, Meet<X, Q>>{Meet<X, P>{x, j.lhs},
+                                      Meet<X, Q>{x, j.rhs}};
+}
 
 /** @brief Law induced by a @b distributive lattice: distribute meet over join,
  *  @c X∧(P∨Q) → (X∧P)∨(X∧Q), driving toward a join-of-meets (DNF).  @b One
@@ -1090,17 +1103,17 @@ struct distribute_meet_over<X, Join<P, Q>> {
  *  operands sharing a carrier (@c SameCarrier) whose lattice is distributive
  *  under @c Ord; a chain is gated but pre-empted by the glb collapse, so this
  *  fires only on a genuine non-chain distributive lattice. */
-export template <typename RA, typename RB, typename Ord>
-consteval auto meet_distributivity_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto meet_distributivity_law(const RA& a, const RB& b) {
   if constexpr (!(SameCarrier<RA, RB> &&
                   is_distributive_lattice_for_v<carrier_of_t<RA>, Ord>)) {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   } else if constexpr (is_join_node_v<RB>) {
-    return std::type_identity<typename distribute_meet_over<RA, RB>::type>{};
+    return distribute_meet_over(a, b);
   } else if constexpr (is_join_node_v<RA>) {
-    return std::type_identity<typename distribute_meet_over<RB, RA>::type>{};
+    return distribute_meet_over(b, a);
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
@@ -1137,22 +1150,21 @@ export template <>
 inline constexpr bool is_de_morgan_negation_for_v<bool, canonical_order> = true;
 
 // The De Morgan / involution rewrite of ¬(node): push the negation inward one
-// level.  Defined only for the nodes it rewrites (Not / Meet / Join); a bare
-// ¬leaf is already negation-normal and is left to the caller.
-template <typename Node>
-struct de_morgan_of;
+// level, built from the values.  Defined only for the nodes it rewrites (Not /
+// Meet / Join); a bare ¬leaf is already negation-normal and is left to the
+// caller.
 template <typename B>
-struct de_morgan_of<Not<B>> {
-  using type = B;  // ¬¬B → B (involution)
-};
+constexpr B de_morgan_of(const Not<B>& n) {
+  return n.base;  // ¬¬B → B (involution)
+}
 template <typename P, typename Q>
-struct de_morgan_of<Meet<P, Q>> {
-  using type = Join<Not<P>, Not<Q>>;  // ¬(P∧Q) → ¬P ∨ ¬Q
-};
+constexpr auto de_morgan_of(const Meet<P, Q>& m) {
+  return Join<Not<P>, Not<Q>>{Not<P>{m.lhs}, Not<Q>{m.rhs}};  // ¬(P∧Q) → ¬P∨¬Q
+}
 template <typename P, typename Q>
-struct de_morgan_of<Join<P, Q>> {
-  using type = Meet<Not<P>, Not<Q>>;  // ¬(P∨Q) → ¬P ∧ ¬Q
-};
+constexpr auto de_morgan_of(const Join<P, Q>& j) {
+  return Meet<Not<P>, Not<Q>>{Not<P>{j.lhs}, Not<Q>{j.rhs}};  // ¬(P∨Q) → ¬P∧¬Q
+}
 
 /** @brief Law induced by an @b involutive De Morgan negation: rewrite
  *  @c ¬(reduced) by involution (@c ¬¬A→A) and De Morgan (@c ¬(A∧B)→¬A∨¬B,
@@ -1161,15 +1173,15 @@ struct de_morgan_of<Join<P, Q>> {
  * Ord; a bare @c ¬leaf is already normal and stays (@c law_inactive).  The
  * driver re-reduces the pushed-down result (termination: @c ¬ strictly
  * descends). */
-export template <typename RA, typename Ord>
-consteval auto de_morgan_law() {
+export template <typename Ord, typename RA>
+constexpr auto de_morgan_law(const RA& a) {
   if constexpr (!is_de_morgan_negation_for_v<carrier_of_t<RA>, Ord>) {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   } else if constexpr (is_not_node_v<RA> || is_meet_node_v<RA> ||
                        is_join_node_v<RA>) {
-    return std::type_identity<typename de_morgan_of<RA>::type>{};
+    return de_morgan_of(a);
   } else {
-    return std::type_identity<law_inactive>{};  // ¬leaf is negation-normal
+    return law_inactive{};  // ¬leaf is negation-normal
   }
 }
 
@@ -1201,33 +1213,33 @@ inline constexpr bool is_complement_pair_v =
  *  carrier's registered @c LatticeBottom / @c LatticeTop over its resolved
  *  order (for sets, that is @c Ø / @c 𝔸 once the sets layer registers them).
  *  Gated on the carrier being complemented under @c Ord; else inactive. */
-export template <typename RA, typename RB, typename Ord>
-consteval auto meet_complement_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto meet_complement_law(const RA&, const RB&) {
   // @c IsIdempotent gate: @c a∧¬a=⊥ is a type-only match, so it is sound only
   // when the leaves are value-determined; a runtime-stateful pair like
   // @c S{7}∧¬S{3} matches the type pair but is @b not empty (#922).
   if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
                 IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<codomain_of_t<RA>, Ord>) {
-    return std::type_identity<LatticeBottom<
-        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+    return LatticeBottom<carrier_of_t<RA>,
+                         resolved_order_t<carrier_of_t<RA>, Ord>>{};
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 
 /** @brief The join dual: @c a∨¬a→⊤ (excluded middle). */
-export template <typename RA, typename RB, typename Ord>
-consteval auto join_complement_law() {
+export template <typename Ord, typename RA, typename RB>
+constexpr auto join_complement_law(const RA&, const RB&) {
   // @c IsIdempotent gate (see @c meet_complement_law): @c a∨¬a=⊤ collapses
   // soundly only on value-determined leaves.
   if constexpr (is_complement_pair_v<RA, RB> && IsIdempotentLeaf<RA> &&
                 IsIdempotentLeaf<RB> &&
                 is_complemented_lattice_for_v<codomain_of_t<RA>, Ord>) {
-    return std::type_identity<LatticeTop<
-        carrier_of_t<RA>, resolved_order_t<carrier_of_t<RA>, Ord>>>{};
+    return LatticeTop<carrier_of_t<RA>,
+                      resolved_order_t<carrier_of_t<RA>, Ord>>{};
   } else {
-    return std::type_identity<law_inactive>{};
+    return law_inactive{};
   }
 }
 

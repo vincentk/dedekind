@@ -725,16 +725,43 @@ constexpr auto Ø<T, L>::operator!() const {
  *  The four Ø / 𝔸 meet & join operators build the @c Meet / @c Join node
  *  @b value and hand it to the value-first @ref subobject_reduce below. */
 
-/** @brief Value-first domain reduce (#922): reduce a subobject lattice @c Node
- *  @b value (a @c Meet / @c Join / @c Not over @c Sub(T), or a leaf) to its
- *  normal-form @b value under @c subobject_order<L>, then finalize the codomain
- *  leg.  The value twin of @c subobject_reduce_t: it runs the same laws but
- *  returns a value, so it works at runtime and preserves a runtime-stateful
- *  operand (e.g.\ a @c Singleton holding an extensional value) where the
- *  normal form is that operand.  The four @c Ø / @c 𝔸 meet & join operators
- *  route through here (boundary operands are stateless); this is also the
- *  general entry the #916 Python composition surface will call once the
- *  leaf-combine leg is threaded (slice 2). */
+// The reducer's complement law constructs the ABSTRACT lattice bounds
+// @c LatticeBottom / @c LatticeTop over the injected order.  Over
+// @c subobject_order<L> those bounds ARE the set boundaries @c Ø<T,L> /
+// @c 𝔸<T,L> (registered via @c is_lattice_bottom_for / @c is_lattice_top_for
+// below), so the reducer materialises them back to the concrete boundary.  This
+// is the forward dual of that recognition: the bounded law RECOGNISES Ø/𝔸 as
+// bounds; the complement law GENERATES them.
+template <typename R>
+inline constexpr bool is_subobject_bottom_v = false;
+template <typename T, typename L>
+inline constexpr bool
+    is_subobject_bottom_v<LatticeBottom<T, subobject_order<L>>> = true;
+template <typename R>
+inline constexpr bool is_subobject_top_v = false;
+template <typename T, typename L>
+inline constexpr bool is_subobject_top_v<LatticeTop<T, subobject_order<L>>> =
+    true;
+template <typename T, typename L, typename R>
+constexpr auto materialize_bounds(R r) {
+  if constexpr (is_subobject_bottom_v<R>)
+    return Ø<T, L>{};
+  else if constexpr (is_subobject_top_v<R>)
+    return 𝔸<T, L>{};
+  else
+    return r;
+}
+
+/** @brief The domain reduce: fold a subobject lattice @c Node @b value (a
+ *  @c Meet / @c Join / @c Not over @c Sub(T), or a leaf) to its normal-form
+ *  value under @c subobject_order<L> through the one reducer
+ *  (@c category::Reduce under @c cata), make an abstract bound concrete, then
+ *  finalize the codomain leg.  The same fold at compile time names the type
+ *  @c subobject_reduce_t; at run time it preserves a runtime-stateful operand
+ *  (a @c Singleton holding a value) where the normal form is that operand, so
+ *  it is the entry the Python surface calls.  The four @c Ø / @c 𝔸 meet & join
+ *  operators and the free @c & / @c | / @c ~ over @c IsSetObject
+ *  (@c :expressions) all route through here. */
 
 // The reducer is a function IsSetObject → IsSetObject.  A lattice term over
 // set objects on one carrier IS a set object (structurally, :setobject); the
@@ -751,8 +778,8 @@ constexpr auto subobject_reduce(const Node& node) {
   // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
   // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
   // to let a value-determined collapse reach the normal form.
-  auto reduced = finalize_combine(cata(
-      ValueReduce<subobject_order<L>, subobject_order<L>, Combine>{}, node));
+  auto reduced = finalize_combine(materialize_bounds<typename Node::Domain, L>(
+      cata(Reduce<subobject_order<L>, subobject_order<L>, Combine>{}, node)));
   static_assert(IsSetObject<decltype(reduced)>,
                 "subobject_reduce: the reduced term must be a set object.");
   return reduced;

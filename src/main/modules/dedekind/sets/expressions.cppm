@@ -585,58 +585,27 @@ constexpr auto elevate_join(Reduced reduced) {
   }
 }
 
-namespace detail_reducer {
-/** @brief Type-level companion of @c elevate_meet: the leaf @c SetCombine::meet
- *  yields for a combinable set-leaf pair, or @c law_inactive when the leaves
- *  are not both sets over one carrier or no @c structured_and applies. */
-template <typename RA, typename RB>
-struct combine_meet {
-  using type = law_inactive;
-};
-template <typename T, typename L, typename PA, typename PB, typename C>
-  requires requires(const PA& a, const PB& b) { structured_and(a, b); }
-struct combine_meet<Comprehension<𝔸<T, L, C>, PA>,
-                    Comprehension<𝔸<T, L, C>, PB>> {
-  using type = decltype(elevate_meet<T, L>(
-      structured_and(std::declval<const PA&>(), std::declval<const PB&>())));
-};
-
-template <typename RA, typename RB>
-struct combine_join {
-  using type = law_inactive;
-};
-template <typename T, typename L, typename PA, typename PB, typename C>
-  requires requires(const PA& a, const PB& b) { structured_or(a, b); }
-struct combine_join<Comprehension<𝔸<T, L, C>, PA>,
-                    Comprehension<𝔸<T, L, C>, PB>> {
-  using type = decltype(elevate_join<T, L>(
-      structured_or(std::declval<const PA&>(), std::declval<const PB&>())));
-};
-}  // namespace detail_reducer
-
-/** @brief The injected leaf-combiner (the reducer's 4th @c reduce<> policy) for
+/** @brief The injected leaf-combiner (the reducer's @c Combine policy) for
  *  the subobject lattice: at an order-incomparable residual, hand the two set
- *  leaves to the carrier's domain @c ∧ / @c ∨ (@c structured_and /
- *  @c structured_or via ADL) and let the reducer re-reduce the result. */
+ *  leaves to the carrier's domain @c ∧ / @c ∨ on their runtime data and let the
+ *  reducer fold the result again.  Two plain sets over one universe combine
+ *  through their predicates (@c structured_and / @c structured_or via ADL,
+ *  elevated back to a set); a value leaf (an @c Interval) combines directly.
+ *  Each leg is present only where the carrier actually combines the pair, so
+ *  elsewhere the residual stays a @c Meet / @c Join node. */
 export struct SetCombine {
-  template <typename RA, typename RB>
-  static consteval auto meet() {
-    return std::type_identity<
-        typename detail_reducer::combine_meet<RA, RB>::type>{};
+  template <typename T, typename L, typename C, typename PA, typename PB>
+    requires requires(const PA& a, const PB& b) { structured_and(a, b); }
+  static constexpr auto meet_value(const Comprehension<𝔸<T, L, C>, PA>& a,
+                                   const Comprehension<𝔸<T, L, C>, PB>& b) {
+    return elevate_meet<T, L>(structured_and(a.predicate, b.predicate));
   }
-  template <typename RA, typename RB>
-  static consteval auto join() {
-    return std::type_identity<
-        typename detail_reducer::combine_join<RA, RB>::type>{};
+  template <typename T, typename L, typename C, typename PA, typename PB>
+    requires requires(const PA& a, const PB& b) { structured_or(a, b); }
+  static constexpr auto join_value(const Comprehension<𝔸<T, L, C>, PA>& a,
+                                   const Comprehension<𝔸<T, L, C>, PB>& b) {
+    return elevate_join<T, L>(structured_or(a.predicate, b.predicate));
   }
-
-  /** @brief The VALUE leg of the leaf-combine (the reducer's value-first twin,
-   *  #922 slice 2): hand two reduced bare leaves to the carrier's domain @c ∧ /
-   *  @c ∨ on their runtime data.  Gated on the carrier actually providing
-   *  @c structured_and / @c structured_or for the pair (ADL, so an ordered
-   *  carrier's halfspaces plug in from @c :order without this module naming
-   *  them); absent that, the policy has no value leg and the reducer falls back
-   *  to reconstructing the type-level normal form. */
   template <typename RA, typename RB>
     requires requires(const RA& a, const RB& b) { structured_and(a, b); }
   static constexpr auto meet_value(const RA& a, const RB& b) {
@@ -727,25 +696,6 @@ struct set_predicate<Comprehension<𝔸<T, L, C>, P>> {
 template <typename S>
 concept PlainSet = requires { typename set_predicate<S>::type; };
 
-// The reducer's complement / bounded laws construct the ABSTRACT lattice bounds
-// @c LatticeBottom / @c LatticeTop over the injected order.  Over
-// @c subobject_order<L> those bounds ARE the set boundaries @c Ø<T,L> / @c
-// 𝔸<T,L> (registered via @c is_lattice_bottom_for / @c is_lattice_top_for in
-// @c :boundaries), so @c operator& / @c operator| materialise them back to the
-// concrete boundary value.  This is the forward dual of that recognition: the
-// bounded law RECOGNISES Ø/𝔸 as bounds; the complement law GENERATES them.
-template <typename R>
-inline constexpr bool is_subobject_bottom_v = false;
-template <typename T, typename L>
-inline constexpr bool is_subobject_bottom_v<
-    dedekind::category::LatticeBottom<T, subobject_order<L>>> = true;
-template <typename R>
-inline constexpr bool is_subobject_top_v = false;
-template <typename T, typename L>
-inline constexpr bool
-    is_subobject_top_v<dedekind::category::LatticeTop<T, subobject_order<L>>> =
-        true;
-
 /** @brief The subobject-lattice meet @c A @c & @c B, over any two @c
  * IsSubobject operands sharing a carrier and logic.  It folds @c Meet<A,B>
  * through the reducer; @c SetCombine supplies the domain @c structured_and at
@@ -758,45 +708,8 @@ export template <typename LHS, typename RHS>
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
 constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
-  using T = typename LHS::Domain;
-  using Log = typename LHS::logic_species;
-  // a ∧ ¬a = ⊥ collapses INSIDE the reducer: A & ~A is Meet<A, Not<A>>, and
-  // meet_complement_law fires when the CODOMAIN Ω is complemented (Boole yes;
-  // Kleene's 3-chain no, ¬U=U) --- no bespoke complement-pair branch here.
-  {
-    using R = subobject_reduce_t<Meet<LHS, RHS>, Log, SetCombine>;
-    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
-    // result factors through Σ, so it is re-tagged to the Boolean codomain).
-    if constexpr (IsBoundaryObject<R>) {
-      return finalize_combine(R{});
-    } else if constexpr (is_subobject_bottom_v<R>) {
-      return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
-    } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(𝔸<T, Log>{});  // abstract ⊤ over Sub(T)
-    } else if constexpr (std::same_as<R, LHS>) {
-      return finalize_combine(lhs);
-    } else if constexpr (std::same_as<R, RHS>) {
-      return finalize_combine(rhs);
-    } else if constexpr (std::same_as<R, Meet<LHS, RHS>>) {
-      // Irreducible: the intersection AS a set, carrying both operands (#892).
-      return finalize_combine(Meet<LHS, RHS>{lhs, rhs});
-    } else if constexpr (std::same_as<R, Meet<RHS, LHS>>) {
-      // Irreducible, but the reducer commutatively canonicalised the operands
-      // (RB ≤ RA); carry them in that order (e.g. a Not operand that did not
-      // collapse).  Meet, not the structured_and leaf below --- a Not node
-      // has no @c .predicate().
-      return finalize_combine(Meet<RHS, LHS>{rhs, lhs});
-    } else if constexpr (PlainSet<LHS> && PlainSet<RHS>) {
-      // SetCombine collapsed two plain-set leaves via structured_and.
-      return finalize_combine(
-          elevate_meet<T, Log>(structured_and(lhs.predicate, rhs.predicate)));
-    } else {
-      // A normal form the type-level cascade above does not name (e.g. a law
-      // reassociating through a node operand): the value-first reducer folds
-      // it, and its result is a set object by construction.
-      return subobject_reduce<Log, SetCombine>(Meet<LHS, RHS>{lhs, rhs});
-    }
-  }
+  return subobject_reduce<typename LHS::logic_species, SetCombine>(
+      Meet<LHS, RHS>{lhs, rhs});
 }
 
 /** @brief The subobject-lattice join @c A @c | @c B, dual to @c operator&.  An
@@ -807,37 +720,8 @@ export template <typename LHS, typename RHS>
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
 constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
-  using T = typename LHS::Domain;
-  using Log = typename LHS::logic_species;
-  // a ∨ ¬a = ⊤ collapses INSIDE the reducer (dual of the meet): A | ~A is
-  // Join<A, Not<A>>, and join_complement_law fires when the CODOMAIN Ω is
-  // complemented --- no bespoke complement-pair branch here.
-  {
-    using R = subobject_reduce_t<Join<LHS, RHS>, Log, SetCombine>;
-    // Domain leg = the reducer; codomain leg = finalize_combine (a boundary
-    // result factors through Σ, so it is re-tagged to the Boolean codomain).
-    if constexpr (IsBoundaryObject<R>) {
-      return finalize_combine(R{});
-    } else if constexpr (is_subobject_bottom_v<R>) {
-      return finalize_combine(Ø<T, Log>{});  // reducer's abstract ⊥ over Sub(T)
-    } else if constexpr (is_subobject_top_v<R>) {
-      return finalize_combine(𝔸<T, Log>{});  // abstract ⊤ over Sub(T)
-    } else if constexpr (std::same_as<R, LHS>) {
-      return finalize_combine(lhs);
-    } else if constexpr (std::same_as<R, RHS>) {
-      return finalize_combine(rhs);
-    } else if constexpr (std::same_as<R, Join<LHS, RHS>>) {
-      return finalize_combine(Join<LHS, RHS>{lhs, rhs});
-    } else if constexpr (std::same_as<R, Join<RHS, LHS>>) {
-      // Commutatively canonicalised operands (see the meet dual above).
-      return finalize_combine(Join<RHS, LHS>{rhs, lhs});
-    } else if constexpr (PlainSet<LHS> && PlainSet<RHS>) {
-      return finalize_combine(
-          elevate_join<T, Log>(structured_or(lhs.predicate, rhs.predicate)));
-    } else {
-      return subobject_reduce<Log, SetCombine>(Join<LHS, RHS>{lhs, rhs});
-    }
-  }
+  return subobject_reduce<typename LHS::logic_species, SetCombine>(
+      Join<LHS, RHS>{lhs, rhs});
 }
 
 /** @brief Cross-species meet (#894, step i): two subobjects over the same
