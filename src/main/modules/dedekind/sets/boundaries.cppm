@@ -751,8 +751,8 @@ constexpr auto subobject_reduce(const Node& node) {
   // below keep the pure lattice laws; a carrier passes its own policy (e.g.\
   // @c SetCombine, whose value leg meets two bare leaves on their runtime data)
   // to let a value-determined collapse reach the normal form.
-  auto reduced = finalize_combine(
-      reduce_value<subobject_order<L>, subobject_order<L>, Combine>(node));
+  auto reduced = finalize_combine(cata(
+      ValueReduce<subobject_order<L>, subobject_order<L>, Combine>{}, node));
   static_assert(IsSetObject<decltype(reduced)>,
                 "subobject_reduce: the reduced term must be a set object.");
   return reduced;

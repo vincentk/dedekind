@@ -155,6 +155,7 @@ module;
 #include <limits>       // std::numeric_limits — LatticeBottom/Top
                         // specialisations for arithmetic carriers.
 #include <ranges>       // std::ranges::iota_view, range_value_t — Slice 10
+#include <tuple>        // std::tie — the legs of a node, for cata
                         // niebloid-identity / tripwire pins.
 #include <type_traits>  // std::is_arithmetic_v — same specialisations.
 
@@ -602,6 +603,23 @@ export template <typename A, typename B>
 constexpr const B& π_2(const Join<A, B>& j) {
   return j.rhs;
 }
+
+/** @name The legs of a node, for @c cata (@c :f_algebra)
+ *  @brief The term functor stated once per node: the operands, by reference.
+ *  @{ */
+export template <typename A, typename B>
+constexpr auto legs(const Meet<A, B>& m) {
+  return std::tie(m.lhs, m.rhs);
+}
+export template <typename A, typename B>
+constexpr auto legs(const Join<A, B>& j) {
+  return std::tie(j.lhs, j.rhs);
+}
+export template <typename A>
+constexpr auto legs(const Not<A>& n) {
+  return std::tie(n.base);
+}
+/** @} */
 
 /** @brief The pairing factory for the meet (∧, pullback): @c ⟨-,-⟩ : A×B→Meet.
  */

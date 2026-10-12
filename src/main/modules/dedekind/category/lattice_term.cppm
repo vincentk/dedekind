@@ -67,22 +67,10 @@ import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
 import :cartesian_bicategory;  // Copy / Merge / IsMeetAsRightAdjoint (Δ ⊣ ∧)
 import :f_algebra;  // cata: the ONE catamorphism engine (#961).  A lattice is a
                     // (thin) category and its term reducer is a fold, so the
-                    // specialised lattice reducer depends on the general
-                    // F-algebra engine (specific → general), routing its
-                    // reduction through cata rather than a parallel fold.
+                    // value-first reducer below is an ALGEBRA for cata, not a
+                    // parallel fold (specific → general).
 
 namespace dedekind::category {
-
-// Seam (#961): the lattice term reducer can now reach :f_algebra's cata --- the
-// ONE catamorphism engine.  Witnessed here so the dependency is load-bearing:
-// cata reduces id ∘ id to id from the lattice branch, so the induced lattice
-// laws can be routed through the same reducer as composition (one engine, not a
-// parallel fold).  Routing the lattice fold through cata is the follow-up; this
-// edge is the seam that makes it possible.
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(cata(id<int>() >> id<int>()))>,
-                 Identity<int>>,
-    "cata (from :f_algebra) is reachable and reduces from the lattice branch");
 
 /** @brief The logic species a comparator reports in — @c Boole (a
  *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
@@ -381,68 +369,64 @@ constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
 
 }  // namespace detail_lattice_term
 
-/** @brief Value-first reduce, leaf case: a leaf reduces to itself. */
-export template <typename Less, typename Ord, typename Combine, typename Leaf>
-constexpr auto reduce_value(const Leaf& leaf) {
-  return leaf;
-}
-
-/** @brief Value-first reduce of a @c Meet value: reduce the operands, then
- *  reconstruct the value of the type-level normal form. */
-export template <typename Less, typename Ord, typename Combine, typename A,
-                 typename B>
-constexpr auto reduce_value(const Meet<A, B>& node) {
-  const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
-  const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  // The injected VALUE leaf-combine: when the carrier can meet the two reduced
-  // leaves on their runtime data (a policy @c meet_value, e.g. two halfspaces
-  // whose pivots decide empty / point / interval), that decision is the normal
-  // form --- a value-determined collapse the type-level @c reduce_t cannot see,
-  // since two intervals of one type differ only in their pivots.  Otherwise
-  // reconstruct the value of the type-level normal form.
-  if constexpr (requires { Combine::meet_value(ra, rb); }) {
-    return Combine::meet_value(ra, rb);
-  } else {
-    using D = reduce_t<Meet<std::remove_cvref_t<decltype(ra)>,
-                            std::remove_cvref_t<decltype(rb)>>,
-                       Less, Ord, Combine>;
-    return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
+/** @brief The value-first reducer as the algebra of @c cata (@c :f_algebra,
+ *  the one fold): a leaf reduces to itself; a node to the value of its
+ *  type-level normal form @c reduce_t, rebuilt from the already-reduced
+ *  operands @c cata hands it.  @tparam Less,Ord,Combine the reducer's policies.
+ */
+export template <typename Less, typename Ord, typename Combine>
+struct ValueReduce {
+  template <typename Leaf>
+  constexpr Leaf operator()(const Leaf& leaf) const {
+    return leaf;
   }
-}
 
-/** @brief Value-first reduce of a @c Join value (dual of the @c Meet case). */
-export template <typename Less, typename Ord, typename Combine, typename A,
-                 typename B>
-constexpr auto reduce_value(const Join<A, B>& node) {
-  const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
-  const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  if constexpr (requires { Combine::join_value(ra, rb); }) {
-    return Combine::join_value(ra, rb);
-  } else {
-    using D = reduce_t<Join<std::remove_cvref_t<decltype(ra)>,
-                            std::remove_cvref_t<decltype(rb)>>,
-                       Less, Ord, Combine>;
-    return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
+  /** @brief A @c Meet over its reduced operands.
+   *  @details The injected VALUE leaf-combine: when the carrier can meet the
+   *  two reduced leaves on their runtime data (a policy @c meet_value, e.g. two
+   *  halfspaces whose pivots decide empty / point / interval), that decision is
+   *  the normal form --- a value-determined collapse the type-level @c reduce_t
+   *  cannot see, since two intervals of one type differ only in their pivots.
+   *  Otherwise reconstruct the value of the type-level normal form. */
+  template <typename A, typename B, typename RA, typename RB>
+  constexpr auto operator()(const Meet<A, B>&, const RA& ra,
+                            const RB& rb) const {
+    if constexpr (requires { Combine::meet_value(ra, rb); }) {
+      return Combine::meet_value(ra, rb);
+    } else {
+      using D = reduce_t<Meet<RA, RB>, Less, Ord, Combine>;
+      return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
+    }
   }
-}
 
-/** @brief Value-first reduce of a @c Not value: reduce the operand, keep
- *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  @details No push (@c D is @c Not<RB>) keeps @c ¬(reduced); any push routes
- *  through the same @ref detail_lattice_term::materialize_or_keep tail as the
- *  binary nodes.  The @c D==Not<RB> guard stays ahead of the helper: since
- *  @c idempotent_leaf_v<Not<A>> tracks its base, an idempotent @c Not must keep
- *  its operand rather than default-collapse. */
-export template <typename Less, typename Ord, typename Combine, typename A>
-constexpr auto reduce_value(const Not<A>& node) {
-  const auto rb = reduce_value<Less, Ord, Combine>(node.base);
-  using RB = std::remove_cvref_t<decltype(rb)>;
-  using D = reduce_t<Not<RB>, Less, Ord, Combine>;
-  if constexpr (std::same_as<D, Not<RB>>) {
-    return Not<RB>{rb};  // no push: already negation-normal
-  } else {
-    return detail_lattice_term::materialize_or_keep<D, Not<RB>>(rb);
+  /** @brief A @c Join over its reduced operands (dual of the @c Meet case). */
+  template <typename A, typename B, typename RA, typename RB>
+  constexpr auto operator()(const Join<A, B>&, const RA& ra,
+                            const RB& rb) const {
+    if constexpr (requires { Combine::join_value(ra, rb); }) {
+      return Combine::join_value(ra, rb);
+    } else {
+      using D = reduce_t<Join<RA, RB>, Less, Ord, Combine>;
+      return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
+    }
   }
-}
+
+  /** @brief A @c Not over its reduced operand: keep @c ¬(reduced) unless De
+   *  Morgan / involution pushed it to another shape.
+   *  @details No push (@c D is @c Not<RB>) keeps @c ¬(reduced); any push routes
+   *  through the same @ref detail_lattice_term::materialize_or_keep tail as the
+   *  binary nodes.  The @c D==Not<RB> guard stays ahead of the helper: since
+   *  @c idempotent_leaf_v<Not<A>> tracks its base, an idempotent @c Not must
+   *  keep its operand rather than default-collapse. */
+  template <typename A, typename RB>
+  constexpr auto operator()(const Not<A>&, const RB& rb) const {
+    using D = reduce_t<Not<RB>, Less, Ord, Combine>;
+    if constexpr (std::same_as<D, Not<RB>>) {
+      return Not<RB>{rb};  // no push: already negation-normal
+    } else {
+      return detail_lattice_term::materialize_or_keep<D, Not<RB>>(rb);
+    }
+  }
+};
 
 }  // namespace dedekind::category
