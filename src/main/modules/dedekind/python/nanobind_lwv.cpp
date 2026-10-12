@@ -25,14 +25,16 @@
  */
 
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 
 #include <limits>
 #include <optional>
 #include <string>
 
-import dedekind.category; // Identity, Successor, Predecessor
-import dedekind.order;    // Direction / Strictness, reduce_meet
+import dedekind.category; // Identity, Successor, Predecessor, Join
+import dedekind.order;    // Direction / Strictness, Interval
+import dedekind.sets;     // IsSetObject
 import dedekind.python;   // dedekind::python::lwv: Set, ray, image, restrict
 
 namespace nb = nanobind;
@@ -42,6 +44,13 @@ namespace lwv = dedekind::python::lwv;
 namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
 using Set = lwv::Set;
+/** @brief A union of two intervals, the reducer's own @c Join node: the
+ *  complement of an interval (the parts below and above it), or what a meet
+ *  distributes into.  A set object in its own right, so @c & with a @c Set
+ *  folds through the same reducer. */
+using Union = dedekind::category::Join<Set, Set>;
+static_assert(dedekind::sets::IsSetObject<Union>,
+              "a union of two intervals is a set object (the Join node).");
 using dedekind::category::Identity;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
@@ -87,6 +96,7 @@ std::string repr(const Set& s) {
   const char* op = up ? (strict ? ">" : ">=") : (strict ? "<" : "<=");
   return std::string("{x | x ") + op + " " + std::to_string(b.at) + "}";
 }
+std::string repr(const Union& u) { return repr(u.lhs) + " ∪ " + repr(u.rhs); }
 
 // The FINITE cardinality where it is decidable (a bounded set); std::nullopt
 // for a ray or 𝔸.
@@ -114,9 +124,10 @@ NB_MODULE(_lwv, m) {
       "runtime value.  Construct with above(k)/at_least(k)/below(k)/at_most(k)/"
       "singleton(k) (and everything()/nothing()); membership via `s(x)` / "
       "`x in s`; meet via `a & b`.  `above(3) & below(5)` collapses to "
-      "`singleton(4)` through the same constexpr :order reduce_meet the "
-      "compile-time exhibit folds -- runtime reduction, no Python-side "
-      "reducer.";
+      "`singleton(4)` through the same constexpr lattice reducer the "
+      "compile-time exhibits fold -- runtime reduction, no Python-side "
+      "reducer.  `~s` is the union of the parts below and above s; `a & ~b` "
+      "distributes through the reducer's own law.";
 
   nb::class_<Set>(
       m, "Set",
@@ -131,9 +142,15 @@ NB_MODULE(_lwv, m) {
           [](const Set& s, long long x) { return s.contains(x); }, nb::arg("x"),
           "x in s: the same membership test.")
       .def(
-          "__and__",
-          [](const Set& a, const Set& b) { return ord::reduce_meet(a, b); },
-          "a & b: intersection through the value-first reduce_meet (runtime).")
+          "__and__", [](const Set& a, const Set& b) { return a & b; },
+          "a & b: the meet, folded by the lattice reducer at runtime (its "
+          "leaf-combine is the interval meet).")
+      .def(
+          "__and__", [](const Set& a, const Union& u) { return a & u; },
+          "a & (b ∪ c): the reducer distributes the meet over the union.")
+      .def(
+          "__invert__", [](const Set& s) { return ~s; },
+          "~s: the complement, the union of the parts below and above s.")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
           "__eq__", [](const Set& a, const Set& b) { return a == b; },
@@ -218,6 +235,40 @@ NB_MODULE(_lwv, m) {
         "singleton(k): the point {k} = η(k), the value-based atom.");
   m.def("everything", &Set::universe, "everything(): the universe 𝔸.");
   m.def("nothing", &Set::empty, "nothing(): the empty set Ø.");
+
+  nb::class_<Union>(
+      m, "Union",
+      "A union of two intervals (the reducer's Join node): what `~s` yields, "
+      "and what `a & ~b` distributes into.  Membership `u(x)` / `x in u`; "
+      "`u & s` folds through the reducer.  A union of more than two intervals "
+      "has no handle yet (#975).")
+      .def(
+          "__call__",
+          [](const Union& u, long long x) { return static_cast<bool>(u(x)); },
+          nb::arg("x"), "Membership χ(x): in either part.")
+      .def(
+          "__contains__",
+          [](const Union& u, long long x) { return static_cast<bool>(u(x)); },
+          nb::arg("x"), "x in u: the same membership test.")
+      .def(
+          "__and__", [](const Union& u, const Set& s) { return u & s; },
+          "(a ∪ b) & s: the reducer distributes the meet over the union.")
+      .def("__repr__", [](const Union& u) { return repr(u); })
+      .def(
+          "__eq__",
+          [](const Union& a, const Union& b) {
+            return a.lhs == b.lhs && a.rhs == b.rhs;
+          },
+          nb::is_operator(), "a == b: the same two parts.")
+      .def(
+          "__bool__",
+          [](const Union& u) {
+            return u.lhs.span().has_value() || u.rhs.span().has_value();
+          },
+          "A union is truthy iff a part is inhabited.")
+      .def_prop_ro(
+          "parts", [](const Union& u) { return std::pair{u.lhs, u.rhs}; },
+          "The two intervals, below and above.");
 
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })

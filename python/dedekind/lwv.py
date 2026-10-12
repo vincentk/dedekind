@@ -36,6 +36,7 @@ the one ``reduce_meet`` (deletion).  See the design summary on #965.
 # `_lwv` is the exhibit's own private native extension module (dedekind._lwv),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._lwv import Set
+from ._lwv import Union
 from ._lwv import above
 from ._lwv import image
 from ._lwv import preimage
@@ -48,6 +49,7 @@ from ._lwv import singleton
 
 __all__ = [
     "Set",
+    "Union",
     "above",
     "image",
     "preimage",
