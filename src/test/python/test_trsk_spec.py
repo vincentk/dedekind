@@ -1,7 +1,9 @@
 """The Python face of the relational grammar, as #1006 states it.
 
 Each test encodes one claim from #1006's prose (and the operator surface of
-#1018, the Pst definition on #981).  A test runs as soon as the names it needs
+#1018, the Pst definition on #981).  A universe is the factory: terms name no
+carrier, and ``𝔸(carrier) | term`` binds them, casting the constants and
+checking the operators against that carrier.  A test runs as soon as the names it needs
 are bound and is skipped until then, so this file is the acceptance spec of
 the binding: the claims are stated now, and switch on as the binding lands.
 """
@@ -62,11 +64,11 @@ class CutsPullBackAlongAdjoints(unittest.TestCase):
 class RelationAsSymbolicFunction(unittest.TestCase):
     """Exhibit 3: a relation functional in one projection solves to a path."""
 
-    @_needs("dedekind.pst", "N", "π1", "π2", "π3", exhibit="exhibit 3")
+    @_needs("dedekind.pst", "A", "N", "π1", "π2", "π3", exhibit="exhibit 3")
     def test_the_fibonacci_law_is_a_function_and_solves_to_a_path(self) -> None:
-        from dedekind.pst import N, π1, π2, π3
+        from dedekind.pst import A, N, π1, π2, π3
 
-        law = N * N * N | (π3 == π1 + π2)
+        law = A(N) * A(N) * A(N) | (π3 == π1 + π2)
         self.assertTrue(law.is_function)  # functional in π3
         fib = law.solve(0, 1)
         self.assertEqual(list(fib[:8]), [0, 1, 1, 2, 3, 5, 8, 13])
@@ -77,11 +79,11 @@ class ExtToTheHost(unittest.TestCase):
     """Exhibit 4: ext lowers a finite relation to host data, one row per
     element of the domain when the relation is a function."""
 
-    @_needs("dedekind.pst", "N", "π1", "π2", "ext", exhibit="exhibit 4")
+    @_needs("dedekind.pst", "A", "N", "π1", "π2", "ext", exhibit="exhibit 4")
     def test_a_functional_relation_is_one_row_per_domain_element(self) -> None:
-        from dedekind.pst import N, ext, π1, π2
+        from dedekind.pst import A, N, ext, π1, π2
 
-        doubling = (N[:5] * N) | (π2 == π1 * 2)
+        doubling = (A(N)[:5] * A(N)) | (π2 == π1 * 2)
         self.assertEqual(ext(doubling), [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8)])
 
 
@@ -89,20 +91,21 @@ class TheTotalOperatorSurface(unittest.TestCase):
     """#1018 / #981: a term operator is admitted where it is total on the
     carrier, or divides by a nonzero constant."""
 
-    @_needs("dedekind.pst", "N", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
+    @_needs("dedekind.pst", "A", "N", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
     def test_on_the_naturals(self) -> None:
-        from dedekind.pst import N, π, π1, π2
+        from dedekind.pst import A, N, π, π1, π2
 
+        U = A(N)  # the factory: carrier ℕ, its total operators
         # + and · are total on ℕ (they saturate at ℵ₀); % by a constant is too.
-        N * N | (π2 == π1 + 1)
-        evens = N | (π % 2 == 0)
+        U * U | (π2 == π1 + 1)
+        evens = U | (π % 2 == 0)
         self.assertIn(4, evens)
         self.assertNotIn(5, evens)
-        # ℕ has no total −, and a term divisor could be 0: refused.
+        # ℕ has no total −, and a term divisor could be 0: refused when bound.
         with self.assertRaises(TypeError):
-            N * N | (π2 == π1 - 1)
+            U * U | (π2 == π1 - 1)
         with self.assertRaises(TypeError):
-            N * N | (π2 == π2 // π1)
+            U * U | (π2 == π2 // π1)
         # A constant divisor is checked when the term is built.
         with self.assertRaises(ValueError):
             π % 0
