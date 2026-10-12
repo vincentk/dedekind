@@ -1937,7 +1937,10 @@ templates fail with named-axiom messages instead. \\
 No ADL-dependent dispatch except for textbook operator overloads. &
 Argument-dependent lookup is admitted only where the textbook reads
 \texttt{a + b} or \texttt{a == b} on library carriers; free-function
-calls in user code dispatch through explicit qualification. \\
+calls in user code dispatch through explicit qualification.
+A library customization point that a type registers beside its own definition
+(a node's \texttt{legs}, a carrier's \texttt{structured\_and}) is found the same
+way, by the engine, never by user code. \\
 No template-template parameters in \cppinline{export}-qualified signatures. &
 Higher-kinded structure is named at the level of concepts
 (\cppinline{IsFunctor<F>}, etc.), not by passing template-templates

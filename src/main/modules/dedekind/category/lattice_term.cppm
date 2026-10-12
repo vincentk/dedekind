@@ -1,9 +1,10 @@
 /**
  * @file dedekind/category/lattice_term.cppm
  * @partition :lattice_term
- * @brief The assembled lattice-law term reducer — a compile-time normal form
- *        for a term over a bounded lattice, built from the induced laws in
- *        @c :lattice.
+ * @brief The assembled lattice-law term reducer: the normal form of a term
+ *        over a bounded lattice, built from the induced laws in @c :lattice,
+ *        as one algebra for @c cata, its type at compile time and its value at
+ *        run time.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -11,16 +12,16 @@
  * @section lattice_term__Overview
  * @c :lattice defines the term AST (`Meet`, `Join`, `Not`) and, next to each
  * lattice concept, the equational law it @b induces as a decomposable,
- * independently testable part.  This partition is the @b assembly: @c reduce<>
- * folds those parts into one normal-form reducer, applying exactly the laws the
- * carrier proves.  Reduction power scales with the carrier's structure — a
- * bounded chain collapses the most, and @c bool (the two-element Boolean
- * lattice) is the optimal witness where every law fires.
+ * independently testable part.  This partition is the @b assembly: @c Reduce
+ * is the algebra that folds those parts into one normal form under @c cata
+ * (@c :f_algebra), applying exactly the laws the carrier proves; @c reduce_t
+ * is that normal form's type.  Reduction power scales with the carrier's
+ * structure: a bounded chain collapses the most, and @c bool (the two-element
+ * Boolean lattice) is the optimal witness where every law fires.
  *
- * It is intended as the reusable engine for the set-expression collapse (epic
- * #888/#890): a later @b sets specialisation will map `& ↦ Meet`, `| ↦ Join`,
- * `~ ↦ Not`, `𝔸 ↦ ⊤`, `Ø ↦ ⊥`.  The present exhibit still collapses through
- * `structured_and` / `structured_or`; this partition is not yet wired into it.
+ * It is the engine of the set-expression collapse (epic #888/#890): @c sets
+ * maps `& ↦ Meet`, `| ↦ Join`, `~ ↦ Not`, `𝔸 ↦ ⊤`, `Ø ↦ ⊥` and injects the
+ * carrier's `structured_and` / `structured_or` as the leaf-combine.
  *
  * @section lattice_term__Law_Surface
  * The induced laws assembled here (all in @c :lattice): unit / annihilator
@@ -67,24 +68,12 @@ import :logic;    // Boole (default), Ternary, IsOckhamAlgebra
 import :cartesian_bicategory;  // Copy / Merge / IsMeetAsRightAdjoint (Δ ⊣ ∧)
 import :f_algebra;  // cata: the ONE catamorphism engine (#961).  A lattice is a
                     // (thin) category and its term reducer is a fold, so the
-                    // specialised lattice reducer depends on the general
-                    // F-algebra engine (specific → general), routing its
-                    // reduction through cata rather than a parallel fold.
+                    // value-first reducer below is an ALGEBRA for cata, not a
+                    // parallel fold (specific → general).
 
 namespace dedekind::category {
 
-// Seam (#961): the lattice term reducer can now reach :f_algebra's cata --- the
-// ONE catamorphism engine.  Witnessed here so the dependency is load-bearing:
-// cata reduces id ∘ id to id from the lattice branch, so the induced lattice
-// laws can be routed through the same reducer as composition (one engine, not a
-// parallel fold).  Routing the lattice fold through cata is the follow-up; this
-// edge is the seam that makes it possible.
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(cata(id<int>() >> id<int>()))>,
-                 Identity<int>>,
-    "cata (from :f_algebra) is reachable and reduces from the lattice branch");
-
-/** @brief The logic species a comparator reports in — @c Boole (a
+/** @brief The logic species a comparator reports in: @c Boole (a
  *  @c bool decision) unless the comparator names its own @c logic typedef (e.g.
  *  @c Kleene, so an @b undecidable comparison can be @c Unknown). */
 export template <typename Less>
@@ -123,7 +112,7 @@ concept IsLatticeLess =
     };
 
 /** @brief Did the comparator decide @b definitely @c True? (`Unknown`/`False`
- *  ⟹ don't reorder — keep authoring order.) */
+ *  ⟹ don't reorder: keep authoring order.) */
 export template <typename Less, typename X, typename Y>
 consteval bool lattice_definitely_less() {
   if constexpr (IsLatticeLess<Less, X, Y>) {
@@ -140,31 +129,7 @@ consteval bool lattice_definitely_less() {
  *  yields an @c Interval, say.  @c Combine returns @c law_inactive when no
  *  domain combination applies.  This injected policy lets the reducer's
  *  incomparable-leaf residual fall through to the carrier's own `∧`/`∨`. */
-export struct no_leaf_combine {
-  template <typename, typename>
-  static consteval auto meet() {
-    return std::type_identity<law_inactive>{};
-  }
-  template <typename, typename>
-  static consteval auto join() {
-    return std::type_identity<law_inactive>{};
-  }
-};
-
-/** @brief The normal form of @c Term under @c reduce_t<Term, Less, Ord,
- *  Combine>.  Leaves reduce to themselves.  @c Meet / @c Join recurse into
- * their operands, then assemble the induced laws (@c :lattice).  @c Less
- * canonicalises the commutative residue.  An order-incomparable residual is
- * offered last to the injected leaf-combiner @c Combine (the carrier's domain
- * `∧`/`∨`). */
-export template <typename Term, typename Less, typename Ord = canonical_order,
-                 typename Combine = no_leaf_combine>
-struct reduce {
-  using type = Term;
-};
-export template <typename Term, typename Less, typename Ord = canonical_order,
-                 typename Combine = no_leaf_combine>
-using reduce_t = typename reduce<Term, Less, Ord, Combine>::type;
+export struct no_leaf_combine {};
 
 // The reduction laws assembled here are order-theoretic: the meet IS the glb,
 // the right adjoint of the diagonal (Δ ⊣ ∧, epic #946).  Pin that reification
@@ -184,265 +149,103 @@ static_assert(
     "the reducer's meet path must be the right adjoint of the diagonal "
     "(Δ ⊣ ∧) over the Boolean-lattice witness.");
 
-namespace detail_lattice_term {
+/** @brief Whether a law fired: its result is not @c law_inactive.  @tparam R
+ *  the law's result type. */
+template <typename R>
+concept Fires = !std::same_as<std::remove_cvref_t<R>, law_inactive>;
 
-// Assemble the meet laws over two ALREADY-REDUCED operands, most-collapsing
-// first (bounded ▸ idempotent ▸ complement ▸ absorption ▸ distributivity ▸ glb
-// ▸ injected leaf-combine), then canonicalise the commutative residue.  A law
-// returning `law_inactive` cedes to the next.
-template <typename RA, typename RB, typename Less, typename Ord,
-          typename Combine>
-consteval auto meet_assemble() {
-  using Bounded = typename decltype(meet_bounded_law<RA, RB, Ord>())::type;
-  if constexpr (!std::same_as<Bounded, law_inactive>) {
-    return std::type_identity<Bounded>{};
-  } else {
-    using Idem = typename decltype(idempotent_law<RA, RB>())::type;
-    if constexpr (!std::same_as<Idem, law_inactive>) {
-      return std::type_identity<Idem>{};
+/** @brief The lattice-law reducer as the algebra of @c cata (@c :f_algebra,
+ *  the one fold).  A leaf reduces to itself.  A @c Meet / @c Join assembles the
+ *  induced laws over its two reduced operand @b values, most-collapsing first
+ *  (bounded ▸ idempotent ▸ complement ▸ absorption ▸ distributivity ▸ glb/lub ▸
+ *  the injected leaf-combine), a law returning @c law_inactive ceding to the
+ *  next; a rewrite (distributivity, the leaf-combine, De Morgan) is folded
+ *  again.  @c Less canonicalises the commutative residue.  Every decision a law
+ *  makes on the operand @b types is made inside @c decltype as well, so the
+ *  normal form's type is @c reduce_t below and its value is this fold at run
+ *  time: one law, two binding times.
+ *  @tparam Less the injected total order (canonicalisation).  @tparam Ord the
+ *  semantic lattice order (boundedness, glb, distributivity).  @tparam Combine
+ *  the carrier's domain meet / join of two leaves, @c meet_value / @c
+ *  join_value, each present only where the carrier combines that pair. */
+export template <typename Less, typename Ord = canonical_order,
+                 typename Combine = no_leaf_combine>
+struct Reduce {
+  template <typename Leaf>
+  constexpr Leaf operator()(const Leaf& leaf) const {
+    return leaf;
+  }
+  template <typename A, typename B, typename RA, typename RB>
+  constexpr auto operator()(const Meet<A, B>&, const RA& a, const RB& b) const {
+    if constexpr (Fires<decltype(meet_bounded_law<Ord>(a, b))>) {
+      return meet_bounded_law<Ord>(a, b);
+    } else if constexpr (Fires<decltype(idempotent_law(a, b))>) {
+      return idempotent_law(a, b);
+    } else if constexpr (Fires<decltype(meet_complement_law<Ord>(a, b))>) {
+      return meet_complement_law<Ord>(a, b);  // a ∧ ¬a = ⊥
+    } else if constexpr (Fires<decltype(meet_structural_absorption_law(a,
+                                                                       b))>) {
+      return meet_structural_absorption_law(a, b);  // a ∧ (a ∨ b) = a
+    } else if constexpr (Fires<decltype(meet_distributivity_law<Ord>(a, b))>) {
+      // Distributed to a join of meets: fold again toward DNF.  This terminates
+      // in one direction only.
+      return cata(*this, meet_distributivity_law<Ord>(a, b));
+    } else if constexpr (Fires<decltype(meet_glb_law<Ord>(a, b))>) {
+      return meet_glb_law<Ord>(a, b);
+    } else if constexpr (requires { Combine::meet_value(a, b); }) {
+      // The order-incomparable residual: the carrier's own domain meet on the
+      // two leaves' data (two halfspaces whose pivots decide empty / point /
+      // interval), folded again.
+      return cata(*this, Combine::meet_value(a, b));
+    } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+      return Meet<RB, RA>{b, a};  // canonicalise
     } else {
-      using Comp = typename decltype(meet_complement_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Comp, law_inactive>) {
-        return std::type_identity<Comp>{};  // a ∧ ¬a = ⊥ (complemented lattice)
-      } else {
-        using Abs =
-            typename decltype(meet_structural_absorption_law<RA, RB>())::type;
-        if constexpr (!std::same_as<Abs, law_inactive>) {
-          return std::type_identity<Abs>{};  // a ∧ (a ∨ b) = a
-        } else {
-          using Dist =
-              typename decltype(meet_distributivity_law<RA, RB, Ord>())::type;
-          if constexpr (!std::same_as<Dist, law_inactive>) {
-            // distributed to a join-of-meets; re-reduce toward DNF.  This
-            // terminates in one direction only.
-            return std::type_identity<reduce_t<Dist, Less, Ord, Combine>>{};
-          } else {
-            using Glb = typename decltype(meet_glb_law<RA, RB, Ord>())::type;
-            if constexpr (!std::same_as<Glb, law_inactive>) {
-              return std::type_identity<Glb>{};
-            } else {
-              // The order-incomparable residual: offer it to the injected
-              // domain leaf-combiner (e.g. structured_and of two halfspaces);
-              // re-reduce its result.  law_inactive ⟹ keep / canonicalise.
-              using Dom =
-                  typename decltype(Combine::template meet<RA, RB>())::type;
-              if constexpr (!std::same_as<Dom, law_inactive>) {
-                return std::type_identity<reduce_t<Dom, Less, Ord, Combine>>{};
-              } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-                return std::type_identity<Meet<RB, RA>>{};  // canonicalise
-              } else {
-                return std::type_identity<Meet<RA, RB>>{};  // Unknown ⟹ keep
-              }
-            }
-          }
-        }
-      }
+      return Meet<RA, RB>{a, b};  // Unknown ⟹ keep
     }
   }
-}
-
-// The exact dual for join (⊤ annihilates, ⊥ is the unit; join = lub).
-template <typename RA, typename RB, typename Less, typename Ord,
-          typename Combine>
-consteval auto join_assemble() {
-  using Bounded = typename decltype(join_bounded_law<RA, RB, Ord>())::type;
-  if constexpr (!std::same_as<Bounded, law_inactive>) {
-    return std::type_identity<Bounded>{};
-  } else {
-    using Idem = typename decltype(idempotent_law<RA, RB>())::type;
-    if constexpr (!std::same_as<Idem, law_inactive>) {
-      return std::type_identity<Idem>{};
+  /** @brief The exact dual for join (⊤ annihilates, ⊥ is the unit; join =
+   *  lub). */
+  template <typename A, typename B, typename RA, typename RB>
+  constexpr auto operator()(const Join<A, B>&, const RA& a, const RB& b) const {
+    if constexpr (Fires<decltype(join_bounded_law<Ord>(a, b))>) {
+      return join_bounded_law<Ord>(a, b);
+    } else if constexpr (Fires<decltype(idempotent_law(a, b))>) {
+      return idempotent_law(a, b);
+    } else if constexpr (Fires<decltype(join_complement_law<Ord>(a, b))>) {
+      return join_complement_law<Ord>(a, b);  // a ∨ ¬a = ⊤
+    } else if constexpr (Fires<decltype(join_structural_absorption_law(a,
+                                                                       b))>) {
+      return join_structural_absorption_law(a, b);  // a ∨ (a ∧ b) = a
+    } else if constexpr (Fires<decltype(join_lub_law<Ord>(a, b))>) {
+      return join_lub_law<Ord>(a, b);
+    } else if constexpr (requires { Combine::join_value(a, b); }) {
+      return cata(*this, Combine::join_value(a, b));
+    } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
+      return Join<RB, RA>{b, a};
     } else {
-      using Comp = typename decltype(join_complement_law<RA, RB, Ord>())::type;
-      if constexpr (!std::same_as<Comp, law_inactive>) {
-        return std::type_identity<Comp>{};  // a ∨ ¬a = ⊤ (complemented lattice)
-      } else {
-        using Abs =
-            typename decltype(join_structural_absorption_law<RA, RB>())::type;
-        if constexpr (!std::same_as<Abs, law_inactive>) {
-          return std::type_identity<Abs>{};  // a ∨ (a ∧ b) = a
-        } else {
-          using Lub = typename decltype(join_lub_law<RA, RB, Ord>())::type;
-          if constexpr (!std::same_as<Lub, law_inactive>) {
-            return std::type_identity<Lub>{};
-          } else {
-            using Dom =
-                typename decltype(Combine::template join<RA, RB>())::type;
-            if constexpr (!std::same_as<Dom, law_inactive>) {
-              return std::type_identity<reduce_t<Dom, Less, Ord, Combine>>{};
-            } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
-              return std::type_identity<Join<RB, RA>>{};
-            } else {
-              return std::type_identity<Join<RA, RB>>{};
-            }
-          }
-        }
-      }
+      return Join<RA, RB>{a, b};
     }
   }
-}
-
-}  // namespace detail_lattice_term
-
-export template <typename A, typename B, typename Less, typename Ord,
-                 typename Combine>
-struct reduce<Meet<A, B>, Less, Ord, Combine> {
-  using type = typename decltype(detail_lattice_term::meet_assemble<
-                                 reduce_t<A, Less, Ord, Combine>,
-                                 reduce_t<B, Less, Ord, Combine>, Less, Ord,
-                                 Combine>())::type;
+  /** @brief ¬(reduced): the De Morgan negation law (involution @c ¬¬A→A, De
+   *  Morgan), gated on an involutive De Morgan negation, pushes @c ¬ toward the
+   *  leaves and the result is folded again (termination: @c ¬ descends);
+   *  otherwise @c ¬(reduced) is already negation-normal and stays. */
+  template <typename A, typename RA>
+  constexpr auto operator()(const Not<A>&, const RA& a) const {
+    if constexpr (Fires<decltype(de_morgan_law<Ord>(a))>) {
+      return cata(*this, de_morgan_law<Ord>(a));
+    } else {
+      return Not<RA>{a};
+    }
+  }
 };
 
-export template <typename A, typename B, typename Less, typename Ord,
-                 typename Combine>
-struct reduce<Join<A, B>, Less, Ord, Combine> {
-  using type = typename decltype(detail_lattice_term::join_assemble<
-                                 reduce_t<A, Less, Ord, Combine>,
-                                 reduce_t<B, Less, Ord, Combine>, Less, Ord,
-                                 Combine>())::type;
-};
-
-// ¬A: reduce the operand, then apply the De Morgan negation law (involution
-// ¬¬A→A / De Morgan, gated on an involutive De Morgan negation — NOT a genuine
-// complement).  If it fires, the pushed-down result is re-reduced (¬ descends
-// toward the leaves, so this terminates); otherwise ¬(reduced) is already
-// negation-normal and stays.
-export template <typename A, typename Less, typename Ord, typename Combine>
-struct reduce<Not<A>, Less, Ord, Combine> {
- private:
-  using RA = reduce_t<A, Less, Ord, Combine>;
-  using Pushed = typename decltype(de_morgan_law<RA, Ord>())::type;
-
- public:
-  using type = std::conditional_t<std::same_as<Pushed, law_inactive>, Not<RA>,
-                                  reduce_t<Pushed, Less, Ord, Combine>>;
-};
-
-// ── Value-first reduce (#922) ──────────────────────────────────────────────
-// The runtime/dual-phase twin of @c reduce_t: it reduces a term @b value to its
-// normal-form @b value, so the SAME laws run at compile time, at runtime, and
-// (via a binding) from Python, with no second reducer.  The reduction DECISION
-// (which law fires, hence the normal-form TYPE @c D) is still the type-level
-// @c reduce_t; this only reconstructs @c D's value from the node's stored
-// operands, preserving a runtime-stateful operand where the normal form IS that
-// operand (the win over the type-level path, which can only default-construct a
-// stateless normal form).  Mirrors the value-first codomain leg
-// @c sets::finalize_combine (#915).
-
-namespace detail_lattice_term {
-
-/** @brief The shared collapse tail: @c D{} for a @b value-determined collapse
- *  (@c IsIdempotentLeaf<D> and default-constructible, so a boundary @c ⊥ / @c ⊤
- *  or a DNF over type-determined leaves), else the @c Fallback (the unreduced
- *  node) built @b lazily from the forwarded operands.
- *  @details The fallback is built @b only in the @c else branch.  The collapse
- *  path therefore constructs no fallback at all.  The deferral is forwarded
- *  args plus @c if @c constexpr, @b not a closure.  The helper takes no
- *  pre-built fallback by const-ref, so it copies no fallback @b temporary out.
- *  (Constructing @c Fallback{args...} still copies the operands into the node,
- *  exactly as the inline form did; those operand copies are not eliminated.)
- *  @note The fail-safe is this slice's intended behavior.  Rebuilding the
- *  distributed / pushed value from the sub-values is a @b separate net-positive
- *  follow-on (under #922), not this unification. */
-template <typename D, typename Fallback, typename... Args>
-constexpr auto materialize_or_keep(Args&&... args) {
-  if constexpr (IsIdempotentLeaf<D> && std::default_initializable<D>) {
-    return D{};  // value-determined collapse / DNF: exact (nothing built)
-  } else {
-    return Fallback{std::forward<Args>(args)...};  // built lazily, here only
-  }
-}
-
-/** @brief Reconstruct a reduced @b binary node's value from the already-reduced
- *  operands @c ra / @c rb, given its normal-form type @c D.  @c Meet and @c
- * Join are injected as the template-template @c Node and share this one
- * adapter.
- *  @details The @b value-output adapter of the one decision engine (@c reduce_t
- *  decided @c D).  Value-preserving cases: the normal form IS an operand (unit
- * / idempotency / absorption / glb) or the irreducible / canonical residue (a
- *  @c Node of the two, either order).  Every other @c D routes through the
- *  shared @ref materialize_or_keep tail, whose fail-safe lazily rebuilds the
- *  unreduced @c Node. */
-template <template <typename, typename> class Node, typename D, typename RA,
-          typename RB>
-constexpr auto rebuild_binary(const RA& ra, const RB& rb) {
-  if constexpr (std::same_as<D, RA>) {
-    return ra;
-  } else if constexpr (std::same_as<D, RB>) {
-    return rb;
-  } else if constexpr (std::same_as<D, Node<RA, RB>>) {
-    return Node<RA, RB>{ra, rb};
-  } else if constexpr (std::same_as<D, Node<RB, RA>>) {
-    return Node<RB, RA>{rb, ra};
-  } else {
-    return materialize_or_keep<D, Node<RA, RB>>(ra, rb);
-  }
-}
-
-}  // namespace detail_lattice_term
-
-/** @brief Value-first reduce, leaf case: a leaf reduces to itself. */
-export template <typename Less, typename Ord, typename Combine, typename Leaf>
-constexpr auto reduce_value(const Leaf& leaf) {
-  return leaf;
-}
-
-/** @brief Value-first reduce of a @c Meet value: reduce the operands, then
- *  reconstruct the value of the type-level normal form. */
-export template <typename Less, typename Ord, typename Combine, typename A,
-                 typename B>
-constexpr auto reduce_value(const Meet<A, B>& node) {
-  const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
-  const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  // The injected VALUE leaf-combine: when the carrier can meet the two reduced
-  // leaves on their runtime data (a policy @c meet_value, e.g. two halfspaces
-  // whose pivots decide empty / point / interval), that decision is the normal
-  // form --- a value-determined collapse the type-level @c reduce_t cannot see,
-  // since two intervals of one type differ only in their pivots.  Otherwise
-  // reconstruct the value of the type-level normal form.
-  if constexpr (requires { Combine::meet_value(ra, rb); }) {
-    return Combine::meet_value(ra, rb);
-  } else {
-    using D = reduce_t<Meet<std::remove_cvref_t<decltype(ra)>,
-                            std::remove_cvref_t<decltype(rb)>>,
-                       Less, Ord, Combine>;
-    return detail_lattice_term::rebuild_binary<Meet, D>(ra, rb);
-  }
-}
-
-/** @brief Value-first reduce of a @c Join value (dual of the @c Meet case). */
-export template <typename Less, typename Ord, typename Combine, typename A,
-                 typename B>
-constexpr auto reduce_value(const Join<A, B>& node) {
-  const auto ra = reduce_value<Less, Ord, Combine>(π_1(node));
-  const auto rb = reduce_value<Less, Ord, Combine>(π_2(node));
-  if constexpr (requires { Combine::join_value(ra, rb); }) {
-    return Combine::join_value(ra, rb);
-  } else {
-    using D = reduce_t<Join<std::remove_cvref_t<decltype(ra)>,
-                            std::remove_cvref_t<decltype(rb)>>,
-                       Less, Ord, Combine>;
-    return detail_lattice_term::rebuild_binary<Join, D>(ra, rb);
-  }
-}
-
-/** @brief Value-first reduce of a @c Not value: reduce the operand, keep
- *  @c ¬(reduced) unless De Morgan / involution pushed it to another shape.
- *  @details No push (@c D is @c Not<RB>) keeps @c ¬(reduced); any push routes
- *  through the same @ref detail_lattice_term::materialize_or_keep tail as the
- *  binary nodes.  The @c D==Not<RB> guard stays ahead of the helper: since
- *  @c idempotent_leaf_v<Not<A>> tracks its base, an idempotent @c Not must keep
- *  its operand rather than default-collapse. */
-export template <typename Less, typename Ord, typename Combine, typename A>
-constexpr auto reduce_value(const Not<A>& node) {
-  const auto rb = reduce_value<Less, Ord, Combine>(node.base);
-  using RB = std::remove_cvref_t<decltype(rb)>;
-  using D = reduce_t<Not<RB>, Less, Ord, Combine>;
-  if constexpr (std::same_as<D, Not<RB>>) {
-    return Not<RB>{rb};  // no push: already negation-normal
-  } else {
-    return detail_lattice_term::materialize_or_keep<D, Not<RB>>(rb);
-  }
-}
+/** @brief The normal form of @c Term under @c Reduce<Less, Ord, Combine>: the
+ *  type the fold produces, read without running it. */
+export template <typename Term, typename Less, typename Ord = canonical_order,
+                 typename Combine = no_leaf_combine>
+using reduce_t =
+    decltype(cata(std::declval<const Reduce<Less, Ord, Combine>&>(),
+                  std::declval<const Term&>()));
 
 }  // namespace dedekind::category

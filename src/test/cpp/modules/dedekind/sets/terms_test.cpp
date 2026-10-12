@@ -56,3 +56,18 @@ TEST_CASE("sets:terms: a constant is checked when the term is bound",
   CHECK(both(P{3, 0}));
   CHECK_FALSE(both(P{2, 6}));
 }
+
+namespace {
+// A predicate the grammar does not know, which must not be reached.
+struct Unreachable {
+  using is_rel_predicate = void;
+  bool operator()(const P&) const { throw std::logic_error("reached"); }
+};
+}  // namespace
+
+TEST_CASE("sets:terms: the connectives short-circuit like the built-ins",
+          "[sets][terms][connectives]") {
+  CHECK_FALSE((π1 < 3 && Unreachable{})(P{3, 0}));  // left false: right unread
+  CHECK((π1 < 3 || Unreachable{})(P{2, 0}));        // left true: right unread
+  CHECK_THROWS_AS((π1 < 3 && Unreachable{})(P{2, 0}), std::logic_error);
+}

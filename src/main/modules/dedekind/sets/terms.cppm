@@ -30,6 +30,12 @@
  * @c slots_v<T> @c ⊆ @c {1} is the graph of a function of the first
  * coordinate, whatever @c T is.
  *
+ * Every reading of a term is an @b algebra folded by @c category::cata, the
+ * one engine: each node states its @c legs once, and an algebra states only
+ * the nodes it reads specially (@c Slots, @c Total, @c Bind, @c Value below).
+ * A reading whose results are @c std::integral_constant is a type-level
+ * certificate; the same fold with values is the evaluation.
+ *
  * Wikipedia: Term (logic), Term algebra, Atomic formula, Relational algebra
  *
  * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie
@@ -48,9 +54,9 @@ module;
 #include <functional>
 #include <limits>
 #include <stdexcept>
+#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 export module dedekind.sets:terms;
 
@@ -176,7 +182,7 @@ struct RelAnd {
   // Boolean/Ternary operands still need a lift on the bool side.
   template <typename P>
   constexpr auto operator()(const P& p) const {
-    return a(p) && b(p);
+    return term_value(*this, p);
   }
 };
 
@@ -190,7 +196,7 @@ struct RelOr {
   B b;
   template <typename P>
   constexpr auto operator()(const P& p) const {
-    return a(p) || b(p);
+    return term_value(*this, p);
   }
 };
 
@@ -268,6 +274,40 @@ struct CondT {
   A a;
   B b;
 };
+export template <Rel R, typename A, typename B>
+struct Cmp;
+
+/** @name The legs of a node, for @c cata (@c category::f_algebra)
+ *  @brief The term functor stated once per node: the sub-terms, by reference.
+ *  A projection, a constant, and a predicate the grammar does not know are
+ *  leaves.  An arrow applied to a term has one leg, the term (the arrow is a
+ *  datum of the node).
+ *  @{ */
+export template <typename Op, typename A, typename B>
+constexpr auto legs(const BinOp<Op, A, B>& t) {
+  return std::tie(t.a, t.b);
+}
+export template <typename F, typename A>
+constexpr auto legs(const Ap<F, A>& t) {
+  return std::tie(t.a);
+}
+export template <typename P, typename A, typename B>
+constexpr auto legs(const CondT<P, A, B>& t) {
+  return std::tie(t.p, t.a, t.b);
+}
+export template <Rel R, typename A, typename B>
+constexpr auto legs(const Cmp<R, A, B>& t) {
+  return std::tie(t.a, t.b);
+}
+export template <typename A, typename B>
+constexpr auto legs(const RelAnd<A, B>& t) {
+  return std::tie(t.a, t.b);
+}
+export template <typename A, typename B>
+constexpr auto legs(const RelOr<A, B>& t) {
+  return std::tie(t.a, t.b);
+}
+/** @} */
 
 template <typename T>
 inline constexpr bool is_term_v = false;
@@ -373,33 +413,38 @@ constexpr auto cond(P p, A a, B b) {
 
 // ── The slots a term mentions ───────────────────────────────────────────────
 
-/** @brief The slots a term or a relational predicate mentions, as a bit mask
- *  (bit @c i for @c π_i, bit 0 for the unary @c π).  A predicate the grammar
- *  does not know mentions every slot, so no certificate reads more into it
- *  than it says.  @tparam T the term or predicate. */
-template <typename T>
-inline constexpr unsigned slots_of = ~0u;
-/** @brief The public reading, through any cv-ref (a @c constexpr variable's
- *  @c decltype is @c const).  @tparam T the term or predicate. */
+/** @brief The slot algebra: the slots a term or a relational predicate
+ *  mentions, as a bit mask (bit @c i for @c π_i, bit 0 for the unary @c π).  A
+ *  node mentions the union of its legs' slots; a predicate the grammar does not
+ *  know mentions every slot, so no certificate reads more into it than it says.
+ */
+struct Slots {
+  template <IsRingIntegral auto I>
+  constexpr std::integral_constant<unsigned, (1u << static_cast<unsigned>(I))>
+  operator()(Projection<I>) const {
+    return {};
+  }
+  template <typename K>
+  constexpr std::integral_constant<unsigned, 0u> operator()(
+      const Const<K>&) const {
+    return {};
+  }
+  template <typename Leaf>
+  constexpr std::integral_constant<unsigned, ~0u> operator()(
+      const Leaf&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+  constexpr std::integral_constant<unsigned, (R::value | ... | 0u)> operator()(
+      const Node&, R...) const {
+    return {};
+  }
+};
+/** @brief The slots @c T mentions, through any cv-ref (a @c constexpr
+ *  variable's @c decltype is @c const).  @tparam T the term or predicate. */
 export template <typename T>
-inline constexpr unsigned slots_v = slots_of<std::remove_cvref_t<T>>;
-
-template <IsRingIntegral auto I>
-inline constexpr unsigned slots_of<Projection<I>> =
-    1u << static_cast<unsigned>(I);
-template <typename K>
-inline constexpr unsigned slots_of<Const<K>> = 0u;
-template <typename Op, typename A, typename B>
-inline constexpr unsigned slots_of<BinOp<Op, A, B>> = slots_v<A> | slots_v<B>;
-template <typename F, typename A>
-inline constexpr unsigned slots_of<Ap<F, A>> = slots_v<A>;
-template <typename P, typename A, typename B>
-inline constexpr unsigned slots_of<CondT<P, A, B>> =
-    slots_v<P> | slots_v<A> | slots_v<B>;
-template <typename A, typename B>
-inline constexpr unsigned slots_of<RelAnd<A, B>> = slots_v<A> | slots_v<B>;
-template <typename A, typename B>
-inline constexpr unsigned slots_of<RelOr<A, B>> = slots_v<A> | slots_v<B>;
+inline constexpr unsigned slots_v = decltype(cata(
+    Slots{}, std::declval<const std::remove_cvref_t<T>&>()))::value;
 
 /** @brief Whether a mask names at most the given slot.  @param mask the slots.
  *  @param slot the one allowed. */
@@ -453,10 +498,9 @@ inline constexpr bool is_const_v = false;
 template <typename K>
 inline constexpr bool is_const_v<Const<K>> = true;
 
-/** @brief The value of a term at a point: a projection reads its coordinate
- *  (the point itself for the unary @c π), a constant is its value, an operator
- *  combines its operands in the carrier of the non-constant one.
- *  @param t the term.  @param p the point. */
+/** @brief A projection read at a point: its coordinate, or the point itself
+ *  for the unary @c π.  An overload for another kind of point (an environment)
+ *  is found by ADL.  @param p the point. */
 export template <IsRingIntegral auto I, typename P>
 constexpr decltype(auto) term_value(Projection<I>, const P& p) {
   if constexpr (I == 0)
@@ -464,34 +508,29 @@ constexpr decltype(auto) term_value(Projection<I>, const P& p) {
   else
     return coord<I>(p);
 }
-export template <typename K, typename P>
-constexpr K term_value(const Const<K>& c, const P&) {
-  return c.value;
-}
-/** @brief One operand's value in the carrier @c V. */
-template <typename V, typename T, typename P>
-constexpr V operand_in(const T& x, const P& p) {
-  if constexpr (is_const_v<T>)
-    return carrier_cast<V>(x.value);
+/** @brief The carrier two operands meet in: a constant takes the other's, two
+ *  terms their common type.  @tparam A,B the operand terms.  @tparam RA,RB the
+ *  types of their values. */
+template <typename A, typename B, typename RA, typename RB>
+constexpr auto meet_type() {
+  if constexpr (is_const_v<A> && !is_const_v<B>)
+    return std::type_identity<RB>{};
+  else if constexpr (is_const_v<B> && !is_const_v<A>)
+    return std::type_identity<RA>{};
   else
-    return static_cast<V>(term_value(x, p));
+    return std::type_identity<std::common_type_t<RA, RB>>{};
 }
-/** @brief Two operand values in one carrier: a constant takes the other's. */
-template <typename A, typename B, typename P>
-constexpr auto operand_values(const A& a, const B& b, const P& p) {
-  if constexpr (is_const_v<A> && !is_const_v<B>) {
-    using C = std::remove_cvref_t<decltype(term_value(b, p))>;
-    return std::pair<C, C>{carrier_cast<C>(a.value), term_value(b, p)};
-  } else if constexpr (is_const_v<B> && !is_const_v<A>) {
-    using C = std::remove_cvref_t<decltype(term_value(a, p))>;
-    return std::pair<C, C>{term_value(a, p), carrier_cast<C>(b.value)};
-  } else {
-    using C =
-        std::common_type_t<std::remove_cvref_t<decltype(term_value(a, p))>,
-                           std::remove_cvref_t<decltype(term_value(b, p))>>;
-    return std::pair<C, C>{static_cast<C>(term_value(a, p)),
-                           static_cast<C>(term_value(b, p))};
-  }
+template <typename A, typename B, typename RA, typename RB>
+using meet_t = typename decltype(meet_type<A, B, RA, RB>())::type;
+/** @brief The value @c x of the operand @c T placed in the carrier @c V: a
+ *  constant exactly or not at all (@c carrier_cast), a term's value by
+ *  conversion.  @tparam V the carrier.  @tparam T the operand term. */
+template <typename V, typename T, typename R>
+constexpr V into(const R& x) {
+  if constexpr (is_const_v<T>)
+    return carrier_cast<V>(x);
+  else
+    return static_cast<V>(x);
 }
 /** @brief The operator @c Op typed at the carrier @c C, the key totality is
  *  registered under: @c std::plus<> at @c C is @c std::plus<C>. */
@@ -515,28 +554,72 @@ inline constexpr bool admits_v =
     ((std::same_as<Op, std::divides<>> || std::same_as<Op, std::modulus<>>) &&
      is_const_v<B> && dedekind::category::IsClosedUnder<C, Op>);
 
-export template <typename Op, typename A, typename B, typename P>
-constexpr auto term_value(const BinOp<Op, A, B>& t, const P& p) {
-  const auto [x, y] = operand_values(t.a, t.b, p);
-  using C = std::remove_cvref_t<decltype(x)>;
-  static_assert(admits_v<Op, C, B>,
-                "the operator is not total on the carrier (divide only by a "
-                "nonzero constant)");
-  return typename at_carrier<Op, C>::type{}(x, y);
-}
-export template <typename F, typename A, typename P>
-constexpr auto term_value(const Ap<F, A>& t, const P& p) {
-  using X = typename std::remove_cvref_t<F>::Domain;
-  if constexpr (is_const_v<A>)
-    return t.f(carrier_cast<X>(t.a.value));
-  else
-    return t.f(carrier_cast<X>(term_value(t.a, p)));
-}
-export template <typename Pr, typename A, typename B, typename P>
-constexpr auto term_value(const CondT<Pr, A, B>& t, const P& p) {
-  using V = typename decltype(operand_values(t.a, t.b, p))::first_type;
-  return static_cast<bool>(t.p(p)) ? operand_in<V>(t.a, p)
-                                   : operand_in<V>(t.b, p);
+/** @brief The value algebra: a term or a predicate folded at the point @c p.
+ *  A projection reads its coordinate, a constant is its value, a predicate the
+ *  grammar does not know is evaluated as itself; an operator or a comparison
+ *  combines its operands in the carrier of the non-constant one; an applied
+ *  arrow converts its argument into its domain.  @tparam P the point's type. */
+template <typename P>
+struct Value {
+  const P& p;
+
+  template <IsRingIntegral auto I>
+  constexpr decltype(auto) operator()(Projection<I>) const {
+    return term_value(Projection<I>{}, p);
+  }
+  template <typename K>
+  constexpr K operator()(const Const<K>& c) const {
+    return c.value;
+  }
+  template <typename Q>
+    requires requires(const Q& q, const P& x) { q(x); }
+  constexpr auto operator()(const Q& q) const {
+    return q(p);
+  }
+  template <typename Op, typename A, typename B, typename X, typename Y>
+  constexpr auto operator()(const BinOp<Op, A, B>&, const X& x,
+                            const Y& y) const {
+    using C = meet_t<A, B, X, Y>;
+    static_assert(admits_v<Op, C, B>,
+                  "the operator is not total on the carrier (divide only by a "
+                  "nonzero constant)");
+    return typename at_carrier<Op, C>::type{}(into<C, A>(x), into<C, B>(y));
+  }
+  template <typename F, typename A, typename X>
+  constexpr auto operator()(const Ap<F, A>& t, const X& x) const {
+    return t.f(carrier_cast<typename F::Domain>(x));
+  }
+  template <Rel R, typename A, typename B, typename X, typename Y>
+  constexpr bool operator()(const Cmp<R, A, B>&, const X& x, const Y& y) const {
+    using C = meet_t<A, B, X, Y>;
+    return rel_apply<R>(into<C, A>(x), into<C, B>(y));
+  }
+  /** @brief The connectives short-circuit as the built-in @c && / @c || do,
+   *  and McCarthy's conditional evaluates only the branch it selects: these
+   *  nodes steer the recursion into their legs themselves (see @c cata), so a
+   *  leg the operator does not reach is never evaluated. */
+  template <typename A, typename B>
+  constexpr auto steer(const RelAnd<A, B>& t) const {
+    return cata(*this, t.a) && cata(*this, t.b);
+  }
+  template <typename A, typename B>
+  constexpr auto steer(const RelOr<A, B>& t) const {
+    return cata(*this, t.a) || cata(*this, t.b);
+  }
+  template <typename Pr, typename A, typename B>
+  constexpr auto steer(const CondT<Pr, A, B>& t) const {
+    using C =
+        meet_t<A, B, decltype(cata(*this, t.a)), decltype(cata(*this, t.b))>;
+    return static_cast<bool>(cata(*this, t.p)) ? into<C, A>(cata(*this, t.a))
+                                               : into<C, B>(cata(*this, t.b));
+  }
+};
+
+/** @brief The value of a term or predicate at a point.  @param t the term.
+ *  @param p the point. */
+export template <typename T, typename P>
+constexpr auto term_value(const T& t, const P& p) {
+  return cata(Value<P>{p}, t);
 }
 
 // ── Atoms ───────────────────────────────────────────────────────────────────
@@ -551,12 +634,9 @@ struct Cmp {
   /** @param p the point (a pair, or a carrier value for an atom on @c π). */
   template <typename P>
   constexpr bool operator()(const P& p) const {
-    const auto [x, y] = operand_values(a, b, p);
-    return rel_apply<R>(x, y);
+    return term_value(*this, p);
   }
 };
-template <Rel R, typename A, typename B>
-inline constexpr unsigned slots_of<Cmp<R, A, B>> = slots_v<A> | slots_v<B>;
 
 template <Rel R, typename A, typename B>
 constexpr auto make_cmp(A a, B b) {
@@ -635,56 +715,48 @@ export template <typename X, typename T>
 using value_at_t = std::remove_cvref_t<decltype(term_value(
     std::declval<const T&>(), std::declval<const X&>()))>;
 
-template <typename X, typename A, typename B>
-constexpr void bind_operands(const A& a, const B& b);
+/** @brief The result of a binding: nothing but the checks that ran. */
+struct Bound {};
+/** @brief The binding algebra at the points @c X: a constant beside a term
+ *  (@c a, @c b of an operator, a comparison or a conditional) meets the term's
+ *  carrier now; a constant under an arrow meets the arrow's domain.  A leaf
+ *  binds trivially.  @tparam X the point type. */
+template <typename X>
+struct Bind {
+  template <typename Leaf>
+  constexpr Bound operator()(const Leaf&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+    requires requires(const Node& n) {
+      n.a;
+      n.b;
+    }
+  constexpr Bound operator()(const Node& n, R...) const {
+    using A = decltype(n.a);
+    using B = decltype(n.b);
+    if constexpr (is_const_v<A> && !is_const_v<B>)
+      (void)carrier_cast<value_at_t<X, B>>(n.a.value);
+    if constexpr (is_const_v<B> && !is_const_v<A>)
+      (void)carrier_cast<value_at_t<X, A>>(n.b.value);
+    return {};
+  }
+  template <typename F, typename A, typename R>
+  constexpr Bound operator()(const Ap<F, A>& t, R) const {
+    if constexpr (is_const_v<A>)
+      (void)carrier_cast<typename F::Domain>(t.a.value);
+    return {};
+  }
+};
 
 /** @brief Bind a term or atom to the points @c X it is evaluated at: every
  *  constant meets the carrier of the term beside it now, so a constant the
  *  carrier cannot hold raises at construction, not at the first evaluation
- *  (a compile error in @c constexpr code).  A leaf binds trivially.
+ *  (a compile error in @c constexpr code).
  *  @tparam X the point type.  @tparam T the term. */
 export template <typename X, typename T>
-constexpr void bind_check(const T&) {}
-export template <typename X, typename Op, typename A, typename B>
-constexpr void bind_check(const BinOp<Op, A, B>& t) {
-  bind_operands<X>(t.a, t.b);
-}
-export template <typename X, Rel R, typename A, typename B>
-constexpr void bind_check(const Cmp<R, A, B>& t) {
-  bind_operands<X>(t.a, t.b);
-}
-export template <typename X, typename Pr, typename A, typename B>
-constexpr void bind_check(const CondT<Pr, A, B>& t) {
-  bind_check<X>(t.p);
-  bind_operands<X>(t.a, t.b);
-}
-export template <typename X, typename F, typename A>
-constexpr void bind_check(const Ap<F, A>& t) {
-  if constexpr (is_const_v<A>)
-    (void)carrier_cast<typename std::remove_cvref_t<F>::Domain>(t.a.value);
-  else
-    bind_check<X>(t.a);
-}
-export template <typename X, typename A, typename B>
-constexpr void bind_check(const RelAnd<A, B>& t) {
-  bind_check<X>(t.a);
-  bind_check<X>(t.b);
-}
-export template <typename X, typename A, typename B>
-constexpr void bind_check(const RelOr<A, B>& t) {
-  bind_check<X>(t.a);
-  bind_check<X>(t.b);
-}
-template <typename X, typename A, typename B>
-constexpr void bind_operands(const A& a, const B& b) {
-  if constexpr (is_const_v<A> && !is_const_v<B>)
-    (void)carrier_cast<value_at_t<X, B>>(a.value);
-  else
-    bind_check<X>(a);
-  if constexpr (is_const_v<B> && !is_const_v<A>)
-    (void)carrier_cast<value_at_t<X, A>>(b.value);
-  else
-    bind_check<X>(b);
+constexpr void bind_check(const T& t) {
+  (void)cata(Bind<X>{}, t);
 }
 
 /** @section terms__Formal_Verification */
@@ -693,42 +765,50 @@ constexpr void bind_operands(const A& a, const B& b) {
 // entire) where the relation is built.  Each is sufficient, not necessary:
 // false means not certified.
 
-/** @brief A term total at every point of type @c X: slots and constants are;
- *  @c a @c op @c b is when both operands are and @c op is total on their
- *  carrier (@c category::IsTotal); a conditional, a comparison or a connective
- *  when every part is; an applied arrow when the arrow is total and its
- *  argument already has the arrow's domain (a conversion may fail).
- *  @tparam X the point type.  @tparam T the term. */
+/** @brief The totality algebra at the points @c X: a node is total when its
+ *  legs are, and an operator when it is admitted on its carrier (@c admits_v,
+ *  the gate the value algebra enforces: total there, or dividing by a nonzero
+ *  constant), an applied arrow when the arrow is total and its argument already
+ *  has the arrow's domain (a conversion may fail).  A predicate the grammar
+ *  does not know is not certified.  @tparam X the point type. */
+template <typename X>
+struct Total {
+  template <typename Leaf>
+  constexpr std::bool_constant<IsTerm<Leaf>> operator()(const Leaf&) const {
+    return {};
+  }
+  // A leg that is not total ends the question before this node's carrier is
+  // computed: value_at_t of a non-admitted leg would hit the value algebra's
+  // refusal, so it is formed only behind the legs' verdict.
+  template <typename Op, typename A, typename B, typename RA, typename RB>
+  constexpr auto operator()(const BinOp<Op, A, B>&, RA, RB) const {
+    if constexpr (RA::value && RB::value)
+      return std::bool_constant<
+          admits_v<Op, meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>, B>>{};
+    else
+      return std::false_type{};
+  }
+  template <typename F, typename A, typename R>
+  constexpr auto operator()(const Ap<F, A>&, R) const {
+    if constexpr (R::value)
+      return std::bool_constant<
+          (is_const_v<A> ||
+           std::same_as<value_at_t<X, A>, typename F::Domain>) &&
+          dedekind::category::IsTotalArrow<F>>{};
+    else
+      return std::false_type{};
+  }
+  template <typename Node, typename... R>
+  constexpr std::bool_constant<(R::value && ...)> operator()(const Node&,
+                                                             R...) const {
+    return {};
+  }
+};
+/** @brief A term total at every point of type @c X.  @tparam X the point type.
+ *  @tparam T the term. */
 export template <typename X, typename T>
-inline constexpr bool is_total_term_v = false;
-template <typename X, IsRingIntegral auto I>
-inline constexpr bool is_total_term_v<X, Projection<I>> = true;
-template <typename X, typename K>
-inline constexpr bool is_total_term_v<X, Const<K>> = true;
-template <typename X, typename Op, typename A, typename B>
-inline constexpr bool is_total_term_v<X, BinOp<Op, A, B>> =
-    is_total_term_v<X, A> && is_total_term_v<X, B> &&
-    dedekind::category::IsTotal<
-        value_at_t<X, BinOp<Op, A, B>>,
-        typename at_carrier<Op, value_at_t<X, BinOp<Op, A, B>>>::type>;
-template <typename X, Rel R, typename A, typename B>
-inline constexpr bool is_total_term_v<X, Cmp<R, A, B>> =
-    is_total_term_v<X, A> && is_total_term_v<X, B>;
-template <typename X, typename Pr, typename A, typename B>
-inline constexpr bool is_total_term_v<X, CondT<Pr, A, B>> =
-    is_total_term_v<X, Pr> && is_total_term_v<X, A> && is_total_term_v<X, B>;
-template <typename X, typename A, typename B>
-inline constexpr bool is_total_term_v<X, RelAnd<A, B>> =
-    is_total_term_v<X, A> && is_total_term_v<X, B>;
-template <typename X, typename A, typename B>
-inline constexpr bool is_total_term_v<X, RelOr<A, B>> =
-    is_total_term_v<X, A> && is_total_term_v<X, B>;
-template <typename X, typename F, typename A>
-inline constexpr bool is_total_term_v<X, Ap<F, A>> =
-    is_total_term_v<X, A> &&
-    (is_const_v<A> ||
-     std::same_as<value_at_t<X, A>, typename std::remove_cvref_t<F>::Domain>) &&
-    dedekind::category::IsTotalArrow<std::remove_cvref_t<F>>;
+inline constexpr bool is_total_term_v =
+    decltype(cata(Total<X>{}, std::declval<const T&>()))::value;
 
 /** @brief @c π2 @c == @c t, or @c t @c == @c π2, with @c t mentioning only the
  *  first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
@@ -777,9 +857,29 @@ static_assert(on_naturals(std::pair{finite_cardinality(4),
 using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
+static_assert(is_total_term_v<P, decltype(π1 % 3)> &&
+                  !is_total_term_v<P, decltype(π1 % π2)> &&
+                  !is_total_term_v<P, decltype((π1 % π2) + 1)>,
+              "a remainder by a nonzero constant is total, by a term it is not "
+              "certified (the divisor could be 0), and the verdict propagates "
+              "up without asking the value algebra");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
               "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
+static_assert(slots_v<decltype(cond(π1 < 1, π1, π2))> == 0b110u &&
+                  is_total_term_v<P, decltype(cond(π1 < 1, π1, π2))>,
+              "a conditional mentions the slots of all three legs");
+// A predicate the grammar does not know is a leaf the certificates refuse.
+struct Foreign {
+  using is_rel_predicate = void;
+  constexpr bool operator()(const P&) const { return true; }
+};
+static_assert(slots_v<RelAnd<decltype(succ_graph), Foreign>> == ~0u &&
+                  !is_total_term_v<P, RelAnd<decltype(succ_graph), Foreign>> &&
+                  RelAnd<decltype(succ_graph), Foreign>{succ_graph,
+                                                        {}}(P{4, 5}),
+              "a foreign predicate mentions every slot, is not certified "
+              "total, and is evaluated as itself");
 }  // namespace detail_terms_witness
 
 }  // namespace dedekind::sets
