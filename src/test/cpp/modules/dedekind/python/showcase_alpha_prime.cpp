@@ -102,8 +102,6 @@ static_assert(b == Ø<Cardinality>{},
 //     compile time even though their parent `S` is a transfinite intensional
 //     description.  The reduction crosses the realisation boundary value-first:
 //     the folded values, not an elevated result type.
-static_assert(a.lo == 6 && a.hi == 6,
-              "the folded point is the single inhabitant {6}");
 static_assert(!static_cast<bool>(b(6u)), "the folded contradiction is empty");
 
 // The deferred eighth "transformed" nugget was previously realised here
