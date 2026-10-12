@@ -463,15 +463,6 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
-/** @brief Meets involving the value @c Interval route through the one
- *  @c reduce_meet --- this is how @c max/min's @c s @c & @c
- *  upperbounds(s) collapses, since @c upperbounds now yields a @c Interval. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Interval<V, L> operator&(const Interval<V, L>& a,
-                                   const Interval<V, L>& b) {
-  return reduce_meet(a, b);
-}
-
 /** @brief Equality of two value sets: both empty, or the same sides.  The
  * value-first counterpart of the old type-level set equality; it is what the
  * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
@@ -1065,21 +1056,10 @@ constexpr auto operator~(const Interval<V, L>& s) {
            hi ? S::half(hi->at, Direction::Upward, flip(hi->strictness))
               : S::empty()};
 }
-/** @brief An interval met with a union of two intervals: the union of the two
- *  meets. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr auto operator&(
-    const Interval<V, L>& a,
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j) {
-  return dedekind::category::Join<Interval<V, L>, Interval<V, L>>{
-      reduce_meet(a, j.lhs), reduce_meet(a, j.rhs)};
-}
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr auto operator&(
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j,
-    const Interval<V, L>& a) {
-  return a & j;
-}
+// An interval met with an interval, or with a union of two: the set-level
+// @c & (@c sets:expressions, found through @c SetExpr), i.e. the one lattice
+// reducer, whose leaf-combine is @c structured_and above and whose distributive
+// law spreads a meet over the union.
 /** @brief A union of two intervals is empty exactly when both are. */
 export template <IsTotallyOrdered V, IsOckhamAlgebra L>
   requires(!IsPst<V>)
