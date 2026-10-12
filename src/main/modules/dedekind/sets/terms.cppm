@@ -493,12 +493,34 @@ constexpr auto operand_values(const A& a, const B& b, const P& p) {
                            static_cast<C>(term_value(b, p))};
   }
 }
+/** @brief The operator @c Op typed at the carrier @c C, the key totality is
+ *  registered under: @c std::plus<> at @c C is @c std::plus<C>. */
+template <typename Op, typename C>
+struct at_carrier {
+  using type = Op;
+};
+template <template <typename> class F, typename C>
+struct at_carrier<F<void>, C> {
+  using type = F<C>;
+};
+
+/** @brief Whether @c a @c op @c b is admitted on the carrier @c C: @c op is
+ *  total there (@c category::IsTotal, read at the typed functor), or it is a
+ *  division or remainder by a constant, whose nonzero value is checked when the
+ *  term is built.  @tparam Op the operator.  @tparam C the carrier.
+ *  @tparam B the right operand. */
+template <typename Op, typename C, typename B>
+inline constexpr bool admits_v =
+    dedekind::category::IsTotal<C, typename at_carrier<Op, C>::type> ||
+    ((std::same_as<Op, std::divides<>> || std::same_as<Op, std::modulus<>>) &&
+     is_const_v<B> && dedekind::category::IsClosedUnder<C, Op>);
+
 export template <typename Op, typename A, typename B, typename P>
 constexpr auto term_value(const BinOp<Op, A, B>& t, const P& p) {
   const auto [x, y] = operand_values(t.a, t.b, p);
-  static_assert(
-      dedekind::category::IsClosedUnder<std::remove_cvref_t<decltype(x)>, Op>,
-      "the carrier is not closed under this operator");
+  static_assert(admits_v<Op, std::remove_cvref_t<decltype(x)>, B>,
+                "the operator is not total on the carrier (divide only by a "
+                "nonzero constant)");
   return Op{}(x, y);
 }
 export template <typename F, typename A, typename P>
@@ -670,17 +692,6 @@ constexpr void bind_operands(const A& a, const B& b) {
 // entire) where the relation is built.  Each is sufficient, not necessary:
 // false means not certified.
 
-/** @brief The operator @c Op typed at the carrier @c C, the key totality is
- *  registered under: @c std::plus<> at @c C is @c std::plus<C>. */
-template <typename Op, typename C>
-struct at_carrier {
-  using type = Op;
-};
-template <template <typename> class F, typename C>
-struct at_carrier<F<void>, C> {
-  using type = F<C>;
-};
-
 /** @brief A term total at every point of type @c X: slots and constants are;
  *  @c a @c op @c b is when both operands are and @c op is total on their
  *  carrier (@c category::IsTotal); a conditional, a comparison or a connective
@@ -741,7 +752,8 @@ export template <IsGraphAtom P>
 using graph_term_t = typename graph_atom<P>::term;
 
 namespace detail_terms_witness {
-using P = std::pair<int, int>;
+using P = std::pair<unsigned, unsigned>;
+using PI = std::pair<int, int>;
 inline constexpr auto succ_graph = π1 + 1 == π2;
 static_assert(IsRelPredicate<decltype(succ_graph)> &&
                   slots_v<decltype(succ_graph)> == 0b110u,
@@ -765,7 +777,7 @@ static_assert(on_naturals(std::pair{finite_cardinality(4),
 using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(!is_total_term_v<P, decltype(π1 + 1)>,
+static_assert(!is_total_term_v<PI, decltype(π1 + 1)>,
               "x + 1 on int is closed but not total: signed overflow");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,

@@ -2092,6 +2092,10 @@ struct is_saturating<SC, std::plus<SC>> : std::true_type {};
 template <>
 struct is_saturating<SC, std::multiplies<SC>> : std::true_type {};
 
+// Subtraction is x + (−y): it saturates exactly as addition does.
+template <>
+struct is_saturating<SC, std::minus<SC>> : std::true_type {};
+
 // The defining ℤ trait exposes unary `-` as the operation used by
 // the additive-inverse machinery.  -ℵ_0 maps to +ℵ_0 and vice versa;
 // for finite values this is ordinary sign-flip; for NaZ, unary `-`

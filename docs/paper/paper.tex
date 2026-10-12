@@ -1186,6 +1186,8 @@ static_assert(IsFunctional<decltype(                           // composite:
 \begin{listing}[htbp]
 \caption{The divides relation $\{(a,b) \in \mathbb{N}\times\mathbb{N} \mid b \bmod a = 0\}$ as a strongly-typed point-free predicate, and its pointwise validation.  The $a \neq 0$ guard short-circuits before the modulus, so the predicate is total.}
 \label{lst:intensional_relation_validation}
+% FIXME(#980): a term divisor is no longer admitted (division only by a
+% nonzero constant); respell divides as the bounded ∃k. π1 * k == π2.
 \begin{cpp}
 constexpr auto R
   = ℕ * ℕ | (π1 != 0 && π2 % π1 == 0);
