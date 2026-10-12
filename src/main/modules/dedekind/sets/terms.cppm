@@ -518,10 +518,11 @@ inline constexpr bool admits_v =
 export template <typename Op, typename A, typename B, typename P>
 constexpr auto term_value(const BinOp<Op, A, B>& t, const P& p) {
   const auto [x, y] = operand_values(t.a, t.b, p);
-  static_assert(admits_v<Op, std::remove_cvref_t<decltype(x)>, B>,
+  using C = std::remove_cvref_t<decltype(x)>;
+  static_assert(admits_v<Op, C, B>,
                 "the operator is not total on the carrier (divide only by a "
                 "nonzero constant)");
-  return Op{}(x, y);
+  return typename at_carrier<Op, C>::type{}(x, y);
 }
 export template <typename F, typename A, typename P>
 constexpr auto term_value(const Ap<F, A>& t, const P& p) {

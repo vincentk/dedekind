@@ -1184,22 +1184,19 @@ static_assert(IsFunctional<decltype(                           // composite:
 \end{listing}
 
 \begin{listing}[htbp]
-\caption{The divides relation $\{(a,b) \in \mathbb{N}\times\mathbb{N} \mid b \bmod a = 0\}$ as a strongly-typed point-free predicate, and its pointwise validation.  The $a \neq 0$ guard short-circuits before the modulus, so the predicate is total.}
+\caption{The residue relation $\{(a,b) \in \mathbb{N}\times\mathbb{N} \mid b = a \bmod 3\}$ as a strongly-typed point-free predicate, and its pointwise validation.  The divisor is a constant, so the predicate is total.}
 \label{lst:intensional_relation_validation}
-% FIXME(#980): a term divisor is no longer admitted (division only by a
-% nonzero constant); respell divides as the bounded ∃k. π1 * k == π2.
 \begin{cpp}
-constexpr auto R
-  = ℕ * ℕ | (π1 != 0 && π2 % π1 == 0);
-static_assert( R(pair{2,6}));
-static_assert(!R(pair{4,6}));
+constexpr auto R = ℕ * ℕ | (π1 % 3 == π2);
+static_assert( R(pair{7,1}));
+static_assert(!R(pair{7,2}));
 \end{cpp}
 \end{listing}
 
 The design of the relation $R$ in Listing~\ref{lst:intensional_relation_validation} highlights the core architectural boundary between symbolic specification and type-level evaluation.
 Structurally, the relation is defined entirely through an intensional presentation.
 Rather than an opaque lambda over the pair, its predicate is built point-free from the projections $\pi_1, \pi_2$: a strongly-typed, type-level composition the compiler can inspect, not a closure it must treat as a black box.
-The $a \neq 0$ guard and the modulus $\pi_2 \bmod \pi_1$ are conjoined by the meet, whose short-circuit keeps the predicate total.
+The modulus divides by the constant $3$, whose nonzero value is checked when the term is built, so the predicate is total: a term divisor, which could be $0$, is not admitted.
 
 This intensional rule collapses into an extensional, pointwise evaluation context when interrogated by a concrete element via the indicator property \texttt{operator()}.
 During compilation, the \texttt{static\_assert} forces the template engine to substitute the candidate literal pair into the predicate, reducing the symbolic constraint down to a primitive boolean literal.
