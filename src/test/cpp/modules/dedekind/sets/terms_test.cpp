@@ -149,10 +149,12 @@ TEST_CASE("sets:terms: a term built at run time is checked when bound",
                   not_admitted);
   CHECK_THROWS_AS(bind_check<P>(Q::cmp(Rel::Gt, T::proj(3), T::constant(1))),
                   not_admitted);
-  // An unordered carrier takes == and != only.
+  // An unordered carrier takes == and != only, read at its values.
   CHECK_THROWS_AS(
       bind_check<Unordered>(Q::cmp(Rel::Lt, T::proj(0), T::constant(1))),
       not_admitted);
-  CHECK_NOTHROW(
-      bind_check<Unordered>(Q::cmp(Rel::Eq, T::proj(0), T::constant(1))));
+  const Q is_one = Q::cmp(Rel::Eq, T::proj(0), T::constant(1));
+  CHECK_NOTHROW(bind_check<Unordered>(is_one));
+  CHECK(is_one(Unordered{1}));
+  CHECK_FALSE(is_one(Unordered{2}));
 }
