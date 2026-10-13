@@ -39,7 +39,7 @@ using dedekind::sets::finite_signed_cardinality;
 using dedekind::sets::SignedCardinality;
 using dedekind::sets::SignedExtensionalCardinal;
 
-TEST_CASE("Modular<N> — a prime modulus is a field",
+TEST_CASE("Modular<N>: a prime modulus is a field",
           "[morphologies][modular][field]") {
   using M7 = Modular<7u>;
   STATIC_CHECK(is_galois_field_v<M7, std::plus<M7>, std::multiplies<M7>>);

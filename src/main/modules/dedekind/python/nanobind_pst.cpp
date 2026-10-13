@@ -23,7 +23,11 @@
  * and every query is the library's, on it.
  * Two species of one carrier mix in their join (𝔹 ↪ K₃): a Boolean set beside
  * a K₃-valued one is met, joined and compared in K₃.  Different carriers do not
- * mix.  Reduction stays in C++; Python holds handles.
+ * mix.  The @b canonical ring and field are bound beside them (#1019): @c u64
+ * (ℤ/2⁶⁴: + − · wrap, // and % by a nonzero word) and @c 𝔽ₚ (@c Fp,
+ * @c Modular<2⁶⁴ − 59>: + − · /, no order), with their universes @c A(u64)
+ * and @c A(𝔽ₚ); an element equals the int it represents.  Reduction stays in
+ * C++; Python holds handles.
  */
 
 #include <nanobind/nanobind.h>
@@ -963,32 +967,54 @@ NB_MODULE(_pst, m) {
   const nb::object u64_type = u64;
   const nb::object fp_type = fp;
 
-  nb::class_<𝔸<uint64_t>>(m, "UniverseU64", "𝔸(u64): the ring ℤ/2⁶⁴ as a set.")
-      .def("__contains__",
-           [](const 𝔸<uint64_t>&, nb::handle x) { return in_u64(x); })
-      .def("__call__",
-           [](const 𝔸<uint64_t>&, nb::handle x) { return in_u64(x); })
+  nb::class_<𝔸<uint64_t, Boole, dedekind::sets::Finite>>(
+      m, "UniverseU64", "𝔸(u64): the ring ℤ/2⁶⁴ as a set.")
+      .def("__contains__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
+                              nb::handle x) { return in_u64(x); })
+      .def("__call__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
+                          nb::handle x) { return in_u64(x); })
+      .def_prop_ro(
+          "cardinality",
+          [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+            return nb::object(u64_type.attr("modulus"));
+          })
+      .def_prop_ro(
+          "carrier",
+          [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+            return u64_type;
+          })
+      .def("__repr__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+        return std::string("𝔸(u64)");
+      });
+  nb::class_<𝔸<Fp, Boole, dedekind::sets::Finite>>(
+      m, "UniverseFp", "𝔸(𝔽ₚ): the field 𝔽ₚ as a set.")
+      .def("__contains__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
+                              nb::handle x) { return in_fp(x); })
+      .def("__call__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
+                          nb::handle x) { return in_fp(x); })
       .def_prop_ro("cardinality",
-                   [u64_type](const 𝔸<uint64_t>&) {
-                     return nb::object(u64_type.attr("modulus"));
+                   [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+                     return py_int(Fp::modulus);
                    })
       .def_prop_ro("carrier",
-                   [u64_type](const 𝔸<uint64_t>&) { return u64_type; })
-      .def("__repr__",
-           [](const 𝔸<uint64_t>&) { return std::string("𝔸(u64)"); });
-  nb::class_<𝔸<Fp>>(m, "UniverseFp", "𝔸(𝔽ₚ): the field 𝔽ₚ as a set.")
-      .def("__contains__", [](const 𝔸<Fp>&, nb::handle x) { return in_fp(x); })
-      .def("__call__", [](const 𝔸<Fp>&, nb::handle x) { return in_fp(x); })
-      .def_prop_ro("cardinality",
-                   [](const 𝔸<Fp>&) { return py_int(Fp::modulus); })
-      .def_prop_ro("carrier", [fp_type](const 𝔸<Fp>&) { return fp_type; })
-      .def("__repr__", [](const 𝔸<Fp>&) { return std::string("𝔸(𝔽ₚ)"); });
+                   [fp_type](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+                     return fp_type;
+                   })
+      .def("__repr__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+        return std::string("𝔸(𝔽ₚ)");
+      });
 
   m.def(
       "A",
       [u64_type, fp_type](nb::handle chain, nb::handle species) -> nb::object {
-        if (chain.is(u64_type)) return nb::cast(𝔸<uint64_t>{});
-        if (chain.is(fp_type)) return nb::cast(𝔸<Fp>{});
+        if (chain.is(u64_type) || chain.is(fp_type)) {
+          if (!species.is_none() && !nb::isinstance<BooleTag>(species))
+            throw nb::type_error(
+                "the ring u64 and the field 𝔽ₚ are sets valued in Boole");
+          if (chain.is(u64_type))
+            return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{});
+          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{});
+        }
         const bool kleene = nb::isinstance<KleeneTag>(species);
         if (!species.is_none() && !kleene && !nb::isinstance<BooleTag>(species))
           throw nb::type_error("the species is Boole or Kleene");

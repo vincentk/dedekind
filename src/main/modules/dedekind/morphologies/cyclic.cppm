@@ -13,7 +13,11 @@
  * @f$\mathbb{Z}/N\mathbb{Z}@f$ experiment (kept for the existing test).
  *   - @c Modular<N>            — the canonical finite cyclic ring
  *                                @f$\mathbb{Z}/N\mathbb{Z}@f$ (relocated
- *                                from @c category:species; see #378).
+ *                                from @c category:species; see #378); a
+ *                                field exactly when @c is_prime(N), decided
+ *                                by the compiler.
+ *   - @c 𝔽ₚ                    — @c Modular<2^64 - 59>, the largest prime
+ *                                field of a machine word (#1019).
  *
  * Both carriers expose the operational @c morphologies::IsCyclic
  * shape (@c Domain, @c generator(), @c successor()).  Only
@@ -115,9 +119,10 @@ constexpr bool witnesses_composite(std::uint64_t a, std::uint64_t d, unsigned s,
 }  // namespace detail_modular
 
 /** @brief Whether @c n is prime: Miller--Rabin with the first twelve primes
- *  as witnesses, which decides every 64-bit @c n (Sorenson and Webster).
- *  @c constexpr, so a modulus in a type is certified by the compiler.
- *  @param n the candidate. */
+ *  as witnesses, which decides every 64-bit @c n (J. Sorenson and J. Webster,
+ *  "Strong pseudoprimes to twelve prime bases", Math. Comp. 86 (2017),
+ *  985--1003).  @c constexpr, so a modulus in a type is certified by the
+ *  compiler.  @param n the candidate.  @return whether @c n is prime. */
 export constexpr bool is_prime(std::uint64_t n) {
   constexpr std::uint64_t witnesses[] = {2,  3,  5,  7,  11, 13,
                                          17, 19, 23, 29, 31, 37};
@@ -213,7 +218,9 @@ struct Modular {
   }
 
   /** @brief The multiplicative inverse on a prime modulus, @f$a^{N-2}@f$
-   *  (Fermat): ℤ/p is the field 𝔽ₚ.  0 has none, and is refused. */
+   *  (Fermat): ℤ/p is the field 𝔽ₚ.
+   *  @return the element whose product with this one is 1.
+   *  @throws std::domain_error for 0, which has no inverse. */
   constexpr Modular inverse() const
     requires(is_prime(static_cast<std::uint64_t>(N)))
   {
@@ -222,7 +229,9 @@ struct Modular {
         static_cast<std::uint64_t>(value), static_cast<std::uint64_t>(N) - 2,
         static_cast<std::uint64_t>(N))));
   }
-  /** @brief Division on a prime modulus: multiplication by the inverse. */
+  /** @brief Division on a prime modulus: multiplication by the inverse.
+   *  @return @f$a \cdot b^{-1}@f$.
+   *  @throws std::domain_error when @c b is 0. */
   constexpr friend Modular operator/(Modular a, Modular b)
     requires(is_prime(static_cast<std::uint64_t>(N)))
   {
@@ -425,9 +434,12 @@ struct SpeciesTraits<dedekind::morphologies::Modular<N>> {
 
   static constexpr bool is_distributive = true;
 
-  /** @section cyclic__Prime_Field: ℤ/p is the Galois field 𝔽ₚ, of order p. */
+  /** @section cyclic__Prime_Field: ℤ/p is the Galois field 𝔽ₚ, of order p,
+   *  under its own + and ·. */
   template <typename Add, typename Mult>
   static constexpr bool is_galois_field_v =
+      std::same_as<Add, std::plus<Domain>> &&
+      std::same_as<Mult, std::multiplies<Domain>> &&
       dedekind::morphologies::is_prime(static_cast<std::uint64_t>(N));
   template <typename Add, typename Mult>
   static constexpr std::size_t galois_order_v =

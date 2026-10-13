@@ -81,7 +81,7 @@ class TheField(unittest.TestCase):
 
     def test_it_has_no_order(self) -> None:
         with self.assertRaises(TypeError):
-            𝔽ₚ(1) < 𝔽ₚ(2)  # noqa: B015 — the comparison is the point
+            𝔽ₚ(1) < 𝔽ₚ(2)  # noqa: B015 (the comparison is the point)
 
 
 class TheUniverses(unittest.TestCase):
