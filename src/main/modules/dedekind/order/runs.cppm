@@ -479,7 +479,7 @@ class MergeView
           vb_(m->vb_) {
       advance();
     }
-    constexpr const value_type& operator*() const { return *cur_; }
+    constexpr const value_type& operator*() const { return cur_; }
     constexpr iterator& operator++() {
       advance();
       return *this;
@@ -491,7 +491,7 @@ class MergeView
     }
     /** @brief Equal at one position of the merge, or both at its end. */
     friend constexpr bool operator==(const iterator& x, const iterator& y) {
-      if (!x.cur_ || !y.cur_) return !x.cur_ && !y.cur_;
+      if (!x.live_ || !y.live_) return !x.live_ && !y.live_;
       return x.ia_ == y.ia_ && x.ib_ == y.ib_;
     }
 
@@ -499,10 +499,8 @@ class MergeView
     constexpr void advance() {
       const bool ha = ia_ != std::ranges::end(m_->a_);
       const bool hb = ib_ != std::ranges::end(m_->b_);
-      if (!ha && !hb) {
-        cur_.reset();
-        return;
-      }
+      live_ = ha || hb;
+      if (!live_) return;
       const auto at =
           !hb || (ha && (*ia_).at < (*ib_).at) ? (*ia_).at : (*ib_).at;
       if (ha && (*ia_).at == at) va_ = (*ia_++).value;
@@ -513,7 +511,11 @@ class MergeView
     std::ranges::iterator_t<RA> ia_{};
     std::ranges::iterator_t<RB> ib_{};
     Ω va_{}, vb_{};
-    std::optional<value_type> cur_;
+    // The current step and whether there is one: a value and a flag, not an
+    // optional, whose reset would end the value's lifetime under a copy in
+    // constant evaluation.
+    value_type cur_{};
+    bool live_ = false;
   };
   constexpr iterator begin() { return iterator{this}; }
   constexpr iterator end() { return {}; }
@@ -765,7 +767,7 @@ class PiecesView : public std::ranges::view_interface<PiecesView<R, V>> {
         : p_(p), it_(std::ranges::begin(p->r_)), inside_(p->first_) {
       advance();
     }
-    constexpr const value_type& operator*() const { return *cur_; }
+    constexpr const value_type& operator*() const { return cur_; }
     constexpr iterator& operator++() {
       advance();
       return *this;
@@ -776,14 +778,13 @@ class PiecesView : public std::ranges::view_interface<PiecesView<R, V>> {
       return before;
     }
     friend constexpr bool operator==(const iterator& x, const iterator& y) {
-      if (!x.cur_ || !y.cur_) return !x.cur_ && !y.cur_;
+      if (!x.live_ || !y.live_) return !x.live_ && !y.live_;
       return x.it_ == y.it_;
     }
 
    private:
     constexpr void advance() {
-      cur_.reset();
-      std::optional<Position<V>> start;
+      live_ = false;
       for (; !done_ && it_ != std::ranges::end(p_->r_); ++it_) {
         const auto& st = *it_;
         if (detail_position::before_all(st.at)) {
@@ -792,26 +793,39 @@ class PiecesView : public std::ranges::view_interface<PiecesView<R, V>> {
         }
         if (detail_position::after_all(st.at)) break;
         if (st.value) {
-          start = st.at;
-          inside_ = true;
+          open_ = st.at;
+          opened_ = inside_ = true;
         } else if (inside_) {
-          inside_ = false;
-          cur_ = Piece<V>{start ? start : open_, st.at};
-          open_.reset();
+          cur_ = Piece<V>{start(), st.at};
+          live_ = true;
+          opened_ = inside_ = false;
           ++it_;
           return;
         }
-        open_ = start;
       }
-      if (!done_ && inside_) cur_ = Piece<V>{open_, std::nullopt};
+      if (!done_ && inside_) {
+        cur_ = Piece<V>{start(), std::nullopt};
+        live_ = true;
+      }
       done_ = true;
+    }
+    /** @brief Where the open run starts: a step inside the carrier, or below
+     *  every element. */
+    constexpr std::optional<Position<V>> start() const {
+      if (opened_) return open_;
+      return std::nullopt;
     }
     PiecesView* p_ = nullptr;
     std::ranges::iterator_t<R> it_{};
     bool inside_ = false;
     bool done_ = false;
-    std::optional<Position<V>> open_;
-    std::optional<value_type> cur_;
+    // The open run's start and the current piece: values and flags, not
+    // optionals, whose reset would end the value's lifetime under a copy in
+    // constant evaluation.
+    Position<V> open_{};
+    bool opened_ = false;
+    value_type cur_{};
+    bool live_ = false;
   };
   constexpr iterator begin() { return iterator{this}; }
   constexpr iterator end() { return {}; }
