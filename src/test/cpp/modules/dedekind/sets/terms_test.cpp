@@ -71,3 +71,88 @@ TEST_CASE("sets:terms: the connectives short-circuit like the built-ins",
   CHECK((π1 < 3 || Unreachable{})(P{2, 0}));        // left true: right unread
   CHECK_THROWS_AS((π1 < 3 && Unreachable{})(P{2, 0}), std::logic_error);
 }
+
+namespace {
+/** @brief A carrier with equality and no order. */
+struct Unordered {
+  int v;
+  constexpr Unordered(int x = 0)
+      : v(x) {}  // NOLINT(google-explicit-constructor)
+  friend bool operator==(const Unordered&, const Unordered&) = default;
+};
+using T = Term<int>;
+using Q = Pred<int>;
+}  // namespace
+
+TEST_CASE("sets:terms: a term built at run time is read by the same algebras",
+          "[sets][terms][runtime]") {
+  // π2 == π1 · 3 + 1, typed and built at run time: one grammar, two shapes.
+  const auto typed = π1 * 3 + 1 == π2;
+  const Q built =
+      Q::cmp(Rel::Eq,
+             T::bin(Arith::Add, T::bin(Arith::Mul, T::proj(1), T::constant(3)),
+                    T::constant(1)),
+             T::proj(2));
+  for (unsigned x = 0; x < 5; ++x)
+    for (unsigned y = 0; y < 20; ++y) CHECK(typed(P{x, y}) == built(P{x, y}));
+  // An atom on the unary π, the former, and the connectives in negation
+  // normal form.
+  const Q even = Q::cmp(Rel::Eq, T::bin(Arith::Mod, T::proj(0), T::constant(2)),
+                        T::constant(0));
+  const Q gt2 = Q::cmp(Rel::Gt, T::proj(0), T::constant(2));
+  const auto evens = 𝔸<unsigned>{} | even;
+  CHECK(evens(4u));
+  CHECK_FALSE(evens(5u));
+  CHECK((𝔸<unsigned>{} | even.negated())(5u));
+  CHECK(Q::conj(even, gt2)(4u));
+  CHECK_FALSE(Q::conj(even, gt2)(2u));
+  CHECK(Q::disj(even, gt2)(3u));
+  const Q neither = Q::conj(even, gt2).negated();  // !even || !gt2
+  CHECK(neither(3u));
+  CHECK(neither(2u));
+  CHECK_FALSE(neither(4u));
+}
+
+TEST_CASE("sets:terms: a term built at run time is checked when bound",
+          "[sets][terms][runtime][bind]") {
+  // A division by the constant 0 is refused when built; by a term, when bound.
+  CHECK_THROWS_AS(T::bin(Arith::Mod, T::proj(0), T::constant(0)),
+                  std::domain_error);
+  CHECK_THROWS_AS(bind_check<P>(Q::cmp(
+                      Rel::Eq, T::bin(Arith::FloorDiv, T::proj(2), T::proj(1)),
+                      T::proj(2))),
+                  not_admitted);
+  // / is a field's: refused on the word; // and % by a constant are admitted.
+  CHECK_THROWS_AS(bind_check<unsigned>(Q::cmp(
+                      Rel::Eq, T::bin(Arith::Div, T::proj(0), T::constant(2)),
+                      T::constant(1))),
+                  not_admitted);
+  CHECK_NOTHROW(bind_check<unsigned>(
+      Q::cmp(Rel::Eq, T::bin(Arith::FloorDiv, T::proj(0), T::constant(2)),
+             T::constant(1))));
+  // − is total on the word (it wraps); bool is not closed under +.
+  CHECK_NOTHROW(bind_check<P>(Q::cmp(
+      Rel::Eq, T::proj(2), T::bin(Arith::Sub, T::proj(1), T::constant(1)))));
+  CHECK_THROWS_AS(bind_check<bool>(Q::cmp(
+                      Rel::Eq, T::bin(Arith::Add, T::proj(0), T::constant(1)),
+                      T::constant(1))),
+                  not_admitted);
+  // A constant the carrier cannot hold.
+  CHECK_THROWS_AS(
+      bind_check<unsigned>(Q::cmp(Rel::Gt, T::proj(0), T::constant(-1))),
+      std::domain_error);
+  // A slot the points have not.
+  CHECK_THROWS_AS(
+      bind_check<unsigned>(Q::cmp(Rel::Gt, T::proj(1), T::constant(1))),
+      not_admitted);
+  CHECK_THROWS_AS(bind_check<P>(Q::cmp(Rel::Gt, T::proj(0), T::constant(1))),
+                  not_admitted);
+  CHECK_THROWS_AS(bind_check<P>(Q::cmp(Rel::Gt, T::proj(3), T::constant(1))),
+                  not_admitted);
+  // An unordered carrier takes == and != only.
+  CHECK_THROWS_AS(
+      bind_check<Unordered>(Q::cmp(Rel::Lt, T::proj(0), T::constant(1))),
+      not_admitted);
+  CHECK_NOTHROW(
+      bind_check<Unordered>(Q::cmp(Rel::Eq, T::proj(0), T::constant(1))));
+}

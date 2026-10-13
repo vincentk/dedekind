@@ -284,6 +284,17 @@ constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }
 
+/** @brief @c 𝔸<T> @c | @c pred for a predicate built at run time: bound to
+ *  the carrier now, every operator admitted there or refused
+ *  (@c not_admitted), every constant meeting it.  Pairs take the product
+ *  former.  @tparam T the carrier.  @tparam K the constants' type. */
+export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename K>
+  requires(!requires { typename T::first_type; })
+constexpr auto operator|(const 𝔸<T, L, C>&, Pred<K> p) {
+  bind_check<T>(p);
+  return Comprehension<𝔸<T, L, C>, Pred<K>>{std::move(p)};
+}
+
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
 struct UniversalPredicate {
