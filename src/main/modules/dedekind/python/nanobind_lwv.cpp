@@ -123,6 +123,7 @@ struct Shifted {
   struct By {
     long long k;
     Step operator()(Step st) const {
+      if (k == 0) return st;  // the identity moves nothing, not even an end
       using W = std::numeric_limits<long long>;
       st.at.at = add_in_window(st.at.at, k, "image");
       if (st.value ? st.at == Position<long long>{W::max(), Side::Above}

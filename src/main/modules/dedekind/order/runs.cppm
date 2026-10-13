@@ -290,9 +290,13 @@ constexpr Position<V> canonical(const Position<V>& p) {
  *  itself a source.  @c Runs is the one stored form, materialised on request.
  */
 
-/** @brief Where the value changes, and to what.  @tparam V the carrier.
- *  @tparam L the species. */
+/** @brief Where the value changes, and to what.  A source holds its steps
+ *  by value (an interval's two sides, an iterator's current step), so the
+ *  carrier and the truth values are default-initialisable.  @tparam V the
+ *  carrier.  @tparam L the species. */
 export template <typename V, typename L>
+  requires std::default_initializable<V> &&
+           std::default_initializable<typename L::Ω>
 struct Step {
   Position<V> at;
   typename L::Ω value;
@@ -873,10 +877,12 @@ struct Closed {
   }
 };
 }  // namespace detail_runs
-/** @brief The runs of a two-valued source of a discrete chain with ends, as a
- *  view of closed pairs. */
+/** @brief The runs of a two-valued source of a finite chain, as a view of
+ *  closed pairs: every run that ends does so just below an element with a
+ *  lower cover (ℕ's proxy, whose ℵ₀ has none, is read through positions). */
 export template <IsStepSource S>
-  requires HasCoveringStep<typename S::Domain> &&
+  requires IsFiniteChain<typename S::Domain> &&
+           HasCoveringStep<typename S::Domain> &&
            (detail_position::least<typename S::Domain>().has_value())
 constexpr auto runs(const S& s) {
   return std::views::transform(pieces(s),
