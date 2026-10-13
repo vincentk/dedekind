@@ -13,7 +13,11 @@
  * @f$\mathbb{Z}/N\mathbb{Z}@f$ experiment (kept for the existing test).
  *   - @c Modular<N>            — the canonical finite cyclic ring
  *                                @f$\mathbb{Z}/N\mathbb{Z}@f$ (relocated
- *                                from @c category:species; see #378).
+ *                                from @c category:species; see #378); a
+ *                                field exactly when @c is_prime(N), decided
+ *                                by the compiler.
+ *   - @c 𝔽ₚ                    — @c Modular<2^64 - 59>, the largest prime
+ *                                field of a machine word (#1019).
  *
  * Both carriers expose the operational @c morphologies::IsCyclic
  * shape (@c Domain, @c generator(), @c successor()).  Only
@@ -33,8 +37,10 @@ module;
 #include <bit>  // std::has_single_bit (N | 2^w gate on the congruence)
 #include <concepts>
 #include <cstddef>      // for std::size_t (cyclic_order_v specialisation)
+#include <cstdint>      // std::uint64_t (primality)
 #include <functional>   // for std::plus, std::multiplies
 #include <limits>       // for std::numeric_limits (cyclic_order guard)
+#include <stdexcept>    // std::domain_error (0 has no inverse)
 #include <type_traits>  // for std::true_type, std::integral_constant
 
 export module dedekind.morphologies:cyclic;
@@ -82,6 +88,55 @@ class CyclicRing {
   T value_;
 };
 
+namespace detail_modular {
+/** @brief @f$ab \bmod n@f$, through a 128-bit product. */
+constexpr std::uint64_t mul_mod(std::uint64_t a, std::uint64_t b,
+                                std::uint64_t n) {
+  return static_cast<std::uint64_t>(static_cast<unsigned __int128>(a) * b % n);
+}
+/** @brief @f$b^e \bmod n@f$, by squaring. */
+constexpr std::uint64_t pow_mod(std::uint64_t b, std::uint64_t e,
+                                std::uint64_t n) {
+  std::uint64_t r = 1 % n;
+  for (b %= n; e != 0; e >>= 1) {
+    if ((e & 1) != 0) r = mul_mod(r, b, n);
+    b = mul_mod(b, b, n);
+  }
+  return r;
+}
+/** @brief Whether @c a witnesses that the odd @c n is composite, with
+ *  @f$n - 1 = d \cdot 2^s@f$, @c d odd. */
+constexpr bool witnesses_composite(std::uint64_t a, std::uint64_t d, unsigned s,
+                                   std::uint64_t n) {
+  std::uint64_t x = pow_mod(a, d, n);
+  if (x == 1 || x == n - 1) return false;
+  for (unsigned r = 1; r < s; ++r) {
+    x = mul_mod(x, x, n);
+    if (x == n - 1) return false;
+  }
+  return true;
+}
+}  // namespace detail_modular
+
+/** @brief Whether @c n is prime: Miller--Rabin with the first twelve primes
+ *  as witnesses, which decides every 64-bit @c n (J. Sorenson and J. Webster,
+ *  "Strong pseudoprimes to twelve prime bases", Math. Comp. 86 (2017),
+ *  985--1003).  @c constexpr, so a modulus in a type is certified by the
+ *  compiler.  @param n the candidate.  @return whether @c n is prime. */
+export constexpr bool is_prime(std::uint64_t n) {
+  constexpr std::uint64_t witnesses[] = {2,  3,  5,  7,  11, 13,
+                                         17, 19, 23, 29, 31, 37};
+  if (n < 2) return false;
+  for (const std::uint64_t p : witnesses)
+    if (n % p == 0) return n == p;
+  std::uint64_t d = n - 1;
+  unsigned s = 0;
+  for (; (d & 1) == 0; d >>= 1) ++s;
+  for (const std::uint64_t a : witnesses)
+    if (detail_modular::witnesses_composite(a, d, s, n)) return false;
+  return true;
+}
+
 /**
  * @section cyclic__The_Modular_Species
  * @brief @f$\mathbb{Z}/N\mathbb{Z}@f$ as a total finite cyclic ring.
@@ -101,31 +156,22 @@ struct Modular {
   static_assert(N > 0, "Modulus must be positive.");
   using machine_type = decltype(N);
   using Domain = Modular;
+  /** @brief The modulus N, as a value. */
+  static constexpr machine_type modulus = N;
 
-  // Wide intermediate for arithmetic so that @c (a.value + b.value)
-  // and @c (a.value * b.value) don't overflow @c machine_type before
-  // the @c % N reduction.  Picks the wider of @c machine_type and
-  // @c unsigned long long so all standard integral choices are
-  // covered.
+  static_assert(sizeof(machine_type) <= sizeof(std::uint64_t),
+                "Modulus must fit 64 bits.");
+
+  // Wide intermediate for arithmetic so that @c (a.value + b.value) and
+  // @c (a.value * b.value) don't overflow before the @c % N reduction: 64
+  // bits while @c (N-1)^2 fits them, 128 bits beyond (up to the largest
+  // 64-bit modulus).
   using wide_type =
-      std::conditional_t<(sizeof(machine_type) > sizeof(unsigned long long)),
-                         machine_type, unsigned long long>;
-
-  // The widened intermediate must itself fit @c (N-1) * (N-1) for
-  // multiplication to be reduction-safe (addition's @c 2*(N-1) bound
-  // is implied).  At @c sizeof(wide_type) == 8, that caps @c N at
-  // @f$\lfloor\sqrt{2^{64}}\rfloor = 2^{32}@f$; the @c
-  // static_assert below makes the limit a hard build-time error
-  // rather than silent corruption for callers picking unusually
-  // large moduli (e.g.\ @c Modular<unsigned long long, 2^{50}>).
-  // Callers needing a wider modulus should host a 128-bit-backed
-  // carrier of their own; this one keeps to the standard widths.
-  static_assert(N == 1 || static_cast<wide_type>(N - 1) <=
-                              std::numeric_limits<wide_type>::max() /
-                                  static_cast<wide_type>(N - 1),
-                "Modular<N>: (N-1)^2 must fit wide_type for safe "
-                "modular multiplication; pick a smaller N or a "
-                "wider machine_type.");
+      std::conditional_t<(N == 1 ||
+                          static_cast<std::uint64_t>(N - 1) <=
+                              std::numeric_limits<std::uint64_t>::max() /
+                                  static_cast<std::uint64_t>(N - 1)),
+                         unsigned long long, unsigned __int128>;
 
   machine_type value;
 
@@ -169,6 +215,27 @@ struct Modular {
     const wide_type prod =
         static_cast<wide_type>(a.value) * static_cast<wide_type>(b.value);
     return Modular(static_cast<machine_type>(prod % static_cast<wide_type>(N)));
+  }
+
+  /** @brief The multiplicative inverse on a prime modulus, @f$a^{N-2}@f$
+   *  (Fermat): ℤ/p is the field 𝔽ₚ.
+   *  @return the element whose product with this one is 1.
+   *  @throws std::domain_error for 0, which has no inverse. */
+  constexpr Modular inverse() const
+    requires(is_prime(static_cast<std::uint64_t>(N)))
+  {
+    if (value == 0) throw std::domain_error("0 has no inverse in a field");
+    return Modular(static_cast<machine_type>(detail_modular::pow_mod(
+        static_cast<std::uint64_t>(value), static_cast<std::uint64_t>(N) - 2,
+        static_cast<std::uint64_t>(N))));
+  }
+  /** @brief Division on a prime modulus: multiplication by the inverse.
+   *  @return @f$a \cdot b^{-1}@f$.
+   *  @throws std::domain_error when @c b is 0. */
+  constexpr friend Modular operator/(Modular a, Modular b)
+    requires(is_prime(static_cast<std::uint64_t>(N)))
+  {
+    return a * b.inverse();
   }
 
   // Equality as a subobject classifier.
@@ -284,6 +351,19 @@ template <auto N>
 inline constexpr bool
     is_invertible_v<dedekind::morphologies::Modular<N>, std::plus<>> = true;
 
+// Every nonzero element is a unit exactly when N is prime: ℤ/p is the field
+// 𝔽ₚ, decided by the compiler (zero is excluded by convention, as for 𝔽₂).
+template <auto N>
+inline constexpr bool
+    is_invertible_v<dedekind::morphologies::Modular<N>,
+                    std::multiplies<dedekind::morphologies::Modular<N>>> =
+        dedekind::morphologies::is_prime(static_cast<std::uint64_t>(N));
+
+template <auto N>
+inline constexpr bool
+    is_invertible_v<dedekind::morphologies::Modular<N>, std::multiplies<>> =
+        dedekind::morphologies::is_prime(static_cast<std::uint64_t>(N));
+
 /** @section cyclic__Symmetry_Axioms */
 
 template <auto N>
@@ -353,6 +433,17 @@ struct SpeciesTraits<dedekind::morphologies::Modular<N>> {
   static constexpr Domain identity = Domain(0);
 
   static constexpr bool is_distributive = true;
+
+  /** @section cyclic__Prime_Field: ℤ/p is the Galois field 𝔽ₚ, of order p,
+   *  under its own + and ·. */
+  template <typename Add, typename Mult>
+  static constexpr bool is_galois_field_v =
+      std::same_as<Add, std::plus<Domain>> &&
+      std::same_as<Mult, std::multiplies<Domain>> &&
+      dedekind::morphologies::is_prime(static_cast<std::uint64_t>(N));
+  template <typename Add, typename Mult>
+  static constexpr std::size_t galois_order_v =
+      is_galois_field_v<Add, Mult> ? static_cast<std::size_t>(N) : 0;
 };
 
 /** @section cyclic__IsCyclicGroup_witness */
@@ -648,3 +739,28 @@ static_assert(
 // above where we crossed into @c dedekind::category for the First-Iso
 // trait registrations.  No reopening needed; this file ends after
 // the static_assert.)
+
+namespace dedekind::morphologies {
+/** @brief The largest prime field of a machine word: @f$\mathbb{F}_p@f$ with
+ *  @f$p = 2^{64} - 59@f$, the largest prime below @f$2^{64}@f$.  The field
+ *  beside the ring @c std::uint64_t @f$= \mathbb{Z}/2^{64}@f$. */
+export using 𝔽ₚ = Modular<18446744073709551557ull>;
+
+static_assert(
+    is_prime(2) && is_prime(7) && !is_prime(1) && !is_prime(6) &&
+        is_prime(2305843009213693951ull) &&
+        !is_prime(18446744073709551615ull) && is_prime(𝔽ₚ::modulus),
+    "2, 7, 2^61 - 1 and 2^64 - 59 are prime; 1, 6, 2^64 - 1 are not.");
+static_assert(
+    dedekind::category::IsField<Modular<7u>, std::plus<Modular<7u>>,
+                                std::multiplies<Modular<7u>>> &&
+        dedekind::category::IsField<𝔽ₚ, std::plus<𝔽ₚ>, std::multiplies<𝔽ₚ>>,
+    "ℤ/p is a field for prime p.");
+static_assert(!dedekind::category::IsField<Modular<6u>, std::plus<Modular<6u>>,
+                                           std::multiplies<Modular<6u>>> &&
+                  !std::invocable<std::divides<>, Modular<6u>, Modular<6u>>,
+              "ℤ/6 is a ring, not a field: it has no division.");
+static_assert(𝔽ₚ{𝔽ₚ::modulus - 1} * 𝔽ₚ{𝔽ₚ::modulus - 1} == 𝔽ₚ{1} &&
+                  𝔽ₚ{1} / 𝔽ₚ{3} * 𝔽ₚ{3} == 𝔽ₚ{1},
+              "in 𝔽ₚ, (-1)² = 1 and 3 · 3⁻¹ = 1, through 128 bits.");
+}  // namespace dedekind::morphologies

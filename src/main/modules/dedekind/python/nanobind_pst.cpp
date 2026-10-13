@@ -23,7 +23,11 @@
  * and every query is the library's, on it.
  * Two species of one carrier mix in their join (𝔹 ↪ K₃): a Boolean set beside
  * a K₃-valued one is met, joined and compared in K₃.  Different carriers do not
- * mix.  Reduction stays in C++; Python holds handles.
+ * mix.  The @b canonical ring and field are bound beside them (#1019): @c u64
+ * (ℤ/2⁶⁴: + − · wrap, // and % by a nonzero word) and @c 𝔽ₚ (@c Fp,
+ * @c Modular<2⁶⁴ − 59>: + − · /, no order), with their universes @c A(u64)
+ * and @c A(𝔽ₚ); an element equals the int it represents.  Reduction stays in
+ * C++; Python holds handles.
  */
 
 #include <nanobind/nanobind.h>
@@ -32,14 +36,18 @@
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 #include <variant>
 
-import dedekind.category;  // Ternary, Boole, Kleene, IsPst, the step
-import dedekind.order;     // IsDense
-import dedekind.sequences; // the chains' orbit
-import dedekind.sets;      // Cardinality, ℵ_0, finite_cardinality
+import dedekind.category;     // Ternary, Boole, Kleene, IsPst, the step
+import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
+import dedekind.order;        // IsDense
+import dedekind.sequences;    // the chains' orbit
+import dedekind.sets;         // Cardinality, ℵ_0, finite_cardinality
 
 namespace nb = nanobind;
 
@@ -619,6 +627,91 @@ struct Forall {
     return s == (s & d.set);  // S ⊆ P
   }
 };
+
+// ── The canonical ring and field ────────────────────────────────────────────
+//
+// The two universes a Python user meets first, each as large as a machine word
+// allows: u64, the ring ℤ/2⁶⁴ (+ − · wrap; // and % by a nonzero word), and
+// 𝔽ₚ, the prime field p = 2⁶⁴ − 59 (+ − · /).  A Python int enters u64 by the
+// checked cast and 𝔽ₚ by the quotient map; 𝔽ₚ shows its symmetric
+// representative.  The classification is the C++ concepts' verdict.
+
+using Fp = dedekind::morphologies::𝔽ₚ;
+using dedekind::category::IsCommutativeRing;
+using dedekind::category::IsField;
+using std::uint64_t;
+static_assert(
+    IsCommutativeRing<uint64_t, std::plus<uint64_t>,
+                      std::multiplies<uint64_t>> &&
+        !IsField<uint64_t, std::plus<uint64_t>, std::multiplies<uint64_t>> &&
+        IsField<Fp, std::plus<Fp>, std::multiplies<Fp>>,
+    "u64 is a ring and not a field; 𝔽ₚ is a field.");
+
+/** @brief An element of ℤ/2⁶⁴: the machine word, whose + − · wrap. */
+struct Word {
+  uint64_t v;
+  friend bool operator==(const Word&, const Word&) = default;
+  friend auto operator<=>(const Word&, const Word&) = default;
+};
+
+[[noreturn]] void zero_division(const char* what) {
+  PyErr_SetString(PyExc_ZeroDivisionError, what);
+  throw nb::python_error();
+}
+nb::object py_int(uint64_t v) {
+  return nb::steal(PyLong_FromUnsignedLongLong(v));
+}
+bool is_py_int(nb::handle h) {
+  return PyLong_Check(h.ptr()) && !PyBool_Check(h.ptr());
+}
+/** @brief A Python int into the word, by the checked cast; a word as itself.
+ */
+Word word_of(nb::handle h) {
+  if (nb::isinstance<Word>(h)) return nb::cast<Word>(h);
+  if (!is_py_int(h)) throw nb::type_error("a u64 is made from an int");
+  const unsigned long long v = PyLong_AsUnsignedLongLong(h.ptr());
+  if (PyErr_Occurred() != nullptr) {
+    PyErr_Clear();
+    throw nb::value_error("the word cannot hold it: u64 is [0, 2⁶⁴)");
+  }
+  return Word{v};
+}
+/** @brief A Python int into 𝔽ₚ, by the quotient map n ↦ n mod p; an element
+ *  as itself. */
+Fp residue_of(nb::handle h) {
+  if (nb::isinstance<Fp>(h)) return nb::cast<Fp>(h);
+  if (!is_py_int(h))
+    throw nb::type_error("an element of 𝔽ₚ is made from an int");
+  const nb::object p = py_int(Fp::modulus);
+  const nb::object r = nb::steal(PyNumber_Remainder(h.ptr(), p.ptr()));
+  if (!r.is_valid()) throw nb::python_error();
+  return Fp{PyLong_AsUnsignedLongLong(r.ptr())};  // Python's % is in [0, p)
+}
+/** @brief The symmetric representative of an element of 𝔽ₚ, in
+ *  [−(p−1)/2, (p−1)/2]. */
+nb::object representative(const Fp& x) {
+  if (x.value <= (Fp::modulus - 1) / 2) return py_int(x.value);
+  return nb::steal(
+      PyLong_FromLongLong(-static_cast<long long>(Fp::modulus - x.value)));
+}
+/** @brief Whether a Python value is an element of the universe: an element
+ *  of the carrier, or an int that is one of its representatives. */
+bool in_u64(nb::handle h) {
+  if (nb::isinstance<Word>(h)) return true;
+  if (!is_py_int(h)) return false;
+  (void)PyLong_AsUnsignedLongLong(h.ptr());
+  const bool fits = PyErr_Occurred() == nullptr;
+  PyErr_Clear();
+  return fits;
+}
+bool in_fp(nb::handle h) {
+  if (nb::isinstance<Fp>(h)) return true;
+  if (!is_py_int(h)) return false;
+  const int same = PyObject_RichCompareBool(representative(residue_of(h)).ptr(),
+                                            h.ptr(), Py_EQ);
+  if (same < 0) throw nb::python_error();
+  return same == 1;
+}
 }  // namespace
 
 NB_MODULE(_pst, m) {
@@ -706,9 +799,222 @@ NB_MODULE(_pst, m) {
   m.attr("π") = ProjectionTag{};
   m.attr("χ") = ProjectionTag{};
 
+  // ── the canonical ring and field ──
+  auto u64 = nb::class_<Word>(
+      m, "u64",
+      "The ring ℤ/2⁶⁴ (the machine word): + − · wrap, // and % by a nonzero "
+      "word, ordered by its representatives 0 … 2⁶⁴ − 1.  u64(n) takes an int "
+      "by the checked cast.");
+  u64.def(
+         "__init__", [](Word* w, nb::handle n) { new (w) Word{word_of(n)}; },
+         nb::arg("n"))
+      .def("__int__", [](const Word& a) { return py_int(a.v); })
+      .def("__index__", [](const Word& a) { return py_int(a.v); })
+      .def("__hash__", [](const Word& a) { return nb::hash(py_int(a.v)); })
+      .def("__repr__",
+           [](const Word& a) { return "u64(" + std::to_string(a.v) + ")"; })
+      .def(
+          "__add__",
+          [](const Word& a, nb::handle b) { return Word{a.v + word_of(b).v}; },
+          nb::is_operator())
+      .def(
+          "__radd__",
+          [](const Word& a, nb::handle b) { return Word{word_of(b).v + a.v}; },
+          nb::is_operator())
+      .def(
+          "__sub__",
+          [](const Word& a, nb::handle b) { return Word{a.v - word_of(b).v}; },
+          nb::is_operator())
+      .def(
+          "__rsub__",
+          [](const Word& a, nb::handle b) { return Word{word_of(b).v - a.v}; },
+          nb::is_operator())
+      .def(
+          "__mul__",
+          [](const Word& a, nb::handle b) { return Word{a.v * word_of(b).v}; },
+          nb::is_operator())
+      .def(
+          "__rmul__",
+          [](const Word& a, nb::handle b) { return Word{word_of(b).v * a.v}; },
+          nb::is_operator())
+      .def("__neg__", [](const Word& a) { return Word{0 - a.v}; })
+      .def(
+          "__floordiv__",
+          [](const Word& a, nb::handle b) {
+            const uint64_t d = word_of(b).v;
+            if (d == 0) zero_division("u64 // 0");
+            return Word{a.v / d};
+          },
+          nb::is_operator())
+      .def(
+          "__mod__",
+          [](const Word& a, nb::handle b) {
+            const uint64_t d = word_of(b).v;
+            if (d == 0) zero_division("u64 % 0");
+            return Word{a.v % d};
+          },
+          nb::is_operator())
+      .def(
+          "__eq__", [](const Word& a, const Word& b) { return a == b; },
+          nb::is_operator())
+      .def(
+          "__eq__",
+          [](const Word& a, nb::handle b) {
+            return is_py_int(b) && in_u64(b) && word_of(b) == a;
+          },
+          nb::is_operator(),
+          "An int equals the word it represents: u64(5) == 5, and the hash "
+          "is the int's.")
+      .def(
+          "__lt__", [](const Word& a, const Word& b) { return a < b; },
+          nb::is_operator())
+      .def(
+          "__le__", [](const Word& a, const Word& b) { return a <= b; },
+          nb::is_operator())
+      .def(
+          "__gt__", [](const Word& a, const Word& b) { return a > b; },
+          nb::is_operator())
+      .def(
+          "__ge__", [](const Word& a, const Word& b) { return a >= b; },
+          nb::is_operator());
+  u64.attr("modulus") = nb::steal(PyNumber_Add(
+      py_int(std::numeric_limits<uint64_t>::max()).ptr(), py_int(1).ptr()));
+  u64.attr("is_ring") =
+      nb::bool_(IsCommutativeRing<uint64_t, std::plus<uint64_t>,
+                                  std::multiplies<uint64_t>>);
+  u64.attr("is_field") = nb::bool_(
+      IsField<uint64_t, std::plus<uint64_t>, std::multiplies<uint64_t>>);
+
+  auto fp = nb::class_<Fp>(
+      m, "Fp",
+      "𝔽ₚ, the prime field p = 2⁶⁴ − 59 (the largest prime below 2⁶⁴): "
+      "+ − · and / by a nonzero element; no order.  𝔽ₚ(n) takes any int by "
+      "the quotient map n mod p, and int() gives the symmetric representative "
+      "in [−(p−1)/2, (p−1)/2].  In Python, 𝔽ₚ is the name Fp.");
+  fp.def(
+        "__init__", [](Fp* x, nb::handle n) { new (x) Fp{residue_of(n)}; },
+        nb::arg("n"))
+      .def("__int__", &representative)
+      .def("__hash__", [](const Fp& x) { return nb::hash(representative(x)); })
+      .def("__repr__",
+           [](const Fp& x) {
+             return "𝔽ₚ(" + nb::cast<std::string>(nb::str(representative(x))) +
+                    ")";
+           })
+      .def(
+          "__add__",
+          [](const Fp& a, nb::handle b) { return a + residue_of(b); },
+          nb::is_operator())
+      .def(
+          "__radd__",
+          [](const Fp& a, nb::handle b) { return residue_of(b) + a; },
+          nb::is_operator())
+      .def(
+          "__sub__",
+          [](const Fp& a, nb::handle b) { return a - residue_of(b); },
+          nb::is_operator())
+      .def(
+          "__rsub__",
+          [](const Fp& a, nb::handle b) { return residue_of(b) - a; },
+          nb::is_operator())
+      .def(
+          "__mul__",
+          [](const Fp& a, nb::handle b) { return a * residue_of(b); },
+          nb::is_operator())
+      .def(
+          "__rmul__",
+          [](const Fp& a, nb::handle b) { return residue_of(b) * a; },
+          nb::is_operator())
+      .def("__neg__", [](const Fp& a) { return Fp{0} - a; })
+      .def(
+          "__truediv__",
+          [](const Fp& a, nb::handle b) {
+            const Fp d = residue_of(b);
+            if (d.value == 0) zero_division("𝔽ₚ / 0");
+            return a / d;
+          },
+          nb::is_operator())
+      .def(
+          "__rtruediv__",
+          [](const Fp& a, nb::handle b) {
+            if (a.value == 0) zero_division("𝔽ₚ / 0");
+            return residue_of(b) / a;
+          },
+          nb::is_operator())
+      .def(
+          "inverse",
+          [](const Fp& a) {
+            if (a.value == 0) zero_division("0 has no inverse in 𝔽ₚ");
+            return a.inverse();
+          },
+          "The multiplicative inverse, a^(p−2).")
+      .def(
+          "__eq__", [](const Fp& a, const Fp& b) { return a == b; },
+          nb::is_operator())
+      .def(
+          "__eq__",
+          [](const Fp& a, nb::handle b) {
+            return is_py_int(b) && in_fp(b) && residue_of(b) == a;
+          },
+          nb::is_operator(),
+          "An int equals the element it represents: 𝔽ₚ(-1) == -1 but not "
+          "p - 1, so the hash is the representative's.");
+  fp.attr("modulus") = py_int(Fp::modulus);
+  fp.attr("is_ring") =
+      nb::bool_(IsCommutativeRing<Fp, std::plus<Fp>, std::multiplies<Fp>>);
+  fp.attr("is_field") =
+      nb::bool_(IsField<Fp, std::plus<Fp>, std::multiplies<Fp>>);
+  const nb::object u64_type = u64;
+  const nb::object fp_type = fp;
+
+  nb::class_<𝔸<uint64_t, Boole, dedekind::sets::Finite>>(
+      m, "UniverseU64", "𝔸(u64): the ring ℤ/2⁶⁴ as a set.")
+      .def("__contains__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
+                              nb::handle x) { return in_u64(x); })
+      .def("__call__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
+                          nb::handle x) { return in_u64(x); })
+      .def_prop_ro(
+          "cardinality",
+          [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+            return nb::object(u64_type.attr("modulus"));
+          })
+      .def_prop_ro(
+          "carrier",
+          [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+            return u64_type;
+          })
+      .def("__repr__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
+        return std::string("𝔸(u64)");
+      });
+  nb::class_<𝔸<Fp, Boole, dedekind::sets::Finite>>(
+      m, "UniverseFp", "𝔸(𝔽ₚ): the field 𝔽ₚ as a set.")
+      .def("__contains__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
+                              nb::handle x) { return in_fp(x); })
+      .def("__call__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
+                          nb::handle x) { return in_fp(x); })
+      .def_prop_ro("cardinality",
+                   [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+                     return py_int(Fp::modulus);
+                   })
+      .def_prop_ro("carrier",
+                   [fp_type](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+                     return fp_type;
+                   })
+      .def("__repr__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
+        return std::string("𝔸(𝔽ₚ)");
+      });
+
   m.def(
       "A",
-      [](nb::handle chain, nb::handle species) -> nb::object {
+      [u64_type, fp_type](nb::handle chain, nb::handle species) -> nb::object {
+        if (chain.is(u64_type) || chain.is(fp_type)) {
+          if (!species.is_none() && !nb::isinstance<BooleTag>(species))
+            throw nb::type_error(
+                "the ring u64 and the field 𝔽ₚ are sets valued in Boole");
+          if (chain.is(u64_type))
+            return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{});
+          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{});
+        }
         const bool kleene = nb::isinstance<KleeneTag>(species);
         if (!species.is_none() && !kleene && !nb::isinstance<BooleTag>(species))
           throw nb::type_error("the species is Boole or Kleene");
@@ -721,11 +1027,12 @@ NB_MODULE(_pst, m) {
           return kleene ? nb::cast(pst::Set<Ternary, Kleene>::universe())
                         : nb::cast(pst::Set<Ternary, Boole>::universe());
         throw nb::type_error(
-            "𝔸(chain): the chain is B or K3 (ℕ is the ℤ slice)");
+            "𝔸(carrier): the carrier is B, K3, u64 or 𝔽ₚ (ℕ is the ℤ slice)");
       },
       nb::arg("chain"), nb::arg("species") = nb::none(),
-      "𝔸(chain[, species]): the universe over a truth chain, valued in 𝔹 by "
-      "default or in Kleene (𝔸(K3, Kleene)).");
+      "𝔸(carrier[, species]): the universe over a truth chain, valued in 𝔹 "
+      "by default or in Kleene (𝔸(K3, Kleene)); or the canonical ring 𝔸(u64) "
+      "or field 𝔸(𝔽ₚ).");
   m.def(
       "Ø",
       [](nb::handle chain, nb::handle species) -> nb::object {
