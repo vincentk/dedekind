@@ -22,7 +22,6 @@
  */
 module;
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal: the chain's own order
@@ -304,23 +303,10 @@ concept IsStepSource = requires(const S& s) {
       std::optional<Step<typename S::Domain, typename S::logic_species>>>;
 };
 
-/** @brief The constant source: @c Ø at ⊥, @c 𝔸 at ⊤.  @tparam V the carrier.
- *  @tparam L the species. */
-export template <typename V, typename L>
-struct ConstantSteps {
-  using Domain = V;
-  using logic_species = L;
-  typename L::Ω value;
-  struct Cursor {
-    constexpr std::optional<Step<V, L>> pull() { return std::nullopt; }
-  };
-  constexpr typename L::Ω first() const { return value; }
-  constexpr Cursor cursor() const { return {}; }
-};
-
 /** @brief An interval's sides as a source, valued @c value on it and ⊥
- *  elsewhere: at most two steps.  @tparam V the carrier.  @tparam L the
- *  species. */
+ *  elsewhere: at most two steps.  No sides is the whole carrier, no span the
+ *  empty set, so the constants are spans too.  @tparam V the carrier.  @tparam
+ * L the species. */
 export template <typename V, typename L>
 struct SpanSteps {
   using Domain = V;
@@ -364,27 +350,6 @@ struct SourceRef {
   constexpr auto first() const { return s->first(); }
   constexpr auto cursor() const { return s->cursor(); }
 };
-/** @brief A fixed list of steps as a source, already in order and canonical:
- *  a finite table written out (the identity on a short chain).
- *  @tparam V the carrier.  @tparam L the species.  @tparam N their number. */
-export template <typename V, typename L, std::size_t N>
-struct ListSteps {
-  using Domain = V;
-  using logic_species = L;
-  typename L::Ω start;
-  std::array<Step<V, L>, N> steps;
-  struct Cursor {
-    std::array<Step<V, L>, N> steps;
-    std::size_t i = 0;
-    constexpr std::optional<Step<V, L>> pull() {
-      if (i == N) return std::nullopt;
-      return steps[i++];
-    }
-  };
-  constexpr typename L::Ω first() const { return start; }
-  constexpr Cursor cursor() const { return {steps}; }
-};
-
 /** @brief Two sources merged along the chain under a pointwise operation: the
  *  steps of both, each read as @c f of the two values there, a step repeating
  *  the value before it dropped.  @tparam A,B the sources.  @tparam F the
@@ -682,7 +647,7 @@ struct Runs : dedekind::sets::SetExpr<Runs<V, L>, V, L> {
   /** @brief The empty set. */
   Runs() = default;
   static Runs empty() { return {}; }
-  static Runs universe() { return Runs(ConstantSteps<V, L>{L::True}); }
+  static Runs universe() { return Runs(SpanSteps<V, L>{Span<V>{}}); }
   /** @brief Materialise a source: drain it, keeping the runs not at ⊥. */
   template <IsStepSource S>
     requires std::same_as<typename S::Domain, V> &&
@@ -761,8 +726,8 @@ static_assert(
           MergeSteps<B, B, Or>{span(0, 4), span(6, 10), {}}),
     "[0,10] ∩ ¬{5} = [0,4] ∪ [6,10], by one traversal");
 static_assert(std::ranges::distance(runs(without(5))) == 2 &&
-                  std::ranges::distance(runs(ConstantSteps<int, Boole>{
-                      false})) == 0,
+                  std::ranges::distance(runs(SpanSteps<int, Boole>{
+                      std::nullopt})) == 0,
               "¬{5} is two runs, Ø none");
 }  // namespace detail_runs_witness
 

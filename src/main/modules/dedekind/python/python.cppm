@@ -20,7 +20,6 @@
 
 module;
 
-#include <array>  // a short chain's identity, written out
 #include <concepts>
 #include <functional>
 #include <limits>     // the integer window's ends
@@ -325,9 +324,10 @@ inline bool is_bounded(const Set& s) {
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
 inline std::optional<long long> least(const Set& s) {
-  if (s.first()) return std::nullopt;
-  for (const auto& r : dedekind::order::runs(s)) return r.lo;
-  return std::nullopt;
+  auto rs = dedekind::order::runs(s);
+  const auto it = rs.begin();
+  if (s.first() || it == rs.end()) return std::nullopt;
+  return (*it).lo;
 }
 /** @brief The greatest element, where the set is bounded; @c nullopt on a
  *  set unbounded above: the unfold does not stop. */
@@ -491,21 +491,36 @@ template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
   return {Runs<C>(steps(Interval<C>::point(v)))};
 }
+/** @brief The species' join as a named function on its truth values.
+ *  @tparam L the species. */
+template <IsOckhamAlgebra L>
+struct JoinIn {
+  constexpr typename L::Ω operator()(typename L::Ω a, typename L::Ω b) const {
+    return L::OR(a, b);
+  }
+};
+/** @brief The upper ray from @c x, valued @c x: a step of the identity. */
+template <IsTruthChain C>
+constexpr auto valued_from(C x) {
+  using L = classifier_logic_t<C>;
+  return dedekind::order::SpanSteps<C, L>{
+      Interval<C, L>::half(x, Direction::Upward, Strictness::NonStrict).span(),
+      x};
+}
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
- *  chain's own species --- the simplest set with every level inhabited: one
- *  step at every element above ⊥. */
+ *  chain's own species --- the simplest set with every level inhabited: on 𝔹
+ *  the ray from ⊤, on K₃ the join of the rays from U and from ⊤, each valued
+ *  at its start. */
 template <IsTruthChain C>
 Set<C, classifier_logic_t<C>> identity() {
   using L = classifier_logic_t<C>;
-  constexpr std::size_t n = std::same_as<C, bool> ? 1 : 2;
-  std::array<dedekind::order::Step<C, L>, n> steps{};
-  auto x = cover(chain_bottom<C>());
-  for (auto& s : steps) {
-    s = {Position<C>{*x, Side::Below}, *x};
-    x = cover(*x);
+  if constexpr (std::same_as<C, bool>) {
+    return Set<C, L>(valued_from(true));
+  } else {
+    using S = decltype(valued_from(C{}));
+    return Set<C, L>(dedekind::order::MergeSteps<S, S, JoinIn<L>>{
+        valued_from(Ternary::Unknown), valued_from(Ternary::True), {}});
   }
-  return Set<C, L>(
-      dedekind::order::ListSteps<C, L, n>{chain_bottom<C>(), steps});
 }
 
 /** @brief The former @c S @c | @c P, and the lattice operations, each the

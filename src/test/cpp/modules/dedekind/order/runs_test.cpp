@@ -93,7 +93,7 @@ TEST_CASE("order:runs — a set valued in K₃ is a step function into K₃",
   CHECK(value_at(both, 8) == Ternary::Unknown);
   // Equality is a K₃ verdict, ⋀ (a ⇔ b): false where they disagree, and only
   // to degree U where either is U --- even a set against itself.
-  const auto none = ConstantSteps<int, Kleene>{Ternary::False};
+  const auto none = SpanSteps<int, Kleene>{std::nullopt};
   CHECK(equal(both, none) == Ternary::False);
   CHECK(equal(maybe, none) == Ternary::Unknown);
   CHECK(equal(both, both) == Ternary::Unknown);

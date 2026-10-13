@@ -318,12 +318,12 @@ struct Steps {
     return {&r};
   }
   template <typename V>
-  constexpr ConstantSteps<V, L> operator()(const Ø<V, L>&) const {
-    return {L::False};
+  constexpr SpanSteps<V, L> operator()(const Ø<V, L>&) const {
+    return {std::nullopt};
   }
   template <typename V, typename C>
-  constexpr ConstantSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
-    return {L::True};
+  constexpr SpanSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
+    return {Span<V>{}};
   }
   template <typename A, typename B, IsStepSource RA, IsStepSource RB>
   constexpr MergeSteps<RA, RB, detail_runs::And<L>> operator()(
