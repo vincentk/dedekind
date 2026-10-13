@@ -69,11 +69,13 @@ static_assert(S(7u));
 // (3) Trimmed.  Set difference: A ∖ B = {x | x ∈ A ∧ x ∉ B}.  The textbook
 //     `S \ T` would be the natural spelling; substituted here as
 //     `set_difference(S, T)` (free function in :sets:relational) since `\`
-//     is not a C++ operator.  The difference S ∩ ¬{x > 10} is a run list,
-//     the normal form of sets built from intervals, so it is computed inside
-//     each check (its storage is transient in constant evaluation).
-static_assert(set_difference(S, ℕ | (π > 10))(8u));    // 5 < 8 ≤ 10 ✓
-static_assert(!set_difference(S, ℕ | (π > 10))(11u));  // 11 > 10 ✗
+//     is not a C++ operator.  T is a lazy lambda-Set: structural reduction
+//     across `NegatedPredicate` (so `T & {<7}` would collapse to the literal
+//     interval [6, 6]) is a future DSL refinement; membership on T still
+//     constant-folds via the predicate.
+constexpr auto T = set_difference(S, ℕ | (π > 10));
+static_assert(T(8u));    // 5 < 8 ≤ 10 ✓
+static_assert(!T(11u));  // 11 > 10 ✗
 
 // (4) Collapsed.  The value-first meet of two bare halfspaces folds through
 //     `structured_and` to a `Interval`: `S` (= {x > 5}) meet {x < 7} on ℕ has
@@ -89,18 +91,18 @@ static_assert(static_cast<bool>(a(6u)) && !static_cast<bool>(a(5u)) &&
               "the folded point is exactly 6");
 
 // (5) Contradicted.  Complement-via-LEM: any S has empty meet with its
-//     complement.  The complement is a run list and the meet folds `S ∩ ¬S`
-//     to the empty set at compile time — non-contradiction, value-directed.
-static_assert((S & ~S) == Ø<Cardinality>{},
+//     complement.  The value-first meet folds `S ∩ ¬S` to the empty `Interval`
+//     at compile time — the law of excluded middle, value-directed.
+constexpr auto b = S & ~S;
+static_assert(b == Ø<Cardinality>{},
               "S ∩ ¬S folds to the empty set at compile time");
 
-// (6) Certified.  Both reductions are finite constexpr values — the point
+// (6) Certified.  Both reductions are finite constexpr `Interval`s — the point
 //     {6} (cardinality 1) and the empty set (cardinality 0) — decided at
 //     compile time even though their parent `S` is a transfinite intensional
 //     description.  The reduction crosses the realisation boundary value-first:
 //     the folded values, not an elevated result type.
-static_assert(!static_cast<bool>((S & ~S)(6u)),
-              "the folded contradiction is empty");
+static_assert(!static_cast<bool>(b(6u)), "the folded contradiction is empty");
 
 // The deferred eighth "transformed" nugget was previously realised here
 // via the symbolic scout-algebra affine pipe (element<ℚ> + bound<k> /

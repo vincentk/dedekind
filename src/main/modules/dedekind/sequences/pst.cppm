@@ -43,11 +43,12 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <iterator>
+#include <optional>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 export module dedekind.sequences:pst;
 
@@ -74,28 +75,55 @@ concept IsPstSet =
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
     HasCoveringStep<typename std::remove_cvref_t<S>::Domain>;
 
-/** @brief The normal form of @c s on the window @c [lo, hi], by exhaustion:
- *  the run list that agrees with χ there and is ⊥ outside it.  @tparam S the
- *  set.  @param s the set.  @param lo the window's bottom.  @param hi its top.
- */
+/** @brief The normal form of @c s on the window @c [lo, hi], by exhaustion: a
+ *  step source that walks the window along @c chain_view and steps where χ
+ *  changes, ⊥ outside the window.  Lazy: one walk per traversal, nothing
+ *  stored.  @tparam S the set. */
 export template <IsPstSet S>
-constexpr auto normal_form(const S& s, const typename S::Domain& lo,
-                           const typename S::Domain& hi) {
-  using C = typename S::Domain;
-  using R = dedekind::order::Runs<C>;
-  using dedekind::order::Position;
-  using dedekind::order::Side;
-  std::vector<typename R::Step> steps;
-  for (const C& x : chain_view{lo, hi})
-    steps.push_back({Position<C>{x, Side::Below}, static_cast<bool>(s(x))});
-  steps.push_back({Position<C>{hi, Side::Above}, false});
-  return R::normal(false, std::move(steps));
-}
+struct ScanSteps {
+  using Domain = typename S::Domain;
+  using logic_species = dedekind::category::Boole;
+  using Step = dedekind::order::Step<Domain, logic_species>;
+  S s;
+  Domain lo, hi;
+  struct Cursor {
+    S s;
+    Domain hi;
+    decltype(chain_view{std::declval<Domain>(), std::declval<Domain>()}
+                 .begin()) it;
+    bool last = false;
+    bool closed = false;
+    constexpr std::optional<Step> pull() {
+      using dedekind::order::Position;
+      using dedekind::order::Side;
+      for (; it != std::default_sentinel; ++it) {
+        const Domain x = *it;
+        if (const bool v = static_cast<bool>(s(x)); v != last) {
+          last = v;
+          ++it;
+          return Step{
+              dedekind::order::canonical(Position<Domain>{x, Side::Below}), v};
+        }
+      }
+      if (last && !closed) {
+        closed = true;
+        return Step{
+            dedekind::order::canonical(Position<Domain>{hi, Side::Above}),
+            false};
+      }
+      return std::nullopt;
+    }
+  };
+  constexpr bool first() const { return false; }
+  constexpr Cursor cursor() const {
+    return {s, hi, chain_view{lo, hi}.begin()};
+  }
+};
 /** @brief The runs of @c s on the window, read off its normal form. */
 export template <IsPstSet S>
 constexpr auto runs(const S& s, const typename S::Domain& lo,
                     const typename S::Domain& hi) {
-  return dedekind::order::runs(normal_form(s, lo, hi));
+  return dedekind::order::runs(ScanSteps<S>{s, lo, hi});
 }
 /** @brief The runs over a whole truth chain, ⊥ to ⊤.
  *  @tparam S a set over a truth chain. */
@@ -133,7 +161,7 @@ inline constexpr auto above5 = 𝔸<int>{} | (π > 5);
 inline constexpr auto below3 = 𝔸<int>{} | (π < 3);
 static_assert(std::ranges::equal(runs(above5, 0, 20),
                                  runs(𝔸<int>{} | (π >= 6), 0, 20)) &&
-                  std::ranges::empty(runs(above5 & below3, 0, 20)) &&
+                  std::ranges::distance(runs(above5 & below3, 0, 20)) == 0 &&
                   summary(runs(above5 | below3, 0, 9)) ==
                       std::tuple{std::size_t{2}, Run{0, 2}, Run{6, 9}},
               "on a window: {x > 5} = {x ≥ 6} by their runs, (x > 5) ∧ (x < 3) "

@@ -28,12 +28,10 @@
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
 
 #include <limits>
 #include <optional>
 #include <string>
-#include <vector>
 
 import dedekind.category; // Identity, Successor, Predecessor
 import dedekind.order;    // Direction / Strictness, intervals
@@ -147,14 +145,14 @@ NB_MODULE(_lwv, m) {
           [](const Set& s, long long x) { return s.contains(x); }, nb::arg("x"),
           "x in s: the same membership test.")
       .def(
-          "__and__", [](const Set& a, const Set& b) { return a & b; },
+          "__and__", [](const Set& a, const Set& b) { return lwv::meet(a, b); },
           "a & b: the meet, folded by the lattice reducer at runtime (its "
           "leaf-combine is the interval meet).")
       .def(
-          "__or__", [](const Set& a, const Set& b) { return a | b; },
+          "__or__", [](const Set& a, const Set& b) { return lwv::join(a, b); },
           "a | b: the join, a run list again.")
       .def(
-          "__invert__", [](const Set& s) { return ~s; },
+          "__invert__", [](const Set& s) { return lwv::complement(s); },
           "~s: the complement, the parts below, between and above s's runs.")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
@@ -167,8 +165,9 @@ NB_MODULE(_lwv, m) {
       .def(
           "runs",
           [](const Set& s) {
-            std::vector<Set> out;
-            for (const auto& r : ord::intervals(s)) out.push_back(Set(r));
+            nb::list out;
+            for (const auto& r : ord::intervals(s))
+              out.append(nb::cast(lwv::materialise(r)));
             return out;
           },
           "The maximal runs, in order along the chain, each a set of one "

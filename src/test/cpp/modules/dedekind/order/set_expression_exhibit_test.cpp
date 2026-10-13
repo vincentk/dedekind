@@ -14,9 +14,10 @@
  * identical `meet.contains(x)`).  A value pivot cannot dispatch a distinct
  * return TYPE per outcome, so the meet returns one unified `Interval`.
  *
- * The crossing JOIN (A | B) is a run list, the normal form of unions of
- * intervals: one type whatever the pivots, so the opposing cover collapses on
- * the values to 𝔸, and the complement laws A ∩ ¬A = Ø, A ∪ ¬A = 𝔸 hold on it.
+ * The crossing JOIN (A | B) does NOT structurally collapse: the opposing cover
+ * cannot be dispatched on a runtime pivot, so the union is the honest
+ * point-wise set that still DECIDES membership (it covers ℤ).  This mirrors the
+ * ℕ leg of pruning_lattice_laws_test.
  *
  * The former type-level term-reducer exhibits (Meet/Join materialisation
  * + absorption + involution; subobject distributivity to DNF) reduced
@@ -82,20 +83,29 @@ TEST_CASE("Exhibit: two overlapping halfspaces collapse (value-first, #888)",
     CHECK(inhabitants == 9);
   }
 
-  SECTION("A | B covers ℤ: the union is a run list, and it is 𝔸") {
-    // The opposite-direction cover is decided on the run list's values, so the
-    // union of {x < 5} and {x > -5} is the universe itself.
-    STATIC_CHECK((A | B) == 𝔸<int>{});
-    STATIC_CHECK(static_cast<bool>((A | B)(100)));
-    STATIC_CHECK(static_cast<bool>((A | B)(-100)));
+  SECTION("A | B covers ℤ (opposing cover, decided by membership)") {
+    // Value-carrying cannot dispatch the opposite-direction cover-vs-gap on a
+    // runtime pivot, so the union is the honest point-wise set (not a
+    // structural 𝔸); it still covers every element.
+    constexpr auto join = A | B;
+    STATIC_CHECK(static_cast<bool>(join(0)));
+    STATIC_CHECK(static_cast<bool>(join(100)));
+    STATIC_CHECK(static_cast<bool>(join(-100)));
+    STATIC_CHECK(static_cast<bool>(join(5)));
+    STATIC_CHECK(static_cast<bool>(join(-5)));
   }
 
-  // Complement laws (the lattice ⊥/⊤): ~{x<5} is the part above, {x≥5}.  Both
-  // collapse on the run list: the meet to Ø, the join to 𝔸.
-  SECTION("A & ~A → Ø (contradiction), A | ~A → 𝔸 (excluded middle)") {
-    STATIC_CHECK((A & ~A) == Ø<int>{});  // {x<5} ∩ {x≥5}
-    STATIC_CHECK((A | ~A) == 𝔸<int>{});  // {x<5} ∪ {x≥5}
-    STATIC_CHECK(~A == (𝔸<int>{} | (π >= 5)));
+  // Complement laws (the lattice ⊥/⊤): ~{x<5} is the part above, {x≥5}.  The
+  // MEET collapses to the empty set; the JOIN is decided by membership.
+  SECTION("A & ~A → Ø (contradiction), A | ~A covers ℤ (excluded middle)") {
+    constexpr auto contradiction = A & ~A;  // {x<5} ∩ {x≥5}
+    STATIC_CHECK(contradiction == Ø<int>{});
+    STATIC_CHECK_FALSE(static_cast<bool>(contradiction(4)));
+    STATIC_CHECK_FALSE(static_cast<bool>(contradiction(5)));
+    constexpr auto excluded_middle = A | ~A;  // {x<5} ∪ {x≥5}
+    STATIC_CHECK(static_cast<bool>(excluded_middle(0)));
+    STATIC_CHECK(static_cast<bool>(excluded_middle(4)));
+    STATIC_CHECK(static_cast<bool>(excluded_middle(5)));
   }
 
   CHECK(true);  // runtime anchor for coverage

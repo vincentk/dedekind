@@ -20,6 +20,7 @@
 
 module;
 
+#include <array>  // a short chain's identity, written out
 #include <concepts>
 #include <functional>
 #include <limits>     // the integer window's ends
@@ -27,7 +28,6 @@ module;
 #include <stdexcept>  // std::overflow_error at the window's end
 #include <string>
 #include <utility>
-#include <vector>  // the runs, materialised for the Python handle
 
 export module dedekind.python;
 
@@ -71,6 +71,8 @@ using dedekind::order::Position;
 using dedekind::order::Run;
 using dedekind::order::Runs;
 using dedekind::order::Side;
+using dedekind::order::SourceRef;
+using dedekind::order::steps;
 using dedekind::order::Strictness;
 using dedekind::sequences::SuccessorOrbit;
 using dedekind::sets::Cardinality;
@@ -210,10 +212,10 @@ inline Arrow<Dom<F>> compose(const F& f, const G& g) {
 
 namespace lwv {
 
-/** @brief A value-based set handle (#965): a run list over @c long @c long
- *  (Python's @c int, ℤ read through the 64-bit window), its positions values,
- *  so one constructor covers all pivots at runtime.  Its @c &, @c | and @c ~
- *  are the same @c constexpr operations the compile-time exhibits fold. */
+/** @brief A value-based set handle (#965): a materialised run list over
+ *  @c long @c long (Python's @c int, ℤ read through the 64-bit window), its
+ *  runs by start, so one constructor covers all pivots at runtime.  Its @c &,
+ *  @c | and @c ~ build the library's term and materialise its normal form. */
 using Set = Runs<long long>;
 /** @brief One run of a set: an interval. */
 using Leaf = Interval<long long>;
@@ -222,34 +224,54 @@ using Leaf = Interval<long long>;
 static_assert(IsSetObject<Set>,
               "the Python surface's Set must be a set object (IsSetObject).");
 
+/** @brief A term's normal form, materialised for the handle.  @param t the
+ *  term. */
+template <typename T>
+Set materialise(const T& t) {
+  return Set(dedekind::order::steps(t));
+}
 /** @brief The rays @c {x ⋈ k}: the principal filter ↑k and ideal ↓k, open or
  *  closed.  @tparam D the direction.  @tparam S the strictness.  @param k the
  *  pivot. */
 template <Direction D, Strictness S>
-constexpr Set ray(long long k) {
-  return Set(Leaf::half(k, D, S));
+Set ray(long long k) {
+  return materialise(Leaf::half(k, D, S));
 }
 /** @brief The point @c {k}.  @param k the point. */
-constexpr Set point(long long k) { return Set(Leaf::point(k)); }
+inline Set point(long long k) { return materialise(Leaf::point(k)); }
+/** @brief The lattice on handles: the library's term, materialised. */
+inline Set meet(const Set& a, const Set& b) { return materialise(a & b); }
+inline Set join(const Set& a, const Set& b) { return materialise(a | b); }
+inline Set complement(const Set& a) { return materialise(~a); }
 
-/** @brief Translate every step by @c k: the image under the order
- *  automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image leaves the
- *  window --- a step past its last value, or members moved below its first ---
- *  ℤ continues and the window cannot, so it raises rather than truncate.
- *  @c Ø and @c 𝔸 are fixed. */
-constexpr Set shift(const Set& s, long long k) {
-  std::vector<Set::Step> out;
-  for (Set::Step st : s.steps()) {
-    st.at.at = jlt::add_in_window(st.at.at, k, "image");
-    using W = std::numeric_limits<long long>;
-    const bool leaves =
-        st.value ? st.at == Position<long long>{W::max(), Side::Above}
-                 : st.at == Position<long long>{W::min(), Side::Below};
-    if (leaves) jlt::window_end("image");
-    out.push_back(st);
-  }
-  return Set::normal(s.first(), std::move(out));
-}
+/** @brief A set translated by @c k, as a source: every step moved, the image
+ *  under the order automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image
+ *  leaves the window --- a step past its last value, or members moved below
+ *  its first --- ℤ continues and the window cannot, so it raises rather than
+ *  truncate. */
+struct Shifted {
+  using Domain = long long;
+  using logic_species = Boole;
+  const Set* s;
+  long long k;
+  struct Cursor {
+    Set::Cursor c;
+    long long k;
+    std::optional<dedekind::order::Step<long long, Boole>> pull() {
+      using W = std::numeric_limits<long long>;
+      auto st = c.pull();
+      if (!st) return st;
+      st->at.at = jlt::add_in_window(st->at.at, k, "image");
+      if (st->value ? st->at == Position<long long>{W::max(), Side::Above}
+                    : st->at == Position<long long>{W::min(), Side::Below})
+        jlt::window_end("image");
+      st->at = dedekind::order::canonical(st->at);
+      return st;
+    }
+  };
+  bool first() const { return s->first(); }
+  Cursor cursor() const { return {s->cursor(), k}; }
+};
 /** @brief The arrows whose image of a set has a closed form: the identity, the
  *  successor and the predecessor on the integer window.  An opaque composed
  *  arrow has no such normal form; its image is intensional (Kleene-valued) and
@@ -272,51 +294,53 @@ consteval long long offset() {
  *  form (paper §4: the image of @c {n > 5} under the successor is @c {n > 6},
  *  decided with no search of the domain).  @tparam F the arrow. */
 template <IsStructuralArrow F>
-constexpr Set image(const F&, const Set& s) {
-  return shift(s, offset<F>());
+Set image(const F&, const Set& s) {
+  return Set(Shifted{&s, offset<F>()});
 }
 template <IsStructuralArrow F>
-constexpr Set preimage(const F&, const Set& s) {
-  return shift(s, -offset<F>());
+Set preimage(const F&, const Set& s) {
+  return Set(Shifted{&s, -offset<F>()});
 }
 
 /** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
  *  half-open interval (Python's own convention), an absent bound meaning the
  *  ray.  Not positional: a set has no enumeration to index into; that reading
  *  belongs to a sequence. */
-constexpr Set restrict(const Set& s, std::optional<long long> lo,
-                       std::optional<long long> hi) {
+inline Set restrict(const Set& s, std::optional<long long> lo,
+                    std::optional<long long> hi) {
   Leaf window = Leaf::universe();
   if (lo)
     window = window & Leaf::half(*lo, Direction::Upward, Strictness::NonStrict);
   if (hi)
     window = window & Leaf::half(*hi, Direction::Downward, Strictness::Strict);
-  return s & Set(window);
+  return materialise(s & window);
 }
 
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
- *  finite): nothing at either end of the chain. */
-constexpr bool is_bounded(const Set& s) {
-  return !s.first() && (s.steps().empty() || !s.steps().back().value);
+ *  finite): no run from below the window, and the last run ends. */
+inline bool is_bounded(const Set& s) {
+  return !s.first() &&
+         (s.runs().empty() || s.runs().rbegin()->second.end.has_value());
 }
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
-constexpr std::optional<long long> least(const Set& s) {
-  const auto rs = dedekind::order::runs(s);
-  if (s.first() || rs.empty()) return std::nullopt;
-  return rs.front().lo;
+inline std::optional<long long> least(const Set& s) {
+  if (s.first()) return std::nullopt;
+  for (const auto& r : dedekind::order::runs(s)) return r.lo;
+  return std::nullopt;
 }
 /** @brief The greatest element, where the set is bounded; @c nullopt on a
  *  set unbounded above: the unfold does not stop. */
-constexpr std::optional<long long> greatest(const Set& s) {
-  const auto rs = dedekind::order::runs(s);
-  if (!is_bounded(s) || rs.empty()) return std::nullopt;
-  return rs.back().hi;
+inline std::optional<long long> greatest(const Set& s) {
+  std::optional<long long> hi;
+  if (is_bounded(s))
+    for (const auto& r : dedekind::order::runs(s)) hi = r.hi;
+  return hi;
 }
 /** @brief The least member above @c x: @c x + 1 inside a run, else the start
  *  of the next run; none past the last.  @param x a member below the window's
  *  end. */
-constexpr std::optional<long long> next_member(const Set& s, long long x) {
+inline std::optional<long long> next_member(const Set& s, long long x) {
   for (const auto& r : dedekind::order::runs(s)) {
     if (x < r.lo) return r.lo;
     if (x < r.hi) return x + 1;
@@ -400,7 +424,7 @@ template <typename C>
 concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 
 /** @brief A set over the chain @c C valued in @c L, as Python holds it: its
- *  run list. */
+ *  materialised run list. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 using Set = Runs<C, L>;
 /** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
@@ -428,7 +452,9 @@ struct LiftInto {
  *  @tparam J the target species. */
 template <IsOckhamAlgebra J, IsTruthChain C, IsOckhamAlgebra L>
 Set<C, J> to(const Set<C, L>& s) {
-  return dedekind::order::relabel<J>(s, LiftInto<J>{});
+  return Set<C, J>(
+      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>, LiftInto<J>, J>{{&s},
+                                                                          {}});
 }
 
 /** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
@@ -443,45 +469,50 @@ Set<C, L> empty() {
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> point(const C& v) {
-  return Set<C, L>(Interval<C, L>::point(v));
+  return Set<C, L>(steps(Interval<C, L>::point(v)));
 }
 template <IsTruthChain C>
 Datum<C> above(const C& v) {
-  return {Runs<C>(𝔸<C>{} | (π > v))};
+  return {Runs<C>(steps(𝔸<C>{} | (π > v)))};
 }
 template <IsTruthChain C>
 Datum<C> at_least(const C& v) {
-  return {Runs<C>(𝔸<C>{} | (π >= v))};
+  return {Runs<C>(steps(𝔸<C>{} | (π >= v)))};
 }
 template <IsTruthChain C>
 Datum<C> below(const C& v) {
-  return {Runs<C>(𝔸<C>{} | (π < v))};
+  return {Runs<C>(steps(𝔸<C>{} | (π < v)))};
 }
 template <IsTruthChain C>
 Datum<C> at_most(const C& v) {
-  return {Runs<C>(𝔸<C>{} | (π <= v))};
+  return {Runs<C>(steps(𝔸<C>{} | (π <= v)))};
 }
 template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
-  return {Runs<C>(Interval<C>::point(v))};
+  return {Runs<C>(steps(Interval<C>::point(v)))};
 }
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
  *  chain's own species --- the simplest set with every level inhabited: one
- *  step at every element. */
+ *  step at every element above ⊥. */
 template <IsTruthChain C>
 Set<C, classifier_logic_t<C>> identity() {
-  using S = Set<C, classifier_logic_t<C>>;
-  std::vector<typename S::Step> steps;
-  for (auto x = cover(chain_bottom<C>()); x; x = cover(*x))
-    steps.push_back({Position<C>{*x, Side::Below}, *x});
-  return S::normal(chain_bottom<C>(), std::move(steps));
+  using L = classifier_logic_t<C>;
+  constexpr std::size_t n = std::same_as<C, bool> ? 1 : 2;
+  std::array<dedekind::order::Step<C, L>, n> steps{};
+  auto x = cover(chain_bottom<C>());
+  for (auto& s : steps) {
+    s = {Position<C>{*x, Side::Below}, *x};
+    x = cover(*x);
+  }
+  return Set<C, L>(
+      dedekind::order::ListSteps<C, L, n>{chain_bottom<C>(), steps});
 }
 
 /** @brief The former @c S @c | @c P, and the lattice operations, each the
  *  library's own on run lists.  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return s & to<L>(d.set);
+  return Set<C, L>(steps(s & to<L>(d.set)));
 }
 // Two species mix when comparable in the species semilattice (HaveLogicJoin,
 // 𝔹 at the bottom); the result is valued in their join.
@@ -489,20 +520,20 @@ template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> meet(const Set<C, L1>& a, const Set<C, L2>& b) {
   using J = join_logic_t<L1, L2>;
-  return to<J>(a) & to<J>(b);
+  return Set<C, J>(steps(to<J>(a) & to<J>(b)));
 }
 template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> join(const Set<C, L1>& a, const Set<C, L2>& b) {
   using J = join_logic_t<L1, L2>;
-  return to<J>(a) | to<J>(b);
+  return Set<C, J>(steps(to<J>(a) | to<J>(b)));
 }
 template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
   requires HaveLogicJoin<L1, L2>
 Set<C, join_logic_t<L1, L2>> sym_diff(const Set<C, L1>& a,
                                       const Set<C, L2>& b) {
   using J = join_logic_t<L1, L2>;
-  return to<J>(a) ^ to<J>(b);
+  return Set<C, J>(steps(to<J>(a) ^ to<J>(b)));
 }
 /** @brief Equality across species, in their join: ⋀ (χ_A ⇔ χ_B).
  *  @tparam C the chain. */
@@ -521,7 +552,7 @@ typename join_logic_t<L1, L2>::Ω equal(const Set<C, L1>& a,
  *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
-  return dedekind::order::exists(former(s, d));
+  return dedekind::order::exists(steps(former(s, d)));
 }
 template <IsTruthChain C>
 bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
@@ -529,7 +560,7 @@ bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
 }
 /** @brief The runs of a decidable set, read off its normal form. */
 template <IsTruthChain C>
-std::vector<Run<C>> run_list(const Set<C, Boole>& s) {
+auto run_list(const Set<C, Boole>& s) {
   return dedekind::order::runs(s);
 }
 /** @brief Whether a value reaches a level, and whether it is the level, as
@@ -550,11 +581,17 @@ struct EqualTo {
  *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
-  return dedekind::order::relabel<Boole>(s, AtLeast<typename L::Ω>{level});
+  return Set<C, Boole>(
+      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>,
+                                    AtLeast<typename L::Ω>, Boole>{{&s},
+                                                                   {level}});
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> fibre(const Set<C, L>& s, typename L::Ω level) {
-  return dedekind::order::relabel<Boole>(s, EqualTo<typename L::Ω>{level});
+  return Set<C, Boole>(
+      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>,
+                                    EqualTo<typename L::Ω>, Boole>{{&s},
+                                                                   {level}});
 }
 /** @brief A Boolean set lifted along the dominance into Kleene's species. */
 template <IsTruthChain C>

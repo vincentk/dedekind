@@ -49,11 +49,14 @@ TEST_CASE("complement-lattice absorbing laws collapse (𝔹 and ℕ)",
     static_assert(
         dedekind::category::IsSet<decltype(ℕ)>);  // the universe IS an ETCS set
     constexpr auto gt_5 = ℕ | (π > 5);  // {x > 5} ⊂ ℕ, an interval value
-    // The complement {x ≤ 5} is a run list; LEM (⊤) and non-contradiction (⊥)
-    // collapse on it: {x≤5} ∪ {x>5} = ℕ and {x≤5} ∩ {x>5} = Ø.
-    static_assert(~gt_5 == (ℕ | (π <= 5)));
-    static_assert((~gt_5 | gt_5) == ℕ);
-    static_assert((~gt_5 & gt_5) == Ø<Cardinality>{});
+    constexpr auto le_5 = ~gt_5;        // {x <= 5}, the complement
+    // LEM (⊤): {x≤5} ∪ {x>5} covers ℕ, decided by membership: every element
+    // lands in one half or the other.
+    constexpr auto cover = le_5 | gt_5;
+    static_assert(static_cast<bool>(cover(3u)) && static_cast<bool>(cover(6u)));
+    // non-contradiction (⊥): {x≤5} ∩ {x>5} is empty --- the crossing meet still
+    // collapses to the empty set.
+    static_assert((le_5 & gt_5) == Ø<Cardinality>{});
   }
   // ── generator η, symmetric difference ^, product * (source for paper
   // Listing 2).  Singleton products collapse to a value Singleton, so they

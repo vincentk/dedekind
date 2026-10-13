@@ -35,9 +35,9 @@ module;
 #include <functional>  // std::plus (the argmax carrier's additive-group gate)
 #include <limits>      // std::numeric_limits (machine-carrier boundary check)
 #include <optional>    // a cut's sides
+#include <ranges>      // a set's runs as a view of intervals
 #include <type_traits>
 #include <utility>
-#include <vector>  // a set's runs as intervals
 
 export module dedekind.order:halfspace;
 
@@ -148,8 +148,6 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
   /** @brief The sides, or @c nullopt for Ø: a convex set is @c 1 @c + @c Span.
    *  Built only through the factories below, so always in normal form. */
   constexpr const std::optional<Span<V>>& span() const { return span_; }
-  /** @brief The interval as a run list, the normal form it generates. */
-  constexpr operator Runs<V, L>() const { return Runs<V, L>::of(span_); }
 
   /** @brief χ(x): runtime membership, decided from the value fields.
    *
@@ -300,42 +298,108 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
-/** @brief Equality of two intervals as sets of the carrier, in the ambient
- *  logic: the equality of their run lists, so on a carrier with the step it is
- *  extensional (@c (0, 3) and @c [1, 3) are the same set of ℤ). */
-export template <typename V, typename L>
-  requires std::equality_comparable<V>
-constexpr typename L::Ω operator==(const Interval<V, L>& a,
-                                   const Interval<V, L>& b) {
-  return Runs<V, L>(a) == Runs<V, L>(b);
+namespace detail_steps {
+/** @brief Not a step source: a leaf the run lists do not read (an opaque
+ *  predicate), or a node over one. */
+struct Opaque {};
+/** @brief The normal form of a set term as the algebra of @c cata: an
+ *  interval's sides, a stored run list read in place, the boundaries as
+ *  constants; a meet or join the merge of its legs' steps under ∧ or ∨, a
+ *  complement their relabelling by ¬.  Lazy: nothing is stored, the steps are
+ *  pulled by the query that reads them.  @tparam L the species. */
+template <typename L>
+struct Steps {
+  template <typename V>
+  constexpr SpanSteps<V, L> operator()(const Interval<V, L>& s) const {
+    return {s.span()};
+  }
+  template <typename V>
+  constexpr SourceRef<Runs<V, L>> operator()(const Runs<V, L>& r) const {
+    return {&r};
+  }
+  template <typename V>
+  constexpr ConstantSteps<V, L> operator()(const Ø<V, L>&) const {
+    return {L::False};
+  }
+  template <typename V, typename C>
+  constexpr ConstantSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
+    return {L::True};
+  }
+  template <typename A, typename B, IsStepSource RA, IsStepSource RB>
+  constexpr MergeSteps<RA, RB, detail_runs::And<L>> operator()(
+      const Meet<A, B>&, RA a, RB b) const {
+    return {a, b, {}};
+  }
+  template <typename A, typename B, IsStepSource RA, IsStepSource RB>
+  constexpr MergeSteps<RA, RB, detail_runs::Or<L>> operator()(const Join<A, B>&,
+                                                              RA a,
+                                                              RB b) const {
+    return {a, b, {}};
+  }
+  template <typename A, IsStepSource RA>
+  constexpr RelabelSteps<RA, detail_runs::Rfl<L>> operator()(const Not<A>&,
+                                                             RA a) const {
+    return {a, {}};
+  }
+  template <typename X, typename... R>
+  constexpr Opaque operator()(const X&, const R&...) const {
+    return {};
+  }
+};
+}  // namespace detail_steps
+
+/** @brief The normal form of a set term of a chain, as a lazy step source.
+ *  A stored run list inside the term is read in place, so the source must not
+ *  outlive the term.  @param t the term. */
+export template <typename T>
+constexpr auto steps(const T& t) {
+  return cata(detail_steps::Steps<typename T::logic_species>{}, t);
 }
-/** @brief An interval or a run list of the chain @c T valued in @c L. */
-template <typename S, typename T, typename L>
-concept IsChainSetOf =
-    std::same_as<S, Interval<T, L>> || std::same_as<S, Runs<T, L>>;
-/** @brief A set of a chain against the boundaries, through its run list: @c Ø
- *  when it has no element, @c 𝔸 when it is all of the carrier.  On a truth
- *  chain the boundaries decide by exhausting the chain instead
- *  (sets:boundaries). */
+/** @brief A set term whose normal form the run lists read. */
+export template <typename T>
+concept IsStepTerm = requires { typename T::logic_species; } &&
+                     IsStepSource<decltype(steps(std::declval<const T&>()))>;
+
+/** @brief Equality of two set terms of a chain as sets of the carrier, in the
+ *  species: one traversal of their normal forms, so it is extensional
+ *  (@c (0, 3) and @c [1, 3) are the same set of ℤ).  On a truth chain sets
+ *  decide by exhausting the chain instead (sets:boundaries). */
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename B::Domain;
+  } && std::same_as<typename A::Domain, typename B::Domain> &&
+           (!IsPst<typename A::Domain>) && (!IsBoundaryObject<A>) &&
+           (!IsBoundaryObject<B>) && IsStepTerm<A> && IsStepTerm<B> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+constexpr auto operator==(const A& a, const B& b) {
+  return equal(steps(a), steps(b));
+}
+/** @brief A set term against the boundaries: @c Ø when it holds nowhere,
+ *  @c 𝔸 when it holds everywhere, read over the carrier's own elements. */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
-  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
+          (!IsBoundaryObject<S>) && IsStepTerm<S>
 constexpr bool operator==(const Ø<T, L>&, const S& s) {
-  return static_cast<bool>(Runs<T, L>(s) == Runs<T, L>::empty());
+  return exists(steps(s)) == S::logic_species::False;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
-  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
+          (!IsBoundaryObject<S>) && IsStepTerm<S>
 constexpr bool operator==(const S& s, const Ø<T, L>& e) {
   return e == s;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
-  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
+          (!IsBoundaryObject<S>) && IsStepTerm<S>
 constexpr bool operator==(const 𝔸<T, L, CU>&, const S& s) {
-  return static_cast<bool>(Runs<T, L>(s) == Runs<T, L>::universe());
+  return forall(steps(s)) == S::logic_species::True;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
-  requires(!IsPst<T>) && IsChainSetOf<S, T, L>
+  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
+          (!IsBoundaryObject<S>) && IsStepTerm<S>
 constexpr bool operator==(const S& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }
@@ -381,34 +445,28 @@ constexpr Interval<V, L> structured_and(const Interval<V, L>& a,
 
 /** @section halfspace__Union_And_Complement
  *  The union of two intervals and the complement of one leave the intervals:
- *  they are run lists (@c :runs), the normal form an interval generates. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Runs<V, L> structured_or(const Interval<V, L>& a,
-                                   const Interval<V, L>& b) {
-  return structured_or(Runs<V, L>(a), Runs<V, L>(b));
-}
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Runs<V, L> operator~(const Interval<V, L>& a) {
-  return ~Runs<V, L>(a);
-}
-/** @brief The runs of a two-valued set as intervals, in order along the
- *  chain: the maximal pieces on which it holds.  @param r the run list. */
-export template <IsTotallyOrdered V>
-constexpr std::vector<Interval<V, Boole>> intervals(const Runs<V, Boole>& r) {
-  using I = Interval<V, Boole>;
-  std::vector<I> out;
-  std::optional<Bound<V>> lo;
-  for (const auto& s : r.steps()) {
-    if (s.value) {
-      lo = detail_position::lower_at(s.at);
-    } else {
-      out.push_back(I::of_sides(lo, detail_position::upper_at(s.at)));
-      lo.reset();
-    }
+ *  they stay the terms @c Join and @c Not, read through their normal form
+ *  (@c steps, @c :runs) by the query that needs it. */
+namespace detail_interval {
+/** @brief A piece as the interval it is. */
+template <typename V>
+struct AsInterval {
+  constexpr Interval<V, Boole> operator()(const Piece<V>& p) const {
+    return Interval<V, Boole>::of_sides(
+        p.start ? std::optional{detail_position::lower_at(*p.start)}
+                : std::nullopt,
+        p.end ? std::optional{detail_position::upper_at(*p.end)}
+              : std::nullopt);
   }
-  if (r.steps().empty() ? r.first() : r.steps().back().value)
-    out.push_back(I::of_sides(lo, std::nullopt));
-  return out;
+};
+}  // namespace detail_interval
+/** @brief The runs of a two-valued source as intervals, in order along the
+ *  chain: a view, nothing stored.  @param s the source. */
+export template <IsStepSource S>
+  requires std::same_as<typename S::logic_species, Boole>
+constexpr auto intervals(const S& s) {
+  return std::views::transform(
+      pieces(s), detail_interval::AsInterval<typename S::Domain>{});
 }
 
 /** @section halfspace__PointFree_Decidability
