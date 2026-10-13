@@ -7,11 +7,13 @@
  *
  * @section python__Description
  * The last layer of the build chain: what the Python bindings hold, and nothing
- * the library does not already say.  Three namespaces follow the paper's
- * fragments, @c jlt (arrows), @c lwv (sets over the integer window) and
- * @c pst (the bounded chains and the sets over them).  Each adds only what
+ * the library does not already say: @c materialise, the one stored form of a
+ * term, and the two fragments that more than one extension reads, @c jlt
+ * (arrows) and @c lwv (sets over the integer window).  Each adds only what
  * crossing the boundary needs: the type erasure to one handle type per
- * fragment, and the 64-bit window's ends.  Reduction stays in C++.
+ * fragment, and the 64-bit window's ends.  A fragment only one extension reads
+ * lives in that extension (@c pst: @c nanobind_pst.cpp).  Reduction stays in
+ * C++.
  *
  * @note "Le vrai n'est pas le tout, mais le tout dans sa structure."
  *       -- Gaston Bachelard, paraphrase
@@ -34,7 +36,6 @@ export module dedekind.python;
 import dedekind.category;
 import dedekind.numbers; // the carriers' order registrations
 import dedekind.order;
-import dedekind.sequences;
 import dedekind.sets;
 
 export namespace dedekind::python {
@@ -43,49 +44,22 @@ export namespace dedekind::python {
 // only the handles' erasure and the window.
 using dedekind::category::Boole;
 using dedekind::category::cata;
-using dedekind::category::classifier_logic_t;
-using dedekind::category::cover;
 using dedekind::category::Dom;
-using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
-using dedekind::category::HaveLogicJoin;
 using dedekind::category::Identity;
 using dedekind::category::IsEndomorphism;
-using dedekind::category::IsFiniteChain;
 using dedekind::category::IsOckhamAlgebra;
-using dedekind::category::IsPredicate;
-using dedekind::category::IsPst;
-using dedekind::category::join_logic_t;
-using dedekind::category::Kleene;
-using dedekind::category::lift_logic;
 using dedekind::category::logic_complement;
 using dedekind::category::Morphism;
 using dedekind::category::Predecessor;
-using dedekind::category::preimage;
 using dedekind::category::Successor;
-using dedekind::category::Ternary;
 using dedekind::order::Direction;
 using dedekind::order::Interval;
-using dedekind::order::intervals;
 using dedekind::order::Position;
-using dedekind::order::Run;
 using dedekind::order::Runs;
 using dedekind::order::Side;
-using dedekind::order::steps;
 using dedekind::order::Strictness;
-using dedekind::sequences::SuccessorOrbit;
-using dedekind::sets::Cardinality;
-using dedekind::sets::chain_bottom;
-using dedekind::sets::chain_top;
-using dedekind::sets::Comprehension;
-using dedekind::sets::finite_cardinality;
 using dedekind::sets::IsSetObject;
-using dedekind::sets::lift_to;
-using dedekind::sets::Ø;
-using dedekind::sets::η;
-using dedekind::sets::π;
-using dedekind::sets::ℵ_0;
-using dedekind::sets::𝔸;
 
 // ── Jlt: a fluent DSL over the real category arrows (#961) ────────────────
 //
@@ -353,179 +327,5 @@ inline std::optional<long long> next_member(const Set& s, long long x) {
 }
 
 }  // namespace lwv
-
-// ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
-//
-// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), and
-// ℕ's proxy, a bounded chain in the same shape whose ⊤ is ℵ₀ (the memory
-// boundary), not a truth object.  A chain is its endpoints and its step; the
-// step is read twice --- total and saturating (the algebra side, @c Successor)
-// and partial (the coalgebra side, @c cover, nothing at ⊤) --- and the chain's
-// classification is whatever the C++ concepts decide.
-
-namespace pst {
-
-/** @brief A Pst chain by carrier: its name, endpoints and size.  The truth
- *  chains take their endpoints from their species (@c sets:boundaries); ℕ's
- *  proxy has ℵ₀ for its top.  @tparam C the carrier. */
-template <typename C>
-struct Chain;
-template <>
-struct Chain<bool> {
-  static constexpr const char* name = "𝔹";
-  static constexpr bool bottom = chain_bottom<bool>();
-  static constexpr bool top = chain_top<bool>();
-  static constexpr Cardinality cardinality = finite_cardinality(2);
-};
-template <>
-struct Chain<Ternary> {
-  static constexpr const char* name = "K₃";
-  static constexpr Ternary bottom = chain_bottom<Ternary>();
-  static constexpr Ternary top = chain_top<Ternary>();
-  static constexpr Cardinality cardinality = finite_cardinality(3);
-};
-template <>
-struct Chain<Cardinality> {
-  static constexpr const char* name = "ℕ";
-  static constexpr Cardinality bottom = finite_cardinality(0);
-  static constexpr Cardinality top = Cardinality{ℵ_0{}};
-  static constexpr Cardinality cardinality = top;
-};
-
-/** @brief Whether @f$S(\top) = \top@f$: the step's posture at the top.
- *  @tparam C the carrier. */
-template <HasNNOStep C>
-constexpr bool saturates() {
-  return Successor<C>{}(Chain<C>::top) == Chain<C>::top;
-}
-/** @brief Indexing by @b position: the element at position @c i from ⊥, the
- *  chain read as its own enumeration (the orbit of ⊥ under the step), so
- *  @c K3[1] is @c UNKNOWN and @c N[i] is @c i.  @f$O(1)@f$ on ℕ (Peano
- *  addition), a walk bounded by the chain's length on 𝔹 and K₃.
- *  @tparam C the carrier.  @param i the position. */
-template <HasNNOStep C>
-C at(std::size_t i) {
-  return SuccessorOrbit<C>{Chain<C>::bottom}.at(i);
-}
-
-static_assert(IsPst<bool> && IsPst<Ternary> && !IsPst<Cardinality>,
-              "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
-static_assert(saturates<bool>() && saturates<Ternary>() &&
-                  saturates<Cardinality>(),
-              "the three chains saturate at ⊤.");
-
-// ── Sets over a truth chain, per the paper's Lwv grammar (#975) ─────────────
-//
-// A Python set over a truth chain is a run list (order:runs) valued in its
-// species: the normal form of every set the grammar builds.  Every operator
-// (& | ^ ~ and the former |) is the library's own on run lists, and every
-// query (==, ⊆, ∃, ∀, runs) reads the normal form.  Nothing is reduced in
-// Python.
-
-/** @brief A truth chain the queries can read: a Pst carrier that is finite by
- *  its representation and has the covering step.  @tparam C the chain. */
-template <typename C>
-concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
-
-/** @brief A set over the chain @c C valued in @c L, as Python holds it: its
- *  materialised run list. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-using Set = Runs<C, L>;
-/** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
- *  a two-valued ray or point waiting for a former, a type of its own so that a
- *  set is never taken for a where-clause.  @tparam C the chain. */
-template <IsTruthChain C>
-struct Datum {
-  Runs<C> set;
-  constexpr bool operator()(const C& x) const { return set(x); }
-};
-
-/** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
- *  @c π @c ⋈ @c v as data.  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> universe() {
-  return Set<C, L>::universe();
-}
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> empty() {
-  return Set<C, L>::empty();
-}
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> point(const C& v) {
-  return Set<C, L>(steps(Interval<C, L>::point(v)));
-}
-template <IsTruthChain C>
-Datum<C> above(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π > v)))};
-}
-template <IsTruthChain C>
-Datum<C> at_least(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π >= v)))};
-}
-template <IsTruthChain C>
-Datum<C> below(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π < v)))};
-}
-template <IsTruthChain C>
-Datum<C> at_most(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π <= v)))};
-}
-template <IsTruthChain C>
-Datum<C> equal_to(const C& v) {
-  return {Runs<C>(steps(Interval<C>::point(v)))};
-}
-/** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
- *  chain's own species --- the simplest set with every level inhabited. */
-template <IsTruthChain C>
-Set<C, classifier_logic_t<C>> identity() {
-  return Set<C, classifier_logic_t<C>>(dedekind::order::IdentitySteps<C>{});
-}
-
-/** @brief The former @c S @c | @c P: the library's meet of the set and the
- *  datum, materialised.  Lattice operations and equality across species are
- *  the library's own (@c sets: the operands are lifted into the species'
- *  join), so the handles need no more.  @tparam C the chain.  @tparam L the
- *  species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return materialise(s & d.set);
-}
-
-/** @brief The quantifiers, in @c L: @c ∃ is ⋁ (χ_S ∧ P), the existential of
- *  the former; @c ∀ over a @b decidable set is @f$S \subseteq P@f$.  An
- *  L-valued @c S has no bounded ∀ until the species has a residuated
- *  implication (#980); the binding refuses it and points at the α-cut.
- *  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
-  return dedekind::order::exists(steps(s & d.set));
-}
-template <IsTruthChain C>
-bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
-  return s == (s & d.set);
-}
-/** @brief The runs of a decidable set, read off its normal form. */
-template <IsTruthChain C>
-auto run_list(const Set<C, Boole>& s) {
-  return dedekind::order::runs(s);
-}
-/** @brief An L-valued set read through its decidable sets: the α-cut
- *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
- *  @tparam C the chain.  @tparam L the species. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
-  return Set<C, Boole>(dedekind::order::alpha_cut(steps(s), level));
-}
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, Boole> fibre(const Set<C, L>& s, typename L::Ω level) {
-  return Set<C, Boole>(dedekind::order::fibre(steps(s), level));
-}
-/** @brief A Boolean set lifted along the dominance into Kleene's species. */
-template <IsTruthChain C>
-Set<C, Kleene> lift(const Set<C, Boole>& s) {
-  return materialise(lift_to<Kleene>(s));
-}
-
-}  // namespace pst
 
 }  // namespace dedekind::python

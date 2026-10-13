@@ -38,26 +38,149 @@
 
 import dedekind.category;  // Ternary, Boole, Kleene, IsPst, the step
 import dedekind.order;     // IsDense
-import dedekind.python;    // dedekind::python::pst
+import dedekind.python;    // materialise
 import dedekind.sequences; // the chains' orbit
 import dedekind.sets;      // Cardinality, ℵ_0, finite_cardinality
 
 namespace nb = nanobind;
 
 namespace {
-namespace pst = dedekind::python::pst;
 namespace py = dedekind::python;
 using dedekind::category::Boole;
+using dedekind::category::classifier_logic_t;
 using dedekind::category::cover;
+using dedekind::category::HasCoveringStep;
+using dedekind::category::HasNNOStep;
+using dedekind::category::IsFiniteChain;
+using dedekind::category::IsOckhamAlgebra;
 using dedekind::category::IsPst;
 using dedekind::category::join_logic_t;
 using dedekind::category::Kleene;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
+using dedekind::order::Interval;
 using dedekind::order::IsDense;
+using dedekind::order::Runs;
+using dedekind::order::steps;
 using dedekind::sets::Cardinality;
+using dedekind::sets::finite_cardinality;
+using dedekind::sets::π;
 using dedekind::sets::ℵ_0;
+using dedekind::sets::𝔸;
+
+// ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
+//
+// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), and
+// ℕ's proxy, a bounded chain in the same shape whose ⊤ is ℵ₀ (the memory
+// boundary), not a truth object.  A chain is its endpoints and its step; the
+// step is read twice --- total and saturating (the algebra side, @c Successor)
+// and partial (the coalgebra side, @c cover, nothing at ⊤) --- and the chain's
+// classification is whatever the C++ concepts decide.
+namespace pst {
+
+/** @brief A Pst chain by carrier: its name, endpoints and size.  The truth
+ *  chains take their endpoints from their species (@c sets:boundaries); ℕ's
+ *  proxy has ℵ₀ for its top.  @tparam C the carrier. */
+template <typename C>
+struct Chain;
+template <>
+struct Chain<bool> {
+  static constexpr const char* name = "𝔹";
+  static constexpr bool bottom = dedekind::sets::chain_bottom<bool>();
+  static constexpr bool top = dedekind::sets::chain_top<bool>();
+  static constexpr Cardinality cardinality = finite_cardinality(2);
+};
+template <>
+struct Chain<Ternary> {
+  static constexpr const char* name = "K₃";
+  static constexpr Ternary bottom = dedekind::sets::chain_bottom<Ternary>();
+  static constexpr Ternary top = dedekind::sets::chain_top<Ternary>();
+  static constexpr Cardinality cardinality = finite_cardinality(3);
+};
+template <>
+struct Chain<Cardinality> {
+  static constexpr const char* name = "ℕ";
+  static constexpr Cardinality bottom = finite_cardinality(0);
+  static constexpr Cardinality top = Cardinality{ℵ_0{}};
+  static constexpr Cardinality cardinality = top;
+};
+
+/** @brief Whether @f$S(\top) = \top@f$: the step's posture at the top.
+ *  @tparam C the carrier. */
+template <HasNNOStep C>
+constexpr bool saturates() {
+  return Successor<C>{}(Chain<C>::top) == Chain<C>::top;
+}
+
+static_assert(IsPst<bool> && IsPst<Ternary> && !IsPst<Cardinality>,
+              "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
+static_assert(saturates<bool>() && saturates<Ternary>() &&
+                  saturates<Cardinality>(),
+              "the three chains saturate at ⊤.");
+
+// A Python set over a truth chain is a run list (order:runs) valued in its
+// species: the normal form of every set the grammar builds, materialised.
+// Every operator and every query is the library's own on it.
+
+/** @brief A truth chain the queries can read: a Pst carrier that is finite by
+ *  its representation and has the covering step.  @tparam C the chain. */
+template <typename C>
+concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
+
+/** @brief A set over the chain @c C valued in @c L, as Python holds it. */
+template <IsTruthChain C, IsOckhamAlgebra L>
+using Set = Runs<C, L>;
+/** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
+ *  a two-valued set waiting for a former, a type of its own so that a set is
+ *  never taken for a where-clause.  @tparam C the chain. */
+template <IsTruthChain C>
+struct Datum {
+  Runs<C> set;
+  constexpr bool operator()(const C& x) const { return set(x); }
+};
+
+/** @brief The data @c π @c ⋈ @c v.  @tparam C the chain.  @param v the
+ *  value. */
+template <IsTruthChain C>
+Datum<C> above(const C& v) {
+  return {Runs<C>(steps(𝔸<C>{} | (π > v)))};
+}
+template <IsTruthChain C>
+Datum<C> at_least(const C& v) {
+  return {Runs<C>(steps(𝔸<C>{} | (π >= v)))};
+}
+template <IsTruthChain C>
+Datum<C> below(const C& v) {
+  return {Runs<C>(steps(𝔸<C>{} | (π < v)))};
+}
+template <IsTruthChain C>
+Datum<C> at_most(const C& v) {
+  return {Runs<C>(steps(𝔸<C>{} | (π <= v)))};
+}
+template <IsTruthChain C>
+Datum<C> equal_to(const C& v) {
+  return {Runs<C>(steps(Interval<C>::point(v)))};
+}
+/** @brief The point @c η(v), a decidable set. */
+template <IsTruthChain C>
+Set<C, Boole> point(const C& v) {
+  return Set<C, Boole>(steps(Interval<C>::point(v)));
+}
+
+/** @brief The former @c S @c | @c P: the library's meet of the set and the
+ *  datum, materialised. */
+template <IsTruthChain C, IsOckhamAlgebra L>
+Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
+  return py::materialise(s & d.set);
+}
+/** @brief The α-cut @f$\{\chi \ge \ell\}@f$, a decidable set. */
+template <IsTruthChain C, IsOckhamAlgebra L>
+Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
+  return Set<C, Boole>(dedekind::order::alpha_cut(steps(s), level));
+}
+
+}  // namespace pst
 
 /** @brief ℕ's elements cross the boundary as Python @c int, its top as the one
  *  @c aleph0 object. */
@@ -187,7 +310,9 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           [](const Ch&, long long i) {
             if constexpr (std::same_as<C, Cardinality>) {
               if (i < 0) throw nb::index_error("ℕ has no end to count from");
-              return to_py<C>(pst::at<C>(static_cast<std::size_t>(i)));
+              return to_py<C>(
+                  dedekind::sequences::SuccessorOrbit<C>{Ch::bottom}.at(
+                      static_cast<std::size_t>(i)));
             } else {
               const auto n = static_cast<long long>(
                   std::get<dedekind::sets::ExtensionalCardinal<>>(
@@ -196,7 +321,9 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
               if (i < 0) i += n;
               if (i < 0 || i >= n)
                 throw nb::index_error("position outside the chain");
-              return to_py<C>(pst::at<C>(static_cast<std::size_t>(i)));
+              return to_py<C>(
+                  dedekind::sequences::SuccessorOrbit<C>{Ch::bottom}.at(
+                      static_cast<std::size_t>(i)));
             }
           },
           nb::arg("i"),
@@ -229,7 +356,7 @@ struct ProjectionTag {};
 template <typename C>
 std::string written_runs(const pst::Set<C, Boole>& s) {
   std::string out;
-  for (const auto& r : pst::run_list<C>(s)) {
+  for (const auto& r : dedekind::order::runs(s)) {
     if (!out.empty()) out += " ∪ ";
     out += r.lo == r.hi ? "{" + symbol(r.lo) + "}"
                         : "[" + symbol(r.lo) + ", " + symbol(r.hi) + "]";
@@ -313,7 +440,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           [](const S& s, const pst::Datum<C>& d) { return pst::former(s, d); },
           "S | (π ⋈ v): the former, {x ∈ S | P(x)}.")
       .def(
-          "__invert__", [](const S& a) { return ~a; },
+          "__invert__", [](const S& a) { return py::materialise(~a); },
           "~A: the complement, the species' reflection pointwise.")
       .def_prop_ro(
           "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
@@ -332,7 +459,8 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
       .def(
           "fibre",
           [](const S& s, nb::handle level) {
-            return pst::fibre(s, from_py_as<Ω>(level));
+            return pst::Set<C, Boole>(
+                dedekind::order::fibre(steps(s), from_py_as<Ω>(level)));
           },
           nb::arg("level"),
           "The fibre {x | χ(x) == level}: η(level) pulled back along χ "
@@ -342,7 +470,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
            "runs",
            [](const S& s) {
              nb::list out;
-             for (const auto& r : pst::run_list<C>(s))
+             for (const auto& r : dedekind::order::runs(s))
                out.append(nb::make_tuple(to_py<C>(r.lo), to_py<C>(r.hi)));
              return out;
            },
@@ -351,7 +479,10 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
         .def("__repr__", [](const S& s) { return written_runs<C>(s); });
     if constexpr (std::same_as<C, Ternary>)
       set.def(
-          "lift", [](const S& s) { return pst::lift<C>(s); },
+          "lift",
+          [](const S& s) {
+            return py::materialise(dedekind::sets::lift_to<Kleene>(s));
+          },
           "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
           "in K₃.");
   } else {
@@ -378,47 +509,51 @@ template <typename C>
 void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
   using Ch = pst::Chain<C>;
   ch.def_prop_ro(
-        "all", [](const Ch&) { return pst::universe<C, Boole>(); },
+        "all", [](const Ch&) { return pst::Set<C, Boole>::universe(); },
         "𝔸: the universe, every element.")
       .def_prop_ro(
-          "none", [](const Ch&) { return pst::empty<C, Boole>(); },
+          "none", [](const Ch&) { return pst::Set<C, Boole>::empty(); },
           "Ø: the empty set.")
       .def_prop_ro(
-          "identity", [](const Ch&) { return pst::identity<C>(); },
+          "identity",
+          [](const Ch&) {
+            return pst::Set<C, classifier_logic_t<C>>(
+                dedekind::order::IdentitySteps<C>{});
+          },
           "χ(x) = x, valued in the chain's own species: the simplest set with "
           "every level inhabited.")
       .def(
           "above",
           [](const Ch&, nb::handle v) {
-            return pst::former(pst::universe<C, Boole>(),
+            return pst::former(pst::Set<C, Boole>::universe(),
                                pst::above<C>(from_py_as<C>(v)));
           },
           nb::arg("v"), "{x | x > v}: 𝔸(chain) | (π > v).")
       .def(
           "at_least",
           [](const Ch&, nb::handle v) {
-            return pst::former(pst::universe<C, Boole>(),
+            return pst::former(pst::Set<C, Boole>::universe(),
                                pst::at_least<C>(from_py_as<C>(v)));
           },
           nb::arg("v"), "{x | x >= v}.")
       .def(
           "below",
           [](const Ch&, nb::handle v) {
-            return pst::former(pst::universe<C, Boole>(),
+            return pst::former(pst::Set<C, Boole>::universe(),
                                pst::below<C>(from_py_as<C>(v)));
           },
           nb::arg("v"), "{x | x < v}.")
       .def(
           "at_most",
           [](const Ch&, nb::handle v) {
-            return pst::former(pst::universe<C, Boole>(),
+            return pst::former(pst::Set<C, Boole>::universe(),
                                pst::at_most<C>(from_py_as<C>(v)));
           },
           nb::arg("v"), "{x | x <= v}.")
       .def(
           "point",
           [](const Ch&, nb::handle v) {
-            return pst::point<C, Boole>(from_py_as<C>(v));
+            return pst::point<C>(from_py_as<C>(v));
           },
           nb::arg("v"), "{v}: η(v).");
 }
@@ -480,14 +615,14 @@ nb::object on_set_and_datum(nb::handle s, nb::handle d, const char* what) {
 struct Exists {
   template <typename C, typename L>
   static auto apply(const pst::Set<C, L>& s, const pst::Datum<C>& d) {
-    return pst::exists(s, d);
+    return dedekind::order::exists(steps(s & d.set));  // ⋁ (χ_S ∧ P)
   }
 };
 struct Forall {
   template <typename C, typename L>
     requires std::same_as<L, Boole>
   static auto apply(const pst::Set<C, L>& s, const pst::Datum<C>& d) {
-    return pst::forall(s, d);
+    return s == (s & d.set);  // S ⊆ P
   }
 };
 }  // namespace
@@ -586,11 +721,11 @@ NB_MODULE(_pst, m) {
         if (nb::isinstance<pst::Chain<bool>>(chain)) {
           if (kleene)
             throw nb::type_error("a K₃-valued set over 𝔹 is not bound; use K3");
-          return nb::cast(pst::universe<bool, Boole>());
+          return nb::cast(pst::Set<bool, Boole>::universe());
         }
         if (nb::isinstance<pst::Chain<Ternary>>(chain))
-          return kleene ? nb::cast(pst::universe<Ternary, Kleene>())
-                        : nb::cast(pst::universe<Ternary, Boole>());
+          return kleene ? nb::cast(pst::Set<Ternary, Kleene>::universe())
+                        : nb::cast(pst::Set<Ternary, Boole>::universe());
         throw nb::type_error(
             "𝔸(chain): the chain is B or K3 (ℕ is the ℤ slice)");
       },
@@ -606,11 +741,11 @@ NB_MODULE(_pst, m) {
         if (nb::isinstance<pst::Chain<bool>>(chain)) {
           if (kleene)
             throw nb::type_error("a K₃-valued set over 𝔹 is not bound; use K3");
-          return nb::cast(pst::empty<bool, Boole>());
+          return nb::cast(pst::Set<bool, Boole>::empty());
         }
         if (nb::isinstance<pst::Chain<Ternary>>(chain))
-          return kleene ? nb::cast(pst::empty<Ternary, Kleene>())
-                        : nb::cast(pst::empty<Ternary, Boole>());
+          return kleene ? nb::cast(pst::Set<Ternary, Kleene>::empty())
+                        : nb::cast(pst::Set<Ternary, Boole>::empty());
         throw nb::type_error("Ø(chain): the chain is B or K3");
       },
       nb::arg("chain"), nb::arg("species") = nb::none(),
@@ -619,9 +754,9 @@ NB_MODULE(_pst, m) {
       "η",
       [](nb::handle v) -> nb::object {
         if (nb::isinstance<nb::bool_>(v))
-          return nb::cast(pst::point<bool, Boole>(nb::cast<bool>(v)));
+          return nb::cast(pst::point<bool>(nb::cast<bool>(v)));
         if (nb::isinstance<Ternary>(v))
-          return nb::cast(pst::point<Ternary, Boole>(nb::cast<Ternary>(v)));
+          return nb::cast(pst::point<Ternary>(nb::cast<Ternary>(v)));
         throw nb::type_error("η(v): v is a bool (𝔹) or a Ternary (K₃)");
       },
       nb::arg("v"), "η(v): the point {v}, over the chain v belongs to.");
@@ -654,6 +789,8 @@ NB_MODULE(_pst, m) {
       nb::arg("S"), "runs(S): the maximal runs of membership, (lo, hi) pairs.");
   m.def(
       "lift",
-      [](const pst::Set<Ternary, Boole>& s) { return pst::lift<Ternary>(s); },
+      [](const pst::Set<Ternary, Boole>& s) {
+        return py::materialise(dedekind::sets::lift_to<Kleene>(s));
+      },
       nb::arg("S"), "lift(S): a decidable set over K₃ valued in K₃.");
 }
