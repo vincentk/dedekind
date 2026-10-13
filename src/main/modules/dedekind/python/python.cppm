@@ -24,6 +24,7 @@ module;
 #include <functional>
 #include <limits>     // the integer window's ends
 #include <optional>   // the cover, the first element of a set
+#include <ranges>     // a translated set's steps, as a view
 #include <stdexcept>  // std::overflow_error at the window's end
 #include <string>
 #include <utility>
@@ -255,25 +256,24 @@ inline Set complement(const Set& a) { return materialise(~a); }
 struct Shifted {
   using Domain = long long;
   using logic_species = Boole;
-  const Set* s;
-  long long k;
-  struct Cursor {
-    Set::Cursor c;
+  using Step = dedekind::order::Step<long long, Boole>;
+  /** @brief One step moved by @c k, inside the window or raising. */
+  struct By {
     long long k;
-    std::optional<dedekind::order::Step<long long, Boole>> pull() {
+    Step operator()(Step st) const {
       using W = std::numeric_limits<long long>;
-      auto st = c.pull();
-      if (!st) return st;
-      st->at.at = jlt::add_in_window(st->at.at, k, "image");
-      if (st->value ? st->at == Position<long long>{W::max(), Side::Above}
-                    : st->at == Position<long long>{W::min(), Side::Below})
+      st.at.at = jlt::add_in_window(st.at.at, k, "image");
+      if (st.value ? st.at == Position<long long>{W::max(), Side::Above}
+                   : st.at == Position<long long>{W::min(), Side::Below})
         jlt::window_end("image");
-      st->at = dedekind::order::canonical(st->at);
+      st.at = dedekind::order::canonical(st.at);
       return st;
     }
   };
+  const Set* s;
+  long long k;
   bool first() const { return s->first(); }
-  Cursor cursor() const { return {s->cursor(), k}; }
+  auto steps() const { return std::views::transform(s->steps(), By{k}); }
 };
 /** @brief The arrows whose image of a set has a closed form: the identity, the
  *  successor and the predecessor on the integer window.  An opaque composed
@@ -323,7 +323,7 @@ inline Set restrict(const Set& s, std::optional<long long> lo,
  *  finite): no run from below the window, and the last run ends. */
 inline bool is_bounded(const Set& s) {
   return !s.first() &&
-         (s.runs().empty() || s.runs().rbegin()->second.end.has_value());
+         (s.breakpoints().empty() || !s.breakpoints().rbegin()->second);
 }
 /** @brief The least element, the unfold's seed: none for @c Ø, and none for a
  *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */

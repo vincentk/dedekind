@@ -22,6 +22,7 @@
  */
 module;
 
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal: the chain's own order
@@ -274,12 +275,12 @@ constexpr Position<V> canonical(const Position<V>& p) {
 /** @section runs__Steps
  *  A set of the chain valued in a species is a step function: a value before
  *  every step, then the steps along the chain, each a canonical position and
- *  the value from there on.  A @b step source yields them on demand through a
- *  pull cursor, so nothing is stored and every query is one traversal; the
- *  sources compose (a meet is a merge of two sources), so the normal form of a
- *  term is itself a source.  A cursor carries what it walks, so a view of it
- *  outlives a temporary source; only a stored run list is read in place.  @c
- * Runs is the one stored form, materialised on request. */
+ *  the value from there on.  A @b step source is that value and a
+ *  @c std::ranges forward range of steps, composed lazily from the standard
+ *  views: nothing is stored, and every query is one traversal.  The sources
+ *  compose (a meet is a merge of two sources), so the normal form of a term is
+ *  itself a source.  @c Runs is the one stored form, materialised on request.
+ */
 
 /** @brief Where the value changes, and to what.  @tparam V the carrier.
  *  @tparam L the species. */
@@ -291,128 +292,18 @@ struct Step {
 };
 
 /** @brief A step source: the carrier and species, the value before every step,
- *  and a cursor whose @c pull() yields the steps in order, then @c nullopt. */
+ *  and the steps as a forward range, in order along the chain. */
 export template <typename S>
-concept IsStepSource = requires(const S& s) {
-  typename S::Domain;
-  typename S::logic_species;
-  { s.first() } -> std::same_as<typename S::logic_species::Ω>;
-  {
-    s.cursor().pull()
-  } -> std::same_as<
-      std::optional<Step<typename S::Domain, typename S::logic_species>>>;
-};
-
-/** @brief An interval's sides as a source, valued @c value on it and ⊥
- *  elsewhere: at most two steps.  No sides is the whole carrier, no span the
- *  empty set, so the constants are spans too.  @tparam V the carrier.  @tparam
- * L the species. */
-export template <typename V, typename L>
-struct SpanSteps {
-  using Domain = V;
-  using logic_species = L;
-  std::optional<Span<V>> span;
-  typename L::Ω value = L::True;
-  struct Cursor {
-    std::optional<Step<V, L>> steps[2];
-    int next = 0;
-    constexpr std::optional<Step<V, L>> pull() {
-      while (next < 2)
-        if (const auto s = steps[next++]) return s;
-      return std::nullopt;
-    }
-  };
-  constexpr typename L::Ω first() const {
-    return span && !span->lower ? value : L::False;
-  }
-  constexpr Cursor cursor() const {
-    Cursor c{};
-    if (!span || value == L::False) return c;
-    if (span->lower)
-      c.steps[0] = Step<V, L>{
-          detail_position::canonical(detail_position::start_of(*span->lower)),
-          value};
-    if (span->upper)
-      c.steps[1] = Step<V, L>{
-          detail_position::canonical(detail_position::end_of(*span->upper)),
-          L::False};
-    return c;
-  }
-};
-
-/** @brief A source read through a reference: a stored run list inside a term
- *  is traversed where it is, not copied.  @tparam S the source. */
-export template <typename S>
-struct SourceRef {
-  using Domain = typename S::Domain;
-  using logic_species = typename S::logic_species;
-  const S* s;
-  constexpr auto first() const { return s->first(); }
-  constexpr auto cursor() const { return s->cursor(); }
-};
-/** @brief Two sources merged along the chain under a pointwise operation: the
- *  steps of both, each read as @c f of the two values there, a step repeating
- *  the value before it dropped.  @tparam A,B the sources.  @tparam F the
- *  operation. */
-export template <IsStepSource A, IsStepSource B, typename F>
-struct MergeSteps {
-  using Domain = typename A::Domain;
-  using logic_species = typename A::logic_species;
-  using Ω = typename logic_species::Ω;
-  A a;
-  B b;
-  F f;
-  struct Cursor {
-    decltype(std::declval<const A&>().cursor()) ca;
-    decltype(std::declval<const B&>().cursor()) cb;
-    std::optional<Step<Domain, logic_species>> pa, pb;
-    Ω va, vb, last;
-    F f;
-    constexpr std::optional<Step<Domain, logic_species>> pull() {
-      while (pa || pb) {
-        const auto at = !pb || (pa && pa->at < pb->at) ? pa->at : pb->at;
-        if (pa && pa->at == at) va = pa->value, pa = ca.pull();
-        if (pb && pb->at == at) vb = pb->value, pb = cb.pull();
-        if (const Ω v = f(va, vb); v != last)
-          return Step<Domain, logic_species>{at, last = v};
-      }
-      return std::nullopt;
-    }
-  };
-  constexpr Ω first() const { return f(a.first(), b.first()); }
-  constexpr Cursor cursor() const {
-    auto ca = a.cursor();
-    auto cb = b.cursor();
-    auto pa = ca.pull();
-    auto pb = cb.pull();
-    return {ca, cb, pa, pb, a.first(), b.first(), first(), f};
-  }
-};
-
-/** @brief A source with every value relabelled into the species @c L2: a
- *  complement, a lift into a wider species, an α-cut.  @tparam A the source.
- *  @tparam F the operation @c A's Ω → @c L2::Ω.  @tparam L2 the species. */
-export template <IsStepSource A, typename F,
-                 typename L2 = typename A::logic_species>
-struct RelabelSteps {
-  using Domain = typename A::Domain;
-  using logic_species = L2;
-  A a;
-  F f;
-  struct Cursor {
-    decltype(std::declval<const A&>().cursor()) c;
-    typename L2::Ω last;
-    F f;
-    constexpr std::optional<Step<Domain, L2>> pull() {
-      while (const auto s = c.pull())
-        if (const auto v = f(s->value); v != last)
-          return Step<Domain, L2>{s->at, last = v};
-      return std::nullopt;
-    }
-  };
-  constexpr typename L2::Ω first() const { return f(a.first()); }
-  constexpr Cursor cursor() const { return {a.cursor(), first(), f}; }
-};
+concept IsStepSource =
+    requires(const S& s) {
+      typename S::Domain;
+      typename S::logic_species;
+      { s.first() } -> std::same_as<typename S::logic_species::Ω>;
+      { s.steps() } -> std::ranges::forward_range;
+    } &&
+    std::same_as<
+        std::ranges::range_value_t<decltype(std::declval<const S&>().steps())>,
+        Step<typename S::Domain, typename S::logic_species>>;
 
 namespace detail_runs {
 /** @brief The species' operations as named functions on @c L::Ω. */
@@ -462,7 +353,197 @@ struct EqualTo {
   Ω level;
   constexpr bool operator()(Ω v) const { return v == level; }
 };
+/** @brief A step with its value mapped into the species @c L2. */
+template <typename F, typename L2>
+struct MapValue {
+  F f;
+  template <typename V, typename L>
+  constexpr Step<V, L2> operator()(const Step<V, L>& s) const {
+    return {s.at, f(s.value)};
+  }
+};
+/** @brief Two steps with one value; the first step of a chunk; a step at a
+ *  given value: the parts of dropping repeats. */
+struct SameValue {
+  template <typename S>
+  constexpr bool operator()(const S& a, const S& b) const {
+    return a.value == b.value;
+  }
+};
+struct Front {
+  template <typename R>
+  constexpr auto operator()(R&& chunk) const {
+    return *std::ranges::begin(chunk);
+  }
+};
+template <typename Ω>
+struct ValueIs {
+  Ω value;
+  template <typename S>
+  constexpr bool operator()(const S& s) const {
+    return s.value == value;
+  }
+};
 }  // namespace detail_runs
+/** @brief Steps with no step repeating the value before it, as a view: runs of
+ *  one value kept by their first step, and a first step at the start value
+ *  dropped.  @param r the steps.  @param first the value before them. */
+export template <std::ranges::viewable_range R, typename Ω>
+constexpr auto distinct_steps(R&& r, Ω first) {
+  using namespace detail_runs;
+  return std::views::drop_while(
+      std::views::transform(
+          std::views::chunk_by(std::forward<R>(r), SameValue{}), Front{}),
+      ValueIs<Ω>{first});
+}
+
+/** @brief An interval's sides as a source, valued @c value on it and ⊥
+ *  elsewhere: at most two steps.  No sides is the whole carrier, no span the
+ *  empty set, so the constants are spans too.  @tparam V the carrier.
+ *  @tparam L the species. */
+export template <typename V, typename L>
+struct SpanSteps {
+  using Domain = V;
+  using logic_species = L;
+  std::optional<Span<V>> span;
+  typename L::Ω value = L::True;
+  constexpr typename L::Ω first() const {
+    return span && !span->lower ? value : L::False;
+  }
+  constexpr auto steps() const {
+    std::array<Step<V, L>, 2> s{};
+    std::size_t n = 0;
+    if (span && value != L::False) {
+      using namespace detail_position;
+      if (span->lower) s[n++] = {canonical(start_of(*span->lower)), value};
+      if (span->upper) s[n++] = {canonical(end_of(*span->upper)), L::False};
+    }
+    return std::views::take(std::move(s), static_cast<std::ptrdiff_t>(n));
+  }
+};
+
+/** @brief A source read through a reference: a stored run list inside a term
+ *  is traversed where it is, not copied.  @tparam S the source. */
+export template <typename S>
+struct SourceRef {
+  using Domain = typename S::Domain;
+  using logic_species = typename S::logic_species;
+  const S* s;
+  constexpr auto first() const { return s->first(); }
+  constexpr auto steps() const { return s->steps(); }
+};
+
+/** @brief A source with every value relabelled into the species @c L2: a
+ *  complement, a lift into a wider species, an α-cut.  @tparam A the source.
+ *  @tparam F the operation @c A's Ω → @c L2::Ω.  @tparam L2 the species. */
+export template <IsStepSource A, typename F,
+                 typename L2 = typename A::logic_species>
+struct RelabelSteps {
+  using Domain = typename A::Domain;
+  using logic_species = L2;
+  A a;
+  F f;
+  constexpr typename L2::Ω first() const { return f(a.first()); }
+  constexpr auto steps() const {
+    return distinct_steps(
+        std::views::transform(a.steps(), detail_runs::MapValue<F, L2>{f}),
+        first());
+  }
+};
+
+/** @brief The steps of two ranges merged along the chain, each read as @c f of
+ *  the two values there: the one lazy merge C++23 does not ship.  A forward
+ *  view; repeats are dropped by the caller.  @tparam RA,RB the step ranges.
+ *  @tparam F the operation.  @tparam V,L the carrier and species. */
+template <typename RA, typename RB, typename F, typename V, typename L>
+class MergeView
+    : public std::ranges::view_interface<MergeView<RA, RB, F, V, L>> {
+ public:
+  using Ω = typename L::Ω;
+  constexpr MergeView() = default;
+  constexpr MergeView(RA a, RB b, F f, Ω va, Ω vb)
+      : a_(std::move(a)), b_(std::move(b)), f_(f), va_(va), vb_(vb) {}
+
+  class iterator {
+   public:
+    using iterator_concept = std::forward_iterator_tag;
+    using value_type = Step<V, L>;
+    using difference_type = std::ptrdiff_t;
+    constexpr iterator() = default;
+    constexpr explicit iterator(MergeView* m)
+        : m_(m),
+          ia_(std::ranges::begin(m->a_)),
+          ib_(std::ranges::begin(m->b_)),
+          va_(m->va_),
+          vb_(m->vb_) {
+      advance();
+    }
+    constexpr const value_type& operator*() const { return *cur_; }
+    constexpr iterator& operator++() {
+      advance();
+      return *this;
+    }
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      advance();
+      return before;
+    }
+    /** @brief Equal at one position of the merge, or both at its end. */
+    friend constexpr bool operator==(const iterator& x, const iterator& y) {
+      if (!x.cur_ || !y.cur_) return !x.cur_ && !y.cur_;
+      return x.ia_ == y.ia_ && x.ib_ == y.ib_;
+    }
+
+   private:
+    constexpr void advance() {
+      const bool ha = ia_ != std::ranges::end(m_->a_);
+      const bool hb = ib_ != std::ranges::end(m_->b_);
+      if (!ha && !hb) {
+        cur_.reset();
+        return;
+      }
+      const auto at =
+          !hb || (ha && (*ia_).at < (*ib_).at) ? (*ia_).at : (*ib_).at;
+      if (ha && (*ia_).at == at) va_ = (*ia_++).value;
+      if (hb && (*ib_).at == at) vb_ = (*ib_++).value;
+      cur_ = value_type{at, m_->f_(va_, vb_)};
+    }
+    MergeView* m_ = nullptr;
+    std::ranges::iterator_t<RA> ia_{};
+    std::ranges::iterator_t<RB> ib_{};
+    Ω va_{}, vb_{};
+    std::optional<value_type> cur_;
+  };
+  constexpr iterator begin() { return iterator{this}; }
+  constexpr iterator end() { return {}; }
+
+ private:
+  RA a_;
+  RB b_;
+  F f_{};
+  Ω va_{}, vb_{};
+};
+
+/** @brief Two sources merged along the chain under a pointwise operation: the
+ *  steps of both, each read as @c f of the two values there.
+ *  @tparam A,B the sources.  @tparam F the operation. */
+export template <IsStepSource A, IsStepSource B, typename F>
+struct MergeSteps {
+  using Domain = typename A::Domain;
+  using logic_species = typename A::logic_species;
+  A a;
+  B b;
+  F f;
+  constexpr typename logic_species::Ω first() const {
+    return f(a.first(), b.first());
+  }
+  constexpr auto steps() const {
+    using M = MergeView<decltype(a.steps()), decltype(b.steps()), F, Domain,
+                        logic_species>;
+    return distinct_steps(M{a.steps(), b.steps(), f, a.first(), b.first()},
+                          first());
+  }
+};
 
 /** @brief The decidable sets of an L-valued source: the α-cut
  *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
@@ -477,6 +558,111 @@ constexpr auto fibre(const S& s, typename S::logic_species::Ω level) {
   using Ω = typename S::logic_species::Ω;
   return RelabelSteps<S, detail_runs::EqualTo<Ω>, Boole>{s, {level}};
 }
+
+/** @section runs__Chain_View
+ *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
+ *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
+ *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
+ *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
+ *  @c sequences::to_iota_view is this view's integral face.  A forward view
+ * (the walk restarts from @c lo), O(1) state: the current element and the end.
+ *  @tparam C the chain, with the covering step. */
+export template <HasCoveringStep C>
+  requires std::totally_ordered<C>
+class chain_view : public std::ranges::view_interface<chain_view<C>> {
+ public:
+  /** @brief The walk's position: the current element, the end, and whether
+   *  the walk is still live. */
+  class iterator {
+   public:
+    using value_type = C;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::forward_iterator_tag;
+    constexpr iterator() = default;
+    /** @param lo the first element.  @param hi the last; an empty walk when
+     *  @c lo @c > @c hi. */
+    constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
+    /** @return the current element, by value. */
+    constexpr C operator*() const { return current_; }
+    /** @brief Step to the cover of the current element; the walk ends after
+     *  @c hi, or at a saturating top short of it.  @return this iterator. */
+    constexpr iterator& operator++() {
+      if (current_ == hi_) {
+        live_ = false;
+      } else if (const auto next = cover(current_); next.has_value()) {
+        current_ = *next;
+      } else {
+        live_ = false;  // a saturating top short of hi: nothing above it
+      }
+      return *this;
+    }
+    /** @return the position before the step. */
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      ++*this;
+      return before;
+    }
+    friend constexpr bool operator==(const iterator&,
+                                     const iterator&) = default;
+    /** @return whether the walk has ended. */
+    friend constexpr bool operator==(const iterator& it,
+                                     std::default_sentinel_t) {
+      return !it.live_;
+    }
+
+   private:
+    C current_{};
+    C hi_{};
+    bool live_ = false;
+  };
+  constexpr chain_view() = default;
+  /** @param lo the window's bottom.  @param hi its top (inclusive). */
+  constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
+  /** @return the walk, starting at @c lo. */
+  constexpr iterator begin() const { return {lo_, hi_}; }
+  /** @return the sentinel the walk compares equal to once it has ended. */
+  constexpr std::default_sentinel_t end() const { return {}; }
+
+ private:
+  C lo_{};
+  C hi_{};
+};
+
+namespace detail_chain_view_witness {
+consteval bool walks(auto view, auto... expected) {
+  std::array<std::common_type_t<decltype(expected)...>, sizeof...(expected)>
+      want{expected...};
+  std::size_t i = 0;
+  for (const auto x : view) {
+    if (i >= want.size() || x != want[i]) return false;
+    ++i;
+  }
+  return i == want.size();
+}
+static_assert(walks(chain_view{Ternary::False, Ternary::True}, Ternary::False,
+                    Ternary::Unknown, Ternary::True),
+              "K₃ walked ⊥ → U → ⊤ by the cover.");
+static_assert(walks(chain_view{false, true}, false, true) &&
+                  walks(chain_view{true, true}, true) &&
+                  walks(chain_view{3, 6}, 3, 4, 5, 6),
+              "𝔹, a one-point window, and an integral window.");
+static_assert(std::ranges::forward_range<chain_view<int>> &&
+                  std::ranges::view<chain_view<Ternary>>,
+              "chain_view is a std::ranges forward view.");
+static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
+                  chain_view{2, 2}.begin() != std::default_sentinel,
+              "lo > hi is the empty window; lo == hi the one-point window.");
+}  // namespace detail_chain_view_witness
+
+namespace detail_runs {
+/** @brief An element as the step to its own value: χ = id. */
+template <typename C, typename L>
+struct ToItself {
+  constexpr Step<C, L> operator()(const C& x) const {
+    return {Position<C>{x, Side::Below}, x};
+  }
+};
+}  // namespace detail_runs
 /** @brief χ(x) = x on a finite chain, valued in the chain's own species: a
  *  step at every element above the least.  @tparam C the chain. */
 export template <typename C>
@@ -484,17 +670,12 @@ export template <typename C>
 struct IdentitySteps {
   using Domain = C;
   using logic_species = classifier_logic_t<C>;
-  struct Cursor {
-    std::optional<C> x;
-    constexpr std::optional<Step<C, logic_species>> pull() {
-      if (!x) return std::nullopt;
-      const C v = *x;
-      x = cover(v);
-      return Step<C, logic_species>{Position<C>{v, Side::Below}, v};
-    }
-  };
   constexpr C first() const { return *detail_position::least<C>(); }
-  constexpr Cursor cursor() const { return {cover(first())}; }
+  constexpr auto steps() const {
+    return std::views::transform(
+        chain_view{*cover(first()), *detail_position::greatest<C>()},
+        detail_runs::ToItself<C, logic_species>{});
+  }
 };
 
 /** @name Queries: one traversal of a source
@@ -503,10 +684,9 @@ struct IdentitySteps {
 export template <IsStepSource S>
 constexpr auto value_at(const S& s, const typename S::Domain& x) {
   auto v = s.first();
-  auto c = s.cursor();
-  while (const auto st = c.pull()) {
-    if (st->at.side == Side::Below ? x < st->at.at : !(st->at.at < x)) break;
-    v = st->value;
+  for (const auto& st : s.steps()) {
+    if (st.at.side == Side::Below ? x < st.at.at : !(st.at.at < x)) break;
+    v = st.value;
   }
   return v;
 }
@@ -519,15 +699,14 @@ constexpr auto fold_over_carrier(const S& s, Op op) {
   using L = typename S::logic_species;
   auto cur = s.first();
   std::optional<typename L::Ω> acc;
-  auto c = s.cursor();
-  while (const auto st = c.pull()) {
-    if (detail_position::before_all(st->at)) {
-      cur = st->value;
+  for (const auto& st : s.steps()) {
+    if (detail_position::before_all(st.at)) {
+      cur = st.value;
       continue;
     }
-    if (detail_position::after_all(st->at)) break;
+    if (detail_position::after_all(st.at)) break;
     acc = acc ? op(*acc, cur) : cur;
-    cur = st->value;
+    cur = st.value;
   }
   return acc ? op(*acc, cur) : cur;
 }
@@ -556,91 +735,96 @@ constexpr auto equal(const A& a, const B& b) {
 }
 /** @} */
 
-/** @brief A pull cursor as a @c std::ranges input view: the readings of a
- *  source are views over it, nothing stored.  @tparam Cursor the cursor. */
-export template <typename Cursor>
-class PullView : public std::ranges::view_interface<PullView<Cursor>> {
+/** @brief A piece on which a two-valued source holds: a start (@c nullopt
+ *  below every element) and an end (@c nullopt above).  @tparam V the
+ *  carrier. */
+export template <typename V>
+struct Piece {
+  std::optional<Position<V>> start;
+  std::optional<Position<V>> end;
+  friend constexpr bool operator==(const Piece&, const Piece&) = default;
+};
+/** @brief The pieces of a two-valued source over the carrier, in order: its
+ *  steps read in enter / leave pairs, a step outside the carrier read as the
+ *  carrier's end.  A forward view.  @tparam R the steps.  @tparam V the
+ *  carrier. */
+template <typename R, typename V>
+class PiecesView : public std::ranges::view_interface<PiecesView<R, V>> {
  public:
-  using value_type =
-      typename decltype(std::declval<Cursor&>().pull())::value_type;
+  constexpr PiecesView() = default;
+  constexpr PiecesView(R r, bool first) : r_(std::move(r)), first_(first) {}
+
   class iterator {
    public:
-    using iterator_concept = std::input_iterator_tag;
-    using value_type = PullView::value_type;
+    using iterator_concept = std::forward_iterator_tag;
+    using value_type = Piece<V>;
     using difference_type = std::ptrdiff_t;
     constexpr iterator() = default;
-    constexpr explicit iterator(PullView* v) : v_(v), cur_(v->c_.pull()) {}
+    constexpr explicit iterator(PiecesView* p)
+        : p_(p), it_(std::ranges::begin(p->r_)), inside_(p->first_) {
+      advance();
+    }
     constexpr const value_type& operator*() const { return *cur_; }
     constexpr iterator& operator++() {
-      cur_ = v_->c_.pull();
+      advance();
       return *this;
     }
-    constexpr void operator++(int) { ++*this; }
-    /** @brief An input iterator compares equal only at the end, once both
-     *  have nothing left. */
-    friend constexpr bool operator==(const iterator& a, const iterator& b) {
-      return !a.cur_ && !b.cur_;
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      advance();
+      return before;
+    }
+    friend constexpr bool operator==(const iterator& x, const iterator& y) {
+      if (!x.cur_ || !y.cur_) return !x.cur_ && !y.cur_;
+      return x.it_ == y.it_;
     }
 
    private:
-    PullView* v_ = nullptr;
+    constexpr void advance() {
+      cur_.reset();
+      std::optional<Position<V>> start;
+      for (; !done_ && it_ != std::ranges::end(p_->r_); ++it_) {
+        const auto& st = *it_;
+        if (detail_position::before_all(st.at)) {
+          inside_ = static_cast<bool>(st.value);
+          continue;
+        }
+        if (detail_position::after_all(st.at)) break;
+        if (st.value) {
+          start = st.at;
+          inside_ = true;
+        } else if (inside_) {
+          inside_ = false;
+          cur_ = Piece<V>{start ? start : open_, st.at};
+          open_.reset();
+          ++it_;
+          return;
+        }
+        open_ = start;
+      }
+      if (!done_ && inside_) cur_ = Piece<V>{open_, std::nullopt};
+      done_ = true;
+    }
+    PiecesView* p_ = nullptr;
+    std::ranges::iterator_t<R> it_{};
+    bool inside_ = false;
+    bool done_ = false;
+    std::optional<Position<V>> open_;
     std::optional<value_type> cur_;
   };
-  constexpr PullView() = default;
-  constexpr explicit PullView(Cursor c) : c_(std::move(c)) {}
   constexpr iterator begin() { return iterator{this}; }
   constexpr iterator end() { return {}; }
 
  private:
-  Cursor c_;
+  R r_;
+  bool first_ = false;
 };
-
-/** @brief The pieces on which a two-valued source holds, in order along the
- *  chain: a start (@c nullopt below every element) and an end (@c nullopt
- *  above), read over the carrier.  @tparam S the source. */
-template <typename V>
-struct Piece {
-  std::optional<Position<V>> start;
-  std::optional<Position<V>> end;
-};
-namespace detail_runs {
-template <IsStepSource S>
-struct PieceCursor {
-  using V = typename S::Domain;
-  decltype(std::declval<const S&>().cursor()) c;
-  std::optional<Position<V>> start;
-  bool inside;
-  bool done = false;
-  constexpr std::optional<Piece<V>> pull() {
-    while (!done) {
-      const auto st = c.pull();
-      if (!st || detail_position::after_all(st->at)) {
-        done = true;
-        if (inside) return Piece<V>{start, std::nullopt};
-        return std::nullopt;
-      }
-      if (detail_position::before_all(st->at)) {
-        inside = static_cast<bool>(st->value);
-        continue;
-      }
-      if (st->value) {
-        start = st->at;
-        inside = true;
-      } else if (inside) {
-        inside = false;
-        return Piece<V>{std::exchange(start, std::nullopt), st->at};
-      }
-    }
-    return std::nullopt;
-  }
-};
-}  // namespace detail_runs
-/** @brief The pieces of a two-valued source, as a view. */
+/** @brief The pieces of a two-valued source, as a forward view. */
 export template <IsStepSource S>
   requires std::same_as<typename S::logic_species, Boole>
 constexpr auto pieces(const S& s) {
-  return PullView<detail_runs::PieceCursor<S>>{
-      {s.cursor(), std::nullopt, static_cast<bool>(s.first())}};
+  return PiecesView<decltype(s.steps()), typename S::Domain>{
+      s.steps(), static_cast<bool>(s.first())};
 }
 
 /** @brief A maximal run of membership as its closed ends, @c [lo, hi].
@@ -673,11 +857,11 @@ constexpr auto runs(const S& s) {
                                detail_runs::Closed<typename S::Domain>{});
 }
 
-/** @brief A set of the chain @c V valued in @c L, materialised: its runs by
- *  start, each up to its end with its label, ⊥ never stored, so a gap is a
- *  missing key.  The one stored form, for a value that must outlive the term
- *  it was read from (a Python handle); a step source like any other.
- *  @tparam V the carrier.  @tparam L the species. */
+/** @brief A set of the chain @c V valued in @c L, materialised: its
+ *  breakpoints, each the value from that position on, and the value before
+ *  them.  The one stored form, for a value that must outlive the term it was
+ *  read from (a Python handle); a source like any other, its steps a view of
+ *  the map.  @tparam V the carrier.  @tparam L the species. */
 export template <typename V = long long, typename L = Boole>
   requires IsTotallyOrdered<V> && IsOckhamAlgebra<L>
 struct Runs : dedekind::sets::SetExpr<Runs<V, L>, V, L> {
@@ -686,79 +870,40 @@ struct Runs : dedekind::sets::SetExpr<Runs<V, L>, V, L> {
   using logic_species = L;
   using cardinality_type = carrier_cardinality_t<V>;
   using Ω = typename L::Ω;
-  /** @brief A run up to its end (@c nullopt: to the carrier's top), and its
-   *  label. */
-  struct Labelled {
-    std::optional<Position<V>> end;
-    Ω label;
-  };
-  /** @brief The order of run starts: below every element first. */
-  struct ByStart {
-    bool operator()(const std::optional<Position<V>>& a,
-                    const std::optional<Position<V>>& b) const {
-      return b && (!a || *a < *b);
-    }
-  };
-  using Map = std::map<std::optional<Position<V>>, Labelled, ByStart>;
+  using Map = std::map<Position<V>, Ω>;
 
   /** @brief The empty set. */
   Runs() = default;
   static Runs empty() { return {}; }
   static Runs universe() { return Runs(SpanSteps<V, L>{Span<V>{}}); }
-  /** @brief Materialise a source: drain it, keeping the runs not at ⊥. */
+  /** @brief Materialise a source: drain its steps into the map. */
   template <IsStepSource S>
     requires std::same_as<typename S::Domain, V> &&
              std::same_as<typename S::logic_species, L>
-  explicit Runs(const S& s) {
-    std::optional<Position<V>> start;
-    Ω label = s.first();
-    auto c = s.cursor();
-    while (const auto st = c.pull()) {
-      if (label != L::False) runs_.emplace(start, Labelled{st->at, label});
-      start = st->at;
-      label = st->value;
-    }
-    if (label != L::False) runs_.emplace(start, Labelled{std::nullopt, label});
+  explicit Runs(const S& s) : first_(s.first()) {
+    for (const auto& st : s.steps())
+      breakpoints_.emplace_hint(breakpoints_.end(), st.at, st.value);
   }
 
-  /** @brief The runs, by start. */
-  const Map& runs() const { return runs_; }
-  /** @brief χ(x): the label of the run containing @c x, ⊥ in a gap. */
+  /** @brief The breakpoints, in order. */
+  const Map& breakpoints() const { return breakpoints_; }
+  Ω first() const { return first_; }
+  auto steps() const { return std::views::transform(breakpoints_, AsStep{}); }
+  /** @brief χ(x): the value from the last breakpoint at or before @c x. */
   Ω operator()(const V& x) const {
-    auto it = runs_.lower_bound(Position<V>{x, Side::Above});
-    if (it == runs_.begin()) return L::False;
-    --it;
-    const auto& end = it->second.end;
-    const bool before_end =
-        !end || (end->side == Side::Below ? x < end->at : !(end->at < x));
-    return before_end ? it->second.label : L::False;
+    const auto it = breakpoints_.lower_bound(Position<V>{x, Side::Above});
+    return it == breakpoints_.begin() ? first_ : std::prev(it)->second;
   }
   bool contains(const V& x) const { return (*this)(x) == L::True; }
 
-  /** @brief A run list as a source: its runs' starts and ends, read in order
-   *  through the map. */
-  struct Cursor {
-    typename Map::const_iterator it, end;
-    std::optional<Step<V, L>> pending;
-    std::optional<Step<V, L>> pull() {
-      if (pending) return std::exchange(pending, std::nullopt);
-      while (it != end) {
-        const auto& [start, run] = *it++;
-        if (run.end) pending = Step<V, L>{*run.end, L::False};
-        if (start) return Step<V, L>{*start, run.label};
-        if (pending) return std::exchange(pending, std::nullopt);
-      }
-      return std::nullopt;
+ private:
+  struct AsStep {
+    Step<V, L> operator()(const typename Map::value_type& b) const {
+      return {b.first, b.second};
     }
   };
-  Ω first() const {
-    return !runs_.empty() && !runs_.begin()->first ? runs_.begin()->second.label
-                                                   : L::False;
-  }
-  Cursor cursor() const { return {runs_.begin(), runs_.end(), std::nullopt}; }
-
- private:
-  Map runs_;
+  Ω first_ = L::False;
+  Map breakpoints_;
 };
 
 static_assert(dedekind::sets::IsSetObject<Runs<int>> &&
@@ -783,8 +928,7 @@ static_assert(
           MergeSteps<B, B, Or>{span(0, 4), span(6, 10), {}}),
     "[0,10] ∩ ¬{5} = [0,4] ∪ [6,10], by one traversal");
 static_assert(std::ranges::distance(runs(without(5))) == 2 &&
-                  std::ranges::distance(runs(SpanSteps<int, Boole>{
-                      std::nullopt})) == 0,
+                  std::ranges::distance(runs(B{std::nullopt})) == 0,
               "¬{5} is two runs, Ø none");
 }  // namespace detail_runs_witness
 

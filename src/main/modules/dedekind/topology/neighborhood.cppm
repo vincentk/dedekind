@@ -137,10 +137,8 @@ namespace detail_order_reading {
  *  leaves at the other: open enters just above a value, closed at it. */
 template <IsStepTerm T>
 constexpr bool sides_are(const T& t, Side in) {
-  auto c = steps(t).cursor();
-  while (const auto s = c.pull())
-    if ((s->value == T::logic_species::True) != (s->at.side == in))
-      return false;
+  for (const auto& s : steps(t).steps())
+    if ((s.value == T::logic_species::True) != (s.at.side == in)) return false;
   return true;
 }
 }  // namespace detail_order_reading

@@ -75,48 +75,38 @@ concept IsPstSet =
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
     HasCoveringStep<typename std::remove_cvref_t<S>::Domain>;
 
+namespace detail_pst {
+/** @brief An element of the walk as the step to its membership, ⊥ past the
+ *  window's top.  @tparam S the set. */
+template <typename S>
+struct ToMembership {
+  S s;
+  typename S::Domain hi;
+  constexpr auto operator()(const typename S::Domain& x) const {
+    using C = typename S::Domain;
+    return dedekind::order::Step<C, Boole>{
+        dedekind::order::Position<C>{x, dedekind::order::Side::Below},
+        !(hi < x) && static_cast<bool>(s(x))};
+  }
+};
+}  // namespace detail_pst
 /** @brief The normal form of @c s on the window @c [lo, hi], by exhaustion: a
- *  step source that walks the window along @c chain_view and steps where χ
- *  changes, ⊥ outside the window.  Lazy: one walk per traversal, nothing
- *  stored.  @tparam S the set. */
+ *  step source that walks the window (and the element after it) along
+ *  @c chain_view and steps where χ changes, ⊥ outside the window.  Lazy: one
+ *  walk per traversal, nothing stored.  @tparam S the set. */
 export template <IsPstSet S>
 struct ScanSteps {
   using Domain = typename S::Domain;
-  using logic_species = dedekind::category::Boole;
-  using Step = dedekind::order::Step<Domain, logic_species>;
+  using logic_species = Boole;
   S s;
   Domain lo, hi;
-  struct Cursor {
-    S s;
-    Domain hi;
-    decltype(chain_view{std::declval<Domain>(), std::declval<Domain>()}
-                 .begin()) it;
-    bool last = false;
-    bool closed = false;
-    constexpr std::optional<Step> pull() {
-      using dedekind::order::Position;
-      using dedekind::order::Side;
-      for (; it != std::default_sentinel; ++it) {
-        const Domain x = *it;
-        if (const bool v = static_cast<bool>(s(x)); v != last) {
-          last = v;
-          ++it;
-          return Step{
-              dedekind::order::canonical(Position<Domain>{x, Side::Below}), v};
-        }
-      }
-      if (last && !closed) {
-        closed = true;
-        return Step{
-            dedekind::order::canonical(Position<Domain>{hi, Side::Above}),
-            false};
-      }
-      return std::nullopt;
-    }
-  };
   constexpr bool first() const { return false; }
-  constexpr Cursor cursor() const {
-    return {s, hi, chain_view{lo, hi}.begin()};
+  constexpr auto steps() const {
+    const Domain past = cover(hi).value_or(hi);
+    return dedekind::order::distinct_steps(
+        std::views::transform(chain_view{lo, past},
+                              detail_pst::ToMembership<S>{s, hi}),
+        false);
   }
 };
 /** @brief The runs of @c s on the window, read off its normal form. */
