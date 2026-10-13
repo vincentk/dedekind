@@ -686,8 +686,8 @@ struct IdentitySteps {
   constexpr C first() const { return *detail_position::least<C>(); }
   constexpr auto steps() const {
     return std::views::transform(
-        chain_view{first(), *detail_position::greatest<C>()} |
-            std::views::drop(1),
+        std::views::drop(chain_view{first(), *detail_position::greatest<C>()},
+                         1),
         detail_runs::ToItself<C, logic_species>{});
   }
 };
