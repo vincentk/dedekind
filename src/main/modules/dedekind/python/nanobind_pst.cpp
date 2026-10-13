@@ -81,7 +81,6 @@ using dedekind::order::steps;
 using dedekind::order::operator|;
 using dedekind::sets::Cardinality;
 using dedekind::sets::finite_cardinality;
-using dedekind::sets::π;
 using dedekind::sets::ℵ_0;
 using dedekind::sets::𝔸;
 
@@ -137,7 +136,8 @@ static_assert(saturates<bool>() && saturates<Ternary>() &&
 
 // A Python set over a truth chain is a run list (order:runs) valued in its
 // species: the normal form of every set the grammar builds, materialised.
-// Every operator and every query is the library's own on it.
+// Every operator and every query is the library's own on it; a predicate
+// built at run time (the term surface below) is read at the chain's elements.
 
 /** @brief A truth chain the queries can read: a Pst carrier that is finite by
  *  its representation and has the covering step.  @tparam C the chain. */
@@ -147,49 +147,12 @@ concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
 /** @brief A set over the chain @c C valued in @c L, as Python holds it. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 using Set = Runs<C, L>;
-/** @brief A datum of the grammar (@c π @c > @c v, @c π @c == @c v) over @c C:
- *  a two-valued set waiting for a former, a type of its own so that a set is
- *  never taken for a where-clause.  @tparam C the chain. */
-template <IsTruthChain C>
-struct Datum {
-  Runs<C> set;
-  constexpr bool operator()(const C& x) const { return set(x); }
-};
-
-/** @brief The data @c π @c ⋈ @c v.  @tparam C the chain.  @param v the
- *  value. */
-template <IsTruthChain C>
-Datum<C> above(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π > v)))};
-}
-template <IsTruthChain C>
-Datum<C> at_least(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π >= v)))};
-}
-template <IsTruthChain C>
-Datum<C> below(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π < v)))};
-}
-template <IsTruthChain C>
-Datum<C> at_most(const C& v) {
-  return {Runs<C>(steps(𝔸<C>{} | (π <= v)))};
-}
-template <IsTruthChain C>
-Datum<C> equal_to(const C& v) {
-  return {Runs<C>(steps(Interval<C>::point(v)))};
-}
 /** @brief The point @c η(v), a decidable set. */
 template <IsTruthChain C>
 Set<C, Boole> point(const C& v) {
   return Set<C, Boole>(steps(Interval<C>::point(v)));
 }
 
-/** @brief The former @c S @c | @c P: the library's meet of the set and the
- *  datum, materialised. */
-template <IsTruthChain C, IsOckhamAlgebra L>
-Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return ext(s & d.set);
-}
 /** @brief The α-cut @f$\{\chi \ge \ell\}@f$, a decidable set. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
@@ -359,285 +322,11 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 
-// ── The sets of the grammar ───────────────────────────────────────────────
-
-/** @brief The species tags a universe is valued in: @c 𝔸(K3, Kleene). */
-struct BooleTag {};
-struct KleeneTag {};
-/** @brief The grammar's variables @c π (also written @c χ), @c π1, @c π2:
- *  @c π @c > @c v builds a datum over the truth chain the value belongs to;
- *  any other comparison or an arithmetic builds a term, bound by the former. */
+/** @brief The grammar's variables @c π (also written @c χ), @c π1, @c π2: a
+ *  comparison builds a predicate, an arithmetic a term, each bound and checked
+ *  by the former. */
 struct ProjectionTag {
   unsigned slot = 0;
-};
-
-/** @brief The runs of a decidable set, written: Ø, {U}, [U, ⊤], ∪ between. */
-template <typename C>
-std::string written_runs(const pst::Set<C, Boole>& s) {
-  std::string out;
-  for (const auto& r : dedekind::order::runs(s)) {
-    if (!out.empty()) out += " ∪ ";
-    out += r.lo == r.hi ? "{" + symbol(r.lo) + "}"
-                        : "[" + symbol(r.lo) + ", " + symbol(r.hi) + "]";
-  }
-  return out.empty() ? "Ø" : out;
-}
-
-template <typename C>
-void bind_datum(nb::module_& m, const char* cls, const char* doc) {
-  nb::class_<pst::Datum<C>>(m, cls, doc)
-      .def(
-          "__call__",
-          [](const pst::Datum<C>& d, nb::handle x) {
-            return d(from_py_as<C>(x));
-          },
-          nb::arg("x"), "The datum as a predicate on the carrier.")
-      .def("__repr__", [](const pst::Datum<C>&) {
-        return std::string("<datum over ") + pst::Chain<C>::name + ">";
-      });
-}
-
-/** @brief The lattice and the queries over two species of one carrier, the
- *  result valued in their join (a Boolean set beside a K₃-valued one is
- *  compared, met and joined in K₃; one species is its own join).  @tparam C the
- * chain.  @tparam L1 the class's species.  @tparam L2 the other operand's. */
-template <typename C, typename L1, typename L2>
-void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
-  using S = pst::Set<C, L1>;
-  using O = pst::Set<C, L2>;
-  cls.def(
-         "__and__", [](const S& a, const O& b) { return ext(a & b); },
-         "A & B: the meet, in the species' join.")
-      .def(
-          "__or__", [](const S& a, const O& b) { return ext(a | b); },
-          "A | B: the join.")
-      .def(
-          "__xor__", [](const S& a, const O& b) { return ext(a ^ b); },
-          "A ^ B: the symmetric difference.")
-      .def(
-          "__eq__", [](const S& a, const O& b) { return nb::cast(a == b); },
-          nb::is_operator(),
-          "A == B: ⋀ (χ_A ⇔ χ_B), read off the run lists; Unknown is a "
-          "verdict on a K₃-valued set.")
-      .def(
-          "__ne__",
-          [](const S& a, const O& b) {
-            return nb::cast(join_logic_t<L1, L2>::RFL(a == b));
-          },
-          nb::is_operator())
-      .def(
-          "__le__",
-          [](const S& a, const O& b) { return nb::cast((a & b) == a); },
-          nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
-      .def(
-          "__ge__",
-          [](const S& a, const O& b) { return nb::cast((b & a) == b); },
-          nb::is_operator());
-}
-
-template <typename C, typename L>
-nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
-                                    const char* doc) {
-  using S = pst::Set<C, L>;
-  using Ω = typename L::Ω;
-  auto set = nb::class_<S>(m, cls, doc);
-  set.def(
-         "__call__",
-         [](const S& s, nb::handle x) { return nb::cast(s(from_py_as<C>(x))); },
-         nb::arg("x"), "χ(x), in the set's species.")
-      .def(
-          "__contains__",
-          [](const S& s, nb::handle x) {
-            return s(from_py_as<C>(x)) == L::True;
-          },
-          nb::arg("x"), "x in S: whether χ(x) = ⊤.  For the L-valued χ, S(x).")
-      .def(
-          "__or__",
-          [](const S& s, const pst::Datum<C>& d) { return pst::former(s, d); },
-          "S | (π ⋈ v): the former, {x ∈ S | P(x)}.")
-      .def(
-          "__invert__", [](const S& a) { return ext(~a); },
-          "~A: the complement, the species' reflection pointwise.")
-      .def_prop_ro(
-          "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
-          "HasDecidableMembership: whether χ answers in 𝔹.")
-      .def_prop_ro(
-          "carrier", [](const S&) { return pst::Chain<C>{}; },
-          "The chain the set lives on.")
-      .def(
-          "cut",
-          [](const S& s, nb::handle level) {
-            return pst::cut(s, from_py_as<Ω>(level));
-          },
-          nb::arg("level"),
-          "The α-cut {x | χ(x) >= level}: the upper ray on Ω pulled back along "
-          "χ (preimage), a decidable set.")
-      .def(
-          "fibre",
-          [](const S& s, nb::handle level) {
-            return pst::Set<C, Boole>(
-                dedekind::order::fibre(steps(s), from_py_as<Ω>(level)));
-          },
-          nb::arg("level"),
-          "The fibre {x | χ(x) == level}: η(level) pulled back along χ "
-          "(preimage), a decidable set.");
-  if constexpr (std::same_as<L, Boole>) {
-    set.def(
-           "runs",
-           [](const S& s) {
-             nb::list out;
-             for (const auto& r : dedekind::order::runs(s))
-               out.append(nb::make_tuple(to_py<C>(r.lo), to_py<C>(r.hi)));
-             return out;
-           },
-           "The maximal runs of membership along the chain, as (lo, hi) pairs: "
-           "the normal form, read off the chain.")
-        .def("__repr__", [](const S& s) { return written_runs<C>(s); });
-    if constexpr (std::same_as<C, Ternary>)
-      set.def(
-          "lift",
-          [](const S& s) { return ext(dedekind::sets::lift_to<Kleene>(s)); },
-          "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
-          "in K₃.");
-  } else {
-    set.def(
-           "runs",
-           [](const S&) -> nb::list {
-             throw nb::type_error(
-                 "an L-valued set has no runs of its own; read it through its "
-                 "α-cuts: S.cut(level).runs()");
-           },
-           "Refused: an L-valued set is read through its α-cuts.")
-        .def("__repr__", [](const S& s) {
-          return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
-                 "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
-        });
-  }
-  bind_mixed<C, L, L>(set);
-  return set;
-}
-
-/** @brief Sugar on a truth chain: the grammar's sets with the chain as the
- *  universe, @c K3.above(U) for @c 𝔸(K3) @c | @c (π @c > @c U). */
-template <typename C>
-void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
-  using Ch = pst::Chain<C>;
-  ch.def_prop_ro(
-        "all", [](const Ch&) { return pst::Set<C, Boole>::universe(); },
-        "𝔸: the universe, every element.")
-      .def_prop_ro(
-          "none", [](const Ch&) { return pst::Set<C, Boole>::empty(); },
-          "Ø: the empty set.")
-      .def_prop_ro(
-          "identity",
-          [](const Ch&) {
-            return pst::Set<C, classifier_logic_t<C>>(
-                dedekind::order::IdentitySteps<C>{});
-          },
-          "χ(x) = x, valued in the chain's own species: the simplest set with "
-          "every level inhabited.")
-      .def(
-          "above",
-          [](const Ch&, nb::handle v) {
-            return pst::former(pst::Set<C, Boole>::universe(),
-                               pst::above<C>(from_py_as<C>(v)));
-          },
-          nb::arg("v"), "{x | x > v}: 𝔸(chain) | (π > v).")
-      .def(
-          "at_least",
-          [](const Ch&, nb::handle v) {
-            return pst::former(pst::Set<C, Boole>::universe(),
-                               pst::at_least<C>(from_py_as<C>(v)));
-          },
-          nb::arg("v"), "{x | x >= v}.")
-      .def(
-          "below",
-          [](const Ch&, nb::handle v) {
-            return pst::former(pst::Set<C, Boole>::universe(),
-                               pst::below<C>(from_py_as<C>(v)));
-          },
-          nb::arg("v"), "{x | x < v}.")
-      .def(
-          "at_most",
-          [](const Ch&, nb::handle v) {
-            return pst::former(pst::Set<C, Boole>::universe(),
-                               pst::at_most<C>(from_py_as<C>(v)));
-          },
-          nb::arg("v"), "{x | x <= v}.")
-      .def(
-          "point",
-          [](const Ch&, nb::handle v) {
-            return pst::point<C>(from_py_as<C>(v));
-          },
-          nb::arg("v"), "{v}: η(v).");
-}
-
-/** @brief The datum for one relation, over the chain a Python value belongs
- *  to: a @c bool is 𝔹's, a @c Ternary is K₃'s.  One factory struct per
- *  relation, written out by the macro below. */
-#define DEDEKIND_DATUM_OF(NAME)                                    \
-  struct NAME {                                                    \
-    static nb::object make(nb::handle v) {                         \
-      if (nb::isinstance<nb::bool_>(v))                            \
-        return nb::cast(pst::NAME<bool>(nb::cast<bool>(v)));       \
-      if (nb::isinstance<Ternary>(v))                              \
-        return nb::cast(pst::NAME<Ternary>(nb::cast<Ternary>(v))); \
-      throw nb::type_error(                                        \
-          "a datum compares π with a truth value: a bool (𝔹) "     \
-          "or a Ternary (K₃)");                                    \
-    }                                                              \
-  }
-DEDEKIND_DATUM_OF(above);
-DEDEKIND_DATUM_OF(at_least);
-DEDEKIND_DATUM_OF(below);
-DEDEKIND_DATUM_OF(at_most);
-DEDEKIND_DATUM_OF(equal_to);
-#undef DEDEKIND_DATUM_OF
-
-/** @brief Dispatch a (set, datum) pair of one carrier to a query. */
-template <typename Query>
-nb::object on_set_and_datum(nb::handle s, nb::handle d, const char* what) {
-  if (nb::isinstance<pst::Set<bool, Boole>>(s) &&
-      nb::isinstance<pst::Datum<bool>>(d))
-    return nb::cast(Query::template apply<bool, Boole>(
-        nb::cast<pst::Set<bool, Boole>>(s), nb::cast<pst::Datum<bool>>(d)));
-  if (nb::isinstance<pst::Set<Ternary, Boole>>(s) &&
-      nb::isinstance<pst::Datum<Ternary>>(d))
-    return nb::cast(Query::template apply<Ternary, Boole>(
-        nb::cast<pst::Set<Ternary, Boole>>(s),
-        nb::cast<pst::Datum<Ternary>>(d)));
-  if (nb::isinstance<pst::Set<Ternary, Kleene>>(s) &&
-      nb::isinstance<pst::Datum<Ternary>>(d)) {
-    if constexpr (requires(const pst::Set<Ternary, Kleene>& ks,
-                           const pst::Datum<Ternary>& kd) {
-                    Query::template apply<Ternary, Kleene>(ks, kd);
-                  })
-      return nb::cast(Query::template apply<Ternary, Kleene>(
-          nb::cast<pst::Set<Ternary, Kleene>>(s),
-          nb::cast<pst::Datum<Ternary>>(d)));
-    else
-      throw nb::type_error(
-          "forall over an L-valued set awaits the chain's residuated "
-          "implication (#980); quantify over its α-cut: forall(S.cut(level), "
-          "P)");
-  }
-  const std::string message = std::string(what) +
-                              "(S, P): S a set over 𝔹 or K₃ and P a datum "
-                              "over the same chain";
-  throw nb::type_error(message.c_str());
-}
-struct Exists {
-  template <typename C, typename L>
-  static auto apply(const pst::Set<C, L>& s, const pst::Datum<C>& d) {
-    return dedekind::order::exists(steps(s & d.set));  // ⋁ (χ_S ∧ P)
-  }
-};
-struct Forall {
-  template <typename C, typename L>
-    requires std::same_as<L, Boole>
-  static auto apply(const pst::Set<C, L>& s, const pst::Datum<C>& d) {
-    return s == (s & d.set);  // S ⊆ P
-  }
 };
 
 // ── The canonical ring and field ────────────────────────────────────────────
@@ -981,6 +670,226 @@ void bind_term_sets(nb::module_& m,
         return shown + " × " + shown + " | " + show(r.predicate);
       });
 }
+// ── The sets of the grammar ───────────────────────────────────────────────
+
+/** @brief The species tags a universe is valued in: @c 𝔸(K3, Kleene). */
+struct BooleTag {};
+struct KleeneTag {};
+
+/** @brief The runs of a decidable set, written: Ø, {U}, [U, ⊤], ∪ between. */
+template <typename C>
+std::string written_runs(const pst::Set<C, Boole>& s) {
+  std::string out;
+  for (const auto& r : dedekind::order::runs(s)) {
+    if (!out.empty()) out += " ∪ ";
+    out += r.lo == r.hi ? "{" + symbol(r.lo) + "}"
+                        : "[" + symbol(r.lo) + ", " + symbol(r.hi) + "]";
+  }
+  return out.empty() ? "Ø" : out;
+}
+
+/** @brief The lattice and the queries over two species of one carrier, the
+ *  result valued in their join (a Boolean set beside a K₃-valued one is
+ *  compared, met and joined in K₃; one species is its own join).  @tparam C the
+ * chain.  @tparam L1 the class's species.  @tparam L2 the other operand's. */
+template <typename C, typename L1, typename L2>
+void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
+  using S = pst::Set<C, L1>;
+  using O = pst::Set<C, L2>;
+  cls.def(
+         "__and__", [](const S& a, const O& b) { return ext(a & b); },
+         "A & B: the meet, in the species' join.")
+      .def(
+          "__or__", [](const S& a, const O& b) { return ext(a | b); },
+          "A | B: the join.")
+      .def(
+          "__xor__", [](const S& a, const O& b) { return ext(a ^ b); },
+          "A ^ B: the symmetric difference.")
+      .def(
+          "__eq__", [](const S& a, const O& b) { return nb::cast(a == b); },
+          nb::is_operator(),
+          "A == B: ⋀ (χ_A ⇔ χ_B), read off the run lists; Unknown is a "
+          "verdict on a K₃-valued set.")
+      .def(
+          "__ne__",
+          [](const S& a, const O& b) {
+            return nb::cast(join_logic_t<L1, L2>::RFL(a == b));
+          },
+          nb::is_operator())
+      .def(
+          "__le__",
+          [](const S& a, const O& b) { return nb::cast((a & b) == a); },
+          nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
+      .def(
+          "__ge__",
+          [](const S& a, const O& b) { return nb::cast((b & a) == b); },
+          nb::is_operator());
+}
+
+template <typename C, typename L>
+nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
+                                    const char* doc) {
+  using S = pst::Set<C, L>;
+  using Ω = typename L::Ω;
+  auto set = nb::class_<S>(m, cls, doc);
+  set.def(
+         "__call__",
+         [](const S& s, nb::handle x) { return nb::cast(s(from_py_as<C>(x))); },
+         nb::arg("x"), "χ(x), in the set's species.")
+      .def(
+          "__contains__",
+          [](const S& s, nb::handle x) {
+            return s(from_py_as<C>(x)) == L::True;
+          },
+          nb::arg("x"), "x in S: whether χ(x) = ⊤.  For the L-valued χ, S(x).")
+      .def(
+          "__or__",
+          [](const S& s, const RPred& p) { return former_runtime(s, p); },
+          "S | pred: the former, {x ∈ S | P(x)}, the term checked on the "
+          "chain.")
+      .def(
+          "__invert__", [](const S& a) { return ext(~a); },
+          "~A: the complement, the species' reflection pointwise.")
+      .def_prop_ro(
+          "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
+          "HasDecidableMembership: whether χ answers in 𝔹.")
+      .def_prop_ro(
+          "carrier", [](const S&) { return pst::Chain<C>{}; },
+          "The chain the set lives on.")
+      .def(
+          "cut",
+          [](const S& s, nb::handle level) {
+            return pst::cut(s, from_py_as<Ω>(level));
+          },
+          nb::arg("level"),
+          "The α-cut {x | χ(x) >= level}: the upper ray on Ω pulled back along "
+          "χ (preimage), a decidable set.")
+      .def(
+          "fibre",
+          [](const S& s, nb::handle level) {
+            return pst::Set<C, Boole>(
+                dedekind::order::fibre(steps(s), from_py_as<Ω>(level)));
+          },
+          nb::arg("level"),
+          "The fibre {x | χ(x) == level}: η(level) pulled back along χ "
+          "(preimage), a decidable set.");
+  if constexpr (std::same_as<L, Boole>) {
+    set.def(
+           "runs",
+           [](const S& s) {
+             nb::list out;
+             for (const auto& r : dedekind::order::runs(s))
+               out.append(nb::make_tuple(to_py<C>(r.lo), to_py<C>(r.hi)));
+             return out;
+           },
+           "The maximal runs of membership along the chain, as (lo, hi) pairs: "
+           "the normal form, read off the chain.")
+        .def("__repr__", [](const S& s) { return written_runs<C>(s); });
+    if constexpr (std::same_as<C, Ternary>)
+      set.def(
+          "lift",
+          [](const S& s) { return ext(dedekind::sets::lift_to<Kleene>(s)); },
+          "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
+          "in K₃.");
+  } else {
+    set.def(
+           "runs",
+           [](const S&) -> nb::list {
+             throw nb::type_error(
+                 "an L-valued set has no runs of its own; read it through its "
+                 "α-cuts: S.cut(level).runs()");
+           },
+           "Refused: an L-valued set is read through its α-cuts.")
+        .def("__repr__", [](const S& s) {
+          return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
+                 "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
+        });
+  }
+  bind_mixed<C, L, L>(set);
+  return set;
+}
+
+/** @brief Sugar on a truth chain: the grammar's sets with the chain as the
+ *  universe, @c K3.above(U) for @c 𝔸(K3) @c | @c (π @c > @c U). */
+template <typename C>
+void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
+  using Ch = pst::Chain<C>;
+  // {x | x ⋈ v}: the former on the universe, the predicate built here.
+  const auto ray = [](Rel r) {
+    return [r](const Ch&, nb::handle v) {
+      return former_runtime(
+          pst::Set<C, Boole>::universe(),
+          RPred::cmp(r, RTerm::proj(0), RTerm::constant(PyConst{v})));
+    };
+  };
+  ch.def_prop_ro(
+        "all", [](const Ch&) { return pst::Set<C, Boole>::universe(); },
+        "𝔸: the universe, every element.")
+      .def_prop_ro(
+          "none", [](const Ch&) { return pst::Set<C, Boole>::empty(); },
+          "Ø: the empty set.")
+      .def_prop_ro(
+          "identity",
+          [](const Ch&) {
+            return pst::Set<C, classifier_logic_t<C>>(
+                dedekind::order::IdentitySteps<C>{});
+          },
+          "χ(x) = x, valued in the chain's own species: the simplest set with "
+          "every level inhabited.")
+      .def("above", ray(Rel::Gt), nb::arg("v"),
+           "{x | x > v}: 𝔸(chain) | (π > v).")
+      .def("at_least", ray(Rel::Ge), nb::arg("v"), "{x | x >= v}.")
+      .def("below", ray(Rel::Lt), nb::arg("v"), "{x | x < v}.")
+      .def("at_most", ray(Rel::Le), nb::arg("v"), "{x | x <= v}.")
+      .def(
+          "point",
+          [](const Ch&, nb::handle v) {
+            return pst::point<C>(from_py_as<C>(v));
+          },
+          nb::arg("v"), "{v}: η(v).");
+}
+
+/** @brief Dispatch a (set, predicate) pair to a query: the predicate is bound
+ *  to the set's chain and read there. */
+template <typename Query>
+nb::object on_set_and_pred(nb::handle s, nb::handle p, const char* what) {
+  if (nb::isinstance<RPred>(p)) {
+    const RPred pred = nb::cast<RPred>(p);
+    if (nb::isinstance<pst::Set<bool, Boole>>(s))
+      return nb::cast(Query::apply(nb::cast<pst::Set<bool, Boole>>(s), pred));
+    if (nb::isinstance<pst::Set<Ternary, Boole>>(s))
+      return nb::cast(
+          Query::apply(nb::cast<pst::Set<Ternary, Boole>>(s), pred));
+    if (nb::isinstance<pst::Set<Ternary, Kleene>>(s)) {
+      if constexpr (requires(const pst::Set<Ternary, Kleene>& ks,
+                             const RPred& kp) { Query::apply(ks, kp); })
+        return nb::cast(
+            Query::apply(nb::cast<pst::Set<Ternary, Kleene>>(s), pred));
+      else
+        throw nb::type_error(
+            "forall over an L-valued set awaits the chain's residuated "
+            "implication (#980); quantify over its α-cut: "
+            "forall(S.cut(level), P)");
+    }
+  }
+  const std::string message = std::string(what) +
+                              "(S, P): S a set over 𝔹 or K₃ and P a predicate "
+                              "on π (a set is not a where-clause)";
+  throw nb::type_error(message.c_str());
+}
+struct Exists {
+  template <typename C, typename L>
+  static auto apply(const pst::Set<C, L>& s, const RPred& p) {
+    return dedekind::order::exists(steps(former_runtime(s, p)));  // ⋁ (χ_S ∧ P)
+  }
+};
+struct Forall {
+  template <typename C, typename L>
+    requires std::same_as<L, Boole>
+  static auto apply(const pst::Set<C, L>& s, const RPred& p) {
+    return s == former_runtime(s, p);  // S ⊆ P
+  }
+};
 }  // namespace
 
 NB_MODULE(_pst, m) {
@@ -1034,10 +943,7 @@ NB_MODULE(_pst, m) {
   m.attr("Boole") = BooleTag{};
   m.attr("Kleene") = KleeneTag{};
 
-  bind_datum<bool>(m, "DatumB", "A datum over 𝔹: π ⋈ v, waiting for a former.");
-  bind_datum<Ternary>(m, "DatumK3",
-                      "A datum over K₃: π ⋈ v, waiting for a former.");
-  auto set_b = bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
+  bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
   auto set_k3 = bind_set<Ternary, Boole>(
       m, "SetK3", "A set over K₃, valued in 𝔹 (decidable).");
   auto set_k3_kleene = bind_set<Ternary, Kleene>(
@@ -1053,33 +959,14 @@ NB_MODULE(_pst, m) {
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
       m, "Projection",
-      "The grammar's variables π (also χ), π1, π2.  π ⋈ v with v a bool or a "
-      "Ternary is a datum over that truth chain; every other comparison, and "
-      "the arithmetic + - * / // %, builds a term that A(carrier) | ... binds "
-      "and checks.");
-  // A comparison with a truth value on π is the truth chain's datum; any other
-  // is a predicate built at run time.
-  const auto datum_or_cmp = [](auto make, Rel r) {
-    return [make, r](const ProjectionTag& p, nb::handle v) -> nb::object {
-      if (p.slot == 0 && (PyBool_Check(v.ptr()) || nb::isinstance<Ternary>(v)))
-        return make(v);
-      return nb::cast(RPred::cmp(r, as_term(p), term_of(v)));
-    };
-  };
-  projection
-      .def("__gt__", datum_or_cmp(&above::make, Rel::Gt), nb::is_operator())
-      .def("__ge__", datum_or_cmp(&at_least::make, Rel::Ge), nb::is_operator())
-      .def("__lt__", datum_or_cmp(&below::make, Rel::Lt), nb::is_operator())
-      .def("__le__", datum_or_cmp(&at_most::make, Rel::Le), nb::is_operator())
-      .def("__eq__", datum_or_cmp(&equal_to::make, Rel::Eq), nb::is_operator())
-      .def(
-          "__ne__",
-          [](const ProjectionTag& p, nb::handle v) {
-            return RPred::cmp(Rel::Ne, as_term(p), term_of(v));
-          },
-          nb::is_operator())
-      .def("__repr__", [](const ProjectionTag& p) { return show(as_term(p)); });
+      "The grammar's variables π (also χ), π1, π2: a comparison builds a "
+      "predicate, the arithmetic + - * / // % a term, each bound and checked "
+      "by "
+      "A(carrier) | ....");
+  projection.def("__repr__",
+                 [](const ProjectionTag& p) { return show(as_term(p)); });
   def_arithmetic<ProjectionTag>(projection);
+  def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
   m.attr("χ") = ProjectionTag{0};
   m.attr("π1") = ProjectionTag{1};
@@ -1375,14 +1262,14 @@ NB_MODULE(_pst, m) {
   m.def(
       "exists",
       [](nb::handle s, nb::handle p) {
-        return on_set_and_datum<Exists>(s, p, "exists");
+        return on_set_and_pred<Exists>(s, p, "exists");
       },
       nb::arg("S"), nb::arg("P"),
       "exists(S, P) = ⋁ (χ_S ∧ P), in S's species: not empty.");
   m.def(
       "forall",
       [](nb::handle s, nb::handle p) {
-        return on_set_and_datum<Forall>(s, p, "forall");
+        return on_set_and_pred<Forall>(s, p, "forall");
       },
       nb::arg("S"), nb::arg("P"),
       "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
@@ -1412,22 +1299,4 @@ NB_MODULE(_pst, m) {
                            [](nb::handle h) { return word_of(h).v; });
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
                      "FpRelation", [](nb::handle h) { return residue_of(h); });
-  set_b.def(
-      "__or__",
-      [](const pst::Set<bool, Boole>& s, const RPred& p) {
-        return former_runtime(s, p);
-      },
-      nb::is_operator(), "S | pred: the former, the term checked on 𝔹.");
-  set_k3.def(
-      "__or__",
-      [](const pst::Set<Ternary, Boole>& s, const RPred& p) {
-        return former_runtime(s, p);
-      },
-      nb::is_operator(), "S | pred: the former, the term checked on K₃.");
-  set_k3_kleene.def(
-      "__or__",
-      [](const pst::Set<Ternary, Kleene>& s, const RPred& p) {
-        return former_runtime(s, p);
-      },
-      nb::is_operator(), "S | pred: the former, the term checked on K₃.");
 }
