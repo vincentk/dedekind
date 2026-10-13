@@ -379,15 +379,14 @@ auto ext(const T& t) {
 
 /** @brief Equality of two set terms of a chain as sets of the carrier, in the
  *  species: one traversal of their normal forms, so it is extensional
- *  (@c (0, 3) and @c [1, 3) are the same set of ℤ).  On a truth chain sets
- *  decide by exhausting the chain instead (sets:boundaries). */
+ *  (@c (0, 3) and @c [1, 3) are the same set of ℤ). */
 export template <typename A, typename B>
   requires requires {
     typename A::Domain;
     typename B::Domain;
   } && std::same_as<typename A::Domain, typename B::Domain> &&
-           (!IsPst<typename A::Domain>) && (!IsBoundaryObject<A>) &&
-           (!IsBoundaryObject<B>) && IsStepTerm<A> && IsStepTerm<B> &&
+           (!IsBoundaryObject<A>) && (!IsBoundaryObject<B>) && IsStepTerm<A> &&
+           IsStepTerm<B> &&
            std::same_as<typename A::logic_species, typename B::logic_species>
 constexpr auto operator==(const A& a, const B& b) {
   return equal(steps(a), steps(b));
@@ -395,28 +394,28 @@ constexpr auto operator==(const A& a, const B& b) {
 /** @brief A set term against the boundaries: @c Ø when it holds nowhere,
  *  @c 𝔸 when it holds everywhere, read over the carrier's own elements. */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
-  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
-          (!IsBoundaryObject<S>) && IsStepTerm<S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
 constexpr bool operator==(const Ø<T, L>&, const S& s) {
   return exists(steps(s)) == S::logic_species::False;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
-  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
-          (!IsBoundaryObject<S>) && IsStepTerm<S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
 constexpr bool operator==(const S& s, const Ø<T, L>& e) {
   return e == s;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
-  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
-          (!IsBoundaryObject<S>) && IsStepTerm<S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
 constexpr bool operator==(const 𝔸<T, L, CU>&, const S& s) {
   return forall(steps(s)) == S::logic_species::True;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
-  requires(!IsPst<T>) && std::same_as<typename S::Domain, T> &&
-          (!IsBoundaryObject<S>) && IsStepTerm<S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
 constexpr bool operator==(const S& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }

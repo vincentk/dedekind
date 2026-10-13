@@ -748,20 +748,17 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr auto exists(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  // Single source: delegate to the set-operation dedekind::sets::exists
-  // (∃ as non-emptiness of the comprehension, decided by Ø::operator== and
-  // short-circuiting at the first witness).  A finite Path is itself a
-  // std::ranges::input_range; an infinite Path is presented as an unbounded
-  // iota/transform view so the same emptiness test applies and short-circuits
-  // (the co-recursive ∃).
+  // ∃ along the path, short-circuiting at the first witness.  A finite Path is
+  // itself a std::ranges::input_range; an infinite Path is presented as an
+  // unbounded iota/transform view, so the search is the co-recursive ∃.
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-    return dedekind::sets::exists(path, std::forward<Pred>(pred));
+    return std::ranges::any_of(path, std::forward<Pred>(pred));
   } else {
     auto view = std::views::iota(std::size_t{0}) |
                 std::views::transform([&path](std::size_t i) {
                   return path.at(static_cast<Index>(i));
                 });
-    return dedekind::sets::exists(view, std::forward<Pred>(pred));
+    return std::ranges::any_of(view, std::forward<Pred>(pred));
   }
 }
 
@@ -802,20 +799,16 @@ export template <typename T, typename Cardinality, typename Index,
                  typename Pred>
   requires std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
-  // Single source: delegate to the set-operation dedekind::sets::forall
-  // (∀ as the ¬∃¬ dual: emptiness of the counterexample set, short-circuiting
-  // at the first counterexample).  A finite Path is itself a
-  // std::ranges::input_range; an infinite Path is presented as an unbounded
-  // iota/transform view so the same emptiness test applies and short-circuits
-  // (the co-recursive ∀).
+  // ∀ along the path, short-circuiting at the first counterexample; an
+  // infinite Path is searched co-recursively, as for exists.
   if constexpr (dedekind::sets::IsFinite<Cardinality>) {
-    return dedekind::sets::forall(path, std::forward<Pred>(pred));
+    return std::ranges::all_of(path, std::forward<Pred>(pred));
   } else {
     auto view = std::views::iota(std::size_t{0}) |
                 std::views::transform([&path](std::size_t i) {
                   return path.at(static_cast<Index>(i));
                 });
-    return dedekind::sets::forall(view, std::forward<Pred>(pred));
+    return std::ranges::all_of(view, std::forward<Pred>(pred));
   }
 }
 

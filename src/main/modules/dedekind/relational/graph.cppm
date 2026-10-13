@@ -71,6 +71,7 @@
  */
 module;
 
+#include <algorithm>    // std::ranges::all_of
 #include <concepts>     // std::equality_comparable, std::same_as
 #include <ranges>       // std::ranges::input_range, range_value_t
 #include <type_traits>  // std::remove_cvref_t
@@ -79,7 +80,7 @@ module;
 export module dedekind.relational:graph;
 
 import dedekind.category; // IsArrow, Dom, Cod, arrow_as_relation, Boole
-import dedekind.sets;     // Set, Relation (:expressions); forall (:quantifier)
+import dedekind.sets;     // Set, Relation (:expressions)
 import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
 // Namespace is dedekind::relational — the module's own namespace, so the
@@ -89,7 +90,6 @@ import :dyadic;           // the Tarski BASE: a graph Γ_f IS a dyadic relation
 
 namespace dedekind::relational {
 using dedekind::sets::Comprehension;  // the relation carrier: {p ∈ 𝔸<pair> | P}
-using dedekind::sets::forall;         // the ¬∃¬ quantifier used by is_graph_of
 using dedekind::sets::𝔸;
 
 /**
@@ -467,6 +467,33 @@ static_assert(
 static_assert(IsGraph<decltype(Γ_id), int, int>,
               "graph(f) is a relation (a Set of pairs on A × B).");
 
+namespace detail_graph {
+/** @brief Whether @c r and the graph @c g agree on the pair @c (a, b). */
+template <typename R, typename G, typename A>
+struct AgreesAt {
+  const R& r;
+  const G& g;
+  const A& a;
+  template <typename B>
+  constexpr bool operator()(const B& b) const {
+    return static_cast<bool>(r(std::pair{a, b})) ==
+           static_cast<bool>(g(std::pair{a, b}));
+  }
+};
+/** @brief Whether @c r and the graph @c g agree on every pair of the row
+ *  @c a: ∀ b ∈ cod. */
+template <typename R, typename G, typename CodRange>
+struct AgreesOnRow {
+  const R& r;
+  G g;
+  const CodRange& cod;
+  template <typename A>
+  constexpr bool operator()(const A& a) const {
+    return std::ranges::all_of(cod, AgreesAt<R, G, A>{r, g, a});
+  }
+};
+}  // namespace detail_graph
+
 /**
  * @brief @c is_graph_of(r, f, dom) --- the finite witness that a relation
  *        @c r @b is the graph of the arrow @c f, by pointwise agreement with
@@ -501,13 +528,9 @@ export template <typename R, typename F, std::ranges::input_range DomRange,
                         dedekind::category::Cod<F>>
 constexpr auto is_graph_of(const R& r, F f, const DomRange& dom,
                            const CodRange& cod) {
-  const auto g = graph(f);
-  return forall(dom, [&r, &g, &cod](const auto& a) {
-    return forall(cod, [&r, &g, &a](const auto& b) {
-      return static_cast<bool>(r(std::pair{a, b})) ==
-             static_cast<bool>(g(std::pair{a, b}));
-    });
-  });
+  return std::ranges::all_of(
+      dom, detail_graph::AgreesOnRow<R, decltype(graph(f)), CodRange>{
+               r, graph(f), cod});
 }
 
 /** @section graph__Formal_Verification_IsGraphOf */
