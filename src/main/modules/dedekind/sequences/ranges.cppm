@@ -505,11 +505,8 @@ static_assert(detail::iota_bounds(D1andD2).start ==
  *  @note @b Why @b meet-only @b and @b not @b a @b full @b lattice:
  *  union of two iota_views is @b not in general an iota_view
  *  (@c [0,3) @c ∪ @c [5,10) is not one interval), so iota_view's carrier
- *  is @b not closed under join.  A full lattice on the intervals layer
- *  requires moving to a richer carrier — finite unions of intervals, or
- *  the @c Sub<> subobject lattice from #698 Slice 8.  Tracked as a
- *  follow-up issue; this slice exhibits the honest meet-semilattice
- *  fragment.
+ *  is @b not closed under join.  The full lattice lives on the richer
+ *  carrier, finite unions of intervals: the run lists of @c order:runs.
  */
 
 /** @brief The meet (intersection) operator on @c std::ranges::iota_view

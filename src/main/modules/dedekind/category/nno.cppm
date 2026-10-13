@@ -130,6 +130,7 @@ module;
 #include <cstddef>
 #include <cstdint>     // std::int8_t (the K₃ step)
 #include <functional>  // std::invoke
+#include <limits>      // a machine word's ends, where its step has no value
 #include <optional>    // std::optional = 1 + N, the NNO's functor
 #include <type_traits>
 
@@ -304,7 +305,8 @@ struct Predecessor {
 
 /** @brief The cover @f$S^{+} : N \to 1 + N@f$: the successor read partially,
  *  @c nullopt at a fixpoint of @c S, which on a saturating bounded chain is its
- *  top (ℵ₀ on @c Cardinality, @c True on K₃); total on an unbounded chain.
+ *  top (ℵ₀ on @c Cardinality, @c True on K₃), and at a machine word's greatest
+ *  value, where @c S has no value; total on an unbounded chain.
  *  @c std::optional<N> @b is @f$1 + N@f$, the NNO's own functor
  *  @f$F(X) = 1 + X@f$.
  *  @tparam N the carrier.
@@ -312,9 +314,25 @@ struct Predecessor {
 export template <HasCoveringStep N>
   requires std::equality_comparable<N>
 constexpr std::optional<N> cover(const N& n) {
+  if constexpr (std::integral<N>)
+    if (n == std::numeric_limits<N>::max()) return std::nullopt;
   const N s = successor(n);
   if (s == n) return std::nullopt;
   return s;
+}
+/** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
+ *  predecessor read partially, @c nullopt at the least element (a fixpoint of
+ *  @c P, or a machine word's least value).  Not the destructor @c Out, which
+ *  is nothing at @b zero.  @tparam N the carrier.  @param n an element.
+ *  @return the element @c n covers, if any. */
+export template <HasCoveringStep N>
+  requires std::equality_comparable<N>
+constexpr std::optional<N> lower_cover(const N& n) {
+  if constexpr (std::integral<N>)
+    if (n == std::numeric_limits<N>::min()) return std::nullopt;
+  const N p = predecessor(n);
+  if (p == n) return std::nullopt;
+  return p;
 }
 
 /** @brief The NNO's structure map @f$[Z, S] : 1 + N \to N@f$ as an arrow:
@@ -359,7 +377,11 @@ struct Out {
  *  saturates, and @c S ⊣ P on it is registered as the adjunction it is
  *  (@c numbers:integer), not derived from an iso it is not. */
 
-static_assert(cover(5) == 6, "the cover of 5 on the unbounded chain is S(5).");
+static_assert(cover(5) == 6 && !cover(std::numeric_limits<int>::max()) &&
+                  lower_cover(5) == 4 &&
+                  !lower_cover(std::numeric_limits<int>::min()) &&
+                  !lower_cover(Ternary::False) && lower_cover(-5) == -6,
+              "the covers of 5 are 6 and 4; a machine word's ends have none.");
 static_assert(In<int>{}(Out<int>{}(5)) == 5,
               "In ∘ Out = id (every carrier with the step).");
 static_assert(

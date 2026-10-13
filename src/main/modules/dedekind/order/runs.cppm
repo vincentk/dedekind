@@ -24,7 +24,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
-#include <limits>
+#include <functional>  // std::less_equal: the chain's own order
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -206,12 +206,13 @@ constexpr Bound<V> upper_at(const Position<V>& p) {
   return {p.at,
           p.side == Side::Above ? Strictness::NonStrict : Strictness::Strict};
 }
-/** @brief The carrier's least element, where it has one as a value.
- *  @tparam V the carrier. */
+/** @brief The carrier's least element, where it has one as a value: a
+ *  registered lattice bottom (the machine words), ℕ's 0 and ℤ's −ℵ₀, a truth
+ *  chain's ⊥.  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> least() {
-  if constexpr (std::integral<V>)
-    return std::numeric_limits<V>::min();
+  if constexpr (requires { LatticeBottom<V, std::less_equal<V>>::value; })
+    return LatticeBottom<V, std::less_equal<V>>::value;
   else if constexpr (std::same_as<V, Cardinality>)
     return V{};
   else if constexpr (std::same_as<V, SignedCardinality>)
@@ -221,12 +222,12 @@ constexpr std::optional<V> least() {
   else
     return std::nullopt;
 }
-/** @brief The carrier's greatest element, where it has one as a value (ℵ₀ on
- *  ℕ).  @tparam V the carrier. */
+/** @brief The carrier's greatest element, where it has one as a value, dual to
+ *  @ref least (ℵ₀ on ℕ).  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> greatest() {
-  if constexpr (std::integral<V>)
-    return std::numeric_limits<V>::max();
+  if constexpr (requires { LatticeTop<V, std::less_equal<V>>::value; })
+    return LatticeTop<V, std::less_equal<V>>::value;
   else if constexpr (std::same_as<V, Cardinality>)
     return V{ℵ_0{}};
   else if constexpr (std::same_as<V, SignedCardinality>)
@@ -236,44 +237,14 @@ constexpr std::optional<V> greatest() {
   else
     return std::nullopt;
 }
-/** @brief The element covering @c x: none at the greatest element (a saturating
- *  step stays put there) or on a carrier without the step.  @tparam V the
- *  carrier. */
-template <typename V>
-constexpr std::optional<V> next_above(const V& x) {
-  if constexpr (std::integral<V>) {
-    if (x == std::numeric_limits<V>::max()) return std::nullopt;
-    return successor(x);
-  } else if constexpr (HasNNOStep<V>) {
-    const V s = successor(x);
-    if (s == x) return std::nullopt;
-    return s;
-  } else {
-    return std::nullopt;
-  }
-}
-/** @brief The element @c x covers: none at the least element or on a carrier
- *  without the step.  @tparam V the carrier. */
-template <typename V>
-constexpr std::optional<V> next_below(const V& x) {
-  if constexpr (std::integral<V>) {
-    if (x == std::numeric_limits<V>::min()) return std::nullopt;
-    return predecessor(x);
-  } else if constexpr (HasNNOStep<V>) {
-    const V p = predecessor(x);
-    if (p == x) return std::nullopt;
-    return p;
-  } else {
-    return std::nullopt;
-  }
-}
 /** @brief A position in its canonical form: just above a value is just below
  *  the element covering it, where there is one, so on a discrete chain
  *  @c (0, 3) and @c [1, 3) have the same positions.  @tparam V the carrier. */
 template <typename V>
 constexpr Position<V> canonical(Position<V> p) {
-  if (p.side == Side::Above)
-    if (const auto n = next_above(p.at)) return {*n, Side::Below};
+  if constexpr (HasCoveringStep<V>)
+    if (p.side == Side::Above)
+      if (const auto n = cover(p.at)) return {*n, Side::Below};
   return p;
 }
 /** @brief Whether @c p lies before every element of the carrier.
@@ -504,7 +475,7 @@ struct Run {
  *  closed pairs in order, read over the carrier: an unbounded side at the
  *  carrier's end.  @param r the run list. */
 export template <IsTotallyOrdered C>
-  requires(detail_position::least<C>().has_value())
+  requires HasCoveringStep<C> && (detail_position::least<C>().has_value())
 constexpr std::vector<Run<C>> runs(const Runs<C, Boole>& r) {
   using namespace detail_position;
   const auto c = detail_runs::within_carrier(r);
@@ -514,7 +485,7 @@ constexpr std::vector<Run<C>> runs(const Runs<C, Boole>& r) {
     if (s.value)
       lo = s.at.at;  // a canonical position inside the carrier is below
     else
-      out.push_back({*lo, *next_below(s.at.at)});
+      out.push_back({*lo, *lower_cover(s.at.at)});
   }
   if (c.steps().empty() ? c.first() : c.steps().back().value)
     out.push_back({*lo, *greatest<C>()});
