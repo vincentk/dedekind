@@ -1038,20 +1038,20 @@ struct Term {
     t.value = std::move(k);
     return t;
   }
-  /** @brief The term with the variable @c slot replaced by @c with: the
+  /** @brief The term with the variable @c variable replaced by @c with: the
    *  substitution a structural arrow's image is (@c π ↦ @c π @c - @c 1 for
-   *  the successor's).  @param slot the variable.  @param with its
+   *  the successor's).  @param variable the slot.  @param with its
    *  replacement.  @return the substituted term. */
-  Term subst(unsigned slot, const Term& with) const {
+  Term subst(unsigned variable, const Term& with) const {
     switch (kind) {
       case Kind::Proj:
-        return this->slot == slot ? with : *this;
+        return slot == variable ? with : *this;
       case Kind::Const:
         return *this;
       case Kind::Bin: {
         Term t = *this;
-        t.a = std::make_shared<const Term>(a->subst(slot, with));
-        t.b = std::make_shared<const Term>(b->subst(slot, with));
+        t.a = std::make_shared<const Term>(a->subst(variable, with));
+        t.b = std::make_shared<const Term>(b->subst(variable, with));
         return t;
       }
     }
@@ -1097,17 +1097,17 @@ struct Pred {
   static Pred conj(Pred x, Pred y) { return node(Kind::And, x, y); }
   /** @brief @c x @c ∨ @c y.  @param x,y the predicates.  @return the join. */
   static Pred disj(Pred x, Pred y) { return node(Kind::Or, x, y); }
-  /** @brief The predicate with the variable @c slot replaced by the term
-   *  @c with in every atom.  @param slot the variable.  @param with its
+  /** @brief The predicate with the variable @c variable replaced by the term
+   *  @c with in every atom.  @param variable the slot.  @param with its
    *  replacement.  @return the substituted predicate. */
-  Pred subst(unsigned slot, const Term<K>& with) const {
+  Pred subst(unsigned variable, const Term<K>& with) const {
     Pred t = *this;
     if (kind == Kind::Cmp) {
-      t.a = std::make_shared<const Term<K>>(a->subst(slot, with));
-      t.b = std::make_shared<const Term<K>>(b->subst(slot, with));
+      t.a = std::make_shared<const Term<K>>(a->subst(variable, with));
+      t.b = std::make_shared<const Term<K>>(b->subst(variable, with));
     } else {
-      t.p = std::make_shared<const Pred>(p->subst(slot, with));
-      t.q = std::make_shared<const Pred>(q->subst(slot, with));
+      t.p = std::make_shared<const Pred>(p->subst(variable, with));
+      t.q = std::make_shared<const Pred>(q->subst(variable, with));
     }
     return t;
   }
