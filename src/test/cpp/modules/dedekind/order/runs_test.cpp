@@ -76,6 +76,15 @@ TEST_CASE(
   CHECK(ext(~stored) == ~a);
 }
 
+TEST_CASE("order:runs: the two points of 𝔹 partition it",
+          "[order][runs][boolean]") {
+  // Spelled in the set grammar; equality is the run lists'.
+  constexpr auto b_false = 𝔹 | (π == false);
+  constexpr auto b_true = 𝔹 | (π == true);
+  STATIC_CHECK(Ø<bool>{} == (b_false & b_true));
+  STATIC_CHECK(𝔸<bool>{} == (b_false | b_true));
+}
+
 TEST_CASE("order:runs: a set valued in K₃ is a step function into K₃",
           "[order][runs][kleene]") {
   using IK = Interval<int, Kleene>;

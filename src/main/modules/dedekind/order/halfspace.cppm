@@ -325,6 +325,13 @@ struct Steps {
   constexpr SpanSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
     return {Span<V>{}};
   }
+  /** @brief The point @c 𝔸 @c | @c (π @c == @c v) of the set grammar: the
+   *  interval @f$[v, v]@f$. */
+  template <typename V, typename C>
+  constexpr SpanSteps<V, L> operator()(
+      const Comprehension<𝔸<V, L, C>, Point<V>>& c) const {
+    return {Interval<V, L>::point(c.predicate.pivot).span()};
+  }
   /** @brief A set brought into this species (@c sets::lift_to): its
    *  predicate's steps, each value lifted along the dominance. */
   template <typename V, typename C, typename P>

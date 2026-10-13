@@ -386,18 +386,13 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 }
 
-TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
+TEST_CASE("Dedekind Identities: Boolean literals over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = 𝔸<bool, Boole, Finite>;
-  constexpr BoolAmbient B_bool{};
-
   // The two points of 𝔹, spelled in the grammar.  Their meet / join are the
-  // reducer's nodes; == Ø and == 𝔹 are decided by exhausting {false, true}.
+  // reducer's nodes, read pointwise here; that they are Ø and 𝔹 as sets is
+  // decided by the run lists (order/runs_test).
   constexpr auto b_false = 𝔹 | (π == false);
   constexpr auto b_true = 𝔹 | (π == true);
-
-  STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true));
-  STATIC_CHECK(B_bool == (b_false | b_true));
 
   CHECK((b_false & b_true)(false) == false);
   CHECK((b_false & b_true)(true) == false);
@@ -411,21 +406,11 @@ TEST_CASE(
   // The textbook DSL form `Set{b | b}` reads "elements of B for
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true.
-  using BoolAmbient = 𝔸<bool, Boole, Finite>;
-  constexpr BoolAmbient B_bool{};
-
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS the
   // point {true}, spelled as the set former.
   constexpr auto b_true_bare = 𝔹 | (π == true);
   // Equivalent comparison form: the same point by its factory.
   constexpr auto b_true_eq = singleton(true);
-  // Negated bare-b form.
-  constexpr auto b_false = 𝔹 | (π == false);
-
-  // Both bare-b and (b == true) are the same point, so the static_asserts
-  // pinning the Boolean partition laws fire on the bare-b form.
-  STATIC_CHECK(Ø<bool, Boole>{} == (b_false & b_true_bare));
-  STATIC_CHECK(B_bool == (b_false | b_true_bare));
 
   // Operational witness: bare-b agrees with (b == true) at every input.
   CHECK(b_true_bare(false) == b_true_eq(false));
