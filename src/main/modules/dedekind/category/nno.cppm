@@ -252,6 +252,13 @@ concept HasNNOStep = requires(const T& n) {
  *  @tparam T the carrier. */
 export template <typename T>
 concept HasCoveringStep = HasNNOStep<T>;
+/** @brief A carrier whose step itself is monotone: it saturates or has no
+ *  value at the ends and never wraps, so @c S and @c P preserve the order and
+ *  the orbit of the step is monotone.  An unsigned word has the cover but not
+ *  this: @c S(2^w − 1) @c = @c 0.  @tparam T the carrier. */
+export template <typename T>
+concept HasMonotoneStep =
+    HasNNOStep<T> && (!std::unsigned_integral<T> || std::same_as<T, bool>);
 
 /** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
  *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
@@ -397,6 +404,10 @@ static_assert(HasCoveringStep<int> && HasCoveringStep<bool> &&
                   successor(std::numeric_limits<unsigned>::max()) == 0u,
               "every chain with the step has its cover; on a word the cover "
               "stops at 2^w − 1 where the ring's step wraps to 0.");
+static_assert(HasMonotoneStep<int> && HasMonotoneStep<bool> &&
+                  HasMonotoneStep<Ternary> && !HasMonotoneStep<unsigned>,
+              "the step is monotone where it saturates or stops, not where it "
+              "wraps.");
 static_assert(successor(Ternary::False) == Ternary::Unknown &&
                   successor(Ternary::Unknown) == Ternary::True &&
                   successor(Ternary::True) == Ternary::True,

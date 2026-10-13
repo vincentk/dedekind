@@ -979,8 +979,9 @@ constexpr Interval<T, L> upperbounds(const Interval<T, L>& s) {
   if (!s.span()->upper) return S::empty();
   const Bound<T>& b = *s.span()->upper;
   T sup = b.at;
-  if constexpr (HasCoveringStep<T>)
-    if (b.strictness == Strictness::Strict) sup = predecessor(b.at);
+  if constexpr (HasCoveringStep<T>)  // the cover, not the step: a word wraps
+    if (b.strictness == Strictness::Strict)
+      sup = lower_cover(b.at).value_or(b.at);
   return S::half(sup, Direction::Upward, Strictness::NonStrict);
 }
 /** @brief The dual: lower bounds, @c {x ≤ inf}. */
@@ -991,8 +992,8 @@ constexpr Interval<T, L> lowerbounds(const Interval<T, L>& s) {
   if (!s.span()->lower) return S::empty();
   const Bound<T>& b = *s.span()->lower;
   T inf = b.at;
-  if constexpr (HasCoveringStep<T>)
-    if (b.strictness == Strictness::Strict) inf = successor(b.at);
+  if constexpr (HasCoveringStep<T>)  // the cover, not the step: a word wraps
+    if (b.strictness == Strictness::Strict) inf = cover(b.at).value_or(b.at);
   return S::half(inf, Direction::Downward, Strictness::NonStrict);
 }
 // 𝔹: the whole carrier is bounded --- ⊤ dominates it, ⊥ is dominated by it.

@@ -519,6 +519,7 @@ template <typename T, typename Op, std::size_t N>
 inline constexpr bool is_periodic_sequence_v<OrbitSequence<T, Op>, N> = true;
 
 using dedekind::category::HasCoveringStep;
+using dedekind::category::HasMonotoneStep;
 using dedekind::category::Ternary;
 using dedekind::order::IsTotallyOrdered;
 using dedekind::sets::Cardinality;
@@ -559,14 +560,15 @@ struct SuccessorOrbit : Path<N> {
   }
 };
 
-/** @brief Where the step covers, it is inflationary, so the orbit is monotone
- *  from any seed; it is bounded where the chain has a top.  The K₃ orbit is
+/** @brief Where the step is monotone (it saturates or stops, never wraps), it
+ *  is inflationary, so the orbit is monotone from any seed; it is bounded
+ *  where the chain has a top.  The K₃ orbit is
  *  eventually constant at ⊤ from any seed, within two steps.  The ℕ proxy's is
  *  not: from a finite seed the index type is exhausted one step before ℵ₀,
  *  which is the orbit's supremum and not one of its terms --- the sequence
  *  converges to the memory boundary without reaching it, so it is monotone and
  *  bounded, not absorptive. */
-template <HasCoveringStep N>
+template <HasMonotoneStep N>
   requires IsTotallyOrdered<N>
 inline constexpr bool is_monotone_sequence_v<SuccessorOrbit<N>> = true;
 template <>
