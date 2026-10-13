@@ -4,8 +4,8 @@ Each test encodes one claim from #1006's prose (and the operator surface of
 #1018, the Pst definition on #981).  A universe is the factory: terms name no
 carrier, and ``A(carrier) | term`` binds them, casting the constants and
 checking the operators against that carrier.  The carriers are primitive ones
-Python users know: ``u64`` and ``i64`` (the ring ℤ/2⁶⁴ with unsigned and signed
-representatives: + − · wrap), ``𝔽ₚ`` (the prime field, p = 2⁶⁴ − 59) and
+Python users know: ``u64`` (the ring ℤ/2⁶⁴: + − · wrap), ``𝔽ₚ`` (the prime
+field, p = 2⁶⁴ − 59) and
 ``B`` (``bool``).  An ordered word takes an integer constant by the checked
 cast; the field takes it by the quotient map ℤ → 𝔽ₚ.  A test runs as
 soon as the names it needs are bound and is skipped until then, so this file is
@@ -113,18 +113,6 @@ class TheTotalOperatorSurface(unittest.TestCase):
         # A constant divisor is checked when the term is written.
         with self.assertRaises(ValueError):
             π % 0
-
-    @_needs("dedekind.pst", "A", "i64", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
-    def test_on_a_signed_word(self) -> None:
-        from dedekind.pst import A, i64, π, π1, π2
-
-        U = A(i64)  # ℤ/2⁶⁴ again, with representatives in [−2⁶³, 2⁶³)
-        negatives = U | (π < 0)
-        self.assertIn(-1, negatives)
-        self.assertNotIn(0, negatives)
-        U * U | (π2 == π1 - 1)  # total: it wraps at −2⁶³
-        with self.assertRaises(ValueError):
-            U | (π > 2**63)  # the word cannot hold it
 
     @_needs("dedekind.pst", "A", "Fp", "u64", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
     def test_on_the_prime_field(self) -> None:

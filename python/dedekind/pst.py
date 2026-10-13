@@ -67,6 +67,18 @@ set is built::
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
     A(B) | (π + 1 == True)              # TypeError: 𝔹 is not closed under +
 
+A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
+its run list, so equality, ``runs()``, ``len``, iteration and slicing by value
+are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
+(from ``dedekind.jlt``) substitute the variable, and the run list translates,
+wrapping at the word's end::
+
+    from dedekind.jlt import succ
+    (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)    # True: one normal form
+    (~(U | (π == 5))).runs()                         # [(0, 4), (6, 2**64 - 1)]
+    list(U[3:8]);  len(U | (π < 3))                  # [3, 4, 5, 6, 7]; 3
+    image(succ, U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: it wraps
+
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as
 written.  Subscript digits are not identifier characters, so ``K₃`` is ``K3``
@@ -90,7 +102,9 @@ from ._pst import Ternary
 from ._pst import aleph0
 from ._pst import exists
 from ._pst import forall
+from ._pst import image
 from ._pst import lift
+from ._pst import preimage
 from ._pst import runs
 from ._pst import u64
 from ._pst import Ø
@@ -112,5 +126,5 @@ all = forall  # noqa: A001
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
     "Ø", "η", "π", "π1", "π2", "χ", "Term", "Pred", "exists", "forall", "runs",
-    "lift",
+    "lift", "image", "preimage",
 ]

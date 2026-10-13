@@ -49,6 +49,7 @@
 #include <type_traits>  // std::type_identity: a constant's meeting with a carrier
 #include <utility>
 #include <variant>
+#include <vector>
 
 import dedekind.category;     // Ternary, Boole, Kleene, IsPst, the step
 import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
@@ -64,6 +65,7 @@ using dedekind::category::classifier_logic_t;
 using dedekind::category::cover;
 using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
+using dedekind::category::Identity;
 using dedekind::category::IsFiniteChain;
 using dedekind::category::IsOckhamAlgebra;
 using dedekind::category::IsPst;
@@ -75,6 +77,7 @@ using dedekind::category::Ternary;
 using dedekind::order::ext;
 using dedekind::order::Interval;
 using dedekind::order::IsDense;
+using dedekind::order::IsTotallyOrdered;
 using dedekind::order::Runs;
 using dedekind::order::steps;
 // The product former 𝔸<A×B> | rel is order's, not found by ADL on sets types.
@@ -574,11 +577,25 @@ auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
   return ext(s & acc);
 }
 
+/** @brief The elements of a set of a chain, run by run, from its least. */
+template <typename C>
+struct RunsIter {
+  std::vector<std::pair<C, C>> runs;
+  std::size_t i = 0;
+  C cur{};
+  bool live = false;
+};
+
 /** @brief The sets a term cuts out of a canonical universe: the set
  *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
- *  @c | @c pred, each a comprehension holding the bound predicate, read
- *  pointwise.  @tparam C the carrier.  @tparam ToC a Python value into @c C,
- *  raising where it is none. */
+ *  @c | @c pred, each a comprehension holding the bound predicate.  Over a
+ *  chain the order fragment (atoms @c π @c ⋈ @c k under @c & and @c |) reads
+ *  as run lists, so equality, @c runs(), iteration and slicing are the
+ *  library's; a term outside it is read pointwise only.  @c image /
+ *  @c preimage under the structural arrows substitute the variable (the
+ *  successor's image is @c π @c ↦ @c π @c - @c 1), and on a word the run list
+ *  translates, wrapping.  @tparam C the carrier.  @tparam ToC a Python value
+ *  into @c C, raising where it is none. */
 template <typename C, typename ToC>
 void bind_term_sets(nb::module_& m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
@@ -611,9 +628,9 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
-  nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.")
-      .def(
-          "__contains__",
+  auto set =
+      nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
+  set.def("__contains__",
           [holds, to_c](const S& s, nb::handle h) { return holds(to_c, s, h); })
       .def(
           "__call__", [to_c](const S& s, nb::handle h) { return s(to_c(h)); },
@@ -634,6 +651,170 @@ void bind_term_sets(nb::module_& m,
       .def_prop_ro("universe", [](const S&) { return U{}; })
       .def("__repr__",
            [shown](const S& s) { return shown + " | " + show(s.predicate); });
+  // image / preimage under the structural arrows: the substitution.  An erased
+  // composite has no closed form and is refused.
+  const auto shifted = [](const S& s, Arith op) {
+    return U{} | s.predicate.subst(
+                     0, RTerm::bin(op, RTerm::proj(0),
+                                   RTerm::constant(PyConst{nb::int_(1)})));
+  };
+  const char* image_doc =
+      "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
+      "the variable substituted (succ: π ↦ π - 1); on a word the run list "
+      "translates, wrapping at the end, so image(succ, {x > 5}) is {x > 6} ∪ "
+      "{0}.";
+  const char* preimage_doc =
+      "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
+      "pred): "
+      "the variable substituted (succ: π ↦ π + 1).";
+  m.def(
+      "image",
+      [shifted](const Successor<C>&, const S& s) {
+        return shifted(s, Arith::Sub);
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "image",
+      [shifted](const Predecessor<C>&, const S& s) {
+        return shifted(s, Arith::Add);
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "image", [](const Identity<C>&, const S& s) { return s; }, nb::arg("f"),
+      nb::arg("s"), image_doc);
+  m.def(
+      "preimage",
+      [shifted](const Successor<C>&, const S& s) {
+        return shifted(s, Arith::Add);
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  m.def(
+      "preimage",
+      [shifted](const Predecessor<C>&, const S& s) {
+        return shifted(s, Arith::Sub);
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  m.def(
+      "preimage", [](const Identity<C>&, const S& s) { return s; },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  using Erased = dedekind::category::Morphism<C, C, std::function<C(C)>>;
+  m.def(
+      "image",
+      [](const Erased&, const S&) -> S {
+        throw nb::type_error(
+            "image of an erased composite arrow is intensional and has no "
+            "closed form; only id / succ / pred do");
+      },
+      nb::arg("f"), nb::arg("s"), image_doc);
+  m.def(
+      "preimage",
+      [](const Erased&, const S&) -> S {
+        throw nb::type_error(
+            "preimage of an erased composite arrow is intensional and has no "
+            "closed form; only id / succ / pred do");
+      },
+      nb::arg("f"), nb::arg("s"), preimage_doc);
+  if constexpr (IsTotallyOrdered<C>) {
+    // The order fragment: the run lists decide.
+    const auto run_pairs = [](const S& s) {
+      std::vector<std::pair<C, C>> out;
+      for (const auto& r : dedekind::order::runs(steps(s)))
+        out.emplace_back(r.lo, r.hi);
+      return out;
+    };
+    const auto count = [run_pairs](const S& s) {
+      nb::object total = nb::int_(0);
+      for (const auto& [lo, hi] : run_pairs(s)) {
+        const nb::object n =
+            nb::steal(PyNumber_Add(py_int(hi - lo).ptr(), nb::int_(1).ptr()));
+        total = nb::steal(PyNumber_Add(total.ptr(), n.ptr()));
+      }
+      return total;
+    };
+    set.def(
+           "__eq__", [](const S& a, const S& b) { return a == b; },
+           nb::is_operator(),
+           "A == B as sets: one normal form, the run lists, read on demand.  A "
+           "term outside the order fragment has none yet (TypeError, #1023).")
+        .def(
+            "__ne__", [](const S& a, const S& b) { return !(a == b); },
+            nb::is_operator())
+        .def(
+            "__bool__",
+            [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
+            "A set is truthy iff it is inhabited.")
+        .def(
+            "runs",
+            [run_pairs](const S& s) {
+              nb::list out;
+              for (const auto& [lo, hi] : run_pairs(s))
+                out.append(nb::make_tuple(lo, hi));
+              return out;
+            },
+            "The maximal runs along the chain, as (lo, hi) pairs: the normal "
+            "form.")
+        .def(
+            "__len__",
+            [count](const S& s) { return nb::cast<std::size_t>(count(s)); },
+            "The number of elements.")
+        .def_prop_ro(
+            "cardinality", [count](const S& s) { return count(s); },
+            "The number of elements, as a Python int (2⁶⁴ for the universe).")
+        .def(
+            "__iter__",
+            [run_pairs](const S& s) {
+              RunsIter<C> it{run_pairs(s)};
+              if (!it.runs.empty()) {
+                it.cur = it.runs[0].first;
+                it.live = true;
+              }
+              return it;
+            },
+            "The elements from the least, run by run: a bounded set iterates "
+            "like "
+            "range.")
+        .def(
+            "__getitem__",
+            [](const S& s, nb::handle key) -> S {
+              if (!nb::isinstance<nb::slice>(key))
+                throw nb::type_error(
+                    "a set is sliced by value, s[a:b] = s ∩ [a, b); positional "
+                    "indexing presupposes an enumeration, which is a "
+                    "sequence's");
+              if (!key.attr("step").is_none())
+                throw nb::type_error(
+                    "a stepped slice is the meet with a residue class: "
+                    "s & (A(carrier) | (π % k == r))");
+              RPred p = s.predicate;
+              if (!key.attr("start").is_none())
+                p = RPred::conj(
+                    p, RPred::cmp(Rel::Ge, RTerm::proj(0),
+                                  RTerm::constant(PyConst{key.attr("start")})));
+              if (!key.attr("stop").is_none())
+                p = RPred::conj(
+                    p, RPred::cmp(Rel::Lt, RTerm::proj(0),
+                                  RTerm::constant(PyConst{key.attr("stop")})));
+              return U{} | p;
+            },
+            nb::arg("key"),
+            "s[a:b] = s ∩ [a, b), slicing by value (pandas' .loc, not .iloc).");
+    nb::class_<RunsIter<C>>(m, (std::string(set_cls) + "Iter").c_str(),
+                            "The elements of a set of the chain, in order.")
+        .def("__iter__", [](RunsIter<C>& it) -> RunsIter<C>& { return it; })
+        .def("__next__", [](RunsIter<C>& it) {
+          if (!it.live) throw nb::stop_iteration();
+          const C value = it.cur;
+          if (value == it.runs[it.i].second) {
+            if (++it.i < it.runs.size())
+              it.cur = it.runs[it.i].first;
+            else
+              it.live = false;
+          } else {
+            it.cur = Successor<C>{}(it.cur);
+          }
+          return value;
+        });
+  }
   nb::class_<UU>(m, pair_cls, "𝔸 × 𝔸: the product universe.")
       .def(
           "__or__", [](const UU& u, const RPred& p) { return u | p; },

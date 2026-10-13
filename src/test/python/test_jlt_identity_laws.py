@@ -1,5 +1,8 @@
 """Jlt arrow DSL (#961): involutive endomorphisms over two objects (bool, int).
 
+``int`` names the canonical ring u64 = ℤ/2⁶⁴ (``dedekind.pst``): its reflection
+is the order reversal of the word, x ↦ 2⁶⁴ − 1 − x.
+
 The Python side is a fluent DSL over the *real* category arrows, duck-typed: an
 "arrow" is the protocol ``__call__`` / ``__rshift__`` plus the free functions
 ``dom`` / ``cod``.  The primitive arrows on a carrier ``T`` are ``id(T)`` and
@@ -56,18 +59,20 @@ class JltGroupLawsExtensionalTest(unittest.TestCase):
         self.assertIs(refl(bool)(True), False)
 
     def test_apply_int(self) -> None:
-        # refl(int) is :logic's chain reflection = ~ (bitwise complement),
-        # not arithmetic negation: ~7 == -8, ~(-3) == 2.
+        # refl(int) is :logic's chain reflection on the word: x ↦ max − x, the
+        # bitwise complement read unsigned.
         self.assertEqual(id(int)(7), 7)
-        self.assertEqual(refl(int)(7), ~7)
-        self.assertEqual(refl(int)(-3), ~(-3))
+        self.assertEqual(refl(int)(7), 2**64 - 1 - 7)
+        self.assertEqual(refl(int)(2**64 - 1), 0)
+        with self.assertRaises(TypeError):
+            refl(int)(-3)  # not an element of u64
 
     def test_identity_laws(self) -> None:
         # id ∘ f = f = f ∘ id, extensionally, per carrier.
         for x in (False, True):
             self.assertEqual((id(bool) >> refl(bool))(x), refl(bool)(x))
             self.assertEqual((refl(bool) >> id(bool))(x), refl(bool)(x))
-        for n in (-2, 0, 5):
+        for n in (0, 5, 2**64 - 1):
             self.assertEqual((id(int) >> refl(int))(n), refl(int)(n))
             self.assertEqual((refl(int) >> id(int))(n), refl(int)(n))
 
@@ -75,7 +80,7 @@ class JltGroupLawsExtensionalTest(unittest.TestCase):
         # refl ∘ refl = id, extensionally (the Z/2 group law), per carrier.
         for x in (False, True):
             self.assertEqual((refl(bool) >> refl(bool))(x), x)
-        for n in (-4, 0, 9):
+        for n in (0, 9, 2**64 - 1):
             self.assertEqual((refl(int) >> refl(int))(n), n)
 
 

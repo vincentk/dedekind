@@ -25,6 +25,7 @@
 #include <nanobind/nanobind.h>
 
 #include <concepts>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <stdexcept>
@@ -79,14 +80,9 @@ namespace jlt {
  *  arrow (@c IsArrow / @c IsEndomorphism hold).  @tparam T the carrier. */
 template <typename T>
 using Arrow = Morphism<T, T, std::function<T(T)>>;
-/** @brief What a Python @c int crosses the boundary as. */
-using Int = long long;
-/** @brief Where ℤ steps on and @c long @c long cannot: raise (Python's
- *  @c OverflowError) rather than wrap.  @param what the step. */
-[[noreturn]] void window_end(const char* what) {
-  throw std::overflow_error(std::string(what) +
-                            ": the 64-bit window ends here; ℤ does not");
-}
+/** @brief What a Python @c int crosses the boundary as: the canonical ring
+ *  u64 = ℤ/2⁶⁴ (@c dedekind.pst), whose step wraps. */
+using Int = std::uint64_t;
 
 /** @brief @c refl on a chain: @c :logic's pre-configured reflection
  *  @c logic_complement<L> (@c L::RFL: @c ¬ on @c Boole, the order-reversing
@@ -96,24 +92,6 @@ template <IsOckhamAlgebra L>
 Arrow<typename L::Ω> refl() {
   using T = typename L::Ω;
   return Arrow<T>{std::function<T(T)>{logic_complement<L>{}}};
-}
-
-/** @brief A step arrow applied inside the window: total on @c bool, and on
- *  the integer window raising at the end it would cross rather than
- *  overflowing.  @tparam T the carrier.  @tparam Step the successor or the
- *  predecessor on it.  @param f the arrow.  @param x the argument.
- *  @return @c f(x). */
-template <HasNNOStep T, typename Step>
-  requires std::same_as<Step, Successor<T>> ||
-           std::same_as<Step, Predecessor<T>>
-T step_in_window(const Step& f, T x) {
-  if constexpr (std::same_as<T, Int>) {
-    constexpr bool up = std::same_as<Step, Successor<T>>;
-    if (x == (up ? std::numeric_limits<Int>::max()
-                 : std::numeric_limits<Int>::min()))
-      window_end(up ? "succ" : "pred");
-  }
-  return f(x);
 }
 
 /** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
@@ -189,22 +167,20 @@ void bind_endo_operators(nb::class_<S>& cls) {
 }
 
 /** @brief The arrow operators of a typed step @c S: @c __call__ through
- *  @c jlt::step_in_window (total on @c bool; at the integer window's end it
- *  raises @c OverflowError instead of overflowing), and @c >> as for every
+ *  the arrow applied: total on @c bool (saturating) and on the word (wrapping).
  *  endo-arrow. */
 template <typename S>
 void bind_step_operators(nb::class_<S>& cls) {
   using T = typename S::Domain;
   cls.def(
-      "__call__", [](const S& f, T x) { return jlt::step_in_window(f, x); },
-      "Apply the step; at the end of the 64-bit window it raises "
-      "OverflowError (ℤ continues, the window does not).");
+      "__call__", [](const S& f, T x) { return f(x); },
+      "Apply the step: saturating on bool, wrapping on the word u64.");
   bind_compositions(cls);
 }
 
 /** @brief Bind the step arrows on carrier @c T as their own classes, typed:
  *  the real @c :nno @c Successor / @c Predecessor, composable like @c id, and
- *  readable by @c lwv.image. */
+ *  read by @c dedekind.pst.image. */
 template <typename T>
 void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
@@ -313,8 +289,8 @@ NB_MODULE(_jlt, m) {
       },
       nb::arg("carrier"),
       "succ(T): the successor arrow on carrier T, the NNO step (saturating: "
-      "succ(bool)(True) is True; on int the 64-bit window ends at 2**63 - 1 "
-      "and succ raises OverflowError there).");
+      "succ(bool)(True) is True; on int, the word u64, it wraps: succ(2**64 - "
+      "1) is 0).");
   m.def(
       "pred",
       [](nb::handle t) -> nb::object {
