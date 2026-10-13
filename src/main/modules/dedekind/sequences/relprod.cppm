@@ -5,7 +5,7 @@
  *        generalization of @c :relational's Boolean-middle @c >> (which
  *        enumerates @c {false,true}) to a bounded ℕ carrier @f$[0,M)@f$.  The
  *        @f$\exists@f$-over-the-middle is a @b short-circuiting scan (@c
- *        sets::exists: it stops at the first witness), and
+ *        std::ranges::any_of: it stops at the first witness), and
  *        the bound @c M is carried on the composed type so repeated squaring
  *        (@c R;R, @c (R;R);(R;R), …) stays bounded --- the semantic for-loop of
  *        bounded transitive closure (#795).
@@ -20,8 +20,7 @@
  * of @c order --- cannot see, so the bounded @c >> cannot live beside its
  * Boolean sibling.  It sits in @c sequences (the first module below both @c
  * order and @c relational that the exhibit already imports); consumers reach
- * the bare @c >> via @c using @c namespace @c dedekind::sequences.  The
- * @f$\exists@f$ itself is @c sets::exists (@b upstream, short-circuiting).
+ * the bare @c >> via @c using @c namespace @c dedekind::sequences.
  *
  * Wikipedia: Composition of relations, Transitive closure, Relation algebra
  *
@@ -34,20 +33,20 @@
  */
 module;
 
-#include <concepts>  // std::convertible_to
+#include <algorithm>  // std::ranges::any_of
+#include <concepts>   // std::convertible_to
 #include <cstddef>
 #include <ranges>
 #include <utility>
 
 export module dedekind.sequences:relprod;
 
-import dedekind.sets; // Comprehension / 𝔸, finite_cardinality, exists (short-circuit ∃)
+import dedekind.sets;  // Comprehension / 𝔸, finite_cardinality
 import dedekind.order; // ProductRestrict, IsRelPredicate
 
 namespace dedekind::sequences {
 using dedekind::order::IsRelPredicate;
 using dedekind::sets::Comprehension;
-using dedekind::sets::exists;
 using dedekind::sets::finite_cardinality;
 using dedekind::sets::IsCardinality;
 using dedekind::sets::𝔸;
@@ -55,11 +54,28 @@ using dedekind::sets::𝔸;
 /** @brief The composed predicate for @f$R;S@f$ over the finite ℕ-prefix
  *  @f$[0,M)@f$ middle.  Carries @c M (so the bound survives repeated squaring)
  *  and the two operand @c IsRelPredicate operands.  The
- *  @f$\exists@f$-over-the-middle is the @b short-circuiting @c sets::exists
- * over a @b lazy @c iota generator: @c filter's @c begin() advances only to the
- *  @e first witness @f$b@f$, so a hit returns immediately (@f$\top \vee x =
+ *  @f$\exists@f$-over-the-middle is the @b short-circuiting
+ *  @c std::ranges::any_of over a @b lazy @c iota generator: it advances only
+ *  to the @e first witness @f$b@f$, so a hit returns immediately (@f$\top \vee
+ * x =
  *  \top@f$) --- O(1) memory (no bool accumulator threaded), O(M) steps
  *  @e worst-case, @b no array. */
+namespace detail_relprod {
+/** @brief Whether @c b is a middle for @f$(a, c)@f$: @f$R(a,b) \wedge
+ *  S(b,c)@f$, with @c b the @c i-th element of ℕ. */
+template <typename PR, typename PS, typename Pair>
+struct IsMiddle {
+  const PR& r;
+  const PS& s;
+  const Pair& ac;
+  constexpr bool operator()(std::size_t i) const {
+    const auto b = finite_cardinality(i);
+    return static_cast<bool>(r(std::pair{ac.first, b})) &&
+           static_cast<bool>(s(std::pair{b, ac.second}));
+  }
+};
+}  // namespace detail_relprod
+
 export template <IsRelPredicate PR, IsRelPredicate PS>
 struct ComposePrefixPred {
   using is_rel_predicate = void;
@@ -76,11 +92,9 @@ struct ComposePrefixPred {
     }
   constexpr bool operator()(const Pair& ac) const {
     // ∃ b ∈ [0,M). R(a,b) ∧ S(b,c) --- exists stops at the first witness b.
-    return exists(std::views::iota(std::size_t{0}, bound), [&](std::size_t i) {
-      const auto b = finite_cardinality(i);
-      return static_cast<bool>(r(std::pair{ac.first, b})) &&
-             static_cast<bool>(s(std::pair{b, ac.second}));
-    });
+    return std::ranges::any_of(
+        std::views::iota(std::size_t{0}, bound),
+        detail_relprod::IsMiddle<PR, PS, Pair>{r, s, ac});
   }
 };
 
