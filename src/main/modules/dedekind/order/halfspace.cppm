@@ -1204,6 +1204,16 @@ static_assert(
 
 }  // namespace dedekind::order
 
+// ── Equality of the sets of a chain, where the set-level quantifiers look ────
+// sets:quantifier compares Ø == (S | P) inside a template of dedekind::sets; a
+// comprehension built from sets and category types alone (𝔸 | id on K₃) names
+// no order type, so argument-dependent lookup searches only those namespaces.
+// The run-list equalities are named in dedekind::sets as well: the same
+// functions, visible wherever order is imported.
+export namespace dedekind::sets {
+using dedekind::order::operator==;
+}  // namespace dedekind::sets
+
 // ── Structural inference of the relation properties (Table 3) ───────────────
 // The four properties are opt-in traits (trust at the leaves).  Here they are
 // INFERRED for the DSL's OWN graph relations, so the concepts are no longer

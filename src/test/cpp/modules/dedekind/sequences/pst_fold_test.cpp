@@ -85,10 +85,9 @@ TEST_CASE(
     "[sequences][pst][kleene]") {
   // χ = id on K₃, valued in K₃: the simplest set with a genuine Unknown level.
   constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Identity<Ternary>{};
-  // ∃ and ∀ in K₃ are the comparisons against the bounds: Ø == χ is ¬⋁χ, here
-  // ⊥ (so ∃ holds), and 𝔸 == χ is ⋀χ, here ⊥ (so ∀ fails).
-  CHECK((Ø<Ternary, Kleene>{} == hedge) == Ternary::False);
-  CHECK((𝔸<Ternary, Kleene>{} == hedge) == Ternary::False);
+  // ∃ = ⋁χ and ∀ = ⋀χ in K₃, through == alone: Unknown is a verdict.
+  CHECK(exists(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::True);
+  CHECK(forall(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::False);
   // Equality is the internal biconditional: reflexive only up to the excluded
   // middle, so a set agrees with itself to degree U where it is U.
   CHECK((hedge == hedge) == Ternary::Unknown);
