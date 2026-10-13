@@ -37,10 +37,13 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <limits>
 #include <optional>
 #include <string>
+#include <type_traits>  // std::type_identity: a constant's meeting with a carrier
+#include <utility>
 #include <variant>
 
 import dedekind.category;     // Ternary, Boole, Kleene, IsPst, the step
@@ -355,9 +358,12 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
 /** @brief The species tags a universe is valued in: @c 𝔸(K3, Kleene). */
 struct BooleTag {};
 struct KleeneTag {};
-/** @brief The grammar's element @c π (also written @c χ): @c π @c > @c v builds
- *  a datum over the carrier the value belongs to. */
-struct ProjectionTag {};
+/** @brief The grammar's variables @c π (also written @c χ), @c π1, @c π2:
+ *  @c π @c > @c v builds a datum over the truth chain the value belongs to;
+ *  any other comparison or an arithmetic builds a term, bound by the former. */
+struct ProjectionTag {
+  unsigned slot = 0;
+};
 
 /** @brief The runs of a decidable set, written: Ø, {U}, [U, ⊤], ∪ between. */
 template <typename C>
@@ -712,9 +718,275 @@ bool in_fp(nb::handle h) {
   if (same < 0) throw nb::python_error();
   return same == 1;
 }
+
+// ── The term surface: terms built in Python, checked when bound ──────────────
+//
+// A term names no carrier; A(carrier) | term binds it, every constant cast into
+// the carrier and every operator admitted there or refused (TypeError).  The
+// tree is sets::Term / sets::Pred, read by the library's own algebras; the
+// binding adds the constants (Python objects, cast when bound), the handles and
+// their spelling.
+
+using dedekind::sets::Arith;
+using dedekind::sets::Comprehension;
+using dedekind::sets::Rel;
+using dedekind::sets::spelling;
+
+/** @brief A constant as Python holds it: an int, a bool, a Ternary, a u64 or
+ *  an element of 𝔽ₚ.  It meets the carrier when the term is bound: the
+ *  checked cast into u64, the quotient map into 𝔽ₚ, a bool on 𝔹. */
+struct PyConst {
+  nb::object o;
+  PyConst() : o(nb::int_(0)) {}
+  explicit PyConst(nb::handle h) : o(nb::borrow(h)) {
+    if (!(is_py_int(h) || PyBool_Check(h.ptr()) || nb::isinstance<Ternary>(h) ||
+          nb::isinstance<Word>(h) || nb::isinstance<Fp>(h)))
+      throw nb::type_error(
+          "a constant is an int, a bool, a Ternary, a u64 or an element of 𝔽ₚ");
+  }
+  friend bool operator==(const PyConst& a, const PyConst& b) {
+    const int r = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_EQ);
+    if (r < 0) throw nb::python_error();
+    return r == 1;
+  }
+};
+/** @brief The constant's meeting with each carrier, found by the library's
+ *  @c carrier_cast through ADL. */
+uint64_t carrier_cast(std::type_identity<uint64_t>, const PyConst& k) {
+  return word_of(k.o).v;
+}
+Fp carrier_cast(std::type_identity<Fp>, const PyConst& k) {
+  return residue_of(k.o);
+}
+bool carrier_cast(std::type_identity<bool>, const PyConst& k) {
+  if (!PyBool_Check(k.o.ptr()))
+    throw nb::type_error("a constant on 𝔹 is a bool");
+  return k.o.ptr() == Py_True;
+}
+Ternary carrier_cast(std::type_identity<Ternary>, const PyConst& k) {
+  if (!nb::isinstance<Ternary>(k.o))
+    throw nb::type_error("a constant on K₃ is a Ternary");
+  return nb::cast<Ternary>(k.o);
+}
+using RTerm = dedekind::sets::Term<PyConst>;
+using RPred = dedekind::sets::Pred<PyConst>;
+
+RTerm as_term(const ProjectionTag& p) { return RTerm::proj(p.slot); }
+RTerm as_term(const RTerm& t) { return t; }
+/** @brief An operand as a term: a term, a variable, or a constant. */
+RTerm term_of(nb::handle h) {
+  if (nb::isinstance<RTerm>(h)) return nb::cast<RTerm>(h);
+  if (nb::isinstance<ProjectionTag>(h))
+    return as_term(nb::cast<ProjectionTag>(h));
+  return RTerm::constant(PyConst{h});
+}
+const char* spelling(Rel r) {
+  switch (r) {
+    case Rel::Lt:
+      return "<";
+    case Rel::Le:
+      return "<=";
+    case Rel::Gt:
+      return ">";
+    case Rel::Ge:
+      return ">=";
+    case Rel::Eq:
+      return "==";
+    case Rel::Ne:
+      return "!=";
+  }
+  return "?";
+}
+std::string show(const RTerm& t) {
+  switch (t.kind) {
+    case RTerm::Kind::Proj:
+      return t.slot == 0 ? "π" : "π" + std::to_string(t.slot);
+    case RTerm::Kind::Const:
+      return nb::cast<std::string>(nb::repr(t.value.o));
+    case RTerm::Kind::Bin:
+      return "(" + show(*t.a) + " " + spelling(t.op) + " " + show(*t.b) + ")";
+  }
+  return "?";
+}
+std::string show(const RPred& p) {
+  switch (p.kind) {
+    case RPred::Kind::Cmp:
+      return show(*p.a) + " " + spelling(p.rel) + " " + show(*p.b);
+    case RPred::Kind::And:
+      return "(" + show(*p.p) + ") & (" + show(*p.q) + ")";
+    case RPred::Kind::Or:
+      return "(" + show(*p.p) + ") | (" + show(*p.q) + ")";
+  }
+  return "?";
+}
+
+/** @brief The arithmetic of terms on a class whose instances are terms (a
+ *  variable, a term): each operator and its reflection build a term. */
+template <typename Self, typename Cls>
+void def_arithmetic(Cls& cls) {
+  const auto bin = [](Arith op) {
+    return [op](const Self& a, nb::handle b) {
+      return RTerm::bin(op, as_term(a), term_of(b));
+    };
+  };
+  const auto rbin = [](Arith op) {
+    return [op](const Self& a, nb::handle b) {
+      return RTerm::bin(op, term_of(b), as_term(a));
+    };
+  };
+  cls.def("__add__", bin(Arith::Add), nb::is_operator())
+      .def("__radd__", rbin(Arith::Add), nb::is_operator())
+      .def("__sub__", bin(Arith::Sub), nb::is_operator())
+      .def("__rsub__", rbin(Arith::Sub), nb::is_operator())
+      .def("__mul__", bin(Arith::Mul), nb::is_operator())
+      .def("__rmul__", rbin(Arith::Mul), nb::is_operator())
+      .def("__truediv__", bin(Arith::Div), nb::is_operator())
+      .def("__rtruediv__", rbin(Arith::Div), nb::is_operator())
+      .def("__floordiv__", bin(Arith::FloorDiv), nb::is_operator())
+      .def("__rfloordiv__", rbin(Arith::FloorDiv), nb::is_operator())
+      .def("__mod__", bin(Arith::Mod), nb::is_operator())
+      .def("__rmod__", rbin(Arith::Mod), nb::is_operator())
+      .def("__neg__", [](const Self& a) {
+        return RTerm::bin(Arith::Sub, RTerm::constant(PyConst{}), as_term(a));
+      });
+}
+/** @brief The comparisons of a term: each builds a predicate. */
+template <typename Self, typename Cls>
+void def_comparisons(Cls& cls) {
+  const auto cmp = [](Rel r) {
+    return [r](const Self& a, nb::handle b) {
+      return RPred::cmp(r, as_term(a), term_of(b));
+    };
+  };
+  cls.def("__lt__", cmp(Rel::Lt), nb::is_operator())
+      .def("__le__", cmp(Rel::Le), nb::is_operator())
+      .def("__gt__", cmp(Rel::Gt), nb::is_operator())
+      .def("__ge__", cmp(Rel::Ge), nb::is_operator())
+      .def("__eq__", cmp(Rel::Eq), nb::is_operator())
+      .def("__ne__", cmp(Rel::Ne), nb::is_operator());
+}
+
+/** @brief The former on a truth chain for a predicate built at run time:
+ *  bound to the chain, then read at its two or three elements. */
+template <typename C, typename L>
+auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
+  const auto c = 𝔸<C>{} | p;  // every operator and constant checked here
+  pst::Set<C, Boole> acc = pst::Set<C, Boole>::empty();
+  for (C x = dedekind::sets::chain_bottom<C>();; x = Successor<C>{}(x)) {
+    if (c(x)) acc = ext(acc | pst::point<C>(x));
+    if (x == dedekind::sets::chain_top<C>()) break;
+  }
+  return ext(s & acc);
+}
+
+/** @brief The sets a term cuts out of a canonical universe: the set
+ *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
+ *  @c | @c pred, each a comprehension holding the bound predicate, read
+ *  pointwise.  @tparam C the carrier.  @tparam ToC a Python value into @c C,
+ *  raising where it is none. */
+template <typename C, typename ToC>
+void bind_term_sets(nb::module_& m,
+                    nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
+                    const char* name, const char* set_cls, const char* pair_cls,
+                    const char* rel_cls, ToC to_c) {
+  using U = 𝔸<C, Boole, dedekind::sets::Finite>;
+  using S = Comprehension<U, RPred>;
+  using UU = decltype(U{} * U{});
+  using R = decltype(UU{} | std::declval<RPred>());
+  const std::string shown = std::string("𝔸(") + name + ")";
+  const auto pair_of = [to_c](nb::handle h) {
+    if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
+      throw nb::type_error("a point of the product is a pair (x, y)");
+    const nb::tuple t = nb::borrow<nb::tuple>(h);
+    return std::pair<C, C>{to_c(t[0]), to_c(t[1])};
+  };
+  const auto holds = [](auto convert, const auto& s, nb::handle h) {
+    try {
+      return static_cast<bool>(s(convert(h)));
+    } catch (const nb::builtin_exception&) {
+      return false;  // not a representative: not a member
+    }
+  };
+  universe
+      .def(
+          "__or__", [](const U& u, const RPred& p) { return u | p; },
+          nb::is_operator(),
+          "𝔸(carrier) | pred: the former; every operator and constant of the "
+          "term is checked against the carrier now.")
+      .def(
+          "__mul__", [](const U& a, const U& b) { return a * b; },
+          nb::is_operator(), "𝔸 × 𝔸: the product universe.");
+  nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.")
+      .def(
+          "__contains__",
+          [holds, to_c](const S& s, nb::handle h) { return holds(to_c, s, h); })
+      .def(
+          "__call__", [to_c](const S& s, nb::handle h) { return s(to_c(h)); },
+          nb::arg("x"), "χ(x), x an element or a representative.")
+      .def(
+          "__and__",
+          [](const S& a, const S& b) {
+            return U{} | RPred::conj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def(
+          "__or__",
+          [](const S& a, const S& b) {
+            return U{} | RPred::disj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def("__invert__", [](const S& a) { return U{} | a.predicate.negated(); })
+      .def_prop_ro("universe", [](const S&) { return U{}; })
+      .def("__repr__",
+           [shown](const S& s) { return shown + " | " + show(s.predicate); });
+  nb::class_<UU>(m, pair_cls, "𝔸 × 𝔸: the product universe.")
+      .def(
+          "__or__", [](const UU& u, const RPred& p) { return u | p; },
+          nb::is_operator(), "𝔸 × 𝔸 | pred: the relation.")
+      .def("__contains__",
+           [holds, pair_of](const UU& u, nb::handle h) {
+             return holds(pair_of, u, h);
+           })
+      .def("__repr__", [shown](const UU&) { return shown + " × " + shown; });
+  nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
+      .def("__contains__",
+           [holds, pair_of](const R& r, nb::handle h) {
+             return holds(pair_of, r, h);
+           })
+      .def(
+          "__call__",
+          [pair_of](const R& r, nb::handle h) { return r(pair_of(h)); },
+          nb::arg("xy"), "χ(x, y) at a pair.")
+      .def(
+          "__and__",
+          [](const R& a, const R& b) {
+            return UU{} | RPred::conj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def(
+          "__or__",
+          [](const R& a, const R& b) {
+            return UU{} | RPred::disj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def("__invert__",
+           [](const R& a) { return UU{} | a.predicate.negated(); })
+      .def("__repr__", [shown](const R& r) {
+        return shown + " × " + shown + " | " + show(r.predicate);
+      });
+}
 }  // namespace
 
 NB_MODULE(_pst, m) {
+  // A refusal when a term is bound (an operator not admitted on the carrier, a
+  // slot the points have not) is Python's TypeError.
+  nb::register_exception_translator([](const std::exception_ptr& p, void*) {
+    try {
+      std::rethrow_exception(p);
+    } catch (const dedekind::sets::not_admitted& e) {
+      PyErr_SetString(PyExc_TypeError, e.what());
+    }
+  });
   m.doc() =
       "Pst (paper §3): Pst = Jlt ∩ Chain.  The chains B (𝔹), K3 (Kleene's "
       "three truth values) and N (ℕ's proxy, ⊤ = ℵ₀), and the sets over 𝔹 and "
@@ -759,7 +1031,7 @@ NB_MODULE(_pst, m) {
   bind_datum<bool>(m, "DatumB", "A datum over 𝔹: π ⋈ v, waiting for a former.");
   bind_datum<Ternary>(m, "DatumK3",
                       "A datum over K₃: π ⋈ v, waiting for a former.");
-  bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
+  auto set_b = bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
   auto set_k3 = bind_set<Ternary, Boole>(
       m, "SetK3", "A set over K₃, valued in 𝔹 (decidable).");
   auto set_k3_kleene = bind_set<Ternary, Kleene>(
@@ -772,32 +1044,63 @@ NB_MODULE(_pst, m) {
   m.attr("K3") = pst::Chain<Ternary>{};
   m.attr("N") = pst::Chain<Cardinality>{};
 
-  nb::class_<ProjectionTag>(m, "Projection",
-                            "The grammar's element π (also χ): π > v, π >= v, "
-                            "π < v, π <= v, π == v are the data of the former.")
+  // ── the variables and the terms ──
+  auto projection = nb::class_<ProjectionTag>(
+      m, "Projection",
+      "The grammar's variables π (also χ), π1, π2.  π ⋈ v with v a bool or a "
+      "Ternary is a datum over that truth chain; every other comparison, and "
+      "the arithmetic + - * / // %, builds a term that A(carrier) | ... binds "
+      "and checks.");
+  // A comparison with a truth value on π is the truth chain's datum; any other
+  // is a predicate built at run time.
+  const auto datum_or_cmp = [](auto make, Rel r) {
+    return [make, r](const ProjectionTag& p, nb::handle v) -> nb::object {
+      if (p.slot == 0 && (PyBool_Check(v.ptr()) || nb::isinstance<Ternary>(v)))
+        return make(v);
+      return nb::cast(RPred::cmp(r, as_term(p), term_of(v)));
+    };
+  };
+  projection
+      .def("__gt__", datum_or_cmp(&above::make, Rel::Gt), nb::is_operator())
+      .def("__ge__", datum_or_cmp(&at_least::make, Rel::Ge), nb::is_operator())
+      .def("__lt__", datum_or_cmp(&below::make, Rel::Lt), nb::is_operator())
+      .def("__le__", datum_or_cmp(&at_most::make, Rel::Le), nb::is_operator())
+      .def("__eq__", datum_or_cmp(&equal_to::make, Rel::Eq), nb::is_operator())
       .def(
-          "__gt__",
-          [](const ProjectionTag&, nb::handle v) { return above::make(v); },
+          "__ne__",
+          [](const ProjectionTag& p, nb::handle v) {
+            return RPred::cmp(Rel::Ne, as_term(p), term_of(v));
+          },
+          nb::is_operator())
+      .def("__repr__", [](const ProjectionTag& p) { return show(as_term(p)); });
+  def_arithmetic<ProjectionTag>(projection);
+  m.attr("π") = ProjectionTag{0};
+  m.attr("χ") = ProjectionTag{0};
+  m.attr("π1") = ProjectionTag{1};
+  m.attr("π2") = ProjectionTag{2};
+
+  auto term = nb::class_<RTerm>(
+      m, "Term",
+      "A term of the grammar: a variable, a constant, or an operator on terms; "
+      "its comparisons are predicates.  It names no carrier until a former "
+      "binds it.");
+  def_arithmetic<RTerm>(term);
+  def_comparisons<RTerm>(term);
+  term.def("__repr__", [](const RTerm& t) { return show(t); });
+  nb::class_<RPred>(
+      m, "Pred",
+      "A predicate of the grammar: a comparison of two terms, or & | ~ of "
+      "predicates (~ pushed to the comparisons).  A(carrier) | pred binds it.")
+      .def(
+          "__and__",
+          [](const RPred& a, const RPred& b) { return RPred::conj(a, b); },
           nb::is_operator())
       .def(
-          "__ge__",
-          [](const ProjectionTag&, nb::handle v) { return at_least::make(v); },
+          "__or__",
+          [](const RPred& a, const RPred& b) { return RPred::disj(a, b); },
           nb::is_operator())
-      .def(
-          "__lt__",
-          [](const ProjectionTag&, nb::handle v) { return below::make(v); },
-          nb::is_operator())
-      .def(
-          "__le__",
-          [](const ProjectionTag&, nb::handle v) { return at_most::make(v); },
-          nb::is_operator())
-      .def(
-          "__eq__",
-          [](const ProjectionTag&, nb::handle v) { return equal_to::make(v); },
-          nb::is_operator())
-      .def("__repr__", [](const ProjectionTag&) { return std::string("π"); });
-  m.attr("π") = ProjectionTag{};
-  m.attr("χ") = ProjectionTag{};
+      .def("__invert__", [](const RPred& a) { return a.negated(); })
+      .def("__repr__", [](const RPred& p) { return show(p); });
 
   // ── the canonical ring and field ──
   auto u64 = nb::class_<Word>(
@@ -967,8 +1270,9 @@ NB_MODULE(_pst, m) {
   const nb::object u64_type = u64;
   const nb::object fp_type = fp;
 
-  nb::class_<𝔸<uint64_t, Boole, dedekind::sets::Finite>>(
-      m, "UniverseU64", "𝔸(u64): the ring ℤ/2⁶⁴ as a set.")
+  auto universe_u64 = nb::class_<𝔸<uint64_t, Boole, dedekind::sets::Finite>>(
+      m, "UniverseU64", "𝔸(u64): the ring ℤ/2⁶⁴ as a set.");
+  universe_u64
       .def("__contains__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
                               nb::handle x) { return in_u64(x); })
       .def("__call__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
@@ -986,8 +1290,9 @@ NB_MODULE(_pst, m) {
       .def("__repr__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
         return std::string("𝔸(u64)");
       });
-  nb::class_<𝔸<Fp, Boole, dedekind::sets::Finite>>(
-      m, "UniverseFp", "𝔸(𝔽ₚ): the field 𝔽ₚ as a set.")
+  auto universe_fp = nb::class_<𝔸<Fp, Boole, dedekind::sets::Finite>>(
+      m, "UniverseFp", "𝔸(𝔽ₚ): the field 𝔽ₚ as a set.");
+  universe_fp
       .def("__contains__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
                               nb::handle x) { return in_fp(x); })
       .def("__call__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
@@ -1094,4 +1399,29 @@ NB_MODULE(_pst, m) {
         return ext(dedekind::sets::lift_to<Kleene>(s));
       },
       nb::arg("S"), "lift(S): a decidable set over K₃ valued in K₃.");
+
+  // ── the term surface on the canonical universes and the truth chains ──
+  bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
+                           "U64Relation",
+                           [](nb::handle h) { return word_of(h).v; });
+  bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
+                     "FpRelation", [](nb::handle h) { return residue_of(h); });
+  set_b.def(
+      "__or__",
+      [](const pst::Set<bool, Boole>& s, const RPred& p) {
+        return former_runtime(s, p);
+      },
+      nb::is_operator(), "S | pred: the former, the term checked on 𝔹.");
+  set_k3.def(
+      "__or__",
+      [](const pst::Set<Ternary, Boole>& s, const RPred& p) {
+        return former_runtime(s, p);
+      },
+      nb::is_operator(), "S | pred: the former, the term checked on K₃.");
+  set_k3_kleene.def(
+      "__or__",
+      [](const pst::Set<Ternary, Kleene>& s, const RPred& p) {
+        return former_runtime(s, p);
+      },
+      nb::is_operator(), "S | pred: the former, the term checked on K₃.");
 }
