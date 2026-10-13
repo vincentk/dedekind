@@ -100,6 +100,8 @@ class TheFieldAdmits(unittest.TestCase):
             F | (π % 3 == 0)  # % is not a field operation
         with self.assertRaises(TypeError):
             F | (π // 3 == 0)  # nor is Euclidean division
+        with self.assertRaises(ValueError):
+            F | (π / P == 1)  # p is 0 in 𝔽ₚ: refused when bound
 
 
 class TheSetsCombine(unittest.TestCase):
@@ -136,7 +138,7 @@ class OnTheTruthChains(unittest.TestCase):
         U = Ternary.UNKNOWN
         self.assertEqual((A(K3) | (π != U)).runs(), [(Ternary.FALSE, Ternary.FALSE), (Ternary.TRUE, Ternary.TRUE)])
         with self.assertRaises(TypeError):
-            A(B) | (π + 1 == True)  # noqa: E712 — 𝔹 is not closed under +
+            A(B) | (π + 1 == True)  # noqa: E712 (𝔹 is not closed under +)
         with self.assertRaises(TypeError):
             A(B) | (π == 1)  # a constant on 𝔹 is a bool
 

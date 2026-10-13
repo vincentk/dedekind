@@ -12,22 +12,26 @@
  * @c dedekind.pst).  The @b chains @c B (𝔹), @c K3 (Kleene's three) and @c N
  * (ℕ's proxy, ⊤ = ℵ₀) are handles over the real carriers: endpoints, the step
  * in both readings, the order, their classification, and the unfold by the
- * cover.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv grammar
- * (scalar carriers; no products, no composed predicates): generators
+ * cover.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv grammar:
+ * generators
  * @c 𝔸(chain) / @c Ø(chain) / @c η(v), the former @c S @c | @c (π @c > @c v),
  * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c S(x), the
  * queries @c == and @c <= answering in the set's own species (@c Unknown is a
  * verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
- * the normal form @c runs.  Every handle is a run list (@c order:runs), the
- * library's normal form of these sets, valued in its species; every operator
- * and every query is the library's, on it.
+ * the normal form @c runs.  Every handle over a truth chain is a run list
+ * (@c order:runs), the library's normal form of these sets, valued in its
+ * species; every operator and every query is the library's, on it.
  * Two species of one carrier mix in their join (𝔹 ↪ K₃): a Boolean set beside
  * a K₃-valued one is met, joined and compared in K₃.  Different carriers do not
  * mix.  The @b canonical ring and field are bound beside them (#1019): @c u64
  * (ℤ/2⁶⁴: + − · wrap, // and % by a nonzero word) and @c 𝔽ₚ (@c Fp,
  * @c Modular<2⁶⁴ − 59>: + − · /, no order), with their universes @c A(u64)
- * and @c A(𝔽ₚ); an element equals the int it represents.  Reduction stays in
- * C++; Python holds handles.
+ * and @c A(𝔽ₚ); an element equals the int it represents.  The @b term
+ * @b surface (#1006) builds terms over @c π / @c π1 / @c π2 that
+ * @c A(carrier) @c | @c term and @c A(carrier) @c * @c A(carrier) @c | @c term
+ * bind, every operator and constant checked then; those sets and relations
+ * hold the bound term (a comprehension) and are read pointwise.  Reduction
+ * stays in C++; Python holds handles.
  */
 
 #include <nanobind/nanobind.h>

@@ -9,8 +9,7 @@ chain of the same shape whose top is ``ℵ_0``.  A chain exposes its ends
 classification as the C++ concepts decide it, and iterates from ⊥ by the cover.
 
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
-as the paper spells it (scalar carriers; products and composed predicates are
-not bound here)::
+as the paper spells it::
 
     from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
@@ -27,9 +26,12 @@ not bound here)::
                                  # excluded middle, where the set is U
     H.cut(U) == (𝔸(K3) | (π >= U))   # the α-cut, a decidable set: True
 
-Every handle is a run list, the library's normal form of these sets, valued in
-its species (a K₃-valued set is a step function on the chain); every operator
-and every query is the library's, on it.  Reduction stays in C++.
+Every handle over a truth chain is a run list, the library's normal form of
+these sets, valued in its species (a K₃-valued set is a step function on the
+chain); every operator and every query is the library's, on it.  The sets and
+relations the term surface below cuts out of ``u64`` and ``𝔽ₚ`` hold the bound
+term instead and are read pointwise (membership; no equality yet, which
+awaits a normal form).  Reduction stays in C++.
 
 The canonical ring and field, each as large as a machine word allows::
 

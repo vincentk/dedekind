@@ -284,10 +284,13 @@ struct CondT {
 };
 export template <Rel R, typename A, typename B>
 struct Cmp;
-// The grammar with its shape a value (built at run time), defined after the
-// binding below.
+/** @brief A term built at run time, the grammar with its shape a value;
+ *  defined after the binding below.  @tparam K the constants' type. */
 export template <typename K>
 struct Term;
+/** @brief A relational predicate built at run time: comparisons of terms and
+ *  their connectives; defined after the binding below.  @tparam K the
+ *  constants' type. */
 export template <typename K>
 struct Pred;
 template <typename T>
@@ -952,18 +955,26 @@ struct Bind {
       case Term<K>::Kind::Const:
         (void)carrier_cast<C>(t.value);
         break;
-      case Term<K>::Kind::Bin:
+      case Term<K>::Kind::Bin: {
         steer(*t.a);
         steer(*t.b);
-        if (!admits<C>(t.op, t.b->kind == Term<K>::Kind::Const))
+        const bool division =
+            t.op == Arith::Div || t.op == Arith::FloorDiv || t.op == Arith::Mod;
+        const bool by_constant = t.b->kind == Term<K>::Kind::Const;
+        if (!admits<C>(t.op, by_constant))
           throw not_admitted(
               std::string("the operator ") + spelling(t.op) +
-              (t.op == Arith::Div || t.op == Arith::FloorDiv ||
-                       t.op == Arith::Mod
-                   ? " is admitted only by a nonzero constant, where the "
-                     "carrier has it"
-                   : " is not total on the carrier"));
+              (division ? " is admitted only by a nonzero constant, where the "
+                          "carrier has it"
+                        : " is not total on the carrier"));
+        // Nonzero as written, but 0 on the carrier (p in 𝔽ₚ, by the quotient
+        // map): refused here, as a 0 written is refused when built.
+        if (division && by_constant && carrier_cast<C>(t.b->value) == C{})
+          throw std::domain_error(
+              "a division by a constant that is 0 on the "
+              "carrier");
         break;
+      }
     }
     return {};
   }
@@ -1054,6 +1065,8 @@ struct Pred {
   std::shared_ptr<const Term<K>> a, b;
   std::shared_ptr<const Pred> p, q;
 
+  /** @brief The atom @c x @c r @c y.  @param r the comparison.  @param x,y
+   *  the terms.  @return the predicate. */
   static Pred cmp(Rel r, Term<K> x, Term<K> y) {
     Pred t;
     t.rel = r;
@@ -1061,7 +1074,9 @@ struct Pred {
     t.b = std::make_shared<const Term<K>>(std::move(y));
     return t;
   }
+  /** @brief @c x @c ∧ @c y.  @param x,y the predicates.  @return the meet. */
   static Pred conj(Pred x, Pred y) { return node(Kind::And, x, y); }
+  /** @brief @c x @c ∨ @c y.  @param x,y the predicates.  @return the join. */
   static Pred disj(Pred x, Pred y) { return node(Kind::Or, x, y); }
   /** @brief @c !p, in negation normal form. */
   Pred negated() const {
