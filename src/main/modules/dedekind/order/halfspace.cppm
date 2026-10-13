@@ -332,6 +332,14 @@ struct Steps {
       const Comprehension<𝔸<V, L, C>, Point<V>>& c) const {
     return {Interval<V, L>::point(c.predicate.pivot).span()};
   }
+  /** @brief χ = id on a finite chain, valued in the chain's own species. */
+  template <typename V, typename C>
+    requires std::same_as<L, classifier_logic_t<V>> &&
+             requires { IdentitySteps<V>{}; }
+  constexpr IdentitySteps<V> operator()(
+      const Comprehension<𝔸<V, L, C>, Identity<V>>&) const {
+    return {};
+  }
   /** @brief A set brought into this species (@c sets::lift_to): its
    *  predicate's steps, each value lifted along the dominance. */
   template <typename V, typename C, typename P>
@@ -397,6 +405,25 @@ export template <typename A, typename B>
            std::same_as<typename A::logic_species, typename B::logic_species>
 constexpr auto operator==(const A& a, const B& b) {
   return equal(steps(a), steps(b));
+}
+/** @brief Equality across two species of one chain, read in their join: a
+ *  Boolean set beside a K₃-valued one is compared in K₃. */
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename B::Domain;
+  } && std::same_as<typename A::Domain, typename B::Domain> &&
+           (!IsBoundaryObject<A>) && (!IsBoundaryObject<B>) && IsStepTerm<A> &&
+           IsStepTerm<B> &&
+           (!std::same_as<typename A::logic_species,
+                          typename B::logic_species>) &&
+           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+constexpr auto operator==(const A& a, const B& b) {
+  using J = join_logic_t<typename A::logic_species, typename B::logic_species>;
+  using SA = decltype(steps(a));
+  using SB = decltype(steps(b));
+  return equal(RelabelSteps<SA, detail_runs::LiftInto<J>, J>{steps(a), {}},
+               RelabelSteps<SB, detail_runs::LiftInto<J>, J>{steps(b), {}});
 }
 /** @brief A set term against the boundaries: @c Ø when it holds nowhere,
  *  @c 𝔸 when it holds everywhere, read over the carrier's own elements. */
