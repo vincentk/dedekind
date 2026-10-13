@@ -38,7 +38,7 @@ class TermsAreCheckedWhenBuilt(unittest.TestCase):
 class TheRingAdmits(unittest.TestCase):
     def test_wrapping_arithmetic_and_euclidean_division(self) -> None:
         U = A(u64)
-        self.assertIn(0, U | (π + 1 == 0))  # wraps? no: 0 + 1 = 1
+        self.assertNotIn(0, U | (π + 1 == 0))
         self.assertIn(2**64 - 1, U | (π + 1 == 0))  # it wraps
         self.assertIn(4, U | (π % 2 == 0))
         self.assertNotIn(5, U | (π % 2 == 0))
