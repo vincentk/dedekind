@@ -66,7 +66,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         a, b = at_least(0), ~point(5)
         self.assertEqual(a & b, b & a)
         self.assertEqual(a | b, b | a)
-        self.assertEqual(at_most(4) | at_least(5), U)  # adjacent runs merge
+        self.assertEqual(at_most(4) | at_least(5), everything)  # adjacent runs merge
         self.assertEqual((at_least(0) & at_most(3)) | (at_least(4) & at_most(9)), at_least(0) & at_most(9))
         self.assertEqual(U | (5 < π), above(5))  # the converse
 
@@ -124,7 +124,7 @@ class ImageAndPreimage(unittest.TestCase):
         bounded = at_least(3) & below(8)
         self.assertEqual(image(succ(int), bounded), at_least(4) & below(9))
         self.assertEqual(preimage(succ(int), at_least(4) & below(9)), bounded)
-        self.assertEqual(image(pred(int), at_most(5)), at_most(4))
+        self.assertEqual(image(pred(int), at_most(5)), at_most(4) | point(MAX))  # pred(0) wraps
         self.assertEqual(image(succ(int), point(4)), point(5))
         self.assertEqual(image(id(int), above(5)), above(5))
         self.assertEqual(image(succ(int), everything), everything)
