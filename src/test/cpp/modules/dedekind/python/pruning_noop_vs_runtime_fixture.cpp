@@ -26,6 +26,7 @@
 
 import dedekind.category;
 import dedekind.sets;
+import dedekind.order; // == Ø / == 𝔹: the run lists of a chain
 import dedekind.algebra;
 
 using namespace dedekind::category;
@@ -34,7 +35,7 @@ using namespace dedekind::algebra;
 
 // The two points of the Boolean universe 𝔹 (= 𝔸<bool>{}), spelled as the set
 // former; their meet / join are the reducer's nodes, and == Ø / == 𝔹 are
-// decided by exhausting {false, true}.
+// decided by the run lists (dedekind.order).
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
 constexpr auto b_false = 𝔹 | (π == false);
