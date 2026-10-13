@@ -43,7 +43,7 @@ struct KleeneOr {
 };
 }  // namespace
 
-TEST_CASE("order:runs — one set, one normal form, however it is spelled",
+TEST_CASE("order:runs: one set, one normal form, however it is spelled",
           "[order][runs][normal-form]") {
   STATIC_CHECK(a == b);
   STATIC_CHECK(a == c);
@@ -61,7 +61,7 @@ TEST_CASE("order:runs — one set, one normal form, however it is spelled",
 }
 
 TEST_CASE(
-    "order:runs — the normal form is read on demand, materialised on "
+    "order:runs: the normal form is read on demand, materialised on "
     "request",
     "[order][runs][materialise]") {
   // The term stays as written; its normal form is a lazy source.
@@ -76,7 +76,7 @@ TEST_CASE(
   CHECK(ext(~stored) == ~a);
 }
 
-TEST_CASE("order:runs — a set valued in K₃ is a step function into K₃",
+TEST_CASE("order:runs: a set valued in K₃ is a step function into K₃",
           "[order][runs][kleene]") {
   using IK = Interval<int, Kleene>;
   // Unknown on [0, 9], true on [3, 5]: three values along the line.
@@ -101,7 +101,7 @@ TEST_CASE("order:runs — a set valued in K₃ is a step function into K₃",
   CHECK(forall(both) == Ternary::False);
 }
 
-TEST_CASE("order:runs — a step at the carrier's end is kept, equality reads it",
+TEST_CASE("order:runs: a step at the carrier's end is kept, equality reads it",
           "[order][runs][ends]") {
   using W = std::numeric_limits<int>;
   // {x ≤ max} keeps its step (a window reading stays bounded above) ...

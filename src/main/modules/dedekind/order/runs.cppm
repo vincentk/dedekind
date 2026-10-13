@@ -19,6 +19,14 @@
  * generator.  A step at the carrier's own end is kept (@c {x ≤ max} on a
  * machine word read as a window of ℤ stays bounded above); equality reads the
  * carrier's ends.
+ *
+ * Wikipedia: Step function, Run-length encoding, Dedekind cut.
+ *
+ * @note "To denote the subsequence of natural numbers 2, 3, ..., 12 without
+ *       the pernicious three dots, four conventions are open to us."
+ *       -- Edsger W. Dijkstra, *Why numbering should start at zero*, EWD831
+ *          (1982).  A position names the cut before or after a value, which
+ *          is how the four conventions become one.
  */
 module;
 
@@ -667,16 +675,19 @@ struct ToItself {
 };
 }  // namespace detail_runs
 /** @brief χ(x) = x on a finite chain, valued in the chain's own species: a
- *  step at every element above the least.  @tparam C the chain. */
+ *  step at every element above the least (none on a one-element chain).
+ *  @tparam C the chain. */
 export template <typename C>
-  requires HasCoveringStep<C> && (detail_position::least<C>().has_value())
+  requires HasCoveringStep<C> && (detail_position::least<C>().has_value()) &&
+           (detail_position::greatest<C>().has_value())
 struct IdentitySteps {
   using Domain = C;
   using logic_species = classifier_logic_t<C>;
   constexpr C first() const { return *detail_position::least<C>(); }
   constexpr auto steps() const {
     return std::views::transform(
-        chain_view{*cover(first()), *detail_position::greatest<C>()},
+        chain_view{first(), *detail_position::greatest<C>()} |
+            std::views::drop(1),
         detail_runs::ToItself<C, logic_species>{});
   }
 };
