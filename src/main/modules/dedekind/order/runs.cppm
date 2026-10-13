@@ -894,7 +894,7 @@ constexpr auto runs(const S& s) {
  *  them.  The one stored form, for a value that must outlive the term it was
  *  read from (a Python handle); a source like any other, its steps a view of
  *  the map.  @tparam V the carrier.  @tparam L the species. */
-export template <typename V = long long, typename L = Boole>
+export template <typename V, typename L = Boole>
   requires IsTotallyOrdered<V> && IsOckhamAlgebra<L>
 struct Runs : dedekind::sets::SetExpr<Runs<V, L>, V, L> {
   using Domain = V;
@@ -942,6 +942,58 @@ static_assert(dedekind::sets::IsSetObject<Runs<int>> &&
                   IsStepSource<Runs<int>> &&
                   IsStepSource<Runs<Ternary, Kleene>>,
               "a run list is a set object over its universe, and a source.");
+
+namespace detail_runs {
+/** @brief A breakpoint of a map as a step. */
+template <typename V, typename L>
+struct ToStep {
+  Step<V, L> operator()(
+      const std::pair<const Position<V>, typename L::Ω>& b) const {
+    return {b.first, b.second};
+  }
+};
+/** @brief A sorted map of breakpoints as a source. */
+template <typename V, typename L>
+struct MapSteps {
+  using Domain = V;
+  using logic_species = L;
+  typename L::Ω value_before;
+  std::map<Position<V>, typename L::Ω> map;
+  typename L::Ω first() const { return value_before; }
+  auto steps() const { return std::views::transform(map, ToStep<V, L>{}); }
+};
+}  // namespace detail_runs
+
+/** @brief The translate of a run list by @c k on a machine word, the chain
+ *  read as the cyclic group ℤ/2^w it is: @f$x \mapsto x + k@f$ wraps at the
+ *  word's end, so a run through the end splits in two.  It is the image of
+ *  the set under the translation, and the preimage under the inverse one.
+ *  @tparam V an unsigned word.  @tparam L the species.  @param s the set.
+ *  @param k the shift. */
+export template <std::unsigned_integral V, typename L>
+Runs<V, L> translate(const Runs<V, L>& s, V k) {
+  if (k == V{}) return s;
+  // The image's value at 0 is s(−k); each breakpoint moves by k; the word's
+  // end wraps to k, where the image reads s(0).  A step past the end names no
+  // element and is dropped.
+  detail_runs::MapSteps<V, L> out{s(static_cast<V>(V{} - k)), {}};
+  for (const auto& [at, v] : s.breakpoints()) {
+    if (at.side == Side::Above) continue;
+    out.map.insert_or_assign(
+        Position<V>{static_cast<V>(at.at + k), Side::Below}, v);
+  }
+  out.map.insert_or_assign(Position<V>{k, Side::Below}, s(V{}));
+  auto prev = out.value_before;  // no breakpoint repeats the value before it
+  for (auto it = out.map.begin(); it != out.map.end();) {
+    if (it->second == prev) {
+      it = out.map.erase(it);
+    } else {
+      prev = it->second;
+      ++it;
+    }
+  }
+  return Runs<V, L>(out);
+}
 
 /** @section runs__Formal_Verification */
 namespace detail_runs_witness {

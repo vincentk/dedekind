@@ -136,7 +136,7 @@ static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
  *  is a normal form only on a chain.
  *  @tparam V the carrier.  @tparam L the species.
  */
-export template <typename V = long long, typename L = Boole>
+export template <typename V, typename L = Boole>
   requires IsTotallyOrdered<V> && IsOckhamAlgebra<L>
 struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
   using Domain = V;
@@ -239,9 +239,6 @@ struct Interval : dedekind::sets::SetExpr<Interval<V, L>, V, L> {
 static_assert(
     dedekind::sets::IsSetObject<Interval<int>>,
     "Interval is a set object: the value normal form over its universe.");
-static_assert(
-    dedekind::sets::IsSetObject<Interval<long long>>,
-    "the Python surface's Set (Interval<long long>) is a set object.");
 
 }  // namespace dedekind::order
 namespace dedekind::sets {
@@ -302,6 +299,80 @@ namespace detail_steps {
 /** @brief Not a step source: a leaf the run lists do not read (an opaque
  *  predicate), or a node over one. */
 struct Opaque {};
+
+/** @brief The converse of a comparison: @c k @c r @c π is @c π @c conv(r) @c k.
+ */
+constexpr Rel converse(Rel r) {
+  switch (r) {
+    case Rel::Lt:
+      return Rel::Gt;
+    case Rel::Le:
+      return Rel::Ge;
+    case Rel::Gt:
+      return Rel::Lt;
+    case Rel::Ge:
+      return Rel::Le;
+    default:
+      return r;
+  }
+}
+/** @brief The run list of a predicate built at run time over a chain, in the
+ *  @b order @b fragment: the atoms @c π @c ⋈ @c k (and, on a machine word,
+ *  @c π @c ± @c c @c ⋈ @c k: the atom's run list translated), under ∧ and ∨.
+ *  The shape is a value, so the run list is materialised piece by piece.  An
+ *  atom outside the fragment has no normal form here and is refused.
+ *  @tparam V the chain.  @tparam L the species.  @tparam K the constants'
+ *  type.  @param p the predicate. */
+template <IsTotallyOrdered V, IsOckhamAlgebra L, typename K>
+Runs<V, L> order_fragment(const Pred<K>& p) {
+  using P = Pred<K>;
+  using T = Term<K>;
+  switch (p.kind) {
+    case P::Kind::And:
+      return ext(order_fragment<V, L>(*p.p) & order_fragment<V, L>(*p.q));
+    case P::Kind::Or:
+      return ext(order_fragment<V, L>(*p.p) | order_fragment<V, L>(*p.q));
+    case P::Kind::Cmp:
+      break;
+  }
+  // π ⋈ k, or k ⋈ π read as its converse.
+  const T* var = p.a.get();
+  const T* k = p.b.get();
+  Rel r = p.rel;
+  if (k->kind != T::Kind::Const) {
+    std::swap(var, k);
+    r = converse(r);
+  }
+  if (k->kind != T::Kind::Const)
+    throw dedekind::sets::not_admitted(
+        "no normal form yet: the order fragment compares π with a constant");
+  const V c = carrier_cast<V>(k->value);
+  const auto atom = [&](Rel rel) -> Runs<V, L> {
+    if (rel == Rel::Eq) return ext(Interval<V, L>::point(c));
+    if (rel == Rel::Ne) return ext(~Interval<V, L>::point(c));
+    return ext(Interval<V, L>::half(c, dir_of(rel), strict_of(rel)));
+  };
+  if (var->kind == T::Kind::Proj && var->slot == 0) return atom(r);
+  // (π ± d) ⋈ k on a word: the translate of π ⋈ k by ∓d, wrapping.
+  if constexpr (std::unsigned_integral<V>) {
+    if (var->kind == T::Kind::Bin &&
+        (var->op == Arith::Add || var->op == Arith::Sub)) {
+      const T* x = var->a.get();
+      const T* d = var->b.get();
+      if (var->op == Arith::Add && x->kind == T::Kind::Const) std::swap(x, d);
+      if (x->kind == T::Kind::Proj && x->slot == 0 &&
+          d->kind == T::Kind::Const) {
+        const V shift = carrier_cast<V>(d->value);
+        return translate(atom(r), var->op == Arith::Add
+                                      ? static_cast<V>(V{} - shift)
+                                      : shift);
+      }
+    }
+  }
+  throw dedekind::sets::not_admitted(
+      "no normal form yet: the order fragment reads π ⋈ k, and π ± c ⋈ k on a "
+      "word, under & and | (#1023 for the arithmetic)");
+}
 /** @brief The normal form of a set term as the algebra of @c cata: an
  *  interval's sides, a stored run list read in place, the boundaries as
  *  constants; a meet or join the merge of its legs' steps under ∧ or ∨, a
@@ -339,6 +410,12 @@ struct Steps {
   constexpr IdentitySteps<V> operator()(
       const Comprehension<𝔸<V, L, C>, Identity<V>>&) const {
     return {};
+  }
+  /** @brief A predicate built at run time over a chain: its run list, read
+   *  in the order fragment (@c order_fragment), materialised. */
+  template <IsTotallyOrdered V, typename C, typename K>
+  Runs<V, L> steer(const Comprehension<𝔸<V, L, C>, Pred<K>>& c) const {
+    return order_fragment<V, L>(c.predicate);
   }
   /** @brief A set brought into this species (@c sets::lift_to): its
    *  predicate's steps, each value lifted along the dominance. */

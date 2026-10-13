@@ -1038,6 +1038,25 @@ struct Term {
     t.value = std::move(k);
     return t;
   }
+  /** @brief The term with the variable @c slot replaced by @c with: the
+   *  substitution a structural arrow's image is (@c π ↦ @c π @c - @c 1 for
+   *  the successor's).  @param slot the variable.  @param with its
+   *  replacement.  @return the substituted term. */
+  Term subst(unsigned slot, const Term& with) const {
+    switch (kind) {
+      case Kind::Proj:
+        return this->slot == slot ? with : *this;
+      case Kind::Const:
+        return *this;
+      case Kind::Bin: {
+        Term t = *this;
+        t.a = std::make_shared<const Term>(a->subst(slot, with));
+        t.b = std::make_shared<const Term>(b->subst(slot, with));
+        return t;
+      }
+    }
+    return *this;
+  }
   /** @brief @c x @c op @c y.  @throws std::domain_error on a division by the
    *  constant 0. */
   static Term bin(Arith op, Term x, Term y) {
@@ -1078,6 +1097,20 @@ struct Pred {
   static Pred conj(Pred x, Pred y) { return node(Kind::And, x, y); }
   /** @brief @c x @c ∨ @c y.  @param x,y the predicates.  @return the join. */
   static Pred disj(Pred x, Pred y) { return node(Kind::Or, x, y); }
+  /** @brief The predicate with the variable @c slot replaced by the term
+   *  @c with in every atom.  @param slot the variable.  @param with its
+   *  replacement.  @return the substituted predicate. */
+  Pred subst(unsigned slot, const Term<K>& with) const {
+    Pred t = *this;
+    if (kind == Kind::Cmp) {
+      t.a = std::make_shared<const Term<K>>(a->subst(slot, with));
+      t.b = std::make_shared<const Term<K>>(b->subst(slot, with));
+    } else {
+      t.p = std::make_shared<const Pred>(p->subst(slot, with));
+      t.q = std::make_shared<const Pred>(q->subst(slot, with));
+    }
+    return t;
+  }
   /** @brief @c !p, in negation normal form. */
   Pred negated() const {
     switch (kind) {
