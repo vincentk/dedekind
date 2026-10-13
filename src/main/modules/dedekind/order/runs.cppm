@@ -414,9 +414,10 @@ struct SpanSteps {
     std::array<Step<V, L>, 2> s{};
     std::size_t n = 0;
     if (span && value != L::False) {
-      using namespace detail_position;
-      if (span->lower) s[n++] = {canonical(start_of(*span->lower)), value};
-      if (span->upper) s[n++] = {canonical(end_of(*span->upper)), L::False};
+      if (span->lower)
+        s[n++] = {canonical(detail_position::start_of(*span->lower)), value};
+      if (span->upper)
+        s[n++] = {canonical(detail_position::end_of(*span->upper)), L::False};
     }
     return std::views::take(std::move(s), static_cast<std::ptrdiff_t>(n));
   }
