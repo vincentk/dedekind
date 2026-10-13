@@ -703,7 +703,10 @@ bool in_u64(nb::handle h) {
 bool in_fp(nb::handle h) {
   if (nb::isinstance<Fp>(h)) return true;
   if (!is_py_int(h)) return false;
-  return nb::cast<bool>(representative(residue_of(h)).equal(h));
+  const int same = PyObject_RichCompareBool(representative(residue_of(h)).ptr(),
+                                            h.ptr(), Py_EQ);
+  if (same < 0) throw nb::python_error();
+  return same == 1;
 }
 }  // namespace
 
