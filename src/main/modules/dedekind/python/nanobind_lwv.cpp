@@ -29,25 +29,178 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 
+#include <concepts>
 #include <limits>
 #include <optional>
+#include <ranges>
 #include <string>
 
 import dedekind.category; // Identity, Successor, Predecessor
 import dedekind.order;    // Direction / Strictness, intervals
-import dedekind.sets;     // Ø
-import dedekind.python;   // dedekind::python::lwv: Set, ray, image, restrict
+import dedekind.sets;     // Ø, IsSetObject
+import dedekind.python;   // materialise; jlt: the window, the erased arrow
 
 namespace nb = nanobind;
 
 namespace {
-namespace lwv = dedekind::python::lwv;
+namespace py = dedekind::python;
 namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
-using Set = lwv::Set;
+using dedekind::category::Boole;
 using dedekind::category::Identity;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
+using dedekind::order::Direction;
+using dedekind::order::Interval;
+using dedekind::order::Position;
+using dedekind::order::Runs;
+using dedekind::order::Side;
+using dedekind::order::Strictness;
+using dedekind::sets::IsSetObject;
+
+// ── Lwv: the scalar set-comprehension language (#965, paper §3) ───────────
+//
+// Lwv := Jlt ∩ Set (paper.tex:158): intensional sets over a Jlt carrier, a set
+// being a membership test @c {x ∈ S | P(x)} rather than a listing.  The
+// canonical README exhibit is the two overlapping halfspaces
+// @c {x>3} ∩ {x<5} = {4}: a halfspace @c ℕ|(χ ⋈ k) is the principal
+// filter/ideal @c ↑k / @c ↓k of the carrier order, and its meet routes through
+// the @b real lattice reducer: the meet of two intervals is the value-first
+// crossing law @c ↑a ∩ ↓b = [a,b] (collapsing to a point over an integral
+// carrier), and unions and complements are run lists (@c order:runs), the
+// normal form of the sets of a chain built from intervals.  This exhibit is the
+// SET twin of the @c jlt ARROW exhibit: it binds the real reducer, NOT a
+// Python-side reimplementation (handle-only).
+
+namespace lwv {
+/** @brief A value-based set handle (#965): a materialised run list over
+ *  @c long @c long (Python's @c int, ℤ read through the 64-bit window), its
+ *  runs by start, so one constructor covers all pivots at runtime.  Its @c &,
+ *  @c | and @c ~ build the library's term and materialise its normal form. */
+using Set = Runs<long long>;
+/** @brief One run of a set: an interval. */
+using Leaf = Interval<long long>;
+// Whatever crosses the Python boundary is a set OBJECT --- (reified universe,
+// χ) --- and this is the compile-time MUST for it (RFC 2119).
+static_assert(IsSetObject<Set>,
+              "the Python surface's Set must be a set object (IsSetObject).");
+
+/** @brief The rays @c {x ⋈ k}: the principal filter ↑k and ideal ↓k, open or
+ *  closed.  @tparam D the direction.  @tparam S the strictness.  @param k the
+ *  pivot. */
+template <Direction D, Strictness S>
+Set ray(long long k) {
+  return py::materialise(Leaf::half(k, D, S));
+}
+/** @brief The point @c {k}.  @param k the point. */
+Set point(long long k) { return py::materialise(Leaf::point(k)); }
+
+/** @brief A set translated by @c k, as a source: every step moved, the image
+ *  under the order automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image
+ *  leaves the window --- a step past its last value, or members moved below
+ *  its first --- ℤ continues and the window cannot, so it raises rather than
+ *  truncate. */
+struct Shifted {
+  using Domain = long long;
+  using logic_species = Boole;
+  using Step = dedekind::order::Step<long long, Boole>;
+  /** @brief One step moved by @c k, inside the window or raising. */
+  struct By {
+    long long k;
+    Step operator()(Step st) const {
+      using W = std::numeric_limits<long long>;
+      st.at.at = jlt::add_in_window(st.at.at, k, "image");
+      if (st.value ? st.at == Position<long long>{W::max(), Side::Above}
+                   : st.at == Position<long long>{W::min(), Side::Below})
+        jlt::window_end("image");
+      st.at = dedekind::order::canonical(st.at);
+      return st;
+    }
+  };
+  const Set* s;
+  long long k;
+  bool first() const { return s->first(); }
+  auto steps() const { return std::views::transform(s->steps(), By{k}); }
+};
+/** @brief The arrows whose image of a set has a closed form: the identity, the
+ *  successor and the predecessor on the integer window.  An opaque composed
+ *  arrow has no such normal form; its image is intensional (Kleene-valued) and
+ *  is refused at the boundary rather than guessed.  @tparam F the arrow. */
+template <typename F>
+concept IsStructuralArrow = std::same_as<F, Identity<jlt::Int>> ||
+                            std::same_as<F, Successor<jlt::Int>> ||
+                            std::same_as<F, Predecessor<jlt::Int>>;
+/** @brief How far the arrow moves a step: 0, +1, −1.  @tparam F the arrow. */
+template <IsStructuralArrow F>
+consteval long long offset() {
+  if constexpr (std::same_as<F, Successor<jlt::Int>>)
+    return 1;
+  else if constexpr (std::same_as<F, Predecessor<jlt::Int>>)
+    return -1;
+  else
+    return 0;
+}
+/** @brief @f$f(S)@f$ and @f$f^{-1}(S)@f$ for a structural arrow, in closed
+ *  form (paper §4: the image of @c {n > 5} under the successor is @c {n > 6},
+ *  decided with no search of the domain).  @tparam F the arrow. */
+template <IsStructuralArrow F>
+Set image(const F&, const Set& s) {
+  return Set(Shifted{&s, offset<F>()});
+}
+template <IsStructuralArrow F>
+Set preimage(const F&, const Set& s) {
+  return Set(Shifted{&s, -offset<F>()});
+}
+
+/** @brief Slicing by @b value: @f$S \cap [a, b)@f$, the meet with the
+ *  half-open interval (Python's own convention), an absent bound meaning the
+ *  ray.  Not positional: a set has no enumeration to index into; that reading
+ *  belongs to a sequence. */
+Set restrict(const Set& s, std::optional<long long> lo,
+             std::optional<long long> hi) {
+  Leaf window = Leaf::universe();
+  if (lo)
+    window = window & Leaf::half(*lo, Direction::Upward, Strictness::NonStrict);
+  if (hi)
+    window = window & Leaf::half(*hi, Direction::Downward, Strictness::Strict);
+  return py::materialise(s & window);
+}
+
+/** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
+ *  finite): no run from below the window, and the last run ends. */
+bool is_bounded(const Set& s) {
+  return !s.first() &&
+         (s.breakpoints().empty() || !s.breakpoints().rbegin()->second);
+}
+/** @brief The least element, the unfold's seed: none for @c Ø, and none for a
+ *  set unbounded below (@c ↓k, @c 𝔸) --- ℤ has no bottom. */
+std::optional<long long> least(const Set& s) {
+  auto rs = dedekind::order::runs(s);
+  const auto it = rs.begin();
+  if (s.first() || it == rs.end()) return std::nullopt;
+  return (*it).lo;
+}
+/** @brief The greatest element, where the set is bounded; @c nullopt on a
+ *  set unbounded above: the unfold does not stop. */
+std::optional<long long> greatest(const Set& s) {
+  std::optional<long long> hi;
+  if (is_bounded(s))
+    for (const auto& r : dedekind::order::runs(s)) hi = r.hi;
+  return hi;
+}
+/** @brief The least member above @c x: @c x + 1 inside a run, else the start
+ *  of the next run; none past the last.  @param x a member below the window's
+ *  end. */
+std::optional<long long> next_member(const Set& s, long long x) {
+  for (const auto& r : dedekind::order::runs(s)) {
+    if (x < r.lo) return r.lo;
+    if (x < r.hi) return x + 1;
+  }
+  return std::nullopt;
+}
+
+}  // namespace lwv
+using Set = lwv::Set;
 
 /** @brief @c image / @c preimage for one structural arrow type @c F. */
 template <typename F>
@@ -145,14 +298,16 @@ NB_MODULE(_lwv, m) {
           [](const Set& s, long long x) { return s.contains(x); }, nb::arg("x"),
           "x in s: the same membership test.")
       .def(
-          "__and__", [](const Set& a, const Set& b) { return lwv::meet(a, b); },
+          "__and__",
+          [](const Set& a, const Set& b) { return py::materialise(a & b); },
           "a & b: the meet, folded by the lattice reducer at runtime (its "
           "leaf-combine is the interval meet).")
       .def(
-          "__or__", [](const Set& a, const Set& b) { return lwv::join(a, b); },
+          "__or__",
+          [](const Set& a, const Set& b) { return py::materialise(a | b); },
           "a | b: the join, a run list again.")
       .def(
-          "__invert__", [](const Set& s) { return lwv::complement(s); },
+          "__invert__", [](const Set& s) { return py::materialise(~s); },
           "~s: the complement, the parts below, between and above s's runs.")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
@@ -167,7 +322,7 @@ NB_MODULE(_lwv, m) {
           [](const Set& s) {
             nb::list out;
             for (const auto& r : ord::intervals(s))
-              out.append(nb::cast(dedekind::python::materialise(r)));
+              out.append(nb::cast(py::materialise(r)));
             return out;
           },
           "The maximal runs, in order along the chain, each a set of one "
