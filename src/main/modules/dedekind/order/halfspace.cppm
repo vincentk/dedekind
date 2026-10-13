@@ -425,32 +425,33 @@ constexpr auto operator==(const A& a, const B& b) {
   return equal(RelabelSteps<SA, detail_runs::LiftInto<J>, J>{steps(a), {}},
                RelabelSteps<SB, detail_runs::LiftInto<J>, J>{steps(b), {}});
 }
-/** @brief A set term against the boundaries: @c Ø when it holds nowhere,
- *  @c 𝔸 when it holds everywhere, read over the carrier's own elements. */
+/** @brief A set term against the boundaries, in its species: @c Ø @c == @c S
+ *  is @f$\neg\bigvee\chi@f$, @c 𝔸 @c == @c S is @f$\bigwedge\chi@f$, read over
+ *  the carrier's own elements (on K₃, @c Unknown is a verdict). */
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
   requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
            IsStepTerm<S>
-constexpr bool operator==(const Ø<T, L>&, const S& s) {
-  return exists(steps(s)) == S::logic_species::False;
+constexpr auto operator==(const Ø<T, L>&, const S& s) {
+  return S::logic_species::RFL(exists(steps(s)));
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
   requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
            IsStepTerm<S>
-constexpr bool operator==(const S& s, const Ø<T, L>& e) {
+constexpr auto operator==(const S& s, const Ø<T, L>& e) {
   return e == s;
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
   requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
            IsStepTerm<S>
-constexpr bool operator==(const 𝔸<T, L, CU>&, const S& s) {
-  return forall(steps(s)) == S::logic_species::True;
+constexpr auto operator==(const 𝔸<T, L, CU>&, const S& s) {
+  return forall(steps(s));
 }
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
                  typename S>
   requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
            IsStepTerm<S>
-constexpr bool operator==(const S& s, const 𝔸<T, L, CU>& u) {
+constexpr auto operator==(const S& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }
 namespace detail_interval_witness {
