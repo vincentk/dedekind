@@ -37,9 +37,11 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::find
 #include <cstddef>
 #include <limits>
 #include <optional>
+#include <ranges>  // std::ranges::end
 #include <type_traits>
 #include <utility>
 
@@ -256,7 +258,7 @@ export struct ReachPath : Path<Ternary> {
 export constexpr ReachPath collatz_reach_path(std::size_t n) {
   return ReachPath{scan(
       [](const FinitePath<std::size_t>& p) -> Ternary {
-        return exists(p, [](std::size_t v) { return v == 1; })
+        return std::ranges::find(p, std::size_t{1}) != std::ranges::end(p)
                    ? Ternary::True
                    : Ternary::Unknown;
       },

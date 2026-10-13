@@ -128,99 +128,10 @@ constexpr std::ranges::iota_view<T, T> to_iota_view(
 }
 
 /** @section ranges__Chain_View
- *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
- *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
- *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
- *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
- *  @c to_iota_view above is this view's integral face.  A forward view (the
- *  walk restarts from @c lo), O(1) state: the current element and the end.
- *  @tparam C the chain, with the covering step. */
-export template <HasCoveringStep C>
-  requires std::totally_ordered<C>
-class chain_view : public std::ranges::view_interface<chain_view<C>> {
- public:
-  /** @brief The walk's position: the current element, the end, and whether
-   *  the walk is still live. */
-  class iterator {
-   public:
-    using value_type = C;
-    using difference_type = std::ptrdiff_t;
-    using iterator_concept = std::forward_iterator_tag;
-    constexpr iterator() = default;
-    /** @param lo the first element.  @param hi the last; an empty walk when
-     *  @c lo @c > @c hi. */
-    constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
-    /** @return the current element, by value. */
-    constexpr C operator*() const { return current_; }
-    /** @brief Step to the cover of the current element; the walk ends after
-     *  @c hi, or at a saturating top short of it.  @return this iterator. */
-    constexpr iterator& operator++() {
-      if (current_ == hi_) {
-        live_ = false;
-      } else if (const auto next = cover(current_); next.has_value()) {
-        current_ = *next;
-      } else {
-        live_ = false;  // a saturating top short of hi: nothing above it
-      }
-      return *this;
-    }
-    /** @return the position before the step. */
-    constexpr iterator operator++(int) {
-      iterator before = *this;
-      ++*this;
-      return before;
-    }
-    friend constexpr bool operator==(const iterator&,
-                                     const iterator&) = default;
-    /** @return whether the walk has ended. */
-    friend constexpr bool operator==(const iterator& it,
-                                     std::default_sentinel_t) {
-      return !it.live_;
-    }
-
-   private:
-    C current_{};
-    C hi_{};
-    bool live_ = false;
-  };
-  constexpr chain_view() = default;
-  /** @param lo the window's bottom.  @param hi its top (inclusive). */
-  constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
-  /** @return the walk, starting at @c lo. */
-  constexpr iterator begin() const { return {lo_, hi_}; }
-  /** @return the sentinel the walk compares equal to once it has ended. */
-  constexpr std::default_sentinel_t end() const { return {}; }
-
- private:
-  C lo_{};
-  C hi_{};
-};
-
-namespace detail_chain_view_witness {
-consteval bool walks(auto view, auto... expected) {
-  std::array<std::common_type_t<decltype(expected)...>, sizeof...(expected)>
-      want{expected...};
-  std::size_t i = 0;
-  for (const auto x : view) {
-    if (i >= want.size() || x != want[i]) return false;
-    ++i;
-  }
-  return i == want.size();
-}
-static_assert(walks(chain_view{Ternary::False, Ternary::True}, Ternary::False,
-                    Ternary::Unknown, Ternary::True),
-              "K₃ walked ⊥ → U → ⊤ by the cover.");
-static_assert(walks(chain_view{false, true}, false, true) &&
-                  walks(chain_view{true, true}, true) &&
-                  walks(chain_view{3, 6}, 3, 4, 5, 6),
-              "𝔹, a one-point window, and an integral window.");
-static_assert(std::ranges::forward_range<chain_view<int>> &&
-                  std::ranges::view<chain_view<Ternary>>,
-              "chain_view is a std::ranges forward view.");
-static_assert(chain_view{5, 2}.begin() == std::default_sentinel &&
-                  chain_view{2, 2}.begin() != std::default_sentinel,
-              "lo > hi is the empty window; lo == hi the one-point window.");
-}  // namespace detail_chain_view_witness
+ *  The bounded chain @c [lo, hi] as a range for any carrier with the covering
+ *  step lives with the chains in @c order:runs; @c to_iota_view above is its
+ *  integral face. */
+export using dedekind::order::chain_view;
 
 /** @section ranges__Materialize — the last plank of the bridge
  *  @c intensional @c → @c intensional-finite @c → @c ext @c → @c
@@ -505,11 +416,8 @@ static_assert(detail::iota_bounds(D1andD2).start ==
  *  @note @b Why @b meet-only @b and @b not @b a @b full @b lattice:
  *  union of two iota_views is @b not in general an iota_view
  *  (@c [0,3) @c ∪ @c [5,10) is not one interval), so iota_view's carrier
- *  is @b not closed under join.  A full lattice on the intervals layer
- *  requires moving to a richer carrier — finite unions of intervals, or
- *  the @c Sub<> subobject lattice from #698 Slice 8.  Tracked as a
- *  follow-up issue; this slice exhibits the honest meet-semilattice
- *  fragment.
+ *  is @b not closed under join.  The full lattice lives on the richer
+ *  carrier, finite unions of intervals: the run lists of @c order:runs.
  */
 
 /** @brief The meet (intersection) operator on @c std::ranges::iota_view

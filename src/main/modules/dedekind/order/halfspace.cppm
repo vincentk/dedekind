@@ -10,8 +10,8 @@
  * The order reading of the term grammar on a chain: an order atom @c π @c ⋈ @c
  * c on @c 𝔸<T> is an @c Interval, a value whose sides (each an optional bound,
  * open or closed) and pivots are values.  Meets reduce in constant evaluation
- * where the pivots are constants and at runtime otherwise; the complement of an
- * interval is a @c Join of at most two intervals.
+ * where the pivots are constants and at runtime otherwise; unions and
+ * complements are run lists (@c :runs), of which an interval is the generator.
  *
  * @section halfspace__DSL_Surface
  *
@@ -35,7 +35,7 @@ module;
 #include <functional>  // std::plus (the argmax carrier's additive-group gate)
 #include <limits>      // std::numeric_limits (machine-carrier boundary check)
 #include <optional>    // a cut's sides
-#include <stdexcept>   // std::domain_error (reduce_join: no normal form)
+#include <ranges>      // a set's runs as a view of intervals
 #include <type_traits>
 #include <utility>
 
@@ -49,6 +49,7 @@ import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
 import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / Interval:
                 // the interval normal form lives on a certified chain
+import :runs;   // positions, bounds and run lists: an interval's sets
 
 namespace dedekind::order {
 using namespace dedekind::sets;
@@ -70,102 +71,6 @@ using dedekind::relational::operator&;   // relation meet R & S
 // on @c std::integral and the cardinal carriers, so it belongs at the
 // cardinality authority, not accreted here.  Reached via @c import
 // @c dedekind.sets (already imported above).
-
-/** @brief Orientation of a halfspace along the chain. */
-export enum class Direction { Upward, Downward };
-
-/** @brief Whether the boundary is strict (`>`, `<`) or inclusive (`>=`, `<=`).
- */
-export enum class Strictness { Strict, NonStrict };
-
-/** @brief Flip a @c Direction --- the direction half of a halfspace complement
- *  (@c ~{x>P} is @c {x≤P}).  Reused by the reflection-image pushforward
- *  (@c dedekind.algebra:halfspace_transport) to flip a halfspace's sense under
- *  @f$x \mapsto -x@f$. */
-export constexpr Direction flip(Direction d) {
-  return d == Direction::Upward ? Direction::Downward : Direction::Upward;
-}
-/** @brief Flip a @c Strictness --- the strictness half of the same complement
- *  (@c ~{x>P} is @c {x≤P}: @c > relaxes to @c ≤). */
-export constexpr Strictness flip(Strictness s) {
-  return s == Strictness::Strict ? Strictness::NonStrict : Strictness::Strict;
-}
-
-/** @brief Cardinality class of a halfspace's carrier @c T (#848/#927).
- *  @details A carrier that declares its own @c cardinality_type is the
- *  authority (e.g.\ @c numbers::Rational → @c ℵ_0, @c ExtensionalCardinal →
- *  @c Finite): this partition (@c :order) is @b upstream of @c :numbers, so a
- *  countable @b non-integral carrier such as ℚ cannot be recognised
- *  structurally here (@c IsRingIntegral is false on @c Rational), and must
- *  self-declare so the point-free @c A|pred halfspace classifies identically
- *  to the scout comprehension (which inherits the ambient @c C directly).
- *  Otherwise fall back to the @c IsRingIntegral discriminator: the structural
- *  integers @b and the @c Cardinality / @c SignedCardinality (ℕ/ℤ) proxies are
- *  @c ℵ_0, and the real proxies (@c QuadraticReal, @c double) are the continuum
- *  @c ℶ_1.  The bound only has to be tight enough for the countability
- *  verdict (@c IsCountable). */
-// Module-private: the fallback is a halfspace-classification heuristic, not a
-// general carrier-cardinality authority (that is @c :sets:cardinality).  It
-// only feeds @c Halfspace::cardinality_type below; external carriers customise
-// through their own @c T::cardinality_type, not this helper.  A finite @b enum
-// carrier (e.g.\ @c Ternary) cannot self-declare a member typedef, so it is
-// recognised structurally as countable and classified @c ℵ_0 --- the same
-// conservative countable BOUND @c bool already gets via @c IsRingIntegral, NOT
-// @c Finite.  @c Finite is the @c elevate_meet "return bare, do not @c Set
-// -wrap" signal (@c :expressions); a halfspace must not trigger it, and @c ℵ_0
-// keeps the pre-existing @c Set-wrapping path and stays countable, matching
-// @c Ternary's @c 𝕂3 ambient.
-// The @c IsRingIntegral integers / ℕ,ℤ proxies are @c ℵ_0 likewise; the real
-// proxies are @c ℶ_1.
-template <typename T>
-struct carrier_cardinality {
-  using type =
-      std::conditional_t<std::is_enum_v<T> || IsRingIntegral<T>, ℵ_0, ℶ_1>;
-};
-template <typename T>
-  requires IsCardinality<typename T::cardinality_type>
-struct carrier_cardinality<T> {
-  // Fires only when the self-declared alias is a genuine @c IsCardinality (a
-  // carrier with an unrelated / incomplete @c cardinality_type falls to the
-  // primary, not a hard error), and classifies it with the canonical
-  // @c IsCountable concept.  Collapse to the
-  // COUNTABILITY BOUND (never pass a bare @c Finite through): @c
-  // ExtensionalCardinal declares @c Finite, and letting that reach @c
-  // Halfspace::cardinality_type would trip @c elevate_meet's Finite "return
-  // bare" path for an @c ExtensionalCardinal halfspace.  Countable (incl.\
-  // @c Finite) ⟹ @c ℵ_0, uncountable ⟹ @c ℶ_1.
-  using type =
-      std::conditional_t<IsCountable<typename T::cardinality_type>, ℵ_0, ℶ_1>;
-};
-template <typename T>
-using carrier_cardinality_t = typename carrier_cardinality<T>::type;
-
-// A finite enum carrier classifies ℵ_0 (a conservative countable bound, like
-// bool), so a Ternary halfspace stays decidable (Boole), not Kleene (#927), and
-// does NOT trip the elevate_meet Finite "return bare" path.
-static_assert(std::same_as<carrier_cardinality_t<Ternary>, ℵ_0>,
-              "a finite enum carrier (e.g. Ternary) is countable ℵ_0, not the "
-              "continuum ℶ_1 (and not Finite, the elevate_meet bare signal).");
-// A self-declared @c Finite carrier is likewise collapsed to @c ℵ_0, so its
-// halfspace stays Set-wrapped by @c elevate_meet (not returned bare).
-static_assert(std::same_as<carrier_cardinality_t<ExtensionalCardinal<>>, ℵ_0>,
-              "a self-declared Finite carrier collapses to the countable bound "
-              "ℵ_0, never the bare-signal Finite.");
-namespace detail_halfspace_witness {
-// A carrier whose @c cardinality_type alias is NOT an @c IsCardinality: the
-// self-declaring specialization must @b not fire (its IsCardinality constraint
-// fails), so @c carrier_cardinality falls back to the primary rather than
-// hard-erroring on the missing @c is_countable member.
-struct UnrelatedCardinalityAlias {
-  using cardinality_type = int;  // not a cardinality (no is_countable etc.)
-};
-}  // namespace detail_halfspace_witness
-static_assert(
-    std::same_as<carrier_cardinality_t<
-                     detail_halfspace_witness::UnrelatedCardinalityAlias>,
-                 ℶ_1>,
-    "a carrier with an unrelated/incomplete cardinality_type falls back to the "
-    "primary (ℶ_1 here), never making Halfspace ill-formed.");
 
 /** @brief The @c Direction a comparison @c Rel lifts a halfspace to. */
 export constexpr Direction dir_of(Rel r) {
@@ -197,26 +102,7 @@ export constexpr bool is_order_rel(Rel r) {
  *  \pi_2\,)@f$, the pivot in the value @f$\eta(p)@f$ (a @c Singleton); the
  *  singleton is the degenerate point @c Interval::point.  House spelling @c χ
  * /
- *  @c π₁,π₂.
- *
- *  @c Bound is one side of a cut as a value: the bound and whether it is
- *  attained (non-strict) or not (strict).  @tparam V the carrier. */
-export template <typename V>
-  requires IsTotallyOrdered<V>
-struct Bound {
-  V at;
-  Strictness strictness = Strictness::NonStrict;
-  friend constexpr bool operator==(const Bound&, const Bound&) = default;
-};
-/** @brief The sides of an inhabited convex set; an absent side is unbounded.
- *  @tparam V the carrier. */
-export template <typename V>
-  requires IsTotallyOrdered<V>
-struct Span {
-  std::optional<Bound<V>> lower;
-  std::optional<Bound<V>> upper;
-  friend constexpr bool operator==(const Span&, const Span&) = default;
-};
+ *  @c π₁,π₂. */
 
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
@@ -236,37 +122,6 @@ static_assert(HasNNOStep<dedekind::sets::Cardinality>,
 static_assert(HasNNOStep<dedekind::sets::SignedCardinality>,
               "the ℤ proxy steps by ±1 through the same customization points, "
               "so a strict bound on ℤ is attained at its neighbour as on ℕ.");
-
-namespace detail_interval {
-/** @brief Whether the ray @c {x ⋈ p} on @c T is empty: a strict ray at the
- *  carrier's end (@c {x > max}, @c {x < min}, @c {x < 0} on a carrier whose
- *  floor is 0, @c {n > ℵ₀} on ℕ, @c {z < −ℵ₀} on ℤ).  A pivot is a value, so
- * this is a value fact.
- *  @tparam T the carrier.  @param p the pivot.  @param d the direction.
- *  @param s the strictness. */
-template <IsTotallyOrdered T>
-constexpr bool ray_is_empty(const T& p, Direction d, Strictness s) {
-  if (s != Strictness::Strict) return false;
-  if (d == Direction::Upward) {
-    if constexpr (std::integral<T>)
-      return p == std::numeric_limits<T>::max();
-    else if constexpr (std::same_as<T, Cardinality>)
-      return p == Cardinality{ℵ_0{}};
-    else if constexpr (std::same_as<T, SignedCardinality>)
-      return p == SignedCardinality{PositiveInfinity{}};
-    else
-      return false;
-  }
-  if constexpr (std::unsigned_integral<T> || std::same_as<T, Cardinality>)
-    return p == T{};
-  else if constexpr (std::signed_integral<T>)
-    return p == std::numeric_limits<T>::min();
-  else if constexpr (std::same_as<T, SignedCardinality>)
-    return p == SignedCardinality{NegativeInfinity{}};
-  else
-    return false;
-}
-}  // namespace detail_interval
 
 /** @brief A convex subset of a chain as a VALUE --- an interval: each side an
  *  optional @c Bound, with a runtime-evaluable membership χ.  Closed under ∩;
@@ -428,26 +283,6 @@ constexpr std::optional<Bound<V>> tighter_upper(
   if (a->at != b->at) return a->at < b->at ? a : b;
   return a->strictness == Strictness::Strict ? a : b;
 }
-/** @brief Whether the lower side @c a admits everything @c b does. */
-template <typename V>
-constexpr bool lower_covers(const std::optional<Bound<V>>& a,
-                            const std::optional<Bound<V>>& b) {
-  if (!a) return true;
-  if (!b) return false;
-  if (a->at != b->at) return a->at < b->at;
-  return a->strictness == Strictness::NonStrict ||
-         b->strictness == Strictness::Strict;
-}
-/** @brief Whether the upper side @c a admits everything @c b does. */
-template <typename V>
-constexpr bool upper_covers(const std::optional<Bound<V>>& a,
-                            const std::optional<Bound<V>>& b) {
-  if (!a) return true;
-  if (!b) return false;
-  if (a->at != b->at) return a->at > b->at;
-  return a->strictness == Strictness::NonStrict ||
-         b->strictness == Strictness::Strict;
-}
 }  // namespace detail_interval
 
 /** @brief The ONE meet law: the tighter side on each end, collapsed by
@@ -463,113 +298,163 @@ constexpr Interval<V, L> reduce_meet(const Interval<V, L>& a,
       detail_interval::tighter_upper(a.span()->upper, b.span()->upper));
 }
 
-/** @brief Equality of two value sets: both empty, or the same sides.  The
- * value-first counterpart of the old type-level set equality; it is what the
- * subset identity @f$A \subseteq B \iff (A \cap B) = A@f$ rides on now that the
- * meet returns a @c Interval.
- *
- *  @details The verdict is returned in the ambient logic @c L::Ω (so it
- * composes with the @c L::Ω subset ladder and stays Kleene under a Kleene
- * ambient rather than silently narrowing a @c bool).  The comparison is gated
- * on @c V having decidable equality (@c std::equality_comparable): an
- * undecidable carrier --- where value equality is not answerable --- is ruled
- * out at the type level, so the operator is simply absent rather than vouching
- * for a verdict it cannot compute.
- *
- *  On a carrier with the NNO step the comparison is @b extensional: a strict
- *  bound at @c a is the non-strict bound at @c S(a) (above: @c P(a)), so
- *  @c (0, 3) and @c [1, 3) are the same set of ℤ and compare equal, by their
- *  closed bounds.  On a dense carrier they are different sets, and the
- *  comparison stays structural. */
-namespace detail_interval_eq {
-/** @brief Close a strict lower bound at the next element, where the step moves;
- *  at a fixpoint of @c S (a saturating end: ⊤ on K₃, ±ℵ₀) there is no next
- *  element to close at and the bound stays strict --- @c {x > ⊤} is not
- *  @c {x ≥ ⊤}.  @tparam V the carrier. */
-template <HasCoveringStep V>
-constexpr void close_lower(V& v, Strictness& s) {
-  if (s != Strictness::Strict) return;
-  const V next = successor(v);
-  if (next == v) return;
-  v = next;
-  s = Strictness::NonStrict;
-}
-/** @brief The dual: close a strict upper bound at the previous element where
- *  @c P moves; @c {x < ℵ₀}, the finite fragment, is not @c {x ≤ ℵ₀}.
- *  @tparam V the carrier. */
-template <HasCoveringStep V>
-constexpr void close_upper(V& v, Strictness& s) {
-  if (s != Strictness::Strict) return;
-  const V prev = predecessor(v);
-  if (prev == v) return;
-  v = prev;
-  s = Strictness::NonStrict;
-}
-/** @brief The form compared: on a discrete chain every strict bound that can
- *  close is closed, so @c (0, 3) and @c [1, 3) coincide; on a dense carrier
- *  every bound stays as written.  @tparam V the carrier.  @tparam L the logic.
- */
-template <typename V>
-constexpr Span<V> canonical(Span<V> s) {
-  if constexpr (HasCoveringStep<V>) {
-    if (s.lower) close_lower(s.lower->at, s.lower->strictness);
-    if (s.upper) close_upper(s.upper->at, s.upper->strictness);
+namespace detail_steps {
+/** @brief Not a step source: a leaf the run lists do not read (an opaque
+ *  predicate), or a node over one. */
+struct Opaque {};
+/** @brief The normal form of a set term as the algebra of @c cata: an
+ *  interval's sides, a stored run list read in place, the boundaries as
+ *  constants; a meet or join the merge of its legs' steps under ∧ or ∨, a
+ *  complement their relabelling by ¬.  Lazy: nothing is stored, the steps are
+ *  pulled by the query that reads them.  @tparam L the species. */
+template <typename L>
+struct Steps {
+  template <typename V>
+  constexpr SpanSteps<V, L> operator()(const Interval<V, L>& s) const {
+    return {s.span()};
   }
-  return s;
+  template <typename V>
+  constexpr SourceRef<Runs<V, L>> operator()(const Runs<V, L>& r) const {
+    return {&r};
+  }
+  template <typename V>
+  constexpr SpanSteps<V, L> operator()(const Ø<V, L>&) const {
+    return {std::nullopt};
+  }
+  template <typename V, typename C>
+  constexpr SpanSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
+    return {Span<V>{}};
+  }
+  /** @brief The point @c 𝔸 @c | @c (π @c == @c v) of the set grammar: the
+   *  interval @f$[v, v]@f$, on a chain. */
+  template <IsTotallyOrdered V, typename C>
+  constexpr SpanSteps<V, L> operator()(
+      const Comprehension<𝔸<V, L, C>, Point<V>>& c) const {
+    return {Interval<V, L>::point(c.predicate.pivot).span()};
+  }
+  /** @brief χ = id on a finite chain, valued in the chain's own species. */
+  template <typename V, typename C>
+    requires std::same_as<L, classifier_logic_t<V>> &&
+             requires { IdentitySteps<V>{}; }
+  constexpr IdentitySteps<V> operator()(
+      const Comprehension<𝔸<V, L, C>, Identity<V>>&) const {
+    return {};
+  }
+  /** @brief A set brought into this species (@c sets::lift_to): its
+   *  predicate's steps, each value lifted along the dominance. */
+  template <typename V, typename C, typename P>
+    requires IsStepSource<decltype(steps(std::declval<const P&>()))>
+  constexpr auto operator()(const Comprehension<𝔸<V, L, C>, P>& c) const {
+    using S = decltype(steps(c.predicate));
+    return RelabelSteps<S, detail_runs::LiftInto<L>, L>{steps(c.predicate), {}};
+  }
+  template <typename A, typename B, IsStepSource RA, IsStepSource RB>
+  constexpr MergeSteps<RA, RB, detail_runs::And<L>> operator()(
+      const Meet<A, B>&, RA a, RB b) const {
+    return {a, b, {}};
+  }
+  template <typename A, typename B, IsStepSource RA, IsStepSource RB>
+  constexpr MergeSteps<RA, RB, detail_runs::Or<L>> operator()(const Join<A, B>&,
+                                                              RA a,
+                                                              RB b) const {
+    return {a, b, {}};
+  }
+  template <typename A, IsStepSource RA>
+  constexpr RelabelSteps<RA, detail_runs::Rfl<L>> operator()(const Not<A>&,
+                                                             RA a) const {
+    return {a, {}};
+  }
+  template <typename X, typename... R>
+  constexpr Opaque operator()(const X&, const R&...) const {
+    return {};
+  }
+};
+}  // namespace detail_steps
+
+/** @brief The normal form of a set term of a chain, as a lazy step source.
+ *  A stored run list inside the term is read in place, so the source must not
+ *  outlive the term.  @param t the term. */
+export template <typename T>
+  requires requires { typename T::logic_species; }
+constexpr auto steps(const T& t) {
+  return cata(detail_steps::Steps<typename T::logic_species>{}, t);
 }
-}  // namespace detail_interval_eq
-export template <typename V, typename L>
-  requires std::equality_comparable<V>
-constexpr typename L::Ω operator==(const Interval<V, L>& a,
-                                   const Interval<V, L>& b) {
-  const auto& x = a.span();
-  const auto& y = b.span();
-  const bool eq = (!x || !y) ? (!x && !y)
-                             : detail_interval_eq::canonical(*x) ==
-                                   detail_interval_eq::canonical(*y);
-  return eq ? L::True : L::False;
+/** @brief A set term whose normal form the run lists read. */
+export template <typename T>
+concept IsStepTerm = requires { typename T::logic_species; } &&
+                     IsStepSource<decltype(steps(std::declval<const T&>()))>;
+/** @brief The extension of a set term: its normal form, materialised as a
+ *  stored run list.  The explicit step; every query reads @c steps(t) lazily
+ *  without it.  @param t the term. */
+export template <IsStepTerm T>
+auto ext(const T& t) {
+  using S = decltype(steps(t));
+  return Runs<typename S::Domain, typename S::logic_species>(steps(t));
 }
-/** @brief A value set against the boundaries: @c Ø is the uninhabited one, @c 𝔸
- *  the inhabited one with no side.  On a truth chain the boundaries decide by
- *  exhausting the chain instead (sets:boundaries). */
-export template <IsTotallyOrdered T, IsOckhamAlgebra L>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Ø<T, L>&, const Interval<T, L>& s) {
-  if (!s.span()) return true;
-  const auto& [lo, hi] = *s.span();
-  if (lo && !hi)
-    return detail_interval::ray_is_empty(lo->at, Direction::Upward,
-                                         lo->strictness);
-  if (hi && !lo)
-    return detail_interval::ray_is_empty(hi->at, Direction::Downward,
-                                         hi->strictness);
-  return false;
+
+/** @brief Equality of two set terms of a chain as sets of the carrier, in the
+ *  species: one traversal of their normal forms, so it is extensional
+ *  (@c (0, 3) and @c [1, 3) are the same set of ℤ). */
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename B::Domain;
+  } && std::same_as<typename A::Domain, typename B::Domain> &&
+           (!IsBoundaryObject<A>) && (!IsBoundaryObject<B>) && IsStepTerm<A> &&
+           IsStepTerm<B> &&
+           std::same_as<typename A::logic_species, typename B::logic_species>
+constexpr auto operator==(const A& a, const B& b) {
+  return equal(steps(a), steps(b));
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const Ø<T, L>& e) {
+/** @brief Equality across two species of one chain, read in their join: a
+ *  Boolean set beside a K₃-valued one is compared in K₃. */
+export template <typename A, typename B>
+  requires requires {
+    typename A::Domain;
+    typename B::Domain;
+  } && std::same_as<typename A::Domain, typename B::Domain> &&
+           (!IsBoundaryObject<A>) && (!IsBoundaryObject<B>) && IsStepTerm<A> &&
+           IsStepTerm<B> &&
+           (!std::same_as<typename A::logic_species,
+                          typename B::logic_species>) &&
+           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+constexpr auto operator==(const A& a, const B& b) {
+  using J = join_logic_t<typename A::logic_species, typename B::logic_species>;
+  using SA = decltype(steps(a));
+  using SB = decltype(steps(b));
+  return equal(RelabelSteps<SA, detail_runs::LiftInto<J>, J>{steps(a), {}},
+               RelabelSteps<SB, detail_runs::LiftInto<J>, J>{steps(b), {}});
+}
+/** @brief A set term against the boundaries, in its species: @c Ø @c == @c S
+ *  is @f$\neg\bigvee\chi@f$, @c 𝔸 @c == @c S is @f$\bigwedge\chi@f$, read over
+ *  the carrier's own elements (on K₃, @c Unknown is a verdict). */
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
+constexpr auto operator==(const Ø<T, L>&, const S& s) {
+  return S::logic_species::RFL(exists(steps(s)));
+}
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
+constexpr auto operator==(const S& s, const Ø<T, L>& e) {
   return e == s;
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(const 𝔸<T, L, CU>&, const Interval<T, L>& s) {
-  if (!s.span()) return false;
-  const auto& [lo, hi] = *s.span();
-  if (!lo && !hi) return true;
-  if (lo && !hi)
-    return detail_interval::ray_is_empty(lo->at, Direction::Downward,
-                                         flip(lo->strictness));
-  if (hi && !lo)
-    return detail_interval::ray_is_empty(hi->at, Direction::Upward,
-                                         flip(hi->strictness));
-  return false;
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
+                 typename S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
+constexpr auto operator==(const 𝔸<T, L, CU>&, const S& s) {
+  return forall(steps(s));
 }
-export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU>
-  requires(!IsPst<T>)
-constexpr bool operator==(const Interval<T, L>& s, const 𝔸<T, L, CU>& u) {
+export template <IsTotallyOrdered T, IsOckhamAlgebra L, IsCardinality CU,
+                 typename S>
+  requires std::same_as<typename S::Domain, T> && (!IsBoundaryObject<S>) &&
+           IsStepTerm<S>
+constexpr auto operator==(const S& s, const 𝔸<T, L, CU>& u) {
   return u == s;
 }
-namespace detail_interval_eq {
+namespace detail_interval_witness {
 using dedekind::category::Ternary;
 using dedekind::sets::Cardinality;
 using dedekind::sets::ℵ_0;
@@ -585,12 +470,17 @@ static_assert(
     "{x > ⊤} is not {x ≥ ⊤}: at a saturating end a strict bound has no closed "
     "form.");
 static_assert(
-    !(Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                  Strictness::Strict) ==
-      Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
-                                  Strictness::NonStrict)),
-    "{x < ℵ₀}, the finite fragment, is not {x ≤ ℵ₀} = 𝔸.");
-}  // namespace detail_interval_eq
+    Ø<int>{} == Interval<int>::half(std::numeric_limits<int>::max(),
+                                    Direction::Upward, Strictness::Strict) &&
+        𝔸<Cardinality>{} ==
+            Interval<Cardinality>::half(Cardinality{ℵ_0{}}, Direction::Downward,
+                                        Strictness::NonStrict) &&
+        !(𝔸<Cardinality>{} == Interval<Cardinality>::half(Cardinality{ℵ_0{}},
+                                                          Direction::Downward,
+                                                          Strictness::Strict)),
+    "the carrier's ends: {x > max} is Ø, {n ≤ ℵ₀} is 𝔸, and the "
+    "finite fragment {n < ℵ₀} is not.");
+}  // namespace detail_interval_witness
 
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
@@ -605,30 +495,29 @@ constexpr Interval<V, L> structured_and(const Interval<V, L>& a,
 }
 
 /** @section halfspace__Union_And_Complement
- *  The union of two intervals is the reducer's @c Join node, decided by
- *  membership: one interval or two disjoint ones, both modelled.  The
- *  complement of an interval is the @c Join of the parts below and above it.
- *  @c reduce_join names the case where one operand covers the other. */
-
-/** @brief The union of two intervals where one covers the other: the cover.
- *  Otherwise refused; @c | then keeps both as a @c Join. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr Interval<V, L> reduce_join(const Interval<V, L>& a,
-                                     const Interval<V, L>& b) {
-  if (!a.span()) return b;
-  if (!b.span()) return a;
-  const Span<V>& x = *a.span();
-  const Span<V>& y = *b.span();
-  // One side covering the other on both ends: the union is the cover.
-  if (detail_interval::lower_covers(x.lower, y.lower) &&
-      detail_interval::upper_covers(x.upper, y.upper))
-    return a;
-  if (detail_interval::lower_covers(y.lower, x.lower) &&
-      detail_interval::upper_covers(y.upper, x.upper))
-    return b;
-  // No interval normal form (a crossing union, a point outside, two disjoint
-  // intervals): refused, not guessed.
-  throw std::domain_error("reduce_join: the union has no interval normal form");
+ *  The union of two intervals and the complement of one leave the intervals:
+ *  they stay the terms @c Join and @c Not, read through their normal form
+ *  (@c steps, @c :runs) by the query that needs it. */
+namespace detail_interval {
+/** @brief A piece as the interval it is. */
+template <typename V>
+struct AsInterval {
+  constexpr Interval<V, Boole> operator()(const Piece<V>& p) const {
+    return Interval<V, Boole>::of_sides(
+        p.start ? std::optional{detail_position::lower_at(*p.start)}
+                : std::nullopt,
+        p.end ? std::optional{detail_position::upper_at(*p.end)}
+              : std::nullopt);
+  }
+};
+}  // namespace detail_interval
+/** @brief The runs of a two-valued source as intervals, in order along the
+ *  chain: a view, nothing stored.  @param s the source. */
+export template <IsStepSource S>
+  requires std::same_as<typename S::logic_species, Boole>
+constexpr auto intervals(const S& s) {
+  return std::views::transform(
+      pieces(s), detail_interval::AsInterval<typename S::Domain>{});
 }
 
 /** @section halfspace__PointFree_Decidability
@@ -1043,39 +932,6 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
-/** @brief The complement of an interval: the parts below and above it, a
- *  @c Join of at most two intervals (@c Ø's complement is @c 𝔸). */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-constexpr auto operator~(const Interval<V, L>& s) {
-  using S = Interval<V, L>;
-  using J = dedekind::category::Join<S, S>;
-  if (!s.span()) return J{S::universe(), S::empty()};
-  const auto& [lo, hi] = *s.span();
-  return J{lo ? S::half(lo->at, Direction::Downward, flip(lo->strictness))
-              : S::empty(),
-           hi ? S::half(hi->at, Direction::Upward, flip(hi->strictness))
-              : S::empty()};
-}
-// An interval met with an interval, or with a union of two: the set-level
-// @c & (@c sets:expressions, found through @c SetExpr), i.e. the one lattice
-// reducer, whose leaf-combine is @c structured_and above and whose distributive
-// law spreads a meet over the union.
-/** @brief A union of two intervals is empty exactly when both are. */
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-  requires(!IsPst<V>)
-constexpr bool operator==(
-    const Ø<V, L>&,
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j) {
-  return !j.lhs.span() && !j.rhs.span();
-}
-export template <IsTotallyOrdered V, IsOckhamAlgebra L>
-  requires(!IsPst<V>)
-constexpr bool operator==(
-    const dedekind::category::Join<Interval<V, L>, Interval<V, L>>& j,
-    const Ø<V, L>&) {
-  return !j.lhs.span() && !j.rhs.span();
-}
-
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
  *  @f$\forall@f$-dominators, @f$S \cap \mathrm{upperbounds}(S)@f$.  @c min is
  * the dual (@c S met with its minorants).
@@ -1347,6 +1203,16 @@ static_assert(
 // closures (half the Kleene algebra), leaving the star for the next pass.
 
 }  // namespace dedekind::order
+
+// ── Equality of the sets of a chain, where the set-level quantifiers look ────
+// sets:quantifier compares Ø == (S | P) inside a template of dedekind::sets; a
+// comprehension built from sets and category types alone (𝔸 | id on K₃) names
+// no order type, so argument-dependent lookup searches only those namespaces.
+// The run-list equalities are named in dedekind::sets as well: the same
+// functions, visible wherever order is imported.
+export namespace dedekind::sets {
+using dedekind::order::operator==;
+}  // namespace dedekind::sets
 
 // ── Structural inference of the relation properties (Table 3) ───────────────
 // The four properties are opt-in traits (trust at the leaves).  Here they are

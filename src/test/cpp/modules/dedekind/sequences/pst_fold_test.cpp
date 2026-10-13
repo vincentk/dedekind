@@ -2,8 +2,8 @@
  * @file dedekind/sequences/pst_fold_test.cpp
  * @brief The Pst fragment (#975, slice 1): chain_view, the runs of a decidable
  *        set over 𝔹, K₃ and an int window, and an L-valued set read through its
- *        α-cuts and fibres as preimages; the quantifiers and equality are sets'
- *        own, decided by exhaustion.
+ *        α-cuts and fibres as preimages; the quantifiers and equality read the
+ *        run lists.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -25,16 +25,6 @@ using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
 namespace {
-/** @brief @c U at ⊥, @c ⊤ above: a K₃-valued set that is everything "at least
- *  maybe". */
-struct AtLeastMaybe {
-  using Domain = Ternary;
-  using Codomain = Ternary;
-  constexpr Ternary operator()(const Ternary& x) const {
-    return x == Ternary::False ? Ternary::Unknown : Ternary::True;
-  }
-};
-
 template <typename View>
 std::vector<std::ranges::range_value_t<View>> collect(View v) {
   std::vector<std::ranges::range_value_t<View>> out;
@@ -98,7 +88,6 @@ TEST_CASE(
   // ∃ = ⋁χ and ∀ = ⋀χ in K₃, through == alone: Unknown is a verdict.
   CHECK(exists(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::True);
   CHECK(forall(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::False);
-  CHECK(forall(𝔸<Ternary, Kleene>{}, AtLeastMaybe{}) == Ternary::Unknown);
   // Equality is the internal biconditional: reflexive only up to the excluded
   // middle, so a set agrees with itself to degree U where it is U.
   CHECK((hedge == hedge) == Ternary::Unknown);
@@ -113,8 +102,8 @@ TEST_CASE(
   // outright at ⊥, ⊤ against ⊥, and the biconditional's meet is ⊥.
   CHECK(((𝔸<Ternary>{} | (π > Ternary::Unknown)) == hedge) == Ternary::Unknown);
   CHECK(((𝔸<Ternary>{} | (π < Ternary::Unknown)) == hedge) == Ternary::False);
-  CHECK((𝔸<Ternary, Kleene>{} == (𝔸<Ternary, Kleene>{} | AtLeastMaybe{})) ==
-        Ternary::Unknown);  // 𝔸 first: the Ω-valued member, not a rewrite
+  // Excluded middle holds only to degree U, where χ is U.
+  CHECK((𝔸<Ternary, Kleene>{} == (hedge | ~hedge)) == Ternary::Unknown);
   // The α-cuts, nested, as preimages of the upper rays on Ω: {χ ≥ U} = [U, ⊤]
   // and {χ ≥ ⊤} = [⊤, ⊤]; the fibre at U, preimage(χ, η(U)), is [U, U].
   constexpr auto cut_u =

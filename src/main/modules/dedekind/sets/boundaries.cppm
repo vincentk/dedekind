@@ -46,7 +46,7 @@ module;
 #include <cstddef>  // std::size_t (emptiness-by-size overload)
 #include <functional>
 #include <limits>
-#include <ranges>  // std::ranges::range / begin / end (emptiness-by-iterator overload)
+#include <ranges>   // std::ranges::range (emptiness-by-size overload)
 #include <utility>  // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
@@ -63,29 +63,12 @@ using namespace dedekind::category;
  * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
-// The two-step for the NNO step (category:nno): the using-declaration lets the
-// generic integral / enum successor compete with this namespace's own
-// Cardinality overloads, so successor(bool) is the two-chain's step, not a
-// conversion to a cardinal.
-using dedekind::category::successor;
-
 /** @brief ∅: The Initial Object. Extensional (Size 0).
  *
  *  @c T defaults to @c std::nullptr_t (the project's @c Zero carrier), so the
  *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
  *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
  *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
-/** @brief A set over a truth chain (@c 𝔹, @f$K_3@f$: an @c IsPst carrier)
- *  whose @c == Ø, @c == 𝔸 and set equality are decided by exhausting the chain
- *  from ⊥ to ⊤ by the step: a predicate on the chain that is neither a boundary
- *  object nor sized (a sized set answers by its size).  The Pst fragment's
- *  normalisation by evaluation, in its simplest form.
- *  @tparam S the candidate. */
-export template <typename S>
-concept IsExhaustibleSet =
-    IsPredicate<S> && IsPst<Dom<S>> && HasCoveringStep<Dom<S>> &&
-    !IsBoundaryObject<S> && !requires(const S& s) { s.size(); };
-
 /** @brief A truth chain's bottom, its species' ⊥.  @tparam C the chain.
  *  @return @c False of the species whose @c Ω is @c C. */
 export template <IsPst C>
@@ -194,33 +177,6 @@ struct Ø final {
             }
   constexpr bool operator==(const S& s) const {
     return 0 == s.size();
-  }
-
-  // (ii) a std::ranges-backed operand with no size(): empty iff begin == end.
-  //      Taken @b by value, not by const ref: an unsized range is typically a
-  //      lazy view (e.g. std::views::filter), whose begin() caches and so is
-  //      non-const-iterable; a by-value copy is a mutable local we can advance
-  //      (and short-circuit) at both run time and compile time.  Copying a view
-  //      is cheap by construction; owning containers expose size() and route to
-  //      (i) instead, so they never reach here.
-  template <typename S>
-    requires std::ranges::range<S> && (!std::same_as<S, Ø>) &&
-             (!requires(const S& s) { s.size(); })
-  constexpr bool operator==(S s) const {
-    return std::ranges::begin(s) == std::ranges::end(s);
-  }
-
-  // (iii) a set over a truth chain: Ø = S is ⋀_x ¬χ(x) in the set's own L, the
-  // chain exhausted ⊥ to ⊤; ⊥ annihilates the meet, so the walk stops there.
-  template <IsExhaustibleSet S>
-    requires std::same_as<T, Dom<S>>
-  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
-    using Log = predicate_logic_t<S>;
-    typename Log::Ω acc = Log::True;
-    for (T x = chain_bottom<T>();; x = successor(x)) {
-      acc = Log::AND(acc, Log::RFL(s(x)));
-      if (acc == Log::False || x == chain_top<T>()) return acc;
-    }
   }
 
   // The Duality: !∅ = V
@@ -403,22 +359,6 @@ struct 𝔸 final {
     return true;
   }
 
-  /** @brief @c 𝔸 @c == @c S on a truth chain: @f$\bigwedge_x \chi(x)@f$ in
-   *  the set's own @c L --- the universal quantifier, @c Unknown an honest
-   *  verdict on @f$K_3@f$ --- the chain exhausted ⊥ to ⊤, stopping at ⊥.  An
-   *  infinite carrier has no catch-all (the Rice wall).
-   *  @tparam S a set over the chain, see @c IsExhaustibleSet. */
-  template <IsExhaustibleSet S>
-    requires std::same_as<T, Dom<S>>
-  constexpr typename predicate_logic_t<S>::Ω operator==(const S& s) const {
-    using Log = predicate_logic_t<S>;
-    typename Log::Ω acc = Log::True;
-    for (T x = chain_bottom<T>();; x = successor(x)) {
-      acc = Log::AND(acc, s(x));
-      if (acc == Log::False || x == chain_top<T>()) return acc;
-    }
-  }
-
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
@@ -523,33 +463,6 @@ static_assert(std::same_as<universe_t<Ø<int>>, 𝔸<int>> &&
 static_assert(
     dedekind::category::IsProduct<𝔸<std::pair<int, bool>>, 𝔸<int>, 𝔸<bool>>,
     "the universe of a pair carrier is the product of the factor universes.");
-
-/** @brief Two sets over one truth chain, in comparable species: @f$\bigwedge_x
- *  (\chi_A(x) \Leftrightarrow \chi_B(x))@f$ in the @b join of their species
- *  (@c category::join_logic_t, 𝔹 at the bottom: a Boolean set beside a
- * K₃-valued one is compared in K₃), with @f$a \Leftrightarrow b = (a \wedge b)
- * \vee (\neg a
- *  \wedge \neg b)@f$, the chain exhausted ⊥ to ⊤.  On @f$\mathbb{B}@f$ this is
- *  table equality; on @f$K_3@f$ it is reflexive only up to the excluded middle
- * (a set agrees with itself to degree @c U where it is @c U).  The quantifiers
- *  (@c :quantifier) and the subset identity ride on it; the more specialised
- *  equalities (points, value sets, the boundaries) keep winning by partial
- *  ordering.  @tparam A the left set.  @tparam B the right set. */
-export template <IsExhaustibleSet A, IsExhaustibleSet B>
-  requires std::same_as<Dom<A>, Dom<B>> &&
-           HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>>
-constexpr auto operator==(const A& a, const B& b) {
-  using Log = join_logic_t<predicate_logic_t<A>, predicate_logic_t<B>>;
-  using C = Dom<A>;
-  typename Log::Ω acc = Log::True;
-  for (C x = chain_bottom<C>();; x = successor(x)) {
-    const auto l = lift_logic<Log>(a(x));
-    const auto r = lift_logic<Log>(b(x));
-    acc = Log::AND(acc,
-                   Log::OR(Log::AND(l, r), Log::AND(Log::RFL(l), Log::RFL(r))));
-    if (acc == Log::False || x == chain_top<C>()) return acc;
-  }
-}
 
 }  // namespace dedekind::sets
 

@@ -132,6 +132,33 @@ constexpr bool is_order_closed(const Interval<T, L>& s) {
   return (!lo || lo->strictness == Strictness::NonStrict) &&
          (!hi || hi->strictness == Strictness::NonStrict);
 }
+namespace detail_order_reading {
+/** @brief Whether every step of a decidable set term enters at the side
+ *  @c in and leaves at the other: open enters just above a value, closed at
+ *  it.  An L-valued set is read through its α-cuts. */
+template <IsStepTerm T>
+  requires std::same_as<typename T::logic_species, Boole>
+constexpr bool sides_are(const T& t, Side in) {
+  for (const auto& s : steps(t).steps())
+    if ((s.value == T::logic_species::True) != (s.at.side == in)) return false;
+  return true;
+}
+}  // namespace detail_order_reading
+/** @brief Whether a set term of a chain is order-open: it enters each run just
+ *  above a value and leaves it just below one, so no member sits on an edge.
+ */
+export template <IsStepTerm T>
+  requires std::same_as<typename T::logic_species, Boole>
+constexpr bool is_order_open(const T& t) {
+  return detail_order_reading::sides_are(t, Side::Above);
+}
+/** @brief Whether a set term is order-closed: it enters and leaves each run at
+ *  a value, the dual of @ref is_order_open. */
+export template <IsStepTerm T>
+  requires std::same_as<typename T::logic_species, Boole>
+constexpr bool is_order_closed(const T& t) {
+  return detail_order_reading::sides_are(t, Side::Below);
+}
 template <typename T, typename L>
 inline constexpr bool is_order_closed_v<Singleton<T, L>> = true;
 template <typename A, typename B>

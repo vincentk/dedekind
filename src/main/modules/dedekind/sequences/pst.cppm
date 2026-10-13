@@ -1,8 +1,8 @@
 /**
  * @file dedekind/sequences/pst.cppm
  * @partition :pst
- * @brief The Pst fragment's run-lists: a decidable set over a finite chain,
- * read off the chain as it is walked.
+ * @brief The Pst fragment's normal form: a decidable set over a finite chain,
+ * folded into its run list as the chain is walked.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -11,10 +11,10 @@
  * A set over a finite chain is a finite table @f$\chi : C \to L@f$.  Equality,
  * and with it the quantifiers and the subset identity, is exhaustion of the
  * chain and lives upstream (@c sets:boundaries, @c sets:quantifier).  What
- * needs the range view is here: the @b runs of a decidable set, its maximal
- * runs of membership along the chain, as a @c std::ranges pipeline over
- * @c chain_view, on a window whose ends are values or on a whole truth chain.
- * O(N) steps, O(1) state, nothing stored.
+ * needs the walk is here: a decidable set whose χ is opaque reaches its normal
+ * form, a run list (@c order:runs), by exhausting the chain along
+ * @c chain_view, on a window whose ends are values or on a whole truth chain;
+ * its @b runs are then read off that normal form.  O(N) steps.
  *
  * An L-valued set is read through its decidable sets on @f$\Omega@f$, pulled
  * back along χ with the generic @c preimage (@c category:morphism): the
@@ -43,7 +43,8 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
-#include <functional>
+#include <iterator>
+#include <optional>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -74,60 +75,45 @@ concept IsPstSet =
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
     HasCoveringStep<typename std::remove_cvref_t<S>::Domain>;
 
-/** @brief A maximal run of membership, @c [lo, hi].  @tparam C the chain. */
-export template <typename C>
-struct Run {
-  C lo;
-  C hi;
-  friend constexpr bool operator==(const Run&, const Run&) = default;
-};
-
 namespace detail_pst {
-/** @brief A point of the table: @c (x, χ(x)).  @tparam S the set. */
-template <IsPstSet S>
-struct Table {
+/** @brief An element of the walk as the step to its membership, ⊥ past the
+ *  window's top.  @tparam S the set. */
+template <typename S>
+struct ToMembership {
   S s;
-  constexpr std::pair<typename S::Domain, bool> operator()(
-      const typename S::Domain& x) const {
-    return {x, s(x)};
-  }
-};
-struct SameMembership {
-  constexpr bool operator()(const auto& a, const auto& b) const {
-    return a.second == b.second;
-  }
-};
-struct Inhabited {
-  constexpr bool operator()(const auto& chunk) const {
-    return (*chunk.begin()).second;
-  }
-};
-struct ToRun {
-  constexpr auto operator()(const auto& chunk) const {
-    auto first = *chunk.begin();
-    auto last = first;
-    for (const auto& p : chunk) last = p;
-    return Run{first.first, last.first};
+  typename S::Domain hi;
+  constexpr auto operator()(const typename S::Domain& x) const {
+    using C = typename S::Domain;
+    return dedekind::order::Step<C, Boole>{
+        dedekind::order::Position<C>{x, dedekind::order::Side::Below},
+        !(hi < x) && static_cast<bool>(s(x))};
   }
 };
 }  // namespace detail_pst
-
-/** @brief The runs of @c s on the window: the table chunked by membership, the
- *  non-member chunks dropped.  @tparam S the set.  @param s the set.
- *  @param lo the window's bottom.  @param hi its top. */
+/** @brief The normal form of @c s on the window @c [lo, hi], by exhaustion: a
+ *  step source that walks the window (and the element after it) along
+ *  @c chain_view and steps where χ changes, ⊥ outside the window.  Lazy: one
+ *  walk per traversal, nothing stored.  @tparam S the set. */
+export template <IsPstSet S>
+struct ScanSteps {
+  using Domain = typename S::Domain;
+  using logic_species = Boole;
+  S s;
+  Domain lo, hi;
+  constexpr bool first() const { return false; }
+  constexpr auto steps() const {
+    const Domain past = cover(hi).value_or(hi);
+    return dedekind::order::distinct_steps(
+        std::views::transform(chain_view{lo, past},
+                              detail_pst::ToMembership<S>{s, hi}),
+        false);
+  }
+};
+/** @brief The runs of @c s on the window, read off its normal form. */
 export template <IsPstSet S>
 constexpr auto runs(const S& s, const typename S::Domain& lo,
                     const typename S::Domain& hi) {
-  // Spelled as calls, not as a | pipeline: the library's own operator| family
-  // (the set former, the join) is in scope wherever a set type is, and the
-  // adaptor closure's operator| is not what overload resolution then finds.
-  return std::views::transform(
-      std::views::filter(
-          std::views::chunk_by(std::views::transform(chain_view{lo, hi},
-                                                     detail_pst::Table<S>{s}),
-                               detail_pst::SameMembership{}),
-          detail_pst::Inhabited{}),
-      detail_pst::ToRun{});
+  return dedekind::order::runs(ScanSteps<S>{s, lo, hi});
 }
 /** @brief The runs over a whole truth chain, ⊥ to ⊤.
  *  @tparam S a set over a truth chain. */
@@ -140,9 +126,10 @@ constexpr auto runs(const S& s) {
 
 /** @section pst__Formal_Verification */
 namespace detail_pst_witness {
+using dedekind::order::Run;
 using dedekind::sets::η;
 using dedekind::sets::π;
-/** @brief A view's runs as (count, first, last). */
+/** @brief A run list's runs as (count, first, last). */
 template <typename View>
 consteval auto summary(View v) {
   std::size_t n = 0;
@@ -164,7 +151,7 @@ inline constexpr auto above5 = 𝔸<int>{} | (π > 5);
 inline constexpr auto below3 = 𝔸<int>{} | (π < 3);
 static_assert(std::ranges::equal(runs(above5, 0, 20),
                                  runs(𝔸<int>{} | (π >= 6), 0, 20)) &&
-                  std::ranges::empty(runs(above5 & below3, 0, 20)) &&
+                  std::ranges::distance(runs(above5 & below3, 0, 20)) == 0 &&
                   summary(runs(above5 | below3, 0, 9)) ==
                       std::tuple{std::size_t{2}, Run{0, 2}, Run{6, 9}},
               "on a window: {x > 5} = {x ≥ 6} by their runs, (x > 5) ∧ (x < 3) "

@@ -16,7 +16,7 @@ not bound here)::
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
     S = 𝔸(K3) | (π > F)          # generator | pred      -> {U, ⊤}
-    S == (𝔸(K3) | (π >= U))      # True: extensional, decided by exhausting K₃
+    S == (𝔸(K3) | (π >= U))      # True: one normal form, the run list [U, ⊤]
     ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
     U in S;  S(U)                # membership, χ
     exists(𝔸(K3), π > F)         # True;  forall(𝔸(K3), π > F) is False
@@ -27,9 +27,9 @@ not bound here)::
                                  # excluded middle, where the set is U
     H.cut(U) == (𝔸(K3) | (π >= U))   # the α-cut, a decidable set: True
 
-Every handle is a real library set (a comprehension over 𝔸 with a type-erased
-classifier); every operator runs the library's node and every query is the
-library's exhaustion of the chain.  Reduction stays in C++.
+Every handle is a run list, the library's normal form of these sets, valued in
+its species (a K₃-valued set is a step function on the chain); every operator
+and every query is the library's, on it.  Reduction stays in C++.
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as

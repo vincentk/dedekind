@@ -1,20 +1,15 @@
-"""The lattice reducer at run time, driven from Python (one law, two binding
-times).
+"""The normal form of sets of ℤ built from intervals, driven from Python.
 
-The C++ ``static_assert`` exhibits fold ``Meet`` / ``Join`` / ``Not`` terms at
-compile time.  The same algebra (``category::Reduce`` under ``cata``) folds
-the same terms here on pivots that exist only at run time.  The laws decide on
-the operand types where those differ; a leaf's data is combined by the carrier
-(the interval meet).  The one law whose work is visible from here is
-distributivity: ``a & ~b`` is ``Meet<Interval, Join<Interval, Interval>>``, and
-the reducer spreads the meet over the union and rebuilds the two parts from the
-values ``~b`` holds.
+A set is a run list: finitely many disjoint intervals in order, the canonical
+form of the Boolean algebra the intervals generate.  ``&``, ``|`` and ``~``
+fold through the same lattice reducer the C++ ``static_assert`` exhibits fold,
+here on pivots that exist only at run time, and every spelling of one set
+reaches the same run list.
 """
 
 import unittest
 
 from dedekind.lwv import (
-    Union,
     above,
     at_least,
     at_most,
@@ -25,73 +20,71 @@ from dedekind.lwv import (
 )
 
 
-class TheMeetFoldsThroughTheReducer(unittest.TestCase):
-    def test_the_bounds_meet_as_values(self) -> None:
-        # Ø and 𝔸 are values of the one leaf type, so the carrier's meet, not
-        # a type law, decides them: the result is the same set either way.
+class TheBoundsAreValues(unittest.TestCase):
+    def test_the_bounds_meet_and_join_as_values(self) -> None:
         s = above(3)
         self.assertEqual(everything() & s, s)
-        self.assertEqual(s & everything(), s)
         self.assertEqual(nothing() & s, nothing())
+        self.assertEqual(everything() | s, everything())
+        self.assertEqual(nothing() | s, s)
 
 
-class TheComplementIsAUnion(unittest.TestCase):
+class TheComplementIsARunList(unittest.TestCase):
     def test_the_parts_below_and_above(self) -> None:
         u = ~singleton(5)
-        self.assertIsInstance(u, Union)
-        self.assertEqual(u.parts, (below(5), above(5)))
-        self.assertEqual(repr(u), "{x | x < 5} ∪ {x | x > 5}")
+        self.assertEqual(u.runs(), [below(5), above(5)])
+        self.assertEqual(repr(u), "{x | x < 5} ∪ {x | x >= 6}")
         self.assertIn(4, u)
         self.assertNotIn(5, u)
         self.assertIn(6, u)
 
-    def test_the_complement_of_a_ray_has_an_empty_part(self) -> None:
-        u = ~above(3)  # {x <= 3} ∪ Ø
-        self.assertEqual(u.parts, (at_most(3), nothing()))
-        self.assertIn(3, u)
-        self.assertNotIn(4, u)
+    def test_the_complement_of_a_ray_is_one_run(self) -> None:
+        self.assertEqual((~above(3)).runs(), [at_most(3)])
+        self.assertEqual(~above(3), at_most(3))
 
     def test_the_complement_of_a_boundary(self) -> None:
-        self.assertEqual((~nothing()).parts, (everything(), nothing()))
-        self.assertFalse(~everything())  # Ø ∪ Ø: uninhabited
+        self.assertEqual(~nothing(), everything())
+        self.assertEqual(~everything(), nothing())
+        self.assertFalse(~everything())
+
+    def test_the_complement_is_an_involution(self) -> None:
+        s = at_least(0) & ~singleton(5)
+        self.assertEqual(~~s, s)
 
 
-class DistributivityRebuildsItsValue(unittest.TestCase):
-    """``a & (b ∪ c) → (a & b) ∪ (a & c)``: decided on the types at compile
-    time, the two meets computed on the run-time pivots."""
+class OneSetOneNormalForm(unittest.TestCase):
+    """Every spelling of a set reaches the same run list."""
 
     def test_a_meet_with_a_complement(self) -> None:
         u = at_least(0) & ~singleton(5)  # [0, 5) ∪ (5, ∞)
-        self.assertIsInstance(u, Union)
-        self.assertEqual(u.parts, (at_least(0) & below(5), above(5)))
-        self.assertIn(0, u)
-        self.assertIn(4, u)
-        self.assertNotIn(5, u)
-        self.assertIn(6, u)
-        self.assertNotIn(-1, u)
+        self.assertEqual(u.runs(), [at_least(0) & below(5), above(5)])
+        self.assertEqual(u, (at_least(0) & below(5)) | above(5))
+        self.assertEqual(u, ~(below(0) | singleton(5)))  # De Morgan
+        for x, member in ((-1, False), (0, True), (4, True), (5, False), (6, True)):
+            self.assertEqual(x in u, member)
 
-    def test_the_meet_commutes(self) -> None:
-        a, u = at_least(0), ~singleton(5)
-        self.assertEqual(a & u, u & a)
+    def test_meet_and_join_commute(self) -> None:
+        a, b = at_least(0), ~singleton(5)
+        self.assertEqual(a & b, b & a)
+        self.assertEqual(a | b, b | a)
 
-    def test_a_part_may_vanish(self) -> None:
-        u = above(10) & ~singleton(5)  # Ø ∪ (10, ∞)
-        self.assertEqual(u.parts, (nothing(), above(10)))
-        self.assertTrue(u)
-        self.assertEqual((below(0) & ~at_least(0)).parts, (below(0), nothing()))
+    def test_adjacent_and_overlapping_runs_merge(self) -> None:
+        self.assertEqual(at_most(4) | at_least(5), everything())
+        self.assertEqual((at_least(0) & at_most(3)) | (at_least(4) & at_most(9)),
+                         at_least(0) & at_most(9))
+        self.assertEqual(len((at_least(0) & below(10)) | (above(20) & below(25))), 14)
 
-    def test_a_contradiction_is_uninhabited(self) -> None:
+    def test_a_contradiction_is_empty(self) -> None:
         s = at_least(0) & at_most(10)
-        u = s & ~s  # Ø ∪ Ø
-        self.assertFalse(u)
-        for x in (-1, 0, 5, 10, 11):
-            self.assertNotIn(x, u)
+        self.assertEqual(s & ~s, nothing())
+        self.assertEqual(s | ~s, everything())
+        self.assertFalse(s & ~s)
 
-    def test_meets_chain(self) -> None:
-        u = (at_least(0) & ~singleton(5)) & at_most(7)  # [0,5) ∪ (5,7]
-        self.assertEqual(u.parts, (at_least(0) & below(5), above(5) & at_most(7)))
-        self.assertNotIn(8, u)
-        self.assertIn(7, u)
+    def test_a_union_of_runs_iterates_in_order(self) -> None:
+        u = (at_least(0) & below(3)) | (above(6) & at_most(8))
+        self.assertEqual(list(u), [0, 1, 2, 7, 8])
+        self.assertEqual(len(u), 5)
+        self.assertTrue(u.is_bounded)
 
 
 if __name__ == "__main__":

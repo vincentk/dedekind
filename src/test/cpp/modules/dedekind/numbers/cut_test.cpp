@@ -111,8 +111,8 @@ TEST_CASE(
     // The order topology reads the sides: {q < p} open, its complement
     // {q ≥ p} closed.
     STATIC_CHECK(is_order_open(ray));
-    STATIC_CHECK((~ray).rhs == Interval<Q>::half(p, Direction::Upward,
-                                                 Strictness::NonStrict));
-    STATIC_CHECK(is_order_closed((~ray).rhs));
+    STATIC_CHECK(
+        ~ray == Interval<Q>::half(p, Direction::Upward, Strictness::NonStrict));
+    STATIC_CHECK(is_order_closed(~ray));
   }
 }
