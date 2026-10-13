@@ -854,6 +854,14 @@ NB_MODULE(_pst, m) {
           "__eq__", [](const Word& a, const Word& b) { return a == b; },
           nb::is_operator())
       .def(
+          "__eq__",
+          [](const Word& a, nb::handle b) {
+            return is_py_int(b) && in_u64(b) && word_of(b) == a;
+          },
+          nb::is_operator(),
+          "An int equals the word it represents: u64(5) == 5, and the hash "
+          "is the int's.")
+      .def(
           "__lt__", [](const Word& a, const Word& b) { return a < b; },
           nb::is_operator())
       .def(
@@ -883,7 +891,7 @@ NB_MODULE(_pst, m) {
         "__init__", [](Fp* x, nb::handle n) { new (x) Fp{residue_of(n)}; },
         nb::arg("n"))
       .def("__int__", &representative)
-      .def("__hash__", [](const Fp& x) { return nb::hash(py_int(x.value)); })
+      .def("__hash__", [](const Fp& x) { return nb::hash(representative(x)); })
       .def("__repr__",
            [](const Fp& x) {
              return "𝔽ₚ(" + nb::cast<std::string>(nb::str(representative(x))) +
@@ -938,7 +946,15 @@ NB_MODULE(_pst, m) {
           "The multiplicative inverse, a^(p−2).")
       .def(
           "__eq__", [](const Fp& a, const Fp& b) { return a == b; },
-          nb::is_operator());
+          nb::is_operator())
+      .def(
+          "__eq__",
+          [](const Fp& a, nb::handle b) {
+            return is_py_int(b) && in_fp(b) && residue_of(b) == a;
+          },
+          nb::is_operator(),
+          "An int equals the element it represents: 𝔽ₚ(-1) == -1 but not "
+          "p - 1, so the hash is the representative's.");
   fp.attr("modulus") = py_int(Fp::modulus);
   fp.attr("is_ring") =
       nb::bool_(IsCommutativeRing<Fp, std::plus<Fp>, std::multiplies<Fp>>);

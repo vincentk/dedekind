@@ -39,6 +39,12 @@ class TheRing(unittest.TestCase):
         with self.assertRaises(TypeError):
             u64("5")
 
+    def test_it_equals_the_int_it_represents(self) -> None:
+        self.assertEqual(u64(5), 5)
+        self.assertNotEqual(u64(5), 2**64 + 5)
+        self.assertEqual(hash(u64(5)), hash(5))
+        self.assertEqual({u64(5), 5}, {5})
+
     def test_it_is_ordered_by_its_representatives(self) -> None:
         self.assertLess(u64(3), u64(5))
         self.assertGreater(u64(2**64 - 1), u64(0))
@@ -66,6 +72,12 @@ class TheField(unittest.TestCase):
         self.assertEqual(int(𝔽ₚ((P - 1) // 2)), (P - 1) // 2)
         self.assertEqual(int(𝔽ₚ((P + 1) // 2)), -((P - 1) // 2))
         self.assertEqual(repr(-𝔽ₚ(3)), "𝔽ₚ(-3)")
+
+    def test_it_equals_the_int_it_represents(self) -> None:
+        self.assertEqual(𝔽ₚ(-1), -1)
+        self.assertNotEqual(𝔽ₚ(-1), P - 1)  # the quotient map is not equality
+        self.assertEqual(hash(𝔽ₚ(-1)), hash(-1))
+        self.assertEqual({𝔽ₚ(2), 2, 𝔽ₚ(P + 2)}, {2})
 
     def test_it_has_no_order(self) -> None:
         with self.assertRaises(TypeError):

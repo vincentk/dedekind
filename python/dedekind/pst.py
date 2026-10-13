@@ -40,6 +40,8 @@ The canonical ring and field, each as large as a machine word allows::
     𝔽ₚ(1) / 3 * 3               # 𝔽ₚ(1): p = 2⁶⁴ − 59, the largest prime < 2⁶⁴
     𝔽ₚ(-1);  int(𝔽ₚ(-1))        # 𝔽ₚ(-1); -1: the symmetric representative
     5 in 𝔸(u64);  -1 in 𝔸(𝔽ₚ)   # True; True: ints that are representatives
+    𝔽ₚ(-1) == -1                # True, and 𝔽ₚ(-1) != p - 1: equal to the
+                                # int it represents, so hashing agrees
     u64.is_field;  𝔽ₚ.is_field  # False; True: the C++ concepts' verdict
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
