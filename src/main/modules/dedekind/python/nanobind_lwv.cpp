@@ -167,7 +167,7 @@ NB_MODULE(_lwv, m) {
           [](const Set& s) {
             nb::list out;
             for (const auto& r : ord::intervals(s))
-              out.append(nb::cast(lwv::materialise(r)));
+              out.append(nb::cast(dedekind::python::materialise(r)));
             return out;
           },
           "The maximal runs, in order along the chain, each a set of one "
