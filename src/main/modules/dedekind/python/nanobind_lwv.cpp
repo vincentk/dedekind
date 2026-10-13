@@ -38,13 +38,12 @@
 import dedekind.category; // Identity, Successor, Predecessor
 import dedekind.order;    // Direction / Strictness, intervals
 import dedekind.sets;     // Ø, IsSetObject
-import dedekind.python;   // materialise; jlt: the window, the erased arrow
+import dedekind.python;   // materialise, the integer window, the erased arrow
 
 namespace nb = nanobind;
 
 namespace {
 namespace py = dedekind::python;
-namespace jlt = dedekind::python::jlt;
 namespace ord = dedekind::order;
 using dedekind::category::Boole;
 using dedekind::category::Identity;
@@ -109,10 +108,10 @@ struct Shifted {
     long long k;
     Step operator()(Step st) const {
       using W = std::numeric_limits<long long>;
-      st.at.at = jlt::add_in_window(st.at.at, k, "image");
+      st.at.at = py::add_in_window(st.at.at, k, "image");
       if (st.value ? st.at == Position<long long>{W::max(), Side::Above}
                    : st.at == Position<long long>{W::min(), Side::Below})
-        jlt::window_end("image");
+        py::window_end("image");
       st.at = dedekind::order::canonical(st.at);
       return st;
     }
@@ -127,15 +126,15 @@ struct Shifted {
  *  arrow has no such normal form; its image is intensional (Kleene-valued) and
  *  is refused at the boundary rather than guessed.  @tparam F the arrow. */
 template <typename F>
-concept IsStructuralArrow = std::same_as<F, Identity<jlt::Int>> ||
-                            std::same_as<F, Successor<jlt::Int>> ||
-                            std::same_as<F, Predecessor<jlt::Int>>;
+concept IsStructuralArrow =
+    std::same_as<F, Identity<py::Int>> || std::same_as<F, Successor<py::Int>> ||
+    std::same_as<F, Predecessor<py::Int>>;
 /** @brief How far the arrow moves a step: 0, +1, −1.  @tparam F the arrow. */
 template <IsStructuralArrow F>
 consteval long long offset() {
-  if constexpr (std::same_as<F, Successor<jlt::Int>>)
+  if constexpr (std::same_as<F, Successor<py::Int>>)
     return 1;
-  else if constexpr (std::same_as<F, Predecessor<jlt::Int>>)
+  else if constexpr (std::same_as<F, Predecessor<py::Int>>)
     return -1;
   else
     return 0;
@@ -266,7 +265,7 @@ std::optional<unsigned long long> cardinality(const Set& s) {
                       static_cast<unsigned long long>(r.lo);
     if (span == std::numeric_limits<unsigned long long>::max() ||
         __builtin_add_overflow(n, span + 1, &n))
-      jlt::window_end("len");
+      py::window_end("len");
   }
   return n;
 }
@@ -408,7 +407,7 @@ NB_MODULE(_lwv, m) {
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
       .def("__next__", [](SetIter& it) {
-        if (it.at_window_end) jlt::window_end("iter");
+        if (it.at_window_end) py::window_end("iter");
         if (!it.current) throw nb::stop_iteration();
         const long long value = *it.current;
         if (it.last && value >= *it.last)
@@ -431,12 +430,12 @@ NB_MODULE(_lwv, m) {
   const char* preimage_doc =
       "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
       "pred).  preimage(succ(int), above(6)) == above(5).";
-  bind_images<Identity<jlt::Int>>(m, image_doc, preimage_doc);
-  bind_images<Successor<jlt::Int>>(m, image_doc, preimage_doc);
-  bind_images<Predecessor<jlt::Int>>(m, image_doc, preimage_doc);
+  bind_images<Identity<py::Int>>(m, image_doc, preimage_doc);
+  bind_images<Successor<py::Int>>(m, image_doc, preimage_doc);
+  bind_images<Predecessor<py::Int>>(m, image_doc, preimage_doc);
   m.def(
       "image",
-      [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {
+      [](const py::Arrow<py::Int>&, const Set&) -> Set {
         throw nb::type_error(
             "image of an erased composite arrow is intensional (Kleene-valued) "
             "and has no value normal form; only id / succ / pred do");
@@ -444,7 +443,7 @@ NB_MODULE(_lwv, m) {
       nb::arg("f"), nb::arg("s"), image_doc);
   m.def(
       "preimage",
-      [](const jlt::Arrow<jlt::Int>&, const Set&) -> Set {
+      [](const py::Arrow<py::Int>&, const Set&) -> Set {
         throw nb::type_error(
             "preimage of an erased composite arrow is intensional "
             "(Kleene-valued) and has no value normal form; only id / succ / "

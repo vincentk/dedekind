@@ -24,18 +24,105 @@
 
 #include <nanobind/nanobind.h>
 
+#include <concepts>
+#include <functional>
+#include <limits>
+
 import dedekind.category; // Identity, Successor, Predecessor, the species
-import dedekind.python;   // dedekind::python::jlt: Arrow<T>, refl, compose
+import dedekind.python;   // the integer window, the erased arrow
 
 namespace nb = nanobind;
 
 namespace {
-namespace jlt = dedekind::python::jlt;
+namespace py = dedekind::python;
 using dedekind::category::Boole;
+using dedekind::category::cata;
 using dedekind::category::Chain;
+using dedekind::category::Dom;
+using dedekind::category::HasNNOStep;
 using dedekind::category::Identity;
+using dedekind::category::IsEndomorphism;
+using dedekind::category::IsOckhamAlgebra;
+using dedekind::category::logic_complement;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
+
+// ── Jlt: a fluent DSL over the real category arrows (#961) ────────────────
+//
+// The Jlt exhibit exposes the ACTUAL @c :morphism arrows over TWO objects,
+// @c bool and @c int, as @b duck-typed handles: compose with @c >>, apply with
+// @c (), inspect @c dom / @c cod.  There is no bespoke term class; an "arrow"
+// is the @b protocol (@c dom / @c cod / call / @c >>), witnessed by @c IsArrow
+// on the C++ side.
+//
+// The generators are @b involutive @b endomorphisms: @c id and @c refl.  @c
+// refl is @c :logic's @b pre-configured reflection @c logic_complement<L> (@c
+// L::RFL, already witnessed an involution there): @c ¬ on @c bool (@c Boole)
+// and the order-reversing @c ~ on @c int (@c Chain<int>).  Under @c >> they
+// generate
+// @c ℤ/2 per object --- every element is self-inverse (@c IsInvolution).
+//
+// Python arrows are @b extensional (functions), so a composition type-erases to
+// a @c Morphism<T,T>.  But it is NOT hand-rolled: @c compose builds @c
+// :morphism's
+// @c Compose (@c operator>>) and runs it through @c :f_algebra's @c cata ---
+// the ONE reducer engine --- then type-erases the reduced arrow.  So a Python
+// composition @b dispatches to the F-algebra reducer (@c id>>refl folds to
+// @c refl); the result is extensional, but structurally reduced.  Composability
+// (@c cod(f) @c = @c dom(g)) is enforced @b structurally --- a @c bool-arrow
+// cannot compose with an @c int-arrow (their types do not match).
+
+namespace jlt {
+using py::Arrow;
+using py::Int;
+
+/** @brief @c refl on a chain: @c :logic's pre-configured reflection
+ *  @c logic_complement<L> (@c L::RFL: @c ¬ on @c Boole, the order-reversing
+ *  @c ~ on @c Chain<py::Int>), already witnessed an involution there, erased.
+ *  @tparam L the species whose @c Ω is the carrier. */
+template <IsOckhamAlgebra L>
+Arrow<typename L::Ω> refl() {
+  using T = typename L::Ω;
+  return Arrow<T>{std::function<T(T)>{logic_complement<L>{}}};
+}
+
+/** @brief A step arrow applied inside the window: total on @c bool, and on
+ *  the integer window raising at the end it would cross rather than
+ *  overflowing.  @tparam T the carrier.  @tparam Step the successor or the
+ *  predecessor on it.  @param f the arrow.  @param x the argument.
+ *  @return @c f(x). */
+template <HasNNOStep T, typename Step>
+  requires std::same_as<Step, Successor<T>> ||
+           std::same_as<Step, Predecessor<T>>
+T step_in_window(const Step& f, T x) {
+  if constexpr (std::same_as<T, Int>) {
+    constexpr bool up = std::same_as<Step, Successor<T>>;
+    if (x == (up ? std::numeric_limits<Int>::max()
+                 : std::numeric_limits<Int>::min()))
+      py::window_end(up ? "succ" : "pred");
+  }
+  return f(x);
+}
+
+/** @brief Composition @c f @c >> @c g (apply @c f, then @c g) of two
+ * same-object endomorphisms, as a type-erased arrow.  It REUSES the real
+ * machinery --- no hand-rolled @c g(f(x)): it builds @c :morphism's @c Compose
+ * via @c operator>> and runs it through @c :f_algebra's @c cata (the ONE
+ * reducer engine), then type-erases the reduced arrow.  So a Python composition
+ * @b dispatches to the F-algebra reducer; the result is extensional (a
+ * function), but structurally reduced (e.g. @c id>>refl folds to @c refl via @c
+ * cata's unit law).  The
+ *  @c same_as<Dom<F>,Dom<G>> constraint IS the composability law (@c cod(f) @c
+ * =
+ *  @c dom(g) for endomorphisms): a cross-object compose does not type-check. */
+template <IsEndomorphism F, IsEndomorphism G>
+  requires std::same_as<Dom<F>, Dom<G>>
+Arrow<Dom<F>> compose(const F& f, const G& g) {
+  using T = Dom<F>;
+  return Arrow<T>{std::function<T(T)>{cata(f >> g)}};
+}
+
+}  // namespace jlt
 
 /** @brief @c dom / @c cod as a Python @b type object (numpy/pandas dtype
  * style):
