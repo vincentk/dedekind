@@ -327,6 +327,17 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_jlt PRIVATE -Wno-sign-conversion)
     target_link_libraries(_jlt PRIVATE dedekind_optimization)
 
+    # The Pst exhibit (#1001) is its own private native module, dedekind._pst
+    # (the bounded chains the sets are valued in, the canonical ring u64 and
+    # field 𝔽ₚ, and the term surface over them; re-exported by dedekind.pst).
+    nanobind_add_module(_pst PROTECT_STACK
+        src/main/modules/dedekind/python/nanobind_pst.cpp)
+    set_target_properties(_pst PROPERTIES
+        CXX_SCAN_FOR_MODULES ON
+        LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    target_compile_options(_pst PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(_pst PRIVATE -Wno-sign-conversion)
     target_link_libraries(_pst PRIVATE dedekind_optimization)
 
     install(TARGETS _dedekind _jlt _pst LIBRARY DESTINATION dedekind)
