@@ -46,6 +46,7 @@ namespace nb = nanobind;
 
 namespace {
 namespace pst = dedekind::python::pst;
+namespace py = dedekind::python;
 using dedekind::category::Boole;
 using dedekind::category::cover;
 using dedekind::category::IsPst;
@@ -259,37 +260,35 @@ void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
   using S = pst::Set<C, L1>;
   using O = pst::Set<C, L2>;
   cls.def(
-         "__and__", [](const S& a, const O& b) { return pst::meet(a, b); },
+         "__and__",
+         [](const S& a, const O& b) { return py::materialise(a & b); },
          "A & B: the meet, in the species' join.")
       .def(
-          "__or__", [](const S& a, const O& b) { return pst::join(a, b); },
+          "__or__",
+          [](const S& a, const O& b) { return py::materialise(a | b); },
           "A | B: the join.")
       .def(
-          "__xor__", [](const S& a, const O& b) { return pst::sym_diff(a, b); },
+          "__xor__",
+          [](const S& a, const O& b) { return py::materialise(a ^ b); },
           "A ^ B: the symmetric difference.")
       .def(
-          "__eq__",
-          [](const S& a, const O& b) { return nb::cast(pst::equal(a, b)); },
+          "__eq__", [](const S& a, const O& b) { return nb::cast(a == b); },
           nb::is_operator(),
           "A == B: ⋀ (χ_A ⇔ χ_B), read off the run lists; Unknown is a "
           "verdict on a K₃-valued set.")
       .def(
           "__ne__",
           [](const S& a, const O& b) {
-            return nb::cast(join_logic_t<L1, L2>::RFL(pst::equal(a, b)));
+            return nb::cast(join_logic_t<L1, L2>::RFL(a == b));
           },
           nb::is_operator())
       .def(
           "__le__",
-          [](const S& a, const O& b) {
-            return nb::cast(pst::equal(pst::meet(a, b), a));
-          },
+          [](const S& a, const O& b) { return nb::cast((a & b) == a); },
           nb::is_operator(), "A <= B: A ⊆ B, as (A ∩ B) = A.")
       .def(
           "__ge__",
-          [](const S& a, const O& b) {
-            return nb::cast(pst::equal(pst::meet(b, a), b));
-          },
+          [](const S& a, const O& b) { return nb::cast((b & a) == b); },
           nb::is_operator());
 }
 

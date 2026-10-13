@@ -70,7 +70,6 @@ using dedekind::order::Position;
 using dedekind::order::Run;
 using dedekind::order::Runs;
 using dedekind::order::Side;
-using dedekind::order::SourceRef;
 using dedekind::order::steps;
 using dedekind::order::Strictness;
 using dedekind::sequences::SuccessorOrbit;
@@ -80,6 +79,7 @@ using dedekind::sets::chain_top;
 using dedekind::sets::Comprehension;
 using dedekind::sets::finite_cardinality;
 using dedekind::sets::IsSetObject;
+using dedekind::sets::lift_to;
 using dedekind::sets::Ø;
 using dedekind::sets::η;
 using dedekind::sets::π;
@@ -209,6 +209,16 @@ inline Arrow<Dom<F>> compose(const F& f, const G& g) {
 // SET twin of the @c jlt ARROW exhibit above: it binds the real reducer, NOT a
 // Python-side reimplementation (handle-only).
 
+/** @brief A term's normal form, materialised for a handle: the one stored
+ *  form, a run list over the term's carrier and species.  @param t the term.
+ */
+template <typename T>
+auto materialise(const T& t) {
+  using S = decltype(dedekind::order::steps(t));
+  return Runs<typename S::Domain, typename S::logic_species>(
+      dedekind::order::steps(t));
+}
+
 namespace lwv {
 
 /** @brief A value-based set handle (#965): a materialised run list over
@@ -223,12 +233,6 @@ using Leaf = Interval<long long>;
 static_assert(IsSetObject<Set>,
               "the Python surface's Set must be a set object (IsSetObject).");
 
-/** @brief A term's normal form, materialised for the handle.  @param t the
- *  term. */
-template <typename T>
-Set materialise(const T& t) {
-  return Set(dedekind::order::steps(t));
-}
 /** @brief The rays @c {x ⋈ k}: the principal filter ↑k and ideal ↓k, open or
  *  closed.  @tparam D the direction.  @tparam S the strictness.  @param k the
  *  pivot. */
@@ -436,27 +440,6 @@ struct Datum {
   constexpr bool operator()(const C& x) const { return set(x); }
 };
 
-/** @brief The lift of a value along the dominance into @c L, as a named
- *  function.  @tparam L the target species. */
-template <IsOckhamAlgebra L>
-struct LiftInto {
-  template <typename Ω>
-  constexpr typename L::Ω operator()(Ω v) const {
-    if constexpr (std::same_as<Ω, typename L::Ω>)
-      return v;
-    else
-      return lift_logic<L>(v);
-  }
-};
-/** @brief A set valued in @c L, read in the wider species @c J.
- *  @tparam J the target species. */
-template <IsOckhamAlgebra J, IsTruthChain C, IsOckhamAlgebra L>
-Set<C, J> to(const Set<C, L>& s) {
-  return Set<C, J>(
-      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>, LiftInto<J>, J>{{&s},
-                                                                          {}});
-}
-
 /** @brief The generators of the grammar: @c 𝔸, @c Ø, @c η(v); and the atoms
  *  @c π @c ⋈ @c v as data.  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
@@ -491,73 +474,21 @@ template <IsTruthChain C>
 Datum<C> equal_to(const C& v) {
   return {Runs<C>(steps(Interval<C>::point(v)))};
 }
-/** @brief The species' join as a named function on its truth values.
- *  @tparam L the species. */
-template <IsOckhamAlgebra L>
-struct JoinIn {
-  constexpr typename L::Ω operator()(typename L::Ω a, typename L::Ω b) const {
-    return L::OR(a, b);
-  }
-};
-/** @brief The upper ray from @c x, valued @c x: a step of the identity. */
-template <IsTruthChain C>
-constexpr auto valued_from(C x) {
-  using L = classifier_logic_t<C>;
-  return dedekind::order::SpanSteps<C, L>{
-      Interval<C, L>::half(x, Direction::Upward, Strictness::NonStrict).span(),
-      x};
-}
 /** @brief χ(x) = x: the identity classifier on a truth chain, valued in the
- *  chain's own species --- the simplest set with every level inhabited: on 𝔹
- *  the ray from ⊤, on K₃ the join of the rays from U and from ⊤, each valued
- *  at its start. */
+ *  chain's own species --- the simplest set with every level inhabited. */
 template <IsTruthChain C>
 Set<C, classifier_logic_t<C>> identity() {
-  using L = classifier_logic_t<C>;
-  if constexpr (std::same_as<C, bool>) {
-    return Set<C, L>(valued_from(true));
-  } else {
-    using S = decltype(valued_from(C{}));
-    return Set<C, L>(dedekind::order::MergeSteps<S, S, JoinIn<L>>{
-        valued_from(Ternary::Unknown), valued_from(Ternary::True), {}});
-  }
+  return Set<C, classifier_logic_t<C>>(dedekind::order::IdentitySteps<C>{});
 }
 
-/** @brief The former @c S @c | @c P, and the lattice operations, each the
- *  library's own on run lists.  @tparam C the chain.  @tparam L the species. */
+/** @brief The former @c S @c | @c P: the library's meet of the set and the
+ *  datum, materialised.  Lattice operations and equality across species are
+ *  the library's own (@c sets: the operands are lifted into the species'
+ *  join), so the handles need no more.  @tparam C the chain.  @tparam L the
+ *  species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return Set<C, L>(steps(s & to<L>(d.set)));
-}
-// Two species mix when comparable in the species semilattice (HaveLogicJoin,
-// 𝔹 at the bottom); the result is valued in their join.
-template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
-  requires HaveLogicJoin<L1, L2>
-Set<C, join_logic_t<L1, L2>> meet(const Set<C, L1>& a, const Set<C, L2>& b) {
-  using J = join_logic_t<L1, L2>;
-  return Set<C, J>(steps(to<J>(a) & to<J>(b)));
-}
-template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
-  requires HaveLogicJoin<L1, L2>
-Set<C, join_logic_t<L1, L2>> join(const Set<C, L1>& a, const Set<C, L2>& b) {
-  using J = join_logic_t<L1, L2>;
-  return Set<C, J>(steps(to<J>(a) | to<J>(b)));
-}
-template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
-  requires HaveLogicJoin<L1, L2>
-Set<C, join_logic_t<L1, L2>> sym_diff(const Set<C, L1>& a,
-                                      const Set<C, L2>& b) {
-  using J = join_logic_t<L1, L2>;
-  return Set<C, J>(steps(to<J>(a) ^ to<J>(b)));
-}
-/** @brief Equality across species, in their join: ⋀ (χ_A ⇔ χ_B).
- *  @tparam C the chain. */
-template <IsTruthChain C, IsOckhamAlgebra L1, IsOckhamAlgebra L2>
-  requires HaveLogicJoin<L1, L2>
-typename join_logic_t<L1, L2>::Ω equal(const Set<C, L1>& a,
-                                       const Set<C, L2>& b) {
-  using J = join_logic_t<L1, L2>;
-  return to<J>(a) == to<J>(b);
+  return materialise(s & d.set);
 }
 
 /** @brief The quantifiers, in @c L: @c ∃ is ⋁ (χ_S ∧ P), the existential of
@@ -567,51 +498,32 @@ typename join_logic_t<L1, L2>::Ω equal(const Set<C, L1>& a,
  *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 typename L::Ω exists(const Set<C, L>& s, const Datum<C>& d) {
-  return dedekind::order::exists(steps(former(s, d)));
+  return dedekind::order::exists(steps(s & d.set));
 }
 template <IsTruthChain C>
 bool forall(const Set<C, Boole>& s, const Datum<C>& d) {
-  return s == former(s, d);
+  return s == (s & d.set);
 }
 /** @brief The runs of a decidable set, read off its normal form. */
 template <IsTruthChain C>
 auto run_list(const Set<C, Boole>& s) {
   return dedekind::order::runs(s);
 }
-/** @brief Whether a value reaches a level, and whether it is the level, as
- *  named functions: the α-cut and the fibre read pointwise.  @tparam Ω the
- *  species' truth values. */
-template <typename Ω>
-struct AtLeast {
-  Ω level;
-  constexpr bool operator()(Ω v) const { return !(v < level); }
-};
-template <typename Ω>
-struct EqualTo {
-  Ω level;
-  constexpr bool operator()(Ω v) const { return v == level; }
-};
 /** @brief An L-valued set read through its decidable sets: the α-cut
  *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
  *  @tparam C the chain.  @tparam L the species. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
-  return Set<C, Boole>(
-      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>,
-                                    AtLeast<typename L::Ω>, Boole>{{&s},
-                                                                   {level}});
+  return Set<C, Boole>(dedekind::order::alpha_cut(steps(s), level));
 }
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, Boole> fibre(const Set<C, L>& s, typename L::Ω level) {
-  return Set<C, Boole>(
-      dedekind::order::RelabelSteps<SourceRef<Set<C, L>>,
-                                    EqualTo<typename L::Ω>, Boole>{{&s},
-                                                                   {level}});
+  return Set<C, Boole>(dedekind::order::fibre(steps(s), level));
 }
 /** @brief A Boolean set lifted along the dominance into Kleene's species. */
 template <IsTruthChain C>
 Set<C, Kleene> lift(const Set<C, Boole>& s) {
-  return to<Kleene>(s);
+  return materialise(lift_to<Kleene>(s));
 }
 
 }  // namespace pst

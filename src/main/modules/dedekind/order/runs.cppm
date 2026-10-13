@@ -439,7 +439,63 @@ struct Iff {
     return L::OR(L::AND(a, b), L::AND(L::RFL(a), L::RFL(b)));
   }
 };
+/** @brief A value lifted along the dominance into the species @c J. */
+template <typename J>
+struct LiftInto {
+  template <typename Ω>
+  constexpr typename J::Ω operator()(Ω v) const {
+    if constexpr (std::same_as<Ω, typename J::Ω>)
+      return v;
+    else
+      return lift_logic<J>(v);
+  }
+};
+/** @brief Whether a value reaches a level, and whether it is the level: the
+ *  α-cut and the fibre, pointwise. */
+template <typename Ω>
+struct AtLeast {
+  Ω level;
+  constexpr bool operator()(Ω v) const { return !(v < level); }
+};
+template <typename Ω>
+struct EqualTo {
+  Ω level;
+  constexpr bool operator()(Ω v) const { return v == level; }
+};
 }  // namespace detail_runs
+
+/** @brief The decidable sets of an L-valued source: the α-cut
+ *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
+ *  @param s the source.  @param level the level. */
+export template <IsStepSource S>
+constexpr auto alpha_cut(const S& s, typename S::logic_species::Ω level) {
+  using Ω = typename S::logic_species::Ω;
+  return RelabelSteps<S, detail_runs::AtLeast<Ω>, Boole>{s, {level}};
+}
+export template <IsStepSource S>
+constexpr auto fibre(const S& s, typename S::logic_species::Ω level) {
+  using Ω = typename S::logic_species::Ω;
+  return RelabelSteps<S, detail_runs::EqualTo<Ω>, Boole>{s, {level}};
+}
+/** @brief χ(x) = x on a finite chain, valued in the chain's own species: a
+ *  step at every element above the least.  @tparam C the chain. */
+export template <typename C>
+  requires HasCoveringStep<C> && (detail_position::least<C>().has_value())
+struct IdentitySteps {
+  using Domain = C;
+  using logic_species = classifier_logic_t<C>;
+  struct Cursor {
+    std::optional<C> x;
+    constexpr std::optional<Step<C, logic_species>> pull() {
+      if (!x) return std::nullopt;
+      const C v = *x;
+      x = cover(v);
+      return Step<C, logic_species>{Position<C>{v, Side::Below}, v};
+    }
+  };
+  constexpr C first() const { return *detail_position::least<C>(); }
+  constexpr Cursor cursor() const { return {cover(first())}; }
+};
 
 /** @name Queries: one traversal of a source
  *  @{ */
@@ -520,9 +576,10 @@ class PullView : public std::ranges::view_interface<PullView<Cursor>> {
       return *this;
     }
     constexpr void operator++(int) { ++*this; }
-    friend constexpr bool operator==(const iterator& it,
-                                     std::default_sentinel_t) {
-      return !it.cur_;
+    /** @brief An input iterator compares equal only at the end, once both
+     *  have nothing left. */
+    friend constexpr bool operator==(const iterator& a, const iterator& b) {
+      return !a.cur_ && !b.cur_;
     }
 
    private:
@@ -532,7 +589,7 @@ class PullView : public std::ranges::view_interface<PullView<Cursor>> {
   constexpr PullView() = default;
   constexpr explicit PullView(Cursor c) : c_(std::move(c)) {}
   constexpr iterator begin() { return iterator{this}; }
-  constexpr std::default_sentinel_t end() const { return {}; }
+  constexpr iterator end() { return {}; }
 
  private:
   Cursor c_;

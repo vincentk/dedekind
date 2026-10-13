@@ -325,6 +325,14 @@ struct Steps {
   constexpr SpanSteps<V, L> operator()(const 𝔸<V, L, C>&) const {
     return {Span<V>{}};
   }
+  /** @brief A set brought into this species (@c sets::lift_to): its
+   *  predicate's steps, each value lifted along the dominance. */
+  template <typename V, typename C, typename P>
+    requires IsStepSource<decltype(steps(std::declval<const P&>()))>
+  constexpr auto operator()(const Comprehension<𝔸<V, L, C>, P>& c) const {
+    using S = decltype(steps(c.predicate));
+    return RelabelSteps<S, detail_runs::LiftInto<L>, L>{steps(c.predicate), {}};
+  }
   template <typename A, typename B, IsStepSource RA, IsStepSource RB>
   constexpr MergeSteps<RA, RB, detail_runs::And<L>> operator()(
       const Meet<A, B>&, RA a, RB b) const {
@@ -352,6 +360,7 @@ struct Steps {
  *  A stored run list inside the term is read in place, so the source must not
  *  outlive the term.  @param t the term. */
 export template <typename T>
+  requires requires { typename T::logic_species; }
 constexpr auto steps(const T& t) {
   return cata(detail_steps::Steps<typename T::logic_species>{}, t);
 }
