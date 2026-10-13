@@ -38,14 +38,12 @@
 
 import dedekind.category;  // Ternary, Boole, Kleene, IsPst, the step
 import dedekind.order;     // IsDense
-import dedekind.python;    // materialise
 import dedekind.sequences; // the chains' orbit
 import dedekind.sets;      // Cardinality, ℵ_0, finite_cardinality
 
 namespace nb = nanobind;
 
 namespace {
-namespace py = dedekind::python;
 using dedekind::category::Boole;
 using dedekind::category::classifier_logic_t;
 using dedekind::category::cover;
@@ -59,6 +57,7 @@ using dedekind::category::Kleene;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
 using dedekind::category::Ternary;
+using dedekind::order::ext;
 using dedekind::order::Interval;
 using dedekind::order::IsDense;
 using dedekind::order::Runs;
@@ -172,7 +171,7 @@ Set<C, Boole> point(const C& v) {
  *  datum, materialised. */
 template <IsTruthChain C, IsOckhamAlgebra L>
 Set<C, L> former(const Set<C, L>& s, const Datum<C>& d) {
-  return py::materialise(s & d.set);
+  return ext(s & d.set);
 }
 /** @brief The α-cut @f$\{\chi \ge \ell\}@f$, a decidable set. */
 template <IsTruthChain C, IsOckhamAlgebra L>
@@ -387,16 +386,13 @@ void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
   using S = pst::Set<C, L1>;
   using O = pst::Set<C, L2>;
   cls.def(
-         "__and__",
-         [](const S& a, const O& b) { return py::materialise(a & b); },
+         "__and__", [](const S& a, const O& b) { return ext(a & b); },
          "A & B: the meet, in the species' join.")
       .def(
-          "__or__",
-          [](const S& a, const O& b) { return py::materialise(a | b); },
+          "__or__", [](const S& a, const O& b) { return ext(a | b); },
           "A | B: the join.")
       .def(
-          "__xor__",
-          [](const S& a, const O& b) { return py::materialise(a ^ b); },
+          "__xor__", [](const S& a, const O& b) { return ext(a ^ b); },
           "A ^ B: the symmetric difference.")
       .def(
           "__eq__", [](const S& a, const O& b) { return nb::cast(a == b); },
@@ -440,7 +436,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           [](const S& s, const pst::Datum<C>& d) { return pst::former(s, d); },
           "S | (π ⋈ v): the former, {x ∈ S | P(x)}.")
       .def(
-          "__invert__", [](const S& a) { return py::materialise(~a); },
+          "__invert__", [](const S& a) { return ext(~a); },
           "~A: the complement, the species' reflection pointwise.")
       .def_prop_ro(
           "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
@@ -480,9 +476,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
     if constexpr (std::same_as<C, Ternary>)
       set.def(
           "lift",
-          [](const S& s) {
-            return py::materialise(dedekind::sets::lift_to<Kleene>(s));
-          },
+          [](const S& s) { return ext(dedekind::sets::lift_to<Kleene>(s)); },
           "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
           "in K₃.");
   } else {
@@ -790,7 +784,7 @@ NB_MODULE(_pst, m) {
   m.def(
       "lift",
       [](const pst::Set<Ternary, Boole>& s) {
-        return py::materialise(dedekind::sets::lift_to<Kleene>(s));
+        return ext(dedekind::sets::lift_to<Kleene>(s));
       },
       nb::arg("S"), "lift(S): a decidable set over K₃ valued in K₃.");
 }

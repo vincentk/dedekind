@@ -1,6 +1,6 @@
 # Python MVP User Guide
 
-This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
+This guide covers the current Python MVP surface built on top of the C++ library: each extension (`nanobind_*.cpp`) binds the library's own types.
 
 Design slogan: the C++ core owns the mathematics; Python holds handles to it.
 

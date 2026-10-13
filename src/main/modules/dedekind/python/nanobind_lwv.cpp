@@ -33,23 +33,24 @@
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 
 import dedekind.category; // Identity, Successor, Predecessor
 import dedekind.order;    // Direction / Strictness, intervals
 import dedekind.sets;     // Ø, IsSetObject
-import dedekind.python;   // materialise, the integer window, the erased arrow
 
 namespace nb = nanobind;
 
 namespace {
-namespace py = dedekind::python;
+using Int = long long;  // what a Python int crosses the boundary as
 namespace ord = dedekind::order;
 using dedekind::category::Boole;
 using dedekind::category::Identity;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
 using dedekind::order::Direction;
+using dedekind::order::ext;
 using dedekind::order::Interval;
 using dedekind::order::Position;
 using dedekind::order::Runs;
@@ -71,6 +72,21 @@ using dedekind::sets::IsSetObject;
 // SET twin of the @c jlt ARROW exhibit: it binds the real reducer, NOT a
 // Python-side reimplementation (handle-only).
 
+/** @brief Where ℤ continues and @c long @c long cannot: raise (Python's
+ *  @c OverflowError) rather than wrap.  FIXME(#1019): the algebraic carriers
+ *  (the unsigned ring, the modular integers) replace the window.
+ *  @param what the operation that reached the end. */
+[[noreturn]] void window_end(const char* what) {
+  throw std::overflow_error(std::string(what) +
+                            ": the 64-bit window ends here; ℤ does not");
+}
+/** @brief @c a @c + @c b inside the window, or @c window_end. */
+Int add_in_window(Int a, Int b, const char* what) {
+  Int sum{};
+  if (__builtin_add_overflow(a, b, &sum)) window_end(what);
+  return sum;
+}
+
 namespace lwv {
 /** @brief A value-based set handle (#965): a materialised run list over
  *  @c long @c long (Python's @c int, ℤ read through the 64-bit window), its
@@ -89,10 +105,10 @@ static_assert(IsSetObject<Set>,
  *  pivot. */
 template <Direction D, Strictness S>
 Set ray(long long k) {
-  return py::materialise(Leaf::half(k, D, S));
+  return ext(Leaf::half(k, D, S));
 }
 /** @brief The point @c {k}.  @param k the point. */
-Set point(long long k) { return py::materialise(Leaf::point(k)); }
+Set point(long long k) { return ext(Leaf::point(k)); }
 
 /** @brief A set translated by @c k, as a source: every step moved, the image
  *  under the order automorphism @f$x \mapsto x + k@f$ of ℤ.  Where the image
@@ -108,10 +124,10 @@ struct Shifted {
     long long k;
     Step operator()(Step st) const {
       using W = std::numeric_limits<long long>;
-      st.at.at = py::add_in_window(st.at.at, k, "image");
+      st.at.at = add_in_window(st.at.at, k, "image");
       if (st.value ? st.at == Position<long long>{W::max(), Side::Above}
                    : st.at == Position<long long>{W::min(), Side::Below})
-        py::window_end("image");
+        window_end("image");
       st.at = dedekind::order::canonical(st.at);
       return st;
     }
@@ -127,14 +143,14 @@ struct Shifted {
  *  is refused at the boundary rather than guessed.  @tparam F the arrow. */
 template <typename F>
 concept IsStructuralArrow =
-    std::same_as<F, Identity<py::Int>> || std::same_as<F, Successor<py::Int>> ||
-    std::same_as<F, Predecessor<py::Int>>;
+    std::same_as<F, Identity<Int>> || std::same_as<F, Successor<Int>> ||
+    std::same_as<F, Predecessor<Int>>;
 /** @brief How far the arrow moves a step: 0, +1, −1.  @tparam F the arrow. */
 template <IsStructuralArrow F>
 consteval long long offset() {
-  if constexpr (std::same_as<F, Successor<py::Int>>)
+  if constexpr (std::same_as<F, Successor<Int>>)
     return 1;
-  else if constexpr (std::same_as<F, Predecessor<py::Int>>)
+  else if constexpr (std::same_as<F, Predecessor<Int>>)
     return -1;
   else
     return 0;
@@ -162,7 +178,7 @@ Set restrict(const Set& s, std::optional<long long> lo,
     window = window & Leaf::half(*lo, Direction::Upward, Strictness::NonStrict);
   if (hi)
     window = window & Leaf::half(*hi, Direction::Downward, Strictness::Strict);
-  return py::materialise(s & window);
+  return ext(s & window);
 }
 
 /** @brief Whether the set is bounded (on the discrete chain ℤ, equivalently
@@ -265,7 +281,7 @@ std::optional<unsigned long long> cardinality(const Set& s) {
                       static_cast<unsigned long long>(r.lo);
     if (span == std::numeric_limits<unsigned long long>::max() ||
         __builtin_add_overflow(n, span + 1, &n))
-      py::window_end("len");
+      window_end("len");
   }
   return n;
 }
@@ -297,16 +313,14 @@ NB_MODULE(_lwv, m) {
           [](const Set& s, long long x) { return s.contains(x); }, nb::arg("x"),
           "x in s: the same membership test.")
       .def(
-          "__and__",
-          [](const Set& a, const Set& b) { return py::materialise(a & b); },
+          "__and__", [](const Set& a, const Set& b) { return ext(a & b); },
           "a & b: the meet, folded by the lattice reducer at runtime (its "
           "leaf-combine is the interval meet).")
       .def(
-          "__or__",
-          [](const Set& a, const Set& b) { return py::materialise(a | b); },
+          "__or__", [](const Set& a, const Set& b) { return ext(a | b); },
           "a | b: the join, a run list again.")
       .def(
-          "__invert__", [](const Set& s) { return py::materialise(~s); },
+          "__invert__", [](const Set& s) { return ext(~s); },
           "~s: the complement, the parts below, between and above s's runs.")
       .def("__repr__", [](const Set& s) { return repr(s); })
       .def(
@@ -321,7 +335,7 @@ NB_MODULE(_lwv, m) {
           [](const Set& s) {
             nb::list out;
             for (const auto& r : ord::intervals(s))
-              out.append(nb::cast(py::materialise(r)));
+              out.append(nb::cast(ext(r)));
             return out;
           },
           "The maximal runs, in order along the chain, each a set of one "
@@ -407,7 +421,7 @@ NB_MODULE(_lwv, m) {
   nb::class_<SetIter>(m, "SetIter", "The unfold of a set by the successor.")
       .def("__iter__", [](SetIter& it) -> SetIter& { return it; })
       .def("__next__", [](SetIter& it) {
-        if (it.at_window_end) py::window_end("iter");
+        if (it.at_window_end) window_end("iter");
         if (!it.current) throw nb::stop_iteration();
         const long long value = *it.current;
         if (it.last && value >= *it.last)
@@ -421,8 +435,8 @@ NB_MODULE(_lwv, m) {
 
   // image / preimage (paper §4): the function algebra on sets, for the arrows
   // whose action on a value leaf has a normal form.  An erased composite is
-  // intensional and refused, not guessed.  FIXME(#1005): refl gets a typed
-  // arrow.
+  // intensional and has no overload: refused (TypeError), not guessed.
+  // FIXME(#1005): refl gets a typed arrow.
   const char* image_doc =
       "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
       "the bounds move, the kind stays.  image(succ(int), above(5)) == "
@@ -430,24 +444,7 @@ NB_MODULE(_lwv, m) {
   const char* preimage_doc =
       "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
       "pred).  preimage(succ(int), above(6)) == above(5).";
-  bind_images<Identity<py::Int>>(m, image_doc, preimage_doc);
-  bind_images<Successor<py::Int>>(m, image_doc, preimage_doc);
-  bind_images<Predecessor<py::Int>>(m, image_doc, preimage_doc);
-  m.def(
-      "image",
-      [](const py::Arrow<py::Int>&, const Set&) -> Set {
-        throw nb::type_error(
-            "image of an erased composite arrow is intensional (Kleene-valued) "
-            "and has no value normal form; only id / succ / pred do");
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "preimage",
-      [](const py::Arrow<py::Int>&, const Set&) -> Set {
-        throw nb::type_error(
-            "preimage of an erased composite arrow is intensional "
-            "(Kleene-valued) and has no value normal form; only id / succ / "
-            "pred do");
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
+  bind_images<Identity<Int>>(m, image_doc, preimage_doc);
+  bind_images<Successor<Int>>(m, image_doc, preimage_doc);
+  bind_images<Predecessor<Int>>(m, image_doc, preimage_doc);
 }

@@ -201,7 +201,6 @@ add_dedekind_layer(numbers dedekind_geometry)
 add_dedekind_layer(analysis dedekind_numbers)
 add_dedekind_layer(linear_algebra dedekind_analysis)
 add_dedekind_layer(optimization dedekind_linear_algebra)
-add_dedekind_layer(python dedekind_optimization)
 
 # --- IR FIXTURE FOR COMPILER OPTIMIZATION WITNESS ---
 # Compile-time pruning witness for dedekind.sets: built as a static library
@@ -269,7 +268,7 @@ target_compile_options(set-pruning-ir-fixture PRIVATE
     ${DEDEKIND_WARNING_FLAGS}
     -O2)
 
-target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_python)
+target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     find_package(Python 3.12...<3.15 QUIET COMPONENTS Interpreter Development.Module)
@@ -317,7 +316,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     target_compile_options(_dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(_dedekind PRIVATE -Wno-sign-conversion)
-    target_link_libraries(_dedekind PRIVATE dedekind_python)
+    target_link_libraries(_dedekind PRIVATE dedekind_optimization)
 
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
@@ -330,7 +329,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     target_compile_options(_jlt PRIVATE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(_jlt PRIVATE -Wno-sign-conversion)
-    target_link_libraries(_jlt PRIVATE dedekind_python)
+    target_link_libraries(_jlt PRIVATE dedekind_optimization)
 
     # The Lwv exhibit (#965) is its own private native module, dedekind._lwv
     # (the SET twin of _jlt: scalar set-comprehension halfspaces, re-exported by
@@ -343,7 +342,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     target_compile_options(_lwv PRIVATE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(_lwv PRIVATE -Wno-sign-conversion)
-    target_link_libraries(_lwv PRIVATE dedekind_python)
+    target_link_libraries(_lwv PRIVATE dedekind_optimization)
 
     # The Pst exhibit (#1001) is its own private native module, dedekind._pst
     # (the bounded chains the sets are valued in, re-exported by dedekind.pst).
@@ -355,7 +354,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     target_compile_options(_pst PRIVATE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(_pst PRIVATE -Wno-sign-conversion)
-    target_link_libraries(_pst PRIVATE dedekind_python)
+    target_link_libraries(_pst PRIVATE dedekind_optimization)
 
     install(TARGETS _dedekind _jlt _lwv _pst LIBRARY DESTINATION dedekind)
     install(FILES
@@ -380,14 +379,14 @@ endif()
 # corresponds to a module interface unit.
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
-add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
+add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization dedekind_python
+install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_relational dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind

@@ -27,14 +27,14 @@
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <stdexcept>
+#include <string>
 
 import dedekind.category; // Identity, Successor, Predecessor, the species
-import dedekind.python;   // the integer window, the erased arrow
 
 namespace nb = nanobind;
 
 namespace {
-namespace py = dedekind::python;
 using dedekind::category::Boole;
 using dedekind::category::cata;
 using dedekind::category::Chain;
@@ -44,6 +44,7 @@ using dedekind::category::Identity;
 using dedekind::category::IsEndomorphism;
 using dedekind::category::IsOckhamAlgebra;
 using dedekind::category::logic_complement;
+using dedekind::category::Morphism;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
 
@@ -73,12 +74,23 @@ using dedekind::category::Successor;
 // cannot compose with an @c int-arrow (their types do not match).
 
 namespace jlt {
-using py::Arrow;
-using py::Int;
+/** @brief The type-erased arrow @c T→T a Python handle holds: the real
+ *  @c :morphism @c Morphism with a @c std::function transform, so a category
+ *  arrow (@c IsArrow / @c IsEndomorphism hold).  @tparam T the carrier. */
+template <typename T>
+using Arrow = Morphism<T, T, std::function<T(T)>>;
+/** @brief What a Python @c int crosses the boundary as. */
+using Int = long long;
+/** @brief Where ℤ steps on and @c long @c long cannot: raise (Python's
+ *  @c OverflowError) rather than wrap.  @param what the step. */
+[[noreturn]] void window_end(const char* what) {
+  throw std::overflow_error(std::string(what) +
+                            ": the 64-bit window ends here; ℤ does not");
+}
 
 /** @brief @c refl on a chain: @c :logic's pre-configured reflection
  *  @c logic_complement<L> (@c L::RFL: @c ¬ on @c Boole, the order-reversing
- *  @c ~ on @c Chain<py::Int>), already witnessed an involution there, erased.
+ *  @c ~ on @c Chain<Int>), already witnessed an involution there, erased.
  *  @tparam L the species whose @c Ω is the carrier. */
 template <IsOckhamAlgebra L>
 Arrow<typename L::Ω> refl() {
@@ -99,7 +111,7 @@ T step_in_window(const Step& f, T x) {
     constexpr bool up = std::same_as<Step, Successor<T>>;
     if (x == (up ? std::numeric_limits<Int>::max()
                  : std::numeric_limits<Int>::min()))
-      py::window_end(up ? "succ" : "pred");
+      window_end(up ? "succ" : "pred");
   }
   return f(x);
 }

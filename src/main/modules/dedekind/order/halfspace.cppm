@@ -368,6 +368,14 @@ constexpr auto steps(const T& t) {
 export template <typename T>
 concept IsStepTerm = requires { typename T::logic_species; } &&
                      IsStepSource<decltype(steps(std::declval<const T&>()))>;
+/** @brief The extension of a set term: its normal form, materialised as a
+ *  stored run list.  The explicit step; every query reads @c steps(t) lazily
+ *  without it.  @param t the term. */
+export template <IsStepTerm T>
+auto ext(const T& t) {
+  using S = decltype(steps(t));
+  return Runs<typename S::Domain, typename S::logic_species>(steps(t));
+}
 
 /** @brief Equality of two set terms of a chain as sets of the carrier, in the
  *  species: one traversal of their normal forms, so it is extensional

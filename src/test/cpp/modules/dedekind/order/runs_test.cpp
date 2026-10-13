@@ -68,12 +68,12 @@ TEST_CASE(
   STATIC_CHECK(IsStepSource<decltype(steps(a))>);
   // A stored run list is the materialisation: its breakpoints, each the value
   // from there on, and a source like any other.
-  const Runs<int> stored(steps(a));
+  const auto stored = ext(a);
   CHECK(stored.breakpoints().size() == 4);  // in at 0, out at 5, in, out
   CHECK(stored(4));
   CHECK_FALSE(stored(5));
   CHECK(stored == a);
-  CHECK(Runs<int>(steps(~stored)) == ~a);
+  CHECK(ext(~stored) == ~a);
 }
 
 TEST_CASE("order:runs — a set valued in K₃ is a step function into K₃",
@@ -106,7 +106,7 @@ TEST_CASE("order:runs — a step at the carrier's end is kept, equality reads it
   using W = std::numeric_limits<int>;
   // {x ≤ max} keeps its step (a window reading stays bounded above) ...
   constexpr auto at_most_max = I::half(W::max(), Direction::Downward, closed);
-  CHECK(Runs<int>(steps(at_most_max)).breakpoints().size() == 1);
+  CHECK(ext(at_most_max).breakpoints().size() == 1);
   // ... and is the whole carrier as a set of it, while {x > max} is empty.
   STATIC_CHECK(at_most_max == 𝔸<int>{});
   STATIC_CHECK(I::half(W::max(), Direction::Upward, strict) == Ø<int>{});
