@@ -161,6 +161,6 @@ class RefusalsTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             A(K3) & A(B)  # different chains: no overload
         with self.assertRaises(TypeError):
-            A(K3) | (π > True)  # a 𝔹 datum on K₃: no overload
+            A(K3) | (π > True)  # a bool constant on K₃: refused when bound
         with self.assertRaises(TypeError):
             exists(A(K3), η(U))  # a set is not a where-clause
