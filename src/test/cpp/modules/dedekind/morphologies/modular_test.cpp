@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <functional>
+#include <stdexcept>
 #include <type_traits>
 #include <variant>  // SignedCardinality / Cardinality reach equality via ADL.
 
@@ -28,13 +29,37 @@ using dedekind::algebra::is_galois_field_v;
 using dedekind::algebra::IsInitialRing;
 using dedekind::category::cyclic_order_v;
 using dedekind::category::IsCyclicGroup;
+using dedekind::morphologies::is_prime;
 using dedekind::morphologies::IsCyclic;
 using dedekind::morphologies::Modular;
+using dedekind::morphologies::𝔽ₚ;
 using dedekind::sets::Cardinality;
 using dedekind::sets::finite_cardinality;
 using dedekind::sets::finite_signed_cardinality;
 using dedekind::sets::SignedCardinality;
 using dedekind::sets::SignedExtensionalCardinal;
+
+TEST_CASE("Modular<N> — a prime modulus is a field",
+          "[morphologies][modular][field]") {
+  using M7 = Modular<7u>;
+  STATIC_CHECK(is_galois_field_v<M7, std::plus<M7>, std::multiplies<M7>>);
+  STATIC_CHECK(dedekind::algebra::galois_order_v<M7, std::plus<M7>,
+                                                 std::multiplies<M7>> == 7);
+  CHECK(is_prime(𝔽ₚ::modulus));
+  CHECK_FALSE(is_prime(𝔽ₚ::modulus - 2));  // 2^64 - 61 is divisible by 3
+  // 3 · 5 ≡ 1 (mod 7), so 1 / 3 = 5; division is multiplication by the inverse.
+  CHECK(M7{1} / M7{3} == M7{5});
+  CHECK(M7{3}.inverse() == M7{5});
+  CHECK_THROWS_AS(M7{0}.inverse(), std::domain_error);
+  // 𝔽ₚ, through 128 bits: −1 squared is 1, and a large element's inverse.
+  const 𝔽ₚ minus_one{𝔽ₚ::modulus - 1};
+  CHECK(minus_one * minus_one == 𝔽ₚ{1});
+  const 𝔽ₚ big{0x123456789abcdefull};
+  CHECK(big * big.inverse() == 𝔽ₚ{1});
+  CHECK(big / big == 𝔽ₚ{1});
+  CHECK(minus_one + 𝔽ₚ{1} == 𝔽ₚ{0});
+  CHECK(𝔽ₚ{0} - 𝔽ₚ{1} == minus_one);
+}
 
 TEST_CASE("Modular<N> — operational IsCyclic shape (morphologies)",
           "[morphologies][modular][cyclic]") {
