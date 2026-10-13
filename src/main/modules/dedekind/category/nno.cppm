@@ -242,16 +242,16 @@ concept HasNNOStep = requires(const T& n) {
   { predecessor(n) } -> std::convertible_to<T>;
 };
 
-/** @brief A carrier whose step is the covering map of its order: the NNO step
- *  without wrap-around.  An unsigned word is ℤ/2^w, where @c S(2^w − 1) @c = @c
- * 0 covers nothing and @c P(0) @c = @c 2^w − 1 is covered by nothing;
- * saturation at a bound (ℵ₀, ⊤) is allowed, and @c bool is the two-chain.  The
- * cover, the Lambek arrows and the order layer's monotone-step facts gate on
- * this, not on the bare step.
+/** @brief A carrier whose order has a covering map read off its step: the
+ *  step read @b partially, nothing at a fixpoint (ℵ₀, ⊤) or at a machine
+ *  word's greatest value (@c cover below).  The step itself may do more there:
+ *  saturate, or wrap (an unsigned word is the ring ℤ/2^w under @c S, and the
+ *  chain 0 < 1 < … < 2^w − 1 under its cover; the one step, read twice, as
+ *  @c Cardinality's saturates and covers).  The cover, the Lambek arrows and
+ *  the order layer's monotone-step facts gate on this.
  *  @tparam T the carrier. */
 export template <typename T>
-concept HasCoveringStep =
-    HasNNOStep<T> && (!std::unsigned_integral<T> || std::same_as<T, bool>);
+concept HasCoveringStep = HasNNOStep<T>;
 
 /** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
  *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
@@ -391,11 +391,12 @@ static_assert(
 static_assert(!IsIsomorphism<In<int>> && !IsIsomorphism<Successor<int>>,
               "on ℤ the structure map is not an iso, and the machine step is "
               "not declared one: S(max) has no value.");
-static_assert(
-    HasCoveringStep<int> && HasCoveringStep<bool> && HasCoveringStep<Ternary> &&
-        !HasCoveringStep<unsigned>,
-    "the step covers on the chains; on a wrapping word S(2^w − 1) = 0 "
-    "covers nothing.");
+static_assert(HasCoveringStep<int> && HasCoveringStep<bool> &&
+                  HasCoveringStep<Ternary> && HasCoveringStep<unsigned> &&
+                  !cover(std::numeric_limits<unsigned>::max()) &&
+                  successor(std::numeric_limits<unsigned>::max()) == 0u,
+              "every chain with the step has its cover; on a word the cover "
+              "stops at 2^w − 1 where the ring's step wraps to 0.");
 static_assert(successor(Ternary::False) == Ternary::Unknown &&
                   successor(Ternary::Unknown) == Ternary::True &&
                   successor(Ternary::True) == Ternary::True,

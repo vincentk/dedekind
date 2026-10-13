@@ -651,69 +651,71 @@ void bind_term_sets(nb::module_& m,
       .def_prop_ro("universe", [](const S&) { return U{}; })
       .def("__repr__",
            [shown](const S& s) { return shown + " | " + show(s.predicate); });
-  // image / preimage under the structural arrows: the substitution.  An erased
-  // composite has no closed form and is refused.
-  const auto shifted = [](const S& s, Arith op) {
-    return U{} | s.predicate.subst(
-                     0, RTerm::bin(op, RTerm::proj(0),
-                                   RTerm::constant(PyConst{nb::int_(1)})));
-  };
-  const char* image_doc =
-      "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
-      "the variable substituted (succ: π ↦ π - 1); on a word the run list "
-      "translates, wrapping at the end, so image(succ, {x > 5}) is {x > 6} ∪ "
-      "{0}.";
-  const char* preimage_doc =
-      "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
-      "pred): "
-      "the variable substituted (succ: π ↦ π + 1).";
-  m.def(
-      "image",
-      [shifted](const Successor<C>&, const S& s) {
-        return shifted(s, Arith::Sub);
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "image",
-      [shifted](const Predecessor<C>&, const S& s) {
-        return shifted(s, Arith::Add);
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "image", [](const Identity<C>&, const S& s) { return s; }, nb::arg("f"),
-      nb::arg("s"), image_doc);
-  m.def(
-      "preimage",
-      [shifted](const Successor<C>&, const S& s) {
-        return shifted(s, Arith::Add);
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
-  m.def(
-      "preimage",
-      [shifted](const Predecessor<C>&, const S& s) {
-        return shifted(s, Arith::Sub);
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
-  m.def(
-      "preimage", [](const Identity<C>&, const S& s) { return s; },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
-  using Erased = dedekind::category::Morphism<C, C, std::function<C(C)>>;
-  m.def(
-      "image",
-      [](const Erased&, const S&) -> S {
-        throw nb::type_error(
-            "image of an erased composite arrow is intensional and has no "
-            "closed form; only id / succ / pred do");
-      },
-      nb::arg("f"), nb::arg("s"), image_doc);
-  m.def(
-      "preimage",
-      [](const Erased&, const S&) -> S {
-        throw nb::type_error(
-            "preimage of an erased composite arrow is intensional and has no "
-            "closed form; only id / succ / pred do");
-      },
-      nb::arg("f"), nb::arg("s"), preimage_doc);
+  if constexpr (HasNNOStep<C>) {
+    // image / preimage under the structural arrows: the substitution.  An
+    // erased composite has no closed form and is refused.
+    const auto shifted = [](const S& s, Arith op) {
+      return U{} | s.predicate.subst(
+                       0, RTerm::bin(op, RTerm::proj(0),
+                                     RTerm::constant(PyConst{nb::int_(1)})));
+    };
+    const char* image_doc =
+        "image(f, S) = {f(x) | x ∈ S} for a structural arrow (id, succ, pred): "
+        "the variable substituted (succ: π ↦ π - 1); on a word the run list "
+        "translates, wrapping at the end, so image(succ, {x > 5}) is {x > 6} ∪ "
+        "{0}.";
+    const char* preimage_doc =
+        "preimage(f, S) = {x | f(x) ∈ S} for a structural arrow (id, succ, "
+        "pred): "
+        "the variable substituted (succ: π ↦ π + 1).";
+    m.def(
+        "image",
+        [shifted](const Successor<C>&, const S& s) {
+          return shifted(s, Arith::Sub);
+        },
+        nb::arg("f"), nb::arg("s"), image_doc);
+    m.def(
+        "image",
+        [shifted](const Predecessor<C>&, const S& s) {
+          return shifted(s, Arith::Add);
+        },
+        nb::arg("f"), nb::arg("s"), image_doc);
+    m.def(
+        "image", [](const Identity<C>&, const S& s) { return s; }, nb::arg("f"),
+        nb::arg("s"), image_doc);
+    m.def(
+        "preimage",
+        [shifted](const Successor<C>&, const S& s) {
+          return shifted(s, Arith::Add);
+        },
+        nb::arg("f"), nb::arg("s"), preimage_doc);
+    m.def(
+        "preimage",
+        [shifted](const Predecessor<C>&, const S& s) {
+          return shifted(s, Arith::Sub);
+        },
+        nb::arg("f"), nb::arg("s"), preimage_doc);
+    m.def(
+        "preimage", [](const Identity<C>&, const S& s) { return s; },
+        nb::arg("f"), nb::arg("s"), preimage_doc);
+    using Erased = dedekind::category::Morphism<C, C, std::function<C(C)>>;
+    m.def(
+        "image",
+        [](const Erased&, const S&) -> S {
+          throw nb::type_error(
+              "image of an erased composite arrow is intensional and has no "
+              "closed form; only id / succ / pred do");
+        },
+        nb::arg("f"), nb::arg("s"), image_doc);
+    m.def(
+        "preimage",
+        [](const Erased&, const S&) -> S {
+          throw nb::type_error(
+              "preimage of an erased composite arrow is intensional and has no "
+              "closed form; only id / succ / pred do");
+        },
+        nb::arg("f"), nb::arg("s"), preimage_doc);
+  }
   if constexpr (IsTotallyOrdered<C>) {
     // The order fragment: the run lists decide.
     const auto run_pairs = [](const S& s) {
