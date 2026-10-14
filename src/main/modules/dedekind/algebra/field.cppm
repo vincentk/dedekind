@@ -268,7 +268,7 @@ namespace dedekind::sets {
 /** @brief Division by a nonzero constant is in a field's signature:
  *  multiplication by the inverse (@c category::IsField, the axiomatic claim;
  *  the carrier closes under @c /).  Its free algebra is the field's
- *  polynomials, with the constant a coefficient (#1023). */
+ *  polynomials, with the constant's inverse a coefficient (@c :polynomial). */
 export template <typename C>
   requires dedekind::category::IsField<C, std::plus<C>, std::multiplies<C>> &&
            dedekind::category::IsClosedUnder<C, std::divides<>>

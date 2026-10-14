@@ -1160,19 +1160,12 @@ static_assert(dedekind::category::IsField<
               std::multiplies<Rational<default_integer>>>);
 
 /**
- * @brief Canonical polynomial ring over the rationals: Q[x].
- *
- * @details RigPolynomial<Rational<I>> forms a commutative ring under
- * coefficient-wise addition and Cauchy product. The coefficient field is
- * the quotient field of the integer carrier I. The default I = default_integer
- * (@c SignedCardinality) gives Q[x] over ℤ.
- *
- * @note This is the structurally correct polynomial ring: the coefficient type
- * Rational<I> is field-like (HasFieldOperators), so the polynomial ring
- * has all four arithmetic operations available.
+ * @brief The polynomial ring over the rationals in one variable, ℚ[x]:
+ *        @c algebra::Polynomial over the quotient field of the integer
+ *        carrier @c I.
  */
 export template <IsInteger I = default_integer>
-using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;
+using RationalPolynomial = dedekind::algebra::Polynomial<Rational<I>>;
 
 static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "RationalPolynomial coefficient type must be field-like.");

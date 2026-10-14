@@ -584,6 +584,40 @@ struct RunsIter {
   bool live = false;
 };
 
+/** @brief A monomial written: π, π1, π2, π3 with superscript exponents, ·
+ *  between; 1 for the empty product. */
+std::string written_monomial(const dedekind::algebra::Monomial<4>& m) {
+  static constexpr const char* superscript[] = {"⁰", "¹", "²", "³", "⁴",
+                                                "⁵", "⁶", "⁷", "⁸", "⁹"};
+  static constexpr const char* variable[] = {"π", "π1", "π2", "π3"};
+  std::string out;
+  for (std::size_t slot = 0; slot < 4; ++slot) {
+    const unsigned e = m.exponent(slot);
+    if (e == 0) continue;
+    if (!out.empty()) out += "·";
+    out += variable[slot];
+    if (e > 1)
+      for (const char d : std::to_string(e)) out += superscript[d - '0'];
+  }
+  return out.empty() ? "1" : out;
+}
+std::string shown_coefficient(std::uint64_t c) { return std::to_string(c); }
+std::string shown_coefficient(const Fp& c) {
+  return nb::cast<std::string>(nb::str(representative(c)));
+}
+/** @brief A polynomial written as the finite functional graph it is,
+ *  @c {m ↦ c, …} along the monomials' chain; the zero polynomial is @c {}. */
+template <typename C>
+std::string written_polynomial(
+    const dedekind::algebra::Polynomial<C, dedekind::algebra::Monomial<4>>& p) {
+  std::string out = "{";
+  for (const auto& [m, c] : p.support()) {
+    if (out.size() > 1) out += ", ";
+    out += written_monomial(m) + " ↦ " + shown_coefficient(c);
+  }
+  return out + "}";
+}
+
 /** @brief The sets a term cuts out of a canonical universe: the set
  *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
  *  @c | @c pred, each a comprehension holding the bound predicate.  Over a
@@ -598,8 +632,9 @@ template <typename C, typename ToC>
 void bind_term_sets(nb::module_& m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
                     const char* name, const char* set_cls, const char* pair_cls,
-                    const char* rel_cls, ToC to_c) {
+                    const char* rel_cls, const char* poly_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
+  using P = dedekind::algebra::Polynomial<C, dedekind::algebra::Monomial<4>>;
   using S = Comprehension<U, RPred>;
   using UU = decltype(U{} * U{});
   using R = decltype(UU{} | std::declval<RPred>());
@@ -626,6 +661,46 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
+  // The ring's normal form: the term read as a polynomial over the carrier.
+  universe.def(
+      "normal_form",
+      [](const U&, nb::handle t) {
+        return dedekind::algebra::normal_form<C>(term_of(t));
+      },
+      nb::arg("term"),
+      "𝔸(carrier).normal_form(term): the term as a polynomial over the "
+      "carrier, the normal form in the free algebra its ring laws give it; two "
+      "terms are equal there iff their normal forms are.  + - * where the "
+      "carrier admits them, / by a nonzero constant on a field; //, % and a "
+      "division by a term have no polynomial: TypeError.");
+  nb::class_<P>(m, poly_cls,
+                "A polynomial over the carrier: the finite function monomial ↦ "
+                "coefficient, its support sorted by degree, then by slot.")
+      .def(
+          "__eq__", [](const P& a, const P& b) { return a == b; },
+          nb::is_operator())
+      .def(
+          "__ne__", [](const P& a, const P& b) { return a != b; },
+          nb::is_operator())
+      .def(
+          "__bool__", [](const P& p) { return !p.is_zero(); }, "Nonzero.")
+      .def("__repr__", [](const P& p) { return written_polynomial<C>(p); })
+      .def_prop_ro(
+          "degree", [](const P& p) { return p.degree(); },
+          "The total degree; 0 for the zero polynomial.")
+      .def_prop_ro(
+          "support",
+          [](const P& p) {
+            nb::list out;
+            for (const auto& [mono, c] : p.support())
+              out.append(nb::make_tuple(
+                  nb::make_tuple(mono.exponent(0), mono.exponent(1),
+                                 mono.exponent(2), mono.exponent(3)),
+                  c));
+            return out;
+          },
+          "The finite function as pairs ((e, e1, e2, e3), coefficient), the "
+          "exponents of π, π1, π2, π3; sorted along the monomials' chain.");
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -735,9 +810,9 @@ void bind_term_sets(nb::module_& m,
            "__eq__", [](const S& a, const S& b) { return a == b; },
            nb::is_operator(),
            "A == B: equality in the free algebra the carrier's laws give the "
-           "term, read on demand (a chain's run lists).  A term outside the "
-           "catalogue (a remainder, a division by a term) evaluates but does "
-           "not compare: TypeError (#1023 for the polynomials).")
+           "term, read on demand (a chain's run lists; a ring's polynomials "
+           "by normal_form).  A term outside the catalogue (a remainder, a "
+           "division by a term) evaluates but does not compare: TypeError.")
         .def(
             "__ne__", [](const S& a, const S& b) { return !(a == b); },
             nb::is_operator())
@@ -1478,10 +1553,10 @@ NB_MODULE(_pst, m) {
 
   // ── the term surface on the canonical universes and the truth chains ──
   bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
-                           "U64Relation",
+                           "U64Relation", "U64Polynomial",
                            [](nb::handle h) { return word_of(h).v; });
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", [](nb::handle h) {
+                     "FpRelation", "FpPolynomial", [](nb::handle h) {
                        // A point is an element or its representative, as the
                        // universe's `in`; the quotient map is for constants.
                        if (!in_fp(h))

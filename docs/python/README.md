@@ -19,7 +19,8 @@ is decided in Python.
 The laws decide the syntax: a term may use the operators the carrier's
 certified algebras have, and anything else is refused when the set is built.
 Equality of sets is equality in the free algebra the term lives in, where that
-has a normal form: a chain's run lists today, a ring's polynomials next (#1023).
+has a normal form: a chain's run lists, and a ring's or field's polynomials
+(`A(carrier).normal_form(term)`, the finite function monomial ↦ coefficient).
 A term outside that catalogue (a remainder, a division by a term) evaluates but
 does not compare.
 
@@ -131,7 +132,7 @@ it is also a test:
 
 - `01_terms_on_the_ring_and_the_field.ipynb`: the canonical ring and field, the
   README exhibit as one normal form, refusals at construction, the successor's
-  image wrapping.
+  image wrapping, the ring's polynomial normal form.
 - `02_pst_sets_by_evaluation.ipynb`: sets over the truth chains, with `Unknown`
   as a verdict.
 

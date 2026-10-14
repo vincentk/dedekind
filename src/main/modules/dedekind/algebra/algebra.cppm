@@ -28,8 +28,8 @@
  * - **Rings (@ref ring)**: The dual structure of Addition and Multiplication.
  * - **Division (@ref division)**: The Euclidean Algorithm and the GCD Morphism.
  * - **Modules (@ref modules)**: Linear actions of Rings on additive Groups.
- * - **Polynomials (@ref polynomials)**: Formal power series R[x] and
- * extensions.
+ * - **Polynomials (@ref polynomial)**: The monoid algebra R[M], and the
+ * normal form of a ring's terms.
  *
  * @note * "الكتاب المختصر في حساب الجبر والمقابلة"
  * (The Compendious Book on Calculation by Completion and Balancing)
