@@ -142,7 +142,7 @@ struct ByMonomial {
  *  monomials: a commutative monoid that is a chain. */
 export template <typename R, typename M = Monomial<1>>
   requires std::equality_comparable<R> &&
-           IsCommutativeMonoid<M, std::multiplies<M>> &&
+           dedekind::category::IsCommutativeMonoid<M, std::multiplies<M>> &&
            dedekind::order::IsTotallyOrdered<M>
 class Polynomial {
  public:
@@ -500,7 +500,7 @@ namespace dedekind::algebra {
 
 /** @section polynomial__Formal_Verification */
 using M4 = Monomial<4>;
-static_assert(IsCommutativeMonoid<M4, std::multiplies<M4>>,
+static_assert(dedekind::category::IsCommutativeMonoid<M4, std::multiplies<M4>>,
               "the monomials are the free commutative monoid on the slots");
 static_assert(dedekind::order::IsTotallyOrdered<M4> &&
                   dedekind::order::IsDirectedSet<M4>,
@@ -514,11 +514,12 @@ using PolyWord = Polynomial<unsigned int, M4>;
 static_assert(dedekind::sequences::IsNet<PolyWord>,
               "a polynomial is a net over the monomials: an arrow from a "
               "directed set");
-static_assert(
-    IsCommutativeRing<PolyWord, std::plus<PolyWord>, std::multiplies<PolyWord>>,
-    "ℤ/2³²[π, π1, π2, π3] is a commutative ring: the coefficients' "
-    "laws by construction");
-static_assert(IsFreeAlgebra<PolyWord>, "R[M] is free over R");
+static_assert(dedekind::category::IsCommutativeRing<
+                  PolyWord, std::plus<PolyWord>, std::multiplies<PolyWord>>,
+              "ℤ/2³²[π, π1, π2, π3] is a commutative ring: the coefficients' "
+              "laws by construction");
+static_assert(dedekind::category::IsFreeAlgebra<PolyWord>,
+              "R[M] is free over R");
 
 // The normal form decides equality in the free algebra, at compile time.
 using dedekind::sets::π;
