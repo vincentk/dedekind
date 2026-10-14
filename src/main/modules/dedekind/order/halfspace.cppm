@@ -107,7 +107,6 @@ export constexpr bool is_order_rel(Rel r) {
 // The NNO steps (@c category:nno) as customization points: the two-step brings
 // the generic defaults into scope so an unqualified call also admits a
 // carrier's own ADL overload (the ℕ proxy's, in @c :sets:cardinality).
-using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
 using dedekind::category::IsPst;
 using dedekind::category::predecessor;
@@ -979,7 +978,7 @@ constexpr Interval<T, L> upperbounds(const Interval<T, L>& s) {
   if (!s.span()->upper) return S::empty();
   const Bound<T>& b = *s.span()->upper;
   T sup = b.at;
-  if constexpr (HasCoveringStep<T>)  // the cover, not the step: a word wraps
+  if constexpr (HasNNOStep<T>)  // the cover, not the step: a word wraps
     if (b.strictness == Strictness::Strict)
       sup = lower_cover(b.at).value_or(b.at);
   return S::half(sup, Direction::Upward, Strictness::NonStrict);
@@ -992,7 +991,7 @@ constexpr Interval<T, L> lowerbounds(const Interval<T, L>& s) {
   if (!s.span()->lower) return S::empty();
   const Bound<T>& b = *s.span()->lower;
   T inf = b.at;
-  if constexpr (HasCoveringStep<T>)  // the cover, not the step: a word wraps
+  if constexpr (HasNNOStep<T>)  // the cover, not the step: a word wraps
     if (b.strictness == Strictness::Strict) inf = cover(b.at).value_or(b.at);
   return S::half(inf, Direction::Downward, Strictness::NonStrict);
 }

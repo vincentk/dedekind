@@ -73,7 +73,7 @@ export template <typename S>
 concept IsPstSet =
     dedekind::sets::IsSetObject<S> && HasDecidableMembership<S> &&
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
-    HasCoveringStep<typename std::remove_cvref_t<S>::Domain>;
+    HasNNOStep<typename std::remove_cvref_t<S>::Domain>;
 
 namespace detail_pst {
 /** @brief An element of the walk as the step to its membership, ⊥ past the

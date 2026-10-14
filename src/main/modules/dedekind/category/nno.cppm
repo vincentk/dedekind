@@ -242,24 +242,6 @@ concept HasNNOStep = requires(const T& n) {
   { predecessor(n) } -> std::convertible_to<T>;
 };
 
-/** @brief A carrier whose order has a covering map read off its step: the
- *  step read @b partially, nothing at a fixpoint (ℵ₀, ⊤) or at a machine
- *  word's greatest value (@c cover below).  The step itself may do more there:
- *  saturate, or wrap (an unsigned word is the ring ℤ/2^w under @c S, and the
- *  chain 0 < 1 < … < 2^w − 1 under its cover; the one step, read twice, as
- *  @c Cardinality's saturates and covers).  The cover, the Lambek arrows and
- *  the order layer's monotone-step facts gate on this.
- *  @tparam T the carrier. */
-export template <typename T>
-concept HasCoveringStep = HasNNOStep<T>;
-/** @brief A carrier whose step itself is monotone: it saturates or has no
- *  value at the ends and never wraps, so @c S and @c P preserve the order and
- *  the orbit of the step is monotone.  An unsigned word has the cover but not
- *  this: @c S(2^w − 1) @c = @c 0.  @tparam T the carrier. */
-export template <typename T>
-concept HasMonotoneStep =
-    HasNNOStep<T> && (!std::unsigned_integral<T> || std::same_as<T, bool>);
-
 /** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
  *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
  *  needed (@c image, @c graph, the NNO witness), in place of a struct per site.
@@ -313,12 +295,16 @@ struct Predecessor {
 /** @brief The cover @f$S^{+} : N \to 1 + N@f$: the successor read partially,
  *  @c nullopt at a fixpoint of @c S, which on a saturating bounded chain is its
  *  top (ℵ₀ on @c Cardinality, @c True on K₃), and at a machine word's greatest
- *  value, where @c S has no value; total on an unbounded chain.
+ *  value, where @c S has no value (signed) or wraps (unsigned: the ring ℤ/2^w
+ *  under @c S, the chain 0 < 1 < … < 2^w − 1 under its cover); total on an
+ *  unbounded chain.  Whether the step itself is monotone is the arrow's fact
+ *  (@c IsMonotone<Successor<N>>, registered in @c order:completeness from the
+ *  carrier's periodicity), not the carrier's.
  *  @c std::optional<N> @b is @f$1 + N@f$, the NNO's own functor
  *  @f$F(X) = 1 + X@f$.
  *  @tparam N the carrier.
  *  @param n an element.  @return the element covering @c n, if any. */
-export template <HasCoveringStep N>
+export template <HasNNOStep N>
   requires std::equality_comparable<N>
 constexpr std::optional<N> cover(const N& n) {
   if constexpr (std::integral<N>)
@@ -332,7 +318,7 @@ constexpr std::optional<N> cover(const N& n) {
  *  @c P, or a machine word's least value).  Not the destructor @c Out, which
  *  is nothing at @b zero.  @tparam N the carrier.  @param n an element.
  *  @return the element @c n covers, if any. */
-export template <HasCoveringStep N>
+export template <HasNNOStep N>
   requires std::equality_comparable<N>
 constexpr std::optional<N> lower_cover(const N& n) {
   if constexpr (std::integral<N>)
@@ -346,7 +332,7 @@ constexpr std::optional<N> lower_cover(const N& n) {
  *  zero, or the successor of the element given.  @c std::optional<N> @b is
  *  @f$1 + N@f$, the NNO's own functor @f$F(X) = 1 + X@f$.
  *  @tparam N the carrier. */
-export template <HasCoveringStep N>
+export template <HasNNOStep N>
   requires std::equality_comparable<N> && std::default_initializable<N>
 struct In {
   using Domain = std::optional<N>;
@@ -358,7 +344,7 @@ struct In {
 };
 /** @brief The destructor @f$\langle \text{is}\;Z?,\, P\rangle : N \to 1 + N@f$:
  *  nothing at zero, else the predecessor.  @tparam N the carrier. */
-export template <HasCoveringStep N>
+export template <HasNNOStep N>
   requires std::equality_comparable<N> && std::default_initializable<N>
 struct Out {
   using Domain = N;
@@ -398,16 +384,11 @@ static_assert(
 static_assert(!IsIsomorphism<In<int>> && !IsIsomorphism<Successor<int>>,
               "on ℤ the structure map is not an iso, and the machine step is "
               "not declared one: S(max) has no value.");
-static_assert(HasCoveringStep<int> && HasCoveringStep<bool> &&
-                  HasCoveringStep<Ternary> && HasCoveringStep<unsigned> &&
-                  !cover(std::numeric_limits<unsigned>::max()) &&
-                  successor(std::numeric_limits<unsigned>::max()) == 0u,
-              "every chain with the step has its cover; on a word the cover "
-              "stops at 2^w − 1 where the ring's step wraps to 0.");
-static_assert(HasMonotoneStep<int> && HasMonotoneStep<bool> &&
-                  HasMonotoneStep<Ternary> && !HasMonotoneStep<unsigned>,
-              "the step is monotone where it saturates or stops, not where it "
-              "wraps.");
+static_assert(
+    !cover(std::numeric_limits<unsigned>::max()) &&
+        successor(std::numeric_limits<unsigned>::max()) == 0u,
+    "on a word the cover stops at 2^w − 1 where the ring's step wraps "
+    "to 0.");
 static_assert(successor(Ternary::False) == Ternary::Unknown &&
                   successor(Ternary::Unknown) == Ternary::True &&
                   successor(Ternary::True) == Ternary::True,

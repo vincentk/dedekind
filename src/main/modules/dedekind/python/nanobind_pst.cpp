@@ -63,7 +63,6 @@ namespace {
 using dedekind::category::Boole;
 using dedekind::category::classifier_logic_t;
 using dedekind::category::cover;
-using dedekind::category::HasCoveringStep;
 using dedekind::category::HasNNOStep;
 using dedekind::category::Identity;
 using dedekind::category::IsFiniteChain;
@@ -145,7 +144,7 @@ static_assert(saturates<bool>() && saturates<Ternary>() &&
 /** @brief A truth chain the queries can read: a Pst carrier that is finite by
  *  its representation and has the covering step.  @tparam C the chain. */
 template <typename C>
-concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasCoveringStep<C>;
+concept IsTruthChain = IsPst<C> && IsFiniteChain<C> && HasNNOStep<C>;
 
 /** @brief A set over the chain @c C valued in @c L, as Python holds it. */
 template <IsTruthChain C, IsOckhamAlgebra L>

@@ -253,7 +253,7 @@ constexpr std::optional<V> greatest() {
  *  @c (0, 3) and @c [1, 3) have the same positions.  @tparam V the carrier. */
 template <typename V>
 constexpr Position<V> canonical(Position<V> p) {
-  if constexpr (HasCoveringStep<V>)
+  if constexpr (HasNNOStep<V>)
     if (p.side == Side::Above)
       if (const auto n = cover(p.at)) return {*n, Side::Below};
   return p;
@@ -582,7 +582,7 @@ constexpr auto fibre(const S& s, typename S::logic_species::Ω level) {
  *  @c sequences::to_iota_view is this view's integral face.  A forward view
  * (the walk restarts from @c lo), O(1) state: the current element and the end.
  *  @tparam C the chain, with the covering step. */
-export template <HasCoveringStep C>
+export template <HasNNOStep C>
   requires std::totally_ordered<C>
 class chain_view : public std::ranges::view_interface<chain_view<C>> {
  public:
@@ -682,7 +682,7 @@ struct ToItself {
  *  step at every element above the least (none on a one-element chain).
  *  @tparam C the chain. */
 export template <typename C>
-  requires HasCoveringStep<C> && (detail_position::least<C>().has_value()) &&
+  requires HasNNOStep<C> && (detail_position::least<C>().has_value()) &&
            (detail_position::greatest<C>().has_value())
 struct IdentitySteps {
   using Domain = C;
@@ -882,7 +882,7 @@ struct Closed {
  *  lower cover (ℕ's proxy, whose ℵ₀ has none, is read through positions). */
 export template <IsStepSource S>
   requires IsFiniteChain<typename S::Domain> &&
-           HasCoveringStep<typename S::Domain> &&
+           HasNNOStep<typename S::Domain> &&
            (detail_position::least<typename S::Domain>().has_value())
 constexpr auto runs(const S& s) {
   return std::views::transform(pieces(s),

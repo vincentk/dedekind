@@ -139,15 +139,19 @@ static_assert(!IsDense<int>,
 namespace dedekind::category {
 /** @brief The step arrows preserve the order of a registered chain,
  *  @f$x \le y \Rightarrow S(x) \le S(y)@f$ and likewise for @c P: the
- *  irreducible leaf facts the variance inference starts from (saturation at a
- *  bound is monotone, wrapping is not --- hence the monotone-step gate; the
- *  chain gate supplies the order).
- *  @tparam N a chain whose step is monotone. */
-template <HasMonotoneStep N>
-  requires dedekind::order::IsTotallyOrdered<N>
+ *  irreducible leaf facts the variance inference starts from.  Saturation at
+ *  a bound is monotone; wrapping is not, and wrapping is the carrier's
+ *  registered periodicity (@c is_periodic_v of its @c +: the unsigned words,
+ *  ℤ/N), so the fact is read off the algebra, not off the type's name; the
+ *  chain gate supplies the order.
+ *  @tparam N a chain with the NNO step whose @c + does not wrap. */
+template <HasNNOStep N>
+  requires dedekind::order::IsTotallyOrdered<N> &&
+               (!is_periodic_v<N, std::plus<N>>)
 inline constexpr bool is_monotone_v<Successor<N>, std::less_equal<>> = true;
-template <HasMonotoneStep N>
-  requires dedekind::order::IsTotallyOrdered<N>
+template <HasNNOStep N>
+  requires dedekind::order::IsTotallyOrdered<N> &&
+               (!is_periodic_v<N, std::plus<N>>)
 inline constexpr bool is_monotone_v<Predecessor<N>, std::less_equal<>> = true;
 }  // namespace dedekind::category
 
