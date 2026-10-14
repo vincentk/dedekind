@@ -80,7 +80,7 @@ wrapping at the word's end::
     (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)    # True: one normal form
     (~(U | (π == 5))).runs()                         # [(0, 4), (6, 2**64 - 1)]
     list(U[3:8]);  len(U | (π < 3))                  # [3, 4, 5, 6, 7]; 3
-    image(succ, U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: it wraps
+    image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as

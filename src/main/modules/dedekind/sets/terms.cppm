@@ -914,6 +914,12 @@ struct Value {
       case Term<K>::Kind::Const:
         return carrier_cast<C>(t.value);
       case Term<K>::Kind::Bin:
+        // The former checked admission once; a predicate called directly has
+        // not been bound, so each node visited checks its own (a constant
+        // switch), keeping the typed and the runtime grammar at par.
+        if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
+          throw not_admitted(std::string("the operator ") + spelling(t.op) +
+                             " is not in the carrier's signature");
         return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
     }
     throw not_admitted("an unknown term");
@@ -923,6 +929,9 @@ struct Value {
   bool steer(const Pred<K>& t) const {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
+        if (!rel_admitted<coordinate_t<P>>(t.rel))
+          throw not_admitted(
+              "the comparison is not in the carrier's signature");
         return compare_rel(t.rel, steer(*t.a), steer(*t.b));
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);

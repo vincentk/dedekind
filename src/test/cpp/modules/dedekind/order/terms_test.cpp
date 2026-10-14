@@ -165,6 +165,12 @@ TEST_CASE("order:terms: a term built at run time is checked when bound",
                       Rel::Eq, T::bin(Arith::FloorDiv, T::proj(2), T::proj(1)),
                       T::proj(2))),
                   not_admitted);
+  // A predicate called directly, without the former, checks each node it
+  // visits: the same refusal, at evaluation.
+  CHECK_THROWS_AS(
+      Q::cmp(Rel::Eq, T::bin(Arith::Div, T::proj(0), T::constant(2)),
+             T::constant(1))(4u),
+      not_admitted);
   // / is a field's: refused on the word; // and % by a constant are admitted.
   CHECK_THROWS_AS(bind_check<unsigned>(Q::cmp(
                       Rel::Eq, T::bin(Arith::Div, T::proj(0), T::constant(2)),

@@ -185,14 +185,16 @@ template <typename T>
 void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
       m, succ_name,
-      "The successor arrow S : T -> T (the real :nno Successor), total and "
-      "saturating at the chain's top.");
+      "The successor arrow S : T -> T (the real :nno Successor), total: "
+      "saturating at ⊤ on bool, wrapping on the word u64 (succ(2**64 - 1) is "
+      "0).");
   bind_step_operators(succ);
   succ.def("__repr__", [](const Successor<T>&) { return "succ"; });
   auto pred = nb::class_<Predecessor<T>>(
       m, pred_name,
-      "The predecessor arrow P : T -> T (the real :nno Predecessor), total and "
-      "saturating at the chain's bottom (the monus on ℕ).");
+      "The predecessor arrow P : T -> T (the real :nno Predecessor), total: "
+      "saturating at ⊥ on bool, wrapping on the word u64 (pred(0) is "
+      "2**64 - 1).");
   bind_step_operators(pred);
   pred.def("__repr__", [](const Predecessor<T>&) { return "pred"; });
   m.def("dom", [](const Successor<T>&) { return type_object<T>(); });
@@ -300,6 +302,7 @@ NB_MODULE(_jlt, m) {
         throw nb::type_error("pred(T): T must be bool or int");
       },
       nb::arg("carrier"),
-      "pred(T): the predecessor arrow on carrier T (saturating at the bottom: "
-      "pred(bool)(False) is False).");
+      "pred(T): the predecessor arrow on carrier T (saturating: pred(bool)"
+      "(False) is False; on int, the word u64, it wraps: pred(0) is 2**64 - "
+      "1).");
 }
