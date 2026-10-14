@@ -39,6 +39,12 @@
  * @c 2⁶³·π·(π+1) and @c 0.  That quotient (by the vanishing ideal) is a
  * further reading, not this one.
  *
+ * The exponents are machine words, so @c Monomial<N> is the type
+ * (ℤ/2³²)ᴺ, not the set ℕᴺ: its product is certified total because it wraps
+ * (path A of @c category:total), the same posture as @c u64 itself.  It is the
+ * free commutative monoid on the slots below total degree 2³², which is where
+ * every term written by hand lives.
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  */
