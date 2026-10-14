@@ -175,15 +175,14 @@ export template <typename T1, typename T2, typename L, typename P, typename C>
 constexpr auto dom(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
   // π_1 of the relation's UNIVERSE leg: 𝔸<A×B> ≅ 𝔸<A> × 𝔸<B>, so the declared
   // domain is read off the product, not restated; the logic rides along.
-  return π_1(
-      universe(r));  // unqualified: the pair-universe π_1 is found by ADL
+  return dedekind::category::π_1(universe(r));  // its component hook: ADL
 }
 
 /** @brief The @b declared codomain of a relation @c R ⊆ A×B: @c 𝔸<B>, the
  *         second factor (@c π₂'s codomain).  Dual to @c dom. */
 export template <typename T1, typename T2, typename L, typename P, typename C>
 constexpr auto cod(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
-  return π_2(universe(r));  // dual of dom
+  return dedekind::category::π_2(universe(r));  // dual of dom
 }
 
 /**
