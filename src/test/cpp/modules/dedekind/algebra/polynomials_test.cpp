@@ -148,10 +148,15 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         T::bin(Arith::Mul, x2, x2));
     CHECK(same_shape(nf(Pr::cmp(Rel::Ne, square, x2)),
                      nf(Pr::cmp(Rel::Ne, expanded, x2))));
-    // The word is no field: 2π = 0 is not made monic (it is not π = 0).
-    CHECK_FALSE(same_shape(
-        nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mul, T::constant(2u), x), zero)),
-        nf(Pr::cmp(Rel::Eq, x, zero))));
+    // A unit factor is divided out: the odd numbers are the units of the
+    // word, so 3π = 0 is π = 0 and 6π = 0 is 2π = 0.  2 is no unit: 2π = 0
+    // (two solutions) is not π = 0.
+    const auto times = [&](Word k) {
+      return Pr::cmp(Rel::Eq, T::bin(Arith::Mul, T::constant(k), x), zero);
+    };
+    CHECK(same_shape(nf(times(3u)), nf(Pr::cmp(Rel::Eq, x, zero))));
+    CHECK(same_shape(nf(times(6u)), nf(times(2u))));
+    CHECK_FALSE(same_shape(nf(times(2u)), nf(Pr::cmp(Rel::Eq, x, zero))));
   }
   SECTION("an order atom keeps its comparison, its sides normalised") {
     CHECK(same_shape(

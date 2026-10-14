@@ -47,6 +47,13 @@ class EqualityByNormalForm(unittest.TestCase):
                          UU | (π_1 * π_1 + 2 * π_1 * π_2 + π_2 * π_2 == π_2))
         self.assertEqual(U | (π * (2**64 - 1) + π == 0), U | (0 * π == 0))
 
+    def test_a_unit_factor_is_divided_out(self) -> None:
+        self.assertEqual(U | (1 - π == 1), U | (π == 0))  # -1 is a unit
+        self.assertEqual(U | (3 * π == 0), U | (π == 0))  # so is every odd word
+        self.assertEqual(repr(normal_form(U | (6 * π == 4))), "𝔸(u64) | ((2 * π) + 6148914691236517204) == 0")
+        with self.assertRaises(TypeError):
+            U | (2 * π == 0) == U | (π == 0)  # 2 is no unit: not the same equation
+
     def test_a_field_makes_the_equation_monic(self) -> None:
         self.assertEqual(F | (2 * π == 4), F | (π == 2))
         self.assertEqual(FF | (π_1 * 3 / 3 == π_2), FF | (π_1 == π_2))

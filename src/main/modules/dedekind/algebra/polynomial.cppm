@@ -39,8 +39,9 @@
  *
  * A set expression is normalised through its predicate, atom by atom
  * (@c normal_form(pred, lift)): an equation @c a @c = @c b on a ring becomes
- * @c a @c - @c b @c = @c 0 with the difference a polynomial, monic on a field,
- * written back as a term (@c as_term).  Equal normal forms cut out equal sets;
+ * @c a @c - @c b @c = @c 0 with the difference a polynomial, the unit part of
+ * its leading coefficient divided out (monic on a field), written back as a
+ * term (@c as_term).  Equal normal forms cut out equal sets;
  * the converse fails (the next paragraph), so a comparison of sets by normal
  * form may answer only "equal" or "not decided".
  *
@@ -67,6 +68,7 @@ module;
 
 #include <algorithm>    // std::sort
 #include <array>        // Monomial's exponents
+#include <bit>          // std::countr_zero: a word's power of two
 #include <compare>      // std::strong_ordering
 #include <concepts>     // std::equality_comparable
 #include <cstddef>      // std::size_t
@@ -478,14 +480,41 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
   return sum;
 }
 
+/** @brief A unit @c u of the carrier with @c u·c the chosen representative of
+ *  @c c's associates (the elements @c c times a unit): the hook the normal form
+ *  of an equation divides by.  1 by default, nothing divided out; a carrier
+ *  with more units states its own overload, found by ADL.  @param c the
+ *  leading coefficient. */
+export template <typename C>
+constexpr C unit_normaliser(const C&) {
+  return identity_v<C, std::multiplies<C>>;
+}
+/** @brief On a word, ℤ/2ⁿ: @c c @c = @c 2ᵏ·o with @c o odd, and the odd
+ *  elements are the units, so @c o⁻¹ (Newton's iteration, 2-adic: each step
+ *  doubles the correct low bits) makes @c u·c @c = @c 2ᵏ.  0 has no unit part.
+ *  @param c the leading coefficient. */
+export template <std::unsigned_integral W>
+  requires(!std::same_as<W, bool>) && (sizeof(W) >= sizeof(unsigned))
+constexpr W unit_normaliser(const W& c) {
+  if (c == W{0}) return W{1};
+  const W odd = static_cast<W>(c >> std::countr_zero(c));
+  W y = odd;  // o·o ≡ 1 (mod 8): three correct bits to start
+  while (static_cast<W>(odd * y) != W{1})
+    y = static_cast<W>(y * static_cast<W>(W{2} - static_cast<W>(odd * y)));
+  return y;
+}
+static_assert(unit_normaliser(3u) * 3u == 1u &&
+                  unit_normaliser(6u) * 6u == 2u &&
+                  unit_normaliser(~0u) == ~0u && unit_normaliser(8u) == 1u,
+              "the odd part's inverse: 3 → 1, 6 → 2, -1 → 1, 8 stays 8");
+
 /** @brief The normal form of a predicate over the carrier @c C, atom by atom:
  *  an equation or its negation @c a @c ⋈ @c b on a ring moves to
  *  @c a @c - @c b @c ⋈ @c 0 with the difference a polynomial, made monic on a
- *  field (dividing by the leading coefficient keeps the zero set), and off a
- *  field signed: of @c d and @c -d the one with the smaller leading
- *  coefficient, where the carrier is ordered, so @c a @c = @c b and
- *  @c b @c = @c a meet (the ring's other units, the odd coefficients on
- *  ℤ/2⁶⁴, are not divided out); any other
+ *  field, and off a field with the unit part of its leading coefficient
+ *  divided out (@c unit_normaliser: on ℤ/2ⁿ the leading coefficient becomes
+ *  its power of two), so an equation and its multiple by any unit (@c -1
+ *  among them: @c a @c = @c b and @c b @c = @c a) meet; any other
  *  atom has its sides normalised and its comparison kept (moving a term across
  *  @c < needs the ordered ring's theory).  Equal normal forms cut out equal
  *  sets; different ones need not cut out different sets (@c πᵖ @c = @c π
@@ -510,23 +539,20 @@ dedekind::sets::Pred<K> normal_form(const dedekind::sets::Pred<K>& p,
     if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
         dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
       P d = x - y;
-      bool monic = false;
-      if constexpr (requires(const C& a, const C& b) { a / b; }) {
-        if (!d.is_zero() &&
-            dedekind::sets::admits(On<C>{}, dedekind::sets::FieldDivision{},
-                                   true)) {
-          d = d *
-              P(identity_v<C, std::multiplies<C>> / d.leading_coefficient());
-          monic = true;
+      // An equation keeps its zero set under a unit factor, so the unit part
+      // of the leading coefficient is divided out: on a field all of it
+      // (monic), elsewhere what the carrier's unit_normaliser names.
+      if (!d.is_zero()) {
+        bool field = false;
+        if constexpr (requires(const C& a, const C& b) { a / b; }) {
+          if (dedekind::sets::admits(On<C>{}, dedekind::sets::FieldDivision{},
+                                     true)) {
+            d = d *
+                P(identity_v<C, std::multiplies<C>> / d.leading_coefficient());
+            field = true;
+          }
         }
-      }
-      // Off a field, -1 is still a unit: d = 0 and -d = 0 are one equation,
-      // so a = b and b = a meet.  On an ordered carrier the one with the
-      // smaller leading coefficient is kept.
-      if constexpr (requires(const C& a, const C& b) { a < b; }) {
-        if (!monic && !d.is_zero() &&
-            (-d).leading_coefficient() < d.leading_coefficient())
-          d = -d;
+        if (!field) d = d * P(unit_normaliser(d.leading_coefficient()));
       }
       return Pr::cmp(
           p.rel, as_term<K>(d, lift),
