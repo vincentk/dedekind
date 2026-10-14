@@ -30,8 +30,11 @@ Every handle over a truth chain is a run list, the library's normal form of
 these sets, valued in its species (a K₃-valued set is a step function on the
 chain); every operator and every query is the library's, on it.  The sets and
 relations the term surface below cuts out of ``u64`` and ``𝔽ₚ`` hold the bound
-term instead and are read pointwise (membership; no equality yet, which
-awaits a normal form).  Reduction stays in C++.
+term.  The laws decide the syntax: a carrier's certified varieties supply the
+operators a term may use and the free algebra its normal form lives in, and
+equality of terms is equality there; a chain's is read as run lists, a ring's
+polynomials are #1023.  A term outside that catalogue evaluates but does not
+compare.  Reduction stays in C++.
 
 The canonical ring and field, each as large as a machine word allows::
 

@@ -736,8 +736,10 @@ void bind_term_sets(nb::module_& m,
     set.def(
            "__eq__", [](const S& a, const S& b) { return a == b; },
            nb::is_operator(),
-           "A == B as sets: one normal form, the run lists, read on demand.  A "
-           "term outside the order fragment has none yet (TypeError, #1023).")
+           "A == B: equality in the free algebra the carrier's laws give the "
+           "term, read on demand (a chain's run lists).  A term outside the "
+           "catalogue (a remainder, a division by a term) evaluates but does "
+           "not compare: TypeError (#1023 for the polynomials).")
         .def(
             "__ne__", [](const S& a, const S& b) { return !(a == b); },
             nb::is_operator())
