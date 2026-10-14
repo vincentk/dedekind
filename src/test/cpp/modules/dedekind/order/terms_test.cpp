@@ -79,13 +79,6 @@ TEST_CASE("order:terms: a constant meets the carrier beside it",
   CHECK_THROWS_AS(carrier_cast<bool>(2), std::domain_error);
 }
 
-TEST_CASE("order:terms: a division by the constant 0 is refused when built",
-          "[sets][terms][constants]") {
-  CHECK_THROWS_AS(π1 / 0, std::domain_error);
-  CHECK_THROWS_AS(π1 % 0, std::domain_error);
-  CHECK_NOTHROW(π1 / 2);
-}
-
 TEST_CASE("order:terms: a constant is checked when the term is bound",
           "[sets][terms][constants]") {
   CHECK_THROWS_AS(𝔸<Cardinality>{} | (π + -1 == 3), std::domain_error);

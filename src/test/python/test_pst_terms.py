@@ -90,6 +90,16 @@ class TheFieldAdmits(unittest.TestCase):
         self.assertIn(-1, F | (π * π == 1))
         self.assertIn(𝔽ₚ(5), F | (π - 𝔽ₚ(5) == 0))
 
+    def test_a_point_is_an_element_or_its_representative(self) -> None:
+        # Constants enter by the quotient map; points, like `in A(𝔽ₚ)`, are
+        # elements or symmetric representatives: p - 1 names none.
+        minus_one = A(𝔽ₚ) | (π == -1)
+        self.assertIn(-1, minus_one)
+        self.assertIn(𝔽ₚ(P - 1), minus_one)
+        self.assertNotIn(P - 1, minus_one)
+        with self.assertRaises(TypeError):
+            minus_one(P - 1)
+
     def test_refusals(self) -> None:
         F = A(𝔽ₚ)
         with self.assertRaises(TypeError):

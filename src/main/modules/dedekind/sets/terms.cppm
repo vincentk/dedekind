@@ -1282,6 +1282,9 @@ struct Pred {
   }
 
  private:
+  // Built through the factories only, so every leg is set: a default
+  // predicate would be a comparison of nothing.
+  Pred() = default;
   static Pred node(Kind k, Pred x, Pred y) {
     Pred t;
     t.kind = k;

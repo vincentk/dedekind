@@ -971,6 +971,7 @@ struct MapSteps {
  *  @tparam V an unsigned word.  @tparam L the species.  @param s the set.
  *  @param k the shift. */
 export template <std::unsigned_integral V, typename L>
+  requires IsAbelianGroup<V, std::plus<V>>  // the word's +, not bool's ∨
 Runs<V, L> translate(const Runs<V, L>& s, V k) {
   if (k == V{}) return s;
   // The image's value at 0 is s(−k); each breakpoint moves by k; the word's

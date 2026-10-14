@@ -565,16 +565,14 @@ void def_comparisons(Cls& cls) {
 }
 
 /** @brief The former on a truth chain for a predicate built at run time:
- *  bound to the chain, then read at its two or three elements. */
+ *  bound to the chain, then its normal form by the Pst fold, the scan of the
+ *  finite chain (@c sequences:pst), materialised. */
 template <typename C, typename L>
 auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
   const auto c = 𝔸<C>{} | p;  // every operator and constant checked here
-  pst::Set<C, Boole> acc = pst::Set<C, Boole>::empty();
-  for (C x = dedekind::sets::chain_bottom<C>();; x = Successor<C>{}(x)) {
-    if (c(x)) acc = ext(acc | pst::point<C>(x));
-    if (x == dedekind::sets::chain_top<C>()) break;
-  }
-  return ext(s & acc);
+  return ext(s & Runs<C>(dedekind::sequences::ScanSteps<decltype(c)>{
+                     c, dedekind::sets::chain_bottom<C>(),
+                     dedekind::sets::chain_top<C>()}));
 }
 
 /** @brief The elements of a set of a chain, run by run, from its least. */
@@ -1483,5 +1481,13 @@ NB_MODULE(_pst, m) {
                            "U64Relation",
                            [](nb::handle h) { return word_of(h).v; });
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", [](nb::handle h) { return residue_of(h); });
+                     "FpRelation", [](nb::handle h) {
+                       // A point is an element or its representative, as the
+                       // universe's `in`; the quotient map is for constants.
+                       if (!in_fp(h))
+                         throw nb::type_error(
+                             "a point of 𝔽ₚ is an element or its symmetric "
+                             "representative");
+                       return residue_of(h);
+                     });
 }
