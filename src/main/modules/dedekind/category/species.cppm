@@ -833,16 +833,20 @@ inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
  * Unsigned integers are natively periodic under
  * addition/subtraction/multiplication.
  **/
+// The unsigned words wrap: ℤ/2^w.  bool is std::unsigned_integral too, but
+// std::plus<bool> is ∨ (the sum truncates), which saturates and has no
+// inverses: bool's rig is spelled logical_or / logical_and below, and
+// std::plus<bool> is registered as nothing.
 template <typename T>
-  requires std::unsigned_integral<T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
 struct is_periodic<T, std::plus<T>> : std::true_type {};
 
 template <typename T>
-  requires std::unsigned_integral<T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
 struct is_periodic<T, std::minus<T>> : std::true_type {};
 
 template <typename T>
-  requires std::unsigned_integral<T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
 struct is_periodic<T, std::multiplies<T>> : std::true_type {};
 
 // XOR is Periodic (Order 2), ensuring its totality

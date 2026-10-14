@@ -1,8 +1,13 @@
 #include <catch2/catch_test_macros.hpp>
 
+// The fixtures are sets of ℕ cut by order comparisons and remainders, whose
+// rules are order's (sets:terms admits an operator where the module stating its
+// rule is imported), so this test of relational algebra lives at the order
+// layer.
 import dedekind.category;
 import dedekind.sets;
 import dedekind.relational;
+import dedekind.order;
 
 using namespace dedekind::category;
 using namespace dedekind::sets;

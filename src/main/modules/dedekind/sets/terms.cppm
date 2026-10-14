@@ -36,6 +36,47 @@
  * A reading whose results are @c std::integral_constant is a type-level
  * certificate; the same fold with values is the evaluation.
  *
+ * A term built at @b run @b time (from Python) is the same grammar with its
+ * shape a value: @c Term<K> and @c Pred<K> below, read by the same algebras
+ * through their @c steer rule, and checked against the carrier when the
+ * former binds them (@c bind_check): an operator admitted there or refused
+ * (@c not_admitted), a constant meeting the carrier or refused.
+ *
+ * @section terms__Signature_And_Free_Algebra
+ * The laws decide the syntax.  A carrier's @b certified @b varieties supply
+ * the @b signature a term may use (@c admits below: @c + on a commutative
+ * monoid, @c - on an abelian group, @c * on a monoid, @c / on a field,
+ * @c // and @c % on a dividable chain, the order comparisons on a poset,
+ * @c == and @c != on any set) and the @b free @b algebra on the variables its
+ * normal form lives in; @b equality @b of @b terms is equality in that free
+ * algebra.  The catalogue of free algebras with a canonical representative:
+ *   - a chain: the Boolean algebra the intervals generate, read as run lists
+ *     (@c order:runs, @c steps);
+ *   - a commutative rig, ring or field: polynomials over the carrier (#1023,
+ *     not yet).
+ * A term whose operators are in the signature but outside the catalogue (a
+ * remainder, a division by a term) is well-formed and evaluates, and has no
+ * equality: it is refused where a normal form is asked, never rewritten.
+ * Type-checking is at the former: at compile time for a typed term bound to
+ * a @c constexpr universe, at construction for a term built at run time.
+ *
+ * The carrier and its algebras are different entities (the paper's Figure 1),
+ * and a carrier bears several: @c u64 is a chain, a ring and a Euclidean
+ * division at once.  The @b signature is the union over the carrier's
+ * registered algebras, each rule speaking for one, each import bringing one
+ * more into view.  A @b free @b algebra, and so a normal form, is @b per
+ * @b algebra, not per carrier: over one carrier the chain's is read as run
+ * lists and the ring's as polynomials, and "equal terms" means a different
+ * thing in each.  A term spanning two algebras (@c π @c + @c 1 @c < @c 5)
+ * belongs to their @b combined theory (the ordered ring, whose laws relate
+ * @c <= and @c +) and has a normal form only where that theory's is
+ * catalogued; the translate of an atom @c π @c ± @c c @c ⋈ @c k in
+ * @c order:halfspace is the first piece of it, not a licence to glue run lists
+ * and polynomials without laws.  A field adds no free algebra: division by a
+ * nonzero constant factors through the ring (@c π @c / @c 3 on 𝔽₇ is
+ * @c π @c * @c 5), so the field certificate only guarantees the constant a
+ * unit.
+ *
  * Wikipedia: Term (logic), Term algebra, Atomic formula, Relational algebra
  *
  * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie
@@ -53,7 +94,9 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <memory>  // std::shared_ptr: the legs of a term built at run time
 #include <stdexcept>
+#include <string>  // the spelling of a refusal
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -276,6 +319,19 @@ struct CondT {
 };
 export template <Rel R, typename A, typename B>
 struct Cmp;
+/** @brief A term built at run time, the grammar with its shape a value;
+ *  defined after the binding below.  @tparam K the constants' type. */
+export template <typename K>
+struct Term;
+/** @brief A relational predicate built at run time: comparisons of terms and
+ *  their connectives; defined after the binding below.  @tparam K the
+ *  constants' type. */
+export template <typename K>
+struct Pred;
+template <typename T>
+inline constexpr bool is_runtime_term_v = false;
+template <typename K>
+inline constexpr bool is_runtime_term_v<Term<K>> = true;
 
 /** @name The legs of a node, for @c cata (@c category::f_algebra)
  *  @brief The term functor stated once per node: the sub-terms, by reference.
@@ -333,6 +389,7 @@ concept IsTerm = is_term_v<std::remove_cvref_t<T>>;
 export template <typename T>
 concept IsConstant =
     !IsTerm<T> && !IsRelPredicate<T> &&
+    !is_runtime_term_v<std::remove_cvref_t<T>> &&
     !std::is_empty_v<std::remove_cvref_t<T>> &&
     !IsArrow<std::remove_cvref_t<T>> && std::copyable<std::remove_cvref_t<T>>;
 
@@ -543,16 +600,259 @@ struct at_carrier<F<void>, C> {
   using type = F<C>;
 };
 
-/** @brief Whether @c a @c op @c b is admitted on the carrier @c C: @c op is
- *  total there (@c category::IsTotal, read at the typed functor), or it is a
- *  division or remainder by a constant, whose nonzero value is checked when the
- *  term is built.  @tparam Op the operator.  @tparam C the carrier.
- *  @tparam B the right operand. */
-template <typename Op, typename C, typename B>
-inline constexpr bool admits_v =
-    dedekind::category::IsTotal<C, typename at_carrier<Op, C>::type> ||
-    ((std::same_as<Op, std::divides<>> || std::same_as<Op, std::modulus<>>) &&
-     is_const_v<B> && dedekind::category::IsClosedUnder<C, Op>);
+// ── The rules: admission by ADL, each beside its certificate ────────────────
+
+/** @brief The carrier a rule is stated for, as a tag.  A rule
+ *  @c admits(On<C>, key, divisor_is_constant) says that the operator @c key is
+ *  in the @b signature of @c C: a symbol one of the carrier's certified
+ *  varieties has.  It is declared in this namespace beside the certificate
+ *  and found by ADL, so it is in force where that module is imported: the
+ *  comparisons beside the partial orders (@c order:poset), @c // and @c %
+ *  beside @c IsDividableChain (@c order:completeness), a field's @c / beside
+ *  @c IsField (@c algebra:field); @c + @c - @c * and @c == @c != here, whose
+ *  certificates are @c category's.  Without a rule an operator is not in the
+ *  signature.  @tparam C the carrier. */
+export template <typename C>
+struct On {};
+/** @brief The two divisions Python tells apart, as keys: a field's, and the
+ *  Euclidean one of an ordered carrier with remainder.  The typed grammar's
+ *  @c std::divides<> is the carrier's own, admitted where either is. */
+export struct FieldDivision {};
+export struct EuclideanDivision {};
+
+/** @brief No rule: not admitted.  @tparam C the carrier.  @tparam Key the
+ *  operator. */
+export template <typename C, typename Key>
+constexpr bool admits(On<C>, Key, bool) {
+  return false;
+}
+/** @brief @c + @c - @c * where the carrier's certified laws have the symbol:
+ *  @c + on a commutative monoid, @c - on an abelian group (@c a @c - @c b is
+ *  @c a @c + @c (-b)), @c * on a monoid.  A magma is total and closed, so the
+ *  Pst total operator surface is inside the laws; ℕ's monus is not, until its
+ *  variety is named.  @tparam C the carrier. */
+export template <typename C>
+  requires IsCommutativeMonoid<C, std::plus<C>>
+constexpr bool admits(On<C>, std::plus<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<>>
+constexpr bool admits(On<C>, std::minus<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires IsMonoid<C, std::multiplies<C>>
+constexpr bool admits(On<C>, std::multiplies<>, bool) {
+  return true;
+}
+/** @brief The carrier's own division, by a nonzero constant: a field's or the
+ *  Euclidean one, whichever rule the carrier has.  @tparam C the carrier. */
+export template <typename C>
+constexpr bool admits(On<C> c, std::divides<>, bool divisor_is_constant) {
+  return admits(c, FieldDivision{}, divisor_is_constant) ||
+         admits(c, EuclideanDivision{}, divisor_is_constant);
+}
+/** @brief @c == and @c != where the carrier compares.  @tparam C the
+ *  carrier. */
+export template <std::equality_comparable C>
+constexpr bool admits(On<C>, std::equal_to<>, bool) {
+  return true;
+}
+export template <std::equality_comparable C>
+constexpr bool admits(On<C>, std::not_equal_to<>, bool) {
+  return true;
+}
+/** @brief A comparison's key: the standard functor it is.  @tparam R the
+ *  comparison. */
+template <Rel R>
+struct rel_key;
+template <>
+struct rel_key<Rel::Lt> {
+  using type = std::less<>;
+};
+template <>
+struct rel_key<Rel::Le> {
+  using type = std::less_equal<>;
+};
+template <>
+struct rel_key<Rel::Gt> {
+  using type = std::greater<>;
+};
+template <>
+struct rel_key<Rel::Ge> {
+  using type = std::greater_equal<>;
+};
+template <>
+struct rel_key<Rel::Eq> {
+  using type = std::equal_to<>;
+};
+template <>
+struct rel_key<Rel::Ne> {
+  using type = std::not_equal_to<>;
+};
+template <Rel R>
+using rel_key_t = typename rel_key<R>::type;
+
+// ── A term whose shape is a value: its readings ─────────────────────────────
+
+/** @brief A point of one carrier: a carrier value, or a pair of two values of
+ *  one carrier.  A term built at run time names no carrier until it is bound,
+ *  so it is read at such points only.  @tparam P the point type. */
+template <typename P>
+struct coordinate {
+  using type = P;
+};
+template <typename A>
+struct coordinate<std::pair<A, A>> {
+  using type = A;
+};
+template <typename P>
+using coordinate_t = typename coordinate<P>::type;
+template <typename P>
+concept HomogeneousPoint = !requires {
+  typename P::first_type;
+} || std::same_as<typename P::first_type, typename P::second_type>;
+
+/** @brief An operator of a term built at run time.  Python's @c / and @c //
+ *  are both the carrier's division; what differs is where each is admitted
+ *  (a field, an ordered word). */
+export enum class Arith { Add, Sub, Mul, Div, FloorDiv, Mod };
+/** @brief The spelling of an operator, for a refusal. */
+export constexpr const char* spelling(Arith op) {
+  switch (op) {
+    case Arith::Add:
+      return "+";
+    case Arith::Sub:
+      return "-";
+    case Arith::Mul:
+      return "*";
+    case Arith::Div:
+      return "/";
+    case Arith::FloorDiv:
+      return "//";
+    case Arith::Mod:
+      return "%";
+  }
+  return "?";
+}
+/** @brief Refused at the carrier: an operator not total there, a division by
+ *  a term, an order comparison on an unordered carrier, a slot the points
+ *  have not.  Raised when a term built at run time is bound. */
+export struct not_admitted : std::logic_error {
+  using std::logic_error::logic_error;
+};
+
+/** @brief Whether @c op is admitted on the carrier @c C, with the divisor a
+ *  constant (nonzero, checked when the term was built) or a term: the rules
+ *  above and beside their certificates, read at run time.  @tparam C the
+ *  carrier. */
+template <typename C>
+constexpr bool op_admitted(Arith op, bool divisor_is_constant) {
+  switch (op) {
+    case Arith::Add:
+      return admits(On<C>{}, std::plus<>{}, divisor_is_constant);
+    case Arith::Sub:
+      return admits(On<C>{}, std::minus<>{}, divisor_is_constant);
+    case Arith::Mul:
+      return admits(On<C>{}, std::multiplies<>{}, divisor_is_constant);
+    case Arith::Div:
+      return admits(On<C>{}, FieldDivision{}, divisor_is_constant);
+    case Arith::FloorDiv:
+      return admits(On<C>{}, EuclideanDivision{}, divisor_is_constant);
+    case Arith::Mod:
+      return admits(On<C>{}, std::modulus<>{}, divisor_is_constant);
+  }
+  return false;
+}
+/** @brief Whether the comparison @c r is admitted on @c C: @c == and @c !=
+ *  where it compares, the order comparisons where the order's rule is in
+ *  force (@c order:poset).  @tparam C the carrier. */
+template <typename C>
+constexpr bool rel_admitted(Rel r) {
+  switch (r) {
+    case Rel::Lt:
+      return admits(On<C>{}, std::less<>{}, false);
+    case Rel::Le:
+      return admits(On<C>{}, std::less_equal<>{}, false);
+    case Rel::Gt:
+      return admits(On<C>{}, std::greater<>{}, false);
+    case Rel::Ge:
+      return admits(On<C>{}, std::greater_equal<>{}, false);
+    case Rel::Eq:
+      return admits(On<C>{}, std::equal_to<>{}, false);
+    case Rel::Ne:
+      return admits(On<C>{}, std::not_equal_to<>{}, false);
+  }
+  return false;
+}
+/** @brief @c x @c op @c y in the carrier @c C, for an admitted operator,
+ *  through the typed functor; a branch whose expression the carrier has not is
+ *  not instantiated (the typed functor's body would be, so the guard asks the
+ *  expression). */
+template <typename C>
+constexpr C apply_op(Arith op, const C& x, const C& y) {
+  switch (op) {
+    case Arith::Add:
+      if constexpr (requires { x + y; }) return std::plus<C>{}(x, y);
+      break;
+    case Arith::Sub:
+      if constexpr (requires { x - y; }) return std::minus<C>{}(x, y);
+      break;
+    case Arith::Mul:
+      if constexpr (requires { x * y; }) return std::multiplies<C>{}(x, y);
+      break;
+    case Arith::Div:
+    case Arith::FloorDiv:
+      if constexpr (requires { x / y; }) return std::divides<C>{}(x, y);
+      break;
+    case Arith::Mod:
+      if constexpr (requires { x % y; }) return std::modulus<C>{}(x, y);
+      break;
+  }
+  throw not_admitted(std::string("the operator ") + spelling(op) +
+                     " is not admitted on the carrier");
+}
+/** @brief @c x @c r @c y for a comparison known at run time, admitted when
+ *  the term was bound; the branches a carrier has not are not instantiated. */
+template <typename C>
+constexpr bool compare_rel(Rel r, const C& x, const C& y) {
+  switch (r) {
+    case Rel::Lt:
+      if constexpr (requires { x < y; }) return x < y;
+      break;
+    case Rel::Le:
+      if constexpr (requires { x <= y; }) return x <= y;
+      break;
+    case Rel::Gt:
+      if constexpr (requires { x > y; }) return x > y;
+      break;
+    case Rel::Ge:
+      if constexpr (requires { x >= y; }) return x >= y;
+      break;
+    case Rel::Eq:
+      return x == y;
+    case Rel::Ne:
+      return x != y;
+  }
+  throw not_admitted("the comparison is not admitted on the carrier");
+}
+/** @brief The coordinate @c slot of the point @c p: the point itself for the
+ *  unary @c π, a pair's coordinates for @c π1 / @c π2. */
+template <typename P>
+constexpr coordinate_t<P> runtime_coord(unsigned slot, const P& p) {
+  if constexpr (requires { typename P::first_type; }) {
+    if (slot == 1) return p.first;
+    if (slot == 2) return p.second;
+    throw not_admitted(slot == 0 ? "π names an element; the points are pairs"
+                                 : "binary products only: π1 and π2");
+  } else {
+    if (slot == 0) return p;
+    throw not_admitted(
+        "π1 / π2 name a pair's coordinates; the points are "
+        "elements");
+  }
+}
 
 /** @brief The value algebra: a term or a predicate folded at the point @c p.
  *  A projection reads its coordinate, a constant is its value, a predicate the
@@ -580,9 +880,10 @@ struct Value {
   constexpr auto operator()(const BinOp<Op, A, B>&, const X& x,
                             const Y& y) const {
     using C = meet_t<A, B, X, Y>;
-    static_assert(admits_v<Op, C, B>,
-                  "the operator is not total on the carrier (divide only by a "
-                  "nonzero constant)");
+    static_assert(admits(On<C>{}, Op{}, is_const_v<B>),
+                  "the operator has no rule on the carrier: not total there, "
+                  "a division by a term, or its module is not imported (order "
+                  "for // and %, algebra for a field's /)");
     return typename at_carrier<Op, C>::type{}(into<C, A>(x), into<C, B>(y));
   }
   template <typename F, typename A, typename X>
@@ -592,6 +893,9 @@ struct Value {
   template <Rel R, typename A, typename B, typename X, typename Y>
   constexpr bool operator()(const Cmp<R, A, B>&, const X& x, const Y& y) const {
     using C = meet_t<A, B, X, Y>;
+    static_assert(admits(On<C>{}, rel_key_t<R>{}, false),
+                  "the comparison has no rule on the carrier: an order "
+                  "comparison needs the carrier's order (import order)");
     return rel_apply<R>(into<C, A>(x), into<C, B>(y));
   }
   /** @brief The connectives short-circuit as the built-in @c && / @c || do,
@@ -612,6 +916,44 @@ struct Value {
         meet_t<A, B, decltype(cata(*this, t.a)), decltype(cata(*this, t.b))>;
     return static_cast<bool>(cata(*this, t.p)) ? into<C, A>(cata(*this, t.a))
                                                : into<C, B>(cata(*this, t.b));
+  }
+  /** @brief A term built at run time, read at a point of one carrier: its
+   *  legs are values, so the recursion is steered with an explicit result. */
+  template <typename K>
+    requires HomogeneousPoint<P>
+  coordinate_t<P> steer(const Term<K>& t) const {
+    using C = coordinate_t<P>;
+    switch (t.kind) {
+      case Term<K>::Kind::Proj:
+        return runtime_coord(t.slot, p);
+      case Term<K>::Kind::Const:
+        return carrier_cast<C>(t.value);
+      case Term<K>::Kind::Bin:
+        // The former checked admission once; a predicate called directly has
+        // not been bound, so each node visited checks its own (a constant
+        // switch), keeping the typed and the runtime grammar at par.
+        if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
+          throw not_admitted(std::string("the operator ") + spelling(t.op) +
+                             " is not in the carrier's signature");
+        return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
+    }
+    throw not_admitted("an unknown term");
+  }
+  template <typename K>
+    requires HomogeneousPoint<P>
+  bool steer(const Pred<K>& t) const {
+    switch (t.kind) {
+      case Pred<K>::Kind::Cmp:
+        if (!rel_admitted<coordinate_t<P>>(t.rel))
+          throw not_admitted(
+              "the comparison is not in the carrier's signature");
+        return compare_rel(t.rel, steer(*t.a), steer(*t.b));
+      case Pred<K>::Kind::And:
+        return steer(*t.p) && steer(*t.q);
+      case Pred<K>::Kind::Or:
+        return steer(*t.p) || steer(*t.q);
+    }
+    throw not_admitted("an unknown predicate");
   }
 };
 
@@ -747,6 +1089,62 @@ struct Bind {
       (void)carrier_cast<typename F::Domain>(t.a.value);
     return {};
   }
+  /** @brief A term built at run time meets the carrier now: every slot one
+   *  the points have, every constant cast, every operator admitted. */
+  template <typename K>
+    requires HomogeneousPoint<X>
+  Bound steer(const Term<K>& t) const {
+    using C = coordinate_t<X>;
+    switch (t.kind) {
+      case Term<K>::Kind::Proj:
+        (void)runtime_coord(t.slot, X{});
+        break;
+      case Term<K>::Kind::Const:
+        (void)carrier_cast<C>(t.value);
+        break;
+      case Term<K>::Kind::Bin: {
+        steer(*t.a);
+        steer(*t.b);
+        const bool division =
+            t.op == Arith::Div || t.op == Arith::FloorDiv || t.op == Arith::Mod;
+        const bool by_constant = t.b->kind == Term<K>::Kind::Const;
+        if (!op_admitted<C>(t.op, by_constant))
+          throw not_admitted(
+              std::string("the operator ") + spelling(t.op) +
+              (division ? " is admitted only by a nonzero constant, where the "
+                          "carrier has it"
+                        : " is not total on the carrier"));
+        // Nonzero as written, but 0 on the carrier (p in 𝔽ₚ, by the quotient
+        // map): refused here, as a 0 written is refused when built.
+        if (division && by_constant && carrier_cast<C>(t.b->value) == C{})
+          throw std::domain_error(
+              "a division by a constant that is 0 on the "
+              "carrier");
+        break;
+      }
+    }
+    return {};
+  }
+  template <typename K>
+    requires HomogeneousPoint<X>
+  Bound steer(const Pred<K>& t) const {
+    switch (t.kind) {
+      case Pred<K>::Kind::Cmp:
+        steer(*t.a);
+        steer(*t.b);
+        if (!rel_admitted<coordinate_t<X>>(t.rel))
+          throw not_admitted(
+              "the comparison has no rule on the carrier: an order comparison "
+              "needs the carrier's order");
+        break;
+      case Pred<K>::Kind::And:
+      case Pred<K>::Kind::Or:
+        steer(*t.p);
+        steer(*t.q);
+        break;
+    }
+    return {};
+  }
 };
 
 /** @brief Bind a term or atom to the points @c X it is evaluated at: every
@@ -759,6 +1157,143 @@ constexpr void bind_check(const T& t) {
   (void)cata(Bind<X>{}, t);
 }
 
+// ── Terms whose shape is a value ────────────────────────────────────────────
+
+/** @brief A term built at run time: the grammar of @c IsTerm with its shape a
+ *  value and its constants of type @c K, which meets the carrier through
+ *  @c carrier_cast when the term is bound.  Its legs are shared, so a term is
+ *  cheap to copy and to combine.  A division by the constant 0 is refused
+ *  when the term is built, as for the typed grammar.  @tparam K the constants'
+ *  type. */
+export template <typename K>
+struct Term {
+  enum class Kind { Proj, Const, Bin };
+  Kind kind{Kind::Const};
+  unsigned slot{};
+  K value{};
+  Arith op{};
+  std::shared_ptr<const Term> a, b;
+
+  /** @brief @c π (slot 0), @c π1, @c π2. */
+  static Term proj(unsigned slot) {
+    Term t;
+    t.kind = Kind::Proj;
+    t.slot = slot;
+    return t;
+  }
+  /** @brief A constant. */
+  static Term constant(K k) {
+    Term t;
+    t.value = std::move(k);
+    return t;
+  }
+  /** @brief The term with the variable @c variable replaced by @c with: the
+   *  substitution a structural arrow's image is (@c π ↦ @c π @c - @c 1 for
+   *  the successor's).  @param variable the slot.  @param with its
+   *  replacement.  @return the substituted term. */
+  Term subst(unsigned variable, const Term& with) const {
+    switch (kind) {
+      case Kind::Proj:
+        return slot == variable ? with : *this;
+      case Kind::Const:
+        return *this;
+      case Kind::Bin: {
+        Term t = *this;
+        t.a = std::make_shared<const Term>(a->subst(variable, with));
+        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        return t;
+      }
+    }
+    return *this;
+  }
+  /** @brief @c x @c op @c y.  @throws std::domain_error on a division by the
+   *  constant 0. */
+  static Term bin(Arith op, Term x, Term y) {
+    if ((op == Arith::Div || op == Arith::FloorDiv || op == Arith::Mod) &&
+        y.kind == Kind::Const && y.value == K{})
+      throw std::domain_error("a division by the constant 0");
+    Term t;
+    t.kind = Kind::Bin;
+    t.op = op;
+    t.a = std::make_shared<const Term>(std::move(x));
+    t.b = std::make_shared<const Term>(std::move(y));
+    return t;
+  }
+};
+/** @brief A relational predicate built at run time: a comparison of two
+ *  terms, and their conjunctions and disjunctions.  Negation is pushed to the
+ *  comparisons as it is built (De Morgan), so there is no @c Not node.
+ *  @tparam K the constants' type. */
+export template <typename K>
+struct Pred {
+  using is_rel_predicate = void;
+  enum class Kind { Cmp, And, Or };
+  Kind kind{Kind::Cmp};
+  Rel rel{};
+  std::shared_ptr<const Term<K>> a, b;
+  std::shared_ptr<const Pred> p, q;
+
+  /** @brief The atom @c x @c r @c y.  @param r the comparison.  @param x,y
+   *  the terms.  @return the predicate. */
+  static Pred cmp(Rel r, Term<K> x, Term<K> y) {
+    Pred t;
+    t.rel = r;
+    t.a = std::make_shared<const Term<K>>(std::move(x));
+    t.b = std::make_shared<const Term<K>>(std::move(y));
+    return t;
+  }
+  /** @brief @c x @c ∧ @c y.  @param x,y the predicates.  @return the meet. */
+  static Pred conj(Pred x, Pred y) { return node(Kind::And, x, y); }
+  /** @brief @c x @c ∨ @c y.  @param x,y the predicates.  @return the join. */
+  static Pred disj(Pred x, Pred y) { return node(Kind::Or, x, y); }
+  /** @brief The predicate with the variable @c variable replaced by the term
+   *  @c with in every atom.  @param variable the slot.  @param with its
+   *  replacement.  @return the substituted predicate. */
+  Pred subst(unsigned variable, const Term<K>& with) const {
+    Pred t = *this;
+    if (kind == Kind::Cmp) {
+      t.a = std::make_shared<const Term<K>>(a->subst(variable, with));
+      t.b = std::make_shared<const Term<K>>(b->subst(variable, with));
+    } else {
+      t.p = std::make_shared<const Pred>(p->subst(variable, with));
+      t.q = std::make_shared<const Pred>(q->subst(variable, with));
+    }
+    return t;
+  }
+  /** @brief @c !p, in negation normal form. */
+  Pred negated() const {
+    switch (kind) {
+      case Kind::Cmp: {
+        Pred t = *this;
+        t.rel = negate(rel);
+        return t;
+      }
+      case Kind::And:
+        return node(Kind::Or, p->negated(), q->negated());
+      case Kind::Or:
+        return node(Kind::And, p->negated(), q->negated());
+    }
+    return *this;
+  }
+  /** @param x the point (a pair, or a carrier value for an atom on @c π). */
+  template <typename P>
+  bool operator()(const P& x) const {
+    return term_value(*this, x);
+  }
+
+ private:
+  // Built through the factories only, so every leg is set: a default
+  // predicate would be a comparison of nothing.
+  Pred() = default;
+  static Pred node(Kind k, Pred x, Pred y) {
+    Pred t;
+    t.kind = k;
+    t.p = std::make_shared<const Pred>(std::move(x));
+    t.q = std::make_shared<const Pred>(std::move(y));
+    return t;
+  }
+};
+
 /** @section terms__Formal_Verification */
 // ── Certificates ────────────────────────────────────────────────────────────
 // Rules over a term's structure, read by the relation traits (functional,
@@ -766,7 +1301,7 @@ constexpr void bind_check(const T& t) {
 // false means not certified.
 
 /** @brief The totality algebra at the points @c X: a node is total when its
- *  legs are, and an operator when it is admitted on its carrier (@c admits_v,
+ *  legs are, and an operator when it is admitted on its carrier (@c admits,
  *  the gate the value algebra enforces: total there, or dividing by a nonzero
  *  constant), an applied arrow when the arrow is total and its argument already
  *  has the arrow's domain (a conversion may fail).  A predicate the grammar
@@ -783,8 +1318,9 @@ struct Total {
   template <typename Op, typename A, typename B, typename RA, typename RB>
   constexpr auto operator()(const BinOp<Op, A, B>&, RA, RB) const {
     if constexpr (RA::value && RB::value)
-      return std::bool_constant<
-          admits_v<Op, meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>, B>>{};
+      return std::bool_constant<admits(
+          On<meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>>{}, Op{},
+          is_const_v<B>)>{};
     else
       return std::false_type{};
   }
@@ -843,13 +1379,6 @@ inline constexpr auto half_after_shift = (π1 + 1) * 3 == π2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
 static_assert(only_slot(slots_v<decltype(π1 * 3 + 1)>, 1),
               "3·π1 + 1 mentions only the first slot");
-static_assert(!(π1 < 5)(P{5, 0}) && (!(π1 < 5))(P{5, 0}),
-              "!atom flips the comparison");
-static_assert((π % 3 == 0)(9) && !(π % 3 == 0)(10),
-              "an atom on the unary π evaluates at a carrier value");
-static_assert((cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{6, 3}) &&
-                  (cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{7, 22}),
-              "cond on terms: the Collatz step as one atom");
 inline constexpr auto on_naturals = π1 + 1 == π2;
 static_assert(on_naturals(std::pair{finite_cardinality(4),
                                     finite_cardinality(5)}),
@@ -857,18 +1386,9 @@ static_assert(on_naturals(std::pair{finite_cardinality(4),
 using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(is_total_term_v<P, decltype(π1 % 3)> &&
-                  !is_total_term_v<P, decltype(π1 % π2)> &&
-                  !is_total_term_v<P, decltype((π1 % π2) + 1)>,
-              "a remainder by a nonzero constant is total, by a term it is not "
-              "certified (the divisor could be 0), and the verdict propagates "
-              "up without asking the value algebra");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
               "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
-static_assert(slots_v<decltype(cond(π1 < 1, π1, π2))> == 0b110u &&
-                  is_total_term_v<P, decltype(cond(π1 < 1, π1, π2))>,
-              "a conditional mentions the slots of all three legs");
 // A predicate the grammar does not know is a leaf the certificates refuse.
 struct Foreign {
   using is_rel_predicate = void;

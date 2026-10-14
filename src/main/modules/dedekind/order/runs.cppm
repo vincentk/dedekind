@@ -253,7 +253,7 @@ constexpr std::optional<V> greatest() {
  *  @c (0, 3) and @c [1, 3) have the same positions.  @tparam V the carrier. */
 template <typename V>
 constexpr Position<V> canonical(Position<V> p) {
-  if constexpr (HasCoveringStep<V>)
+  if constexpr (HasNNOStep<V>)
     if (p.side == Side::Above)
       if (const auto n = cover(p.at)) return {*n, Side::Below};
   return p;
@@ -582,7 +582,7 @@ constexpr auto fibre(const S& s, typename S::logic_species::Ω level) {
  *  @c sequences::to_iota_view is this view's integral face.  A forward view
  * (the walk restarts from @c lo), O(1) state: the current element and the end.
  *  @tparam C the chain, with the covering step. */
-export template <HasCoveringStep C>
+export template <HasNNOStep C>
   requires std::totally_ordered<C>
 class chain_view : public std::ranges::view_interface<chain_view<C>> {
  public:
@@ -682,7 +682,7 @@ struct ToItself {
  *  step at every element above the least (none on a one-element chain).
  *  @tparam C the chain. */
 export template <typename C>
-  requires HasCoveringStep<C> && (detail_position::least<C>().has_value()) &&
+  requires HasNNOStep<C> && (detail_position::least<C>().has_value()) &&
            (detail_position::greatest<C>().has_value())
 struct IdentitySteps {
   using Domain = C;
@@ -882,7 +882,7 @@ struct Closed {
  *  lower cover (ℕ's proxy, whose ℵ₀ has none, is read through positions). */
 export template <IsStepSource S>
   requires IsFiniteChain<typename S::Domain> &&
-           HasCoveringStep<typename S::Domain> &&
+           HasNNOStep<typename S::Domain> &&
            (detail_position::least<typename S::Domain>().has_value())
 constexpr auto runs(const S& s) {
   return std::views::transform(pieces(s),
@@ -894,7 +894,7 @@ constexpr auto runs(const S& s) {
  *  them.  The one stored form, for a value that must outlive the term it was
  *  read from (a Python handle); a source like any other, its steps a view of
  *  the map.  @tparam V the carrier.  @tparam L the species. */
-export template <typename V = long long, typename L = Boole>
+export template <typename V, typename L = Boole>
   requires IsTotallyOrdered<V> && IsOckhamAlgebra<L>
 struct Runs : dedekind::sets::SetExpr<Runs<V, L>, V, L> {
   using Domain = V;
@@ -942,6 +942,59 @@ static_assert(dedekind::sets::IsSetObject<Runs<int>> &&
                   IsStepSource<Runs<int>> &&
                   IsStepSource<Runs<Ternary, Kleene>>,
               "a run list is a set object over its universe, and a source.");
+
+namespace detail_runs {
+/** @brief A breakpoint of a map as a step. */
+template <typename V, typename L>
+struct ToStep {
+  Step<V, L> operator()(
+      const std::pair<const Position<V>, typename L::Ω>& b) const {
+    return {b.first, b.second};
+  }
+};
+/** @brief A sorted map of breakpoints as a source. */
+template <typename V, typename L>
+struct MapSteps {
+  using Domain = V;
+  using logic_species = L;
+  typename L::Ω value_before;
+  std::map<Position<V>, typename L::Ω> map;
+  typename L::Ω first() const { return value_before; }
+  auto steps() const { return std::views::transform(map, ToStep<V, L>{}); }
+};
+}  // namespace detail_runs
+
+/** @brief The translate of a run list by @c k on a machine word, the chain
+ *  read as the cyclic group ℤ/2^w it is: @f$x \mapsto x + k@f$ wraps at the
+ *  word's end, so a run through the end splits in two.  It is the image of
+ *  the set under the translation, and the preimage under the inverse one.
+ *  @tparam V an unsigned word.  @tparam L the species.  @param s the set.
+ *  @param k the shift. */
+export template <std::unsigned_integral V, typename L>
+  requires IsAbelianGroup<V, std::plus<V>>  // the word's +, not bool's ∨
+Runs<V, L> translate(const Runs<V, L>& s, V k) {
+  if (k == V{}) return s;
+  // The image's value at 0 is s(−k); each breakpoint moves by k; the word's
+  // end wraps to k, where the image reads s(0).  A step past the end names no
+  // element and is dropped.
+  detail_runs::MapSteps<V, L> out{s(static_cast<V>(V{} - k)), {}};
+  for (const auto& [at, v] : s.breakpoints()) {
+    if (at.side == Side::Above) continue;
+    out.map.insert_or_assign(
+        Position<V>{static_cast<V>(at.at + k), Side::Below}, v);
+  }
+  out.map.insert_or_assign(Position<V>{k, Side::Below}, s(V{}));
+  auto prev = out.value_before;  // no breakpoint repeats the value before it
+  for (auto it = out.map.begin(); it != out.map.end();) {
+    if (it->second == prev) {
+      it = out.map.erase(it);
+    } else {
+      prev = it->second;
+      ++it;
+    }
+  }
+  return Runs<V, L>(out);
+}
 
 /** @section runs__Formal_Verification */
 namespace detail_runs_witness {

@@ -40,6 +40,7 @@ module;
 export module dedekind.order:completeness;
 
 import dedekind.category;
+import dedekind.sets; // On, EuclideanDivision: the term grammar's rule hooks
 import :poset;
 import :total;  // IsTotallyOrdered relocated here per #410
 
@@ -139,15 +140,19 @@ static_assert(!IsDense<int>,
 namespace dedekind::category {
 /** @brief The step arrows preserve the order of a registered chain,
  *  @f$x \le y \Rightarrow S(x) \le S(y)@f$ and likewise for @c P: the
- *  irreducible leaf facts the variance inference starts from (saturation at a
- *  bound is monotone, wrapping is not --- hence the covering-step gate; the
- *  chain gate supplies the order).
- *  @tparam N a chain with the NNO step. */
-template <HasCoveringStep N>
-  requires dedekind::order::IsTotallyOrdered<N>
+ *  irreducible leaf facts the variance inference starts from.  Saturation at
+ *  a bound is monotone; wrapping is not, and wrapping is the carrier's
+ *  registered periodicity (@c is_periodic_v of its @c +: the unsigned words,
+ *  ℤ/N), so the fact is read off the algebra, not off the type's name; the
+ *  chain gate supplies the order.
+ *  @tparam N a chain with the NNO step whose @c + does not wrap. */
+template <HasNNOStep N>
+  requires dedekind::order::IsTotallyOrdered<N> &&
+               (!is_periodic_v<N, std::plus<N>>)
 inline constexpr bool is_monotone_v<Successor<N>, std::less_equal<>> = true;
-template <HasCoveringStep N>
-  requires dedekind::order::IsTotallyOrdered<N>
+template <HasNNOStep N>
+  requires dedekind::order::IsTotallyOrdered<N> &&
+               (!is_periodic_v<N, std::plus<N>>)
 inline constexpr bool is_monotone_v<Predecessor<N>, std::less_equal<>> = true;
 }  // namespace dedekind::category
 
@@ -159,3 +164,22 @@ static_assert(!IsMonotone<Successor<unsigned>> &&
               "on a wrapping word S(2^w − 1) = 0 and P(0) = 2^w − 1: the step "
               "is not registered monotone there.");
 }  // namespace dedekind::order
+
+// ── The division rules of the term grammar, beside their certificate ────────
+// The specification is sets:terms' @section terms__Signature_And_Free_Algebra.
+// Here: Euclidean division (//) and remainder (%) by a nonzero constant are in
+// the signature of a dividable chain (ordered, with / and %): the words and
+// ℕ's proxy.  A field's division is algebra:field's rule.  Neither has a free
+// algebra in the catalogue: such a term evaluates and does not compare.
+namespace dedekind::sets {
+export template <typename C>
+  requires dedekind::order::IsDividableChain<C>
+constexpr bool admits(On<C>, EuclideanDivision, bool divisor_is_constant) {
+  return divisor_is_constant;
+}
+export template <typename C>
+  requires dedekind::order::IsDividableChain<C>
+constexpr bool admits(On<C>, std::modulus<>, bool divisor_is_constant) {
+  return divisor_is_constant;
+}
+}  // namespace dedekind::sets

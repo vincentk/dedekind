@@ -396,6 +396,12 @@ struct is_periodic<dedekind::morphologies::Modular<N>,
                    std::multiplies<dedekind::morphologies::Modular<N>>>
     : std::true_type {};
 
+// ℤ/N is an abelian group under +, so a − b = a + (−b) is total too.
+template <auto N>
+struct is_periodic<dedekind::morphologies::Modular<N>,
+                   std::minus<dedekind::morphologies::Modular<N>>>
+    : std::true_type {};
+
 /** @section cyclic__Identities */
 
 template <auto N>
@@ -751,6 +757,8 @@ static_assert(
         is_prime(2305843009213693951ull) &&
         !is_prime(18446744073709551615ull) && is_prime(𝔽ₚ::modulus),
     "2, 7, 2^61 - 1 and 2^64 - 59 are prime; 1, 6, 2^64 - 1 are not.");
+static_assert(dedekind::category::IsTotal<Modular<7u>, std::minus<Modular<7u>>>,
+              "subtraction is total on ℤ/N: the group inverse of +.");
 static_assert(
     dedekind::category::IsField<Modular<7u>, std::plus<Modular<7u>>,
                                 std::multiplies<Modular<7u>>> &&

@@ -42,6 +42,15 @@ using dedekind::sets::SignedExtensionalCardinal;
 TEST_CASE("Modular<N>: a prime modulus is a field",
           "[morphologies][modular][field]") {
   using M7 = Modular<7u>;
+  // The term grammar's division rule is a field's: π / 3 on ℤ/7 is π · 5, and
+  // % is not a field operation.
+  using dedekind::sets::admits;
+  using dedekind::sets::On;
+  STATIC_CHECK(admits(On<M7>{}, dedekind::sets::FieldDivision{}, true));
+  STATIC_CHECK_FALSE(
+      admits(On<Modular<6u>>{}, dedekind::sets::FieldDivision{}, true));
+  STATIC_CHECK_FALSE(admits(On<M7>{}, std::modulus<>{}, true));
+  STATIC_CHECK((dedekind::sets::π / M7{3} == M7{5})(M7{1}));
   STATIC_CHECK(is_galois_field_v<M7, std::plus<M7>, std::multiplies<M7>>);
   STATIC_CHECK(dedekind::algebra::galois_order_v<M7, std::plus<M7>,
                                                  std::multiplies<M7>> == 7);
