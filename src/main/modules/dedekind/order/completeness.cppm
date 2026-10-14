@@ -40,6 +40,7 @@ module;
 export module dedekind.order:completeness;
 
 import dedekind.category;
+import dedekind.sets; // On, EuclideanDivision: the term grammar's rule hooks
 import :poset;
 import :total;  // IsTotallyOrdered relocated here per #410
 
@@ -163,3 +164,20 @@ static_assert(!IsMonotone<Successor<unsigned>> &&
               "on a wrapping word S(2^w − 1) = 0 and P(0) = 2^w − 1: the step "
               "is not registered monotone there.");
 }  // namespace dedekind::order
+
+// ── The division rules of the term grammar, beside their certificate ────────
+// Euclidean division and remainder by a nonzero constant, where the carrier is
+// a dividable chain (ordered, with / and %): the words and ℕ's proxy.  A
+// field's division is algebra:field's rule.
+namespace dedekind::sets {
+export template <typename C>
+  requires dedekind::order::IsDividableChain<C>
+constexpr bool admits(On<C>, EuclideanDivision, bool divisor_is_constant) {
+  return divisor_is_constant;
+}
+export template <typename C>
+  requires dedekind::order::IsDividableChain<C>
+constexpr bool admits(On<C>, std::modulus<>, bool divisor_is_constant) {
+  return divisor_is_constant;
+}
+}  // namespace dedekind::sets

@@ -49,7 +49,8 @@ import :poset;  // IsPartiallyOrdered — the SEMANTIC order certificate for
                 // max/min
 import :total;  // IsTotallyOrdered — the carrier gate of Halfspace / Interval:
                 // the interval normal form lives on a certified chain
-import :runs;   // positions, bounds and run lists: an interval's sets
+import :completeness;  // the // and % rules of the term grammar (π1 % 17)
+import :runs;          // positions, bounds and run lists: an interval's sets
 
 namespace dedekind::order {
 using namespace dedekind::sets;

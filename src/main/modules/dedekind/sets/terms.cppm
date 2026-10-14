@@ -565,16 +565,96 @@ struct at_carrier<F<void>, C> {
   using type = F<C>;
 };
 
-/** @brief Whether @c a @c op @c b is admitted on the carrier @c C: @c op is
- *  total there (@c category::IsTotal, read at the typed functor), or it is a
- *  division or remainder by a constant, whose nonzero value is checked when the
- *  term is built.  @tparam Op the operator.  @tparam C the carrier.
- *  @tparam B the right operand. */
-template <typename Op, typename C, typename B>
-inline constexpr bool admits_v =
-    dedekind::category::IsTotal<C, typename at_carrier<Op, C>::type> ||
-    ((std::same_as<Op, std::divides<>> || std::same_as<Op, std::modulus<>>) &&
-     is_const_v<B> && dedekind::category::IsClosedUnder<C, Op>);
+// ── The rules: admission by ADL, each beside its certificate ────────────────
+
+/** @brief The carrier a rule is stated for, as a tag.  A rule is the free
+ *  function @c admits(On<C>, key, divisor_is_constant), declared in this
+ *  namespace beside the certificate that justifies it and found by ADL, so it
+ *  is in force where that module is imported: the comparisons beside the
+ *  partial orders (@c order:poset), @c // and @c % beside
+ *  @c IsDividableChain (@c order:completeness), a field's @c / beside
+ *  @c IsField (@c algebra:field); @c + @c - @c * and @c == @c != here, whose
+ *  certificates are @c category's.  Without a rule an operator is not
+ *  admitted.  @tparam C the carrier. */
+export template <typename C>
+struct On {};
+/** @brief The two divisions Python tells apart, as keys: a field's, and the
+ *  Euclidean one of an ordered carrier with remainder.  The typed grammar's
+ *  @c std::divides<> is the carrier's own, admitted where either is. */
+export struct FieldDivision {};
+export struct EuclideanDivision {};
+
+/** @brief No rule: not admitted.  @tparam C the carrier.  @tparam Key the
+ *  operator. */
+export template <typename C, typename Key>
+constexpr bool admits(On<C>, Key, bool) {
+  return false;
+}
+/** @brief @c + @c - @c * where the carrier is closed and the operation total
+ *  (@c category::IsTotal: it wraps, saturates or stops), the Pst total
+ *  operator surface.  @tparam C the carrier. */
+export template <typename C>
+  requires IsClosedUnder<C, std::plus<>> && IsTotal<C, std::plus<C>>
+constexpr bool admits(On<C>, std::plus<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires IsClosedUnder<C, std::minus<>> && IsTotal<C, std::minus<C>>
+constexpr bool admits(On<C>, std::minus<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires IsClosedUnder<C, std::multiplies<>> && IsTotal<C, std::multiplies<C>>
+constexpr bool admits(On<C>, std::multiplies<>, bool) {
+  return true;
+}
+/** @brief The carrier's own division, by a nonzero constant: a field's or the
+ *  Euclidean one, whichever rule the carrier has.  @tparam C the carrier. */
+export template <typename C>
+constexpr bool admits(On<C> c, std::divides<>, bool divisor_is_constant) {
+  return admits(c, FieldDivision{}, divisor_is_constant) ||
+         admits(c, EuclideanDivision{}, divisor_is_constant);
+}
+/** @brief @c == and @c != where the carrier compares.  @tparam C the
+ *  carrier. */
+export template <std::equality_comparable C>
+constexpr bool admits(On<C>, std::equal_to<>, bool) {
+  return true;
+}
+export template <std::equality_comparable C>
+constexpr bool admits(On<C>, std::not_equal_to<>, bool) {
+  return true;
+}
+/** @brief A comparison's key: the standard functor it is.  @tparam R the
+ *  comparison. */
+template <Rel R>
+struct rel_key;
+template <>
+struct rel_key<Rel::Lt> {
+  using type = std::less<>;
+};
+template <>
+struct rel_key<Rel::Le> {
+  using type = std::less_equal<>;
+};
+template <>
+struct rel_key<Rel::Gt> {
+  using type = std::greater<>;
+};
+template <>
+struct rel_key<Rel::Ge> {
+  using type = std::greater_equal<>;
+};
+template <>
+struct rel_key<Rel::Eq> {
+  using type = std::equal_to<>;
+};
+template <>
+struct rel_key<Rel::Ne> {
+  using type = std::not_equal_to<>;
+};
+template <Rel R>
+using rel_key_t = typename rel_key<R>::type;
 
 // ── A term whose shape is a value: its readings ─────────────────────────────
 
@@ -624,32 +704,47 @@ export constexpr const char* spelling(Arith op) {
 export struct not_admitted : std::logic_error {
   using std::logic_error::logic_error;
 };
-constexpr bool is_order(Rel r) { return r != Rel::Eq && r != Rel::Ne; }
 
 /** @brief Whether @c op is admitted on the carrier @c C, with the divisor a
- *  constant (nonzero, checked when the term was built) or a term: the rule of
- *  @c admits_v, read at run time.  @c + @c - @c * where total and closed;
- *  @c / where @c C is a field; @c // where @c C is an integral word; @c %
- *  where @c C has it; each division by a constant only.  @tparam C the
+ *  constant (nonzero, checked when the term was built) or a term: the rules
+ *  above and beside their certificates, read at run time.  @tparam C the
  *  carrier. */
 template <typename C>
-constexpr bool admits(Arith op, bool divisor_is_constant) {
+constexpr bool op_admitted(Arith op, bool divisor_is_constant) {
   switch (op) {
     case Arith::Add:
-      return IsClosedUnder<C, std::plus<>> && IsTotal<C, std::plus<C>>;
+      return admits(On<C>{}, std::plus<>{}, divisor_is_constant);
     case Arith::Sub:
-      return IsClosedUnder<C, std::minus<>> && IsTotal<C, std::minus<C>>;
+      return admits(On<C>{}, std::minus<>{}, divisor_is_constant);
     case Arith::Mul:
-      return IsClosedUnder<C, std::multiplies<>> &&
-             IsTotal<C, std::multiplies<C>>;
+      return admits(On<C>{}, std::multiplies<>{}, divisor_is_constant);
     case Arith::Div:
-      return divisor_is_constant && IsClosedUnder<C, std::divides<>> &&
-             IsField<C, std::plus<C>, std::multiplies<C>>;
+      return admits(On<C>{}, FieldDivision{}, divisor_is_constant);
     case Arith::FloorDiv:
-      return divisor_is_constant && std::integral<C> &&
-             IsClosedUnder<C, std::divides<>>;
+      return admits(On<C>{}, EuclideanDivision{}, divisor_is_constant);
     case Arith::Mod:
-      return divisor_is_constant && IsClosedUnder<C, std::modulus<>>;
+      return admits(On<C>{}, std::modulus<>{}, divisor_is_constant);
+  }
+  return false;
+}
+/** @brief Whether the comparison @c r is admitted on @c C: @c == and @c !=
+ *  where it compares, the order comparisons where the order's rule is in
+ *  force (@c order:poset).  @tparam C the carrier. */
+template <typename C>
+constexpr bool rel_admitted(Rel r) {
+  switch (r) {
+    case Rel::Lt:
+      return admits(On<C>{}, std::less<>{}, false);
+    case Rel::Le:
+      return admits(On<C>{}, std::less_equal<>{}, false);
+    case Rel::Gt:
+      return admits(On<C>{}, std::greater<>{}, false);
+    case Rel::Ge:
+      return admits(On<C>{}, std::greater_equal<>{}, false);
+    case Rel::Eq:
+      return admits(On<C>{}, std::equal_to<>{}, false);
+    case Rel::Ne:
+      return admits(On<C>{}, std::not_equal_to<>{}, false);
   }
   return false;
 }
@@ -682,26 +777,29 @@ constexpr C apply_op(Arith op, const C& x, const C& y) {
   throw not_admitted(std::string("the operator ") + spelling(op) +
                      " is not admitted on the carrier");
 }
-/** @brief @c x @c r @c y for a comparison known at run time. */
+/** @brief @c x @c r @c y for a comparison known at run time, admitted when
+ *  the term was bound; the branches a carrier has not are not instantiated. */
 template <typename C>
 constexpr bool compare_rel(Rel r, const C& x, const C& y) {
-  if constexpr (std::totally_ordered<C>) {
-    switch (r) {
-      case Rel::Lt:
-        return x < y;
-      case Rel::Le:
-        return x <= y;
-      case Rel::Gt:
-        return x > y;
-      case Rel::Ge:
-        return x >= y;
-      default:
-        break;
-    }
+  switch (r) {
+    case Rel::Lt:
+      if constexpr (requires { x < y; }) return x < y;
+      break;
+    case Rel::Le:
+      if constexpr (requires { x <= y; }) return x <= y;
+      break;
+    case Rel::Gt:
+      if constexpr (requires { x > y; }) return x > y;
+      break;
+    case Rel::Ge:
+      if constexpr (requires { x >= y; }) return x >= y;
+      break;
+    case Rel::Eq:
+      return x == y;
+    case Rel::Ne:
+      return x != y;
   }
-  if (r == Rel::Eq) return x == y;
-  if (r == Rel::Ne) return x != y;
-  throw not_admitted("the carrier has no order");
+  throw not_admitted("the comparison is not admitted on the carrier");
 }
 /** @brief The coordinate @c slot of the point @c p: the point itself for the
  *  unary @c π, a pair's coordinates for @c π1 / @c π2. */
@@ -746,9 +844,10 @@ struct Value {
   constexpr auto operator()(const BinOp<Op, A, B>&, const X& x,
                             const Y& y) const {
     using C = meet_t<A, B, X, Y>;
-    static_assert(admits_v<Op, C, B>,
-                  "the operator is not total on the carrier (divide only by a "
-                  "nonzero constant)");
+    static_assert(admits(On<C>{}, Op{}, is_const_v<B>),
+                  "the operator has no rule on the carrier: not total there, "
+                  "a division by a term, or its module is not imported (order "
+                  "for // and %, algebra for a field's /)");
     return typename at_carrier<Op, C>::type{}(into<C, A>(x), into<C, B>(y));
   }
   template <typename F, typename A, typename X>
@@ -758,6 +857,9 @@ struct Value {
   template <Rel R, typename A, typename B, typename X, typename Y>
   constexpr bool operator()(const Cmp<R, A, B>&, const X& x, const Y& y) const {
     using C = meet_t<A, B, X, Y>;
+    static_assert(admits(On<C>{}, rel_key_t<R>{}, false),
+                  "the comparison has no rule on the carrier: an order "
+                  "comparison needs the carrier's order (import order)");
     return rel_apply<R>(into<C, A>(x), into<C, B>(y));
   }
   /** @brief The connectives short-circuit as the built-in @c && / @c || do,
@@ -961,7 +1063,7 @@ struct Bind {
         const bool division =
             t.op == Arith::Div || t.op == Arith::FloorDiv || t.op == Arith::Mod;
         const bool by_constant = t.b->kind == Term<K>::Kind::Const;
-        if (!admits<C>(t.op, by_constant))
+        if (!op_admitted<C>(t.op, by_constant))
           throw not_admitted(
               std::string("the operator ") + spelling(t.op) +
               (division ? " is admitted only by a nonzero constant, where the "
@@ -985,8 +1087,10 @@ struct Bind {
       case Pred<K>::Kind::Cmp:
         steer(*t.a);
         steer(*t.b);
-        if (is_order(t.rel) && !std::totally_ordered<coordinate_t<X>>)
-          throw not_admitted("the carrier has no order: == and != only");
+        if (!rel_admitted<coordinate_t<X>>(t.rel))
+          throw not_admitted(
+              "the comparison has no rule on the carrier: an order comparison "
+              "needs the carrier's order");
         break;
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
@@ -1149,7 +1253,7 @@ struct Pred {
 // false means not certified.
 
 /** @brief The totality algebra at the points @c X: a node is total when its
- *  legs are, and an operator when it is admitted on its carrier (@c admits_v,
+ *  legs are, and an operator when it is admitted on its carrier (@c admits,
  *  the gate the value algebra enforces: total there, or dividing by a nonzero
  *  constant), an applied arrow when the arrow is total and its argument already
  *  has the arrow's domain (a conversion may fail).  A predicate the grammar
@@ -1166,8 +1270,9 @@ struct Total {
   template <typename Op, typename A, typename B, typename RA, typename RB>
   constexpr auto operator()(const BinOp<Op, A, B>&, RA, RB) const {
     if constexpr (RA::value && RB::value)
-      return std::bool_constant<
-          admits_v<Op, meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>, B>>{};
+      return std::bool_constant<admits(
+          On<meet_t<A, B, value_at_t<X, A>, value_at_t<X, B>>>{}, Op{},
+          is_const_v<B>)>{};
     else
       return std::false_type{};
   }
@@ -1226,13 +1331,6 @@ inline constexpr auto half_after_shift = (π1 + 1) * 3 == π2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
 static_assert(only_slot(slots_v<decltype(π1 * 3 + 1)>, 1),
               "3·π1 + 1 mentions only the first slot");
-static_assert(!(π1 < 5)(P{5, 0}) && (!(π1 < 5))(P{5, 0}),
-              "!atom flips the comparison");
-static_assert((π % 3 == 0)(9) && !(π % 3 == 0)(10),
-              "an atom on the unary π evaluates at a carrier value");
-static_assert((cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{6, 3}) &&
-                  (cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{7, 22}),
-              "cond on terms: the Collatz step as one atom");
 inline constexpr auto on_naturals = π1 + 1 == π2;
 static_assert(on_naturals(std::pair{finite_cardinality(4),
                                     finite_cardinality(5)}),
@@ -1240,18 +1338,9 @@ static_assert(on_naturals(std::pair{finite_cardinality(4),
 using N2 = std::pair<Cardinality, Cardinality>;
 static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(is_total_term_v<P, decltype(π1 % 3)> &&
-                  !is_total_term_v<P, decltype(π1 % π2)> &&
-                  !is_total_term_v<P, decltype((π1 % π2) + 1)>,
-              "a remainder by a nonzero constant is total, by a term it is not "
-              "certified (the divisor could be 0), and the verdict propagates "
-              "up without asking the value algebra");
 static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
                   !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
               "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
-static_assert(slots_v<decltype(cond(π1 < 1, π1, π2))> == 0b110u &&
-                  is_total_term_v<P, decltype(cond(π1 < 1, π1, π2))>,
-              "a conditional mentions the slots of all three legs");
 // A predicate the grammar does not know is a leaf the certificates refuse.
 struct Foreign {
   using is_rel_predicate = void;

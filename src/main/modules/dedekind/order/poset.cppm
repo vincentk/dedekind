@@ -185,3 +185,32 @@ static_assert(HasPartialOrderOperatorsWith<long, int>);
 static_assert(HasPartialOrderOperatorsWith<unsigned int, int>);
 
 }  // namespace dedekind::order
+
+// ── The comparison rules of the term grammar, beside their certificate ──────
+// sets:terms admits an operator through admits(On<C>, key, …), found by ADL
+// where the module stating the rule is imported.  The order comparisons are
+// admitted on a partially ordered carrier (π <= v is the principal ideal on
+// any poset); whether such a set reads as intervals and run lists is the
+// chain's question (:runs, :halfspace).
+namespace dedekind::sets {
+export template <typename C>
+  requires dedekind::order::IsPartiallyOrdered<C>
+constexpr bool admits(On<C>, std::less<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires dedekind::order::IsPartiallyOrdered<C>
+constexpr bool admits(On<C>, std::less_equal<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires dedekind::order::IsPartiallyOrdered<C>
+constexpr bool admits(On<C>, std::greater<>, bool) {
+  return true;
+}
+export template <typename C>
+  requires dedekind::order::IsPartiallyOrdered<C>
+constexpr bool admits(On<C>, std::greater_equal<>, bool) {
+  return true;
+}
+}  // namespace dedekind::sets

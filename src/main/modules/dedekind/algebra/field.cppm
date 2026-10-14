@@ -261,3 +261,16 @@ static_assert(
     "Structural Integrity: Integers are not a Field.");
 
 }  // namespace dedekind::algebra
+
+// ── A field's division, the term grammar's rule beside its certificate ──────
+namespace dedekind::sets {
+/** @brief Division by a nonzero constant on a field: multiplication by the
+ *  inverse (@c category::IsField, the axiomatic claim; the carrier closes
+ *  under @c /). */
+export template <typename C>
+  requires dedekind::category::IsField<C, std::plus<C>, std::multiplies<C>> &&
+           dedekind::category::IsClosedUnder<C, std::divides<>>
+constexpr bool admits(On<C>, FieldDivision, bool divisor_is_constant) {
+  return divisor_is_constant;
+}
+}  // namespace dedekind::sets

@@ -52,6 +52,7 @@
 #include <vector>
 
 import dedekind.category;     // Ternary, Boole, Kleene, IsPst, the step
+import dedekind.algebra;      // a field's division: the term grammar's rule
 import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
 import dedekind.order;        // IsDense
 import dedekind.sequences;    // the chains' orbit
