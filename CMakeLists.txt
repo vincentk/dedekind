@@ -104,7 +104,7 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set_target_properties(${LIB_TARGET} PROPERTIES
         CXX_SCAN_FOR_MODULES ON
         # The dedekind_* static libs are linked into the Python bindings .so
-        # (CMakeFiles/_dedekind target).  Without -fPIC, COMDAT-emitted
+        # (the _jlt / _pst targets).  Without -fPIC, COMDAT-emitted
         # symbols from inline-variable dynamic-init (esp. closures large
         # enough to defeat std::function SBO, where the Path destructor is
         # not inlined) produce non-PIC relocations that fail the .so link.
@@ -304,16 +304,6 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/pst.py
         COPYONLY)
 
-    nanobind_add_module(_dedekind PROTECT_STACK
-        src/main/modules/dedekind/python/nanobind.cpp)
-    set_target_properties(_dedekind PROPERTIES
-        CXX_SCAN_FOR_MODULES ON
-        LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
-        RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
-    target_compile_options(_dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
-    target_compile_options(_dedekind PRIVATE -Wno-sign-conversion)
-    target_link_libraries(_dedekind PRIVATE dedekind_optimization)
-
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python dedekind.jlt facade).
@@ -340,7 +330,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_pst PRIVATE -Wno-sign-conversion)
     target_link_libraries(_pst PRIVATE dedekind_optimization)
 
-    install(TARGETS _dedekind _jlt _pst LIBRARY DESTINATION dedekind)
+    install(TARGETS _jlt _pst LIBRARY DESTINATION dedekind)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
