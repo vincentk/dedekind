@@ -345,7 +345,8 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
   }
   if (k->kind != T::Kind::Const)
     throw dedekind::sets::not_admitted(
-        "no normal form yet: the order fragment compares π with a constant");
+        "no free algebra catalogued for this term: a chain's run lists compare "
+        "π with a constant");
   const V c = carrier_cast<V>(k->value);
   const auto atom = [&](Rel rel) -> Runs<V, L> {
     if (rel == Rel::Eq) return ext(Interval<V, L>::point(c));
@@ -370,8 +371,9 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
     }
   }
   throw dedekind::sets::not_admitted(
-      "no normal form yet: the order fragment reads π ⋈ k, and π ± c ⋈ k on a "
-      "word, under & and | (#1023 for the arithmetic)");
+      "no free algebra catalogued for this term: a chain's run lists read "
+      "π ⋈ k, and π ± c ⋈ k on a word, under & and |; the polynomials of a "
+      "rig, ring or field are #1023");
 }
 /** @brief The normal form of a set term as the algebra of @c cata: an
  *  interval's sides, a stored run list read in place, the boundaries as

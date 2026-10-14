@@ -42,6 +42,24 @@
  * former binds them (@c bind_check): an operator admitted there or refused
  * (@c not_admitted), a constant meeting the carrier or refused.
  *
+ * @section terms__Signature_And_Free_Algebra
+ * The laws decide the syntax.  A carrier's @b certified @b varieties supply
+ * the @b signature a term may use (@c admits below: @c + on a commutative
+ * monoid, @c - on an abelian group, @c * on a monoid, @c / on a field,
+ * @c // and @c % on a dividable chain, the order comparisons on a poset,
+ * @c == and @c != on any set) and the @b free @b algebra on the variables its
+ * normal form lives in; @b equality @b of @b terms is equality in that free
+ * algebra.  The catalogue of free algebras with a canonical representative:
+ *   - a chain: the Boolean algebra the intervals generate, read as run lists
+ *     (@c order:runs, @c steps);
+ *   - a commutative rig, ring or field: polynomials over the carrier (#1023,
+ *     not yet).
+ * A term whose operators are in the signature but outside the catalogue (a
+ * remainder, a division by a term) is well-formed and evaluates, and has no
+ * equality: it is refused where a normal form is asked, never rewritten.
+ * Type-checking is at the former: at compile time for a typed term bound to
+ * a @c constexpr universe, at construction for a term built at run time.
+ *
  * Wikipedia: Term (logic), Term algebra, Atomic formula, Relational algebra
  *
  * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie
@@ -567,15 +585,16 @@ struct at_carrier<F<void>, C> {
 
 // ── The rules: admission by ADL, each beside its certificate ────────────────
 
-/** @brief The carrier a rule is stated for, as a tag.  A rule is the free
- *  function @c admits(On<C>, key, divisor_is_constant), declared in this
- *  namespace beside the certificate that justifies it and found by ADL, so it
- *  is in force where that module is imported: the comparisons beside the
- *  partial orders (@c order:poset), @c // and @c % beside
- *  @c IsDividableChain (@c order:completeness), a field's @c / beside
+/** @brief The carrier a rule is stated for, as a tag.  A rule
+ *  @c admits(On<C>, key, divisor_is_constant) says that the operator @c key is
+ *  in the @b signature of @c C: a symbol one of the carrier's certified
+ *  varieties has.  It is declared in this namespace beside the certificate
+ *  and found by ADL, so it is in force where that module is imported: the
+ *  comparisons beside the partial orders (@c order:poset), @c // and @c %
+ *  beside @c IsDividableChain (@c order:completeness), a field's @c / beside
  *  @c IsField (@c algebra:field); @c + @c - @c * and @c == @c != here, whose
- *  certificates are @c category's.  Without a rule an operator is not
- *  admitted.  @tparam C the carrier. */
+ *  certificates are @c category's.  Without a rule an operator is not in the
+ *  signature.  @tparam C the carrier. */
 export template <typename C>
 struct On {};
 /** @brief The two divisions Python tells apart, as keys: a field's, and the
@@ -590,21 +609,23 @@ export template <typename C, typename Key>
 constexpr bool admits(On<C>, Key, bool) {
   return false;
 }
-/** @brief @c + @c - @c * where the carrier is closed and the operation total
- *  (@c category::IsTotal: it wraps, saturates or stops), the Pst total
- *  operator surface.  @tparam C the carrier. */
+/** @brief @c + @c - @c * where the carrier's certified laws have the symbol:
+ *  @c + on a commutative monoid, @c - on an abelian group (@c a @c - @c b is
+ *  @c a @c + @c (-b)), @c * on a monoid.  A magma is total and closed, so the
+ *  Pst total operator surface is inside the laws; ℕ's monus is not, until its
+ *  variety is named.  @tparam C the carrier. */
 export template <typename C>
-  requires IsClosedUnder<C, std::plus<>> && IsTotal<C, std::plus<C>>
+  requires IsCommutativeMonoid<C, std::plus<C>>
 constexpr bool admits(On<C>, std::plus<>, bool) {
   return true;
 }
 export template <typename C>
-  requires IsClosedUnder<C, std::minus<>> && IsTotal<C, std::minus<C>>
+  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<>>
 constexpr bool admits(On<C>, std::minus<>, bool) {
   return true;
 }
 export template <typename C>
-  requires IsClosedUnder<C, std::multiplies<>> && IsTotal<C, std::multiplies<C>>
+  requires IsMonoid<C, std::multiplies<C>>
 constexpr bool admits(On<C>, std::multiplies<>, bool) {
   return true;
 }
