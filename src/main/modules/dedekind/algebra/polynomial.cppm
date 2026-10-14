@@ -9,8 +9,8 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section polynomial__The_Monoid_Algebra
- * A polynomial over a commutative rig @c R in the variables @c π, @c π1,
- * @c π2, @c π3 is a finitely supported function from the monomials (the free
+ * A polynomial over a commutative rig @c R in the variables @c π, @c π_1,
+ * @c π_2, @c π_3 is a finitely supported function from the monomials (the free
  * commutative monoid on the variables, @c Monomial<N>) to @c R: the monoid
  * algebra @c R[M] (Lang, Algebra, §II.3).  Addition
  * is pointwise; multiplication is the convolution Σ_{m·m' = n} a_m b_{m'},
@@ -86,7 +86,7 @@ using namespace dedekind::category;
 // ── Monomials ───────────────────────────────────────────────────────────────
 
 /** @brief A monomial in @c N variables: its exponents, one per slot (@c π is
- *  the slot 0; @c π1, @c π2, @c π3 the slots 1, 2, 3).  The free commutative
+ *  the slot 0; @c π_1, @c π_2, @c π_3 the slots 1, 2, 3).  The free commutative
  *  monoid on @c N generators, written multiplicatively (the exponents, machine
  *  words, add and wrap with the word), and a chain under the graded
  *  lexicographic order: by total degree, then by exponents.
@@ -319,7 +319,8 @@ class Polynomial {
  *  nonzero constant on a field the multiplication by its inverse.  Any other
  *  node (@c //, @c %, a division by a term, an applied arrow, a conditional)
  *  has no free algebra catalogued here and is refused.  @tparam C the
- *  carrier.  @tparam N the variables: the slots @c π, @c π1, @c π2, @c π3. */
+ *  carrier.  @tparam N the variables: the slots @c π, @c π_1, @c π_2, @c π_3.
+ */
 export template <typename C, std::size_t N = 4>
 struct Poly {
   using P = Polynomial<C, Monomial<N>>;
@@ -520,35 +521,36 @@ static_assert(dedekind::category::IsCommutativeMonoid<M4, std::multiplies<M4>>,
 static_assert(dedekind::order::IsTotallyOrdered<M4> &&
                   dedekind::order::IsDirectedSet<M4>,
               "the graded lexicographic order is a chain, so a directed set");
-static_assert(M4::variable(1) * M4::variable(2) ==
-                      M4::variable(2) * M4::variable(1) &&
-                  M4::variable(0) * M4::variable(0) > M4::variable(3),
-              "π1·π2 = π2·π1; π² is above π3: degree first, then the slots");
+static_assert(
+    M4::variable(1) * M4::variable(2) == M4::variable(2) * M4::variable(1) &&
+        M4::variable(0) * M4::variable(0) > M4::variable(3),
+    "π_1·π_2 = π_2·π_1; π² is above π_3: degree first, then the slots");
 
 using PolyWord = Polynomial<unsigned int, M4>;
 static_assert(dedekind::sequences::IsNet<PolyWord>,
               "a polynomial is a net over the monomials: an arrow from a "
               "directed set");
-static_assert(dedekind::category::IsCommutativeRing<
-                  PolyWord, std::plus<PolyWord>, std::multiplies<PolyWord>>,
-              "ℤ/2³²[π, π1, π2, π3] is a commutative ring: the coefficients' "
-              "laws by construction");
+static_assert(
+    dedekind::category::IsCommutativeRing<PolyWord, std::plus<PolyWord>,
+                                          std::multiplies<PolyWord>>,
+    "ℤ/2³²[π, π_1, π_2, π_3] is a commutative ring: the coefficients' "
+    "laws by construction");
 static_assert(dedekind::category::IsFreeAlgebra<PolyWord>,
               "R[M] is free over R");
 
 // The normal form decides equality in the free algebra, at compile time.
 using dedekind::sets::π;
-using dedekind::sets::π1;
-using dedekind::sets::π2;
+using dedekind::sets::π_1;
+using dedekind::sets::π_2;
 static_assert(normal_form<unsigned>(π + 1u - 1u) == normal_form<unsigned>(π),
               "π + 1 - 1 ≡ π in ℤ/2³²[π]");
-static_assert(normal_form<unsigned>((π1 + π2) * (π1 + π2)) ==
-                  normal_form<unsigned>(π1 * π1 + 2u * π1 * π2 + π2 * π2),
-              "(π1 + π2)² ≡ π1² + 2π1π2 + π2²");
+static_assert(normal_form<unsigned>((π_1 + π_2) * (π_1 + π_2)) ==
+                  normal_form<unsigned>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2),
+              "(π_1 + π_2)² ≡ π_1² + 2π_1π_2 + π_2²");
 static_assert(normal_form<unsigned>(π * 4294967295u + π).is_zero(),
               "the coefficients wrap with the word: (2³² − 1)π + π ≡ 0");
-static_assert(normal_form<unsigned>(π1* π2).degree() == 2 &&
-                  normal_form<unsigned>(π1 * π2).support().size() == 1,
-              "π1·π2 is one monomial of degree 2");
+static_assert(normal_form<unsigned>(π_1* π_2).degree() == 2 &&
+                  normal_form<unsigned>(π_1 * π_2).support().size() == 1,
+              "π_1·π_2 is one monomial of degree 2");
 
 }  // namespace dedekind::algebra

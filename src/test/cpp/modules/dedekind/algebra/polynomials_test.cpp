@@ -18,8 +18,8 @@ using dedekind::algebra::Polynomial;
 using dedekind::sets::Arith;
 using dedekind::sets::not_admitted;
 using dedekind::sets::π;
-using dedekind::sets::π1;
-using dedekind::sets::π2;
+using dedekind::sets::π_1;
+using dedekind::sets::π_2;
 
 using Word = unsigned int;
 using M = Monomial<4>;
@@ -83,8 +83,8 @@ TEST_CASE("The normal form of terms: equality in the free algebra",
           "[algebra][polynomial][terms]") {
   SECTION("typed terms") {
     CHECK(normal_form<Word>(π + 1u - 1u) == normal_form<Word>(π));
-    CHECK(normal_form<Word>((π1 + π2) * (π1 + π2)) ==
-          normal_form<Word>(π1 * π1 + 2u * π1 * π2 + π2 * π2));
+    CHECK(normal_form<Word>((π_1 + π_2) * (π_1 + π_2)) ==
+          normal_form<Word>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2));
     CHECK(normal_form<Word>(π * π) != normal_form<Word>(π));
     CHECK(normal_form<Word>(π * 4294967295u + π).is_zero());
   }
@@ -94,7 +94,7 @@ TEST_CASE("The normal form of terms: equality in the free algebra",
                T::constant(1u));
     CHECK(normal_form<Word>(t) == normal_form<Word>(π));
     CHECK(normal_form<Word>(T::bin(Arith::Mul, T::proj(1), T::proj(2))) ==
-          normal_form<Word>(π1 * π2));
+          normal_form<Word>(π_1 * π_2));
   }
   SECTION("outside the catalogue: refused, never rewritten") {
     CHECK_THROWS_AS(

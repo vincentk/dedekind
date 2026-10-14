@@ -10,14 +10,14 @@ constant; order comparisons on an ordered carrier.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Ternary, u64, π, π1, π2, 𝔽ₚ
+from dedekind.pst import A, B, K3, Ternary, u64, π, π_1, π_2, 𝔽ₚ
 
 P = 2**64 - 59
 
 
 class TermsAreCheckedWhenBuilt(unittest.TestCase):
     def test_a_division_by_the_constant_zero(self) -> None:
-        for bad in (lambda: π / 0, lambda: π // 0, lambda: π % 0, lambda: π1 / 𝔽ₚ(0)):
+        for bad in (lambda: π / 0, lambda: π // 0, lambda: π % 0, lambda: π_1 / 𝔽ₚ(0)):
             with self.assertRaises(ValueError):
                 bad()
 
@@ -28,7 +28,7 @@ class TermsAreCheckedWhenBuilt(unittest.TestCase):
             π == [1]
 
     def test_the_spelling(self) -> None:
-        self.assertEqual(repr(π1 * 3 + 1 == π2), "((π1 * 3) + 1) == π2")
+        self.assertEqual(repr(π_1 * 3 + 1 == π_2), "((π_1 * 3) + 1) == π_2")
         self.assertEqual(repr((π > 2) & (π < 5)), "(π > 2) & (π < 5)")
         self.assertEqual(repr(~((π > 2) & (π < 5))), "(π <= 2) | (π >= 5)")
         self.assertEqual(repr(-π), "(0 - π)")
@@ -51,15 +51,15 @@ class TheRingAdmits(unittest.TestCase):
         with self.assertRaises(TypeError):
             U | (π / 2 == 1)  # 2 is not a unit of ℤ/2⁶⁴
         with self.assertRaises(TypeError):
-            U * U | (π2 == π2 // π1)  # a term divisor could be 0
+            U * U | (π_2 == π_2 // π_1)  # a term divisor could be 0
         with self.assertRaises(TypeError):
-            U * U | (π2 == π2 % π1)
+            U * U | (π_2 == π_2 % π_1)
         with self.assertRaises(ValueError):
             U | (π > -1)  # the word cannot hold -1
         with self.assertRaises(ValueError):
             U | (π == 2**64)
         with self.assertRaises(TypeError):
-            U | (π1 > 1)  # π1 names a pair's coordinate
+            U | (π_1 > 1)  # π_1 names a pair's coordinate
         with self.assertRaises(TypeError):
             U * U | (π > 1)  # π names an element
 
@@ -75,7 +75,7 @@ class TheRingAdmits(unittest.TestCase):
 class TheFieldAdmits(unittest.TestCase):
     def test_division_by_a_nonzero_constant(self) -> None:
         F = A(𝔽ₚ)
-        third = F * F | (π2 == π1 / 3)
+        third = F * F | (π_2 == π_1 / 3)
         self.assertTrue(third((3, 1)))
         self.assertTrue(third((1, int(𝔽ₚ(1) / 3))))
         self.assertFalse(third((3, 2)))
@@ -103,7 +103,7 @@ class TheFieldAdmits(unittest.TestCase):
     def test_refusals(self) -> None:
         F = A(𝔽ₚ)
         with self.assertRaises(TypeError):
-            F * F | (π2 == π1 / π2)  # a term divisor could be 0
+            F * F | (π_2 == π_1 / π_2)  # a term divisor could be 0
         with self.assertRaises(TypeError):
             F | (π < 3)  # no order
         with self.assertRaises(TypeError):
@@ -126,12 +126,12 @@ class TheSetsCombine(unittest.TestCase):
         self.assertIn(7, (U | (π < 3)) | (U | (π > 6)))
         self.assertEqual(repr(window), "𝔸(u64) | (π > 2) & (π < 5)")
         self.assertIs(window.universe.carrier, u64)
-        succ = U * U | (π2 == π1 + 1)
+        succ = U * U | (π_2 == π_1 + 1)
         self.assertIn((4, 5), succ)
         self.assertNotIn((4, 6), succ)
         self.assertIn((2**64 - 1, 0), succ)  # it wraps
         self.assertIn((4, 6), ~succ)
-        self.assertIn((1, 2), succ & (U * U | (π1 < 3)))
+        self.assertIn((1, 2), succ & (U * U | (π_1 < 3)))
         self.assertEqual(repr(U * U), "𝔸(u64) × 𝔸(u64)")
         self.assertIn((1, 2), U * U)
         self.assertNotIn((1, -2), U * U)

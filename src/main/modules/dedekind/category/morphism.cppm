@@ -1056,7 +1056,7 @@ static_assert(IsIsomorphism<TaggedNegate>,
 
 // (A standalone Translation<T,K> iso arrow lived here briefly; it is superseded
 // by the functions-are-graphs reading in dedekind.order --- a translation is
-// its graph ℤ*ℤ | π1+K==π2, with inverse = the converse graph and image
+// its graph ℤ*ℤ | π_1+K==π_2, with inverse = the converse graph and image
 // the affine pushforward.  The reified projection arithmetic (π+fix, ...) is
 // the surviving vocabulary; the arrow wrapper is not needed.)
 /**

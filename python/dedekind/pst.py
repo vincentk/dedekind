@@ -54,17 +54,17 @@ The term surface (#1006, exhibit 3): a term names no carrier, and the former
 admitting every operator there or refusing it (``TypeError``), all when the
 set is built::
 
-    from dedekind.pst import A, u64, 𝔽ₚ, B, π, π1, π2
+    from dedekind.pst import A, u64, 𝔽ₚ, B, π, π_1, π_2
 
     U = A(u64)
     evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
     4 in evens                          # True
-    U * U | (π2 == π1 + 1)              # a relation on the product
-    U * U | (π2 == π2 // π1)            # TypeError: a term divisor could be 0
+    U * U | (π_2 == π_1 + 1)              # a relation on the product
+    U * U | (π_2 == π_2 // π_1)            # TypeError: a term divisor could be 0
     U | (π > -1)                        # ValueError: the word cannot hold -1
     π % 0                               # ValueError, when the term is written
     F = A(𝔽ₚ)
-    third = F * F | (π2 == π1 / 3)      # / by a nonzero constant: a field's
+    third = F * F | (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
     third((3, 1))                       # True: 3 · 3⁻¹ = 1
     F | (π < 3)                         # TypeError: 𝔽ₚ has no order
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
@@ -113,8 +113,8 @@ from ._pst import u64
 from ._pst import Ø
 from ._pst import η
 from ._pst import π
-from ._pst import π1
-from ._pst import π2
+from ._pst import π_1
+from ._pst import π_2
 from ._pst import χ
 
 # ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
@@ -128,6 +128,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
-    "Ø", "η", "π", "π1", "π2", "χ", "Term", "Pred", "exists", "forall", "runs",
+    "Ø", "η", "π", "π_1", "π_2", "χ", "Term", "Pred", "exists", "forall", "runs",
     "lift", "image", "preimage",
 ]

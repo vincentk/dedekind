@@ -63,13 +63,13 @@ class CutsPullBackAlongAdjoints(unittest.TestCase):
 class RelationAsSymbolicFunction(unittest.TestCase):
     """Exhibit 3: a relation functional in one projection solves to a path."""
 
-    @_needs("dedekind.pst", "A", "u64", "π1", "π2", "π3", exhibit="exhibit 3")
+    @_needs("dedekind.pst", "A", "u64", "π_1", "π_2", "π_3", exhibit="exhibit 3")
     def test_the_fibonacci_law_is_a_function_and_solves_to_a_path(self) -> None:
-        from dedekind.pst import A, u64, π1, π2, π3
+        from dedekind.pst import A, u64, π_1, π_2, π_3
 
         U = A(u64)
-        law = U * U * U | (π3 == π1 + π2)
-        self.assertTrue(law.is_function)  # functional in π3
+        law = U * U * U | (π_3 == π_1 + π_2)
+        self.assertTrue(law.is_function)  # functional in π_3
         fib = law.solve(0, 1)
         self.assertEqual(list(fib[:8]), [0, 1, 1, 2, 3, 5, 8, 13])
         self.assertEqual(list(fib[3:][:5]), [2, 3, 5, 8, 13])
@@ -79,12 +79,12 @@ class ExtToTheHost(unittest.TestCase):
     """Exhibit 4: ext lowers a finite relation to host data, one row per
     element of the domain when the relation is a function."""
 
-    @_needs("dedekind.pst", "A", "u64", "π1", "π2", "ext", exhibit="exhibit 4")
+    @_needs("dedekind.pst", "A", "u64", "π_1", "π_2", "ext", exhibit="exhibit 4")
     def test_a_functional_relation_is_one_row_per_domain_element(self) -> None:
-        from dedekind.pst import A, ext, u64, π1, π2
+        from dedekind.pst import A, ext, u64, π_1, π_2
 
         U = A(u64)
-        doubling = (U[:5] * U) | (π2 == π1 * 2)
+        doubling = (U[:5] * U) | (π_2 == π_1 * 2)
         self.assertEqual(ext(doubling), [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8)])
 
 
@@ -93,20 +93,20 @@ class TheTotalOperatorSurface(unittest.TestCase):
     carrier, or divides by a nonzero constant; a constant must meet the
     carrier."""
 
-    @_needs("dedekind.pst", "A", "u64", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
+    @_needs("dedekind.pst", "A", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
     def test_on_an_unsigned_word(self) -> None:
-        from dedekind.pst import A, u64, π, π1, π2
+        from dedekind.pst import A, u64, π, π_1, π_2
 
         U = A(u64)  # the factory: carrier ℤ/2⁶⁴, its total operators
         # + − · are total on the word (they wrap); % by a constant is too.
-        U * U | (π2 == π1 + 1)
-        U * U | (π2 == π1 - 1)
+        U * U | (π_2 == π_1 + 1)
+        U * U | (π_2 == π_1 - 1)
         evens = U | (π % 2 == 0)
         self.assertIn(4, evens)
         self.assertNotIn(5, evens)
         # A term divisor could be 0: refused when bound.
         with self.assertRaises(TypeError):
-            U * U | (π2 == π2 // π1)
+            U * U | (π_2 == π_2 // π_1)
         # A constant the word cannot hold: refused when bound.
         with self.assertRaises(ValueError):
             U | (π > -1)
@@ -114,20 +114,20 @@ class TheTotalOperatorSurface(unittest.TestCase):
         with self.assertRaises(ValueError):
             π % 0
 
-    @_needs("dedekind.pst", "A", "Fp", "u64", "π", "π1", "π2", exhibit="exhibit 3 (terms)")
+    @_needs("dedekind.pst", "A", "Fp", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
     def test_on_the_prime_field(self) -> None:
-        from dedekind.pst import A, u64, 𝔽ₚ, π, π1, π2
+        from dedekind.pst import A, u64, 𝔽ₚ, π, π_1, π_2
 
         F = A(𝔽ₚ)
         # The quotient map: p + 2 meets 𝔽ₚ as 2.
         self.assertIn(2, F | (π == 𝔽ₚ.modulus + 2))
         # Field division by a nonzero constant multiplies by its inverse.
-        third = F * F | (π2 == π1 / 3)
+        third = F * F | (π_2 == π_1 / 3)
         self.assertTrue(third((3, 1)))
         self.assertTrue(third((1, int(𝔽ₚ(1) / 3))))
         # A term divisor could be 0; a field has no compatible order.
         with self.assertRaises(TypeError):
-            F * F | (π2 == π1 / π2)
+            F * F | (π_2 == π_1 / π_2)
         with self.assertRaises(TypeError):
             F | (π < 3)
         with self.assertRaises(ValueError):

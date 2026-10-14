@@ -13,7 +13,7 @@ is decided in Python.
   - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
     word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
     element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
-  - The term surface: `π`, `π1`, `π2` and constants build terms; `A(carrier) |
+  - The term surface: `π`, `π_1`, `π_2` and constants build terms; `A(carrier) |
     term` binds them, and `A(carrier) * A(carrier) | term` is a relation.
 
 The laws decide the syntax: a term may use the operators the carrier's
@@ -58,14 +58,14 @@ python -m pip install --no-build-isolation -e .
 
 ```python
 from dedekind.jlt import succ
-from dedekind.pst import A, image, u64, 𝔽ₚ, π, π1, π2
+from dedekind.pst import A, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = A(u64)
 region = (U | (π > 3)) & (U | (π < 5))
 print(region == U | (π == 4))           # True: one normal form, the run list
 print(region.runs(), list(region))      # [(4, 4)] [4]
 
-third = A(𝔽ₚ) * A(𝔽ₚ) | (π2 == π1 / 3)  # a field's division by a constant
+third = A(𝔽ₚ) * A(𝔽ₚ) | (π_2 == π_1 / 3)  # a field's division by a constant
 print((3, 1) in third)                  # True
 
 print(image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0)))   # True: it wraps

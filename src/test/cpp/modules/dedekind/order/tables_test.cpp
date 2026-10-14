@@ -125,8 +125,8 @@ TEST_CASE("Relational Algebra: Intersection (∩)", "[sets][relational]") {
 TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   // Relation R1: {(a, b) | 0 <= a < 4 and b = a + 1}  (successor pairs)
   // FLAG(#895 L3): affine/multiplicative pair relations (c = a+1, c = a*2).
-  // Candidates for the point-free relpred grammar (π1/π2, π1+fix==π2), but a
-  // :relational test may not import :order and the multiplicative case is not
+  // Candidates for the point-free relpred grammar (π_1/π_2, π_1+fix==π_2), but
+  // a :relational test may not import :order and the multiplicative case is not
   // obviously π-expressible; kept as NAMED-predicate comprehensions.
   constexpr auto is_succ_pair = [](const std::pair<int, int>& p) {
     return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);

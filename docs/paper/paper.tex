@@ -745,7 +745,7 @@ pred ::= atom
 p2 ::= '&&' | '||'
 atom ::= elem '==' elem
   | elem '==' const
-elem ::= 'χ' | 'π' | 'π1' | 'π2'
+elem ::= 'χ' | 'π' | 'π_1' | 'π_2'
 \end{minted}
 \end{minipage}
 
@@ -980,7 +980,7 @@ This value-lift is distinct from the whole-arrow \cppinline{graph} lift below.
 \textbf{Codd's algebra}: selection $\sigma$ (\cppinline{select}$\to\texttt{relexpr}$) and natural join $\bowtie$ (\cppinline{join}$\to$ an $n$-ary \emph{table}).
 \textbf{Function algebra} ($\to\texttt{setexpr}$): image $f[S]$, pre-image $f^{-1}(S)$, and the point fibre $f^{-1}(y)$.
 \textbf{Spellings}: operators also accept a textbook alias where a valid identifier exists --- \cppinline{Δ}/\cppinline{diag}, \cppinline{σ}/\cppinline{select} (letter-glyphs, as \cppinline{π}/\cppinline{η} already are); converse has none (\cppinline{†} is not an identifier), so \cppinline{conv}/\cppinline{dagger}.
-The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π1}/\cppinline{π2}/\cppinline{π3}, so a triple predicate reads as $z = f(x,y)$.
+The projections also take the blackboard coordinate aliases \cppinline{𝑥}/\cppinline{𝑦}/\cppinline{𝑧} (mathematical-italic, so a valid identifier yet not ASCII \cppinline{x}/\cppinline{y}/\cppinline{z}) for \cppinline{π_1}/\cppinline{π_2}/\cppinline{π_3}, so a triple predicate reads as $z = f(x,y)$.
 \textbf{\texttt{query}} adds the closed properties \cppinline{IsFunctional}/\cppinline{IsEntire}; their semantics are Table~\ref{tab:relation-quantifier} and Listing~\ref{lst:relation_spec}.
 The reflexive-transitive closure $R^{*}$ is not point-free here; the whole-arrow \cppinline{graph} lift (arrow $\to$ \cppinline{Comprehension<𝔸<pair>, P>}) is deliberately kept out of the grammar, as it forces image and pre-image to be \emph{inferred} --- unlike the point-free value-lift \cppinline{ap} above, which stays in.}
 \label{lst:relation-grammar}
@@ -1005,7 +1005,7 @@ ratom    ::= term cmp term
 term     ::= proj | const | term arith term
            | 'ap' '(' arrow ',' term ')'
            | 'cond' '(' relpred ',' term ',' term ')'
-proj     ::= 'π1' | 'π2' | 'π3' | '𝑥' | '𝑦' | '𝑧'
+proj     ::= 'π_1' | 'π_2' | 'π_3' | '𝑥' | '𝑦' | '𝑧'
 arith    ::= '+' | '-' | '*' | '/' | '%'
 \end{minted}
 \end{minipage}
@@ -1177,9 +1177,9 @@ IsInjective = is_left_unique_v<R>;
 \begin{minipage}[t]{0.99\linewidth}
 \begin{cpp}
 // inferred, not declared: leaf AND composite are functions BY STRUCTURE:
-static_assert(IsFunctional<decltype(ℤ*ℤ | π1+3==π2)>);  // leaf: x+3
+static_assert(IsFunctional<decltype(ℤ*ℤ | π_1+3==π_2)>);  // leaf: x+3
 static_assert(IsFunctional<decltype(                           // composite:
-  (ℤ*ℤ | π1+3==π2) >> (ℤ*ℤ | π1+2==π2))>);       //  inherited via >>
+  (ℤ*ℤ | π_1+3==π_2) >> (ℤ*ℤ | π_1+2==π_2))>);       //  inherited via >>
 \end{cpp}
 \end{minipage}
 \end{listing}
@@ -1188,7 +1188,7 @@ static_assert(IsFunctional<decltype(                           // composite:
 \caption{The residue relation $\{(a,b) \in \mathbb{N}\times\mathbb{N} \mid b = a \bmod 3\}$ as a strongly-typed point-free predicate, and its pointwise validation.  The divisor is a constant, so the predicate is total.}
 \label{lst:intensional_relation_validation}
 \begin{cpp}
-constexpr auto R = ℕ * ℕ | (π1 % 3 == π2);
+constexpr auto R = ℕ * ℕ | (π_1 % 3 == π_2);
 static_assert( R(pair{7,1}));
 static_assert(!R(pair{7,2}));
 \end{cpp}
@@ -1217,7 +1217,7 @@ Listing~\ref{lst:kleisli_fish_composition} composes $\le$ with itself over $\mat
 \caption{Composition of relations as the relative product $R \gg S = \{(a,c) \mid \exists b.\, R(a,b) \wedge S(b,c)\}$.  Over $\mathbb{B}$ the $\exists b$ enumerates the two Booleans and folds, so $\le \circ \le = \le$ (transitivity).}
 \label{lst:kleisli_fish_composition}
 \begin{cpp}
-constexpr auto imp = 𝔹 * 𝔹 | π1 <= π2;
+constexpr auto imp = 𝔹 * 𝔹 | π_1 <= π_2;
 static_assert( (imp >> imp)(pair{false,true}));
 static_assert(!(imp >> imp)(pair{true,false}));
 \end{cpp}
@@ -1237,7 +1237,7 @@ Listing~\ref{lst:relation_examples} spells relations out in the point-free surfa
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto imp =
-  𝔹 * 𝔹 | π1 <= π2;
+  𝔹 * 𝔹 | π_1 <= π_2;
 static_assert(is_relation(imp));
 static_assert( imp(pair{false,true}));
 static_assert(!imp(pair{true,false}));
@@ -1248,13 +1248,13 @@ static_assert(rimp(pair{true,false}));
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 static_assert(
-  (ℕ * ℕ | π1 < π2)
+  (ℕ * ℕ | π_1 < π_2)
   (pair{2,5}));
 static_assert(
-  (ℕ * ℕ | π1 + 1 == π2)
+  (ℕ * ℕ | π_1 + 1 == π_2)
   (pair{4,5}));
 static_assert(
-  (ℕ * ℕ | π1 * 2 == π2)
+  (ℕ * ℕ | π_1 * 2 == π_2)
   (pair{3,6}));
 \end{cpp}
 \end{minipage}
@@ -1271,7 +1271,7 @@ The bound $\le 5$ on the first factor lifts to $\pi_1 \le \mathrm{fix}(5)$, so i
 \begin{cpp}
 constexpr auto R =
   (ℕ | (π <= 5)) * ℕ
-  | π1 + 1 == π2;
+  | π_1 + 1 == π_2;
 static_assert( R(pair{4,5}));
 static_assert(!R(pair{7,8}));
 \end{cpp}
@@ -1346,7 +1346,7 @@ The refinement runs one way (an ordinary mono need not be an isometry), and part
 
 \begin{listing}[htbp]
 \caption{A function \emph{is} its graph, and translations form a \emph{group} under composition.
-\textbf{Left}: \cppinline{f = ℤ*ℤ | π1+3==π2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
+\textbf{Left}: \cppinline{f = ℤ*ℤ | π_1+3==π_2} is the point-free relation $\{(x, x{+}3)\}$, functional and entire (Table~\ref{tab:relation-quantifier}'s $\pi_A$ column); its \cppinline{inverse} is the converse relation $x{-}3$, and \cppinline{image} pushes a domain bound forward, $\{x\le5\}$ to $\{y\le8\}$, again a halfspace.
 \textbf{Right}: composition \cppinline{>>} is symbolic (the shifts add, no $\exists$ over the intermediate), so closure, the inverse-of-a-composite law $(f\circ g)^{-1}=g^{-1}\circ f^{-1}$, and \emph{associativity, commutativity} are compile-time facts; the conjugate $g\,f\,g^{-1}=f$ collapses because $+$ commutes.
 The law is contravariant in general, but this group is abelian, so the order-reversal is degenerate here ($g^{-1}\circ f^{-1}=f^{-1}\circ g^{-1}$); the non-abelian affine group exercises it.
 For an invertible map the inverse \emph{is} the retract, so this is retract composition in the total case (abridged from the checked-in witnesses).}
@@ -1355,20 +1355,20 @@ For an invertible map the inverse \emph{is} the retract, so this is retract comp
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto f =                  // x ↦ x+3
-  ℤ * ℤ | π1 + 3 == π2;
+  ℤ * ℤ | π_1 + 3 == π_2;
 static_assert(is_function(f));
 static_assert(inverse(f)            // converse: x−3
-  == (ℤ*ℤ | π1+-3==π2));
-static_assert(image(f|π1<=5) // {x≤5}↦{y≤8}
+  == (ℤ*ℤ | π_1+-3==π_2));
+static_assert(image(f|π_1<=5) // {x≤5}↦{y≤8}
   == (ℤ | π<=8));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto g =                  // x ↦ x+2
-  ℤ * ℤ | π1 + 2 == π2;
+  ℤ * ℤ | π_1 + 2 == π_2;
 static_assert((f >> g)              // closure: T₃∘T₂=T₅
-  == (ℤ*ℤ | π1+5==π2));
+  == (ℤ*ℤ | π_1+5==π_2));
 static_assert(inverse(f >> g)       // contravariant: (f∘g)⁻¹=g⁻¹∘f⁻¹
   == (inverse(g) >> inverse(f)));
 static_assert(                      // g∘f∘g⁻¹ = f (abelian)
@@ -1391,8 +1391,8 @@ This is also what discharges the $\arg\max$ of §\ref{sec:relations_functions_bl
 Non-injective yet analytic: $3 \in \mathrm{abs}(\{x<0\})$ holds through the negate branch's preimage $-3$, where the canonical $+3 \notin \{x<0\}$ that a lone retract names says nothing: soundness from the fibre join, no enumeration (checked-in witnesses).}
 \label{lst:functional_image_fold}
 \begin{cpp}
-constexpr auto absPos = ℤ*ℤ | π1*1==π2  | π1>=0;  // x ↦  x  on x≥0
-constexpr auto absNeg = ℤ*ℤ | π1*-1==π2 | π1< 0;  // x ↦ −x  on x<0
+constexpr auto absPos = ℤ*ℤ | π_1*1==π_2  | π_1>=0;  // x ↦  x  on x≥0
+constexpr auto absNeg = ℤ*ℤ | π_1*-1==π_2 | π_1< 0;  // x ↦ −x  on x<0
 static_assert(image(absPos) == (ℤ | π>=0));  // {y≥0}
 static_assert(image(absNeg) == (ℤ | π> 0));  // {y>0}: negate flips the sense
 static_assert( image(absNeg)(3));   // 3 ∈ abs({x<0}) via −3, no fibre walk
@@ -1424,9 +1424,9 @@ Listing~\ref{lst:functional_image_factorization} illustrates how this epic-monic
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 constexpr auto succ =        // as a graph
-  ℕ * ℕ | π1 + 1 == π2;
+  ℕ * ℕ | π_1 + 1 == π_2;
 static_assert(
-  image(succ | π1 > 5)  // {n>5}
+  image(succ | π_1 > 5)  // {n>5}
   == (ℕ | π > 6));      //  ↦ {n>6}
 \end{cpp}
 \end{minipage}\hfill
@@ -1470,9 +1470,9 @@ Constraining the codomain of the graph $x \mapsto x+3$, bounded ($\pi_2 \le 8$) 
 Its feasible domain is that codomain constraint pulled back through the graph, $\{x \le 5 \wedge x \equiv 0 \bmod 3\}$, and because a translation is monotone $\arg\max$ is that domain's greatest element, $3$, read off structurally with no search.}
 \label{lst:argmax_def}
 \begin{cpp}
-constexpr auto g = ℤ * ℤ | π1 + 3 == π2   // x ↦ x+3 ...
-                     | (π2 <= 8             //   ... into a bounded ...
-                        && π2 % 3 == 0); // ... residue codomain
+constexpr auto g = ℤ * ℤ | π_1 + 3 == π_2   // x ↦ x+3 ...
+                     | (π_2 <= 8             //   ... into a bounded ...
+                        && π_2 % 3 == 0); // ... residue codomain
 static_assert(!is_entire(g));                       // a partial function now
 static_assert( argmax(g)(3));                       // max{x≤5, x≡0 mod 3} = 3
 static_assert(!argmax(g)(4));                        // 4 ≢ 0 mod 3

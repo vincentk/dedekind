@@ -472,8 +472,8 @@ struct DiagPred {
 };
 
 /** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
- *  carrier @c A --- @c {π1==π2} --- the reflexive-closure unit and the @c 1 of
- *  the relation algebra. */
+ *  carrier @c A --- @c {π_1==π_2} --- the reflexive-closure unit and the @c 1
+ * of the relation algebra. */
 export template <typename A, typename L = dedekind::category::Boole>
 constexpr auto diag() {
   return Comprehension<𝔸<std::pair<A, A>, L>, DiagPred<A>>{DiagPred<A>{}};
@@ -563,7 +563,7 @@ export constexpr auto Δ(auto&& s) { return diag(std::forward<decltype(s)>(s)); 
 
 // ── Self-contained base witnesses (no order DSL) ────────────────────────────
 // The rich witnesses (≤∘≤=≤ transitivity, reflexive(<), symmetric(<)) live in
-// order/halfspace, which owns the π1/π2 projection DSL and now consumes these
+// order/halfspace, which owns the π_1/π_2 projection DSL and now consumes these
 // combinators by ADL.  Here we witness the base laws on Δ alone
 // (self-contained, no external predicate): Δ is a relation; Δ° = Δ; Δ;Δ = Δ;
 // reflexive(Δ)=Δ.
@@ -615,7 +615,7 @@ static_assert(
 // defined in THIS partition (Δ = @c DiagPred, the relative product =
 // @c ComposePred), so they live here: a client importing only
 // @c dedekind.relational sees them, without pulling in @c order / @c algebra.
-// The term grammar's graphs (@c π2 @c == @c T) carry their certificates in
+// The term grammar's graphs (@c π_2 @c == @c T) carry their certificates in
 // @c order/halfspace + @c algebra/halfspace_transport.  Moved here in PR #797
 // (Copilot review) so relation semantics are self-contained; a dropped
 // certificate is invisible to a build, so each is witnessed below (compile

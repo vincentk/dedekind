@@ -27,7 +27,7 @@
  * (ℤ/2⁶⁴: + − · wrap, // and % by a nonzero word) and @c 𝔽ₚ (@c Fp,
  * @c Modular<2⁶⁴ − 59>: + − · /, no order), with their universes @c A(u64)
  * and @c A(𝔽ₚ); an element equals the int it represents.  The @b term
- * @b surface (#1006) builds terms over @c π / @c π1 / @c π2 that
+ * @b surface (#1006) builds terms over @c π / @c π_1 / @c π_2 that
  * @c A(carrier) @c | @c term and @c A(carrier) @c * @c A(carrier) @c | @c term
  * bind, every operator and constant checked then; those sets and relations
  * hold the bound term (a comprehension) and are read pointwise.  Reduction
@@ -325,7 +325,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 
-/** @brief The grammar's variables @c π (also written @c χ), @c π1, @c π2: a
+/** @brief The grammar's variables @c π (also written @c χ), @c π_1, @c π_2: a
  *  comparison builds a predicate, an arithmetic a term, each bound and checked
  *  by the former. */
 struct ProjectionTag {
@@ -498,7 +498,7 @@ const char* spelling(Rel r) {
 std::string show(const RTerm& t) {
   switch (t.kind) {
     case RTerm::Kind::Proj:
-      return t.slot == 0 ? "π" : "π" + std::to_string(t.slot);
+      return t.slot == 0 ? "π" : "π_" + std::to_string(t.slot);
     case RTerm::Kind::Const:
       return nb::cast<std::string>(nb::repr(t.value.o));
     case RTerm::Kind::Bin:
@@ -584,12 +584,12 @@ struct RunsIter {
   bool live = false;
 };
 
-/** @brief A monomial written: π, π1, π2, π3 with superscript exponents, ·
+/** @brief A monomial written: π, π_1, π_2, π_3 with superscript exponents, ·
  *  between; 1 for the empty product. */
 std::string written_monomial(const dedekind::algebra::Monomial<4>& m) {
   static constexpr const char* superscript[] = {"⁰", "¹", "²", "³", "⁴",
                                                 "⁵", "⁶", "⁷", "⁸", "⁹"};
-  static constexpr const char* variable[] = {"π", "π1", "π2", "π3"};
+  static constexpr const char* variable[] = {"π", "π_1", "π_2", "π_3"};
   std::string out;
   for (std::size_t slot = 0; slot < 4; ++slot) {
     const unsigned e = m.exponent(slot);
@@ -700,7 +700,7 @@ void bind_term_sets(nb::module_& m,
             return out;
           },
           "The finite function as pairs ((e, e1, e2, e3), coefficient), the "
-          "exponents of π, π1, π2, π3; sorted along the monomials' chain.");
+          "exponents of π, π_1, π_2, π_3; sorted along the monomials' chain.");
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -1217,7 +1217,7 @@ NB_MODULE(_pst, m) {
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
       m, "Projection",
-      "The grammar's variables π (also χ), π1, π2: a comparison builds a "
+      "The grammar's variables π (also χ), π_1, π_2: a comparison builds a "
       "predicate, the arithmetic + - * / // % a term, each bound and checked "
       "by "
       "A(carrier) | ....");
@@ -1227,8 +1227,8 @@ NB_MODULE(_pst, m) {
   def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
   m.attr("χ") = ProjectionTag{0};
-  m.attr("π1") = ProjectionTag{1};
-  m.attr("π2") = ProjectionTag{2};
+  m.attr("π_1") = ProjectionTag{1};
+  m.attr("π_2") = ProjectionTag{2};
 
   auto term = nb::class_<RTerm>(
       m, "Term",

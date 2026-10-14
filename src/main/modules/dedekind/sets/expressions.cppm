@@ -912,12 +912,13 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
 // A lattice node is a set object structurally (:setobject) and carries only
 // the arrow vocabulary in :category.  The categorical reading of A & B as the
 // PULLBACK of the cospan ι_A, ι_B (and of A | B as the PUSHOUT of the span
-// from Ø) needs the apex's member shape and its legs, π1 / π2 resp. ι1 / ι2 on
-// members --- set semantics, so they are a view taken here, not a property of
-// the node.  The view owns nothing: it evaluates through the node's χ.
+// from Ø) needs the apex's member shape and its legs, π_1 / π_2 resp. ι1 / ι2
+// on members --- set semantics, so they are a view taken here, not a property
+// of the node.  The view owns nothing: it evaluates through the node's χ.
 
 /** @brief The pullback apex of an applied meet: the same set, viewed with the
- *  subobject surface and the projection legs @c π1 / @c π2 (@c IsPullback). */
+ *  subobject surface and the projection legs @c π_1 / @c π_2 (@c IsPullback).
+ */
 export template <typename A, typename B>
   requires IsSetObject<Meet<A, B>> && IsSubobject<A, typename A::Domain> &&
            IsSubobject<B, typename B::Domain>
@@ -930,8 +931,8 @@ struct PullbackApex {
     Domain value;
   };
   constexpr Domain ι(const Member& m) const { return m.value; }
-  constexpr typename A::Member π1(const Member& m) const { return {m.value}; }
-  constexpr typename B::Member π2(const Member& m) const { return {m.value}; }
+  constexpr typename A::Member π_1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π_2(const Member& m) const { return {m.value}; }
   constexpr auto operator()(const Domain& x) const { return node(x); }
 };
 export template <typename A, typename B>

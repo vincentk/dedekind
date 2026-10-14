@@ -60,7 +60,7 @@ struct IsPositive {
 
 // #881: the APPLIED meet A & B (the reified intersection of two concrete sets)
 // IS the pullback of those two sets --- the cospan of their inclusions
-// ι_A, ι_B, with the meet's co-restriction legs π1/π2.  In the poset Sub(U),
+// ι_A, ι_B, with the meet's co-restriction legs π_1/π_2.  In the poset Sub(U),
 // product = pullback = meet.  (The predicate alone, AndPredicate, is only the
 // classifier-pairing above; the pullback is the applied predicate.)
 using A_set =

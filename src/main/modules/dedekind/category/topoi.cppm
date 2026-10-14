@@ -525,14 +525,14 @@ struct Subobject {
    */
 
   /** @brief π₁: S ⟶ X */
-  constexpr auto π1(const Member& m) const
+  constexpr auto π_1(const Member& m) const
     requires requires { m.value.first; }
   {
     return m.value.first;
   }
 
-  /** @brief π2: S ⟶ Y */
-  constexpr auto π2(const Member& m) const
+  /** @brief π_2: S ⟶ Y */
+  constexpr auto π_2(const Member& m) const
     requires requires { m.value.second; }
   {
     return m.value.second;

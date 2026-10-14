@@ -37,8 +37,8 @@ namespace {
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // Diagonal {x = y} and strip {x > 5 ∧ y < 3}, point-free over R2.
-constexpr auto diag = R2 | (π1 == π2);
-constexpr auto strip = R2 | (π1 > 5.0 && π2 < 3.0);
+constexpr auto diag = R2 | (π_1 == π_2);
+constexpr auto strip = R2 | (π_1 > 5.0 && π_2 < 3.0);
 
 }  // namespace
 
@@ -67,7 +67,7 @@ constexpr auto on_small_natural_grid = [](const R2Point& p) {
 };
 constexpr auto natural_lattice = Comprehension{R2, on_small_natural_grid};
 constexpr auto unit_square =
-    R2 | (π1 >= 0.5 && π1 <= 1.5 && π2 >= 0.5 && π2 <= 1.5);
+    R2 | (π_1 >= 0.5 && π_1 <= 1.5 && π_2 >= 0.5 && π_2 <= 1.5);
 
 }  // namespace
 

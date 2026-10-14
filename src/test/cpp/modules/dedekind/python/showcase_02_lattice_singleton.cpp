@@ -44,7 +44,7 @@ constexpr auto on_small_natural_grid = [](const R2Point& p) {
 constexpr auto natural_lattice = Comprehension{R2, on_small_natural_grid};
 
 constexpr auto unit_square =
-    R2 | (π1 >= 0.5 && π1 <= 1.5 && π2 >= 0.5 && π2 <= 1.5);
+    R2 | (π_1 >= 0.5 && π_1 <= 1.5 && π_2 >= 0.5 && π_2 <= 1.5);
 
 // Intersection contains exactly (1, 1)
 constexpr auto lattice_square_intersection = natural_lattice & unit_square;

@@ -93,8 +93,8 @@ TEST_CASE("Pullback: Factory Runtime Behavior", "[category][pullback]") {
   SECTION("Projections π₁ and π₂ recover the original components") {
     using Member = typename decltype(P)::Member;
     Member m{{4, 7}};
-    CHECK(P.π1(m) == 4);
-    CHECK(P.π2(m) == 7);
+    CHECK(P.π_1(m) == 4);
+    CHECK(P.π_2(m) == 7);
   }
 
   SECTION("Inclusion ι embeds a Member into the ambient product space") {
@@ -179,7 +179,7 @@ TEST_CASE("Pullback: intersection of subobjects is the pullback of inclusions",
   }
   SECTION("the pullback projections recover the two witnesses") {
     typename decltype(P)::Member m{{false, false}};
-    CHECK(P.π1(m) == false);
-    CHECK(P.π2(m) == false);
+    CHECK(P.π_1(m) == false);
+    CHECK(P.π_2(m) == false);
   }
 }

@@ -86,13 +86,13 @@ constexpr auto inverse(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>& g) {
   const T neg = dedekind::category::inverse_v<T, std::plus<T>>(
       carrier_cast<T>(g.predicate.a.b.value));
-  return 𝔸<std::pair<T, T>, L>{} | (π1 + neg == π2);
+  return 𝔸<std::pair<T, T>, L>{} | (π_1 + neg == π_2);
 }
 
 // #875: retractability generalizes ℤ → any IsGroup: on the cyclic unsigned the
 // inverse of the successor graph is the translation by the modular inverse.
 static_assert(
-    inverse(𝔸<std::pair<unsigned, unsigned>, Boole>{} | (π1 + 1u == π2))
+    inverse(𝔸<std::pair<unsigned, unsigned>, Boole>{} | (π_1 + 1u == π_2))
             .predicate.a.b.value == -1u,
     "inverse over unsigned is the translation by the modular inverse −1.");
 
@@ -186,8 +186,8 @@ consteval bool is_entire(
 }
 
 /** @brief @c argmax over a partial function: the translation @c x↦x+k into a
- *  codomain bounded above (@c π2≤P) and restricted to a residue class
- *  (@c π2≡W mod M), read off structurally.  Gated on an ordered additive group
+ *  codomain bounded above (@c π_2≤P) and restricted to a residue class
+ *  (@c π_2≡W mod M), read off structurally.  Gated on an ordered additive group
  *  of integers: the domain is unbounded below, so the feasible set is never
  *  empty and the read-off is the optimum. */
 export template <typename T, typename K, typename V, typename M, typename W,

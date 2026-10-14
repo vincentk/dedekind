@@ -481,12 +481,12 @@ static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
                                     return p.first;
                                   }),
                                   std::pair<int, bool>, int>,
-              "π1 must project Product -> LeftPart.");
+              "π_1 must project Product -> LeftPart.");
 static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
                                     return p.second;
                                   }),
                                   std::pair<int, bool>, bool>,
-              "π2 must project Product -> RightPart.");
+              "π_2 must project Product -> RightPart.");
 static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
               "Identity projection must certify direct products.");
 

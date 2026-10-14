@@ -18,15 +18,15 @@
  *
  * A term's @b structure is its type: the slots it mentions (@c slots_v, a bit
  * mask), its operators, the comparison an atom makes.  Its @b constants are
- * values, spelled as the literals themselves (@c π1 @c + @c 1 @c == @c π2), so
- * a term built at run time --- from Python --- is the same term.  A constant
+ * values, spelled as the literals themselves (@c π_1 @c + @c 1 @c == @c π_2),
+ * so a term built at run time --- from Python --- is the same term.  A constant
  * meets the sort of the term it is combined with: on a pair of @c Cardinality
  * the @c 1 above is the cardinal 1, converted when the term is evaluated and
  * checked to be representable.  Facts about a constant's value (a divisor is
  * not zero) are checked when the term is built: in @c constexpr code a
  * violation is a compile error.
  *
- * Certificates read the structure: an atom @c π2 @c == @c T with
+ * Certificates read the structure: an atom @c π_2 @c == @c T with
  * @c slots_v<T> @c ⊆ @c {1} is the graph of a function of the first
  * coordinate, whatever @c T is.
  *
@@ -117,7 +117,7 @@ using namespace dedekind::category;
  * @details @c π leaves the carrier open: @c π @c > @c 5 is a cut datum, @c π
  * @c == @c v a point, and the former @c carrier @c | @c ... binds it, the
  * constant meeting the carrier exactly.  @c π is the unary projection; the
- * product coordinates @c π1 / @c π2 follow.
+ * product coordinates @c π_1 / @c π_2 follow.
  *
  * @note @c Projection itself is an @b empty symbolic tag (not callable), so it
  * does @b not satisfy @c category::IsProductProjection --- it is the DSL
@@ -126,8 +126,8 @@ using namespace dedekind::category;
  * @c coord<2>), which @b delegates to @c category::π_1 / @c category::π_2 (the
  * canonical projections in @c :limit) and IS a certified
  * @c IsProductProjection --- the static_assert after @c coord pins that
- * agreement.  So @c π1 / @c π2 (tags) and @c category::π_1 / @c π_2 (accessors)
- * are two spellings of one notion, bridged by @c coord.
+ * agreement.  So @c π_1 / @c π_2 (tags) and @c category::π_1 / @c π_2
+ * (accessors) are two spellings of one notion, bridged by @c coord.
  * @see dedekind::category::π_1, dedekind::category::π_2
  * @see dedekind::category::IsProductProjection
  */
@@ -145,20 +145,20 @@ export inline constexpr Projection<0> χ{};
 
 // ── Product projections: the relational (point-free) variables ─────────────
 /**
- * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
- *        variables of the point-free relational surface.
+ * @brief @c π_1 / @c π_2 --- the coordinate projections of a pair, the
+ * positional variables of the point-free relational surface.
  *
  * @details A comparison of terms over @c π_I builds a
  * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
  * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
  * and @c product @c | @c predicate restricts the product to the relation.
  * @c && binds looser than @c |, so the comprehension parenthesises the meet:
- * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c 5) is the relation
+ * @c ℕ*ℕ @c | @c (π_1 @c < @c π_2 @c && @c π_1 @c > @c 5) is the relation
  * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
  */
-export inline constexpr Projection<1> π1{};
-export inline constexpr Projection<2> π2{};
-export inline constexpr Projection<3> π3{};
+export inline constexpr Projection<1> π_1{};
+export inline constexpr Projection<2> π_2{};
+export inline constexpr Projection<3> π_3{};
 
 // Blackboard coordinate aliases so a pair/triple predicate reads as
 // @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
@@ -169,12 +169,13 @@ export inline constexpr Projection<2> 𝑦{};
 export inline constexpr Projection<3> 𝑧{};
 
 /** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
- *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
+ *  Binary products only, so an out-of-range slot (the unary @c π, or @c π_3) is
  *  a hard error rather than a silent alias for @c .second.
  *  @note The index @b type is a call-site free variable (@c IsRingIntegral);
  *  the @c requires guard pins the @b value domain to @c {1,2} (binary
  *  products), independent of that type.  Extending @c coord to higher arities
- *  (@c π3 / @c 𝑧 already exist as tags) is the arity-aware follow-up (#824). */
+ *  (@c π_3 / @c 𝑧 already exist as tags) is the arity-aware follow-up (#824).
+ */
 export template <IsRingIntegral auto I, typename P>
   requires(I == 1 || I == 2)
 constexpr decltype(auto) coord(const P& p) {
@@ -838,18 +839,18 @@ constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   throw not_admitted("the comparison is not admitted on the carrier");
 }
 /** @brief The coordinate @c slot of the point @c p: the point itself for the
- *  unary @c π, a pair's coordinates for @c π1 / @c π2. */
+ *  unary @c π, a pair's coordinates for @c π_1 / @c π_2. */
 template <typename P>
 constexpr coordinate_t<P> runtime_coord(unsigned slot, const P& p) {
   if constexpr (requires { typename P::first_type; }) {
     if (slot == 1) return p.first;
     if (slot == 2) return p.second;
     throw not_admitted(slot == 0 ? "π names an element; the points are pairs"
-                                 : "binary products only: π1 and π2");
+                                 : "binary products only: π_1 and π_2");
   } else {
     if (slot == 0) return p;
     throw not_admitted(
-        "π1 / π2 name a pair's coordinates; the points are "
+        "π_1 / π_2 name a pair's coordinates; the points are "
         "elements");
   }
 }
@@ -1174,7 +1175,7 @@ struct Term {
   Arith op{};
   std::shared_ptr<const Term> a, b;
 
-  /** @brief @c π (slot 0), @c π1, @c π2. */
+  /** @brief @c π (slot 0), @c π_1, @c π_2. */
   static Term proj(unsigned slot) {
     Term t;
     t.kind = Kind::Proj;
@@ -1346,8 +1347,8 @@ export template <typename X, typename T>
 inline constexpr bool is_total_term_v =
     decltype(cata(Total<X>{}, std::declval<const T&>()))::value;
 
-/** @brief @c π2 @c == @c t, or @c t @c == @c π2, with @c t mentioning only the
- *  first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
+/** @brief @c π_2 @c == @c t, or @c t @c == @c π_2, with @c t mentioning only
+ * the first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
  *  @tparam P the atom. */
 template <typename P>
 struct graph_atom : std::false_type {};
@@ -1370,25 +1371,25 @@ using graph_term_t = typename graph_atom<P>::term;
 
 namespace detail_terms_witness {
 using P = std::pair<unsigned, unsigned>;
-inline constexpr auto succ_graph = π1 + 1 == π2;
+inline constexpr auto succ_graph = π_1 + 1 == π_2;
 static_assert(IsRelPredicate<decltype(succ_graph)> &&
                   slots_v<decltype(succ_graph)> == 0b110u,
-              "π1 + 1 == π2 is an atom on slots 1 and 2");
+              "π_1 + 1 == π_2 is an atom on slots 1 and 2");
 static_assert(succ_graph(P{4, 5}) && !succ_graph(P{4, 6}), "4 + 1 == 5, not 6");
-inline constexpr auto half_after_shift = (π1 + 1) * 3 == π2;
+inline constexpr auto half_after_shift = (π_1 + 1) * 3 == π_2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
-static_assert(only_slot(slots_v<decltype(π1 * 3 + 1)>, 1),
-              "3·π1 + 1 mentions only the first slot");
-inline constexpr auto on_naturals = π1 + 1 == π2;
+static_assert(only_slot(slots_v<decltype(π_1 * 3 + 1)>, 1),
+              "3·π_1 + 1 mentions only the first slot");
+inline constexpr auto on_naturals = π_1 + 1 == π_2;
 static_assert(on_naturals(std::pair{finite_cardinality(4),
                                     finite_cardinality(5)}),
               "the constant 1 meets ℕ as the cardinal 1");
 using N2 = std::pair<Cardinality, Cardinality>;
-static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
+static_assert(is_total_term_v<N2, decltype(π_1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
-                  !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
-              "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
+static_assert(IsGraphAtom<decltype(π_1 * 3 + 1 == π_2)> &&
+                  !IsGraphAtom<decltype(π_2 * π_2 == π_1 * π_1)>,
+              "π_2 == t(π_1) is a graph; y² == x² (y = ±x) is not certified");
 // A predicate the grammar does not know is a leaf the certificates refuse.
 struct Foreign {
   using is_rel_predicate = void;

@@ -12,7 +12,7 @@ agree at every point of 𝔽ₚ); that quotient is a further reading.
 
 import unittest
 
-from dedekind.pst import A, u64, π, π1, π2, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
+from dedekind.pst import A, u64, π, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
 
 P = 2**64 - 59
 U, F = A(u64), A(𝔽ₚ)
@@ -22,8 +22,8 @@ class EqualityInTheFreeAlgebra(unittest.TestCase):
     def test_the_ring_laws_decide(self) -> None:
         self.assertEqual(U.normal_form(π + 1 - 1), U.normal_form(π))
         self.assertEqual(
-            U.normal_form((π1 + π2) * (π1 + π2)),
-            U.normal_form(π1 * π1 + 2 * π1 * π2 + π2 * π2),
+            U.normal_form((π_1 + π_2) * (π_1 + π_2)),
+            U.normal_form(π_1 * π_1 + 2 * π_1 * π_2 + π_2 * π_2),
         )
         self.assertNotEqual(U.normal_form(π * π), U.normal_form(π))
 
@@ -41,16 +41,16 @@ class EqualityInTheFreeAlgebra(unittest.TestCase):
 
 class TheFiniteFunction(unittest.TestCase):
     def test_support_and_degree(self) -> None:
-        p = U.normal_form((π1 + π2) * (π1 + π2))
+        p = U.normal_form((π_1 + π_2) * (π_1 + π_2))
         self.assertEqual(p.degree, 2)
-        # Sorted by degree, then by the slots: π2² < π1·π2 < π1².
+        # Sorted by degree, then by the slots: π_2² < π_1·π_2 < π_1².
         self.assertEqual(p.support, [((0, 0, 2, 0), 1), ((0, 1, 1, 0), 2), ((0, 2, 0, 0), 1)])
         self.assertEqual(U.normal_form(5).support, [((0, 0, 0, 0), 5)])
         self.assertEqual(U.normal_form(π - π).support, [])
 
     def test_it_is_written_as_its_pairs(self) -> None:
         self.assertEqual(
-            repr(U.normal_form((π1 + π2) * (π1 + π2))), "{π2² ↦ 1, π1·π2 ↦ 2, π1² ↦ 1}"
+            repr(U.normal_form((π_1 + π_2) * (π_1 + π_2))), "{π_2² ↦ 1, π_1·π_2 ↦ 2, π_1² ↦ 1}"
         )
         self.assertEqual(repr(U.normal_form(π - π)), "{}")
         self.assertEqual(repr(U.normal_form(5)), "{1 ↦ 5}")
@@ -64,7 +64,7 @@ class OutsideTheCatalogue(unittest.TestCase):
             with self.assertRaises(TypeError):
                 U.normal_form(term)
         with self.assertRaises(TypeError):
-            F.normal_form(π1 / π2)
+            F.normal_form(π_1 / π_2)
 
     def test_a_constant_the_carrier_cannot_hold(self) -> None:
         with self.assertRaises(ValueError):
