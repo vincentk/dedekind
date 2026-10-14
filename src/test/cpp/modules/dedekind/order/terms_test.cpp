@@ -179,11 +179,16 @@ TEST_CASE("order:terms: a term built at run time is checked when bound",
   CHECK_NOTHROW(bind_check<unsigned>(
       Q::cmp(Rel::Eq, T::bin(Arith::FloorDiv, T::proj(0), T::constant(2)),
              T::constant(1))));
-  // − is total on the word (it wraps); bool is not closed under +.
+  // − is in the word's signature (an abelian group: it wraps).  𝔹 is the
+  // Boolean rig: its + is ∨ and is admitted, − is not (no inverses).
   CHECK_NOTHROW(bind_check<P>(Q::cmp(
       Rel::Eq, T::proj(2), T::bin(Arith::Sub, T::proj(1), T::constant(1)))));
+  const Q or_true = Q::cmp(
+      Rel::Eq, T::bin(Arith::Add, T::proj(0), T::constant(1)), T::constant(1));
+  CHECK_NOTHROW(bind_check<bool>(or_true));
+  CHECK(or_true(false));  // ⊥ ∨ ⊤ = ⊤
   CHECK_THROWS_AS(bind_check<bool>(Q::cmp(
-                      Rel::Eq, T::bin(Arith::Add, T::proj(0), T::constant(1)),
+                      Rel::Eq, T::bin(Arith::Sub, T::proj(0), T::constant(1)),
                       T::constant(1))),
                   not_admitted);
   // A constant the carrier cannot hold.
