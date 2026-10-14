@@ -13,7 +13,7 @@ is decided in Python.
   - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
     word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
     element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
-  - The term surface: `π`, `π_1`, `π_2` and constants build terms; `A(carrier) |
+  - The term surface: `π`, `π_1`, `π_2` (`π[k]` the family) and constants build terms; `A(carrier) |
     term` binds them, and `A(carrier) * A(carrier) | term` is a relation.
 
 The laws decide the syntax: a term may use the operators the carrier's

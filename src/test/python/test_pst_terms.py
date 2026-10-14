@@ -27,6 +27,13 @@ class TermsAreCheckedWhenBuilt(unittest.TestCase):
         with self.assertRaises(TypeError):
             π == [1]
 
+    def test_the_projections_are_one_family(self) -> None:
+        self.assertEqual(repr(π[1]), "π_1")
+        self.assertEqual(repr(π[2] + π[1]), repr(π_2 + π_1))
+        self.assertEqual(repr(π[0]), "π")
+        with self.assertRaises(TypeError):
+            π_1[2]  # the family is indexed from π
+
     def test_the_spelling(self) -> None:
         self.assertEqual(repr(π_1 * 3 + 1 == π_2), "((π_1 * 3) + 1) == π_2")
         self.assertEqual(repr((π > 2) & (π < 5)), "(π > 2) & (π < 5)")

@@ -46,8 +46,10 @@
 module;
 
 #include <concepts>
+#include <cstddef>  // std::size_t: the slot of a projection
 #include <functional>
 #include <optional>
+#include <type_traits>  // std::integral_constant: the slot as a type
 
 export module dedekind.category:morphism;
 
@@ -869,17 +871,20 @@ constexpr auto preimage(const F& f, const P& p) {
  *  is the categorical product of its operand arrows @c F, @c G in the arrow
  *  category --- which is exactly why composition PRESERVES the leg types where
  *  the old type-erasing lambda hid them.  These are custom-storage overloads of
- *  the canonical @c π_1 / @c π_2 accessors (@c :limit): storage is named
+ *  the projections' @c component hook (@c :limit; the slot is
+ *  @c :limit's @c At<k>, spelled out here upstream of it): storage is named
  *  @c .f / @c .g rather than @c .first / @c .second, so per the @c Dual
  *  @c val/der precedent @c Compose supplies its own overloads in its home
  *  namespace, found by ADL.  With them @c IsProduct<Compose<F,G>,F,G> holds
  *  (witnessed in @c :limit). */
 export template <IsArrow F, IsArrow G>
-constexpr F π_1(const Compose<F, G>& c) {
+constexpr F component(const Compose<F, G>& c,
+                      std::integral_constant<std::size_t, 1>) {
   return c.f;
 }
 export template <IsArrow F, IsArrow G>
-constexpr G π_2(const Compose<F, G>& c) {
+constexpr G component(const Compose<F, G>& c,
+                      std::integral_constant<std::size_t, 2>) {
   return c.g;
 }
 

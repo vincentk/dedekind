@@ -706,7 +706,7 @@ struct InSlot {
   S set;
   template <typename P>
   constexpr bool operator()(const P& p) const {
-    return static_cast<bool>(set(coord<I>(p)));
+    return static_cast<bool>(set(Projection<I>{}(p)));
   }
 };
 

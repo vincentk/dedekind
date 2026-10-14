@@ -1005,7 +1005,7 @@ ratom    ::= term cmp term
 term     ::= proj | const | term arith term
            | 'ap' '(' arrow ',' term ')'
            | 'cond' '(' relpred ',' term ',' term ')'
-proj     ::= 'π_1' | 'π_2' | 'π_3' | '𝑥' | '𝑦' | '𝑧'
+proj     ::= 'π_1' | 'π_2' | 'π_3' | 'π_<' k '>' | '𝑥' | '𝑦' | '𝑧'
 arith    ::= '+' | '-' | '*' | '/' | '%'
 \end{minted}
 \end{minipage}

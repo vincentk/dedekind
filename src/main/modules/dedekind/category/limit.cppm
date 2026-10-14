@@ -276,31 +276,117 @@ concept IsProjectedInitialObject =
  */
 
 /**
- * @brief The canonical product projections @c π_1 @c : @c P @c → @c A and
- *        @c π_2 @c : @c P @c → @c B, named per Pierce (@em Basic Category
- *        Theory for Computer Scientists §1.4).
+ * @brief The projections @c π_k out of a product, one family: @c π_1, @c π_2
+ *        (Pierce, @em Basic Category Theory for Computer Scientists §1.4),
+ *        @c π_3 and @c π_<k> for a flat n-ary product, and @c π for the
+ *        one-fold product @c A¹ ≅ A, whose projection is the identity.
  *
- * @details These are the SINGLE canonical accessor for a categorical product's
- * two components --- what @c IsProduct tests against.  The default reads the
- * pair-like @c .first / @c .second, so every type that exposes them
- * (@c std::pair, @c Complex, @c Rational, the boundary witnesses, ...) carries
- * @c π_1 / @c π_2 for free.  A carrier whose storage is named differently
- * (@c Dual's @c val / @c der) provides its own overload in its home namespace,
- * found by ADL; its domain-specific accessors (@c real / @c imag,
- * @c value / @c derivative, @c first / @c second) stay as aliases that agree
- * with @c π_1 / @c π_2.  Sister of the coproduct injections @c ι_1 / @c ι_2 in
- * @c :cartesian.
+ * @details @c Projection<k> is the projection @b arrow: called on a point it
+ * returns the point's @c k-th component, and the term grammar (@c sets:terms)
+ * reads the same object as the variable of slot @c k.  One entity, two uses,
+ * so the categorical projection and the relational variable cannot drift.
+ *
+ * The component is the ADL hook @c component(p, At<k>{}).  Its default reads a
+ * tuple-like product by @c std::get (@c std::pair, @c std::tuple) and a
+ * pair-like one by @c .first / @c .second (@c Complex, @c Rational, the
+ * boundary witnesses).  A carrier whose storage is named differently
+ * (@c Dual's @c val / @c der, a reducer node's operands) states its own
+ * overload in its home namespace.  Sister of the coproduct injections
+ * @c ι_1 / @c ι_2 in @c :cartesian.
  */
+/** @brief The slot @c k of a projection, as a type: the @c k of @c π_k. */
+export template <std::size_t K>
+using At = std::integral_constant<std::size_t, K>;
+
+template <typename P>
+concept TupleLike = requires { std::tuple_size<P>::value; };
+
+/** @brief The @c k-th component of a tuple-like product.  @param p the point.
+ */
+export template <typename P, std::size_t K>
+  requires TupleLike<P> && (K >= 1) && (K <= std::tuple_size_v<P>)
+constexpr auto component(const P& p, At<K>) {
+  return std::get<K - 1>(p);
+}
+/** @brief The components of a pair-like product that is not tuple-like.
+ *  @param p the point. */
 export template <typename P>
-  requires requires(const P& p) { p.first; }
-constexpr auto π_1(const P& p) {
+  requires(!TupleLike<P>) && requires(const P& p) { p.first; }
+constexpr auto component(const P& p, At<1>) {
   return p.first;
 }
 export template <typename P>
-  requires requires(const P& p) { p.second; }
-constexpr auto π_2(const P& p) {
+  requires(!TupleLike<P>) && requires(const P& p) { p.second; }
+constexpr auto component(const P& p, At<2>) {
   return p.second;
 }
+
+/** @brief The projection @c π_k: the @c k-th component of a product.
+ *  @tparam K the slot, from 1. */
+export template <std::size_t K>
+struct Projection {
+  template <typename P>
+    requires requires(const P& p) { component(p, At<K>{}); }
+  constexpr decltype(auto) operator()(const P& p) const {
+    return component(p, At<K>{});
+  }
+};
+/** @brief The projection out of the one-fold product @c A¹ ≅ A: the identity
+ *  arrow (@c Identity), read at the point's own type. */
+export template <>
+struct Projection<0> {
+  template <typename T>
+  constexpr T operator()(const T& x) const {
+    return Identity<T>{}(x);
+  }
+};
+
+/** @brief The unary projection, the identity: the variable of a comprehension
+ *  over one carrier. */
+export inline constexpr Projection<0> π{};
+/** @brief The projections of a pair (and the first three of a tuple). */
+export inline constexpr Projection<1> π_1{};
+export inline constexpr Projection<2> π_2{};
+export inline constexpr Projection<3> π_3{};
+/** @brief The family: @c π_<k> is the @c k-th projection of a flat product. */
+export template <std::size_t K>
+inline constexpr Projection<K> π_{};
+
+namespace detail_limit {
+template <std::size_t K, typename P>
+struct ProjectionAt {
+  using Domain = P;
+  using Codomain =
+      std::remove_cvref_t<decltype(Projection<K>{}(std::declval<const P&>()))>;
+  constexpr decltype(auto) operator()(const P& p) const {
+    return Projection<K>{}(p);
+  }
+};
+template <std::size_t K, typename P>
+struct projection_arrow {
+  using type = ProjectionAt<K, P>;
+};
+template <typename P>
+struct projection_arrow<0, P> {
+  using type = Identity<P>;
+};
+}  // namespace detail_limit
+
+/** @brief @c π_k read at the product @c P, as a MORPHISM (@c Domain @c = @c P,
+ *  @c Codomain the @c k-th part): the building block of @c IsArrowProduct.
+ *  @c Π<0, P> is @c Identity<P>.  It forwards to @c π_k, so it copies nothing
+ *  where the component is a reference (a reducer node's operand).
+ *  @tparam K the slot.  @tparam P the product. */
+export template <std::size_t K, typename P>
+using Π = typename detail_limit::projection_arrow<K, P>::type;
+
+static_assert(π_1(std::pair{7, false}) == 7 && !π_2(std::pair{7, false}) &&
+                  π_<3>(std::tuple{1, 2, 3}) == 3 && π(5) == 5,
+              "π_k reads the k-th component; π is the identity");
+static_assert(std::same_as<Π<0, int>, Identity<int>> &&
+                  IsArrow<Π<1, std::pair<int, bool>>> &&
+                  std::same_as<Π<2, std::pair<int, bool>>::Codomain, bool>,
+              "Π<k, P> is π_k as an arrow; Π<0, P> is the identity arrow");
 
 /**
  * @concept IsProduct
@@ -385,36 +471,12 @@ static_assert(IsProduct<Compose<Identity<int>, Identity<int>>, Identity<int>,
               "arrow composition Compose<F,G> is the product of its legs F, G "
               "(π_1/π_2 recover the two arrows).");
 
-/** @brief π₁ as a first-class MORPHISM: the projection @b arrow @c P → A of a
- *  product, reifying the textbook projection with an arrow-shaped type
- * signature
- *  (@c Domain @c = @c P, @c Codomain @c = the left part).  It forwards to the
- *  free @c π_1 accessor, so it copies nothing (returns the part by reference
- * for a reference-returning @c π_1, e.g.\ a reducer node's operand).  Distinct
- * from
- *  @c π_1 itself (a plain callable): @c Π_1 is the projection @b as a
- * morphism, the building block of @c IsArrowProduct. */
-export template <typename P>
-struct Π_1 {
-  using Domain = P;
-  using Codomain = std::remove_cvref_t<decltype(π_1(std::declval<const P&>()))>;
-  constexpr decltype(auto) operator()(const P& p) const { return π_1(p); }
-};
-/** @brief π₂ as a first-class morphism: the right projection arrow @c P → B.
- *  Dual of @c Π_1 (see there). */
-export template <typename P>
-struct Π_2 {
-  using Domain = P;
-  using Codomain = std::remove_cvref_t<decltype(π_2(std::declval<const P&>()))>;
-  constexpr decltype(auto) operator()(const P& p) const { return π_2(p); }
-};
-
 /** @concept IsArrowProduct
  *  @brief An @c IsProduct whose projections are genuine MORPHISMS (arrows), not
  *  merely the structural callables @c IsProduct checks.
  *
  *  @details Extends @c IsProduct with @c IsArrow on the reified projections
- *  @c Π_1<P> / @c Π_2<P> (@c Domain @c = @c P, @c Codomain the
+ *  @c Π<1, P> / @c Π<2, P> (@c Domain @c = @c P, @c Codomain the
  * corresponding part).  The shared @c IsProduct is deliberately left @b
  * structural, requiring arrow projections across all ~40 product witnesses
  * (@c std::pair,
@@ -423,12 +485,12 @@ struct Π_2 {
  *  @c Meet / @c Join) target @b this stronger concept, so their
  * projection type signatures are pinned to arrows with no churn to the wider
  * ecosystem.
- *  @see IsProduct, Π_1, Π_2 */
+ *  @see IsProduct, Π */
 export template <typename P, typename A, typename B, typename Op = AnyOperation>
 concept IsArrowProduct =
-    IsProduct<P, A, B, Op> && IsArrow<Π_1<P>> && IsArrow<Π_2<P>> &&
-    std::same_as<typename Π_1<P>::Codomain, A> &&
-    std::same_as<typename Π_2<P>::Codomain, B>;
+    IsProduct<P, A, B, Op> && IsArrow<Π<1, P>> && IsArrow<Π<2, P>> &&
+    std::same_as<typename Π<1, P>::Codomain, A> &&
+    std::same_as<typename Π<2, P>::Codomain, B>;
 
 template <typename A, typename B>
 struct SpeciesTraits<std::pair<A, B>> {

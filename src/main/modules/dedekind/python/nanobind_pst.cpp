@@ -1212,8 +1212,18 @@ NB_MODULE(_pst, m) {
       "predicate, the arithmetic + - * / // % a term, each bound and checked "
       "by "
       "A(carrier) | ....");
-  projection.def("__repr__",
-                 [](const ProjectionTag& p) { return show(as_term(p)); });
+  projection
+      .def("__repr__", [](const ProjectionTag& p) { return show(as_term(p)); })
+      .def(
+          "__getitem__",
+          [](const ProjectionTag& p, unsigned k) {
+            if (p.slot != 0)
+              throw nb::type_error("π[k]: the family is indexed from π itself");
+            return ProjectionTag{k};
+          },
+          nb::arg("k"),
+          "π[k]: the k-th projection of a product, the family π_1, π_2, … is "
+          "sugar for; π[0] is π, the identity.");
   def_arithmetic<ProjectionTag>(projection);
   def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
