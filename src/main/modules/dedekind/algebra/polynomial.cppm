@@ -481,7 +481,11 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
 /** @brief The normal form of a predicate over the carrier @c C, atom by atom:
  *  an equation or its negation @c a @c ⋈ @c b on a ring moves to
  *  @c a @c - @c b @c ⋈ @c 0 with the difference a polynomial, made monic on a
- *  field (dividing by the leading coefficient keeps the zero set); any other
+ *  field (dividing by the leading coefficient keeps the zero set), and off a
+ *  field signed: of @c d and @c -d the one with the smaller leading
+ *  coefficient, where the carrier is ordered, so @c a @c = @c b and
+ *  @c b @c = @c a meet (the ring's other units, the odd coefficients on
+ *  ℤ/2⁶⁴, are not divided out); any other
  *  atom has its sides normalised and its comparison kept (moving a term across
  *  @c < needs the ordered ring's theory).  Equal normal forms cut out equal
  *  sets; different ones need not cut out different sets (@c πᵖ @c = @c π
@@ -506,11 +510,23 @@ dedekind::sets::Pred<K> normal_form(const dedekind::sets::Pred<K>& p,
     if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
         dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
       P d = x - y;
+      bool monic = false;
       if constexpr (requires(const C& a, const C& b) { a / b; }) {
-        if (!d.is_zero() && dedekind::sets::admits(
-                                On<C>{}, dedekind::sets::FieldDivision{}, true))
+        if (!d.is_zero() &&
+            dedekind::sets::admits(On<C>{}, dedekind::sets::FieldDivision{},
+                                   true)) {
           d = d *
               P(identity_v<C, std::multiplies<C>> / d.leading_coefficient());
+          monic = true;
+        }
+      }
+      // Off a field, -1 is still a unit: d = 0 and -d = 0 are one equation,
+      // so a = b and b = a meet.  On an ordered carrier the one with the
+      // smaller leading coefficient is kept.
+      if constexpr (requires(const C& a, const C& b) { a < b; }) {
+        if (!monic && !d.is_zero() &&
+            (-d).leading_coefficient() < d.leading_coefficient())
+          d = -d;
       }
       return Pr::cmp(
           p.rel, as_term<K>(d, lift),
