@@ -68,7 +68,7 @@ set is built::
     third((3, 1))                       # True: 3 · 3⁻¹ = 1
     F | (π < 3)                         # TypeError: 𝔽ₚ has no order
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
-    A(B) | (π + 1 == True)              # TypeError: 𝔹 is not closed under +
+    A(B) | (π + 1 == True)              # TypeError: 1 is not a bool (𝔹's + is ∨)
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``runs()``, ``len``, iteration and slicing by value

@@ -47,7 +47,10 @@ TEST_CASE("sets:terms: without a module's rule its operators are not admitted",
   STATIC_CHECK_FALSE(admits(On<unsigned>{}, std::less<>{}, false));
   STATIC_CHECK_FALSE(admits(On<unsigned>{}, std::modulus<>{}, true));
   STATIC_CHECK_FALSE(admits(On<unsigned>{}, std::divides<>{}, true));
-  STATIC_CHECK_FALSE(admits(On<bool>{}, std::plus<>{}, false));
+  // 𝔹 is the Boolean rig ({⊥, ⊤}, ∨, ∧): its + is ∨, a commutative monoid, so
+  // + is in its signature; − is not (no additive inverses).
+  STATIC_CHECK(admits(On<bool>{}, std::plus<>{}, false));
+  STATIC_CHECK_FALSE(admits(On<bool>{}, std::minus<>{}, false));
   CHECK_THROWS_AS(bind_check<unsigned>(Pred<int>::cmp(
                       Rel::Lt, Term<int>::proj(0), Term<int>::constant(1))),
                   not_admitted);
