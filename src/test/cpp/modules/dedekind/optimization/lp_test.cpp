@@ -622,8 +622,8 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
  * Differentiation*, ICFP 2018): forward-mode AD is the product `(f, f')`
  * with chain-rule composition, not the "dual number" object per se.
  * `Dual<F>` is one realization of that product; `ftc::derivative_at` is
- * another (numerical, central difference); `RigPolynomial::derive()` is
- * a third (exact formal, polynomial coefficient vectors). Here we use
+ * another (numerical, central difference); `Polynomial::derive(slot)` is
+ * a third (exact formal, on the polynomial's sparse support). Here we use
  * `Dual<Rat>` because we need the product available at compile time
  * inside an NTTP context — `Dual<F>` became structural in the same PR
  * that adds this test.

@@ -34,9 +34,9 @@
  * Concrete shipping instance: @c Polynomial<R, M> @c = @c R[M], the
  * monoid algebra, is the free commutative @c R-algebra on the
  * monomials' generators (Lang @cite{lang2002algebra} §II.3, §IV.1).
- * Other classical free constructions — free monoid, free group, free
- * vector space — fit the same pattern and would slot in here when
- * carriers ship.
+ * Other classical free constructions fit the same pattern and would slot
+ * in here when carriers ship: the free monoid, the free group, the free
+ * vector space.
  *
  * @section free__Trait_Propagation
  *

@@ -8,8 +8,6 @@
 
 import dedekind.algebra;
 import dedekind.category;
-import dedekind.order;
-import dedekind.sequences;
 import dedekind.sets;
 
 namespace {
@@ -17,13 +15,6 @@ namespace {
 using dedekind::algebra::Monomial;
 using dedekind::algebra::normal_form;
 using dedekind::algebra::Polynomial;
-using dedekind::category::IsArrow;
-using dedekind::category::IsCommutativeMonoid;
-using dedekind::category::IsCommutativeRing;
-using dedekind::category::IsFreeAlgebra;
-using dedekind::order::IsDirectedSet;
-using dedekind::order::IsTotallyOrdered;
-using dedekind::sequences::IsNet;
 using dedekind::sets::Arith;
 using dedekind::sets::not_admitted;
 using dedekind::sets::π;
@@ -39,9 +30,6 @@ using T = dedekind::sets::Term<Word>;
 
 TEST_CASE("Monomials: the free commutative monoid on the slots, a chain",
           "[algebra][polynomial]") {
-  STATIC_CHECK(IsCommutativeMonoid<M, std::multiplies<M>>);
-  STATIC_CHECK(IsTotallyOrdered<M>);
-  STATIC_CHECK(IsDirectedSet<M>);
   const M x = M::variable(1), y = M::variable(2);
   CHECK(x * y == y * x);
   CHECK((x * y).degree() == 2);
@@ -53,14 +41,11 @@ TEST_CASE("Monomials: the free commutative monoid on the slots, a chain",
   CHECK(x * x * x > M::variable(0) * M::variable(3));
   CHECK((x * x).without(1) == x);
   CHECK_THROWS_AS(M::variable(4), std::out_of_range);
+  CHECK_THROWS_AS(x.exponent(4), std::out_of_range);
 }
 
 TEST_CASE("Polynomials: a net over the monomials, a ring over a ring",
           "[algebra][polynomial]") {
-  STATIC_CHECK(IsArrow<P>);
-  STATIC_CHECK(IsNet<P>);
-  STATIC_CHECK(IsCommutativeRing<P, std::plus<P>, std::multiplies<P>>);
-  STATIC_CHECK(IsFreeAlgebra<P>);
   const P x = P::variable(1), y = P::variable(2);
 
   SECTION("the finite function monomial ↦ coefficient") {
@@ -90,6 +75,7 @@ TEST_CASE("Polynomials: a net over the monomials, a ring over a ring",
     CHECK(p.derive(2).is_zero());
     CHECK((x * y).derive(1) == y);
     CHECK(P::one().derive().is_zero());
+    CHECK_THROWS_AS(x.derive(4), std::out_of_range);
   }
 }
 

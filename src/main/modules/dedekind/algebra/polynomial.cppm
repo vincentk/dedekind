@@ -5,11 +5,14 @@
  *        the monomials, and the normal form of a rig's, ring's or field's
  *        terms.
  *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
  * @section polynomial__The_Monoid_Algebra
  * A polynomial over a commutative rig @c R in the variables @c π, @c π1,
  * @c π2, @c π3 is a finitely supported function from the monomials (the free
  * commutative monoid on the variables, @c Monomial<N>) to @c R: the monoid
- * algebra @c R[M] (Lang, Algebra, §II.3; Wikipedia: Monoid ring).  Addition
+ * algebra @c R[M] (Lang, Algebra, §II.3).  Addition
  * is pointwise; multiplication is the convolution Σ_{m·m' = n} a_m b_{m'},
  * the Cauchy product in one variable.  A formal power series @c R[[M]] is any
  * function @c M @c → @c R; a polynomial is one with finite support, and it is
@@ -45,8 +48,13 @@
  * free commutative monoid on the slots below total degree 2³², which is where
  * every term written by hand lives.
  *
- * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
+ * Wikipedia: Monoid ring, Polynomial ring, Monomial order
+ *
+ * @note "Die ganzen Zahlen hat der liebe Gott gemacht, alles andere ist
+ * Menschenwerk."
+ * [Trans: "God made the integers; all else is the work of man."]
+ * Leopold Kronecker, as reported by Heinrich Weber, "Leopold Kronecker",
+ * Jahresbericht der DMV 2 (1893), p. 19.
  */
 module;
 
@@ -102,13 +110,14 @@ struct Monomial {
     for (unsigned k : e) d += k;
     return d;
   }
-  /** @brief The exponent of @c slot. */
-  constexpr unsigned exponent(std::size_t slot) const { return e[slot]; }
+  /** @brief The exponent of @c slot.  @throws std::out_of_range beyond
+   *  @c N. */
+  constexpr unsigned exponent(std::size_t slot) const { return e.at(slot); }
   /** @brief This monomial with one factor of @c slot removed; defined where
    *  @c exponent(slot) is positive (the derivative's use). */
   constexpr Monomial without(std::size_t slot) const {
     Monomial m = *this;
-    --m.e[slot];
+    --m.e.at(slot);
     return m;
   }
   friend constexpr Monomial operator*(const Monomial& a, const Monomial& b) {
