@@ -140,7 +140,7 @@ class TheTotalOperatorSurface(unittest.TestCase):
     def test_on_the_truth_chain(self) -> None:
         from dedekind.pst import A, B, π
 
-        # 𝔹's + is ∨, on bools: the constant 1 is not one, so the term is refused.
+        # 𝔹's rig is spelled (∨, ∧): + is in no signature of bool, so it is refused.
         A(B) | (π == True)  # noqa: E712 — π is a term, not a bool
         with self.assertRaises(TypeError):
             A(B) | (π + 1 == True)  # noqa: E712
