@@ -1,48 +1,19 @@
-"""Minimal Python facade for dedekind: native (``_dedekind``) bindings only.
+"""dedekind: Python handles over the C++ core.
 
-The pure-Python prototype modules (``dsl`` / ``sequences`` / ``sets`` / ``lwv`` /
-``numbers`` / ``algebra``) were removed as pre-target-architecture technical
-debt (#886). The target operating model is handle-only over the native core:
-all predicate structure and reduction stay on the C++ side, and Python holds
-handles plus accessibility bits. The native handle surface (e.g. the canonical
-sets) is reached through ``dedekind._dedekind``.
+The mathematics lives in C++; Python holds handles to it.  Two modules:
+
+``dedekind.jlt``
+    The arrows: ``id``, ``refl``, ``succ`` and ``pred`` over ``bool`` and
+    ``int`` (the word u64), composed with ``>>``.
+``dedekind.pst``
+    The finite carriers and the sets over them: the truth chains ``B`` and
+    ``K3``, ℕ's proxy ``N``, the canonical ring ``u64`` and field ``𝔽ₚ``, and
+    the term surface ``A(carrier) | term``, checked when it is built.
+
+A term may use the operators the carrier's certified algebras have (the laws
+decide the syntax), and equality of terms is equality in the free algebra
+they generate where it has a normal form (a chain's run lists); see the
+``sets:terms`` header in the C++ sources.
 """
 
-try:
-    from ._dedekind import ordered_set_roundtrip
-    from ._dedekind import path_from_array
-    from ._dedekind import path_from_range
-    from ._dedekind import unordered_set_roundtrip
-    from ._dedekind import set_union
-    from ._dedekind import set_intersection
-    from ._dedekind import set_difference
-    from ._dedekind import set_cardinality
-    # Canonical native sets (#886).  Python NFKC-normalises identifiers, so the
-    # double-struck attrs `B` / `N` are equally reachable as `𝔹` / `ℕ`; the
-    # discriminating ℕ⊂ℤ classifier is keyed `Nat` to avoid the `ℕ` → "N"
-    # collision.  `ext` is the native materialise retraction μ: Int ⇀ Ext.
-    from ._dedekind import B
-    from ._dedekind import N
-    from ._dedekind import Nat
-    from ._dedekind import ext
-except ModuleNotFoundError as _exc:
-    raise ImportError(
-        "The dedekind C++ extension (_dedekind) is not available. "
-        "Build it with `cmake --build build` (or `make`) from the repository "
-        "root, then install with `pip install -e .`."
-    ) from _exc
-
-__all__ = [
-    "ordered_set_roundtrip",
-    "path_from_array",
-    "path_from_range",
-    "unordered_set_roundtrip",
-    "set_union",
-    "set_intersection",
-    "set_difference",
-    "set_cardinality",
-    "B",
-    "N",
-    "Nat",
-    "ext",
-]
+__all__ = ["jlt", "pst"]

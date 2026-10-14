@@ -151,11 +151,12 @@ jobs:
         python -m pip show dedekind > build/python-docs/install-report.txt
         python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
         python - <<'PY'
-        import dedekind
+        from dedekind.jlt import succ
+        from dedekind.pst import A, image, u64, π
 
-        assert dedekind.ordered_set_roundtrip([3, 1, 2, 2]) == [1, 2, 3]
-        assert dedekind.unordered_set_roundtrip([4, 2, 4, 1]) == [1, 2, 4]
-        assert dedekind.path_from_range([2, 4, 6, 8]) == [2, 4, 6, 8]
+        U = A(u64)
+        assert (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)
+        assert image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))
         print("python-wheel-smoke-ok")
         PY
 

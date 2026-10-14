@@ -34,7 +34,7 @@ build-dir = "build-python/{wheel_tag}"
 wheel.packages = ["python/dedekind"]
 # Scope the editable / wheel install to the nanobind extension targets
 # only.  CMake's dependency graph still pulls in the layer libraries
-# transitively (_dedekind → dedekind_optimization → … → dedekind_category),
+# transitively (_pst → dedekind_optimization → … → dedekind_category),
 # so the link is correct.  Skipped: 13 test executables (each linking
 # Catch2 + multiple layer static libs) plus the IR-fixture target.
 # That's where ~5–10 minutes of CI wall time go on every Python-touch
@@ -43,7 +43,7 @@ wheel.packages = ["python/dedekind"]
 # All extensions must be listed: they are install(TARGETS) targets, so a
 # missing one fails the wheel install (#961: _jlt is the Jlt arrow exhibit;
 # #1001: _pst the Pst chains, with the term surface over u64 and 𝔽ₚ).
-build.targets = ["_dedekind", "_jlt", "_pst"]
+build.targets = ["_jlt", "_pst"]
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"

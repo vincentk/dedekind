@@ -1,47 +1,27 @@
-# Python MVP User Guide
+# Python User Guide
 
-This guide covers the current Python MVP surface built on top of the C++ library: each extension (`nanobind_*.cpp`) binds the library's own types.
+The C++ core owns the mathematics; Python holds handles to it.
+Each native extension (`nanobind_*.cpp`) binds the library's own types; nothing
+is decided in Python.
 
-Design slogan: the C++ core owns the mathematics; Python holds handles to it.
+## Modules
 
-Operational policy: the Python facade is handle-only over the native core.
-Python objects are thin handles plus accessibility bits (`__repr__`,
-`__contains__`, membership, `ext`); they carry no Python-side predicate AST and
-no Python-side reducer. Composition (`& | ~`, set-builder filters) is deferred
-to the value-first reducer on the C++ side (#922) and is not reimplemented in
-Python.
+- `dedekind.jlt`: the arrows `id`, `refl`, `succ`, `pred` over `bool` and
+  `int` (the word u64), composed with `>>`.
+- `dedekind.pst`: the finite carriers and the sets over them.
+  - The truth chains `B` (𝔹) and `K3` (K₃), and ℕ's proxy `N`.
+  - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
+    word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
+    element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
+  - The term surface: `π`, `π1`, `π2` and constants build terms; `A(carrier) |
+    term` binds them, and `A(carrier) * A(carrier) | term` is a relation.
 
-## Iteration Architecture (Current)
-
-This iteration uses a three-tier architecture:
-
-1. Top-level: notebooks
-   - Define the look-and-feel and user interaction model.
-   - Must execute in CI and produce visible output for review.
-2. Middle tier: the native Python facade (`dedekind._dedekind`)
-   - Nanobind handles over the C++ core: canonical sets, membership, `ext`.
-   - Deliberately thin: no Python-side predicate structure or reduction.
-3. Lower tier: C++ core logic
-   - Owns the core mathematical invariants and implementation semantics.
-   - Python and notebook layers are consumers of this source of truth.
-
-## Scope
-
-Current Python bindings intentionally expose a small, reviewable API:
-
-- interop/path smoke helpers: `ordered_set_roundtrip(values)`,
-  `unordered_set_roundtrip(values)`, `path_from_range(values)`
-- canonical native sets (#886): `𝔹` (the Boolean universe `𝔸<bool>`), `ℕ`
-  (the ambient natural-numbers universe `𝔸<Cardinality>`), and `Nat` (the
-  subobject ℕ⊂ℤ, the halfspace `{x ∈ ℤ | x ≥ 0}`, χ: x ↦ x ≥ 0). Membership `x in s` runs the
-  native characteristic morphism χ from the C++ core.
-- `ext(universe)`: the native retraction μ: Int ⇀ Ext. It materialises a finite
-  candidate universe through the native ℕ⊂ℤ classifier into a Python `set`, so
-  `ext([-2, -1, 0, 1, 2]) == {0, 1, 2}` is decided in C++.
-
-There is no pandas dependency and no pure-Python DSL: those pre-target-
-architecture modules were removed in the #886 cleanup. The facade is handle-
-only over the native core.
+The laws decide the syntax: a term may use the operators the carrier's
+certified algebras have, and anything else is refused when the set is built.
+Equality of sets is equality in the free algebra the term lives in, where that
+has a normal form: a chain's run lists today, a ring's polynomials next (#1023).
+A term outside that catalogue (a remainder, a division by a term) evaluates but
+does not compare.
 
 ## Install
 
@@ -76,45 +56,34 @@ python -m pip install --no-build-isolation -e .
 ## Quickstart
 
 ```python
-import dedekind
-from dedekind import 𝔹, ℕ, Nat, ext  # 𝔹→B, ℕ→N via NFKC normalisation
+from dedekind.jlt import succ
+from dedekind.pst import A, image, u64, 𝔽ₚ, π, π1, π2
 
-print(dedekind.ordered_set_roundtrip([3, 1, 2, 2]))
-print(dedekind.unordered_set_roundtrip([4, 2, 4, 1]))
-print(dedekind.path_from_range([2, 4, 6, 8]))
+U = A(u64)
+region = (U | (π > 3)) & (U | (π < 5))
+print(region == U | (π == 4))           # True: one normal form, the run list
+print(region.runs(), list(region))      # [(4, 4)] [4]
 
-# Membership runs the native χ from the C++ core, not a Python reimplementation.
-print(True in 𝔹)          # True
-print(4 in ℕ)             # True (ℕ is the ambient universe: χ_ℕ always holds)
-print(-7 not in Nat)      # True (the discriminating ℕ⊂ℤ classifier, decided in C++)
-print(ext([-2, -1, 0, 1, 2]))  # {0, 1, 2}
+third = A(𝔽ₚ) * A(𝔽ₚ) | (π2 == π1 / 3)  # a field's division by a constant
+print((3, 1) in third)                  # True
+
+print(image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0)))   # True: it wraps
 ```
 
-Expected output:
+## Error Handling Contract
 
-```text
-[1, 2, 3]
-[1, 2, 4]
-[2, 4, 6, 8]
-True
-True
-True
-{0, 1, 2}
-```
+Refusals are raised when a term is written or bound, never when it is read:
 
-## Caveats (MVP)
+- an operator the carrier's algebras do not have (`/` on `u64`, `<` on `𝔽ₚ`,
+  `+` on 𝔹, a division by a term): `TypeError`;
+- a constant the carrier cannot hold (`A(u64) | (π > -1)`): `ValueError`;
+- a division by the constant 0, or by a constant that is 0 on the carrier
+  (`π / p` on 𝔽ₚ): `ValueError`;
+- equality of sets outside the catalogue (`A(u64) | (π % 2 == 0)`):
+  `TypeError`.
 
-- API stability: function names and packaging details may change before a stable v0.1.0 release.
-- Coverage: only a narrow interop/path surface is bound in this phase.
-- Semantics: this package is a consumer of system-language semantics defined in C++ modules; Python is not the source of core invariants.
-- Performance: set conversion roundtrips are linear in collection size. Container lookup properties still follow destination container behavior.
-- **Handle-only, composition deferred**: Python holds handles plus accessibility bits over the native core; it carries no Python-side predicate AST or reducer. Composition (`& | ~`, set-builder filters) and passing a Python predicate into `ext` are deferred to the value-first reducer on the C++ side (#922). The pure-Python DSL shims that once sketched this surface were removed in the #886 cleanup.
-
-## Error Handling Contract (MVP)
-
-- The current bound functions accept integer sequences for this MVP.
-- Invalid payloads are rejected at the Python boundary with `TypeError` (for example, non-iterables where a sequence is required, or non-integral elements in an otherwise iterable payload).
-- This behavior is covered by unhappy-path smoke tests in `src/test/python/test_dedekind.py` and surfaced in CI logs.
+These are covered by `src/test/python/test_pst_terms.py` and
+`test_pst_runs.py`.
 
 ## Smoke Test
 
@@ -157,24 +126,16 @@ dropping end-to-end checks required by staged publication (issue #240).
 
 ## Notebook Demos
 
-The MVP notebook demos live in `docs/python/notebooks/`:
+The notebooks live in `docs/python/notebooks/`; each asserts what it shows, so
+it is also a test:
 
-- `01_facade_roundtrip_basics.ipynb`: happy-path facade demo plus the native
-  canonical-sets (`𝔹` / `ℕ`) README exhibit (membership via the C++ `χ`).
+- `01_terms_on_the_ring_and_the_field.ipynb`: the canonical ring and field, the
+  README exhibit as one normal form, refusals at construction, the successor's
+  image wrapping.
+- `02_pst_sets_by_evaluation.ipynb`: sets over the truth chains, with `Unknown`
+  as a verdict.
 
-The DSL-tier notebooks (`03`/`04`) were removed with the pre-target pure-Python
-modules in the #886 cleanup; the notebook set is kept to a single native-facade
-smoke test that executes as a CI integration check.
-
-Notebook outputs are committed to version control so that GitHub renders them
-without executing code. To refresh outputs locally:
-
-```bash
-make jupyter
-# execute each notebook in the Jupyter UI, then save and commit the outputs
-```
-
-CI independently verifies execution via `make integration-test`; rendered copies
+CI verifies execution via `make integration-test`; rendered copies
 of executed notebooks are uploaded as the `python-notebooks` artifact on every
 CI run.
 
