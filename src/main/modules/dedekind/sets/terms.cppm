@@ -60,6 +60,23 @@
  * Type-checking is at the former: at compile time for a typed term bound to
  * a @c constexpr universe, at construction for a term built at run time.
  *
+ * The carrier and its algebras are different entities (the paper's Figure 1),
+ * and a carrier bears several: @c u64 is a chain, a ring and a Euclidean
+ * division at once.  The @b signature is the union over the carrier's
+ * registered algebras, each rule speaking for one, each import bringing one
+ * more into view.  A @b free @b algebra, and so a normal form, is @b per
+ * @b algebra, not per carrier: over one carrier the chain's is read as run
+ * lists and the ring's as polynomials, and "equal terms" means a different
+ * thing in each.  A term spanning two algebras (@c π @c + @c 1 @c < @c 5)
+ * belongs to their @b combined theory (the ordered ring, whose laws relate
+ * @c <= and @c +) and has a normal form only where that theory's is
+ * catalogued; the translate of an atom @c π @c ± @c c @c ⋈ @c k in
+ * @c order:halfspace is the first piece of it, not a licence to glue run lists
+ * and polynomials without laws.  A field adds no free algebra: division by a
+ * nonzero constant factors through the ring (@c π @c / @c 3 on 𝔽₇ is
+ * @c π @c * @c 5), so the field certificate only guarantees the constant a
+ * unit.
+ *
  * Wikipedia: Term (logic), Term algebra, Atomic formula, Relational algebra
  *
  * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes, sie
