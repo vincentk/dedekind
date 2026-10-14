@@ -620,7 +620,7 @@ constexpr bool admits(On<C>, std::plus<>, bool) {
   return true;
 }
 export template <typename C>
-  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<>>
+  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<C>>
 constexpr bool admits(On<C>, std::minus<>, bool) {
   return true;
 }
@@ -775,23 +775,23 @@ template <typename C>
 constexpr C apply_op(Arith op, const C& x, const C& y) {
   switch (op) {
     case Arith::Add:
-      if constexpr (IsClosedUnder<C, std::plus<>>) return std::plus<C>{}(x, y);
+      if constexpr (IsClosedUnder<C, std::plus<C>>) return std::plus<C>{}(x, y);
       break;
     case Arith::Sub:
-      if constexpr (IsClosedUnder<C, std::minus<>>)
+      if constexpr (IsClosedUnder<C, std::minus<C>>)
         return std::minus<C>{}(x, y);
       break;
     case Arith::Mul:
-      if constexpr (IsClosedUnder<C, std::multiplies<>>)
+      if constexpr (IsClosedUnder<C, std::multiplies<C>>)
         return std::multiplies<C>{}(x, y);
       break;
     case Arith::Div:
     case Arith::FloorDiv:
-      if constexpr (IsClosedUnder<C, std::divides<>>)
+      if constexpr (IsClosedUnder<C, std::divides<C>>)
         return std::divides<C>{}(x, y);
       break;
     case Arith::Mod:
-      if constexpr (IsClosedUnder<C, std::modulus<>>)
+      if constexpr (IsClosedUnder<C, std::modulus<C>>)
         return std::modulus<C>{}(x, y);
       break;
   }
