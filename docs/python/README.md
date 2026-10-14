@@ -13,13 +13,16 @@ is decided in Python.
   - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
     word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
     element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
-  - The term surface: `π`, `π1`, `π2` and constants build terms; `A(carrier) |
+  - The term surface: `π`, `π_1`, `π_2` (`π[k]` the family) and constants build terms; `A(carrier) |
     term` binds them, and `A(carrier) * A(carrier) | term` is a relation.
 
 The laws decide the syntax: a term may use the operators the carrier's
 certified algebras have, and anything else is refused when the set is built.
 Equality of sets is equality in the free algebra the term lives in, where that
-has a normal form: a chain's run lists today, a ring's polynomials next (#1023).
+has a normal form: a chain's run lists, and a ring's or field's polynomials
+(`normal_form(S)`: the same set, its equations `p == 0` with `p` a polynomial).
+Equal normal forms cut out equal sets, so `==` answers `True` when they agree
+and raises `TypeError` when they differ, which decides nothing.
 A term outside that catalogue (a remainder, a division by a term) evaluates but
 does not compare.
 
@@ -57,14 +60,14 @@ python -m pip install --no-build-isolation -e .
 
 ```python
 from dedekind.jlt import succ
-from dedekind.pst import A, image, u64, 𝔽ₚ, π, π1, π2
+from dedekind.pst import A, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = A(u64)
 region = (U | (π > 3)) & (U | (π < 5))
 print(region == U | (π == 4))           # True: one normal form, the run list
 print(region.runs(), list(region))      # [(4, 4)] [4]
 
-third = A(𝔽ₚ) * A(𝔽ₚ) | (π2 == π1 / 3)  # a field's division by a constant
+third = A(𝔽ₚ) * A(𝔽ₚ) | (π_2 == π_1 / 3)  # a field's division by a constant
 print((3, 1) in third)                  # True
 
 print(image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0)))   # True: it wraps
@@ -131,7 +134,7 @@ it is also a test:
 
 - `01_terms_on_the_ring_and_the_field.ipynb`: the canonical ring and field, the
   README exhibit as one normal form, refusals at construction, the successor's
-  image wrapping.
+  image wrapping, the ring's polynomial normal form.
 - `02_pst_sets_by_evaluation.ipynb`: sets over the truth chains, with `Unknown`
   as a verdict.
 

@@ -185,18 +185,18 @@ struct Dual {
   }
 };
 
-/** @brief Canonical product projections for @c Dual (ADL customization of
- *  @c dedekind::category::π_1 / @c π_2): 𝔻's storage is @c val / @c der, not
+/** @brief Canonical product projections for @c Dual (the ADL @c component hook
+ *  of @c dedekind::category::π_1 / @c π_2): 𝔻's storage is @c val / @c der, not
  * the pair-like @c .first / @c .second the default projection reads, so we
  * provide the overload here.  This is what makes @c Dual satisfy @c IsProduct
  * uniformly with @c Complex (P-leg), while @c value() / @c derivative() stay as
  * the domain-specific aliases that agree with @c π_1 / @c π_2. */
 export template <typename F>
-constexpr F π_1(const Dual<F>& d) {
+constexpr F component(const Dual<F>& d, dedekind::category::At<1>) {
   return d.val;
 }
 export template <typename F>
-constexpr F π_2(const Dual<F>& d) {
+constexpr F component(const Dual<F>& d, dedekind::category::At<2>) {
   return d.der;
 }
 

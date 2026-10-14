@@ -587,24 +587,24 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
  *  reference to that @c IsSet (the downstream @c sets lift relies on this).
  *  Still @c ->convertible_to<A>, so @c IsProduct is satisfied. */
 export template <typename A, typename B>
-constexpr const A& π_1(const Meet<A, B>& m) {
+constexpr const A& component(const Meet<A, B>& m, At<1>) {
   return m.lhs;
 }
 /** @brief π_2: the right-operand accessor of a meet, by const-reference (see
  *  @c π_1). */
 export template <typename A, typename B>
-constexpr const B& π_2(const Meet<A, B>& m) {
+constexpr const B& component(const Meet<A, B>& m, At<2>) {
   return m.rhs;
 }
 /** @brief π_1: the left-operand accessor of a join, by const-reference (see the
  *  meet overload). */
 export template <typename A, typename B>
-constexpr const A& π_1(const Join<A, B>& j) {
+constexpr const A& component(const Join<A, B>& j, At<1>) {
   return j.lhs;
 }
 /** @brief π_2: the right-operand accessor of a join, by const-reference. */
 export template <typename A, typename B>
-constexpr const B& π_2(const Join<A, B>& j) {
+constexpr const B& component(const Join<A, B>& j, At<2>) {
   return j.rhs;
 }
 
@@ -642,7 +642,7 @@ export struct MakeJoin {
   }
 };
 
-// The projection MORPHISMS Π_1 / Π_2 and the stronger concept
+// The projection MORPHISMS Π<1, P> / Π<2, P> and the stronger concept
 // IsArrowProduct (an IsProduct whose projections are arrows) live in the
 // :limit partition, next to IsProduct and the free π_1 / π_2 accessors.  The
 // reducer nodes Meet / Join (and their downstream sets lifts) target

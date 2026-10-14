@@ -301,8 +301,8 @@ concept IsMeetAsRightAdjoint =
  *         pair @c (R,S). The object-half is @c IsProduct itself (the carrier @c
  *         A×B @b is the product object); the arrow-half is this @c Tensor. The
  *         action is the mediating morphism @c ⟨R∘π₁, @c S∘π₂⟩ built from the
- *         product's own reified projections @c Π_1 / @c Π_2 (@c :limit) and its
- *         pairing (the @c std::pair mediator @c mediate_product wraps as an
+ *         product's own reified projections @c Π<1, P> / @c Π<2, P> (@c :limit)
+ * and its pairing (the @c std::pair mediator @c mediate_product wraps as an
  *         arrow); nothing here reimplements the universal property.
  *  @tparam R the left leg @c A→C.
  *  @tparam S the right leg @c B→D.
@@ -324,11 +324,11 @@ struct Tensor {
   R r{};
   S s{};
   /** @brief Run both legs in parallel @c (R⊗S)(a,b)=(R(a),S(b)), routed
-   *         through the product's own projections @c Π_1 / @c Π_2.
+   *         through the product's own projections @c Π<1, P> / @c Π<2, P>.
    *  @param p the input pair @c (a,b) in @c A×B.
    *  @return the pair @c (R(a),S(b)) in @c C×D. */
   constexpr Codomain operator()(const Domain& p) const {
-    return {r(Π_1<Domain>{}(p)), s(Π_2<Domain>{}(p))};
+    return {r(Π<1, Domain>{}(p)), s(Π<2, Domain>{}(p))};
   }
 };
 
@@ -396,7 +396,7 @@ static_assert(!IsMerge<Copy<bool>>, "Δ (A→A×A) is not the fold Δ† (A×A�
 // IsMeetAsRightAdjoint).  Pinned here so the limitation stays visible; #952
 // (dom/cod contract) would separate the readings.
 static_assert(
-    IsMerge<Π_1<std::pair<bool, bool>>>,
+    IsMerge<Π<1, std::pair<bool, bool>>>,
     "structural witness: a projection π₁:A×A→A also satisfies IsMerge "
     "(fold-vs-projection honesty gap).");
 // An injected op with no @c operator()(A,A) is rejected at the concept surface:

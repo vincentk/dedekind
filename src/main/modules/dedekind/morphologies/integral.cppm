@@ -245,8 +245,9 @@ constexpr auto preimage(
 namespace {
 // The residue rotates by −k (mod N) on the cyclic carrier unsigned = ℤ/2^wℤ.
 inline constexpr auto ℤ4 = dedekind::sets::𝔸<unsigned>{};
-static_assert(preimage(ℤ4* ℤ4 | π1 + 1u == π2, Congruence<4u, 2u>{})(1u) &&
-                  !preimage(ℤ4 * ℤ4 | π1 + 1u == π2, Congruence<4u, 2u>{})(2u),
+static_assert(preimage(ℤ4* ℤ4 | π_1 + 1u == π_2, Congruence<4u, 2u>{})(1u) &&
+                  !preimage(ℤ4 * ℤ4 | π_1 + 1u == π_2,
+                            Congruence<4u, 2u>{})(2u),
               "preimage(x↦x+1, {x≡2 mod 4}) = {x≡1 mod 4} on ℤ/2^w.");
 }  // namespace
 

@@ -19,21 +19,21 @@ using P = std::pair<unsigned, unsigned>;
 TEST_CASE(
     "sets:terms: + * == evaluate at a point; a constant meets the carrier",
     "[sets][terms]") {
-  const auto succ = π1 + 1 == π2;
+  const auto succ = π_1 + 1 == π_2;
   CHECK(succ(P{4, 5}));
   CHECK_FALSE(succ(P{4, 6}));
-  CHECK(((π1 + 1) * 3 == π2)(P{1, 6}));
+  CHECK(((π_1 + 1) * 3 == π_2)(P{1, 6}));
   CHECK((π != 3)(4u));
-  CHECK(slots_v<decltype(π1 * 3 + 1)> == 0b10u);
+  CHECK(slots_v<decltype(π_1 * 3 + 1)> == 0b10u);
   CHECK((𝔸<unsigned>{} | (π == 4))(4u));
 }
 
 TEST_CASE("sets:terms: a division by the constant 0 is refused when built",
           "[sets][terms][construction]") {
   // Building a term is syntax: no rule is asked until the former binds it.
-  CHECK_THROWS_AS(π1 / 0, std::domain_error);
-  CHECK_THROWS_AS(π1 % 0, std::domain_error);
-  CHECK_NOTHROW(π1 / 2);
+  CHECK_THROWS_AS(π_1 / 0, std::domain_error);
+  CHECK_THROWS_AS(π_1 % 0, std::domain_error);
+  CHECK_NOTHROW(π_1 / 2);
   CHECK_THROWS_AS(
       Term<int>::bin(Arith::Mod, Term<int>::proj(0), Term<int>::constant(0)),
       std::domain_error);

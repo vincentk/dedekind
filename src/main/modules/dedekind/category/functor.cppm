@@ -871,7 +871,7 @@ constexpr auto φ(Identity<A> const& id, F&& f)
 // @c dedekind.algebra:quotient (and sibling @c :free).  A consumer
 // querying these traits on a quotient / product / free carrier
 // (@c Rational<I>, @c Complex<R>, @c Dual<F>, @c Vec2V<T>,
-// @c RigPolynomial<R>) must transitively reach
+// @c Polynomial<R, M>) must transitively reach
 // @c dedekind.algebra for the propagation to fire.  In practice
 // every carrier-defining partition imports @c dedekind.algebra
 // already, so witnesses co-located with carriers always see the

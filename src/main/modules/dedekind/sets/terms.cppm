@@ -18,15 +18,15 @@
  *
  * A term's @b structure is its type: the slots it mentions (@c slots_v, a bit
  * mask), its operators, the comparison an atom makes.  Its @b constants are
- * values, spelled as the literals themselves (@c π1 @c + @c 1 @c == @c π2), so
- * a term built at run time --- from Python --- is the same term.  A constant
+ * values, spelled as the literals themselves (@c π_1 @c + @c 1 @c == @c π_2),
+ * so a term built at run time --- from Python --- is the same term.  A constant
  * meets the sort of the term it is combined with: on a pair of @c Cardinality
  * the @c 1 above is the cardinal 1, converted when the term is evaluated and
  * checked to be representable.  Facts about a constant's value (a divisor is
  * not zero) are checked when the term is built: in @c constexpr code a
  * violation is a compile error.
  *
- * Certificates read the structure: an atom @c π2 @c == @c T with
+ * Certificates read the structure: an atom @c π_2 @c == @c T with
  * @c slots_v<T> @c ⊆ @c {1} is the graph of a function of the first
  * coordinate, whatever @c T is.
  *
@@ -52,8 +52,8 @@
  * algebra.  The catalogue of free algebras with a canonical representative:
  *   - a chain: the Boolean algebra the intervals generate, read as run lists
  *     (@c order:runs, @c steps);
- *   - a commutative rig, ring or field: polynomials over the carrier (#1023,
- *     not yet).
+ *   - a commutative rig, ring or field: polynomials over the carrier
+ *     (@c algebra:polynomial, @c normal_form).
  * A term whose operators are in the signature but outside the catalogue (a
  * remainder, a division by a term) is well-formed and evaluates, and has no
  * equality: it is refused where a normal form is asked, never rewritten.
@@ -110,31 +110,32 @@ import :cardinality;  // IsRingIntegral; Cardinality, the ℕ carrier constants
 namespace dedekind::sets {
 using namespace dedekind::category;
 
-// ── The point-free variable ────────────────────────────────────────────────
+// ── The point-free variables ───────────────────────────────────────────────
 /**
- * @brief @c π --- the point-free variable, naming no carrier.
+ * @brief The variables of the grammar are the product projections of
+ *        @c category:limit, one entity each: @c π (the unary projection, the
+ *        identity), @c π_1, @c π_2, @c π_3, and the family @c π_<k>.
  *
  * @details @c π leaves the carrier open: @c π @c > @c 5 is a cut datum, @c π
  * @c == @c v a point, and the former @c carrier @c | @c ... binds it, the
- * constant meeting the carrier exactly.  @c π is the unary projection; the
- * product coordinates @c π1 / @c π2 follow.
- *
- * @note @c Projection itself is an @b empty symbolic tag (not callable), so it
- * does @b not satisfy @c category::IsProductProjection --- it is the DSL
- * @b spelling of a coordinate, consumed by the comparison operators.  The
- * actual product-projection is the @b accessor @c coord below (@c coord<1> /
- * @c coord<2>), which @b delegates to @c category::π_1 / @c category::π_2 (the
- * canonical projections in @c :limit) and IS a certified
- * @c IsProductProjection --- the static_assert after @c coord pins that
- * agreement.  So @c π1 / @c π2 (tags) and @c category::π_1 / @c π_2 (accessors)
- * are two spellings of one notion, bridged by @c coord.
- * @see dedekind::category::π_1, dedekind::category::π_2
- * @see dedekind::category::IsProductProjection
+ * constant meeting the carrier exactly.  On a product the variable of slot
+ * @c k is the projection @c π_k: called on a point it reads the coordinate, and
+ * a comparison of terms over it builds a strongly-typed predicate on the pair
+ * (no lambda); @c && conjoins them (@c || joins), distinct from the set-level
+ * @c & / @c | on whole relations; and @c product @c | @c predicate restricts
+ * the product to the relation.  @c && binds looser than @c |, so the
+ * comprehension parenthesises the meet: @c ℕ*ℕ @c | @c (π_1 @c < @c π_2 @c &&
+ * @c π_1 @c > @c 5) is the relation @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an
+ * @c IsSet on @c ℕ×ℕ.
+ * @see dedekind::category::Projection
  */
-export template <IsRingIntegral auto Slot>
-struct Projection {};
+export using dedekind::category::Projection;
+export using dedekind::category::π;
+export using dedekind::category::π_;
+export using dedekind::category::π_1;
+export using dedekind::category::π_2;
+export using dedekind::category::π_3;
 
-export inline constexpr Projection<0> π{};
 // Cosmetic alias for the sole projection π (the bound element of a
 // single-carrier comprehension): a plain element also reads as @c χ,
 // e.g. @c ℕ @c | @c χ @c <= @c 5.  Same type and behaviour as π (a
@@ -143,23 +144,6 @@ export inline constexpr Projection<0> π{};
 // element parameter named @c x and would trip @c -Wshadow.)
 export inline constexpr Projection<0> χ{};
 
-// ── Product projections: the relational (point-free) variables ─────────────
-/**
- * @brief @c π1 / @c π2 --- the coordinate projections of a pair, the positional
- *        variables of the point-free relational surface.
- *
- * @details A comparison of terms over @c π_I builds a
- * @b strongly-typed predicate on a pair (no lambda); @c && conjoins them
- * (@c || joins), distinct from the set-level @c & / @c | on whole relations;
- * and @c product @c | @c predicate restricts the product to the relation.
- * @c && binds looser than @c |, so the comprehension parenthesises the meet:
- * @c ℕ*ℕ @c | @c (π1 @c < @c π2 @c && @c π1 @c > @c 5) is the relation
- * @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an @c IsSet on @c ℕ×ℕ.
- */
-export inline constexpr Projection<1> π1{};
-export inline constexpr Projection<2> π2{};
-export inline constexpr Projection<3> π3{};
-
 // Blackboard coordinate aliases so a pair/triple predicate reads as
 // @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
 // letter-category identifiers (like @c 𝔸/ℕ), NOT ASCII @c x/y/z, so they carry
@@ -167,42 +151,6 @@ export inline constexpr Projection<3> π3{};
 export inline constexpr Projection<1> 𝑥{};
 export inline constexpr Projection<2> 𝑦{};
 export inline constexpr Projection<3> 𝑧{};
-
-/** @brief The @c I-th component of a pair (1 = @c first, 2 = @c second).
- *  Binary products only, so an out-of-range slot (the unary @c π, or @c π3) is
- *  a hard error rather than a silent alias for @c .second.
- *  @note The index @b type is a call-site free variable (@c IsRingIntegral);
- *  the @c requires guard pins the @b value domain to @c {1,2} (binary
- *  products), independent of that type.  Extending @c coord to higher arities
- *  (@c π3 / @c 𝑧 already exist as tags) is the arity-aware follow-up (#824). */
-export template <IsRingIntegral auto I, typename P>
-  requires(I == 1 || I == 2)
-constexpr decltype(auto) coord(const P& p) {
-  // Reuse @c :limit's canonical product projections rather than re-deriving
-  // @c .first / @c .second here: halfspace's @c coord and @c category::π_1 /
-  // @c π_2 are the @b same projection (@c IsProductProjection).  Letting the
-  // two surfaces share one accessor stops halfspace shadowing @c :limit.
-  if constexpr (I == 1)
-    return dedekind::category::π_1(p);
-  else
-    return dedekind::category::π_2(p);
-}
-
-// The two wheels know each other: @c :limit's @c π_1 / @c π_2 are exactly the
-// @c coord accessors above, and they are certified @c IsProductProjection there
-// (@c limit.cppm).  Pin the agreement so the surfaces cannot silently diverge.
-static_assert(
-    dedekind::category::IsProductProjection<
-        decltype([](const std::pair<int, bool>& p) {
-          return dedekind::category::π_1(p);
-        }),
-        std::pair<int, bool>, int>,
-    "coord<1> = category::π_1 is a certified product projection (left).");
-static_assert(coord<1>(std::pair{7, false}) ==
-                      dedekind::category::π_1(std::pair{7, false}) &&
-                  coord<2>(std::pair{7, false}) ==
-                      dedekind::category::π_2(std::pair{7, false}),
-              "coord IS category::π_1 / π_2 (one projection, two call sites).");
 
 // ── Relational predicates and their pointwise connectives ───────────────────
 
@@ -563,7 +511,7 @@ constexpr decltype(auto) term_value(Projection<I>, const P& p) {
   if constexpr (I == 0)
     return p;
   else
-    return coord<I>(p);
+    return Projection<I>{}(p);
 }
 /** @brief The carrier two operands meet in: a constant takes the other's, two
  *  terms their common type.  @tparam A,B the operand terms.  @tparam RA,RB the
@@ -838,18 +786,18 @@ constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   throw not_admitted("the comparison is not admitted on the carrier");
 }
 /** @brief The coordinate @c slot of the point @c p: the point itself for the
- *  unary @c π, a pair's coordinates for @c π1 / @c π2. */
+ *  unary @c π, a pair's coordinates for @c π_1 / @c π_2. */
 template <typename P>
 constexpr coordinate_t<P> runtime_coord(unsigned slot, const P& p) {
   if constexpr (requires { typename P::first_type; }) {
     if (slot == 1) return p.first;
     if (slot == 2) return p.second;
     throw not_admitted(slot == 0 ? "π names an element; the points are pairs"
-                                 : "binary products only: π1 and π2");
+                                 : "binary products only: π_1 and π_2");
   } else {
     if (slot == 0) return p;
     throw not_admitted(
-        "π1 / π2 name a pair's coordinates; the points are "
+        "π_1 / π_2 name a pair's coordinates; the points are "
         "elements");
   }
 }
@@ -1174,7 +1122,7 @@ struct Term {
   Arith op{};
   std::shared_ptr<const Term> a, b;
 
-  /** @brief @c π (slot 0), @c π1, @c π2. */
+  /** @brief @c π (slot 0), @c π_1, @c π_2. */
   static Term proj(unsigned slot) {
     Term t;
     t.kind = Kind::Proj;
@@ -1294,6 +1242,31 @@ struct Pred {
   }
 };
 
+/** @brief The same tree: the same nodes, slots, operators and comparisons, and
+ *  equal constants.  Syntactic, so sound for equality of what two normal forms
+ *  denote and silent on two different trees.  @param x,y the terms. */
+export template <typename K>
+bool same_shape(const Term<K>& x, const Term<K>& y) {
+  if (x.kind != y.kind) return false;
+  switch (x.kind) {
+    case Term<K>::Kind::Proj:
+      return x.slot == y.slot;
+    case Term<K>::Kind::Const:
+      return x.value == y.value;
+    case Term<K>::Kind::Bin:
+      return x.op == y.op && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+  }
+  return false;
+}
+/** @brief The same predicate tree, atom by atom.  @param x,y the predicates. */
+export template <typename K>
+bool same_shape(const Pred<K>& x, const Pred<K>& y) {
+  if (x.kind != y.kind) return false;
+  if (x.kind == Pred<K>::Kind::Cmp)
+    return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+  return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);
+}
+
 /** @section terms__Formal_Verification */
 // ── Certificates ────────────────────────────────────────────────────────────
 // Rules over a term's structure, read by the relation traits (functional,
@@ -1346,8 +1319,8 @@ export template <typename X, typename T>
 inline constexpr bool is_total_term_v =
     decltype(cata(Total<X>{}, std::declval<const T&>()))::value;
 
-/** @brief @c π2 @c == @c t, or @c t @c == @c π2, with @c t mentioning only the
- *  first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
+/** @brief @c π_2 @c == @c t, or @c t @c == @c π_2, with @c t mentioning only
+ * the first slot: the graph of the function @c x ↦ t(x).  @c term is @c t.
  *  @tparam P the atom. */
 template <typename P>
 struct graph_atom : std::false_type {};
@@ -1370,25 +1343,25 @@ using graph_term_t = typename graph_atom<P>::term;
 
 namespace detail_terms_witness {
 using P = std::pair<unsigned, unsigned>;
-inline constexpr auto succ_graph = π1 + 1 == π2;
+inline constexpr auto succ_graph = π_1 + 1 == π_2;
 static_assert(IsRelPredicate<decltype(succ_graph)> &&
                   slots_v<decltype(succ_graph)> == 0b110u,
-              "π1 + 1 == π2 is an atom on slots 1 and 2");
+              "π_1 + 1 == π_2 is an atom on slots 1 and 2");
 static_assert(succ_graph(P{4, 5}) && !succ_graph(P{4, 6}), "4 + 1 == 5, not 6");
-inline constexpr auto half_after_shift = (π1 + 1) * 3 == π2;
+inline constexpr auto half_after_shift = (π_1 + 1) * 3 == π_2;
 static_assert(half_after_shift(P{1, 6}), "(1 + 1)·3 == 6: any nesting");
-static_assert(only_slot(slots_v<decltype(π1 * 3 + 1)>, 1),
-              "3·π1 + 1 mentions only the first slot");
-inline constexpr auto on_naturals = π1 + 1 == π2;
+static_assert(only_slot(slots_v<decltype(π_1 * 3 + 1)>, 1),
+              "3·π_1 + 1 mentions only the first slot");
+inline constexpr auto on_naturals = π_1 + 1 == π_2;
 static_assert(on_naturals(std::pair{finite_cardinality(4),
                                     finite_cardinality(5)}),
               "the constant 1 meets ℕ as the cardinal 1");
 using N2 = std::pair<Cardinality, Cardinality>;
-static_assert(is_total_term_v<N2, decltype(π1 * 3 + 1)>,
+static_assert(is_total_term_v<N2, decltype(π_1 * 3 + 1)>,
               "3·x + 1 is total on ℕ: + and · saturate");
-static_assert(IsGraphAtom<decltype(π1 * 3 + 1 == π2)> &&
-                  !IsGraphAtom<decltype(π2 * π2 == π1 * π1)>,
-              "π2 == t(π1) is a graph; y² == x² (y = ±x) is not certified");
+static_assert(IsGraphAtom<decltype(π_1 * 3 + 1 == π_2)> &&
+                  !IsGraphAtom<decltype(π_2 * π_2 == π_1 * π_1)>,
+              "π_2 == t(π_1) is a graph; y² == x² (y = ±x) is not certified");
 // A predicate the grammar does not know is a leaf the certificates refuse.
 struct Foreign {
   using is_rel_predicate = void;
@@ -1403,3 +1376,21 @@ static_assert(slots_v<RelAnd<decltype(succ_graph), Foreign>> == ~0u &&
 }  // namespace detail_terms_witness
 
 }  // namespace dedekind::sets
+
+// The variables are category's projections and their term operators are the
+// grammar's, defined above.  Declared into the variables' namespace as well, so
+// argument-dependent lookup on a bare projection (π_1 < π_2, π + 1) finds them
+// wherever this module is imported; each is constrained to term operands.
+export namespace dedekind::category {
+using dedekind::sets::operator+;
+using dedekind::sets::operator-;
+using dedekind::sets::operator*;
+using dedekind::sets::operator/;
+using dedekind::sets::operator%;
+using dedekind::sets::operator==;
+using dedekind::sets::operator!=;
+using dedekind::sets::operator<;
+using dedekind::sets::operator<=;
+using dedekind::sets::operator>;
+using dedekind::sets::operator>=;
+}  // namespace dedekind::category

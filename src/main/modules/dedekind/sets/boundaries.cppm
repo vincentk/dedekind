@@ -424,15 +424,18 @@ constexpr const S& classifier(const S& s) {
 
 /** @brief The universe of a pair carrier is the product of the factor
  *  universes, @c 𝔸<A×B> @c ≅ @c 𝔸<A> @c × @c 𝔸<B>: @c π_1 / @c π_2 project it
+ *  (through their @c component hook)
  *  to the factors, so @c IsProduct<𝔸<pair<A,B>,L>, @c 𝔸<A,L>, @c 𝔸<B,L>>
  *  holds --- the structural content of "a relation is a subobject of A × B"
  *  (Definition Trsk, §4), read off its universe leg. */
 export template <typename A, typename B, typename L, typename C>
-constexpr auto π_1(const 𝔸<std::pair<A, B>, L, C>&) {
+constexpr auto component(const 𝔸<std::pair<A, B>, L, C>&,
+                         dedekind::category::At<1>) {
   return 𝔸<A, L>{};
 }
 export template <typename A, typename B, typename L, typename C>
-constexpr auto π_2(const 𝔸<std::pair<A, B>, L, C>&) {
+constexpr auto component(const 𝔸<std::pair<A, B>, L, C>&,
+                         dedekind::category::At<2>) {
   return 𝔸<B, L>{};
 }
 

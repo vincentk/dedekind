@@ -27,7 +27,7 @@
  * (ℤ/2⁶⁴: + − · wrap, // and % by a nonzero word) and @c 𝔽ₚ (@c Fp,
  * @c Modular<2⁶⁴ − 59>: + − · /, no order), with their universes @c A(u64)
  * and @c A(𝔽ₚ); an element equals the int it represents.  The @b term
- * @b surface (#1006) builds terms over @c π / @c π1 / @c π2 that
+ * @b surface (#1006) builds terms over @c π / @c π_1 / @c π_2 that
  * @c A(carrier) @c | @c term and @c A(carrier) @c * @c A(carrier) @c | @c term
  * bind, every operator and constant checked then; those sets and relations
  * hold the bound term (a comprehension) and are read pointwise.  Reduction
@@ -325,7 +325,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 
-/** @brief The grammar's variables @c π (also written @c χ), @c π1, @c π2: a
+/** @brief The grammar's variables @c π (also written @c χ), @c π_1, @c π_2: a
  *  comparison builds a predicate, an arithmetic a term, each bound and checked
  *  by the former. */
 struct ProjectionTag {
@@ -498,7 +498,7 @@ const char* spelling(Rel r) {
 std::string show(const RTerm& t) {
   switch (t.kind) {
     case RTerm::Kind::Proj:
-      return t.slot == 0 ? "π" : "π" + std::to_string(t.slot);
+      return t.slot == 0 ? "π" : "π_" + std::to_string(t.slot);
     case RTerm::Kind::Const:
       return nb::cast<std::string>(nb::repr(t.value.o));
     case RTerm::Kind::Bin:
@@ -584,6 +584,42 @@ struct RunsIter {
   bool live = false;
 };
 
+/** @brief A coefficient written back as a constant of the term surface: the
+ *  word as its int, an element of 𝔽ₚ as its symmetric representative. */
+struct AsConstant {
+  PyConst operator()(std::uint64_t c) const { return PyConst{py_int(c)}; }
+  PyConst operator()(const Fp& c) const { return PyConst{representative(c)}; }
+};
+
+/** @brief Equality of two predicates by their normal forms: equal forms cut
+ *  out equal sets; different forms decide nothing, so they raise rather than
+ *  answer "different".  @tparam C the carrier. */
+template <typename C>
+bool equal_by_normal_form(const RPred& a, const RPred& b) {
+  if (dedekind::sets::same_shape(
+          dedekind::algebra::normal_form<C>(a, AsConstant{}),
+          dedekind::algebra::normal_form<C>(b, AsConstant{})))
+    return true;
+  throw dedekind::sets::not_admitted(
+      "not decided: the normal forms differ, and different normal forms need "
+      "not cut out different sets");
+}
+
+/** @brief Equality of two sets over @c C: the chain's run lists where they
+ *  decide (both ways), else the normal forms (only "equal").  @tparam C the
+ *  carrier.  @tparam S the set. */
+template <typename C, typename S>
+bool set_equal(const S& a, const S& b) {
+  if constexpr (IsTotallyOrdered<C>) {
+    try {
+      return a == b;
+    } catch (const dedekind::sets::not_admitted&) {
+      // outside the chain's fragment: the ring's normal forms below
+    }
+  }
+  return equal_by_normal_form<C>(a.predicate, b.predicate);
+}
+
 /** @brief The sets a term cuts out of a canonical universe: the set
  *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
  *  @c | @c pred, each a comprehension holding the bound predicate.  Over a
@@ -626,6 +662,27 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
+  const char* normal_form_doc =
+      "normal_form(S): the same set, its predicate in normal form atom by "
+      "atom: "
+      "an equation a == b on a ring as a polynomial a - b == 0 (monic on a "
+      "field), any other atom with its sides normalised.  Equal normal forms "
+      "cut out equal sets; different ones need not cut out different sets.  "
+      "//, % and a division by a term have no normal form: TypeError.";
+  m.def(
+      "normal_form",
+      [](const S& s) {
+        return U{} |
+               dedekind::algebra::normal_form<C>(s.predicate, AsConstant{});
+      },
+      nb::arg("S"), normal_form_doc);
+  m.def(
+      "normal_form",
+      [](const R& r) {
+        return UU{} |
+               dedekind::algebra::normal_form<C>(r.predicate, AsConstant{});
+      },
+      nb::arg("S"), normal_form_doc);
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -646,6 +703,17 @@ void bind_term_sets(nb::module_& m,
           },
           nb::is_operator())
       .def("__invert__", [](const S& a) { return U{} | a.predicate.negated(); })
+      .def("__eq__", set_equal<C, S>, nb::is_operator(),
+           "A == B: equality in the free algebra the carrier's laws give the "
+           "term.  A chain's run lists decide it; otherwise the normal forms "
+           "(normal_form) answer True when they agree and raise TypeError when "
+           "they differ, which decides nothing.  A term outside the catalogue "
+           "(a remainder, a division by a term): TypeError.")
+      .def(
+          "__ne__",
+          [](const S& a, const S& b) { return !set_equal<C, S>(a, b); },
+          nb::is_operator(),
+          "A != B: decided where the run lists decide; else TypeError.")
       .def_prop_ro("universe", [](const S&) { return U{}; })
       .def("__repr__",
            [shown](const S& s) { return shown + " | " + show(s.predicate); });
@@ -732,19 +800,9 @@ void bind_term_sets(nb::module_& m,
       return total;
     };
     set.def(
-           "__eq__", [](const S& a, const S& b) { return a == b; },
-           nb::is_operator(),
-           "A == B: equality in the free algebra the carrier's laws give the "
-           "term, read on demand (a chain's run lists).  A term outside the "
-           "catalogue (a remainder, a division by a term) evaluates but does "
-           "not compare: TypeError (#1023 for the polynomials).")
-        .def(
-            "__ne__", [](const S& a, const S& b) { return !(a == b); },
-            nb::is_operator())
-        .def(
-            "__bool__",
-            [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
-            "A set is truthy iff it is inhabited.")
+           "__bool__",
+           [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
+           "A set is truthy iff it is inhabited.")
         .def(
             "runs",
             [run_pairs](const S& s) {
@@ -849,6 +907,14 @@ void bind_term_sets(nb::module_& m,
           nb::is_operator())
       .def("__invert__",
            [](const R& a) { return UU{} | a.predicate.negated(); })
+      .def(
+          "__eq__",
+          [](const R& a, const R& b) {
+            return equal_by_normal_form<C>(a.predicate, b.predicate);
+          },
+          nb::is_operator(),
+          "R == S: True where the normal forms agree; TypeError where they "
+          "differ, which decides nothing.")
       .def("__repr__", [shown](const R& r) {
         return shown + " × " + shown + " | " + show(r.predicate);
       });
@@ -1142,18 +1208,28 @@ NB_MODULE(_pst, m) {
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
       m, "Projection",
-      "The grammar's variables π (also χ), π1, π2: a comparison builds a "
+      "The grammar's variables π (also χ), π_1, π_2: a comparison builds a "
       "predicate, the arithmetic + - * / // % a term, each bound and checked "
       "by "
       "A(carrier) | ....");
-  projection.def("__repr__",
-                 [](const ProjectionTag& p) { return show(as_term(p)); });
+  projection
+      .def("__repr__", [](const ProjectionTag& p) { return show(as_term(p)); })
+      .def(
+          "__getitem__",
+          [](const ProjectionTag& p, unsigned k) {
+            if (p.slot != 0)
+              throw nb::type_error("π[k]: the family is indexed from π itself");
+            return ProjectionTag{k};
+          },
+          nb::arg("k"),
+          "π[k]: the k-th projection of a product, the family π_1, π_2, … is "
+          "sugar for; π[0] is π, the identity.");
   def_arithmetic<ProjectionTag>(projection);
   def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
   m.attr("χ") = ProjectionTag{0};
-  m.attr("π1") = ProjectionTag{1};
-  m.attr("π2") = ProjectionTag{2};
+  m.attr("π_1") = ProjectionTag{1};
+  m.attr("π_2") = ProjectionTag{2};
 
   auto term = nb::class_<RTerm>(
       m, "Term",

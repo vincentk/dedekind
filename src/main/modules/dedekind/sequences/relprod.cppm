@@ -16,7 +16,7 @@
  * @section relprod__Why_Here
  * Homed downstream of @c relational (where the Boolean @c >> lives): the bound
  * @c M is read from an @b order-level @c ProductRestrict (the domain cut
- * @c R @c | @c (π1 @c < @c M)), which @c relational --- @b upstream
+ * @c R @c | @c (π_1 @c < @c M)), which @c relational --- @b upstream
  * of @c order --- cannot see, so the bounded @c >> cannot live beside its
  * Boolean sibling.  It sits in @c sequences (the first module below both @c
  * order and @c relational that the exhibit already imports); consumers reach
@@ -100,7 +100,7 @@ struct ComposePrefixPred {
 
 /** @brief @c prefix_bound(p) --- recover the finite-prefix bound @c M carried
  *  by a bounded relation's predicate @c p: either from the half-space
- *  restriction (a @c ProductRestrict wrapping the domain cut @c π1 @c < @c M,
+ *  restriction (a @c ProductRestrict wrapping the domain cut @c π_1 @c < @c M,
  *  whose bound is a VALUE), or from a prior compose (@c ComposePrefixPred
  *  carries its bound).  Left @b undefined otherwise --- an unbounded relation
  *  has no finite middle to compose over, so its @c >> stays the honest Rice

@@ -246,3 +246,37 @@ TEST_CASE(
   // Wrap example: χ(8) = χ(1) since 8 ≡ 1 (mod 7).
   CHECK(χ_to_modular<7>(finite_signed_cardinality(8)).value == 1);
 }
+
+// ── The field's terms read as polynomials (algebra:polynomial) ──────────────
+TEST_CASE(
+    "𝔽ₚ: a division by a nonzero constant is a coefficient of the "
+    "normal form",
+    "[morphologies][modular][polynomial]") {
+  using dedekind::algebra::Monomial;
+  using dedekind::algebra::normal_form;
+  using dedekind::sets::π;
+  CHECK(normal_form<𝔽ₚ>(π * 3u / 3u) == normal_form<𝔽ₚ>(π));
+  CHECK(normal_form<𝔽ₚ>(π / 3u)(Monomial<4>::variable(0)) == 𝔽ₚ{1} / 𝔽ₚ{3});
+  CHECK(normal_form<𝔽ₚ>(0u - π)(Monomial<4>::variable(0)) == 𝔽ₚ{0} - 𝔽ₚ{1});
+  // Nonzero as written, 0 on the carrier: refused, as a 0 written is.
+  CHECK_THROWS_AS(normal_form<𝔽ₚ>(π / 18446744073709551557ull),
+                  std::domain_error);
+}
+
+TEST_CASE("𝔽ₚ: an equation's normal form is monic, so 2π = 4 is π = 2",
+          "[morphologies][modular][polynomial]") {
+  using dedekind::algebra::normal_form;
+  using dedekind::sets::Rel;
+  using dedekind::sets::same_shape;
+  using T = dedekind::sets::Term<unsigned long long>;
+  using Pr = dedekind::sets::Pred<unsigned long long>;
+  struct AsConstant {
+    unsigned long long operator()(𝔽ₚ c) const { return c.value; }
+  };
+  const auto nf = [](const Pr& p) { return normal_form<𝔽ₚ>(p, AsConstant{}); };
+  const T x = T::proj(0);
+  CHECK(same_shape(
+      nf(Pr::cmp(Rel::Eq, T::bin(dedekind::sets::Arith::Mul, T::constant(2), x),
+                 T::constant(4))),
+      nf(Pr::cmp(Rel::Eq, x, T::constant(2)))));
+}

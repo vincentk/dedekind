@@ -174,8 +174,8 @@ concept IsRing = dedekind::category::IsRing<typename X::Domain, Add, Mult> &&
  * Canonical inhabitants: @c unsigned int (modular wrap), other wide
  * unsigned integral types whose width is at least @c sizeof(int)
  * (no integer-promotion path: @c unsigned long, @c unsigned long
- * long, @c std::size_t), @c RigPolynomial<unsigned int> (the
- * polynomial ring lifts elementwise).  @c int is @b not a
+ * long, @c std::size_t), @c Polynomial<unsigned int> (the
+ * polynomial ring lifts coefficientwise).  @c int is @b not a
  * canonical inhabitant: signed-overflow UB defeats the @c IsPeriodic
  * axiom on which the strict @c IsRing chain depends, even though
  * the literal operators close on the carrier (see witness comment

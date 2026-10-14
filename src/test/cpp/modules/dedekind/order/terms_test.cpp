@@ -21,32 +21,32 @@ using P = std::pair<unsigned, unsigned>;
 
 TEST_CASE("order:terms: terms compose and evaluate at a point",
           "[sets][terms]") {
-  const auto step = cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2;
+  const auto step = cond(π_1 % 2 == 0, π_1 / 2, π_1 * 3 + 1) == π_2;
   CHECK(step(P{6, 3}));
   CHECK(step(P{7, 22}));
   CHECK_FALSE(step(P{7, 21}));
-  CHECK(((π1 + 1) * 3 == π2)(P{1, 6}));
+  CHECK(((π_1 + 1) * 3 == π_2)(P{1, 6}));
   CHECK((π % 3 == 0)(9));
   CHECK_FALSE((π % 3 == 0)(10));
-  CHECK(slots_v<decltype(π1 * 3 + 1)> == 0b10u);
+  CHECK(slots_v<decltype(π_1 * 3 + 1)> == 0b10u);
 }
 
 // The witnesses of sets:terms that need order's rules.
-static_assert(!(π1 < 5)(P{5, 0}) && (!(π1 < 5))(P{5, 0}),
+static_assert(!(π_1 < 5)(P{5, 0}) && (!(π_1 < 5))(P{5, 0}),
               "!atom flips the comparison");
 static_assert((π % 3 == 0)(9) && !(π % 3 == 0)(10),
               "an atom on the unary π evaluates at a carrier value");
-static_assert((cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{6, 3}) &&
-                  (cond(π1 % 2 == 0, π1 / 2, π1 * 3 + 1) == π2)(P{7, 22}),
+static_assert((cond(π_1 % 2 == 0, π_1 / 2, π_1 * 3 + 1) == π_2)(P{6, 3}) &&
+                  (cond(π_1 % 2 == 0, π_1 / 2, π_1 * 3 + 1) == π_2)(P{7, 22}),
               "cond on terms: the Collatz step as one atom");
-static_assert(is_total_term_v<P, decltype(π1 % 3)> &&
-                  !is_total_term_v<P, decltype(π1 % π2)> &&
-                  !is_total_term_v<P, decltype((π1 % π2) + 1)>,
+static_assert(is_total_term_v<P, decltype(π_1 % 3)> &&
+                  !is_total_term_v<P, decltype(π_1 % π_2)> &&
+                  !is_total_term_v<P, decltype((π_1 % π_2) + 1)>,
               "a remainder by a nonzero constant is total, by a term it is not "
               "certified (the divisor could be 0), and the verdict propagates "
               "up without asking the value algebra");
-static_assert(slots_v<decltype(cond(π1 < 1, π1, π2))> == 0b110u &&
-                  is_total_term_v<P, decltype(cond(π1 < 1, π1, π2))>,
+static_assert(slots_v<decltype(cond(π_1 < 1, π_1, π_2))> == 0b110u &&
+                  is_total_term_v<P, decltype(cond(π_1 < 1, π_1, π_2))>,
               "a conditional mentions the slots of all three legs");
 // The rules, read directly: order's and not a field's on the word.
 static_assert(admits(On<unsigned>{}, std::less<>{}, false) &&
@@ -71,7 +71,7 @@ static_assert(
 
 TEST_CASE("order:terms: a constant meets the carrier beside it",
           "[sets][terms][constants]") {
-  const auto succ = π1 + 1 == π2;
+  const auto succ = π_1 + 1 == π_2;
   CHECK(succ(std::pair{finite_cardinality(4), finite_cardinality(5)}));
   CHECK(carrier_cast<Cardinality>(3) == finite_cardinality(3));
   CHECK_THROWS_AS(carrier_cast<Cardinality>(-1), std::domain_error);
@@ -87,8 +87,8 @@ TEST_CASE("order:terms: a constant is checked when the term is bound",
   CHECK(carrier_cast<int>(2.0) == 2);
   // The unselected branch is never evaluated: its constant −1 would raise when
   // it met the unsigned carrier.
-  CHECK_NOTHROW((cond(π1 >= 0, π1, π1 + -1) == π2)(P{3, 3}));
-  const auto both = !(π1 < 3 && π2 > 5);
+  CHECK_NOTHROW((cond(π_1 >= 0, π_1, π_1 + -1) == π_2)(P{3, 3}));
+  const auto both = !(π_1 < 3 && π_2 > 5);
   CHECK(both(P{3, 0}));
   CHECK_FALSE(both(P{2, 6}));
 }
@@ -103,9 +103,9 @@ struct Unreachable {
 
 TEST_CASE("order:terms: the connectives short-circuit like the built-ins",
           "[sets][terms][connectives]") {
-  CHECK_FALSE((π1 < 3 && Unreachable{})(P{3, 0}));  // left false: right unread
-  CHECK((π1 < 3 || Unreachable{})(P{2, 0}));        // left true: right unread
-  CHECK_THROWS_AS((π1 < 3 && Unreachable{})(P{2, 0}), std::logic_error);
+  CHECK_FALSE((π_1 < 3 && Unreachable{})(P{3, 0}));  // left false: right unread
+  CHECK((π_1 < 3 || Unreachable{})(P{2, 0}));        // left true: right unread
+  CHECK_THROWS_AS((π_1 < 3 && Unreachable{})(P{2, 0}), std::logic_error);
 }
 
 namespace {
@@ -122,8 +122,8 @@ using Q = Pred<int>;
 
 TEST_CASE("order:terms: a term built at run time is read by the same algebras",
           "[sets][terms][runtime]") {
-  // π2 == π1 · 3 + 1, typed and built at run time: one grammar, two shapes.
-  const auto typed = π1 * 3 + 1 == π2;
+  // π_2 == π_1 · 3 + 1, typed and built at run time: one grammar, two shapes.
+  const auto typed = π_1 * 3 + 1 == π_2;
   const Q built =
       Q::cmp(Rel::Eq,
              T::bin(Arith::Add, T::bin(Arith::Mul, T::proj(1), T::constant(3)),

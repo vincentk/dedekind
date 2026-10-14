@@ -20,7 +20,7 @@ import dedekind.numbers;        // Rational, Complex, default_integer
 
 namespace {
 
-using dedekind::algebra::RigPolynomial;
+using dedekind::algebra::Polynomial;
 using dedekind::analysis::Dual;
 using dedekind::category::is_associative_v;
 using dedekind::category::is_commutative_v;
@@ -39,7 +39,7 @@ using Q = Rational<default_integer>;
 using CQ = Complex<Q>;
 using DQ = Dual<Q>;
 using V2u = Vec2V<unsigned int>;
-using PQ = RigPolynomial<Q>;
+using PQ = Polynomial<Q>;
 
 }  // namespace
 

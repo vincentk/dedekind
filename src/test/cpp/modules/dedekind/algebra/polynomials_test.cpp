@@ -1,181 +1,195 @@
+// The monoid algebra R[M] (algebra:polynomial): polynomials as finitely
+// supported nets over the monomials, and the normal form of a ring's terms.
+// The carrier here is the word, so the coefficients wrap.
 #include <catch2/catch_test_macros.hpp>
-#include <cmath>
-#include <complex>
-#include <concepts>
+#include <cstddef>
+#include <functional>
+#include <stdexcept>
+
 import dedekind.algebra;
 import dedekind.category;
-
-using namespace dedekind::algebra;
+import dedekind.sets;
 
 namespace {
 
-template <typename Coeff, typename Target, typename Embed>
-constexpr Target evaluate_polynomial_in(const Polynomial<Coeff>& p,
-                                        const Target& x, Embed&& embed) {
-  Target acc = embed(Coeff{0});
-  for (auto it = p.coeffs().rbegin(); it != p.coeffs().rend(); ++it) {
-    acc = (acc * x) + embed(*it);
-  }
-  return acc;
-}
+using dedekind::algebra::Monomial;
+using dedekind::algebra::normal_form;
+using dedekind::algebra::Polynomial;
+using dedekind::sets::Arith;
+using dedekind::sets::not_admitted;
+using dedekind::sets::π;
+using dedekind::sets::π_1;
+using dedekind::sets::π_2;
 
-struct DualWitness {
-  double primal{};
-  double tangent{};
+using Word = unsigned int;
+using M = Monomial<4>;
+using P = Polynomial<Word, M>;
+using T = dedekind::sets::Term<Word>;
+using Pr = dedekind::sets::Pred<Word>;
+using dedekind::algebra::as_term;
+using dedekind::sets::Rel;
+using dedekind::sets::same_shape;
 
-  friend constexpr DualWitness operator+(const DualWitness& a,
-                                         const DualWitness& b) {
-    return {a.primal + b.primal, a.tangent + b.tangent};
-  }
-
-  friend constexpr DualWitness operator*(const DualWitness& a,
-                                         const DualWitness& b) {
-    return {a.primal * b.primal,
-            (a.primal * b.tangent) + (a.tangent * b.primal)};
-  }
+/** A coefficient is its own constant: the terms here are over the word. */
+struct AsConstant {
+  Word operator()(Word c) const { return c; }
 };
 
 }  // namespace
 
-TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
-  using ℤ = int;
+TEST_CASE("Monomials: the free commutative monoid on the slots, a chain",
+          "[algebra][polynomial]") {
+  const M x = M::variable(1), y = M::variable(2);
+  CHECK(x * y == y * x);
+  CHECK((x * y).degree() == 2);
+  CHECK((x * y).exponent(1) == 1);
+  // The graded lexicographic order: degree first, then the slots.
+  CHECK(M::one() < x);
+  CHECK(y * y < x * y);
+  CHECK(x * y < x * x);
+  CHECK(x * x * x > M::variable(0) * M::variable(3));
+  CHECK((x * x).without(1) == x);
+  CHECK_THROWS_AS(M::variable(4), std::out_of_range);
+  CHECK_THROWS_AS(x.exponent(4), std::out_of_range);
+  // The exponents are natural numbers: leaving the word raises, never wraps.
+  M top;
+  top.e[1] = ~0u;
+  CHECK_THROWS_AS(top * x, std::overflow_error);
+  CHECK((top * M::one()).exponent(1) == ~0u);
+}
 
-  // Coefficients are stored constant-first: p = -2 + 0·x + 1·x²
-  Polynomial<ℤ> p({-2, 0, 1});
+TEST_CASE("Polynomials: a net over the monomials, a ring over a ring",
+          "[algebra][polynomial]") {
+  const P x = P::variable(1), y = P::variable(2);
 
-  SECTION("Basic Structural Shape") {
-    REQUIRE(p.degree() == 2);
-    REQUIRE(!p.is_zero());
+  SECTION("the finite function monomial ↦ coefficient") {
+    const P p = (x + y) * (x + y);
+    CHECK(p.degree() == 2);
+    CHECK(p.support().size() == 3);
+    CHECK(p(M::variable(1) * M::variable(2)) == 2u);
+    CHECK(p(M::variable(1) * M::variable(1)) == 1u);
+    CHECK(p(M::variable(0)) == 0u);  // off the support
+    CHECK(p.leading_coefficient() == 1u);
+    CHECK(p.support().front().first == M::variable(2) * M::variable(2));
   }
-
-  SECTION("Additive and Multiplicative Identities") {
-    auto z = Polynomial<ℤ>::zero();
-    auto o = Polynomial<ℤ>::one();
-    REQUIRE(z.is_zero());
-    REQUIRE(o.degree() == 0);
+  SECTION("identities and inverses") {
+    CHECK(x + P::zero() == x);
+    CHECK(x * P::one() == x);
+    CHECK((x - x).is_zero());
+    CHECK((-x + x).is_zero());
+    CHECK(P(0u).is_zero());
+    CHECK_THROWS_AS(P::zero().leading_coefficient(), std::domain_error);
   }
-
-  SECTION("Canonicalization strips trailing zeros") {
-    // 1 + 0·x should be the same as the scalar 1
-    Polynomial<ℤ> q({1, 0});
-    REQUIRE(q.degree() == 0);
-    REQUIRE(q == Polynomial<ℤ>::one());
+  SECTION("the coefficients wrap with the word") {
+    CHECK((x * P(4294967295u) + x).is_zero());
   }
-
-  SECTION("Addition (coefficient-wise)") {
-    // p = -2 + x²,  q = 3 + 5·x
-    Polynomial<ℤ> q({3, 5});
-    auto r = p + q;  // 1 + 5·x + x²
-    REQUIRE(r.degree() == 2);
-    REQUIRE(r == Polynomial<ℤ>({1, 5, 1}));
-
-    // Adding zero is the identity.
-    REQUIRE((p + Polynomial<ℤ>::zero()) == p);
-    REQUIRE((Polynomial<ℤ>::zero() + p) == p);
+  SECTION("the formal derivative, by slot") {
+    const P p = x * x * x + P(2u) * x * x + x + P(1u);
+    CHECK(p.derive(1) == P(3u) * x * x + P(4u) * x + P(1u));
+    CHECK(p.derive(2).is_zero());
+    CHECK((x * y).derive(1) == y);
+    CHECK(P::one().derive().is_zero());
+    CHECK_THROWS_AS(x.derive(4), std::out_of_range);
   }
+}
 
-  SECTION("Subtraction (ring coefficients)") {
-    // p - p == 0
-    REQUIRE((p - p).is_zero());
-
-    // p - zero == p
-    REQUIRE((p - Polynomial<ℤ>::zero()) == p);
+TEST_CASE("The normal form of terms: equality in the free algebra",
+          "[algebra][polynomial][terms]") {
+  SECTION("typed terms") {
+    CHECK(normal_form<Word>(π + 1u - 1u) == normal_form<Word>(π));
+    CHECK(normal_form<Word>((π_1 + π_2) * (π_1 + π_2)) ==
+          normal_form<Word>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2));
+    CHECK(normal_form<Word>(π * π) != normal_form<Word>(π));
+    CHECK(normal_form<Word>(π * 4294967295u + π).is_zero());
   }
-
-  SECTION("Formal differentiation") {
-    // d/dx (-2 + 0·x + x²) = 0 + 2·x  =>  [0, 2]
-    auto dp = p.derive();
-    REQUIRE(dp.degree() == 1);
-    REQUIRE(dp == Polynomial<ℤ>({0, 2}));
-
-    // Derivative of a constant is zero.
-    REQUIRE(Polynomial<ℤ>::one().derive().is_zero());
-    REQUIRE(Polynomial<ℤ>::zero().derive().is_zero());
-
-    // d/dx (x) = 1.  Polynomial for x has coefficients [0, 1].
-    Polynomial<ℤ> x_poly({0, 1});
-    auto dx = x_poly.derive();
-    REQUIRE(dx.degree() == 0);
-    REQUIRE(dx == Polynomial<ℤ>::one());
+  SECTION("terms built at run time read the same") {
+    const T t =
+        T::bin(Arith::Sub, T::bin(Arith::Add, T::proj(0), T::constant(1u)),
+               T::constant(1u));
+    CHECK(normal_form<Word>(t) == normal_form<Word>(π));
+    CHECK(normal_form<Word>(T::bin(Arith::Mul, T::proj(1), T::proj(2))) ==
+          normal_form<Word>(π_1 * π_2));
   }
-
-  SECTION("Multiplication (Cauchy product)") {
-    // (1 + x) * (1 + x) = 1 + 2x + x²
-    Polynomial<ℤ> one_plus_x({1, 1});
-    auto sq = one_plus_x * one_plus_x;
-    REQUIRE(sq.degree() == 2);
-    REQUIRE(sq == Polynomial<ℤ>({1, 2, 1}));
+  SECTION("outside the catalogue: refused, never rewritten") {
+    CHECK_THROWS_AS(
+        normal_form<Word>(T::bin(Arith::Mod, T::proj(0), T::constant(2u))),
+        not_admitted);
+    CHECK_THROWS_AS(
+        normal_form<Word>(T::bin(Arith::FloorDiv, T::proj(0), T::constant(2u))),
+        not_admitted);
+    // The word has no field division.
+    CHECK_THROWS_AS(
+        normal_form<Word>(T::bin(Arith::Div, T::proj(0), T::constant(2u))),
+        not_admitted);
+    // A division by a term has no polynomial on any carrier.
+    CHECK_THROWS_AS(
+        normal_form<Word>(T::bin(Arith::Div, T::proj(1), T::proj(2))),
+        not_admitted);
   }
+}
 
-  SECTION("Compile-time polynomial law metadata") {
-    using P = Polynomial<ℤ>;
-
-    static_assert(dedekind::category::is_associative_v<P, std::plus<>>);
-    static_assert(dedekind::category::is_associative_v<P, std::multiplies<>>);
-    static_assert(dedekind::category::is_commutative_v<P, std::plus<>>);
-
-    static_assert(requires(P a, P b) {
-      { a + b } -> std::same_as<P>;
-      { a * b } -> std::same_as<P>;
-      { a - b } -> std::same_as<P>;
-    });
+TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
+          "[algebra][polynomial][terms]") {
+  const AsConstant lift;
+  const T x = T::proj(0), x1 = T::proj(1), x2 = T::proj(2);
+  const T one = T::constant(1u), zero = T::constant(0u);
+  const auto nf = [&](const Pr& p) { return normal_form<Word>(p, lift); };
+  SECTION("a polynomial written back reads as itself") {
+    const P p = normal_form<Word>((π_1 + π_2) * (π_1 + π_2) + 3u);
+    CHECK(normal_form<Word>(as_term<Word>(p, lift)) == p);
+    CHECK(normal_form<Word>(as_term<Word>(P::zero(), lift)).is_zero());
   }
-
-  SECTION("Compile-time polynomial calculus interface checks") {
-    using P = Polynomial<ℤ>;
-
-    static_assert(P{}.is_zero());
-    static_assert(P{}.degree() == 0);
-
-    static_assert(requires(P a, P b) {
-      { a + b } -> std::same_as<P>;
-      { a - b } -> std::same_as<P>;
-      { a * b } -> std::same_as<P>;
-      { a.derive() } -> std::same_as<P>;
-    });
-  }
-
-  SECTION("Showcase~10: polynomial derivative as a compile-time identity") {
-    // p(x) = 3x^3 + 2x^2 + x + 1 (coefficients constant-first);
-    // p'(x) = 9x^2 + 4x + 1. Exact, at translation time.
-    using P = Polynomial<ℤ>;
-    static_assert(P({1, 1, 2, 3}).derive() == P({1, 4, 9}));
-    static_assert(P({0, 1}).derive() == P::one());
-    static_assert(P::one().derive().is_zero());
-  }
-
-  SECTION("Coefficient species can evaluate into richer codomains") {
-    // Boolean coefficients: p(x) = 1 + x^2, evaluated in Complex<double>.
-    const Polynomial<bool> p_bool({true, false, true});
-    const std::complex<double> z{2.0, 1.0};
-    const auto as_complex = [](bool b) {
-      return std::complex<double>{b ? 1.0 : 0.0, 0.0};
+  SECTION("an equation moves to a difference equal to 0") {
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, T::bin(Arith::Add, x, one), one)),
+                     nf(Pr::cmp(Rel::Eq, x, zero))));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, zero, x)),
+                     nf(Pr::cmp(Rel::Eq, x, zero))));
+    const T square = T::bin(Arith::Mul, T::bin(Arith::Add, x1, x2),
+                            T::bin(Arith::Add, x1, x2));
+    const T expanded = T::bin(
+        Arith::Add,
+        T::bin(Arith::Add, T::bin(Arith::Mul, x1, x1),
+               T::bin(Arith::Mul, T::constant(2u), T::bin(Arith::Mul, x1, x2))),
+        T::bin(Arith::Mul, x2, x2));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Ne, square, x2)),
+                     nf(Pr::cmp(Rel::Ne, expanded, x2))));
+    // A unit factor is divided out: the odd numbers are the units of the
+    // word, so 3π = 0 is π = 0 and 6π = 0 is 2π = 0.  2 is no unit: 2π = 0
+    // (two solutions) is not π = 0.
+    const auto times = [&](Word k) {
+      return Pr::cmp(Rel::Eq, T::bin(Arith::Mul, T::constant(k), x), zero);
     };
-    const auto pz = evaluate_polynomial_in<bool>(p_bool, z, as_complex);
-    REQUIRE(pz.real() == 4.0);
-    REQUIRE(pz.imag() == 4.0);
-
-    // Natural coefficients: p(x) = x^2 + 3x + 2, evaluated in a dual witness.
-    const Polynomial<unsigned int> p_nat({2u, 3u, 1u});
-    const DualWitness seed{5.0, 1.0};
-    const auto as_dual = [](unsigned int n) {
-      return DualWitness{static_cast<double>(n), 0.0};
-    };
-    const auto pd = evaluate_polynomial_in<unsigned int>(p_nat, seed, as_dual);
-    REQUIRE(pd.primal == 42.0);
-    REQUIRE(pd.tangent == 13.0);
+    CHECK(same_shape(nf(times(3u)), nf(Pr::cmp(Rel::Eq, x, zero))));
+    CHECK(same_shape(nf(times(6u)), nf(times(2u))));
+    CHECK_FALSE(same_shape(nf(times(2u)), nf(Pr::cmp(Rel::Eq, x, zero))));
   }
-
-  SECTION("Finite Taylor truncations are expressible as polynomials") {
-    // exp(x) around 0 truncated at order 3: 1 + x + x^2/2 + x^3/6
-    const Polynomial<double> exp_t3({1.0, 1.0, 0.5, 1.0 / 6.0});
-    const double approx_at_1 =
-        evaluate_polynomial_in<double>(exp_t3, 1.0, [](double c) { return c; });
-    REQUIRE(std::abs(approx_at_1 - (8.0 / 3.0)) < 1e-12);
+  SECTION("an order atom keeps its comparison, its sides normalised") {
+    CHECK(same_shape(
+        nf(Pr::cmp(Rel::Lt, T::bin(Arith::Add, x, zero), T::constant(5u))),
+        Pr::cmp(Rel::Lt, x, T::constant(5u))));
   }
-
-  SECTION("Polynomial model currently indexes only non-negative exponents") {
-    using P = Polynomial<ℤ>;
-    static_assert(std::unsigned_integral<decltype(P{}.degree())>);
+  SECTION("the connectives are kept, and a remainder refused") {
+    const Pr a = Pr::cmp(Rel::Eq, T::bin(Arith::Sub, x, x), zero);
+    CHECK(same_shape(
+        nf(Pr::conj(a, a)),
+        Pr::conj(Pr::cmp(Rel::Eq, zero, zero), Pr::cmp(Rel::Eq, zero, zero))));
+    CHECK_THROWS_AS(
+        nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
+        not_admitted);
   }
+}
+
+TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",
+          "[algebra][polynomial][terms]") {
+  // π^(2¹⁶) built by 16 squarings; written back, the power is rebuilt by
+  // squaring too: a term 16 deep, not 2¹⁶ factors.
+  T power = T::proj(0);
+  for (int i = 0; i < 16; ++i) power = T::bin(Arith::Mul, power, power);
+  const P p = normal_form<Word>(power);
+  CHECK(p.degree() == (1ull << 16));
+  const T back = as_term<Word>(p, AsConstant{});
+  unsigned depth = 0;
+  for (const T* t = &back; t->kind == T::Kind::Bin; t = t->a.get()) ++depth;
+  CHECK(depth == 16);
+  CHECK(normal_form<Word>(back) == p);
 }

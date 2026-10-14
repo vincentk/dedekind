@@ -79,7 +79,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         self.assertEqual(everything.cardinality, 2**64)
         self.assertEqual(U.cardinality, 2**64)
 
-    def test_a_term_outside_the_fragment_has_no_normal_form_yet(self) -> None:
+    def test_a_term_outside_the_catalogue_has_no_normal_form(self) -> None:
         evens = U | (π % 2 == 0)
         self.assertIn(4, evens)  # membership is pointwise
         with self.assertRaises(TypeError):

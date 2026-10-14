@@ -34,7 +34,6 @@ import dedekind.category;
 import dedekind.ieee;
 import :field;
 import :group;
-import :polynomial;
 import :ring;  // HasRingOperators (operator-shape claim on int / unsigned int)
 
 namespace dedekind::algebra {
@@ -268,34 +267,6 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 
   return OneDimensionalVector<S, Tag>(static_cast<S>(v.coordinate() * factor));
 }
-
-/**
- * @struct PolynomialOperator
- * @brief The "Enhanced" Polynomial: A Formal Sum reified as a Morphic Action.
- *
- * @details
- * In the Dedekind hierarchy, this transforms the static 'Formal Polynomial'
- * into a dynamic 'Operator' on a Module M.
- *
- * @tparam R The Scalar Ring (Coefficients).
- * @tparam M The Target Module (The Space).
- */
-export template <typename R, typename M>
-  requires IsModule<M, R>
-struct PolynomialOperator {
-  RigPolynomial<R> p;
-
-  /** @section modules__The_Action_Axiom */
-  constexpr M operator()(const M& x) const {
-    // Horner's Method implementation lives here,
-    // where IsModule is fully visible.
-    M result = dedekind::category::identity_v<M, std::plus<M>>;
-    for (auto it = p.coeffs().rbegin(); it != p.coeffs().rend(); ++it) {
-      result = (result * x) + (*it);
-    }
-    return result;
-  }
-};
 
 export using RealLineScalar = decltype(RealLine{}.coordinate());
 
