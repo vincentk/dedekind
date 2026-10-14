@@ -73,8 +73,9 @@ using namespace dedekind::category;
 
 /** @brief A monomial in @c N variables: its exponents, one per slot (@c π is
  *  the slot 0; @c π1, @c π2, @c π3 the slots 1, 2, 3).  The free commutative
- *  monoid on @c N generators, written multiplicatively, and a chain under the
- *  graded lexicographic order: by total degree, then by exponents.
+ *  monoid on @c N generators, written multiplicatively (the exponents, machine
+ *  words, add and wrap with the word), and a chain under the graded
+ *  lexicographic order: by total degree, then by exponents.
  *  @tparam N the number of variables. */
 export template <std::size_t N>
 struct Monomial {
@@ -456,6 +457,12 @@ struct identity_trait<dedekind::algebra::Monomial<N>,
                       std::multiplies<dedekind::algebra::Monomial<N>>> {
   static constexpr dedekind::algebra::Monomial<N> value{};
 };
+// Totality: the exponents are unsigned words adding componentwise, so the
+// product wraps with them (path A of category:total, as the word's own +).
+template <std::size_t N>
+struct is_periodic<dedekind::algebra::Monomial<N>,
+                   std::multiplies<dedekind::algebra::Monomial<N>>>
+    : std::true_type {};
 
 // R[M] is the free commutative R-algebra on M's generators (Lang §II.3):
 // its laws and totality are read off R by construction (category:total; + is
