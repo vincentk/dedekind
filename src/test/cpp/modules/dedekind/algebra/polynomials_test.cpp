@@ -51,6 +51,11 @@ TEST_CASE("Monomials: the free commutative monoid on the slots, a chain",
   CHECK((x * x).without(1) == x);
   CHECK_THROWS_AS(M::variable(4), std::out_of_range);
   CHECK_THROWS_AS(x.exponent(4), std::out_of_range);
+  // The exponents are natural numbers: leaving the word raises, never wraps.
+  M top;
+  top.e[1] = ~0u;
+  CHECK_THROWS_AS(top * x, std::overflow_error);
+  CHECK((top * M::one()).exponent(1) == ~0u);
 }
 
 TEST_CASE("Polynomials: a net over the monomials, a ring over a ring",
@@ -172,4 +177,19 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);
   }
+}
+
+TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",
+          "[algebra][polynomial][terms]") {
+  // π^(2¹⁶) built by 16 squarings; written back, the power is rebuilt by
+  // squaring too: a term 16 deep, not 2¹⁶ factors.
+  T power = T::proj(0);
+  for (int i = 0; i < 16; ++i) power = T::bin(Arith::Mul, power, power);
+  const P p = normal_form<Word>(power);
+  CHECK(p.degree() == (1ull << 16));
+  const T back = as_term<Word>(p, AsConstant{});
+  unsigned depth = 0;
+  for (const T* t = &back; t->kind == T::Kind::Bin; t = t->a.get()) ++depth;
+  CHECK(depth == 16);
+  CHECK(normal_form<Word>(back) == p);
 }

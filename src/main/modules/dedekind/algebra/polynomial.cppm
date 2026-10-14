@@ -50,11 +50,12 @@
  * @c 2⁶³·π·(π+1) and @c 0.  That quotient (by the vanishing ideal) is a
  * further reading, not this one.
  *
- * The exponents are machine words, so @c Monomial<N> is the type
- * (ℤ/2³²)ᴺ, not the set ℕᴺ: its product is certified total because it wraps
- * (path A of @c category:total), the same posture as @c u64 itself.  It is the
- * free commutative monoid on the slots below total degree 2³², which is where
- * every term written by hand lives.
+ * The exponents are natural numbers, held in machine words: a product whose
+ * exponent would leave the word raises @c std::overflow_error rather than
+ * wrap.  A wrapping coefficient is the carrier's own arithmetic; a wrapping
+ * exponent would change the term (@c π^(2³²−1)·π is not the constant 1), so
+ * the monoid is ℕᴺ, certified total on the exact path with the overflow a
+ * tripwire, the posture of @c Rational's out-of-memory sentinel.
  *
  * Wikipedia: Monoid ring, Polynomial ring, Monomial order
  *
@@ -66,15 +67,16 @@
  */
 module;
 
-#include <algorithm>    // std::sort
-#include <array>        // Monomial's exponents
-#include <bit>          // std::countr_zero: a word's power of two
-#include <compare>      // std::strong_ordering
-#include <concepts>     // std::equality_comparable
-#include <cstddef>      // std::size_t
-#include <functional>   // std::plus, std::minus, std::multiplies, std::divides
-#include <stdexcept>    // std::domain_error, std::out_of_range
-#include <string>       // the refusals' text
+#include <algorithm>   // std::sort
+#include <array>       // Monomial's exponents
+#include <bit>         // std::countr_zero: a word's power of two
+#include <compare>     // std::strong_ordering
+#include <concepts>    // std::equality_comparable
+#include <cstddef>     // std::size_t
+#include <functional>  // std::plus, std::minus, std::multiplies, std::divides
+#include <limits>      // an exponent's bound
+#include <stdexcept>  // std::domain_error, std::out_of_range, std::overflow_error
+#include <string>     // the refusals' text
 #include <type_traits>  // std::true_type
 #include <utility>      // std::pair
 #include <vector>       // the support
@@ -96,8 +98,8 @@ using namespace dedekind::category;
 
 /** @brief A monomial in @c N variables: its exponents, one per slot (@c π is
  *  the slot 0; @c π_1, @c π_2, @c π_3 the slots 1, 2, 3).  The free commutative
- *  monoid on @c N generators, written multiplicatively (the exponents, machine
- *  words, add and wrap with the word), and a chain under the graded
+ *  monoid on @c N generators, written multiplicatively (the exponents add, as
+ *  natural numbers: leaving the word raises), and a chain under the graded
  *  lexicographic order: by total degree, then by exponents.
  *  @tparam N the number of variables. */
 export template <std::size_t N>
@@ -113,9 +115,9 @@ struct Monomial {
     m.e[slot] = 1;
     return m;
   }
-  /** @brief The total degree. */
-  constexpr unsigned degree() const {
-    unsigned d = 0;
+  /** @brief The total degree, in a wider word than the exponents. */
+  constexpr unsigned long long degree() const {
+    unsigned long long d = 0;
     for (unsigned k : e) d += k;
     return d;
   }
@@ -129,9 +131,15 @@ struct Monomial {
     --m.e.at(slot);
     return m;
   }
+  /** @brief The product: exponents add.  @throws std::overflow_error where
+   *  an exponent would leave the word. */
   friend constexpr Monomial operator*(const Monomial& a, const Monomial& b) {
     Monomial m;
-    for (std::size_t i = 0; i < N; ++i) m.e[i] = a.e[i] + b.e[i];
+    for (std::size_t i = 0; i < N; ++i) {
+      if (b.e[i] > std::numeric_limits<unsigned>::max() - a.e[i])
+        throw std::overflow_error("an exponent beyond the word");
+      m.e[i] = a.e[i] + b.e[i];
+    }
     return m;
   }
   friend constexpr bool operator==(const Monomial&, const Monomial&) = default;
@@ -179,7 +187,9 @@ class Polynomial {
   static constexpr Polynomial zero() { return {}; }
   static constexpr Polynomial one() { return Polynomial(unit()); }
   /** @brief The variable of @c slot, as a polynomial. */
-  static constexpr Polynomial variable(std::size_t slot) {
+  static constexpr Polynomial variable(std::size_t slot)
+    requires requires { M::variable(slot); }
+  {
     return Polynomial({{M::variable(slot), unit()}});
   }
 
@@ -188,7 +198,7 @@ class Polynomial {
   /** @brief A constant. */
   constexpr explicit Polynomial(R scalar) {
     if (scalar != zero_coefficient())
-      terms_.emplace_back(M::one(), std::move(scalar));
+      terms_.emplace_back(identity_v<M, std::multiplies<M>>, std::move(scalar));
   }
   /** @brief The sum of the given terms, in any order: combined, sorted, zero
    *  coefficients dropped.  @param terms monomial and coefficient pairs. */
@@ -213,8 +223,9 @@ class Polynomial {
   constexpr bool is_zero() const { return terms_.empty(); }
   /** @brief The total degree of the leading monomial; 0 for the zero
    *  polynomial. */
-  constexpr unsigned degree() const {
-    return terms_.empty() ? 0 : terms_.back().first.degree();
+  constexpr auto degree() const {
+    return terms_.empty() ? decltype(terms_.back().first.degree()){0}
+                          : terms_.back().first.degree();
   }
   /** @throws std::domain_error on the zero polynomial. */
   constexpr const R& leading_coefficient() const {
@@ -327,10 +338,14 @@ class Polynomial {
  *  @c * the polynomial's where the carrier admits them, a division by a
  *  nonzero constant on a field the multiplication by its inverse.  Any other
  *  node (@c //, @c %, a division by a term, an applied arrow, a conditional)
- *  has no free algebra catalogued here and is refused.  @tparam C the
+ *  has no free algebra catalogued here and is refused.  Expanding into
+ *  polynomials uses commutativity of @c * and its distributivity over @c +,
+ *  so the carrier must be a certified commutative rig.  @tparam C the
  *  carrier.  @tparam N the variables: the slots @c π, @c π_1, @c π_2, @c π_3.
  */
 export template <typename C, std::size_t N = 4>
+  requires dedekind::category::IsRig<C, std::plus<C>, std::multiplies<C>> &&
+           dedekind::category::IsCommutative<C, std::multiplies<C>>
 struct Poly {
   using P = Polynomial<C, Monomial<N>>;
 
@@ -463,13 +478,18 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
     const auto& [m, c] = *it;
     T product;
     bool constant = true;
-    for (std::size_t slot = 0; slot < N; ++slot)
-      for (unsigned e = 0; e < m.exponent(slot); ++e) {
-        product = constant ? T::proj(static_cast<unsigned>(slot))
-                           : T::bin(Arith::Mul, product,
-                                    T::proj(static_cast<unsigned>(slot)));
-        constant = false;
+    for (std::size_t slot = 0; slot < N; ++slot) {
+      // π^e by repeated squaring: the square shares its operand, so the term
+      // is logarithmic in e in size and in depth.
+      T base = T::proj(static_cast<unsigned>(slot));
+      for (unsigned e = m.exponent(slot); e > 0; e >>= 1) {
+        if (e & 1u) {
+          product = constant ? base : T::bin(Arith::Mul, product, base);
+          constant = false;
+        }
+        if (e > 1u) base = T::bin(Arith::Mul, base, base);
       }
+    }
     const T term = constant ? T::constant(lift(c))
                    : c == identity_v<C, std::multiplies<C>>
                        ? product
@@ -598,11 +618,12 @@ struct identity_trait<dedekind::algebra::Monomial<N>,
                       std::multiplies<dedekind::algebra::Monomial<N>>> {
   static constexpr dedekind::algebra::Monomial<N> value{};
 };
-// Totality: the exponents are unsigned words adding componentwise, so the
-// product wraps with them (path A of category:total, as the word's own +).
+// Totality on the exact path (D of category:total): the exponents add as
+// natural numbers, and leaving the word is a tripwire that raises, never a
+// wrapped (wrong) exponent.
 template <std::size_t N>
-struct is_periodic<dedekind::algebra::Monomial<N>,
-                   std::multiplies<dedekind::algebra::Monomial<N>>>
+struct is_exact_total<dedekind::algebra::Monomial<N>,
+                      std::multiplies<dedekind::algebra::Monomial<N>>>
     : std::true_type {};
 
 // R[M] is the free commutative R-algebra on M's generators (Lang §II.3):
