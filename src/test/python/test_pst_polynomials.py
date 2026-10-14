@@ -1,74 +1,74 @@
-"""The polynomial normal form (#1023): a term on the ring or the field, read in
-the free algebra its laws give it.
+"""The ring's normal form (#1023): a set in, the same set out.
 
-The normal form is a polynomial over the carrier: the finite function monomial
-↦ coefficient, and two terms are equal in the free algebra iff these finite
-functions are.  The coefficients live on the carrier, so on u64 they wrap, and
-a field's division by a nonzero constant is a coefficient.  //, % and a
-division by a term have no polynomial and are refused.  Equality of polynomials
-is not equality of the functions they induce on the finite carrier (πᵖ and π
-agree at every point of 𝔽ₚ); that quotient is a further reading.
+normal_form(S) rewrites S's predicate atom by atom: an equation a == b on a
+ring becomes a - b == 0 with the difference a polynomial over the carrier
+(monic on a field), any other atom keeps its comparison with its sides
+normalised.  The variables are the set's own: π on A(C), π_1 and π_2 on
+A(C) * A(C).
+
+Equal normal forms cut out equal sets; different ones need not cut out
+different sets (π**p == π holds everywhere on 𝔽ₚ), so == answers True or
+raises TypeError, never a False it cannot back.  //, % and a division by a term
+have no normal form and are refused.
 """
 
 import unittest
 
-from dedekind.pst import A, u64, π, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
+from dedekind.pst import A, normal_form, u64, π, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
 
 P = 2**64 - 59
 U, F = A(u64), A(𝔽ₚ)
+UU, FF = U * U, F * F
 
 
-class EqualityInTheFreeAlgebra(unittest.TestCase):
+class ASetInTheSameSetOut(unittest.TestCase):
+    def test_an_equation_becomes_a_polynomial_equal_to_zero(self) -> None:
+        self.assertEqual(repr(normal_form(UU | (π_1 * π_1 == π_2 - 1))),
+                         "𝔸(u64) × 𝔸(u64) | (((π_1 * π_1) + (18446744073709551615 * π_2)) + 1) == 0")
+        self.assertEqual(repr(normal_form(U | (π + 1 == 1))), "𝔸(u64) | π == 0")
+
+    def test_it_is_the_same_set(self) -> None:
+        S = UU | ((π_1 + π_2) * (π_1 + π_2) == 4)
+        N = normal_form(S)
+        for xy in ((0, 2), (1, 1), (2, 0), (3, 2**64 - 1), (1, 2)):
+            self.assertEqual(xy in S, xy in N)
+
+    def test_it_is_idempotent(self) -> None:
+        S = FF | (π_1 * 2 == π_2 / 3)
+        self.assertEqual(repr(normal_form(normal_form(S))), repr(normal_form(S)))
+
+    def test_an_order_atom_keeps_its_comparison(self) -> None:
+        self.assertEqual(repr(normal_form(U | (π + 0 < 5))), "𝔸(u64) | π < 5")
+
+
+class EqualityByNormalForm(unittest.TestCase):
     def test_the_ring_laws_decide(self) -> None:
-        self.assertEqual(U.normal_form(π + 1 - 1), U.normal_form(π))
-        self.assertEqual(
-            U.normal_form((π_1 + π_2) * (π_1 + π_2)),
-            U.normal_form(π_1 * π_1 + 2 * π_1 * π_2 + π_2 * π_2),
-        )
-        self.assertNotEqual(U.normal_form(π * π), U.normal_form(π))
+        self.assertEqual(UU | ((π_1 + π_2) * (π_1 + π_2) == π_2),
+                         UU | (π_1 * π_1 + 2 * π_1 * π_2 + π_2 * π_2 == π_2))
+        self.assertEqual(U | (π * (2**64 - 1) + π == 0), U | (0 * π == 0))
 
-    def test_the_coefficients_wrap_with_the_word(self) -> None:
-        self.assertEqual(U.normal_form(π * (2**64 - 1) + π), U.normal_form(0 * π))
-        self.assertFalse(U.normal_form(π - π))
-        self.assertTrue(U.normal_form(π))
+    def test_a_field_makes_the_equation_monic(self) -> None:
+        self.assertEqual(F | (2 * π == 4), F | (π == 2))
+        self.assertEqual(FF | (π_1 * 3 / 3 == π_2), FF | (π_1 == π_2))
 
-    def test_a_fields_division_by_a_constant_is_a_coefficient(self) -> None:
-        self.assertEqual(F.normal_form(π * 3 / 3), F.normal_form(π))
-        self.assertEqual(F.normal_form(π / 3).support, [((1, 0, 0, 0), 𝔽ₚ(1) / 3)])
-        with self.assertRaises(ValueError):
-            F.normal_form(π / P)  # nonzero as written, 0 on the carrier
+    def test_different_normal_forms_decide_nothing(self) -> None:
+        with self.assertRaises(TypeError):
+            F | (π * π == 0) == F | (π == 0)  # the same set, different forms
+        with self.assertRaises(TypeError):
+            UU | (π_1 == π_2) != UU | (π_1 == 0)
 
-
-class TheFiniteFunction(unittest.TestCase):
-    def test_support_and_degree(self) -> None:
-        p = U.normal_form((π_1 + π_2) * (π_1 + π_2))
-        self.assertEqual(p.degree, 2)
-        # Sorted by degree, then by the slots: π_2² < π_1·π_2 < π_1².
-        self.assertEqual(p.support, [((0, 0, 2, 0), 1), ((0, 1, 1, 0), 2), ((0, 2, 0, 0), 1)])
-        self.assertEqual(U.normal_form(5).support, [((0, 0, 0, 0), 5)])
-        self.assertEqual(U.normal_form(π - π).support, [])
-
-    def test_it_is_written_as_its_pairs(self) -> None:
-        self.assertEqual(
-            repr(U.normal_form((π_1 + π_2) * (π_1 + π_2))), "{π_2² ↦ 1, π_1·π_2 ↦ 2, π_1² ↦ 1}"
-        )
-        self.assertEqual(repr(U.normal_form(π - π)), "{}")
-        self.assertEqual(repr(U.normal_form(5)), "{1 ↦ 5}")
-        self.assertEqual(repr(F.normal_form(0 - π)), "{π ↦ -1}")
-        self.assertEqual(repr(U.normal_form(π * π * π * π * π * π * π * π * π * π * π)), "{π¹¹ ↦ 1}")
+    def test_the_chain_still_decides_both_ways(self) -> None:
+        self.assertNotEqual(U | (π < 5), U | (π < 6))
+        self.assertEqual(U | (π < 5), (U | (π <= 4)))
 
 
 class OutsideTheCatalogue(unittest.TestCase):
-    def test_no_polynomial(self) -> None:
-        for term in (π // 2, π % 2, π / π, π / 2):  # the word has no field division
+    def test_no_normal_form(self) -> None:
+        for S in (U | (π // 2 == 1), U | (π % 2 == 0)):
             with self.assertRaises(TypeError):
-                U.normal_form(term)
+                normal_form(S)
         with self.assertRaises(TypeError):
-            F.normal_form(π_1 / π_2)
-
-    def test_a_constant_the_carrier_cannot_hold(self) -> None:
-        with self.assertRaises(ValueError):
-            U.normal_form(π + 2**64)
+            FF | (π_1 / π_2 == 1)  # refused when the set is built
 
 
 if __name__ == "__main__":

@@ -25,6 +25,15 @@ using Word = unsigned int;
 using M = Monomial<4>;
 using P = Polynomial<Word, M>;
 using T = dedekind::sets::Term<Word>;
+using Pr = dedekind::sets::Pred<Word>;
+using dedekind::algebra::as_term;
+using dedekind::sets::Rel;
+using dedekind::sets::same_shape;
+
+/** A coefficient is its own constant: the terms here are over the word. */
+struct AsConstant {
+  Word operator()(Word c) const { return c; }
+};
 
 }  // namespace
 
@@ -110,6 +119,52 @@ TEST_CASE("The normal form of terms: equality in the free algebra",
     // A division by a term has no polynomial on any carrier.
     CHECK_THROWS_AS(
         normal_form<Word>(T::bin(Arith::Div, T::proj(1), T::proj(2))),
+        not_admitted);
+  }
+}
+
+TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
+          "[algebra][polynomial][terms]") {
+  const AsConstant lift;
+  const T x = T::proj(0), x1 = T::proj(1), x2 = T::proj(2);
+  const T one = T::constant(1u), zero = T::constant(0u);
+  const auto nf = [&](const Pr& p) { return normal_form<Word>(p, lift); };
+  SECTION("a polynomial written back reads as itself") {
+    const P p = normal_form<Word>((π_1 + π_2) * (π_1 + π_2) + 3u);
+    CHECK(normal_form<Word>(as_term<Word>(p, lift)) == p);
+    CHECK(normal_form<Word>(as_term<Word>(P::zero(), lift)).is_zero());
+  }
+  SECTION("an equation moves to a difference equal to 0") {
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, T::bin(Arith::Add, x, one), one)),
+                     nf(Pr::cmp(Rel::Eq, x, zero))));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, zero, x)),
+                     nf(Pr::cmp(Rel::Eq, x, zero))));
+    const T square = T::bin(Arith::Mul, T::bin(Arith::Add, x1, x2),
+                            T::bin(Arith::Add, x1, x2));
+    const T expanded = T::bin(
+        Arith::Add,
+        T::bin(Arith::Add, T::bin(Arith::Mul, x1, x1),
+               T::bin(Arith::Mul, T::constant(2u), T::bin(Arith::Mul, x1, x2))),
+        T::bin(Arith::Mul, x2, x2));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Ne, square, x2)),
+                     nf(Pr::cmp(Rel::Ne, expanded, x2))));
+    // The word is no field: 2π = 0 is not made monic (it is not π = 0).
+    CHECK_FALSE(same_shape(
+        nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mul, T::constant(2u), x), zero)),
+        nf(Pr::cmp(Rel::Eq, x, zero))));
+  }
+  SECTION("an order atom keeps its comparison, its sides normalised") {
+    CHECK(same_shape(
+        nf(Pr::cmp(Rel::Lt, T::bin(Arith::Add, x, zero), T::constant(5u))),
+        Pr::cmp(Rel::Lt, x, T::constant(5u))));
+  }
+  SECTION("the connectives are kept, and a remainder refused") {
+    const Pr a = Pr::cmp(Rel::Eq, T::bin(Arith::Sub, x, x), zero);
+    CHECK(same_shape(
+        nf(Pr::conj(a, a)),
+        Pr::conj(Pr::cmp(Rel::Eq, zero, zero), Pr::cmp(Rel::Eq, zero, zero))));
+    CHECK_THROWS_AS(
+        nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);
   }
 }

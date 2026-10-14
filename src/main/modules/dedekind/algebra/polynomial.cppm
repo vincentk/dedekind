@@ -37,6 +37,13 @@
  * fold; two terms are equal in the free algebra iff their normal forms are
  * equal, which is equality of two finite functions, monomial to coefficient.
  *
+ * A set expression is normalised through its predicate, atom by atom
+ * (@c normal_form(pred, lift)): an equation @c a @c = @c b on a ring becomes
+ * @c a @c - @c b @c = @c 0 with the difference a polynomial, monic on a field,
+ * written back as a term (@c as_term).  Equal normal forms cut out equal sets;
+ * the converse fails (the next paragraph), so a comparison of sets by normal
+ * form may answer only "equal" or "not decided".
+ *
  * Over a finite carrier that is not equality of the polynomial @b functions:
  * on 𝔽ₚ, @c πᵖ and @c π agree at every point, and on ℤ/2⁶⁴ so do
  * @c 2⁶³·π·(π+1) and @c 0.  That quotient (by the vanishing ideal) is a
@@ -435,6 +442,82 @@ struct Poly {
 export template <typename C, typename T>
 constexpr auto normal_form(const T& t) {
   return cata(Poly<C>{}, t);
+}
+
+/** @brief A polynomial written back as a term of the grammar: its terms from
+ *  the leading monomial down, each the coefficient times the product of its
+ *  variables (a coefficient 1 omitted), summed; the zero polynomial is the
+ *  constant 0.  @tparam K the constants' type.  @param p the polynomial.
+ *  @param lift a coefficient into a constant. */
+export template <typename K, typename C, std::size_t N, typename Lift>
+dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
+                                const Lift& lift) {
+  using T = dedekind::sets::Term<K>;
+  using dedekind::sets::Arith;
+  if (p.is_zero()) return T::constant(lift(identity_v<C, std::plus<C>>));
+  T sum;
+  bool first = true;
+  for (auto it = p.support().rbegin(); it != p.support().rend(); ++it) {
+    const auto& [m, c] = *it;
+    T product;
+    bool constant = true;
+    for (std::size_t slot = 0; slot < N; ++slot)
+      for (unsigned e = 0; e < m.exponent(slot); ++e) {
+        product = constant ? T::proj(static_cast<unsigned>(slot))
+                           : T::bin(Arith::Mul, product,
+                                    T::proj(static_cast<unsigned>(slot)));
+        constant = false;
+      }
+    const T term = constant ? T::constant(lift(c))
+                   : c == identity_v<C, std::multiplies<C>>
+                       ? product
+                       : T::bin(Arith::Mul, T::constant(lift(c)), product);
+    sum = first ? term : T::bin(Arith::Add, sum, term);
+    first = false;
+  }
+  return sum;
+}
+
+/** @brief The normal form of a predicate over the carrier @c C, atom by atom:
+ *  an equation or its negation @c a @c ⋈ @c b on a ring moves to
+ *  @c a @c - @c b @c ⋈ @c 0 with the difference a polynomial, made monic on a
+ *  field (dividing by the leading coefficient keeps the zero set); any other
+ *  atom has its sides normalised and its comparison kept (moving a term across
+ *  @c < needs the ordered ring's theory).  Equal normal forms cut out equal
+ *  sets; different ones need not cut out different sets (@c πᵖ @c = @c π
+ *  everywhere on 𝔽ₚ).  An atom outside the catalogue is refused
+ *  (@c not_admitted).  @tparam C the carrier.  @param p the predicate.
+ *  @param lift a coefficient into a constant of the predicate's type. */
+export template <typename C, typename K, typename Lift>
+dedekind::sets::Pred<K> normal_form(const dedekind::sets::Pred<K>& p,
+                                    const Lift& lift) {
+  using Pr = dedekind::sets::Pred<K>;
+  using P = Polynomial<C, Monomial<4>>;
+  using dedekind::sets::On;
+  using dedekind::sets::Rel;
+  if (p.kind != Pr::Kind::Cmp) {
+    const Pr x = normal_form<C>(*p.p, lift);
+    const Pr y = normal_form<C>(*p.q, lift);
+    return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
+  }
+  const P x = normal_form<C>(*p.a);
+  const P y = normal_form<C>(*p.b);
+  if constexpr (requires(const P& u, const P& v) { u - v; }) {
+    if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
+        dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
+      P d = x - y;
+      if constexpr (requires(const C& a, const C& b) { a / b; }) {
+        if (!d.is_zero() && dedekind::sets::admits(
+                                On<C>{}, dedekind::sets::FieldDivision{}, true))
+          d = d *
+              P(identity_v<C, std::multiplies<C>> / d.leading_coefficient());
+      }
+      return Pr::cmp(
+          p.rel, as_term<K>(d, lift),
+          dedekind::sets::Term<K>::constant(lift(identity_v<C, std::plus<C>>)));
+    }
+  }
+  return Pr::cmp(p.rel, as_term<K>(x, lift), as_term<K>(y, lift));
 }
 
 }  // namespace dedekind::algebra

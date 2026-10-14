@@ -262,3 +262,21 @@ TEST_CASE(
   CHECK_THROWS_AS(normal_form<𝔽ₚ>(π / 18446744073709551557ull),
                   std::domain_error);
 }
+
+TEST_CASE("𝔽ₚ: an equation's normal form is monic, so 2π = 4 is π = 2",
+          "[morphologies][modular][polynomial]") {
+  using dedekind::algebra::normal_form;
+  using dedekind::sets::Rel;
+  using dedekind::sets::same_shape;
+  using T = dedekind::sets::Term<unsigned long long>;
+  using Pr = dedekind::sets::Pred<unsigned long long>;
+  struct AsConstant {
+    unsigned long long operator()(𝔽ₚ c) const { return c.value; }
+  };
+  const auto nf = [](const Pr& p) { return normal_form<𝔽ₚ>(p, AsConstant{}); };
+  const T x = T::proj(0);
+  CHECK(same_shape(
+      nf(Pr::cmp(Rel::Eq, T::bin(dedekind::sets::Arith::Mul, T::constant(2), x),
+                 T::constant(4))),
+      nf(Pr::cmp(Rel::Eq, x, T::constant(2)))));
+}

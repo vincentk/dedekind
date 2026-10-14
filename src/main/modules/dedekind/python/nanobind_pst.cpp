@@ -584,38 +584,40 @@ struct RunsIter {
   bool live = false;
 };
 
-/** @brief A monomial written: π, π_1, π_2, π_3 with superscript exponents, ·
- *  between; 1 for the empty product. */
-std::string written_monomial(const dedekind::algebra::Monomial<4>& m) {
-  static constexpr const char* superscript[] = {"⁰", "¹", "²", "³", "⁴",
-                                                "⁵", "⁶", "⁷", "⁸", "⁹"};
-  static constexpr const char* variable[] = {"π", "π_1", "π_2", "π_3"};
-  std::string out;
-  for (std::size_t slot = 0; slot < 4; ++slot) {
-    const unsigned e = m.exponent(slot);
-    if (e == 0) continue;
-    if (!out.empty()) out += "·";
-    out += variable[slot];
-    if (e > 1)
-      for (const char d : std::to_string(e)) out += superscript[d - '0'];
-  }
-  return out.empty() ? "1" : out;
-}
-std::string shown_coefficient(std::uint64_t c) { return std::to_string(c); }
-std::string shown_coefficient(const Fp& c) {
-  return nb::cast<std::string>(nb::str(representative(c)));
-}
-/** @brief A polynomial written as the finite functional graph it is,
- *  @c {m ↦ c, …} along the monomials' chain; the zero polynomial is @c {}. */
+/** @brief A coefficient written back as a constant of the term surface: the
+ *  word as its int, an element of 𝔽ₚ as its symmetric representative. */
+struct AsConstant {
+  PyConst operator()(std::uint64_t c) const { return PyConst{py_int(c)}; }
+  PyConst operator()(const Fp& c) const { return PyConst{representative(c)}; }
+};
+
+/** @brief Equality of two predicates by their normal forms: equal forms cut
+ *  out equal sets; different forms decide nothing, so they raise rather than
+ *  answer "different".  @tparam C the carrier. */
 template <typename C>
-std::string written_polynomial(
-    const dedekind::algebra::Polynomial<C, dedekind::algebra::Monomial<4>>& p) {
-  std::string out = "{";
-  for (const auto& [m, c] : p.support()) {
-    if (out.size() > 1) out += ", ";
-    out += written_monomial(m) + " ↦ " + shown_coefficient(c);
+bool equal_by_normal_form(const RPred& a, const RPred& b) {
+  if (dedekind::sets::same_shape(
+          dedekind::algebra::normal_form<C>(a, AsConstant{}),
+          dedekind::algebra::normal_form<C>(b, AsConstant{})))
+    return true;
+  throw dedekind::sets::not_admitted(
+      "not decided: the normal forms differ, and different normal forms need "
+      "not cut out different sets");
+}
+
+/** @brief Equality of two sets over @c C: the chain's run lists where they
+ *  decide (both ways), else the normal forms (only "equal").  @tparam C the
+ *  carrier.  @tparam S the set. */
+template <typename C, typename S>
+bool set_equal(const S& a, const S& b) {
+  if constexpr (IsTotallyOrdered<C>) {
+    try {
+      return a == b;
+    } catch (const dedekind::sets::not_admitted&) {
+      // outside the chain's fragment: the ring's normal forms below
+    }
   }
-  return out + "}";
+  return equal_by_normal_form<C>(a.predicate, b.predicate);
 }
 
 /** @brief The sets a term cuts out of a canonical universe: the set
@@ -632,9 +634,8 @@ template <typename C, typename ToC>
 void bind_term_sets(nb::module_& m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
                     const char* name, const char* set_cls, const char* pair_cls,
-                    const char* rel_cls, const char* poly_cls, ToC to_c) {
+                    const char* rel_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
-  using P = dedekind::algebra::Polynomial<C, dedekind::algebra::Monomial<4>>;
   using S = Comprehension<U, RPred>;
   using UU = decltype(U{} * U{});
   using R = decltype(UU{} | std::declval<RPred>());
@@ -661,46 +662,27 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
-  // The ring's normal form: the term read as a polynomial over the carrier.
-  universe.def(
+  const char* normal_form_doc =
+      "normal_form(S): the same set, its predicate in normal form atom by "
+      "atom: "
+      "an equation a == b on a ring as a polynomial a - b == 0 (monic on a "
+      "field), any other atom with its sides normalised.  Equal normal forms "
+      "cut out equal sets; different ones need not cut out different sets.  "
+      "//, % and a division by a term have no normal form: TypeError.";
+  m.def(
       "normal_form",
-      [](const U&, nb::handle t) {
-        return dedekind::algebra::normal_form<C>(term_of(t));
+      [](const S& s) {
+        return U{} |
+               dedekind::algebra::normal_form<C>(s.predicate, AsConstant{});
       },
-      nb::arg("term"),
-      "𝔸(carrier).normal_form(term): the term as a polynomial over the "
-      "carrier, the normal form in the free algebra its ring laws give it; two "
-      "terms are equal there iff their normal forms are.  + - * where the "
-      "carrier admits them, / by a nonzero constant on a field; //, % and a "
-      "division by a term have no polynomial: TypeError.");
-  nb::class_<P>(m, poly_cls,
-                "A polynomial over the carrier: the finite function monomial ↦ "
-                "coefficient, its support sorted by degree, then by slot.")
-      .def(
-          "__eq__", [](const P& a, const P& b) { return a == b; },
-          nb::is_operator())
-      .def(
-          "__ne__", [](const P& a, const P& b) { return a != b; },
-          nb::is_operator())
-      .def(
-          "__bool__", [](const P& p) { return !p.is_zero(); }, "Nonzero.")
-      .def("__repr__", [](const P& p) { return written_polynomial<C>(p); })
-      .def_prop_ro(
-          "degree", [](const P& p) { return p.degree(); },
-          "The total degree; 0 for the zero polynomial.")
-      .def_prop_ro(
-          "support",
-          [](const P& p) {
-            nb::list out;
-            for (const auto& [mono, c] : p.support())
-              out.append(nb::make_tuple(
-                  nb::make_tuple(mono.exponent(0), mono.exponent(1),
-                                 mono.exponent(2), mono.exponent(3)),
-                  c));
-            return out;
-          },
-          "The finite function as pairs ((e, e1, e2, e3), coefficient), the "
-          "exponents of π, π_1, π_2, π_3; sorted along the monomials' chain.");
+      nb::arg("S"), normal_form_doc);
+  m.def(
+      "normal_form",
+      [](const R& r) {
+        return UU{} |
+               dedekind::algebra::normal_form<C>(r.predicate, AsConstant{});
+      },
+      nb::arg("S"), normal_form_doc);
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -721,6 +703,17 @@ void bind_term_sets(nb::module_& m,
           },
           nb::is_operator())
       .def("__invert__", [](const S& a) { return U{} | a.predicate.negated(); })
+      .def("__eq__", set_equal<C, S>, nb::is_operator(),
+           "A == B: equality in the free algebra the carrier's laws give the "
+           "term.  A chain's run lists decide it; otherwise the normal forms "
+           "(normal_form) answer True when they agree and raise TypeError when "
+           "they differ, which decides nothing.  A term outside the catalogue "
+           "(a remainder, a division by a term): TypeError.")
+      .def(
+          "__ne__",
+          [](const S& a, const S& b) { return !set_equal<C, S>(a, b); },
+          nb::is_operator(),
+          "A != B: decided where the run lists decide; else TypeError.")
       .def_prop_ro("universe", [](const S&) { return U{}; })
       .def("__repr__",
            [shown](const S& s) { return shown + " | " + show(s.predicate); });
@@ -807,19 +800,9 @@ void bind_term_sets(nb::module_& m,
       return total;
     };
     set.def(
-           "__eq__", [](const S& a, const S& b) { return a == b; },
-           nb::is_operator(),
-           "A == B: equality in the free algebra the carrier's laws give the "
-           "term, read on demand (a chain's run lists; a ring's polynomials "
-           "by normal_form).  A term outside the catalogue (a remainder, a "
-           "division by a term) evaluates but does not compare: TypeError.")
-        .def(
-            "__ne__", [](const S& a, const S& b) { return !(a == b); },
-            nb::is_operator())
-        .def(
-            "__bool__",
-            [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
-            "A set is truthy iff it is inhabited.")
+           "__bool__",
+           [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
+           "A set is truthy iff it is inhabited.")
         .def(
             "runs",
             [run_pairs](const S& s) {
@@ -924,6 +907,14 @@ void bind_term_sets(nb::module_& m,
           nb::is_operator())
       .def("__invert__",
            [](const R& a) { return UU{} | a.predicate.negated(); })
+      .def(
+          "__eq__",
+          [](const R& a, const R& b) {
+            return equal_by_normal_form<C>(a.predicate, b.predicate);
+          },
+          nb::is_operator(),
+          "R == S: True where the normal forms agree; TypeError where they "
+          "differ, which decides nothing.")
       .def("__repr__", [shown](const R& r) {
         return shown + " × " + shown + " | " + show(r.predicate);
       });
@@ -1553,10 +1544,10 @@ NB_MODULE(_pst, m) {
 
   // ── the term surface on the canonical universes and the truth chains ──
   bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
-                           "U64Relation", "U64Polynomial",
+                           "U64Relation",
                            [](nb::handle h) { return word_of(h).v; });
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", "FpPolynomial", [](nb::handle h) {
+                     "FpRelation", [](nb::handle h) {
                        // A point is an element or its representative, as the
                        // universe's `in`; the quotient map is for constants.
                        if (!in_fp(h))

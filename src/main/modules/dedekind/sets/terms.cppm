@@ -1295,6 +1295,31 @@ struct Pred {
   }
 };
 
+/** @brief The same tree: the same nodes, slots, operators and comparisons, and
+ *  equal constants.  Syntactic, so sound for equality of what two normal forms
+ *  denote and silent on two different trees.  @param x,y the terms. */
+export template <typename K>
+bool same_shape(const Term<K>& x, const Term<K>& y) {
+  if (x.kind != y.kind) return false;
+  switch (x.kind) {
+    case Term<K>::Kind::Proj:
+      return x.slot == y.slot;
+    case Term<K>::Kind::Const:
+      return x.value == y.value;
+    case Term<K>::Kind::Bin:
+      return x.op == y.op && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+  }
+  return false;
+}
+/** @brief The same predicate tree, atom by atom.  @param x,y the predicates. */
+export template <typename K>
+bool same_shape(const Pred<K>& x, const Pred<K>& y) {
+  if (x.kind != y.kind) return false;
+  if (x.kind == Pred<K>::Kind::Cmp)
+    return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+  return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);
+}
+
 /** @section terms__Formal_Verification */
 // ── Certificates ────────────────────────────────────────────────────────────
 // Rules over a term's structure, read by the relation traits (functional,
