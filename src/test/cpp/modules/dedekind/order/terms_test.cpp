@@ -57,6 +57,17 @@ static_assert(admits(On<unsigned>{}, std::less<>{}, false) &&
                   admits(On<unsigned>{}, std::divides<>{}, true),
               "on a word: the order comparisons, // and % by a constant, and "
               "its own division; a field's division is not its rule.");
+// ℕ's proxy is a rig and a dividable chain, not a group: + · % are in its
+// signature, monus is not until its variety is named.
+static_assert(
+    admits(On<Cardinality>{}, std::plus<>{}, false) &&
+        admits(On<Cardinality>{}, std::multiplies<>{}, false) &&
+        admits(On<Cardinality>{}, std::modulus<>{}, true) &&
+        admits(On<Cardinality>{}, std::less<>{}, false) &&
+        !admits(On<Cardinality>{}, std::minus<>{}, false) &&
+        !admits(On<Cardinality>{}, FieldDivision{}, true),
+    "ℕ: + · % and the order are in the signature; monus and a field's "
+    "division are not.");
 
 TEST_CASE("order:terms: a constant meets the carrier beside it",
           "[sets][terms][constants]") {

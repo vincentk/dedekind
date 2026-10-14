@@ -166,9 +166,11 @@ static_assert(!IsMonotone<Successor<unsigned>> &&
 }  // namespace dedekind::order
 
 // ── The division rules of the term grammar, beside their certificate ────────
-// Euclidean division and remainder by a nonzero constant, where the carrier is
-// a dividable chain (ordered, with / and %): the words and ℕ's proxy.  A
-// field's division is algebra:field's rule.
+// The specification is sets:terms' @section terms__Signature_And_Free_Algebra.
+// Here: Euclidean division (//) and remainder (%) by a nonzero constant are in
+// the signature of a dividable chain (ordered, with / and %): the words and
+// ℕ's proxy.  A field's division is algebra:field's rule.  Neither has a free
+// algebra in the catalogue: such a term evaluates and does not compare.
 namespace dedekind::sets {
 export template <typename C>
   requires dedekind::order::IsDividableChain<C>
