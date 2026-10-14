@@ -620,7 +620,7 @@ constexpr bool admits(On<C>, std::plus<>, bool) {
   return true;
 }
 export template <typename C>
-  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<C>>
+  requires IsAbelianGroup<C, std::plus<C>> && IsClosedUnder<C, std::minus<>>
 constexpr bool admits(On<C>, std::minus<>, bool) {
   return true;
 }
@@ -769,30 +769,28 @@ constexpr bool rel_admitted(Rel r) {
   }
   return false;
 }
-/** @brief @c x @c op @c y in the carrier @c C, for an admitted operator; the
- *  branches an unadmitted carrier would not compile are not instantiated. */
+/** @brief @c x @c op @c y in the carrier @c C, for an admitted operator,
+ *  through the typed functor; a branch whose expression the carrier has not is
+ *  not instantiated (the typed functor's body would be, so the guard asks the
+ *  expression). */
 template <typename C>
 constexpr C apply_op(Arith op, const C& x, const C& y) {
   switch (op) {
     case Arith::Add:
-      if constexpr (IsClosedUnder<C, std::plus<C>>) return std::plus<C>{}(x, y);
+      if constexpr (requires { x + y; }) return std::plus<C>{}(x, y);
       break;
     case Arith::Sub:
-      if constexpr (IsClosedUnder<C, std::minus<C>>)
-        return std::minus<C>{}(x, y);
+      if constexpr (requires { x - y; }) return std::minus<C>{}(x, y);
       break;
     case Arith::Mul:
-      if constexpr (IsClosedUnder<C, std::multiplies<C>>)
-        return std::multiplies<C>{}(x, y);
+      if constexpr (requires { x * y; }) return std::multiplies<C>{}(x, y);
       break;
     case Arith::Div:
     case Arith::FloorDiv:
-      if constexpr (IsClosedUnder<C, std::divides<C>>)
-        return std::divides<C>{}(x, y);
+      if constexpr (requires { x / y; }) return std::divides<C>{}(x, y);
       break;
     case Arith::Mod:
-      if constexpr (IsClosedUnder<C, std::modulus<C>>)
-        return std::modulus<C>{}(x, y);
+      if constexpr (requires { x % y; }) return std::modulus<C>{}(x, y);
       break;
   }
   throw not_admitted(std::string("the operator ") + spelling(op) +
