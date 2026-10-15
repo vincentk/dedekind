@@ -19,7 +19,7 @@ import unittest
 from dedekind.pst import A, B, K3, Function, Kleene, Relation, Set, Ternary, cond, u64, π, π_1, π_2, 𝔽ₚ
 
 F, U_, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
-U, Fp = A(u64), A(𝔽ₚ)
+U, UF = A(u64), A(𝔽ₚ)  # not Fp: that is the name 𝔽ₚ (NFKC)
 
 
 class Sets(unittest.TestCase):
@@ -57,7 +57,7 @@ class Relations(unittest.TestCase):
     def test_a_relation_of_its_factors(self) -> None:
         R = U * U | (π_1 < π_2)
         self.assertIs(Relation[u64, u64](R), R)
-        self.assertIsInstance(Fp * Fp | (π_2 == π_1 * 3), Relation[𝔽ₚ, 𝔽ₚ])
+        self.assertIsInstance(UF * UF | (π_2 == π_1 * 3), Relation[𝔽ₚ, 𝔽ₚ])
         with self.assertRaises(TypeError):
             Relation[𝔽ₚ, 𝔽ₚ](R)
         with self.assertRaises(TypeError):
@@ -68,7 +68,7 @@ class Relations(unittest.TestCase):
         self.assertEqual(f(4), 13)  # applied to a point: t(x)
         self.assertIs(f((4, 13)), True)  # applied to a pair: χ
         self.assertEqual(Function[u64, u64](U * U | (π_1 + 1 == π_2))(2**64 - 1), 0)  # it wraps
-        third = Function[𝔽ₚ, 𝔽ₚ](Fp * Fp | (π_2 == π_1 / 3))
+        third = Function[𝔽ₚ, 𝔽ₚ](UF * UF | (π_2 == π_1 / 3))
         self.assertEqual(third(3), 𝔽ₚ(1))
 
     def test_mccarthys_conditional_is_a_function(self) -> None:
