@@ -8,6 +8,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -54,4 +55,26 @@ TEST_CASE("sets:terms: without a module's rule its operators are not admitted",
   CHECK_THROWS_AS(bind_check<unsigned>(Pred<int>::cmp(
                       Rel::Lt, Term<int>::proj(0), Term<int>::constant(1))),
                   not_admitted);
+}
+
+TEST_CASE(
+    "sets:terms: an arrow without a term is applied, evaluated, never "
+    "rewritten, and binds to its own carrier only",
+    "[sets][terms][runtime]") {
+  using T = Term<unsigned>;
+  const auto twice = std::make_shared<OpaqueArrow<unsigned>>(
+      "twice", [](const unsigned& x) { return 2 * x; });
+  const T t = T::bin(Arith::Add, T::ap(twice, T::proj(0)), T::constant(1u));
+  CHECK(term_value(t, 5u) == 11u);  // 2·5 + 1
+  // Substitution reaches through the application: twice(π) at π := 3.
+  CHECK(term_value(t.subst(0, T::constant(3u)), 0u) == 7u);
+  // The same arrow is the same object; another arrow of the same table is not.
+  const auto again = std::make_shared<OpaqueArrow<unsigned>>(
+      "twice", [](const unsigned& x) { return 2 * x; });
+  CHECK(same_shape(t, t));
+  CHECK_FALSE(same_shape(
+      t, T::bin(Arith::Add, T::ap(again, T::proj(0)), T::constant(1u))));
+  // Bound to another carrier, the arrow is refused.
+  CHECK_NOTHROW(bind_check<unsigned>(t));
+  CHECK_THROWS_AS(bind_check<unsigned long long>(t), not_admitted);
 }

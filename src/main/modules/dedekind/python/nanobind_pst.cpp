@@ -503,8 +503,15 @@ std::string show(const RTerm& t) {
       return nb::cast<std::string>(nb::repr(t.value.o));
     case RTerm::Kind::Bin:
       return "(" + show(*t.a) + " " + spelling(t.op) + " " + show(*t.b) + ")";
+    case RTerm::Kind::Ap:
+      return t.f->name() + "(" + show(*t.a) + ")";
   }
   return "?";
+}
+/** @brief Whether a Python value is a term of the grammar (a term or a
+ *  variable), as opposed to a point. */
+bool is_term(nb::handle h) {
+  return nb::isinstance<RTerm>(h) || nb::isinstance<ProjectionTag>(h);
 }
 std::string show(const RPred& p) {
   switch (p.kind) {
@@ -688,6 +695,16 @@ void bind_term_sets(nb::module_& m,
           "𝔸(carrier) | pred: the former; every operator and constant of the "
           "term is checked against the carrier now.")
       .def(
+          "__or__",
+          [](const U&, const RTerm& t) -> S {
+            throw nb::type_error(
+                ("𝔸(carrier) | " + show(t) +
+                 ": a term valued in the carrier is not a predicate (the "
+                 "set's χ is valued in 𝔹); compare it")
+                    .c_str());
+          },
+          nb::is_operator())
+      .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
   const char* canonical_doc =
@@ -730,8 +747,16 @@ void bind_term_sets(nb::module_& m,
   set.def("__contains__",
           [holds, to_c](const S& s, nb::handle h) { return holds(to_c, s, h); })
       .def(
-          "__call__", [to_c](const S& s, nb::handle h) { return s(to_c(h)); },
-          nb::arg("x"), "χ(x), x an element or a representative.")
+          "__call__",
+          [to_c](const S& s, nb::handle h) -> nb::object {
+            // The set applied as its characteristic arrow: at a term, the
+            // predicate with π replaced by it (substitution); at a point, χ.
+            if (is_term(h)) return nb::cast(s.predicate.subst(0, term_of(h)));
+            return nb::cast(s(to_c(h)));
+          },
+          nb::arg("x"),
+          "S(x): χ(x) at an element or a representative; S(t) at a term is the "
+          "predicate with π replaced by t, the set applied as its arrow.")
       .def(
           "__and__",
           [](const S& a, const S& b) {
@@ -1007,16 +1032,57 @@ void bind_mixed(nb::class_<pst::Set<C, L1>>& cls) {
           nb::is_operator());
 }
 
+/** @brief A set over a truth chain, written: its runs, or for an L-valued one
+ *  its α-cuts. */
+template <typename C, typename L>
+std::string written_set(const pst::Set<C, L>& s) {
+  if constexpr (std::same_as<L, Boole>) {
+    return written_runs<C>(s);
+  } else {
+    return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
+           "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
+  }
+}
+
 template <typename C, typename L>
 nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
                                     const char* doc) {
   using S = pst::Set<C, L>;
   using Ω = typename L::Ω;
   auto set = nb::class_<S>(m, cls, doc);
+  // χ_S as an arrow on the chain itself: an L-valued table reads as is; a
+  // decidable one through the dominance 𝔹 ↪ Ω (⊤ to ⊤, ⊥ to ⊥), so S(π) is a
+  // term on the chain, compared by the chain's order.
+  const auto chi = [](const S& s) {
+    return std::make_shared<dedekind::sets::OpaqueArrow<C>>(
+        "χ" + written_set<C, L>(s), [s](const C& x) -> C {
+          if constexpr (std::same_as<Ω, C>) {
+            return s(x);
+          } else {
+            return s(x) == L::True ? dedekind::sets::chain_top<C>()
+                                   : dedekind::sets::chain_bottom<C>();
+          }
+        });
+  };
   set.def(
          "__call__",
-         [](const S& s, nb::handle x) { return nb::cast(s(from_py_as<C>(x))); },
-         nb::arg("x"), "χ(x), in the set's species.")
+         [chi](const S& s, nb::handle x) -> nb::object {
+           if (is_term(x)) return nb::cast(RTerm::ap(chi(s), term_of(x)));
+           return nb::cast(s(from_py_as<C>(x)));
+         },
+         nb::arg("x"),
+         "S(x): χ(x) at an element, in the set's species; S(t) at a term is "
+         "χ applied to t, a term on the chain: S(π) >= level is the α-cut, "
+         "S(π) == level the fibre, S(π) alone membership.")
+      .def(
+          "__or__",
+          [](const S& s, const RTerm& t) {
+            return former_runtime(
+                s, RPred::cmp(Rel::Eq, t,
+                              RTerm::constant(PyConst{
+                                  to_py<C>(dedekind::sets::chain_top<C>())})));
+          },
+          "S | t: a term valued in the chain read as a predicate, t == ⊤.")
       .def(
           "__contains__",
           [](const S& s, nb::handle x) {
@@ -1036,24 +1102,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "HasDecidableMembership: whether χ answers in 𝔹.")
       .def_prop_ro(
           "carrier", [](const S&) { return pst::Chain<C>{}; },
-          "The chain the set lives on.")
-      .def(
-          "cut",
-          [](const S& s, nb::handle level) {
-            return pst::cut(s, from_py_as<Ω>(level));
-          },
-          nb::arg("level"),
-          "The α-cut {x | χ(x) >= level}: the upper ray on Ω pulled back along "
-          "χ (preimage), a decidable set.")
-      .def(
-          "fibre",
-          [](const S& s, nb::handle level) {
-            return pst::Set<C, Boole>(
-                dedekind::order::fibre(steps(s), from_py_as<Ω>(level)));
-          },
-          nb::arg("level"),
-          "The fibre {x | χ(x) == level}: η(level) pulled back along χ "
-          "(preimage), a decidable set.");
+          "The chain the set lives on.");
   // Every handle over a truth chain is its run list: its own canonical form.
   m.def(
       "canonical", [](const S& s) { return s; }, nb::arg("S"),
@@ -1068,10 +1117,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
           "in K₃.");
   } else {
-    set.def("__repr__", [](const S& s) {
-      return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
-             "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
-    });
+    set.def("__repr__", [](const S& s) { return written_set<C, L>(s); });
   }
   bind_mixed<C, L, L>(set);
   return set;
@@ -1271,6 +1317,15 @@ NB_MODULE(_pst, m) {
           [](const RPred& a, const RPred& b) { return RPred::disj(a, b); },
           nb::is_operator())
       .def("__invert__", [](const RPred& a) { return a.negated(); })
+      .def(
+          "__bool__",
+          [](const RPred& p) -> bool {
+            throw nb::type_error(
+                ("a predicate is not a truth value: " + show(p) +
+                 "; bind it (A(carrier) | pred) or compare sets")
+                    .c_str());
+          },
+          "Refused: a predicate is bound, not tested.")
       .def("__repr__", [](const RPred& p) { return show(p); });
 
   // ── the canonical ring and field ──
@@ -1551,7 +1606,8 @@ NB_MODULE(_pst, m) {
       },
       nb::arg("S"), nb::arg("P"),
       "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
-      "L-valued S is refused (see #980), quantify over S.cut(level).");
+      "L-valued S is refused (see #980), quantify over its cut, "
+      "A(chain) | (S(π) >= level).");
   m.attr("any") = m.attr("exists");
   m.attr("all") = m.attr("forall");
   m.def(

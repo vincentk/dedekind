@@ -435,6 +435,10 @@ struct Poly {
             " here: a polynomial reads + - * and a field's division by a "
             "nonzero constant");
       }
+      case T::Kind::Ap:
+        throw dedekind::sets::not_admitted(
+            "no free algebra catalogued for an arrow without a term: " +
+            t.f->name() + " is evaluated, never rewritten");
     }
     throw dedekind::sets::not_admitted("an unknown term");
   }

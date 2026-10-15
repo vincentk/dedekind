@@ -90,7 +90,7 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(exists(H, π >= F), T)  # ⋁ (χ ∧ P)
         with self.assertRaises(TypeError):
             forall(H, π >= F)  # a bounded ∀ over an L-valued set awaits #980
-        self.assertIs(forall(H.cut(U), π >= U), True)  # over its cut, decided
+        self.assertIs(forall(A(K3) | (H(π) >= U), π >= U), True)  # over its cut
         # Equality is the internal biconditional: reflexive only up to the
         # excluded middle, so H agrees with itself to degree U where it is U.
         self.assertEqual(H == H, U)
@@ -100,11 +100,23 @@ class KleeneValuedTest(unittest.TestCase):
 
     def test_cuts_and_fibres_are_decidable_sets(self) -> None:
         H = K3.identity
-        self.assertTrue(H.cut(U).is_decidable)
-        self.assertIs(H.cut(U) == (A(K3) | (π >= U)), True)
-        self.assertIs(H.cut(T) == η(T), True)
-        self.assertIs(H.fibre(U) == η(U), True)
-        self.assertEqual(repr(H.cut(U)), "[U, ⊤]")
+        cut_U = A(K3) | (H(π) >= U)  # χ applied to π, compared on the chain
+        self.assertTrue(cut_U.is_decidable)
+        self.assertIs(cut_U == (A(K3) | (π >= U)), True)
+        self.assertIs((A(K3) | (H(π) >= T)) == η(T), True)
+        self.assertIs((A(K3) | (H(π) == U)) == η(U), True)
+        self.assertEqual(repr(cut_U), "[U, ⊤]")
+        self.assertEqual(repr(H(π)), "χ{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤](π)")
+
+    def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
+        S = A(K3) | (π > F)
+        self.assertIs((A(K3) | S(π)) == S, True)  # membership: S(π) == ⊤
+        self.assertIs((A(K3) | (S(π) == F)) == ~S, True)
+        self.assertEqual(repr(S(π)), "χ[U, ⊤](π)")
+        with self.assertRaises(TypeError):
+            A(B) | S(π)  # an arrow on K₃ is not an arrow on 𝔹
+        with self.assertRaises(TypeError):
+            bool(π > F)  # a predicate is bound, not tested
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_lift(self) -> None:
@@ -113,7 +125,7 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertFalse(L.is_decidable)
         self.assertEqual(L(U), T)
         self.assertEqual(L == lift(A(K3) | (π >= U)), T)
-        self.assertEqual(L.cut(U) == S, True)
+        self.assertEqual((A(K3) | (L(π) >= U)) == S, True)
 
 
 class MixedSpeciesTest(unittest.TestCase):
