@@ -885,7 +885,7 @@ struct Value {
                              " is not in the carrier's signature");
         return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
       case Term<K>::Kind::Ap:
-        return arrow_at<C>(*t.f).f(steer(*t.a));
+        return arrow_at<C>(*t.f)(steer(*t.a));
     }
     throw not_admitted("an unknown term");
   }
@@ -1124,16 +1124,21 @@ export struct Opaque {
   /** @brief The arrow's name, for printing and for a refusal. */
   virtual const std::string& name() const = 0;
 };
-/** @brief The arrow @c C @c → @c C behind an @c Opaque.  @tparam C the carrier.
- */
+/** @brief The arrow @c C @c → @c C behind an @c Opaque: a @c Morphism (so an
+ *  @c IsArrow, and the typed @c ap(f, π) takes it too) with a name.
+ *  @tparam C the carrier. */
 export template <typename C>
-struct OpaqueArrow final : Opaque {
+struct OpaqueArrow final : Opaque, Morphism<C, C, std::function<C(const C&)>> {
   std::string label;
-  std::function<C(const C&)> f;
   OpaqueArrow(std::string name, std::function<C(const C&)> arrow)
-      : label(std::move(name)), f(std::move(arrow)) {}
+      : Morphism<C, C, std::function<C(const C&)>>(std::move(arrow)),
+        label(std::move(name)) {}
   const std::string& name() const override { return label; }
 };
+static_assert(IsArrow<OpaqueArrow<unsigned>> &&
+                  std::same_as<OpaqueArrow<unsigned>::Domain,
+                               OpaqueArrow<unsigned>::Codomain>,
+              "an opaque arrow is an arrow, on one carrier");
 /** @brief The arrow @c f at the carrier @c C.  @throws not_admitted where
  *  @c f is an arrow on another carrier. */
 template <typename C>

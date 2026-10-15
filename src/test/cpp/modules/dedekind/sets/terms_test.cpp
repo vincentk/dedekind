@@ -66,6 +66,8 @@ TEST_CASE(
       "twice", [](const unsigned& x) { return 2 * x; });
   const T t = T::bin(Arith::Add, T::ap(twice, T::proj(0)), T::constant(1u));
   CHECK(term_value(t, 5u) == 11u);  // 2·5 + 1
+  // The same arrow in the typed grammar: an opaque arrow is an IsArrow.
+  CHECK(term_value(ap(*twice, π), 5u) == 10u);
   // Substitution reaches through the application: twice(π) at π := 3.
   CHECK(term_value(t.subst(0, T::constant(3u)), 0u) == 7u);
   // The same arrow is the same object; another arrow of the same table is not.

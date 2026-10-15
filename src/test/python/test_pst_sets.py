@@ -121,7 +121,7 @@ class KleeneValuedTest(unittest.TestCase):
             with self.assertRaises(TypeError):
                 universe | K3.identity(π) if universe.carrier is K3 else universe | top(π)
         with self.assertRaises(TypeError):
-            A(B) | S(π)  # an arrow on K₃ is not an arrow on 𝔹
+            A(B) | (S(π) == True)  # noqa: E712 (an arrow on K₃ is not one on 𝔹)
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
 

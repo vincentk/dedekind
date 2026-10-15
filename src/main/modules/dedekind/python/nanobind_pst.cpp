@@ -1181,7 +1181,7 @@ nb::object on_set_and_pred(nb::handle s, nb::handle p, const char* what) {
         throw nb::type_error(
             "forall over an L-valued set awaits the chain's residuated "
             "implication (#980); quantify over its α-cut: "
-            "forall(S.cut(level), P)");
+            "forall(A(S.carrier) | (S(π) >= level), P)");
     }
   }
   const std::string message = std::string(what) +
