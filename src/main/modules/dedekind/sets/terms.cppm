@@ -641,6 +641,35 @@ using rel_key_t = typename rel_key<R>::type;
 
 // ── A term whose shape is a value: its readings ─────────────────────────────
 
+/** @brief An operator of a term built at run time.  Python's @c / and @c //
+ *  are both the carrier's division; what differs is where each is admitted
+ *  (a field, an ordered word). */
+export enum class Arith { Add, Sub, Mul, Div, FloorDiv, Mod };
+/** @brief The spelling of an operator, for a refusal. */
+export constexpr const char* spelling(Arith op) {
+  switch (op) {
+    case Arith::Add:
+      return "+";
+    case Arith::Sub:
+      return "-";
+    case Arith::Mul:
+      return "*";
+    case Arith::Div:
+      return "/";
+    case Arith::FloorDiv:
+      return "//";
+    case Arith::Mod:
+      return "%";
+  }
+  return "?";
+}
+/** @brief Refused at the carrier: an operator not total there, a division by
+ *  a term, an order comparison on an unordered carrier, a slot the points
+ *  have not.  Raised when a term built at run time is bound. */
+export struct not_admitted : std::logic_error {
+  using std::logic_error::logic_error;
+};
+
 /** @brief The sorts of a point type: the carriers of its coordinates, each
  *  once.  A carrier value has one sort; a pair of two carriers two (one where
  *  they agree).  A term built at run time names no carrier until it is bound,
@@ -737,35 +766,6 @@ constexpr C coordinate_as(unsigned slot, const P& p) {
         "π_1 / π_2 name a pair's coordinates; the points are elements");
   }
 }
-
-/** @brief An operator of a term built at run time.  Python's @c / and @c //
- *  are both the carrier's division; what differs is where each is admitted
- *  (a field, an ordered word). */
-export enum class Arith { Add, Sub, Mul, Div, FloorDiv, Mod };
-/** @brief The spelling of an operator, for a refusal. */
-export constexpr const char* spelling(Arith op) {
-  switch (op) {
-    case Arith::Add:
-      return "+";
-    case Arith::Sub:
-      return "-";
-    case Arith::Mul:
-      return "*";
-    case Arith::Div:
-      return "/";
-    case Arith::FloorDiv:
-      return "//";
-    case Arith::Mod:
-      return "%";
-  }
-  return "?";
-}
-/** @brief Refused at the carrier: an operator not total there, a division by
- *  a term, an order comparison on an unordered carrier, a slot the points
- *  have not.  Raised when a term built at run time is bound. */
-export struct not_admitted : std::logic_error {
-  using std::logic_error::logic_error;
-};
 
 /** @brief Whether @c op is admitted on the carrier @c C, with the divisor a
  *  constant (nonzero, checked when the term was built) or a term: the rules
