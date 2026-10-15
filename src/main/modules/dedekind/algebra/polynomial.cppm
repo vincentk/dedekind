@@ -33,12 +33,12 @@
  * division by a nonzero constant on a field a multiplication by its inverse.
  * Every operator must be admitted on the carrier (@c admits: the laws decide
  * the syntax), and @c //, @c % and a division by a term have no free algebra
- * here: they are refused, never rewritten.  @c normal_form<C>(t) is the
+ * here: they are refused, never rewritten.  @c canonical<C>(t) is the
  * fold; two terms are equal in the free algebra iff their normal forms are
  * equal, which is equality of two finite functions, monomial to coefficient.
  *
  * A set expression is normalised through its predicate, atom by atom
- * (@c normal_form(pred, lift)): an equation @c a @c = @c b on a ring becomes
+ * (@c canonical(pred, lift)): an equation @c a @c = @c b on a ring becomes
  * @c a @c - @c b @c = @c 0 with the difference a polynomial, the unit part of
  * its leading coefficient divided out (monic on a field), written back as a
  * term (@c as_term).  Equal normal forms cut out equal sets;
@@ -457,7 +457,7 @@ struct Poly {
  *  normal forms are.  @tparam C the carrier.  @param t a typed term, or one
  *  built at run time. */
 export template <typename C, typename T>
-constexpr auto normal_form(const T& t) {
+constexpr auto canonical(const T& t) {
   return cata(Poly<C>{}, t);
 }
 
@@ -542,19 +542,19 @@ static_assert(unit_normaliser(3u) * 3u == 1u &&
  *  (@c not_admitted).  @tparam C the carrier.  @param p the predicate.
  *  @param lift a coefficient into a constant of the predicate's type. */
 export template <typename C, typename K, typename Lift>
-dedekind::sets::Pred<K> normal_form(const dedekind::sets::Pred<K>& p,
-                                    const Lift& lift) {
+dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
+                                  const Lift& lift) {
   using Pr = dedekind::sets::Pred<K>;
   using P = Polynomial<C, Monomial<4>>;
   using dedekind::sets::On;
   using dedekind::sets::Rel;
   if (p.kind != Pr::Kind::Cmp) {
-    const Pr x = normal_form<C>(*p.p, lift);
-    const Pr y = normal_form<C>(*p.q, lift);
+    const Pr x = canonical<C>(*p.p, lift);
+    const Pr y = canonical<C>(*p.q, lift);
     return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
   }
-  const P x = normal_form<C>(*p.a);
-  const P y = normal_form<C>(*p.b);
+  const P x = canonical<C>(*p.a);
+  const P y = canonical<C>(*p.b);
   if constexpr (requires(const P& u, const P& v) { u - v; }) {
     if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
         dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
@@ -688,15 +688,15 @@ static_assert(dedekind::category::IsFreeAlgebra<PolyWord>,
 using dedekind::sets::π;
 using dedekind::sets::π_1;
 using dedekind::sets::π_2;
-static_assert(normal_form<unsigned>(π + 1u - 1u) == normal_form<unsigned>(π),
+static_assert(canonical<unsigned>(π + 1u - 1u) == canonical<unsigned>(π),
               "π + 1 - 1 ≡ π in ℤ/2³²[π]");
-static_assert(normal_form<unsigned>((π_1 + π_2) * (π_1 + π_2)) ==
-                  normal_form<unsigned>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2),
+static_assert(canonical<unsigned>((π_1 + π_2) * (π_1 + π_2)) ==
+                  canonical<unsigned>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2),
               "(π_1 + π_2)² ≡ π_1² + 2π_1π_2 + π_2²");
-static_assert(normal_form<unsigned>(π * 4294967295u + π).is_zero(),
+static_assert(canonical<unsigned>(π * 4294967295u + π).is_zero(),
               "the coefficients wrap with the word: (2³² − 1)π + π ≡ 0");
-static_assert(normal_form<unsigned>(π_1* π_2).degree() == 2 &&
-                  normal_form<unsigned>(π_1 * π_2).support().size() == 1,
+static_assert(canonical<unsigned>(π_1* π_2).degree() == 2 &&
+                  canonical<unsigned>(π_1 * π_2).support().size() == 1,
               "π_1·π_2 is one monomial of degree 2");
 
 }  // namespace dedekind::algebra

@@ -252,20 +252,20 @@ TEST_CASE(
     "𝔽ₚ: a division by a nonzero constant is a coefficient of the "
     "normal form",
     "[morphologies][modular][polynomial]") {
+  using dedekind::algebra::canonical;
   using dedekind::algebra::Monomial;
-  using dedekind::algebra::normal_form;
   using dedekind::sets::π;
-  CHECK(normal_form<𝔽ₚ>(π * 3u / 3u) == normal_form<𝔽ₚ>(π));
-  CHECK(normal_form<𝔽ₚ>(π / 3u)(Monomial<4>::variable(0)) == 𝔽ₚ{1} / 𝔽ₚ{3});
-  CHECK(normal_form<𝔽ₚ>(0u - π)(Monomial<4>::variable(0)) == 𝔽ₚ{0} - 𝔽ₚ{1});
+  CHECK(canonical<𝔽ₚ>(π * 3u / 3u) == canonical<𝔽ₚ>(π));
+  CHECK(canonical<𝔽ₚ>(π / 3u)(Monomial<4>::variable(0)) == 𝔽ₚ{1} / 𝔽ₚ{3});
+  CHECK(canonical<𝔽ₚ>(0u - π)(Monomial<4>::variable(0)) == 𝔽ₚ{0} - 𝔽ₚ{1});
   // Nonzero as written, 0 on the carrier: refused, as a 0 written is.
-  CHECK_THROWS_AS(normal_form<𝔽ₚ>(π / 18446744073709551557ull),
+  CHECK_THROWS_AS(canonical<𝔽ₚ>(π / 18446744073709551557ull),
                   std::domain_error);
 }
 
 TEST_CASE("𝔽ₚ: an equation's normal form is monic, so 2π = 4 is π = 2",
           "[morphologies][modular][polynomial]") {
-  using dedekind::algebra::normal_form;
+  using dedekind::algebra::canonical;
   using dedekind::sets::Rel;
   using dedekind::sets::same_shape;
   using T = dedekind::sets::Term<unsigned long long>;
@@ -273,7 +273,7 @@ TEST_CASE("𝔽ₚ: an equation's normal form is monic, so 2π = 4 is π = 2",
   struct AsConstant {
     unsigned long long operator()(𝔽ₚ c) const { return c.value; }
   };
-  const auto nf = [](const Pr& p) { return normal_form<𝔽ₚ>(p, AsConstant{}); };
+  const auto nf = [](const Pr& p) { return canonical<𝔽ₚ>(p, AsConstant{}); };
   const T x = T::proj(0);
   CHECK(same_shape(
       nf(Pr::cmp(Rel::Eq, T::bin(dedekind::sets::Arith::Mul, T::constant(2), x),

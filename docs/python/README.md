@@ -20,7 +20,7 @@ The laws decide the syntax: a term may use the operators the carrier's
 certified algebras have, and anything else is refused when the set is built.
 Equality of sets is equality in the free algebra the term lives in, where that
 has a normal form: a chain's run lists, and a ring's or field's polynomials
-(`normal_form(S)`: the same set, its equations `p == 0` with `p` a polynomial).
+(`canonical(S)`: the same set, its equations `p == 0` with `p` a polynomial).
 Equal normal forms cut out equal sets, so `==` answers `True` when they agree
 and raises `TypeError` when they differ, which decides nothing.
 A term outside that catalogue (a remainder, a division by a term) evaluates but

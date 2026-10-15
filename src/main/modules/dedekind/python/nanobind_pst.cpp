@@ -597,8 +597,8 @@ struct AsConstant {
 template <typename C>
 bool equal_by_normal_form(const RPred& a, const RPred& b) {
   if (dedekind::sets::same_shape(
-          dedekind::algebra::normal_form<C>(a, AsConstant{}),
-          dedekind::algebra::normal_form<C>(b, AsConstant{})))
+          dedekind::algebra::canonical<C>(a, AsConstant{}),
+          dedekind::algebra::canonical<C>(b, AsConstant{})))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -662,27 +662,26 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
-  const char* normal_form_doc =
-      "normal_form(S): the same set, its predicate in normal form atom by "
+  const char* canonical_doc =
+      "canonical(S): the same set, its predicate in normal form atom by "
       "atom: "
       "an equation a == b on a ring as a polynomial a - b == 0 (monic on a "
       "field), any other atom with its sides normalised.  Equal normal forms "
       "cut out equal sets; different ones need not cut out different sets.  "
       "//, % and a division by a term have no normal form: TypeError.";
   m.def(
-      "normal_form",
+      "canonical",
       [](const S& s) {
-        return U{} |
-               dedekind::algebra::normal_form<C>(s.predicate, AsConstant{});
+        return U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
       },
-      nb::arg("S"), normal_form_doc);
+      nb::arg("S"), canonical_doc);
   m.def(
-      "normal_form",
+      "canonical",
       [](const R& r) {
         return UU{} |
-               dedekind::algebra::normal_form<C>(r.predicate, AsConstant{});
+               dedekind::algebra::canonical<C>(r.predicate, AsConstant{});
       },
-      nb::arg("S"), normal_form_doc);
+      nb::arg("S"), canonical_doc);
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -706,7 +705,7 @@ void bind_term_sets(nb::module_& m,
       .def("__eq__", set_equal<C, S>, nb::is_operator(),
            "A == B: equality in the free algebra the carrier's laws give the "
            "term.  A chain's run lists decide it; otherwise the normal forms "
-           "(normal_form) answer True when they agree and raise TypeError when "
+           "(canonical) answer True when they agree and raise TypeError when "
            "they differ, which decides nothing.  A term outside the catalogue "
            "(a remainder, a division by a term): TypeError.")
       .def(

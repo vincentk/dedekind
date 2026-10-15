@@ -33,7 +33,7 @@ relations the term surface below cuts out of ``u64`` and ``𝔽ₚ`` hold the bo
 term.  The laws decide the syntax: a carrier's certified varieties supply the
 operators a term may use and the free algebra its normal form lives in, and
 equality of terms is equality there; a chain's is read as run lists, a ring's
-as polynomials (``normal_form(S)``, a set in, the same set out, its equations
+as polynomials (``canonical(S)``, a set in, the same set out, its equations
 ``p == 0`` with ``p`` a polynomial).  Equal normal forms cut out equal sets;
 different ones decide nothing, so ``==`` answers ``True`` or raises.  A term
 outside that catalogue evaluates but does not compare.  Reduction stays in C++.
@@ -109,7 +109,7 @@ from ._pst import exists
 from ._pst import forall
 from ._pst import image
 from ._pst import lift
-from ._pst import normal_form
+from ._pst import canonical
 from ._pst import preimage
 from ._pst import runs
 from ._pst import u64
@@ -132,5 +132,5 @@ all = forall  # noqa: A001
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
     "Ø", "η", "π", "π_1", "π_2", "χ", "Term", "Pred", "exists", "forall", "runs",
-    "lift", "image", "preimage", "normal_form",
+    "lift", "image", "preimage", "canonical",
 ]
