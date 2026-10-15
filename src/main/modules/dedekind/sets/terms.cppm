@@ -100,6 +100,7 @@ module;
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>  // the value of a term over two carriers
 
 export module dedekind.sets:terms;
 
@@ -640,23 +641,102 @@ using rel_key_t = typename rel_key<R>::type;
 
 // ── A term whose shape is a value: its readings ─────────────────────────────
 
-/** @brief A point of one carrier: a carrier value, or a pair of two values of
- *  one carrier.  A term built at run time names no carrier until it is bound,
- *  so it is read at such points only.  @tparam P the point type. */
+/** @brief The sorts of a point type: the carriers of its coordinates, each
+ *  once.  A carrier value has one sort; a pair of two carriers two (one where
+ *  they agree).  A term built at run time names no carrier until it is bound,
+ *  and every node then has a sort: a projection its slot's, a constant its
+ *  context's, an operator its operands' common one, a comparison 𝔹.
+ *  @tparam P the point type. */
 template <typename P>
-struct coordinate {
-  using type = P;
+struct point_sorts {
+  using type = std::tuple<P>;
 };
+template <typename A, typename B>
+struct point_sorts<std::pair<A, B>> {
+  using type =
+      std::conditional_t<std::same_as<A, B>, std::tuple<A>, std::tuple<A, B>>;
+};
+export template <typename P>
+using point_sorts_t = typename point_sorts<P>::type;
+/** @brief The value of a term built at run time at a point: the one sort's
+ *  carrier, or the sum of the sorts where there are two. */
+template <typename Sorts>
+struct value_sum;
 template <typename A>
-struct coordinate<std::pair<A, A>> {
+struct value_sum<std::tuple<A>> {
   using type = A;
 };
-template <typename P>
-using coordinate_t = typename coordinate<P>::type;
-template <typename P>
-concept HomogeneousPoint = !requires {
-  typename P::first_type;
-} || std::same_as<typename P::first_type, typename P::second_type>;
+template <typename A, typename B>
+struct value_sum<std::tuple<A, B>> {
+  using type = std::variant<A, B>;
+};
+export template <typename P>
+using rt_value_t = typename value_sum<point_sorts_t<P>>::type;
+
+/** @brief No sort yet: a tree of constants alone, which takes the sort of its
+ *  context. */
+export inline constexpr std::size_t no_sort = static_cast<std::size_t>(-1);
+/** @brief The sort of the slot @c slot at points of @c P, an index into
+ *  @c point_sorts_t<P>.  @throws not_admitted for a slot the points have not.
+ */
+export template <typename P>
+std::size_t slot_sort(unsigned slot) {
+  if constexpr (requires { typename P::first_type; }) {
+    using A = typename P::first_type;
+    using B = typename P::second_type;
+    if (slot == 1) return 0;
+    if (slot == 2) return std::same_as<A, B> ? 0 : 1;
+    throw not_admitted(slot == 0 ? "π names an element; the points are pairs"
+                                 : "binary products only: π_1 and π_2");
+  } else {
+    if (slot == 0) return 0;
+    throw not_admitted(
+        "π_1 / π_2 name a pair's coordinates; the points are elements");
+  }
+}
+/** @brief The common sort of two operands: a constant takes the other's.
+ *  @throws not_admitted where two carriers meet. */
+export inline std::size_t join_sorts(std::size_t a, std::size_t b) {
+  if (a == no_sort) return b;
+  if (b == no_sort) return a;
+  if (a != b)
+    throw not_admitted(
+        "the operands are of two carriers: a term lives in one sort, and an "
+        "arrow between the carriers is applied, not implied");
+  return a;
+}
+/** @brief Apply @c f to the sort @c s of @c P as a type: @c
+ * f(type_identity<C>).
+ *  @c s is a valid index (the caller joined the sorts).  @tparam P the point
+ *  type.  @tparam I the first candidate. */
+export template <typename P, std::size_t I = 0, typename F>
+auto with_sort(std::size_t s, const F& f) {
+  using Sorts = point_sorts_t<P>;
+  if constexpr (I + 1 < std::tuple_size_v<Sorts>) {
+    if (s == I) return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
+    return with_sort<P, I + 1>(s, f);
+  } else {
+    return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
+  }
+}
+/** @brief The coordinate @c slot of the point @c p, of the sort @c C the
+ *  dispatch chose; the point itself for the unary @c π.  @tparam C the sort.
+ *  @param p the point. */
+template <typename C, typename P>
+constexpr C coordinate_as(unsigned slot, const P& p) {
+  if constexpr (requires { typename P::first_type; }) {
+    if (slot == 1) {
+      if constexpr (std::same_as<typename P::first_type, C>) return p.first;
+    } else if (slot == 2) {
+      if constexpr (std::same_as<typename P::second_type, C>) return p.second;
+    }
+    throw not_admitted("a slot of another carrier than the term's sort");
+  } else {
+    if (slot == 0) return p;
+    throw not_admitted(
+        "π_1 / π_2 name a pair's coordinates; the points are elements");
+  }
+}
 
 /** @brief An operator of a term built at run time.  Python's @c / and @c //
  *  are both the carrier's division; what differs is where each is admitted
@@ -781,22 +861,11 @@ constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   }
   throw not_admitted("the comparison is not admitted on the carrier");
 }
-/** @brief The coordinate @c slot of the point @c p: the point itself for the
- *  unary @c π, a pair's coordinates for @c π_1 / @c π_2. */
-template <typename P>
-constexpr coordinate_t<P> runtime_coord(unsigned slot, const P& p) {
-  if constexpr (requires { typename P::first_type; }) {
-    if (slot == 1) return p.first;
-    if (slot == 2) return p.second;
-    throw not_admitted(slot == 0 ? "π names an element; the points are pairs"
-                                 : "binary products only: π_1 and π_2");
-  } else {
-    if (slot == 0) return p;
-    throw not_admitted(
-        "π_1 / π_2 name a pair's coordinates; the points are "
-        "elements");
-  }
-}
+/** @brief The sort of a term built at run time at points of @c P, from its
+ *  projections: @c no_sort for a tree of constants, which takes its context's.
+ *  Defined with @c Term.  @tparam P the point type. */
+export template <typename P, typename K>
+std::size_t sort_of(const Term<K>& t);
 
 /** @brief The value algebra: a term or a predicate folded at the point @c p.
  *  A projection reads its coordinate, a constant is its value, a predicate the
@@ -861,39 +930,27 @@ struct Value {
     return static_cast<bool>(cata(*this, t.p)) ? into<C, A>(cata(*this, t.a))
                                                : into<C, B>(cata(*this, t.b));
   }
-  /** @brief A term built at run time, read at a point of one carrier: its
-   *  legs are values, so the recursion is steered with an explicit result. */
+  /** @brief A term built at run time, read at the point: its sort is inferred
+   *  from its projections (a constant takes its context's), and it is read in
+   *  that sort.  The value is the point's one carrier, or the sum of its two.
+   */
   template <typename K>
-    requires HomogeneousPoint<P>
-  coordinate_t<P> steer(const Term<K>& t) const {
-    using C = coordinate_t<P>;
-    switch (t.kind) {
-      case Term<K>::Kind::Proj:
-        return runtime_coord(t.slot, p);
-      case Term<K>::Kind::Const:
-        return carrier_cast<C>(t.value);
-      case Term<K>::Kind::Bin:
-        // The former checked admission once; a predicate called directly has
-        // not been bound, so each node visited checks its own (a constant
-        // switch), keeping the typed and the runtime grammar at par.
-        if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
-          throw not_admitted(std::string("the operator ") + spelling(t.op) +
-                             " is not in the carrier's signature");
-        return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
-      case Term<K>::Kind::Cond:
-        return steer(*t.p) ? steer(*t.a) : steer(*t.b);
-    }
-    throw not_admitted("an unknown term");
+  rt_value_t<P> steer(const Term<K>& t) const {
+    std::size_t s = sort_of<P>(t);
+    if (s == no_sort) s = 0;  // a tree of constants: the first sort
+    return with_sort<P>(s, EvalTerm<K>{*this, t});
   }
+  /** @brief A predicate built at run time: a comparison in its operands'
+   *  common sort, the connectives in 𝔹. */
   template <typename K>
-    requires HomogeneousPoint<P>
   bool steer(const Pred<K>& t) const {
     switch (t.kind) {
-      case Pred<K>::Kind::Cmp:
-        if (!rel_admitted<coordinate_t<P>>(t.rel))
-          throw not_admitted(
-              "the comparison is not in the carrier's signature");
-        return compare_rel(t.rel, steer(*t.a), steer(*t.b));
+      case Pred<K>::Kind::Cmp: {
+        const std::size_t s = join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+        if (s == no_sort)
+          throw not_admitted("a comparison of two constants names no carrier");
+        return with_sort<P>(s, Compare<K>{*this, t});
+      }
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
       case Pred<K>::Kind::Or:
@@ -901,6 +958,52 @@ struct Value {
     }
     throw not_admitted("an unknown predicate");
   }
+  /** @brief The term read in the sort @c C: a projection its coordinate, a
+   *  constant cast, an operator applied where admitted, a conditional's
+   *  chosen branch.  Each node visited checks its own admission, so a
+   *  predicate called directly is at par with one the former bound. */
+  template <typename C, typename K>
+  C eval_as(const Term<K>& t) const {
+    switch (t.kind) {
+      case Term<K>::Kind::Proj:
+        return coordinate_as<C>(t.slot, p);
+      case Term<K>::Kind::Const:
+        return carrier_cast<C>(t.value);
+      case Term<K>::Kind::Bin:
+        if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
+          throw not_admitted(std::string("the operator ") + spelling(t.op) +
+                             " is not in the carrier's signature");
+        return apply_op<C>(t.op, eval_as<C>(*t.a), eval_as<C>(*t.b));
+      case Term<K>::Kind::Cond:
+        return steer(*t.p) ? eval_as<C>(*t.a) : eval_as<C>(*t.b);
+    }
+    throw not_admitted("an unknown term");
+  }
+
+ private:
+  /** @brief The dispatch of a term's reading to its sort. */
+  template <typename K>
+  struct EvalTerm {
+    const Value& v;
+    const Term<K>& t;
+    template <typename C>
+    rt_value_t<P> operator()(std::type_identity<C>) const {
+      return rt_value_t<P>{v.template eval_as<C>(t)};
+    }
+  };
+  /** @brief The dispatch of a comparison to its operands' sort. */
+  template <typename K>
+  struct Compare {
+    const Value& v;
+    const Pred<K>& t;
+    template <typename C>
+    bool operator()(std::type_identity<C>) const {
+      if (!rel_admitted<C>(t.rel))
+        throw not_admitted("the comparison is not in the carrier's signature");
+      return compare_rel(t.rel, v.template eval_as<C>(*t.a),
+                         v.template eval_as<C>(*t.b));
+    }
+  };
 };
 
 /** @brief The value of a term or predicate at a point.  @param t the term.
@@ -1035,22 +1138,45 @@ struct Bind {
       (void)carrier_cast<typename F::Domain>(t.a.value);
     return {};
   }
-  /** @brief A term built at run time meets the carrier now: every slot one
-   *  the points have, every constant cast, every operator admitted. */
+  /** @brief A term built at run time meets the points now: every slot one the
+   *  points have, every constant cast into its sort, every operator admitted
+   *  in it, and no two carriers in one term. */
   template <typename K>
-    requires HomogeneousPoint<X>
   Bound steer(const Term<K>& t) const {
-    using C = coordinate_t<X>;
+    std::size_t s = sort_of<X>(t);
+    if (s == no_sort) s = 0;
+    return with_sort<X>(s, BindTerm<K>{*this, t});
+  }
+  template <typename K>
+  Bound steer(const Pred<K>& t) const {
+    switch (t.kind) {
+      case Pred<K>::Kind::Cmp: {
+        const std::size_t s = join_sorts(sort_of<X>(*t.a), sort_of<X>(*t.b));
+        if (s == no_sort)
+          throw not_admitted("a comparison of two constants names no carrier");
+        return with_sort<X>(s, BindCmp<K>{*this, t});
+      }
+      case Pred<K>::Kind::And:
+      case Pred<K>::Kind::Or:
+        steer(*t.p);
+        steer(*t.q);
+        break;
+    }
+    return {};
+  }
+  /** @brief The term bound in the sort @c C. */
+  template <typename C, typename K>
+  void bind_as(const Term<K>& t) const {
     switch (t.kind) {
       case Term<K>::Kind::Proj:
-        (void)runtime_coord(t.slot, X{});
+        (void)coordinate_as<C>(t.slot, X{});
         break;
       case Term<K>::Kind::Const:
         (void)carrier_cast<C>(t.value);
         break;
       case Term<K>::Kind::Bin: {
-        steer(*t.a);
-        steer(*t.b);
+        bind_as<C>(*t.a);
+        bind_as<C>(*t.b);
         const bool division =
             t.op == Arith::Div || t.op == Arith::FloorDiv || t.op == Arith::Mod;
         const bool by_constant = t.b->kind == Term<K>::Kind::Const;
@@ -1070,32 +1196,38 @@ struct Bind {
       }
       case Term<K>::Kind::Cond:
         steer(*t.p);
-        steer(*t.a);
-        steer(*t.b);
+        bind_as<C>(*t.a);
+        bind_as<C>(*t.b);
         break;
     }
-    return {};
   }
+
+ private:
   template <typename K>
-    requires HomogeneousPoint<X>
-  Bound steer(const Pred<K>& t) const {
-    switch (t.kind) {
-      case Pred<K>::Kind::Cmp:
-        steer(*t.a);
-        steer(*t.b);
-        if (!rel_admitted<coordinate_t<X>>(t.rel))
-          throw not_admitted(
-              "the comparison has no rule on the carrier: an order comparison "
-              "needs the carrier's order");
-        break;
-      case Pred<K>::Kind::And:
-      case Pred<K>::Kind::Or:
-        steer(*t.p);
-        steer(*t.q);
-        break;
+  struct BindTerm {
+    const Bind& b;
+    const Term<K>& t;
+    template <typename C>
+    Bound operator()(std::type_identity<C>) const {
+      b.template bind_as<C>(t);
+      return {};
     }
-    return {};
-  }
+  };
+  template <typename K>
+  struct BindCmp {
+    const Bind& b;
+    const Pred<K>& t;
+    template <typename C>
+    Bound operator()(std::type_identity<C>) const {
+      b.template bind_as<C>(*t.a);
+      b.template bind_as<C>(*t.b);
+      if (!rel_admitted<C>(t.rel))
+        throw not_admitted(
+            "the comparison has no rule on the carrier: an order comparison "
+            "needs the carrier's order");
+      return {};
+    }
+  };
 };
 
 /** @brief Bind a term or atom to the points @c X it is evaluated at: every
@@ -1265,6 +1397,21 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
   t.a = std::make_shared<const Term>(std::move(a));
   t.b = std::make_shared<const Term>(std::move(b));
   return t;
+}
+
+template <typename P, typename K>
+std::size_t sort_of(const Term<K>& t) {
+  switch (t.kind) {
+    case Term<K>::Kind::Proj:
+      return slot_sort<P>(t.slot);
+    case Term<K>::Kind::Const:
+      return no_sort;
+    case Term<K>::Kind::Bin:
+      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+    case Term<K>::Kind::Cond:
+      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+  }
+  return no_sort;
 }
 
 /** @brief The slots a term built at run time mentions, as a mask: the run-time

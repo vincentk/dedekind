@@ -532,31 +532,19 @@ static_assert(unit_normaliser(3u) * 3u == 1u &&
                   unit_normaliser(~0u) == ~0u && unit_normaliser(8u) == 1u,
               "the odd part's inverse: 3 → 1, 6 → 2, -1 → 1, 8 stays 8");
 
-/** @brief The normal form of a predicate over the carrier @c C, atom by atom:
- *  an equation or its negation @c a @c ⋈ @c b on a ring moves to
- *  @c a @c - @c b @c ⋈ @c 0 with the difference a polynomial, made monic on a
- *  field, and off a field with the unit part of its leading coefficient
- *  divided out (@c unit_normaliser: on ℤ/2ⁿ the leading coefficient becomes
- *  its power of two), so an equation and its multiple by any unit (@c -1
- *  among them: @c a @c = @c b and @c b @c = @c a) meet; any other
- *  atom has its sides normalised and its comparison kept (moving a term across
- *  @c < needs the ordered ring's theory).  Equal normal forms cut out equal
- *  sets; different ones need not cut out different sets (@c πᵖ @c = @c π
- *  everywhere on 𝔽ₚ).  An atom outside the catalogue is refused
- *  (@c not_admitted).  @tparam C the carrier.  @param p the predicate.
- *  @param lift a coefficient into a constant of the predicate's type. */
-export template <typename C, typename K, typename Lift>
-dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
-                                  const Lift& lift) {
+/** @brief The normal form of a comparison atom read in the sort @c C: an
+ *  equation or its negation @c a @c ⋈ @c b on a ring moves to @c a @c - @c b
+ *  @c ⋈ @c 0 with the difference a polynomial, the unit part of its leading
+ *  coefficient divided out (monic on a field; @c unit_normaliser elsewhere),
+ *  so an equation and its multiple by any unit meet; any other atom has its
+ *  sides normalised and its comparison kept.  @tparam C the sort. */
+template <typename C, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
+                                       const Lift& lift) {
   using Pr = dedekind::sets::Pred<K>;
   using P = Polynomial<C, Monomial<4>>;
   using dedekind::sets::On;
   using dedekind::sets::Rel;
-  if (p.kind != Pr::Kind::Cmp) {
-    const Pr x = canonical<C>(*p.p, lift);
-    const Pr y = canonical<C>(*p.q, lift);
-    return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
-  }
   const P x = canonical<C>(*p.a);
   const P y = canonical<C>(*p.b);
   if constexpr (requires(const P& u, const P& v) { u - v; }) {
@@ -584,6 +572,44 @@ dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
     }
   }
   return Pr::cmp(p.rel, as_term<K>(x, lift), as_term<K>(y, lift));
+}
+
+namespace detail_canonical {
+/** @brief The dispatch of an atom's normal form to its sort. */
+template <typename K, typename Lift>
+struct AtomAt {
+  const dedekind::sets::Pred<K>& p;
+  const Lift& lift;
+  template <typename C>
+  dedekind::sets::Pred<K> operator()(std::type_identity<C>) const {
+    return canonical_atom<C>(p, lift);
+  }
+};
+}  // namespace detail_canonical
+
+/** @brief The normal form of a predicate at points of @c P, atom by atom, each
+ *  atom in its operands' sort (a point of one carrier has one; a pair of two
+ *  carriers two, each axis its own).  Equal normal forms cut out equal sets;
+ *  different ones need not (@c πᵖ @c = @c π everywhere on 𝔽ₚ).  An atom
+ *  outside the catalogue is refused (@c not_admitted).  @tparam P the point
+ *  type.  @param p the predicate.  @param lift a coefficient into a constant
+ *  of the predicate's type. */
+export template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
+                                  const Lift& lift) {
+  using Pr = dedekind::sets::Pred<K>;
+  if (p.kind != Pr::Kind::Cmp) {
+    const Pr x = canonical<P>(*p.p, lift);
+    const Pr y = canonical<P>(*p.q, lift);
+    return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
+  }
+  const std::size_t s = dedekind::sets::join_sorts(
+      dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b));
+  if (s == dedekind::sets::no_sort)
+    throw dedekind::sets::not_admitted(
+        "a comparison of two constants names no carrier");
+  return dedekind::sets::with_sort<P>(
+      s, detail_canonical::AtomAt<K, Lift>{p, lift});
 }
 
 }  // namespace dedekind::algebra

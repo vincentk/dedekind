@@ -607,12 +607,12 @@ struct AsConstant {
 
 /** @brief Equality of two predicates by their normal forms: equal forms cut
  *  out equal sets; different forms decide nothing, so they raise rather than
- *  answer "different".  @tparam C the carrier. */
-template <typename C>
+ *  answer "different".  @tparam P the point type (one carrier, or a pair). */
+template <typename P>
 bool equal_by_normal_form(const RPred& a, const RPred& b) {
   if (dedekind::sets::same_shape(
-          dedekind::algebra::canonical<C>(a, AsConstant{}),
-          dedekind::algebra::canonical<C>(b, AsConstant{})))
+          dedekind::algebra::canonical<P>(a, AsConstant{}),
+          dedekind::algebra::canonical<P>(b, AsConstant{})))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -660,6 +660,146 @@ bool set_equal(const S& a, const S& b) {
   return equal_by_normal_form<C>(a.predicate, b.predicate);
 }
 
+/** @brief A value of the one sort @c C out of a term's value: itself, or the
+ *  alternative of the sum.  @tparam C the sort. */
+template <typename C, typename V>
+C as_sort(const V& v) {
+  if constexpr (std::same_as<V, C>)
+    return v;
+  else
+    return std::get<C>(v);
+}
+/** @brief A point of the word out of a Python value. */
+std::uint64_t to_word(nb::handle h) { return word_of(h).v; }
+/** @brief A point of 𝔽ₚ out of a Python value: an element or its symmetric
+ *  representative, as the universe's @c in; the quotient map is for constants.
+ */
+Fp to_fp(nb::handle h) {
+  if (!in_fp(h))
+    throw nb::type_error(
+        "a point of 𝔽ₚ is an element or its symmetric representative");
+  return residue_of(h);
+}
+
+/** @brief The relations a term cuts out of a product of two universes,
+ *  @c 𝔸(C₁) @c * @c 𝔸(C₂) @c | @c pred: each slot has its carrier's sort, an
+ *  atom is read in its operands' common sort, and a term mixing the two
+ *  carriers is refused when the relation is built.  The canonical form is per
+ *  axis.  A relation whose predicate is the graph @c π_2 @c == @c t(π_1) is
+ *  certified a function and applied as one.  @tparam C1,C2 the carriers.
+ *  @tparam To1,To2 a Python value into each. */
+template <typename C1, typename C2, typename To1, typename To2>
+void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
+                   const char* name1, const char* name2, To1 to1, To2 to2) {
+  using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
+  using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
+  using UU = decltype(U1{} * U2{});
+  using R = decltype(UU{} | std::declval<RPred>());
+  using Point = std::pair<C1, C2>;
+  const std::string shown = std::string("𝔸(") + name1 + ") × 𝔸(" + name2 + ")";
+  const auto pair_of = [to1, to2](nb::handle h) {
+    if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
+      throw nb::type_error("a point of the product is a pair (x, y)");
+    const nb::tuple t = nb::borrow<nb::tuple>(h);
+    return Point{to1(t[0]), to2(t[1])};
+  };
+  const auto holds = [pair_of](const auto& s, nb::handle h) {
+    try {
+      return static_cast<bool>(s(pair_of(h)));
+    } catch (const nb::builtin_exception&) {
+      return false;  // not a representative: not a member
+    }
+  };
+  const auto factors = []() {
+    return nb::make_tuple(nb::cast(U1{}).attr("carrier"),
+                          nb::cast(U2{}).attr("carrier"));
+  };
+  m.def(
+      "canonical",
+      [](const R& r) {
+        return UU{} |
+               dedekind::algebra::canonical<Point>(r.predicate, AsConstant{});
+      },
+      nb::arg("S"),
+      "canonical(R): the relation with each atom in normal form in its own "
+      "axis' sort (a run list cannot be written back on a product).");
+  nb::class_<UU>(m, pair_cls, "𝔸 × 𝔸: the product universe.")
+      .def(
+          "__or__", [](const UU& u, const RPred& p) { return u | p; },
+          nb::is_operator(),
+          "𝔸 × 𝔸 | pred: the relation; every slot, constant and operator is "
+          "checked in its sort now, and a term mixing the two carriers "
+          "refused.")
+      .def("__contains__",
+           [holds](const UU& u, nb::handle h) { return holds(u, h); })
+      .def_prop_ro(
+          "factors", [factors](const UU&) { return factors(); },
+          "The carriers of the product's two coordinates.")
+      .def_prop_ro(
+          "codomain", [m](const UU&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
+      .def("__repr__", [shown](const UU&) { return shown; });
+  nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
+      .def("__contains__",
+           [holds](const R& r, nb::handle h) { return holds(r, h); })
+      .def(
+          "__call__",
+          [pair_of, to1](const R& r, nb::handle h) -> nb::object {
+            if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
+            // At a point: the relation as the function it is certified to be.
+            const RTerm* t = dedekind::sets::graph_term(r.predicate);
+            if (t == nullptr)
+              throw nb::type_error(
+                  "R(x): R is not certified a function (π_2 == t(π_1)); "
+                  "R((x, y)) is χ");
+            // t mentions only π_1: read it at a pair whose first coordinate
+            // is x, in the second coordinate's sort, with no copy of the term.
+            return nb::cast(as_sort<C2>(
+                dedekind::sets::term_value(*t, Point{to1(h), C2{}})));
+          },
+          nb::arg("x"),
+          "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "
+          "π_2 == t(π_1) of a function.")
+      .def_prop_ro(
+          "factors", [factors](const R&) { return factors(); },
+          "The carriers of the relation's two coordinates.")
+      .def_prop_ro(
+          "codomain", [m](const R&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
+      .def_prop_ro(
+          "is_function",
+          [](const R& r) {
+            return dedekind::sets::graph_term(r.predicate) != nullptr;
+          },
+          "Whether R is certified the graph of a function: π_2 == t(π_1), "
+          "functional by its shape and entire since every operator of a bound "
+          "term is total on the carrier.")
+      .def(
+          "__and__",
+          [](const R& a, const R& b) {
+            return UU{} | RPred::conj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def(
+          "__or__",
+          [](const R& a, const R& b) {
+            return UU{} | RPred::disj(a.predicate, b.predicate);
+          },
+          nb::is_operator())
+      .def("__invert__",
+           [](const R& a) { return UU{} | a.predicate.negated(); })
+      .def(
+          "__eq__",
+          [](const R& a, const R& b) {
+            return equal_by_normal_form<Point>(a.predicate, b.predicate);
+          },
+          nb::is_operator(),
+          "R == S: True where the normal forms agree; TypeError where they "
+          "differ, which decides nothing.")
+      .def("__repr__",
+           [shown](const R& r) { return shown + " | " + show(r.predicate); });
+}
+
 /** @brief The sets a term cuts out of a canonical universe: the set
  *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
  *  @c | @c pred, each a comprehension holding the bound predicate.  Over a
@@ -677,15 +817,7 @@ void bind_term_sets(nb::module_& m,
                     const char* rel_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
   using S = Comprehension<U, RPred>;
-  using UU = decltype(U{} * U{});
-  using R = decltype(UU{} | std::declval<RPred>());
   const std::string shown = std::string("𝔸(") + name + ")";
-  const auto pair_of = [to_c](nb::handle h) {
-    if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
-      throw nb::type_error("a point of the product is a pair (x, y)");
-    const nb::tuple t = nb::borrow<nb::tuple>(h);
-    return std::pair<C, C>{to_c(t[0]), to_c(t[1])};
-  };
   const auto holds = [](auto convert, const auto& s, nb::handle h) {
     try {
       return static_cast<bool>(s(convert(h)));
@@ -741,13 +873,6 @@ void bind_term_sets(nb::module_& m,
           }
         }
         return atoms;
-      },
-      nb::arg("S"), canonical_doc);
-  m.def(
-      "canonical",
-      [](const R& r) {
-        return UU{} |
-               dedekind::algebra::canonical<C>(r.predicate, AsConstant{});
       },
       nb::arg("S"), canonical_doc);
   auto set =
@@ -946,92 +1071,7 @@ void bind_term_sets(nb::module_& m,
           return value;
         });
   }
-  nb::class_<UU>(m, pair_cls, "𝔸 × 𝔸: the product universe.")
-      .def(
-          "__or__", [](const UU& u, const RPred& p) { return u | p; },
-          nb::is_operator(), "𝔸 × 𝔸 | pred: the relation.")
-      .def("__contains__",
-           [holds, pair_of](const UU& u, nb::handle h) {
-             return holds(pair_of, u, h);
-           })
-      .def_prop_ro(
-          "factors",
-          [](const UU&) {
-            const nb::object c = nb::cast(U{}).attr("carrier");
-            return nb::make_tuple(c, c);
-          },
-          "The carriers of the product's two coordinates.")
-      .def_prop_ro(
-          "codomain", [m](const UU&) { return m.attr("B"); },
-          "The chain χ is valued in: 𝔹.")
-      .def("__repr__", [shown](const UU&) { return shown + " × " + shown; });
-  nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
-      .def("__contains__",
-           [holds, pair_of](const R& r, nb::handle h) {
-             return holds(pair_of, r, h);
-           })
-      .def(
-          "__call__",
-          [pair_of, to_c](const R& r, nb::handle h) -> nb::object {
-            if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
-            // At a point: the relation as the function it is certified to be.
-            const RTerm* t = dedekind::sets::graph_term(r.predicate);
-            if (t == nullptr)
-              throw nb::type_error(
-                  "R(x): R is not certified a function (π_2 == t(π_1)); "
-                  "R((x, y)) is χ");
-            // t mentions only π_1: read it at a pair whose first coordinate
-            // is x, with no copy of the term.
-            const C x = to_c(h);
-            return nb::cast(
-                dedekind::sets::term_value(*t, std::pair<C, C>{x, x}));
-          },
-          nb::arg("x"),
-          "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "
-          "π_2 == t(π_1) of a function.")
-      .def_prop_ro(
-          "factors",
-          [](const R&) {
-            const nb::object c = nb::cast(U{}).attr("carrier");
-            return nb::make_tuple(c, c);
-          },
-          "The carriers of the relation's two coordinates.")
-      .def_prop_ro(
-          "codomain", [m](const R&) { return m.attr("B"); },
-          "The chain χ is valued in: 𝔹.")
-      .def_prop_ro(
-          "is_function",
-          [](const R& r) {
-            return dedekind::sets::graph_term(r.predicate) != nullptr;
-          },
-          "Whether R is certified the graph of a function: π_2 == t(π_1), "
-          "functional by its shape and entire since every operator of a bound "
-          "term is total on the carrier.")
-      .def(
-          "__and__",
-          [](const R& a, const R& b) {
-            return UU{} | RPred::conj(a.predicate, b.predicate);
-          },
-          nb::is_operator())
-      .def(
-          "__or__",
-          [](const R& a, const R& b) {
-            return UU{} | RPred::disj(a.predicate, b.predicate);
-          },
-          nb::is_operator())
-      .def("__invert__",
-           [](const R& a) { return UU{} | a.predicate.negated(); })
-      .def(
-          "__eq__",
-          [](const R& a, const R& b) {
-            return equal_by_normal_form<C>(a.predicate, b.predicate);
-          },
-          nb::is_operator(),
-          "R == S: True where the normal forms agree; TypeError where they "
-          "differ, which decides nothing.")
-      .def("__repr__", [shown](const R& r) {
-        return shown + " × " + shown + " | " + show(r.predicate);
-      });
+  bind_relation<C, C>(m, pair_cls, rel_cls, name, name, to_c, to_c);
 }
 // ── The sets of the grammar ───────────────────────────────────────────────
 
@@ -1700,16 +1740,20 @@ NB_MODULE(_pst, m) {
 
   // ── the term surface on the canonical universes and the truth chains ──
   bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
-                           "U64Relation",
-                           [](nb::handle h) { return word_of(h).v; });
+                           "U64Relation", to_word);
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", [](nb::handle h) {
-                       // A point is an element or its representative, as the
-                       // universe's `in`; the quotient map is for constants.
-                       if (!in_fp(h))
-                         throw nb::type_error(
-                             "a point of 𝔽ₚ is an element or its symmetric "
-                             "representative");
-                       return residue_of(h);
-                     });
+                     "FpRelation", to_fp);
+  // Products of the two carriers: each slot its own sort.
+  using U64 = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
+  using UFp = 𝔸<Fp, Boole, dedekind::sets::Finite>;
+  universe_u64.def(
+      "__mul__", [](const U64& a, const UFp& b) { return a * b; },
+      nb::is_operator(), "𝔸(u64) × 𝔸(𝔽ₚ): the product of two carriers.");
+  universe_fp.def(
+      "__mul__", [](const UFp& a, const U64& b) { return a * b; },
+      nb::is_operator(), "𝔸(𝔽ₚ) × 𝔸(u64): the product of two carriers.");
+  bind_relation<uint64_t, Fp>(m, "UniverseU64FpPair", "U64FpRelation", "u64",
+                              "𝔽ₚ", to_word, to_fp);
+  bind_relation<Fp, uint64_t>(m, "UniverseFpU64Pair", "FpU64Relation", "𝔽ₚ",
+                              "u64", to_fp, to_word);
 }
