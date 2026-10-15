@@ -51,6 +51,9 @@ class ASetIsAFunction(unittest.TestCase):
             Function[u64, K3](S)  # its χ is 𝔹-valued
         with self.assertRaises(TypeError):
             Function[𝔽ₚ, B](S)
+        # The universes are sets too: χ constant ⊤.
+        self.assertIsInstance(U, Function[u64, B])
+        self.assertIsInstance(UF, Function[𝔽ₚ, B])
 
 
 class Relations(unittest.TestCase):
@@ -62,6 +65,10 @@ class Relations(unittest.TestCase):
             Relation[𝔽ₚ, 𝔽ₚ](R)
         with self.assertRaises(TypeError):
             Relation[u64, u64](U | (π > 3))  # a set, not a relation
+        # The unrestricted products are relations too.
+        self.assertIsInstance(U * U, Relation[u64, u64])
+        self.assertIsInstance(UF * UF, Relation[𝔽ₚ, 𝔽ₚ])
+        self.assertNotIsInstance(U * U, Set[u64])
 
     def test_a_graph_atom_is_a_function(self) -> None:
         f = Function[u64, u64](U * U | (π_2 == π_1 * 3 + 1))

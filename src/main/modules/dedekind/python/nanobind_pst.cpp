@@ -709,7 +709,10 @@ void bind_term_sets(nb::module_& m,
           nb::is_operator())
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
-          nb::is_operator(), "𝔸 × 𝔸: the product universe.");
+          nb::is_operator(), "𝔸 × 𝔸: the product universe.")
+      .def_prop_ro(
+          "codomain", [m](const U&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹 (the universe's χ is constant ⊤).");
   const char* canonical_doc =
       "canonical(S): the same set in canonical form, where its theory has "
       "one.  A set of the chain's fragment (π compared with constants, under & "
@@ -951,6 +954,16 @@ void bind_term_sets(nb::module_& m,
            [holds, pair_of](const UU& u, nb::handle h) {
              return holds(pair_of, u, h);
            })
+      .def_prop_ro(
+          "factors",
+          [](const UU&) {
+            const nb::object c = nb::cast(U{}).attr("carrier");
+            return nb::make_tuple(c, c);
+          },
+          "The carriers of the product's two coordinates.")
+      .def_prop_ro(
+          "codomain", [m](const UU&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
       .def("__repr__", [shown](const UU&) { return shown + " × " + shown; });
   nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
       .def("__contains__",
@@ -967,8 +980,11 @@ void bind_term_sets(nb::module_& m,
               throw nb::type_error(
                   "R(x): R is not certified a function (π_2 == t(π_1)); "
                   "R((x, y)) is χ");
-            return nb::cast(dedekind::sets::term_value(
-                t->subst(1, RTerm::proj(0)), C(to_c(h))));
+            // t mentions only π_1: read it at a pair whose first coordinate
+            // is x, with no copy of the term.
+            const C x = to_c(h);
+            return nb::cast(
+                dedekind::sets::term_value(*t, std::pair<C, C>{x, x}));
           },
           nb::arg("x"),
           "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "

@@ -1280,7 +1280,9 @@ template <typename K>
 unsigned slots(const Term<K>& t) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
-      return 1u << t.slot;
+      // A slot past the mask's width mentions, conservatively, every slot.
+      return t.slot < std::numeric_limits<unsigned>::digits ? 1u << t.slot
+                                                            : ~0u;
     case Term<K>::Kind::Const:
       return 0u;
     case Term<K>::Kind::Bin:
