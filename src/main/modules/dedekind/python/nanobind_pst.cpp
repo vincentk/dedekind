@@ -597,12 +597,40 @@ struct AsConstant {
 template <typename C>
 bool equal_by_normal_form(const RPred& a, const RPred& b) {
   if (dedekind::sets::same_shape(
-          dedekind::algebra::normal_form<C>(a, AsConstant{}),
-          dedekind::algebra::normal_form<C>(b, AsConstant{})))
+          dedekind::algebra::canonical<C>(a, AsConstant{}),
+          dedekind::algebra::canonical<C>(b, AsConstant{})))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
       "not cut out different sets");
+}
+
+/** @brief A run list written back as a predicate on @c π: one disjunct per
+ *  run, a point as @c π @c == @c k, a ray as one comparison, an interval as
+ * two; the empty set @c π @c < @c 0 and the whole chain @c π @c >= @c 0.  The
+ *  canonical form of a set of the chain's fragment.  @tparam C the chain.
+ *  @param rs the run list. */
+template <typename C, typename Runs>
+RPred run_predicate(
+    Runs rs) {  // by value: the lazy merge advances as it is read
+  using Lim = std::numeric_limits<C>;
+  const RTerm x = RTerm::proj(0);
+  const auto k = [](C v) { return RTerm::constant(AsConstant{}(v)); };
+  RPred out = RPred::cmp(Rel::Lt, x, k(Lim::min()));  // Ø
+  bool first = true;
+  for (const auto& r : rs) {
+    const RPred run =
+        r.lo == r.hi ? RPred::cmp(Rel::Eq, x, k(r.lo))
+        : r.lo == Lim::min()
+            ? (r.hi == Lim::max() ? RPred::cmp(Rel::Ge, x, k(Lim::min()))
+                                  : RPred::cmp(Rel::Le, x, k(r.hi)))
+        : r.hi == Lim::max() ? RPred::cmp(Rel::Ge, x, k(r.lo))
+                             : RPred::conj(RPred::cmp(Rel::Ge, x, k(r.lo)),
+                                           RPred::cmp(Rel::Le, x, k(r.hi)));
+    out = first ? run : RPred::disj(out, run);
+    first = false;
+  }
+  return out;
 }
 
 /** @brief Equality of two sets over @c C: the chain's run lists where they
@@ -624,7 +652,7 @@ bool set_equal(const S& a, const S& b) {
  *  @c A(carrier) @c | @c pred and the relation @c A(carrier) @c * @c A(carrier)
  *  @c | @c pred, each a comprehension holding the bound predicate.  Over a
  *  chain the order fragment (atoms @c π @c ⋈ @c k under @c & and @c |) reads
- *  as run lists, so equality, @c runs(), iteration and slicing are the
+ *  as run lists, so equality, @c canonical, iteration and slicing are the
  *  library's; a term outside it is read pointwise only.  @c image /
  *  @c preimage under the structural arrows substitute the variable (the
  *  successor's image is @c π @c ↦ @c π @c - @c 1), and on a word the run list
@@ -662,27 +690,41 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
           nb::is_operator(), "𝔸 × 𝔸: the product universe.");
-  const char* normal_form_doc =
-      "normal_form(S): the same set, its predicate in normal form atom by "
-      "atom: "
-      "an equation a == b on a ring as a polynomial a - b == 0 (monic on a "
-      "field), any other atom with its sides normalised.  Equal normal forms "
-      "cut out equal sets; different ones need not cut out different sets.  "
-      "//, % and a division by a term have no normal form: TypeError.";
+  const char* canonical_doc =
+      "canonical(S): the same set in canonical form, where its theory has "
+      "one.  A set of the chain's fragment (π compared with constants, under & "
+      "| ~) is its run list, written back as a predicate: identical forms "
+      "exactly when the sets are equal.  Otherwise its predicate atom by atom: "
+      "an equation a == b on a ring as a polynomial a - b == 0, the unit part "
+      "of its leading coefficient divided out (monic on a field), any other "
+      "atom with its sides normalised; equal forms cut out equal sets, "
+      "different ones need not differ.  //, % and a division by a term have "
+      "no canonical form: TypeError.";
   m.def(
-      "normal_form",
+      "canonical",
       [](const S& s) {
-        return U{} |
-               dedekind::algebra::normal_form<C>(s.predicate, AsConstant{});
+        // The atoms first, then the set: an atom normalised into the chain's
+        // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
+        // reaches the fixpoint.
+        const S atoms =
+            U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
+        if constexpr (IsTotallyOrdered<C>) {
+          try {
+            return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)));
+          } catch (const dedekind::sets::not_admitted&) {
+            // outside the chain's fragment: the atoms' polynomial forms
+          }
+        }
+        return atoms;
       },
-      nb::arg("S"), normal_form_doc);
+      nb::arg("S"), canonical_doc);
   m.def(
-      "normal_form",
+      "canonical",
       [](const R& r) {
         return UU{} |
-               dedekind::algebra::normal_form<C>(r.predicate, AsConstant{});
+               dedekind::algebra::canonical<C>(r.predicate, AsConstant{});
       },
-      nb::arg("S"), normal_form_doc);
+      nb::arg("S"), canonical_doc);
   auto set =
       nb::class_<S>(m, set_cls, "A set cut out of the universe by a term.");
   set.def("__contains__",
@@ -706,7 +748,7 @@ void bind_term_sets(nb::module_& m,
       .def("__eq__", set_equal<C, S>, nb::is_operator(),
            "A == B: equality in the free algebra the carrier's laws give the "
            "term.  A chain's run lists decide it; otherwise the normal forms "
-           "(normal_form) answer True when they agree and raise TypeError when "
+           "(canonical) answer True when they agree and raise TypeError when "
            "they differ, which decides nothing.  A term outside the catalogue "
            "(a remainder, a division by a term): TypeError.")
       .def(
@@ -803,16 +845,6 @@ void bind_term_sets(nb::module_& m,
            "__bool__",
            [](const S& s) { return !(dedekind::sets::Ø<C>{} == s); },
            "A set is truthy iff it is inhabited.")
-        .def(
-            "runs",
-            [run_pairs](const S& s) {
-              nb::list out;
-              for (const auto& [lo, hi] : run_pairs(s))
-                out.append(nb::make_tuple(lo, hi));
-              return out;
-            },
-            "The maximal runs along the chain, as (lo, hi) pairs: the normal "
-            "form.")
         .def(
             "__len__",
             [count](const S& s) { return nb::cast<std::size_t>(count(s)); },
@@ -1022,18 +1054,13 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           nb::arg("level"),
           "The fibre {x | χ(x) == level}: η(level) pulled back along χ "
           "(preimage), a decidable set.");
+  // Every handle over a truth chain is its run list: its own canonical form.
+  m.def(
+      "canonical", [](const S& s) { return s; }, nb::arg("S"),
+      "canonical(S): a set over a truth chain is held as its run list, its "
+      "canonical form.");
   if constexpr (std::same_as<L, Boole>) {
-    set.def(
-           "runs",
-           [](const S& s) {
-             nb::list out;
-             for (const auto& r : dedekind::order::runs(s))
-               out.append(nb::make_tuple(to_py<C>(r.lo), to_py<C>(r.hi)));
-             return out;
-           },
-           "The maximal runs of membership along the chain, as (lo, hi) pairs: "
-           "the normal form, read off the chain.")
-        .def("__repr__", [](const S& s) { return written_runs<C>(s); });
+    set.def("__repr__", [](const S& s) { return written_runs<C>(s); });
     if constexpr (std::same_as<C, Ternary>)
       set.def(
           "lift",
@@ -1041,18 +1068,10 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "The set lifted along the dominance 𝔹 ↪ K₃: the same table, valued "
           "in K₃.");
   } else {
-    set.def(
-           "runs",
-           [](const S&) -> nb::list {
-             throw nb::type_error(
-                 "an L-valued set has no runs of its own; read it through its "
-                 "α-cuts: S.cut(level).runs()");
-           },
-           "Refused: an L-valued set is read through its α-cuts.")
-        .def("__repr__", [](const S& s) {
-          return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
-                 "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
-        });
+    set.def("__repr__", [](const S& s) {
+      return "{χ ≥ ⊤}: " + written_runs<C>(pst::cut(s, L::True)) +
+             "; {χ ≥ U}: " + written_runs<C>(pst::cut(s, Ternary::Unknown));
+    });
   }
   bind_mixed<C, L, L>(set);
   return set;
@@ -1535,16 +1554,6 @@ NB_MODULE(_pst, m) {
       "L-valued S is refused (see #980), quantify over S.cut(level).");
   m.attr("any") = m.attr("exists");
   m.attr("all") = m.attr("forall");
-  m.def(
-      "runs",
-      [](nb::handle s) -> nb::object {
-        if (nb::isinstance<pst::Set<bool, Boole>>(s) ||
-            nb::isinstance<pst::Set<Ternary, Boole>>(s) ||
-            nb::isinstance<pst::Set<Ternary, Kleene>>(s))
-          return s.attr("runs")();
-        throw nb::type_error("runs(S): S a set over 𝔹 or K₃");
-      },
-      nb::arg("S"), "runs(S): the maximal runs of membership, (lo, hi) pairs.");
   m.def(
       "lift",
       [](const pst::Set<Ternary, Boole>& s) {

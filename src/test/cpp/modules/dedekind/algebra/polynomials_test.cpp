@@ -12,8 +12,8 @@ import dedekind.sets;
 
 namespace {
 
+using dedekind::algebra::canonical;
 using dedekind::algebra::Monomial;
-using dedekind::algebra::normal_form;
 using dedekind::algebra::Polynomial;
 using dedekind::sets::Arith;
 using dedekind::sets::not_admitted;
@@ -96,35 +96,34 @@ TEST_CASE("Polynomials: a net over the monomials, a ring over a ring",
 TEST_CASE("The normal form of terms: equality in the free algebra",
           "[algebra][polynomial][terms]") {
   SECTION("typed terms") {
-    CHECK(normal_form<Word>(π + 1u - 1u) == normal_form<Word>(π));
-    CHECK(normal_form<Word>((π_1 + π_2) * (π_1 + π_2)) ==
-          normal_form<Word>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2));
-    CHECK(normal_form<Word>(π * π) != normal_form<Word>(π));
-    CHECK(normal_form<Word>(π * 4294967295u + π).is_zero());
+    CHECK(canonical<Word>(π + 1u - 1u) == canonical<Word>(π));
+    CHECK(canonical<Word>((π_1 + π_2) * (π_1 + π_2)) ==
+          canonical<Word>(π_1 * π_1 + 2u * π_1 * π_2 + π_2 * π_2));
+    CHECK(canonical<Word>(π * π) != canonical<Word>(π));
+    CHECK(canonical<Word>(π * 4294967295u + π).is_zero());
   }
   SECTION("terms built at run time read the same") {
     const T t =
         T::bin(Arith::Sub, T::bin(Arith::Add, T::proj(0), T::constant(1u)),
                T::constant(1u));
-    CHECK(normal_form<Word>(t) == normal_form<Word>(π));
-    CHECK(normal_form<Word>(T::bin(Arith::Mul, T::proj(1), T::proj(2))) ==
-          normal_form<Word>(π_1 * π_2));
+    CHECK(canonical<Word>(t) == canonical<Word>(π));
+    CHECK(canonical<Word>(T::bin(Arith::Mul, T::proj(1), T::proj(2))) ==
+          canonical<Word>(π_1 * π_2));
   }
   SECTION("outside the catalogue: refused, never rewritten") {
     CHECK_THROWS_AS(
-        normal_form<Word>(T::bin(Arith::Mod, T::proj(0), T::constant(2u))),
+        canonical<Word>(T::bin(Arith::Mod, T::proj(0), T::constant(2u))),
         not_admitted);
     CHECK_THROWS_AS(
-        normal_form<Word>(T::bin(Arith::FloorDiv, T::proj(0), T::constant(2u))),
+        canonical<Word>(T::bin(Arith::FloorDiv, T::proj(0), T::constant(2u))),
         not_admitted);
     // The word has no field division.
     CHECK_THROWS_AS(
-        normal_form<Word>(T::bin(Arith::Div, T::proj(0), T::constant(2u))),
+        canonical<Word>(T::bin(Arith::Div, T::proj(0), T::constant(2u))),
         not_admitted);
     // A division by a term has no polynomial on any carrier.
-    CHECK_THROWS_AS(
-        normal_form<Word>(T::bin(Arith::Div, T::proj(1), T::proj(2))),
-        not_admitted);
+    CHECK_THROWS_AS(canonical<Word>(T::bin(Arith::Div, T::proj(1), T::proj(2))),
+                    not_admitted);
   }
 }
 
@@ -133,11 +132,11 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
   const AsConstant lift;
   const T x = T::proj(0), x1 = T::proj(1), x2 = T::proj(2);
   const T one = T::constant(1u), zero = T::constant(0u);
-  const auto nf = [&](const Pr& p) { return normal_form<Word>(p, lift); };
+  const auto nf = [&](const Pr& p) { return canonical<Word>(p, lift); };
   SECTION("a polynomial written back reads as itself") {
-    const P p = normal_form<Word>((π_1 + π_2) * (π_1 + π_2) + 3u);
-    CHECK(normal_form<Word>(as_term<Word>(p, lift)) == p);
-    CHECK(normal_form<Word>(as_term<Word>(P::zero(), lift)).is_zero());
+    const P p = canonical<Word>((π_1 + π_2) * (π_1 + π_2) + 3u);
+    CHECK(canonical<Word>(as_term<Word>(p, lift)) == p);
+    CHECK(canonical<Word>(as_term<Word>(P::zero(), lift)).is_zero());
   }
   SECTION("an equation moves to a difference equal to 0") {
     CHECK(same_shape(nf(Pr::cmp(Rel::Eq, T::bin(Arith::Add, x, one), one)),
@@ -185,11 +184,11 @@ TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",
   // squaring too: a term 16 deep, not 2¹⁶ factors.
   T power = T::proj(0);
   for (int i = 0; i < 16; ++i) power = T::bin(Arith::Mul, power, power);
-  const P p = normal_form<Word>(power);
+  const P p = canonical<Word>(power);
   CHECK(p.degree() == (1ull << 16));
   const T back = as_term<Word>(p, AsConstant{});
   unsigned depth = 0;
   for (const T* t = &back; t->kind == T::Kind::Bin; t = t->a.get()) ++depth;
   CHECK(depth == 16);
-  CHECK(normal_form<Word>(back) == p);
+  CHECK(canonical<Word>(back) == p);
 }

@@ -8,7 +8,7 @@ set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 import unittest
 
 from dedekind.pst import (
-    𝔸, Ø, η, π, χ, 𝔹, K3, Ternary, Boole, Kleene, exists, forall, runs, lift,
+    𝔸, Ø, η, π, χ, 𝔹, K3, Ternary, Boole, Kleene, canonical, exists, forall, lift,
     any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
 )
 
@@ -52,10 +52,9 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertIs(forall(A(K3) | (π > F), π == T), False)
         self.assertIs(forall(Ø(K3), π == T), True)  # vacuous
 
-    def test_runs_are_the_normal_form(self) -> None:
+    def test_the_run_list_is_the_canonical_form(self) -> None:
         S = A(K3) | (π > F)
-        self.assertEqual(runs(S), [(U, T)])
-        self.assertEqual(S.runs(), [(U, T)])
+        self.assertIs(canonical(S) == S, True)  # held as its run list
         self.assertEqual(repr(S), "[U, ⊤]")
         self.assertEqual(repr(η(U)), "{U}")
         self.assertEqual(repr(Ø(K3)), "Ø")
@@ -73,7 +72,7 @@ class GrammarOverK3Test(unittest.TestCase):
 class GrammarOverBTest(unittest.TestCase):
     def test_the_two_chain(self) -> None:
         top = A(B) | (π == True)
-        self.assertEqual(runs(top), [(True, True)])
+        self.assertEqual(repr(top), "{⊤}")
         self.assertIs(exists(A(B), π == True), True)
         self.assertIs(forall(A(B), π == True), False)
         self.assertIs(top == η(True), True)
@@ -105,10 +104,8 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertIs(H.cut(U) == (A(K3) | (π >= U)), True)
         self.assertIs(H.cut(T) == η(T), True)
         self.assertIs(H.fibre(U) == η(U), True)
-        self.assertEqual(runs(H.cut(U)), [(U, T)])
+        self.assertEqual(repr(H.cut(U)), "[U, ⊤]")
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
-        with self.assertRaises(TypeError):
-            runs(H)  # an L-valued set is read through its cuts
 
     def test_lift(self) -> None:
         S = A(K3) | (π > F)

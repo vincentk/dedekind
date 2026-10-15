@@ -53,7 +53,7 @@
  *   - a chain: the Boolean algebra the intervals generate, read as run lists
  *     (@c order:runs, @c steps);
  *   - a commutative rig, ring or field: polynomials over the carrier
- *     (@c algebra:polynomial, @c normal_form).
+ *     (@c algebra:polynomial, @c canonical).
  * A term whose operators are in the signature but outside the catalogue (a
  * remainder, a division by a term) is well-formed and evaluates, and has no
  * equality: it is refused where a normal form is asked, never rewritten.

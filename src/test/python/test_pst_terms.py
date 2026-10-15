@@ -151,9 +151,9 @@ class TheSetsCombine(unittest.TestCase):
 
 class OnTheTruthChains(unittest.TestCase):
     def test_a_term_is_read_at_the_chain_elements(self) -> None:
-        self.assertEqual((A(B) | (π != True)).runs(), [(False, False)])  # noqa: E712
+        self.assertEqual(repr(A(B) | (π != True)), "{⊥}")  # noqa: E712
         U = Ternary.UNKNOWN
-        self.assertEqual((A(K3) | (π != U)).runs(), [(Ternary.FALSE, Ternary.FALSE), (Ternary.TRUE, Ternary.TRUE)])
+        self.assertEqual(repr(A(K3) | (π != U)), "{⊥} ∪ {⊤}")
         with self.assertRaises(TypeError):
             A(B) | (π + 1 == True)  # noqa: E712 (𝔹's rig is (∨, ∧): no +)
         with self.assertRaises(TypeError):

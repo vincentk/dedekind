@@ -11,7 +11,7 @@ classification as the C++ concepts decide it, and iterates from ⊥ by the cover
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
 as the paper spells it::
 
-    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, exists, forall
+    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, canonical, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
     S = 𝔸(K3) | (π > F)          # generator | pred      -> {U, ⊤}
@@ -19,7 +19,7 @@ as the paper spells it::
     ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
     U in S;  S(U)                # membership, χ
     exists(𝔸(K3), π > F)         # True;  forall(𝔸(K3), π > F) is False
-    S.runs();  repr(S)           # [(UNKNOWN, TRUE)]; "[U, ⊤]"   the normal form
+    canonical(S) == S;  repr(S)  # True; "[U, ⊤]": held as its run list
 
     H = K3.identity              # χ(x) = x, valued in K₃
     H == H                       # Ternary.UNKNOWN: reflexive only up to the
@@ -33,7 +33,7 @@ relations the term surface below cuts out of ``u64`` and ``𝔽ₚ`` hold the bo
 term.  The laws decide the syntax: a carrier's certified varieties supply the
 operators a term may use and the free algebra its normal form lives in, and
 equality of terms is equality there; a chain's is read as run lists, a ring's
-as polynomials (``normal_form(S)``, a set in, the same set out, its equations
+as polynomials (``canonical(S)``, a set in, the same set out, its equations
 ``p == 0`` with ``p`` a polynomial).  Equal normal forms cut out equal sets;
 different ones decide nothing, so ``==`` answers ``True`` or raises.  A term
 outside that catalogue evaluates but does not compare.  Reduction stays in C++.
@@ -73,14 +73,14 @@ set is built::
     A(B) | (π + 1 == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
-its run list, so equality, ``runs()``, ``len``, iteration and slicing by value
+its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
 are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
 (from ``dedekind.jlt``) substitute the variable, and the run list translates,
 wrapping at the word's end::
 
     from dedekind.jlt import succ
     (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)    # True: one normal form
-    (~(U | (π == 5))).runs()                         # [(0, 4), (6, 2**64 - 1)]
+    canonical(~(U | (π == 5)))     # 𝔸(u64) | (π <= 4) | (π >= 6): the runs, written
     list(U[3:8]);  len(U | (π < 3))                  # [3, 4, 5, 6, 7]; 3
     image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: wraps
 
@@ -109,9 +109,8 @@ from ._pst import exists
 from ._pst import forall
 from ._pst import image
 from ._pst import lift
-from ._pst import normal_form
+from ._pst import canonical
 from ._pst import preimage
-from ._pst import runs
 from ._pst import u64
 from ._pst import Ø
 from ._pst import η
@@ -131,6 +130,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "χ", "Term", "Pred", "exists", "forall", "runs",
-    "lift", "image", "preimage", "normal_form",
+    "Ø", "η", "π", "π_1", "π_2", "χ", "Term", "Pred", "exists", "forall", "canonical",
+    "lift", "image", "preimage",
 ]

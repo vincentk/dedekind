@@ -373,7 +373,7 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
   throw dedekind::sets::not_admitted(
       "no free algebra catalogued for this term: a chain's run lists read "
       "π ⋈ k, and π ± c ⋈ k on a word, under & and |; a rig's, ring's or "
-      "field's terms read as polynomials (algebra::normal_form)");
+      "field's terms read as polynomials (algebra::canonical)");
 }
 /** @brief The normal form of a set term as the algebra of @c cata: an
  *  interval's sides, a stored run list read in place, the boundaries as
