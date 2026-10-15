@@ -332,6 +332,10 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
       return ext(order_fragment<V, L>(*p.p) & order_fragment<V, L>(*p.q));
     case P::Kind::Or:
       return ext(order_fragment<V, L>(*p.p) | order_fragment<V, L>(*p.q));
+    case P::Kind::Top:
+      return Runs<V, L>::universe();
+    case P::Kind::Bottom:
+      return ext(~Runs<V, L>::universe());
     case P::Kind::Cmp:
       break;
   }

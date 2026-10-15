@@ -490,8 +490,14 @@ constexpr C carrier_cast(const K& k) {
     return c;
   } else if constexpr (requires { carrier_cast(std::type_identity<C>{}, k); }) {
     return carrier_cast(std::type_identity<C>{}, k);
-  } else {
+  } else if constexpr (std::constructible_from<C, const K&>) {
     return C(k);
+  } else {
+    // A reading dispatched on another sort instantiates this branch as well,
+    // so a constant the carrier has no conversion from is an error only where
+    // it is actually read.
+    throw std::domain_error(
+        "a constant of a type the carrier has no conversion from");
   }
 }
 
@@ -741,7 +747,7 @@ export inline std::size_t join_sorts(std::size_t a, std::size_t b) {
 /** @brief The sort of a tree of constants without a context: the point's one
  *  sort where it has one.  @throws not_admitted on a point of two carriers,
  *  where a constant alone names neither. */
-template <typename P>
+export template <typename P>
 std::size_t default_sort(std::size_t s) {
   if (s != no_sort) return s;
   if constexpr (std::tuple_size_v<point_sorts_t<P>> == 1) return 0;
@@ -802,7 +808,7 @@ constexpr bool op_admitted(Arith op, bool divisor_is_constant) {
 /** @brief Whether the comparison @c r is admitted on @c C: @c == and @c !=
  *  where it compares, the order comparisons where the order's rule is in
  *  force (@c order:poset).  @tparam C the carrier. */
-template <typename C>
+export template <typename C>
 constexpr bool rel_admitted(Rel r) {
   switch (r) {
     case Rel::Lt:
@@ -849,7 +855,7 @@ constexpr C apply_op(Arith op, const C& x, const C& y) {
 }
 /** @brief @c x @c r @c y for a comparison known at run time, admitted when
  *  the term was bound; the branches a carrier has not are not instantiated. */
-template <typename C>
+export template <typename C>
 constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   switch (r) {
     case Rel::Lt:
@@ -961,6 +967,10 @@ struct Value {
         return steer(*t.p) && steer(*t.q);
       case Pred<K>::Kind::Or:
         return steer(*t.p) || steer(*t.q);
+      case Pred<K>::Kind::Top:
+        return true;
+      case Pred<K>::Kind::Bottom:
+        return false;
     }
     throw not_admitted("an unknown predicate");
   }
@@ -1170,6 +1180,9 @@ struct Bind {
         steer(*t.p);
         steer(*t.q);
         break;
+      case Pred<K>::Kind::Top:
+      case Pred<K>::Kind::Bottom:
+        break;
     }
     return {};
   }
@@ -1331,7 +1344,7 @@ struct Term {
 export template <typename K>
 struct Pred {
   using is_rel_predicate = void;
-  enum class Kind { Cmp, And, Or };
+  enum class Kind { Cmp, And, Or, Top, Bottom };
   Kind kind{Kind::Cmp};
   Rel rel{};
   std::shared_ptr<const Term<K>> a, b;
@@ -1350,10 +1363,23 @@ struct Pred {
   static Pred conj(Pred x, Pred y) { return node(Kind::And, x, y); }
   /** @brief @c x @c ∨ @c y.  @param x,y the predicates.  @return the join. */
   static Pred disj(Pred x, Pred y) { return node(Kind::Or, x, y); }
+  /** @brief ⊤ and ⊥, the Boolean algebra's constants: a decided atom written
+   *  back (@c 0 @c == @c 0 is ⊤), free of any sort. */
+  static Pred top() {
+    Pred t;
+    t.kind = Kind::Top;
+    return t;
+  }
+  static Pred bottom() {
+    Pred t;
+    t.kind = Kind::Bottom;
+    return t;
+  }
   /** @brief The predicate with the variable @c variable replaced by the term
    *  @c with in every atom.  @param variable the slot.  @param with its
    *  replacement.  @return the substituted predicate. */
   Pred subst(unsigned variable, const Term<K>& with) const {
+    if (kind == Kind::Top || kind == Kind::Bottom) return *this;
     Pred t = *this;
     if (kind == Kind::Cmp) {
       t.a = std::make_shared<const Term<K>>(a->subst(variable, with));
@@ -1376,6 +1402,10 @@ struct Pred {
         return node(Kind::Or, p->negated(), q->negated());
       case Kind::Or:
         return node(Kind::And, p->negated(), q->negated());
+      case Kind::Top:
+        return bottom();
+      case Kind::Bottom:
+        return top();
     }
     return *this;
   }
@@ -1429,8 +1459,17 @@ template <typename K>
 unsigned slots(const Term<K>& t);
 template <typename K>
 unsigned slots(const Pred<K>& p) {
-  return p.kind == Pred<K>::Kind::Cmp ? slots(*p.a) | slots(*p.b)
-                                      : slots(*p.p) | slots(*p.q);
+  switch (p.kind) {
+    case Pred<K>::Kind::Cmp:
+      return slots(*p.a) | slots(*p.b);
+    case Pred<K>::Kind::And:
+    case Pred<K>::Kind::Or:
+      return slots(*p.p) | slots(*p.q);
+    case Pred<K>::Kind::Top:
+    case Pred<K>::Kind::Bottom:
+      return 0u;
+  }
+  return ~0u;
 }
 template <typename K>
 unsigned slots(const Term<K>& t) {
@@ -1488,6 +1527,8 @@ bool same_shape(const Term<K>& x, const Term<K>& y) {
 export template <typename K>
 bool same_shape(const Pred<K>& x, const Pred<K>& y) {
   if (x.kind != y.kind) return false;
+  if (x.kind == Pred<K>::Kind::Top || x.kind == Pred<K>::Kind::Bottom)
+    return true;
   if (x.kind == Pred<K>::Kind::Cmp)
     return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
   return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);

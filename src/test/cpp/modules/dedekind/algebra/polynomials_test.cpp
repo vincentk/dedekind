@@ -173,9 +173,12 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
   }
   SECTION("the connectives are kept, and a remainder refused") {
     const Pr a = Pr::cmp(Rel::Eq, T::bin(Arith::Sub, x, x), zero);
-    CHECK(same_shape(
-        nf(Pr::conj(a, a)),
-        Pr::conj(Pr::cmp(Rel::Eq, zero, zero), Pr::cmp(Rel::Eq, zero, zero))));
+    // A decided atom is ⊤ or ⊥: the Boolean algebra's constants, no sort.
+    CHECK(same_shape(nf(Pr::conj(a, a)), Pr::conj(Pr::top(), Pr::top())));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Ne, T::bin(Arith::Sub, x, x), zero)),
+                     Pr::bottom()));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, one, zero)), Pr::bottom()));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Lt, zero, one)), Pr::top()));
     CHECK_THROWS_AS(
         nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);

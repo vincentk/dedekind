@@ -526,6 +526,10 @@ std::string show(const RPred& p) {
       return "(" + show(*p.p) + ") & (" + show(*p.q) + ")";
     case RPred::Kind::Or:
       return "(" + show(*p.p) + ") | (" + show(*p.q) + ")";
+    case RPred::Kind::Top:
+      return "⊤";
+    case RPred::Kind::Bottom:
+      return "⊥";
   }
   return "?";
 }

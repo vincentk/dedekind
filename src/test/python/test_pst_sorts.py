@@ -44,6 +44,15 @@ class TwoCarriersInOneRelation(unittest.TestCase):
         with self.assertRaises(TypeError):
             R == (U * UF | ((π_1 < 6) & (π_2 == third)))  # different forms: undecided
 
+    def test_a_decided_atom_is_written_as_a_truth_constant(self) -> None:
+        N = canonical(U * UF | (π_2 == π_2))
+        self.assertEqual(repr(N), "𝔸(u64) × 𝔸(𝔽ₚ) | ⊤")
+        self.assertIs(N == N, True)  # rebinds: ⊤ names no sort
+        self.assertEqual(repr(canonical(N)), repr(N))
+        self.assertIn((1, 1), N)
+        self.assertEqual(repr(canonical(U * UF | ((π_1 < 5) & (π_2 != π_2)))),
+                         "𝔸(u64) × 𝔸(𝔽ₚ) | (π_1 < 5) & (⊥)")
+
     def test_a_constant_graph_is_a_function_between_the_carriers(self) -> None:
         f = Function[u64, 𝔽ₚ](U * UF | (π_2 == 1))
         self.assertEqual(f(5), 𝔽ₚ(1))

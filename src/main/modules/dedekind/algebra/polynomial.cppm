@@ -547,6 +547,18 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
   using dedekind::sets::Rel;
   const P x = canonical<C>(*p.a);
   const P y = canonical<C>(*p.b);
+  // Both sides constants: the atom is decided, and written back as ⊤ or ⊥,
+  // the Boolean algebra's constants, free of a sort no constant could name
+  // again.
+  if (x.degree() == 0 && y.degree() == 0) {
+    if (!dedekind::sets::rel_admitted<C>(p.rel))
+      throw dedekind::sets::not_admitted(
+          "the comparison is not in the carrier's signature");
+    return dedekind::sets::compare_rel(p.rel, x(Monomial<4>::one()),
+                                       y(Monomial<4>::one()))
+               ? Pr::top()
+               : Pr::bottom();
+  }
   if constexpr (requires(const P& u, const P& v) { u - v; }) {
     if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
         dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
@@ -598,18 +610,16 @@ export template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
                                   const Lift& lift) {
   using Pr = dedekind::sets::Pred<K>;
+  if (p.kind == Pr::Kind::Top || p.kind == Pr::Kind::Bottom) return p;
   if (p.kind != Pr::Kind::Cmp) {
     const Pr x = canonical<P>(*p.p, lift);
     const Pr y = canonical<P>(*p.q, lift);
     return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
   }
-  const std::size_t s = dedekind::sets::join_sorts(
-      dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b));
-  if (s == dedekind::sets::no_sort)
-    throw dedekind::sets::not_admitted(
-        "a comparison of two constants names no carrier");
   return dedekind::sets::with_sort<P>(
-      s, detail_canonical::AtomAt<K, Lift>{p, lift});
+      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts(
+          dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b))),
+      detail_canonical::AtomAt<K, Lift>{p, lift});
 }
 
 }  // namespace dedekind::algebra

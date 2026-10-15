@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -136,4 +137,30 @@ TEST_CASE(
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(v)>,
                             std::variant<unsigned, unsigned long long>>);
   CHECK(std::get<unsigned long long>(v) == 8ull);
+}
+
+TEST_CASE(
+    "sets:terms: ⊤ and ⊥ are predicates, and a constant converts only "
+    "into the sort that reads it",
+    "[sets][terms][runtime][sorts]") {
+  using T = Term<unsigned>;
+  using Pr = Pred<unsigned>;
+  CHECK(Pr::top()(0u));
+  CHECK_FALSE(Pr::bottom()(0u));
+  CHECK(same_shape(Pr::top().negated(), Pr::bottom()));
+  CHECK(Pr::conj(Pr::top(), Pr::cmp(Rel::Eq, T::proj(0), T::constant(3u)))(3u));
+  CHECK_NOTHROW(bind_check<unsigned>(Pr::disj(Pr::bottom(), Pr::top())));
+  // Constants that are strings, on a product of the word and strings: the
+  // atom on the string slot binds and reads, although the word slot's reading
+  // is instantiated as well; a string on the word slot is refused where read.
+  using S = Term<std::string>;
+  using SP = Pred<std::string>;
+  using NS = std::pair<unsigned, std::string>;
+  const SP ok = SP::cmp(Rel::Eq, S::proj(2), S::constant(std::string{"ok"}));
+  CHECK_NOTHROW(bind_check<NS>(ok));
+  CHECK(ok(NS{1u, "ok"}));
+  CHECK_FALSE(ok(NS{1u, "no"}));
+  CHECK_THROWS_AS(bind_check<NS>(SP::cmp(Rel::Eq, S::proj(1),
+                                         S::constant(std::string{"ok"}))),
+                  std::domain_error);
 }
