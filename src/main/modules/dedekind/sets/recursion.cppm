@@ -17,14 +17,19 @@
  * body on an @c Env the term nodes read as the point (a projection at an
  * @c Env is read at its point) and @c Self reads as the set.
  *
- * The recursion is admitted only when it is @b structural: every @c Self must
- * descend on some coordinate, @f$\pi - c@f$ with @f$c > 0@f$ on a well-founded
- * carrier, so an unfolding takes at most that coordinate's value in steps
- * (primitive recursion on the coordinate; the parametrised NNO).  A body whose
- * @c Self descends on nothing is general recursion, and no former is viable for
- * it: the Rice boundary, refused where it would be written.  A descent below
- * the carrier's bottom is no point of the universe and the pulled-back
- * membership is
+ * The recursion is admitted only when it is @b structural, with one
+ * @b measure for the whole body: a coordinate @c i such that @b every @c Self
+ * has @f$\pi_i - c@f$, @f$c > 0@f$, in position @c i, on a well-founded
+ * carrier. That coordinate then strictly decreases on every call, so an
+ * unfolding takes at most its value in steps (primitive recursion on the
+ * coordinate; the parametrised NNO).  A subtraction somewhere is not enough: @c
+ * χ(π_2 − 1, π_2) calls itself on the same point, and @c χ(π_1 − 1, π_2 + 1) @c
+ * || @c χ(π_1 + 1, π_2 − 1) cycles.  A body without such a measure is general
+ * recursion, and no former is viable for it: the Rice boundary, refused where
+ * it would be written.  The former binds the body and every argument of every
+ * @c χ when the set is built, as the ordinary formers do, and admits only a
+ * decidable base (a @c bool-valued χ).  A descent below the carrier's bottom is
+ * no point of the universe and the pulled-back membership is
  * @c false there, so a base case needs no guard against it.
  *
  * Wikipedia: Recursive definition, Primitive recursive function, Least fixed
@@ -134,15 +139,18 @@ struct Self {
 /** @brief The classifier under definition: @c χ(terms…) in a former's body is
  *  the set being formed, applied to the terms. */
 export struct ChiTag {
-  template <typename... Terms>
-  constexpr Self<std::remove_cvref_t<Terms>...> operator()(
-      Terms&&... ts) const {
-    (check_descent(ts), ...);
-    return Self<std::remove_cvref_t<Terms>...>{
-        std::tuple<std::remove_cvref_t<Terms>...>{std::forward<Terms>(ts)...}};
+  template <typename... Args>
+  constexpr auto operator()(Args... args) const {
+    // A constant argument becomes a term node, as for the operators.
+    return make(term_of(std::move(args))...);
   }
 
  private:
+  template <typename... Terms>
+  static constexpr Self<Terms...> make(Terms... ts) {
+    (check_descent(ts), ...);
+    return Self<Terms...>{std::tuple<Terms...>{std::move(ts)...}};
+  }
   template <typename T>
   static constexpr void check_descent(const T& t) {
     if constexpr (is_descent_v<std::remove_cvref_t<T>>) {
@@ -156,28 +164,54 @@ export inline constexpr ChiTag χ{};
 template <typename... Ts>
 inline constexpr bool is_self_v<Self<Ts...>> = true;
 
-/** @brief Whether a term descends at points of type @c X: a descent on a
- *  well-founded slot.  @tparam Term the term.  @tparam X the point type. */
-export template <typename Term, typename X>
-inline constexpr bool descends_v = false;
-template <IsRingIntegral auto I, typename K, typename X>
-  requires WellFounded<value_at_t<X, Projection<I>>>
-inline constexpr bool
-    descends_v<BinOp<std::minus<>, Projection<I>, Const<K>>, X> = true;
-
-/** @brief The structural-recursion algebra at the points @c X: a @c χ node
- *  descends when one of its terms does, a node when all its legs do, any other
- *  leaf vacuously.  @tparam X the point type. */
+/** @brief The coordinate a position of @c χ's arguments stands for at points
+ *  of @c X: the point itself (slot 0) for a scalar, slot @c J @c + @c 1 of a
+ *  pair.  @tparam X the point type.  @tparam J the position, from 0. */
+template <typename X, std::size_t J>
+inline constexpr std::size_t slot_at =
+    requires { typename X::first_type; } ? J + 1 : 0;
+/** @brief The carrier of position @c J at points of @c X. */
+template <typename X, std::size_t J>
+struct coordinate_at {
+  using type = X;
+};
+template <typename A, typename B, std::size_t J>
+struct coordinate_at<std::pair<A, B>, J> {
+  using type = std::tuple_element_t<J, std::pair<A, B>>;
+};
+/** @brief The number of coordinates of a point of @c X. */
 template <typename X>
-struct SelfDescends {
+inline constexpr std::size_t arity_v =
+    requires { typename X::first_type; } ? 2 : 1;
+
+/** @brief Whether @c Term is a descent on slot @c S at points of @c X:
+ *  @f$\pi_S - c@f$ with that slot's carrier well-founded.  @c c @c > @c 0 is
+ *  checked when the @c χ node is built. */
+template <typename Term, typename X, std::size_t S>
+inline constexpr bool descends_on_v = false;
+template <IsRingIntegral auto I, typename K, typename X, std::size_t S>
+  requires(static_cast<std::size_t>(I) == S) &&
+              WellFounded<value_at_t<X, Projection<I>>>
+inline constexpr bool
+    descends_on_v<BinOp<std::minus<>, Projection<I>, Const<K>>, X, S> = true;
+
+/** @brief The measure algebra at the points @c X for position @c J: a @c χ
+ *  node passes when its argument in position @c J descends on the coordinate
+ *  @c J stands for; every node when all its legs pass; any other leaf
+ *  vacuously.  @tparam X the point type.  @tparam J the position. */
+template <typename X, std::size_t J>
+struct DescendsAt {
   template <typename Leaf>
   constexpr std::true_type operator()(const Leaf&) const {
     return {};
   }
   template <typename... Ts>
-  constexpr std::bool_constant<(descends_v<Ts, X> || ...)> operator()(
-      const Self<Ts...>&) const {
-    return {};
+  constexpr auto operator()(const Self<Ts...>&) const {
+    if constexpr (J < sizeof...(Ts))
+      return std::bool_constant<descends_on_v<
+          std::tuple_element_t<J, std::tuple<Ts...>>, X, slot_at<X, J>>>{};
+    else
+      return std::false_type{};
   }
   template <typename Node, typename... R>
   constexpr std::bool_constant<(R::value && ...)> operator()(const Node&,
@@ -185,12 +219,52 @@ struct SelfDescends {
     return {};
   }
 };
-/** @brief The structural-recursion gate: every @c Self in a body descends on
- *  some coordinate.  Vacuous without a @c Self.  @tparam Node the body.
+template <typename Node, typename X, std::size_t... Js>
+consteval bool some_measure(std::index_sequence<Js...>) {
+  return (decltype(dedekind::category::cata(
+              DescendsAt<X, Js>{}, std::declval<const Node&>()))::value ||
+          ...);
+}
+/** @brief The structural-recursion gate: one coordinate on which every @c Self
+ *  in the body descends.  Vacuous without a @c Self.  @tparam Node the body.
  *  @tparam T the point type. */
 export template <typename Node, typename T>
-inline constexpr bool self_descends_v = decltype(dedekind::category::cata(
-    SelfDescends<T>{}, std::declval<const Node&>()))::value;
+inline constexpr bool self_descends_v =
+    some_measure<Node, T>(std::make_index_sequence<arity_v<T>>{});
+
+/** @brief The binding of the arguments of every @c χ in a body at the points
+ *  @c X: each a term bound there, a constant cast into its coordinate's
+ *  carrier.  The body's own binding treats a @c χ as a leaf, so its arguments
+ *  are bound here.  @tparam X the point type. */
+template <typename X>
+struct BindArgs {
+  template <typename Leaf>
+  constexpr int operator()(const Leaf&) const {
+    return 0;
+  }
+  template <typename... Ts>
+  constexpr int operator()(const Self<Ts...>& s) const {
+    bind_all(s, std::index_sequence_for<Ts...>{});
+    return 0;
+  }
+  template <typename Node, typename... R>
+  constexpr int operator()(const Node&, R...) const {
+    return 0;
+  }
+
+ private:
+  template <typename S, std::size_t... Js>
+  static constexpr void bind_all(const S& s, std::index_sequence<Js...>) {
+    (bind_one<Js>(std::get<Js>(s.terms)), ...);
+  }
+  template <std::size_t J, typename T>
+  static constexpr void bind_one(const T& t) {
+    if constexpr (is_const_v<T>)
+      (void)carrier_cast<typename coordinate_at<X, J>::type>(t.value);
+    else
+      bind_check<X>(t);
+  }
+};
 
 /** @brief The recursion, closed: the base's membership, then the body evaluated
  *  with this very predicate in scope for its @c Self nodes.  @tparam S the base
@@ -213,13 +287,15 @@ struct Rec {
  *  finds no former.  @tparam S the base.  @tparam Body the body. */
 export template <IsSetObject S, typename Body>
   requires contains_self_v<Body> && self_descends_v<Body, typename S::Domain> &&
-           std::convertible_to<
+           std::same_as<
                std::invoke_result_t<const S&, const typename S::Domain&>, bool>
 constexpr auto operator|(const S& base, Body body) {
   using D = typename S::Domain;
-  using L = typename S::logic_species;
-  return Comprehension<𝔸<D, L>, Rec<S, Body>>{
-      𝔸<D, L>{}, Rec<S, Body>{base, std::move(body)}};
+  bind_check<D>(body);                                  // the body, χ a leaf
+  (void)dedekind::category::cata(BindArgs<D>{}, body);  // χ's arguments
+  // The base stays the universe, so its bounds (a finite base) are kept.
+  return Comprehension<S, Rec<S, Body>>{base,
+                                        Rec<S, Body>{base, std::move(body)}};
 }
 
 /** @section recursion__Formal_Verification */
@@ -251,6 +327,36 @@ static_assert(!FormsNonDescendingRecursion<N>,
               "a recursion that descends on nothing is refused at the former");
 static_assert(FormsDescendingRecursion<N> && !FormsDescendingRecursion<int>,
               "a descent needs a well-founded carrier: int has no bottom");
+// One measure for the whole body: a subtraction somewhere is not enough.
+using NN = std::pair<N, N>;
+template <typename T>
+concept FormsSamePointRecursion = requires { 𝔸<T>{} | χ(π_2 - N{1}, π_2); };
+template <typename T>
+concept FormsCyclingRecursion = requires {
+  𝔸<T>{} | (χ(π_1 - N{1}, π_2 + N{1}) || χ(π_1 + N{1}, π_2 - N{1}));
+};
+template <typename T>
+concept FormsMeasuredRecursion =
+    requires { 𝔸<T>{} | ((π_1 == N{0}) || χ(π_1 - N{1}, π_2 + N{1})); };
+static_assert(!FormsSamePointRecursion<NN> && !FormsCyclingRecursion<NN> &&
+                  FormsMeasuredRecursion<NN>,
+              "χ(π_2 − 1, π_2) and the two-call cycle have no common measure; "
+              "π_1 − 1 in the first position is one");
+// A constant argument is a term, and the measure still holds on π_1:
+// (x, y) is in when y = 0, or when (x − 1, 0) is, i.e. when x ≥ 1.
+inline constexpr auto y_zero_or_x_positive =
+    𝔸<NN>{} | ((π_2 == N{0}) || χ(π_1 - N{1}, N{0}));
+static_assert(y_zero_or_x_positive(NN{0, 0}) &&
+                  y_zero_or_x_positive(NN{3, 5}) &&
+                  !y_zero_or_x_positive(NN{0, 5}),
+              "{(x, y) | y = 0 ∨ χ(x − 1, 0)}: y = 0 or x ≥ 1");
+// A finite base keeps its bound.
+using FiniteN = 𝔸<unsigned, dedekind::category::Boole, Finite>;
+inline constexpr auto finite_evens = FiniteN{} | ((π == 0u) || χ(π - 2u));
+static_assert(std::same_as<decltype(finite_evens)::cardinality_type,
+                           FiniteN::cardinality_type> &&
+                  finite_evens(4u) && !finite_evens(5u),
+              "a recursion over a finite base is still bounded by it");
 }  // namespace detail_recursion_witness
 
 }  // namespace dedekind::sets
