@@ -563,6 +563,9 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
     if ((p.rel == Rel::Eq || p.rel == Rel::Ne) &&
         dedekind::sets::admits(On<C>{}, std::minus<>{}, false)) {
       P d = x - y;
+      // The sides differ by a constant: decided, ⊤ or ⊥ (0 == 0 is ⊤).
+      if (d.degree() == 0)
+        return (p.rel == Rel::Eq) == d.is_zero() ? Pr::top() : Pr::bottom();
       // An equation keeps its zero set under a unit factor, so the unit part
       // of the leading coefficient is divided out: on a field all of it
       // (monic), elsewhere what the carrier's unit_normaliser names.
