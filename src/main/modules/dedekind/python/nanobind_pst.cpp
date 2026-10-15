@@ -611,7 +611,8 @@ bool equal_by_normal_form(const RPred& a, const RPred& b) {
  *  canonical form of a set of the chain's fragment.  @tparam C the chain.
  *  @param rs the run list. */
 template <typename C, typename Runs>
-RPred run_predicate(const Runs& rs) {
+RPred run_predicate(
+    Runs rs) {  // by value: the lazy merge advances as it is read
   using Lim = std::numeric_limits<C>;
   const RTerm x = RTerm::proj(0);
   const auto k = [](C v) { return RTerm::constant(AsConstant{}(v)); };
