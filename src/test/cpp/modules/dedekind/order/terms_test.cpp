@@ -13,7 +13,9 @@
 #include <stdexcept>
 #include <utility>
 
-import dedekind.order; // the comparison and division rules
+import dedekind.category;   // Ternary, the K₃ carrier
+import dedekind.order;      // the comparison and division rules
+import dedekind.relational; // IsFunctional: a graph atom over two carriers
 import dedekind.sets;
 
 using namespace dedekind::sets;
@@ -200,4 +202,40 @@ TEST_CASE("order:terms: a term built at run time is checked when bound",
   CHECK_NOTHROW(bind_check<Unordered>(is_one));
   CHECK(is_one(Unordered{1}));
   CHECK_FALSE(is_one(Unordered{2}));
+}
+
+// ── Two carriers in one term ────────────────────────────────────────────────
+// The typed grammar is many-sorted: a product's slots each have their own
+// carrier, and a term is read per node in that node's carrier.  The word and
+// K₃, each slot compared in its own order; and an arrow between the two
+// carriers applied to a term, the graph of a function word → K₃.
+namespace {
+inline constexpr auto 𝕎 = 𝔸<unsigned>{};
+inline constexpr auto 𝕂₃ = 𝔸<dedekind::category::Ternary>{};
+/** The verdict "above five", read in K₃: ⊤ past 5, U at or below. */
+struct AboveFive {
+  using Domain = unsigned;
+  using Codomain = dedekind::category::Ternary;
+  constexpr Codomain operator()(const unsigned& x) const {
+    return x > 5u ? Codomain::True : Codomain::Unknown;
+  }
+};
+}  // namespace
+
+TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
+          "[order][terms][sorts]") {
+  using dedekind::category::Ternary;
+  using NK = std::pair<unsigned, Ternary>;
+  // Each slot compared in its own order: the word's, and K₃'s.
+  constexpr auto both = 𝕎 * 𝕂₃ | ((π_1 < 5u) && (π_2 >= Ternary::Unknown));
+  STATIC_CHECK(both(NK{3u, Ternary::True}));
+  STATIC_CHECK(both(NK{3u, Ternary::Unknown}));
+  STATIC_CHECK(!both(NK{3u, Ternary::False}));
+  STATIC_CHECK(!both(NK{7u, Ternary::True}));
+  // An arrow between the carriers, applied: the graph of a function 𝕎 → K₃.
+  constexpr auto graph = 𝕎 * 𝕂₃ | (π_2 == ap(AboveFive{}, π_1));
+  STATIC_CHECK(graph(NK{7u, Ternary::True}));
+  STATIC_CHECK(graph(NK{2u, Ternary::Unknown}));
+  STATIC_CHECK(!graph(NK{7u, Ternary::Unknown}));
+  STATIC_CHECK(dedekind::relational::IsFunctional<decltype(graph)>);
 }
