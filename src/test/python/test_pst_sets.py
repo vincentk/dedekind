@@ -107,6 +107,7 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertIs((A(K3) | (H(π) == U)) == η(U), True)
         self.assertEqual(repr(cut_U), "[U, ⊤]")
         self.assertEqual(repr(H(π)), "χ{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤](π)")
+        self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
         S = A(K3) | (π > F)
@@ -117,7 +118,6 @@ class KleeneValuedTest(unittest.TestCase):
             A(B) | S(π)  # an arrow on K₃ is not an arrow on 𝔹
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
-        self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_lift(self) -> None:
         S = A(K3) | (π > F)
