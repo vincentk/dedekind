@@ -85,7 +85,7 @@ wrapping at the word's end::
     image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
-and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π``, ``χ`` are names as
+and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π`` are names as
 written.  Subscript digits are not identifier characters, so ``K₃`` is ``K3``
 and ``ℵ₀`` is ``ℵ_0`` (the C++ spelling; ``aleph0`` remains an alias).  ``∃`` / ``∀`` are not identifiers either: the
 grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
@@ -118,7 +118,6 @@ from ._pst import η
 from ._pst import π
 from ._pst import π_1
 from ._pst import π_2
-from ._pst import χ
 
 # ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
 # digit is not, so the C++ spelling ℵ_0 is the Python one too.
@@ -131,6 +130,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "χ", "Term", "Pred", "exists", "forall", "canonical", "cond",
+    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "canonical", "cond",
     "lift", "image", "preimage",
 ]

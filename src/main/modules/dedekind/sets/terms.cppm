@@ -136,13 +136,9 @@ export using dedekind::category::π_1;
 export using dedekind::category::π_2;
 export using dedekind::category::π_3;
 
-// Cosmetic alias for the sole projection π (the bound element of a
-// single-carrier comprehension): a plain element also reads as @c χ,
-// e.g. @c ℕ @c | @c χ @c <= @c 5.  Same type and behaviour as π (a
-// distinct inline object, so a distinct address), just a second spelling.
 // (Plain @c x is deliberately not offered: it shadows the pervasive local
-// element parameter named @c x and would trip @c -Wshadow.)
-export inline constexpr Projection<0> χ{};
+// element parameter named @c x and would trip @c -Wshadow.  @c χ is not an
+// alias of π either: it names the classifier under definition, :recursion.)
 
 // Blackboard coordinate aliases so a pair/triple predicate reads as
 // @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
@@ -1366,12 +1362,44 @@ template <typename T>
 struct graph_atom<Cmp<Rel::Eq, Projection<2>, T>> : std::true_type {
   using term = T;
 };
+/** @brief Whether a leaf is the set under definition, a @c χ node;
+ *  @c :recursion registers it.  @tparam T the leaf. */
+export template <typename T>
+inline constexpr bool is_self_v = false;
+/** @brief The self algebra: a term or predicate mentions the set under
+ *  definition when one of its leaves is a @c χ node; every node passes it up.
+ */
+struct MentionsSelf {
+  template <typename Leaf>
+  constexpr std::bool_constant<is_self_v<Leaf>> operator()(const Leaf&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+  constexpr std::bool_constant<(R::value || ...)> operator()(const Node&,
+                                                             R...) const {
+    return {};
+  }
+};
+/** @brief Whether @c T mentions the set under definition.  @tparam T the term
+ *  or predicate. */
+export template <typename T>
+inline constexpr bool contains_self_v = decltype(cata(
+    MentionsSelf{}, std::declval<const std::remove_cvref_t<T>&>()))::value;
 /** @brief An atom that is the graph of a function of the first slot. */
 export template <typename P>
 concept IsGraphAtom = graph_atom<P>::value;
 /** @brief The term of a graph atom.  @tparam P the atom. */
 export template <IsGraphAtom P>
 using graph_term_t = typename graph_atom<P>::term;
+/** @brief The term of a graph atom, the side that is not @c π_2.
+ *  @param p the atom. */
+export template <IsGraphAtom P>
+constexpr const graph_term_t<P>& graph_term(const P& p) {
+  if constexpr (std::same_as<decltype(p.a), graph_term_t<P>>)
+    return p.a;
+  else
+    return p.b;
+}
 
 namespace detail_terms_witness {
 using P = std::pair<unsigned, unsigned>;

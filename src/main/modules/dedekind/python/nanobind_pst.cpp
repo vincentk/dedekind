@@ -325,7 +325,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 
-/** @brief The grammar's variables @c π (also written @c χ), @c π_1, @c π_2: a
+/** @brief The grammar's variables @c π, @c π_1, @c π_2: a
  *  comparison builds a predicate, an arithmetic a term, each bound and checked
  *  by the former. */
 struct ProjectionTag {
@@ -1286,7 +1286,7 @@ NB_MODULE(_pst, m) {
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
       m, "Projection",
-      "The grammar's variables π (also χ), π_1, π_2: a comparison builds a "
+      "The grammar's variables π, π_1, π_2: a comparison builds a "
       "predicate, the arithmetic + - * / // % a term, each bound and checked "
       "by "
       "A(carrier) | ....");
@@ -1305,7 +1305,6 @@ NB_MODULE(_pst, m) {
   def_arithmetic<ProjectionTag>(projection);
   def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
-  m.attr("χ") = ProjectionTag{0};
   m.attr("π_1") = ProjectionTag{1};
   m.attr("π_2") = ProjectionTag{2};
 
