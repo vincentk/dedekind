@@ -703,14 +703,19 @@ void bind_term_sets(nb::module_& m,
   m.def(
       "canonical",
       [](const S& s) {
+        // The atoms first, then the set: an atom normalised into the chain's
+        // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
+        // reaches the fixpoint.
+        const S atoms =
+            U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
         if constexpr (IsTotallyOrdered<C>) {
           try {
-            return U{} | run_predicate<C>(dedekind::order::runs(steps(s)));
+            return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)));
           } catch (const dedekind::sets::not_admitted&) {
             // outside the chain's fragment: the atoms' polynomial forms
           }
         }
-        return U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
+        return atoms;
       },
       nb::arg("S"), canonical_doc);
   m.def(

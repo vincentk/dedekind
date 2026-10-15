@@ -60,6 +60,14 @@ class OneSetOneNormalForm(unittest.TestCase):
         S = (above(3) & below(9)) | point(12)
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))  # idempotent
 
+    def test_an_atom_normalised_into_the_fragment_reads_as_runs(self) -> None:
+        # π * 1 < 5 is no atom of the chain fragment; its polynomial form π < 5
+        # is, and canonical reads it as runs in the same pass: a fixpoint.
+        S = U | (π * 1 < 5)
+        self.assertEqual(repr(canonical(S)), "𝔸(u64) | π <= 4")
+        self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))
+        self.assertEqual(repr(canonical(U | (π + 1 - 1 == 4))), "𝔸(u64) | π == 4")
+
     def test_the_complement_is_a_run_list(self) -> None:
         u = ~point(5)
         self.assertEqual(repr(canonical(u)), "𝔸(u64) | (π <= 4) | (π >= 6)")
