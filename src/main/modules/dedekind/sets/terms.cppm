@@ -884,8 +884,8 @@ struct Value {
           throw not_admitted(std::string("the operator ") + spelling(t.op) +
                              " is not in the carrier's signature");
         return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
-      case Term<K>::Kind::Ap:
-        return arrow_at<C>(*t.f)(steer(*t.a));
+      case Term<K>::Kind::Cond:
+        return steer(*t.p) ? steer(*t.a) : steer(*t.b);
     }
     throw not_admitted("an unknown term");
   }
@@ -1072,9 +1072,10 @@ struct Bind {
               "carrier");
         break;
       }
-      case Term<K>::Kind::Ap:
+      case Term<K>::Kind::Cond:
+        steer(*t.p);
         steer(*t.a);
-        (void)arrow_at<C>(*t.f);  // an arrow on this carrier, or refused
+        steer(*t.b);
         break;
     }
     return {};
@@ -1113,56 +1114,22 @@ constexpr void bind_check(const T& t) {
 
 // ── Terms whose shape is a value ────────────────────────────────────────────
 
-/** @brief An arrow without a term, for a term built at run time: a table (a
- *  set's χ held as a run list), an erased composite.  It is evaluated, never
- *  rewritten: no free algebra reads through it.  It is an arrow on one carrier,
- *  @c OpaqueArrow<C>; a term holding it binds to that carrier only.  This
- * erased base is what the term holds, so the term stays parametric in its
- * constants alone. */
-export struct Opaque {
-  virtual ~Opaque() = default;
-  /** @brief The arrow's name, for printing and for a refusal. */
-  virtual const std::string& name() const = 0;
-};
-/** @brief The arrow @c C @c → @c C behind an @c Opaque: a @c Morphism (so an
- *  @c IsArrow, and the typed @c ap(f, π) takes it too) with a name.
- *  @tparam C the carrier. */
-export template <typename C>
-struct OpaqueArrow final : Opaque, Morphism<C, C, std::function<C(const C&)>> {
-  std::string label;
-  OpaqueArrow(std::string name, std::function<C(const C&)> arrow)
-      : Morphism<C, C, std::function<C(const C&)>>(std::move(arrow)),
-        label(std::move(name)) {}
-  const std::string& name() const override { return label; }
-};
-static_assert(IsArrow<OpaqueArrow<unsigned>> &&
-                  std::same_as<OpaqueArrow<unsigned>::Domain,
-                               OpaqueArrow<unsigned>::Codomain>,
-              "an opaque arrow is an arrow, on one carrier");
-/** @brief The arrow @c f at the carrier @c C.  @throws not_admitted where
- *  @c f is an arrow on another carrier. */
-template <typename C>
-const OpaqueArrow<C>& arrow_at(const Opaque& f) {
-  if (const auto* a = dynamic_cast<const OpaqueArrow<C>*>(&f)) return *a;
-  throw not_admitted("the arrow " + f.name() + " is not on this carrier");
-}
-
 /** @brief A term built at run time: the grammar of @c IsTerm with its shape a
  *  value and its constants of type @c K, which meets the carrier through
- *  @c carrier_cast when the term is bound; an arrow without a term applied
- *  to a term (@c Opaque) is evaluated where the term is read.  Its legs are
- * shared, so a term is cheap to copy and to combine.  A division by the
+ *  @c carrier_cast when the term is bound; McCarthy's conditional
+ *  @c cond(p, a, b) chooses a branch by a predicate.  Its legs are shared,
+ *  so a term is cheap to copy and to combine.  A division by the
  * constant 0 is refused when the term is built, as for the typed grammar.
  * @tparam K the constants' type. */
 export template <typename K>
 struct Term {
-  enum class Kind { Proj, Const, Bin, Ap };
+  enum class Kind { Proj, Const, Bin, Cond };
   Kind kind{Kind::Const};
   unsigned slot{};
   K value{};
   Arith op{};
   std::shared_ptr<const Term> a, b;
-  std::shared_ptr<const Opaque> f;
+  std::shared_ptr<const Pred<K>> p;  // the conditional's predicate
 
   /** @brief @c π (slot 0), @c π_1, @c π_2. */
   static Term proj(unsigned slot) {
@@ -1193,23 +1160,19 @@ struct Term {
         t.b = std::make_shared<const Term>(b->subst(variable, with));
         return t;
       }
-      case Kind::Ap: {
+      case Kind::Cond: {
         Term t = *this;
+        t.p = std::make_shared<const Pred<K>>(p->subst(variable, with));
         t.a = std::make_shared<const Term>(a->subst(variable, with));
+        t.b = std::make_shared<const Term>(b->subst(variable, with));
         return t;
       }
     }
     return *this;
   }
-  /** @brief @c f(x): the arrow @c f, without a term, applied to @c x.
-   *  @param f the arrow.  @param x the term. */
-  static Term ap(std::shared_ptr<const Opaque> f, Term x) {
-    Term t;
-    t.kind = Kind::Ap;
-    t.f = std::move(f);
-    t.a = std::make_shared<const Term>(std::move(x));
-    return t;
-  }
+  /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; defined
+   *  after @c Pred.  @param q the predicate.  @param a,b the branches. */
+  static Term cond(Pred<K> q, Term a, Term b);
   /** @brief @c x @c op @c y.  @throws std::domain_error on a division by the
    *  constant 0. */
   static Term bin(Arith op, Term x, Term y) {
@@ -1298,6 +1261,16 @@ struct Pred {
   }
 };
 
+template <typename K>
+Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
+  Term t;
+  t.kind = Kind::Cond;
+  t.p = std::make_shared<const Pred<K>>(std::move(q));
+  t.a = std::make_shared<const Term>(std::move(a));
+  t.b = std::make_shared<const Term>(std::move(b));
+  return t;
+}
+
 /** @brief The same tree: the same nodes, slots, operators and comparisons, and
  *  equal constants.  Syntactic, so sound for equality of what two normal forms
  *  denote and silent on two different trees.  @param x,y the terms. */
@@ -1311,9 +1284,9 @@ bool same_shape(const Term<K>& x, const Term<K>& y) {
       return x.value == y.value;
     case Term<K>::Kind::Bin:
       return x.op == y.op && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
-    case Term<K>::Kind::Ap:
-      // An arrow without a term is the same arrow only as the same object.
-      return x.f == y.f && same_shape(*x.a, *y.a);
+    case Term<K>::Kind::Cond:
+      return same_shape(*x.p, *y.p) && same_shape(*x.a, *y.a) &&
+             same_shape(*x.b, *y.b);
   }
   return false;
 }

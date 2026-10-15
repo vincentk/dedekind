@@ -8,7 +8,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
-#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -58,25 +57,25 @@ TEST_CASE("sets:terms: without a module's rule its operators are not admitted",
 }
 
 TEST_CASE(
-    "sets:terms: an arrow without a term is applied, evaluated, never "
-    "rewritten, and binds to its own carrier only",
+    "sets:terms: McCarthy's conditional built at run time chooses a branch "
+    "by a predicate",
     "[sets][terms][runtime]") {
   using T = Term<unsigned>;
-  const auto twice = std::make_shared<OpaqueArrow<unsigned>>(
-      "twice", [](const unsigned& x) { return 2 * x; });
-  const T t = T::bin(Arith::Add, T::ap(twice, T::proj(0)), T::constant(1u));
-  CHECK(term_value(t, 5u) == 11u);  // 2·5 + 1
-  // The same arrow in the typed grammar: an opaque arrow is an IsArrow.
-  CHECK(term_value(ap(*twice, π), 5u) == 10u);
-  // Substitution reaches through the application: twice(π) at π := 3.
-  CHECK(term_value(t.subst(0, T::constant(3u)), 0u) == 7u);
-  // The same arrow is the same object; another arrow of the same table is not.
-  const auto again = std::make_shared<OpaqueArrow<unsigned>>(
-      "twice", [](const unsigned& x) { return 2 * x; });
-  CHECK(same_shape(t, t));
-  CHECK_FALSE(same_shape(
-      t, T::bin(Arith::Add, T::ap(again, T::proj(0)), T::constant(1u))));
-  // Bound to another carrier, the arrow is refused.
-  CHECK_NOTHROW(bind_check<unsigned>(t));
-  CHECK_THROWS_AS(bind_check<unsigned long long>(t), not_admitted);
+  using Pr = Pred<unsigned>;
+  // cond(π == 0, π + 1, π * 3): the typed grammar's cond, with its shape a
+  // value; the operators are the ones this module admits.
+  const T x = T::proj(0);
+  const T step = T::cond(Pr::cmp(Rel::Eq, x, T::constant(0u)),
+                         T::bin(Arith::Add, x, T::constant(1u)),
+                         T::bin(Arith::Mul, x, T::constant(3u)));
+  CHECK(term_value(step, 0u) == 1u);
+  CHECK(term_value(step, 2u) == 6u);
+  // Substitution reaches the predicate and both branches.
+  CHECK(term_value(step.subst(0, T::constant(2u)), 0u) == 6u);
+  CHECK(same_shape(step, step));
+  CHECK_FALSE(
+      same_shape(step, T::cond(Pr::cmp(Rel::Eq, x, T::constant(1u)),
+                               T::bin(Arith::Add, x, T::constant(1u)),
+                               T::bin(Arith::Mul, x, T::constant(3u)))));
+  CHECK_NOTHROW(bind_check<unsigned>(step));
 }

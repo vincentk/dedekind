@@ -503,8 +503,8 @@ std::string show(const RTerm& t) {
       return nb::cast<std::string>(nb::repr(t.value.o));
     case RTerm::Kind::Bin:
       return "(" + show(*t.a) + " " + spelling(t.op) + " " + show(*t.b) + ")";
-    case RTerm::Kind::Ap:
-      return t.f->name() + "(" + show(*t.a) + ")";
+    case RTerm::Kind::Cond:
+      return "cond(" + show(*t.p) + ", " + show(*t.a) + ", " + show(*t.b) + ")";
   }
   return "?";
 }
@@ -596,6 +596,8 @@ struct RunsIter {
 struct AsConstant {
   PyConst operator()(std::uint64_t c) const { return PyConst{py_int(c)}; }
   PyConst operator()(const Fp& c) const { return PyConst{representative(c)}; }
+  PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
+  PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
 };
 
 /** @brief Equality of two predicates by their normal forms: equal forms cut
@@ -618,22 +620,20 @@ bool equal_by_normal_form(const RPred& a, const RPred& b) {
  *  canonical form of a set of the chain's fragment.  @tparam C the chain.
  *  @param rs the run list. */
 template <typename C, typename Runs>
-RPred run_predicate(
-    Runs rs) {  // by value: the lazy merge advances as it is read
-  using Lim = std::numeric_limits<C>;
+RPred run_predicate(Runs rs, C bottom,
+                    C top) {  // by value: the lazy merge advances as it is read
   const RTerm x = RTerm::proj(0);
   const auto k = [](C v) { return RTerm::constant(AsConstant{}(v)); };
-  RPred out = RPred::cmp(Rel::Lt, x, k(Lim::min()));  // Ø
+  RPred out = RPred::cmp(Rel::Lt, x, k(bottom));  // Ø
   bool first = true;
   for (const auto& r : rs) {
     const RPred run =
-        r.lo == r.hi ? RPred::cmp(Rel::Eq, x, k(r.lo))
-        : r.lo == Lim::min()
-            ? (r.hi == Lim::max() ? RPred::cmp(Rel::Ge, x, k(Lim::min()))
-                                  : RPred::cmp(Rel::Le, x, k(r.hi)))
-        : r.hi == Lim::max() ? RPred::cmp(Rel::Ge, x, k(r.lo))
-                             : RPred::conj(RPred::cmp(Rel::Ge, x, k(r.lo)),
-                                           RPred::cmp(Rel::Le, x, k(r.hi)));
+        r.lo == r.hi     ? RPred::cmp(Rel::Eq, x, k(r.lo))
+        : r.lo == bottom ? (r.hi == top ? RPred::cmp(Rel::Ge, x, k(bottom))
+                                        : RPred::cmp(Rel::Le, x, k(r.hi)))
+        : r.hi == top    ? RPred::cmp(Rel::Ge, x, k(r.lo))
+                         : RPred::conj(RPred::cmp(Rel::Ge, x, k(r.lo)),
+                                       RPred::cmp(Rel::Le, x, k(r.hi)));
     out = first ? run : RPred::disj(out, run);
     first = false;
   }
@@ -725,7 +725,9 @@ void bind_term_sets(nb::module_& m,
             U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
         if constexpr (IsTotallyOrdered<C>) {
           try {
-            return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)));
+            return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),
+                                          std::numeric_limits<C>::min(),
+                                          std::numeric_limits<C>::max());
           } catch (const dedekind::sets::not_admitted&) {
             // outside the chain's fragment: the atoms' polynomial forms
           }
@@ -1048,30 +1050,42 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
   using S = pst::Set<C, L>;
   using Ω = typename L::Ω;
   auto set = nb::class_<S>(m, cls, doc);
-  // χ_S as an arrow on the chain itself: an L-valued table reads as is; a
-  // decidable one through the dominance 𝔹 ↪ Ω (⊤ to ⊤, ⊥ to ⊥), so S(π) is a
-  // term on the chain, compared by the chain's order.
-  const auto chi = [](const S& s) {
-    return std::make_shared<dedekind::sets::OpaqueArrow<C>>(
-        "χ" + written_set<C, L>(s), [s](const C& x) -> C {
-          if constexpr (std::same_as<Ω, C>) {
-            return s(x);
-          } else {
-            return s(x) == L::True ? dedekind::sets::chain_top<C>()
-                                   : dedekind::sets::chain_bottom<C>();
-          }
-        });
-  };
+  // χ_S as a term of the grammar: a decidable table is its run predicate, an
+  // L-valued one McCarthy's conditional over its α-cuts.  Applied to a term,
+  // the variable is substituted, so S(t) stays in the grammar and the
+  // canonical readings see through it.
   set.def(
          "__call__",
-         [chi](const S& s, nb::handle x) -> nb::object {
-           if (is_term(x)) return nb::cast(RTerm::ap(chi(s), term_of(x)));
-           return nb::cast(s(from_py_as<C>(x)));
+         [](const S& s, nb::handle x) -> nb::object {
+           if (!is_term(x)) return nb::cast(s(from_py_as<C>(x)));
+           const C lo = dedekind::sets::chain_bottom<C>();
+           const C hi = dedekind::sets::chain_top<C>();
+           const RTerm t = term_of(x);
+           if constexpr (std::same_as<L, Boole>) {
+             return nb::cast(run_predicate<C>(dedekind::order::runs(s), lo, hi)
+                                 .subst(0, t));
+           } else {
+             const auto cut = [&](Ω level) {
+               return run_predicate<C>(
+                   dedekind::order::runs(pst::cut(s, level)), lo, hi);
+             };
+             const auto k = [](Ω v) {
+               return RTerm::constant(AsConstant{}(v));
+             };
+             return nb::cast(
+                 RTerm::cond(cut(L::True), k(L::True),
+                             RTerm::cond(cut(Ternary::Unknown),
+                                         k(Ternary::Unknown), k(L::False)))
+                     .subst(0, t));
+           }
          },
          nb::arg("x"),
-         "S(x): χ(x) at an element, in the set's species; S(t) at a term is "
-         "χ applied to t, a term on the chain: S(π) >= level is the α-cut, "
-         "S(π) == level the fibre.")
+         "S(x): χ(x) at an element, in the set's species.  S(t) at a term: χ "
+         "as "
+         "a term of the grammar with π replaced by t; a decidable set's run "
+         "predicate (so A(K3) | S(π) is S), an L-valued set's conditional over "
+         "its α-cuts, cond(χ ≥ ⊤, ⊤, cond(χ ≥ U, U, ⊥)), compared on the chain "
+         "(H(π) >= level the cut, H(π) == level the fibre).")
       .def(
           "__or__",
           [](const S&, const RTerm& t) -> S {
@@ -1606,6 +1620,14 @@ NB_MODULE(_pst, m) {
       "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
       "L-valued S is refused (see #980), quantify over its cut, "
       "A(chain) | (S(π) >= level).");
+  m.def(
+      "cond",
+      [](const RPred& p, nb::handle a, nb::handle b) {
+        return RTerm::cond(p, term_of(a), term_of(b));
+      },
+      nb::arg("pred"), nb::arg("a"), nb::arg("b"),
+      "cond(pred, a, b): McCarthy's conditional, a where pred holds, else b; "
+      "a term of the grammar.");
   m.attr("any") = m.attr("exists");
   m.attr("all") = m.attr("forall");
   m.def(

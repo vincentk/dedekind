@@ -106,22 +106,28 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertIs((A(K3) | (H(π) >= T)) == η(T), True)
         self.assertIs((A(K3) | (H(π) == U)) == η(U), True)
         self.assertEqual(repr(cut_U), "[U, ⊤]")
-        self.assertEqual(repr(H(π)), "χ{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤](π)")
+        self.assertIs((A(K3) | (H(π) == T)) == η(T), True)  # cond(χ ≥ ⊤, ⊤, …) == ⊤
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
+        # A decidable table's χ is its run predicate: S(π) is a predicate.
         S = A(K3) | (π > F)
-        self.assertIs((A(K3) | (S(π) == T)) == S, True)  # membership: χ = ⊤
-        self.assertIs((A(K3) | (S(π) == F)) == ~S, True)
-        self.assertEqual(repr(S(π)), "χ[U, ⊤](π)")
-        # A term is not a predicate, on any universe: compare it.
+        self.assertEqual(repr(S(π)), f"π >= {U!r}")
+        self.assertIs((A(K3) | S(π)) == S, True)  # membership
+        self.assertIs((A(K3) | ~S(π)) == ~S, True)
         top = A(B) | (π == True)  # noqa: E712
-        self.assertIs((A(B) | (top(π) == True)) == top, True)  # noqa: E712
-        for universe in (A(K3), A(K3, Kleene), A(B)):
+        self.assertIs((A(B) | top(π)) == top, True)
+        # An L-valued table's χ is a conditional over its cuts: H(π) is a term,
+        # and a term is not a predicate on any universe: compare it.
+        H = K3.identity
+        for universe, term in ((A(K3), H(π)), (A(K3, Kleene), H(π)), (A(B), π * 1)):
             with self.assertRaises(TypeError):
-                universe | K3.identity(π) if universe.carrier is K3 else universe | top(π)
+                universe | term
+        # A table's constants are the chain's: bound to another chain, refused.
         with self.assertRaises(TypeError):
-            A(B) | (S(π) == True)  # noqa: E712 (an arrow on K₃ is not one on 𝔹)
+            A(B) | S(π)
+        with self.assertRaises(TypeError):
+            A(B) | (H(π) == True)  # noqa: E712
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
 
