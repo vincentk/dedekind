@@ -1267,6 +1267,48 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
   return t;
 }
 
+/** @brief Whether the term built at run time mentions no slot but @c slot.
+ *  @param t the term.  @param slot the slot. */
+template <typename K>
+bool mentions_only(const Term<K>& t, unsigned slot);
+template <typename K>
+bool mentions_only(const Pred<K>& p, unsigned slot) {
+  if (p.kind == Pred<K>::Kind::Cmp)
+    return mentions_only(*p.a, slot) && mentions_only(*p.b, slot);
+  return mentions_only(*p.p, slot) && mentions_only(*p.q, slot);
+}
+template <typename K>
+bool mentions_only(const Term<K>& t, unsigned slot) {
+  switch (t.kind) {
+    case Term<K>::Kind::Proj:
+      return t.slot == slot;
+    case Term<K>::Kind::Const:
+      return true;
+    case Term<K>::Kind::Bin:
+      return mentions_only(*t.a, slot) && mentions_only(*t.b, slot);
+    case Term<K>::Kind::Cond:
+      return mentions_only(*t.p, slot) && mentions_only(*t.a, slot) &&
+             mentions_only(*t.b, slot);
+  }
+  return false;
+}
+/** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
+ *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
+ *  any other predicate.  The run-time twin of @c IsGraphAtom: such a relation
+ *  is functional by its shape, and entire once bound, since binding admits
+ *  every operator only where it is total on the carrier (or divides by a
+ *  nonzero constant).  @param p the predicate. */
+export template <typename K>
+const Term<K>* graph_term(const Pred<K>& p) {
+  if (p.kind != Pred<K>::Kind::Cmp || p.rel != Rel::Eq) return nullptr;
+  const auto is_y = [](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == 2;
+  };
+  if (is_y(*p.a) && mentions_only(*p.b, 1)) return p.b.get();
+  if (is_y(*p.b) && mentions_only(*p.a, 1)) return p.a.get();
+  return nullptr;
+}
+
 /** @brief The same tree: the same nodes, slots, operators and comparisons, and
  *  equal constants.  Syntactic, so sound for equality of what two normal forms
  *  denote and silent on two different trees.  @param x,y the terms. */

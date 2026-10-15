@@ -119,6 +119,77 @@ from ._pst import π
 from ._pst import π_1
 from ._pst import π_2
 
+
+class _Annotation:
+    """A type annotation applied: a check at construction, which returns the
+    value unchanged or raises TypeError, and an ``isinstance`` test.  The
+    verdicts are the library's (a carrier, a codomain, a function's
+    certificate); nothing is decided here."""
+
+    __slots__ = ("_name", "_holds")
+
+    def __init__(self, name, holds):
+        self._name, self._holds = name, holds
+
+    def __call__(self, x):
+        if not self._holds(x):
+            raise TypeError(f"{x!r} is not a {self._name}")
+        return x
+
+    def __instancecheck__(self, x):
+        return self._holds(x)
+
+    def __repr__(self):
+        return self._name
+
+
+def _named(c):
+    return getattr(c, "__name__", None) or repr(c)
+
+
+def _attr(x, name):
+    try:
+        return getattr(x, name)
+    except Exception:  # noqa: BLE001 (a value without the attribute is not one)
+        return None
+
+
+def _is_set_on(x, c):
+    return _attr(x, "factors") is None and _attr(x, "carrier") is not None and _attr(x, "carrier") == c
+
+
+class Set:
+    """``Set[C]``: a set whose carrier is ``C``."""
+
+    def __class_getitem__(cls, c):
+        return _Annotation(f"Set[{_named(c)}]", lambda x: _is_set_on(x, c))
+
+
+class Relation:
+    """``Relation[A, B]``: a relation on ``A × B``."""
+
+    def __class_getitem__(cls, ab):
+        a, b = ab
+        return _Annotation(f"Relation[{_named(a)}, {_named(b)}]",
+                           lambda x: _attr(x, "factors") == (a, b))
+
+
+class Function:
+    """``Function[A, B]``: a total, single-valued arrow from ``A`` to ``B``.
+    A set over ``A`` valued in ``B`` is one (its χ); so is a relation on
+    ``A × B`` certified the graph of a function, applied as ``R(x)``."""
+
+    def __class_getitem__(cls, ab):
+        a, b = ab
+
+        def holds(x):
+            if _is_set_on(x, a):
+                return _attr(x, "codomain") == b
+            return _attr(x, "factors") == (a, b) and _attr(x, "is_function") is True
+
+        return _Annotation(f"Function[{_named(a)}, {_named(b)}]", holds)
+
+
 # ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
 # digit is not, so the C++ spelling ℵ_0 is the Python one too.
 ℵ_0 = aleph0
@@ -130,6 +201,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "canonical", "cond",
+    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "canonical", "cond", "Set", "Relation", "Function",
     "lift", "image", "preimage",
 ]

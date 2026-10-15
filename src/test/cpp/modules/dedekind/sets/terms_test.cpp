@@ -79,3 +79,24 @@ TEST_CASE(
                                T::bin(Arith::Mul, x, T::constant(3u)))));
   CHECK_NOTHROW(bind_check<unsigned>(step));
 }
+
+TEST_CASE(
+    "sets:terms: a graph atom built at run time names its function's "
+    "term",
+    "[sets][terms][runtime]") {
+  using T = Term<unsigned>;
+  using Pr = Pred<unsigned>;
+  const T x = T::proj(1), y = T::proj(2);
+  const T t = T::bin(Arith::Add, T::bin(Arith::Mul, x, T::constant(3u)),
+                     T::constant(1u));
+  // π_2 == t(π_1), either way round: the term is t.
+  CHECK(graph_term(Pr::cmp(Rel::Eq, y, t)) != nullptr);
+  CHECK(graph_term(Pr::cmp(Rel::Eq, t, y)) != nullptr);
+  CHECK(term_value(graph_term(Pr::cmp(Rel::Eq, y, t))->subst(1, T::proj(0)),
+                   4u) == 13u);
+  // Not a graph: another comparison, a term mentioning π_2, a conjunction.
+  CHECK(graph_term(Pr::cmp(Rel::Lt, y, t)) == nullptr);
+  CHECK(graph_term(Pr::cmp(Rel::Eq, y, T::bin(Arith::Add, y, x))) == nullptr);
+  CHECK(graph_term(Pr::conj(Pr::cmp(Rel::Eq, y, t),
+                            Pr::cmp(Rel::Lt, x, T::constant(5u)))) == nullptr);
+}
