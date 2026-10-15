@@ -660,15 +660,6 @@ bool set_equal(const S& a, const S& b) {
   return equal_by_normal_form<C>(a.predicate, b.predicate);
 }
 
-/** @brief A value of the one sort @c C out of a term's value: itself, or the
- *  alternative of the sum.  @tparam C the sort. */
-template <typename C, typename V>
-C as_sort(const V& v) {
-  if constexpr (std::same_as<V, C>)
-    return v;
-  else
-    return std::get<C>(v);
-}
 /** @brief A point of the word out of a Python value. */
 std::uint64_t to_word(nb::handle h) { return word_of(h).v; }
 /** @brief A point of 𝔽ₚ out of a Python value: an element or its symmetric
@@ -754,8 +745,8 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
                   "R((x, y)) is χ");
             // t mentions only π_1: read it at a pair whose first coordinate
             // is x, in the second coordinate's sort, with no copy of the term.
-            return nb::cast(as_sort<C2>(
-                dedekind::sets::term_value(*t, Point{to1(h), C2{}})));
+            return nb::cast(
+                dedekind::sets::term_value_as<C2>(*t, Point{to1(h), C2{}}));
           },
           nb::arg("x"),
           "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "

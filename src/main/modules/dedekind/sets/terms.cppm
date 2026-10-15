@@ -738,6 +738,16 @@ export inline std::size_t join_sorts(std::size_t a, std::size_t b) {
  * f(type_identity<C>).
  *  @c s is a valid index (the caller joined the sorts).  @tparam P the point
  *  type.  @tparam I the first candidate. */
+/** @brief The sort of a tree of constants without a context: the point's one
+ *  sort where it has one.  @throws not_admitted on a point of two carriers,
+ *  where a constant alone names neither. */
+template <typename P>
+std::size_t default_sort(std::size_t s) {
+  if (s != no_sort) return s;
+  if constexpr (std::tuple_size_v<point_sorts_t<P>> == 1) return 0;
+  throw not_admitted(
+      "a term of constants alone names no carrier on a product of two");
+}
 export template <typename P, std::size_t I = 0, typename F>
 auto with_sort(std::size_t s, const F& f) {
   using Sorts = point_sorts_t<P>;
@@ -936,21 +946,17 @@ struct Value {
    */
   template <typename K>
   rt_value_t<P> steer(const Term<K>& t) const {
-    std::size_t s = sort_of<P>(t);
-    if (s == no_sort) s = 0;  // a tree of constants: the first sort
-    return with_sort<P>(s, EvalTerm<K>{*this, t});
+    return with_sort<P>(default_sort<P>(sort_of<P>(t)), EvalTerm<K>{*this, t});
   }
   /** @brief A predicate built at run time: a comparison in its operands'
    *  common sort, the connectives in 𝔹. */
   template <typename K>
   bool steer(const Pred<K>& t) const {
     switch (t.kind) {
-      case Pred<K>::Kind::Cmp: {
-        const std::size_t s = join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
-        if (s == no_sort)
-          throw not_admitted("a comparison of two constants names no carrier");
-        return with_sort<P>(s, Compare<K>{*this, t});
-      }
+      case Pred<K>::Kind::Cmp:
+        return with_sort<P>(
+            default_sort<P>(join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b))),
+            Compare<K>{*this, t});
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
       case Pred<K>::Kind::Or:
@@ -1011,6 +1017,13 @@ struct Value {
 export template <typename T, typename P>
 constexpr auto term_value(const T& t, const P& p) {
   return cata(Value<P>{p}, t);
+}
+/** @brief A term built at run time read in the sort @c C its context names
+ *  (the other side of a graph atom, say), at the point @c p.  @tparam C the
+ *  sort.  @param t the term.  @param p the point. */
+export template <typename C, typename K, typename P>
+C term_value_as(const Term<K>& t, const P& p) {
+  return Value<P>{p}.template eval_as<C>(t);
 }
 
 // ── Atoms ───────────────────────────────────────────────────────────────────
@@ -1143,19 +1156,15 @@ struct Bind {
    *  in it, and no two carriers in one term. */
   template <typename K>
   Bound steer(const Term<K>& t) const {
-    std::size_t s = sort_of<X>(t);
-    if (s == no_sort) s = 0;
-    return with_sort<X>(s, BindTerm<K>{*this, t});
+    return with_sort<X>(default_sort<X>(sort_of<X>(t)), BindTerm<K>{*this, t});
   }
   template <typename K>
   Bound steer(const Pred<K>& t) const {
     switch (t.kind) {
-      case Pred<K>::Kind::Cmp: {
-        const std::size_t s = join_sorts(sort_of<X>(*t.a), sort_of<X>(*t.b));
-        if (s == no_sort)
-          throw not_admitted("a comparison of two constants names no carrier");
-        return with_sort<X>(s, BindCmp<K>{*this, t});
-      }
+      case Pred<K>::Kind::Cmp:
+        return with_sort<X>(
+            default_sort<X>(join_sorts(sort_of<X>(*t.a), sort_of<X>(*t.b))),
+            BindCmp<K>{*this, t});
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
         steer(*t.p);
