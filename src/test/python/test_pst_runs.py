@@ -60,6 +60,13 @@ class OneSetOneNormalForm(unittest.TestCase):
         S = (above(3) & below(9)) | point(12)
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))  # idempotent
 
+    def test_a_set_applied_to_a_term_substitutes(self) -> None:
+        S = above(5)
+        self.assertEqual(U | S(π + 1), preimage(succ(int), S))  # {x | x + 1 ∈ S}
+        self.assertEqual(repr(S(π + 1)), "(π + 1) > 5")
+        with self.assertRaises(TypeError):
+            U | (π + 1)  # a term valued in u64 is not a predicate
+
     def test_an_atom_normalised_into_the_fragment_reads_as_runs(self) -> None:
         # π * 1 < 5 is no atom of the chain fragment; its polynomial form π < 5
         # is, and canonical reads it as runs in the same pass: a fixpoint.

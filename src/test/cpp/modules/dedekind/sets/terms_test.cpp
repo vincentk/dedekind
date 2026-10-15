@@ -55,3 +55,27 @@ TEST_CASE("sets:terms: without a module's rule its operators are not admitted",
                       Rel::Lt, Term<int>::proj(0), Term<int>::constant(1))),
                   not_admitted);
 }
+
+TEST_CASE(
+    "sets:terms: McCarthy's conditional built at run time chooses a branch "
+    "by a predicate",
+    "[sets][terms][runtime]") {
+  using T = Term<unsigned>;
+  using Pr = Pred<unsigned>;
+  // cond(π == 0, π + 1, π * 3): the typed grammar's cond, with its shape a
+  // value; the operators are the ones this module admits.
+  const T x = T::proj(0);
+  const T step = T::cond(Pr::cmp(Rel::Eq, x, T::constant(0u)),
+                         T::bin(Arith::Add, x, T::constant(1u)),
+                         T::bin(Arith::Mul, x, T::constant(3u)));
+  CHECK(term_value(step, 0u) == 1u);
+  CHECK(term_value(step, 2u) == 6u);
+  // Substitution reaches the predicate and both branches.
+  CHECK(term_value(step.subst(0, T::constant(2u)), 0u) == 6u);
+  CHECK(same_shape(step, step));
+  CHECK_FALSE(
+      same_shape(step, T::cond(Pr::cmp(Rel::Eq, x, T::constant(1u)),
+                               T::bin(Arith::Add, x, T::constant(1u)),
+                               T::bin(Arith::Mul, x, T::constant(3u)))));
+  CHECK_NOTHROW(bind_check<unsigned>(step));
+}

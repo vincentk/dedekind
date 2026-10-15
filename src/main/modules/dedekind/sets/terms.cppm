@@ -884,6 +884,8 @@ struct Value {
           throw not_admitted(std::string("the operator ") + spelling(t.op) +
                              " is not in the carrier's signature");
         return apply_op<C>(t.op, steer(*t.a), steer(*t.b));
+      case Term<K>::Kind::Cond:
+        return steer(*t.p) ? steer(*t.a) : steer(*t.b);
     }
     throw not_admitted("an unknown term");
   }
@@ -1070,6 +1072,11 @@ struct Bind {
               "carrier");
         break;
       }
+      case Term<K>::Kind::Cond:
+        steer(*t.p);
+        steer(*t.a);
+        steer(*t.b);
+        break;
     }
     return {};
   }
@@ -1109,18 +1116,20 @@ constexpr void bind_check(const T& t) {
 
 /** @brief A term built at run time: the grammar of @c IsTerm with its shape a
  *  value and its constants of type @c K, which meets the carrier through
- *  @c carrier_cast when the term is bound.  Its legs are shared, so a term is
- *  cheap to copy and to combine.  A division by the constant 0 is refused
- *  when the term is built, as for the typed grammar.  @tparam K the constants'
- *  type. */
+ *  @c carrier_cast when the term is bound; McCarthy's conditional
+ *  @c cond(p, a, b) chooses a branch by a predicate.  Its legs are shared,
+ *  so a term is cheap to copy and to combine.  A division by the
+ * constant 0 is refused when the term is built, as for the typed grammar.
+ * @tparam K the constants' type. */
 export template <typename K>
 struct Term {
-  enum class Kind { Proj, Const, Bin };
+  enum class Kind { Proj, Const, Bin, Cond };
   Kind kind{Kind::Const};
   unsigned slot{};
   K value{};
   Arith op{};
   std::shared_ptr<const Term> a, b;
+  std::shared_ptr<const Pred<K>> p;  // the conditional's predicate
 
   /** @brief @c π (slot 0), @c π_1, @c π_2. */
   static Term proj(unsigned slot) {
@@ -1151,9 +1160,19 @@ struct Term {
         t.b = std::make_shared<const Term>(b->subst(variable, with));
         return t;
       }
+      case Kind::Cond: {
+        Term t = *this;
+        t.p = std::make_shared<const Pred<K>>(p->subst(variable, with));
+        t.a = std::make_shared<const Term>(a->subst(variable, with));
+        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        return t;
+      }
     }
     return *this;
   }
+  /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; defined
+   *  after @c Pred.  @param q the predicate.  @param a,b the branches. */
+  static Term cond(Pred<K> q, Term a, Term b);
   /** @brief @c x @c op @c y.  @throws std::domain_error on a division by the
    *  constant 0. */
   static Term bin(Arith op, Term x, Term y) {
@@ -1242,6 +1261,16 @@ struct Pred {
   }
 };
 
+template <typename K>
+Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
+  Term t;
+  t.kind = Kind::Cond;
+  t.p = std::make_shared<const Pred<K>>(std::move(q));
+  t.a = std::make_shared<const Term>(std::move(a));
+  t.b = std::make_shared<const Term>(std::move(b));
+  return t;
+}
+
 /** @brief The same tree: the same nodes, slots, operators and comparisons, and
  *  equal constants.  Syntactic, so sound for equality of what two normal forms
  *  denote and silent on two different trees.  @param x,y the terms. */
@@ -1255,6 +1284,9 @@ bool same_shape(const Term<K>& x, const Term<K>& y) {
       return x.value == y.value;
     case Term<K>::Kind::Bin:
       return x.op == y.op && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+    case Term<K>::Kind::Cond:
+      return same_shape(*x.p, *y.p) && same_shape(*x.a, *y.a) &&
+             same_shape(*x.b, *y.b);
   }
   return false;
 }

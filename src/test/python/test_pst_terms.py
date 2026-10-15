@@ -10,7 +10,7 @@ constant; order comparisons on an ordered carrier.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Ternary, u64, π, π_1, π_2, 𝔽ₚ
+from dedekind.pst import A, B, K3, Ternary, cond, u64, π, π_1, π_2, 𝔽ₚ
 
 P = 2**64 - 59
 
@@ -33,6 +33,14 @@ class TermsAreCheckedWhenBuilt(unittest.TestCase):
         self.assertEqual(repr(π[0]), "π")
         with self.assertRaises(TypeError):
             π_1[2]  # the family is indexed from π
+
+    def test_mccarthys_conditional(self) -> None:
+        U = A(u64)
+        step = U * U | (cond(π_1 % 2 == 0, π_1 // 2, π_1 * 3 + 1) == π_2)  # Collatz
+        self.assertIn((6, 3), step)
+        self.assertIn((7, 22), step)
+        self.assertNotIn((7, 3), step)
+        self.assertEqual(repr(cond(π == 0, 1, 2)), "cond(π == 0, 1, 2)")
 
     def test_the_spelling(self) -> None:
         self.assertEqual(repr(π_1 * 3 + 1 == π_2), "((π_1 * 3) + 1) == π_2")
