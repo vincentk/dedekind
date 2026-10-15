@@ -111,9 +111,17 @@ class KleeneValuedTest(unittest.TestCase):
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
         S = A(K3) | (π > F)
-        self.assertIs((A(K3) | S(π)) == S, True)  # membership: S(π) == ⊤
+        self.assertIs((A(K3) | (S(π) == T)) == S, True)  # membership: χ = ⊤
         self.assertIs((A(K3) | (S(π) == F)) == ~S, True)
         self.assertEqual(repr(S(π)), "χ[U, ⊤](π)")
+        # A term is χ exactly where its sort is the universe's species.
+        H = K3.identity
+        self.assertEqual(repr(A(K3, Kleene) | H(π)), repr(H))
+        self.assertEqual((A(K3, Kleene) | H(π))(U), U)
+        top = A(B) | (π == True)  # noqa: E712
+        self.assertIs((A(B) | top(π)) == top, True)
+        with self.assertRaises(TypeError):
+            A(K3) | S(π)  # a term on K₃ is not 𝔹-valued: compare it
         with self.assertRaises(TypeError):
             A(B) | S(π)  # an arrow on K₃ is not an arrow on 𝔹
         with self.assertRaises(TypeError):

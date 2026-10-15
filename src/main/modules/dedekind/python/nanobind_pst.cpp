@@ -582,6 +582,27 @@ auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
                      dedekind::sets::chain_top<C>()}));
 }
 
+/** @brief A term on the chain as a characteristic map valued in the chain:
+ *  the set @c 𝔸(C, L) @c | @c t where @c t's sort is the universe's own species
+ *  (@c L::Ω @c = @c C), so @c t @b is χ.  Named, not a lambda, so the set
+ *  carries its term.  @tparam C the chain. */
+template <typename C>
+struct TermChi {
+  RTerm t;
+  C operator()(const C& x) const { return dedekind::sets::term_value(t, x); }
+};
+/** @brief The former over an L-valued universe with a term of sort @c L as χ:
+ *  @c s @c ∧ @c χ_t, the term read along the chain in @c L.  @tparam C the
+ *  chain.  @tparam L its species, with @c L::Ω @c = @c C. */
+template <typename C, typename L>
+auto former_chi(const pst::Set<C, L>& s, const RTerm& t) {
+  const auto c = Comprehension<𝔸<C, L>, TermChi<C>>{𝔸<C, L>{}, TermChi<C>{t}};
+  dedekind::sets::bind_check<C>(t);  // every slot, constant and arrow checked
+  return ext(s & Runs<C, L>(dedekind::sequences::ScanSteps<decltype(c), L>{
+                     c, dedekind::sets::chain_bottom<C>(),
+                     dedekind::sets::chain_top<C>()}));
+}
+
 /** @brief The elements of a set of a chain, run by run, from its least. */
 template <typename C>
 struct RunsIter {
@@ -1073,16 +1094,24 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
          nb::arg("x"),
          "S(x): χ(x) at an element, in the set's species; S(t) at a term is "
          "χ applied to t, a term on the chain: S(π) >= level is the α-cut, "
-         "S(π) == level the fibre, S(π) alone membership.")
+         "S(π) == level the fibre.")
       .def(
           "__or__",
-          [](const S& s, const RTerm& t) {
-            return former_runtime(
-                s, RPred::cmp(Rel::Eq, t,
-                              RTerm::constant(PyConst{
-                                  to_py<C>(dedekind::sets::chain_top<C>())})));
+          [](const S& s, const RTerm& t) -> S {
+            // The term's sort must be the universe's codomain: then it is χ.
+            if constexpr (std::same_as<Ω, C>) {
+              return former_chi(s, t);
+            } else {
+              throw nb::type_error(
+                  ("S | " + show(t) +
+                   ": a term valued in the chain is not valued in the set's "
+                   "species 𝔹; compare it (t == top, t >= level)")
+                      .c_str());
+            }
           },
-          "S | t: a term valued in the chain read as a predicate, t == ⊤.")
+          "S | t: a term whose sort is the set's own species is its χ "
+          "(𝔸(K3, Kleene) | H(π) is H); on a decidable universe a term on the "
+          "chain is not a predicate: compare it.")
       .def(
           "__contains__",
           [](const S& s, nb::handle x) {

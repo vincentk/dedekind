@@ -75,18 +75,32 @@ concept IsPstSet =
     IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
     HasNNOStep<typename std::remove_cvref_t<S>::Domain>;
 
+/** @brief A set object over a finite chain with the covering step whose χ
+ *  answers in the species @c L: what a scan along the chain can read.
+ *  @c IsPstSet is the decidable case, @c L @c = @c Boole.  @tparam S the set.
+ *  @tparam L the species. */
+export template <typename S, typename L>
+concept IsScannableIn =
+    dedekind::sets::IsSetObject<S> &&
+    IsFiniteChain<typename std::remove_cvref_t<S>::Domain> &&
+    HasNNOStep<typename std::remove_cvref_t<S>::Domain> &&
+    requires(const S& s, const typename std::remove_cvref_t<S>::Domain& x) {
+      { s(x) } -> std::convertible_to<typename L::Ω>;
+    };
+
 namespace detail_pst {
 /** @brief An element of the walk as the step to its membership, ⊥ past the
- *  window's top.  @tparam S the set. */
-template <typename S>
+ *  window's top.  @tparam S the set.  @tparam L the species. */
+template <typename S, typename L>
 struct ToMembership {
   S s;
   typename S::Domain hi;
   constexpr auto operator()(const typename S::Domain& x) const {
     using C = typename S::Domain;
-    return dedekind::order::Step<C, Boole>{
+    using Ω = typename L::Ω;
+    return dedekind::order::Step<C, L>{
         dedekind::order::Position<C>{x, dedekind::order::Side::Below},
-        !(hi < x) && static_cast<bool>(s(x))};
+        hi < x ? Ω{L::False} : static_cast<Ω>(s(x))};
   }
 };
 }  // namespace detail_pst
@@ -94,19 +108,21 @@ struct ToMembership {
  *  step source that walks the window (and the element after it) along
  *  @c chain_view and steps where χ changes, ⊥ outside the window.  Lazy: one
  *  walk per traversal, nothing stored.  @tparam S the set. */
-export template <IsPstSet S>
+export template <typename S, typename L = Boole>
+  requires IsScannableIn<S, L>
 struct ScanSteps {
   using Domain = typename S::Domain;
-  using logic_species = Boole;
+  using logic_species = L;
+  using Ω = typename L::Ω;
   S s;
   Domain lo, hi;
-  constexpr bool first() const { return false; }
+  constexpr Ω first() const { return Ω{L::False}; }
   constexpr auto steps() const {
     const Domain past = cover(hi).value_or(hi);
     return dedekind::order::distinct_steps(
         std::views::transform(chain_view{lo, past},
-                              detail_pst::ToMembership<S>{s, hi}),
-        false);
+                              detail_pst::ToMembership<S, L>{s, hi}),
+        Ω{L::False});
   }
 };
 /** @brief The runs of @c s on the window, read off its normal form. */
