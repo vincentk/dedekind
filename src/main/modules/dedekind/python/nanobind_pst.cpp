@@ -495,6 +495,7 @@ const char* spelling(Rel r) {
   }
   return "?";
 }
+std::string show(const RPred& p);  // mutual: a conditional's predicate
 std::string show(const RTerm& t) {
   switch (t.kind) {
     case RTerm::Kind::Proj:
