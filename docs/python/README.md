@@ -20,7 +20,8 @@ The laws decide the syntax: a term may use the operators the carrier's
 certified algebras have, and anything else is refused when the set is built.
 Equality of sets is equality in the free algebra the term lives in, where that
 has a normal form: a chain's run lists, and a ring's or field's polynomials
-(`canonical(S)`: the same set, its equations `p == 0` with `p` a polynomial).
+(`canonical(S)`: the same set, a chain fragment as its run list written back,
+a ring's equations as `p == 0` with `p` a polynomial).
 Equal normal forms cut out equal sets, so `==` answers `True` when they agree
 and raises `TypeError` when they differ, which decides nothing.
 A term outside that catalogue (a remainder, a division by a term) evaluates but
@@ -60,12 +61,12 @@ python -m pip install --no-build-isolation -e .
 
 ```python
 from dedekind.jlt import succ
-from dedekind.pst import A, image, u64, 𝔽ₚ, π, π_1, π_2
+from dedekind.pst import A, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = A(u64)
 region = (U | (π > 3)) & (U | (π < 5))
 print(region == U | (π == 4))           # True: one normal form, the run list
-print(region.runs(), list(region))      # [(4, 4)] [4]
+print(canonical(region), list(region))  # 𝔸(u64) | π == 4  [4]
 
 third = A(𝔽ₚ) * A(𝔽ₚ) | (π_2 == π_1 / 3)  # a field's division by a constant
 print((3, 1) in third)                  # True

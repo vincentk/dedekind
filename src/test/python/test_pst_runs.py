@@ -2,7 +2,7 @@
 
 The former binds the term, and the order fragment (comparisons of π with a
 constant under & and |) is read as the set's run list, so every spelling of one
-set reaches the same normal form and equality, ``runs()``, ``len``, iteration
+set reaches the same canonical form and equality, ``canonical``, ``len``, iteration
 and slicing by value are the library's.  ``image`` / ``preimage`` under the
 structural arrows substitute the variable; on the word the run list translates
 and wraps at the end.  Nothing is decided in Python.
@@ -11,7 +11,7 @@ and wraps at the end.  Nothing is decided in Python.
 import unittest
 
 from dedekind.jlt import id, pred, refl, succ
-from dedekind.pst import A, image, preimage, u64, π
+from dedekind.pst import A, canonical, image, preimage, u64, π
 
 U = A(u64)
 MAX = 2**64 - 1
@@ -46,17 +46,25 @@ class OneSetOneNormalForm(unittest.TestCase):
         # {x > 3} ∩ {x < 5} = {4}: the crossing law, on runtime pivots.
         region = above(3) & below(5)
         self.assertEqual(region, point(4))
-        self.assertEqual(region.runs(), [(4, 4)])
+        self.assertEqual(repr(canonical(region)), "𝔸(u64) | π == 4")
         self.assertEqual(region.cardinality, 1)
         self.assertEqual(len(region), 1)
         self.assertTrue(region(4))
         self.assertFalse(region(5))
 
+    def test_the_canonical_form_is_the_run_list_written_back(self) -> None:
+        self.assertEqual(repr(canonical(U | (π < 0))), "𝔸(u64) | π < 0")  # Ø
+        self.assertEqual(repr(canonical(~(U | (π < 0)))), "𝔸(u64) | π >= 0")  # all
+        self.assertEqual(repr(canonical(above(3) & below(9))), "𝔸(u64) | (π >= 4) & (π <= 8)")
+        self.assertEqual(repr(canonical(above(MAX - 1))), f"𝔸(u64) | π == {MAX}")
+        S = (above(3) & below(9)) | point(12)
+        self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))  # idempotent
+
     def test_the_complement_is_a_run_list(self) -> None:
         u = ~point(5)
-        self.assertEqual(u.runs(), [(0, 4), (6, MAX)])
+        self.assertEqual(repr(canonical(u)), "𝔸(u64) | (π <= 4) | (π >= 6)")
         self.assertEqual(~above(3), at_most(3))
-        self.assertEqual((at_least(0) & ~point(5)).runs(), [(0, 4), (6, MAX)])
+        self.assertEqual(repr(canonical(at_least(0) & ~point(5))), repr(canonical(u)))
 
     def test_every_spelling_reaches_the_same_run_list(self) -> None:
         u = at_least(0) & ~point(5)
@@ -85,7 +93,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         with self.assertRaises(TypeError):
             evens == everything  # noqa: B015 (the refusal is the point)
         with self.assertRaises(TypeError):
-            evens.runs()
+            canonical(evens)  # % has no canonical form
 
 
 class TheElementsAreReadOffTheRuns(unittest.TestCase):

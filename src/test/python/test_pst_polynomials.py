@@ -37,8 +37,12 @@ class ASetInTheSameSetOut(unittest.TestCase):
         S = FF | (π_1 * 2 == π_2 / 3)
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))
 
-    def test_an_order_atom_keeps_its_comparison(self) -> None:
-        self.assertEqual(repr(canonical(U | (π + 0 < 5))), "𝔸(u64) | π < 5")
+    def test_the_chain_fragment_is_its_run_list(self) -> None:
+        self.assertEqual(repr(canonical(U | (π + 0 < 5))), "𝔸(u64) | π <= 4")
+
+    def test_beside_an_equation_an_order_atom_keeps_its_comparison(self) -> None:
+        self.assertEqual(repr(canonical(U | ((π * π == 4) & (π + 0 < 5)))),
+                         "𝔸(u64) | (((π * π) + 18446744073709551612) == 0) & (π < 5)")
 
 
 class EqualityByNormalForm(unittest.TestCase):
