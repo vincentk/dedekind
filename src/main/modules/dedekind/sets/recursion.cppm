@@ -68,14 +68,17 @@ namespace dedekind::sets {
 export template <typename T>
 concept WellFounded = std::unsigned_integral<T>;
 
-/** @brief A descent: @f$\pi_i - c@f$, a slot stepped down by a constant.  It
- *  descends on @c X when that slot's carrier is well-founded; @c c > 0 is
- *  checked when the @c χ node is built.  @tparam T the term. */
+/** @brief A descent: @f$\pi_i - c@f$, a slot stepped down by a constant, and
+ *  the slot it steps on.  @c c @c > @c 0 is checked when the @c χ node is
+ *  built.  @tparam T the term. */
 template <typename T>
-inline constexpr bool is_descent_v = false;
+struct descent : std::false_type {};
 template <IsRingIntegral auto I, typename K>
-inline constexpr bool
-    is_descent_v<BinOp<std::minus<>, Projection<I>, Const<K>>> = true;
+struct descent<BinOp<std::minus<>, Projection<I>, Const<K>>> : std::true_type {
+  static constexpr std::size_t slot = static_cast<std::size_t>(I);
+};
+template <typename T>
+inline constexpr bool is_descent_v = descent<T>::value;
 
 /** @brief A @c χ argument's value at a point: the term's value, or @c nullopt
  *  for a descent below the carrier's bottom (no point of the universe, so the
@@ -170,30 +173,23 @@ inline constexpr bool is_self_v<Self<Ts...>> = true;
 template <typename X, std::size_t J>
 inline constexpr std::size_t slot_at =
     requires { typename X::first_type; } ? J + 1 : 0;
-/** @brief The carrier of position @c J at points of @c X. */
-template <typename X, std::size_t J>
-struct coordinate_at {
-  using type = X;
-};
-template <typename A, typename B, std::size_t J>
-struct coordinate_at<std::pair<A, B>, J> {
-  using type = std::tuple_element_t<J, std::pair<A, B>>;
-};
 /** @brief The number of coordinates of a point of @c X. */
 template <typename X>
 inline constexpr std::size_t arity_v =
     requires { typename X::first_type; } ? 2 : 1;
 
-/** @brief Whether @c Term is a descent on slot @c S at points of @c X:
- *  @f$\pi_S - c@f$ with that slot's carrier well-founded.  @c c @c > @c 0 is
- *  checked when the @c χ node is built. */
+/** @brief Whether @c Term is a descent on slot @c S at points of @c X: the
+ *  shape @c descent names, on that slot, whose carrier is well-founded. */
 template <typename Term, typename X, std::size_t S>
-inline constexpr bool descends_on_v = false;
-template <IsRingIntegral auto I, typename K, typename X, std::size_t S>
-  requires(static_cast<std::size_t>(I) == S) &&
-              WellFounded<value_at_t<X, Projection<I>>>
-inline constexpr bool
-    descends_on_v<BinOp<std::minus<>, Projection<I>, Const<K>>, X, S> = true;
+consteval bool descends_on() {
+  if constexpr (descent<Term>::value)
+    return descent<Term>::slot == S &&
+           WellFounded<value_at_t<X, Projection<S>>>;
+  else
+    return false;
+}
+template <typename Term, typename X, std::size_t S>
+inline constexpr bool descends_on_v = descends_on<Term, X, S>();
 
 /** @brief The measure algebra at the points @c X for position @c J: a @c χ
  *  node passes when its argument in position @c J descends on the coordinate
@@ -260,7 +256,7 @@ struct BindArgs {
   template <std::size_t J, typename T>
   static constexpr void bind_one(const T& t) {
     if constexpr (is_const_v<T>)
-      (void)carrier_cast<typename coordinate_at<X, J>::type>(t.value);
+      (void)carrier_cast<value_at_t<X, Projection<slot_at<X, J>>>>(t.value);
     else
       bind_check<X>(t);
   }

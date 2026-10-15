@@ -1267,30 +1267,28 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
   return t;
 }
 
-/** @brief Whether the term built at run time mentions no slot but @c slot.
- *  @param t the term.  @param slot the slot. */
+/** @brief The slots a term built at run time mentions, as a mask: the run-time
+ *  twin of @c slots_v, read with the same @c only_slot.  @param t the term. */
 template <typename K>
-bool mentions_only(const Term<K>& t, unsigned slot);
+unsigned slots(const Term<K>& t);
 template <typename K>
-bool mentions_only(const Pred<K>& p, unsigned slot) {
-  if (p.kind == Pred<K>::Kind::Cmp)
-    return mentions_only(*p.a, slot) && mentions_only(*p.b, slot);
-  return mentions_only(*p.p, slot) && mentions_only(*p.q, slot);
+unsigned slots(const Pred<K>& p) {
+  return p.kind == Pred<K>::Kind::Cmp ? slots(*p.a) | slots(*p.b)
+                                      : slots(*p.p) | slots(*p.q);
 }
 template <typename K>
-bool mentions_only(const Term<K>& t, unsigned slot) {
+unsigned slots(const Term<K>& t) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
-      return t.slot == slot;
+      return 1u << t.slot;
     case Term<K>::Kind::Const:
-      return true;
+      return 0u;
     case Term<K>::Kind::Bin:
-      return mentions_only(*t.a, slot) && mentions_only(*t.b, slot);
+      return slots(*t.a) | slots(*t.b);
     case Term<K>::Kind::Cond:
-      return mentions_only(*t.p, slot) && mentions_only(*t.a, slot) &&
-             mentions_only(*t.b, slot);
+      return slots(*t.p) | slots(*t.a) | slots(*t.b);
   }
-  return false;
+  return ~0u;
 }
 /** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
  *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
@@ -1304,8 +1302,8 @@ const Term<K>* graph_term(const Pred<K>& p) {
   const auto is_y = [](const Term<K>& t) {
     return t.kind == Term<K>::Kind::Proj && t.slot == 2;
   };
-  if (is_y(*p.a) && mentions_only(*p.b, 1)) return p.b.get();
-  if (is_y(*p.b) && mentions_only(*p.a, 1)) return p.a.get();
+  if (is_y(*p.a) && only_slot(slots(*p.b), 1)) return p.b.get();
+  if (is_y(*p.b) && only_slot(slots(*p.a), 1)) return p.a.get();
   return nullptr;
 }
 
