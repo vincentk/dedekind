@@ -1300,8 +1300,13 @@ static_assert(
 // no order type, so argument-dependent lookup searches only those namespaces.
 // The run-list equalities are named in dedekind::sets as well: the same
 // functions, visible wherever order is imported.
+// The relation former on a product universe and the equality of sets are
+// declared into the sets' own namespace too, so argument-dependent lookup on
+// a sets type (𝔸<pair<A, B>>, a comprehension) finds them wherever this module
+// is imported: order's rules, reachable from the type they are about.
 export namespace dedekind::sets {
 using dedekind::order::operator==;
+using dedekind::order::operator|;
 }  // namespace dedekind::sets
 
 // ── Structural inference of the relation properties (Table 3) ───────────────

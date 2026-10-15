@@ -211,7 +211,7 @@ TEST_CASE("order:terms: a term built at run time is checked when bound",
 // carriers applied to a term, the graph of a function word → K₃.
 namespace {
 inline constexpr auto 𝕎 = 𝔸<unsigned>{};
-inline constexpr auto 𝕂₃ = 𝔸<dedekind::category::Ternary>{};
+inline constexpr auto 𝕂3 = 𝔸<dedekind::category::Ternary>{};
 /** The verdict "above five", read in K₃: ⊤ past 5, U at or below. */
 struct AboveFive {
   using Domain = unsigned;
@@ -227,13 +227,13 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   using dedekind::category::Ternary;
   using NK = std::pair<unsigned, Ternary>;
   // Each slot compared in its own order: the word's, and K₃'s.
-  constexpr auto both = 𝕎 * 𝕂₃ | ((π_1 < 5u) && (π_2 >= Ternary::Unknown));
+  constexpr auto both = 𝕎 * 𝕂3 | ((π_1 < 5u) && (π_2 >= Ternary::Unknown));
   STATIC_CHECK(both(NK{3u, Ternary::True}));
   STATIC_CHECK(both(NK{3u, Ternary::Unknown}));
   STATIC_CHECK(!both(NK{3u, Ternary::False}));
   STATIC_CHECK(!both(NK{7u, Ternary::True}));
   // An arrow between the carriers, applied: the graph of a function 𝕎 → K₃.
-  constexpr auto graph = 𝕎 * 𝕂₃ | (π_2 == ap(AboveFive{}, π_1));
+  constexpr auto graph = 𝕎 * 𝕂3 | (π_2 == ap(AboveFive{}, π_1));
   STATIC_CHECK(graph(NK{7u, Ternary::True}));
   STATIC_CHECK(graph(NK{2u, Ternary::Unknown}));
   STATIC_CHECK(!graph(NK{7u, Ternary::Unknown}));
