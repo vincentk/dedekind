@@ -9,7 +9,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
 #include <stdexcept>
+#include <string>
+#include <type_traits>
 #include <utility>
+#include <variant>
 
 import dedekind.sets;
 
@@ -99,4 +102,65 @@ TEST_CASE(
   CHECK(graph_term(Pr::cmp(Rel::Eq, y, T::bin(Arith::Add, y, x))) == nullptr);
   CHECK(graph_term(Pr::conj(Pr::cmp(Rel::Eq, y, t),
                             Pr::cmp(Rel::Lt, x, T::constant(5u)))) == nullptr);
+}
+
+TEST_CASE(
+    "sets:terms: a term built at run time over two carriers has a sort "
+    "per slot",
+    "[sets][terms][runtime][sorts]") {
+  using T = Term<unsigned>;
+  using Pr = Pred<unsigned>;
+  using NM = std::pair<unsigned, unsigned long long>;
+  const T x = T::proj(1), y = T::proj(2);
+  // Each slot compared in its own sort; a constant takes its sibling's.
+  const Pr p = Pr::conj(
+      Pr::cmp(Rel::Eq, T::bin(Arith::Add, x, T::constant(1u)), T::constant(4u)),
+      Pr::cmp(Rel::Eq, y, T::constant(7u)));
+  CHECK(p(NM{3u, 7ull}));
+  CHECK_FALSE(p(NM{3u, 8ull}));
+  CHECK_FALSE(p(NM{4u, 7ull}));
+  CHECK_NOTHROW(bind_check<NM>(p));
+  // Two carriers in one operator or comparison: refused when bound, and when
+  // read; an arrow between them is applied, not implied.
+  CHECK_THROWS_AS(bind_check<NM>(Pr::cmp(Rel::Eq, T::bin(Arith::Add, x, y),
+                                         T::constant(0u))),
+                  not_admitted);
+  CHECK_THROWS_AS(bind_check<NM>(Pr::cmp(Rel::Eq, x, y)), not_admitted);
+  CHECK_THROWS_AS(Pr::cmp(Rel::Eq, x, y)(NM{1u, 1ull}), not_admitted);
+  // A comparison of two constants names no carrier.
+  CHECK_THROWS_AS(
+      bind_check<NM>(Pr::cmp(Rel::Eq, T::constant(1u), T::constant(1u))),
+      not_admitted);
+  // The value of a term over two carriers is the sum of their sorts.
+  const auto v =
+      term_value(T::bin(Arith::Add, y, T::constant(1u)), NM{3u, 7ull});
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(v)>,
+                            std::variant<unsigned, unsigned long long>>);
+  CHECK(std::get<unsigned long long>(v) == 8ull);
+}
+
+TEST_CASE(
+    "sets:terms: ⊤ and ⊥ are predicates, and a constant converts only "
+    "into the sort that reads it",
+    "[sets][terms][runtime][sorts]") {
+  using T = Term<unsigned>;
+  using Pr = Pred<unsigned>;
+  CHECK(Pr::top()(0u));
+  CHECK_FALSE(Pr::bottom()(0u));
+  CHECK(same_shape(Pr::top().negated(), Pr::bottom()));
+  CHECK(Pr::conj(Pr::top(), Pr::cmp(Rel::Eq, T::proj(0), T::constant(3u)))(3u));
+  CHECK_NOTHROW(bind_check<unsigned>(Pr::disj(Pr::bottom(), Pr::top())));
+  // Constants that are strings, on a product of the word and strings: the
+  // atom on the string slot binds and reads, although the word slot's reading
+  // is instantiated as well; a string on the word slot is refused where read.
+  using S = Term<std::string>;
+  using SP = Pred<std::string>;
+  using NS = std::pair<unsigned, std::string>;
+  const SP ok = SP::cmp(Rel::Eq, S::proj(2), S::constant(std::string{"ok"}));
+  CHECK_NOTHROW(bind_check<NS>(ok));
+  CHECK(ok(NS{1u, "ok"}));
+  CHECK_FALSE(ok(NS{1u, "no"}));
+  CHECK_THROWS_AS(bind_check<NS>(SP::cmp(Rel::Eq, S::proj(1),
+                                         S::constant(std::string{"ok"}))),
+                  std::domain_error);
 }

@@ -133,6 +133,10 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
   const T x = T::proj(0), x1 = T::proj(1), x2 = T::proj(2);
   const T one = T::constant(1u), zero = T::constant(0u);
   const auto nf = [&](const Pr& p) { return canonical<Word>(p, lift); };
+  // A predicate on π_1, π_2 is read at pairs: the slots are a pair's.
+  const auto nf2 = [&](const Pr& p) {
+    return canonical<std::pair<Word, Word>>(p, lift);
+  };
   SECTION("a polynomial written back reads as itself") {
     const P p = canonical<Word>((π_1 + π_2) * (π_1 + π_2) + 3u);
     CHECK(canonical<Word>(as_term<Word>(p, lift)) == p);
@@ -150,8 +154,8 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         T::bin(Arith::Add, T::bin(Arith::Mul, x1, x1),
                T::bin(Arith::Mul, T::constant(2u), T::bin(Arith::Mul, x1, x2))),
         T::bin(Arith::Mul, x2, x2));
-    CHECK(same_shape(nf(Pr::cmp(Rel::Ne, square, x2)),
-                     nf(Pr::cmp(Rel::Ne, expanded, x2))));
+    CHECK(same_shape(nf2(Pr::cmp(Rel::Ne, square, x2)),
+                     nf2(Pr::cmp(Rel::Ne, expanded, x2))));
     // A unit factor is divided out: the odd numbers are the units of the
     // word, so 3π = 0 is π = 0 and 6π = 0 is 2π = 0.  2 is no unit: 2π = 0
     // (two solutions) is not π = 0.
@@ -169,9 +173,12 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
   }
   SECTION("the connectives are kept, and a remainder refused") {
     const Pr a = Pr::cmp(Rel::Eq, T::bin(Arith::Sub, x, x), zero);
-    CHECK(same_shape(
-        nf(Pr::conj(a, a)),
-        Pr::conj(Pr::cmp(Rel::Eq, zero, zero), Pr::cmp(Rel::Eq, zero, zero))));
+    // A decided atom is ⊤ or ⊥: the Boolean algebra's constants, no sort.
+    CHECK(same_shape(nf(Pr::conj(a, a)), Pr::conj(Pr::top(), Pr::top())));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Ne, T::bin(Arith::Sub, x, x), zero)),
+                     Pr::bottom()));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Eq, one, zero)), Pr::bottom()));
+    CHECK(same_shape(nf(Pr::cmp(Rel::Lt, zero, one)), Pr::top()));
     CHECK_THROWS_AS(
         nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);
