@@ -136,13 +136,9 @@ export using dedekind::category::π_1;
 export using dedekind::category::π_2;
 export using dedekind::category::π_3;
 
-// Cosmetic alias for the sole projection π (the bound element of a
-// single-carrier comprehension): a plain element also reads as @c χ,
-// e.g. @c ℕ @c | @c χ @c <= @c 5.  Same type and behaviour as π (a
-// distinct inline object, so a distinct address), just a second spelling.
 // (Plain @c x is deliberately not offered: it shadows the pervasive local
-// element parameter named @c x and would trip @c -Wshadow.)
-export inline constexpr Projection<0> χ{};
+// element parameter named @c x and would trip @c -Wshadow.  @c χ is not an
+// alias of π either: it names the classifier under definition, :recursion.)
 
 // Blackboard coordinate aliases so a pair/triple predicate reads as
 // @f$z = f(x,y)@f$: the mathematical-italic @c 𝑥/𝑦/𝑧 (U+1D465..7) are
@@ -1271,6 +1267,48 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
   return t;
 }
 
+/** @brief The slots a term built at run time mentions, as a mask: the run-time
+ *  twin of @c slots_v, read with the same @c only_slot.  @param t the term. */
+template <typename K>
+unsigned slots(const Term<K>& t);
+template <typename K>
+unsigned slots(const Pred<K>& p) {
+  return p.kind == Pred<K>::Kind::Cmp ? slots(*p.a) | slots(*p.b)
+                                      : slots(*p.p) | slots(*p.q);
+}
+template <typename K>
+unsigned slots(const Term<K>& t) {
+  switch (t.kind) {
+    case Term<K>::Kind::Proj:
+      // A slot past the mask's width mentions, conservatively, every slot.
+      return t.slot < std::numeric_limits<unsigned>::digits ? 1u << t.slot
+                                                            : ~0u;
+    case Term<K>::Kind::Const:
+      return 0u;
+    case Term<K>::Kind::Bin:
+      return slots(*t.a) | slots(*t.b);
+    case Term<K>::Kind::Cond:
+      return slots(*t.p) | slots(*t.a) | slots(*t.b);
+  }
+  return ~0u;
+}
+/** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
+ *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
+ *  any other predicate.  The run-time twin of @c IsGraphAtom: such a relation
+ *  is functional by its shape, and entire once bound, since binding admits
+ *  every operator only where it is total on the carrier (or divides by a
+ *  nonzero constant).  @param p the predicate. */
+export template <typename K>
+const Term<K>* graph_term(const Pred<K>& p) {
+  if (p.kind != Pred<K>::Kind::Cmp || p.rel != Rel::Eq) return nullptr;
+  const auto is_y = [](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == 2;
+  };
+  if (is_y(*p.a) && only_slot(slots(*p.b), 1)) return p.b.get();
+  if (is_y(*p.b) && only_slot(slots(*p.a), 1)) return p.a.get();
+  return nullptr;
+}
+
 /** @brief The same tree: the same nodes, slots, operators and comparisons, and
  *  equal constants.  Syntactic, so sound for equality of what two normal forms
  *  denote and silent on two different trees.  @param x,y the terms. */
@@ -1366,12 +1404,44 @@ template <typename T>
 struct graph_atom<Cmp<Rel::Eq, Projection<2>, T>> : std::true_type {
   using term = T;
 };
+/** @brief Whether a leaf is the set under definition, a @c χ node;
+ *  @c :recursion registers it.  @tparam T the leaf. */
+export template <typename T>
+inline constexpr bool is_self_v = false;
+/** @brief The self algebra: a term or predicate mentions the set under
+ *  definition when one of its leaves is a @c χ node; every node passes it up.
+ */
+struct MentionsSelf {
+  template <typename Leaf>
+  constexpr std::bool_constant<is_self_v<Leaf>> operator()(const Leaf&) const {
+    return {};
+  }
+  template <typename Node, typename... R>
+  constexpr std::bool_constant<(R::value || ...)> operator()(const Node&,
+                                                             R...) const {
+    return {};
+  }
+};
+/** @brief Whether @c T mentions the set under definition.  @tparam T the term
+ *  or predicate. */
+export template <typename T>
+inline constexpr bool contains_self_v = decltype(cata(
+    MentionsSelf{}, std::declval<const std::remove_cvref_t<T>&>()))::value;
 /** @brief An atom that is the graph of a function of the first slot. */
 export template <typename P>
 concept IsGraphAtom = graph_atom<P>::value;
 /** @brief The term of a graph atom.  @tparam P the atom. */
 export template <IsGraphAtom P>
 using graph_term_t = typename graph_atom<P>::term;
+/** @brief The term of a graph atom, the side that is not @c π_2.
+ *  @param p the atom. */
+export template <IsGraphAtom P>
+constexpr const graph_term_t<P>& graph_term(const P& p) {
+  if constexpr (std::same_as<decltype(p.a), graph_term_t<P>>)
+    return p.a;
+  else
+    return p.b;
+}
 
 namespace detail_terms_witness {
 using P = std::pair<unsigned, unsigned>;

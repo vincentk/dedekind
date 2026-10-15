@@ -322,10 +322,14 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
                   .value;
           },
           "The number of elements of a finite chain.")
+      .def(
+          "__eq__", [](const Ch&, const Ch&) { return true; },
+          nb::is_operator(), "One chain per carrier: equal to itself.")
+      .def("__hash__", [](const Ch&) { return nb::hash(nb::str(Ch::name)); })
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
 
-/** @brief The grammar's variables @c π (also written @c χ), @c π_1, @c π_2: a
+/** @brief The grammar's variables @c π, @c π_1, @c π_2: a
  *  comparison builds a predicate, an arithmetic a term, each bound and checked
  *  by the former. */
 struct ProjectionTag {
@@ -705,7 +709,10 @@ void bind_term_sets(nb::module_& m,
           nb::is_operator())
       .def(
           "__mul__", [](const U& a, const U& b) { return a * b; },
-          nb::is_operator(), "𝔸 × 𝔸: the product universe.");
+          nb::is_operator(), "𝔸 × 𝔸: the product universe.")
+      .def_prop_ro(
+          "codomain", [m](const U&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹 (the universe's χ is constant ⊤).");
   const char* canonical_doc =
       "canonical(S): the same set in canonical form, where its theory has "
       "one.  A set of the chain's fragment (π compared with constants, under & "
@@ -783,6 +790,12 @@ void bind_term_sets(nb::module_& m,
           nb::is_operator(),
           "A != B: decided where the run lists decide; else TypeError.")
       .def_prop_ro("universe", [](const S&) { return U{}; })
+      .def_prop_ro(
+          "carrier", [](const S&) { return nb::cast(U{}).attr("carrier"); },
+          "The carrier the set lives on.")
+      .def_prop_ro(
+          "codomain", [m](const S&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
       .def("__repr__",
            [shown](const S& s) { return shown + " | " + show(s.predicate); });
   if constexpr (HasNNOStep<C>) {
@@ -941,6 +954,16 @@ void bind_term_sets(nb::module_& m,
            [holds, pair_of](const UU& u, nb::handle h) {
              return holds(pair_of, u, h);
            })
+      .def_prop_ro(
+          "factors",
+          [](const UU&) {
+            const nb::object c = nb::cast(U{}).attr("carrier");
+            return nb::make_tuple(c, c);
+          },
+          "The carriers of the product's two coordinates.")
+      .def_prop_ro(
+          "codomain", [m](const UU&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
       .def("__repr__", [shown](const UU&) { return shown + " × " + shown; });
   nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
       .def("__contains__",
@@ -949,8 +972,41 @@ void bind_term_sets(nb::module_& m,
            })
       .def(
           "__call__",
-          [pair_of](const R& r, nb::handle h) { return r(pair_of(h)); },
-          nb::arg("xy"), "χ(x, y) at a pair.")
+          [pair_of, to_c](const R& r, nb::handle h) -> nb::object {
+            if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
+            // At a point: the relation as the function it is certified to be.
+            const RTerm* t = dedekind::sets::graph_term(r.predicate);
+            if (t == nullptr)
+              throw nb::type_error(
+                  "R(x): R is not certified a function (π_2 == t(π_1)); "
+                  "R((x, y)) is χ");
+            // t mentions only π_1: read it at a pair whose first coordinate
+            // is x, with no copy of the term.
+            const C x = to_c(h);
+            return nb::cast(
+                dedekind::sets::term_value(*t, std::pair<C, C>{x, x}));
+          },
+          nb::arg("x"),
+          "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "
+          "π_2 == t(π_1) of a function.")
+      .def_prop_ro(
+          "factors",
+          [](const R&) {
+            const nb::object c = nb::cast(U{}).attr("carrier");
+            return nb::make_tuple(c, c);
+          },
+          "The carriers of the relation's two coordinates.")
+      .def_prop_ro(
+          "codomain", [m](const R&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
+      .def_prop_ro(
+          "is_function",
+          [](const R& r) {
+            return dedekind::sets::graph_term(r.predicate) != nullptr;
+          },
+          "Whether R is certified the graph of a function: π_2 == t(π_1), "
+          "functional by its shape and entire since every operator of a bound "
+          "term is total on the carrier.")
       .def(
           "__and__",
           [](const R& a, const R& b) {
@@ -1115,7 +1171,12 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "HasDecidableMembership: whether χ answers in 𝔹.")
       .def_prop_ro(
           "carrier", [](const S&) { return pst::Chain<C>{}; },
-          "The chain the set lives on.");
+          "The chain the set lives on.")
+      .def_prop_ro(
+          "codomain",
+          [m](const S&) { return m.attr(std::same_as<L, Boole> ? "B" : "K3"); },
+          "The chain χ is valued in: 𝔹 for a decidable set, K₃ for a "
+          "K₃-valued one.");
   // Every handle over a truth chain is its run list: its own canonical form.
   m.def(
       "canonical", [](const S& s) { return s; }, nb::arg("S"),
@@ -1286,7 +1347,7 @@ NB_MODULE(_pst, m) {
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
       m, "Projection",
-      "The grammar's variables π (also χ), π_1, π_2: a comparison builds a "
+      "The grammar's variables π, π_1, π_2: a comparison builds a "
       "predicate, the arithmetic + - * / // % a term, each bound and checked "
       "by "
       "A(carrier) | ....");
@@ -1305,7 +1366,6 @@ NB_MODULE(_pst, m) {
   def_arithmetic<ProjectionTag>(projection);
   def_comparisons<ProjectionTag>(projection);
   m.attr("π") = ProjectionTag{0};
-  m.attr("χ") = ProjectionTag{0};
   m.attr("π_1") = ProjectionTag{1};
   m.attr("π_2") = ProjectionTag{2};
 

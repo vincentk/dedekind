@@ -390,6 +390,22 @@ static_assert(IsFunctional<std::remove_cvref_t<decltype(Γ_dbl_inc)>> &&
               "the relative product Γ_f;Γ_g is again functional + entire.");
 }  // namespace graph_compose_witness
 
+// A set IS a function: its χ : C → Ω_L is an arrow (Domain, Codomain, a const
+// call), and an arrow's two-argument relation is left-total and right-unique.
+// So Set[C] implies Function[C, L] with the set itself as the arrow.
+namespace set_is_function_witness {
+using dedekind::sets::π;
+inline constexpr auto five = dedekind::sets::𝔸<unsigned>{} | (π == 5u);
+using Five = std::remove_cvref_t<decltype(five)>;
+static_assert(
+    dedekind::category::IsArrow<Five> &&
+        IsFunction<dedekind::category::arrow_as_relation<Five>, unsigned, bool>,
+    "a set is a function into its truth chain: χ : C → Ω_L");
+static_assert(dedekind::category::arrow_as_relation<Five>{five}(5u, true) &&
+                  dedekind::category::arrow_as_relation<Five>{five}(6u, false),
+              "its graph: (5, ⊤), (6, ⊥)");
+}  // namespace set_is_function_witness
+
 /**
  * @section graph__The_Relation_Function_Lattice
  * The standard characterisation (nLab; Freyd and Scedrov, @em Categories,
