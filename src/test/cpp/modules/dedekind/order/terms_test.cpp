@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <functional>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 import dedekind.category;   // Ternary, the K₃ carrier
@@ -237,5 +238,8 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   STATIC_CHECK(graph(NK{7u, Ternary::True}));
   STATIC_CHECK(graph(NK{2u, Ternary::Unknown}));
   STATIC_CHECK(!graph(NK{7u, Ternary::Unknown}));
-  STATIC_CHECK(dedekind::relational::IsFunctional<decltype(graph)>);
+  // A constexpr variable's decltype is const; the certificate is on the type.
+  using Graph = std::remove_cvref_t<decltype(graph)>;
+  STATIC_CHECK(dedekind::relational::IsFunctional<Graph>);
+  STATIC_CHECK(dedekind::relational::IsEntire<Graph>);  // f total, into K₃
 }
