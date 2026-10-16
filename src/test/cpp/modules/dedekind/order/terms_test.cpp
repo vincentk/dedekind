@@ -254,3 +254,18 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   STATIC_CHECK(
       dedekind::relational::IsFunctional<std::remove_cvref_t<decltype(chi)>>);
 }
+
+TEST_CASE("order:terms: 𝔹 is read in K₃ along the dominance",
+          "[order][terms][sorts]") {
+  using dedekind::category::Ternary;
+  // The one coercion: a value of 𝔹 meets one of K₃ in K₃ (lift_logic).
+  using BK = std::pair<bool, Ternary>;
+  const Q same = Q::cmp(Rel::Eq, T::proj(1), T::proj(2));
+  CHECK_NOTHROW(bind_check<BK>(same));
+  CHECK(same(BK{true, Ternary::True}));
+  CHECK(same(BK{false, Ternary::False}));
+  CHECK_FALSE(same(BK{true, Ternary::Unknown}));
+  // Only the dominance: the word and K₃ meet through an arrow applied.
+  using NK = std::pair<unsigned, Ternary>;
+  CHECK_THROWS_AS(bind_check<NK>(same), not_admitted);
+}

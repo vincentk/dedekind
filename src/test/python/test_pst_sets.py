@@ -128,12 +128,20 @@ class KleeneValuedTest(unittest.TestCase):
                                (K3, ap(S, π)), (B, π * 1)):
             with self.assertRaises(TypeError):
                 universe | term
-        # The sorts are checked: H's χ is K₃-valued, and S's predicate is on
-        # K₃, so neither is read at the points of 𝔹.
+
+    def test_the_dominance_is_a_coercion(self) -> None:
+        # 𝔹 ↪ K₃: a value of 𝔹 is read in K₃ wherever the two meet, the one
+        # coercion of the grammar; any other two carriers meet through ap.
+        S = K3 | (π > F)  # χ into 𝔹
+        H = K3.identity  # χ into K₃
+        self.assertEqual(K3 | (ap(H, π) == ap(S, π)), η(F) | η(T))  # U ≠ ⊤
+        self.assertEqual(K3 | (ap(H, π) >= True), η(T))  # True is ⊤
+        self.assertEqual(B | (π == T), B | (π == True))  # noqa: E712
+        # A table over K₃ read at the points of 𝔹, through the dominance.
+        self.assertEqual(B | (ap(S, π) == True), B | (π == True))  # noqa: E712
+        self.assertEqual(B | (ap(H, π) == True), B | (π == True))  # noqa: E712
         with self.assertRaises(TypeError):
-            B | (ap(S, π) == True)  # noqa: E712
-        with self.assertRaises(TypeError):
-            B | (ap(H, π) == True)  # noqa: E712
+            B | (ap(S, π) == 1)  # a numeral is no value of 𝔹
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
 

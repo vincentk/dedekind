@@ -53,6 +53,12 @@ class TwoCarriersInOneRelation(unittest.TestCase):
         self.assertEqual(repr(canonical(U * UF | ((π_1 < 5) & (π_2 != π_2)))),
                          "𝔸(u64) × 𝔸(𝔽ₚ) | ⊥")  # ⊥ absorbs the meet
 
+    def test_only_the_dominance_coerces(self) -> None:
+        # 𝔹 ↪ K₃ is the grammar's one coercion: a bool is no word, and a word
+        # meets 𝔹 only through an arrow applied.
+        with self.assertRaises(TypeError):
+            U * UF | (π_1 == True)  # noqa: E712
+
     def test_a_constant_graph_is_a_function_between_the_carriers(self) -> None:
         f = Function[u64, 𝔽ₚ](U * UF | (π_2 == 1))
         self.assertEqual(ap(f, 5), 𝔽ₚ(1))

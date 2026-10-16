@@ -752,21 +752,6 @@ std::size_t slot_sort(unsigned slot) {
         "π_1 / π_2 name a pair's coordinates; the points are elements");
   }
 }
-/** @brief The common sort of two operands: a constant takes the other's.
- *  @throws not_admitted where two carriers meet. */
-export inline std::size_t join_sorts(std::size_t a, std::size_t b) {
-  if (a == no_sort) return b;
-  if (b == no_sort) return a;
-  if (a != b)
-    throw not_admitted(
-        "the operands are of two carriers: a term lives in one sort, and an "
-        "arrow between the carriers is applied, not implied");
-  return a;
-}
-/** @brief Apply @c f to the sort @c s of @c P as a type: @c
- * f(type_identity<C>).
- *  @c s is a valid index (the caller joined the sorts).  @tparam P the point
- *  type.  @tparam I the first candidate. */
 /** @brief The sort of a tree of constants without a context: the point's one
  *  sort where it has one.  @throws not_admitted on a point of two carriers,
  *  where a constant alone names neither. */
@@ -777,6 +762,9 @@ std::size_t default_sort(std::size_t s) {
   throw not_admitted(
       "a term of constants alone names no carrier on a product of two");
 }
+/** @brief Apply @c f to the sort @c s of @c P as a type:
+ *  @c f(type_identity<C>).  @c s is a valid index (the caller joined the
+ *  sorts).  @tparam P the point type.  @tparam I the first candidate. */
 export template <typename P, std::size_t I = 0, typename F>
 auto with_sort(std::size_t s, const F& f) {
   using Sorts = term_sorts_t<P>;
@@ -787,26 +775,52 @@ auto with_sort(std::size_t s, const F& f) {
     return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
   }
 }
-/** @brief The coordinate @c slot of the point @c p, of the sort @c C the
+/** @brief A value of the sort @c D is read in the sort @c C: the same sort,
+ *  or a truth chain along the dominance into @c C's species (𝔹 ↪ K₃, the
+ *  registered @c lift_logic).  The one coercion of the grammar; any other
+ *  pair of carriers meets through an arrow applied, never implied.
+ *  @tparam D the value's sort.  @tparam C the sort it is read in. */
+export template <typename D, typename C>
+concept EmbedsInto = std::same_as<D, C> || requires {
+  typename dedekind::category::classifier_logic_t<C>;
+  requires std::same_as<typename dedekind::category::classifier_logic_t<C>::Ω,
+                        C>;
+  requires dedekind::category::LiftableInto<
+      D, dedekind::category::classifier_logic_t<C>>;
+};
+/** @brief @c d read in the sort @c C.  @tparam C the sort.  @param d the
+ *  value. */
+export template <typename C, typename D>
+  requires EmbedsInto<D, C>
+constexpr C embed_into(const D& d) {
+  if constexpr (std::same_as<D, C>)
+    return d;
+  else
+    return dedekind::category::lift_logic<
+        dedekind::category::classifier_logic_t<C>>(d);
+}
+/** @brief @c d read in the sort @c C where it embeds, refused elsewhere. */
+template <typename C, typename D>
+constexpr C read_as(const D& d) {
+  if constexpr (EmbedsInto<D, C>)
+    return embed_into<C>(d);
+  else
+    throw not_admitted("a slot of another carrier than the term's sort");
+}
+/** @brief The coordinate @c slot of the point @c p, read in the sort @c C the
  *  dispatch chose; the point itself for the unary @c π.  @tparam C the sort.
  *  @param p the point. */
 template <typename C, typename P>
 constexpr C coordinate_as(unsigned slot, const P& p) {
   if constexpr (requires { typename P::first_type; }) {
-    if (slot == 1) {
-      if constexpr (std::same_as<typename P::first_type, C>) return p.first;
-    } else if (slot == 2) {
-      if constexpr (std::same_as<typename P::second_type, C>) return p.second;
-    }
-    throw not_admitted("a slot of another carrier than the term's sort");
+    if (slot == 1) return read_as<C>(p.first);
+    if (slot == 2) return read_as<C>(p.second);
+    throw not_admitted("binary products only: π_1 and π_2");
   } else {
     if (slot != 0)
       throw not_admitted(
           "π_1 / π_2 name a pair's coordinates; the points are elements");
-    if constexpr (std::same_as<P, C>)
-      return p;
-    else
-      throw not_admitted("a slot of another carrier than the term's sort");
+    return read_as<C>(p);
   }
 }
 
@@ -922,6 +936,59 @@ std::size_t constant_sort(const K& k) {
     return no_sort;
   }
 }
+/** @brief Whether the sort @c b embeds into the sort @c a, at points of
+ *  @c P. */
+template <typename P>
+struct EmbedsAt {
+  std::size_t b;
+  template <typename A>
+  struct From {
+    template <typename B>
+    bool operator()(std::type_identity<B>) const {
+      return EmbedsInto<B, A>;
+    }
+  };
+  template <typename A>
+  bool operator()(std::type_identity<A>) const {
+    return with_sort<P>(b, From<A>{});
+  }
+};
+/** @brief The common sort of two operands at points of @c P: a constant takes
+ *  the other's, and a truth chain meets its dominance in the larger (𝔹 and
+ *  K₃ in K₃).  @throws not_admitted where two carriers meet. */
+export template <typename P>
+std::size_t join_sorts(std::size_t a, std::size_t b) {
+  if (a == no_sort) return b;
+  if (b == no_sort) return a;
+  if (a == b) return a;
+  if (with_sort<P>(a, EmbedsAt<P>{b})) return a;
+  if (with_sort<P>(b, EmbedsAt<P>{a})) return b;
+  throw not_admitted(
+      "the operands are of two carriers: a term lives in one sort, and an "
+      "arrow between the carriers is applied, not implied");
+}
+/** @brief A constant read in the sort @c C: a numeral cast into it, a
+ *  constant of a sort (a bool, a Ternary) read in its own and embedded.
+ *  @tparam P the point type.  @tparam C the sort.  @param k the constant. */
+template <typename P, typename C, typename K>
+struct ConstantAs {
+  const K& k;
+  template <typename D>
+  C operator()(std::type_identity<D>) const {
+    if constexpr (EmbedsInto<D, C>)
+      return embed_into<C>(carrier_cast<D>(k));
+    else
+      throw not_admitted(
+          "a constant of another carrier than the term's sort: an arrow "
+          "between the carriers is applied, not implied");
+  }
+};
+export template <typename P, typename C, typename K>
+C constant_as(const K& k) {
+  const std::size_t s = constant_sort<P>(k);
+  if (s == no_sort) return carrier_cast<C>(k);
+  return with_sort<P>(s, ConstantAs<P, C, K>{k});
+}
 /** @brief The sort of a term built at run time at points of @c P, from its
  *  projections and its constants of a sort (@c constant_sort): @c no_sort for
  *  a tree of numerals, which takes its context's.  Defined with @c Term.
@@ -1007,7 +1074,7 @@ struct Value {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<P>(
-            default_sort<P>(join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b))),
+            default_sort<P>(join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b))),
             Compare<K>{*this, t});
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
@@ -1030,7 +1097,7 @@ struct Value {
       case Term<K>::Kind::Proj:
         return coordinate_as<C>(t.slot, p);
       case Term<K>::Kind::Const:
-        return carrier_cast<C>(t.value);
+        return constant_as<P, C>(t.value);
       case Term<K>::Kind::Bin:
         if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
           throw not_admitted(std::string("the operator ") + spelling(t.op) +
@@ -1224,7 +1291,7 @@ struct Bind {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<X>(
-            default_sort<X>(join_sorts(sort_of<X>(*t.a), sort_of<X>(*t.b))),
+            default_sort<X>(join_sorts<X>(sort_of<X>(*t.a), sort_of<X>(*t.b))),
             BindCmp<K>{*this, t});
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
@@ -1245,7 +1312,7 @@ struct Bind {
         (void)coordinate_as<C>(t.slot, X{});
         break;
       case Term<K>::Kind::Const:
-        (void)carrier_cast<C>(t.value);
+        (void)constant_as<X, C>(t.value);
         break;
       case Term<K>::Kind::Bin: {
         bind_as<C>(*t.a);
@@ -1497,9 +1564,9 @@ std::size_t sort_of(const Term<K>& t) {
     case Term<K>::Kind::Const:
       return constant_sort<P>(t.value);
     case Term<K>::Kind::Bin:
-      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
     case Term<K>::Kind::Cond:
-      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
   }
   return no_sort;
 }

@@ -606,8 +606,8 @@ struct AtomAt {
         throw dedekind::sets::not_admitted(
             "the comparison is not in the carrier's signature");
       return dedekind::sets::compare_rel(
-                 p.rel, dedekind::sets::carrier_cast<C>(p.a->value),
-                 dedekind::sets::carrier_cast<C>(p.b->value))
+                 p.rel, dedekind::sets::constant_as<P, C>(p.a->value),
+                 dedekind::sets::constant_as<P, C>(p.b->value))
                  ? Pr::top()
                  : Pr::bottom();
     }
@@ -645,7 +645,7 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       break;
   }
   return dedekind::sets::with_sort<P>(
-      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts(
+      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts<P>(
           dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b))),
       AtomAt<P, K, Lift>{p, lift});
 }
