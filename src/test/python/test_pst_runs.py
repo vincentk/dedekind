@@ -63,7 +63,8 @@ class OneSetOneNormalForm(unittest.TestCase):
     def test_a_set_applied_to_a_term_substitutes(self) -> None:
         S = above(5)
         self.assertEqual(U | (ap(S, π + 1) == True), preimage(succ(int), S))  # noqa: E712  {x | x + 1 ∈ S}
-        self.assertEqual(repr(ap(S, π + 1)), "cond((π + 1) > 5, True, False)")
+        # The numeral is pinned to the word, the sort it had in S.
+        self.assertEqual(repr(ap(S, π + 1)), "cond((π + 1) > u64(5), True, False)")
         with self.assertRaises(TypeError):
             U | (π + 1)  # a term valued in u64 is not a predicate
 

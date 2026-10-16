@@ -1605,6 +1605,76 @@ unsigned slots(const Term<K>& t) {
   }
   return ~0u;
 }
+
+// ── Pinning the numerals ────────────────────────────────────────────────────
+
+/** @brief A numeral read in the sort @c C and written back as a constant of
+ *  that sort, through @c lift; a carrier @c lift has no constant for keeps
+ *  the numeral. */
+template <typename K, typename Lift>
+struct PinConstant {
+  const K& k;
+  const Lift& lift;
+  template <typename C>
+  K operator()(std::type_identity<C>) const {
+    if constexpr (requires(const C& c) {
+                    { lift(c) } -> std::convertible_to<K>;
+                  })
+      return lift(carrier_cast<C>(k));
+    else
+      return k;
+  }
+};
+export template <typename P, typename K, typename Lift>
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift);
+/** @brief The term @c t, of the sort @c s at points of @c P, with every
+ *  numeral pinned to it.  @param t the term.  @param s its sort.  @param lift
+ *  a value of a sort into a constant that names it. */
+template <typename P, typename K, typename Lift>
+Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
+  using T = Term<K>;
+  switch (t.kind) {
+    case T::Kind::Proj:
+      return t;
+    case T::Kind::Const:
+      if (s == no_sort || constant_sort<P>(t.value) != no_sort) return t;
+      return T::constant(with_sort<P>(s, PinConstant<K, Lift>{t.value, lift}));
+    case T::Kind::Bin:
+      return T::bin(t.op, pin_term<P>(*t.a, s, lift),
+                    pin_term<P>(*t.b, s, lift));
+    case T::Kind::Cond:
+      return T::cond(pin_constants<P>(*t.p, lift), pin_term<P>(*t.a, s, lift),
+                     pin_term<P>(*t.b, s, lift));
+  }
+  return t;
+}
+/** @brief The predicate with every numeral pinned to the sort its context
+ *  gives it at points of @c P: the constant then names its sort itself, so
+ *  the term keeps its meaning when it moves (substituted into another
+ *  context by @c ap, or split by @c lift_conditionals into an atom with no
+ *  slot left).  @param p the predicate.  @param lift a value of a sort into a
+ *  constant that names it (@c constant_of). */
+export template <typename P, typename K, typename Lift>
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift) {
+  using Pr = Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(pin_constants<P>(*p.p, lift),
+                      pin_constants<P>(*p.q, lift));
+    case Pr::Kind::Or:
+      return Pr::disj(pin_constants<P>(*p.p, lift),
+                      pin_constants<P>(*p.q, lift));
+    case Pr::Kind::Cmp: {
+      const std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
+      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift),
+                     pin_term<P>(*p.b, s, lift));
+    }
+  }
+  return p;
+}
 /** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
  *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
  *  any other predicate.  The run-time twin of @c IsGraphAtom: such a relation

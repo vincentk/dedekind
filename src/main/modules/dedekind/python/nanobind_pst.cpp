@@ -432,13 +432,20 @@ Ternary carrier_cast(std::type_identity<Ternary>, const PyConst& k) {
     throw nb::type_error("a constant on K₃ is a Ternary");
   return nb::cast<Ternary>(k.o);
 }
-/** @brief The sort a constant names by itself: a bool is a value of 𝔹 and a
- *  Ternary of K₃, while an int is a numeral its context's sort reads. */
+/** @brief The sort a constant names by itself: a bool is a value of 𝔹, a
+ *  Ternary of K₃, a u64 of the word and an element of 𝔽ₚ of the field, while
+ *  an int is a numeral its context's sort reads. */
 bool constant_of(std::type_identity<bool>, const PyConst& k) {
   return PyBool_Check(k.o.ptr());
 }
 bool constant_of(std::type_identity<Ternary>, const PyConst& k) {
   return nb::isinstance<Ternary>(k.o);
+}
+bool constant_of(std::type_identity<uint64_t>, const PyConst& k) {
+  return nb::isinstance<Word>(k.o);
+}
+bool constant_of(std::type_identity<Fp>, const PyConst& k) {
+  return nb::isinstance<Fp>(k.o);
 }
 using RTerm = dedekind::sets::Term<PyConst>;
 using RPred = dedekind::sets::Pred<PyConst>;
@@ -587,15 +594,37 @@ struct AsConstant {
   PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
   PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
 };
+/** @brief A value written back as a constant that names its sort: a u64, an
+ *  element of 𝔽ₚ, a bool, a Ternary (@c constant_of).  The numerals of a term
+ *  are pinned with it before the term moves (@c pin_constants). */
+struct TypedConstant {
+  PyConst operator()(std::uint64_t c) const {
+    return PyConst{nb::cast(Word{c})};
+  }
+  PyConst operator()(const Fp& c) const { return PyConst{nb::cast(c)}; }
+  PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
+  PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
+};
+/** @brief The predicate at points of @c P with its numerals pinned to their
+ *  sorts.  @param p the predicate. */
+template <typename P>
+RPred pinned(const RPred& p) {
+  return dedekind::sets::pin_constants<P>(p, TypedConstant{});
+}
+/** @brief The normal form of a predicate at points of @c P: pinned, so a
+ *  conditional split into an atom with no slot keeps its sort, then read by
+ *  the library's @c canonical.  @param p the predicate. */
+template <typename P>
+RPred normal_form(const RPred& p) {
+  return dedekind::algebra::canonical<P>(pinned<P>(p), AsConstant{});
+}
 
 /** @brief Equality of two predicates by their normal forms: equal forms cut
  *  out equal sets; different forms decide nothing, so they raise rather than
  *  answer "different".  @tparam P the point type (one carrier, or a pair). */
 template <typename P>
 bool equal_by_normal_form(const RPred& a, const RPred& b) {
-  if (dedekind::sets::same_shape(
-          dedekind::algebra::canonical<P>(a, AsConstant{}),
-          dedekind::algebra::canonical<P>(b, AsConstant{})))
+  if (dedekind::sets::same_shape(normal_form<P>(a), normal_form<P>(b)))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -655,6 +684,31 @@ Fp to_fp(nb::handle h) {
   return residue_of(h);
 }
 
+/** @brief Whether a term of the sort @c T is read in @c C2 (@c EmbedsInto):
+ *  a graph's term lands in the relation's second factor. */
+template <typename C2>
+struct ReadsInto {
+  template <typename T>
+  bool operator()(std::type_identity<T>) const {
+    return dedekind::sets::EmbedsInto<T, C2>;
+  }
+};
+/** @brief The term of a relation at points @c P = (C₁, C₂) certified a
+ *  function: a graph atom @c π_2 @c == @c t (@c graph_term) whose term lands
+ *  in @c C₂, so every point of @c C₁ has its image there; @c nullptr
+ *  otherwise (@c K3 @c * @c B @c | @c (π_2 @c == @c π_1) is a relation, but
+ *  U has no image in 𝔹).  @param p the predicate. */
+template <typename P>
+const RTerm* function_term(const RPred& p) {
+  const RTerm* t = dedekind::sets::graph_term(p);
+  if (t == nullptr) return nullptr;
+  const std::size_t s = dedekind::sets::sort_of<P>(*t);
+  if (s != dedekind::sets::no_sort &&
+      !dedekind::sets::with_sort<P>(s, ReadsInto<typename P::second_type>{}))
+    return nullptr;
+  return t;
+}
+
 /** @brief A point of 𝔹 or K₃ out of a Python value: a bool, a Ternary. */
 bool to_bool(nb::handle h) { return from_py_as<bool>(h); }
 Ternary to_ternary(nb::handle h) { return from_py_as<Ternary>(h); }
@@ -696,10 +750,7 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
   };
   m.def(
       "canonical",
-      [](const R& r) {
-        return UU{} |
-               dedekind::algebra::canonical<Point>(r.predicate, AsConstant{});
-      },
+      [](const R& r) { return UU{} | normal_form<Point>(r.predicate); },
       nb::arg("S"),
       "canonical(R): the relation with each atom in normal form in its own "
       "axis' sort (a run list cannot be written back on a product).");
@@ -712,6 +763,15 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
           "refused.")
       .def("__contains__",
            [holds](const UU& u, nb::handle h) { return holds(u, h); })
+      .def(
+          "_ap",
+          [holds](const UU& u, nb::handle h) -> nb::object {
+            if (is_term(h)) return nb::cast(true_term());
+            return nb::bool_(holds(u, h));
+          },
+          nb::arg("x"),
+          "ap(U × V, (x, y)): χ, ⊤ at every pair of the carriers; at a term, "
+          "the constant True.")
       .def_prop_ro(
           "factors", [factors](const UU&) { return factors(); },
           "The carriers of the product's two coordinates.")
@@ -727,13 +787,18 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
           [pair_of, to1](const R& r, nb::handle h) -> nb::object {
             if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
             // At a point: the relation as the function it is certified to be.
-            const RTerm* t = dedekind::sets::graph_term(r.predicate);
+            const RTerm* t = function_term<Point>(r.predicate);
             if (t == nullptr)
               throw nb::type_error(
-                  "ap(R, x): R is not certified a function (π_2 == t(π_1)); "
-                  "ap(R, (x, y)) is χ");
-            // At a term: t with π_1 replaced by it, in the second sort.
-            if (is_term(h)) return nb::cast(t->subst(1, term_of(h)));
+                  "ap(R, x): R is not certified a function (π_2 == t(π_1), t "
+                  "landing in the second factor); ap(R, (x, y)) is χ");
+            // At a term: t with π_1 replaced by it, its numerals pinned to
+            // the sorts they had in R, so it means in its new context what it
+            // meant in R.
+            if (is_term(h)) {
+              const RPred pin = pinned<Point>(r.predicate);
+              return nb::cast(function_term<Point>(pin)->subst(1, term_of(h)));
+            }
             // t mentions only π_1: read it at a pair whose first coordinate
             // is x, in the second coordinate's sort, with no copy of the term.
             return nb::cast(
@@ -751,11 +816,11 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       .def_prop_ro(
           "is_function",
           [](const R& r) {
-            return dedekind::sets::graph_term(r.predicate) != nullptr;
+            return function_term<Point>(r.predicate) != nullptr;
           },
           "Whether R is certified the graph of a function: π_2 == t(π_1), "
-          "functional by its shape and entire since every operator of a bound "
-          "term is total on the carrier.")
+          "functional by its shape, and entire since every operator of a bound "
+          "term is total on the carrier and t lands in the second factor.")
       .def(
           "__and__",
           [](const R& a, const R& b) {
@@ -839,8 +904,7 @@ void bind_term_sets(nb::module_& m,
         // The atoms first, then the set: an atom normalised into the chain's
         // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
         // reaches the fixpoint.
-        const S atoms =
-            U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
+        const S atoms = U{} | normal_form<C>(s.predicate);
         if constexpr (IsTotallyOrdered<C>) {
           try {
             return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),
@@ -863,7 +927,8 @@ void bind_term_sets(nb::module_& m,
             // The set applied as its characteristic arrow: at a term, χ as a
             // term of sort 𝔹, its predicate with π replaced; at a point, χ.
             if (is_term(h))
-              return nb::cast(truth_term(s.predicate.subst(0, term_of(h))));
+              return nb::cast(
+                  truth_term(pinned<C>(s.predicate).subst(0, term_of(h))));
             return nb::cast(s(to_c(h)));
           },
           nb::arg("x"),

@@ -613,17 +613,15 @@ struct AtomAt {
                  ? Pr::top()
                  : Pr::bottom();
     }
-    if constexpr (!dedekind::sets::is_sort_of_v<
-                      C, dedekind::sets::point_sorts_t<P>>)
-      throw dedekind::sets::not_admitted(
-          "no free algebra catalogued for a truth value but its constants");
-    else if constexpr (dedekind::sets::admits(dedekind::sets::On<C>{},
-                                              std::plus<>{}, false) &&
-                       dedekind::sets::admits(dedekind::sets::On<C>{},
-                                              std::multiplies<>{}, false))
+    if constexpr (dedekind::sets::is_sort_of_v<
+                      C, dedekind::sets::point_sorts_t<P>> &&
+                  dedekind::sets::admits(dedekind::sets::On<C>{}, std::plus<>{},
+                                         false) &&
+                  dedekind::sets::admits(dedekind::sets::On<C>{},
+                                         std::multiplies<>{}, false))
       return canonical_atom<C>(p, lift);
     else
-      return p;  // a chain without a rig's + ·: the atom is its own form
+      return p;  // a chain without a rig's + · (𝔹, K₃): its own form
   }
 };
 /** @brief The normal form of a predicate without conditionals: atom by atom,

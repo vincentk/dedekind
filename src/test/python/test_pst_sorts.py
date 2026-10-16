@@ -107,5 +107,41 @@ class EveryPairOfCarriers(unittest.TestCase):
         self.assertIsInstance(same, Relation[B, K3])
 
 
+class AnArrowKeepsItsSorts(unittest.TestCase):
+    """An arrow means the same wherever it is applied: its numerals are pinned
+    to the sorts they had, and a function lands in its codomain."""
+
+    def test_a_numeral_keeps_its_carrier_through_ap(self) -> None:
+        p = 2**64 - 59
+        f = Function[B, 𝔽ₚ](B * GF_p | (π_2 == p))  # p is 0 in 𝔽ₚ
+        self.assertEqual(ap(f, True), 𝔽ₚ(0))
+        self.assertEqual(repr(ap(f, π)), "𝔽ₚ(0)")
+        with self.assertRaises(TypeError):
+            B * U64 | (π_2 == ap(f, π_1))  # an element of 𝔽ₚ is no word
+
+    def test_a_function_lands_in_its_codomain(self) -> None:
+        R = K3 * B | (π_2 == π_1)  # a relation: U has no image in 𝔹
+        self.assertIn((Ternary.TRUE, True), R)
+        self.assertIs(R.is_function, False)
+        self.assertNotIsInstance(R, Function[K3, B])
+        with self.assertRaises(TypeError):
+            ap(R, Ternary.UNKNOWN)
+        self.assertIsInstance(B * K3 | (π_2 == π_1), Function[B, K3])  # 𝔹 ↪ K₃
+
+    def test_a_truth_atom_off_the_factors_is_its_own_form(self) -> None:
+        R = B * B | (π_1 == Ternary.TRUE)  # read in K₃, no factor of the pair
+        self.assertEqual(repr(canonical(R)), repr(R))
+        self.assertIs(R == R, True)
+
+    def test_a_lifted_branch_keeps_its_sort(self) -> None:
+        R = U64 * GF_p | (cond(π_1 > 5, π_2, 0) == 0)  # 0 is the field's
+        canonical(R)  # the else branch, 0 == 0, is decided in 𝔽ₚ
+        self.assertIs(R == R, True)
+
+    def test_a_product_universe_is_an_arrow(self) -> None:
+        self.assertIs(ap(U64 * B, (7, True)), True)
+        self.assertIs(ap(U64 * B, (7, Ternary.TRUE)), False)  # not a pair of it
+
+
 if __name__ == "__main__":
     unittest.main()
