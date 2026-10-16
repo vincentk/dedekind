@@ -171,10 +171,18 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         nf(Pr::cmp(Rel::Lt, T::bin(Arith::Add, x, zero), T::constant(5u))),
         Pr::cmp(Rel::Lt, x, T::constant(5u))));
   }
-  SECTION("the connectives are kept, and a remainder refused") {
+  SECTION(
+      "the connectives are kept, their bounds folded, a remainder refused") {
     const Pr a = Pr::cmp(Rel::Eq, T::bin(Arith::Sub, x, x), zero);
-    // A decided atom is ⊤ or ⊥: the Boolean algebra's constants, no sort.
-    CHECK(same_shape(nf(Pr::conj(a, a)), Pr::conj(Pr::top(), Pr::top())));
+    const Pr below = Pr::cmp(Rel::Lt, x, T::constant(5u));
+    // A decided atom is ⊤ or ⊥: the Boolean algebra's constants, no sort,
+    // the units and absorbers of the connectives.
+    CHECK(same_shape(nf(Pr::conj(a, a)), Pr::top()));
+    CHECK(same_shape(nf(Pr::conj(a, below)), below));
+    CHECK(same_shape(nf(Pr::disj(a.negated(), below)), below));
+    CHECK(same_shape(nf(Pr::disj(a, below)), Pr::top()));
+    CHECK(same_shape(nf(Pr::conj(Pr::cmp(Rel::Lt, one, zero), below)),
+                     Pr::bottom()));
     CHECK(same_shape(nf(Pr::cmp(Rel::Ne, T::bin(Arith::Sub, x, x), zero)),
                      Pr::bottom()));
     CHECK(same_shape(nf(Pr::cmp(Rel::Eq, one, zero)), Pr::bottom()));
@@ -183,6 +191,26 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);
   }
+}
+
+TEST_CASE("A conditional is lifted out of its atom: cond(q, a, b) R c",
+          "[algebra][polynomial][terms]") {
+  const AsConstant lift;
+  const T x = T::proj(0);
+  const T one = T::constant(1u), zero = T::constant(0u);
+  const auto nf = [&](const Pr& p) { return canonical<Word>(p, lift); };
+  const Pr below = Pr::cmp(Rel::Lt, x, T::constant(5u));
+  // χ of {π < 5} as a term, compared with 1: the predicate again.
+  const T chi = T::cond(below, one, zero);
+  CHECK(same_shape(nf(Pr::cmp(Rel::Eq, chi, one)), below));
+  CHECK(same_shape(nf(Pr::cmp(Rel::Eq, one, chi)), below));
+  CHECK(same_shape(nf(Pr::cmp(Rel::Eq, chi, zero)), below.negated()));
+  CHECK(same_shape(nf(Pr::cmp(Rel::Eq, chi, T::constant(2u))), Pr::bottom()));
+  // Through an operator: cond(q, π, 0) + 1 == 1 is (q ∧ π = 0) ∨ ¬q.
+  const T shifted = T::bin(Arith::Add, T::cond(below, x, zero), one);
+  CHECK(same_shape(nf(Pr::cmp(Rel::Eq, shifted, one)),
+                   Pr::disj(Pr::conj(below, nf(Pr::cmp(Rel::Eq, x, zero))),
+                            below.negated())));
 }
 
 TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",

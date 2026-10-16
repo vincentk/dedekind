@@ -8,7 +8,7 @@ set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 import unittest
 
 from dedekind.pst import (
-    𝔸, Ø, η, π, 𝔹, K3, Ternary, Boole, Kleene, canonical, exists, forall, lift,
+    𝔸, Ø, η, π, 𝔹, K3, Ternary, Boole, Kleene, ap, canonical, exists, forall, lift,
     any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
 )
 
@@ -22,8 +22,8 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertIn(U, S)
         self.assertIn(T, S)
         self.assertNotIn(F, S)
-        self.assertIs(S(U), True)
-        self.assertIs(S(F), False)
+        self.assertIs(ap(S, U), True)
+        self.assertIs(ap(S, F), False)
 
     def test_equality_is_extensional_and_decided(self) -> None:
         self.assertIs((K3 | (π > F)) == (K3 | (π >= U)), True)
@@ -87,13 +87,13 @@ class KleeneValuedTest(unittest.TestCase):
     def test_verdicts_in_k3(self) -> None:
         H = K3.identity  # χ(x) = x, valued in K₃
         self.assertFalse(H.is_decidable)
-        self.assertEqual(H(U), U)
+        self.assertEqual(ap(H, U), U)
         self.assertIn(T, H)  # `in` is the decided membership χ(x) = ⊤
         self.assertNotIn(U, H)
         self.assertEqual(exists(H, π >= F), T)  # ⋁ (χ ∧ P)
         with self.assertRaises(TypeError):
             forall(H, π >= F)  # a bounded ∀ over an L-valued set awaits #980
-        self.assertIs(forall(K3 | (H(π) >= U), π >= U), True)  # over its cut
+        self.assertIs(forall(K3 | (ap(H, π) >= U), π >= U), True)  # over its cut
         # Equality is the internal biconditional: reflexive only up to the
         # excluded middle, so H agrees with itself to degree U where it is U.
         self.assertEqual(H == H, U)
@@ -103,34 +103,37 @@ class KleeneValuedTest(unittest.TestCase):
 
     def test_cuts_and_fibres_are_decidable_sets(self) -> None:
         H = K3.identity
-        cut_U = K3 | (H(π) >= U)  # χ applied to π, compared on the chain
+        cut_U = K3 | (ap(H, π) >= U)  # χ applied to π, compared on the chain
         self.assertTrue(cut_U.is_decidable)
         self.assertIs(cut_U == (K3 | (π >= U)), True)
-        self.assertIs((K3 | (H(π) >= T)) == η(T), True)
-        self.assertIs((K3 | (H(π) == U)) == η(U), True)
+        self.assertIs((K3 | (ap(H, π) >= T)) == η(T), True)
+        self.assertIs((K3 | (ap(H, π) == U)) == η(U), True)
         self.assertEqual(repr(cut_U), "[U, ⊤]")
-        self.assertIs((K3 | (H(π) == T)) == η(T), True)  # cond(χ ≥ ⊤, ⊤, …) == ⊤
+        self.assertIs((K3 | (ap(H, π) == T)) == η(T), True)  # cond(χ ≥ ⊤, ⊤, …) == ⊤
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
-        # A decidable table's χ is its run predicate: S(π) is a predicate.
+        # ap(S, t) is χ_S as a term of sort S.codomain: a decidable table's
+        # run predicate as a conditional into 𝔹.
         S = K3 | (π > F)
-        self.assertEqual(repr(S(π)), f"π >= {U!r}")
-        self.assertIs((K3 | S(π)) == S, True)  # membership
-        self.assertIs((K3 | ~S(π)) == ~S, True)
+        self.assertEqual(repr(ap(S, π)), f"cond(π >= {U!r}, True, False)")
+        self.assertIs((K3 | (ap(S, π) == True)) == S, True)  # noqa: E712
+        self.assertIs((K3 | (ap(S, π) == False)) == ~S, True)  # noqa: E712
         top = B | (π == True)  # noqa: E712
-        self.assertIs((B | top(π)) == top, True)
-        # An L-valued table's χ is a conditional over its cuts: H(π) is a term,
-        # and a term is not a predicate on any universe: compare it.
+        self.assertIs((B | (ap(top, π) == True)) == top, True)  # noqa: E712
+        # An L-valued table's χ is a conditional over its cuts, of sort K₃;
+        # a term is not a predicate on any universe: compare it.
         H = K3.identity
-        for universe, term in ((K3, H(π)), (A(Ternary, Kleene), H(π)), (B, π * 1)):
+        for universe, term in ((K3, ap(H, π)), (A(Ternary, Kleene), ap(H, π)),
+                               (K3, ap(S, π)), (B, π * 1)):
             with self.assertRaises(TypeError):
                 universe | term
-        # A table's constants are the chain's: bound to another chain, refused.
+        # The sorts are checked: H's χ is K₃-valued, and S's predicate is on
+        # K₃, so neither is read at the points of 𝔹.
         with self.assertRaises(TypeError):
-            B | S(π)
+            B | (ap(S, π) == True)  # noqa: E712
         with self.assertRaises(TypeError):
-            B | (H(π) == True)  # noqa: E712
+            B | (ap(H, π) == True)  # noqa: E712
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
 
@@ -138,9 +141,9 @@ class KleeneValuedTest(unittest.TestCase):
         S = K3 | (π > F)
         L = lift(S)
         self.assertFalse(L.is_decidable)
-        self.assertEqual(L(U), T)
+        self.assertEqual(ap(L, U), T)
         self.assertEqual(L == lift(K3 | (π >= U)), T)
-        self.assertEqual((K3 | (L(π) >= U)) == S, True)
+        self.assertEqual((K3 | (ap(L, π) >= U)) == S, True)
 
 
 class MixedSpeciesTest(unittest.TestCase):
@@ -151,16 +154,16 @@ class MixedSpeciesTest(unittest.TestCase):
         H = K3.identity  # K₃-valued: χ(x) = x
         M = S & H
         self.assertFalse(M.is_decidable)
-        self.assertEqual(M(U), U)  # ⊤ ∧ U
-        self.assertEqual(M(T), T)
-        self.assertEqual(M(F), F)
-        self.assertEqual((S | H)(F), F)
-        self.assertEqual((H | S)(U), T)  # U ∨ ⊤
+        self.assertEqual(ap(M, U), U)  # ⊤ ∧ U
+        self.assertEqual(ap(M, T), T)
+        self.assertEqual(ap(M, F), F)
+        self.assertEqual(ap(S | H, F), F)
+        self.assertEqual(ap(H | S, U), T)  # U ∨ ⊤
         self.assertEqual(lift(S) == (S & A(Ternary, Kleene)), T)
         # ^ across species: (⊤ ⊕ U) = U at U, ⊤ ⊕ ⊤ = ⊥ at ⊤, in K₃ either way.
         for X in (S ^ H, H ^ S):
             self.assertFalse(X.is_decidable)
-            self.assertEqual((X(F), X(U), X(T)), (F, U, F))
+            self.assertEqual((ap(X, F), ap(X, U), ap(X, T)), (F, U, F))
 
     def test_queries_in_the_join(self) -> None:
         S = K3 | (π > F)

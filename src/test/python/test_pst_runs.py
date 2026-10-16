@@ -11,7 +11,7 @@ and wraps at the end.  Nothing is decided in Python.
 import unittest
 
 from dedekind.jlt import id, pred, refl, succ
-from dedekind.pst import A, canonical, image, preimage, u64, π
+from dedekind.pst import A, ap, canonical, image, preimage, u64, π
 
 U = A(u64)
 MAX = 2**64 - 1
@@ -62,8 +62,8 @@ class OneSetOneNormalForm(unittest.TestCase):
 
     def test_a_set_applied_to_a_term_substitutes(self) -> None:
         S = above(5)
-        self.assertEqual(U | S(π + 1), preimage(succ(int), S))  # {x | x + 1 ∈ S}
-        self.assertEqual(repr(S(π + 1)), "(π + 1) > 5")
+        self.assertEqual(U | (ap(S, π + 1) == True), preimage(succ(int), S))  # noqa: E712  {x | x + 1 ∈ S}
+        self.assertEqual(repr(ap(S, π + 1)), "cond((π + 1) > 5, True, False)")
         with self.assertRaises(TypeError):
             U | (π + 1)  # a term valued in u64 is not a predicate
 

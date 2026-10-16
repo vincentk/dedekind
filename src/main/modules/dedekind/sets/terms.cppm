@@ -95,6 +95,7 @@ module;
 #include <functional>
 #include <limits>
 #include <memory>  // std::shared_ptr: the legs of a term built at run time
+#include <optional>
 #include <stdexcept>
 #include <string>  // the spelling of a refusal
 #include <tuple>
@@ -693,6 +694,28 @@ struct point_sorts<std::pair<A, B>> {
 };
 export template <typename P>
 using point_sorts_t = typename point_sorts<P>::type;
+/** @brief Whether @c C is one of the sorts @c S. */
+export template <typename C, typename S>
+inline constexpr bool is_sort_of_v = false;
+template <typename C, typename... Cs>
+inline constexpr bool is_sort_of_v<C, std::tuple<Cs...>> =
+    (std::same_as<C, Cs> || ...);
+/** @brief The tuple @c S with @c C appended, unless @c C is in it already. */
+template <typename S, typename C>
+struct with_carrier;
+template <typename... Cs, typename C>
+struct with_carrier<std::tuple<Cs...>, C> {
+  using type = std::conditional_t<is_sort_of_v<C, std::tuple<Cs...>>,
+                                  std::tuple<Cs...>, std::tuple<Cs..., C>>;
+};
+/** @brief The sorts a term at points of @c P takes: the points' carriers
+ *  first (a slot's sort is its index there), then the truth chains a set
+ *  applied to a term lands in, @c ap(S, t) of sort @c S's codomain.
+ *  @tparam P the point type. */
+export template <typename P>
+using term_sorts_t =
+    typename with_carrier<typename with_carrier<point_sorts_t<P>, bool>::type,
+                          dedekind::category::Ternary>::type;
 /** @brief The value of a term built at run time at a point: the one sort's
  *  carrier, or the sum of the sorts where there are two. */
 template <typename Sorts>
@@ -756,7 +779,7 @@ std::size_t default_sort(std::size_t s) {
 }
 export template <typename P, std::size_t I = 0, typename F>
 auto with_sort(std::size_t s, const F& f) {
-  using Sorts = point_sorts_t<P>;
+  using Sorts = term_sorts_t<P>;
   if constexpr (I + 1 < std::tuple_size_v<Sorts>) {
     if (s == I) return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
     return with_sort<P, I + 1>(s, f);
@@ -777,9 +800,13 @@ constexpr C coordinate_as(unsigned slot, const P& p) {
     }
     throw not_admitted("a slot of another carrier than the term's sort");
   } else {
-    if (slot == 0) return p;
-    throw not_admitted(
-        "π_1 / π_2 name a pair's coordinates; the points are elements");
+    if (slot != 0)
+      throw not_admitted(
+          "π_1 / π_2 name a pair's coordinates; the points are elements");
+    if constexpr (std::same_as<P, C>)
+      return p;
+    else
+      throw not_admitted("a slot of another carrier than the term's sort");
   }
 }
 
@@ -877,9 +904,28 @@ constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   }
   throw not_admitted("the comparison is not admitted on the carrier");
 }
+/** @brief The sort a constant names by itself, at points of @c P: the first
+ *  sort @c C with @c constant_of(type_identity<C>, k) (found by ADL) true,
+ *  for a constant written as a value of @c C (a bool, a Ternary) rather than
+ *  a numeral; @c no_sort otherwise, a numeral taking its context's sort.
+ *  @tparam P the point type.  @param k the constant. */
+export template <typename P, std::size_t I = 0, typename K>
+std::size_t constant_sort(const K& k) {
+  using Sorts = term_sorts_t<P>;
+  if constexpr (I < std::tuple_size_v<Sorts>) {
+    using C = std::tuple_element_t<I, Sorts>;
+    if constexpr (requires { constant_of(std::type_identity<C>{}, k); }) {
+      if (constant_of(std::type_identity<C>{}, k)) return I;
+    }
+    return constant_sort<P, I + 1>(k);
+  } else {
+    return no_sort;
+  }
+}
 /** @brief The sort of a term built at run time at points of @c P, from its
- *  projections: @c no_sort for a tree of constants, which takes its context's.
- *  Defined with @c Term.  @tparam P the point type. */
+ *  projections and its constants of a sort (@c constant_sort): @c no_sort for
+ *  a tree of numerals, which takes its context's.  Defined with @c Term.
+ *  @tparam P the point type. */
 export template <typename P, typename K>
 std::size_t sort_of(const Term<K>& t);
 
@@ -1004,7 +1050,12 @@ struct Value {
     const Term<K>& t;
     template <typename C>
     rt_value_t<P> operator()(std::type_identity<C>) const {
-      return rt_value_t<P>{v.template eval_as<C>(t)};
+      if constexpr (is_sort_of_v<C, point_sorts_t<P>>)
+        return rt_value_t<P>{v.template eval_as<C>(t)};
+      else
+        throw not_admitted(
+            "a truth value is read by a comparison or a former, not as the "
+            "point's value");
     }
   };
   /** @brief The dispatch of a comparison to its operands' sort. */
@@ -1444,7 +1495,7 @@ std::size_t sort_of(const Term<K>& t) {
     case Term<K>::Kind::Proj:
       return slot_sort<P>(t.slot);
     case Term<K>::Kind::Const:
-      return no_sort;
+      return constant_sort<P>(t.value);
     case Term<K>::Kind::Bin:
       return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
     case Term<K>::Kind::Cond:
@@ -1532,6 +1583,76 @@ bool same_shape(const Pred<K>& x, const Pred<K>& y) {
   if (x.kind == Pred<K>::Kind::Cmp)
     return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
   return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);
+}
+
+/** @brief A term with its first conditional taken out: the condition, and
+ *  the term with the conditional replaced by each branch.  @tparam K the
+ *  constants' type. */
+template <typename K>
+struct CondSplit {
+  Pred<K> q;
+  Term<K> then_term, else_term;
+};
+/** @brief The first conditional of @c t, leftmost, split out; @c nullopt for a
+ *  term without one.  @param t the term. */
+template <typename K>
+std::optional<CondSplit<K>> split_cond(const Term<K>& t) {
+  using T = Term<K>;
+  switch (t.kind) {
+    case T::Kind::Proj:
+    case T::Kind::Const:
+      return std::nullopt;
+    case T::Kind::Cond:
+      return CondSplit<K>{*t.p, *t.a, *t.b};
+    case T::Kind::Bin:
+      if (auto l = split_cond(*t.a))
+        return CondSplit<K>{l->q, T::bin(t.op, l->then_term, *t.b),
+                            T::bin(t.op, l->else_term, *t.b)};
+      if (auto r = split_cond(*t.b))
+        return CondSplit<K>{r->q, T::bin(t.op, *t.a, r->then_term),
+                            T::bin(t.op, *t.a, r->else_term)};
+      return std::nullopt;
+  }
+  return std::nullopt;
+}
+export template <typename K>
+Pred<K> lift_conditionals(const Pred<K>& p);
+/** @brief @c (q ∧ x) ∨ (¬q ∧ y), each part lifted.  @param q the condition.
+ *  @param x where it holds.  @param y where it fails. */
+template <typename K>
+Pred<K> by_cases(const Pred<K>& q, const Pred<K>& x, const Pred<K>& y) {
+  return Pred<K>::disj(
+      Pred<K>::conj(lift_conditionals(q), lift_conditionals(x)),
+      Pred<K>::conj(lift_conditionals(q.negated()), lift_conditionals(y)));
+}
+/** @brief The predicate with every conditional lifted out of its atoms:
+ *  @c cond(q, a, b) @c R @c c is @c (q ∧ a R c) ∨ (¬q ∧ b R c), the law of
+ *  McCarthy's conditional, until no atom has one.  The same set at every
+ *  point; an applied set @c ap(S, t) @c == @c ⊤, the conditional
+ *  @c cond(χ_S[π:=t], ⊤, ⊥) compared, becomes @c χ_S[π:=t] once the decided
+ *  atoms are folded (@c algebra:polynomial's @c canonical).  @param p the
+ *  predicate. */
+export template <typename K>
+Pred<K> lift_conditionals(const Pred<K>& p) {
+  using Pr = Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(lift_conditionals(*p.p), lift_conditionals(*p.q));
+    case Pr::Kind::Or:
+      return Pr::disj(lift_conditionals(*p.p), lift_conditionals(*p.q));
+    case Pr::Kind::Cmp:
+      if (auto l = split_cond(*p.a))
+        return by_cases(l->q, Pr::cmp(p.rel, l->then_term, *p.b),
+                        Pr::cmp(p.rel, l->else_term, *p.b));
+      if (auto r = split_cond(*p.b))
+        return by_cases(r->q, Pr::cmp(p.rel, *p.a, r->then_term),
+                        Pr::cmp(p.rel, *p.a, r->else_term));
+      return p;
+  }
+  return p;
 }
 
 /** @section terms__Formal_Verification */

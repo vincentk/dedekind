@@ -242,4 +242,15 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   using Graph = std::remove_cvref_t<decltype(graph)>;
   STATIC_CHECK(dedekind::relational::IsFunctional<Graph>);
   STATIC_CHECK(dedekind::relational::IsEntire<Graph>);  // f total, into K₃
+  // A set is an arrow into Ω: applied to a term, its χ is a term of sort 𝔹,
+  // and the relation it is the second coordinate of is χ's graph.
+  constexpr auto above_five = 𝕎 | (π > 5u);
+  constexpr auto chi = 𝕎 * 𝔸<bool>{} | (π_2 == ap(above_five, π_1));
+  using NB = std::pair<unsigned, bool>;
+  STATIC_CHECK(chi(NB{7u, true}));
+  STATIC_CHECK(chi(NB{2u, false}));
+  STATIC_CHECK(!chi(NB{7u, false}));
+  STATIC_CHECK(!chi(NB{2u, true}));
+  STATIC_CHECK(
+      dedekind::relational::IsFunctional<std::remove_cvref_t<decltype(chi)>>);
 }

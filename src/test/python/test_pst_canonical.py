@@ -9,7 +9,7 @@ verdict, not a Python flag.
 
 import unittest
 
-from dedekind.pst import A, u64, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
+from dedekind.pst import A, ap, u64, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
 
 P = 2**64 - 59
 
@@ -102,7 +102,7 @@ class TheUniverses(unittest.TestCase):
         self.assertIn(-1, F)
         self.assertIn(𝔽ₚ(7), F)
         self.assertNotIn(P - 1, F)  # its representative is -1
-        self.assertFalse(R("5"))
+        self.assertFalse(ap(R, "5"))
         self.assertEqual(R.cardinality, 2**64)
         self.assertEqual(F.cardinality, P)
         self.assertIs(R.carrier, u64)

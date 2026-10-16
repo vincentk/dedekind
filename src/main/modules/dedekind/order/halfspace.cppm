@@ -318,7 +318,9 @@ constexpr Rel converse(Rel r) {
 }
 /** @brief The run list of a predicate built at run time over a chain, in the
  *  @b order @b fragment: the atoms @c π @c ⋈ @c k (and, on a machine word,
- *  @c π @c ± @c c @c ⋈ @c k: the atom's run list translated), under ∧ and ∨.
+ *  @c π @c ± @c c @c ⋈ @c k: the atom's run list translated), under ∧ and ∨,
+ *  a comparison of two constants decided; conditionals lifted first
+ *  (@c lift_conditionals).
  *  The shape is a value, so the run list is materialised piece by piece.  An
  *  atom outside the fragment has no normal form here and is refused.
  *  @tparam V the chain.  @tparam L the species.  @tparam K the constants'
@@ -339,6 +341,10 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
     case P::Kind::Cmp:
       break;
   }
+  // Two constants: the atom names no slot, so its value at any point is its
+  // verdict, read in the sort its constants name.
+  if (p.a->kind == T::Kind::Const && p.b->kind == T::Kind::Const)
+    return p(V{}) ? Runs<V, L>::universe() : ext(~Runs<V, L>::universe());
   // π ⋈ k, or k ⋈ π read as its converse.
   const T* var = p.a.get();
   const T* k = p.b.get();
@@ -421,7 +427,7 @@ struct Steps {
    *  in the order fragment (@c order_fragment), materialised. */
   template <IsTotallyOrdered V, typename C, typename K>
   Runs<V, L> steer(const Comprehension<𝔸<V, L, C>, Pred<K>>& c) const {
-    return order_fragment<V, L>(c.predicate);
+    return order_fragment<V, L>(dedekind::sets::lift_conditionals(c.predicate));
   }
   /** @brief A set brought into this species (@c sets::lift_to): its
    *  predicate's steps, each value lifted along the dominance. */

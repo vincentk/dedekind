@@ -9,7 +9,7 @@ carriers is applied, never implied.  The canonical form is per axis.
 
 import unittest
 
-from dedekind.pst import A, Function, Relation, canonical, u64, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
+from dedekind.pst import A, Function, Relation, ap, canonical, u64, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
@@ -51,12 +51,12 @@ class TwoCarriersInOneRelation(unittest.TestCase):
         self.assertEqual(repr(canonical(N)), repr(N))
         self.assertIn((1, 1), N)
         self.assertEqual(repr(canonical(U * UF | ((π_1 < 5) & (π_2 != π_2)))),
-                         "𝔸(u64) × 𝔸(𝔽ₚ) | (π_1 < 5) & (⊥)")
+                         "𝔸(u64) × 𝔸(𝔽ₚ) | ⊥")  # ⊥ absorbs the meet
 
     def test_a_constant_graph_is_a_function_between_the_carriers(self) -> None:
         f = Function[u64, 𝔽ₚ](U * UF | (π_2 == 1))
-        self.assertEqual(f(5), 𝔽ₚ(1))
-        self.assertIs(f((5, 1)), True)
+        self.assertEqual(ap(f, 5), 𝔽ₚ(1))
+        self.assertIs(ap(f, (5, 1)), True)
         with self.assertRaises(TypeError):
             U * UF | (π_2 == π_1)  # no arrow u64 → 𝔽ₚ is implied
 
