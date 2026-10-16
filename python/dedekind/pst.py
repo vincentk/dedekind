@@ -61,9 +61,10 @@ The canonical ring and field, each as large as a machine word allows::
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
 ``A(carrier) | term`` binds it, casting every constant into the carrier and
 admitting every operator there or refusing it (``TypeError``), all when the
-set is built::
+set is built.  Any two of the four universes multiply, each slot its own sort;
+𝔹 ↪ K₃ is the one coercion, any other two carriers meet through ``ap``::
 
-    from dedekind.pst import A, u64, 𝔽ₚ, B, π, π_1, π_2
+    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, Function, ap, π, π_1, π_2
 
     U = A(u64)
     evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
@@ -75,6 +76,7 @@ set is built::
     F = A(𝔽ₚ)
     third = F * F | (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
     ap(third, (3, 1))                   # True: 3 · 3⁻¹ = 1
+    Function[u64, B](U64 * B | (π_2 == ap(U64 | (π > 5), π_1)))   # χ as a function
     F | (π < 3)                         # TypeError: 𝔽ₚ has no order
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
     B | (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +

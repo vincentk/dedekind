@@ -592,7 +592,9 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
 namespace detail_canonical {
 /** @brief The dispatch of an atom's normal form to its sort: a comparison of
  *  two constants decided in it, any other atom in the polynomials over a
- *  carrier of the points.  @tparam P the point type. */
+ *  carrier of the points where + and · are total on it, and on a carrier
+ *  without them (𝔹, K₃) kept as written: equal forms still cut out equal
+ *  sets, and different ones decide nothing.  @tparam P the point type. */
 template <typename P, typename K, typename Lift>
 struct AtomAt {
   const dedekind::sets::Pred<K>& p;
@@ -611,12 +613,17 @@ struct AtomAt {
                  ? Pr::top()
                  : Pr::bottom();
     }
-    if constexpr (dedekind::sets::is_sort_of_v<
+    if constexpr (!dedekind::sets::is_sort_of_v<
                       C, dedekind::sets::point_sorts_t<P>>)
-      return canonical_atom<C>(p, lift);
-    else
       throw dedekind::sets::not_admitted(
           "no free algebra catalogued for a truth value but its constants");
+    else if constexpr (dedekind::sets::admits(dedekind::sets::On<C>{},
+                                              std::plus<>{}, false) &&
+                       dedekind::sets::admits(dedekind::sets::On<C>{},
+                                              std::multiplies<>{}, false))
+      return canonical_atom<C>(p, lift);
+    else
+      return p;  // a chain without a rig's + ·: the atom is its own form
   }
 };
 /** @brief The normal form of a predicate without conditionals: atom by atom,

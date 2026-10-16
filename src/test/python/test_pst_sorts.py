@@ -9,7 +9,9 @@ carriers is applied, never implied.  The canonical form is per axis.
 
 import unittest
 
-from dedekind.pst import A, Function, Relation, ap, canonical, u64, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
+from dedekind.pst import (
+    A, B, K3, U64, GF_p, Function, Relation, Ternary, ap, canonical, cond, u64, π, π_1, π_2, 𝔽ₚ,  # 𝔽ₚ is Fp (NFKC)
+)
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
@@ -65,6 +67,44 @@ class TwoCarriersInOneRelation(unittest.TestCase):
         self.assertIs(ap(f, (5, 1)), True)
         with self.assertRaises(TypeError):
             U * UF | (π_2 == π_1)  # no arrow u64 → 𝔽ₚ is implied
+
+
+
+class EveryPairOfCarriers(unittest.TestCase):
+    """The four universes, B, K3, U64 and GF_p, pairwise: each product a
+    relation's universe, each slot its own sort."""
+
+    def test_every_ordered_pair_is_a_product(self) -> None:
+        names = ((U64, "𝔸(u64)"), (GF_p, "𝔸(𝔽ₚ)"), (B, "𝔹"), (K3, "K₃"))
+        for a, x in names:
+            for b, y in names:
+                self.assertEqual(repr(a * b), f"{x} × {y}")
+                self.assertEqual((a * b).codomain, B)
+
+    def test_a_function_across_carriers(self) -> None:
+        # A set is an arrow into 𝔹: applied to π_1, it is the graph of χ.
+        chi = Function[u64, B](U64 * B | (π_2 == ap(U64 | (π > 5), π_1)))
+        self.assertIs(ap(chi, 7), True)
+        self.assertIs(ap(chi, 2), False)
+        self.assertIs(ap(chi, (7, True)), True)
+        self.assertIs(ap(chi, (7, False)), False)
+        # Into K₃: ⊤ past 5, Unknown at or below.
+        k = U64 * K3 | (π_2 == cond(π_1 > 5, Ternary.TRUE, Ternary.UNKNOWN))
+        self.assertIsInstance(k, Function[u64, K3])
+        self.assertEqual(ap(k, 2), Ternary.UNKNOWN)
+        self.assertEqual(ap(k, 9), Ternary.TRUE)
+        # Back from 𝔹 to the field: the graph of b ↦ cond(b, 1, 0).
+        one_hot = Function[B, 𝔽ₚ](B * GF_p | (π_2 == cond(π_1 == True, 1, 0)))  # noqa: E712
+        self.assertEqual(ap(one_hot, True), 𝔽ₚ(1))
+        with self.assertRaises(TypeError):
+            Function[u64, B](U64 * B | (π_2 == π_1))  # a word is no truth value
+
+    def test_the_truth_chains_meet_in_k3(self) -> None:
+        same = B * K3 | (π_1 == π_2)  # 𝔹 ↪ K₃, the one coercion
+        self.assertIn((True, Ternary.TRUE), same)
+        self.assertIn((False, Ternary.FALSE), same)
+        self.assertNotIn((True, Ternary.UNKNOWN), same)
+        self.assertIsInstance(same, Relation[B, K3])
 
 
 if __name__ == "__main__":

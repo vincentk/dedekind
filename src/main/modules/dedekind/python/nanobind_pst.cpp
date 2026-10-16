@@ -655,6 +655,10 @@ Fp to_fp(nb::handle h) {
   return residue_of(h);
 }
 
+/** @brief A point of 𝔹 or K₃ out of a Python value: a bool, a Ternary. */
+bool to_bool(nb::handle h) { return from_py_as<bool>(h); }
+Ternary to_ternary(nb::handle h) { return from_py_as<Ternary>(h); }
+
 /** @brief The relations a term cuts out of a product of two universes,
  *  @c 𝔸(C₁) @c * @c 𝔸(C₂) @c | @c pred: each slot has its carrier's sort, an
  *  atom is read in its operands' common sort, and a term mixing the two
@@ -664,13 +668,14 @@ Fp to_fp(nb::handle h) {
  *  @tparam To1,To2 a Python value into each. */
 template <typename C1, typename C2, typename To1, typename To2>
 void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
-                   const char* name1, const char* name2, To1 to1, To2 to2) {
+                   const char* name1, const char* name2, nb::object factor1,
+                   nb::object factor2, To1 to1, To2 to2) {
   using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
   using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
   using UU = decltype(U1{} * U2{});
   using R = decltype(UU{} | std::declval<RPred>());
   using Point = std::pair<C1, C2>;
-  const std::string shown = std::string("𝔸(") + name1 + ") × 𝔸(" + name2 + ")";
+  const std::string shown = std::string(name1) + " × " + name2;
   const auto pair_of = [to1, to2](nb::handle h) {
     if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
       throw nb::type_error("a point of the product is a pair (x, y)");
@@ -682,11 +687,12 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       return static_cast<bool>(s(pair_of(h)));
     } catch (const nb::builtin_exception&) {
       return false;  // not a representative: not a member
+    } catch (const nb::cast_error&) {
+      return false;  // not a value of the carrier
     }
   };
-  const auto factors = []() {
-    return nb::make_tuple(nb::cast(U1{}).attr("carrier"),
-                          nb::cast(U2{}).attr("carrier"));
+  const auto factors = [factor1, factor2]() {
+    return nb::make_tuple(factor1, factor2);
   };
   m.def(
       "canonical",
@@ -789,8 +795,7 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
 template <typename C, typename ToC>
 void bind_term_sets(nb::module_& m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
-                    const char* name, const char* set_cls, const char* pair_cls,
-                    const char* rel_cls, ToC to_c) {
+                    const char* name, const char* set_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
   using S = Comprehension<U, RPred>;
   const std::string shown = std::string("𝔸(") + name + ")";
@@ -815,9 +820,6 @@ void bind_term_sets(nb::module_& m,
                                      .c_str());
           },
           nb::is_operator())
-      .def(
-          "__mul__", [](const U& a, const U& b) { return a * b; },
-          nb::is_operator(), "𝔸 × 𝔸: the product universe.")
       .def_prop_ro(
           "codomain", [m](const U&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹 (the universe's χ is constant ⊤).");
@@ -1048,7 +1050,6 @@ void bind_term_sets(nb::module_& m,
           return value;
         });
   }
-  bind_relation<C, C>(m, pair_cls, rel_cls, name, name, to_c, to_c);
 }
 // ── The sets of the grammar ───────────────────────────────────────────────
 
@@ -1336,6 +1337,24 @@ struct Forall {
     return s == former_runtime(s, p);  // S ⊆ P
   }
 };
+/** @brief The product @c A(C₁) @c × @c A(C₂) of two universes: the left
+ *  universe's @c * with the right one, and the relations a term cuts out of
+ *  it.  One instantiation per ordered pair of carriers.  @tparam C1,C2 the
+ *  carriers.  @tparam PyU2 the right universe's Python type. */
+template <typename C1, typename C2, typename PyU2, typename PyU1, typename To1,
+          typename To2>
+void bind_product(nb::module_& m, nb::class_<PyU1>& left, const char* pair_cls,
+                  const char* rel_cls, const char* name1, const char* name2,
+                  nb::object factor1, nb::object factor2, To1 to1, To2 to2) {
+  using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
+  using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
+  left.def(
+      "__mul__", [](const PyU1&, const PyU2&) { return U1{} * U2{}; },
+      nb::is_operator(),
+      "A × B: the product universe, each slot its own sort.");
+  bind_relation<C1, C2>(m, pair_cls, rel_cls, name1, name2, factor1, factor2,
+                        to1, to2);
+}
 }  // namespace
 
 NB_MODULE(_pst, m) {
@@ -1802,21 +1821,58 @@ NB_MODULE(_pst, m) {
   // ── the term surface on the canonical universes and the truth chains ──
   m.attr("U64") = 𝔸<uint64_t, Boole, dedekind::sets::Finite>{};
   m.attr("GF_p") = 𝔸<Fp, Boole, dedekind::sets::Finite>{};
-  bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
-                           "U64Relation", to_word);
-  bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", to_fp);
-  // Products of the two carriers: each slot its own sort.
+  bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", to_word);
+  bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", to_fp);
+
+  // ── products: every ordered pair of the four carriers ──
+  // Each slot has its own sort, and a relation is a predicate on the pairs.
+  // One class per ordered pair, so k carriers make k² relation classes: the
+  // typed baseline a schema-carrying relation would replace.
   using U64 = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
   using UFp = 𝔸<Fp, Boole, dedekind::sets::Finite>;
-  universe_u64.def(
-      "__mul__", [](const U64& a, const UFp& b) { return a * b; },
-      nb::is_operator(), "𝔸(u64) × 𝔸(𝔽ₚ): the product of two carriers.");
-  universe_fp.def(
-      "__mul__", [](const UFp& a, const U64& b) { return a * b; },
-      nb::is_operator(), "𝔸(𝔽ₚ) × 𝔸(u64): the product of two carriers.");
-  bind_relation<uint64_t, Fp>(m, "UniverseU64FpPair", "U64FpRelation", "u64",
-                              "𝔽ₚ", to_word, to_fp);
-  bind_relation<Fp, uint64_t>(m, "UniverseFpU64Pair", "FpU64Relation", "𝔽ₚ",
-                              "u64", to_fp, to_word);
+  using UB = pst::Chain<bool>;
+  using UK = pst::Chain<Ternary>;
+  const nb::object fB = m.attr("B"), fK = m.attr("K3");
+  bind_product<uint64_t, uint64_t, U64>(m, universe_u64, "UniverseU64U64Pair",
+                                        "U64U64Relation", "𝔸(u64)", "𝔸(u64)",
+                                        u64_type, u64_type, to_word, to_word);
+  bind_product<uint64_t, Fp, UFp>(m, universe_u64, "UniverseU64FpPair",
+                                  "U64FpRelation", "𝔸(u64)", "𝔸(𝔽ₚ)", u64_type,
+                                  fp_type, to_word, to_fp);
+  bind_product<uint64_t, bool, UB>(m, universe_u64, "UniverseU64BPair",
+                                   "U64BRelation", "𝔸(u64)", "𝔹", u64_type, fB,
+                                   to_word, to_bool);
+  bind_product<uint64_t, Ternary, UK>(m, universe_u64, "UniverseU64K3Pair",
+                                      "U64K3Relation", "𝔸(u64)", "K₃", u64_type,
+                                      fK, to_word, to_ternary);
+  bind_product<Fp, uint64_t, U64>(m, universe_fp, "UniverseFpU64Pair",
+                                  "FpU64Relation", "𝔸(𝔽ₚ)", "𝔸(u64)", fp_type,
+                                  u64_type, to_fp, to_word);
+  bind_product<Fp, Fp, UFp>(m, universe_fp, "UniverseFpFpPair", "FpFpRelation",
+                            "𝔸(𝔽ₚ)", "𝔸(𝔽ₚ)", fp_type, fp_type, to_fp, to_fp);
+  bind_product<Fp, bool, UB>(m, universe_fp, "UniverseFpBPair", "FpBRelation",
+                             "𝔸(𝔽ₚ)", "𝔹", fp_type, fB, to_fp, to_bool);
+  bind_product<Fp, Ternary, UK>(m, universe_fp, "UniverseFpK3Pair",
+                                "FpK3Relation", "𝔸(𝔽ₚ)", "K₃", fp_type, fK,
+                                to_fp, to_ternary);
+  bind_product<bool, uint64_t, U64>(m, chain_b, "UniverseBU64Pair",
+                                    "BU64Relation", "𝔹", "𝔸(u64)", fB, u64_type,
+                                    to_bool, to_word);
+  bind_product<bool, Fp, UFp>(m, chain_b, "UniverseBFpPair", "BFpRelation", "𝔹",
+                              "𝔸(𝔽ₚ)", fB, fp_type, to_bool, to_fp);
+  bind_product<bool, bool, UB>(m, chain_b, "UniverseBBPair", "BBRelation", "𝔹",
+                               "𝔹", fB, fB, to_bool, to_bool);
+  bind_product<bool, Ternary, UK>(m, chain_b, "UniverseBK3Pair", "BK3Relation",
+                                  "𝔹", "K₃", fB, fK, to_bool, to_ternary);
+  bind_product<Ternary, uint64_t, U64>(m, chain_k3, "UniverseK3U64Pair",
+                                       "K3U64Relation", "K₃", "𝔸(u64)", fK,
+                                       u64_type, to_ternary, to_word);
+  bind_product<Ternary, Fp, UFp>(m, chain_k3, "UniverseK3FpPair",
+                                 "K3FpRelation", "K₃", "𝔸(𝔽ₚ)", fK, fp_type,
+                                 to_ternary, to_fp);
+  bind_product<Ternary, bool, UB>(m, chain_k3, "UniverseK3BPair", "K3BRelation",
+                                  "K₃", "𝔹", fK, fB, to_ternary, to_bool);
+  bind_product<Ternary, Ternary, UK>(m, chain_k3, "UniverseK3K3Pair",
+                                     "K3K3Relation", "K₃", "K₃", fK, fK,
+                                     to_ternary, to_ternary);
 }
