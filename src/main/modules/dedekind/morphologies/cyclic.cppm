@@ -46,6 +46,7 @@ module;
 export module dedekind.morphologies:cyclic;
 
 import dedekind.category;
+import dedekind.sets;    // 𝔸: GF_p, the field's universe
 import dedekind.algebra; // quotient_congruence / IsCongruenceQuotient (H-leg)
 import :archimedean;  // for IsCyclic / IsCyclicRing concepts (audit witnesses)
 
@@ -751,6 +752,10 @@ namespace dedekind::morphologies {
  *  @f$p = 2^{64} - 59@f$, the largest prime below @f$2^{64}@f$.  The field
  *  beside the ring @c std::uint64_t @f$= \mathbb{Z}/2^{64}@f$. */
 export using 𝔽ₚ = Modular<18446744073709551557ull>;
+/** @brief @c GF_p --- the universe over the field, @c 𝔸<𝔽ₚ>{}: the twin of
+ *  Python's @c GF_p (@c A(𝔽ₚ)), named for the Galois field GF(p). */
+export inline constexpr auto GF_p =
+    dedekind::sets::𝔸<𝔽ₚ, dedekind::category::Boole, dedekind::sets::Finite>{};
 
 static_assert(
     is_prime(2) && is_prime(7) && !is_prime(1) && !is_prime(6) &&

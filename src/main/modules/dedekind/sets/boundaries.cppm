@@ -44,6 +44,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <cstddef>  // std::size_t (emptiness-by-size overload)
+#include <cstdint>  // u64, the machine word
 #include <functional>
 #include <limits>
 #include <ranges>   // std::ranges::range (emptiness-by-size overload)
@@ -790,6 +791,18 @@ static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>
  *  @c 𝔹 @c | @c π @c == @c true.
  */
 export inline constexpr auto 𝔹 = 𝔸<bool>{};
+
+/** @brief @c u64 --- the machine word, the carrier of the ring ℤ/2⁶⁴, named as
+ *  the Python surface names it. */
+export using u64 = std::uint64_t;
+/** @brief @c U64 --- the universe over the word, @c 𝔸<u64>{}: finite by
+ *  representation, the twin of Python's @c U64 (@c A(u64)). */
+export inline constexpr auto U64 = 𝔸<u64, Boole, Finite>{};
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(U64)>::Domain, u64> &&
+        std::same_as<std::remove_cvref_t<decltype(U64)>::cardinality_type,
+                     Finite>,
+    "U64 is the universe over the word, finite by representation.");
 
 // The canonical witnesses for 𝔹; downstream partitions build on these rather
 // than re-proving them.

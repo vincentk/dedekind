@@ -30,9 +30,9 @@ class Sets(unittest.TestCase):
         self.assertNotIsInstance(S, Set[𝔽ₚ])
         with self.assertRaises(TypeError):
             Set[𝔽ₚ](S)
-        self.assertIsInstance(A(K3) | (π > F), Set[K3])
+        self.assertIsInstance(K3 | (π > F), Set[K3])
         self.assertIsInstance(K3.identity, Set[K3])
-        self.assertNotIsInstance(A(K3) | (π > F), Set[B])
+        self.assertNotIsInstance(K3 | (π > F), Set[B])
         self.assertEqual(repr(Set[u64]), "Set[u64]")
 
     def test_a_relation_is_not_a_set_of_its_factor(self) -> None:
@@ -45,7 +45,7 @@ class ASetIsAFunction(unittest.TestCase):
         S = U | (π > 3)
         self.assertIs(Function[u64, B](S), S)  # χ : u64 → 𝔹
         self.assertEqual(S(4), True)
-        self.assertIsInstance(A(K3) | (π > F), Function[K3, B])  # decidable over K₃
+        self.assertIsInstance(K3 | (π > F), Function[K3, B])  # decidable over K₃
         self.assertIsInstance(K3.identity, Function[K3, K3])  # K₃-valued over K₃
         with self.assertRaises(TypeError):
             Function[u64, K3](S)  # its χ is 𝔹-valued

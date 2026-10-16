@@ -9,12 +9,14 @@
  * @section Description
  * @f$\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}@f$ (paper §3), bound as
  * the private native extension @c dedekind._pst (re-exported by
- * @c dedekind.pst).  The @b chains @c B (𝔹), @c K3 (Kleene's three) and @c N
- * (ℕ's proxy, ⊤ = ℵ₀) are handles over the real carriers: endpoints, the step
- * in both readings, the order, their classification, and the unfold by the
- * cover.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv grammar:
- * generators
- * @c 𝔸(chain) / @c Ø(chain) / @c η(v), the former @c S @c | @c (π @c > @c v),
+ * @c dedekind.pst).  A @b universe is @c A(T), the set of every value of a
+ * carrier type: @c B @c = @c A(bool) and @c K3 @c = @c A(Ternary), the
+ * universes over the two truth chains, carry the chain's order (endpoints, the
+ * step in both readings, the order, the classification, the unfold by the
+ * cover); @c U64 @c = @c A(u64) and @c GF_p @c = @c A(𝔽ₚ) are the ring's and
+ * the field's.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv
+ * grammar: generators
+ * @c A(T) / @c Ø(T) / @c η(v), the former @c U @c | @c (π @c > @c v),
  * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c S(x), the
  * queries @c == and @c <= answering in the set's own species (@c Unknown is a
  * verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
@@ -56,7 +58,7 @@ import dedekind.algebra;      // a field's division: the term grammar's rule
 import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
 import dedekind.order;        // IsDense
 import dedekind.sequences;    // the chains' orbit
-import dedekind.sets;         // Cardinality, ℵ_0, finite_cardinality
+import dedekind.sets;         // Cardinality, finite_cardinality
 
 namespace nb = nanobind;
 
@@ -84,22 +86,20 @@ using dedekind::order::steps;
 using dedekind::order::operator|;
 using dedekind::sets::Cardinality;
 using dedekind::sets::finite_cardinality;
-using dedekind::sets::ℵ_0;
 using dedekind::sets::𝔸;
 
 // ── Pst: the bounded chains (#1001, paper §3) ────────────────────────────────
 //
-// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), and
-// ℕ's proxy, a bounded chain in the same shape whose ⊤ is ℵ₀ (the memory
-// boundary), not a truth object.  A chain is its endpoints and its step; the
-// step is read twice --- total and saturating (the algebra side, @c Successor)
-// and partial (the coalgebra side, @c cover, nothing at ⊤) --- and the chain's
-// classification is whatever the C++ concepts decide.
+// Pst := Jlt ∩ Chain: the truth objects the sets are valued in (𝔹, K₃), whose
+// universes carry the chain's order.  A chain is its endpoints and its step;
+// the step is read twice --- total and saturating (the algebra side, @c
+// Successor) and partial (the coalgebra side, @c cover, nothing at ⊤) --- and
+// the chain's classification is whatever the C++ concepts decide.
 namespace pst {
 
-/** @brief A Pst chain by carrier: its name, endpoints and size.  The truth
- *  chains take their endpoints from their species (@c sets:boundaries); ℕ's
- *  proxy has ℵ₀ for its top.  @tparam C the carrier. */
+/** @brief A truth chain's universe by carrier: its name, endpoints and size,
+ *  the endpoints from the species (@c sets:boundaries).  @tparam C the
+ *  carrier. */
 template <typename C>
 struct Chain;
 template <>
@@ -116,13 +116,6 @@ struct Chain<Ternary> {
   static constexpr Ternary top = dedekind::sets::chain_top<Ternary>();
   static constexpr Cardinality cardinality = finite_cardinality(3);
 };
-template <>
-struct Chain<Cardinality> {
-  static constexpr const char* name = "ℕ";
-  static constexpr Cardinality bottom = finite_cardinality(0);
-  static constexpr Cardinality top = Cardinality{ℵ_0{}};
-  static constexpr Cardinality cardinality = top;
-};
 
 /** @brief Whether @f$S(\top) = \top@f$: the step's posture at the top.
  *  @tparam C the carrier. */
@@ -131,11 +124,9 @@ constexpr bool saturates() {
   return Successor<C>{}(Chain<C>::top) == Chain<C>::top;
 }
 
-static_assert(IsPst<bool> && IsPst<Ternary> && !IsPst<Cardinality>,
-              "𝔹 and K₃ are truth objects; ℕ is a chain of the same shape.");
-static_assert(saturates<bool>() && saturates<Ternary>() &&
-                  saturates<Cardinality>(),
-              "the three chains saturate at ⊤.");
+static_assert(IsPst<bool> && IsPst<Ternary>, "𝔹 and K₃ are truth objects.");
+static_assert(saturates<bool>() && saturates<Ternary>(),
+              "the two chains saturate at ⊤.");
 
 // A Python set over a truth chain is a run list (order:runs) valued in its
 // species: the normal form of every set the grammar builds, materialised.
@@ -164,34 +155,17 @@ Set<C, Boole> cut(const Set<C, L>& s, typename L::Ω level) {
 
 }  // namespace pst
 
-/** @brief ℕ's elements cross the boundary as Python @c int, its top as the one
- *  @c aleph0 object. */
+/** @brief A finite chain's size as a Python @c int. */
 nb::object to_py_cardinality(const Cardinality& c) {
-  if (std::holds_alternative<ℵ_0>(c)) return nb::cast(ℵ_0{});
   return nb::int_(std::get<dedekind::sets::ExtensionalCardinal<>>(c).value);
-}
-Cardinality from_py_cardinality(nb::handle h) {
-  if (nb::isinstance<ℵ_0>(h)) return Cardinality{ℵ_0{}};
-  if (nb::isinstance<nb::int_>(h)) {
-    const auto v = nb::cast<long long>(h);
-    if (v < 0) throw nb::value_error("ℕ has no negative elements");
-    return dedekind::sets::finite_cardinality(static_cast<std::size_t>(v));
-  }
-  throw nb::type_error("an element of ℕ is an int or aleph0");
 }
 template <typename C>
 nb::object to_py(const C& x) {
-  if constexpr (std::same_as<C, Cardinality>)
-    return to_py_cardinality(x);
-  else
-    return nb::cast(x);
+  return nb::cast(x);
 }
 template <typename C>
 C from_py_as(nb::handle h) {
-  if constexpr (std::same_as<C, Cardinality>)
-    return from_py_cardinality(h);
-  else
-    return nb::cast<C>(h);
+  return nb::cast<C>(h);
 }
 
 /** @brief The written form of a truth value: ⊥, U, ⊤. */
@@ -236,7 +210,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           "⊥, the least element.")
       .def_prop_ro(
           "top", [](const Ch&) { return to_py<C>(Ch::top); },
-          "⊤, the greatest element (ℵ₀ on ℕ, a limit).")
+          "⊤, the greatest element.")
       .def(
           "succ",
           [](const Ch&, nb::handle x) {
@@ -249,8 +223,7 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           [](const Ch&, nb::handle x) {
             return to_py<C>(Predecessor<C>{}(from_py_as<C>(x)));
           },
-          nb::arg("x"),
-          "P(x): the predecessor, total and saturating at ⊥ (the monus on ℕ).")
+          nb::arg("x"), "P(x): the predecessor, total and saturating at ⊥.")
       .def(
           "cover",
           [](const Ch&, nb::handle x) -> nb::object {
@@ -290,41 +263,30 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       .def(
           "__getitem__",
           [](const Ch&, long long i) {
-            if constexpr (std::same_as<C, Cardinality>) {
-              if (i < 0) throw nb::index_error("ℕ has no end to count from");
-              return to_py<C>(
-                  dedekind::sequences::SuccessorOrbit<C>{Ch::bottom}.at(
-                      static_cast<std::size_t>(i)));
-            } else {
-              const auto n = static_cast<long long>(
-                  std::get<dedekind::sets::ExtensionalCardinal<>>(
-                      Ch::cardinality)
-                      .value);
-              if (i < 0) i += n;
-              if (i < 0 || i >= n)
-                throw nb::index_error("position outside the chain");
-              return to_py<C>(
-                  dedekind::sequences::SuccessorOrbit<C>{Ch::bottom}.at(
-                      static_cast<std::size_t>(i)));
-            }
+            const auto n = static_cast<long long>(
+                std::get<dedekind::sets::ExtensionalCardinal<>>(Ch::cardinality)
+                    .value);
+            if (i < 0) i += n;
+            if (i < 0 || i >= n)
+              throw nb::index_error("position outside the chain");
+            return to_py<C>(
+                dedekind::sequences::SuccessorOrbit<C>{Ch::bottom}.at(
+                    static_cast<std::size_t>(i)));
           },
           nb::arg("i"),
-          "C[i]: the element at position i from ⊥, the chain as its own "
-          "enumeration (pandas' .iloc, not .loc): K3[1] is UNKNOWN, N[i] is i.")
+          "U[i]: the element at position i from ⊥, the universe as its own "
+          "enumeration (pandas' .iloc, not .loc): K3[1] is UNKNOWN.")
       .def(
           "__len__",
           [](const Ch&) -> std::size_t {
-            if constexpr (std::same_as<C, Cardinality>)
-              throw nb::type_error("ℵ₀ is not a Python int (see cardinality)");
-            else
-              return std::get<dedekind::sets::ExtensionalCardinal<>>(
-                         Ch::cardinality)
-                  .value;
+            return std::get<dedekind::sets::ExtensionalCardinal<>>(
+                       Ch::cardinality)
+                .value;
           },
           "The number of elements of a finite chain.")
       .def(
           "__eq__", [](const Ch&, const Ch&) { return true; },
-          nb::is_operator(), "One chain per carrier: equal to itself.")
+          nb::is_operator(), "One universe per carrier: equal to itself.")
       .def("__hash__", [](const Ch&) { return nb::hash(nb::str(Ch::name)); })
       .def("__repr__", [](const Ch&) { return std::string(Ch::name); });
 }
@@ -1070,7 +1032,7 @@ void bind_term_sets(nb::module_& m,
 }
 // ── The sets of the grammar ───────────────────────────────────────────────
 
-/** @brief The species tags a universe is valued in: @c 𝔸(K3, Kleene). */
+/** @brief The species tags a universe is valued in: @c A(Ternary, Kleene). */
 struct BooleTag {};
 struct KleeneTag {};
 
@@ -1175,7 +1137,7 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
          "S(x): χ(x) at an element, in the set's species.  S(t) at a term: χ "
          "as "
          "a term of the grammar with π replaced by t; a decidable set's run "
-         "predicate (so A(K3) | S(π) is S), an L-valued set's conditional over "
+         "predicate (so K3 | S(π) is S), an L-valued set's conditional over "
          "its α-cuts, cond(χ ≥ ⊤, ⊤, cond(χ ≥ U, U, ⊥)), compared on the chain "
          "(H(π) >= level the cut, H(π) == level the fibre).")
       .def(
@@ -1232,25 +1194,73 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
   return set;
 }
 
-/** @brief Sugar on a truth chain: the grammar's sets with the chain as the
- *  universe, @c K3.above(U) for @c 𝔸(K3) @c | @c (π @c > @c U). */
+/** @brief A truth chain's universe as a set: the former @c U @c | @c pred,
+ *  membership (every element of the carrier), its codomain, the set
+ *  operations against the sets over it (the universe is their top), and
+ *  @c identity, the set whose χ is the identity.  The chain's order data (⊥, ⊤,
+ *  the step, iteration) are the universe's own (@c bind_chain).  @tparam C the
+ *  carrier. */
 template <typename C>
-void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
+void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
   using Ch = pst::Chain<C>;
-  // {x | x ⋈ v}: the former on the universe, the predicate built here.
-  const auto ray = [](Rel r) {
-    return [r](const Ch&, nb::handle v) {
-      return former_runtime(
-          pst::Set<C, Boole>::universe(),
-          RPred::cmp(r, RTerm::proj(0), RTerm::constant(PyConst{v})));
-    };
-  };
-  ch.def_prop_ro(
-        "all", [](const Ch&) { return pst::Set<C, Boole>::universe(); },
-        "𝔸: the universe, every element.")
+  using S = pst::Set<C, Boole>;
+  ch.def(
+        "__or__",
+        [](const Ch&, const RPred& p) {
+          return former_runtime(S::universe(), p);
+        },
+        nb::is_operator(),
+        "U | pred: the former; every operator and constant is checked on the "
+        "chain now.")
+      .def(
+          "__or__",
+          [](const Ch&, const RTerm& t) -> S {
+            throw nb::type_error(("U | " + show(t) +
+                                  ": a term is not a predicate; compare it "
+                                  "(t == top, t >= level)")
+                                     .c_str());
+          },
+          nb::is_operator())
+      .def(
+          "__or__",
+          [](const Ch&, const S& b) { return ext(S::universe() | b); },
+          nb::is_operator(), "U | S: the join, U itself.")
+      .def(
+          "__and__",
+          [](const Ch&, const S& b) { return ext(S::universe() & b); },
+          nb::is_operator(), "U & S: the meet, S itself.")
+      .def(
+          "__xor__",
+          [](const Ch&, const S& b) { return ext(S::universe() ^ b); },
+          nb::is_operator(), "U ^ S: the symmetric difference, ~S.")
+      .def(
+          "__invert__", [](const Ch&) { return S::empty(); },
+          "~U: the empty set.")
+      .def(
+          "__eq__",
+          [](const Ch&, const S& b) { return nb::cast(S::universe() == b); },
+          nb::is_operator(), "U == S: whether S is every element.")
+      .def(
+          "__contains__",
+          [](const Ch&, nb::handle x) {
+            try {
+              (void)from_py_as<C>(x);
+              return true;
+            } catch (const nb::builtin_exception&) {
+              return false;
+            }
+          },
+          nb::arg("x"), "x in U: whether x is an element of the carrier.")
+      .def(
+          "__call__",
+          [](const Ch&, nb::handle x) {
+            (void)from_py_as<C>(x);
+            return true;
+          },
+          nb::arg("x"), "χ(x) = ⊤: the universe holds every element.")
       .def_prop_ro(
-          "none", [](const Ch&) { return pst::Set<C, Boole>::empty(); },
-          "Ø: the empty set.")
+          "codomain", [m](const Ch&) { return m.attr("B"); },
+          "The chain χ is valued in: 𝔹.")
       .def_prop_ro(
           "identity",
           [](const Ch&) {
@@ -1258,24 +1268,19 @@ void bind_chain_sets(nb::class_<pst::Chain<C>>& ch) {
                 dedekind::order::IdentitySteps<C>{});
           },
           "χ(x) = x, valued in the chain's own species: the simplest set with "
-          "every level inhabited.")
-      .def("above", ray(Rel::Gt), nb::arg("v"),
-           "{x | x > v}: 𝔸(chain) | (π > v).")
-      .def("at_least", ray(Rel::Ge), nb::arg("v"), "{x | x >= v}.")
-      .def("below", ray(Rel::Lt), nb::arg("v"), "{x | x < v}.")
-      .def("at_most", ray(Rel::Le), nb::arg("v"), "{x | x <= v}.")
-      .def(
-          "point",
-          [](const Ch&, nb::handle v) {
-            return pst::point<C>(from_py_as<C>(v));
-          },
-          nb::arg("v"), "{v}: η(v).");
+          "every level inhabited.");
 }
 
 /** @brief Dispatch a (set, predicate) pair to a query: the predicate is bound
  *  to the set's chain and read there. */
 template <typename Query>
-nb::object on_set_and_pred(nb::handle s, nb::handle p, const char* what) {
+nb::object on_set_and_pred(nb::handle s0, nb::handle p, const char* what) {
+  // A universe is its full run list.
+  nb::object s = nb::borrow(s0);
+  if (nb::isinstance<pst::Chain<bool>>(s0))
+    s = nb::cast(pst::Set<bool, Boole>::universe());
+  else if (nb::isinstance<pst::Chain<Ternary>>(s0))
+    s = nb::cast(pst::Set<Ternary, Boole>::universe());
   if (nb::isinstance<RPred>(p)) {
     const RPred pred = nb::cast<RPred>(p);
     if (nb::isinstance<pst::Set<bool, Boole>>(s))
@@ -1326,37 +1331,26 @@ NB_MODULE(_pst, m) {
     }
   });
   m.doc() =
-      "Pst (paper §3): Pst = Jlt ∩ Chain.  The chains B (𝔹), K3 (Kleene's "
-      "three truth values) and N (ℕ's proxy, ⊤ = ℵ₀), and the sets over 𝔹 and "
-      "K₃ per the Lwv grammar: A(chain) | (π > v), Ø(chain), η(v), the lattice "
-      "& | ^ ~, membership x in S / S(x), the queries == and <= in the set's "
-      "species, exists / forall (any / all), and runs, the normal form.  Every "
-      "handle is a run list, the library's normal form of these sets; every "
-      "query is decided in C++ on it.";
+      "Pst (paper §3): Pst = Jlt ∩ Chain.  The universes B = A(bool), K3 = "
+      "A(Ternary), U64 = A(u64), GF_p = A(𝔽ₚ), and the sets over them per the "
+      "Lwv grammar: U | (π > v), Ø(T), η(v), the lattice & | ^ ~, membership "
+      "x in S / S(x), the queries == and <= in the set's species, exists / "
+      "forall (any / all), and canonical, the normal form.  Every query is "
+      "decided in C++.";
 
   nb::enum_<Ternary>(m, "Ternary", "Kleene's three truth values, a chain.")
       .value("FALSE", Ternary::False)
       .value("UNKNOWN", Ternary::Unknown)
       .value("TRUE", Ternary::True);
-  nb::class_<ℵ_0>(m, "Aleph0",
-                  "ℵ₀, the top of ℕ's proxy: the countable "
-                  "cardinal, the memory boundary.")
-      .def("__repr__", [](const ℵ_0&) { return std::string("ℵ₀"); })
-      .def(
-          "__eq__", [](const ℵ_0&, const ℵ_0&) { return true; },
-          nb::is_operator())
-      .def("__hash__", [](const ℵ_0&) { return 0; });
-  m.attr("aleph0") = ℵ_0{};
 
-  auto chain_b =
-      bind_chain<bool>(m, "ChainB", "ChainBIter",
-                       "𝔹 = {False < True}: the two-element truth chain.");
+  auto chain_b = bind_chain<bool>(
+      m, "UniverseB", "UniverseBIter",
+      "𝔹 = A(bool): the universe over {False < True}, the two-element truth "
+      "chain.");
   auto chain_k3 = bind_chain<Ternary>(
-      m, "ChainK3", "ChainK3Iter",
-      "K₃ = {FALSE < UNKNOWN < TRUE}: Kleene's truth chain.");
-  bind_chain<Cardinality>(
-      m, "ChainN", "ChainNIter",
-      "ℕ's proxy: 0 < 1 < 2 < … < ℵ₀, a bounded chain whose top is a limit.");
+      m, "UniverseK3", "UniverseK3Iter",
+      "K₃ = A(Ternary): the universe over {FALSE < UNKNOWN < TRUE}, Kleene's "
+      "truth chain.");
 
   // ── the sets of the grammar ──
   nb::class_<BooleTag>(m, "SpeciesBoole",
@@ -1366,18 +1360,29 @@ NB_MODULE(_pst, m) {
   m.attr("Boole") = BooleTag{};
   m.attr("Kleene") = KleeneTag{};
 
-  bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
+  auto set_b = bind_set<bool, Boole>(m, "SetB", "A set over 𝔹, valued in 𝔹.");
   auto set_k3 = bind_set<Ternary, Boole>(
       m, "SetK3", "A set over K₃, valued in 𝔹 (decidable).");
   auto set_k3_kleene = bind_set<Ternary, Kleene>(
       m, "SetK3Kleene", "A set over K₃, valued in K₃: Unknown is a level.");
   bind_mixed<Ternary, Boole, Kleene>(set_k3);
   bind_mixed<Ternary, Kleene, Boole>(set_k3_kleene);
-  bind_chain_sets<bool>(chain_b);
-  bind_chain_sets<Ternary>(chain_k3);
+  // The universes over the truth chains: 𝔹 = A(bool), K₃ = A(Ternary).  A
+  // universe stands where a set over it is expected: it is the full run list.
   m.attr("B") = pst::Chain<bool>{};
   m.attr("K3") = pst::Chain<Ternary>{};
-  m.attr("N") = pst::Chain<Cardinality>{};
+  bind_universe<bool>(m, chain_b);
+  bind_universe<Ternary>(m, chain_k3);
+  set_b.def(
+      "__init__", [](pst::Set<bool, Boole>* self, const pst::Chain<bool>&) {
+        new (self) pst::Set<bool, Boole>(pst::Set<bool, Boole>::universe());
+      });
+  set_k3.def("__init__", [](pst::Set<Ternary, Boole>* self,
+                            const pst::Chain<Ternary>&) {
+    new (self) pst::Set<Ternary, Boole>(pst::Set<Ternary, Boole>::universe());
+  });
+  nb::implicitly_convertible<pst::Chain<bool>, pst::Set<bool, Boole>>();
+  nb::implicitly_convertible<pst::Chain<Ternary>, pst::Set<Ternary, Boole>>();
 
   // ── the variables and the terms ──
   auto projection = nb::class_<ProjectionTag>(
@@ -1645,51 +1650,72 @@ NB_MODULE(_pst, m) {
 
   m.def(
       "A",
-      [u64_type, fp_type](nb::handle chain, nb::handle species) -> nb::object {
-        if (chain.is(u64_type) || chain.is(fp_type)) {
-          if (!species.is_none() && !nb::isinstance<BooleTag>(species))
-            throw nb::type_error(
-                "the ring u64 and the field 𝔽ₚ are sets valued in Boole");
-          if (chain.is(u64_type))
-            return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{});
-          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{});
-        }
+      [u64_type, fp_type](nb::handle carrier,
+                          nb::handle species) -> nb::object {
         const bool kleene = nb::isinstance<KleeneTag>(species);
         if (!species.is_none() && !kleene && !nb::isinstance<BooleTag>(species))
           throw nb::type_error("the species is Boole or Kleene");
-        if (nb::isinstance<pst::Chain<bool>>(chain)) {
+        const nb::handle bool_type = reinterpret_cast<PyObject*>(&PyBool_Type);
+        if (carrier.is(u64_type) || carrier.is(fp_type) ||
+            carrier.is(bool_type)) {
           if (kleene)
-            throw nb::type_error("a K₃-valued set over 𝔹 is not bound; use K3");
-          return nb::cast(pst::Set<bool, Boole>::universe());
+            throw nb::type_error(
+                "a K₃-valued universe is bound over Ternary only: "
+                "A(Ternary, Kleene)");
+          if (carrier.is(u64_type))
+            return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{});
+          if (carrier.is(fp_type))
+            return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{});
+          return nb::cast(pst::Chain<bool>{});
         }
-        if (nb::isinstance<pst::Chain<Ternary>>(chain))
+        if (carrier.is(nb::type<Ternary>()))
           return kleene ? nb::cast(pst::Set<Ternary, Kleene>::universe())
-                        : nb::cast(pst::Set<Ternary, Boole>::universe());
+                        : nb::cast(pst::Chain<Ternary>{});
         throw nb::type_error(
-            "𝔸(carrier): the carrier is B, K3, u64 or 𝔽ₚ (ℕ is the ℤ slice)");
+            "A(T): T a carrier type, bool, Ternary, u64 or 𝔽ₚ (B, K3, U64 and "
+            "GF_p are the universes themselves)");
       },
-      nb::arg("chain"), nb::arg("species") = nb::none(),
-      "𝔸(carrier[, species]): the universe over a truth chain, valued in 𝔹 "
-      "by default or in Kleene (𝔸(K3, Kleene)); or the canonical ring 𝔸(u64) "
-      "or field 𝔸(𝔽ₚ).");
+      nb::arg("carrier"), nb::arg("species") = nb::none(),
+      "A(T[, species]): the universe over the carrier type T, valued in 𝔹 by "
+      "default: A(bool) is B, A(Ternary) is K3, A(u64) is U64, A(𝔽ₚ) is GF_p; "
+      "A(Ternary, Kleene) is the universe whose sets are valued in K₃.");
   m.def(
       "Ø",
-      [](nb::handle chain, nb::handle species) -> nb::object {
+      [u64_type, fp_type](nb::handle where, nb::handle species) -> nb::object {
         const bool kleene = nb::isinstance<KleeneTag>(species);
         if (!species.is_none() && !kleene && !nb::isinstance<BooleTag>(species))
           throw nb::type_error("the species is Boole or Kleene");
-        if (nb::isinstance<pst::Chain<bool>>(chain)) {
-          if (kleene)
-            throw nb::type_error("a K₃-valued set over 𝔹 is not bound; use K3");
-          return nb::cast(pst::Set<bool, Boole>::empty());
-        }
-        if (nb::isinstance<pst::Chain<Ternary>>(chain))
+        const nb::handle bool_type = reinterpret_cast<PyObject*>(&PyBool_Type);
+        const bool on_b =
+            where.is(bool_type) || nb::isinstance<pst::Chain<bool>>(where);
+        const bool on_k3 = where.is(nb::type<Ternary>()) ||
+                           nb::isinstance<pst::Chain<Ternary>>(where);
+        const bool on_word =
+            where.is(u64_type) ||
+            nb::isinstance<𝔸<uint64_t, Boole, dedekind::sets::Finite>>(where);
+        const bool on_field =
+            where.is(fp_type) ||
+            nb::isinstance<𝔸<Fp, Boole, dedekind::sets::Finite>>(where);
+        if (kleene && !on_k3)
+          throw nb::type_error(
+              "a K₃-valued empty set is bound over Ternary only");
+        if (on_b) return nb::cast(pst::Set<bool, Boole>::empty());
+        if (on_k3)
           return kleene ? nb::cast(pst::Set<Ternary, Kleene>::empty())
                         : nb::cast(pst::Set<Ternary, Boole>::empty());
-        throw nb::type_error("Ø(chain): the chain is B or K3");
+        if (on_word)
+          return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{} |
+                          RPred::bottom());
+        if (on_field)
+          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{} |
+                          RPred::bottom());
+        throw nb::type_error(
+            "Ø(T or U): a carrier type or its universe (bool / B, Ternary / "
+            "K3, u64 / U64, 𝔽ₚ / GF_p)");
       },
-      nb::arg("chain"), nb::arg("species") = nb::none(),
-      "Ø(chain[, species]): the empty set over a truth chain.");
+      nb::arg("where"), nb::arg("species") = nb::none(),
+      "Ø(T or U[, species]): the empty set over a carrier type or its "
+      "universe.");
   m.def(
       "η",
       [](nb::handle v) -> nb::object {
@@ -1734,6 +1760,8 @@ NB_MODULE(_pst, m) {
       nb::arg("S"), "lift(S): a decidable set over K₃ valued in K₃.");
 
   // ── the term surface on the canonical universes and the truth chains ──
+  m.attr("U64") = 𝔸<uint64_t, Boole, dedekind::sets::Finite>{};
+  m.attr("GF_p") = 𝔸<Fp, Boole, dedekind::sets::Finite>{};
   bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
                            "U64Relation", to_word);
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",

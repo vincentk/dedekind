@@ -9,7 +9,8 @@ is decided in Python.
 - `dedekind.jlt`: the arrows `id`, `refl`, `succ`, `pred` over `bool` and
   `int` (the word u64), composed with `>>`.
 - `dedekind.pst`: the finite carriers and the sets over them.
-  - The truth chains `B` (𝔹) and `K3` (K₃), and ℕ's proxy `N`.
+  - The universes `B = A(bool)` (𝔹) and `K3 = A(Ternary)` (K₃), carrying their
+    chain's order; `A(Ternary, Kleene)` is K₃-valued.
   - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
     word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
     element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
@@ -63,7 +64,7 @@ python -m pip install --no-build-isolation -e .
 from dedekind.jlt import succ
 from dedekind.pst import A, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
 
-U = A(u64)
+U = U64  # = A(u64)
 region = (U | (π > 3)) & (U | (π < 5))
 print(region == U | (π == 4))           # True: one normal form, the run list
 print(canonical(region), list(region))  # 𝔸(u64) | π == 4  [4]
