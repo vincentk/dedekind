@@ -1,12 +1,19 @@
-"""Pst: the bounded chains the sets are valued in, and the sets over them.
+"""Pst: the universes over the finite carriers, and the sets over them.
 
-``Pst := Jlt ∩ Chain`` (paper §3).  Three chains, handles over the real C++
-carriers: ``B`` (𝔹 = {False < True}) and ``K3`` (Kleene's
-{FALSE < UNKNOWN < TRUE}) are truth objects; ``N`` is ℕ's proxy, a bounded
-chain of the same shape whose top is ``ℵ_0``.  A chain exposes its ends
-``bottom`` / ``top``, its step read twice (the total, saturating ``succ`` /
-``pred``; the partial ``cover``, ``None`` at ⊤), its order ``le``, its
-classification as the C++ concepts decide it, and iterates from ⊥ by the cover.
+``Pst := Jlt ∩ Chain`` (paper §3).  A universe is ``A(T)``, the set of every
+value of a carrier type ``T``, its sets valued in 𝔹; the four carriers have
+names, the same as in C++:
+
+    B    = A(bool)      𝔹, the two-element truth chain {False < True}
+    K3   = A(Ternary)   Kleene's chain {FALSE < UNKNOWN < TRUE}
+    U64  = A(u64)       the ring ℤ/2⁶⁴, the machine word
+    GF_p = A(𝔽ₚ)        the field GF(p), p = 2⁶⁴ − 59
+
+``A(Ternary, Kleene)`` is the universe whose sets are valued in K₃.  The truth
+chains' universes carry their order: the ends ``bottom`` / ``top``, the step
+read twice (the total, saturating ``succ`` / ``pred``; the partial ``cover``,
+``None`` at ⊤), the order ``le``, the classification as the C++ concepts decide
+it, and iteration from ⊥ by the cover.
 
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
 as the paper spells it::
@@ -14,17 +21,17 @@ as the paper spells it::
     from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, canonical, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
-    S = 𝔸(K3) | (π > F)          # generator | pred      -> {U, ⊤}
-    S == (𝔸(K3) | (π >= U))      # True: one normal form, the run list [U, ⊤]
+    S = K3 | (π > F)          # generator | pred      -> {U, ⊤}
+    S == (K3 | (π >= U))      # True: one normal form, the run list [U, ⊤]
     ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
     U in S;  S(U)                # membership, χ
-    exists(𝔸(K3), π > F)         # True;  forall(𝔸(K3), π > F) is False
+    exists(K3, π > F)         # True;  forall(K3, π > F) is False
     canonical(S) == S;  repr(S)  # True; "[U, ⊤]": held as its run list
 
     H = K3.identity              # χ(x) = x, valued in K₃
     H == H                       # Ternary.UNKNOWN: reflexive only up to the
                                  # excluded middle, where the set is U
-    𝔸(K3) | (H(π) >= U)          # the α-cut: χ applied to π, compared on the chain
+    K3 | (H(π) >= U)          # the α-cut: χ applied to π, compared on the chain
 
 Every handle over a truth chain is a run list, the library's normal form of
 these sets, valued in its species (a K₃-valued set is a step function on the
@@ -85,9 +92,10 @@ wrapping at the word's end::
     image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
-and ``𝔹`` / ``ℕ`` are ``B`` / ``N``; ``Ø``, ``η``, ``π`` are names as
-written.  Subscript digits are not identifier characters, so ``K₃`` is ``K3``
-and ``ℵ₀`` is ``ℵ_0`` (the C++ spelling; ``aleph0`` remains an alias).  ``∃`` / ``∀`` are not identifiers either: the
+and ``𝔹`` is ``B``; ``Ø``, ``η``, ``π`` are names as
+written.  Subscript digits and parentheses are not identifier characters, so
+``K₃`` is ``K3``
+and ``GF(p)`` is ``GF_p``.  ``∃`` / ``∀`` are not identifiers either: the
 grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
 (importable by name; not star-exported, since they shadow the builtins).
 """
@@ -102,9 +110,7 @@ from ._pst import Term
 from ._pst import Boole
 from ._pst import K3
 from ._pst import Kleene
-from ._pst import N
 from ._pst import Ternary
-from ._pst import aleph0
 from ._pst import exists
 from ._pst import forall
 from ._pst import image
@@ -113,6 +119,8 @@ from ._pst import canonical
 from ._pst import cond
 from ._pst import preimage
 from ._pst import u64
+from ._pst import U64
+from ._pst import GF_p
 from ._pst import Ø
 from ._pst import η
 from ._pst import π
@@ -190,9 +198,6 @@ class Function:
         return _Annotation(f"Function[{_named(a)}, {_named(b)}]", holds)
 
 
-# ℵ₀ under its own symbol: ℵ_0 is an identifier (NFKC: א_0), the subscript
-# digit is not, so the C++ spelling ℵ_0 is the Python one too.
-ℵ_0 = aleph0
 
 # The aliases: deliberately not in __all__ (they shadow the builtins when
 # star-imported); `from dedekind.pst import any, all` is the explicit opt-in.
@@ -200,7 +205,7 @@ any = exists  # noqa: A001
 all = forall  # noqa: A001
 
 __all__ = [
-    "A", "B", "K3", "N", "Ternary", "u64", "Fp", "ℵ_0", "aleph0", "Boole", "Kleene",
+    "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
     "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "canonical", "cond", "Set", "Relation", "Function",
     "lift", "image", "preimage",
 ]

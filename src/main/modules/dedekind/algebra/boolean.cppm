@@ -29,11 +29,8 @@
  * identities, absorbers, and distributivity). The test suite validates this
  * alignment explicitly.
  *
- * Element scouts are post-#559 spelled @c element<𝔹> (BoundScout factory
- * over the Boolean universe value @c 𝔹 = @c 𝔸<bool>); the legacy
- * @c var<...> family was retired in Phase 2e.3 of the Ω-ambient redesign
- * (#551), and the @c element<𝔸<𝔹>> intermediate spelling went away in
- * #559's option-A migration once @c 𝔹 stopped being a carrier alias.
+ * Sets over @c 𝔹 @c = @c 𝔸<bool> are written point-free, @c 𝔹 @c | @c (π
+ * @c == @c true): no element variable is bound.
  *
  * @note "La matematica non e una collezione di trucchi: e grammatica delle
  * forme." (Mathematics is not a bag of tricks; it is a grammar of forms.) —

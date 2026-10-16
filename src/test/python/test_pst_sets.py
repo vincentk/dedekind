@@ -18,7 +18,7 @@ F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
 
 class GrammarOverK3Test(unittest.TestCase):
     def test_former_and_membership(self) -> None:
-        S = A(K3) | (π > F)
+        S = K3 | (π > F)
         self.assertIn(U, S)
         self.assertIn(T, S)
         self.assertNotIn(F, S)
@@ -26,56 +26,60 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertIs(S(F), False)
 
     def test_equality_is_extensional_and_decided(self) -> None:
-        self.assertIs((A(K3) | (π > F)) == (A(K3) | (π >= U)), True)
-        self.assertIs((A(K3) | (π > F)) == A(K3), False)
-        self.assertIs((A(K3) | (π > F)) != A(K3), True)
-        self.assertIs(η(U) == (A(K3) | (π == U)), True)
-        self.assertIs((A(K3) | (π > T)) == Ø(K3), True)  # {x > ⊤} is empty
+        self.assertIs((K3 | (π > F)) == (K3 | (π >= U)), True)
+        self.assertIs((K3 | (π > F)) == K3, False)
+        self.assertIs((K3 | (π > F)) != K3, True)
+        self.assertIs(η(U) == (K3 | (π == U)), True)
+        self.assertIs((K3 | (π > T)) == Ø(K3), True)  # {x > ⊤} is empty
 
     def test_lattice(self) -> None:
-        S = A(K3) | (π > F)
-        self.assertIs((S | ~S) == A(K3), True)
+        S = K3 | (π > F)
+        self.assertIs((S | ~S) == K3, True)
         self.assertIs((S & ~S) == Ø(K3), True)
-        self.assertIs((S ^ ~S) == A(K3), True)
-        self.assertIs(S <= A(K3), True)
-        self.assertIs(A(K3) <= S, False)
+        self.assertIs((S ^ ~S) == K3, True)
+        self.assertIs(S <= K3, True)
+        self.assertIs(K3 <= S, False)
         self.assertIs(η(T) <= S, True)
 
     def test_quantifiers_and_aliases(self) -> None:
-        self.assertIs(exists(A(K3), π > F), True)
-        self.assertIs(forall(A(K3), π > F), False)
-        self.assertIs(forall(A(K3), π >= F), True)
+        self.assertIs(exists(K3, π > F), True)
+        self.assertIs(forall(K3, π > F), False)
+        self.assertIs(forall(K3, π >= F), True)
         self.assertIs(exists(Ø(K3), π >= F), False)
-        self.assertIs(any_(A(K3), π == U), True)
-        self.assertIs(all_(A(K3) | (π > F), π >= U), True)
-        self.assertIs(forall(A(K3) | (π > F), π == T), False)
+        self.assertIs(any_(K3, π == U), True)
+        self.assertIs(all_(K3 | (π > F), π >= U), True)
+        self.assertIs(forall(K3 | (π > F), π == T), False)
         self.assertIs(forall(Ø(K3), π == T), True)  # vacuous
 
     def test_the_run_list_is_the_canonical_form(self) -> None:
-        S = A(K3) | (π > F)
+        S = K3 | (π > F)
         self.assertIs(canonical(S) == S, True)  # held as its run list
         self.assertEqual(repr(S), "[U, ⊤]")
         self.assertEqual(repr(η(U)), "{U}")
         self.assertEqual(repr(Ø(K3)), "Ø")
         self.assertEqual(repr(η(F) | η(T)), "{⊥} ∪ {⊤}")
-        self.assertEqual(repr(A(K3)), "[⊥, ⊤]")
+        self.assertEqual(repr(K3), "K₃")  # the universe
+        self.assertEqual(repr(~Ø(K3)), "[⊥, ⊤]")  # its full run list
 
     def test_sugar_on_the_chain(self) -> None:
-        self.assertIs(K3.above(F) == (A(K3) | (π > F)), True)
-        self.assertIs(K3.at_most(U) == ~K3.above(U), True)
-        self.assertIs(K3.point(U) == η(U), True)
-        self.assertIs(K3.all == A(K3), True)
-        self.assertIs(K3.none == Ø(K3), True)
+        # The universe is a set: the former, the lattice, membership.
+        self.assertIs((K3 | (π <= U)) == ~(K3 | (π > U)), True)
+        self.assertIs((K3 & (K3 | (π > F))) == (K3 | (π > F)), True)
+        self.assertIs(~K3 == Ø(K3), True)
+        self.assertIs(Ø(K3) == Ø(Ternary), True)
+        self.assertIn(U, K3)
+        self.assertNotIn(5, K3)
+        self.assertEqual(A(Ternary), K3)
 
 
 class GrammarOverBTest(unittest.TestCase):
     def test_the_two_chain(self) -> None:
-        top = A(B) | (π == True)
+        top = B | (π == True)
         self.assertEqual(repr(top), "{⊤}")
-        self.assertIs(exists(A(B), π == True), True)
-        self.assertIs(forall(A(B), π == True), False)
+        self.assertIs(exists(B, π == True), True)
+        self.assertIs(forall(B, π == True), False)
         self.assertIs(top == η(True), True)
-        self.assertIs((top | ~top) == A(B), True)
+        self.assertIs((top | ~top) == B, True)
         self.assertEqual(repr(top), "{⊤}")
 
 
@@ -89,61 +93,61 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(exists(H, π >= F), T)  # ⋁ (χ ∧ P)
         with self.assertRaises(TypeError):
             forall(H, π >= F)  # a bounded ∀ over an L-valued set awaits #980
-        self.assertIs(forall(A(K3) | (H(π) >= U), π >= U), True)  # over its cut
+        self.assertIs(forall(K3 | (H(π) >= U), π >= U), True)  # over its cut
         # Equality is the internal biconditional: reflexive only up to the
         # excluded middle, so H agrees with itself to degree U where it is U.
         self.assertEqual(H == H, U)
         # The excluded middle itself, to degree U: 𝔸 = H ∨ ¬H is Unknown.
-        self.assertEqual(A(K3, Kleene) == (H | ~H), U)
-        self.assertEqual(A(K3, Kleene) == A(K3, Kleene), T)
+        self.assertEqual(A(Ternary, Kleene) == (H | ~H), U)
+        self.assertEqual(A(Ternary, Kleene) == A(Ternary, Kleene), T)
 
     def test_cuts_and_fibres_are_decidable_sets(self) -> None:
         H = K3.identity
-        cut_U = A(K3) | (H(π) >= U)  # χ applied to π, compared on the chain
+        cut_U = K3 | (H(π) >= U)  # χ applied to π, compared on the chain
         self.assertTrue(cut_U.is_decidable)
-        self.assertIs(cut_U == (A(K3) | (π >= U)), True)
-        self.assertIs((A(K3) | (H(π) >= T)) == η(T), True)
-        self.assertIs((A(K3) | (H(π) == U)) == η(U), True)
+        self.assertIs(cut_U == (K3 | (π >= U)), True)
+        self.assertIs((K3 | (H(π) >= T)) == η(T), True)
+        self.assertIs((K3 | (H(π) == U)) == η(U), True)
         self.assertEqual(repr(cut_U), "[U, ⊤]")
-        self.assertIs((A(K3) | (H(π) == T)) == η(T), True)  # cond(χ ≥ ⊤, ⊤, …) == ⊤
+        self.assertIs((K3 | (H(π) == T)) == η(T), True)  # cond(χ ≥ ⊤, ⊤, …) == ⊤
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
         # A decidable table's χ is its run predicate: S(π) is a predicate.
-        S = A(K3) | (π > F)
+        S = K3 | (π > F)
         self.assertEqual(repr(S(π)), f"π >= {U!r}")
-        self.assertIs((A(K3) | S(π)) == S, True)  # membership
-        self.assertIs((A(K3) | ~S(π)) == ~S, True)
-        top = A(B) | (π == True)  # noqa: E712
-        self.assertIs((A(B) | top(π)) == top, True)
+        self.assertIs((K3 | S(π)) == S, True)  # membership
+        self.assertIs((K3 | ~S(π)) == ~S, True)
+        top = B | (π == True)  # noqa: E712
+        self.assertIs((B | top(π)) == top, True)
         # An L-valued table's χ is a conditional over its cuts: H(π) is a term,
         # and a term is not a predicate on any universe: compare it.
         H = K3.identity
-        for universe, term in ((A(K3), H(π)), (A(K3, Kleene), H(π)), (A(B), π * 1)):
+        for universe, term in ((K3, H(π)), (A(Ternary, Kleene), H(π)), (B, π * 1)):
             with self.assertRaises(TypeError):
                 universe | term
         # A table's constants are the chain's: bound to another chain, refused.
         with self.assertRaises(TypeError):
-            A(B) | S(π)
+            B | S(π)
         with self.assertRaises(TypeError):
-            A(B) | (H(π) == True)  # noqa: E712
+            B | (H(π) == True)  # noqa: E712
         with self.assertRaises(TypeError):
             bool(π > F)  # a predicate is bound, not tested
 
     def test_lift(self) -> None:
-        S = A(K3) | (π > F)
+        S = K3 | (π > F)
         L = lift(S)
         self.assertFalse(L.is_decidable)
         self.assertEqual(L(U), T)
-        self.assertEqual(L == lift(A(K3) | (π >= U)), T)
-        self.assertEqual((A(K3) | (L(π) >= U)) == S, True)
+        self.assertEqual(L == lift(K3 | (π >= U)), T)
+        self.assertEqual((K3 | (L(π) >= U)) == S, True)
 
 
 class MixedSpeciesTest(unittest.TestCase):
     """A Boolean set and a K₃-valued set over one chain mix in their join, K₃."""
 
     def test_lattice_in_the_join(self) -> None:
-        S = A(K3) | (π > F)  # Boolean: {U, ⊤}
+        S = K3 | (π > F)  # Boolean: {U, ⊤}
         H = K3.identity  # K₃-valued: χ(x) = x
         M = S & H
         self.assertFalse(M.is_decidable)
@@ -152,14 +156,14 @@ class MixedSpeciesTest(unittest.TestCase):
         self.assertEqual(M(F), F)
         self.assertEqual((S | H)(F), F)
         self.assertEqual((H | S)(U), T)  # U ∨ ⊤
-        self.assertEqual(lift(S) == (S & A(K3, Kleene)), T)
+        self.assertEqual(lift(S) == (S & A(Ternary, Kleene)), T)
         # ^ across species: (⊤ ⊕ U) = U at U, ⊤ ⊕ ⊤ = ⊥ at ⊤, in K₃ either way.
         for X in (S ^ H, H ^ S):
             self.assertFalse(X.is_decidable)
             self.assertEqual((X(F), X(U), X(T)), (F, U, F))
 
     def test_queries_in_the_join(self) -> None:
-        S = A(K3) | (π > F)
+        S = K3 | (π > F)
         H = K3.identity
         # ⋀ (χ_S ⇔ χ_H): agree at ⊥ and ⊤, to degree U at U.
         self.assertEqual(S == H, U)
@@ -170,17 +174,17 @@ class MixedSpeciesTest(unittest.TestCase):
         self.assertEqual(H <= S, U)
         self.assertEqual(S != H, U)
         # >= on unequal sets, both orders: 𝔸 ⊇ S holds, S ⊇ 𝔸 fails at ⊥.
-        self.assertEqual(A(K3, Kleene) >= S, T)
-        self.assertEqual(S >= A(K3, Kleene), F)
+        self.assertEqual(A(Ternary, Kleene) >= S, T)
+        self.assertEqual(S >= A(Ternary, Kleene), F)
 
 
 class RefusalsTest(unittest.TestCase):
     def test_species_and_carriers_do_not_mix(self) -> None:
         with self.assertRaises(TypeError):
-            A(B, Kleene)
+            A(bool, Kleene)
         with self.assertRaises(TypeError):
-            A(K3) & A(B)  # different chains: no overload
+            K3 & B  # different chains: no overload
         with self.assertRaises(TypeError):
-            A(K3) | (π > True)  # a bool constant on K₃: refused when bound
+            K3 | (π > True)  # a bool constant on K₃: refused when bound
         with self.assertRaises(TypeError):
-            exists(A(K3), η(U))  # a set is not a where-clause
+            exists(K3, η(U))  # a set is not a where-clause

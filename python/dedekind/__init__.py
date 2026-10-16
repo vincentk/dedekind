@@ -7,7 +7,7 @@ The mathematics lives in C++; Python holds handles to it.  Two modules:
     ``int`` (the word u64), composed with ``>>``.
 ``dedekind.pst``
     The finite carriers and the sets over them: the truth chains ``B`` and
-    ``K3``, ℕ's proxy ``N``, the canonical ring ``u64`` and field ``𝔽ₚ``, and
+    ``K3``, the canonical ring ``u64`` and field ``𝔽ₚ`` (universes ``U64``, ``GF_p``), and
     the term surface ``A(carrier) | term``, checked when it is built.
 
 A term may use the operators the carrier's certified algebras have (the laws

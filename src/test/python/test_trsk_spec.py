@@ -141,9 +141,9 @@ class TheTotalOperatorSurface(unittest.TestCase):
         from dedekind.pst import A, B, π
 
         # 𝔹's rig is spelled (∨, ∧): + is in no signature of bool, so it is refused.
-        A(B) | (π == True)  # noqa: E712 — π is a term, not a bool
+        B | (π == True)  # noqa: E712 — π is a term, not a bool
         with self.assertRaises(TypeError):
-            A(B) | (π + 1 == True)  # noqa: E712
+            B | (π + 1 == True)  # noqa: E712
 
 
 if __name__ == "__main__":

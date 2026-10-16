@@ -1,21 +1,21 @@
-"""Pst chains (#1001): the successor as the covering map, from Python.
+"""The truth chains' universes (#1001): the successor as the covering map.
 
-Three bounded chains, one shape: ``B`` and ``K3`` are truth objects, ``N`` is
-ℕ's proxy with ⊤ = ℵ₀.  The step is read twice -- the total, saturating
-``succ`` / ``pred`` and the partial ``cover`` (``None`` at ⊤) -- and iterating a
-chain unfolds its bottom by the cover, stopping where the cover stops.  The
-classification attributes are the C++ concepts' verdicts, not Python flags.
+``B = A(bool)`` and ``K3 = A(Ternary)`` are the universes over the two truth
+chains, and carry the chain's order.  The step is read twice -- the total,
+saturating ``succ`` / ``pred`` and the partial ``cover`` (``None`` at ⊤) -- and
+iterating a universe unfolds its bottom by the cover, stopping where the cover
+stops.  The classification attributes are the C++ concepts' verdicts, not
+Python flags.
 """
 
-import itertools
 import unittest
 
-from dedekind.pst import 𝔹, K3, ℕ, Ternary, ℵ_0
+from dedekind.pst import 𝔹, A, K3, Function, Set, Ternary, π
 
-# The written forms are the names: NFKC normalisation makes 𝔹 the identifier B
-# and ℕ the identifier N.  Subscript digits are not identifier characters, so K₃
-# and ℵ₀ are spelled K3 and ℵ_0 and print as themselves.
-B, N = 𝔹, ℕ
+# The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
+# Subscript digits are not identifier characters, so K₃ is spelled K3 and
+# prints as itself.
+B = 𝔹
 
 
 class PstEndpointsAndStepTest(unittest.TestCase):
@@ -39,31 +39,11 @@ class PstEndpointsAndStepTest(unittest.TestCase):
         self.assertTrue(K3.le(Ternary.FALSE, Ternary.UNKNOWN))
         self.assertFalse(K3.le(Ternary.TRUE, Ternary.UNKNOWN))
 
-    def test_natural_chain(self) -> None:
-        self.assertEqual(N.bottom, 0)
-        self.assertEqual(N.top, ℵ_0)
-        self.assertEqual(N.succ(41), 42)
-        self.assertEqual(N.succ(ℵ_0), ℵ_0)  # saturating at the top
-        self.assertEqual(N.pred(0), 0)  # the monus: 0 is a fixpoint
-        self.assertEqual(N.pred(ℵ_0), ℵ_0)
-        self.assertEqual(N.cover(41), 42)
-        self.assertIsNone(N.cover(ℵ_0))  # ⊤ has no cover
-        self.assertTrue(N.le(3, ℵ_0))
-        with self.assertRaises(ValueError):
-            N.succ(-1)  # ℕ has no negatives
-
 
 class PstUnfoldTest(unittest.TestCase):
     def test_finite_chains_unfold_to_their_elements(self) -> None:
         self.assertEqual(list(B), [False, True])
         self.assertEqual(list(K3), [Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE])
-
-    def test_natural_chain_unfolds_like_count(self) -> None:
-        # ℕ's top is a limit, not a successor: the unfold never reaches it.
-        self.assertEqual(list(itertools.islice(N, 5)), [0, 1, 2, 3, 4])
-        self.assertEqual(
-            list(itertools.islice(N, 5)), list(itertools.islice(itertools.count(0), 5))
-        )
 
 
 class PstIndexingByPositionTest(unittest.TestCase):
@@ -80,32 +60,52 @@ class PstIndexingByPositionTest(unittest.TestCase):
         with self.assertRaises(IndexError):
             K3[3]
 
-    def test_natural_chain_indexes_itself(self) -> None:
-        self.assertEqual(N[0], 0)
-        self.assertEqual(N[10**9], 10**9)  # O(1): Peano addition, not a walk
-        with self.assertRaises(IndexError):
-            N[-1]  # no end to count from
-        with self.assertRaises(TypeError):
-            len(N)  # ℵ₀
-
 
 class PstClassificationTest(unittest.TestCase):
     def test_concept_verdicts(self) -> None:
-        for chain in (B, K3, N):
+        for chain in (B, K3):
             self.assertTrue(chain.is_bounded)
             self.assertFalse(chain.is_dense)  # a chain with the step is discrete
             self.assertTrue(chain.saturates)
         self.assertTrue(B.is_truth_object)
         self.assertTrue(K3.is_truth_object)
-        self.assertFalse(N.is_truth_object)  # a chain of the same shape, not Pst proper
 
     def test_cardinalities(self) -> None:
         self.assertEqual(B.cardinality, 2)
         self.assertEqual(K3.cardinality, 3)
-        self.assertEqual(N.cardinality, ℵ_0)
-        self.assertEqual(repr(ℵ_0), "ℵ₀")
 
     def test_written_forms_are_the_names(self) -> None:
         self.assertEqual(repr(𝔹), "𝔹")
         self.assertEqual(repr(K3), "K₃")
-        self.assertEqual(repr(ℕ), "ℕ")
+
+    def test_a_universe_is_a_former_of_its_carrier_type(self) -> None:
+        self.assertEqual(A(bool), B)
+        self.assertEqual(A(Ternary), K3)
+        with self.assertRaises(TypeError):
+            A(K3)  # a universe, not a carrier type
+
+
+class AUniverseIsItsFullRunList(unittest.TestCase):
+    """A universe answers as the set it is: every operation, query and piece
+    of metadata of the full run list, against any operand."""
+
+    def test_the_lattice_against_a_k3_valued_set(self) -> None:
+        H = K3.identity  # χ(x) = x, valued in K₃
+        F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
+        self.assertEqual([(K3 & H)(v) for v in (F, U, T)], [F, U, T])  # H itself
+        self.assertEqual((K3 | H) == K3, Ternary.TRUE)
+        self.assertFalse((K3 ^ H).is_decidable)
+
+    def test_subset_queries_between_universes(self) -> None:
+        self.assertIs(𝔹 <= 𝔹, True)
+        self.assertIs(K3 >= K3, True)
+        self.assertIs(K3 <= (K3 | (π > Ternary.FALSE)), False)
+
+    def test_applied_to_a_term(self) -> None:
+        self.assertEqual(K3 | K3(π), K3)
+
+    def test_its_metadata(self) -> None:
+        self.assertIs(K3.is_decidable, True)
+        self.assertEqual(K3.carrier, K3)
+        self.assertIsInstance(K3, Set[K3])
+        self.assertIs(Function[K3, 𝔹](K3), K3)
