@@ -58,7 +58,8 @@ class GrammarOverK3Test(unittest.TestCase):
         self.assertEqual(repr(η(U)), "{U}")
         self.assertEqual(repr(Ø(K3)), "Ø")
         self.assertEqual(repr(η(F) | η(T)), "{⊥} ∪ {⊤}")
-        self.assertEqual(repr(K3), "[⊥, ⊤]")
+        self.assertEqual(repr(K3), "K₃")  # the universe
+        self.assertEqual(repr(~Ø(K3)), "[⊥, ⊤]")  # its full run list
 
     def test_sugar_on_the_chain(self) -> None:
         # The universe is a set: the former, the lattice, membership.

@@ -1248,13 +1248,19 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
               return true;
             } catch (const nb::builtin_exception&) {
               return false;
+            } catch (const nb::cast_error&) {
+              return false;  // not a value of the carrier
             }
           },
           nb::arg("x"), "x in U: whether x is an element of the carrier.")
       .def(
           "__call__",
           [](const Ch&, nb::handle x) {
-            (void)from_py_as<C>(x);
+            try {
+              (void)from_py_as<C>(x);
+            } catch (const nb::cast_error&) {
+              throw nb::type_error("not a value of the universe's carrier");
+            }
             return true;
           },
           nb::arg("x"), "χ(x) = ⊤: the universe holds every element.")
