@@ -142,6 +142,21 @@ class AnArrowKeepsItsSorts(unittest.TestCase):
         self.assertIs(ap(U64 * B, (7, True)), True)
         self.assertIs(ap(U64 * B, (7, Ternary.TRUE)), False)  # not a pair of it
 
+    def test_a_universe_applied_to_a_term_checks_its_sort(self) -> None:
+        self.assertEqual(U64 | (ap(U64, π) == True), U64 | (π >= 0))  # noqa: E712
+        with self.assertRaises(TypeError):
+            B | (ap(U64, π) == True)  # a bool is no word  # noqa: E712
+        with self.assertRaises(TypeError):
+            B | (ap(U64 * B, π) == True)  # a point of the product is a pair  # noqa: E712
+        self.assertIsInstance(
+            U64 * B | (π_2 == ap(U64 * B, (π_1, True))), Function[u64, B])
+
+    def test_a_numeral_takes_the_points_one_sort_when_pinned(self) -> None:
+        S = U64 | (cond(π > 5, 1, 0) == 1)  # the branches are words
+        chi = U64 * B | (π_2 == ap(S, π_1))
+        self.assertIs(ap(chi, 7), True)
+        self.assertIs(ap(chi, 3), False)
+
 
 if __name__ == "__main__":
     unittest.main()

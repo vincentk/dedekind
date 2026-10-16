@@ -1668,7 +1668,10 @@ Pred<K> pin_constants(const Pred<K>& p, const Lift& lift) {
       return Pr::disj(pin_constants<P>(*p.p, lift),
                       pin_constants<P>(*p.q, lift));
     case Pr::Kind::Cmp: {
-      const std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
+      // A comparison of numerals alone takes the point's one sort, as binding
+      // reads it; on a product of two it names none and is left as written.
+      std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
+      if (s == no_sort && std::tuple_size_v<point_sorts_t<P>> == 1) s = 0;
       return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift),
                      pin_term<P>(*p.b, s, lift));
     }

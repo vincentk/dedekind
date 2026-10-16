@@ -456,8 +456,6 @@ RTerm truth_term(const RPred& q) {
   return RTerm::cond(q, RTerm::constant(PyConst{nb::handle(Py_True)}),
                      RTerm::constant(PyConst{nb::handle(Py_False)}));
 }
-/** @brief χ of a universe at a term: ⊤, a constant of sort 𝔹. */
-RTerm true_term() { return RTerm::constant(PyConst{nb::handle(Py_True)}); }
 
 RTerm as_term(const ProjectionTag& p) { return RTerm::proj(p.slot); }
 RTerm as_term(const RTerm& t) { return t; }
@@ -605,6 +603,31 @@ struct TypedConstant {
   PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
   PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
 };
+/** @brief Whether the term @c t is a value of the carrier @c C, as a predicate
+ *  that holds wherever it binds: @c t compared with a constant of @c C, so a
+ *  term of another sort is refused when the predicate is bound.  A chain's
+ *  and the word's bottom, @c t @c >= @c ⊥; the field's unit, @c t·1 @c == @c t.
+ *  @param t the term. */
+template <typename C>
+RPred member_of(const RTerm& t) {
+  if constexpr (IsPst<C>)
+    return RPred::cmp(
+        Rel::Ge, t,
+        RTerm::constant(TypedConstant{}(dedekind::sets::chain_bottom<C>())));
+  else if constexpr (std::unsigned_integral<C>)
+    return RPred::cmp(Rel::Ge, t, RTerm::constant(TypedConstant{}(C{})));
+  else
+    return RPred::cmp(
+        Rel::Eq,
+        RTerm::bin(Arith::Mul, t, RTerm::constant(TypedConstant{}(C{1}))), t);
+}
+/** @brief χ of the universe over @c C at a term: ⊤ wherever the term is a
+ *  value of @c C, the argument kept so binding checks its sort. */
+template <typename C>
+RTerm universe_at(const RTerm& t) {
+  return truth_term(member_of<C>(t));
+}
+
 /** @brief The predicate at points of @c P with its numerals pinned to their
  *  sorts.  @param p the predicate. */
 template <typename P>
@@ -766,12 +789,21 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       .def(
           "_ap",
           [holds](const UU& u, nb::handle h) -> nb::object {
-            if (is_term(h)) return nb::cast(true_term());
+            if (is_term(h))
+              throw nb::type_error(
+                  "ap(U × V, t): a point of the product is a pair (t₁, t₂)");
+            if (nb::isinstance<nb::tuple>(h) && nb::len(h) == 2) {
+              const nb::tuple p = nb::borrow<nb::tuple>(h);
+              if (is_term(p[0]) || is_term(p[1]))
+                return nb::cast(
+                    truth_term(RPred::conj(member_of<C1>(term_of(p[0])),
+                                           member_of<C2>(term_of(p[1])))));
+            }
             return nb::bool_(holds(u, h));
           },
           nb::arg("x"),
-          "ap(U × V, (x, y)): χ, ⊤ at every pair of the carriers; at a term, "
-          "the constant True.")
+          "ap(U × V, (x, y)): χ, ⊤ at every pair of the carriers; at a pair of "
+          "terms, ⊤ where each is a value of its factor's carrier.")
       .def_prop_ro(
           "factors", [factors](const UU&) { return factors(); },
           "The carriers of the product's two coordinates.")
@@ -1331,7 +1363,7 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
       .def(
           "_ap",
           [](const Ch&, nb::handle x) -> nb::object {
-            if (is_term(x)) return nb::cast(true_term());
+            if (is_term(x)) return nb::cast(universe_at<C>(term_of(x)));
             try {
               (void)from_py_as<C>(x);
             } catch (const nb::cast_error&) {
@@ -1719,7 +1751,7 @@ NB_MODULE(_pst, m) {
       .def("_ap",
            [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
               nb::handle x) -> nb::object {
-             if (is_term(x)) return nb::cast(true_term());
+             if (is_term(x)) return nb::cast(universe_at<uint64_t>(term_of(x)));
              return nb::bool_(in_u64(x));
            })
       .def_prop_ro(
@@ -1743,7 +1775,7 @@ NB_MODULE(_pst, m) {
       .def("_ap",
            [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
               nb::handle x) -> nb::object {
-             if (is_term(x)) return nb::cast(true_term());
+             if (is_term(x)) return nb::cast(universe_at<Fp>(term_of(x)));
              return nb::bool_(in_fp(x));
            })
       .def_prop_ro("cardinality",
