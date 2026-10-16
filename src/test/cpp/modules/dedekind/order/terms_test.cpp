@@ -255,6 +255,25 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
       dedekind::relational::IsFunctional<std::remove_cvref_t<decltype(chi)>>);
 }
 
+TEST_CASE("order:terms: arrow_of is the converse of graph",
+          "[order][terms][graph]") {
+  using dedekind::relational::arrow_of;
+  using dedekind::relational::graph;
+  using WW = std::pair<unsigned, unsigned>;
+  // A relation certified a function, read back as its arrow.
+  constexpr auto R = 𝕎 * 𝕎 | (π_2 == π_1 * 3u + 1u);
+  constexpr auto f = arrow_of(R);
+  STATIC_CHECK(dedekind::category::IsArrow<decltype(f)>);
+  STATIC_CHECK(f(4u) == 13u);
+  // The round trip, pointwise: graph(arrow_of(R)) is R, and
+  // arrow_of(graph(f)) is f.
+  constexpr auto G = graph(f);
+  for (unsigned a = 0; a < 8; ++a) {
+    CHECK(arrow_of(G)(a) == f(a));
+    for (unsigned b = 0; b < 32; ++b) CHECK(G(WW{a, b}) == R(WW{a, b}));
+  }
+}
+
 TEST_CASE("order:terms: 𝔹 is read in K₃ along the dominance",
           "[order][terms][sorts]") {
   using dedekind::category::Ternary;

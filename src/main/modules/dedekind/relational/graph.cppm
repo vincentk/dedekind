@@ -220,6 +220,41 @@ export template <typename R, typename A, typename B>
 concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
                      IsFunctional<R> && IsEntire<R>;
 
+/** @brief The arrow a function's graph atom names, the converse of @c graph:
+ *  a relation @c A×B @c | @c (π_2 @c == @c t) certified a function is the
+ *  arrow @c a ↦ t(a), @c t read at a pair whose first coordinate is @c a.
+ *  @tparam A,B the carriers.  @tparam P the graph atom. */
+export template <typename A, typename B, typename P>
+  requires dedekind::sets::IsGraphAtom<P> && std::default_initializable<B>
+struct GraphArrow {
+  using Domain = A;
+  using Codomain = B;
+  P atom;
+  constexpr B operator()(const A& a) const {
+    return dedekind::sets::term_value(dedekind::sets::graph_term(atom),
+                                      std::pair<A, B>{a, B{}});
+  }
+};
+/** @brief @c arrow_of(R): the arrow of a relation certified a function (a
+ *  graph atom, functional and entire), the converse of @c graph:
+ *  @c graph(arrow_of(R)) is @c R and @c arrow_of(graph(f)) is @c f.
+ *  @param r the relation over @c A×B. */
+export template <typename R>
+  requires dedekind::sets::IsGraphAtom<std::remove_cvref_t<
+               decltype(std::declval<const R&>().predicate)>> &&
+           IsFunctional<R> && IsEntire<R>
+constexpr auto arrow_of(const R& r) {
+  using AB = typename R::Domain;
+  return GraphArrow<typename AB::first_type, typename AB::second_type,
+                    std::remove_cvref_t<decltype(r.predicate)>>{r.predicate};
+}
+/** @brief @c arrow_of(graph(f)): the graph keeps its arrow, so it is @c f
+ *  itself.  @param g the graph. */
+export template <typename U, typename F>
+constexpr F arrow_of(const Comprehension<U, GraphPredicate<F>>& g) {
+  return g.predicate.arrow;
+}
+
 /**
  * @brief Relative product of two @b functional relations (graphs), over @b any
  *        intermediate: @f$\Gamma_f\,;\,\Gamma_g = \Gamma_{f;g}@f$.
