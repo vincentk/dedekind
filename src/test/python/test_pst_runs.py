@@ -49,8 +49,8 @@ class OneSetOneNormalForm(unittest.TestCase):
         self.assertEqual(repr(canonical(region)), "𝔸(u64) | π == 4")
         self.assertEqual(region.cardinality, 1)
         self.assertEqual(len(region), 1)
-        self.assertTrue(region(4))
-        self.assertFalse(region(5))
+        self.assertTrue(ap(region, 4))
+        self.assertFalse(ap(region, 5))
 
     def test_the_canonical_form_is_the_run_list_written_back(self) -> None:
         self.assertEqual(repr(canonical(U | (π < 0))), "𝔸(u64) | π < 0")  # Ø

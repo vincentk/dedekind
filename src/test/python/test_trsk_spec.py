@@ -114,17 +114,17 @@ class TheTotalOperatorSurface(unittest.TestCase):
         with self.assertRaises(ValueError):
             π % 0
 
-    @_needs("dedekind.pst", "A", "Fp", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
+    @_needs("dedekind.pst", "A", "ap", "Fp", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
     def test_on_the_prime_field(self) -> None:
-        from dedekind.pst import A, u64, 𝔽ₚ, π, π_1, π_2
+        from dedekind.pst import A, ap, u64, 𝔽ₚ, π, π_1, π_2
 
         F = A(𝔽ₚ)
         # The quotient map: p + 2 meets 𝔽ₚ as 2.
         self.assertIn(2, F | (π == 𝔽ₚ.modulus + 2))
         # Field division by a nonzero constant multiplies by its inverse.
         third = F * F | (π_2 == π_1 / 3)
-        self.assertTrue(third((3, 1)))
-        self.assertTrue(third((1, int(𝔽ₚ(1) / 3))))
+        self.assertTrue(ap(third, (3, 1)))
+        self.assertTrue(ap(third, (1, int(𝔽ₚ(1) / 3))))
         # A term divisor could be 0; a field has no compatible order.
         with self.assertRaises(TypeError):
             F * F | (π_2 == π_1 / π_2)
