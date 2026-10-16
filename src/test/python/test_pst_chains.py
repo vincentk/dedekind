@@ -10,7 +10,7 @@ Python flags.
 
 import unittest
 
-from dedekind.pst import 𝔹, A, K3, Ternary
+from dedekind.pst import 𝔹, A, K3, Function, Set, Ternary, π
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
 # Subscript digits are not identifier characters, so K₃ is spelled K3 and
@@ -83,3 +83,29 @@ class PstClassificationTest(unittest.TestCase):
         self.assertEqual(A(Ternary), K3)
         with self.assertRaises(TypeError):
             A(K3)  # a universe, not a carrier type
+
+
+class AUniverseIsItsFullRunList(unittest.TestCase):
+    """A universe answers as the set it is: every operation, query and piece
+    of metadata of the full run list, against any operand."""
+
+    def test_the_lattice_against_a_k3_valued_set(self) -> None:
+        H = K3.identity  # χ(x) = x, valued in K₃
+        F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
+        self.assertEqual([(K3 & H)(v) for v in (F, U, T)], [F, U, T])  # H itself
+        self.assertEqual((K3 | H) == K3, Ternary.TRUE)
+        self.assertFalse((K3 ^ H).is_decidable)
+
+    def test_subset_queries_between_universes(self) -> None:
+        self.assertIs(𝔹 <= 𝔹, True)
+        self.assertIs(K3 >= K3, True)
+        self.assertIs(K3 <= (K3 | (π > Ternary.FALSE)), False)
+
+    def test_applied_to_a_term(self) -> None:
+        self.assertEqual(K3 | K3(π), K3)
+
+    def test_its_metadata(self) -> None:
+        self.assertIs(K3.is_decidable, True)
+        self.assertEqual(K3.carrier, K3)
+        self.assertIsInstance(K3, Set[K3])
+        self.assertIs(Function[K3, 𝔹](K3), K3)

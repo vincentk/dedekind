@@ -1194,6 +1194,13 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
   return set;
 }
 
+/** @brief The universe over a truth chain as the set it is: its full run
+ *  list, a handle Python reads.  @tparam C the chain. */
+template <typename C>
+nb::object full_universe() {
+  return nb::cast(pst::Set<C, Boole>::universe());
+}
+
 /** @brief A truth chain's universe as a set: the former @c U @c | @c pred,
  *  membership (every element of the carrier), its codomain, the set
  *  operations against the sets over it (the universe is their top), and
@@ -1203,43 +1210,23 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
 template <typename C>
 void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
   using Ch = pst::Chain<C>;
-  using S = pst::Set<C, Boole>;
-  ch.def(
-        "__or__",
-        [](const Ch&, const RPred& p) {
-          return former_runtime(S::universe(), p);
+  // The set operations, the queries and the set's metadata are the full run
+  // list's: the universe answers as the set it is, against a Boolean set, a
+  // K₃-valued one, a predicate (the former) or a term alike.
+  for (const char* op :
+       {"__or__", "__and__", "__xor__", "__eq__", "__ne__", "__le__", "__ge__"})
+    ch.def(
+        op,
+        [op](const Ch&, nb::handle other) {
+          return full_universe<C>().attr(op)(other);
         },
-        nb::is_operator(),
-        "U | pred: the former; every operator and constant is checked on the "
-        "chain now.")
-      .def(
-          "__or__",
-          [](const Ch&, const RTerm& t) -> S {
-            throw nb::type_error(("U | " + show(t) +
-                                  ": a term is not a predicate; compare it "
-                                  "(t == top, t >= level)")
-                                     .c_str());
-          },
-          nb::is_operator())
-      .def(
-          "__or__",
-          [](const Ch&, const S& b) { return ext(S::universe() | b); },
-          nb::is_operator(), "U | S: the join, U itself.")
-      .def(
-          "__and__",
-          [](const Ch&, const S& b) { return ext(S::universe() & b); },
-          nb::is_operator(), "U & S: the meet, S itself.")
-      .def(
-          "__xor__",
-          [](const Ch&, const S& b) { return ext(S::universe() ^ b); },
-          nb::is_operator(), "U ^ S: the symmetric difference, ~S.")
-      .def(
-          "__invert__", [](const Ch&) { return S::empty(); },
-          "~U: the empty set.")
-      .def(
-          "__eq__",
-          [](const Ch&, const S& b) { return nb::cast(S::universe() == b); },
-          nb::is_operator(), "U == S: whether S is every element.")
+        nb::is_operator());
+  for (const char* prop : {"carrier", "is_decidable"})
+    ch.def_prop_ro(prop,
+                   [prop](const Ch&) { return full_universe<C>().attr(prop); });
+  ch.def(
+        "__invert__", [](const Ch&) { return pst::Set<C, Boole>::empty(); },
+        "~U: the empty set.")
       .def(
           "__contains__",
           [](const Ch&, nb::handle x) {
@@ -1255,13 +1242,15 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
           nb::arg("x"), "x in U: whether x is an element of the carrier.")
       .def(
           "__call__",
-          [](const Ch&, nb::handle x) {
+          [](const Ch&, nb::handle x) -> nb::object {
+            // At a term: the full run list's χ, the predicate it substitutes.
+            if (is_term(x)) return full_universe<C>().attr("__call__")(x);
             try {
               (void)from_py_as<C>(x);
             } catch (const nb::cast_error&) {
               throw nb::type_error("not a value of the universe's carrier");
             }
-            return true;
+            return nb::bool_(true);
           },
           nb::arg("x"), "χ(x) = ⊤: the universe holds every element.")
       .def_prop_ro(
