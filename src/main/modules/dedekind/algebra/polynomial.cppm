@@ -590,39 +590,87 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
 }
 
 namespace detail_canonical {
-/** @brief The dispatch of an atom's normal form to its sort. */
-template <typename K, typename Lift>
+/** @brief The dispatch of an atom's normal form to its sort: a comparison of
+ *  two constants decided in it, any other atom in the polynomials over a
+ *  carrier of the points where + and · are total on it, and on a carrier
+ *  without them (𝔹, K₃) kept as written: equal forms still cut out equal
+ *  sets, and different ones decide nothing.  @tparam P the point type. */
+template <typename P, typename K, typename Lift>
 struct AtomAt {
   const dedekind::sets::Pred<K>& p;
   const Lift& lift;
   template <typename C>
   dedekind::sets::Pred<K> operator()(std::type_identity<C>) const {
-    return canonical_atom<C>(p, lift);
+    using Pr = dedekind::sets::Pred<K>;
+    using T = dedekind::sets::Term<K>;
+    if (p.a->kind == T::Kind::Const && p.b->kind == T::Kind::Const) {
+      if (!dedekind::sets::rel_admitted<C>(p.rel))
+        throw dedekind::sets::not_admitted(
+            "the comparison is not in the carrier's signature");
+      return dedekind::sets::compare_rel(
+                 p.rel, dedekind::sets::constant_as<P, C>(p.a->value),
+                 dedekind::sets::constant_as<P, C>(p.b->value))
+                 ? Pr::top()
+                 : Pr::bottom();
+    }
+    if constexpr (dedekind::sets::is_sort_of_v<
+                      C, dedekind::sets::point_sorts_t<P>> &&
+                  dedekind::sets::admits(dedekind::sets::On<C>{}, std::plus<>{},
+                                         false) &&
+                  dedekind::sets::admits(dedekind::sets::On<C>{},
+                                         std::multiplies<>{}, false))
+      return canonical_atom<C>(p, lift);
+    else
+      return p;  // a chain without a rig's + · (𝔹, K₃): its own form
   }
 };
+/** @brief The normal form of a predicate without conditionals: atom by atom,
+ *  the bounds ⊤ / ⊥ folded into the connectives (the lattice's units and
+ *  absorbers). */
+template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
+                                         const Lift& lift) {
+  using Pr = dedekind::sets::Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return p;
+    case Pr::Kind::And:
+    case Pr::Kind::Or: {
+      const Pr x = canonical_lifted<P>(*p.p, lift);
+      const Pr y = canonical_lifted<P>(*p.q, lift);
+      const bool meet = p.kind == Pr::Kind::And;
+      const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
+      const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
+      if (x.kind == absorber || y.kind == unit) return x;
+      if (y.kind == absorber || x.kind == unit) return y;
+      return meet ? Pr::conj(x, y) : Pr::disj(x, y);
+    }
+    case Pr::Kind::Cmp:
+      break;
+  }
+  return dedekind::sets::with_sort<P>(
+      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts<P>(
+          dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b))),
+      AtomAt<P, K, Lift>{p, lift});
+}
 }  // namespace detail_canonical
 
-/** @brief The normal form of a predicate at points of @c P, atom by atom, each
+/** @brief The normal form of a predicate at points of @c P: its conditionals
+ *  lifted out of the atoms (@c lift_conditionals, so an applied set
+ *  @c ap(S, t) reads as @c S's predicate at @c t), then atom by atom, each
  *  atom in its operands' sort (a point of one carrier has one; a pair of two
- *  carriers two, each axis its own).  Equal normal forms cut out equal sets;
- *  different ones need not (@c πᵖ @c = @c π everywhere on 𝔽ₚ).  An atom
- *  outside the catalogue is refused (@c not_admitted).  @tparam P the point
- *  type.  @param p the predicate.  @param lift a coefficient into a constant
- *  of the predicate's type. */
+ *  carriers two, each axis its own), a decided atom ⊤ or ⊥ and folded into its
+ *  connective.  Equal normal forms cut out equal sets; different ones need not
+ *  (@c πᵖ @c = @c π everywhere on 𝔽ₚ).  An atom outside the catalogue is
+ *  refused (@c not_admitted).  @tparam P the point type.  @param p the
+ *  predicate.  @param lift a coefficient into a constant of the predicate's
+ *  type. */
 export template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
                                   const Lift& lift) {
-  using Pr = dedekind::sets::Pred<K>;
-  if (p.kind == Pr::Kind::Top || p.kind == Pr::Kind::Bottom) return p;
-  if (p.kind != Pr::Kind::Cmp) {
-    const Pr x = canonical<P>(*p.p, lift);
-    const Pr y = canonical<P>(*p.q, lift);
-    return p.kind == Pr::Kind::And ? Pr::conj(x, y) : Pr::disj(x, y);
-  }
-  return dedekind::sets::with_sort<P>(
-      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts(
-          dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b))),
-      detail_canonical::AtomAt<K, Lift>{p, lift});
+  return detail_canonical::canonical_lifted<P>(
+      dedekind::sets::lift_conditionals(p), lift);
 }
 
 }  // namespace dedekind::algebra

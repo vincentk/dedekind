@@ -10,7 +10,7 @@ constant; order comparisons on an ordered carrier.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Ternary, cond, u64, π, π_1, π_2, 𝔽ₚ
+from dedekind.pst import A, B, K3, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ
 
 P = 2**64 - 59
 
@@ -91,9 +91,9 @@ class TheFieldAdmits(unittest.TestCase):
     def test_division_by_a_nonzero_constant(self) -> None:
         F = A(𝔽ₚ)
         third = F * F | (π_2 == π_1 / 3)
-        self.assertTrue(third((3, 1)))
-        self.assertTrue(third((1, int(𝔽ₚ(1) / 3))))
-        self.assertFalse(third((3, 2)))
+        self.assertTrue(ap(third, (3, 1)))
+        self.assertTrue(ap(third, (1, int(𝔽ₚ(1) / 3))))
+        self.assertFalse(ap(third, (3, 2)))
         self.assertIn((3, 1), third)
         self.assertNotIn((3, 2), third)
         self.assertNotIn("x", third)

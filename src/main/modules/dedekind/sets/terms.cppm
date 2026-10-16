@@ -95,6 +95,7 @@ module;
 #include <functional>
 #include <limits>
 #include <memory>  // std::shared_ptr: the legs of a term built at run time
+#include <optional>
 #include <stdexcept>
 #include <string>  // the spelling of a refusal
 #include <tuple>
@@ -693,6 +694,28 @@ struct point_sorts<std::pair<A, B>> {
 };
 export template <typename P>
 using point_sorts_t = typename point_sorts<P>::type;
+/** @brief Whether @c C is one of the sorts @c S. */
+export template <typename C, typename S>
+inline constexpr bool is_sort_of_v = false;
+template <typename C, typename... Cs>
+inline constexpr bool is_sort_of_v<C, std::tuple<Cs...>> =
+    (std::same_as<C, Cs> || ...);
+/** @brief The tuple @c S with @c C appended, unless @c C is in it already. */
+template <typename S, typename C>
+struct with_carrier;
+template <typename... Cs, typename C>
+struct with_carrier<std::tuple<Cs...>, C> {
+  using type = std::conditional_t<is_sort_of_v<C, std::tuple<Cs...>>,
+                                  std::tuple<Cs...>, std::tuple<Cs..., C>>;
+};
+/** @brief The sorts a term at points of @c P takes: the points' carriers
+ *  first (a slot's sort is its index there), then the truth chains a set
+ *  applied to a term lands in, @c ap(S, t) of sort @c S's codomain.
+ *  @tparam P the point type. */
+export template <typename P>
+using term_sorts_t =
+    typename with_carrier<typename with_carrier<point_sorts_t<P>, bool>::type,
+                          dedekind::category::Ternary>::type;
 /** @brief The value of a term built at run time at a point: the one sort's
  *  carrier, or the sum of the sorts where there are two. */
 template <typename Sorts>
@@ -729,21 +752,6 @@ std::size_t slot_sort(unsigned slot) {
         "π_1 / π_2 name a pair's coordinates; the points are elements");
   }
 }
-/** @brief The common sort of two operands: a constant takes the other's.
- *  @throws not_admitted where two carriers meet. */
-export inline std::size_t join_sorts(std::size_t a, std::size_t b) {
-  if (a == no_sort) return b;
-  if (b == no_sort) return a;
-  if (a != b)
-    throw not_admitted(
-        "the operands are of two carriers: a term lives in one sort, and an "
-        "arrow between the carriers is applied, not implied");
-  return a;
-}
-/** @brief Apply @c f to the sort @c s of @c P as a type: @c
- * f(type_identity<C>).
- *  @c s is a valid index (the caller joined the sorts).  @tparam P the point
- *  type.  @tparam I the first candidate. */
 /** @brief The sort of a tree of constants without a context: the point's one
  *  sort where it has one.  @throws not_admitted on a point of two carriers,
  *  where a constant alone names neither. */
@@ -754,9 +762,12 @@ std::size_t default_sort(std::size_t s) {
   throw not_admitted(
       "a term of constants alone names no carrier on a product of two");
 }
+/** @brief Apply @c f to the sort @c s of @c P as a type:
+ *  @c f(type_identity<C>).  @c s is a valid index (the caller joined the
+ *  sorts).  @tparam P the point type.  @tparam I the first candidate. */
 export template <typename P, std::size_t I = 0, typename F>
 auto with_sort(std::size_t s, const F& f) {
-  using Sorts = point_sorts_t<P>;
+  using Sorts = term_sorts_t<P>;
   if constexpr (I + 1 < std::tuple_size_v<Sorts>) {
     if (s == I) return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
     return with_sort<P, I + 1>(s, f);
@@ -764,22 +775,52 @@ auto with_sort(std::size_t s, const F& f) {
     return f(std::type_identity<std::tuple_element_t<I, Sorts>>{});
   }
 }
-/** @brief The coordinate @c slot of the point @c p, of the sort @c C the
+/** @brief A value of the sort @c D is read in the sort @c C: the same sort,
+ *  or a truth chain along the dominance into @c C's species (𝔹 ↪ K₃, the
+ *  registered @c lift_logic).  The one coercion of the grammar; any other
+ *  pair of carriers meets through an arrow applied, never implied.
+ *  @tparam D the value's sort.  @tparam C the sort it is read in. */
+export template <typename D, typename C>
+concept EmbedsInto = std::same_as<D, C> || requires {
+  typename dedekind::category::classifier_logic_t<C>;
+  requires std::same_as<typename dedekind::category::classifier_logic_t<C>::Ω,
+                        C>;
+  requires dedekind::category::LiftableInto<
+      D, dedekind::category::classifier_logic_t<C>>;
+};
+/** @brief @c d read in the sort @c C.  @tparam C the sort.  @param d the
+ *  value. */
+export template <typename C, typename D>
+  requires EmbedsInto<D, C>
+constexpr C embed_into(const D& d) {
+  if constexpr (std::same_as<D, C>)
+    return d;
+  else
+    return dedekind::category::lift_logic<
+        dedekind::category::classifier_logic_t<C>>(d);
+}
+/** @brief @c d read in the sort @c C where it embeds, refused elsewhere. */
+template <typename C, typename D>
+constexpr C read_as(const D& d) {
+  if constexpr (EmbedsInto<D, C>)
+    return embed_into<C>(d);
+  else
+    throw not_admitted("a slot of another carrier than the term's sort");
+}
+/** @brief The coordinate @c slot of the point @c p, read in the sort @c C the
  *  dispatch chose; the point itself for the unary @c π.  @tparam C the sort.
  *  @param p the point. */
 template <typename C, typename P>
 constexpr C coordinate_as(unsigned slot, const P& p) {
   if constexpr (requires { typename P::first_type; }) {
-    if (slot == 1) {
-      if constexpr (std::same_as<typename P::first_type, C>) return p.first;
-    } else if (slot == 2) {
-      if constexpr (std::same_as<typename P::second_type, C>) return p.second;
-    }
-    throw not_admitted("a slot of another carrier than the term's sort");
+    if (slot == 1) return read_as<C>(p.first);
+    if (slot == 2) return read_as<C>(p.second);
+    throw not_admitted("binary products only: π_1 and π_2");
   } else {
-    if (slot == 0) return p;
-    throw not_admitted(
-        "π_1 / π_2 name a pair's coordinates; the points are elements");
+    if (slot != 0)
+      throw not_admitted(
+          "π_1 / π_2 name a pair's coordinates; the points are elements");
+    return read_as<C>(p);
   }
 }
 
@@ -877,9 +918,81 @@ constexpr bool compare_rel(Rel r, const C& x, const C& y) {
   }
   throw not_admitted("the comparison is not admitted on the carrier");
 }
+/** @brief The sort a constant names by itself, at points of @c P: the first
+ *  sort @c C with @c constant_of(type_identity<C>, k) (found by ADL) true,
+ *  for a constant written as a value of @c C (a bool, a Ternary) rather than
+ *  a numeral; @c no_sort otherwise, a numeral taking its context's sort.
+ *  @tparam P the point type.  @param k the constant. */
+export template <typename P, std::size_t I = 0, typename K>
+std::size_t constant_sort(const K& k) {
+  using Sorts = term_sorts_t<P>;
+  if constexpr (I < std::tuple_size_v<Sorts>) {
+    using C = std::tuple_element_t<I, Sorts>;
+    if constexpr (requires { constant_of(std::type_identity<C>{}, k); }) {
+      if (constant_of(std::type_identity<C>{}, k)) return I;
+    }
+    return constant_sort<P, I + 1>(k);
+  } else {
+    return no_sort;
+  }
+}
+/** @brief Whether the sort @c b embeds into the sort @c a, at points of
+ *  @c P. */
+template <typename P>
+struct EmbedsAt {
+  std::size_t b;
+  template <typename A>
+  struct From {
+    template <typename B>
+    bool operator()(std::type_identity<B>) const {
+      return EmbedsInto<B, A>;
+    }
+  };
+  template <typename A>
+  bool operator()(std::type_identity<A>) const {
+    return with_sort<P>(b, From<A>{});
+  }
+};
+/** @brief The common sort of two operands at points of @c P: a constant takes
+ *  the other's, and a truth chain meets its dominance in the larger (𝔹 and
+ *  K₃ in K₃).  @throws not_admitted where two carriers meet. */
+export template <typename P>
+std::size_t join_sorts(std::size_t a, std::size_t b) {
+  if (a == no_sort) return b;
+  if (b == no_sort) return a;
+  if (a == b) return a;
+  if (with_sort<P>(a, EmbedsAt<P>{b})) return a;
+  if (with_sort<P>(b, EmbedsAt<P>{a})) return b;
+  throw not_admitted(
+      "the operands are of two carriers: a term lives in one sort, and an "
+      "arrow between the carriers is applied, not implied");
+}
+/** @brief A constant read in the sort @c C: a numeral cast into it, a
+ *  constant of a sort (a bool, a Ternary) read in its own and embedded.
+ *  @tparam P the point type.  @tparam C the sort.  @param k the constant. */
+template <typename P, typename C, typename K>
+struct ConstantAs {
+  const K& k;
+  template <typename D>
+  C operator()(std::type_identity<D>) const {
+    if constexpr (EmbedsInto<D, C>)
+      return embed_into<C>(carrier_cast<D>(k));
+    else
+      throw not_admitted(
+          "a constant of another carrier than the term's sort: an arrow "
+          "between the carriers is applied, not implied");
+  }
+};
+export template <typename P, typename C, typename K>
+C constant_as(const K& k) {
+  const std::size_t s = constant_sort<P>(k);
+  if (s == no_sort) return carrier_cast<C>(k);
+  return with_sort<P>(s, ConstantAs<P, C, K>{k});
+}
 /** @brief The sort of a term built at run time at points of @c P, from its
- *  projections: @c no_sort for a tree of constants, which takes its context's.
- *  Defined with @c Term.  @tparam P the point type. */
+ *  projections and its constants of a sort (@c constant_sort): @c no_sort for
+ *  a tree of numerals, which takes its context's.  Defined with @c Term.
+ *  @tparam P the point type. */
 export template <typename P, typename K>
 std::size_t sort_of(const Term<K>& t);
 
@@ -961,7 +1074,7 @@ struct Value {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<P>(
-            default_sort<P>(join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b))),
+            default_sort<P>(join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b))),
             Compare<K>{*this, t});
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
@@ -984,7 +1097,7 @@ struct Value {
       case Term<K>::Kind::Proj:
         return coordinate_as<C>(t.slot, p);
       case Term<K>::Kind::Const:
-        return carrier_cast<C>(t.value);
+        return constant_as<P, C>(t.value);
       case Term<K>::Kind::Bin:
         if (!op_admitted<C>(t.op, t.b->kind == Term<K>::Kind::Const))
           throw not_admitted(std::string("the operator ") + spelling(t.op) +
@@ -1004,7 +1117,12 @@ struct Value {
     const Term<K>& t;
     template <typename C>
     rt_value_t<P> operator()(std::type_identity<C>) const {
-      return rt_value_t<P>{v.template eval_as<C>(t)};
+      if constexpr (is_sort_of_v<C, point_sorts_t<P>>)
+        return rt_value_t<P>{v.template eval_as<C>(t)};
+      else
+        throw not_admitted(
+            "a truth value is read by a comparison or a former, not as the "
+            "point's value");
     }
   };
   /** @brief The dispatch of a comparison to its operands' sort. */
@@ -1173,7 +1291,7 @@ struct Bind {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<X>(
-            default_sort<X>(join_sorts(sort_of<X>(*t.a), sort_of<X>(*t.b))),
+            default_sort<X>(join_sorts<X>(sort_of<X>(*t.a), sort_of<X>(*t.b))),
             BindCmp<K>{*this, t});
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
@@ -1194,7 +1312,7 @@ struct Bind {
         (void)coordinate_as<C>(t.slot, X{});
         break;
       case Term<K>::Kind::Const:
-        (void)carrier_cast<C>(t.value);
+        (void)constant_as<X, C>(t.value);
         break;
       case Term<K>::Kind::Bin: {
         bind_as<C>(*t.a);
@@ -1444,11 +1562,11 @@ std::size_t sort_of(const Term<K>& t) {
     case Term<K>::Kind::Proj:
       return slot_sort<P>(t.slot);
     case Term<K>::Kind::Const:
-      return no_sort;
+      return constant_sort<P>(t.value);
     case Term<K>::Kind::Bin:
-      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
     case Term<K>::Kind::Cond:
-      return join_sorts(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
   }
   return no_sort;
 }
@@ -1486,6 +1604,79 @@ unsigned slots(const Term<K>& t) {
       return slots(*t.p) | slots(*t.a) | slots(*t.b);
   }
   return ~0u;
+}
+
+// ── Pinning the numerals ────────────────────────────────────────────────────
+
+/** @brief A numeral read in the sort @c C and written back as a constant of
+ *  that sort, through @c lift; a carrier @c lift has no constant for keeps
+ *  the numeral. */
+template <typename K, typename Lift>
+struct PinConstant {
+  const K& k;
+  const Lift& lift;
+  template <typename C>
+  K operator()(std::type_identity<C>) const {
+    if constexpr (requires(const C& c) {
+                    { lift(c) } -> std::convertible_to<K>;
+                  })
+      return lift(carrier_cast<C>(k));
+    else
+      return k;
+  }
+};
+export template <typename P, typename K, typename Lift>
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift);
+/** @brief The term @c t, of the sort @c s at points of @c P, with every
+ *  numeral pinned to it.  @param t the term.  @param s its sort.  @param lift
+ *  a value of a sort into a constant that names it. */
+template <typename P, typename K, typename Lift>
+Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
+  using T = Term<K>;
+  switch (t.kind) {
+    case T::Kind::Proj:
+      return t;
+    case T::Kind::Const:
+      if (s == no_sort || constant_sort<P>(t.value) != no_sort) return t;
+      return T::constant(with_sort<P>(s, PinConstant<K, Lift>{t.value, lift}));
+    case T::Kind::Bin:
+      return T::bin(t.op, pin_term<P>(*t.a, s, lift),
+                    pin_term<P>(*t.b, s, lift));
+    case T::Kind::Cond:
+      return T::cond(pin_constants<P>(*t.p, lift), pin_term<P>(*t.a, s, lift),
+                     pin_term<P>(*t.b, s, lift));
+  }
+  return t;
+}
+/** @brief The predicate with every numeral pinned to the sort its context
+ *  gives it at points of @c P: the constant then names its sort itself, so
+ *  the term keeps its meaning when it moves (substituted into another
+ *  context by @c ap, or split by @c lift_conditionals into an atom with no
+ *  slot left).  @param p the predicate.  @param lift a value of a sort into a
+ *  constant that names it (@c constant_of). */
+export template <typename P, typename K, typename Lift>
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift) {
+  using Pr = Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(pin_constants<P>(*p.p, lift),
+                      pin_constants<P>(*p.q, lift));
+    case Pr::Kind::Or:
+      return Pr::disj(pin_constants<P>(*p.p, lift),
+                      pin_constants<P>(*p.q, lift));
+    case Pr::Kind::Cmp: {
+      // A comparison of numerals alone takes the point's one sort, as binding
+      // reads it; on a product of two it names none and is left as written.
+      std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
+      if (s == no_sort && std::tuple_size_v<point_sorts_t<P>> == 1) s = 0;
+      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift),
+                     pin_term<P>(*p.b, s, lift));
+    }
+  }
+  return p;
 }
 /** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
  *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
@@ -1532,6 +1723,76 @@ bool same_shape(const Pred<K>& x, const Pred<K>& y) {
   if (x.kind == Pred<K>::Kind::Cmp)
     return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
   return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);
+}
+
+/** @brief A term with its first conditional taken out: the condition, and
+ *  the term with the conditional replaced by each branch.  @tparam K the
+ *  constants' type. */
+template <typename K>
+struct CondSplit {
+  Pred<K> q;
+  Term<K> then_term, else_term;
+};
+/** @brief The first conditional of @c t, leftmost, split out; @c nullopt for a
+ *  term without one.  @param t the term. */
+template <typename K>
+std::optional<CondSplit<K>> split_cond(const Term<K>& t) {
+  using T = Term<K>;
+  switch (t.kind) {
+    case T::Kind::Proj:
+    case T::Kind::Const:
+      return std::nullopt;
+    case T::Kind::Cond:
+      return CondSplit<K>{*t.p, *t.a, *t.b};
+    case T::Kind::Bin:
+      if (auto l = split_cond(*t.a))
+        return CondSplit<K>{l->q, T::bin(t.op, l->then_term, *t.b),
+                            T::bin(t.op, l->else_term, *t.b)};
+      if (auto r = split_cond(*t.b))
+        return CondSplit<K>{r->q, T::bin(t.op, *t.a, r->then_term),
+                            T::bin(t.op, *t.a, r->else_term)};
+      return std::nullopt;
+  }
+  return std::nullopt;
+}
+export template <typename K>
+Pred<K> lift_conditionals(const Pred<K>& p);
+/** @brief @c (q ∧ x) ∨ (¬q ∧ y), each part lifted.  @param q the condition.
+ *  @param x where it holds.  @param y where it fails. */
+template <typename K>
+Pred<K> by_cases(const Pred<K>& q, const Pred<K>& x, const Pred<K>& y) {
+  return Pred<K>::disj(
+      Pred<K>::conj(lift_conditionals(q), lift_conditionals(x)),
+      Pred<K>::conj(lift_conditionals(q.negated()), lift_conditionals(y)));
+}
+/** @brief The predicate with every conditional lifted out of its atoms:
+ *  @c cond(q, a, b) @c R @c c is @c (q ∧ a R c) ∨ (¬q ∧ b R c), the law of
+ *  McCarthy's conditional, until no atom has one.  The same set at every
+ *  point; an applied set @c ap(S, t) @c == @c ⊤, the conditional
+ *  @c cond(χ_S[π:=t], ⊤, ⊥) compared, becomes @c χ_S[π:=t] once the decided
+ *  atoms are folded (@c algebra:polynomial's @c canonical).  @param p the
+ *  predicate. */
+export template <typename K>
+Pred<K> lift_conditionals(const Pred<K>& p) {
+  using Pr = Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(lift_conditionals(*p.p), lift_conditionals(*p.q));
+    case Pr::Kind::Or:
+      return Pr::disj(lift_conditionals(*p.p), lift_conditionals(*p.q));
+    case Pr::Kind::Cmp:
+      if (auto l = split_cond(*p.a))
+        return by_cases(l->q, Pr::cmp(p.rel, l->then_term, *p.b),
+                        Pr::cmp(p.rel, l->else_term, *p.b));
+      if (auto r = split_cond(*p.b))
+        return by_cases(r->q, Pr::cmp(p.rel, *p.a, r->then_term),
+                        Pr::cmp(p.rel, *p.a, r->else_term));
+      return p;
+  }
+  return p;
 }
 
 /** @section terms__Formal_Verification */

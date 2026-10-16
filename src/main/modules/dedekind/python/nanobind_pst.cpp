@@ -17,9 +17,9 @@
  * the field's.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv
  * grammar: generators
  * @c A(T) / @c Ø(T) / @c η(v), the former @c U @c | @c (π @c > @c v),
- * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c S(x), the
- * queries @c == and @c <= answering in the set's own species (@c Unknown is a
- * verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
+ * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c ap(S, x),
+ * the queries @c == and @c <= answering in the set's own species (@c Unknown is
+ * a verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
  * the normal form @c runs.  Every handle over a truth chain is a run list
  * (@c order:runs), the library's normal form of these sets, valued in its
  * species; every operator and every query is the library's, on it.
@@ -432,8 +432,30 @@ Ternary carrier_cast(std::type_identity<Ternary>, const PyConst& k) {
     throw nb::type_error("a constant on K₃ is a Ternary");
   return nb::cast<Ternary>(k.o);
 }
+/** @brief The sort a constant names by itself: a bool is a value of 𝔹, a
+ *  Ternary of K₃, a u64 of the word and an element of 𝔽ₚ of the field, while
+ *  an int is a numeral its context's sort reads. */
+bool constant_of(std::type_identity<bool>, const PyConst& k) {
+  return PyBool_Check(k.o.ptr());
+}
+bool constant_of(std::type_identity<Ternary>, const PyConst& k) {
+  return nb::isinstance<Ternary>(k.o);
+}
+bool constant_of(std::type_identity<uint64_t>, const PyConst& k) {
+  return nb::isinstance<Word>(k.o);
+}
+bool constant_of(std::type_identity<Fp>, const PyConst& k) {
+  return nb::isinstance<Fp>(k.o);
+}
 using RTerm = dedekind::sets::Term<PyConst>;
 using RPred = dedekind::sets::Pred<PyConst>;
+
+/** @brief χ of a decidable set as a term of sort 𝔹, from its predicate at the
+ *  argument: @c cond(q, True, False).  @param q the predicate, substituted. */
+RTerm truth_term(const RPred& q) {
+  return RTerm::cond(q, RTerm::constant(PyConst{nb::handle(Py_True)}),
+                     RTerm::constant(PyConst{nb::handle(Py_False)}));
+}
 
 RTerm as_term(const ProjectionTag& p) { return RTerm::proj(p.slot); }
 RTerm as_term(const RTerm& t) { return t; }
@@ -570,15 +592,62 @@ struct AsConstant {
   PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
   PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
 };
+/** @brief A value written back as a constant that names its sort: a u64, an
+ *  element of 𝔽ₚ, a bool, a Ternary (@c constant_of).  The numerals of a term
+ *  are pinned with it before the term moves (@c pin_constants). */
+struct TypedConstant {
+  PyConst operator()(std::uint64_t c) const {
+    return PyConst{nb::cast(Word{c})};
+  }
+  PyConst operator()(const Fp& c) const { return PyConst{nb::cast(c)}; }
+  PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
+  PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
+};
+/** @brief Whether the term @c t is a value of the carrier @c C, as a predicate
+ *  that holds wherever it binds: @c t compared with a constant of @c C, so a
+ *  term of another sort is refused when the predicate is bound.  A chain's
+ *  and the word's bottom, @c t @c >= @c ⊥; the field's unit, @c t·1 @c == @c t.
+ *  @param t the term. */
+template <typename C>
+RPred member_of(const RTerm& t) {
+  if constexpr (IsPst<C>)
+    return RPred::cmp(
+        Rel::Ge, t,
+        RTerm::constant(TypedConstant{}(dedekind::sets::chain_bottom<C>())));
+  else if constexpr (std::unsigned_integral<C>)
+    return RPred::cmp(Rel::Ge, t, RTerm::constant(TypedConstant{}(C{})));
+  else
+    return RPred::cmp(
+        Rel::Eq,
+        RTerm::bin(Arith::Mul, t, RTerm::constant(TypedConstant{}(C{1}))), t);
+}
+/** @brief χ of the universe over @c C at a term: ⊤ wherever the term is a
+ *  value of @c C, the argument kept so binding checks its sort. */
+template <typename C>
+RTerm universe_at(const RTerm& t) {
+  return truth_term(member_of<C>(t));
+}
+
+/** @brief The predicate at points of @c P with its numerals pinned to their
+ *  sorts.  @param p the predicate. */
+template <typename P>
+RPred pinned(const RPred& p) {
+  return dedekind::sets::pin_constants<P>(p, TypedConstant{});
+}
+/** @brief The normal form of a predicate at points of @c P: pinned, so a
+ *  conditional split into an atom with no slot keeps its sort, then read by
+ *  the library's @c canonical.  @param p the predicate. */
+template <typename P>
+RPred normal_form(const RPred& p) {
+  return dedekind::algebra::canonical<P>(pinned<P>(p), AsConstant{});
+}
 
 /** @brief Equality of two predicates by their normal forms: equal forms cut
  *  out equal sets; different forms decide nothing, so they raise rather than
  *  answer "different".  @tparam P the point type (one carrier, or a pair). */
 template <typename P>
 bool equal_by_normal_form(const RPred& a, const RPred& b) {
-  if (dedekind::sets::same_shape(
-          dedekind::algebra::canonical<P>(a, AsConstant{}),
-          dedekind::algebra::canonical<P>(b, AsConstant{})))
+  if (dedekind::sets::same_shape(normal_form<P>(a), normal_form<P>(b)))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -638,6 +707,35 @@ Fp to_fp(nb::handle h) {
   return residue_of(h);
 }
 
+/** @brief Whether a term of the sort @c T is read in @c C2 (@c EmbedsInto):
+ *  a graph's term lands in the relation's second factor. */
+template <typename C2>
+struct ReadsInto {
+  template <typename T>
+  bool operator()(std::type_identity<T>) const {
+    return dedekind::sets::EmbedsInto<T, C2>;
+  }
+};
+/** @brief The term of a relation at points @c P = (C₁, C₂) certified a
+ *  function: a graph atom @c π_2 @c == @c t (@c graph_term) whose term lands
+ *  in @c C₂, so every point of @c C₁ has its image there; @c nullptr
+ *  otherwise (@c K3 @c * @c B @c | @c (π_2 @c == @c π_1) is a relation, but
+ *  U has no image in 𝔹).  @param p the predicate. */
+template <typename P>
+const RTerm* function_term(const RPred& p) {
+  const RTerm* t = dedekind::sets::graph_term(p);
+  if (t == nullptr) return nullptr;
+  const std::size_t s = dedekind::sets::sort_of<P>(*t);
+  if (s != dedekind::sets::no_sort &&
+      !dedekind::sets::with_sort<P>(s, ReadsInto<typename P::second_type>{}))
+    return nullptr;
+  return t;
+}
+
+/** @brief A point of 𝔹 or K₃ out of a Python value: a bool, a Ternary. */
+bool to_bool(nb::handle h) { return from_py_as<bool>(h); }
+Ternary to_ternary(nb::handle h) { return from_py_as<Ternary>(h); }
+
 /** @brief The relations a term cuts out of a product of two universes,
  *  @c 𝔸(C₁) @c * @c 𝔸(C₂) @c | @c pred: each slot has its carrier's sort, an
  *  atom is read in its operands' common sort, and a term mixing the two
@@ -647,13 +745,14 @@ Fp to_fp(nb::handle h) {
  *  @tparam To1,To2 a Python value into each. */
 template <typename C1, typename C2, typename To1, typename To2>
 void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
-                   const char* name1, const char* name2, To1 to1, To2 to2) {
+                   const char* name1, const char* name2, nb::object factor1,
+                   nb::object factor2, To1 to1, To2 to2) {
   using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
   using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
   using UU = decltype(U1{} * U2{});
   using R = decltype(UU{} | std::declval<RPred>());
   using Point = std::pair<C1, C2>;
-  const std::string shown = std::string("𝔸(") + name1 + ") × 𝔸(" + name2 + ")";
+  const std::string shown = std::string(name1) + " × " + name2;
   const auto pair_of = [to1, to2](nb::handle h) {
     if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
       throw nb::type_error("a point of the product is a pair (x, y)");
@@ -665,18 +764,16 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       return static_cast<bool>(s(pair_of(h)));
     } catch (const nb::builtin_exception&) {
       return false;  // not a representative: not a member
+    } catch (const nb::cast_error&) {
+      return false;  // not a value of the carrier
     }
   };
-  const auto factors = []() {
-    return nb::make_tuple(nb::cast(U1{}).attr("carrier"),
-                          nb::cast(U2{}).attr("carrier"));
+  const auto factors = [factor1, factor2]() {
+    return nb::make_tuple(factor1, factor2);
   };
   m.def(
       "canonical",
-      [](const R& r) {
-        return UU{} |
-               dedekind::algebra::canonical<Point>(r.predicate, AsConstant{});
-      },
+      [](const R& r) { return UU{} | normal_form<Point>(r.predicate); },
       nb::arg("S"),
       "canonical(R): the relation with each atom in normal form in its own "
       "axis' sort (a run list cannot be written back on a product).");
@@ -689,6 +786,24 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
           "refused.")
       .def("__contains__",
            [holds](const UU& u, nb::handle h) { return holds(u, h); })
+      .def(
+          "_ap",
+          [holds](const UU& u, nb::handle h) -> nb::object {
+            if (is_term(h))
+              throw nb::type_error(
+                  "ap(U × V, t): a point of the product is a pair (t₁, t₂)");
+            if (nb::isinstance<nb::tuple>(h) && nb::len(h) == 2) {
+              const nb::tuple p = nb::borrow<nb::tuple>(h);
+              if (is_term(p[0]) || is_term(p[1]))
+                return nb::cast(
+                    truth_term(RPred::conj(member_of<C1>(term_of(p[0])),
+                                           member_of<C2>(term_of(p[1])))));
+            }
+            return nb::bool_(holds(u, h));
+          },
+          nb::arg("x"),
+          "ap(U × V, (x, y)): χ, ⊤ at every pair of the carriers; at a pair of "
+          "terms, ⊤ where each is a value of its factor's carrier.")
       .def_prop_ro(
           "factors", [factors](const UU&) { return factors(); },
           "The carriers of the product's two coordinates.")
@@ -700,23 +815,30 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       .def("__contains__",
            [holds](const R& r, nb::handle h) { return holds(r, h); })
       .def(
-          "__call__",
+          "_ap",
           [pair_of, to1](const R& r, nb::handle h) -> nb::object {
             if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
             // At a point: the relation as the function it is certified to be.
-            const RTerm* t = dedekind::sets::graph_term(r.predicate);
+            const RTerm* t = function_term<Point>(r.predicate);
             if (t == nullptr)
               throw nb::type_error(
-                  "R(x): R is not certified a function (π_2 == t(π_1)); "
-                  "R((x, y)) is χ");
+                  "ap(R, x): R is not certified a function (π_2 == t(π_1), t "
+                  "landing in the second factor); ap(R, (x, y)) is χ");
+            // At a term: t with π_1 replaced by it, its numerals pinned to
+            // the sorts they had in R, so it means in its new context what it
+            // meant in R.
+            if (is_term(h)) {
+              const RPred pin = pinned<Point>(r.predicate);
+              return nb::cast(function_term<Point>(pin)->subst(1, term_of(h)));
+            }
             // t mentions only π_1: read it at a pair whose first coordinate
             // is x, in the second coordinate's sort, with no copy of the term.
             return nb::cast(
                 dedekind::sets::term_value_as<C2>(*t, Point{to1(h), C2{}}));
           },
           nb::arg("x"),
-          "R((x, y)): χ at a pair.  R(x): t(x), where R is the graph "
-          "π_2 == t(π_1) of a function.")
+          "ap(R, (x, y)): χ at a pair.  ap(R, x): t(x), where R is the graph "
+          "π_2 == t(π_1) of a function; at a term, t with π_1 replaced.")
       .def_prop_ro(
           "factors", [factors](const R&) { return factors(); },
           "The carriers of the relation's two coordinates.")
@@ -726,11 +848,11 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
       .def_prop_ro(
           "is_function",
           [](const R& r) {
-            return dedekind::sets::graph_term(r.predicate) != nullptr;
+            return function_term<Point>(r.predicate) != nullptr;
           },
           "Whether R is certified the graph of a function: π_2 == t(π_1), "
-          "functional by its shape and entire since every operator of a bound "
-          "term is total on the carrier.")
+          "functional by its shape, and entire since every operator of a bound "
+          "term is total on the carrier and t lands in the second factor.")
       .def(
           "__and__",
           [](const R& a, const R& b) {
@@ -770,8 +892,7 @@ void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
 template <typename C, typename ToC>
 void bind_term_sets(nb::module_& m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
-                    const char* name, const char* set_cls, const char* pair_cls,
-                    const char* rel_cls, ToC to_c) {
+                    const char* name, const char* set_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
   using S = Comprehension<U, RPred>;
   const std::string shown = std::string("𝔸(") + name + ")";
@@ -796,9 +917,6 @@ void bind_term_sets(nb::module_& m,
                                      .c_str());
           },
           nb::is_operator())
-      .def(
-          "__mul__", [](const U& a, const U& b) { return a * b; },
-          nb::is_operator(), "𝔸 × 𝔸: the product universe.")
       .def_prop_ro(
           "codomain", [m](const U&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹 (the universe's χ is constant ⊤).");
@@ -818,8 +936,7 @@ void bind_term_sets(nb::module_& m,
         // The atoms first, then the set: an atom normalised into the chain's
         // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
         // reaches the fixpoint.
-        const S atoms =
-            U{} | dedekind::algebra::canonical<C>(s.predicate, AsConstant{});
+        const S atoms = U{} | normal_form<C>(s.predicate);
         if constexpr (IsTotallyOrdered<C>) {
           try {
             return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),
@@ -837,16 +954,18 @@ void bind_term_sets(nb::module_& m,
   set.def("__contains__",
           [holds, to_c](const S& s, nb::handle h) { return holds(to_c, s, h); })
       .def(
-          "__call__",
+          "_ap",
           [to_c](const S& s, nb::handle h) -> nb::object {
-            // The set applied as its characteristic arrow: at a term, the
-            // predicate with π replaced by it (substitution); at a point, χ.
-            if (is_term(h)) return nb::cast(s.predicate.subst(0, term_of(h)));
+            // The set applied as its characteristic arrow: at a term, χ as a
+            // term of sort 𝔹, its predicate with π replaced; at a point, χ.
+            if (is_term(h))
+              return nb::cast(
+                  truth_term(pinned<C>(s.predicate).subst(0, term_of(h))));
             return nb::cast(s(to_c(h)));
           },
           nb::arg("x"),
-          "S(x): χ(x) at an element or a representative; S(t) at a term is the "
-          "predicate with π replaced by t, the set applied as its arrow.")
+          "ap(S, x): χ(x) at an element or a representative; ap(S, t) at a "
+          "term is χ as a term of sort 𝔹, cond(P[π:=t], True, False).")
       .def(
           "__and__",
           [](const S& a, const S& b) {
@@ -1028,7 +1147,6 @@ void bind_term_sets(nb::module_& m,
           return value;
         });
   }
-  bind_relation<C, C>(m, pair_cls, rel_cls, name, name, to_c, to_c);
 }
 // ── The sets of the grammar ───────────────────────────────────────────────
 
@@ -1104,20 +1222,21 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
   using S = pst::Set<C, L>;
   using Ω = typename L::Ω;
   auto set = nb::class_<S>(m, cls, doc);
-  // χ_S as a term of the grammar: a decidable table is its run predicate, an
-  // L-valued one McCarthy's conditional over its α-cuts.  Applied to a term,
-  // the variable is substituted, so S(t) stays in the grammar and the
-  // canonical readings see through it.
+  // χ_S as a term of the grammar: a decidable table its run predicate as a
+  // conditional into 𝔹, an L-valued one McCarthy's conditional over its
+  // α-cuts.  Applied to a term, the variable is substituted, so ap(S, t)
+  // stays in the grammar and the canonical readings see through it.
   set.def(
-         "__call__",
+         "_ap",
          [](const S& s, nb::handle x) -> nb::object {
            if (!is_term(x)) return nb::cast(s(from_py_as<C>(x)));
            const C lo = dedekind::sets::chain_bottom<C>();
            const C hi = dedekind::sets::chain_top<C>();
            const RTerm t = term_of(x);
            if constexpr (std::same_as<L, Boole>) {
-             return nb::cast(run_predicate<C>(dedekind::order::runs(s), lo, hi)
-                                 .subst(0, t));
+             return nb::cast(
+                 truth_term(run_predicate<C>(dedekind::order::runs(s), lo, hi)
+                                .subst(0, t)));
            } else {
              const auto cut = [&](Ω level) {
                return run_predicate<C>(
@@ -1134,18 +1253,18 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
            }
          },
          nb::arg("x"),
-         "S(x): χ(x) at an element, in the set's species.  S(t) at a term: χ "
-         "as "
-         "a term of the grammar with π replaced by t; a decidable set's run "
-         "predicate (so K3 | S(π) is S), an L-valued set's conditional over "
-         "its α-cuts, cond(χ ≥ ⊤, ⊤, cond(χ ≥ U, U, ⊥)), compared on the chain "
-         "(H(π) >= level the cut, H(π) == level the fibre).")
+         "ap(S, x): χ(x) at an element, in the set's species.  ap(S, t) at a "
+         "term: χ as a term of the grammar with π replaced by t; a decidable "
+         "set's run predicate into 𝔹 (so K3 | (ap(S, π) == True) is S), an "
+         "L-valued set's conditional over its α-cuts, cond(χ ≥ ⊤, ⊤, cond(χ ≥ "
+         "U, U, ⊥)), compared on the chain (ap(H, π) >= level the cut, "
+         "ap(H, π) == level the fibre).")
       .def(
           "__or__",
           [](const S&, const RTerm& t) -> S {
             throw nb::type_error(("S | " + show(t) +
                                   ": a term is not a predicate; compare it "
-                                  "(t == top, t >= level)")
+                                  "(t == True, t >= level)")
                                      .c_str());
           },
           "Refused: a term is not a predicate; compare it.")
@@ -1154,7 +1273,8 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           [](const S& s, nb::handle x) {
             return s(from_py_as<C>(x)) == L::True;
           },
-          nb::arg("x"), "x in S: whether χ(x) = ⊤.  For the L-valued χ, S(x).")
+          nb::arg("x"),
+          "x in S: whether χ(x) = ⊤.  For the L-valued χ, ap(S, x).")
       .def(
           "__or__",
           [](const S& s, const RPred& p) { return former_runtime(s, p); },
@@ -1241,10 +1361,9 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
           },
           nb::arg("x"), "x in U: whether x is an element of the carrier.")
       .def(
-          "__call__",
+          "_ap",
           [](const Ch&, nb::handle x) -> nb::object {
-            // At a term: the full run list's χ, the predicate it substitutes.
-            if (is_term(x)) return full_universe<C>().attr("__call__")(x);
+            if (is_term(x)) return nb::cast(universe_at<C>(term_of(x)));
             try {
               (void)from_py_as<C>(x);
             } catch (const nb::cast_error&) {
@@ -1252,7 +1371,9 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
             }
             return nb::bool_(true);
           },
-          nb::arg("x"), "χ(x) = ⊤: the universe holds every element.")
+          nb::arg("x"),
+          "ap(U, x) = ⊤: the universe holds every element; at a term, the "
+          "constant True.")
       .def_prop_ro(
           "codomain", [m](const Ch&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹.")
@@ -1292,7 +1413,7 @@ nb::object on_set_and_pred(nb::handle s0, nb::handle p, const char* what) {
         throw nb::type_error(
             "forall over an L-valued set awaits the chain's residuated "
             "implication (#980); quantify over its α-cut: "
-            "forall(A(S.carrier) | (S(π) >= level), P)");
+            "forall(A(S.carrier) | (ap(S, π) >= level), P)");
     }
   }
   const std::string message = std::string(what) +
@@ -1313,6 +1434,24 @@ struct Forall {
     return s == former_runtime(s, p);  // S ⊆ P
   }
 };
+/** @brief The product @c A(C₁) @c × @c A(C₂) of two universes: the left
+ *  universe's @c * with the right one, and the relations a term cuts out of
+ *  it.  One instantiation per ordered pair of carriers.  @tparam C1,C2 the
+ *  carriers.  @tparam PyU2 the right universe's Python type. */
+template <typename C1, typename C2, typename PyU2, typename PyU1, typename To1,
+          typename To2>
+void bind_product(nb::module_& m, nb::class_<PyU1>& left, const char* pair_cls,
+                  const char* rel_cls, const char* name1, const char* name2,
+                  nb::object factor1, nb::object factor2, To1 to1, To2 to2) {
+  using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
+  using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
+  left.def(
+      "__mul__", [](const PyU1&, const PyU2&) { return U1{} * U2{}; },
+      nb::is_operator(),
+      "A × B: the product universe, each slot its own sort.");
+  bind_relation<C1, C2>(m, pair_cls, rel_cls, name1, name2, factor1, factor2,
+                        to1, to2);
+}
 }  // namespace
 
 NB_MODULE(_pst, m) {
@@ -1329,7 +1468,7 @@ NB_MODULE(_pst, m) {
       "Pst (paper §3): Pst = Jlt ∩ Chain.  The universes B = A(bool), K3 = "
       "A(Ternary), U64 = A(u64), GF_p = A(𝔽ₚ), and the sets over them per the "
       "Lwv grammar: U | (π > v), Ø(T), η(v), the lattice & | ^ ~, membership "
-      "x in S / S(x), the queries == and <= in the set's species, exists / "
+      "x in S / ap(S, x), the queries == and <= in the set's species, exists / "
       "forall (any / all), and canonical, the normal form.  Every query is "
       "decided in C++.";
 
@@ -1609,8 +1748,12 @@ NB_MODULE(_pst, m) {
   universe_u64
       .def("__contains__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
                               nb::handle x) { return in_u64(x); })
-      .def("__call__", [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
-                          nb::handle x) { return in_u64(x); })
+      .def("_ap",
+           [](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&,
+              nb::handle x) -> nb::object {
+             if (is_term(x)) return nb::cast(universe_at<uint64_t>(term_of(x)));
+             return nb::bool_(in_u64(x));
+           })
       .def_prop_ro(
           "cardinality",
           [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
@@ -1629,8 +1772,12 @@ NB_MODULE(_pst, m) {
   universe_fp
       .def("__contains__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
                               nb::handle x) { return in_fp(x); })
-      .def("__call__", [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
-                          nb::handle x) { return in_fp(x); })
+      .def("_ap",
+           [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&,
+              nb::handle x) -> nb::object {
+             if (is_term(x)) return nb::cast(universe_at<Fp>(term_of(x)));
+             return nb::bool_(in_fp(x));
+           })
       .def_prop_ro("cardinality",
                    [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
                      return py_int(Fp::modulus);
@@ -1736,7 +1883,21 @@ NB_MODULE(_pst, m) {
       nb::arg("S"), nb::arg("P"),
       "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
       "L-valued S is refused (see #980), quantify over its cut, "
-      "A(chain) | (S(π) >= level).");
+      "A(chain) | (ap(S, π) >= level).");
+  m.def(
+      "ap",
+      [](nb::handle f, nb::handle x) -> nb::object {
+        if (!nb::hasattr(f, "_ap"))
+          throw nb::type_error(
+              "ap(f, x): f is not an arrow (a set, a universe "
+              "or a relation certified a function)");
+        return f.attr("_ap")(x);
+      },
+      nb::arg("f"), nb::arg("x"),
+      "ap(f, x): the arrow f applied, the one way to apply one.  A set or a "
+      "universe is its χ: at a point χ(x), at a term χ as a term of the "
+      "grammar, of sort f.codomain.  A relation certified the graph of a "
+      "function (π_2 == t(π_1)) is that function: t(x); at a pair, χ.");
   m.def(
       "cond",
       [](const RPred& p, nb::handle a, nb::handle b) {
@@ -1757,21 +1918,58 @@ NB_MODULE(_pst, m) {
   // ── the term surface on the canonical universes and the truth chains ──
   m.attr("U64") = 𝔸<uint64_t, Boole, dedekind::sets::Finite>{};
   m.attr("GF_p") = 𝔸<Fp, Boole, dedekind::sets::Finite>{};
-  bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", "UniverseU64Pair",
-                           "U64Relation", to_word);
-  bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", "UniverseFpPair",
-                     "FpRelation", to_fp);
-  // Products of the two carriers: each slot its own sort.
+  bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", to_word);
+  bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", to_fp);
+
+  // ── products: every ordered pair of the four carriers ──
+  // Each slot has its own sort, and a relation is a predicate on the pairs.
+  // One class per ordered pair, so k carriers make k² relation classes: the
+  // typed baseline a schema-carrying relation would replace.
   using U64 = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
   using UFp = 𝔸<Fp, Boole, dedekind::sets::Finite>;
-  universe_u64.def(
-      "__mul__", [](const U64& a, const UFp& b) { return a * b; },
-      nb::is_operator(), "𝔸(u64) × 𝔸(𝔽ₚ): the product of two carriers.");
-  universe_fp.def(
-      "__mul__", [](const UFp& a, const U64& b) { return a * b; },
-      nb::is_operator(), "𝔸(𝔽ₚ) × 𝔸(u64): the product of two carriers.");
-  bind_relation<uint64_t, Fp>(m, "UniverseU64FpPair", "U64FpRelation", "u64",
-                              "𝔽ₚ", to_word, to_fp);
-  bind_relation<Fp, uint64_t>(m, "UniverseFpU64Pair", "FpU64Relation", "𝔽ₚ",
-                              "u64", to_fp, to_word);
+  using UB = pst::Chain<bool>;
+  using UK = pst::Chain<Ternary>;
+  const nb::object fB = m.attr("B"), fK = m.attr("K3");
+  bind_product<uint64_t, uint64_t, U64>(m, universe_u64, "UniverseU64U64Pair",
+                                        "U64U64Relation", "𝔸(u64)", "𝔸(u64)",
+                                        u64_type, u64_type, to_word, to_word);
+  bind_product<uint64_t, Fp, UFp>(m, universe_u64, "UniverseU64FpPair",
+                                  "U64FpRelation", "𝔸(u64)", "𝔸(𝔽ₚ)", u64_type,
+                                  fp_type, to_word, to_fp);
+  bind_product<uint64_t, bool, UB>(m, universe_u64, "UniverseU64BPair",
+                                   "U64BRelation", "𝔸(u64)", "𝔹", u64_type, fB,
+                                   to_word, to_bool);
+  bind_product<uint64_t, Ternary, UK>(m, universe_u64, "UniverseU64K3Pair",
+                                      "U64K3Relation", "𝔸(u64)", "K₃", u64_type,
+                                      fK, to_word, to_ternary);
+  bind_product<Fp, uint64_t, U64>(m, universe_fp, "UniverseFpU64Pair",
+                                  "FpU64Relation", "𝔸(𝔽ₚ)", "𝔸(u64)", fp_type,
+                                  u64_type, to_fp, to_word);
+  bind_product<Fp, Fp, UFp>(m, universe_fp, "UniverseFpFpPair", "FpFpRelation",
+                            "𝔸(𝔽ₚ)", "𝔸(𝔽ₚ)", fp_type, fp_type, to_fp, to_fp);
+  bind_product<Fp, bool, UB>(m, universe_fp, "UniverseFpBPair", "FpBRelation",
+                             "𝔸(𝔽ₚ)", "𝔹", fp_type, fB, to_fp, to_bool);
+  bind_product<Fp, Ternary, UK>(m, universe_fp, "UniverseFpK3Pair",
+                                "FpK3Relation", "𝔸(𝔽ₚ)", "K₃", fp_type, fK,
+                                to_fp, to_ternary);
+  bind_product<bool, uint64_t, U64>(m, chain_b, "UniverseBU64Pair",
+                                    "BU64Relation", "𝔹", "𝔸(u64)", fB, u64_type,
+                                    to_bool, to_word);
+  bind_product<bool, Fp, UFp>(m, chain_b, "UniverseBFpPair", "BFpRelation", "𝔹",
+                              "𝔸(𝔽ₚ)", fB, fp_type, to_bool, to_fp);
+  bind_product<bool, bool, UB>(m, chain_b, "UniverseBBPair", "BBRelation", "𝔹",
+                               "𝔹", fB, fB, to_bool, to_bool);
+  bind_product<bool, Ternary, UK>(m, chain_b, "UniverseBK3Pair", "BK3Relation",
+                                  "𝔹", "K₃", fB, fK, to_bool, to_ternary);
+  bind_product<Ternary, uint64_t, U64>(m, chain_k3, "UniverseK3U64Pair",
+                                       "K3U64Relation", "K₃", "𝔸(u64)", fK,
+                                       u64_type, to_ternary, to_word);
+  bind_product<Ternary, Fp, UFp>(m, chain_k3, "UniverseK3FpPair",
+                                 "K3FpRelation", "K₃", "𝔸(𝔽ₚ)", fK, fp_type,
+                                 to_ternary, to_fp);
+  bind_product<Ternary, bool, UB>(m, chain_k3, "UniverseK3BPair", "K3BRelation",
+                                  "K₃", "𝔹", fK, fB, to_ternary, to_bool);
+  bind_product<Ternary, Ternary, UK>(m, chain_k3, "UniverseK3K3Pair",
+                                     "K3K3Relation", "K₃", "K₃", fK, fK,
+                                     to_ternary, to_ternary);
 }

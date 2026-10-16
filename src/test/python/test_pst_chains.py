@@ -10,7 +10,7 @@ Python flags.
 
 import unittest
 
-from dedekind.pst import 𝔹, A, K3, Function, Set, Ternary, π
+from dedekind.pst import 𝔹, A, K3, Function, Set, Ternary, ap, π
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
 # Subscript digits are not identifier characters, so K₃ is spelled K3 and
@@ -92,7 +92,7 @@ class AUniverseIsItsFullRunList(unittest.TestCase):
     def test_the_lattice_against_a_k3_valued_set(self) -> None:
         H = K3.identity  # χ(x) = x, valued in K₃
         F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
-        self.assertEqual([(K3 & H)(v) for v in (F, U, T)], [F, U, T])  # H itself
+        self.assertEqual([ap(K3 & H, v) for v in (F, U, T)], [F, U, T])  # H itself
         self.assertEqual((K3 | H) == K3, Ternary.TRUE)
         self.assertFalse((K3 ^ H).is_decidable)
 
@@ -102,7 +102,7 @@ class AUniverseIsItsFullRunList(unittest.TestCase):
         self.assertIs(K3 <= (K3 | (π > Ternary.FALSE)), False)
 
     def test_applied_to_a_term(self) -> None:
-        self.assertEqual(K3 | K3(π), K3)
+        self.assertEqual(K3 | (ap(K3, π) == True), K3)  # noqa: E712
 
     def test_its_metadata(self) -> None:
         self.assertIs(K3.is_decidable, True)

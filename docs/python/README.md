@@ -62,7 +62,7 @@ python -m pip install --no-build-isolation -e .
 
 ```python
 from dedekind.jlt import succ
-from dedekind.pst import A, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
+from dedekind.pst import A, U64, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = U64  # = A(u64)
 region = (U | (π > 3)) & (U | (π < 5))

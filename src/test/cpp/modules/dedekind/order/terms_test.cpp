@@ -242,4 +242,49 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   using Graph = std::remove_cvref_t<decltype(graph)>;
   STATIC_CHECK(dedekind::relational::IsFunctional<Graph>);
   STATIC_CHECK(dedekind::relational::IsEntire<Graph>);  // f total, into K₃
+  // A set is an arrow into Ω: applied to a term, its χ is a term of sort 𝔹,
+  // and the relation it is the second coordinate of is χ's graph.
+  constexpr auto above_five = 𝕎 | (π > 5u);
+  constexpr auto chi = 𝕎 * 𝔸<bool>{} | (π_2 == ap(above_five, π_1));
+  using NB = std::pair<unsigned, bool>;
+  STATIC_CHECK(chi(NB{7u, true}));
+  STATIC_CHECK(chi(NB{2u, false}));
+  STATIC_CHECK(!chi(NB{7u, false}));
+  STATIC_CHECK(!chi(NB{2u, true}));
+  STATIC_CHECK(
+      dedekind::relational::IsFunctional<std::remove_cvref_t<decltype(chi)>>);
+}
+
+TEST_CASE("order:terms: arrow_of is the converse of graph",
+          "[order][terms][graph]") {
+  using dedekind::relational::arrow_of;
+  using dedekind::relational::graph;
+  using WW = std::pair<unsigned, unsigned>;
+  // A relation certified a function, read back as its arrow.
+  constexpr auto R = 𝕎 * 𝕎 | (π_2 == π_1 * 3u + 1u);
+  constexpr auto f = arrow_of(R);
+  STATIC_CHECK(dedekind::category::IsArrow<decltype(f)>);
+  STATIC_CHECK(f(4u) == 13u);
+  // The round trip, pointwise: graph(arrow_of(R)) is R, and
+  // arrow_of(graph(f)) is f.
+  constexpr auto G = graph(f);
+  for (unsigned a = 0; a < 8; ++a) {
+    CHECK(arrow_of(G)(a) == f(a));
+    for (unsigned b = 0; b < 32; ++b) CHECK(G(WW{a, b}) == R(WW{a, b}));
+  }
+}
+
+TEST_CASE("order:terms: 𝔹 is read in K₃ along the dominance",
+          "[order][terms][sorts]") {
+  using dedekind::category::Ternary;
+  // The one coercion: a value of 𝔹 meets one of K₃ in K₃ (lift_logic).
+  using BK = std::pair<bool, Ternary>;
+  const Q same = Q::cmp(Rel::Eq, T::proj(1), T::proj(2));
+  CHECK_NOTHROW(bind_check<BK>(same));
+  CHECK(same(BK{true, Ternary::True}));
+  CHECK(same(BK{false, Ternary::False}));
+  CHECK_FALSE(same(BK{true, Ternary::Unknown}));
+  // Only the dominance: the word and K₃ meet through an arrow applied.
+  using NK = std::pair<unsigned, Ternary>;
+  CHECK_THROWS_AS(bind_check<NK>(same), not_admitted);
 }

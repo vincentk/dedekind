@@ -18,20 +18,20 @@ it, and iteration from ⊥ by the cover.
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
 as the paper spells it::
 
-    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, canonical, exists, forall
+    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
     S = K3 | (π > F)          # generator | pred      -> {U, ⊤}
     S == (K3 | (π >= U))      # True: one normal form, the run list [U, ⊤]
     ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
-    U in S;  S(U)                # membership, χ
+    U in S;  ap(S, U)            # membership, χ: ap applies an arrow
     exists(K3, π > F)         # True;  forall(K3, π > F) is False
     canonical(S) == S;  repr(S)  # True; "[U, ⊤]": held as its run list
 
     H = K3.identity              # χ(x) = x, valued in K₃
     H == H                       # Ternary.UNKNOWN: reflexive only up to the
                                  # excluded middle, where the set is U
-    K3 | (H(π) >= U)          # the α-cut: χ applied to π, compared on the chain
+    K3 | (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
 
 Every handle over a truth chain is a run list, the library's normal form of
 these sets, valued in its species (a K₃-valued set is a step function on the
@@ -61,9 +61,10 @@ The canonical ring and field, each as large as a machine word allows::
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
 ``A(carrier) | term`` binds it, casting every constant into the carrier and
 admitting every operator there or refusing it (``TypeError``), all when the
-set is built::
+set is built.  Any two of the four universes multiply, each slot its own sort;
+𝔹 ↪ K₃ is the one coercion, any other two carriers meet through ``ap``::
 
-    from dedekind.pst import A, u64, 𝔽ₚ, B, π, π_1, π_2
+    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, Function, ap, π, π_1, π_2
 
     U = A(u64)
     evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
@@ -74,10 +75,11 @@ set is built::
     π % 0                               # ValueError, when the term is written
     F = A(𝔽ₚ)
     third = F * F | (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
-    third((3, 1))                       # True: 3 · 3⁻¹ = 1
+    ap(third, (3, 1))                   # True: 3 · 3⁻¹ = 1
+    Function[u64, B](U64 * B | (π_2 == ap(U64 | (π > 5), π_1)))   # χ as a function
     F | (π < 3)                         # TypeError: 𝔽ₚ has no order
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
-    A(B) | (π + 1 == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
+    B | (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
@@ -115,6 +117,7 @@ from ._pst import exists
 from ._pst import forall
 from ._pst import image
 from ._pst import lift
+from ._pst import ap
 from ._pst import canonical
 from ._pst import cond
 from ._pst import preimage
@@ -185,7 +188,7 @@ class Relation:
 class Function:
     """``Function[A, B]``: a total, single-valued arrow from ``A`` to ``B``.
     A set over ``A`` valued in ``B`` is one (its χ); so is a relation on
-    ``A × B`` certified the graph of a function, applied as ``R(x)``."""
+    ``A × B`` certified the graph of a function, applied as ``ap(R, x)``."""
 
     def __class_getitem__(cls, ab):
         a, b = ab
@@ -206,6 +209,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "canonical", "cond", "Set", "Relation", "Function",
+    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set", "Relation", "Function",
     "lift", "image", "preimage",
 ]
