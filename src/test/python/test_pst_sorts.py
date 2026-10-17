@@ -186,7 +186,8 @@ class Tables(unittest.TestCase):
         S = U64 * (B * GF_p | (π_2 == 1))  # B × GF_p's π_2 is the product's π_3
         self.assertIn((5, True, 𝔽ₚ(1)), S)
         self.assertNotIn((5, True, 𝔽ₚ(2)), S)
-        self.assertEqual(repr(S), "𝔸(u64) × 𝔹 × 𝔸(𝔽ₚ) | π_3 == 1")
+        self.assertEqual(repr(S), "𝔸(u64) × (𝔹 × 𝔸(𝔽ₚ) | π_2 == 1)")  # the term
+        self.assertEqual(repr(S.predicate), "π_3 == 1")  # the reading, shifted
 
     def test_a_set_is_a_factor(self) -> None:
         S = (U64 * (U64 | (π > 5)))  # its π is the column π_2

@@ -123,6 +123,7 @@ from ._pst import lift
 from ._pst import ap
 from ._pst import canonical
 from ._pst import cond
+from ._pst import diag
 from ._pst import preimage
 from ._pst import u64
 from ._pst import U64
@@ -215,6 +216,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set", "Relation", "Function",
+    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "diag", "Set", "Relation", "Function",
     "lift", "image", "preimage",
 ]

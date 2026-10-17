@@ -745,15 +745,16 @@ const char* universe_name(std::size_t sort) {
 Cells::Cell cell_of(std::size_t sort, nb::handle h);
 
 /** @brief A relation over a product of the four carriers (@c relational:rows):
- *  a schema and a predicate, its quantifiers past the columns. */
+ *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
-    dedekind::relational::Table<PyConst, uint64_t, Fp, bool, Ternary>;
+    dedekind::relational::Rel<PyConst, uint64_t, Fp, bool, Ternary>;
+using dedekind::relational::predicate;
 using dedekind::relational::verdict;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
 RPred normal_form(const Relation& r) {
-  return normal_form<Cells>(r.predicate, r.rep());
+  return normal_form<Cells>(predicate(r), r.rep());
 }
 /** @brief The relation's predicate pinned and with its quantifiers eliminated
  *  where an atom defines the column or a finite chain expands it, the atoms
@@ -761,7 +762,7 @@ RPred normal_form(const Relation& r) {
  *  rewrite the graph atom π_n == t into π_n − t == 0). */
 RPred certifiable(const Relation& r) {
   return dedekind::algebra::eliminate_quantifiers<Cells>(
-      pinned<Cells>(r.predicate, r.rep()), TypedConstant{}, r.rep());
+      pinned<Cells>(predicate(r), r.rep()), TypedConstant{}, r.rep());
 }
 /** @brief A set's unary π read as the first column of a relation. */
 struct FirstColumn {
@@ -782,20 +783,23 @@ Relation as_relation(nb::handle h) {
   using UW = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
   using UF = 𝔸<Fp, Boole, dedekind::sets::Finite>;
   if (nb::isinstance<Relation>(h)) return nb::cast<Relation>(h);
-  if (nb::isinstance<UW>(h)) return {{sort_index_v<uint64_t>}, RPred::top()};
-  if (nb::isinstance<UF>(h)) return {{sort_index_v<Fp>}, RPred::top()};
+  if (nb::isinstance<UW>(h))
+    return Relation::universe({sort_index_v<uint64_t>});
+  if (nb::isinstance<UF>(h)) return Relation::universe({sort_index_v<Fp>});
   if (nb::isinstance<pst::Chain<bool>>(h))
-    return {{sort_index_v<bool>}, RPred::top()};
+    return Relation::universe({sort_index_v<bool>});
   if (nb::isinstance<pst::Chain<Ternary>>(h))
-    return {{sort_index_v<Ternary>}, RPred::top()};
+    return Relation::universe({sort_index_v<Ternary>});
   if (nb::isinstance<Comprehension<UW, RPred>>(h))
-    return {{sort_index_v<uint64_t>},
-            nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
-                FirstColumn{})};
+    return Relation::leaf(
+        {sort_index_v<uint64_t>},
+        nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
+            FirstColumn{}));
   if (nb::isinstance<Comprehension<UF, RPred>>(h))
-    return {{sort_index_v<Fp>},
-            nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
-                FirstColumn{})};
+    return Relation::leaf(
+        {sort_index_v<Fp>},
+        nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
+            FirstColumn{}));
   throw nb::type_error(
       "a factor of a product is a universe, a set over one, or a relation");
 }
@@ -892,7 +896,7 @@ nb::object apply(const Relation& r, nb::handle h) {
       return nb::cast(v);
     }
     return nb::cast(truth_term(
-        pinned<Cells>(r.predicate, r.rep()).map_slots(SlotsTo{args})));
+        pinned<Cells>(predicate(r), r.rep()).map_slots(SlotsTo{args})));
   }
   const RTerm* f = function_term(r, cert);
   if (f == nullptr)
@@ -918,11 +922,40 @@ nb::object apply(const Relation& r, nb::handle h) {
 /** @brief The relation written: its universes, and its predicate unless ⊤
  *  (a relation whose predicate is ⊤ is the product universe itself). */
 std::string written(const Relation& r) {
-  std::string out;
-  for (std::size_t i = 0; i < r.arity(); ++i)
-    out += (i ? " × " : "") + std::string(universe_name(r.schema[i]));
-  if (r.predicate.kind == RPred::Kind::Top) return out;
-  return out + " | " + show(r.predicate);
+  using R = Relation;
+  if (r.kind == R::Kind::Universe) {
+    std::string out;
+    for (std::size_t i = 0; i < r.arity(); ++i)
+      out += (i ? " × " : "") + std::string(universe_name(r.schema[i]));
+    return out;
+  }
+  // A leg that is not a universe is parenthesised: the term stays legible.
+  const auto leg = [](const Relation& x) {
+    return x.kind == R::Kind::Universe ? written(x) : "(" + written(x) + ")";
+  };
+  switch (r.kind) {
+    case R::Kind::Where:
+      return leg(*r.a) + " | " + show(r.predicate);
+    case R::Kind::Meet:
+      return leg(*r.a) + " & " + leg(*r.b);
+    case R::Kind::Join:
+      return leg(*r.a) + " | " + leg(*r.b);
+    case R::Kind::Not:
+      return "~" + leg(*r.a);
+    case R::Kind::Tensor:
+      return leg(*r.a) + " × " + leg(*r.b);
+    case R::Kind::Compose:
+      return leg(*r.a) + " >> " + leg(*r.b);
+    case R::Kind::Exists: {
+      std::string cols;
+      for (std::size_t i = 0; i < r.keep.size(); ++i)
+        cols += (i ? ", " : "") + std::to_string(r.keep[i]);
+      return leg(*r.a) + ".project(" + cols + ")";
+    }
+    case R::Kind::Universe:
+      break;
+  }
+  return "?";
 }
 
 /** @brief The relation class and the products of the universes: every
@@ -999,12 +1032,17 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__eq__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_normal_form<Cells>(a.predicate, b.predicate,
+            return equal_by_normal_form<Cells>(predicate(a), predicate(b),
                                                a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
           "differ, which decides nothing, or where the products differ.")
+      .def_prop_ro(
+          "predicate", [](const Relation& r) { return predicate(r); },
+          "The predicate of the relation on its columns π_1 … π_n: a reading "
+          "of the term (a composite's ∃ over the middle, a projection's ∃ "
+          "over the dropped columns, ~ in negation normal form).")
       .def_prop_ro(
           "factors",
           [factors](const Relation& r) {
@@ -1036,13 +1074,25 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
   m.def(
       "canonical",
       [](const Relation& r) {
-        return Relation{r.schema, normal_form(r), r.budget};
+        return Relation::leaf(r.schema, normal_form(r), r.budget);
       },
       nb::arg("S"),
       "canonical(R): each atom in normal form in its column's sort; a "
       "quantifier eliminated where an atom defines its column (substitution) "
       "or its carrier is a finite chain (Shannon's expansion), kept "
       "otherwise.");
+  m.def(
+      "diag",
+      [](nb::handle u) {
+        const Relation r = as_relation(u);
+        if (r.kind != Relation::Kind::Universe || r.arity() != 1)
+          throw nb::type_error("diag(U): U is a universe over one carrier");
+        return dedekind::relational::diag<PyConst, uint64_t, Fp, bool, Ternary>(
+            r.schema.front());
+      },
+      nb::arg("U"),
+      "diag(U): the identity relation Δ = {(x, x)} on the carrier of U, the "
+      "unit of >> (η of the powerset monad).");
   // Every universe multiplies with every factor: a universe, a set over one,
   // a relation.
   (universes.def(
