@@ -90,7 +90,8 @@
  */
 module;
 
-#include <compare>  // the structural order of terms (#884)
+#include <algorithm>  // a connective's operands sorted (#884)
+#include <compare>    // the structural order of terms (#884)
 #include <concepts>
 #include <cstddef>
 #include <cstdint>  // the search budget of a quantifier
@@ -2014,6 +2015,53 @@ std::weak_ordering structural_order(const Pred<K>& a, const Pred<K>& b) {
       break;
   }
   return std::weak_ordering::equivalent;
+}
+namespace detail_connective {
+/** @brief Whether a predicate is of the kind @c k (a bound to fold). */
+template <typename K>
+struct OfKind {
+  typename Pred<K>::Kind k;
+  bool operator()(const Pred<K>& q) const { return q.kind == k; }
+};
+/** @brief @c a before @c b in the structural order. */
+struct StructurallyBefore {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return structural_order(a, b) < 0;
+  }
+};
+/** @brief @c a and @c b the same tree (equivalent in the structural order). */
+struct StructurallySame {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return structural_order(a, b) == 0;
+  }
+};
+}  // namespace detail_connective
+
+/** @brief The connective @c k (@c And or @c Or) of the operands, with the
+ *  order, grouping and repetition forgotten (#884): the bounds folded (the
+ *  unit dropped, an absorber absorbing), the operands sorted by
+ *  @c structural_order, each kept once, folded left.  None left: the unit.
+ *  @param k the connective.  @param ops its operands (not chains of @c k). */
+export template <typename K>
+Pred<K> connective(typename Pred<K>::Kind k, std::vector<Pred<K>> ops) {
+  using Pr = Pred<K>;
+  const bool meet = k == Pr::Kind::And;
+  const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
+  const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
+  std::erase_if(ops, detail_connective::OfKind<K>{unit});
+  for (const Pr& q : ops)
+    if (q.kind == absorber) return q;
+  if (ops.empty()) return meet ? Pr::top() : Pr::bottom();
+  std::ranges::sort(ops, detail_connective::StructurallyBefore{});
+  ops.erase(
+      std::ranges::unique(ops, detail_connective::StructurallySame{}).begin(),
+      ops.end());
+  Pr all = ops.front();
+  for (std::size_t i = 1; i < ops.size(); ++i)
+    all = meet ? Pr::conj(all, ops[i]) : Pr::disj(all, ops[i]);
+  return all;
 }
 export template <typename K>
 bool has_quantifier(const Pred<K>& p);
