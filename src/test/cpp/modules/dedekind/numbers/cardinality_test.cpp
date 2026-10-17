@@ -740,3 +740,19 @@ TEST_CASE(
     CHECK(abs(SignedCardinality{NaZ{}}) == Cardinality{ℵ_0{}});
   }
 }
+
+TEST_CASE(
+    "sets:cardinality: signed cardinalities as a term's constants are "
+    "ordered totally, NaZ placed last (#884)",
+    "[sets][cardinality][terms]") {
+  using SC = SignedCardinality;
+  using T = Term<SC>;
+  const T three = T::constant(SC{SignedExtensionalCardinal<>{3}});
+  const T five = T::constant(SC{SignedExtensionalCardinal<>{5}});
+  const T inf = T::constant(SC{PositiveInfinity{}});
+  const T naz = T::constant(SC{NaZ{}});
+  CHECK(structural_order(three, five) < 0);
+  CHECK(structural_order(five, inf) < 0);
+  CHECK(structural_order(inf, naz) < 0);  // <=> leaves NaZ unordered
+  CHECK(structural_order(naz, naz) == 0);
+}

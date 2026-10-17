@@ -1952,12 +1952,13 @@ struct Pred {
     return t;
   }
 };
-/** @brief The order of two constants of the grammar: their own three-way
- *  comparison where they have one; a constant type without one names its
- *  order beside it (found by argument-dependent lookup, as @c carrier_cast).
- *  @param a, b the constants. */
+/** @brief The order of two constants of the grammar: their own weak (or
+ *  strong) three-way comparison where they have one; a constant type with
+ *  none, or only a partial one, names a total order beside it (found by
+ *  argument-dependent lookup, as @c carrier_cast).  @param a, b the
+ *  constants. */
 export template <typename K>
-  requires std::three_way_comparable<K>
+  requires requires(const K& a, const K& b) { std::weak_order(a, b); }
 std::weak_ordering constant_order(const K& a, const K& b) {
   return std::weak_order(a, b);
 }
