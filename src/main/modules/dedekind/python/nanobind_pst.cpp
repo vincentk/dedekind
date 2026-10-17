@@ -646,7 +646,7 @@ RPred pinned(const RPred& p, const P& rep = P{}) {
  *  conditional split into an atom with no slot keeps its sort, then read by
  *  the library's @c canonical.  @param p the predicate. */
 template <typename P>
-RPred normal_form(const RPred& p, const P& rep = P{}) {
+RPred canonical(const RPred& p, const P& rep = P{}) {
   return dedekind::algebra::canonical<P>(pinned<P>(p, rep), AsConstant{}, rep);
 }
 
@@ -654,9 +654,8 @@ RPred normal_form(const RPred& p, const P& rep = P{}) {
  *  out equal sets; different forms decide nothing, so they raise rather than
  *  answer "different".  @tparam P the point type (one carrier, or a pair). */
 template <typename P>
-bool equal_by_normal_form(const RPred& a, const RPred& b, const P& rep = P{}) {
-  if (dedekind::sets::same_shape(normal_form<P>(a, rep),
-                                 normal_form<P>(b, rep)))
+bool equal_by_canonical(const RPred& a, const RPred& b, const P& rep = P{}) {
+  if (dedekind::sets::same_shape(canonical<P>(a, rep), canonical<P>(b, rep)))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -701,7 +700,7 @@ bool set_equal(const S& a, const S& b) {
       // outside the chain's fragment: the ring's normal forms below
     }
   }
-  return equal_by_normal_form<C>(a.predicate, b.predicate);
+  return equal_by_canonical<C>(a.predicate, b.predicate);
 }
 
 /** @brief A point of the word out of a Python value. */
@@ -753,8 +752,8 @@ using dedekind::relational::predicate;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
-RPred normal_form(const Relation& r) {
-  return normal_form<Cells>(predicate(r), r.rep());
+RPred canonical(const Relation& r) {
+  return canonical<Cells>(predicate(r), r.rep());
 }
 /** @brief The relation's predicate pinned and with its quantifiers eliminated
  *  where an atom defines the column or a finite chain expands it, the atoms
@@ -1091,8 +1090,8 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__eq__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_normal_form<Cells>(predicate(a), predicate(b),
-                                               a.rep());
+            return equal_by_canonical<Cells>(predicate(a), predicate(b),
+                                             a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
@@ -1133,7 +1132,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
   m.def(
       "canonical",
       [](const Relation& r) {
-        const RPred nf = normal_form(r);
+        const RPred nf = canonical(r);
         // A predicate normalising to ⊤ cuts out the product universe itself.
         if (nf.kind == RPred::Kind::Top) {
           Relation u = Relation::universe(r.dom, r.cod);
@@ -1242,7 +1241,7 @@ void bind_term_sets(nb::module_& m,
         // The atoms first, then the set: an atom normalised into the chain's
         // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
         // reaches the fixpoint.
-        const S atoms = U{} | normal_form<C>(s.predicate);
+        const S atoms = U{} | canonical<C>(s.predicate);
         if constexpr (IsTotallyOrdered<C>) {
           try {
             return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),

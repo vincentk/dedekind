@@ -303,6 +303,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/pst.py
         COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/trsk.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/trsk.py
+        COPYONLY)
 
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
@@ -335,6 +339,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/trsk.py
         DESTINATION dedekind)
 
     add_test(

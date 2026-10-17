@@ -12,7 +12,8 @@ order of conjuncts, #884)."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, copy, diag, merge, u64, π_1, π_2
+from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π_1, π_2
+from dedekind.trsk import copy, diag, merge
 
 succ = U64 * U64 | (π_2 == π_1 + 1)
 sq = U64 * U64 | (π_2 * π_2 == π_1)

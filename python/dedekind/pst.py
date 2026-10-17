@@ -65,7 +65,8 @@ set is built.  The universes multiply into products of any arity, each column
 its own sort (a relation is a table: one class, its schema as data); 𝔹 ↪ K₃
 is the one coercion, any other two carriers meet through ``ap``::
 
-    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, Function, ap, π, π_1, π_2, π_3
+    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, ap, π, π_1, π_2, π_3
+    from dedekind.trsk import Function        # the relational surface
 
     U = A(u64)
     evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
@@ -123,9 +124,6 @@ from ._pst import lift
 from ._pst import ap
 from ._pst import canonical
 from ._pst import cond
-from ._pst import copy
-from ._pst import diag
-from ._pst import merge
 from ._pst import preimage
 from ._pst import u64
 from ._pst import U64
@@ -183,34 +181,6 @@ class Set:
         return _Annotation(f"Set[{_named(c)}]", lambda x: _is_set_on(x, c))
 
 
-class Relation:
-    """``Relation[A, B, …]``: a relation on ``A × B × …``, one column per
-    factor."""
-
-    def __class_getitem__(cls, factors):
-        fs = tuple(factors)
-        return _Annotation(f"Relation[{', '.join(map(_named, fs))}]",
-                           lambda x: _attr(x, "factors") == fs)
-
-
-class Function:
-    """``Function[A, …, B]``: a total, single-valued arrow from ``A × …`` to
-    ``B``.  A set over ``A`` valued in ``B`` is one (its χ); so is a relation
-    on ``A × … × B`` certified the graph of a function of its first columns,
-    applied as ``ap(R, x)``."""
-
-    def __class_getitem__(cls, factors):
-        fs = tuple(factors)
-
-        def holds(x):
-            if len(fs) == 2 and _is_set_on(x, fs[0]):
-                return _attr(x, "codomain") == fs[1]
-            return _attr(x, "factors") == fs and _attr(x, "is_function") is True
-
-        return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
-
-
-
 # The aliases: deliberately not in __all__ (they shadow the builtins when
 # star-imported); `from dedekind.pst import any, all` is the explicit opt-in.
 any = exists  # noqa: A001
@@ -218,6 +188,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "copy", "diag", "merge", "Set", "Relation", "Function",
+    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set",
     "lift", "image", "preimage",
 ]
