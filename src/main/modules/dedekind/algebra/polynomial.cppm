@@ -627,6 +627,26 @@ struct AtomAt {
       return p;  // a chain without a rig's + · (𝔹, K₃): its own form
   }
 };
+/** @brief The values of a finite chain as constants, through @c lift: the
+ *  cases of Shannon's expansion; none for any other carrier. */
+template <typename K, typename Lift>
+struct ChainValues {
+  const Lift& lift;
+  template <typename C>
+  std::vector<dedekind::sets::Term<K>> operator()(std::type_identity<C>) const {
+    std::vector<dedekind::sets::Term<K>> out;
+    if constexpr (dedekind::category::IsPst<C> && requires(const C& c) {
+                    { lift(c) } -> std::convertible_to<K>;
+                  }) {
+      for (C v = dedekind::sets::chain_bottom<C>();;
+           v = dedekind::category::Successor<C>{}(v)) {
+        out.push_back(dedekind::sets::Term<K>::constant(lift(v)));
+        if (v == dedekind::sets::chain_top<C>()) break;
+      }
+    }
+    return out;
+  }
+};
 /** @brief The normal form of a predicate without conditionals: atom by atom,
  *  the bounds ⊤ / ⊥ folded into the connectives (the lattice's units and
  *  absorbers). */
@@ -648,6 +668,30 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       if (x.kind == absorber || y.kind == unit) return x;
       if (y.kind == absorber || x.kind == unit) return y;
       return meet ? Pr::conj(x, y) : Pr::disj(x, y);
+    }
+    case Pr::Kind::Exists:
+    case Pr::Kind::Forall: {
+      // The body in normal form at the extended row; then the quantifier
+      // eliminated where it can be: by substitution where an atom defines the
+      // bound column (a conjunct π_h == t under ∃, a disjunct π_h != t under
+      // ∀: the fusion law), by Shannon's expansion over a finite chain (∨
+      // under ∃, ∧ under ∀); kept otherwise, its body normalised.
+      const bool universal = p.kind == Pr::Kind::Forall;
+      const P inner = dedekind::sets::with_bound(rep, p.sort);
+      const Pr body = canonical_lifted<P>(*p.p, lift, inner);
+      if (auto d = dedekind::sets::defining_term(body, p.slot, universal))
+        return canonical_lifted<P>(d->rest.subst(p.slot, d->term), lift, rep);
+      const auto cases =
+          dedekind::sets::with_sort<P>(p.sort, ChainValues<K, Lift>{lift});
+      if (!cases.empty()) {
+        Pr all = body.subst(p.slot, cases.front());
+        for (std::size_t i = 1; i < cases.size(); ++i) {
+          const Pr next = body.subst(p.slot, cases[i]);
+          all = universal ? Pr::conj(all, next) : Pr::disj(all, next);
+        }
+        return canonical_lifted<P>(all, lift, rep);
+      }
+      return Pr::bound_like(p, body);
     }
     case Pr::Kind::Cmp:
       break;

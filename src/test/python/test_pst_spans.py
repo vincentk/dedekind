@@ -1,5 +1,8 @@
-"""Relations as terms (#1037): a composite or a projection is held as a span,
-its middle a hidden column bound by ∃, and ``canonical`` takes its image."""
+"""Relations as terms (#1037): the predicate of a composite is built
+symbolically, its middle a column bound by ∃; a projection quantifies its
+columns away; ``canonical`` eliminates a quantifier where it can (the fusion
+law, Shannon's expansion on a finite chain) and keeps it otherwise, and
+membership searches what remains, valued in Σ (∃) or Π (∀)."""
 
 import unittest
 
@@ -38,11 +41,10 @@ class Composition(unittest.TestCase):
 
     def test_an_undefined_middle_on_a_word_is_searched(self) -> None:
         # ∃b. b² = a ∧ b³ = c: no leg determines b, and 2⁶⁴ is too many to
-        # expand.  canonical refuses; membership searches, valued in Σ.
+        # expand.  canonical keeps the quantifier; membership searches, in Σ.
         sc = sq >> cube
         self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(sc))
-        with self.assertRaises(TypeError):
-            canonical(sc)
+        self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(canonical(sc)))
         self.assertIs(sc.is_function, False)
         self.assertEqual(sc.codomain, K3)
         self.assertEqual(ap(sc, (4, 8)), Ternary.TRUE)  # b = 2, a witness
@@ -98,7 +100,7 @@ class Duality(unittest.TestCase):
     def test_alternating_quantifiers_answer_unknown(self) -> None:
         # ∃c ∀b. b² ≠ a ∨ b³ ≠ c: an ∃ outside a ∀ on the words.
         alt = (~(sq >> cube)).project(1)
-        self.assertIn("∃π_2 ∈ 𝔸(u64), ∀π_3 ∈ 𝔸(u64)", repr(alt))
+        self.assertIn("∃π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64).", repr(alt))
         self.assertEqual(ap(alt, (4,)), Ternary.UNKNOWN)
 
     def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:
