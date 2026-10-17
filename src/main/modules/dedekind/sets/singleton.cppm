@@ -119,6 +119,19 @@ constexpr auto operator&(const 𝔸<T, L, C>& u,
   return u & Point<T>{carrier_cast<T>(c.b.value)};
 }
 
+// The product keeps a non-plain factor as given (#970): the singleton the
+// product's normalisation wrapped as {x ∈ 𝔸 | S(x)} comes back as S.
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(dedekind::category::π_1(
+                     (𝔸<bool>{} & (π == true)) * (𝔸<bool>{} & (π == false))))>,
+                 std::remove_cvref_t<decltype(𝔸<bool>{} & (π == true))>> &&
+        dedekind::category::IsProduct<
+            std::remove_cvref_t<decltype((𝔸<bool>{} & (π == true)) *
+                                         (𝔸<bool>{} & (π == false)))>,
+            std::remove_cvref_t<decltype(𝔸<bool>{} & (π == true))>,
+            std::remove_cvref_t<decltype(𝔸<bool>{} & (π == false))>>,
+    "a singleton factor of a product is projected back as itself");
+
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
               "the standard's == on an optional of a sets type is its own: the "
               "grammar's == enters the candidate set by ADL and is rejected "
