@@ -30,7 +30,9 @@
  */
 module;
 
+#include <algorithm>  // a connective's operands sorted (#884)
 #include <array>
+#include <compare>  // the structural order of terms (#884)
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::less_equal: the chain's own order
@@ -40,6 +42,7 @@ module;
 #include <ranges>
 #include <type_traits>
 #include <utility>
+#include <vector>  // a connective's operands
 
 export module dedekind.order:runs;
 
@@ -1016,5 +1019,126 @@ static_assert(std::ranges::distance(runs(without(5))) == 2 &&
                   std::ranges::distance(runs(B{std::nullopt})) == 0,
               "¬{5} is two runs, Ø none");
 }  // namespace detail_runs_witness
+
+/** @section runs__Opaque_Tier
+ *  The other half of the normal form (#970, #884): a predicate no run list
+ *  reads (an equation of a ring, a quantifier) keeps its atoms, and its
+ *  connectives forget the order, grouping and repetition of their operands.
+ *  The operands are sorted by a total order on the term trees, by kind first
+ *  (the decided comparisons before ∃ before ∀), then structurally; a
+ *  constant through its carrier's own order or the hook beside the carrier.
+ */
+/** @brief The order of two constants of the grammar: their own weak (or
+ *  strong) three-way comparison where they have one; a constant type with
+ *  none, or only a partial one, names a total order beside it (found by
+ *  argument-dependent lookup, as @c carrier_cast).  @param a, b the
+ *  constants. */
+export template <typename K>
+  requires requires(const K& a, const K& b) { std::weak_order(a, b); }
+std::weak_ordering constant_order(const K& a, const K& b) {
+  return std::weak_order(a, b);
+}
+export template <typename K>
+std::weak_ordering structural_order(const Pred<K>& a, const Pred<K>& b);
+/** @brief The structural order of two terms (#884): by kind (a projection, a
+ *  constant, an operation, a conditional), then a projection by its slot, a
+ *  constant by @c constant_order, an operation by its operator and operands,
+ *  a conditional by its guard and branches.  Total; two terms are equivalent
+ *  in it exactly when they are the same tree.  @param a, b the terms. */
+export template <typename K>
+std::weak_ordering structural_order(const Term<K>& a, const Term<K>& b) {
+  if (const auto c = a.kind <=> b.kind; c != 0) return c;
+  switch (a.kind) {
+    case Term<K>::Kind::Proj:
+      return a.slot <=> b.slot;
+    case Term<K>::Kind::Const:
+      return constant_order(a.value, b.value);
+    case Term<K>::Kind::Bin:
+      if (const auto c = a.op <=> b.op; c != 0) return c;
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      return structural_order(*a.b, *b.b);
+    case Term<K>::Kind::Cond:
+      if (const auto c = structural_order(*a.p, *b.p); c != 0) return c;
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      return structural_order(*a.b, *b.b);
+  }
+  return std::weak_ordering::equivalent;
+}
+/** @brief The structural order of two predicates (#884): by kind first, so
+ *  the comparisons (decided, Δ) precede the connectives and the quantifiers
+ *  (∃ Σ, then ∀ Π); a comparison by its left term, its relation, its right
+ *  term; a connective by its operands; a quantifier by its sort, slot and
+ *  body.  The key @c canonical sorts a conjunction / disjunction by.
+ *  @param a, b the predicates. */
+export template <typename K>
+std::weak_ordering structural_order(const Pred<K>& a, const Pred<K>& b) {
+  if (const auto c = a.kind <=> b.kind; c != 0) return c;
+  switch (a.kind) {
+    case Pred<K>::Kind::Cmp:
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      if (const auto c = a.rel <=> b.rel; c != 0) return c;
+      return structural_order(*a.b, *b.b);
+    case Pred<K>::Kind::And:
+    case Pred<K>::Kind::Or:
+      if (const auto c = structural_order(*a.p, *b.p); c != 0) return c;
+      return structural_order(*a.q, *b.q);
+    case Pred<K>::Kind::Exists:
+    case Pred<K>::Kind::Forall:
+      if (const auto c = a.sort <=> b.sort; c != 0) return c;
+      if (const auto c = a.slot <=> b.slot; c != 0) return c;
+      return structural_order(*a.p, *b.p);
+    case Pred<K>::Kind::Top:
+    case Pred<K>::Kind::Bottom:
+      break;
+  }
+  return std::weak_ordering::equivalent;
+}
+namespace detail_connective {
+/** @brief Whether a predicate is of the kind @c k (a bound to fold). */
+template <typename K>
+struct OfKind {
+  typename Pred<K>::Kind k;
+  bool operator()(const Pred<K>& q) const { return q.kind == k; }
+};
+/** @brief @c a before @c b in the structural order. */
+struct StructurallyBefore {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return structural_order(a, b) < 0;
+  }
+};
+/** @brief @c a and @c b the same tree (equivalent in the structural order). */
+struct StructurallySame {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return structural_order(a, b) == 0;
+  }
+};
+}  // namespace detail_connective
+
+/** @brief The connective @c k (@c And or @c Or) of the operands, with the
+ *  order, grouping and repetition forgotten (#884): the bounds folded (the
+ *  unit dropped, an absorber absorbing), the operands sorted by
+ *  @c structural_order, each kept once, folded left.  None left: the unit.
+ *  @param k the connective.  @param ops its operands (not chains of @c k). */
+export template <typename K>
+Pred<K> connective(typename Pred<K>::Kind k, std::vector<Pred<K>> ops) {
+  using Pr = Pred<K>;
+  const bool meet = k == Pr::Kind::And;
+  const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
+  const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
+  std::erase_if(ops, detail_connective::OfKind<K>{unit});
+  for (const Pr& q : ops)
+    if (q.kind == absorber) return q;
+  if (ops.empty()) return meet ? Pr::top() : Pr::bottom();
+  std::ranges::sort(ops, detail_connective::StructurallyBefore{});
+  ops.erase(
+      std::ranges::unique(ops, detail_connective::StructurallySame{}).begin(),
+      ops.end());
+  Pr all = ops.front();
+  for (std::size_t i = 1; i < ops.size(); ++i)
+    all = meet ? Pr::conj(all, ops[i]) : Pr::disj(all, ops[i]);
+  return all;
+}
 
 }  // namespace dedekind::order

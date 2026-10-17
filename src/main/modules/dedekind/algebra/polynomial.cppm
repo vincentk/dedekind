@@ -711,10 +711,10 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
     case Pr::Kind::Or: {
       // The operands of the whole chain of one connective, each in normal
       // form, joined with the order, grouping and repetition forgotten
-      // (sets::connective, #884).
+      // (order::connective, #884).
       std::vector<Pr> ops;
       operands_of<P>(p, p.kind, lift, rep, ops);
-      return dedekind::sets::connective(p.kind, std::move(ops));
+      return dedekind::order::connective(p.kind, std::move(ops));
     }
     case Pr::Kind::Exists:
     case Pr::Kind::Forall:
