@@ -46,17 +46,17 @@ class OneSetOneNormalForm(unittest.TestCase):
         # {x > 3} ∩ {x < 5} = {4}: the crossing law, on runtime pivots.
         region = above(3) & below(5)
         self.assertEqual(region, point(4))
-        self.assertEqual(repr(canonical(region)), "𝔸(u64) & π == 4")
+        self.assertEqual(repr(canonical(region)), "𝔸(u64) & (π == 4)")
         self.assertEqual(region.cardinality, 1)
         self.assertEqual(len(region), 1)
         self.assertTrue(ap(region, 4))
         self.assertFalse(ap(region, 5))
 
     def test_the_canonical_form_is_the_run_list_written_back(self) -> None:
-        self.assertEqual(repr(canonical(U & (π < 0))), "𝔸(u64) & π < 0")  # Ø
-        self.assertEqual(repr(canonical(~(U & (π < 0)))), "𝔸(u64) & π >= 0")  # all
-        self.assertEqual(repr(canonical(above(3) & below(9))), "𝔸(u64) & (π >= 4) & (π <= 8)")
-        self.assertEqual(repr(canonical(above(MAX - 1))), f"𝔸(u64) & π == {MAX}")
+        self.assertEqual(repr(canonical(U & (π < 0))), "𝔸(u64) & (π < 0)")  # Ø
+        self.assertEqual(repr(canonical(~(U & (π < 0)))), "𝔸(u64) & (π >= 0)")  # all
+        self.assertEqual(repr(canonical(above(3) & below(9))), "𝔸(u64) & ((π >= 4) & (π <= 8))")
+        self.assertEqual(repr(canonical(above(MAX - 1))), f"𝔸(u64) & (π == {MAX})")
         S = (above(3) & below(9)) | point(12)
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))  # idempotent
 
@@ -72,9 +72,9 @@ class OneSetOneNormalForm(unittest.TestCase):
         # π * 1 < 5 is no atom of the chain fragment; its polynomial form π < 5
         # is, and canonical reads it as runs in the same pass: a fixpoint.
         S = U & (π * 1 < 5)
-        self.assertEqual(repr(canonical(S)), "𝔸(u64) & π <= 4")
+        self.assertEqual(repr(canonical(S)), "𝔸(u64) & (π <= 4)")
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))
-        self.assertEqual(repr(canonical(U & (π + 1 - 1 == 4))), "𝔸(u64) & π == 4")
+        self.assertEqual(repr(canonical(U & (π + 1 - 1 == 4))), "𝔸(u64) & (π == 4)")
 
     def test_the_complement_is_a_run_list(self) -> None:
         u = ~point(5)

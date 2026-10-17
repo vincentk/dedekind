@@ -23,8 +23,8 @@ cube = U64 * U64 & (π_1 * π_1 * π_1 == π_2)
 class Composition(unittest.TestCase):
     def test_a_composite_is_a_term_and_its_predicate_a_reading(self) -> None:
         two = succ >> succ
-        self.assertEqual(repr(two), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> "
-                                    "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1))")
+        self.assertEqual(repr(two), "(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) >> "
+                                    "(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1)))")
         self.assertEqual(repr(two.classifier), "∃π_3 ∈ 𝔸(u64). "
                                               "(π_3 == (π_1 + 1)) & (π_2 == (π_3 + 1))")
         self.assertIn((3, 5), two)
@@ -70,8 +70,8 @@ class Composition(unittest.TestCase):
 class Projection(unittest.TestCase):
     def test_a_function_projects_onto_its_whole_domain(self) -> None:
         dom = succ.project(1)  # R >> π: composition with the structural projection
-        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> "
-                                    "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) & π_3 == π_1)")
+        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) >> "
+                                    "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) & (π_3 == π_1))")
         # The reading is literal: the composite's ∃ over the whole middle, two
         # columns; canonical eliminates both (each defined by an atom).
         self.assertEqual(repr(dom.classifier), "∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). "
@@ -99,12 +99,12 @@ class TheTreeStays(unittest.TestCase):
 
     def test_a_meet_is_a_node(self) -> None:
         m = succ & sq
-        self.assertEqual(repr(m), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) & "
-                                  "(𝔸(u64) × 𝔸(u64) & (π_2 * π_2) == π_1)")
+        self.assertEqual(repr(m), "(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) & "
+                                  "(𝔸(u64) × 𝔸(u64) & ((π_2 * π_2) == π_1))")
         self.assertEqual(repr(m.classifier), "(π_2 == (π_1 + 1)) & ((π_2 * π_2) == π_1)")
         self.assertIn((3, 4), ~m | m)  # a join of a complement: still a term
         self.assertEqual(repr((U64 * U64 & (π_1 > 3)) & (π_2 > 1)),
-                         "(𝔸(u64) × 𝔸(u64) & π_1 > 3) & π_2 > 1")  # two filters, unfused
+                         "(𝔸(u64) × 𝔸(u64) & (π_1 > 3)) & (π_2 > 1)")  # two filters, unfused
 
 
 class TheKleisliStructure(unittest.TestCase):
@@ -115,7 +115,7 @@ class TheKleisliStructure(unittest.TestCase):
 
     def test_the_unit_laws(self) -> None:
         Δ = diag(U64)
-        self.assertEqual(repr(Δ), "𝔸(u64) × 𝔸(u64) & π_1 == π_2")
+        self.assertEqual(repr(Δ), "𝔸(u64) × 𝔸(u64) & (π_1 == π_2)")
         self.assertIs((Δ >> succ) == succ, True)
         self.assertIs((succ >> Δ) == succ, True)
 
@@ -158,7 +158,7 @@ class TheFrobeniusStructure(unittest.TestCase):
 
     def test_the_dagger(self) -> None:
         pred = succ.converse
-        self.assertEqual(repr(pred), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1))°")
+        self.assertEqual(repr(pred), "(𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1)))°")
         self.assertIn((4, 3), pred)
         self.assertNotIn((3, 4), pred)
         self.assertIs(pred.converse == succ, True)  # R°° = R, by canonical
@@ -174,7 +174,7 @@ class Duality(unittest.TestCase):
     def test_the_complement_of_a_span_is_a_forall(self) -> None:
         dom = succ.project(1)
         co = ~dom
-        self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> ("))
+        self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) & (π_2 == (π_1 + 1))) >> ("))
         self.assertEqual(repr(co.classifier), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
                                              "(π_3 != (π_2 + 1)) | (π_1 != π_2)")
         self.assertEqual(repr(canonical(co)), "𝔸(u64) & ⊥")  # a ∀ defined by π_2 ≠ t

@@ -24,8 +24,8 @@ UU, FF = U * U, F * F
 class ASetInTheSameSetOut(unittest.TestCase):
     def test_an_equation_becomes_a_polynomial_equal_to_zero(self) -> None:
         self.assertEqual(repr(canonical(UU & (π_1 * π_1 == π_2 - 1))),
-                         "𝔸(u64) × 𝔸(u64) & (((π_1 * π_1) + (18446744073709551615 * π_2)) + 1) == 0")
-        self.assertEqual(repr(canonical(U & (π + 1 == 1))), "𝔸(u64) & π == 0")
+                         "𝔸(u64) × 𝔸(u64) & ((((π_1 * π_1) + (18446744073709551615 * π_2)) + 1) == 0)")
+        self.assertEqual(repr(canonical(U & (π + 1 == 1))), "𝔸(u64) & (π == 0)")
 
     def test_it_is_the_same_set(self) -> None:
         S = UU & ((π_1 + π_2) * (π_1 + π_2) == 4)
@@ -38,11 +38,11 @@ class ASetInTheSameSetOut(unittest.TestCase):
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))
 
     def test_the_chain_fragment_is_its_run_list(self) -> None:
-        self.assertEqual(repr(canonical(U & (π + 0 < 5))), "𝔸(u64) & π <= 4")
+        self.assertEqual(repr(canonical(U & (π + 0 < 5))), "𝔸(u64) & (π <= 4)")
 
     def test_beside_an_equation_an_order_atom_keeps_its_comparison(self) -> None:
         self.assertEqual(repr(canonical(U & ((π * π == 4) & (π + 0 < 5)))),
-                         "𝔸(u64) & (((π * π) + 18446744073709551612) == 0) & (π < 5)")
+                         "𝔸(u64) & ((((π * π) + 18446744073709551612) == 0) & (π < 5))")
 
 
 class EqualityByNormalForm(unittest.TestCase):
@@ -54,7 +54,7 @@ class EqualityByNormalForm(unittest.TestCase):
     def test_a_unit_factor_is_divided_out(self) -> None:
         self.assertEqual(U & (1 - π == 1), U & (π == 0))  # -1 is a unit
         self.assertEqual(U & (3 * π == 0), U & (π == 0))  # so is every odd word
-        self.assertEqual(repr(canonical(U & (6 * π == 4))), "𝔸(u64) & ((2 * π) + 6148914691236517204) == 0")
+        self.assertEqual(repr(canonical(U & (6 * π == 4))), "𝔸(u64) & (((2 * π) + 6148914691236517204) == 0)")
         with self.assertRaises(TypeError):
             U & (2 * π == 0) == U & (π == 0)  # 2 is no unit: not the same equation
 

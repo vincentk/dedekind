@@ -795,19 +795,21 @@ struct SlotsTo {
   }
 };
 
-/** @brief A predicate written after the former @c &: a disjunction
- *  parenthesised, since @c & binds tighter than @c |.  @param p the
- *  predicate. */
+/** @brief A predicate written after the former @c &, parenthesised so the
+ *  written form reads back in Python: @c & binds tighter than @c | and than
+ *  the comparisons.  ⊤ and ⊥ stand alone.  @param p the predicate. */
 std::string shown_filter(const RPred& p) {
-  return p.kind == RPred::Kind::Or ? "(" + show(p) + ")" : show(p);
+  const bool constant =
+      p.kind == RPred::Kind::Top || p.kind == RPred::Kind::Bottom;
+  return constant ? show(p) : "(" + show(p) + ")";
 }
 /** @brief @c X @c | @c pred: refused; the filter is the meet, @c X @c &
  *  @c pred (#826), and @c | the join of two sets.  @param x the set's
  *  spelling.  @param p the predicate. */
 [[noreturn]] void filter_is_meet(const char* x, const RPred& p) {
-  throw nb::type_error((std::string(x) + " | " + show(p) +
-                        ": the filter is the meet, " + x + " & " + show(p) +
-                        " (#826); | is the join of two sets")
+  throw nb::type_error((std::string(x) + " | " + shown_filter(p) +
+                        ": the filter is the meet, " + x + " & " +
+                        shown_filter(p) + " (#826); | is the join of two sets")
                            .c_str());
 }
 /** @brief A factor of a product as a relation: a relation itself, a universe
@@ -1083,7 +1085,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__or__", [](const Relation& a, const Relation& b) { return a | b; },
           nb::is_operator())
       .def(
-          "__or__",
+          "__and__",
           [](const Relation&, const RTerm& t) -> Relation {
             throw nb::type_error(
                 ("R & " + show(t) + ": a term is not a predicate; compare it")

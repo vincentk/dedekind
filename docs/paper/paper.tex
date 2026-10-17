@@ -797,7 +797,7 @@ This is the first rung that asks the carrier for more than equality; its grammar
 
 \begin{listing}[htbp]
 \caption{Ordered sets: order on the carrier's elements, the quantifiers it makes decidable, the extrema they define, and the power set; a grammar extension of Listing~\ref{lst:set-grammar}.
-\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}): \cppinline{exists(S,P)} tests \cppinline{S | P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
+\textbf{Predicates} (right): element comparisons \cppinline{cmp} cut halfspaces by comprehension; \cppinline{forall}/\cppinline{exists} plug into \cppinline{pred}, each one point-free \cppinline{operator==} against a bound (Equation~\ref{eqn:quantifiers}): \cppinline{exists(S,P)} tests \cppinline{S & P} against $\varnothing$, \cppinline{forall(S,P)} against $S$.
 \textbf{Set expressions} (left): \cppinline{max}/\cppinline{min} return the extremal \emph{subset}, defined via $\forall$ (Equation~\ref{eqn:extrema}) and computed as \cppinline{S} met with its symbolically-settled \cppinline{upperbounds}/\cppinline{lowerbounds}, so no candidate is enumerated.
 \textbf{Witnesses}: $\exists$/$\forall$ on the finite $\mathbb{B}$ and on $\mathbb{N}$ through the finite quotient $\mathbb{Z}/3\mathbb{Z}$ (the congruence $\pi \equiv 0 \pmod 3$); a halfspace; and extrema on $\mathbb{B}$ and $\mathbb{N}$.
 The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its subsets reified as the subobject $\mathrm{Sub}(C)$: $\mathfrak{P}(S) = \mathbb{A}\langle\mathrm{Sub}(C)\rangle \mid X \subseteq S$; an ordered carrier supplies $\mathrm{Sub}(C)$ and a general one does not, so $\mathfrak{P}$ is then a type error, and extensional enumeration of a finite power set is left aside.
@@ -808,7 +808,7 @@ The power set $\mathfrak{P}(S)$ is a comprehension over the subset order, its su
 \begin{cpp}
 template <IsSet S, class P>
 constexpr bool exists(S s, P p) {
-  return !(Ø{} == (s | p));
+  return !(Ø{} == (s & p));
 }
 \end{cpp}
 \end{minipage}\hfill
@@ -816,7 +816,7 @@ constexpr bool exists(S s, P p) {
 \begin{cpp}
 template <IsSet S, class P>
 constexpr bool forall(S s, P p) {
-  return (s | p) == s;
+  return (s & p) == s;
 }
 \end{cpp}
 \end{minipage}
@@ -861,7 +861,7 @@ atom +::= elem cmp elem
 \end{minipage}
 \end{listing}
 
-First-order quantification is the fold of Equation~\ref{eqn:quantifiers} once more, now in code: the comprehension is the meet \cppinline{S & P}, and each quantifier is one \cppinline{operator==} against a bound, \cppinline{exists(S,P)} being \cppinline{!(Ø{} == (S | P))} and \cppinline{forall(S,P)} being \cppinline{(S | P) == S} (Listing~\ref{lst:extrema_def}).
+First-order quantification is the fold of Equation~\ref{eqn:quantifiers} once more, now in code: the comprehension is the meet \cppinline{S & P}, and each quantifier is one \cppinline{operator==} against a bound, \cppinline{exists(S,P)} being \cppinline{!(Ø{} == (S & P))} and \cppinline{forall(S,P)} being \cppinline{(S & P) == S} (Listing~\ref{lst:extrema_def}).
 The set comparisons are these quantifiers specialised to a membership predicate:
 \begin{equation}
 \label{eqn:inclusion}
@@ -973,7 +973,7 @@ Listing~\ref{lst:relation-grammar} gives the grammar of relation expressions, bu
 \begin{listing}[htbp]
 \caption{The grammar of \textbf{relation expressions}, a refinement of Listing~\ref{lst:set-grammar}: a relation \emph{is} a set over a product, so complement, union \cppinline{|}, meet \cppinline{&} and the product \cppinline{*} are \emph{inherited} from \texttt{setexpr}.
 Operators are grouped by tradition and attached to their \emph{result sort}, keeping the grammar compositional.
-\textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T | relpred}.
+\textbf{Tarski's calculus} ($\texttt{relexpr}\to\texttt{relexpr}$): converse $R^{\circ}$, relative product $R\mathbin{;}S$ (\cppinline{>>}, Boolean middle), the coreflexive/diagonal $\Delta_S$ (\cppinline{diag}), and the \cppinline{reflexive}/\cppinline{symmetric} closures; a relation is also a restricted product \cppinline{S * T & relpred}.
 \textbf{\texttt{relpred}}, the pair-predicate sub-grammar, compares terms built from the projections $\pi_1,\pi_2$ by arithmetic, \cppinline{ap} and \cppinline{cond}, its constants carried as values, and inherits \cppinline{!}, \cppinline{&&}, \cppinline{||}, \cppinline{cmp} from \texttt{pred}.
 It also lifts an arrow's \emph{value} into a \texttt{relpred} atom: \cppinline{𝑦 == ap(f, 𝑥)} is the point-free $y=f(x)$; forward membership needs only a decidable-equality codomain, while a \emph{retractable} \cppinline{f} (one carrying a \cppinline{retract} hook) additionally makes the image decidable (its factorisation class becomes the relation's decidability class); a bare isomorphism qualifies only once it exposes that retract.
 This value-lift is distinct from the whole-arrow \cppinline{graph} lift below.

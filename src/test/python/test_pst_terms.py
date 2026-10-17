@@ -61,6 +61,11 @@ class TheFilterIsTheMeet(unittest.TestCase):
             with self.assertRaisesRegex(TypeError, "the filter is the meet"):
                 S | pred
 
+    def test_a_term_is_no_filter(self) -> None:
+        U = A(u64)
+        with self.assertRaisesRegex(TypeError, "compare it"):
+            U * U & (π_1 + 1)
+
     def test_the_join_stays(self) -> None:
         U = A(u64)
         self.assertIn(7, (U & (π < 3)) | (U & (π > 6)))
@@ -155,7 +160,7 @@ class TheSetsCombine(unittest.TestCase):
         self.assertIn(5, outside)
         self.assertNotIn(3, outside)
         self.assertIn(7, (U & (π < 3)) | (U & (π > 6)))
-        self.assertEqual(repr(window), "𝔸(u64) & (π > 2) & (π < 5)")
+        self.assertEqual(repr(window), "𝔸(u64) & ((π > 2) & (π < 5))")
         self.assertIs(window.universe.carrier, u64)
         succ = U * U & (π_2 == π_1 + 1)
         self.assertIn((4, 5), succ)
