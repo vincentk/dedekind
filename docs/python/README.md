@@ -15,7 +15,7 @@ is decided in Python.
     word, ordered) and field `𝔽ₚ` (p = 2⁶⁴ − 59: `+ − ·` and `/` by a nonzero
     element, no order).  `𝔽ₚ` is the name `Fp` (Python normalises identifiers).
   - The term surface: `π`, `π_1`, `π_2` (`π[k]` the family) and constants build terms; `A(carrier) |
-    term` binds them, and `A(carrier) * A(carrier) | term` is a relation.
+    term` binds them, and `A(carrier) * A(carrier) & term` is a relation.
 
 The laws decide the syntax: a term may use the operators the carrier's
 certified algebras have, and anything else is refused when the set is built.
@@ -65,14 +65,14 @@ from dedekind.jlt import succ
 from dedekind.pst import A, U64, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = U64  # = A(u64)
-region = (U | (π > 3)) & (U | (π < 5))
-print(region == U | (π == 4))           # True: one normal form, the run list
-print(canonical(region), list(region))  # 𝔸(u64) | π == 4  [4]
+region = (U & (π > 3)) & (U & (π < 5))
+print(region == U & (π == 4))           # True: one normal form, the run list
+print(canonical(region), list(region))  # 𝔸(u64) & π == 4  [4]
 
-third = A(𝔽ₚ) * A(𝔽ₚ) | (π_2 == π_1 / 3)  # a field's division by a constant
+third = A(𝔽ₚ) * A(𝔽ₚ) & (π_2 == π_1 / 3)  # a field's division by a constant
 print((3, 1) in third)                  # True
 
-print(image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0)))   # True: it wraps
+print(image(succ(int), U & (π > 5)) == U & ((π > 6) & (π == 0)))   # True: it wraps
 ```
 
 ## Error Handling Contract
@@ -81,10 +81,10 @@ Refusals are raised when a term is written or bound, never when it is read:
 
 - an operator the carrier's algebras do not have (`/` on `u64`, `<` on `𝔽ₚ`,
   `+` on 𝔹, a division by a term): `TypeError`;
-- a constant the carrier cannot hold (`A(u64) | (π > -1)`): `ValueError`;
+- a constant the carrier cannot hold (`A(u64) & (π > -1)`): `ValueError`;
 - a division by the constant 0, or by a constant that is 0 on the carrier
   (`π / p` on 𝔽ₚ): `ValueError`;
-- equality of sets outside the catalogue (`A(u64) | (π % 2 == 0)`):
+- equality of sets outside the catalogue (`A(u64) & (π % 2 == 0)`):
   `TypeError`.
 
 These are covered by `src/test/python/test_pst_terms.py` and
