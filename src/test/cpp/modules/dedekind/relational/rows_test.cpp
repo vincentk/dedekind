@@ -132,12 +132,18 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
 TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
           "[relational][rows]") {
   // R ∧ S = merge ∘ (R ⊗ S) ∘ copy, at points: the spider form of the meet.
-  const Re spider = copy<int, unsigned, bool>(W) >> (succ * square) >>
+  // Read without elimination (canonical is algebra's, downstream), the
+  // spider's middles are four ∃ over the word, searched within the budget:
+  // where the meet holds the witness is found; where it fails the search
+  // can only answer U, never ⊥ (Σ).  The exact law is decided in Python.
+  const Re spider = copy<int, unsigned, bool>(W) >> (succ * words) >>
                     merge<int, unsigned, bool>(W);
   CHECK(spider.dom == W);
   CHECK(spider.cod == W);
-  for (const R& row : {R{{0u, 1u}}, R{{3u, 4u}}, R{{4u, 2u}}, R{{1u, 1u}}})
-    CHECK(verdict(spider, row) == verdict(succ & square, row));
+  CHECK(verdict(succ & words, R{{3u, 4u}}) == Ternary::True);
+  CHECK(verdict(spider, R{{3u, 4u}}) == Ternary::True);  // the witness
+  CHECK(verdict(succ & words, R{{3u, 5u}}) == Ternary::False);
+  CHECK(verdict(spider, R{{3u, 5u}}) == Ternary::Unknown);  // Σ: never ⊥
   // The middle of copy >> (R ⊗ S) is two columns: ∃∃, outermost first.
   const Q p = predicate(copy<int, unsigned, bool>(W) >> (succ * square));
   REQUIRE(p.kind == Q::Kind::Exists);

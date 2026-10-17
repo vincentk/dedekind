@@ -75,6 +75,7 @@ module;
 #include <cstddef>     // std::size_t
 #include <functional>  // std::plus, std::minus, std::multiplies, std::divides
 #include <limits>      // an exponent's bound
+#include <optional>    // a definition found through a block of quantifiers
 #include <stdexcept>  // std::domain_error, std::out_of_range, std::overflow_error
 #include <string>     // the refusals' text
 #include <type_traits>  // std::true_type
@@ -706,6 +707,25 @@ struct ShiftDown {
     return dedekind::sets::Term<K>::proj(s > above ? s - 1 : s);
   }
 };
+/** @brief A definition of the slot found through a block of quantifiers of
+ *  the same kind (which commute): the defining atom's term, free of the
+ *  slots those quantifiers bind, and the block with that atom removed. */
+template <typename K>
+std::optional<dedekind::sets::Definition<K>> defined_through(
+    const dedekind::sets::Pred<K>& q, unsigned slot, bool universal,
+    unsigned bound) {
+  using Pr = dedekind::sets::Pred<K>;
+  if (q.quantifier() && (q.kind == Pr::Kind::Forall) == universal) {
+    const unsigned bit =
+        q.slot < std::numeric_limits<unsigned>::digits ? 1u << q.slot : 0u;
+    if (auto d = defined_through(*q.p, slot, universal, bound | bit))
+      return dedekind::sets::Definition<K>{d->term, Pr::bound_like(q, d->rest)};
+    return std::nullopt;
+  }
+  auto d = dedekind::sets::defining_term(q, slot, universal);
+  if (d && (dedekind::sets::slots(d->term) & bound) == 0u) return d;
+  return std::nullopt;
+}
 /** @brief The predicate with every quantifier eliminated that can be, the
  *  atoms left as written: innermost first, by substitution where an atom
  *  defines the bound column (a conjunct @c π_h @c == @c t under @c ∃, a
@@ -736,6 +756,17 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
     case Pr::Kind::Exists:
     case Pr::Kind::Forall: {
       const bool universal = p.kind == Pr::Kind::Forall;
+      // Once the bound slot is gone, the quantifiers inside it bind one slot
+      // lower: every slot above it moves down (the next-slot invariant).
+      const auto unbound_raw = [&](const Pr& q) {
+        return q.map_slots(ShiftDown<K>{p.slot});
+      };
+      // A definition first, looked for through the inner quantifiers of the
+      // same kind (they commute): substituting before an inner one is
+      // expanded keeps the defining atom at the top of its connective.
+      if (auto d = defined_through(*p.p, p.slot, universal, 0u))
+        return eliminate_quantifiers<P>(
+            unbound_raw(d->rest.subst(p.slot, d->term)), lift, rep);
       const Pr body = eliminate_quantifiers<P>(
           *p.p, lift, dedekind::sets::with_bound(rep, p.sort));
       // Once the bound slot is gone, the quantifiers inside it bind one slot
