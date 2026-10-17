@@ -1788,6 +1788,53 @@ Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep) {
   }
   return p;
 }
+/** @brief A slot's definition inside a conjunction: the term @c t of a conjunct
+ *  @c π_slot @c == @c t (or @c t @c == @c π_slot) with @c t free of the slot,
+ *  and the conjunction without that conjunct.  @c ∃π_slot. P is then the rest
+ *  with @c t for @c π_slot: the existential is eliminated by substitution.
+ *  @tparam K the constants' type. */
+export template <typename K>
+struct Definition {
+  Term<K> term;
+  Pred<K> rest;
+};
+/** @brief The first conjunct of @c p, leftmost, that defines the slot; nothing
+ *  where none does.  @param p the predicate.  @param slot the slot. */
+export template <typename K>
+std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot) {
+  using Pr = Pred<K>;
+  const auto free_of = [slot](const Term<K>& t) {
+    return (slots(t) &
+            (slot < std::numeric_limits<unsigned>::digits ? 1u << slot
+                                                          : ~0u)) == 0u;
+  };
+  const auto is_slot = [slot](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == slot;
+  };
+  switch (p.kind) {
+    case Pr::Kind::Cmp:
+      if (p.rel != Rel::Eq) return std::nullopt;
+      if (is_slot(*p.a) && free_of(*p.b)) return Definition<K>{*p.b, Pr::top()};
+      if (is_slot(*p.b) && free_of(*p.a)) return Definition<K>{*p.a, Pr::top()};
+      return std::nullopt;
+    case Pr::Kind::And:
+      if (auto d = defining_term(*p.p, slot))
+        return Definition<K>{d->term, d->rest.kind == Pr::Kind::Top
+                                          ? *p.q
+                                          : Pr::conj(d->rest, *p.q)};
+      if (auto d = defining_term(*p.q, slot))
+        return Definition<K>{d->term, d->rest.kind == Pr::Kind::Top
+                                          ? *p.p
+                                          : Pr::conj(*p.p, d->rest)};
+      return std::nullopt;
+    case Pr::Kind::Or:
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+      return std::nullopt;
+  }
+  return std::nullopt;
+}
+
 /** @brief Whether a mask names only slots among @c π_1 … @c π_{n−1}, the
  *  arguments of a graph whose result is @c π_n.  @param mask the slots.
  *  @param n the result slot. */
