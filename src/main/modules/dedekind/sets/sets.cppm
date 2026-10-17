@@ -45,6 +45,7 @@ export import :expressions;
 export import :extensional;
 export import :quantifier;
 export import :singleton;
+export import :spans;      // relations of any arity, held as spans (#1037)
 export import :recursion;  // χ: inductive sets, the former closing a structural
                            // recursion
 // :relational (Codd's σ ⋈ ∪ ∖) and :graph (graphs of arrows) were popped OUT of

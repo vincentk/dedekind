@@ -736,64 +736,21 @@ const char* universe_name(std::size_t sort) {
 /** @brief A cell of the sort @c sort out of a Python value. */
 Cells::Cell cell_of(std::size_t sort, nb::handle h);
 
-/** @brief A hidden column: its sort and its quantifier, @c ∃ or @c ∀. */
-struct Hidden {
-  std::size_t sort;
-  bool universal = false;
-};
-/** @brief A relation, held as a span in prenex form: the visible columns
- *  @c π_1 … @c π_n (the schema), hidden columns @c π_{n+1} … @c π_{n+k} bound
- *  by @c ∃ or @c ∀ in that order, outermost first (the middles of
- *  compositions and the columns a projection dropped are @c ∃; @c ~ turns
- *  them into @c ∀), and one quantifier-free predicate on all of them.  A span
- *  is free to build; @c canonical takes its image, eliminating the hidden
- *  columns (@c fused); membership searches where it cannot, within
- *  @c budget candidates. */
-struct Relation {
-  std::vector<std::size_t> schema;
-  RPred predicate;
-  std::vector<Hidden> hidden{};
-  std::uint64_t budget = std::uint64_t{1} << 16;
-  /** @brief A row of the visible and hidden columns: the representative. */
-  Cells rep() const {
-    std::vector<std::size_t> all = schema;
-    for (const Hidden& h : hidden) all.push_back(h.sort);
-    return dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>(all);
-  }
-  unsigned arity() const { return static_cast<unsigned>(schema.size()); }
-  unsigned width() const {
-    return static_cast<unsigned>(schema.size() + hidden.size());
-  }
-};
-
-/** @brief The meet of two predicates, ⊤ a unit. */
-RPred meet(const RPred& p, const RPred& q) {
-  if (p.kind == RPred::Kind::Top) return q;
-  if (q.kind == RPred::Kind::Top) return p;
-  return RPred::conj(p, q);
+/** @brief A relation over a product of the four carriers, held as a span
+ *  (@c sets:spans): a schema, hidden columns under ∃ / ∀, a predicate. */
+using Relation = dedekind::sets::Span<PyConst, uint64_t, Fp, bool, Ternary>;
+using dedekind::sets::Hidden;
+/** @brief The span's operations with the binding's constants: a value
+ *  becomes a constant that names its sort (@c TypedConstant). */
+Relation reduced(const Relation& r) { return r.reduced(TypedConstant{}); }
+Relation fused(const Relation& r) { return r.fused(TypedConstant{}); }
+Ternary verdict(const Relation& r, const Cells& row) {
+  return r.verdict(row, TypedConstant{});
 }
 /** @brief A set's unary π read as the first column of a relation. */
 struct FirstColumn {
   RTerm operator()(unsigned s) const { return RTerm::proj(s == 0 ? 1 : s); }
 };
-/** @brief A renumbering of the slots by a table: π_i ↦ π_{to[i]}. */
-struct Renumber {
-  const std::vector<unsigned>& to;
-  RTerm operator()(unsigned s) const {
-    return RTerm::proj(s < to.size() ? to[s] : s);
-  }
-};
-/** @brief The table placing a relation's slots in a wider layout: visible
- *  column @c i at @c vis[i − 1], hidden column @c j at @c hid_from + j.  */
-std::vector<unsigned> layout(const Relation& r,
-                             const std::vector<unsigned>& vis,
-                             unsigned hid_from) {
-  std::vector<unsigned> to(r.width() + 1, 0);
-  for (unsigned i = 1; i <= r.arity(); ++i) to[i] = vis[i - 1];
-  for (unsigned j = 1; j <= r.hidden.size(); ++j)
-    to[r.arity() + j] = hid_from + j;
-  return to;
-}
 /** @brief The slot map of an application: π_i ↦ the i-th argument. */
 struct SlotsTo {
   const std::vector<RTerm>& args;
@@ -825,229 +782,6 @@ Relation as_relation(nb::handle h) {
                 FirstColumn{})};
   throw nb::type_error(
       "a factor of a product is a universe, a set over one, or a relation");
-}
-/** @brief @c 1 … @c n, after @c from. */
-std::vector<unsigned> columns(unsigned n, unsigned from = 0) {
-  std::vector<unsigned> out(n);
-  for (unsigned i = 0; i < n; ++i) out[i] = from + i + 1;
-  return out;
-}
-/** @brief Two spans in one layout: @c a's visible columns at @c a_vis and its
- *  hidden ones from @c a_hid, @c b's likewise; the predicates joined, the
- *  hidden columns @c lead, then @c a's, then @c b's. */
-Relation combine(const Relation& a, const std::vector<unsigned>& a_vis,
-                 unsigned a_hid, const Relation& b,
-                 const std::vector<unsigned>& b_vis, unsigned b_hid,
-                 std::vector<std::size_t> schema, std::vector<Hidden> lead,
-                 bool conjunction) {
-  const RPred p = a.predicate.map_slots(Renumber{layout(a, a_vis, a_hid)});
-  const RPred q = b.predicate.map_slots(Renumber{layout(b, b_vis, b_hid)});
-  Relation r{std::move(schema), conjunction ? meet(p, q) : RPred::disj(p, q),
-             std::move(lead), a.budget};
-  r.hidden.insert(r.hidden.end(), a.hidden.begin(), a.hidden.end());
-  r.hidden.insert(r.hidden.end(), b.hidden.begin(), b.hidden.end());
-  return r;
-}
-/** @brief @c A × B: the schemas concatenated, B's columns after A's, the
- *  hidden ones after all of them; the predicates met. */
-Relation product(const Relation& a, const Relation& b) {
-  const unsigned n = a.arity() + b.arity();
-  std::vector<std::size_t> schema = a.schema;
-  schema.insert(schema.end(), b.schema.begin(), b.schema.end());
-  return combine(a, columns(a.arity()), n, b, columns(b.arity(), a.arity()),
-                 n + static_cast<unsigned>(a.hidden.size()), std::move(schema),
-                 {}, true);
-}
-/** @brief @c R & S, @c R | S on one product: the hidden columns renamed
- *  apart, @c ∃h.P ∘ ∃g.Q = ∃h,g. P ∘ Q (the carriers are not empty). */
-Relation lattice(const Relation& a, const Relation& b, bool conjunction) {
-  if (a.schema != b.schema)
-    throw nb::type_error("relations over different products");
-  const unsigned n = a.arity();
-  return combine(a, columns(n), n, b, columns(n),
-                 n + static_cast<unsigned>(a.hidden.size()), a.schema, {},
-                 conjunction);
-}
-/** @brief @c R >> S: the last column of @c R identified with the first of
- *  @c S and hidden: @c {(a, c) | ∃b. R(a, b) ∧ S(b, c)}, kept as a span (the
- *  pullback over the middle) until @c canonical takes its image. */
-Relation compose(const Relation& a, const Relation& b) {
-  if (a.arity() == 0 || b.arity() == 0 || a.schema.back() != b.schema.front())
-    throw nb::type_error(
-        "R >> S: R's last column and S's first are of one carrier");
-  const unsigned n = a.arity() + b.arity() - 2;
-  std::vector<std::size_t> schema(a.schema.begin(), a.schema.end() - 1);
-  schema.insert(schema.end(), b.schema.begin() + 1, b.schema.end());
-  std::vector<unsigned> a_vis = columns(a.arity() - 1);
-  a_vis.push_back(n + 1);  // the middle, the first hidden column
-  std::vector<unsigned> b_vis{n + 1};
-  for (const unsigned c : columns(b.arity() - 1, a.arity() - 1))
-    b_vis.push_back(c);
-  return combine(a, a_vis, n + 1, b, b_vis,
-                 n + 1 + static_cast<unsigned>(a.hidden.size()),
-                 std::move(schema), {Hidden{a.schema.back()}}, true);
-}
-/** @brief @c R.project(c₁, …): the columns kept in the order given, the
- *  others hidden: @c {(x_c₁, …) | ∃ the rest. R(x)}.  @param keep 1-based
- *  columns. */
-Relation project(const Relation& r, const std::vector<unsigned>& keep) {
-  std::vector<unsigned> to(r.width() + 1, 0);
-  std::vector<std::size_t> schema;
-  std::vector<Hidden> dropped;
-  for (const unsigned c : keep) {
-    if (c == 0 || c > r.arity() || to[c] != 0)
-      throw nb::type_error("R.project(c, …): distinct columns 1 … n");
-    to[c] = static_cast<unsigned>(schema.size()) + 1;
-    schema.push_back(r.schema[c - 1]);
-  }
-  const unsigned n = static_cast<unsigned>(schema.size());
-  for (unsigned c = 1; c <= r.arity(); ++c)
-    if (to[c] == 0) {
-      dropped.push_back(Hidden{r.schema[c - 1]});
-      to[c] = n + static_cast<unsigned>(dropped.size());
-    }
-  for (unsigned j = 1; j <= r.hidden.size(); ++j)
-    to[r.arity() + j] = n + static_cast<unsigned>(dropped.size()) + j;
-  Relation out{std::move(schema), r.predicate.map_slots(Renumber{to}),
-               std::move(dropped), r.budget};
-  out.hidden.insert(out.hidden.end(), r.hidden.begin(), r.hidden.end());
-  return out;
-}
-/** @brief The relation with the hidden column @c h eliminated: @c p, which no
- *  longer mentions it, renumbered so the columns above close the gap. */
-Relation without(const Relation& r, unsigned h, const RPred& p) {
-  std::vector<unsigned> to(r.width() + 1, 0);
-  for (unsigned s = 0; s <= r.width(); ++s) to[s] = s < h ? s : s - 1;
-  Relation out{r.schema, p.map_slots(Renumber{to}), r.hidden, r.budget};
-  out.hidden.erase(out.hidden.begin() + (h - r.arity() - 1));
-  return out;
-}
-/** @brief The values of a small carrier, for Shannon's expansion. */
-std::vector<RTerm> small_carrier(std::size_t sort) {
-  if (sort == sort_index_v<bool>)
-    return {RTerm::constant(TypedConstant{}(false)),
-            RTerm::constant(TypedConstant{}(true))};
-  if (sort == sort_index_v<Ternary>)
-    return {RTerm::constant(TypedConstant{}(Ternary::False)),
-            RTerm::constant(TypedConstant{}(Ternary::Unknown)),
-            RTerm::constant(TypedConstant{}(Ternary::True))};
-  return {};
-}
-/** @brief The span with its innermost quantifiers eliminated as far as they
- *  go.  The innermost block (the trailing hidden columns under one
- *  quantifier) is eliminated first: by substitution where a conjunct defines
- *  a column (a disjunct @c π_h @c != @c t under @c ∀; the fusion law), else by
- *  Shannon's expansion where its carrier is small (@c ∃b ∈ 𝔹. P ≡ P[⊥] ∨ P[⊤],
- *  @c ∧ under @c ∀).  Stops at a column neither eliminates. */
-Relation reduced(const Relation& span) {
-  Relation r = span;
-  r.predicate = pinned<Cells>(r.predicate, r.rep());
-  while (!r.hidden.empty()) {
-    const bool universal = r.hidden.back().universal;
-    unsigned lo = r.width();  // the innermost block: lo … width
-    while (lo > r.arity() + 1 &&
-           r.hidden[lo - r.arity() - 2].universal == universal)
-      --lo;
-    bool done = false;
-    for (unsigned h = r.width(); h >= lo && !done; --h)
-      if (auto d = dedekind::sets::defining_term(r.predicate, h, universal)) {
-        r = without(r, h, d->rest.subst(h, d->term));
-        done = true;
-      }
-    for (unsigned h = r.width(); h >= lo && !done; --h) {
-      const auto values = small_carrier(r.hidden[h - r.arity() - 1].sort);
-      if (values.empty()) continue;
-      RPred cases = r.predicate.subst(h, values.front());
-      for (std::size_t i = 1; i < values.size(); ++i) {
-        const RPred next = r.predicate.subst(h, values[i]);
-        cases = universal ? RPred::conj(cases, next) : RPred::disj(cases, next);
-      }
-      r = without(r, h, cases);
-      done = true;
-    }
-    if (!done) break;
-  }
-  return r;
-}
-/** @brief The image of a span: every hidden column eliminated (@c reduced).
- *  @throws not_admitted where one remains: a column on a large carrier no
- *  atom determines. */
-Relation fused(const Relation& span) {
-  Relation r = reduced(span);
-  if (!r.hidden.empty())
-    throw dedekind::sets::not_admitted(
-        "a hidden column no atom defines, on a carrier too large to expand: "
-        "the span has no quantifier-free image here");
-  return r;
-}
-/** @brief The @c i-th candidate of a carrier, for the bounded search: the
- *  word from 0 up, the field by its representatives 0, 1, −1, 2, −2, …, a
- *  chain's values in order. */
-Cells::Cell candidate(std::size_t sort, std::uint64_t i) {
-  switch (sort) {
-    case sort_index_v<uint64_t>:
-      return Cells::Cell{std::in_place_index<0>, i};
-    case sort_index_v<Fp>: {
-      const Fp m{(i + 1) / 2};
-      return Cells::Cell{std::in_place_index<1>, i % 2 ? m : Fp{0} - m};
-    }
-    case sort_index_v<bool>:
-      return Cells::Cell{std::in_place_index<2>, i % 2 == 1};
-    default: {
-      static constexpr Ternary order[] = {Ternary::False, Ternary::Unknown,
-                                          Ternary::True};
-      return Cells::Cell{std::in_place_index<3>, order[i % 3]};
-    }
-  }
-}
-/** @brief χ at a visible row, in K₃.  Where the image is quantifier-free, the
- *  predicate decides it, ⊤ or ⊥.  Where hidden columns remain under one
- *  quantifier, the search within the budget: a witness of @c ∃ is ⊤, a
- *  counterexample to @c ∀ is ⊥, and an exhausted budget is U, never the other
- *  verdict (Σ, respectively Π: @c Semidecided).  Alternating quantifiers
- *  answer U. */
-Ternary verdict(const Relation& span, const Cells& visible) {
-  const Relation r = reduced(span);
-  if (r.hidden.empty())
-    return r.predicate(visible) ? Ternary::True : Ternary::False;
-  const bool universal = r.hidden.front().universal;
-  for (const Hidden& h : r.hidden)
-    if (h.universal != universal) return Ternary::Unknown;
-  // Each hidden column ranges over its first b candidates, b^k ≤ budget.
-  const std::size_t k = r.hidden.size();
-  std::uint64_t b = 1;
-  while (true) {
-    std::uint64_t power = 1;
-    bool fits = true;
-    for (std::size_t j = 0; j < k && fits; ++j) {
-      if (power > r.budget / (b + 1)) fits = false;
-      power *= b + 1;
-    }
-    if (!fits || power > r.budget) break;
-    ++b;
-  }
-  std::vector<std::uint64_t> index(k, 0);
-  while (true) {
-    Cells row = visible;
-    for (std::size_t j = 0; j < k; ++j)
-      row.cells.push_back(candidate(r.hidden[j].sort, index[j]));
-    const bool holds = r.predicate(row);
-    if (!universal && holds) return Ternary::True;
-    if (universal && !holds) return Ternary::False;
-    std::size_t j = 0;
-    while (j < k && ++index[j] == b) index[j++] = 0;
-    if (j == k) return Ternary::Unknown;
-  }
-}
-/** @brief @c R | p: the former on the visible columns, every slot, constant
- *  and operator checked in its column's sort now. */
-Relation former(const Relation& r, const RPred& p) {
-  if (!dedekind::sets::only_arguments(dedekind::sets::slots(p), r.arity() + 1))
-    throw nb::type_error("R | pred: a slot past the relation's columns");
-  dedekind::sets::bind_check<Cells>(p, r.rep());
-  Relation out = r;
-  out.predicate = meet(r.predicate, p);
-  return out;
 }
 /** @brief Two relations over one product: the schemas must agree. */
 void same_product(const Relation& a, const Relation& b) {
@@ -1088,22 +822,6 @@ bool row_holds(const Relation& r, nb::handle h) {
   } catch (const nb::cast_error&) {
     return false;  // not a value of the column's carrier
   }
-}
-/** @brief The term of a relation certified a function of its first n − 1
- *  columns: a graph atom @c π_n @c == @c t(π_1 … π_{n−1}) whose term lands in
- *  the last column's sort, so every argument has its image there; @c nullptr
- *  otherwise (@c K3 @c * @c B @c | @c (π_2 @c == @c π_1) is a relation, but U
- *  has no image in 𝔹).  @param r the relation.  @param p its predicate, or
- *  the predicate pinned. */
-const RTerm* function_term(const Relation& r, const RPred& p) {
-  if (r.arity() < 2) return nullptr;
-  const RTerm* t = dedekind::sets::graph_term(p, r.arity());
-  if (t == nullptr) return nullptr;
-  const std::size_t s = dedekind::sets::sort_of<Cells>(*t, r.rep());
-  if (s != dedekind::sets::no_sort &&
-      !dedekind::sets::sort_embeds<Cells>(s, r.schema.back()))
-    return nullptr;
-  return t;
 }
 /** @brief A term's value at a row, in the sort @c C, as a Python object. */
 struct ValueAt {
@@ -1156,7 +874,7 @@ nb::object apply(const Relation& span, nb::handle h) {
     return nb::cast(truth_term(
         pinned<Cells>(r.predicate, r.rep()).map_slots(SlotsTo{args})));
   }
-  if (function_term(r, r.predicate) == nullptr)
+  if (r.function_term(r.predicate) == nullptr)
     throw nb::type_error(
         "ap(R, x): R is not certified a function (π_n == t(π_1 … π_{n−1}), "
         "t landing in the last column); ap(R, (x₁, …, x_n)) is χ");
@@ -1167,7 +885,7 @@ nb::object apply(const Relation& span, nb::handle h) {
     std::vector<RTerm> args;
     for (nb::handle a : xs) args.push_back(term_of(a));
     const RPred pin = pinned<Cells>(r.predicate, r.rep());
-    return nb::cast(function_term(r, pin)->map_slots(SlotsTo{args}));
+    return nb::cast(r.function_term(pin)->map_slots(SlotsTo{args}));
   }
   Cells row;
   for (std::size_t i = 0; i < xs.size(); ++i)
@@ -1176,7 +894,7 @@ nb::object apply(const Relation& span, nb::handle h) {
                           {r.schema.back()})
                           .cells.front());
   return dedekind::sets::with_sort<Cells>(
-      r.schema.back(), ValueAt{*function_term(r, r.predicate), row});
+      r.schema.back(), ValueAt{*r.function_term(r.predicate), row});
 }
 /** @brief The relation written: its universes, and its predicate unless ⊤
  *  (a relation whose predicate is ⊤ is the product universe itself), its
@@ -1212,20 +930,18 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       .def(
           "__mul__",
           [](const Relation& a, nb::handle b) {
-            return product(a, as_relation(b));
+            return a.times(as_relation(b));
           },
           nb::is_operator(), "R × S: the schemas concatenated.")
       .def(
           "__or__",
-          [](const Relation& r, const RPred& p) { return former(r, p); },
+          [](const Relation& r, const RPred& p) { return r.where(p); },
           nb::is_operator(),
           "R | pred: the former; every slot, constant and operator is checked "
           "in its column's sort now, and a term mixing two carriers refused.")
       .def(
           "__or__",
-          [](const Relation& a, const Relation& b) {
-            return lattice(a, b, false);
-          },
+          [](const Relation& a, const Relation& b) { return a.join(b); },
           nb::is_operator())
       .def(
           "__or__",
@@ -1237,13 +953,11 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           nb::is_operator())
       .def(
           "__and__",
-          [](const Relation& a, const Relation& b) {
-            return lattice(a, b, true);
-          },
+          [](const Relation& a, const Relation& b) { return a.meet(b); },
           nb::is_operator())
       .def(
           "__rshift__",
-          [](const Relation& a, const Relation& b) { return compose(a, b); },
+          [](const Relation& a, const Relation& b) { return a.then(b); },
           nb::is_operator(),
           "R >> S: the composite, {(a, c) | ∃b. R(a, b) ∧ S(b, c)}, kept as a "
           "span until canonical eliminates the middle.")
@@ -1252,19 +966,12 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& r, nb::args cols) {
             std::vector<unsigned> keep;
             for (nb::handle c : cols) keep.push_back(nb::cast<unsigned>(c));
-            return project(r, keep);
+            return r.project(keep);
           },
           "R.project(c, …): the columns c, … kept in that order, the others "
           "hidden by ∃.")
       .def(
-          "__invert__",
-          [](const Relation& a) {
-            // By duality: ~(Q₁h₁ … Q_kh_k. P) = Q̄₁h₁ … Q̄_kh_k. ~P.
-            Relation out = a;
-            out.predicate = a.predicate.negated();
-            for (Hidden& h : out.hidden) h.universal = !h.universal;
-            return out;
-          },
+          "__invert__", [](const Relation& a) { return a.complement(); },
           "~R: the complement, pushed down by duality: the predicate in "
           "negation normal form, each hidden ∃ a ∀ and each ∀ an ∃.")
       .def(
@@ -1309,7 +1016,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& r) {
             try {
               const Relation f = fused(r);
-              return function_term(f, f.predicate) != nullptr;
+              return f.function_term(f.predicate) != nullptr;
             } catch (const dedekind::sets::not_admitted&) {
               return false;  // no quantifier-free image: not certified
             }
@@ -1335,7 +1042,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
   (universes.def(
        "__mul__",
        [](const Universes& a, nb::handle b) {
-         return product(as_relation(nb::cast(a)), as_relation(b));
+         return as_relation(nb::cast(a)).times(as_relation(b));
        },
        nb::is_operator(), "A × B: the product universe, each column its sort."),
    ...);
