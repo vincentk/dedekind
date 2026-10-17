@@ -34,8 +34,9 @@ TEST_CASE("category:subobject-lattice-etcs — Subobject<bool, Chi> participates
   /** @brief A @c Subobject<bool, Chi> produced by @c classify
    *         satisfies @c IsSubobjectLattice — Slice 9 added the
    *         @c logic_species typedef (via @c classifier_logic_t<Cod<Chi>>); the
-   *         free @c meet / @c join / @c complement are provided in
-   *         @c :etcs::concrete; the @c ≤ relation is derivable from
+   *         operations @c & / @c | are the lattice's @c Meet / @c Join over
+   *         the characteristic arrows (@c :topoi); the @c ≤ relation is
+   * derivable from
    *         @c meet (Birkhoff §1.4) and therefore not required by the
    *         concept body. */
   auto pred = [](const bool&) { return true; };
