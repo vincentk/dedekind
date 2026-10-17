@@ -1325,6 +1325,29 @@ export template <typename P, typename K>
 dedekind::category::Ternary verdict(const Pred<K>& t, const P& point,
                                     std::uint64_t budget = std::uint64_t{1}
                                                            << 16);
+/** @brief Whether @c b^k @c ≤ @c n, without overflow. */
+constexpr bool power_within(std::uint64_t b, unsigned k, std::uint64_t n) {
+  std::uint64_t power = 1;
+  for (unsigned j = 0; j < k; ++j) {
+    if (b != 0 && power > n / b) return false;
+    power *= b;
+  }
+  return power <= n;
+}
+/** @brief The largest @c b with @c b^k @c ≤ @c n (@c n @c ≥ 1): the values
+ *  each of @c k nested searches may try within a budget of @c n, found by
+ *  bisection, logarithmic in @c n. */
+constexpr std::uint64_t root_within(std::uint64_t n, unsigned k) {
+  std::uint64_t lo = 1, hi = n;
+  while (lo < hi) {
+    const std::uint64_t mid = lo + (hi - lo + 1) / 2;
+    if (power_within(mid, k, n))
+      lo = mid;
+    else
+      hi = mid - 1;
+  }
+  return lo;
+}
 template <typename P, typename K>
 struct Verdict {
   using Ternary = dedekind::category::Ternary;
@@ -1417,18 +1440,8 @@ struct Verdict {
         bool alternation = false;
         const unsigned k =
             1 + v.infinite_quantifiers(*t.p, universal, alternation);
-        if (alternation) return Ternary::Unknown;
-        std::uint64_t b = 1;
-        for (;;) {  // the largest b with (b + 1)^k ≤ budget
-          std::uint64_t power = 1;
-          bool fits = true;
-          for (unsigned j = 0; j < k && fits; ++j) {
-            fits = power <= v.budget / (b + 1);
-            if (fits) power *= b + 1;
-          }
-          if (!fits) break;
-          ++b;
-        }
+        if (alternation || v.budget == 0) return Ternary::Unknown;
+        const std::uint64_t b = root_within(v.budget, k);
         std::uint64_t inner = 1;
         for (unsigned j = 1; j < k; ++j) inner *= b;
         for (std::uint64_t i = 0; i < b; ++i) {

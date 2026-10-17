@@ -629,6 +629,9 @@ RPred member_of(const RTerm& t) {
         Rel::Eq,
         RTerm::bin(Arith::Mul, t, RTerm::constant(TypedConstant{}(C{1}))), t);
 }
+/** @brief The term @c t is a value of the column's carrier, by sort index
+ *  (@c member_of on the row's carriers). */
+RPred column_member(std::size_t sort, const RTerm& t);
 /** @brief χ of the universe over @c C at a term: ⊤ wherever the term is a
  *  value of @c C, the argument kept so binding checks its sort. */
 template <typename C>
@@ -762,6 +765,18 @@ RPred canonical(const Relation& r) {
 RPred certifiable(const Relation& r) {
   return dedekind::algebra::eliminate_quantifiers<Cells>(
       pinned<Cells>(classifier(r), r.rep()), TypedConstant{}, r.rep());
+}
+RPred column_member(std::size_t sort, const RTerm& t) {
+  switch (sort) {
+    case sort_index_v<uint64_t>:
+      return member_of<uint64_t>(t);
+    case sort_index_v<Fp>:
+      return member_of<Fp>(t);
+    case sort_index_v<bool>:
+      return member_of<bool>(t);
+    default:
+      return member_of<Ternary>(t);
+  }
 }
 /** @brief A set's unary π read as the first column of a relation. */
 struct FirstColumn {
@@ -916,8 +931,19 @@ nb::object apply(const Relation& r, nb::handle h) {
       if (decided) return nb::bool_(v == Ternary::True);
       return nb::cast(v);
     }
-    return nb::cast(truth_term(
-        pinned<Cells>(classifier(r), r.rep()).map_slots(SlotsTo{args})));
+    // At terms: the eliminated classifier with the columns replaced, each
+    // argument also checked to be a value of its column's carrier (a
+    // universe's classifier is ⊤ and would drop its arguments).  A quantifier
+    // that remains has no symbolic reading in 𝔹 yet: refused.
+    if (!decided)
+      throw nb::type_error(
+          "ap(R, terms): R's classifier keeps a quantifier no atom defines; "
+          "a symbolic reading would be K₃-valued (not yet)");
+    const dedekind::relational::Object cols = r.columns();
+    RPred at = cert.map_slots(SlotsTo{args});
+    for (std::size_t i = 0; i < cols.size(); ++i)
+      at = RPred::conj(at, column_member(cols[i], args[i]));
+    return nb::cast(truth_term(at));
   }
   const RTerm* f = function_term(r, cert);
   if (f == nullptr)

@@ -36,7 +36,7 @@ class Relation:
     factor."""
 
     def __class_getitem__(cls, factors):
-        fs = tuple(factors)
+        fs = factors if isinstance(factors, tuple) else (factors,)
         return _Annotation(f"Relation[{', '.join(map(_named, fs))}]",
                            lambda x: _attr(x, "factors") == fs)
 
@@ -48,7 +48,7 @@ class Function:
     applied as ``ap(R, x)``."""
 
     def __class_getitem__(cls, factors):
-        fs = tuple(factors)
+        fs = factors if isinstance(factors, tuple) else (factors,)
 
         def holds(x):
             if len(fs) == 2 and _is_set_on(x, fs[0]):

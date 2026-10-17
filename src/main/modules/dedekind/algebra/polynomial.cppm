@@ -69,7 +69,7 @@ module;
 
 #include <algorithm>   // std::sort
 #include <array>       // Monomial's exponents
-#include <bit>         // std::countr_zero: a word's power of two
+#include <bit>         // std::countr_zero, std::bit_width
 #include <compare>     // std::strong_ordering
 #include <concepts>    // std::equality_comparable
 #include <cstddef>     // std::size_t
@@ -539,18 +539,15 @@ static_assert(unit_normaliser(3u) * 3u == 1u &&
  *  coefficient divided out (monic on a field; @c unit_normaliser elsewhere),
  *  so an equation and its multiple by any unit meet; any other atom has its
  *  sides normalised and its comparison kept.  @tparam C the sort. */
-/** @brief The variables an atom's normal form reads: @c π and the slots
- *  @c π_1 … @c π_7 of a row.  A slot past them raises @c std::out_of_range. */
-inline constexpr std::size_t atom_slots = 8;
-template <typename C, typename K, typename Lift>
-dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
-                                       const Lift& lift) {
+template <typename C, std::size_t N, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_atom_in(const dedekind::sets::Pred<K>& p,
+                                          const Lift& lift) {
   using Pr = dedekind::sets::Pred<K>;
-  using P = Polynomial<C, Monomial<atom_slots>>;
+  using P = Polynomial<C, Monomial<N>>;
   using dedekind::sets::On;
   using dedekind::sets::Rel;
-  const P x = cata(Poly<C, atom_slots>{}, *p.a);
-  const P y = cata(Poly<C, atom_slots>{}, *p.b);
+  const P x = cata(Poly<C, N>{}, *p.a);
+  const P y = cata(Poly<C, N>{}, *p.b);
   // Both sides constants: the atom is decided, and written back as ⊤ or ⊥,
   // the Boolean algebra's constants, free of a sort no constant could name
   // again.
@@ -558,8 +555,8 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
     if (!dedekind::sets::rel_admitted<C>(p.rel))
       throw dedekind::sets::not_admitted(
           "the comparison is not in the carrier's signature");
-    return dedekind::sets::compare_rel(p.rel, x(Monomial<atom_slots>::one()),
-                                       y(Monomial<atom_slots>::one()))
+    return dedekind::sets::compare_rel(p.rel, x(Monomial<N>::one()),
+                                       y(Monomial<N>::one()))
                ? Pr::top()
                : Pr::bottom();
   }
@@ -591,6 +588,22 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
     }
   }
   return Pr::cmp(p.rel, as_term<K>(x, lift), as_term<K>(y, lift));
+}
+/** @brief An atom's normal form with as many variables as it reads: the
+ *  monomials' width chosen by the atom's highest slot (@c π and up to
+ *  @c π_7, or up to @c π_31, the width of the slot mask).  A slot past the
+ *  mask is refused; a sparse monomial would lift the bound (#1023).
+ *  @tparam C the sort. */
+template <typename C, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
+                                       const Lift& lift) {
+  const unsigned mask =
+      dedekind::sets::slots(*p.a) | dedekind::sets::slots(*p.b);
+  if (mask == ~0u)
+    throw dedekind::sets::not_admitted(
+        "an atom past π_31, the width of the slot mask (#1023)");
+  if (std::bit_width(mask) <= 8) return canonical_atom_in<C, 8>(p, lift);
+  return canonical_atom_in<C, 32>(p, lift);
 }
 
 namespace detail_canonical {
@@ -764,7 +777,16 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       // A definition first, looked for through the inner quantifiers of the
       // same kind (they commute): substituting before an inner one is
       // expanded keeps the defining atom at the top of its connective.
-      if (auto d = defined_through(*p.p, p.slot, universal, 0u))
+      // A definition substitutes only a term that lands in the bound column's
+      // carrier: ∃b ∈ 𝔹. b == t has a witness only where t is a value of 𝔹
+      // (a K₃ term may be U); 𝔹 ↪ K₃ the other way is fine.
+      const auto lands = [&](const dedekind::sets::Term<K>& t) {
+        const std::size_t s = dedekind::sets::sort_of<P>(t, rep);
+        return s == dedekind::sets::no_sort ||
+               dedekind::sets::sort_embeds<P>(s, p.sort);
+      };
+      if (auto d = defined_through(*p.p, p.slot, universal, 0u);
+          d && lands(d->term))
         return eliminate_quantifiers<P>(
             unbound_raw(d->rest.subst(p.slot, d->term)), lift, rep);
       const Pr body = eliminate_quantifiers<P>(
@@ -774,7 +796,8 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       const auto unbound = [&](const Pr& q) {
         return q.map_slots(ShiftDown<K>{p.slot});
       };
-      if (auto d = dedekind::sets::defining_term(body, p.slot, universal))
+      if (auto d = dedekind::sets::defining_term(body, p.slot, universal);
+          d && lands(d->term))
         return eliminate_quantifiers<P>(unbound(d->rest.subst(p.slot, d->term)),
                                         lift, rep);
       const auto cases = dedekind::sets::with_sort<P>(

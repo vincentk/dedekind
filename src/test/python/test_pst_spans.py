@@ -12,8 +12,8 @@ order of conjuncts, #884)."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π_1, π_2
-from dedekind.trsk import copy, diag, merge
+from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2
+from dedekind.trsk import Relation, copy, diag, merge
 
 succ = U64 * U64 | (π_2 == π_1 + 1)
 sq = U64 * U64 | (π_2 * π_2 == π_1)
@@ -203,6 +203,48 @@ class Duality(unittest.TestCase):
         self.assertNotIn((7,), ~R)
         self.assertEqual(repr(canonical(~R)), "𝔸(u64) | ⊥")
 
+
+
+class WhatTheSubstitutionMayAssume(unittest.TestCase):
+    """A defining atom eliminates a column only where its term lands in the
+    column's carrier; ap at terms keeps every column's carrier check."""
+
+    def test_a_definition_lands_in_the_bound_carrier(self) -> None:
+        # ∃b ∈ 𝔹. b == a with a ∈ K₃: U has no Boolean witness.
+        R = (K3 * B | (π_2 == π_1)).project(1)
+        self.assertIn((Ternary.TRUE,), R)
+        self.assertIn((Ternary.FALSE,), R)
+        self.assertNotIn((Ternary.UNKNOWN,), R)
+        self.assertNotIn((Ternary.UNKNOWN,), canonical(R))
+
+    def test_ap_at_terms_checks_the_columns(self) -> None:
+        with self.assertRaises(TypeError):
+            B | (ap(U64 * U64, (π, π)) == True)  # a bool is no word  # noqa: E712
+        two = succ >> succ  # its middle is eliminated: a symbolic reading exists
+        self.assertIs((U64 * U64 | (ap(two, (π_1, π_2)) == True))  # noqa: E712
+                      == (U64 * U64 | (π_2 == π_1 + 2)), True)
+        with self.assertRaises(TypeError):
+            ap(sq >> cube, (π_1, π_2))  # a quantifier remains: no symbolic reading
+
+    def test_a_unary_relation_is_annotated(self) -> None:
+        dom = succ.project(1)
+        self.assertIsInstance(dom, Relation[u64])
+        self.assertNotIsInstance(dom, Relation[B])
+
+
+class TheBudget(unittest.TestCase):
+    def test_a_budget_of_zero_tries_nothing(self) -> None:
+        self.assertEqual(ap((sq >> cube).within(0), (0, 0)), Ternary.UNKNOWN)
+
+    def test_a_large_budget_is_not_scanned(self) -> None:
+        self.assertEqual(ap((sq >> cube).within(10**15), (4, 8)), Ternary.TRUE)
+
+
+class WideRelations(unittest.TestCase):
+    def test_eight_columns_have_a_normal_form(self) -> None:
+        wide = succ * succ * succ * succ  # π_1 … π_8
+        self.assertIs(canonical(wide) == wide, True)
+        self.assertIn((0, 1, 2, 3, 4, 5, 6, 7), wide)
 
 if __name__ == "__main__":
     unittest.main()
