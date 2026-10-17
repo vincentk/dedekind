@@ -117,8 +117,14 @@ class TheKleisliStructure(unittest.TestCase):
 
     def test_associativity(self) -> None:
         three = U64 * U64 | (π_2 == π_1 * 3)
+        # sq is b² = a, a relation (b a root of a): its middle no term defines,
+        # so the ∃ is kept on both sides and the shapes still agree.
         self.assertIs(((succ >> sq) >> three) == (succ >> (sq >> three)), True)
-        self.assertIs(((succ >> sq) >> three) == (U64 * U64 | (π_2 == (π_1 + 1) * (π_1 + 1) * 3)), True)
+        self.assertIn("∃", repr(canonical((succ >> sq) >> three).predicate))
+        # The square as a function: every middle defined, the ∃s eliminated.
+        square = U64 * U64 | (π_2 == π_1 * π_1)
+        self.assertIs(((succ >> square) >> three) == (succ >> (square >> three)), True)
+        self.assertIs(((succ >> square) >> three) == (U64 * U64 | (π_2 == (π_1 + 1) * (π_1 + 1) * 3)), True)
 
     def test_the_identity_at_points(self) -> None:
         Δ = diag(B)
