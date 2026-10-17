@@ -280,3 +280,23 @@ TEST_CASE("𝔽ₚ: an equation's normal form is monic, so 2π = 4 is π = 2",
                  T::constant(4))),
       nf(Pr::cmp(Rel::Eq, x, T::constant(2)))));
 }
+
+TEST_CASE(
+    "modular: a predicate over 𝔽ₚ's own constants has a normal form, its "
+    "conjuncts sorted by the residues' structural order (#884)",
+    "[modular][terms]") {
+  using dedekind::algebra::canonical;
+  using dedekind::sets::Rel;
+  using dedekind::sets::same_shape;
+  using T = dedekind::sets::Term<𝔽ₚ>;
+  using Pr = dedekind::sets::Pred<𝔽ₚ>;
+  struct Itself {
+    𝔽ₚ operator()(𝔽ₚ c) const { return c; }
+  };
+  const auto nf = [](const Pr& p) { return canonical<𝔽ₚ>(p, Itself{}); };
+  const T x = T::proj(0);
+  const Pr is2 = Pr::cmp(Rel::Eq, x, T::constant(𝔽ₚ{2}));
+  const Pr not3 = Pr::cmp(Rel::Ne, x, T::constant(𝔽ₚ{3}));
+  CHECK(same_shape(nf(Pr::conj(is2, not3)), nf(Pr::conj(not3, is2))));
+  CHECK(constant_order(𝔽ₚ{2}, 𝔽ₚ{3}) < 0);
+}

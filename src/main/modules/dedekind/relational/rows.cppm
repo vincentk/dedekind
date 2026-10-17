@@ -52,8 +52,8 @@
  * @c merge, its converse, both relations here like any other, and
  * @f$R \wedge S = \mathrm{merge} \circ (R \otimes S) \circ \mathrm{copy}@f$.
  * Composing along a product object is the general ∃ of @c >>, so the law is a
- * test (witnessed at points; deciding it by @c canonical waits for the
- * canonical ordering of conjuncts, #884).  The converse is the dagger:
+ * test, decided by @c canonical once the middle is eliminated (a conjunction's
+ * operands are sorted, #884).  The converse is the dagger:
  * @f$(R;S)^\circ = S^\circ;R^\circ@f$, @f$R^{\circ\circ} = R@f$.
  */
 module;

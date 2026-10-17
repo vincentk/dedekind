@@ -42,7 +42,14 @@ class ASetInTheSameSetOut(unittest.TestCase):
 
     def test_beside_an_equation_an_order_atom_keeps_its_comparison(self) -> None:
         self.assertEqual(repr(canonical(U & ((π * π == 4) & (π + 0 < 5)))),
-                         "𝔸(u64) & ((((π * π) + 18446744073709551612) == 0) & (π < 5))")
+                         "𝔸(u64) & ((π < 5) & (((π * π) + 18446744073709551612) == 0))")
+
+    def test_the_order_of_conjuncts_is_forgotten(self) -> None:
+        # #884: a connective's operands are sorted and kept once, so == decides.
+        either = U & ((π * π == 4) & (π < 5))
+        self.assertIs(either == U & ((π < 5) & (π * π == 4)), True)
+        self.assertIs(either == U & ((π < 5) & ((π * π == 4) & (π < 5))), True)
+        self.assertIs(U & ((π * π == 4) | (π < 5)) == U & ((π < 5) | (π * π == 4)), True)
 
 
 class EqualityByNormalForm(unittest.TestCase):

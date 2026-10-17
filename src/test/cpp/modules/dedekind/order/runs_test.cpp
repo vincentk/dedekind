@@ -179,3 +179,32 @@ TEST_CASE("order:runs: a step at the carrier's end is kept, equality reads it",
   // On a discrete chain a strict bound is closed: (0, 3) = [1, 2].
   STATIC_CHECK(I::bounded(0, strict, 3, strict) == span(1, 2));
 }
+
+TEST_CASE(
+    "order:runs: a connective forgets the order, grouping and repetition of "
+    "its operands (#884)",
+    "[order][runs][connective]") {
+  using Pr = Pred<unsigned>;
+  using Tm = Term<unsigned>;
+  const Pr lt5 = Pr::cmp(Rel::Lt, Tm::proj(0), Tm::constant(5u));
+  const Pr ne2 = Pr::cmp(Rel::Ne, Tm::proj(0), Tm::constant(2u));
+  const Pr sq = Pr::cmp(Rel::Eq, Tm::bin(Arith::Mul, Tm::proj(0), Tm::proj(0)),
+                        Tm::constant(4u));
+  // One form for either order, a repeated operand kept once, the unit dropped.
+  const Pr both =
+      connective<unsigned>(Pr::Kind::And, {sq, lt5, ne2, lt5, Pr::top()});
+  CHECK(same_shape(both, connective<unsigned>(Pr::Kind::And, {ne2, sq, lt5})));
+  // Sorted: a projection's comparisons first (by relation: < before !=),
+  // then an operation's.
+  CHECK(same_shape(both, Pr::conj(Pr::conj(lt5, ne2), sq)));
+  // The absorber absorbs; no operands left is the unit.
+  CHECK(same_shape(connective<unsigned>(Pr::Kind::Or, {lt5, Pr::top()}),
+                   Pr::top()));
+  CHECK(same_shape(connective<unsigned>(Pr::Kind::And, {Pr::bottom(), lt5}),
+                   Pr::bottom()));
+  CHECK(same_shape(connective<unsigned>(Pr::Kind::Or, {}), Pr::bottom()));
+  // The order is total and structural.
+  CHECK(structural_order(lt5, ne2) < 0);
+  CHECK(structural_order(ne2, sq) < 0);
+  CHECK(structural_order(sq, sq) == 0);
+}

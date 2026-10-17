@@ -1234,6 +1234,19 @@ export constexpr std::partial_ordering operator<=>(
   return compare_signed(lhs, rhs);
 }
 
+/** @brief The structural order of signed cardinalities as constants of a
+ *  term (#884, @c canonical's sort key): total, unlike @c <=>.  By
+ *  alternative first (finite, +∞, −∞, then @c NaZ), a finite value by its
+ *  order.  @param lhs, rhs the constants. */
+export constexpr std::weak_ordering constant_order(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  if (lhs.index() != rhs.index()) return lhs.index() <=> rhs.index();
+  const std::partial_ordering c = lhs <=> rhs;
+  return c < 0   ? std::weak_ordering::less
+         : c > 0 ? std::weak_ordering::greater
+                 : std::weak_ordering::equivalent;
+}
+
 // ---------------------------------------------------------------------------
 // Heterogeneous comparison: variant ↔ std::integral (closes #415)
 // ---------------------------------------------------------------------------

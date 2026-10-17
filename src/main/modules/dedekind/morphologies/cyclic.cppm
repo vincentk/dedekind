@@ -34,7 +34,8 @@
  */
 module;
 
-#include <bit>  // std::has_single_bit (N | 2^w gate on the congruence)
+#include <bit>      // std::has_single_bit (N | 2^w gate on the congruence)
+#include <compare>  // constant_order: residues as a term's constants (#884)
 #include <concepts>
 #include <cstddef>      // for std::size_t (cyclic_order_v specialisation)
 #include <cstdint>      // std::uint64_t (primality)
@@ -242,6 +243,12 @@ struct Modular {
   // Equality as a subobject classifier.
   constexpr friend bool operator==(Modular a, Modular b) {
     return a.value == b.value;
+  }
+  /** @brief The structural order of residues as constants of a term (#884,
+   *  @c canonical's sort key): their stored representatives compared.  No
+   *  order of the ring: @c ℤ/N has none compatible with its operations. */
+  constexpr friend std::weak_ordering constant_order(Modular a, Modular b) {
+    return a.value <=> b.value;
   }
 
  private:

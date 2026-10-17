@@ -661,9 +661,44 @@ struct ChainValues {
     return out;
   }
 };
+template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
+                                         const Lift& lift, const P& rep);
+/** @brief The operands of a chain of the connective @c k, each in normal form;
+ *  a normal form that is itself a chain of @c k contributes its operands
+ *  (associativity).  @param out the operands, appended. */
+template <typename P, typename K, typename Lift>
+void operands_of(const dedekind::sets::Pred<K>& p,
+                 typename dedekind::sets::Pred<K>::Kind k, const Lift& lift,
+                 const P& rep, std::vector<dedekind::sets::Pred<K>>& out) {
+  if (p.kind == k) {
+    operands_of<P>(*p.p, k, lift, rep, out);
+    operands_of<P>(*p.q, k, lift, rep, out);
+    return;
+  }
+  const dedekind::sets::Pred<K> c = canonical_lifted<P>(p, lift, rep);
+  if (c.kind != k) {
+    out.push_back(c);
+    return;
+  }
+  // A normal form is a left-folded chain whose operands are normal already.
+  std::vector<const dedekind::sets::Pred<K>*> stack{&c};
+  std::vector<dedekind::sets::Pred<K>> leaves;
+  while (!stack.empty()) {
+    const auto* q = stack.back();
+    stack.pop_back();
+    if (q->kind == k) {
+      stack.push_back(q->q.get());
+      stack.push_back(q->p.get());
+    } else {
+      leaves.push_back(*q);
+    }
+  }
+  out.insert(out.end(), leaves.begin(), leaves.end());
+}
 /** @brief The normal form of a predicate without conditionals: atom by atom,
  *  the bounds ⊤ / ⊥ folded into the connectives (the lattice's units and
- *  absorbers). */
+ *  absorbers), the operands of each connective sorted and kept once. */
 template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
                                          const Lift& lift, const P& rep) {
@@ -674,14 +709,12 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       return p;
     case Pr::Kind::And:
     case Pr::Kind::Or: {
-      const Pr x = canonical_lifted<P>(*p.p, lift, rep);
-      const Pr y = canonical_lifted<P>(*p.q, lift, rep);
-      const bool meet = p.kind == Pr::Kind::And;
-      const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
-      const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
-      if (x.kind == absorber || y.kind == unit) return x;
-      if (y.kind == absorber || x.kind == unit) return y;
-      return meet ? Pr::conj(x, y) : Pr::disj(x, y);
+      // The operands of the whole chain of one connective, each in normal
+      // form, joined with the order, grouping and repetition forgotten
+      // (order::connective, #884).
+      std::vector<Pr> ops;
+      operands_of<P>(p, p.kind, lift, rep, ops);
+      return dedekind::order::connective(p.kind, std::move(ops));
     }
     case Pr::Kind::Exists:
     case Pr::Kind::Forall:

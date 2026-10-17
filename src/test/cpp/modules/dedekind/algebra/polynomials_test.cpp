@@ -191,6 +191,27 @@ TEST_CASE("The normal form of predicates: atom by atom, written back as terms",
         nf(Pr::cmp(Rel::Eq, T::bin(Arith::Mod, x, T::constant(2u)), zero)),
         not_admitted);
   }
+  SECTION(
+      "a connective's operands are sorted, flattened and kept once (#884)") {
+    const Pr below = Pr::cmp(Rel::Lt, x, T::constant(5u));
+    const Pr square =
+        Pr::cmp(Rel::Eq, T::bin(Arith::Mul, x, x), T::constant(4u));
+    const Pr not7 = Pr::cmp(Rel::Ne, x, T::constant(7u));
+    // Commutativity: either order is one normal form.
+    CHECK(same_shape(nf(Pr::conj(below, square)), nf(Pr::conj(square, below))));
+    CHECK(same_shape(nf(Pr::disj(below, square)), nf(Pr::disj(square, below))));
+    // Associativity: the chain's grouping is forgotten.
+    CHECK(same_shape(nf(Pr::conj(Pr::conj(below, square), not7)),
+                     nf(Pr::conj(not7, Pr::conj(square, below)))));
+    // Idempotence: an operand is kept once.
+    CHECK(same_shape(nf(Pr::conj(below, below)), nf(below)));
+    CHECK(same_shape(nf(Pr::conj(below, Pr::conj(square, below))),
+                     nf(Pr::conj(square, below))));
+    // The connectives stay apart, and a projection precedes an operation.
+    CHECK_FALSE(
+        same_shape(nf(Pr::conj(below, square)), nf(Pr::disj(below, square))));
+    CHECK(same_shape(*nf(Pr::conj(square, below)).p, below));
+  }
 }
 
 TEST_CASE("A conditional is lifted out of its atom: cond(q, a, b) R c",
@@ -208,9 +229,10 @@ TEST_CASE("A conditional is lifted out of its atom: cond(q, a, b) R c",
   CHECK(same_shape(nf(Pr::cmp(Rel::Eq, chi, T::constant(2u))), Pr::bottom()));
   // Through an operator: cond(q, π, 0) + 1 == 1 is (q ∧ π = 0) ∨ ¬q.
   const T shifted = T::bin(Arith::Add, T::cond(below, x, zero), one);
+  // Compared normal form to normal form: the operands' order is canonical's.
   CHECK(same_shape(nf(Pr::cmp(Rel::Eq, shifted, one)),
-                   Pr::disj(Pr::conj(below, nf(Pr::cmp(Rel::Eq, x, zero))),
-                            below.negated())));
+                   nf(Pr::disj(Pr::conj(below, Pr::cmp(Rel::Eq, x, zero)),
+                               below.negated()))));
 }
 
 TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",
