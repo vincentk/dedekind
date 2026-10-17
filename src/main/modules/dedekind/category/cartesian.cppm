@@ -325,6 +325,26 @@ auto ι_2(B&& value) {
   }
 }
 
+/** @brief The injections of the coproduct @c std::variant<A, B> as a named
+ *  operation (@c IsCoproduct's @c Op, #881): @c inl / @c inr place a value by
+ *  @b index, so equal summands stay apart (@c variant<int, int>).  Static
+ *  members, as the concept asks for @c Op::inl(a) / @c Op::inr(b).
+ *  @tparam A, B the summands. */
+export template <typename A, typename B>
+struct Injections {
+  static constexpr std::variant<A, B> inl(const A& a) {
+    return std::variant<A, B>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<A, B> inr(const B& b) {
+    return std::variant<A, B>(std::in_place_index<1>, b);
+  }
+};
+static_assert(
+    IsCoproduct<std::variant<int, int>, int, int, Injections<int, int>> &&
+        Injections<int, int>::inl(1).index() == 0 &&
+        Injections<int, int>::inr(1).index() == 1,
+    "the named injections keep equal summands apart");
+
 /**
  * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X
  * @details Given f: A -> X and g: B -> X, constructs the unique morphism

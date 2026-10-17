@@ -1618,6 +1618,124 @@ static_assert(dedekind::category::π_1(t* f)(true) &&
               "π_1 / π_2 give the factors back, as sets");
 }  // namespace detail_product_witness
 
+/** @section expressions__Sums
+ *  A binary operation over set objects on different carriers lands in their
+ *  @b sum (#1039): the ambient is the coproduct @c std::variant<X, Y> (tagged:
+ *  a value is in one summand), and @f$\mathrm{Sub}(X + Y) \cong \mathrm{Sub}(X)
+ *  \times \mathrm{Sub}(Y)@f$, natural in @c X, @c Y, for every species (the
+ *  coproduct's universal property on @f$\chi : X + Y \to \Omega@f$).  So a
+ *  set of the sum is a @b pair of sets: @c a @c | @c b is @c (a, b), its χ the
+ *  copairing @f$[\chi_a, \chi_b]@f$, and @c π_1 / @c π_2 give @c a / @c b back
+ *  (@c IsProduct on the sets, @c IsCoproduct on the carrier).  @c a @c & @c b
+ *  meets in the same ambient: the summands are disjoint, so it is @c Ø.  The
+ *  ℕ / ℤ pair keeps its widening union (@c NatZedPair): ℕ embeds in ℤ, an
+ *  identification the tagged sum does not make. */
+
+/** @brief Membership of a sum: the copairing @f$[\chi_a, \chi_b]@f$, each
+ *  answer lifted into the join of the summands' species.  A named functor, as
+ *  @c ProductMembership. */
+export template <typename A, typename B>
+struct SumMembership {
+  A a;
+  B b;
+  using logic_species =
+      join_logic_t<typename A::logic_species, typename B::logic_species>;
+  template <typename V>
+  constexpr typename logic_species::Ω operator()(const V& v) const {
+    using L = logic_species;
+    if (v.index() == 0)
+      return dedekind::category::lift_logic<L>(a(std::get<0>(v)));
+    return dedekind::category::lift_logic<L>(b(std::get<1>(v)));
+  }
+};
+
+/** @brief The cardinality class of a set object's universe. */
+template <typename U>
+struct universe_cardinality;
+template <typename T, typename L, typename C>
+struct universe_cardinality<𝔸<T, L, C>> {
+  using type = C;
+};
+
+/** @brief Two set objects on different carriers (the ℕ / ℤ pair aside): the
+ *  operands of a sum. */
+template <typename A, typename B>
+concept HeterogeneousPair =
+    IsSetObject<A> && IsSetObject<B> &&
+    (!std::same_as<typename A::Domain, typename B::Domain>) &&
+    (!NatZedPair<A, B>) && (!NatZedPair<B, A>) &&
+    dedekind::category::HaveLogicJoin<typename A::logic_species,
+                                      typename B::logic_species>;
+
+/** @brief The sum of two set objects: the subobject @c (a, b) of the
+ *  coproduct of their carriers, @f$|a + b| = |a| + |b|@f$ (the join on the
+ *  cardinal lattice, as for the product).  @param a, b the summands. */
+export template <IsSetObject A, IsSetObject B>
+constexpr auto sum(const A& a, const B& b) {
+  using M = SumMembership<A, B>;
+  using V = std::variant<typename A::Domain, typename B::Domain>;
+  using CC = typename product_cardinality<
+      typename universe_cardinality<
+          std::remove_cvref_t<decltype(universe(a))>>::type,
+      typename universe_cardinality<
+          std::remove_cvref_t<decltype(universe(b))>>::type>::type;
+  return Comprehension<𝔸<V, typename M::logic_species, CC>, M>{M{a, b}};
+}
+/** @brief @c a @c | @c b on different carriers: their sum. */
+export template <typename A, typename B>
+  requires HeterogeneousPair<A, B>
+constexpr auto operator|(const A& a, const B& b) {
+  return sum(a, b);
+}
+/** @brief @c a @c & @c b on different carriers: the summands of a sum are
+ *  disjoint, so the meet is the empty set of the sum. */
+export template <typename A, typename B>
+  requires HeterogeneousPair<A, B>
+constexpr auto operator&(const A&, const B&) {
+  return Ø<
+      std::variant<typename A::Domain, typename B::Domain>,
+      join_logic_t<typename A::logic_species, typename B::logic_species>>{};
+}
+/** @brief The summands of a sum, as given (@c Sub(X + Y) ≅ @c Sub(X) ×
+ *  @c Sub(Y)).  @param s the sum.  @return the first / second summand. */
+export template <typename X, typename Y, typename L, typename C, typename A,
+                 typename B>
+constexpr auto component(
+    const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s,
+    dedekind::category::At<1>) {
+  return detail_product::factor(s.predicate.a);
+}
+export template <typename X, typename Y, typename L, typename C, typename A,
+                 typename B>
+constexpr auto component(
+    const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s,
+    dedekind::category::At<2>) {
+  return detail_product::factor(s.predicate.b);
+}
+
+namespace detail_sum_witness {
+using dedekind::category::Injections;
+inline constexpr auto t = 𝔸<bool>{} & (π == true);
+inline constexpr auto three = 𝔸<int>{} & (π == 3);
+inline constexpr auto s = t | three;
+using S = std::remove_cvref_t<decltype(s)>;
+using In = Injections<bool, int>;
+static_assert(std::same_as<typename S::Domain, std::variant<bool, int>>,
+              "a | b over 𝔹 and int lives on 𝔹 + int");
+static_assert(s(In::inl(true)) && !s(In::inl(false)) && s(In::inr(3)) &&
+                  !s(In::inr(4)),
+              "χ of a sum is the copairing [χ_a, χ_b]");
+static_assert(
+    dedekind::category::IsCoproduct<typename S::Domain, bool, int, In>,
+    "the carrier is the coproduct, by its named injections");
+static_assert(
+    dedekind::category::IsProduct<S, std::remove_cvref_t<decltype(t)>,
+                                  std::remove_cvref_t<decltype(three)>>,
+    "Sub(X + Y) ≅ Sub(X) × Sub(Y): the sum is the pair of its summands");
+static_assert(!(t & three)(In::inl(true)) && !(t & three)(In::inr(3)),
+              "the summands are disjoint: a & b across carriers is Ø");
+}  // namespace detail_sum_witness
+
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the
 // @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /
 // @c is_single_valued_at query surface --- moved OUT of @c :sets into
