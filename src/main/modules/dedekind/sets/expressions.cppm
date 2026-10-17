@@ -1625,9 +1625,11 @@ static_assert(dedekind::category::π_1(t* f)(true) &&
  *  \times \mathrm{Sub}(Y)@f$, natural in @c X, @c Y, for every species (the
  *  coproduct's universal property on @f$\chi : X + Y \to \Omega@f$).  So a
  *  set of the sum is a @b pair of sets: @c a @c | @c b is @c (a, b), its χ the
- *  copairing @f$[\chi_a, \chi_b]@f$, and @c π_1 / @c π_2 give @c a / @c b back
- *  (@c IsProduct on the sets, @c IsCoproduct on the carrier).  @c a @c & @c b
- *  meets in the same ambient: the summands are disjoint, so it is @c Ø.  The
+ *  copairing @f$[\chi_a, \chi_b]@f$, and its restrictions to the summands
+ *  give @c a / @c b back.  The isomorphism is one of lattices: a pair of sets
+ *  is no set, and the set @c a @c | @c b is, as an object, the coproduct
+ *  @c a @c + @c b (@c IsCoproduct on the carrier), not a product.  @c a @c & @c
+ * b meets in the same ambient: the summands are disjoint, so it is @c Ø.  The
  *  ℕ / ℤ pair keeps its widening union (@c NatZedPair): ℕ embeds in ℤ, an
  *  identification the tagged sum does not make. */
 
@@ -1696,21 +1698,21 @@ constexpr auto operator&(const A&, const B&) {
       std::variant<typename A::Domain, typename B::Domain>,
       join_logic_t<typename A::logic_species, typename B::logic_species>>{};
 }
-/** @brief The summands of a sum, as given (@c Sub(X + Y) ≅ @c Sub(X) ×
- *  @c Sub(Y)).  @param s the sum.  @return the first / second summand. */
-export template <typename X, typename Y, typename L, typename C, typename A,
-                 typename B>
-constexpr auto component(
-    const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s,
-    dedekind::category::At<1>) {
-  return detail_product::factor(s.predicate.a);
-}
-export template <typename X, typename Y, typename L, typename C, typename A,
-                 typename B>
-constexpr auto component(
-    const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s,
-    dedekind::category::At<2>) {
-  return detail_product::factor(s.predicate.b);
+/** @brief The restriction of a set of a sum to its @c k-th summand,
+ *  @f$\iota_k^{-1}(s)@f$: the forward map of the lattice isomorphism
+ *  @f$\mathrm{Sub}(X + Y) \cong \mathrm{Sub}(X) \times \mathrm{Sub}(Y)@f$.
+ *  A @b pair of sets is no set: the sum itself is the coproduct of its
+ *  summands in Set, not their product, so it carries no @c π_k.
+ *  @tparam K the summand, 1 or 2.  @param s the set of the sum. */
+export template <std::size_t K, typename X, typename Y, typename L, typename C,
+                 typename A, typename B>
+  requires(K == 1 || K == 2)
+constexpr auto restriction(
+    const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s) {
+  if constexpr (K == 1)
+    return detail_product::factor(s.predicate.a);
+  else
+    return detail_product::factor(s.predicate.b);
 }
 
 namespace detail_sum_witness {
@@ -1729,9 +1731,12 @@ static_assert(
     dedekind::category::IsCoproduct<typename S::Domain, bool, int, In>,
     "the carrier is the coproduct, by its named injections");
 static_assert(
-    dedekind::category::IsProduct<S, std::remove_cvref_t<decltype(t)>,
-                                  std::remove_cvref_t<decltype(three)>>,
-    "Sub(X + Y) ≅ Sub(X) × Sub(Y): the sum is the pair of its summands");
+    restriction<1>(s)(true) && !restriction<1>(s)(false) &&
+        restriction<2>(s)(3) && !restriction<2>(s)(4) &&
+        !dedekind::category::IsProduct<S, std::remove_cvref_t<decltype(t)>,
+                                       std::remove_cvref_t<decltype(three)>>,
+    "the restrictions give the summands back (Sub(X + Y) ≅ "
+    "Sub(X) × Sub(Y)); the sum itself is no product of them");
 static_assert(!(t & three)(In::inl(true)) && !(t & three)(In::inr(3)),
               "the summands are disjoint: a & b across carriers is Ø");
 }  // namespace detail_sum_witness
