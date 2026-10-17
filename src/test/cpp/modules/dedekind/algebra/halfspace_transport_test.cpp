@@ -57,16 +57,16 @@ struct Pi2Arrow {
   constexpr ZT operator()(const std::pair<ZT, ZT>& p) const { return p.second; }
 };
 static_assert(
-    dedekind::category::IsEqualizer<decltype(ℤ * ℤ | π_1 + 3 == π_2),
+    dedekind::category::IsEqualizer<decltype(ℤ * ℤ & π_1 + 3 == π_2),
                                     Pi1Plus3Arrow, Pi2Arrow>,
     "the translation graph x+3==y is the equalizer subobject of pair<T,T> of "
     "the parallel pair (π_1+3, π_2): the categorical view CP's IsIsomorphism "
     "expectation missed (#876 finding 2).");
 
 // ── image: bare onto-ness, and the affine pushforward of a halfspace ─────────
-static_assert(image(ℤ* ℤ | π_1 + 3 == π_2) == ℤ,
+static_assert(image(ℤ * ℤ & π_1 + 3 == π_2) == ℤ,
               "image(graph of x+3) = ℤ: a translation is onto.");
-static_assert(image((ℤ * ℤ | π_1 + 3 == π_2) | π_1 <= 5) == (ℤ | (π <= 8)),
+static_assert(image((ℤ * ℤ & π_1 + 3 == π_2) & π_1 <= 5) == (ℤ & (π <= 8)),
               "image over {x ≤ 5} pushes forward to {y ≤ 8}.");
 
 // ── image of the two sign-fold reflection BRANCHES.  Each branch is a mono
@@ -75,18 +75,18 @@ static_assert(image((ℤ * ℤ | π_1 + 3 == π_2) | π_1 <= 5) == (ℤ | (π <=
 // and their union, NOT a constructed non-injective image(abs) on a single
 // relation, and NOT a heterogeneous epi ℤ↠ℕ (both branches are typed ℤ×ℤ, so
 // everything stays inside ℤ).
-static_assert(image(ℤ* ℤ | π_1 * 1 == π_2 | π_1 >= 0) == (ℤ | π >= 0),
+static_assert(image(ℤ * ℤ & π_1 * 1 == π_2 & π_1 >= 0) == (ℤ & π >= 0),
               "image of the identity branch on {x≥0} = {y≥0}.");
-static_assert(image(ℤ* ℤ | π_1 * -1 == π_2 | π_1 < 0) == (ℤ | π > 0),
+static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0) == (ℤ & π > 0),
               "image of the negate branch on {x<0} = {y>0} (the sense flips).");
-static_assert(image(ℤ* ℤ | π_1 * -1 == π_2 | π_1 < 0)(3),
+static_assert(image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(3),
               "3 ∈ image(negate branch) via −3 (the canonical +3 ∉ {x<0}).");
-static_assert(!image(ℤ * ℤ | π_1 * -1 == π_2 | π_1 < 0)(-2),
+static_assert(!image(ℤ * ℤ & π_1 * -1 == π_2 & π_1 < 0)(-2),
               "the branch image is non-negative: −2 ∉ it.");
 // The successor graph over ℕ (the SATURATING carrier admitted for K≥0): the
 // image the OPAQUE arrow leaves Unknown is DECIDED by the pushforward.
 static_assert(
-    image((ℕ * ℕ | π_1 + 1 == π_2) | π_1 > 5) == (ℕ | (π > 6)),
+    image((ℕ * ℕ & π_1 + 1 == π_2) & π_1 > 5) == (ℕ & (π > 6)),
     "image(succ, {n>5}) = {n>6}: the graph decides where opacity walls.");
 
 // Constrained image of a COMPOSITE folds to ∅: hc = T₂∘T₃ pushes {x≤1} to
@@ -94,49 +94,49 @@ static_assert(
 // halfspaces collapse to Ø --- the same meet-to-empty, EMERGENT from
 // composition.
 static_assert(
-    (image(((ℤ * ℤ | π_1 + 2 == π_2) >> (ℤ * ℤ | π_1 + 3 == π_2)) | π_1 <= 1) &
-     (ℤ | (π > 6))) == Ø<SignedCardinality>{},
+    (image(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2)) & π_1 <= 1) &
+     (ℤ & (π > 6))) == Ø<SignedCardinality>{},
     "constrained image of the composite T₂∘T₃ collapses: {y≤6} ∩ {y>6} = ∅.");
 
 // ── is_function / is_entire, and argmax over a partial function ──────────────
-static_assert(is_function(ℤ* ℤ | π_1 + 3 == π_2),
+static_assert(is_function(ℤ * ℤ & π_1 + 3 == π_2),
               "the graph of x+3 is a total function (functional ∧ entire).");
-static_assert(is_entire(ℤ* ℤ | π_1 + 3 == π_2),
+static_assert(is_entire(ℤ * ℤ & π_1 + 3 == π_2),
               "the bare translation graph is total (entire).");
-static_assert(!is_entire(ℤ * ℤ | π_1 + 3 == π_2 | (π_2 <= 8 && π_2 % 3 == 0)),
+static_assert(!is_entire(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0)),
               "constraining the codomain makes the graph a partial function.");
-static_assert(argmax(ℤ* ℤ | π_1 + 3 == π_2 | (π_2 <= 8 && π_2 % 3 == 0))(3),
+static_assert(argmax(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0))(3),
               "argmax = max{x ≤ 5 ∧ x ≡ 0 mod 3} = 3: a compile-time "
               "constrained optimum.");
-static_assert(!argmax(ℤ * ℤ | π_1 + 3 == π_2 | (π_2 <= 8 && π_2 % 3 == 0))(4),
+static_assert(!argmax(ℤ * ℤ & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0))(4),
               "4 is feasible-adjacent but not the optimiser (4 ≢ 0 mod 3).");
 
 // ── The translation group, at compile time: closure (T₂∘T₃ = T₅), the converse
 // as inverse (T₃⁻¹ = T₋₃), and the abelian cancellation f∘g∘h∘g⁻¹ = f∘h (g and
 // its inverse annihilate through h because + commutes).
-static_assert(((ℤ * ℤ | π_1 + 2 == π_2) >> (ℤ * ℤ | π_1 + 3 == π_2)) ==
-                  (ℤ * ℤ | π_1 + 5 == π_2),
+static_assert(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2)) ==
+                  (ℤ * ℤ & π_1 + 5 == π_2),
               "closure: T₂ ∘ T₃ = T₅ (shifts add, symbolically).");
-static_assert(inverse(ℤ* ℤ | π_1 + 3 == π_2) == (ℤ * ℤ | π_1 + -3 == π_2),
+static_assert(inverse(ℤ * ℤ & π_1 + 3 == π_2) == (ℤ * ℤ & π_1 + -3 == π_2),
               "inverse = converse graph: T₃⁻¹ = T₋₃.");
 // Contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.  For an invertible map the
 // inverse IS the retract, so this is retract composition in the total case
 // (Listing 12).
-static_assert(inverse((ℤ * ℤ | π_1 + 3 == π_2) >> (ℤ * ℤ | π_1 + 2 == π_2)) ==
-                  (inverse(ℤ * ℤ | π_1 + 2 == π_2) >>
-                   inverse(ℤ * ℤ | π_1 + 3 == π_2)),
+static_assert(inverse((ℤ * ℤ & π_1 + 3 == π_2) >> (ℤ * ℤ & π_1 + 2 == π_2)) ==
+                  (inverse(ℤ * ℤ & π_1 + 2 == π_2) >>
+                   inverse(ℤ * ℤ & π_1 + 3 == π_2)),
               "contravariant inversion: (f∘g)⁻¹ = g⁻¹∘f⁻¹.");
-static_assert(((ℤ * ℤ | π_1 + 2 == π_2) >> (ℤ * ℤ | π_1 + 3 == π_2) >>
-               (ℤ * ℤ | π_1 + 5 == π_2) >> inverse(ℤ * ℤ | π_1 + 3 == π_2)) ==
-                  ((ℤ * ℤ | π_1 + 2 == π_2) >> (ℤ * ℤ | π_1 + 5 == π_2)),
+static_assert(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2) >>
+               (ℤ * ℤ & π_1 + 5 == π_2) >> inverse(ℤ * ℤ & π_1 + 3 == π_2)) ==
+                  ((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 5 == π_2)),
               "abelian: f∘g∘h∘g⁻¹ = f∘h (g cancels through h; + commutes).");
 // Identity element and conjugation: g∘g⁻¹ is the identity translation T₀, and
 // conjugating f by g is trivial (g∘f∘g⁻¹ = f) because + commutes.
-static_assert(((ℤ * ℤ | π_1 + 2 == π_2) >> inverse(ℤ * ℤ | π_1 + 2 == π_2)) ==
-                  (ℤ * ℤ | π_1 + 0 == π_2),
+static_assert(((ℤ * ℤ & π_1 + 2 == π_2) >> inverse(ℤ * ℤ & π_1 + 2 == π_2)) ==
+                  (ℤ * ℤ & π_1 + 0 == π_2),
               "inverse law: g ∘ g⁻¹ = id (T₀).");
-static_assert(((ℤ * ℤ | π_1 + 2 == π_2) >> (ℤ * ℤ | π_1 + 3 == π_2) >>
-               inverse(ℤ * ℤ | π_1 + 2 == π_2)) == (ℤ * ℤ | π_1 + 3 == π_2),
+static_assert(((ℤ * ℤ & π_1 + 2 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2) >>
+               inverse(ℤ * ℤ & π_1 + 2 == π_2)) == (ℤ * ℤ & π_1 + 3 == π_2),
               "abelian conjugation: g ∘ f ∘ g⁻¹ = f (+ commutes).");
 
 // ── #875 over a Galois field: is the free theorem operator-generic, or gated
@@ -161,8 +161,8 @@ static_assert(dedekind::category::IsAbelianGroup<𝔽64, std::plus<𝔽64>>,
 // (derive the shift from the group-inverse API).  A plain −K would have leaned
 // on 𝔽64's carrier operator-, which IsGroup never promises.
 static_assert(
-    std::is_same_v<decltype(inverse(𝔸<𝔽64>{} * 𝔸<𝔽64>{} | π_1 + 𝔽64{5} == π_2)),
-                   decltype(𝔸<𝔽64>{} * 𝔸<𝔽64>{} | π_1 + 𝔽64{5} == π_2)>,
+    std::is_same_v<decltype(inverse(𝔸<𝔽64>{} * 𝔸<𝔽64>{} & π_1 + 𝔽64{5} == π_2)),
+                   decltype(𝔸<𝔽64>{} * 𝔸<𝔽64>{} & π_1 + 𝔽64{5} == π_2)>,
     "#876/#875: over 𝔽64 = GF(2⁶) the group inverse of the +5 shift is +5 "
     "itself (char 2), so the converse graph EQUALS the forward graph; the "
     "shift flows through the group-inverse registry, not carrier operator-.");
@@ -177,20 +177,20 @@ static_assert(
 // ── Existence proof: the DSL's graph relations are FUNCTIONS (functional AND
 // entire), the property INFERRED through composition.  Entireness is the
 // algebraic half, read off @c is_left_total_v here in the algebra layer.
-static_assert(IsFunctional<decltype(ℤ * ℤ | π_1 + 3 == π_2)> &&
-                  IsEntire<decltype(ℤ * ℤ | π_1 + 3 == π_2)>,
+static_assert(IsFunctional<decltype(ℤ * ℤ & π_1 + 3 == π_2)> &&
+                  IsEntire<decltype(ℤ * ℤ & π_1 + 3 == π_2)>,
               "a translation graph is functional AND entire -- a function, "
               "inferred from its predicate shape, with no opt-in flag.");
 static_assert(
-    IsFunctional<decltype((ℤ * ℤ | π_1 + 3 == π_2) >>
-                          (ℤ * ℤ | π_1 + 2 == π_2))> &&
-        IsEntire<decltype((ℤ * ℤ | π_1 + 3 == π_2) >>
-                          (ℤ * ℤ | π_1 + 2 == π_2))>,
+    IsFunctional<decltype((ℤ * ℤ & π_1 + 3 == π_2) >>
+                          (ℤ * ℤ & π_1 + 2 == π_2))> &&
+        IsEntire<decltype((ℤ * ℤ & π_1 + 3 == π_2) >>
+                          (ℤ * ℤ & π_1 + 2 == π_2))>,
     "the composite (x+3) ∘ (x+2) is a function too -- INFERRED through the "
     "relative product, no fresh certificate.");
 static_assert(
-    IsFunctional<decltype((𝔹 * 𝔹 | π_1 == π_2) >> (𝔹 * 𝔹 | π_1 == π_2))> &&
-        IsEntire<decltype((𝔹 * 𝔹 | π_1 == π_2) >> (𝔹 * 𝔹 | π_1 == π_2))>,
+    IsFunctional<decltype((𝔹 * 𝔹 & π_1 == π_2) >> (𝔹 * 𝔹 & π_1 == π_2))> &&
+        IsEntire<decltype((𝔹 * 𝔹 & π_1 == π_2) >> (𝔹 * 𝔹 & π_1 == π_2))>,
     "id ∘ id (a ComposePred, not collapsed) is a function -- inferred from its "
     "two functional factors, exercising the compositional NODE rule.");
 
@@ -203,17 +203,17 @@ static_assert(
 // injective.  Together: a two-sided inverse ⟺ a bijection ⟺ an iso.)  In a
 // general allegory the converse is only the DAGGER, an iso exactly here.
 static_assert(
-    (inverse(ℤ * ℤ | π_1 + 3 == π_2) >> (ℤ * ℤ | π_1 + 3 == π_2)) ==
-            (ℤ * ℤ | π_1 + 0 == π_2) &&
-        ((ℤ * ℤ | π_1 + 3 == π_2) >> inverse(ℤ * ℤ | π_1 + 3 == π_2)) ==
-            (ℤ * ℤ | π_1 + 0 == π_2),
+    (inverse(ℤ * ℤ & π_1 + 3 == π_2) >> (ℤ * ℤ & π_1 + 3 == π_2)) ==
+            (ℤ * ℤ & π_1 + 0 == π_2) &&
+        ((ℤ * ℤ & π_1 + 3 == π_2) >> inverse(ℤ * ℤ & π_1 + 3 == π_2)) ==
+            (ℤ * ℤ & π_1 + 0 == π_2),
     "f⁻¹∘f = f∘f⁻¹ = id (T₀): the converse is a TWO-SIDED inverse, so "
     "the translation graph is an ISOMORPHISM in Rel.");
 // A PARTIAL (restricted) graph is functional but NOT entire, hence NOT a
 // bijection and NOT an iso: the converse loses the pruned domain on the
 // round-trip, so it is at most a one-sided dagger, never a two-sided inverse.
-static_assert(IsFunctional<decltype((ℤ * ℤ | π_1 + 3 == π_2) | π_1 <= 5)> &&
-                  !IsEntire<decltype((ℤ * ℤ | π_1 + 3 == π_2) | π_1 <= 5)>,
+static_assert(IsFunctional<decltype((ℤ * ℤ & π_1 + 3 == π_2) & π_1 <= 5)> &&
+                  !IsEntire<decltype((ℤ * ℤ & π_1 + 3 == π_2) & π_1 <= 5)>,
               "a restricted graph is a partial function, NOT a bijection, so "
               "NOT an iso -- its converse is a one-sided section at most.");
 
@@ -222,24 +222,24 @@ static_assert(IsFunctional<decltype((ℤ * ℤ | π_1 + 3 == π_2) | π_1 <= 5)>
 // back, closed-form and the same shape.  It DERIVES the reduced native
 // predicate that numbers/strength_reduction_test writes by hand.
 // Translation x↦x+3: {y≤8} pulls back to {x≤5} (pivot P−K = 8−3).
-static_assert(preimage(ℤ* ℤ | π_1 + 3 == π_2, ℤ | (π <= 8)) == (ℤ | (π <= 5)),
+static_assert(preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8)) == (ℤ & (π <= 5)),
               "preimage(x+3, {y≤8}) = {x≤5}: the exact inverse of image.");
 // The DEFINING property preimage(f,P)(a) ⟺ P(f(a)), pointwise on the boundary.
-static_assert(preimage(ℤ* ℤ | π_1 + 3 == π_2, ℤ | (π <= 8))(5),
+static_assert(preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(5),
               "5 ∈ preimage: f(5)=8 ≤ 8.");
-static_assert(!preimage(ℤ * ℤ | π_1 + 3 == π_2, ℤ | (π <= 8))(6),
+static_assert(!preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))(6),
               "6 ∉ preimage: f(6)=9 ≰ 8.");
 // Reflection x↦−x: {y≤5} pulls back to {x≥−5}, the sense FLIPS.
-static_assert(preimage(ℤ* ℤ | π_1 * -1 == π_2, ℤ | (π <= 5)) == (ℤ | (π >= -5)),
+static_assert(preimage(ℤ * ℤ & π_1 * -1 == π_2, ℤ&(π <= 5)) == (ℤ & (π >= -5)),
               "preimage(−x, {y≤5}) = {x≥−5}: reflection flips the sense.");
 // CONTRAVARIANCE (f;g)* = g*∘f*: pulling {y≤8} through T₂;T₃ = T₅ in one step
 // equals pulling through T₃ then T₂ (the closed forms compose).
 static_assert(
-    preimage(ℤ* ℤ | π_1 + 5 == π_2, ℤ | (π <= 8)) ==
-        preimage(ℤ * ℤ | π_1 + 2 == π_2,
-                 preimage(ℤ* ℤ | π_1 + 3 == π_2, ℤ | (π <= 8))),
+    preimage(ℤ * ℤ & π_1 + 5 == π_2, ℤ&(π <= 8)) ==
+        preimage(ℤ * ℤ & π_1 + 2 == π_2,
+                 preimage(ℤ * ℤ & π_1 + 3 == π_2, ℤ&(π <= 8))),
     "contravariance: preimage(T₂;T₃, P) = preimage(T₂, preimage(T₃, P)).");
-static_assert(preimage(ℤ* ℤ | π_1 + 5 == π_2, ℤ | (π <= 8)) == (ℤ | (π <= 3)),
+static_assert(preimage(ℤ * ℤ & π_1 + 5 == π_2, ℤ&(π <= 8)) == (ℤ & (π <= 3)),
               "and that common value is {x≤3} (8−5).");
 }  // namespace
 
@@ -249,19 +249,19 @@ TEST_CASE(
     "algebra:halfspace_transport — a function is its graph: inverse/image",
     "[algebra][relation][function][inverse][image]") {
   constexpr auto Z = 𝔸<SignedCardinality>{};
-  const auto f = Z * Z | π_1 + 3 == π_2;  // graph of x ↦ x+3
+  const auto f = Z * Z & π_1 + 3 == π_2;  // graph of x ↦ x+3
 
   STATIC_CHECK(is_function(f));
   // A shift ℕ cannot hold is refused when the graph is built, so the
   // entireness certificate only ever meets a bound constant.
   constexpr auto N = 𝔸<dedekind::sets::Cardinality>{};
-  CHECK_THROWS_AS(N * N | (π_1 + -1 == π_2), std::domain_error);
+  CHECK_THROWS_AS(N * N & (π_1 + -1 == π_2), std::domain_error);
 
   volatile int ten = 10;
   CHECK(inverse(f)(std::pair{int(ten), 7}));        // (10,7) ∈ f⁻¹ (converse)
   CHECK_FALSE(inverse(f)(std::pair{int(ten), 8}));  // (10,8) ∉ f⁻¹
 
-  const auto s = image(f | π_1 <= 5);  // range over {x≤5} = {y≤8}
+  const auto s = image(f & π_1 <= 5);  // range over {x≤5} = {y≤8}
   volatile int eight = 8, nine = 9;
   CHECK(s(int(eight)));       // 8 ≤ 8
   CHECK_FALSE(s(int(nine)));  // 9 ≰ 8
@@ -274,9 +274,9 @@ TEST_CASE(
 TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
           "[algebra][argmax][partial][optimization]") {
   constexpr auto Z = 𝔸<SignedCardinality>{};
-  const auto g = Z * Z | π_1 + 3 == π_2 | (π_2 <= 8 && π_2 % 3 == 0);
+  const auto g = Z * Z & π_1 + 3 == π_2 & (π_2 <= 8 && π_2 % 3 == 0);
   STATIC_CHECK(!is_entire(g));
-  STATIC_CHECK(is_entire(Z * Z | π_1 + 3 == π_2));
+  STATIC_CHECK(is_entire(Z * Z & π_1 + 3 == π_2));
 
   const auto opt = argmax(g);
   volatile int three = 3, four = 4, zero = 0;
@@ -291,13 +291,13 @@ TEST_CASE("algebra:halfspace_transport — argmax over a partial function",
 TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
           "[algebra][image][reflection]") {
   constexpr auto Z = 𝔸<SignedCardinality>{};
-  const auto absNeg = Z * Z | π_1 * -1 == π_2 | π_1 < 0;  // x↦-x, x<0
+  const auto absNeg = Z * Z & π_1 * -1 == π_2 & π_1 < 0;  // x↦-x, x<0
   const auto img = image(absNeg);                         // {y>0}
   volatile int three = 3, minus2 = -2, zero = 0;
   CHECK(img(int(three)));  // 3 ∈ abs({x<0}) via -3 (canonical +3 ∉ {x<0})
   CHECK_FALSE(img(int(minus2)));  // abs is never negative
   CHECK_FALSE(img(int(zero)));    // 0 not > 0 (the x<0 branch is strict)
-  const auto absPos = Z * Z | π_1 * 1 == π_2 | π_1 >= 0;  // x↦x, x≥0
+  const auto absPos = Z * Z & π_1 * 1 == π_2 & π_1 >= 0;  // x↦x, x≥0
   const auto imgP = image(absPos);                        // {y≥0}
   CHECK(imgP(int(zero)));  // 0 ≥ 0: the identity branch includes it
 }
@@ -308,15 +308,15 @@ TEST_CASE("algebra:halfspace_transport — image of the sign-fold reflection",
 TEST_CASE("algebra:halfspace_transport — preimage, the contravariant inverse",
           "[algebra][preimage][pullback][inverse]") {
   constexpr auto Z = 𝔸<SignedCardinality>{};
-  const auto f = Z * Z | π_1 + 3 == π_2;       // x ↦ x+3
-  const auto dom = preimage(f, Z | (π <= 8));  // derived {x ≤ 5}
+  const auto f = Z * Z & π_1 + 3 == π_2;       // x ↦ x+3
+  const auto dom = preimage(f, Z & (π <= 8));  // derived {x ≤ 5}
   volatile int five = 5, six = 6;
   CHECK(dom(int(five)));       // 5 ≤ 5, and f(5)=8 ≤ 8
   CHECK_FALSE(dom(int(six)));  // 6 ≰ 5, and f(6)=9 ≰ 8
-  CHECK(dom == (Z | (π <= 5)));
+  CHECK(dom == (Z & (π <= 5)));
 
-  const auto neg = Z * Z | π_1 * -1 == π_2;       // x ↦ −x
-  const auto back = preimage(neg, Z | (π <= 5));  // {x ≥ −5}
+  const auto neg = Z * Z & π_1 * -1 == π_2;       // x ↦ −x
+  const auto back = preimage(neg, Z & (π <= 5));  // {x ≥ −5}
   volatile int m5 = -5, m6 = -6;
   CHECK(back(int(m5)));        // −5 ≥ −5, and −(−5)=5 ≤ 5
   CHECK_FALSE(back(int(m6)));  // −6 ≱ −5, and −(−6)=6 ≰ 5
@@ -332,7 +332,7 @@ TEST_CASE(
     "algebra:halfspace_transport: inverse over a cyclic group (unsigned), #875",
     "[algebra][inverse][group]") {
   constexpr auto U = 𝔸<unsigned>{};
-  const auto succ = U * U | π_1 + 1 == π_2;  // graph of x ↦ x+1 over ℤ/2ʷ
+  const auto succ = U * U & π_1 + 1 == π_2;  // graph of x ↦ x+1 over ℤ/2ʷ
   const auto pred = inverse(succ);           // converse = modular x ↦ x−1
   volatile unsigned ten = 10u;
   CHECK(pred(std::pair{unsigned(ten), 9u}));         // (10, 9) ∈ inverse(succ)

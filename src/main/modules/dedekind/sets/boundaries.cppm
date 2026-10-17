@@ -777,7 +777,7 @@ export inline constexpr auto ℕ = 𝔸<Cardinality>{};
 
 // The canonical witnesses for ℕ; downstream partitions build on these.  The
 // subobject "ℕ ⊂ ℤ" over a signed carrier is not a second ℕ: it is the
-// halfspace 𝔸<int>{} | (π >= 0) in :order.
+// halfspace 𝔸<int>{} & (π >= 0) in :order.
 static_assert(std::same_as<std::remove_cvref_t<decltype(ℕ)>, 𝔸<Cardinality>> &&
                   std::same_as<𝔸<Cardinality>::Domain, Cardinality> &&
                   IsSet<𝔸<Cardinality>>,

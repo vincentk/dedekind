@@ -194,7 +194,7 @@ using LowerSet = Comprehension<𝔸<Q, Boole>, LowerCut<Q>>;
  *  @tparam Q the rational scalar carrier. */
 export template <IsRational Q>
 constexpr LowerSet<Q> lower_set(const Cut<Q>& r) {
-  return 𝔸<Q>{} | LowerCut<Q>{r};
+  return 𝔸<Q>{} & LowerCut<Q>{r};
 }
 
 /** @brief The ray @f$\{q<p\}@f$ over @f$\mathbb{Q}@f$: the lower set of a
@@ -208,7 +208,7 @@ using PrincipalRay = Interval<Q>;
  *  @tparam Q the rational scalar carrier. */
 export template <IsRational Q>
 constexpr PrincipalRay<Q> principal_ray(const Q& p) {
-  return 𝔸<Q>{} | (π < p);
+  return 𝔸<Q>{} & (π < p);
 }
 
 }  // namespace dedekind::numbers

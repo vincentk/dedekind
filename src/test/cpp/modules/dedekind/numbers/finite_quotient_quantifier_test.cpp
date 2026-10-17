@@ -46,6 +46,6 @@ TEST_CASE("finite-quotient quantifiers decide exists/forall by type on 𝔹 and 
                  π % 3 == 0));  // (A) ∃ x ≡ 0 (residue 0 vs ∅)
     CHECK_FALSE(forall(𝔸<Cardinality>{},
                        π % 3 == 0));  // (B) residues 1,2 vs S
-    CHECK_THROWS_AS(𝔸<Cardinality>{} | (π % -3 == -1), std::domain_error);
+    CHECK_THROWS_AS(𝔸<Cardinality>{} & (π % -3 == -1), std::domain_error);
   }
 }

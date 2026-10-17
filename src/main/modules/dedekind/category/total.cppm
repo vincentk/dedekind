@@ -749,7 +749,7 @@ concept IsSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
  * @brief A Semilattice used as the "join" (least upper bound / ∨) half of a
  * Lattice. In `bool` this is `logical_or`; in `int` it is `max`.
  */
-export template <typename T, typename Op>
+export template <typename T, typename Op = std::bit_or<>>
 concept IsJoinSemilattice = IsTotal<T, Op> && IsOrderJoinSemilattice<T, Op>;
 
 /**
@@ -757,7 +757,7 @@ concept IsJoinSemilattice = IsTotal<T, Op> && IsOrderJoinSemilattice<T, Op>;
  * @brief A Semilattice used as the "meet" (greatest lower bound / ∧) half of a
  * Lattice. In `bool` this is `logical_and`; in `int` it is `min`.
  */
-export template <typename T, typename Op>
+export template <typename T, typename Op = std::bit_and<>>
 concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
 
 /**
@@ -770,8 +770,14 @@ concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
  * This alias now delegates order laws to `:posetal`
  * (`IsOrderLatticeOperations`) and keeps `:total` totality guards on the
  * selected operators.
+ *
+ * The defaults are the operator surface, @c | and @c &
+ * (@c std::bit_or<> / @c std::bit_and<>): the lattice as it is spelled.  A
+ * chain's (max, min) is named explicitly (@c Sup, @c Inf); on @c int the
+ * defaults are the bit lattice 2³², not the order.
  */
-export template <typename T, typename Join, typename Meet>
+export template <typename T, typename Join = std::bit_or<>,
+                 typename Meet = std::bit_and<>>
 concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
                     IsOrderLatticeOperations<T, Join, Meet>;
 
@@ -796,7 +802,8 @@ concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
  * Note: (unsigned int, XOR, AND) is a Ring, not a Lattice, because XOR is not
  * idempotent.
  */
-export template <typename T, typename Join, typename Meet>
+export template <typename T, typename Join = std::bit_or<>,
+                 typename Meet = std::bit_and<>>
 concept IsDistributiveLattice =
     IsLattice<T, Join, Meet> &&
     IsOrderDistributiveLatticeOperations<T, Join, Meet>;
@@ -827,7 +834,8 @@ concept IsDistributiveLattice =
  * @c namespace @c dedekind::sets, where its own declaration wins unqualified
  * lookup, so the shared name does not collide in practice.
  */
-export template <typename T, typename Join, typename Meet>
+export template <typename T, typename Join = std::bit_or<>,
+                 typename Meet = std::bit_and<>>
 concept IsBoundedLattice =
     IsLattice<T, Join, Meet> && IsMonoid<T, Join> && IsMonoid<T, Meet>;
 
@@ -844,6 +852,15 @@ concept IsBoundedLattice =
  */
 export template <typename T, typename Join, typename Meet, typename Not>
 inline constexpr bool is_complemented_v = false;
+
+/** @brief The bit lattice of an unsigned word is complemented by @c ~:
+ *  @c a @c | @c ~a is every bit, @c a @c & @c ~a none.  Not @c bool, whose
+ *  @c ~ promotes (@c ~true is @c -2) and is no involution
+ *  (@c std::logical_not is @c bool's complement). */
+template <std::unsigned_integral T>
+  requires(!std::same_as<T, bool>)
+inline constexpr bool
+    is_complemented_v<T, std::bit_or<>, std::bit_and<>, std::bit_not<>> = true;
 
 /**
  * @concept IsBooleanAlgebra
@@ -868,10 +885,19 @@ inline constexpr bool is_complemented_v = false;
  * consumer could not actually @b apply the advertised complement.  The closure
  * clause makes @c ¬a well-formed before the semantic law is trusted.
  */
-export template <typename T, typename Join, typename Meet, typename Not>
+export template <typename T, typename Join = std::bit_or<>,
+                 typename Meet = std::bit_and<>, typename Not = std::bit_not<>>
 concept IsBooleanAlgebra =
     IsBoundedLattice<T, Join, Meet> && IsDistributiveLattice<T, Join, Meet> &&
     IsClosedUnderUnary<T, Not> && is_complemented_v<T, Join, Meet, Not>;
+
+// The defaults spell the lattice as | & ~: an unsigned word is the Boolean
+// algebra of its bits; a chain's (max, min) is a lattice named explicitly.
+static_assert(IsBooleanAlgebra<unsigned>,
+              "unsigned under | & ~ is the Boolean algebra 2³²");
+static_assert(IsDistributiveLattice<int> &&
+                  IsDistributiveLattice<int, Sup, Inf>,
+              "int carries two lattices: the bits (the default) and the order");
 
 // Upstream ownership locks: :total aliases must track :posetal refinements.
 static_assert(IsSemilattice<int, Inf> ==

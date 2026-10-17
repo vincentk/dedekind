@@ -108,15 +108,15 @@ struct Point {
   constexpr std::size_t size() const { return 1; }
 };
 
-/** @brief @c 𝔸<T> @c | @c (π @c == @c v): the singleton @c {v}, the constant
+/** @brief @c 𝔸<T> @c & @c (π @c == @c v): the singleton @c {v}, the constant
  *  converted into the carrier exactly or the binding raising.  Declared beside
  *  @c 𝔸 and the atom, so ADL finds it.  @tparam T the carrier.
  *  @tparam K the constant's type. */
 export template <std::semiregular T, IsOckhamAlgebra L, IsCardinality C,
                  typename K>
-constexpr auto operator|(const 𝔸<T, L, C>& u,
+constexpr auto operator&(const 𝔸<T, L, C>& u,
                          const Cmp<Rel::Eq, Projection<0>, Const<K>>& c) {
-  return u | Point<T>{carrier_cast<T>(c.b.value)};
+  return u & Point<T>{carrier_cast<T>(c.b.value)};
 }
 
 static_assert(std::equality_comparable<std::optional<Cardinality>>,
@@ -163,7 +163,7 @@ constexpr typename L::Ω operator<=(const Comprehension<𝔸<T, L, C>, Point<T>>
 /** @brief A point is the whole universe only on the unit carrier: @c {x} ==
  * 𝔸<T> iff @c T has exactly one value (@c category::One).  On every other
  * carrier it is @c false --- the @c forall leg for the @c == fragment
- *  (@c 𝔸<bool>{} | (π == v) collapses to a @c Singleton<bool>, and
+ *  (@c 𝔸<bool>{} & (π == v) collapses to a @c Singleton<bool>, and
  *  @c forall asks whether that point is all of 𝔹).  Lives here, not in
  *  @c :order, so ADL finds it from @c sets-level generic code. */
 export template <std::equality_comparable T, IsOckhamAlgebra L,
@@ -186,7 +186,7 @@ constexpr bool operator==(const 𝔸<T, L2, C>& u,
  *  the type is used. */
 export template <IsOckhamAlgebra L, IsCardinality C>
 constexpr auto operator~(const Comprehension<𝔸<bool, L, C>, Point<bool>>& s) {
-  return 𝔸<bool, L>{} | Point<bool>{!s.predicate.pivot};
+  return 𝔸<bool, L>{} & Point<bool>{!s.predicate.pivot};
 }
 
 /** @brief Product of two points: @f$\{a\}\times\{b\}=\{(a,b)\}@f$, the
@@ -233,7 +233,7 @@ static_assert(
  *  @tparam T the pivot's type (decayed into the carrier). */
 export template <IsOckhamAlgebra L = Boole, typename T>
 constexpr auto singleton(T&& value) {
-  return 𝔸<std::decay_t<T>, L>{} |
+  return 𝔸<std::decay_t<T>, L>{} &
          Point<std::decay_t<T>>{std::forward<T>(value)};
 }
 
@@ -315,7 +315,7 @@ constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            Func&& f) {
   using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
   // Co-Kleisli Extend: apply contextual logic and re-wrap.
-  return 𝔸<U, L>{} | Point<U>{std::forward<Func>(f)(s)};
+  return 𝔸<U, L>{} & Point<U>{std::forward<Func>(f)(s)};
 }
 
 /**
@@ -353,7 +353,7 @@ constexpr auto image(
     F&& f, const Comprehension<𝔸<Dom<std::remove_cvref_t<F>>, L, C>,
                                Point<Dom<std::remove_cvref_t<F>>>>& s) {
   using U = Cod<std::remove_cvref_t<F>>;
-  return 𝔸<U, L>{} | Point<U>{std::forward<F>(f)(s.predicate.pivot)};
+  return 𝔸<U, L>{} & Point<U>{std::forward<F>(f)(s.predicate.pivot)};
 }
 
 /** @section singleton__Image_Terminal_Morphism (#661)

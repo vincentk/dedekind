@@ -86,13 +86,13 @@ constexpr auto inverse(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K>>& g) {
   const T neg = dedekind::category::inverse_v<T, std::plus<T>>(
       carrier_cast<T>(g.predicate.a.b.value));
-  return 𝔸<std::pair<T, T>, L>{} | (π_1 + neg == π_2);
+  return 𝔸<std::pair<T, T>, L>{} & (π_1 + neg == π_2);
 }
 
 // #875: retractability generalizes ℤ → any IsGroup: on the cyclic unsigned the
 // inverse of the successor graph is the translation by the modular inverse.
 static_assert(
-    inverse(𝔸<std::pair<unsigned, unsigned>, Boole>{} | (π_1 + 1u == π_2))
+    inverse(𝔸<std::pair<unsigned, unsigned>, Boole>{} & (π_1 + 1u == π_2))
             .predicate.a.b.value == -1u,
     "inverse over unsigned is the translation by the modular inverse −1.");
 

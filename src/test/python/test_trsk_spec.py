@@ -2,7 +2,7 @@
 
 Each test encodes one claim from #1006's prose (and the operator surface of
 #1018, the Pst definition on #981).  A universe is the factory: terms name no
-carrier, and ``A(carrier) | term`` binds them, casting the constants and
+carrier, and ``A(carrier) & term`` binds them, casting the constants and
 checking the operators against that carrier.  The carriers are primitive ones
 Python users know: ``u64`` (the ring ℤ/2⁶⁴: + − · wrap), ``𝔽ₚ`` (the prime
 field, p = 2⁶⁴ − 59) and
@@ -68,7 +68,7 @@ class RelationAsSymbolicFunction(unittest.TestCase):
         from dedekind.pst import A, u64, π_1, π_2, π_3
 
         U = A(u64)
-        law = U * U * U | (π_3 == π_1 + π_2)
+        law = U * U * U & (π_3 == π_1 + π_2)
         self.assertTrue(law.is_function)  # functional in π_3
         if not hasattr(law, "solve"):
             self.skipTest("#1006 exhibit 3: solve is not bound yet")
@@ -86,7 +86,7 @@ class ExtToTheHost(unittest.TestCase):
         from dedekind.pst import A, ext, u64, π_1, π_2
 
         U = A(u64)
-        doubling = (U[:5] * U) | (π_2 == π_1 * 2)
+        doubling = (U[:5] * U) & (π_2 == π_1 * 2)
         self.assertEqual(ext(doubling), [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8)])
 
 
@@ -101,17 +101,17 @@ class TheTotalOperatorSurface(unittest.TestCase):
 
         U = A(u64)  # the factory: carrier ℤ/2⁶⁴, its total operators
         # + − · are total on the word (they wrap); % by a constant is too.
-        U * U | (π_2 == π_1 + 1)
-        U * U | (π_2 == π_1 - 1)
-        evens = U | (π % 2 == 0)
+        U * U & (π_2 == π_1 + 1)
+        U * U & (π_2 == π_1 - 1)
+        evens = U & (π % 2 == 0)
         self.assertIn(4, evens)
         self.assertNotIn(5, evens)
         # A term divisor could be 0: refused when bound.
         with self.assertRaises(TypeError):
-            U * U | (π_2 == π_2 // π_1)
+            U * U & (π_2 == π_2 // π_1)
         # A constant the word cannot hold: refused when bound.
         with self.assertRaises(ValueError):
-            U | (π > -1)
+            U & (π > -1)
         # A constant divisor is checked when the term is written.
         with self.assertRaises(ValueError):
             π % 0
@@ -122,30 +122,30 @@ class TheTotalOperatorSurface(unittest.TestCase):
 
         F = A(𝔽ₚ)
         # The quotient map: p + 2 meets 𝔽ₚ as 2.
-        self.assertIn(2, F | (π == 𝔽ₚ.modulus + 2))
+        self.assertIn(2, F & (π == 𝔽ₚ.modulus + 2))
         # Field division by a nonzero constant multiplies by its inverse.
-        third = F * F | (π_2 == π_1 / 3)
+        third = F * F & (π_2 == π_1 / 3)
         self.assertTrue(ap(third, (3, 1)))
         self.assertTrue(ap(third, (1, int(𝔽ₚ(1) / 3))))
         # A term divisor could be 0; a field has no compatible order.
         with self.assertRaises(TypeError):
-            F * F | (π_2 == π_1 / π_2)
+            F * F & (π_2 == π_1 / π_2)
         with self.assertRaises(TypeError):
-            F | (π < 3)
+            F & (π < 3)
         with self.assertRaises(ValueError):
             π / 0
         # The ring is not a field: 2 is not a unit of ℤ/2⁶⁴.
         with self.assertRaises(TypeError):
-            A(u64) | (π / 2 == 1)
+            A(u64) & (π / 2 == 1)
 
     @_needs("dedekind.pst", "A", "B", "π", exhibit="exhibit 3 (terms)")
     def test_on_the_truth_chain(self) -> None:
         from dedekind.pst import A, B, π
 
         # 𝔹's rig is spelled (∨, ∧): + is in no signature of bool, so it is refused.
-        B | (π == True)  # noqa: E712 — π is a term, not a bool
+        B & (π == True)  # noqa: E712 — π is a term, not a bool
         with self.assertRaises(TypeError):
-            B | (π + 1 == True)  # noqa: E712
+            B & (π + 1 == True)  # noqa: E712
 
 
 if __name__ == "__main__":

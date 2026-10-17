@@ -430,7 +430,7 @@ static_assert(IsFunctional<std::remove_cvref_t<decltype(Γ_dbl_inc)>> &&
 // So Set[C] implies Function[C, L] with the set itself as the arrow.
 namespace set_is_function_witness {
 using dedekind::sets::π;
-inline constexpr auto five = dedekind::sets::𝔸<unsigned>{} | (π == 5u);
+inline constexpr auto five = dedekind::sets::𝔸<unsigned>{} & (π == 5u);
 using Five = std::remove_cvref_t<decltype(five)>;
 static_assert(
     dedekind::category::IsArrow<Five> &&

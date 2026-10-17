@@ -30,8 +30,8 @@ TEST_CASE("Quantifier machinery: Ø == comprehension, folded at compile time",
   //     collapse).  This is the counterexample set of ∀x>5. x≥3, namely
   //     {x>5 ∧ x<3}, decided empty at compile time on the bare point-free
   //     grammar; no `Set{}` wrap is involved.
-  constexpr auto gt5 = ℕ | (π > 5);
-  constexpr auto lt3 = ℕ | (π < 3);
+  constexpr auto gt5 = ℕ & (π > 5);
+  constexpr auto lt3 = ℕ & (π < 3);
   static_assert((gt5 & lt3) == Ø<Cardinality>{},
                 "{x>5 ∧ x<3} folds to the empty set at compile time.");
   CHECK((gt5 & lt3) == Ø<Cardinality>{});  // runtime (Codecov)
@@ -61,7 +61,7 @@ TEST_CASE("Bare comprehension carries the set-complement (#895)",
   constexpr auto ncomp = ~comp;
   static_assert(std::same_as<std::remove_cvref_t<decltype(ncomp)>,
                              dedekind::category::Not<Comp>>,
-                "~(A | pred) is the set-complement Not<Comprehension>.");
+                "~(A & pred) is the set-complement Not<Comprehension>.");
   static_assert(std::same_as<std::remove_cvref_t<decltype(~~comp)>, Comp>,
                 "~~ peels back to the bare comprehension (involution).");
 

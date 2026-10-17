@@ -18,23 +18,23 @@ MAX = 2**64 - 1
 
 
 def above(k):
-    return U | (π > k)
+    return U & (π > k)
 
 
 def below(k):
-    return U | (π < k)
+    return U & (π < k)
 
 
 def at_least(k):
-    return U | (π >= k)
+    return U & (π >= k)
 
 
 def at_most(k):
-    return U | (π <= k)
+    return U & (π <= k)
 
 
 def point(k):
-    return U | (π == k)
+    return U & (π == k)
 
 
 everything = at_least(0)  # the universe, as a term set
@@ -46,39 +46,39 @@ class OneSetOneNormalForm(unittest.TestCase):
         # {x > 3} ∩ {x < 5} = {4}: the crossing law, on runtime pivots.
         region = above(3) & below(5)
         self.assertEqual(region, point(4))
-        self.assertEqual(repr(canonical(region)), "𝔸(u64) | π == 4")
+        self.assertEqual(repr(canonical(region)), "𝔸(u64) & (π == 4)")
         self.assertEqual(region.cardinality, 1)
         self.assertEqual(len(region), 1)
         self.assertTrue(ap(region, 4))
         self.assertFalse(ap(region, 5))
 
     def test_the_canonical_form_is_the_run_list_written_back(self) -> None:
-        self.assertEqual(repr(canonical(U | (π < 0))), "𝔸(u64) | π < 0")  # Ø
-        self.assertEqual(repr(canonical(~(U | (π < 0)))), "𝔸(u64) | π >= 0")  # all
-        self.assertEqual(repr(canonical(above(3) & below(9))), "𝔸(u64) | (π >= 4) & (π <= 8)")
-        self.assertEqual(repr(canonical(above(MAX - 1))), f"𝔸(u64) | π == {MAX}")
+        self.assertEqual(repr(canonical(U & (π < 0))), "𝔸(u64) & (π < 0)")  # Ø
+        self.assertEqual(repr(canonical(~(U & (π < 0)))), "𝔸(u64) & (π >= 0)")  # all
+        self.assertEqual(repr(canonical(above(3) & below(9))), "𝔸(u64) & ((π >= 4) & (π <= 8))")
+        self.assertEqual(repr(canonical(above(MAX - 1))), f"𝔸(u64) & (π == {MAX})")
         S = (above(3) & below(9)) | point(12)
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))  # idempotent
 
     def test_a_set_applied_to_a_term_substitutes(self) -> None:
         S = above(5)
-        self.assertEqual(U | (ap(S, π + 1) == True), preimage(succ(int), S))  # noqa: E712  {x | x + 1 ∈ S}
+        self.assertEqual(U & (ap(S, π + 1) == True), preimage(succ(int), S))  # noqa: E712  {x | x + 1 ∈ S}
         # The numeral is pinned to the word, the sort it had in S.
         self.assertEqual(repr(ap(S, π + 1)), "cond((π + 1) > u64(5), True, False)")
         with self.assertRaises(TypeError):
-            U | (π + 1)  # a term valued in u64 is not a predicate
+            U & (π + 1)  # a term valued in u64 is not a predicate
 
     def test_an_atom_normalised_into_the_fragment_reads_as_runs(self) -> None:
         # π * 1 < 5 is no atom of the chain fragment; its polynomial form π < 5
         # is, and canonical reads it as runs in the same pass: a fixpoint.
-        S = U | (π * 1 < 5)
-        self.assertEqual(repr(canonical(S)), "𝔸(u64) | π <= 4")
+        S = U & (π * 1 < 5)
+        self.assertEqual(repr(canonical(S)), "𝔸(u64) & (π <= 4)")
         self.assertEqual(repr(canonical(canonical(S))), repr(canonical(S)))
-        self.assertEqual(repr(canonical(U | (π + 1 - 1 == 4))), "𝔸(u64) | π == 4")
+        self.assertEqual(repr(canonical(U & (π + 1 - 1 == 4))), "𝔸(u64) & (π == 4)")
 
     def test_the_complement_is_a_run_list(self) -> None:
         u = ~point(5)
-        self.assertEqual(repr(canonical(u)), "𝔸(u64) | (π <= 4) | (π >= 6)")
+        self.assertEqual(repr(canonical(u)), "𝔸(u64) & ((π <= 4) | (π >= 6))")
         self.assertEqual(~above(3), at_most(3))
         self.assertEqual(repr(canonical(at_least(0) & ~point(5))), repr(canonical(u)))
 
@@ -86,13 +86,13 @@ class OneSetOneNormalForm(unittest.TestCase):
         u = at_least(0) & ~point(5)
         self.assertEqual(u, below(5) | above(5))
         self.assertEqual(u, ~(below(0) | point(5)))  # De Morgan
-        self.assertEqual(u, U | ((π < 5) | (π > 5)))  # combined before binding
+        self.assertEqual(u, U & ((π < 5) | (π > 5)))  # combined before binding
         a, b = at_least(0), ~point(5)
         self.assertEqual(a & b, b & a)
         self.assertEqual(a | b, b | a)
         self.assertEqual(at_most(4) | at_least(5), everything)  # adjacent runs merge
         self.assertEqual((at_least(0) & at_most(3)) | (at_least(4) & at_most(9)), at_least(0) & at_most(9))
-        self.assertEqual(U | (5 < π), above(5))  # the converse
+        self.assertEqual(U & (5 < π), above(5))  # the converse
 
     def test_the_boundaries(self) -> None:
         s = at_least(0) & at_most(10)
@@ -104,7 +104,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         self.assertEqual(U.cardinality, 2**64)
 
     def test_a_term_outside_the_catalogue_has_no_normal_form(self) -> None:
-        evens = U | (π % 2 == 0)
+        evens = U & (π % 2 == 0)
         self.assertIn(4, evens)  # membership is pointwise
         with self.assertRaises(TypeError):
             evens == everything  # noqa: B015 (the refusal is the point)
@@ -155,7 +155,7 @@ class ImageAndPreimage(unittest.TestCase):
 
     def test_the_word_wraps(self) -> None:
         # The successor sends the word's end to 0, so a ray gains the point 0.
-        self.assertEqual(image(succ(int), above(5)), U | ((π > 6) | (π == 0)))
+        self.assertEqual(image(succ(int), above(5)), U & ((π > 6) | (π == 0)))
         self.assertEqual(preimage(succ(int), at_most(0)), point(MAX))
         self.assertIn(MAX, preimage(succ(int), at_most(0)))
         self.assertEqual(succ(int)(MAX), 0)

@@ -260,40 +260,47 @@ export template <typename P, typename T>
 concept IsDatum =
     IsPredicate<P> && std::same_as<Dom<P>, T> && !IsSetObject<P> && !IsLSet<P>;
 
-/** @brief The set former @c 𝔸<T, L>{} @c | @c P = @f$\{x \in T \mid P(x)\}@f$
- *  for a datum @c P (a point @c π == v, a cut @c π > v).  A set is not a
- *  datum: @c 𝔸 | S is the join.
+/** @brief The set former @c 𝔸<T, L>{} @c & @c P = @f$\{x \in T \mid P(x)\}@f$
+ *  for a datum @c P (a point @c π == v, a cut @c π > v): the meet with the
+ *  subobject @c P classifies (#826; @c | is the join only).
  *  @tparam T the carrier.
  *  @tparam L the species.
  *  @tparam C the cardinality.
  *  @tparam P the datum. */
 export template <typename T, IsOckhamAlgebra L, IsCardinality C, IsDatum<T> P>
-constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+constexpr auto operator&(const 𝔸<T, L, C>&, P p) {
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }
 
-/** @brief @c 𝔸<T> @c | @c atom for an atom on the unary @c π
- *  (@c ℕ @c | @c (π @c % @c 3 @c == @c 0)): the atom evaluated at each element.
+/** @brief @c 𝔸<T> @c & @c atom for an atom on the unary @c π
+ *  (@c ℕ @c & @c (π @c % @c 3 @c == @c 0)): the atom evaluated at each element.
  *  @tparam T the carrier.  @tparam P the atom. */
 export template <typename T, IsOckhamAlgebra L, IsCardinality C,
                  IsRelPredicate P>
   requires(only_slot(slots_v<P>, 0)) && (!contains_self_v<P>) &&
           std::convertible_to<std::invoke_result_t<const P&, const T&>, bool>
-constexpr auto operator|(const 𝔸<T, L, C>&, P p) {
+constexpr auto operator&(const 𝔸<T, L, C>&, P p) {
   bind_check<T>(p);
   return Comprehension<𝔸<T, L, C>, P>{std::move(p)};
 }
 
-/** @brief @c 𝔸<T> @c | @c pred for a predicate built at run time: bound to
+/** @brief @c 𝔸<T> @c & @c pred for a predicate built at run time: bound to
  *  the carrier now, every operator admitted there or refused
  *  (@c not_admitted), every constant meeting it.  Pairs take the product
  *  former.  @tparam T the carrier.  @tparam K the constants' type. */
 export template <typename T, IsOckhamAlgebra L, IsCardinality C, typename K>
   requires(!requires { typename T::first_type; })
-constexpr auto operator|(const 𝔸<T, L, C>&, Pred<K> p) {
+constexpr auto operator&(const 𝔸<T, L, C>&, Pred<K> p) {
   bind_check<T>(p);
   return Comprehension<𝔸<T, L, C>, Pred<K>>{std::move(p)};
 }
+
+/** @brief @c S @c | @c P for a set and a non-set: refused.  The filter is
+ *  the meet, @c S @c & @c P (#826); @c | is the join of two sets only.
+ *  @tparam S the set.  @tparam P the would-be filter. */
+export template <typename S, typename P>
+  requires IsSetObject<S> && (!IsSetObject<P>) && (!IsLSet<P>)
+void operator|(const S&, const P&) = delete;
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
@@ -1319,7 +1326,7 @@ concept HasStructuredOr =
 /** @brief A term of the set grammar, the operand sort of @c && / @c ||: an
  *  arrow (a predicate, a set, a node over arrows) or a point-free relational
  *  fragment (@c π_1 @c ⋈ @c π_2, tagged @c is_rel_predicate, which meets its
- *  domain only at the former @c |).  A bare truth value is not a term:
+ *  domain only at the former @c &).  A bare truth value is not a term:
  *  @c bool @c && @c bool stays the host language's, and a constant beside a
  *  predicate lifts through @c :topoi.
  *  @tparam P the operand. */
@@ -1694,10 +1701,10 @@ using CompN = Comprehension<𝔸<int>, all_in>;
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~std::declval<CompN>())>,
                  dedekind::category::Not<CompN>>,
-    "~(A | pred) is the set-complement Not<Comprehension>.");
+    "~(A & pred) is the set-complement Not<Comprehension>.");
 static_assert(
     std::same_as<std::remove_cvref_t<decltype(~~std::declval<CompN>())>, CompN>,
-    "~~(A | pred) peels back to the Comprehension (involution).");
+    "~~(A & pred) peels back to the Comprehension (involution).");
 
 // #834: the bare ETCS subobject (classify / ambient_set) complements the same
 // way --- ~s is the Not node over it, a set-complement subobject (what the

@@ -86,12 +86,12 @@ static_assert(collatz_rule(std::numeric_limits<std::size_t>::max()) ==
  * 2@f$ test.  Its complement @f$\sim@f$@c n_even is @f$\{n \text{ odd}\}@f$ (on
  * ℕ the two parities exhaust and are disjoint), which makes the case split
  *  @b structural rather than two independent guards. */
-constexpr auto n_even = ℕ * ℕ | π_1 % 2 == 0;
+constexpr auto n_even = ℕ * ℕ & π_1 % 2 == 0;
 /** @brief The even step @f$m = n/2@f$, spelled without division as
  *  @f$2\pi_2 = \pi_1@f$ (the doubling graph read backwards). */
-constexpr auto halve = ℕ * ℕ | π_2 * 2 == π_1;
+constexpr auto halve = ℕ * ℕ & π_2 * 2 == π_1;
 /** @brief The odd step @f$m = 3n+1@f$ --- the affine graph (@c :order). */
-constexpr auto triple_plus_1 = ℕ * ℕ | π_1 * 3 + 1 == π_2;
+constexpr auto triple_plus_1 = ℕ * ℕ & π_1 * 3 + 1 == π_2;
 
 /** @brief The Trsk relation @f$T \subseteq \mathbb{N}\times\mathbb{N}@f$,
  *  spelled @b point-free as the McCarthy conditional
@@ -161,7 +161,7 @@ static_assert(!converges_in_1(finite_cardinality(4)),
 /** @brief @c collatz restricted to the finite ℕ-prefix @f$[0,64)@f$ by a
  *  half-space domain cut --- the bound @c 64 rides in the pivot VALUE, so @c >>
  *  recovers it. */
-constexpr auto collatzM = collatz | (π_1 < 64);
+constexpr auto collatzM = collatz & (π_1 < 64);
 
 /** @brief @c collatz2 @f$= \mathrm{collatz};\mathrm{collatz}@f$ over the finite
  *  @f$[0,64)@f$ middle --- two steps, the bare relative product, middle

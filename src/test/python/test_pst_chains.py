@@ -100,10 +100,10 @@ class AUniverseIsItsFullRunList(unittest.TestCase):
     def test_subset_queries_between_universes(self) -> None:
         self.assertIs(𝔹 <= 𝔹, True)
         self.assertIs(K3 >= K3, True)
-        self.assertIs(K3 <= (K3 | (π > Ternary.FALSE)), False)
+        self.assertIs(K3 <= (K3 & (π > Ternary.FALSE)), False)
 
     def test_applied_to_a_term(self) -> None:
-        self.assertEqual(K3 | (ap(K3, π) == True), K3)  # noqa: E712
+        self.assertEqual(K3 & (ap(K3, π) == True), K3)  # noqa: E712
 
     def test_its_metadata(self) -> None:
         self.assertIs(K3.is_decidable, True)

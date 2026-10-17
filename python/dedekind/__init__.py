@@ -8,7 +8,7 @@ The mathematics lives in C++; Python holds handles to it.  Three modules:
 ``dedekind.pst``
     The finite carriers and the sets over them: the truth chains ``B`` and
     ``K3``, the canonical ring ``u64`` and field ``𝔽ₚ`` (universes ``U64``, ``GF_p``), and
-    the term surface ``A(carrier) | term``, checked when it is built.
+    the term surface ``A(carrier) & term``, checked when it is built.
 ``dedekind.trsk``
     The relations between products of those universes: Kleisli composition
     ``>>``, ``diag`` (η), the Frobenius spiders ``copy`` / ``merge``, the

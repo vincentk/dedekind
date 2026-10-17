@@ -3,7 +3,7 @@
 A relation ``A ⇸ B`` is a term over relations (C++ ``relational:rows``): its
 domain and codomain are products of the universes (``U64``, ``GF_p``, ``B``,
 ``K3``, from ``dedekind.pst``), and its predicate a reading of the term.  A
-set ``U | pred`` is a relation out of the unit; ``U * V`` multiplies.
+set ``U & pred`` is a relation out of the unit; ``U * V`` multiplies.
 
 Relations are the Kleisli arrows of the powerset monad, composed
 monadically, and form a cartesian bicategory::
@@ -11,9 +11,9 @@ monadically, and form a cartesian bicategory::
     from dedekind.pst import U64, π_1, π_2, canonical
     from dedekind.trsk import Function, copy, diag, merge
 
-    succ = U64 * U64 | (π_2 == π_1 + 1)
+    succ = U64 * U64 & (π_2 == π_1 + 1)
     two = succ >> succ                     # Kleisli composition: ∃ over the middle
-    two == (U64 * U64 | (π_2 == π_1 + 2))  # True: canonical eliminates the ∃
+    two == (U64 * U64 & (π_2 == π_1 + 2))  # True: canonical eliminates the ∃
     diag(U64) >> succ == succ              # True: η, the unit of >>
     copy(U64) >> (succ.arrow * succ.arrow) >> merge(U64)   # succ ∧ succ: a spider
     succ.converse                          # the dagger

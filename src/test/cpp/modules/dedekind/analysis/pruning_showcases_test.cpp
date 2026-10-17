@@ -37,8 +37,8 @@ namespace {
 constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // Diagonal {x = y} and strip {x > 5 ∧ y < 3}, point-free over R2.
-constexpr auto diag = R2 | (π_1 == π_2);
-constexpr auto strip = R2 | (π_1 > 5.0 && π_2 < 3.0);
+constexpr auto diag = R2 & (π_1 == π_2);
+constexpr auto strip = R2 & (π_1 > 5.0 && π_2 < 3.0);
 
 }  // namespace
 
@@ -67,7 +67,7 @@ constexpr auto on_small_natural_grid = [](const R2Point& p) {
 };
 constexpr auto natural_lattice = Comprehension{R2, on_small_natural_grid};
 constexpr auto unit_square =
-    R2 | (π_1 >= 0.5 && π_1 <= 1.5 && π_2 >= 0.5 && π_2 <= 1.5);
+    R2 & (π_1 >= 0.5 && π_1 <= 1.5 && π_2 >= 0.5 && π_2 <= 1.5);
 
 }  // namespace
 
@@ -84,8 +84,8 @@ TEST_CASE("Pruning showcase 2: {0..3}² lattice × [½,1½]² in ℝ² = {(1,1)}
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto gt_five = ℕ | (π > 5);
-  constexpr auto lt_three = ℕ | (π < 3);
+  constexpr auto gt_five = ℕ & (π > 5);
+  constexpr auto lt_three = ℕ & (π < 3);
 
   // The contradiction folds value-first to the empty Interval (kind Empty).
   constexpr auto empty_meet = gt_five & lt_three;
@@ -106,8 +106,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   // Canonical point-free grammar (the paper form): the canonical set ℕ, the
   // sole projection χ (the element scout, reads as x), and a compile-time bound
   // spelled 3.  No Set{} wrapper.
-  constexpr auto gt_3 = ℕ | (π > 3);
-  constexpr auto lt_5 = ℕ | (π < 5);
+  constexpr auto gt_3 = ℕ & (π > 3);
+  constexpr auto lt_5 = ℕ & (π < 5);
 
   // The punch line: the meet COLLAPSES to the point {4} at compile time.  The
   // collapse gates on the NNO's successor / predecessor --- an axiom of the
@@ -131,8 +131,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
 
 TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
-  constexpr auto gt_five = ℝ_d | (π > 5.0);
-  constexpr auto lt_three = ℝ_d | (π < 3.0);
+  constexpr auto gt_five = ℝ_d & (π > 5.0);
+  constexpr auto lt_three = ℝ_d & (π < 3.0);
 
   // The contradiction folds value-first to the empty Interval, on a continuous
   // carrier just as on ℕ.

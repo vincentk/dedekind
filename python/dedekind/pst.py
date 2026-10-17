@@ -21,8 +21,8 @@ as the paper spells it::
     from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
-    S = K3 | (π > F)          # generator | pred      -> {U, ⊤}
-    S == (K3 | (π >= U))      # True: one normal form, the run list [U, ⊤]
+    S = K3 & (π > F)          # generator & pred      -> {U, ⊤}
+    S == (K3 & (π >= U))      # True: one normal form, the run list [U, ⊤]
     ~S & η(T) | Ø(K3)            # ~ & | ^ on sets
     U in S;  ap(S, U)            # membership, χ: ap applies an arrow
     exists(K3, π > F)         # True;  forall(K3, π > F) is False
@@ -31,7 +31,7 @@ as the paper spells it::
     H = K3.identity              # χ(x) = x, valued in K₃
     H == H                       # Ternary.UNKNOWN: reflexive only up to the
                                  # excluded middle, where the set is U
-    K3 | (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
+    K3 & (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
 
 Every handle over a truth chain is a run list, the library's normal form of
 these sets, valued in its species (a K₃-valued set is a step function on the
@@ -59,7 +59,7 @@ The canonical ring and field, each as large as a machine word allows::
     u64.is_field;  𝔽ₚ.is_field  # False; True: the C++ concepts' verdict
 
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
-``A(carrier) | term`` binds it, casting every constant into the carrier and
+``A(carrier) & term`` binds it, casting every constant into the carrier and
 admitting every operator there or refusing it (``TypeError``), all when the
 set is built.  The universes multiply into products of any arity, each column
 its own sort (a relation is a table: one class, its schema as data); 𝔹 ↪ K₃
@@ -69,21 +69,21 @@ is the one coercion, any other two carriers meet through ``ap``::
     from dedekind.trsk import Function        # the relational surface
 
     U = A(u64)
-    evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
+    evens = U & (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
     4 in evens                          # True
-    U * U | (π_2 == π_1 + 1)              # a relation on the product
-    U * U | (π_2 == π_2 // π_1)            # TypeError: a term divisor could be 0
-    U | (π > -1)                        # ValueError: the word cannot hold -1
+    U * U & (π_2 == π_1 + 1)              # a relation on the product
+    U * U & (π_2 == π_2 // π_1)            # TypeError: a term divisor could be 0
+    U & (π > -1)                        # ValueError: the word cannot hold -1
     π % 0                               # ValueError, when the term is written
     F = A(𝔽ₚ)
-    third = F * F | (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
+    third = F * F & (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
     ap(third, (3, 1))                   # True: 3 · 3⁻¹ = 1
-    Function[u64, B](U64 * B | (π_2 == ap(U64 | (π > 5), π_1)))   # χ as a function
-    fib = U64 * U64 * U64 | (π_3 == π_1 + π_2)    # Function[u64, u64, u64]
+    Function[u64, B](U64 * B & (π_2 == ap(U64 & (π > 5), π_1)))   # χ as a function
+    fib = U64 * U64 * U64 & (π_3 == π_1 + π_2)    # Function[u64, u64, u64]
     ap(fib, (3, 5))                               # 8
-    F | (π < 3)                         # TypeError: 𝔽ₚ has no order
-    A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
-    B | (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
+    F & (π < 3)                         # TypeError: 𝔽ₚ has no order
+    A(u64) & (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
+    B & (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
@@ -92,10 +92,10 @@ are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
 wrapping at the word's end::
 
     from dedekind.jlt import succ
-    (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)    # True: one normal form
-    canonical(~(U | (π == 5)))     # 𝔸(u64) | (π <= 4) | (π >= 6): the runs, written
-    list(U[3:8]);  len(U | (π < 3))                  # [3, 4, 5, 6, 7]; 3
-    image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))   # True: wraps
+    (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)    # True: one normal form
+    canonical(~(U & (π == 5)))     # 𝔸(u64) & ((π <= 4) | (π >= 6)): the runs, written
+    list(U[3:8]);  len(U & (π < 3))                  # [3, 4, 5, 6, 7]; 3
+    image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` is ``B``; ``Ø``, ``η``, ``π`` are names as
