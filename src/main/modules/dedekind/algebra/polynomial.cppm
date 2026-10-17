@@ -698,6 +698,14 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
  *  refused (@c not_admitted).  @tparam P the point type.  @param p the
  *  predicate.  @param lift a coefficient into a constant of the predicate's
  *  type.  @param rep a point of @c P (a row is its own schema). */
+/** @brief The slots above an eliminated bound slot, moved down by one. */
+template <typename K>
+struct ShiftDown {
+  unsigned above;
+  dedekind::sets::Term<K> operator()(unsigned s) const {
+    return dedekind::sets::Term<K>::proj(s > above ? s - 1 : s);
+  }
+};
 /** @brief The predicate with every quantifier eliminated that can be, the
  *  atoms left as written: innermost first, by substitution where an atom
  *  defines the bound column (a conjunct @c π_h @c == @c t under @c ∃, a
@@ -730,9 +738,14 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       const bool universal = p.kind == Pr::Kind::Forall;
       const Pr body = eliminate_quantifiers<P>(
           *p.p, lift, dedekind::sets::with_bound(rep, p.sort));
+      // Once the bound slot is gone, the quantifiers inside it bind one slot
+      // lower: every slot above it moves down (the next-slot invariant).
+      const auto unbound = [&](const Pr& q) {
+        return q.map_slots(ShiftDown<K>{p.slot});
+      };
       if (auto d = dedekind::sets::defining_term(body, p.slot, universal))
-        return eliminate_quantifiers<P>(d->rest.subst(p.slot, d->term), lift,
-                                        rep);
+        return eliminate_quantifiers<P>(unbound(d->rest.subst(p.slot, d->term)),
+                                        lift, rep);
       const auto cases = dedekind::sets::with_sort<P>(
           p.sort, detail_canonical::ChainValues<K, Lift>{lift});
       if (!cases.empty()) {
@@ -741,7 +754,7 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
           const Pr next = body.subst(p.slot, cases[i]);
           all = universal ? Pr::conj(all, next) : Pr::disj(all, next);
         }
-        return eliminate_quantifiers<P>(all, lift, rep);
+        return eliminate_quantifiers<P>(unbound(all), lift, rep);
       }
       return Pr::bound_like(p, body);
     }

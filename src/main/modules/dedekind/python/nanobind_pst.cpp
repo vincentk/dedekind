@@ -1074,7 +1074,14 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
   m.def(
       "canonical",
       [](const Relation& r) {
-        return Relation::leaf(r.schema, normal_form(r), r.budget);
+        const RPred nf = normal_form(r);
+        // A predicate normalising to ⊤ cuts out the product universe itself.
+        if (nf.kind == RPred::Kind::Top) {
+          Relation u = Relation::universe(r.schema);
+          u.budget = r.budget;
+          return u;
+        }
+        return Relation::leaf(r.schema, nf, r.budget);
       },
       nb::arg("S"),
       "canonical(R): each atom in normal form in its column's sort; a "
