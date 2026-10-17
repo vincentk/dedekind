@@ -229,9 +229,10 @@ TEST_CASE("A conditional is lifted out of its atom: cond(q, a, b) R c",
   CHECK(same_shape(nf(Pr::cmp(Rel::Eq, chi, T::constant(2u))), Pr::bottom()));
   // Through an operator: cond(q, π, 0) + 1 == 1 is (q ∧ π = 0) ∨ ¬q.
   const T shifted = T::bin(Arith::Add, T::cond(below, x, zero), one);
+  // Compared normal form to normal form: the operands' order is canonical's.
   CHECK(same_shape(nf(Pr::cmp(Rel::Eq, shifted, one)),
-                   Pr::disj(Pr::conj(below, nf(Pr::cmp(Rel::Eq, x, zero))),
-                            below.negated())));
+                   nf(Pr::disj(Pr::conj(below, Pr::cmp(Rel::Eq, x, zero)),
+                               below.negated()))));
 }
 
 TEST_CASE("Powers: written back by squaring, logarithmic in the exponent",
