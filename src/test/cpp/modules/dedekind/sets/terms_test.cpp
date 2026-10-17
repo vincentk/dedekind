@@ -164,3 +164,43 @@ TEST_CASE(
                                          S::constant(std::string{"ok"}))),
                   std::domain_error);
 }
+
+TEST_CASE(
+    "sets:terms: a row is its own schema: n slots, a sort per cell, read at "
+    "run "
+    "time",
+    "[sets][terms][rows]") {
+  using R = Row<unsigned, bool>;
+  using T = Term<int>;
+  using Q = Pred<int>;
+  // Three columns: a word, a bool, a word.
+  const R rep = row_of_sorts<unsigned, bool>({0, 1, 0});
+  CHECK(slot_sort<R>(1, rep) == 0);
+  CHECK(slot_sort<R>(2, rep) == 1);
+  CHECK(slot_sort<R>(3, rep) == 0);
+  CHECK_THROWS_AS(slot_sort<R>(4, rep), not_admitted);  // past the arity
+  CHECK_THROWS_AS(slot_sort<R>(0, rep), not_admitted);  // π is no column
+  CHECK(one_sort<R>(rep) == no_sort);                   // two carriers
+  CHECK(one_sort<R>(row_of_sorts<unsigned, bool>({0, 0})) == 0);
+
+  // π_3 == π_1 + 1, read at rows: each slot in its column's sort.
+  const Q succ = Q::cmp(Rel::Eq, T::proj(3),
+                        T::bin(Arith::Add, T::proj(1), T::constant(1)));
+  CHECK_NOTHROW(bind_check<R>(succ, rep));
+  CHECK(succ(R{{4u, true, 5u}}));
+  CHECK_FALSE(succ(R{{4u, true, 6u}}));
+  // A word and a bool do not meet: π_1 == π_2 is refused at these rows.
+  CHECK_THROWS_AS(bind_check<R>(Q::cmp(Rel::Eq, T::proj(1), T::proj(2)), rep),
+                  not_admitted);
+
+  // The graph of a function of the first two columns, the result the third.
+  CHECK(graph_term(succ, 3) != nullptr);
+  CHECK(graph_term(succ, 2) == nullptr);  // π_2 is not its result
+  // A product shifts the slots: map_slots renames them all at once.
+  struct Shift {
+    T operator()(unsigned s) const { return T::proj(s + 1); }
+  };
+  CHECK(same_shape(succ.map_slots(Shift{}),
+                   Q::cmp(Rel::Eq, T::proj(4),
+                          T::bin(Arith::Add, T::proj(2), T::constant(1)))));
+}

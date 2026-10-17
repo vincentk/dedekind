@@ -538,15 +538,18 @@ static_assert(unit_normaliser(3u) * 3u == 1u &&
  *  coefficient divided out (monic on a field; @c unit_normaliser elsewhere),
  *  so an equation and its multiple by any unit meet; any other atom has its
  *  sides normalised and its comparison kept.  @tparam C the sort. */
+/** @brief The variables an atom's normal form reads: @c π and the slots
+ *  @c π_1 … @c π_7 of a row.  A slot past them raises @c std::out_of_range. */
+inline constexpr std::size_t atom_slots = 8;
 template <typename C, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
                                        const Lift& lift) {
   using Pr = dedekind::sets::Pred<K>;
-  using P = Polynomial<C, Monomial<4>>;
+  using P = Polynomial<C, Monomial<atom_slots>>;
   using dedekind::sets::On;
   using dedekind::sets::Rel;
-  const P x = canonical<C>(*p.a);
-  const P y = canonical<C>(*p.b);
+  const P x = cata(Poly<C, atom_slots>{}, *p.a);
+  const P y = cata(Poly<C, atom_slots>{}, *p.b);
   // Both sides constants: the atom is decided, and written back as ⊤ or ⊥,
   // the Boolean algebra's constants, free of a sort no constant could name
   // again.
@@ -554,8 +557,8 @@ dedekind::sets::Pred<K> canonical_atom(const dedekind::sets::Pred<K>& p,
     if (!dedekind::sets::rel_admitted<C>(p.rel))
       throw dedekind::sets::not_admitted(
           "the comparison is not in the carrier's signature");
-    return dedekind::sets::compare_rel(p.rel, x(Monomial<4>::one()),
-                                       y(Monomial<4>::one()))
+    return dedekind::sets::compare_rel(p.rel, x(Monomial<atom_slots>::one()),
+                                       y(Monomial<atom_slots>::one()))
                ? Pr::top()
                : Pr::bottom();
   }
@@ -629,7 +632,7 @@ struct AtomAt {
  *  absorbers). */
 template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
-                                         const Lift& lift) {
+                                         const Lift& lift, const P& rep) {
   using Pr = dedekind::sets::Pred<K>;
   switch (p.kind) {
     case Pr::Kind::Top:
@@ -637,8 +640,8 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       return p;
     case Pr::Kind::And:
     case Pr::Kind::Or: {
-      const Pr x = canonical_lifted<P>(*p.p, lift);
-      const Pr y = canonical_lifted<P>(*p.q, lift);
+      const Pr x = canonical_lifted<P>(*p.p, lift, rep);
+      const Pr y = canonical_lifted<P>(*p.q, lift, rep);
       const bool meet = p.kind == Pr::Kind::And;
       const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
       const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
@@ -650,8 +653,10 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       break;
   }
   return dedekind::sets::with_sort<P>(
-      dedekind::sets::default_sort<P>(dedekind::sets::join_sorts<P>(
-          dedekind::sets::sort_of<P>(*p.a), dedekind::sets::sort_of<P>(*p.b))),
+      dedekind::sets::default_sort<P>(
+          dedekind::sets::join_sorts<P>(dedekind::sets::sort_of<P>(*p.a, rep),
+                                        dedekind::sets::sort_of<P>(*p.b, rep)),
+          rep),
       AtomAt<P, K, Lift>{p, lift});
 }
 }  // namespace detail_canonical
@@ -665,12 +670,12 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
  *  (@c πᵖ @c = @c π everywhere on 𝔽ₚ).  An atom outside the catalogue is
  *  refused (@c not_admitted).  @tparam P the point type.  @param p the
  *  predicate.  @param lift a coefficient into a constant of the predicate's
- *  type. */
+ *  type.  @param rep a point of @c P (a row is its own schema). */
 export template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
-                                  const Lift& lift) {
+                                  const Lift& lift, const P& rep = P{}) {
   return detail_canonical::canonical_lifted<P>(
-      dedekind::sets::lift_conditionals(p), lift);
+      dedekind::sets::lift_conditionals(p), lift, rep);
 }
 
 }  // namespace dedekind::algebra

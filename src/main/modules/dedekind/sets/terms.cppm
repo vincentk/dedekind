@@ -102,6 +102,7 @@ module;
 #include <type_traits>
 #include <utility>
 #include <variant>  // the value of a term over two carriers
+#include <vector>   // a row: the cells of an n-ary point
 
 export module dedekind.sets:terms;
 
@@ -692,6 +693,24 @@ struct point_sorts<std::pair<A, B>> {
   using type =
       std::conditional_t<std::same_as<A, B>, std::tuple<A>, std::tuple<A, B>>;
 };
+/** @brief A row: a point of an n-ary product whose arity and columns' sorts
+ *  are data.  Each cell is a value of one of the carriers @c Cs, and the cell's
+ *  alternative is its column's sort, so a row is its own schema.  Slots are
+ *  @c π_1 … @c π_n.  @tparam Cs the carriers a column may have. */
+export template <typename... Cs>
+struct Row {
+  using Cell = std::variant<Cs...>;
+  std::vector<Cell> cells;
+  friend bool operator==(const Row&, const Row&) = default;
+};
+template <typename... Cs>
+struct point_sorts<Row<Cs...>> {
+  using type = std::tuple<Cs...>;
+};
+template <typename P>
+inline constexpr bool is_row_v = false;
+template <typename... Cs>
+inline constexpr bool is_row_v<Row<Cs...>> = true;
 export template <typename P>
 using point_sorts_t = typename point_sorts<P>::type;
 /** @brief Whether @c C is one of the sorts @c S. */
@@ -717,16 +736,16 @@ using term_sorts_t =
     typename with_carrier<typename with_carrier<point_sorts_t<P>, bool>::type,
                           dedekind::category::Ternary>::type;
 /** @brief The value of a term built at run time at a point: the one sort's
- *  carrier, or the sum of the sorts where there are two. */
+ *  carrier, or the sum of the sorts where there are more. */
 template <typename Sorts>
 struct value_sum;
 template <typename A>
 struct value_sum<std::tuple<A>> {
   using type = A;
 };
-template <typename A, typename B>
-struct value_sum<std::tuple<A, B>> {
-  using type = std::variant<A, B>;
+template <typename A, typename B, typename... Cs>
+struct value_sum<std::tuple<A, B, Cs...>> {
+  using type = std::variant<A, B, Cs...>;
 };
 export template <typename P>
 using rt_value_t = typename value_sum<point_sorts_t<P>>::type;
@@ -735,11 +754,18 @@ using rt_value_t = typename value_sum<point_sorts_t<P>>::type;
  *  context. */
 export inline constexpr std::size_t no_sort = static_cast<std::size_t>(-1);
 /** @brief The sort of the slot @c slot at points of @c P, an index into
- *  @c point_sorts_t<P>.  @throws not_admitted for a slot the points have not.
- */
+ *  @c point_sorts_t<P>: read off the type, or off a representative row, whose
+ *  cells are its schema.  @throws not_admitted for a slot the points have not.
+ *  @param rep a point of @c P (any, for a typed point). */
 export template <typename P>
-std::size_t slot_sort(unsigned slot) {
-  if constexpr (requires { typename P::first_type; }) {
+std::size_t slot_sort(unsigned slot, const P& rep = P{}) {
+  if constexpr (is_row_v<P>) {
+    if (slot == 0)
+      throw not_admitted("π names an element; the points are rows: π_1 … π_n");
+    if (slot > rep.cells.size())
+      throw not_admitted("a slot past the row's arity");
+    return rep.cells[slot - 1].index();
+  } else if constexpr (requires { typename P::first_type; }) {
     using A = typename P::first_type;
     using B = typename P::second_type;
     if (slot == 1) return 0;
@@ -752,15 +778,29 @@ std::size_t slot_sort(unsigned slot) {
         "π_1 / π_2 name a pair's coordinates; the points are elements");
   }
 }
-/** @brief The sort of a tree of constants without a context: the point's one
- *  sort where it has one.  @throws not_admitted on a point of two carriers,
- *  where a constant alone names neither. */
+/** @brief The points' one sort, where every slot has the same; @c no_sort on
+ *  a product of several.  @param rep a point of @c P. */
 export template <typename P>
-std::size_t default_sort(std::size_t s) {
+std::size_t one_sort(const P& rep = P{}) {
+  if constexpr (is_row_v<P>) {
+    if (rep.cells.empty()) return no_sort;
+    for (const auto& c : rep.cells)
+      if (c.index() != rep.cells.front().index()) return no_sort;
+    return rep.cells.front().index();
+  } else {
+    return std::tuple_size_v<point_sorts_t<P>> == 1 ? 0 : no_sort;
+  }
+}
+/** @brief The sort of a tree of constants without a context: the points' one
+ *  sort where they have one.  @throws not_admitted on a product of several
+ *  carriers, where a constant alone names none.  @param rep a point of @c P.
+ */
+export template <typename P>
+std::size_t default_sort(std::size_t s, const P& rep = P{}) {
   if (s != no_sort) return s;
-  if constexpr (std::tuple_size_v<point_sorts_t<P>> == 1) return 0;
+  if (const std::size_t one = one_sort<P>(rep); one != no_sort) return one;
   throw not_admitted(
-      "a term of constants alone names no carrier on a product of two");
+      "a term of constants alone names no carrier on a product of several");
 }
 /** @brief Apply @c f to the sort @c s of @c P as a type:
  *  @c f(type_identity<C>).  @c s is a valid index (the caller joined the
@@ -810,9 +850,21 @@ constexpr C read_as(const D& d) {
 /** @brief The coordinate @c slot of the point @c p, read in the sort @c C the
  *  dispatch chose; the point itself for the unary @c π.  @tparam C the sort.
  *  @param p the point. */
+/** @brief A cell read in the sort @c C, whichever alternative it holds. */
+template <typename C>
+struct ReadAs {
+  template <typename D>
+  constexpr C operator()(const D& d) const {
+    return read_as<C>(d);
+  }
+};
 template <typename C, typename P>
 constexpr C coordinate_as(unsigned slot, const P& p) {
-  if constexpr (requires { typename P::first_type; }) {
+  if constexpr (is_row_v<P>) {
+    if (slot == 0 || slot > p.cells.size())
+      throw not_admitted("a slot the row has not");
+    return std::visit(ReadAs<C>{}, p.cells[slot - 1]);
+  } else if constexpr (requires { typename P::first_type; }) {
     if (slot == 1) return read_as<C>(p.first);
     if (slot == 2) return read_as<C>(p.second);
     throw not_admitted("binary products only: π_1 and π_2");
@@ -967,6 +1019,35 @@ std::size_t join_sorts(std::size_t a, std::size_t b) {
       "the operands are of two carriers: a term lives in one sort, and an "
       "arrow between the carriers is applied, not implied");
 }
+/** @brief Whether a value of the sort @c from is read in the sort @c into at
+ *  points of @c P (@c EmbedsInto): the same sort, or along the dominance.
+ *  @param from,into indices into @c term_sorts_t<P>. */
+export template <typename P>
+bool sort_embeds(std::size_t from, std::size_t into) {
+  return with_sort<P>(into, EmbedsAt<P>{from});
+}
+/** @brief A cell of the sort @c sort, its carrier's default value: a row
+ *  built from a schema is a representative of its points. */
+template <std::size_t I, typename... Cs>
+std::variant<Cs...> default_cell(std::size_t sort) {
+  if constexpr (I < sizeof...(Cs)) {
+    if (sort == I) return std::variant<Cs...>{std::in_place_index<I>};
+    return default_cell<I + 1, Cs...>(sort);
+  } else {
+    throw not_admitted("a sort the row's carriers have not");
+  }
+}
+/** @brief The row whose columns have the sorts @c sorts: a representative of
+ *  the points of that schema, for binding and normal forms.
+ *  @tparam Cs the carriers.  @param sorts an index into @c Cs per column. */
+export template <typename... Cs>
+Row<Cs...> row_of_sorts(const std::vector<std::size_t>& sorts) {
+  Row<Cs...> r;
+  r.cells.reserve(sorts.size());
+  for (const std::size_t s : sorts)
+    r.cells.push_back(default_cell<0, Cs...>(s));
+  return r;
+}
 /** @brief A constant read in the sort @c C: a numeral cast into it, a
  *  constant of a sort (a bool, a Ternary) read in its own and embedded.
  *  @tparam P the point type.  @tparam C the sort.  @param k the constant. */
@@ -994,7 +1075,7 @@ C constant_as(const K& k) {
  *  a tree of numerals, which takes its context's.  Defined with @c Term.
  *  @tparam P the point type. */
 export template <typename P, typename K>
-std::size_t sort_of(const Term<K>& t);
+std::size_t sort_of(const Term<K>& t, const P& rep = P{});
 
 /** @brief The value algebra: a term or a predicate folded at the point @c p.
  *  A projection reads its coordinate, a constant is its value, a predicate the
@@ -1065,7 +1146,8 @@ struct Value {
    */
   template <typename K>
   rt_value_t<P> steer(const Term<K>& t) const {
-    return with_sort<P>(default_sort<P>(sort_of<P>(t)), EvalTerm<K>{*this, t});
+    return with_sort<P>(default_sort<P>(sort_of<P>(t, p), p),
+                        EvalTerm<K>{*this, t});
   }
   /** @brief A predicate built at run time: a comparison in its operands'
    *  common sort, the connectives in 𝔹. */
@@ -1074,7 +1156,8 @@ struct Value {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<P>(
-            default_sort<P>(join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b))),
+            default_sort<P>(
+                join_sorts<P>(sort_of<P>(*t.a, p), sort_of<P>(*t.b, p)), p),
             Compare<K>{*this, t});
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
@@ -1255,6 +1338,7 @@ struct Bound {};
  *  binds trivially.  @tparam X the point type. */
 template <typename X>
 struct Bind {
+  X rep{};  // a point of X: a row is its own schema
   template <typename Leaf>
   constexpr Bound operator()(const Leaf&) const {
     return {};
@@ -1284,14 +1368,17 @@ struct Bind {
    *  in it, and no two carriers in one term. */
   template <typename K>
   Bound steer(const Term<K>& t) const {
-    return with_sort<X>(default_sort<X>(sort_of<X>(t)), BindTerm<K>{*this, t});
+    return with_sort<X>(default_sort<X>(sort_of<X>(t, rep), rep),
+                        BindTerm<K>{*this, t});
   }
   template <typename K>
   Bound steer(const Pred<K>& t) const {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<X>(
-            default_sort<X>(join_sorts<X>(sort_of<X>(*t.a), sort_of<X>(*t.b))),
+            default_sort<X>(
+                join_sorts<X>(sort_of<X>(*t.a, rep), sort_of<X>(*t.b, rep)),
+                rep),
             BindCmp<K>{*this, t});
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
@@ -1309,7 +1396,7 @@ struct Bind {
   void bind_as(const Term<K>& t) const {
     switch (t.kind) {
       case Term<K>::Kind::Proj:
-        (void)coordinate_as<C>(t.slot, X{});
+        (void)coordinate_as<C>(t.slot, rep);
         break;
       case Term<K>::Kind::Const:
         (void)constant_as<X, C>(t.value);
@@ -1376,8 +1463,8 @@ struct Bind {
  *  (a compile error in @c constexpr code).
  *  @tparam X the point type.  @tparam T the term. */
 export template <typename X, typename T>
-constexpr void bind_check(const T& t) {
-  (void)cata(Bind<X>{}, t);
+constexpr void bind_check(const T& t, const X& rep = X{}) {
+  (void)cata(Bind<X>{rep}, t);
 }
 
 // ── Terms whose shape is a value ────────────────────────────────────────────
@@ -1417,27 +1504,40 @@ struct Term {
    *  the successor's).  @param variable the slot.  @param with its
    *  replacement.  @return the substituted term. */
   Term subst(unsigned variable, const Term& with) const {
+    return map_slots(SubstOne{variable, with});
+  }
+  /** @brief Every slot replaced at once by the term @c f gives it: a
+   *  simultaneous substitution, so a renaming (a product's shift, a
+   *  permutation) never captures.  @param f a slot to its replacement. */
+  template <typename F>
+  Term map_slots(const F& f) const {
     switch (kind) {
       case Kind::Proj:
-        return slot == variable ? with : *this;
+        return f(slot);
       case Kind::Const:
         return *this;
       case Kind::Bin: {
         Term t = *this;
-        t.a = std::make_shared<const Term>(a->subst(variable, with));
-        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        t.a = std::make_shared<const Term>(a->map_slots(f));
+        t.b = std::make_shared<const Term>(b->map_slots(f));
         return t;
       }
       case Kind::Cond: {
         Term t = *this;
-        t.p = std::make_shared<const Pred<K>>(p->subst(variable, with));
-        t.a = std::make_shared<const Term>(a->subst(variable, with));
-        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        t.p = std::make_shared<const Pred<K>>(p->map_slots(f));
+        t.a = std::make_shared<const Term>(a->map_slots(f));
+        t.b = std::make_shared<const Term>(b->map_slots(f));
         return t;
       }
     }
     return *this;
   }
+  /** @brief The one-slot substitution as a slot map. */
+  struct SubstOne {
+    unsigned variable;
+    const Term& with;
+    Term operator()(unsigned s) const { return s == variable ? with : proj(s); }
+  };
   /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; defined
    *  after @c Pred.  @param q the predicate.  @param a,b the branches. */
   static Term cond(Pred<K> q, Term a, Term b);
@@ -1497,14 +1597,20 @@ struct Pred {
    *  @c with in every atom.  @param variable the slot.  @param with its
    *  replacement.  @return the substituted predicate. */
   Pred subst(unsigned variable, const Term<K>& with) const {
+    return map_slots(typename Term<K>::SubstOne{variable, with});
+  }
+  /** @brief Every slot of every atom replaced at once (@c Term::map_slots).
+   *  @param f a slot to its replacement. */
+  template <typename F>
+  Pred map_slots(const F& f) const {
     if (kind == Kind::Top || kind == Kind::Bottom) return *this;
     Pred t = *this;
     if (kind == Kind::Cmp) {
-      t.a = std::make_shared<const Term<K>>(a->subst(variable, with));
-      t.b = std::make_shared<const Term<K>>(b->subst(variable, with));
+      t.a = std::make_shared<const Term<K>>(a->map_slots(f));
+      t.b = std::make_shared<const Term<K>>(b->map_slots(f));
     } else {
-      t.p = std::make_shared<const Pred>(p->subst(variable, with));
-      t.q = std::make_shared<const Pred>(q->subst(variable, with));
+      t.p = std::make_shared<const Pred>(p->map_slots(f));
+      t.q = std::make_shared<const Pred>(q->map_slots(f));
     }
     return t;
   }
@@ -1557,16 +1663,15 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
 }
 
 template <typename P, typename K>
-std::size_t sort_of(const Term<K>& t) {
+std::size_t sort_of(const Term<K>& t, const P& rep) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
-      return slot_sort<P>(t.slot);
+      return slot_sort<P>(t.slot, rep);
     case Term<K>::Kind::Const:
       return constant_sort<P>(t.value);
     case Term<K>::Kind::Bin:
-      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
     case Term<K>::Kind::Cond:
-      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a, rep), sort_of<P>(*t.b, rep));
   }
   return no_sort;
 }
@@ -1626,12 +1731,14 @@ struct PinConstant {
   }
 };
 export template <typename P, typename K, typename Lift>
-Pred<K> pin_constants(const Pred<K>& p, const Lift& lift);
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep = P{});
 /** @brief The term @c t, of the sort @c s at points of @c P, with every
  *  numeral pinned to it.  @param t the term.  @param s its sort.  @param lift
- *  a value of a sort into a constant that names it. */
+ *  a value of a sort into a constant that names it.  @param rep a point of
+ *  @c P. */
 template <typename P, typename K, typename Lift>
-Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
+Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift,
+                 const P& rep) {
   using T = Term<K>;
   switch (t.kind) {
     case T::Kind::Proj:
@@ -1640,11 +1747,12 @@ Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
       if (s == no_sort || constant_sort<P>(t.value) != no_sort) return t;
       return T::constant(with_sort<P>(s, PinConstant<K, Lift>{t.value, lift}));
     case T::Kind::Bin:
-      return T::bin(t.op, pin_term<P>(*t.a, s, lift),
-                    pin_term<P>(*t.b, s, lift));
+      return T::bin(t.op, pin_term<P>(*t.a, s, lift, rep),
+                    pin_term<P>(*t.b, s, lift, rep));
     case T::Kind::Cond:
-      return T::cond(pin_constants<P>(*t.p, lift), pin_term<P>(*t.a, s, lift),
-                     pin_term<P>(*t.b, s, lift));
+      return T::cond(pin_constants<P>(*t.p, lift, rep),
+                     pin_term<P>(*t.a, s, lift, rep),
+                     pin_term<P>(*t.b, s, lift, rep));
   }
   return t;
 }
@@ -1655,43 +1763,54 @@ Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
  *  slot left).  @param p the predicate.  @param lift a value of a sort into a
  *  constant that names it (@c constant_of). */
 export template <typename P, typename K, typename Lift>
-Pred<K> pin_constants(const Pred<K>& p, const Lift& lift) {
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep) {
   using Pr = Pred<K>;
   switch (p.kind) {
     case Pr::Kind::Top:
     case Pr::Kind::Bottom:
       return p;
     case Pr::Kind::And:
-      return Pr::conj(pin_constants<P>(*p.p, lift),
-                      pin_constants<P>(*p.q, lift));
+      return Pr::conj(pin_constants<P>(*p.p, lift, rep),
+                      pin_constants<P>(*p.q, lift, rep));
     case Pr::Kind::Or:
-      return Pr::disj(pin_constants<P>(*p.p, lift),
-                      pin_constants<P>(*p.q, lift));
+      return Pr::disj(pin_constants<P>(*p.p, lift, rep),
+                      pin_constants<P>(*p.q, lift, rep));
     case Pr::Kind::Cmp: {
-      // A comparison of numerals alone takes the point's one sort, as binding
-      // reads it; on a product of two it names none and is left as written.
-      std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
-      if (s == no_sort && std::tuple_size_v<point_sorts_t<P>> == 1) s = 0;
-      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift),
-                     pin_term<P>(*p.b, s, lift));
+      // A comparison of numerals alone takes the points' one sort, as binding
+      // reads it; on a product of several it names none and is left as
+      // written.
+      std::size_t s =
+          join_sorts<P>(sort_of<P>(*p.a, rep), sort_of<P>(*p.b, rep));
+      if (s == no_sort) s = one_sort<P>(rep);
+      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift, rep),
+                     pin_term<P>(*p.b, s, lift, rep));
     }
   }
   return p;
 }
-/** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
- *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
- *  any other predicate.  The run-time twin of @c IsGraphAtom: such a relation
- *  is functional by its shape, and entire once bound, since binding admits
- *  every operator only where it is total on the carrier (or divides by a
- *  nonzero constant).  @param p the predicate. */
+/** @brief Whether a mask names only slots among @c π_1 … @c π_{n−1}, the
+ *  arguments of a graph whose result is @c π_n.  @param mask the slots.
+ *  @param n the result slot. */
+export constexpr bool only_arguments(unsigned mask, unsigned n) {
+  const unsigned args =
+      n < std::numeric_limits<unsigned>::digits ? ((1u << n) - 1u) & ~1u : ~1u;
+  return (mask & ~args) == 0u;
+}
+/** @brief The term of a graph atom built at run time, @c π_n @c == @c t or
+ *  @c t @c == @c π_n with @c t mentioning only @c π_1 … @c π_{n−1};
+ *  @c nullptr for any other predicate.  The run-time twin of @c IsGraphAtom:
+ *  such a relation is functional by its shape, and entire once bound, since
+ *  binding admits every operator only where it is total on the carrier (or
+ *  divides by a nonzero constant).  @param p the predicate.  @param n the
+ *  result slot, the last (2 on a pair). */
 export template <typename K>
-const Term<K>* graph_term(const Pred<K>& p) {
+const Term<K>* graph_term(const Pred<K>& p, unsigned n = 2) {
   if (p.kind != Pred<K>::Kind::Cmp || p.rel != Rel::Eq) return nullptr;
-  const auto is_y = [](const Term<K>& t) {
-    return t.kind == Term<K>::Kind::Proj && t.slot == 2;
+  const auto is_result = [n](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == n;
   };
-  if (is_y(*p.a) && only_slot(slots(*p.b), 1)) return p.b.get();
-  if (is_y(*p.b) && only_slot(slots(*p.a), 1)) return p.a.get();
+  if (is_result(*p.a) && only_arguments(slots(*p.b), n)) return p.b.get();
+  if (is_result(*p.b) && only_arguments(slots(*p.a), n)) return p.a.get();
   return nullptr;
 }
 
