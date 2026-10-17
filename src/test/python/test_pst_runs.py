@@ -78,7 +78,7 @@ class OneSetOneNormalForm(unittest.TestCase):
 
     def test_the_complement_is_a_run_list(self) -> None:
         u = ~point(5)
-        self.assertEqual(repr(canonical(u)), "𝔸(u64) & (π <= 4) & (π >= 6)")
+        self.assertEqual(repr(canonical(u)), "𝔸(u64) & ((π <= 4) | (π >= 6))")
         self.assertEqual(~above(3), at_most(3))
         self.assertEqual(repr(canonical(at_least(0) & ~point(5))), repr(canonical(u)))
 
@@ -86,7 +86,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         u = at_least(0) & ~point(5)
         self.assertEqual(u, below(5) | above(5))
         self.assertEqual(u, ~(below(0) | point(5)))  # De Morgan
-        self.assertEqual(u, U & ((π < 5) & (π > 5)))  # combined before binding
+        self.assertEqual(u, U & ((π < 5) | (π > 5)))  # combined before binding
         a, b = at_least(0), ~point(5)
         self.assertEqual(a & b, b & a)
         self.assertEqual(a | b, b | a)
@@ -155,7 +155,7 @@ class ImageAndPreimage(unittest.TestCase):
 
     def test_the_word_wraps(self) -> None:
         # The successor sends the word's end to 0, so a ray gains the point 0.
-        self.assertEqual(image(succ(int), above(5)), U & ((π > 6) & (π == 0)))
+        self.assertEqual(image(succ(int), above(5)), U & ((π > 6) | (π == 0)))
         self.assertEqual(preimage(succ(int), at_most(0)), point(MAX))
         self.assertIn(MAX, preimage(succ(int), at_most(0)))
         self.assertEqual(succ(int)(MAX), 0)

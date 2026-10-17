@@ -52,7 +52,7 @@ class TwoCarriersInOneRelation(unittest.TestCase):
         self.assertEqual(repr(canonical(N)), repr(N))
         self.assertIn((1, 1), N)
         self.assertEqual(repr(canonical(U * UF & ((π_1 < 5) & (π_2 != π_2)))),
-                         "𝔸(u64) × 𝔸(𝔽ₚ) | ⊥")  # ⊥ absorbs the meet
+                         "𝔸(u64) × 𝔸(𝔽ₚ) & ⊥")  # ⊥ absorbs the meet
 
     def test_only_the_dominance_coerces(self) -> None:
         # 𝔹 ↪ K₃ is the grammar's one coercion: a bool is no word, and a word

@@ -93,9 +93,9 @@ wrapping at the word's end::
 
     from dedekind.jlt import succ
     (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)    # True: one normal form
-    canonical(~(U & (π == 5)))     # 𝔸(u64) & (π <= 4) & (π >= 6): the runs, written
+    canonical(~(U & (π == 5)))     # 𝔸(u64) & ((π <= 4) | (π >= 6)): the runs, written
     list(U[3:8]);  len(U & (π < 3))                  # [3, 4, 5, 6, 7]; 3
-    image(succ(int), U & (π > 5)) == U & ((π > 6) & (π == 0))   # True: wraps
+    image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` is ``B``; ``Ø``, ``η``, ``π`` are names as

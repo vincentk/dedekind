@@ -176,8 +176,8 @@ class Duality(unittest.TestCase):
         co = ~dom
         self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> ("))
         self.assertEqual(repr(co.classifier), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
-                                             "(π_3 != (π_2 + 1)) & (π_1 != π_2)")
-        self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
+                                             "(π_3 != (π_2 + 1)) | (π_1 != π_2)")
+        self.assertEqual(repr(canonical(co)), "𝔸(u64) & ⊥")  # a ∀ defined by π_2 ≠ t
         self.assertNotIn((5,), co)
         self.assertIs(canonical(~co) == canonical(dom), True)
 
@@ -196,12 +196,12 @@ class Duality(unittest.TestCase):
     def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:
         # R = ∃b ∈ 𝔹. a > 5 ∨ b holds everywhere (b = ⊤ is a witness), so
         # ~R = ∀b ∈ 𝔹. a ≤ 5 ∧ b ≠ ⊤ is empty (b = ⊤ refutes it): Shannon's ∧.
-        R = (U64 * B & ((π_1 > 5) & (π_2 == True))).project(1)  # noqa: E712
+        R = (U64 * B & ((π_1 > 5) | (π_2 == True))).project(1)  # noqa: E712
         self.assertIn((3,), R)
         self.assertIn((7,), R)
         self.assertNotIn((3,), ~R)
         self.assertNotIn((7,), ~R)
-        self.assertEqual(repr(canonical(~R)), "𝔸(u64) | ⊥")
+        self.assertEqual(repr(canonical(~R)), "𝔸(u64) & ⊥")
 
 
 

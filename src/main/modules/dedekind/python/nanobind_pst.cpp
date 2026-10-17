@@ -795,6 +795,12 @@ struct SlotsTo {
   }
 };
 
+/** @brief A predicate written after the former @c &: a disjunction
+ *  parenthesised, since @c & binds tighter than @c |.  @param p the
+ *  predicate. */
+std::string shown_filter(const RPred& p) {
+  return p.kind == RPred::Kind::Or ? "(" + show(p) + ")" : show(p);
+}
 /** @brief @c X @c | @c pred: refused; the filter is the meet, @c X @c &
  *  @c pred (#826), and @c | the join of two sets.  @param x the set's
  *  spelling.  @param p the predicate. */
@@ -1020,7 +1026,7 @@ std::string written(const Relation& r) {
   };
   switch (r.kind) {
     case R::Kind::Comprehension:
-      return leg(*r.a) + " & " + show(r.predicate);
+      return leg(*r.a) + " & " + shown_filter(r.predicate);
     case R::Kind::Meet:
       return leg(*r.a) + " & " + leg(*r.b);
     case R::Kind::Join:
@@ -1371,8 +1377,9 @@ void bind_term_sets(nb::module_& m,
       .def_prop_ro(
           "codomain", [m](const S&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹.")
-      .def("__repr__",
-           [shown](const S& s) { return shown + " & " + show(s.predicate); });
+      .def("__repr__", [shown](const S& s) {
+        return shown + " & " + shown_filter(s.predicate);
+      });
   if constexpr (HasNNOStep<C>) {
     // image / preimage under the structural arrows: the substitution.  An
     // erased composite has no closed form and is refused.

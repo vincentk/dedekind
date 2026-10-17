@@ -72,7 +72,7 @@ print(canonical(region), list(region))  # 𝔸(u64) & π == 4  [4]
 third = A(𝔽ₚ) * A(𝔽ₚ) & (π_2 == π_1 / 3)  # a field's division by a constant
 print((3, 1) in third)                  # True
 
-print(image(succ(int), U & (π > 5)) == U & ((π > 6) & (π == 0)))   # True: it wraps
+print(image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0)))   # True: it wraps
 ```
 
 ## Error Handling Contract

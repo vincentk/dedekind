@@ -45,7 +45,7 @@ class TermsAreCheckedWhenBuilt(unittest.TestCase):
     def test_the_spelling(self) -> None:
         self.assertEqual(repr(π_1 * 3 + 1 == π_2), "((π_1 * 3) + 1) == π_2")
         self.assertEqual(repr((π > 2) & (π < 5)), "(π > 2) & (π < 5)")
-        self.assertEqual(repr(~((π > 2) & (π < 5))), "(π <= 2) & (π >= 5)")
+        self.assertEqual(repr(~((π > 2) & (π < 5))), "(π <= 2) | (π >= 5)")
         self.assertEqual(repr(-π), "(0 - π)")
         self.assertEqual(repr(1 - π), "(1 - π)")
 
