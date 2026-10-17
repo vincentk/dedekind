@@ -71,7 +71,10 @@ class Projection(unittest.TestCase):
         dom = succ.project(1)  # R >> π: composition with the structural projection
         self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> "
                                     "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) | π_3 == π_1)")
-        self.assertEqual(repr(dom.predicate), "∃π_2 ∈ 𝔸(u64). π_2 == (π_1 + 1)")
+        # The reading is literal: the composite's ∃ over the whole middle, two
+        # columns; canonical eliminates both (each defined by an atom).
+        self.assertEqual(repr(dom.predicate), "∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). "
+                                              "(π_3 == (π_2 + 1)) & (π_1 == π_2)")
         self.assertEqual(repr(canonical(dom)), "𝔸(u64)")  # entire
         self.assertIn((5,), dom)
 
@@ -171,7 +174,8 @@ class Duality(unittest.TestCase):
         dom = succ.project(1)
         co = ~dom
         self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> ("))
-        self.assertEqual(repr(co.predicate), "∀π_2 ∈ 𝔸(u64). π_2 != (π_1 + 1)")
+        self.assertEqual(repr(co.predicate), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
+                                             "(π_3 != (π_2 + 1)) | (π_1 != π_2)")
         self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
         self.assertNotIn((5,), co)
         self.assertIs(canonical(~co) == canonical(dom), True)
@@ -185,7 +189,7 @@ class Duality(unittest.TestCase):
     def test_alternating_quantifiers_answer_unknown(self) -> None:
         # ∃c ∀b. b² ≠ a ∨ b³ ≠ c: an ∃ outside a ∀ on the words.
         alt = (~(sq >> cube)).project(1)
-        self.assertIn("∃π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64).", repr(alt.predicate))
+        self.assertIn("∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). (∀π_4 ∈ 𝔸(u64).", repr(alt.predicate))
         self.assertEqual(ap(alt, (4,)), Ternary.UNKNOWN)
 
     def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:

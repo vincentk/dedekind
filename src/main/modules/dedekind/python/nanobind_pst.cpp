@@ -750,7 +750,6 @@ using Relation =
     dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
 using dedekind::relational::converse;
 using dedekind::relational::predicate;
-using dedekind::relational::verdict;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
@@ -865,9 +864,15 @@ std::optional<Cells> row_in(const Relation& r, nb::handle h) {
     return std::nullopt;  // not a value of the column's carrier
   }
 }
+/** @brief χ at a row, in K₃: the verdict of the predicate with its
+ *  quantifiers eliminated where they can be, so a middle every atom defines
+ *  is decided and only the rest is searched, within the budget. */
+Ternary verdict_at(const Relation& r, const Cells& row) {
+  return dedekind::sets::verdict(certifiable(r), row, r.budget);
+}
 bool row_holds(const Relation& r, nb::handle h) {
   const std::optional<Cells> row = row_in(r, h);
-  return row && verdict(r, *row) == Ternary::True;
+  return row && verdict_at(r, *row) == Ternary::True;
 }
 /** @brief A term's value at a row, in the sort @c C, as a Python object. */
 struct ValueAt {
@@ -910,7 +915,7 @@ nb::object apply(const Relation& r, nb::handle h) {
     }
     if (!symbolic) {
       const std::optional<Cells> row = row_in(r, h);
-      const Ternary v = row ? verdict(r, *row) : Ternary::False;
+      const Ternary v = row ? verdict_at(r, *row) : Ternary::False;
       if (decided) return nb::bool_(v == Ternary::True);
       return nb::cast(v);
     }

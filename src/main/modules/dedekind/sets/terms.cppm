@@ -1315,8 +1315,10 @@ struct Value {
  *  infinite carrier searches its first @c budget values (@c search_value): a
  *  witness of @c ∃ is ⊤, a counterexample to @c ∀ is ⊥, and an exhausted
  *  budget is U, never the other verdict (Σ, respectively Π: the run-time
- *  reading of @c Semidecided).  A quantifier over an infinite carrier whose
- *  body quantifies over another answers U: the search is one level deep.
+ *  reading of @c Semidecided).  Same-kind quantifiers over infinite
+ *  carriers nested below (a middle object of several columns) share the
+ *  budget, @c b values each with @c b^k @c ≤ @c budget; an opposite
+ *  quantifier over an infinite carrier inside answers U.
  *  The connectives are Kleene's.  @tparam P the point type.  @param t the
  *  predicate.  @param point the point.  @param budget the search's values. */
 export template <typename P, typename K>
@@ -1347,6 +1349,40 @@ struct Verdict {
     }
     throw not_admitted("an unknown predicate");
   }
+  /** @brief Whether a sort is a finite chain, enumerated exactly. */
+  struct FiniteSort {
+    template <typename C>
+    bool operator()(std::type_identity<C>) const {
+      return dedekind::category::IsPst<C>;
+    }
+  };
+  /** @brief The quantifiers over infinite carriers in @c p, anywhere: those
+   *  of the kind @c universal counted, an opposite one flagged. */
+  unsigned infinite_quantifiers(const Pred<K>& p, bool universal,
+                                bool& alternation) const {
+    switch (p.kind) {
+      case Pred<K>::Kind::Cmp:
+      case Pred<K>::Kind::Top:
+      case Pred<K>::Kind::Bottom:
+        return 0;
+      case Pred<K>::Kind::And:
+      case Pred<K>::Kind::Or:
+        return infinite_quantifiers(*p.p, universal, alternation) +
+               infinite_quantifiers(*p.q, universal, alternation);
+      case Pred<K>::Kind::Exists:
+      case Pred<K>::Kind::Forall: {
+        unsigned here = 0;
+        if (!with_sort<P>(p.sort, FiniteSort{})) {
+          if ((p.kind == Pred<K>::Kind::Forall) != universal)
+            alternation = true;
+          else
+            here = 1;
+        }
+        return here + infinite_quantifiers(*p.p, universal, alternation);
+      }
+    }
+    return 0;
+  }
   struct Search {
     const Verdict& v;
     const Pred<K>& t;
@@ -1373,10 +1409,31 @@ struct Verdict {
           if (c == chain_top<C>()) return all;
         }
       } else {
-        if (has_quantifier(*t.p)) return Ternary::Unknown;  // one level deep
-        for (std::uint64_t i = 0; i < v.budget; ++i) {
+        // An opposite quantifier over an infinite carrier inside: a search
+        // cannot witness ∃ through a ∀ it cannot decide, nor refute a ∀
+        // through an ∃; U.  Same-kind quantifiers over infinite carriers
+        // below (a middle object of several columns) share the budget: each
+        // of the k levels tries b values, b^k ≤ budget.
+        bool alternation = false;
+        const unsigned k =
+            1 + v.infinite_quantifiers(*t.p, universal, alternation);
+        if (alternation) return Ternary::Unknown;
+        std::uint64_t b = 1;
+        for (;;) {  // the largest b with (b + 1)^k ≤ budget
+          std::uint64_t power = 1;
+          bool fits = true;
+          for (unsigned j = 0; j < k && fits; ++j) {
+            fits = power <= v.budget / (b + 1);
+            if (fits) power *= b + 1;
+          }
+          if (!fits) break;
+          ++b;
+        }
+        std::uint64_t inner = 1;
+        for (unsigned j = 1; j < k; ++j) inner *= b;
+        for (std::uint64_t i = 0; i < b; ++i) {
           set_bound(row, search_value<C>(i));
-          const Ternary here = Verdict{row, v.budget}(*t.p);
+          const Ternary here = Verdict{row, inner}(*t.p);
           if (!universal && here == Ternary::True) return Ternary::True;
           if (universal && here == Ternary::False) return Ternary::False;
         }

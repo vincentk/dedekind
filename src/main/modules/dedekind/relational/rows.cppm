@@ -243,7 +243,7 @@ RelExpr<K, Cs...> split(const RelExpr<K, Cs...>& r, unsigned k) {
 // ── The named relations: η and the Frobenius spiders ────────────────────────
 
 namespace detail_rows {
-/** @brief @c ∧_i π_{to + i} == π_{from + i} over @c n columns: the equations
+/** @brief @c ∧_i π_{from + i} == π_{to + i} over @c n columns: the equations
  *  identifying two copies of an object. */
 template <typename K>
 dedekind::sets::Pred<K> identified(
@@ -254,7 +254,7 @@ dedekind::sets::Pred<K> identified(
   P out = std::move(onto);
   for (unsigned i = 1; i <= n; ++i) {
     const P eq =
-        P::cmp(dedekind::sets::Rel::Eq, T::proj(to + i), T::proj(from + i));
+        P::cmp(dedekind::sets::Rel::Eq, T::proj(from + i), T::proj(to + i));
     out = out.kind == P::Kind::Top ? eq : P::conj(out, eq);
   }
   return out;
