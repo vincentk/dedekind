@@ -5,11 +5,14 @@ where it can (the fusion law, Shannon's expansion on a finite chain) and keeps
 it otherwise; membership searches what remains, valued in Σ (∃) or Π (∀).
 Relations are the Kleisli arrows of the powerset monad: ``diag`` is η, ``>>``
 Kleisli composition, the ∃ its μ, and the monad laws are decided by
-``canonical``."""
+``canonical``.  They form a cartesian bicategory: ``copy`` and ``merge`` are
+the Frobenius spiders, ``R.converse`` the dagger, and those laws are
+witnessed at points (deciding them by ``canonical`` waits for the canonical
+order of conjuncts, #884)."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, diag, π_1, π_2
+from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, copy, diag, merge, u64, π_1, π_2
 
 succ = U64 * U64 | (π_2 == π_1 + 1)
 sq = U64 * U64 | (π_2 * π_2 == π_1)
@@ -65,8 +68,9 @@ class Composition(unittest.TestCase):
 
 class Projection(unittest.TestCase):
     def test_a_function_projects_onto_its_whole_domain(self) -> None:
-        dom = succ.project(1)
-        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)).project(1)")
+        dom = succ.project(1)  # R >> π: composition with the structural projection
+        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> "
+                                    "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) | π_3 == π_1)")
         self.assertEqual(repr(dom.predicate), "∃π_2 ∈ 𝔸(u64). π_2 == (π_1 + 1)")
         self.assertEqual(repr(canonical(dom)), "𝔸(u64)")  # entire
         self.assertIn((5,), dom)
@@ -120,6 +124,37 @@ class TheKleisliStructure(unittest.TestCase):
         Δ = diag(B)
         self.assertIn((True, True), Δ)
         self.assertNotIn((True, False), Δ)
+        self.assertEqual(Δ.dom, (B,))
+        self.assertEqual(Δ.cod, (B,))
+        self.assertEqual(succ.dom, ())  # a table, out of the unit
+        self.assertEqual(succ.arrow.dom, (u64,))  # read as the arrow of its first column
+
+
+class TheFrobeniusStructure(unittest.TestCase):
+    """Relations form a cartesian bicategory: copy and merge are the spiders,
+    R ∧ S = merge ∘ (R ⊗ S) ∘ copy, and the converse is the dagger.
+    Witnessed at points: deciding these by canonical needs the canonical order
+    of conjuncts (#884)."""
+
+    def test_the_meet_is_a_spider(self) -> None:
+        spider = copy(U64) >> (succ.arrow * sq.arrow) >> merge(U64)
+        self.assertEqual(spider.dom, (u64,))
+        self.assertEqual(spider.cod, (u64,))
+        for row in ((0, 1), (3, 4), (4, 2), (1, 1), (2, 3)):
+            self.assertEqual(ap(spider, row), ap(succ & sq, row), row)
+        # The middle of copy >> (R ⊗ S) is two columns: ∃∃.
+        self.assertTrue(repr((copy(U64) >> (succ.arrow * sq.arrow)).predicate)
+                        .startswith("∃π_4 ∈ 𝔸(u64). ∃π_5 ∈ 𝔸(u64). "))
+
+    def test_the_dagger(self) -> None:
+        pred = succ.converse
+        self.assertEqual(repr(pred), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1))°")
+        self.assertIn((4, 3), pred)
+        self.assertNotIn((3, 4), pred)
+        self.assertIs(pred.converse == succ, True)  # R°° = R, by canonical
+        sc = sq >> cube
+        for row in ((8, 4), (9, 4), (27, 9), (8, 3)):  # (R;S)° = S°;R°
+            self.assertEqual(ap(sc.converse, row), ap(cube.converse >> sq.converse, row), row)
 
 
 class Duality(unittest.TestCase):
@@ -129,7 +164,7 @@ class Duality(unittest.TestCase):
     def test_the_complement_of_a_span_is_a_forall(self) -> None:
         dom = succ.project(1)
         co = ~dom
-        self.assertEqual(repr(co), "~((𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)).project(1))")
+        self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> ("))
         self.assertEqual(repr(co.predicate), "∀π_2 ∈ 𝔸(u64). π_2 != (π_1 + 1)")
         self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
         self.assertNotIn((5,), co)

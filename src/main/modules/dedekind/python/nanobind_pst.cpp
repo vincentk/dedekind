@@ -748,6 +748,7 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h);
  *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
     dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
+using dedekind::relational::converse;
 using dedekind::relational::predicate;
 using dedekind::relational::verdict;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
@@ -782,30 +783,47 @@ struct SlotsTo {
 Relation as_relation(nb::handle h) {
   using UW = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
   using UF = 𝔸<Fp, Boole, dedekind::sets::Finite>;
+  // A universe or a set over one is a table out of the unit: () ⇸ (C).
+  const auto table = [](std::size_t sort) {
+    return Relation::universe({}, {sort});
+  };
   if (nb::isinstance<Relation>(h)) return nb::cast<Relation>(h);
-  if (nb::isinstance<UW>(h))
-    return Relation::universe({sort_index_v<uint64_t>});
-  if (nb::isinstance<UF>(h)) return Relation::universe({sort_index_v<Fp>});
-  if (nb::isinstance<pst::Chain<bool>>(h))
-    return Relation::universe({sort_index_v<bool>});
+  if (nb::isinstance<UW>(h)) return table(sort_index_v<uint64_t>);
+  if (nb::isinstance<UF>(h)) return table(sort_index_v<Fp>);
+  if (nb::isinstance<pst::Chain<bool>>(h)) return table(sort_index_v<bool>);
   if (nb::isinstance<pst::Chain<Ternary>>(h))
-    return Relation::universe({sort_index_v<Ternary>});
+    return table(sort_index_v<Ternary>);
   if (nb::isinstance<Comprehension<UW, RPred>>(h))
-    return Relation::leaf(
-        {sort_index_v<uint64_t>},
+    return dedekind::relational::where(
+        table(sort_index_v<uint64_t>),
         nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
             FirstColumn{}));
   if (nb::isinstance<Comprehension<UF, RPred>>(h))
-    return Relation::leaf(
-        {sort_index_v<Fp>},
+    return dedekind::relational::where(
+        table(sort_index_v<Fp>),
         nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
             FirstColumn{}));
   throw nb::type_error(
       "a factor of a product is a universe, a set over one, or a relation");
 }
+/** @brief A table of n ≥ 2 columns read as the arrow of its first n − 1
+ *  columns (the Function[A, …, B] convention); an arrow stays as it is. */
+Relation as_arrow(const Relation& r) {
+  if (!r.dom.empty() || r.arity() < 2) return r;
+  return dedekind::relational::split(r, r.arity() - 1);
+}
+/** @brief The object of a universe over one carrier.  @throws nb::type_error
+ *  otherwise. */
+dedekind::relational::Object object_of(nb::handle u, const char* what) {
+  const Relation r = as_relation(u);
+  if (r.kind != Relation::Kind::Universe || r.arity() != 1)
+    throw nb::type_error(
+        (std::string(what) + ": a universe over one carrier").c_str());
+  return r.columns();
+}
 /** @brief Two relations over one product: the schemas must agree. */
 void same_product(const Relation& a, const Relation& b) {
-  if (a.schema != b.schema)
+  if (a.columns() != b.columns())
     throw nb::type_error("relations over different products");
 }
 /** @brief A row of the schema out of a Python tuple, each cell by its column's
@@ -816,9 +834,10 @@ Cells row_of(const Relation& r, nb::handle h) {
         ("a point of the product is a tuple of " + std::to_string(r.arity()))
             .c_str());
   const nb::tuple t = nb::borrow<nb::tuple>(h);
+  const dedekind::relational::Object cols = r.columns();
   Cells row;
   for (std::size_t i = 0; i < r.arity(); ++i)
-    row.cells.push_back(cell_of(r.schema[i], t[i]));
+    row.cells.push_back(cell_of(cols[i], t[i]));
   return row;
 }
 Cells::Cell cell_of(std::size_t sort, nb::handle h) {
@@ -911,24 +930,26 @@ nb::object apply(const Relation& r, nb::handle h) {
     for (nb::handle a : xs) args.push_back(term_of(a));
     return nb::cast(f->map_slots(SlotsTo{args}));
   }
+  const dedekind::relational::Object cols = r.columns();
   Cells row;
   for (std::size_t i = 0; i < xs.size(); ++i)
-    row.cells.push_back(cell_of(r.schema[i], xs[i]));
-  row.cells.push_back(dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>(
-                          {r.schema.back()})
-                          .cells.front());
-  return dedekind::sets::with_sort<Cells>(r.schema.back(), ValueAt{*f, row});
+    row.cells.push_back(cell_of(cols[i], xs[i]));
+  row.cells.push_back(
+      dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>({cols.back()})
+          .cells.front());
+  return dedekind::sets::with_sort<Cells>(cols.back(), ValueAt{*f, row});
 }
 /** @brief The relation written: its universes, and its predicate unless ⊤
  *  (a relation whose predicate is ⊤ is the product universe itself). */
 std::string written(const Relation& r) {
   using R = Relation;
-  if (r.kind == R::Kind::Universe) {
+  const auto universes = [](const dedekind::relational::Object& o) {
     std::string out;
-    for (std::size_t i = 0; i < r.arity(); ++i)
-      out += (i ? " × " : "") + std::string(universe_name(r.schema[i]));
+    for (std::size_t i = 0; i < o.size(); ++i)
+      out += (i ? " × " : "") + std::string(universe_name(o[i]));
     return out;
-  }
+  };
+  if (r.kind == R::Kind::Universe) return universes(r.columns());
   // A leg that is not a universe is parenthesised: the term stays legible.
   const auto leg = [](const Relation& x) {
     return x.kind == R::Kind::Universe ? written(x) : "(" + written(x) + ")";
@@ -942,16 +963,12 @@ std::string written(const Relation& r) {
       return leg(*r.a) + " | " + leg(*r.b);
     case R::Kind::Not:
       return "~" + leg(*r.a);
+    case R::Kind::Converse:
+      return leg(*r.a) + "°";
     case R::Kind::Tensor:
       return leg(*r.a) + " × " + leg(*r.b);
     case R::Kind::Compose:
       return leg(*r.a) + " >> " + leg(*r.b);
-    case R::Kind::Exists: {
-      std::string cols;
-      for (std::size_t i = 0; i < r.keep.size(); ++i)
-        cols += (i ? ", " : "") + std::to_string(r.keep[i]);
-      return leg(*r.a) + ".project(" + cols + ")";
-    }
     case R::Kind::Universe:
       break;
   }
@@ -974,7 +991,12 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       .def("_ap", &apply, nb::arg("x"))
       .def(
           "__mul__",
-          [](const Relation& a, nb::handle b) { return a * as_relation(b); },
+          [](const Relation& a, nb::handle b) {
+            // Two tables tensor as tables; two arrows as arrows.
+            const Relation s = as_relation(b);
+            return a.dom.empty() && s.dom.empty() ? a * s
+                                                  : as_arrow(a) * as_arrow(s);
+          },
           nb::is_operator(), "R × S: the schemas concatenated.")
       .def(
           "__or__",
@@ -1000,20 +1022,52 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           nb::is_operator())
       .def(
           "__rshift__",
-          [](const Relation& a, const Relation& b) { return a >> b; },
+          [](const Relation& a, const Relation& b) {
+            return as_arrow(a) >> as_arrow(b);
+          },
           nb::is_operator(),
-          "R >> S: the relative product, {(a, c) | ∃b. R(a, b) ∧ S(b, c)}: "
-          "the middle a quantified column, eliminated by canonical where an "
-          "atom defines it or its carrier is a finite chain.")
+          "R >> S: Kleisli composition, {(a, c) | ∃b. R(a, b) ∧ S(b, c)}, the "
+          "∃ "
+          "over the whole middle object (a table of n columns composes as the "
+          "arrow of its first n − 1); eliminated by canonical where an atom "
+          "defines a middle column or its carrier is a finite chain.")
       .def(
           "project",
           [](const Relation& r, nb::args cols) {
             std::vector<unsigned> keep;
             for (nb::handle c : cols) keep.push_back(nb::cast<unsigned>(c));
-            return dedekind::relational::project(r, keep);
+            // Composition with the structural π: the whole relation, read as
+            // a table, then its columns projected; the result a table.
+            return dedekind::relational::split(r, 0) >>
+                   dedekind::relational::proj<PyConst, uint64_t, Fp, bool,
+                                              Ternary>(r.columns(), keep);
           },
           "R.project(c, …): the columns c, … kept in that order, the others "
-          "quantified away by ∃.")
+          "quantified away: R >> π, with π the structural projection.")
+      .def_prop_ro(
+          "converse", [](const Relation& r) { return converse(as_arrow(r)); },
+          "R°: the converse, B ⇸ A, the dagger; a table of n columns as the "
+          "arrow of its first n − 1.")
+      .def_prop_ro(
+          "arrow", [](const Relation& r) { return as_arrow(r); },
+          "A table of n ≥ 2 columns as the arrow of its first n − 1 columns "
+          "(the Function[A, …, B] convention); an arrow as it is.")
+      .def_prop_ro(
+          "dom",
+          [factors](const Relation& r) {
+            nb::list out;
+            for (const std::size_t s : r.dom) out.append(factors[s]);
+            return nb::tuple(out);
+          },
+          "The carriers of the domain's columns: () for a table.")
+      .def_prop_ro(
+          "cod",
+          [factors](const Relation& r) {
+            nb::list out;
+            for (const std::size_t s : r.cod) out.append(factors[s]);
+            return nb::tuple(out);
+          },
+          "The carriers of the codomain's columns.")
       .def(
           "__invert__", [](const Relation& a) { return ~a; },
           "~R: the complement: the predicate in negation normal form, each ∃ "
@@ -1047,7 +1101,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "factors",
           [factors](const Relation& r) {
             nb::list out;
-            for (const std::size_t s : r.schema) out.append(factors[s]);
+            for (const std::size_t s : r.columns()) out.append(factors[s]);
             return nb::tuple(out);
           },
           "The carriers of the relation's columns.")
@@ -1077,11 +1131,14 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
         const RPred nf = normal_form(r);
         // A predicate normalising to ⊤ cuts out the product universe itself.
         if (nf.kind == RPred::Kind::Top) {
-          Relation u = Relation::universe(r.schema);
+          Relation u = Relation::universe(r.dom, r.cod);
           u.budget = r.budget;
           return u;
         }
-        return Relation::leaf(r.schema, nf, r.budget);
+        Relation out =
+            dedekind::relational::where(Relation::universe(r.dom, r.cod), nf);
+        out.budget = r.budget;
+        return out;
       },
       nb::arg("S"),
       "canonical(R): each atom in normal form in its column's sort; a "
@@ -1091,15 +1148,27 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
   m.def(
       "diag",
       [](nb::handle u) {
-        const Relation r = as_relation(u);
-        if (r.kind != Relation::Kind::Universe || r.arity() != 1)
-          throw nb::type_error("diag(U): U is a universe over one carrier");
         return dedekind::relational::diag<PyConst, uint64_t, Fp, bool, Ternary>(
-            r.schema.front());
+            object_of(u, "diag(U)"));
       },
       nb::arg("U"),
       "diag(U): the identity relation Δ = {(x, x)} on the carrier of U, the "
       "unit of >> (η of the powerset monad).");
+  m.def(
+      "copy",
+      [](nb::handle u) {
+        return dedekind::relational::copy<PyConst, uint64_t, Fp, bool, Ternary>(
+            object_of(u, "copy(U)"));
+      },
+      nb::arg("U"),
+      "copy(U): x ↦ (x, x), the comonoid of the Frobenius structure on U.");
+  m.def(
+      "merge",
+      [](nb::handle u) {
+        return dedekind::relational::merge<PyConst, uint64_t, Fp, bool,
+                                           Ternary>(object_of(u, "merge(U)"));
+      },
+      nb::arg("U"), "merge(U): the converse of copy(U), (x, x) ↦ x.");
   // Every universe multiplies with every factor: a universe, a set over one,
   // a relation.
   (universes.def(

@@ -1,13 +1,15 @@
 /** @file dedekind/relational/rows_test.cpp
  *
- * Relations of any arity as terms (#1037): the set grammar's nodes and the
- * relational calculus's on relations whose schema is data; the predicate a
- * reading of the term, a composite's the ∃ over the middle (the powerset
- * monad's μ), η the identity relation.  The verdict reads a quantifier over
- * a finite chain by enumeration and over a word by a bounded search, in Σ
- * (∃) or Π (∀).  Elimination (canonical) is algebra's, downstream, and is
- * exercised from Python (test_pst_spans.py), the monad laws with it.
- * Comparisons here are == / != only: an order comparison needs order's rule,
+ * Relations built at run time as terms (#1037): arrows between products of
+ * carriers, their objects data; the set grammar's nodes and the relational
+ * calculus's; the predicate a reading, a composite's the ∃ over the whole
+ * middle object (the powerset monad's μ), η the identity relation, Copy and
+ * Merge the Frobenius spiders, the converse the dagger.  The verdict reads a
+ * quantifier over a finite chain by enumeration and over a word by a bounded
+ * search, in Σ (∃) or Π (∀).  Elimination (canonical) is algebra's,
+ * downstream, and is exercised from Python (test_pst_spans.py), the monad
+ * laws with it; the Frobenius and dagger laws are witnessed at points here.
+ * Comparisons are == / != only: an order comparison needs order's rule,
  * downstream of relational as well.
  */
 
@@ -20,11 +22,16 @@ import dedekind.sets;
 
 using namespace dedekind::sets;
 using dedekind::category::Ternary;
+using dedekind::relational::converse;
+using dedekind::relational::copy;
 using dedekind::relational::diag;
 using dedekind::relational::function_term;
+using dedekind::relational::merge;
+using dedekind::relational::Object;
 using dedekind::relational::predicate;
-using dedekind::relational::project;
+using dedekind::relational::proj;
 using dedekind::relational::RelExpr;
+using dedekind::relational::split;
 using dedekind::relational::verdict;
 using dedekind::relational::where;
 
@@ -34,8 +41,9 @@ using R = Row<unsigned, bool>;
 using T = Term<int>;
 using Q = Pred<int>;
 constexpr std::size_t word = 0, flag = 1;  // the sorts among the carriers
+const Object W{word};
 
-const Re words = Re::universe({word, word});
+const Re words = Re::universe(W, W);  // the full relation on the word
 const Re succ =
     where(words, Q::cmp(Rel::Eq, T::proj(2),
                         T::bin(Arith::Add, T::proj(1), T::constant(1))));
@@ -47,13 +55,17 @@ const Re cube = where(
                   T::bin(Arith::Mul, T::bin(Arith::Mul, T::proj(1), T::proj(1)),
                          T::proj(1)),
                   T::proj(2)));
+bool holds(const Re& r, const R& row) {
+  return verdict(r, row) == Ternary::True;
+}
 }  // namespace
 
 TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
           "[relational][rows]") {
   const Re two = succ >> succ;
   CHECK(two.kind == Re::Kind::Compose);  // not flattened
-  CHECK(two.arity() == 2);
+  CHECK(two.dom == W);
+  CHECK(two.cod == W);
   const Q p = predicate(two);  // the reading: ∃ over the middle, μ
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 3);  // the next slot past the two columns
@@ -67,25 +79,38 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   CHECK((succ & square).kind == Re::Kind::Meet);
   CHECK((~succ).kind == Re::Kind::Not);
   CHECK(predicate(~succ).rel == Rel::Ne);  // read: negation normal form
+  CHECK_THROWS_AS(succ & diag<int, unsigned, bool>({flag}), not_admitted);
 }
 
-TEST_CASE("relational:rows: ∀ is ∃'s dual; a projection quantifies away",
+TEST_CASE("relational:rows: η, the dagger, and the structural projection",
           "[relational][rows]") {
-  const Re dom = project(succ, {1});  // ∃π_2. π_2 == π_1 + 1
-  CHECK(dom.kind == Re::Kind::Exists);
-  CHECK(dom.arity() == 1);
+  const Re id = diag<int, unsigned, bool>(W);
+  CHECK(holds(id, R{{3u, 3u}}));
+  CHECK_FALSE(holds(id, R{{3u, 4u}}));
+  CHECK(holds(id >> succ, R{{3u, 4u}}));  // Δ;R = R
+  CHECK(holds(succ >> id, R{{3u, 4u}}));  // R;Δ = R
+  // The converse exchanges the objects; the dagger laws at points.
+  const Re pred = converse(succ);
+  CHECK(pred.kind == Re::Kind::Converse);
+  CHECK(holds(pred, R{{4u, 3u}}));
+  CHECK_FALSE(holds(pred, R{{3u, 4u}}));
+  CHECK(holds(converse(converse(succ)), R{{3u, 4u}}));  // R°° = R
+  const Re sc = square >> cube;
+  for (const R& row :
+       {R{{8u, 4u}}, R{{9u, 4u}}, R{{27u, 9u}}})  // (R;S)° = S°;R°
+    CHECK(verdict(converse(sc), row) ==
+          verdict(converse(cube) >> converse(square), row));
+  // A projection is composition with π: the domain of succ.
+  const Re table = split(succ, 0);  // () ⇸ word × word
+  const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
+  CHECK(dom.dom.empty());
+  CHECK(dom.cod == W);
   const Q p = predicate(dom);
   CHECK(p.kind == Q::Kind::Exists);
-  CHECK(p.slot == 2);
-  CHECK(verdict(dom, R{{5u}}) == Ternary::True);  // 6 is found
-  const Re co = ~dom;                             // ∀π_2. π_2 != π_1 + 1
-  CHECK(predicate(co).kind == Q::Kind::Forall);
-  CHECK(verdict(co, R{{5u}}) == Ternary::False);  // 6 refutes it
-  // The converse: the columns in the other order.
-  const Re flipped = project(succ, {2, 1});
-  CHECK(verdict(flipped, R{{4u, 3u}}) == Ternary::True);
-  CHECK(verdict(flipped, R{{3u, 4u}}) == Ternary::False);
-  CHECK_THROWS_AS(project(succ, {1, 1}), not_admitted);
+  CHECK(verdict(dom, R{{5u}}) == Ternary::True);    // 6 is found
+  CHECK(verdict(~dom, R{{5u}}) == Ternary::False);  // ∀: 6 refutes it
+  CHECK_THROWS_AS(proj<int, unsigned, bool>(W, {1, 1}), not_admitted);
+  CHECK_THROWS_AS(succ >> dom, not_admitted);  // cod word ≠ dom ()
 }
 
 TEST_CASE("relational:rows: Σ and Π, and one level of search",
@@ -100,43 +125,44 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
   narrow.budget = 1;  // b = 0 only
   CHECK(verdict(narrow, R{{4u, 8u}}) == Ternary::Unknown);
   // ∃c ∀b: a search under a search is not made; U.
-  CHECK(verdict(project(nsc, {1}), R{{4u}}) == Ternary::Unknown);
+  const Re alt = split(nsc, 0) >> proj<int, unsigned, bool>({word, word}, {1});
+  CHECK(verdict(alt, R{{4u}}) == Ternary::Unknown);
 }
 
-TEST_CASE("relational:rows: η, a finite middle, the tensor's shift",
+TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
           "[relational][rows]") {
-  // η: the identity relation, the unit of >>, read at points.
-  const Re id = diag<int, unsigned, bool>(word);
-  CHECK(verdict(id, R{{3u, 3u}}) == Ternary::True);
-  CHECK(verdict(id, R{{3u, 4u}}) == Ternary::False);
-  CHECK(verdict(id >> succ, R{{3u, 4u}}) == Ternary::True);  // Δ;R = R
-  CHECK(verdict(succ >> id, R{{3u, 4u}}) == Ternary::True);  // R;Δ = R
-  // R: a ≠ 5 on word × 𝔹; S: 𝔹 × word, c = 1 where the flag is set.
-  const Re above = where(Re::universe({word, flag}),
+  // R ∧ S = merge ∘ (R ⊗ S) ∘ copy, at points: the spider form of the meet.
+  const Re spider = copy<int, unsigned, bool>(W) >> (succ * square) >>
+                    merge<int, unsigned, bool>(W);
+  CHECK(spider.dom == W);
+  CHECK(spider.cod == W);
+  for (const R& row : {R{{0u, 1u}}, R{{3u, 4u}}, R{{4u, 2u}}, R{{1u, 1u}}})
+    CHECK(verdict(spider, row) == verdict(succ & square, row));
+  // The middle of copy >> (R ⊗ S) is two columns: ∃∃, outermost first.
+  const Q p = predicate(copy<int, unsigned, bool>(W) >> (succ * square));
+  REQUIRE(p.kind == Q::Kind::Exists);
+  CHECK(p.slot == 4);
+  REQUIRE(p.p->kind == Q::Kind::Exists);
+  CHECK(p.p->slot == 5);
+  // A finite middle: ∃f ∈ 𝔹 enumerated by the bool reading.
+  const Re above = where(Re::universe(W, {flag}),
                          Q::cmp(Rel::Ne, T::proj(1), T::constant(5)));
   const Re pick =
-      where(Re::universe({flag, word}),
+      where(Re::universe({flag}, W),
             Q::disj(Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(1)),
                             Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
                     Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(0)),
                             Q::cmp(Rel::Eq, T::proj(2), T::constant(0)))));
-  const Re both = above >> pick;  // ∃f ∈ 𝔹. a ≠ 5 ∧ pick(f, c)
-  const Q p = predicate(both);
-  CHECK(p.sort == flag);
-  CHECK(p(R{{7u, 1u}}));  // the bool reading enumerates 𝔹
-  CHECK(p(R{{7u, 0u}}));
-  CHECK_FALSE(p(R{{7u, 2u}}));
-  CHECK_FALSE(p(R{{5u, 1u}}));
+  const Q both = predicate(above >> pick);
+  CHECK(both.sort == flag);
+  CHECK(both(R{{7u, 1u}}));
+  CHECK(both(R{{7u, 0u}}));
+  CHECK_FALSE(both(R{{7u, 2u}}));
+  CHECK_FALSE(both(R{{5u, 1u}}));
   CHECK_THROWS_AS(above >> succ, not_admitted);  // 𝔹 is not the word
-  // A tensor shifts the right factor's slots, bound ones included; two
-  // universes make the product universe.
-  const Re dom = project(succ, {1});
-  const Re pair = dom * dom;
-  CHECK(pair.kind == Re::Kind::Tensor);
-  CHECK(pair.arity() == 2);
-  CHECK(verdict(pair, R{{1u, 2u}}) == Ternary::True);
+  // Two universes make the product universe.
   CHECK((words * words).kind == Re::Kind::Universe);
-  CHECK_THROWS_AS(dom & succ, not_admitted);  // two products
+  CHECK((succ * square).kind == Re::Kind::Tensor);
   CHECK_THROWS_AS(where(succ, Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
                   not_admitted);  // a slot past the columns
 }
