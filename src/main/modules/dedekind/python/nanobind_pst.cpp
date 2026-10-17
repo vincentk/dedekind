@@ -821,11 +821,11 @@ Relation as_relation(nb::handle h) {
   if (nb::isinstance<pst::Chain<Ternary>>(h))
     return table(sort_index_v<Ternary>);
   if (nb::isinstance<Comprehension<UW, RPred>>(h))
-    return (table(sort_index_v<uint64_t>) |
+    return (table(sort_index_v<uint64_t>) &
             nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
                 FirstColumn{}));
   if (nb::isinstance<Comprehension<UF, RPred>>(h))
-    return (table(sort_index_v<Fp>) |
+    return (table(sort_index_v<Fp>) &
             nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
                 FirstColumn{}));
   throw nb::type_error(
