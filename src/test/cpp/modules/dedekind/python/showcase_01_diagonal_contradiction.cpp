@@ -31,8 +31,8 @@ constexpr auto R2 = ℝ_d * ℝ_d;
 using R2Point = typename decltype(R2)::Domain;
 // Diagonal { (x, y) ∈ ℝ² | x = y } and strip { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 },
 // both point-free over the product of finite doubles.
-constexpr auto diagonal = R2 | (π_1 == π_2);
-constexpr auto strip = R2 | (π_1 > 5.0 && π_2 < 3.0);
+constexpr auto diagonal = R2 & (π_1 == π_2);
+constexpr auto strip = R2 & (π_1 > 5.0 && π_2 < 3.0);
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;

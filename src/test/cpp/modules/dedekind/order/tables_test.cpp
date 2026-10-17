@@ -19,8 +19,8 @@ using namespace dedekind::relational;
 namespace {
 
 // Even numbers and multiples of 3 in [0, 10).
-constexpr auto evens_0_10 = ℕ | (π < 10 && π % 2 == 0);
-constexpr auto threes_0_10 = ℕ | (π < 10 && π % 3 == 0);
+constexpr auto evens_0_10 = ℕ & (π < 10 && π % 2 == 0);
+constexpr auto threes_0_10 = ℕ & (π < 10 && π % 3 == 0);
 
 }  // namespace
 

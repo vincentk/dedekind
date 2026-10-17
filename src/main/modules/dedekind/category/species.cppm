@@ -724,6 +724,9 @@ template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_or<>> = true;
 
 template <std::integral T>
+inline constexpr bool is_associative_v<T, std::bit_or<>> = true;
+
+template <std::integral T>
 struct identity_trait<T, std::bit_or<>> {
   using value_type = T;
   static constexpr T value = 0;
@@ -736,6 +739,17 @@ inline constexpr bool is_idempotent_v<T, std::bit_and<>> = true;
 template <std::integral T>
 inline constexpr bool is_associative_v<T, std::bit_and<>> = true;
 
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::bit_and<>> = true;
+
+/** @brief The top of the bit lattice: every bit set, @c ~T{} (an unsigned
+ *  word's @c & identity; @c true on @c bool). */
+template <std::unsigned_integral T>
+struct identity_trait<T, std::bit_and<>> {
+  using value_type = T;
+  static constexpr T value = static_cast<T>(~T{});
+};
+
 // 3. Multiplication (*)
 template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
@@ -747,9 +761,13 @@ template <typename T>
 inline constexpr bool is_distributive_v<T, std::multiplies<T>, std::plus<T>> =
     std::unsigned_integral<T>;
 
-// Certification: Bitwise AND distributes over Bitwise OR (Boolean Algebra)
+// Certification: Bitwise AND distributes over Bitwise OR, and OR over AND
+// (the bit lattice is distributive: a Boolean algebra, bit by bit)
 template <typename T>
 inline constexpr bool is_distributive_v<T, std::bit_and<>, std::bit_or<>> =
+    std::integral<T>;
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_or<>, std::bit_and<>> =
     std::integral<T>;
 
 /**
@@ -1118,6 +1136,12 @@ inline constexpr bool
 template <typename T>
 inline constexpr bool
     is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
+
+// 3. The bit lattice: | and & absorb each other bit by bit.
+template <std::integral T>
+inline constexpr bool is_absorptive_v<T, std::bit_or<>, std::bit_and<>> = true;
+template <std::integral T>
+inline constexpr bool is_absorptive_v<T, std::bit_and<>, std::bit_or<>> = true;
 
 /** @section species__Value_Lattice_Ops (Sup / Inf)
  *

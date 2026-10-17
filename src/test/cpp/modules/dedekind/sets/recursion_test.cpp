@@ -16,11 +16,11 @@ using N = std::size_t;
 TEST_CASE("sets:recursion — an inductive set names its own classifier",
           "[sets][recursion]") {
   // The multiples of three: 0, and whatever is three above one.
-  constexpr auto multiples_of_3 = 𝔸<N>{} | ((π == N{0}) || χ(π - N{3}));
+  constexpr auto multiples_of_3 = 𝔸<N>{} & ((π == N{0}) || χ(π - N{3}));
   STATIC_CHECK(IsSetObject<decltype(multiples_of_3)>);
   for (N n = 0; n < 40; ++n) CHECK(multiples_of_3(n) == (n % 3 == 0));
   // ℕ inductively: 0, and the successor of a natural.  Everything is in.
-  constexpr auto naturals = 𝔸<N>{} | ((π == N{0}) || χ(π - N{1}));
+  constexpr auto naturals = 𝔸<N>{} & ((π == N{0}) || χ(π - N{1}));
   CHECK(naturals(N{0}));
   CHECK(naturals(N{300}));
 }
@@ -28,10 +28,10 @@ TEST_CASE("sets:recursion — an inductive set names its own classifier",
 // A requires-expression refuses SFINAE-style only where it is dependent.
 template <typename T>
 concept FormsNonDescendingRecursion =
-    requires { 𝔸<T>{} | ((π == T{}) || χ(π)); };
+    requires { 𝔸<T>{} & ((π == T{}) || χ(π)); };
 template <typename T>
 concept FormsDescendingRecursion =
-    requires { 𝔸<T>{} | ((π == T{}) || χ(π - T{1})); };
+    requires { 𝔸<T>{} & ((π == T{}) || χ(π - T{1})); };
 
 TEST_CASE("sets:recursion — only a structural recursion finds a former",
           "[sets][recursion][refusal]") {
@@ -41,7 +41,7 @@ TEST_CASE("sets:recursion — only a structural recursion finds a former",
   STATIC_CHECK(FormsDescendingRecursion<N>);
   STATIC_CHECK(!FormsDescendingRecursion<int>);
   // Without a χ the former is the ordinary one: a plain comprehension.
-  constexpr auto zero = 𝔸<N>{} | (π == N{0});
+  constexpr auto zero = 𝔸<N>{} & (π == N{0});
   CHECK(zero(N{0}));
   CHECK_FALSE(zero(N{3}));
 }

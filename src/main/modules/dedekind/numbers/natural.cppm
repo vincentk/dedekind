@@ -522,13 +522,13 @@ struct ResidueClass {
   }
 };
 
-/** @brief @c ℕ @c | @c (π @c % @c n @c == @c r): the residue class, decided
+/** @brief @c ℕ @c & @c (π @c % @c n @c == @c r): the residue class, decided
  *  analytically.  A residue outside @f$[0, n)@f$ is never met, so
  *  @c π @c % @c 3 @c == @c 3 is empty.  ADL finds it through the
  *  @c 𝔸<Cardinality> operand.
  *  @tparam K1 the modulus's type.  @tparam K2 the residue's type. */
 export template <typename L, typename C, std::integral K1, std::integral K2>
-constexpr ResidueClass<L> operator|(
+constexpr ResidueClass<L> operator&(
     const 𝔸<Cardinality, L, C>&,
     const Cmp<Rel::Eq, BinOp<std::modulus<>, Projection<0>, Const<K1>>,
               Const<K2>>& c) {

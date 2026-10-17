@@ -12,7 +12,7 @@
  * @f$\{n \mid n = 0 \vee \chi(n - 3)\}@f$ with @f$\chi@f$ the characteristic
  * arrow of that very set.  Here @c χ is a tag whose application to terms builds
  * a @c Self node, a relational predicate standing for the set under definition
- * pulled back along the terms.  The former @c S @c | @c body, seeing a @c Self
+ * pulled back along the terms.  The former @c S @c & @c body, seeing a @c Self
  * in @c body, closes the recursion into @c Rec: a predicate that evaluates the
  * body on an @c Env the term nodes read as the point (a projection at an
  * @c Env is read at its point) and @c Self reads as the set.
@@ -277,7 +277,7 @@ struct Rec {
   }
 };
 
-/** @brief The former that closes a recursion: @c S @c | @c body with a @c χ in
+/** @brief The former that closes a recursion: @c S @c & @c body with a @c χ in
  *  the body is @f$\{x \in S \mid body(x)\}@f$ where @c χ is that set.  Viable
  *  only for a structural recursion over a decidable base; general recursion
  *  finds no former.  @tparam S the base.  @tparam Body the body. */
@@ -285,7 +285,7 @@ export template <IsSetObject S, typename Body>
   requires contains_self_v<Body> && self_descends_v<Body, typename S::Domain> &&
            std::same_as<
                std::invoke_result_t<const S&, const typename S::Domain&>, bool>
-constexpr auto operator|(const S& base, Body body) {
+constexpr auto operator&(const S& base, Body body) {
   using D = typename S::Domain;
   bind_check<D>(body);                                  // the body, χ a leaf
   (void)dedekind::category::cata(BindArgs<D>{}, body);  // χ's arguments
@@ -298,14 +298,14 @@ constexpr auto operator|(const S& base, Body body) {
 namespace detail_recursion_witness {
 using N = std::size_t;
 // The multiples of three, inductively: 0, and whatever is three above one.
-inline constexpr auto multiples_of_3 = 𝔸<N>{} | ((π == N{0}) || χ(π - N{3}));
+inline constexpr auto multiples_of_3 = 𝔸<N>{} & ((π == N{0}) || χ(π - N{3}));
 static_assert(IsSetObject<decltype(multiples_of_3)>,
               "an inductive set is a set object");
 static_assert(multiples_of_3(N{0}) && multiples_of_3(N{9}) &&
                   !multiples_of_3(N{10}) && !multiples_of_3(N{1}),
               "{n | n = 0 ∨ χ(n − 3)}: 0 and 9 are in, 1 and 10 are not");
 // ℕ itself, inductively: 0, and the successor of a natural.
-inline constexpr auto naturals = 𝔸<N>{} | ((π == N{0}) || χ(π - N{1}));
+inline constexpr auto naturals = 𝔸<N>{} & ((π == N{0}) || χ(π - N{1}));
 static_assert(naturals(N{0}) && naturals(N{30}),
               "the inductive ℕ reaches every natural (30 steps for 30; deeper "
               "unfoldings run at runtime, each level costing several calls of "
@@ -315,10 +315,10 @@ static_assert(naturals(N{0}) && naturals(N{30}),
 // the concepts.)
 template <typename T>
 concept FormsNonDescendingRecursion =
-    requires { 𝔸<T>{} | ((π == T{}) || χ(π)); };
+    requires { 𝔸<T>{} & ((π == T{}) || χ(π)); };
 template <typename T>
 concept FormsDescendingRecursion =
-    requires { 𝔸<T>{} | ((π == T{}) || χ(π - T{1})); };
+    requires { 𝔸<T>{} & ((π == T{}) || χ(π - T{1})); };
 static_assert(!FormsNonDescendingRecursion<N>,
               "a recursion that descends on nothing is refused at the former");
 static_assert(FormsDescendingRecursion<N> && !FormsDescendingRecursion<int>,
@@ -326,14 +326,14 @@ static_assert(FormsDescendingRecursion<N> && !FormsDescendingRecursion<int>,
 // One measure for the whole body: a subtraction somewhere is not enough.
 using NN = std::pair<N, N>;
 template <typename T>
-concept FormsSamePointRecursion = requires { 𝔸<T>{} | χ(π_2 - N{1}, π_2); };
+concept FormsSamePointRecursion = requires { 𝔸<T>{} & χ(π_2 - N{1}, π_2); };
 template <typename T>
 concept FormsCyclingRecursion = requires {
-  𝔸<T>{} | (χ(π_1 - N{1}, π_2 + N{1}) || χ(π_1 + N{1}, π_2 - N{1}));
+  𝔸<T>{} & (χ(π_1 - N{1}, π_2 + N{1}) || χ(π_1 + N{1}, π_2 - N{1}));
 };
 template <typename T>
 concept FormsMeasuredRecursion =
-    requires { 𝔸<T>{} | ((π_1 == N{0}) || χ(π_1 - N{1}, π_2 + N{1})); };
+    requires { 𝔸<T>{} & ((π_1 == N{0}) || χ(π_1 - N{1}, π_2 + N{1})); };
 static_assert(!FormsSamePointRecursion<NN> && !FormsCyclingRecursion<NN> &&
                   FormsMeasuredRecursion<NN>,
               "χ(π_2 − 1, π_2) and the two-call cycle have no common measure; "
@@ -341,14 +341,14 @@ static_assert(!FormsSamePointRecursion<NN> && !FormsCyclingRecursion<NN> &&
 // A constant argument is a term, and the measure still holds on π_1:
 // (x, y) is in when y = 0, or when (x − 1, 0) is, i.e. when x ≥ 1.
 inline constexpr auto y_zero_or_x_positive =
-    𝔸<NN>{} | ((π_2 == N{0}) || χ(π_1 - N{1}, N{0}));
+    𝔸<NN>{} & ((π_2 == N{0}) || χ(π_1 - N{1}, N{0}));
 static_assert(y_zero_or_x_positive(NN{0, 0}) &&
                   y_zero_or_x_positive(NN{3, 5}) &&
                   !y_zero_or_x_positive(NN{0, 5}),
               "{(x, y) | y = 0 ∨ χ(x − 1, 0)}: y = 0 or x ≥ 1");
 // A finite base keeps its bound.
 using FiniteN = 𝔸<unsigned, dedekind::category::Boole, Finite>;
-inline constexpr auto finite_evens = FiniteN{} | ((π == 0u) || χ(π - 2u));
+inline constexpr auto finite_evens = FiniteN{} & ((π == 0u) || χ(π - 2u));
 static_assert(std::same_as<decltype(finite_evens)::cardinality_type,
                            FiniteN::cardinality_type> &&
                   finite_evens(4u) && !finite_evens(5u),

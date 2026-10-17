@@ -80,13 +80,19 @@ TEST_CASE("category:subobject-lattice: Kleene meet / join via value Sup / Inf",
 
 namespace {
 
-// A minimal carrier exposing the metadata IsSubobjectLattice<S> requires:
-// Domain + logic_species with IsOckhamAlgebra on the species.  The subobject
-// lattice is INDUCED pointwise from the classifier L, so that metadata IS the
-// whole concept (no meet / join / complement free functions by name).
+// A minimal carrier exposing what IsSubobjectLattice<S> requires: Domain +
+// logic_species with IsOckhamAlgebra on the species (the laws, induced
+// pointwise from the classifier L), and the operations as spelled, & and |
+// (the concept's defaults, std::bit_and<> / std::bit_or<>).
 struct FauxSubobject {
   using Domain = bool;
   using logic_species = dedekind::category::Boole;
+  friend constexpr FauxSubobject operator&(FauxSubobject, FauxSubobject) {
+    return {};
+  }
+  friend constexpr FauxSubobject operator|(FauxSubobject, FauxSubobject) {
+    return {};
+  }
 };
 
 // Negative fixture: same metadata SHAPE, but the species is not an Ockham
@@ -103,13 +109,19 @@ TEST_CASE(
     "[category][lattice][subobject][concept][metadata]") {
   /** @brief The concept's CT-vocabulary metadata (@c Domain +
    *         @c logic_species typedefs, with @c IsOckhamAlgebra on the
-   *         species) IS the whole concept: the subobject lattice is
-   *         induced pointwise from the classifier @c L, so a carrier
-   *         exposing the metadata over an Ockham species already fires
-   *         @c IsSubobjectLattice. */
+   *         species) and the operations @c & / @c | make the concept: the
+   *         subobject lattice's laws are induced pointwise from the
+   *         classifier @c L, and the operations are how it is spelled. */
   STATIC_CHECK(IsOckhamAlgebra<FauxSubobject::logic_species>);
   STATIC_CHECK(std::same_as<FauxSubobject::Domain, bool>);
   STATIC_CHECK(IsSubobjectLattice<FauxSubobject>);
+  // The operations are part of the concept: the metadata alone is not a
+  // lattice one can compute in.
+  struct MetadataOnly {
+    using Domain = bool;
+    using logic_species = dedekind::category::Boole;
+  };
+  STATIC_CHECK_FALSE(IsSubobjectLattice<MetadataOnly>);
 
   /** @brief Negative witness: the same metadata shape over a species that
    *         is @b not an Ockham algebra induces no complemented subobject

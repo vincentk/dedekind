@@ -14,7 +14,7 @@
  * @f[ \exists x \in S.\,P(x) \;:\equiv\; \{x\in S \mid P(x)\} \neq \varnothing,
  *     \qquad
  *     \forall x \in S.\,P(x) \;:\equiv\; \neg\,\exists x \in S.\,\neg P(x). @f]
- * In code the comprehension is the where-clause @c S @c | @c P: @c exists is
+ * In code the comprehension is the meet @c S @c & @c P (#826): @c exists is
  * @c !(Ø{} @c == @c (S @c | @c P)) and @c forall is @c S @c == @c (S @c | @c
  * P). There is no separate fold; the reduction lives entirely in the @c == the
  * comprehension's fragment supplies, and the Rice boundary is therefore a
@@ -55,7 +55,7 @@ namespace dedekind::sets {
  * @brief Quantifiers over a @b finite carrier, decided @b by type through the
  *        finite quotient rather than by enumeration.
  *
- * @details The comprehension is the where-clause @c S @c | @c P: on
+ * @details The comprehension is the meet @c S @c & @c P: on
  * @f$\mathbb{B}@f$ a fragment collapses structurally (@c π==v to a @c
  * Singleton, @c π⋈v to a @c Halfspace), each carrying a finite @c ==Ø /
  * @c ==𝔸 over @c {false, true}; on @f$\mathbb{N}@f$ a congruence @c π%n==r
@@ -64,18 +64,18 @@ namespace dedekind::sets {
  */
 
 /** @brief A where-clause over the set @c S: a fragment @c P for which
- *  @c S @c | @c P is the comprehension @f$\{x \in S \mid P(x)\}@f$ --- a datum
+ *  @c S @c & @c P is the comprehension @f$\{x \in S \mid P(x)\}@f$ --- a datum
  *  (@c π @c == @c v, @c π @c > @c v) or a carrier-agnostic fragment (@c π @c ==
  *  @c c, @c π @c % @c n @c == @c r), which has no domain until
- * the former binds it.  Not a set: @c S @c | @c T would be the union.  What
- *  the former returns is the fragment's business (a comprehension, a residue
- *  set), so only its acceptance is asked.
+ * the former binds it.  Not a set: @c S @c & @c T would be the meet of two
+ * sets.  What the former returns is the fragment's business (a comprehension, a
+ * residue set), so only its acceptance is asked.
  *  @tparam P the fragment.  @tparam S the set it refines. */
 export template <typename P, typename S>
 concept IsWhereClause = !dedekind::category::IsLSet<std::remove_cvref_t<P>> &&
-                        requires(const S& s, P p) { s | p; };
+                        requires(const S& s, P p) { s & p; };
 
-// A quantifier is one comparison of the intensional comprehension @c s|p
+// A quantifier is one comparison of the intensional comprehension @c s&p
 // against a lattice bound (Eqn 2): @c exists tests against @c ∅ (scheme A),
 // @c forall against the input set @c S (scheme B); each recovers its partner by
 // complementing the predicate, @c !P.  Generic over any @c IsSet domain @c S
@@ -107,7 +107,7 @@ constexpr typename S::logic_species::Ω exists(const S& s, P p) {
   using L = typename S::logic_species;
   // (A): ¬({x ∈ S | P(x)} = ∅) = ⋁ (χ_S ∧ χ_P), in L.
   return L::RFL(
-      in_species<L>(Ø<typename S::Domain, L>{} == (s | std::move(p))));
+      in_species<L>(Ø<typename S::Domain, L>{} == (s & std::move(p))));
 }
 
 /** @brief Bounded @f$\forall@f$ over a @b decidable @c S (its χ in 𝔹: the Δ
@@ -126,7 +126,7 @@ constexpr typename S::logic_species::Ω forall(const S& s, P p) {
   using L = typename S::logic_species;
   // (B): S = {x ∈ S | P(x)} = ⋀ χ_P, in L.  S first: the species' Ω-valued ==
   // is then called directly; a reversed candidate would have to return bool.
-  return in_species<L>(s == (s | std::move(p)));
+  return in_species<L>(s == (s & std::move(p)));
 }
 
 /** @section quantifier__Formal_Verification */

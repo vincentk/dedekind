@@ -1721,8 +1721,9 @@ concept IsSubobjectFamilyMember = requires {
  *           @c logic_species typedefs (the latter satisfying
  *           @c IsOckhamAlgebra).
  */
-export template <typename S>
-concept IsSubobjectLattice = requires {
+export template <typename S, typename Meet = std::bit_and<>,
+                 typename Join = std::bit_or<>>
+concept IsSubobjectLattice = requires(const S& a, const S& b) {
   /** @brief CT-vocabulary metadata: @c S exposes a domain and a
    *         classifier logic species. */
   typename S::Domain;
@@ -1737,6 +1738,12 @@ concept IsSubobjectLattice = requires {
    *  was operational redundancy over the algebraic guarantee; the induced
    *  lattice IS the Ockham structure.  Same decoupling as ETCS Axiom 10. */
   requires IsOckhamAlgebra<typename S::logic_species>;
+  /** @brief The operations, as spelled: @c & and @c | by default
+   *  (@c std::bit_and<> / @c std::bit_or<>).  Their result is a node of the
+   *  reducer (a @c Meet / @c Join over the operands), not @c S, so only the
+   *  call is asked; the lattice laws are the Ockham witness above. */
+  Meet{}(a, b);
+  Join{}(a, b);
 };
 
 /** @section lattice__IsSubobjectLattice_Order_Derivability

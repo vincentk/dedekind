@@ -539,6 +539,21 @@ struct Subobject {
   }
 };
 
+/** @brief The meet of two subobjects of @c A: the pointwise meet of their
+ *  characteristic arrows (@f$\mathrm{Sub}(A) \cong \mathrm{Hom}(A, \Omega)@f$),
+ *  the lattice's own @c Meet node over them.  Arrow vocabulary only; the
+ *  set surface spells the same operation in @c dedekind.sets.
+ *  @tparam A the ambient.  @tparam X, Y the characteristic arrows. */
+export template <typename A, typename X, typename Y>
+constexpr auto operator&(const Subobject<A, X>& s, const Subobject<A, Y>& t) {
+  return Meet<Subobject<A, X>, Subobject<A, Y>>{s, t};
+}
+/** @brief The join of two subobjects of @c A, dual to @c operator&. */
+export template <typename A, typename X, typename Y>
+constexpr auto operator|(const Subobject<A, X>& s, const Subobject<A, Y>& t) {
+  return Join<Subobject<A, X>, Subobject<A, Y>>{s, t};
+}
+
 /**
  * @brief Characteristic Morphism Factory (classify)
  * Returns the Subobject Species (The Body) carrying the rule (The Arrow).

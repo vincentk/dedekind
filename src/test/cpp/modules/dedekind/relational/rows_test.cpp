@@ -44,13 +44,13 @@ const Object W{word};
 
 const Re words = Re::universe(W, W);  // the full relation on the word
 const Re succ =
-    (words | Q::cmp(Rel::Eq, T::proj(2),
+    (words & Q::cmp(Rel::Eq, T::proj(2),
                     T::bin(Arith::Add, T::proj(1), T::constant(1))));
 const Re square =
-    (words |
+    (words &
      Q::cmp(Rel::Eq, T::bin(Arith::Mul, T::proj(2), T::proj(2)), T::proj(1)));
 const Re cube =
-    (words |
+    (words &
      Q::cmp(Rel::Eq,
             T::bin(Arith::Mul, T::bin(Arith::Mul, T::proj(1), T::proj(1)),
                    T::proj(1)),
@@ -156,9 +156,9 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK(p.p->slot == 5);
   // A finite middle: ∃f ∈ 𝔹 enumerated by the bool reading.
   const Re above =
-      (Re::universe(W, {flag}) | Q::cmp(Rel::Ne, T::proj(1), T::constant(5)));
+      (Re::universe(W, {flag}) & Q::cmp(Rel::Ne, T::proj(1), T::constant(5)));
   const Re pick =
-      (Re::universe({flag}, W) |
+      (Re::universe({flag}, W) &
        Q::disj(Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(1)),
                        Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
                Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(0)),
@@ -173,6 +173,6 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   // Two universes make the product universe.
   CHECK((words * words).kind == Re::Kind::Universe);
   CHECK((succ * square).kind == Re::Kind::Tensor);
-  CHECK_THROWS_AS((succ | Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
+  CHECK_THROWS_AS((succ & Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
                   not_admitted);  // a slot past the columns
 }

@@ -28,7 +28,7 @@ TEST_CASE(
   CHECK(((π_1 + 1) * 3 == π_2)(P{1, 6}));
   CHECK((π != 3)(4u));
   CHECK(slots_v<decltype(π_1 * 3 + 1)> == 0b10u);
-  CHECK((𝔸<unsigned>{} | (π == 4))(4u));
+  CHECK((𝔸<unsigned>{} & (π == 4))(4u));
 }
 
 TEST_CASE("sets:terms: a division by the constant 0 is refused when built",

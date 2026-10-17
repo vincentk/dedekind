@@ -53,22 +53,22 @@ TEST_CASE(
   CHECK_FALSE(forall(𝔸<Ternary>{}, π > Ternary::False));
   CHECK(forall(𝔸<Ternary>{}, π >= Ternary::False));
   // Set equality on a truth chain is table equality, extensional.
-  constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
-  constexpr auto at_least_u = 𝔸<Ternary>{} | (π >= Ternary::Unknown);
+  constexpr auto above_bottom = 𝔸<Ternary>{} & (π > Ternary::False);
+  constexpr auto at_least_u = 𝔸<Ternary>{} & (π >= Ternary::Unknown);
   STATIC_CHECK(IsPstSet<decltype(above_bottom)>);
   CHECK(above_bottom == at_least_u);
   CHECK_FALSE(above_bottom == 𝔸<Ternary>{});
   CHECK(collect(runs(above_bottom)) ==
         std::vector{Run<Ternary>{Ternary::Unknown, Ternary::True}});
-  CHECK(collect(runs(𝔸<bool>{} | (π == true))) ==
+  CHECK(collect(runs(𝔸<bool>{} & (π == true))) ==
         std::vector{Run<bool>{true, true}});
 }
 
 TEST_CASE("sequences:pst: a window on the integral chain, ends as values",
           "[sequences][pst][window]") {
-  constexpr auto above5 = 𝔸<int>{} | (π > 5);
-  constexpr auto at_least6 = 𝔸<int>{} | (π >= 6);
-  constexpr auto below3 = 𝔸<int>{} | (π < 3);
+  constexpr auto above5 = 𝔸<int>{} & (π > 5);
+  constexpr auto at_least6 = 𝔸<int>{} & (π >= 6);
+  constexpr auto below3 = 𝔸<int>{} & (π < 3);
   CHECK(std::ranges::equal(runs(above5, 0, 20), runs(at_least6, 0, 20)));
   // The #365 showcase, by evaluation: no distributivity rule is involved.
   const auto meet = above5 & below3;
@@ -84,7 +84,7 @@ TEST_CASE(
     "its α-cuts",
     "[sequences][pst][kleene]") {
   // χ = id on K₃, valued in K₃: the simplest set with a genuine Unknown level.
-  constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Identity<Ternary>{};
+  constexpr auto hedge = 𝔸<Ternary, Kleene>{} & Identity<Ternary>{};
   // ∃ = ⋁χ and ∀ = ⋀χ in K₃, through == alone: Unknown is a verdict.
   CHECK(exists(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::True);
   CHECK(forall(𝔸<Ternary, Kleene>{}, Identity<Ternary>{}) == Ternary::False);
@@ -93,24 +93,24 @@ TEST_CASE(
   CHECK((hedge == hedge) == Ternary::Unknown);
   // Across species, compared in their join: {x > ⊥} (Boolean) against χ = id
   // (K₃-valued) agrees at ⊥ and ⊤, and at U to degree U.
-  constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
+  constexpr auto above_bottom = 𝔸<Ternary>{} & (π > Ternary::False);
   STATIC_CHECK((above_bottom == hedge) == Ternary::Unknown);
   STATIC_CHECK((hedge == above_bottom) == Ternary::Unknown);
   CHECK((above_bottom == hedge) == Ternary::Unknown);  // the runtime companions
   CHECK((hedge == above_bottom) == Ternary::Unknown);
   // ⊥ against U is itself only U; {x < U} (Boolean) against χ = id differs
   // outright at ⊥, ⊤ against ⊥, and the biconditional's meet is ⊥.
-  CHECK(((𝔸<Ternary>{} | (π > Ternary::Unknown)) == hedge) == Ternary::Unknown);
-  CHECK(((𝔸<Ternary>{} | (π < Ternary::Unknown)) == hedge) == Ternary::False);
+  CHECK(((𝔸<Ternary>{} & (π > Ternary::Unknown)) == hedge) == Ternary::Unknown);
+  CHECK(((𝔸<Ternary>{} & (π < Ternary::Unknown)) == hedge) == Ternary::False);
   // Excluded middle holds only to degree U, where χ is U.
   CHECK((𝔸<Ternary, Kleene>{} == (hedge | ~hedge)) == Ternary::Unknown);
   // The α-cuts, nested, as preimages of the upper rays on Ω: {χ ≥ U} = [U, ⊤]
   // and {χ ≥ ⊤} = [⊤, ⊤]; the fibre at U, preimage(χ, η(U)), is [U, U].
   constexpr auto cut_u =
-      𝔸<Ternary>{} | preimage(hedge, 𝔸<Ternary>{} | (π >= Ternary::Unknown));
+      𝔸<Ternary>{} & preimage(hedge, 𝔸<Ternary>{} & (π >= Ternary::Unknown));
   constexpr auto cut_top =
-      𝔸<Ternary>{} | preimage(hedge, 𝔸<Ternary>{} | (π >= Ternary::True));
-  constexpr auto fibre_u = 𝔸<Ternary>{} | preimage(hedge, η(Ternary::Unknown));
+      𝔸<Ternary>{} & preimage(hedge, 𝔸<Ternary>{} & (π >= Ternary::True));
+  constexpr auto fibre_u = 𝔸<Ternary>{} & preimage(hedge, η(Ternary::Unknown));
   STATIC_CHECK(IsPstSet<decltype(cut_u)>);
   CHECK(collect(runs(cut_u)) ==
         std::vector{Run<Ternary>{Ternary::Unknown, Ternary::True}});

@@ -10,8 +10,8 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
-  auto truthy = 𝔹 | (π == true);
-  auto falsy = 𝔹 | (π == false);
+  auto truthy = 𝔹 & (π == true);
+  auto falsy = 𝔹 & (π == false);
 
   // Universe-vs-carrier surface (post-#559).
   //   • 𝔹 is the universe value 𝔸<bool>{} (sets::𝔹, witnessed there), the
@@ -61,8 +61,8 @@ TEST_CASE("Algebra:Boolean paper alignment (logical vs bitwise)",
 }
 
 TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
-  const auto truthy = 𝔹 | (π == true);
-  const auto falsy = 𝔹 | (π == false);
+  const auto truthy = 𝔹 & (π == true);
+  const auto falsy = 𝔹 & (π == false);
   const auto empty = Ø<bool, Boole>{};
   const auto universe = 𝔹;
 
@@ -103,8 +103,8 @@ TEST_CASE("Algebra:Boolean contradiction is compile-time empty",
   static_assert(universe(false));
 
   // 2) Two half-spaces over {false, true}.
-  constexpr auto truthy = 𝔹 | (π == true);
-  constexpr auto falsy = 𝔹 | (π == false);
+  constexpr auto truthy = 𝔹 & (π == true);
+  constexpr auto falsy = 𝔹 & (π == false);
 
   static_assert(truthy(true));
   static_assert(!truthy(false));

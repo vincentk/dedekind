@@ -16,7 +16,7 @@
  * cover); @c U64 @c = @c A(u64) and @c GF_p @c = @c A(𝔽ₚ) are the ring's and
  * the field's.  The @b sets over 𝔹 and K₃ are the chain fragment of the Lwv
  * grammar: generators
- * @c A(T) / @c Ø(T) / @c η(v), the former @c U @c | @c (π @c > @c v),
+ * @c A(T) / @c Ø(T) / @c η(v), the former @c U @c & @c (π @c > @c v),
  * the lattice @c & @c | @c ^ @c ~, membership @c x @c in @c S / @c ap(S, x),
  * the queries @c == and @c <= answering in the set's own species (@c Unknown is
  * a verdict), the quantifiers @c exists / @c forall (also @c any / @c all), and
@@ -84,8 +84,8 @@ using dedekind::order::IsDense;
 using dedekind::order::IsTotallyOrdered;
 using dedekind::order::Runs;
 using dedekind::order::steps;
-// The product former 𝔸<A×B> | rel is order's, not found by ADL on sets types.
-using dedekind::order::operator|;
+// The product former 𝔸<A×B> & rel is order's, not found by ADL on sets types.
+using dedekind::order::operator&;
 using dedekind::sets::Cardinality;
 using dedekind::sets::finite_cardinality;
 using dedekind::sets::𝔸;
@@ -577,7 +577,7 @@ void def_comparisons(Cls& cls) {
  *  finite chain (@c sequences:pst), materialised. */
 template <typename C, typename L>
 auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
-  const auto c = 𝔸<C>{} | p;  // every operator and constant checked here
+  const auto c = 𝔸<C>{} & p;  // every operator and constant checked here
   return ext(s & Runs<C>(dedekind::sequences::ScanSteps<decltype(c)>{
                      c, dedekind::sets::chain_bottom<C>(),
                      dedekind::sets::chain_top<C>()}));
@@ -795,6 +795,21 @@ struct SlotsTo {
   }
 };
 
+/** @brief A predicate written after the former @c &: a disjunction
+ *  parenthesised, since @c & binds tighter than @c |.  @param p the
+ *  predicate. */
+std::string shown_filter(const RPred& p) {
+  return p.kind == RPred::Kind::Or ? "(" + show(p) + ")" : show(p);
+}
+/** @brief @c X @c | @c pred: refused; the filter is the meet, @c X @c &
+ *  @c pred (#826), and @c | the join of two sets.  @param x the set's
+ *  spelling.  @param p the predicate. */
+[[noreturn]] void filter_is_meet(const char* x, const RPred& p) {
+  throw nb::type_error((std::string(x) + " | " + show(p) +
+                        ": the filter is the meet, " + x + " & " + show(p) +
+                        " (#826); | is the join of two sets")
+                           .c_str());
+}
 /** @brief A factor of a product as a relation: a relation itself, a universe
  *  (its one column, ⊤), or a set cut out of a universe by a term (its one
  *  column, its predicate on π_1).  @throws nb::type_error otherwise. */
@@ -812,11 +827,11 @@ Relation as_relation(nb::handle h) {
   if (nb::isinstance<pst::Chain<Ternary>>(h))
     return table(sort_index_v<Ternary>);
   if (nb::isinstance<Comprehension<UW, RPred>>(h))
-    return (table(sort_index_v<uint64_t>) |
+    return (table(sort_index_v<uint64_t>) &
             nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
                 FirstColumn{}));
   if (nb::isinstance<Comprehension<UF, RPred>>(h))
-    return (table(sort_index_v<Fp>) |
+    return (table(sort_index_v<Fp>) &
             nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
                 FirstColumn{}));
   throw nb::type_error(
@@ -1011,7 +1026,7 @@ std::string written(const Relation& r) {
   };
   switch (r.kind) {
     case R::Kind::Comprehension:
-      return leg(*r.a) + " | " + show(r.predicate);
+      return leg(*r.a) + " & " + shown_filter(r.predicate);
     case R::Kind::Meet:
       return leg(*r.a) + " & " + leg(*r.b);
     case R::Kind::Join:
@@ -1054,10 +1069,16 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           nb::is_operator(), "R × S: the schemas concatenated.")
       .def(
-          "__or__", [](const Relation& r, const RPred& p) { return (r | p); },
+          "__and__", [](const Relation& r, const RPred& p) { return (r & p); },
           nb::is_operator(),
-          "R | pred: the former; every slot, constant and operator is checked "
+          "R & pred: the former; every slot, constant and operator is checked "
           "in its column's sort now, and a term mixing two carriers refused.")
+      .def(
+          "__or__",
+          [](const Relation&, const RPred& p) -> Relation {
+            filter_is_meet("R", p);
+          },
+          nb::is_operator())
       .def(
           "__or__", [](const Relation& a, const Relation& b) { return a | b; },
           nb::is_operator())
@@ -1065,7 +1086,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__or__",
           [](const Relation&, const RTerm& t) -> Relation {
             throw nb::type_error(
-                ("R | " + show(t) + ": a term is not a predicate; compare it")
+                ("R & " + show(t) + ": a term is not a predicate; compare it")
                     .c_str());
           },
           nb::is_operator())
@@ -1188,7 +1209,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           u.budget = r.budget;
           return u;
         }
-        Relation out = (Relation::universe(r.dom, r.cod) | nf);
+        Relation out = (Relation::universe(r.dom, r.cod) & nf);
         out.budget = r.budget;
         return out;
       },
@@ -1258,14 +1279,20 @@ void bind_term_sets(nb::module_& m,
   };
   universe
       .def(
-          "__or__", [](const U& u, const RPred& p) { return u | p; },
+          "__and__", [](const U& u, const RPred& p) { return u & p; },
           nb::is_operator(),
-          "𝔸(carrier) | pred: the former; every operator and constant of the "
+          "𝔸(carrier) & pred: the former; every operator and constant of the "
           "term is checked against the carrier now.")
       .def(
           "__or__",
+          [](const U&, const RPred& p) -> S {
+            filter_is_meet("𝔸(carrier)", p);
+          },
+          nb::is_operator())
+      .def(
+          "__and__",
           [](const U&, const RTerm& t) -> S {
-            throw nb::type_error(("𝔸(carrier) | " + show(t) +
+            throw nb::type_error(("𝔸(carrier) & " + show(t) +
                                   ": a term is not a predicate; compare it")
                                      .c_str());
           },
@@ -1289,10 +1316,10 @@ void bind_term_sets(nb::module_& m,
         // The atoms first, then the set: an atom normalised into the chain's
         // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
         // reaches the fixpoint.
-        const S atoms = U{} | canonical<C>(s.predicate);
+        const S atoms = U{} & canonical<C>(s.predicate);
         if constexpr (IsTotallyOrdered<C>) {
           try {
-            return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),
+            return U{} & run_predicate<C>(dedekind::order::runs(steps(atoms)),
                                           std::numeric_limits<C>::min(),
                                           std::numeric_limits<C>::max());
           } catch (const dedekind::sets::not_admitted&) {
@@ -1322,16 +1349,16 @@ void bind_term_sets(nb::module_& m,
       .def(
           "__and__",
           [](const S& a, const S& b) {
-            return U{} | RPred::conj(a.predicate, b.predicate);
+            return U{} & RPred::conj(a.predicate, b.predicate);
           },
           nb::is_operator())
       .def(
           "__or__",
           [](const S& a, const S& b) {
-            return U{} | RPred::disj(a.predicate, b.predicate);
+            return U{} & RPred::disj(a.predicate, b.predicate);
           },
           nb::is_operator())
-      .def("__invert__", [](const S& a) { return U{} | a.predicate.negated(); })
+      .def("__invert__", [](const S& a) { return U{} & a.predicate.negated(); })
       .def("__eq__", set_equal<C, S>, nb::is_operator(),
            "A == B: equality in the free algebra the carrier's laws give the "
            "term.  A chain's run lists decide it; otherwise the normal forms "
@@ -1350,13 +1377,14 @@ void bind_term_sets(nb::module_& m,
       .def_prop_ro(
           "codomain", [m](const S&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹.")
-      .def("__repr__",
-           [shown](const S& s) { return shown + " | " + show(s.predicate); });
+      .def("__repr__", [shown](const S& s) {
+        return shown + " & " + shown_filter(s.predicate);
+      });
   if constexpr (HasNNOStep<C>) {
     // image / preimage under the structural arrows: the substitution.  An
     // erased composite has no closed form and is refused.
     const auto shifted = [](const S& s, Arith op) {
-      return U{} | s.predicate.subst(
+      return U{} & s.predicate.subst(
                        0, RTerm::bin(op, RTerm::proj(0),
                                      RTerm::constant(PyConst{nb::int_(1)})));
     };
@@ -1469,7 +1497,7 @@ void bind_term_sets(nb::module_& m,
               if (!key.attr("step").is_none())
                 throw nb::type_error(
                     "a stepped slice is the meet with a residue class: "
-                    "s & (A(carrier) | (π % k == r))");
+                    "s & (A(carrier) & (π % k == r))");
               RPred p = s.predicate;
               if (!key.attr("start").is_none())
                 p = RPred::conj(
@@ -1479,7 +1507,7 @@ void bind_term_sets(nb::module_& m,
                 p = RPred::conj(
                     p, RPred::cmp(Rel::Lt, RTerm::proj(0),
                                   RTerm::constant(PyConst{key.attr("stop")})));
-              return U{} | p;
+              return U{} & p;
             },
             nb::arg("key"),
             "s[a:b] = s ∩ [a, b), slicing by value (pandas' .loc, not .iloc).");
@@ -1608,14 +1636,14 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
          nb::arg("x"),
          "ap(S, x): χ(x) at an element, in the set's species.  ap(S, t) at a "
          "term: χ as a term of the grammar with π replaced by t; a decidable "
-         "set's run predicate into 𝔹 (so K3 | (ap(S, π) == True) is S), an "
+         "set's run predicate into 𝔹 (so K3 & (ap(S, π) == True) is S), an "
          "L-valued set's conditional over its α-cuts, cond(χ ≥ ⊤, ⊤, cond(χ ≥ "
          "U, U, ⊥)), compared on the chain (ap(H, π) >= level the cut, "
          "ap(H, π) == level the fibre).")
       .def(
-          "__or__",
+          "__and__",
           [](const S&, const RTerm& t) -> S {
-            throw nb::type_error(("S | " + show(t) +
+            throw nb::type_error(("S & " + show(t) +
                                   ": a term is not a predicate; compare it "
                                   "(t == True, t >= level)")
                                      .c_str());
@@ -1629,10 +1657,14 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           nb::arg("x"),
           "x in S: whether χ(x) = ⊤.  For the L-valued χ, ap(S, x).")
       .def(
-          "__or__",
+          "__and__",
           [](const S& s, const RPred& p) { return former_runtime(s, p); },
-          "S | pred: the former, {x ∈ S | P(x)}, the term checked on the "
+          "S & pred: the former, {x ∈ S | P(x)}, the term checked on the "
           "chain.")
+      .def(
+          "__or__",
+          [](const S&, const RPred& p) -> S { filter_is_meet("S", p); },
+          "Refused: the filter is S & pred (#826).")
       .def(
           "__invert__", [](const S& a) { return ext(~a); },
           "~A: the complement, the species' reflection pointwise.")
@@ -1674,7 +1706,7 @@ nb::object full_universe() {
   return nb::cast(pst::Set<C, Boole>::universe());
 }
 
-/** @brief A truth chain's universe as a set: the former @c U @c | @c pred,
+/** @brief A truth chain's universe as a set: the former @c U @c & @c pred,
  *  membership (every element of the carrier), its codomain, the set
  *  operations against the sets over it (the universe is their top), and
  *  @c identity, the set whose χ is the identity.  The chain's order data (⊥, ⊤,
@@ -1766,7 +1798,7 @@ nb::object on_set_and_pred(nb::handle s0, nb::handle p, const char* what) {
         throw nb::type_error(
             "forall over an L-valued set awaits the chain's residuated "
             "implication (#980); quantify over its α-cut: "
-            "forall(A(S.carrier) | (ap(S, π) >= level), P)");
+            "forall(A(S.carrier) & (ap(S, π) >= level), P)");
     }
   }
   const std::string message = std::string(what) +
@@ -1802,7 +1834,7 @@ NB_MODULE(_pst, m) {
   m.doc() =
       "Pst (paper §3): Pst = Jlt ∩ Chain.  The universes B = A(bool), K3 = "
       "A(Ternary), U64 = A(u64), GF_p = A(𝔽ₚ), and the sets over them per the "
-      "Lwv grammar: U | (π > v), Ø(T), η(v), the lattice & | ^ ~, membership "
+      "Lwv grammar: U & (π > v), Ø(T), η(v), the lattice & | ^ ~, membership "
       "x in S / ap(S, x), the queries == and <= in the set's species, exists / "
       "forall (any / all), and canonical, the normal form.  Every query is "
       "decided in C++.";
@@ -1890,7 +1922,7 @@ NB_MODULE(_pst, m) {
   nb::class_<RPred>(
       m, "Pred",
       "A predicate of the grammar: a comparison of two terms, or & | ~ of "
-      "predicates (~ pushed to the comparisons).  A(carrier) | pred binds it.")
+      "predicates (~ pushed to the comparisons).  A(carrier) & pred binds it.")
       .def(
           "__and__",
           [](const RPred& a, const RPred& b) { return RPred::conj(a, b); },
@@ -1905,7 +1937,7 @@ NB_MODULE(_pst, m) {
           [](const RPred& p) -> bool {
             throw nb::type_error(
                 ("a predicate is not a truth value: " + show(p) +
-                 "; bind it (A(carrier) | pred) or compare sets")
+                 "; bind it (A(carrier) & pred) or compare sets")
                     .c_str());
           },
           "Refused: a predicate is bound, not tested.")
@@ -2182,10 +2214,10 @@ NB_MODULE(_pst, m) {
           return kleene ? nb::cast(pst::Set<Ternary, Kleene>::empty())
                         : nb::cast(pst::Set<Ternary, Boole>::empty());
         if (on_word)
-          return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{} |
+          return nb::cast(𝔸<uint64_t, Boole, dedekind::sets::Finite>{} &
                           RPred::bottom());
         if (on_field)
-          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{} |
+          return nb::cast(𝔸<Fp, Boole, dedekind::sets::Finite>{} &
                           RPred::bottom());
         throw nb::type_error(
             "Ø(T or U): a carrier type or its universe (bool / B, Ternary / "
@@ -2219,7 +2251,7 @@ NB_MODULE(_pst, m) {
       nb::arg("S"), nb::arg("P"),
       "forall(S, P) over a decidable S: S == (S | P), the library's own ∀; an "
       "L-valued S is refused (see #980), quantify over its cut, "
-      "A(chain) | (ap(S, π) >= level).");
+      "A(chain) & (ap(S, π) >= level).");
   m.def(
       "ap",
       [](nb::handle f, nb::handle x) -> nb::object {

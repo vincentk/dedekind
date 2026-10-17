@@ -152,6 +152,20 @@ static_assert(
     "a join is a pushout, not a pullback (no projection legs).");
 }  // namespace and_predicate_product_test
 
+namespace {
+template <typename S, typename P>
+concept Joins = requires(const S& s, const P& p) { s | p; };
+template <typename S, typename P>
+concept Meets = requires(const S& s, const P& p) { s & p; };
+}  // namespace
+
+// #826: the filter is the meet; | is the join of two sets only.
+static_assert(Meets<decltype(𝔹), decltype(π == true)> &&
+                  !Joins<decltype(𝔹), decltype(π == true)>,
+              "𝔹 & (π == true) filters; 𝔹 | (π == true) is refused");
+static_assert(Joins<decltype(𝔹), decltype(𝔹 & (π == true))>,
+              "| stays the join of two sets");
+
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
     // Equality to a value IS the singleton (the monad unit η), not a
@@ -272,8 +286,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // {true} and {false} should be the full {true, false} universe, NOT empty.
     // This regression test guards against a same-type collapse that would
     // wrongly fire on every pair of points regardless of the pivot.
-    auto only_true = 𝔹 | (π == true);
-    auto only_false = 𝔹 | (π == false);
+    auto only_true = 𝔹 & (π == true);
+    auto only_false = 𝔹 & (π == false);
     auto sym_diff = only_true ^ only_false;
     // The symmetric difference of two disjoint singletons is their
     // union — every element of {true, false} appears in exactly one,
@@ -391,8 +405,8 @@ TEST_CASE("Dedekind Identities: Boolean literals over 𝔹",
   // The two points of 𝔹, spelled in the grammar.  Their meet / join are the
   // reducer's nodes, read pointwise here; that they are Ø and 𝔹 as sets is
   // decided by the run lists (order/runs_test).
-  constexpr auto b_false = 𝔹 | (π == false);
-  constexpr auto b_true = 𝔹 | (π == true);
+  constexpr auto b_false = 𝔹 & (π == false);
+  constexpr auto b_true = 𝔹 & (π == true);
 
   CHECK((b_false & b_true)(false) == false);
   CHECK((b_false & b_true)(true) == false);
@@ -408,7 +422,7 @@ TEST_CASE(
   // should be recognised as semantically equivalent to b == true.
   // Bare-b form (the issue's target ergonomics): the truthy predicate IS the
   // point {true}, spelled as the set former.
-  constexpr auto b_true_bare = 𝔹 | (π == true);
+  constexpr auto b_true_bare = 𝔹 & (π == true);
   // Equivalent comparison form: the same point by its factory.
   constexpr auto b_true_eq = singleton(true);
 

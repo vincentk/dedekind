@@ -61,7 +61,7 @@ using namespace dedekind::sets;
 // the pivot 5 as a value over the Cardinality carrier (the variant ℕ-proxy).
 // A halfspace IS a set object, and image() takes any set object over the
 // arrow's domain; its species is the universe's (Boole here).
-constexpr auto gt_5 = ℕ | (π > 5);
+constexpr auto gt_5 = ℕ & (π > 5);
 
 // The NNO successor on @c Cardinality, the canonical ℕ → ℕ arrow.
 constexpr auto succ_arrow = Successor<Cardinality>{};

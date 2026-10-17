@@ -19,7 +19,7 @@
  * An L-valued set is read through its decidable sets on @f$\Omega@f$, pulled
  * back along χ with the generic @c preimage (@c category:morphism): the
  * @b fibre of χ at @f$\ell@f$, @f$\chi^{-1}(\ell) = @c preimage(χ, η(ℓ))@f$,
- * and the @b α-cut @f$\{\chi \ge \ell\} = @c preimage(χ, 𝔸<Ω> | (π ≥ ℓ))@f$.
+ * and the @b α-cut @f$\{\chi \ge \ell\} = @c preimage(χ, 𝔸<Ω> & (π ≥ ℓ))@f$.
  * The α-cuts are nested in @f$\ell@f$ and are the Pst normal form; their runs
  * are this partition's.  Not here: ℤ (the walk would have to jump between the
  * term's cut points) and the dense carriers (no step).
@@ -141,16 +141,16 @@ consteval auto summary(View v) {
   }
   return std::tuple{n, first, last};
 }
-inline constexpr auto above_bottom = 𝔸<Ternary>{} | (π > Ternary::False);
+inline constexpr auto above_bottom = 𝔸<Ternary>{} & (π > Ternary::False);
 static_assert(summary(runs(above_bottom)) ==
                   std::tuple{std::size_t{1},
                              Run{Ternary::Unknown, Ternary::True},
                              Run{Ternary::Unknown, Ternary::True}},
               "{x > ⊥} on K₃ is one run: [U, ⊤].");
-inline constexpr auto above5 = 𝔸<int>{} | (π > 5);
-inline constexpr auto below3 = 𝔸<int>{} | (π < 3);
+inline constexpr auto above5 = 𝔸<int>{} & (π > 5);
+inline constexpr auto below3 = 𝔸<int>{} & (π < 3);
 static_assert(std::ranges::equal(runs(above5, 0, 20),
-                                 runs(𝔸<int>{} | (π >= 6), 0, 20)) &&
+                                 runs(𝔸<int>{} & (π >= 6), 0, 20)) &&
                   std::ranges::distance(runs(above5 & below3, 0, 20)) == 0 &&
                   summary(runs(above5 | below3, 0, 9)) ==
                       std::tuple{std::size_t{2}, Run{0, 2}, Run{6, 9}},
@@ -159,11 +159,11 @@ static_assert(std::ranges::equal(runs(above5, 0, 20),
 // An L-valued set through its decidable sets on Ω: χ = id on K₃, valued in K₃.
 // The α-cut {χ ≥ U} is the upper ray on Ω pulled back along χ, [U, ⊤]; the
 // fibre of χ at U is the point η(U) pulled back, [U, U].
-inline constexpr auto hedge = 𝔸<Ternary, Kleene>{} | Identity<Ternary>{};
+inline constexpr auto hedge = 𝔸<Ternary, Kleene>{} & Identity<Ternary>{};
 inline constexpr auto cut_u =
-    𝔸<Ternary>{} | preimage(hedge, 𝔸<Ternary>{} | (π >= Ternary::Unknown));
+    𝔸<Ternary>{} & preimage(hedge, 𝔸<Ternary>{} & (π >= Ternary::Unknown));
 inline constexpr auto fibre_u =
-    𝔸<Ternary>{} | preimage(hedge, η(Ternary::Unknown));
+    𝔸<Ternary>{} & preimage(hedge, η(Ternary::Unknown));
 static_assert(IsPstSet<decltype(cut_u)> && IsPstSet<decltype(fibre_u)> &&
                   summary(runs(cut_u)) ==
                       std::tuple{std::size_t{1},
