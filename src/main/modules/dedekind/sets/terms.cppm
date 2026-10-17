@@ -1950,12 +1950,30 @@ struct Pred {
     return t;
   }
 };
-/** @brief Whether a predicate has a quantifier anywhere.  @param p the
- *  predicate. */
+export template <typename K>
+bool has_quantifier(const Pred<K>& p);
+/** @brief Whether a term has a quantifier in a conditional's guard. */
+template <typename K>
+bool has_quantifier(const Term<K>& t) {
+  switch (t.kind) {
+    case Term<K>::Kind::Proj:
+    case Term<K>::Kind::Const:
+      return false;
+    case Term<K>::Kind::Bin:
+      return has_quantifier(*t.a) || has_quantifier(*t.b);
+    case Term<K>::Kind::Cond:
+      return has_quantifier(*t.p) || has_quantifier(*t.a) ||
+             has_quantifier(*t.b);
+  }
+  return false;
+}
+/** @brief Whether a predicate has a quantifier anywhere, a conditional's
+ *  guard in a comparison's operands included.  @param p the predicate. */
 export template <typename K>
 bool has_quantifier(const Pred<K>& p) {
   switch (p.kind) {
     case Pred<K>::Kind::Cmp:
+      return has_quantifier(*p.a) || has_quantifier(*p.b);
     case Pred<K>::Kind::Top:
     case Pred<K>::Kind::Bottom:
       return false;

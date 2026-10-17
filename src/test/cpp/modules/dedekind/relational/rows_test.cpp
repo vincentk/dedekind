@@ -75,6 +75,10 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   CHECK(verdict(two, R{{3u, 5u}}) == Ternary::True);
   CHECK(verdict(two, R{{3u, 6u}}) == Ternary::Unknown);
   CHECK(function_term(two, p) == nullptr);  // not quantifier-free as read
+  // A quantifier is found in a conditional's guard, too.
+  CHECK(has_quantifier(
+      Q::cmp(Rel::Eq, T::cond(p, T::constant(1), T::proj(1)), T::proj(2))));
+  CHECK_FALSE(has_quantifier(classifier(succ)));
   // The lattice keeps its nodes: R & S is a Meet, ~R a Not.
   CHECK((succ & square).kind == Re::Kind::Meet);
   CHECK((~succ).kind == Re::Kind::Not);

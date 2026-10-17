@@ -614,15 +614,20 @@ struct TypedConstant {
 /** @brief Whether the term @c t is a value of the carrier @c C, as a predicate
  *  that holds wherever it binds: @c t compared with a constant of @c C, so a
  *  term of another sort is refused when the predicate is bound.  A chain's
- *  and the word's bottom, @c t @c >= @c ⊥; the field's unit, @c t·1 @c == @c t.
- *  @param t the term. */
+ *  values, one equation each (a comparison widens: K₃'s U is no Boolean
+ *  though @c U @c >= @c ⊥); the word's bottom, @c t @c >= @c 0; the field's
+ *  unit, @c t·1 @c == @c t.  @param t the term. */
 template <typename C>
 RPred member_of(const RTerm& t) {
-  if constexpr (IsPst<C>)
-    return RPred::cmp(
-        Rel::Ge, t,
-        RTerm::constant(TypedConstant{}(dedekind::sets::chain_bottom<C>())));
-  else if constexpr (std::unsigned_integral<C>)
+  if constexpr (IsPst<C>) {
+    RPred any = RPred::bottom();
+    for (C c = dedekind::sets::chain_bottom<C>();;
+         c = dedekind::category::Successor<C>{}(c)) {
+      any = RPred::disj(
+          any, RPred::cmp(Rel::Eq, t, RTerm::constant(TypedConstant{}(c))));
+      if (c == dedekind::sets::chain_top<C>()) return any;
+    }
+  } else if constexpr (std::unsigned_integral<C>)
     return RPred::cmp(Rel::Ge, t, RTerm::constant(TypedConstant{}(C{})));
   else
     return RPred::cmp(
@@ -817,10 +822,27 @@ Relation as_relation(nb::handle h) {
   throw nb::type_error(
       "a factor of a product is a universe, a set over one, or a relation");
 }
+/** @brief Whether @c r is a table: built out of universes by the set
+ *  operations, so its empty domain is no split.  An arrow out of the unit
+ *  (a converse, or a composite of one) has an empty domain too, explicitly. */
+bool is_table(const Relation& r) {
+  using K = Relation::Kind;
+  if (!r.dom.empty()) return false;
+  switch (r.kind) {
+    case K::Universe:
+      return true;
+    case K::Converse:
+      return false;
+    case K::Tensor:
+      return is_table(*r.a) && is_table(*r.b);
+    default:  // a former, ∧, ∨, ¬, >>: the left leg's schema
+      return is_table(*r.a);
+  }
+}
 /** @brief A table of n ≥ 2 columns read as the arrow of its first n − 1
  *  columns (the Function[A, …, B] convention); an arrow stays as it is. */
 Relation as_arrow(const Relation& r) {
-  if (!r.dom.empty() || r.arity() < 2) return r;
+  if (!is_table(r) || r.arity() < 2) return r;
   return dedekind::relational::split(r, r.arity() - 1);
 }
 /** @brief The object of a universe over one carrier.  @throws nb::type_error
@@ -953,12 +975,17 @@ nb::object apply(const Relation& r, nb::handle h) {
   const std::vector<nb::handle> xs = arguments(r, h);
   bool symbolic = false;
   for (nb::handle a : xs) symbolic = symbolic || is_term(a);
+  const dedekind::relational::Object cols = r.columns();
   if (symbolic) {
+    // A value among the terms is checked in its column now: the function's
+    // term may not use it, and substitution would drop it unchecked.
     std::vector<RTerm> args;
-    for (nb::handle a : xs) args.push_back(term_of(a));
+    for (std::size_t i = 0; i < xs.size(); ++i) {
+      if (!is_term(xs[i])) (void)cell_of(cols[i], xs[i]);
+      args.push_back(term_of(xs[i]));
+    }
     return nb::cast(f->map_slots(SlotsTo{args}));
   }
-  const dedekind::relational::Object cols = r.columns();
   Cells row;
   for (std::size_t i = 0; i < xs.size(); ++i)
     row.cells.push_back(cell_of(cols[i], xs[i]));
@@ -2210,6 +2237,11 @@ NB_MODULE(_pst, m) {
   m.def(
       "cond",
       [](const RPred& p, nb::handle a, nb::handle b) {
+        // A guard is decided; a quantifier's reading is a verdict in K₃.
+        if (dedekind::sets::has_quantifier(p))
+          throw nb::type_error(
+              "cond(pred, a, b): a guard with a quantifier has a K₃ verdict, "
+              "no Boolean choice (not yet)");
         return RTerm::cond(p, term_of(a), term_of(b));
       },
       nb::arg("pred"), nb::arg("a"), nb::arg("b"),

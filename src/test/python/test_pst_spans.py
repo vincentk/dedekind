@@ -12,7 +12,7 @@ order of conjuncts, #884)."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2
+from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3
 from dedekind.trsk import Relation, copy, diag, merge
 
 succ = U64 * U64 | (π_2 == π_1 + 1)
@@ -226,6 +226,30 @@ class WhatTheSubstitutionMayAssume(unittest.TestCase):
         self.assertNotIn((3, 4), S)
         with self.assertRaises(TypeError):
             ap(sq >> cube, (π_1, π_2))  # a quantifier remains: no symbolic reading
+
+    def test_a_boolean_column_admits_no_unknown(self) -> None:
+        S = U64 * K3 | (ap(U64 * B, (π_1, π_2)) == True)  # noqa: E712
+        self.assertIn((7, Ternary.TRUE), S)
+        self.assertNotIn((7, Ternary.UNKNOWN), S)
+
+    def test_an_unused_argument_is_checked(self) -> None:
+        first = U64 * U64 * U64 | (π_3 == π_1)
+        with self.assertRaises(TypeError):
+            ap(first, (π, True))  # True is no word, though the term drops it
+
+    def test_a_guard_keeps_no_quantifier(self) -> None:
+        with self.assertRaises(TypeError):
+            cond((sq >> cube).classifier, 1, 0)
+
+
+class TheSplit(unittest.TestCase):
+    """An arrow out of the unit is no table: its empty domain is explicit."""
+
+    def test_the_converse_is_an_involution(self) -> None:
+        d = (U64 * U64).project(1).converse
+        r = d * d
+        back = r.converse.converse
+        self.assertEqual((back.dom, back.cod), (r.dom, r.cod))
 
     def test_a_unary_relation_is_annotated(self) -> None:
         dom = succ.project(1)
