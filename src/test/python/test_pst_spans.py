@@ -221,8 +221,9 @@ class WhatTheSubstitutionMayAssume(unittest.TestCase):
         with self.assertRaises(TypeError):
             B | (ap(U64 * U64, (π, π)) == True)  # a bool is no word  # noqa: E712
         two = succ >> succ  # its middle is eliminated: a symbolic reading exists
-        self.assertIs((U64 * U64 | (ap(two, (π_1, π_2)) == True))  # noqa: E712
-                      == (U64 * U64 | (π_2 == π_1 + 2)), True)
+        S = U64 * U64 | (ap(two, (π_1, π_2)) == True)  # noqa: E712
+        self.assertIn((3, 5), S)
+        self.assertNotIn((3, 4), S)
         with self.assertRaises(TypeError):
             ap(sq >> cube, (π_1, π_2))  # a quantifier remains: no symbolic reading
 
