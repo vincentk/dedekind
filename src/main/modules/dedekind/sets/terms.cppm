@@ -1286,7 +1286,12 @@ struct Value {
     const Pred<K>& t;
     template <typename C>
     bool operator()(std::type_identity<C>) const {
-      if constexpr (dedekind::category::IsPst<C>) {
+      // A bound column has one of the row's carriers: the truth chains the
+      // term sorts add for ap(S, t) are not among them unless the row has them.
+      if constexpr (!is_sort_of_v<C, point_sorts_t<P>>) {
+        throw not_admitted(
+            "a quantifier over a sort the row's carriers have not");
+      } else if constexpr (dedekind::category::IsPst<C>) {
         const bool universal = t.kind == Pred<K>::Kind::Forall;
         P row = with_bound(v.p, t.sort);
         for (C c = chain_bottom<C>();;
@@ -1347,6 +1352,15 @@ struct Verdict {
     const Pred<K>& t;
     template <typename C>
     Ternary operator()(std::type_identity<C>) const {
+      if constexpr (!is_sort_of_v<C, point_sorts_t<P>>) {
+        throw not_admitted(
+            "a quantifier over a sort the row's carriers have not");
+      } else {
+        return search(std::type_identity<C>{});
+      }
+    }
+    template <typename C>
+    Ternary search(std::type_identity<C>) const {
       const bool universal = t.kind == Pred<K>::Kind::Forall;
       P row = with_bound(v.point, t.sort);
       if constexpr (dedekind::category::IsPst<C>) {
