@@ -747,13 +747,13 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h);
  *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
     dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
+using dedekind::relational::classifier;
 using dedekind::relational::converse;
-using dedekind::relational::predicate;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
 RPred canonical(const Relation& r) {
-  return canonical<Cells>(predicate(r), r.rep());
+  return canonical<Cells>(classifier(r), r.rep());
 }
 /** @brief The relation's predicate pinned and with its quantifiers eliminated
  *  where an atom defines the column or a finite chain expands it, the atoms
@@ -761,7 +761,7 @@ RPred canonical(const Relation& r) {
  *  rewrite the graph atom π_n == t into π_n − t == 0). */
 RPred certifiable(const Relation& r) {
   return dedekind::algebra::eliminate_quantifiers<Cells>(
-      pinned<Cells>(predicate(r), r.rep()), TypedConstant{}, r.rep());
+      pinned<Cells>(classifier(r), r.rep()), TypedConstant{}, r.rep());
 }
 /** @brief A set's unary π read as the first column of a relation. */
 struct FirstColumn {
@@ -792,15 +792,13 @@ Relation as_relation(nb::handle h) {
   if (nb::isinstance<pst::Chain<Ternary>>(h))
     return table(sort_index_v<Ternary>);
   if (nb::isinstance<Comprehension<UW, RPred>>(h))
-    return dedekind::relational::where(
-        table(sort_index_v<uint64_t>),
-        nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
-            FirstColumn{}));
+    return (table(sort_index_v<uint64_t>) |
+            nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
+                FirstColumn{}));
   if (nb::isinstance<Comprehension<UF, RPred>>(h))
-    return dedekind::relational::where(
-        table(sort_index_v<Fp>),
-        nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
-            FirstColumn{}));
+    return (table(sort_index_v<Fp>) |
+            nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
+                FirstColumn{}));
   throw nb::type_error(
       "a factor of a product is a universe, a set over one, or a relation");
 }
@@ -919,7 +917,7 @@ nb::object apply(const Relation& r, nb::handle h) {
       return nb::cast(v);
     }
     return nb::cast(truth_term(
-        pinned<Cells>(predicate(r), r.rep()).map_slots(SlotsTo{args})));
+        pinned<Cells>(classifier(r), r.rep()).map_slots(SlotsTo{args})));
   }
   const RTerm* f = function_term(r, cert);
   if (f == nullptr)
@@ -959,7 +957,7 @@ std::string written(const Relation& r) {
     return x.kind == R::Kind::Universe ? written(x) : "(" + written(x) + ")";
   };
   switch (r.kind) {
-    case R::Kind::Where:
+    case R::Kind::Comprehension:
       return leg(*r.a) + " | " + show(r.predicate);
     case R::Kind::Meet:
       return leg(*r.a) + " & " + leg(*r.b);
@@ -1003,10 +1001,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           nb::is_operator(), "R × S: the schemas concatenated.")
       .def(
-          "__or__",
-          [](const Relation& r, const RPred& p) {
-            return dedekind::relational::where(r, p);
-          },
+          "__or__", [](const Relation& r, const RPred& p) { return (r | p); },
           nb::is_operator(),
           "R | pred: the former; every slot, constant and operator is checked "
           "in its column's sort now, and a term mixing two carriers refused.")
@@ -1090,15 +1085,16 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__eq__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_canonical<Cells>(predicate(a), predicate(b),
+            return equal_by_canonical<Cells>(classifier(a), classifier(b),
                                              a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
           "differ, which decides nothing, or where the products differ.")
       .def_prop_ro(
-          "predicate", [](const Relation& r) { return predicate(r); },
-          "The predicate of the relation on its columns π_1 … π_n: a reading "
+          "classifier", [](const Relation& r) { return classifier(r); },
+          "The classifier χ of the relation on its columns π_1 … π_n, as a "
+          "predicate: a reading "
           "of the term (a composite's ∃ over the middle, a projection's ∃ "
           "over the dropped columns, ~ in negation normal form).")
       .def_prop_ro(
@@ -1139,8 +1135,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           u.budget = r.budget;
           return u;
         }
-        Relation out =
-            dedekind::relational::where(Relation::universe(r.dom, r.cod), nf);
+        Relation out = (Relation::universe(r.dom, r.cod) | nf);
         out.budget = r.budget;
         return out;
       },

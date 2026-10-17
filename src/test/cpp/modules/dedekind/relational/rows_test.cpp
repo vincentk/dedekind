@@ -22,18 +22,17 @@ import dedekind.sets;
 
 using namespace dedekind::sets;
 using dedekind::category::Ternary;
+using dedekind::relational::classifier;
 using dedekind::relational::converse;
 using dedekind::relational::copy;
 using dedekind::relational::diag;
 using dedekind::relational::function_term;
 using dedekind::relational::merge;
 using dedekind::relational::Object;
-using dedekind::relational::predicate;
 using dedekind::relational::proj;
 using dedekind::relational::RelExpr;
 using dedekind::relational::split;
 using dedekind::relational::verdict;
-using dedekind::relational::where;
 
 namespace {
 using Re = RelExpr<int, unsigned, bool>;
@@ -45,16 +44,17 @@ const Object W{word};
 
 const Re words = Re::universe(W, W);  // the full relation on the word
 const Re succ =
-    where(words, Q::cmp(Rel::Eq, T::proj(2),
-                        T::bin(Arith::Add, T::proj(1), T::constant(1))));
-const Re square = where(
-    words,
-    Q::cmp(Rel::Eq, T::bin(Arith::Mul, T::proj(2), T::proj(2)), T::proj(1)));
-const Re cube = where(
-    words, Q::cmp(Rel::Eq,
-                  T::bin(Arith::Mul, T::bin(Arith::Mul, T::proj(1), T::proj(1)),
-                         T::proj(1)),
-                  T::proj(2)));
+    (words | Q::cmp(Rel::Eq, T::proj(2),
+                    T::bin(Arith::Add, T::proj(1), T::constant(1))));
+const Re square =
+    (words |
+     Q::cmp(Rel::Eq, T::bin(Arith::Mul, T::proj(2), T::proj(2)), T::proj(1)));
+const Re cube =
+    (words |
+     Q::cmp(Rel::Eq,
+            T::bin(Arith::Mul, T::bin(Arith::Mul, T::proj(1), T::proj(1)),
+                   T::proj(1)),
+            T::proj(2)));
 bool holds(const Re& r, const R& row) {
   return verdict(r, row) == Ternary::True;
 }
@@ -66,7 +66,7 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   CHECK(two.kind == Re::Kind::Compose);  // not flattened
   CHECK(two.dom == W);
   CHECK(two.cod == W);
-  const Q p = predicate(two);  // the reading: ∃ over the middle, μ
+  const Q p = classifier(two);  // the reading: ∃ over the middle, μ
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 3);  // the next slot past the two columns
   CHECK(p.sort == word);
@@ -78,7 +78,7 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   // The lattice keeps its nodes: R & S is a Meet, ~R a Not.
   CHECK((succ & square).kind == Re::Kind::Meet);
   CHECK((~succ).kind == Re::Kind::Not);
-  CHECK(predicate(~succ).rel == Rel::Ne);  // read: negation normal form
+  CHECK(classifier(~succ).rel == Rel::Ne);  // read: negation normal form
   CHECK_THROWS_AS((succ & diag<int, unsigned, bool>({flag})), not_admitted);
 }
 
@@ -105,7 +105,7 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
   const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(dom.dom.empty());
   CHECK(dom.cod == W);
-  const Q p = predicate(dom);
+  const Q p = classifier(dom);
   CHECK(p.kind == Q::Kind::Exists);
   CHECK(verdict(dom, R{{5u}}) == Ternary::True);    // 6 is found
   CHECK(verdict(~dom, R{{5u}}) == Ternary::False);  // ∀: 6 refutes it
@@ -145,21 +145,21 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK(verdict(succ & words, R{{3u, 5u}}) == Ternary::False);
   CHECK(verdict(spider, R{{3u, 5u}}) == Ternary::Unknown);  // Σ: never ⊥
   // The middle of copy >> (R ⊗ S) is two columns: ∃∃, outermost first.
-  const Q p = predicate(copy<int, unsigned, bool>(W) >> (succ * square));
+  const Q p = classifier(copy<int, unsigned, bool>(W) >> (succ * square));
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 4);
   REQUIRE(p.p->kind == Q::Kind::Exists);
   CHECK(p.p->slot == 5);
   // A finite middle: ∃f ∈ 𝔹 enumerated by the bool reading.
-  const Re above = where(Re::universe(W, {flag}),
-                         Q::cmp(Rel::Ne, T::proj(1), T::constant(5)));
+  const Re above =
+      (Re::universe(W, {flag}) | Q::cmp(Rel::Ne, T::proj(1), T::constant(5)));
   const Re pick =
-      where(Re::universe({flag}, W),
-            Q::disj(Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(1)),
-                            Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
-                    Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(0)),
-                            Q::cmp(Rel::Eq, T::proj(2), T::constant(0)))));
-  const Q both = predicate(above >> pick);
+      (Re::universe({flag}, W) |
+       Q::disj(Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(1)),
+                       Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
+               Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(0)),
+                       Q::cmp(Rel::Eq, T::proj(2), T::constant(0)))));
+  const Q both = classifier(above >> pick);
   CHECK(both.sort == flag);
   CHECK(both(R{{7u, 1u}}));
   CHECK(both(R{{7u, 0u}}));
@@ -169,6 +169,6 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   // Two universes make the product universe.
   CHECK((words * words).kind == Re::Kind::Universe);
   CHECK((succ * square).kind == Re::Kind::Tensor);
-  CHECK_THROWS_AS(where(succ, Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
+  CHECK_THROWS_AS((succ | Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
                   not_admitted);  // a slot past the columns
 }

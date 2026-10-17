@@ -1,5 +1,5 @@
 """Relations as terms (#1037): a composite, a projection, a meet are nodes of
-a term over relations; the predicate is a reading of it (``R.predicate``), a
+a term over relations; its classifier χ is a reading of it (``R.classifier``), a
 composite's the ∃ over the middle.  ``canonical`` eliminates a quantifier
 where it can (the fusion law, Shannon's expansion on a finite chain) and keeps
 it otherwise; membership searches what remains, valued in Σ (∃) or Π (∀).
@@ -25,7 +25,7 @@ class Composition(unittest.TestCase):
         two = succ >> succ
         self.assertEqual(repr(two), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> "
                                     "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1))")
-        self.assertEqual(repr(two.predicate), "∃π_3 ∈ 𝔸(u64). "
+        self.assertEqual(repr(two.classifier), "∃π_3 ∈ 𝔸(u64). "
                                               "(π_3 == (π_1 + 1)) & (π_2 == (π_3 + 1))")
         self.assertIn((3, 5), two)
         self.assertNotIn((3, 6), two)
@@ -52,7 +52,7 @@ class Composition(unittest.TestCase):
         # ∃b. b² = a ∧ b³ = c: no leg determines b, and 2⁶⁴ is too many to
         # expand.  canonical keeps the quantifier; membership searches, in Σ.
         sc = sq >> cube
-        self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(sc.predicate))
+        self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(sc.classifier))
         self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(canonical(sc)))
         self.assertIs(sc.is_function, False)
         self.assertEqual(sc.codomain, K3)
@@ -74,7 +74,7 @@ class Projection(unittest.TestCase):
                                     "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) | π_3 == π_1)")
         # The reading is literal: the composite's ∃ over the whole middle, two
         # columns; canonical eliminates both (each defined by an atom).
-        self.assertEqual(repr(dom.predicate), "∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). "
+        self.assertEqual(repr(dom.classifier), "∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). "
                                               "(π_3 == (π_2 + 1)) & (π_1 == π_2)")
         self.assertEqual(repr(canonical(dom)), "𝔸(u64)")  # entire
         self.assertIn((5,), dom)
@@ -95,13 +95,13 @@ class Projection(unittest.TestCase):
 
 class TheTreeStays(unittest.TestCase):
     """& | ~ are the set grammar's nodes on relations, not one flattened
-    predicate: the term is legible, its predicate a reading."""
+    predicate: the term is legible, its classifier a reading."""
 
     def test_a_meet_is_a_node(self) -> None:
         m = succ & sq
         self.assertEqual(repr(m), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) & "
                                   "(𝔸(u64) × 𝔸(u64) | (π_2 * π_2) == π_1)")
-        self.assertEqual(repr(m.predicate), "(π_2 == (π_1 + 1)) & ((π_2 * π_2) == π_1)")
+        self.assertEqual(repr(m.classifier), "(π_2 == (π_1 + 1)) & ((π_2 * π_2) == π_1)")
         self.assertIn((3, 4), ~m | m)  # a join of a complement: still a term
         self.assertEqual(repr((U64 * U64 | (π_1 > 3)) | (π_2 > 1)),
                          "(𝔸(u64) × 𝔸(u64) | π_1 > 3) | π_2 > 1")  # two filters, unfused
@@ -124,7 +124,7 @@ class TheKleisliStructure(unittest.TestCase):
         # sq is b² = a, a relation (b a root of a): its middle no term defines,
         # so the ∃ is kept on both sides and the shapes still agree.
         self.assertIs(((succ >> sq) >> three) == (succ >> (sq >> three)), True)
-        self.assertIn("∃", repr(canonical((succ >> sq) >> three).predicate))
+        self.assertIn("∃", repr(canonical((succ >> sq) >> three).classifier))
         # The square as a function: every middle defined, the ∃s eliminated.
         square = U64 * U64 | (π_2 == π_1 * π_1)
         self.assertIs(((succ >> square) >> three) == (succ >> (square >> three)), True)
@@ -153,7 +153,7 @@ class TheFrobeniusStructure(unittest.TestCase):
         for row in ((0, 1), (3, 4), (4, 2), (1, 1), (2, 3)):
             self.assertEqual(ap(spider, row), ap(succ & sq, row), row)
         # The middle of copy >> (R ⊗ S) is two columns: ∃∃.
-        self.assertTrue(repr((copy(U64) >> (succ.arrow * sq.arrow)).predicate)
+        self.assertTrue(repr((copy(U64) >> (succ.arrow * sq.arrow)).classifier)
                         .startswith("∃π_4 ∈ 𝔸(u64). ∃π_5 ∈ 𝔸(u64). "))
 
     def test_the_dagger(self) -> None:
@@ -175,7 +175,7 @@ class Duality(unittest.TestCase):
         dom = succ.project(1)
         co = ~dom
         self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> ("))
-        self.assertEqual(repr(co.predicate), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
+        self.assertEqual(repr(co.classifier), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
                                              "(π_3 != (π_2 + 1)) | (π_1 != π_2)")
         self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
         self.assertNotIn((5,), co)
@@ -183,14 +183,14 @@ class Duality(unittest.TestCase):
 
     def test_a_forall_on_a_word_is_searched_for_a_counterexample(self) -> None:
         nsc = ~(sq >> cube)  # ∀b. b² ≠ a ∨ b³ ≠ c
-        self.assertIn("∀π_3 ∈ 𝔸(u64)", repr(nsc.predicate))
+        self.assertIn("∀π_3 ∈ 𝔸(u64)", repr(nsc.classifier))
         self.assertEqual(ap(nsc, (4, 8)), Ternary.FALSE)  # b = 2 refutes it
         self.assertEqual(ap(nsc, (4, 9)), Ternary.UNKNOWN)  # Π: never ⊤
 
     def test_alternating_quantifiers_answer_unknown(self) -> None:
         # ∃c ∀b. b² ≠ a ∨ b³ ≠ c: an ∃ outside a ∀ on the words.
         alt = (~(sq >> cube)).project(1)
-        self.assertIn("∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). (∀π_4 ∈ 𝔸(u64).", repr(alt.predicate))
+        self.assertIn("∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). (∀π_4 ∈ 𝔸(u64).", repr(alt.classifier))
         self.assertEqual(ap(alt, (4,)), Ternary.UNKNOWN)
 
     def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:

@@ -18,7 +18,7 @@
  * | node | typed twin | built by |
  * |---|---|---|
  * | @c Universe | @c 𝔸 over @f$A \times B@f$ | @c universe |
- * | @c Where | @c Comprehension, the one set former | @c where, @c R @c \| @c p
+ * | @c Comprehension | @c Comprehension, the one set former | @c R @c \| @c p
  * | | @c Meet, @c Join, @c Not | @c category::Meet / @c Join / @c Not | @c & @c
  * \| @c ~ | | @c Converse | @c relational:dyadic's @c converse | @c converse |
  * | @c Tensor | the bicategory's ⊗ | @c * |
@@ -28,8 +28,8 @@
  * @f$() \rightsquigarrow A_1 \times \dots \times A_n@f$, and a projection is
  * composition with the structural relation @c proj.  Nothing is flattened at
  * construction: @c R @c & @c S is a @c Meet node over two relations.  The
- * @b predicate of a relation on its columns is a @b reading (@c predicate, a
- * fold), as are its verdict and its written form; @c canonical (algebra)
+ * @b classifier χ of a relation on its columns is a @b reading (@c classifier,
+ * a fold), as are its verdict and its written form; @c canonical (algebra)
  * normalises the reading.  Rewrites on the tree are the phase after this.
  *
  * @section rows__The_Kleisli_Structure
@@ -41,7 +41,7 @@
  * | @f$\eta@f$, @f$a \mapsto \{a\}@f$ | the identity @f$\Delta_A@f$ | @c diag |
  * | Kleisli composition | the relative product @f$R;S@f$ | @c >> |
  * | @f$\mu@f$, the union | the @f$\exists@f$ over the middle object | @c
- * Pred::exists, one per column of the middle, in @c predicate(R @c >> @c S) |
+ * Pred::exists, one per column of the middle, in @c classifier(R @c >> @c S) |
  *
  * The monad laws are decided by @c canonical where the ∃ eliminates:
  * @f$\Delta;R = R = R;\Delta@f$ and @f$(R;S);T = R;(S;T)@f$.
@@ -74,7 +74,7 @@ namespace dedekind::relational {
 export using Object = std::vector<std::size_t>;
 
 /** @brief A relation @f$A \rightsquigarrow B@f$ built at run time: a term
- *  over relations, its objects @c dom and @c cod data, its predicate a
+ *  over relations, its objects @c dom and @c cod data, its classifier a
  *  reading.  @tparam K the constants' type.  @tparam Cs the carriers a
  *  column may have. */
 export template <typename K, typename... Cs>
@@ -84,7 +84,7 @@ struct RelExpr {
   using T = dedekind::sets::Term<K>;
   enum class Kind {
     Universe,
-    Where,
+    Comprehension,
     Meet,
     Join,
     Not,
@@ -95,7 +95,7 @@ struct RelExpr {
 
   Kind kind{Kind::Universe};
   Object dom, cod;
-  P predicate = P::top();  // Where: the filter, on the columns of dom then cod
+  P predicate = P::top();  // a comprehension's: on the columns of dom then cod
   std::shared_ptr<const RelExpr> a, b;            // the legs
   std::uint64_t budget = std::uint64_t{1} << 16;  // verdict's search
 
@@ -155,14 +155,14 @@ inline Object cat(const Object& x, const Object& y) {
  *  @c p checked in its column's sort now.  @throws not_admitted for a slot
  *  past the columns, or an operator not admitted. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> where(const RelExpr<K, Cs...>& r,
-                        const dedekind::sets::Pred<K>& p) {
+RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& r,
+                            const dedekind::sets::Pred<K>& p) {
   using R = RelExpr<K, Cs...>;
   if (!dedekind::sets::only_arguments(dedekind::sets::slots(p), r.arity() + 1))
     throw dedekind::sets::not_admitted(
         "R | pred: a slot past the relation's columns");
   dedekind::sets::bind_check<typename R::Point>(p, r.rep());
-  return R::unary(R::Kind::Where, r, r.dom, r.cod, p);
+  return R::unary(R::Kind::Comprehension, r, r.dom, r.cod, p);
 }
 /** @brief @c R @c & @c S and @c R @c | @c S between the same objects: the
  *  lattice's nodes.  @throws not_admitted otherwise. */
@@ -267,7 +267,7 @@ export template <typename K, typename... Cs>
 RelExpr<K, Cs...> diag(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(obj.size());
-  return where(R::universe(obj, obj), detail_rows::identified<K>(n, 0, n));
+  return (R::universe(obj, obj) | detail_rows::identified<K>(n, 0, n));
 }
 /** @brief @c Copy: @f$A \rightsquigarrow A \times A@f$, @f$x \mapsto (x,
  *  x)@f$, the comonoid of the Frobenius structure.  @param obj the object. */
@@ -275,9 +275,9 @@ export template <typename K, typename... Cs>
 RelExpr<K, Cs...> copy(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(obj.size());
-  return where(R::universe(obj, detail_rows::cat(obj, obj)),
-               detail_rows::identified<K>(n, 0, 2 * n,
-                                          detail_rows::identified<K>(n, 0, n)));
+  return (R::universe(obj, detail_rows::cat(obj, obj)) |
+          detail_rows::identified<K>(n, 0, 2 * n,
+                                     detail_rows::identified<K>(n, 0, n)));
 }
 /** @brief @c Merge: @f$A \times A \rightsquigarrow A@f$, the converse of
  *  @c copy.  @param obj the object. */
@@ -308,18 +308,18 @@ RelExpr<K, Cs...> proj(const Object& obj, const std::vector<unsigned>& keep) {
                         T::proj(n + static_cast<unsigned>(j) + 1), T::proj(c));
     eqs = eqs.kind == P::Kind::Top ? eq : P::conj(eqs, eq);
   }
-  return where(R::universe(obj, cod), eqs);
+  return (R::universe(obj, cod) | eqs);
 }
 
 // ── The predicate: a reading of the term ────────────────────────────────────
 
 namespace detail_rows {
-/** @brief The former over a universe reads as its filter (⊤ is the unit of
- *  ∧: the one identity the reading applies); over anything else, the
+/** @brief A comprehension over a universe reads as its predicate (⊤ is the unit
+ * of ∧: the one identity the reading applies); over anything else, the
  *  conjunction. */
 template <typename K>
-dedekind::sets::Pred<K> filtered(const dedekind::sets::Pred<K>& base,
-                                 const dedekind::sets::Pred<K>& p) {
+dedekind::sets::Pred<K> conjoined(const dedekind::sets::Pred<K>& base,
+                                  const dedekind::sets::Pred<K>& p) {
   using Pr = dedekind::sets::Pred<K>;
   if (base.kind == Pr::Kind::Top) return p;
   if (p.kind == Pr::Kind::Top) return base;
@@ -344,15 +344,15 @@ struct Ranges {
 
 /** @brief The predicate of a relation on the columns of its domain then its
  *  codomain, @c π_1 … @c π_n: a reading of the term.  A universe ⊤; a former
- *  its filter on its base's; the lattice nodes their connectives (a complement
- *  the negation normal form, ∃ and ∀ swapped); a converse its base's with the
- *  two objects' columns exchanged; a tensor the conjunction, the columns
- *  arranged domain, domain, codomain, codomain; a composite the ∃ over every
- *  column of the middle object (the monad's μ), outermost first.  A
+ *  its predicate on its base's; the lattice nodes their connectives (a
+ * complement the negation normal form, ∃ and ∀ swapped); a converse its base's
+ * with the two objects' columns exchanged; a tensor the conjunction, the
+ * columns arranged domain, domain, codomain, codomain; a composite the ∃ over
+ * every column of the middle object (the monad's μ), outermost first.  A
  *  quantifier binds the next slot past the columns, so a leg's own bound
  *  slots are renumbered with its columns and never captured. */
 export template <typename K, typename... Cs>
-dedekind::sets::Pred<K> predicate(const RelExpr<K, Cs...>& r) {
+dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
   using R = RelExpr<K, Cs...>;
   using P = dedekind::sets::Pred<K>;
   using Map = detail_rows::Ranges<K>;
@@ -361,30 +361,30 @@ dedekind::sets::Pred<K> predicate(const RelExpr<K, Cs...>& r) {
   switch (r.kind) {
     case R::Kind::Universe:
       return P::top();
-    case R::Kind::Where:
-      return detail_rows::filtered(predicate(*r.a), r.predicate);
+    case R::Kind::Comprehension:
+      return detail_rows::conjoined(classifier(*r.a), r.predicate);
     case R::Kind::Meet:
-      return P::conj(predicate(*r.a), predicate(*r.b));
+      return P::conj(classifier(*r.a), classifier(*r.b));
     case R::Kind::Join:
-      return P::disj(predicate(*r.a), predicate(*r.b));
+      return P::disj(classifier(*r.a), classifier(*r.b));
     case R::Kind::Not:
-      return predicate(*r.a).negated();
+      return classifier(*r.a).negated();
     case R::Kind::Converse: {
       const R& x = *r.a;
-      return predicate(x).map_slots(Map{d(x), x.arity(), static_cast<int>(c(x)),
-                                        -static_cast<int>(d(x)), 0});
+      return classifier(x).map_slots(Map{
+          d(x), x.arity(), static_cast<int>(c(x)), -static_cast<int>(d(x)), 0});
     }
     case R::Kind::Tensor: {
       // Columns: dom a, dom b, cod a, cod b.
       const R& x = *r.a;
       const R& y = *r.b;
-      const P pa =
-          predicate(x).map_slots(Map{d(x), x.arity(), 0, static_cast<int>(d(y)),
-                                     static_cast<int>(y.arity())});
-      const P pb = predicate(y).map_slots(
+      const P pa = classifier(x).map_slots(Map{d(x), x.arity(), 0,
+                                               static_cast<int>(d(y)),
+                                               static_cast<int>(y.arity())});
+      const P pb = classifier(y).map_slots(
           Map{d(y), y.arity(), static_cast<int>(d(x)),
               static_cast<int>(d(x) + c(x)), static_cast<int>(x.arity())});
-      return detail_rows::filtered(pa, pb);
+      return detail_rows::conjoined(pa, pb);
     }
     case R::Kind::Compose: {
       // Columns: dom a, cod b; the middle (cod a = dom b, m columns) bound at
@@ -392,14 +392,14 @@ dedekind::sets::Pred<K> predicate(const RelExpr<K, Cs...>& r) {
       const R& x = *r.a;
       const R& y = *r.b;
       const unsigned n = r.arity(), m = c(x);
-      const P pa = predicate(x).map_slots(
+      const P pa = classifier(x).map_slots(
           Map{d(x), x.arity(), 0, static_cast<int>(n) - static_cast<int>(d(x)),
               static_cast<int>(c(y))});
-      const P pb = predicate(y).map_slots(
+      const P pb = classifier(y).map_slots(
           Map{d(y), y.arity(), static_cast<int>(n),
               static_cast<int>(d(x)) - static_cast<int>(m),
               static_cast<int>(d(x))});
-      P body = detail_rows::filtered(pa, pb);
+      P body = detail_rows::conjoined(pa, pb);
       for (unsigned j = m; j >= 1; --j)
         body = P::exists(x.cod[j - 1], n + j, body);
       return body;
@@ -412,12 +412,12 @@ dedekind::sets::Pred<K> predicate(const RelExpr<K, Cs...>& r) {
 export template <typename K, typename... Cs>
 dedekind::category::Ternary verdict(
     const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
-  return dedekind::sets::verdict(predicate(r), row, r.budget);
+  return dedekind::sets::verdict(classifier(r), row, r.budget);
 }
 /** @brief The term of a relation certified a function of its first @c n − 1
  *  columns: a quantifier-free graph atom @c π_n @c == @c t(π_1 … π_{n−1})
  *  whose term lands in the last column's sort; @c nullptr otherwise.
- *  @param r the relation.  @param p its predicate reading, pinned or with its
+ *  @param r the relation.  @param p its classifier, pinned or with its
  *  quantifiers eliminated. */
 export template <typename K, typename... Cs>
 const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
