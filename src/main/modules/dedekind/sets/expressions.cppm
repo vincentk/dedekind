@@ -1569,12 +1569,54 @@ static_assert(cartesian_product(Not<𝔸<int>>{𝔸<int>{}},
                                     𝔸<double, Kleene, ℶ_1>{}})(std::pair{
                   0, 0.0}) == Ternary::False,
               "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
-// FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
-// only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
-// with π_1 / π_2 on the product SET returning the factor set objects (the
-// legs already ride in ProductMembership::a / ::b; the 𝔸 × 𝔸 overload drops
-// them) and the factors constrained IsSetObject.  Today only the carrier-level
-// IsProduct above holds.  Lands with the IsSetObject MUST slice.
+namespace detail_product {
+/** @brief A factor as it was given: @c {x ∈ 𝔸 | S(x)} (the wrapper the
+ *  product's normalisation, @c plain_over_universe, puts around a set object
+ *  that is not a plain comprehension) @b is @c S. */
+template <typename X>
+constexpr X factor(const X& x) {
+  return x;
+}
+template <typename T, typename L, typename C, IsSetObject S>
+constexpr S factor(const Comprehension<𝔸<T, L, C>, S>& x) {
+  return x.predicate;
+}
+}  // namespace detail_product
+
+/** @brief The product of two set objects is their categorical product, not
+ *  only their carriers' (#970, #1039): @c π_1 / @c π_2 on @c A @c × @c B
+ *  return the factor set objects, which the membership already carries.
+ *  With the carrier-level @c IsProduct above and the universes' (@c
+ *  boundaries), @c IsProduct<decltype(A * B), A, B> holds for set objects.
+ *  @param s the product.  @return the first / second factor. */
+export template <typename T1, typename T2, typename L, typename C, typename A,
+                 typename B>
+constexpr auto component(
+    const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
+    dedekind::category::At<1>) {
+  return detail_product::factor(s.predicate.a);
+}
+export template <typename T1, typename T2, typename L, typename C, typename A,
+                 typename B>
+constexpr auto component(
+    const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
+    dedekind::category::At<2>) {
+  return detail_product::factor(s.predicate.b);
+}
+
+namespace detail_product_witness {
+inline constexpr auto t = 𝔸<bool>{} & (π == true);
+inline constexpr auto f = 𝔸<bool>{} & (π == false);
+using TF = std::remove_cvref_t<decltype(t * f)>;
+static_assert(
+    dedekind::category::IsProduct<TF, std::remove_cvref_t<decltype(t)>,
+                                  std::remove_cvref_t<decltype(f)>>,
+    "A × B is the product of the set objects A and B (#970)");
+static_assert(dedekind::category::π_1(t* f)(true) &&
+                  !dedekind::category::π_1(t * f)(false) &&
+                  dedekind::category::π_2(t * f)(false),
+              "π_1 / π_2 give the factors back, as sets");
+}  // namespace detail_product_witness
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the
 // @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /
