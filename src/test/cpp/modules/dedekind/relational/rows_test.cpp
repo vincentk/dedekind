@@ -79,7 +79,7 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   CHECK((succ & square).kind == Re::Kind::Meet);
   CHECK((~succ).kind == Re::Kind::Not);
   CHECK(predicate(~succ).rel == Rel::Ne);  // read: negation normal form
-  CHECK_THROWS_AS(succ & diag<int, unsigned, bool>({flag}), not_admitted);
+  CHECK_THROWS_AS((succ & diag<int, unsigned, bool>({flag})), not_admitted);
 }
 
 TEST_CASE("relational:rows: η, the dagger, and the structural projection",
@@ -109,7 +109,7 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
   CHECK(p.kind == Q::Kind::Exists);
   CHECK(verdict(dom, R{{5u}}) == Ternary::True);    // 6 is found
   CHECK(verdict(~dom, R{{5u}}) == Ternary::False);  // ∀: 6 refutes it
-  CHECK_THROWS_AS(proj<int, unsigned, bool>(W, {1, 1}), not_admitted);
+  CHECK_THROWS_AS((proj<int, unsigned, bool>(W, {1, 1})), not_admitted);
   CHECK_THROWS_AS(succ >> dom, not_admitted);  // cod word ≠ dom ()
 }
 
