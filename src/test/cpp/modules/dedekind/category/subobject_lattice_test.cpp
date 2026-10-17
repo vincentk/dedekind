@@ -115,6 +115,9 @@ TEST_CASE(
   STATIC_CHECK(IsOckhamAlgebra<FauxSubobject::logic_species>);
   STATIC_CHECK(std::same_as<FauxSubobject::Domain, bool>);
   STATIC_CHECK(IsSubobjectLattice<FauxSubobject>);
+  const FauxSubobject s{};
+  STATIC_CHECK(std::same_as<decltype((s & s) | s), FauxSubobject>);
+  [[maybe_unused]] const FauxSubobject both = (s & s) | s;  // the ops, called
   // The operations are part of the concept: the metadata alone is not a
   // lattice one can compute in.
   struct MetadataOnly {
