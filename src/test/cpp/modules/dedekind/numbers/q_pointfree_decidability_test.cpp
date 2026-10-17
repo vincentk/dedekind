@@ -35,7 +35,7 @@ namespace {
 // `ℚ & (π > 5)`, not a hand-built Interval<Rational, ...>: this way the
 // witness fails if `ℚ | pred` stops binding to the Rational carrier or its
 // Boole logic (the actual surface under test), per #927 review.
-using QHalfspace = std::remove_cvref_t<decltype(ℚ | (dedekind::sets::π > 5))>;
+using QHalfspace = std::remove_cvref_t<decltype(ℚ & (dedekind::sets::π > 5))>;
 // The public expression really does bind the ℚ carrier and the Above cut
 // (value-carrying, so the pivot 5 rides in the instance, not the type).
 static_assert(
