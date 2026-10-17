@@ -1788,21 +1788,29 @@ Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep) {
   }
   return p;
 }
-/** @brief A slot's definition inside a conjunction: the term @c t of a conjunct
- *  @c π_slot @c == @c t (or @c t @c == @c π_slot) with @c t free of the slot,
- *  and the conjunction without that conjunct.  @c ∃π_slot. P is then the rest
- *  with @c t for @c π_slot: the existential is eliminated by substitution.
+/** @brief A slot's definition: the term @c t of a conjunct @c π_slot @c == @c t
+ *  (or @c t @c == @c π_slot) with @c t free of the slot, and the conjunction
+ *  without it.  @c ∃π_slot. P is then the rest with @c t for @c π_slot: the
+ *  existential is eliminated by substitution.  Dually, under @c ∀ a disjunct
+ *  @c π_slot @c != @c t defines it: @c ∀g. (g ≠ t ∨ Q) ≡ Q[t/g].
  *  @tparam K the constants' type. */
 export template <typename K>
 struct Definition {
   Term<K> term;
   Pred<K> rest;
 };
-/** @brief The first conjunct of @c p, leftmost, that defines the slot; nothing
- *  where none does.  @param p the predicate.  @param slot the slot. */
+/** @brief The first conjunct of @c p, leftmost, that defines the slot (the
+ *  first disjunct, for @c universal); nothing where none does.  @param p the
+ *  predicate.  @param slot the slot.  @param universal whether the slot is
+ *  bound by @c ∀ rather than @c ∃. */
 export template <typename K>
-std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot) {
+std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot,
+                                           bool universal = false) {
   using Pr = Pred<K>;
+  const Rel atom = universal ? Rel::Ne : Rel::Eq;
+  const auto connective = universal ? Pr::Kind::Or : Pr::Kind::And;
+  // The unit of the connective: what is left when the defining atom was all.
+  const Pr unit = universal ? Pr::bottom() : Pr::top();
   const auto free_of = [slot](const Term<K>& t) {
     return (slots(t) &
             (slot < std::numeric_limits<unsigned>::digits ? 1u << slot
@@ -1811,27 +1819,22 @@ std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot) {
   const auto is_slot = [slot](const Term<K>& t) {
     return t.kind == Term<K>::Kind::Proj && t.slot == slot;
   };
-  switch (p.kind) {
-    case Pr::Kind::Cmp:
-      if (p.rel != Rel::Eq) return std::nullopt;
-      if (is_slot(*p.a) && free_of(*p.b)) return Definition<K>{*p.b, Pr::top()};
-      if (is_slot(*p.b) && free_of(*p.a)) return Definition<K>{*p.a, Pr::top()};
-      return std::nullopt;
-    case Pr::Kind::And:
-      if (auto d = defining_term(*p.p, slot))
-        return Definition<K>{d->term, d->rest.kind == Pr::Kind::Top
-                                          ? *p.q
-                                          : Pr::conj(d->rest, *p.q)};
-      if (auto d = defining_term(*p.q, slot))
-        return Definition<K>{d->term, d->rest.kind == Pr::Kind::Top
-                                          ? *p.p
-                                          : Pr::conj(*p.p, d->rest)};
-      return std::nullopt;
-    case Pr::Kind::Or:
-    case Pr::Kind::Top:
-    case Pr::Kind::Bottom:
-      return std::nullopt;
+  const auto join = [&](const Pr& x, const Pr& y) {
+    if (x.kind == unit.kind) return y;
+    if (y.kind == unit.kind) return x;
+    return universal ? Pr::disj(x, y) : Pr::conj(x, y);
+  };
+  if (p.kind == Pr::Kind::Cmp) {
+    if (p.rel != atom) return std::nullopt;
+    if (is_slot(*p.a) && free_of(*p.b)) return Definition<K>{*p.b, unit};
+    if (is_slot(*p.b) && free_of(*p.a)) return Definition<K>{*p.a, unit};
+    return std::nullopt;
   }
+  if (p.kind != connective) return std::nullopt;
+  if (auto d = defining_term(*p.p, slot, universal))
+    return Definition<K>{d->term, join(d->rest, *p.q)};
+  if (auto d = defining_term(*p.q, slot, universal))
+    return Definition<K>{d->term, join(*p.p, d->rest)};
   return std::nullopt;
 }
 

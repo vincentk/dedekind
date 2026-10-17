@@ -3,9 +3,11 @@ its middle a hidden column bound by ∃, and ``canonical`` takes its image."""
 
 import unittest
 
-from dedekind.pst import B, U64, ap, canonical, cond, π_1, π_2
+from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, π_1, π_2
 
 succ = U64 * U64 | (π_2 == π_1 + 1)
+sq = U64 * U64 | (π_2 * π_2 == π_1)
+cube = U64 * U64 | (π_1 * π_1 * π_1 == π_2)
 
 
 class Composition(unittest.TestCase):
@@ -34,17 +36,20 @@ class Composition(unittest.TestCase):
         self.assertNotIn((3, 1), RS)
         self.assertNotIn("∃", repr(canonical(RS)))
 
-    def test_an_undefined_middle_on_a_word_is_refused(self) -> None:
-        # ∃b. b² = a ∧ b³ = c: no leg determines b, and 2⁶⁴ is too many to expand.
-        sq = U64 * U64 | (π_2 * π_2 == π_1)
-        cube = U64 * U64 | (π_1 * π_1 * π_1 == π_2)
+    def test_an_undefined_middle_on_a_word_is_searched(self) -> None:
+        # ∃b. b² = a ∧ b³ = c: no leg determines b, and 2⁶⁴ is too many to
+        # expand.  canonical refuses; membership searches, valued in Σ.
         sc = sq >> cube
         self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(sc))
         with self.assertRaises(TypeError):
             canonical(sc)
-        with self.assertRaises(TypeError):
-            (4, 8) in sc  # the bounded search is the next slice
         self.assertIs(sc.is_function, False)
+        self.assertEqual(sc.codomain, K3)
+        self.assertEqual(ap(sc, (4, 8)), Ternary.TRUE)  # b = 2, a witness
+        self.assertEqual(ap(sc, (4, 9)), Ternary.UNKNOWN)  # none within the budget
+        self.assertIn((4, 8), sc)  # in: χ = ⊤
+        self.assertNotIn((4, 9), sc)
+        self.assertEqual(ap(sc.within(1), (4, 8)), Ternary.UNKNOWN)  # only b = 0
 
     def test_the_middle_columns_agree(self) -> None:
         with self.assertRaises(TypeError):
@@ -70,8 +75,41 @@ class Projection(unittest.TestCase):
         self.assertIn((5, True), dom * B)
         same = dom & (U64 * U64 | (π_2 == π_1)).project(1)
         self.assertIn((5,), same)
-        with self.assertRaises(TypeError):
-            ~dom  # a hidden column under ~ is a ∀: the next slice
+
+
+class Duality(unittest.TestCase):
+    """~ pushes down: ~(∃h. P) = ∀h. ~P; ∀ is eliminated by the dual rules
+    and searched for a counterexample (Π)."""
+
+    def test_the_complement_of_a_span_is_a_forall(self) -> None:
+        dom = succ.project(1)
+        co = ~dom
+        self.assertEqual(repr(co), "𝔸(u64) | ∀π_2 ∈ 𝔸(u64). π_2 != (π_1 + 1)")
+        self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
+        self.assertNotIn((5,), co)
+        self.assertIs(canonical(~co) == canonical(dom), True)
+
+    def test_a_forall_on_a_word_is_searched_for_a_counterexample(self) -> None:
+        nsc = ~(sq >> cube)  # ∀b. b² ≠ a ∨ b³ ≠ c
+        self.assertIn("∀π_3 ∈ 𝔸(u64)", repr(nsc))
+        self.assertEqual(ap(nsc, (4, 8)), Ternary.FALSE)  # b = 2 refutes it
+        self.assertEqual(ap(nsc, (4, 9)), Ternary.UNKNOWN)  # Π: never ⊤
+
+    def test_alternating_quantifiers_answer_unknown(self) -> None:
+        # ∃c ∀b. b² ≠ a ∨ b³ ≠ c: an ∃ outside a ∀ on the words.
+        alt = (~(sq >> cube)).project(1)
+        self.assertIn("∃π_2 ∈ 𝔸(u64), ∀π_3 ∈ 𝔸(u64)", repr(alt))
+        self.assertEqual(ap(alt, (4,)), Ternary.UNKNOWN)
+
+    def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:
+        # R = ∃b ∈ 𝔹. a > 5 ∨ b holds everywhere (b = ⊤ is a witness), so
+        # ~R = ∀b ∈ 𝔹. a ≤ 5 ∧ b ≠ ⊤ is empty (b = ⊤ refutes it): Shannon's ∧.
+        R = (U64 * B | ((π_1 > 5) | (π_2 == True))).project(1)  # noqa: E712
+        self.assertIn((3,), R)
+        self.assertIn((7,), R)
+        self.assertNotIn((3,), ~R)
+        self.assertNotIn((7,), ~R)
+        self.assertEqual(repr(canonical(~R)), "𝔸(u64) | ⊥")
 
 
 if __name__ == "__main__":
