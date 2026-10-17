@@ -327,6 +327,18 @@ struct ModularCongruence {
   }
 };
 
+/** @brief The @c i-th element of @c Modular<N> for a bounded search
+ *  (@c sets:spans' @c search_value): the symmetric representatives in order of
+ *  size, 0, 1, −1, 2, −2, …  @param i the index. */
+export template <auto N>
+constexpr Modular<N> nth_value(std::type_identity<Modular<N>>,
+                               std::uint64_t i) {
+  using M = typename Modular<N>::machine_type;
+  const Modular<N> m{
+      static_cast<M>(((i + 1) / 2) % static_cast<std::uint64_t>(N))};
+  return i % 2 == 1 ? m : Modular<N>{0} - m;
+}
+
 }  // namespace dedekind::morphologies
 
 namespace dedekind::category {

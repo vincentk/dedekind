@@ -338,6 +338,11 @@ Runs<V, L> order_fragment(const Pred<K>& p) {
       return Runs<V, L>::universe();
     case P::Kind::Bottom:
       return ext(~Runs<V, L>::universe());
+    case P::Kind::Exists:
+    case P::Kind::Forall:
+      throw dedekind::sets::not_admitted(
+          "a quantifier is not in the order fragment: a chain's run lists "
+          "read π ⋈ k under & and |");
     case P::Kind::Cmp:
       break;
   }

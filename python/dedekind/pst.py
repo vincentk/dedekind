@@ -61,10 +61,12 @@ The canonical ring and field, each as large as a machine word allows::
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
 ``A(carrier) | term`` binds it, casting every constant into the carrier and
 admitting every operator there or refusing it (``TypeError``), all when the
-set is built.  Any two of the four universes multiply, each slot its own sort;
-𝔹 ↪ K₃ is the one coercion, any other two carriers meet through ``ap``::
+set is built.  The universes multiply into products of any arity, each column
+its own sort (a relation is a table: one class, its schema as data); 𝔹 ↪ K₃
+is the one coercion, any other two carriers meet through ``ap``::
 
-    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, Function, ap, π, π_1, π_2
+    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, ap, π, π_1, π_2, π_3
+    from dedekind.trsk import Function        # the relational surface
 
     U = A(u64)
     evens = U | (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
@@ -77,6 +79,8 @@ set is built.  Any two of the four universes multiply, each slot its own sort;
     third = F * F | (π_2 == π_1 / 3)      # / by a nonzero constant: a field's
     ap(third, (3, 1))                   # True: 3 · 3⁻¹ = 1
     Function[u64, B](U64 * B | (π_2 == ap(U64 | (π > 5), π_1)))   # χ as a function
+    fib = U64 * U64 * U64 | (π_3 == π_1 + π_2)    # Function[u64, u64, u64]
+    ap(fib, (3, 5))                               # 8
     F | (π < 3)                         # TypeError: 𝔽ₚ has no order
     A(u64) | (π / 2 == 1)               # TypeError: 2 is not a unit of ℤ/2⁶⁴
     B | (π + True == True)              # TypeError: 𝔹's rig is (∨, ∧), it has no +
@@ -129,6 +133,7 @@ from ._pst import η
 from ._pst import π
 from ._pst import π_1
 from ._pst import π_2
+from ._pst import π_3
 
 
 class _Annotation:
@@ -176,32 +181,6 @@ class Set:
         return _Annotation(f"Set[{_named(c)}]", lambda x: _is_set_on(x, c))
 
 
-class Relation:
-    """``Relation[A, B]``: a relation on ``A × B``."""
-
-    def __class_getitem__(cls, ab):
-        a, b = ab
-        return _Annotation(f"Relation[{_named(a)}, {_named(b)}]",
-                           lambda x: _attr(x, "factors") == (a, b))
-
-
-class Function:
-    """``Function[A, B]``: a total, single-valued arrow from ``A`` to ``B``.
-    A set over ``A`` valued in ``B`` is one (its χ); so is a relation on
-    ``A × B`` certified the graph of a function, applied as ``ap(R, x)``."""
-
-    def __class_getitem__(cls, ab):
-        a, b = ab
-
-        def holds(x):
-            if _is_set_on(x, a):
-                return _attr(x, "codomain") == b
-            return _attr(x, "factors") == (a, b) and _attr(x, "is_function") is True
-
-        return _Annotation(f"Function[{_named(a)}, {_named(b)}]", holds)
-
-
-
 # The aliases: deliberately not in __all__ (they shadow the builtins when
 # star-imported); `from dedekind.pst import any, all` is the explicit opt-in.
 any = exists  # noqa: A001
@@ -209,6 +188,6 @@ all = forall  # noqa: A001
 
 __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
-    "Ø", "η", "π", "π_1", "π_2", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set", "Relation", "Function",
+    "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set",
     "lift", "image", "preimage",
 ]

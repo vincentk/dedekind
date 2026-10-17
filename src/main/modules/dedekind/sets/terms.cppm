@@ -92,6 +92,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>  // the search budget of a quantifier
 #include <functional>
 #include <limits>
 #include <memory>  // std::shared_ptr: the legs of a term built at run time
@@ -102,10 +103,13 @@ module;
 #include <type_traits>
 #include <utility>
 #include <variant>  // the value of a term over two carriers
+#include <vector>   // a row: the cells of an n-ary point
 
 export module dedekind.sets:terms;
 
 import dedekind.category;
+import :boundaries;  // chain_bottom / chain_top: a finite chain's values, for ∃
+                     // / ∀
 import :cardinality;  // IsRingIntegral; Cardinality, the ℕ carrier constants
                       // meet
 
@@ -692,6 +696,24 @@ struct point_sorts<std::pair<A, B>> {
   using type =
       std::conditional_t<std::same_as<A, B>, std::tuple<A>, std::tuple<A, B>>;
 };
+/** @brief A row: a point of an n-ary product whose arity and columns' sorts
+ *  are data.  Each cell is a value of one of the carriers @c Cs, and the cell's
+ *  alternative is its column's sort, so a row is its own schema.  Slots are
+ *  @c π_1 … @c π_n.  @tparam Cs the carriers a column may have. */
+export template <typename... Cs>
+struct Row {
+  using Cell = std::variant<Cs...>;
+  std::vector<Cell> cells;
+  friend bool operator==(const Row&, const Row&) = default;
+};
+template <typename... Cs>
+struct point_sorts<Row<Cs...>> {
+  using type = std::tuple<Cs...>;
+};
+template <typename P>
+inline constexpr bool is_row_v = false;
+template <typename... Cs>
+inline constexpr bool is_row_v<Row<Cs...>> = true;
 export template <typename P>
 using point_sorts_t = typename point_sorts<P>::type;
 /** @brief Whether @c C is one of the sorts @c S. */
@@ -717,16 +739,16 @@ using term_sorts_t =
     typename with_carrier<typename with_carrier<point_sorts_t<P>, bool>::type,
                           dedekind::category::Ternary>::type;
 /** @brief The value of a term built at run time at a point: the one sort's
- *  carrier, or the sum of the sorts where there are two. */
+ *  carrier, or the sum of the sorts where there are more. */
 template <typename Sorts>
 struct value_sum;
 template <typename A>
 struct value_sum<std::tuple<A>> {
   using type = A;
 };
-template <typename A, typename B>
-struct value_sum<std::tuple<A, B>> {
-  using type = std::variant<A, B>;
+template <typename A, typename B, typename... Cs>
+struct value_sum<std::tuple<A, B, Cs...>> {
+  using type = std::variant<A, B, Cs...>;
 };
 export template <typename P>
 using rt_value_t = typename value_sum<point_sorts_t<P>>::type;
@@ -735,11 +757,18 @@ using rt_value_t = typename value_sum<point_sorts_t<P>>::type;
  *  context. */
 export inline constexpr std::size_t no_sort = static_cast<std::size_t>(-1);
 /** @brief The sort of the slot @c slot at points of @c P, an index into
- *  @c point_sorts_t<P>.  @throws not_admitted for a slot the points have not.
- */
+ *  @c point_sorts_t<P>: read off the type, or off a representative row, whose
+ *  cells are its schema.  @throws not_admitted for a slot the points have not.
+ *  @param rep a point of @c P (any, for a typed point). */
 export template <typename P>
-std::size_t slot_sort(unsigned slot) {
-  if constexpr (requires { typename P::first_type; }) {
+std::size_t slot_sort(unsigned slot, const P& rep = P{}) {
+  if constexpr (is_row_v<P>) {
+    if (slot == 0)
+      throw not_admitted("π names an element; the points are rows: π_1 … π_n");
+    if (slot > rep.cells.size())
+      throw not_admitted("a slot past the row's arity");
+    return rep.cells[slot - 1].index();
+  } else if constexpr (requires { typename P::first_type; }) {
     using A = typename P::first_type;
     using B = typename P::second_type;
     if (slot == 1) return 0;
@@ -752,15 +781,29 @@ std::size_t slot_sort(unsigned slot) {
         "π_1 / π_2 name a pair's coordinates; the points are elements");
   }
 }
-/** @brief The sort of a tree of constants without a context: the point's one
- *  sort where it has one.  @throws not_admitted on a point of two carriers,
- *  where a constant alone names neither. */
+/** @brief The points' one sort, where every slot has the same; @c no_sort on
+ *  a product of several.  @param rep a point of @c P. */
 export template <typename P>
-std::size_t default_sort(std::size_t s) {
+std::size_t one_sort(const P& rep = P{}) {
+  if constexpr (is_row_v<P>) {
+    if (rep.cells.empty()) return no_sort;
+    for (const auto& c : rep.cells)
+      if (c.index() != rep.cells.front().index()) return no_sort;
+    return rep.cells.front().index();
+  } else {
+    return std::tuple_size_v<point_sorts_t<P>> == 1 ? 0 : no_sort;
+  }
+}
+/** @brief The sort of a tree of constants without a context: the points' one
+ *  sort where they have one.  @throws not_admitted on a product of several
+ *  carriers, where a constant alone names none.  @param rep a point of @c P.
+ */
+export template <typename P>
+std::size_t default_sort(std::size_t s, const P& rep = P{}) {
   if (s != no_sort) return s;
-  if constexpr (std::tuple_size_v<point_sorts_t<P>> == 1) return 0;
+  if (const std::size_t one = one_sort<P>(rep); one != no_sort) return one;
   throw not_admitted(
-      "a term of constants alone names no carrier on a product of two");
+      "a term of constants alone names no carrier on a product of several");
 }
 /** @brief Apply @c f to the sort @c s of @c P as a type:
  *  @c f(type_identity<C>).  @c s is a valid index (the caller joined the
@@ -810,9 +853,21 @@ constexpr C read_as(const D& d) {
 /** @brief The coordinate @c slot of the point @c p, read in the sort @c C the
  *  dispatch chose; the point itself for the unary @c π.  @tparam C the sort.
  *  @param p the point. */
+/** @brief A cell read in the sort @c C, whichever alternative it holds. */
+template <typename C>
+struct ReadAs {
+  template <typename D>
+  constexpr C operator()(const D& d) const {
+    return read_as<C>(d);
+  }
+};
 template <typename C, typename P>
 constexpr C coordinate_as(unsigned slot, const P& p) {
-  if constexpr (requires { typename P::first_type; }) {
+  if constexpr (is_row_v<P>) {
+    if (slot == 0 || slot > p.cells.size())
+      throw not_admitted("a slot the row has not");
+    return std::visit(ReadAs<C>{}, p.cells[slot - 1]);
+  } else if constexpr (requires { typename P::first_type; }) {
     if (slot == 1) return read_as<C>(p.first);
     if (slot == 2) return read_as<C>(p.second);
     throw not_admitted("binary products only: π_1 and π_2");
@@ -967,6 +1022,84 @@ std::size_t join_sorts(std::size_t a, std::size_t b) {
       "the operands are of two carriers: a term lives in one sort, and an "
       "arrow between the carriers is applied, not implied");
 }
+/** @brief Whether a value of the sort @c from is read in the sort @c into at
+ *  points of @c P (@c EmbedsInto): the same sort, or along the dominance.
+ *  @param from,into indices into @c term_sorts_t<P>. */
+export template <typename P>
+bool sort_embeds(std::size_t from, std::size_t into) {
+  return with_sort<P>(into, EmbedsAt<P>{from});
+}
+/** @brief A cell of the sort @c sort, its carrier's default value: a row
+ *  built from a schema is a representative of its points. */
+template <std::size_t I, typename... Cs>
+std::variant<Cs...> default_cell(std::size_t sort) {
+  if constexpr (I < sizeof...(Cs)) {
+    if (sort == I) return std::variant<Cs...>{std::in_place_index<I>};
+    return default_cell<I + 1, Cs...>(sort);
+  } else {
+    throw not_admitted("a sort the row's carriers have not");
+  }
+}
+/** @brief The row @c rep extended by a column of the sort @c sort: the point
+ *  a quantifier's body is read at.  Any other point has no column to bind.
+ *  @param rep the row.  @param sort the bound column's sort. */
+export template <typename... Cs>
+Row<Cs...> with_bound(const Row<Cs...>& rep, std::size_t sort) {
+  Row<Cs...> out = rep;
+  out.cells.push_back(default_cell<0, Cs...>(sort));
+  return out;
+}
+export template <typename P>
+P with_bound(const P&, std::size_t) {
+  throw not_admitted(
+      "a quantifier binds a column of a row; the points are elements or pairs");
+}
+/** @brief The last cell of @c row set to @c v, of the sort @c C: the bound
+ *  column's value under a quantifier.  @param row the extended row.  @param v
+ *  the value. */
+export template <typename C, typename... Cs>
+void set_bound(Row<Cs...>& row, const C& v) {
+  row.cells.back() = typename Row<Cs...>::Cell{std::in_place_type<C>, v};
+}
+export template <typename C, typename P>
+void set_bound(P&, const C&) {
+  throw not_admitted("a quantifier binds a column of a row");
+}
+/** @brief The @c i-th value of a carrier for a bounded search: a finite chain
+ *  cycles through its values from ⊥, an unsigned word counts up, and any other
+ *  carrier states its enumeration as @c nth_value(type_identity<C>, i), found
+ *  by ADL beside its definition (@c Modular: 0, 1, −1, 2, −2, …).  @tparam C
+ *  the carrier.  @param i the index. */
+export template <typename C>
+C search_value(std::uint64_t i) {
+  if constexpr (dedekind::category::IsPst<C>) {
+    std::uint64_t n = 1;
+    for (C v = chain_bottom<C>(); v != chain_top<C>();
+         v = dedekind::category::Successor<C>{}(v))
+      ++n;
+    C v = chain_bottom<C>();
+    for (std::uint64_t k = i % n; k > 0; --k)
+      v = dedekind::category::Successor<C>{}(v);
+    return v;
+  } else if constexpr (std::unsigned_integral<C>) {
+    return static_cast<C>(i);
+  } else if constexpr (requires { nth_value(std::type_identity<C>{}, i); }) {
+    return nth_value(std::type_identity<C>{}, i);
+  } else {
+    throw not_admitted("a carrier the bounded search cannot enumerate");
+  }
+}
+/** @brief The row whose columns have the sorts @c sorts: a representative of
+ *  the points of that schema, for binding and normal forms.
+ *  @tparam Cs the carriers.  @param sorts an index into @c Cs per column. */
+export template <typename... Cs>
+Row<Cs...> row_of_sorts(const std::vector<std::size_t>& sorts) {
+  Row<Cs...> r;
+  r.cells.reserve(sorts.size());
+  for (const std::size_t s : sorts)
+    r.cells.push_back(default_cell<0, Cs...>(s));
+  return r;
+}
 /** @brief A constant read in the sort @c C: a numeral cast into it, a
  *  constant of a sort (a bool, a Ternary) read in its own and embedded.
  *  @tparam P the point type.  @tparam C the sort.  @param k the constant. */
@@ -994,7 +1127,7 @@ C constant_as(const K& k) {
  *  a tree of numerals, which takes its context's.  Defined with @c Term.
  *  @tparam P the point type. */
 export template <typename P, typename K>
-std::size_t sort_of(const Term<K>& t);
+std::size_t sort_of(const Term<K>& t, const P& rep = P{});
 
 /** @brief The value algebra: a term or a predicate folded at the point @c p.
  *  A projection reads its coordinate, a constant is its value, a predicate the
@@ -1065,7 +1198,8 @@ struct Value {
    */
   template <typename K>
   rt_value_t<P> steer(const Term<K>& t) const {
-    return with_sort<P>(default_sort<P>(sort_of<P>(t)), EvalTerm<K>{*this, t});
+    return with_sort<P>(default_sort<P>(sort_of<P>(t, p), p),
+                        EvalTerm<K>{*this, t});
   }
   /** @brief A predicate built at run time: a comparison in its operands'
    *  common sort, the connectives in 𝔹. */
@@ -1074,7 +1208,8 @@ struct Value {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<P>(
-            default_sort<P>(join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b))),
+            default_sort<P>(
+                join_sorts<P>(sort_of<P>(*t.a, p), sort_of<P>(*t.b, p)), p),
             Compare<K>{*this, t});
       case Pred<K>::Kind::And:
         return steer(*t.p) && steer(*t.q);
@@ -1084,6 +1219,11 @@ struct Value {
         return true;
       case Pred<K>::Kind::Bottom:
         return false;
+      case Pred<K>::Kind::Exists:
+      case Pred<K>::Kind::Forall:
+        // Decided by enumeration over a finite chain; over an infinite
+        // carrier the answer is a Σ / Π verdict, read by @c verdict.
+        return with_sort<P>(t.sort, Quantify<K>{*this, t});
     }
     throw not_admitted("an unknown predicate");
   }
@@ -1138,7 +1278,188 @@ struct Value {
                          v.template eval_as<C>(*t.b));
     }
   };
+  /** @brief A quantifier over the sort @c C, decided where @c C is a finite
+   *  chain: every value of the bound column tried, @c ∃ any, @c ∀ all. */
+  template <typename K>
+  struct Quantify {
+    const Value& v;
+    const Pred<K>& t;
+    template <typename C>
+    bool operator()(std::type_identity<C>) const {
+      // A bound column has one of the row's carriers: the truth chains the
+      // term sorts add for ap(S, t) are not among them unless the row has them.
+      if constexpr (!is_sort_of_v<C, point_sorts_t<P>>) {
+        throw not_admitted(
+            "a quantifier over a sort the row's carriers have not");
+      } else if constexpr (dedekind::category::IsPst<C>) {
+        const bool universal = t.kind == Pred<K>::Kind::Forall;
+        P row = with_bound(v.p, t.sort);
+        for (C c = chain_bottom<C>();;
+             c = dedekind::category::Successor<C>{}(c)) {
+          set_bound(row, c);
+          const bool holds = Value<P>{row}.steer(*t.p);
+          if (holds != universal) return holds;
+          if (c == chain_top<C>()) return universal;
+        }
+      } else {
+        throw not_admitted(
+            "∃ / ∀ over an infinite carrier is a Σ / Π verdict: read it with "
+            "verdict()");
+      }
+    }
+  };
 };
+
+/** @brief The verdict of a predicate at a point, in K₃: a comparison or a
+ *  quantifier over a finite chain is decided (⊤ or ⊥); a quantifier over an
+ *  infinite carrier searches its first @c budget values (@c search_value): a
+ *  witness of @c ∃ is ⊤, a counterexample to @c ∀ is ⊥, and an exhausted
+ *  budget is U, never the other verdict (Σ, respectively Π: the run-time
+ *  reading of @c Semidecided).  Same-kind quantifiers over infinite
+ *  carriers nested below (a middle object of several columns) share the
+ *  budget, @c b values each with @c b^k @c ≤ @c budget; an opposite
+ *  quantifier over an infinite carrier inside answers U.
+ *  The connectives are Kleene's.  @tparam P the point type.  @param t the
+ *  predicate.  @param point the point.  @param budget the search's values. */
+export template <typename P, typename K>
+dedekind::category::Ternary verdict(const Pred<K>& t, const P& point,
+                                    std::uint64_t budget = std::uint64_t{1}
+                                                           << 16);
+/** @brief Whether @c b^k @c ≤ @c n, without overflow. */
+constexpr bool power_within(std::uint64_t b, unsigned k, std::uint64_t n) {
+  std::uint64_t power = 1;
+  for (unsigned j = 0; j < k; ++j) {
+    if (b != 0 && power > n / b) return false;
+    power *= b;
+  }
+  return power <= n;
+}
+/** @brief The largest @c b with @c b^k @c ≤ @c n (@c n @c ≥ 1): the values
+ *  each of @c k nested searches may try within a budget of @c n, found by
+ *  bisection, logarithmic in @c n. */
+constexpr std::uint64_t root_within(std::uint64_t n, unsigned k) {
+  std::uint64_t lo = 1, hi = n;
+  while (lo < hi) {
+    const std::uint64_t mid = lo + (hi - lo + 1) / 2;
+    if (power_within(mid, k, n))
+      lo = mid;
+    else
+      hi = mid - 1;
+  }
+  return lo;
+}
+template <typename P, typename K>
+struct Verdict {
+  using Ternary = dedekind::category::Ternary;
+  using Kleene = dedekind::category::Kleene;
+  const P& point;
+  std::uint64_t budget;
+  Ternary operator()(const Pred<K>& t) const {
+    switch (t.kind) {
+      case Pred<K>::Kind::Cmp:
+        return Value<P>{point}.steer(t) ? Ternary::True : Ternary::False;
+      case Pred<K>::Kind::And:
+        return Kleene::AND((*this)(*t.p), (*this)(*t.q));
+      case Pred<K>::Kind::Or:
+        return Kleene::OR((*this)(*t.p), (*this)(*t.q));
+      case Pred<K>::Kind::Top:
+        return Ternary::True;
+      case Pred<K>::Kind::Bottom:
+        return Ternary::False;
+      case Pred<K>::Kind::Exists:
+      case Pred<K>::Kind::Forall:
+        return with_sort<P>(t.sort, Search{*this, t});
+    }
+    throw not_admitted("an unknown predicate");
+  }
+  /** @brief Whether a sort is a finite chain, enumerated exactly. */
+  struct FiniteSort {
+    template <typename C>
+    bool operator()(std::type_identity<C>) const {
+      return dedekind::category::IsPst<C>;
+    }
+  };
+  /** @brief The quantifiers over infinite carriers in @c p, anywhere: those
+   *  of the kind @c universal counted, an opposite one flagged. */
+  unsigned infinite_quantifiers(const Pred<K>& p, bool universal,
+                                bool& alternation) const {
+    switch (p.kind) {
+      case Pred<K>::Kind::Cmp:
+      case Pred<K>::Kind::Top:
+      case Pred<K>::Kind::Bottom:
+        return 0;
+      case Pred<K>::Kind::And:
+      case Pred<K>::Kind::Or:
+        return infinite_quantifiers(*p.p, universal, alternation) +
+               infinite_quantifiers(*p.q, universal, alternation);
+      case Pred<K>::Kind::Exists:
+      case Pred<K>::Kind::Forall: {
+        unsigned here = 0;
+        if (!with_sort<P>(p.sort, FiniteSort{})) {
+          if ((p.kind == Pred<K>::Kind::Forall) != universal)
+            alternation = true;
+          else
+            here = 1;
+        }
+        return here + infinite_quantifiers(*p.p, universal, alternation);
+      }
+    }
+    return 0;
+  }
+  struct Search {
+    const Verdict& v;
+    const Pred<K>& t;
+    template <typename C>
+    Ternary operator()(std::type_identity<C>) const {
+      if constexpr (!is_sort_of_v<C, point_sorts_t<P>>) {
+        throw not_admitted(
+            "a quantifier over a sort the row's carriers have not");
+      } else {
+        return search(std::type_identity<C>{});
+      }
+    }
+    template <typename C>
+    Ternary search(std::type_identity<C>) const {
+      const bool universal = t.kind == Pred<K>::Kind::Forall;
+      P row = with_bound(v.point, t.sort);
+      if constexpr (dedekind::category::IsPst<C>) {
+        Ternary all = universal ? Ternary::True : Ternary::False;
+        for (C c = chain_bottom<C>();;
+             c = dedekind::category::Successor<C>{}(c)) {
+          set_bound(row, c);
+          const Ternary here = Verdict{row, v.budget}(*t.p);
+          all = universal ? Kleene::AND(all, here) : Kleene::OR(all, here);
+          if (c == chain_top<C>()) return all;
+        }
+      } else {
+        // An opposite quantifier over an infinite carrier inside: a search
+        // cannot witness ∃ through a ∀ it cannot decide, nor refute a ∀
+        // through an ∃; U.  Same-kind quantifiers over infinite carriers
+        // below (a middle object of several columns) share the budget: each
+        // of the k levels tries b values, b^k ≤ budget.
+        bool alternation = false;
+        const unsigned k =
+            1 + v.infinite_quantifiers(*t.p, universal, alternation);
+        if (alternation || v.budget == 0) return Ternary::Unknown;
+        const std::uint64_t b = root_within(v.budget, k);
+        std::uint64_t inner = 1;
+        for (unsigned j = 1; j < k; ++j) inner *= b;
+        for (std::uint64_t i = 0; i < b; ++i) {
+          set_bound(row, search_value<C>(i));
+          const Ternary here = Verdict{row, inner}(*t.p);
+          if (!universal && here == Ternary::True) return Ternary::True;
+          if (universal && here == Ternary::False) return Ternary::False;
+        }
+        return Ternary::Unknown;
+      }
+    }
+  };
+};
+template <typename P, typename K>
+dedekind::category::Ternary verdict(const Pred<K>& t, const P& point,
+                                    std::uint64_t budget) {
+  return Verdict<P, K>{point, budget}(t);
+}
 
 /** @brief The value of a term or predicate at a point.  @param t the term.
  *  @param p the point. */
@@ -1255,6 +1576,7 @@ struct Bound {};
  *  binds trivially.  @tparam X the point type. */
 template <typename X>
 struct Bind {
+  X rep{};  // a point of X: a row is its own schema
   template <typename Leaf>
   constexpr Bound operator()(const Leaf&) const {
     return {};
@@ -1284,14 +1606,17 @@ struct Bind {
    *  in it, and no two carriers in one term. */
   template <typename K>
   Bound steer(const Term<K>& t) const {
-    return with_sort<X>(default_sort<X>(sort_of<X>(t)), BindTerm<K>{*this, t});
+    return with_sort<X>(default_sort<X>(sort_of<X>(t, rep), rep),
+                        BindTerm<K>{*this, t});
   }
   template <typename K>
   Bound steer(const Pred<K>& t) const {
     switch (t.kind) {
       case Pred<K>::Kind::Cmp:
         return with_sort<X>(
-            default_sort<X>(join_sorts<X>(sort_of<X>(*t.a), sort_of<X>(*t.b))),
+            default_sort<X>(
+                join_sorts<X>(sort_of<X>(*t.a, rep), sort_of<X>(*t.b, rep)),
+                rep),
             BindCmp<K>{*this, t});
       case Pred<K>::Kind::And:
       case Pred<K>::Kind::Or:
@@ -1301,6 +1626,17 @@ struct Bind {
       case Pred<K>::Kind::Top:
       case Pred<K>::Kind::Bottom:
         break;
+      case Pred<K>::Kind::Exists:
+      case Pred<K>::Kind::Forall: {
+        // The bound slot is the next past the points' width; the body binds
+        // at the row extended by the bound column.
+        if constexpr (is_row_v<X>) {
+          if (t.slot != rep.cells.size() + 1)
+            throw not_admitted("a quantifier binds the next slot of the row");
+        }
+        Bind<X>{with_bound(rep, t.sort)}.steer(*t.p);
+        break;
+      }
     }
     return {};
   }
@@ -1309,7 +1645,7 @@ struct Bind {
   void bind_as(const Term<K>& t) const {
     switch (t.kind) {
       case Term<K>::Kind::Proj:
-        (void)coordinate_as<C>(t.slot, X{});
+        (void)coordinate_as<C>(t.slot, rep);
         break;
       case Term<K>::Kind::Const:
         (void)constant_as<X, C>(t.value);
@@ -1376,8 +1712,8 @@ struct Bind {
  *  (a compile error in @c constexpr code).
  *  @tparam X the point type.  @tparam T the term. */
 export template <typename X, typename T>
-constexpr void bind_check(const T& t) {
-  (void)cata(Bind<X>{}, t);
+constexpr void bind_check(const T& t, const X& rep = X{}) {
+  (void)cata(Bind<X>{rep}, t);
 }
 
 // ── Terms whose shape is a value ────────────────────────────────────────────
@@ -1417,27 +1753,40 @@ struct Term {
    *  the successor's).  @param variable the slot.  @param with its
    *  replacement.  @return the substituted term. */
   Term subst(unsigned variable, const Term& with) const {
+    return map_slots(SubstOne{variable, with});
+  }
+  /** @brief Every slot replaced at once by the term @c f gives it: a
+   *  simultaneous substitution, so a renaming (a product's shift, a
+   *  permutation) never captures.  @param f a slot to its replacement. */
+  template <typename F>
+  Term map_slots(const F& f) const {
     switch (kind) {
       case Kind::Proj:
-        return slot == variable ? with : *this;
+        return f(slot);
       case Kind::Const:
         return *this;
       case Kind::Bin: {
         Term t = *this;
-        t.a = std::make_shared<const Term>(a->subst(variable, with));
-        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        t.a = std::make_shared<const Term>(a->map_slots(f));
+        t.b = std::make_shared<const Term>(b->map_slots(f));
         return t;
       }
       case Kind::Cond: {
         Term t = *this;
-        t.p = std::make_shared<const Pred<K>>(p->subst(variable, with));
-        t.a = std::make_shared<const Term>(a->subst(variable, with));
-        t.b = std::make_shared<const Term>(b->subst(variable, with));
+        t.p = std::make_shared<const Pred<K>>(p->map_slots(f));
+        t.a = std::make_shared<const Term>(a->map_slots(f));
+        t.b = std::make_shared<const Term>(b->map_slots(f));
         return t;
       }
     }
     return *this;
   }
+  /** @brief The one-slot substitution as a slot map. */
+  struct SubstOne {
+    unsigned variable;
+    const Term& with;
+    Term operator()(unsigned s) const { return s == variable ? with : proj(s); }
+  };
   /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; defined
    *  after @c Pred.  @param q the predicate.  @param a,b the branches. */
   static Term cond(Pred<K> q, Term a, Term b);
@@ -1456,17 +1805,47 @@ struct Term {
   }
 };
 /** @brief A relational predicate built at run time: a comparison of two
- *  terms, and their conjunctions and disjunctions.  Negation is pushed to the
- *  comparisons as it is built (De Morgan), so there is no @c Not node.
+ *  terms, their conjunctions and disjunctions, and the quantifiers @c ∃ / @c ∀
+ *  over a column of a row.  Negation is pushed to the comparisons as it is
+ *  built (De Morgan; @c ∃ and @c ∀ swap), so there is no @c Not node.
+ *
+ *  A quantifier binds the @b next slot: at points of width @c n it binds
+ *  @c π_{n+1}, of the sort it names, and its body is read at the row extended
+ *  by that column.  Sibling quantifiers therefore bind the same slot in
+ *  separate scopes and never need renaming apart; a nested one binds
+ *  @c π_{n+2}.  This is the run-time twin of @c sets:quantifier's @c exists /
+ *  @c forall, and the ∃ of a relational composition (@c relational:rows).
  *  @tparam K the constants' type. */
 export template <typename K>
 struct Pred {
   using is_rel_predicate = void;
-  enum class Kind { Cmp, And, Or, Top, Bottom };
+  enum class Kind { Cmp, And, Or, Top, Bottom, Exists, Forall };
   Kind kind{Kind::Cmp};
   Rel rel{};
   std::shared_ptr<const Term<K>> a, b;
   std::shared_ptr<const Pred> p, q;
+  std::size_t sort{};  // a quantifier's bound sort, an index into the sorts
+  unsigned slot{};     // a quantifier's bound slot: the next past the width
+
+  /** @brief Whether this node is @c ∃ or @c ∀. */
+  bool quantifier() const {
+    return kind == Kind::Exists || kind == Kind::Forall;
+  }
+  /** @brief @c ∃π_slot ∈ sort. body.  @param sort the bound column's sort.
+   *  @param slot the bound slot, the next past the points' width.  @param
+   *  body the predicate, on the row extended by that column. */
+  static Pred exists(std::size_t sort, unsigned slot, Pred body) {
+    return bound(Kind::Exists, sort, slot, std::move(body));
+  }
+  /** @brief @c ∀π_slot ∈ sort. body, dual to @c exists. */
+  static Pred forall(std::size_t sort, unsigned slot, Pred body) {
+    return bound(Kind::Forall, sort, slot, std::move(body));
+  }
+  /** @brief The quantifier of @c q over a new body.  @param q a quantifier
+   *  node.  @param body its new body. */
+  static Pred bound_like(const Pred& q, Pred body) {
+    return bound(q.kind, q.sort, q.slot, std::move(body));
+  }
 
   /** @brief The atom @c x @c r @c y.  @param r the comparison.  @param x,y
    *  the terms.  @return the predicate. */
@@ -1497,14 +1876,28 @@ struct Pred {
    *  @c with in every atom.  @param variable the slot.  @param with its
    *  replacement.  @return the substituted predicate. */
   Pred subst(unsigned variable, const Term<K>& with) const {
+    return map_slots(typename Term<K>::SubstOne{variable, with});
+  }
+  /** @brief Every slot of every atom replaced at once (@c Term::map_slots).
+   *  @param f a slot to its replacement. */
+  template <typename F>
+  Pred map_slots(const F& f) const {
     if (kind == Kind::Top || kind == Kind::Bottom) return *this;
     Pred t = *this;
     if (kind == Kind::Cmp) {
-      t.a = std::make_shared<const Term<K>>(a->subst(variable, with));
-      t.b = std::make_shared<const Term<K>>(b->subst(variable, with));
+      t.a = std::make_shared<const Term<K>>(a->map_slots(f));
+      t.b = std::make_shared<const Term<K>>(b->map_slots(f));
+    } else if (quantifier()) {
+      // The bound slot is renumbered with the rest (a product shifts every
+      // slot); it stays a slot.
+      const Term<K> to = f(slot);
+      if (to.kind != Term<K>::Kind::Proj)
+        throw not_admitted("a bound slot is renamed, never replaced by a term");
+      t.slot = to.slot;
+      t.p = std::make_shared<const Pred>(p->map_slots(f));
     } else {
-      t.p = std::make_shared<const Pred>(p->subst(variable, with));
-      t.q = std::make_shared<const Pred>(q->subst(variable, with));
+      t.p = std::make_shared<const Pred>(p->map_slots(f));
+      t.q = std::make_shared<const Pred>(q->map_slots(f));
     }
     return t;
   }
@@ -1524,6 +1917,10 @@ struct Pred {
         return bottom();
       case Kind::Bottom:
         return top();
+      case Kind::Exists:
+        return forall(sort, slot, p->negated());
+      case Kind::Forall:
+        return exists(sort, slot, p->negated());
     }
     return *this;
   }
@@ -1544,7 +1941,51 @@ struct Pred {
     t.q = std::make_shared<const Pred>(std::move(y));
     return t;
   }
+  static Pred bound(Kind k, std::size_t sort, unsigned slot, Pred body) {
+    Pred t;
+    t.kind = k;
+    t.sort = sort;
+    t.slot = slot;
+    t.p = std::make_shared<const Pred>(std::move(body));
+    return t;
+  }
 };
+export template <typename K>
+bool has_quantifier(const Pred<K>& p);
+/** @brief Whether a term has a quantifier in a conditional's guard. */
+template <typename K>
+bool has_quantifier(const Term<K>& t) {
+  switch (t.kind) {
+    case Term<K>::Kind::Proj:
+    case Term<K>::Kind::Const:
+      return false;
+    case Term<K>::Kind::Bin:
+      return has_quantifier(*t.a) || has_quantifier(*t.b);
+    case Term<K>::Kind::Cond:
+      return has_quantifier(*t.p) || has_quantifier(*t.a) ||
+             has_quantifier(*t.b);
+  }
+  return false;
+}
+/** @brief Whether a predicate has a quantifier anywhere, a conditional's
+ *  guard in a comparison's operands included.  @param p the predicate. */
+export template <typename K>
+bool has_quantifier(const Pred<K>& p) {
+  switch (p.kind) {
+    case Pred<K>::Kind::Cmp:
+      return has_quantifier(*p.a) || has_quantifier(*p.b);
+    case Pred<K>::Kind::Top:
+    case Pred<K>::Kind::Bottom:
+      return false;
+    case Pred<K>::Kind::And:
+    case Pred<K>::Kind::Or:
+      return has_quantifier(*p.p) || has_quantifier(*p.q);
+    case Pred<K>::Kind::Exists:
+    case Pred<K>::Kind::Forall:
+      return true;
+  }
+  return false;
+}
 
 template <typename K>
 Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
@@ -1557,25 +1998,24 @@ Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
 }
 
 template <typename P, typename K>
-std::size_t sort_of(const Term<K>& t) {
+std::size_t sort_of(const Term<K>& t, const P& rep) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
-      return slot_sort<P>(t.slot);
+      return slot_sort<P>(t.slot, rep);
     case Term<K>::Kind::Const:
       return constant_sort<P>(t.value);
     case Term<K>::Kind::Bin:
-      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
     case Term<K>::Kind::Cond:
-      return join_sorts<P>(sort_of<P>(*t.a), sort_of<P>(*t.b));
+      return join_sorts<P>(sort_of<P>(*t.a, rep), sort_of<P>(*t.b, rep));
   }
   return no_sort;
 }
 
 /** @brief The slots a term built at run time mentions, as a mask: the run-time
  *  twin of @c slots_v, read with the same @c only_slot.  @param t the term. */
-template <typename K>
+export template <typename K>
 unsigned slots(const Term<K>& t);
-template <typename K>
+export template <typename K>
 unsigned slots(const Pred<K>& p) {
   switch (p.kind) {
     case Pred<K>::Kind::Cmp:
@@ -1586,10 +2026,16 @@ unsigned slots(const Pred<K>& p) {
     case Pred<K>::Kind::Top:
     case Pred<K>::Kind::Bottom:
       return 0u;
+    case Pred<K>::Kind::Exists:
+    case Pred<K>::Kind::Forall:
+      // The bound slot is not free in the quantifier.
+      return slots(*p.p) &
+             ~(p.slot < std::numeric_limits<unsigned>::digits ? 1u << p.slot
+                                                              : 0u);
   }
   return ~0u;
 }
-template <typename K>
+export template <typename K>
 unsigned slots(const Term<K>& t) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
@@ -1626,12 +2072,14 @@ struct PinConstant {
   }
 };
 export template <typename P, typename K, typename Lift>
-Pred<K> pin_constants(const Pred<K>& p, const Lift& lift);
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep = P{});
 /** @brief The term @c t, of the sort @c s at points of @c P, with every
  *  numeral pinned to it.  @param t the term.  @param s its sort.  @param lift
- *  a value of a sort into a constant that names it. */
+ *  a value of a sort into a constant that names it.  @param rep a point of
+ *  @c P. */
 template <typename P, typename K, typename Lift>
-Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
+Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift,
+                 const P& rep) {
   using T = Term<K>;
   switch (t.kind) {
     case T::Kind::Proj:
@@ -1640,11 +2088,12 @@ Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
       if (s == no_sort || constant_sort<P>(t.value) != no_sort) return t;
       return T::constant(with_sort<P>(s, PinConstant<K, Lift>{t.value, lift}));
     case T::Kind::Bin:
-      return T::bin(t.op, pin_term<P>(*t.a, s, lift),
-                    pin_term<P>(*t.b, s, lift));
+      return T::bin(t.op, pin_term<P>(*t.a, s, lift, rep),
+                    pin_term<P>(*t.b, s, lift, rep));
     case T::Kind::Cond:
-      return T::cond(pin_constants<P>(*t.p, lift), pin_term<P>(*t.a, s, lift),
-                     pin_term<P>(*t.b, s, lift));
+      return T::cond(pin_constants<P>(*t.p, lift, rep),
+                     pin_term<P>(*t.a, s, lift, rep),
+                     pin_term<P>(*t.b, s, lift, rep));
   }
   return t;
 }
@@ -1655,43 +2104,108 @@ Term<K> pin_term(const Term<K>& t, std::size_t s, const Lift& lift) {
  *  slot left).  @param p the predicate.  @param lift a value of a sort into a
  *  constant that names it (@c constant_of). */
 export template <typename P, typename K, typename Lift>
-Pred<K> pin_constants(const Pred<K>& p, const Lift& lift) {
+Pred<K> pin_constants(const Pred<K>& p, const Lift& lift, const P& rep) {
   using Pr = Pred<K>;
   switch (p.kind) {
     case Pr::Kind::Top:
     case Pr::Kind::Bottom:
       return p;
     case Pr::Kind::And:
-      return Pr::conj(pin_constants<P>(*p.p, lift),
-                      pin_constants<P>(*p.q, lift));
+      return Pr::conj(pin_constants<P>(*p.p, lift, rep),
+                      pin_constants<P>(*p.q, lift, rep));
     case Pr::Kind::Or:
-      return Pr::disj(pin_constants<P>(*p.p, lift),
-                      pin_constants<P>(*p.q, lift));
+      return Pr::disj(pin_constants<P>(*p.p, lift, rep),
+                      pin_constants<P>(*p.q, lift, rep));
+    case Pr::Kind::Exists:
+    case Pr::Kind::Forall:
+      return Pr::bound_like(
+          p, pin_constants<P>(*p.p, lift, with_bound(rep, p.sort)));
     case Pr::Kind::Cmp: {
-      // A comparison of numerals alone takes the point's one sort, as binding
-      // reads it; on a product of two it names none and is left as written.
-      std::size_t s = join_sorts<P>(sort_of<P>(*p.a), sort_of<P>(*p.b));
-      if (s == no_sort && std::tuple_size_v<point_sorts_t<P>> == 1) s = 0;
-      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift),
-                     pin_term<P>(*p.b, s, lift));
+      // A comparison of numerals alone takes the points' one sort, as binding
+      // reads it; on a product of several it names none and is left as
+      // written.
+      std::size_t s =
+          join_sorts<P>(sort_of<P>(*p.a, rep), sort_of<P>(*p.b, rep));
+      if (s == no_sort) s = one_sort<P>(rep);
+      return Pr::cmp(p.rel, pin_term<P>(*p.a, s, lift, rep),
+                     pin_term<P>(*p.b, s, lift, rep));
     }
   }
   return p;
 }
-/** @brief The term of a graph atom built at run time, @c π_2 @c == @c t or
- *  @c t @c == @c π_2 with @c t mentioning only the first slot; @c nullptr for
- *  any other predicate.  The run-time twin of @c IsGraphAtom: such a relation
- *  is functional by its shape, and entire once bound, since binding admits
- *  every operator only where it is total on the carrier (or divides by a
- *  nonzero constant).  @param p the predicate. */
+/** @brief A slot's definition: the term @c t of a conjunct @c π_slot @c == @c t
+ *  (or @c t @c == @c π_slot) with @c t free of the slot, and the conjunction
+ *  without it.  @c ∃π_slot. P is then the rest with @c t for @c π_slot: the
+ *  existential is eliminated by substitution.  Dually, under @c ∀ a disjunct
+ *  @c π_slot @c != @c t defines it: @c ∀g. (g ≠ t ∨ Q) ≡ Q[t/g].
+ *  @tparam K the constants' type. */
 export template <typename K>
-const Term<K>* graph_term(const Pred<K>& p) {
-  if (p.kind != Pred<K>::Kind::Cmp || p.rel != Rel::Eq) return nullptr;
-  const auto is_y = [](const Term<K>& t) {
-    return t.kind == Term<K>::Kind::Proj && t.slot == 2;
+struct Definition {
+  Term<K> term;
+  Pred<K> rest;
+};
+/** @brief The first conjunct of @c p, leftmost, that defines the slot (the
+ *  first disjunct, for @c universal); nothing where none does.  @param p the
+ *  predicate.  @param slot the slot.  @param universal whether the slot is
+ *  bound by @c ∀ rather than @c ∃. */
+export template <typename K>
+std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot,
+                                           bool universal = false) {
+  using Pr = Pred<K>;
+  const Rel atom = universal ? Rel::Ne : Rel::Eq;
+  const auto connective = universal ? Pr::Kind::Or : Pr::Kind::And;
+  // The unit of the connective: what is left when the defining atom was all.
+  const Pr unit = universal ? Pr::bottom() : Pr::top();
+  const auto free_of = [slot](const Term<K>& t) {
+    return (slots(t) &
+            (slot < std::numeric_limits<unsigned>::digits ? 1u << slot
+                                                          : ~0u)) == 0u;
   };
-  if (is_y(*p.a) && only_slot(slots(*p.b), 1)) return p.b.get();
-  if (is_y(*p.b) && only_slot(slots(*p.a), 1)) return p.a.get();
+  const auto is_slot = [slot](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == slot;
+  };
+  const auto join = [&](const Pr& x, const Pr& y) {
+    if (x.kind == unit.kind) return y;
+    if (y.kind == unit.kind) return x;
+    return universal ? Pr::disj(x, y) : Pr::conj(x, y);
+  };
+  if (p.kind == Pr::Kind::Cmp) {
+    if (p.rel != atom) return std::nullopt;
+    if (is_slot(*p.a) && free_of(*p.b)) return Definition<K>{*p.b, unit};
+    if (is_slot(*p.b) && free_of(*p.a)) return Definition<K>{*p.a, unit};
+    return std::nullopt;
+  }
+  if (p.kind != connective) return std::nullopt;
+  if (auto d = defining_term(*p.p, slot, universal))
+    return Definition<K>{d->term, join(d->rest, *p.q)};
+  if (auto d = defining_term(*p.q, slot, universal))
+    return Definition<K>{d->term, join(*p.p, d->rest)};
+  return std::nullopt;
+}
+
+/** @brief Whether a mask names only slots among @c π_1 … @c π_{n−1}, the
+ *  arguments of a graph whose result is @c π_n.  @param mask the slots.
+ *  @param n the result slot. */
+export constexpr bool only_arguments(unsigned mask, unsigned n) {
+  const unsigned args =
+      n < std::numeric_limits<unsigned>::digits ? ((1u << n) - 1u) & ~1u : ~1u;
+  return (mask & ~args) == 0u;
+}
+/** @brief The term of a graph atom built at run time, @c π_n @c == @c t or
+ *  @c t @c == @c π_n with @c t mentioning only @c π_1 … @c π_{n−1};
+ *  @c nullptr for any other predicate.  The run-time twin of @c IsGraphAtom:
+ *  such a relation is functional by its shape, and entire once bound, since
+ *  binding admits every operator only where it is total on the carrier (or
+ *  divides by a nonzero constant).  @param p the predicate.  @param n the
+ *  result slot, the last (2 on a pair). */
+export template <typename K>
+const Term<K>* graph_term(const Pred<K>& p, unsigned n = 2) {
+  if (p.kind != Pred<K>::Kind::Cmp || p.rel != Rel::Eq) return nullptr;
+  const auto is_result = [n](const Term<K>& t) {
+    return t.kind == Term<K>::Kind::Proj && t.slot == n;
+  };
+  if (is_result(*p.a) && only_arguments(slots(*p.b), n)) return p.b.get();
+  if (is_result(*p.b) && only_arguments(slots(*p.a), n)) return p.a.get();
   return nullptr;
 }
 
@@ -1722,6 +2236,8 @@ bool same_shape(const Pred<K>& x, const Pred<K>& y) {
     return true;
   if (x.kind == Pred<K>::Kind::Cmp)
     return x.rel == y.rel && same_shape(*x.a, *y.a) && same_shape(*x.b, *y.b);
+  if (x.quantifier())
+    return x.sort == y.sort && x.slot == y.slot && same_shape(*x.p, *y.p);
   return same_shape(*x.p, *y.p) && same_shape(*x.q, *y.q);
 }
 
@@ -1783,6 +2299,9 @@ Pred<K> lift_conditionals(const Pred<K>& p) {
       return Pr::conj(lift_conditionals(*p.p), lift_conditionals(*p.q));
     case Pr::Kind::Or:
       return Pr::disj(lift_conditionals(*p.p), lift_conditionals(*p.q));
+    case Pr::Kind::Exists:
+    case Pr::Kind::Forall:
+      return Pr::bound_like(p, lift_conditionals(*p.p));
     case Pr::Kind::Cmp:
       if (auto l = split_cond(*p.a))
         return by_cases(l->q, Pr::cmp(p.rel, l->then_term, *p.b),

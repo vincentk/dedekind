@@ -10,7 +10,8 @@ Python flags.
 
 import unittest
 
-from dedekind.pst import 𝔹, A, K3, Function, Set, Ternary, ap, π
+from dedekind.pst import 𝔹, A, K3, Set, Ternary, ap, π
+from dedekind.trsk import Function
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
 # Subscript digits are not identifier characters, so K₃ is spelled K3 and

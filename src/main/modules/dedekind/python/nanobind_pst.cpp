@@ -49,6 +49,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>  // std::type_identity: a constant's meeting with a carrier
+#include <typeinfo>     // std::bad_cast: a value of another carrier
 #include <utility>
 #include <variant>
 #include <vector>
@@ -57,6 +58,7 @@ import dedekind.category;     // Ternary, Boole, Kleene, IsPst, the step
 import dedekind.algebra;      // a field's division: the term grammar's rule
 import dedekind.morphologies; // 𝔽ₚ, the canonical prime field
 import dedekind.order;        // IsDense
+import dedekind.relational;   // Table: a relation of any arity (:rows)
 import dedekind.sequences;    // the chains' orbit
 import dedekind.sets;         // Cardinality, finite_cardinality
 
@@ -502,8 +504,14 @@ std::string show(const RTerm& t) {
 bool is_term(nb::handle h) {
   return nb::isinstance<RTerm>(h) || nb::isinstance<ProjectionTag>(h);
 }
+const char* universe_name(std::size_t sort);  // the written sorts, below
 std::string show(const RPred& p) {
   switch (p.kind) {
+    case RPred::Kind::Exists:
+    case RPred::Kind::Forall:
+      return std::string(p.kind == RPred::Kind::Exists ? "∃" : "∀") +
+             show(RTerm::proj(p.slot)) + " ∈ " + universe_name(p.sort) + ". " +
+             show(*p.p);
     case RPred::Kind::Cmp:
       return show(*p.a) + " " + spelling(p.rel) + " " + show(*p.b);
     case RPred::Kind::And:
@@ -606,21 +614,29 @@ struct TypedConstant {
 /** @brief Whether the term @c t is a value of the carrier @c C, as a predicate
  *  that holds wherever it binds: @c t compared with a constant of @c C, so a
  *  term of another sort is refused when the predicate is bound.  A chain's
- *  and the word's bottom, @c t @c >= @c ⊥; the field's unit, @c t·1 @c == @c t.
- *  @param t the term. */
+ *  values, one equation each (a comparison widens: K₃'s U is no Boolean
+ *  though @c U @c >= @c ⊥); the word's bottom, @c t @c >= @c 0; the field's
+ *  unit, @c t·1 @c == @c t.  @param t the term. */
 template <typename C>
 RPred member_of(const RTerm& t) {
-  if constexpr (IsPst<C>)
-    return RPred::cmp(
-        Rel::Ge, t,
-        RTerm::constant(TypedConstant{}(dedekind::sets::chain_bottom<C>())));
-  else if constexpr (std::unsigned_integral<C>)
+  if constexpr (IsPst<C>) {
+    RPred any = RPred::bottom();
+    for (C c = dedekind::sets::chain_bottom<C>();;
+         c = dedekind::category::Successor<C>{}(c)) {
+      any = RPred::disj(
+          any, RPred::cmp(Rel::Eq, t, RTerm::constant(TypedConstant{}(c))));
+      if (c == dedekind::sets::chain_top<C>()) return any;
+    }
+  } else if constexpr (std::unsigned_integral<C>)
     return RPred::cmp(Rel::Ge, t, RTerm::constant(TypedConstant{}(C{})));
   else
     return RPred::cmp(
         Rel::Eq,
         RTerm::bin(Arith::Mul, t, RTerm::constant(TypedConstant{}(C{1}))), t);
 }
+/** @brief The term @c t is a value of the column's carrier, by sort index
+ *  (@c member_of on the row's carriers). */
+RPred column_member(std::size_t sort, const RTerm& t);
 /** @brief χ of the universe over @c C at a term: ⊤ wherever the term is a
  *  value of @c C, the argument kept so binding checks its sort. */
 template <typename C>
@@ -631,23 +647,23 @@ RTerm universe_at(const RTerm& t) {
 /** @brief The predicate at points of @c P with its numerals pinned to their
  *  sorts.  @param p the predicate. */
 template <typename P>
-RPred pinned(const RPred& p) {
-  return dedekind::sets::pin_constants<P>(p, TypedConstant{});
+RPred pinned(const RPred& p, const P& rep = P{}) {
+  return dedekind::sets::pin_constants<P>(p, TypedConstant{}, rep);
 }
 /** @brief The normal form of a predicate at points of @c P: pinned, so a
  *  conditional split into an atom with no slot keeps its sort, then read by
  *  the library's @c canonical.  @param p the predicate. */
 template <typename P>
-RPred normal_form(const RPred& p) {
-  return dedekind::algebra::canonical<P>(pinned<P>(p), AsConstant{});
+RPred canonical(const RPred& p, const P& rep = P{}) {
+  return dedekind::algebra::canonical<P>(pinned<P>(p, rep), AsConstant{}, rep);
 }
 
 /** @brief Equality of two predicates by their normal forms: equal forms cut
  *  out equal sets; different forms decide nothing, so they raise rather than
  *  answer "different".  @tparam P the point type (one carrier, or a pair). */
 template <typename P>
-bool equal_by_normal_form(const RPred& a, const RPred& b) {
-  if (dedekind::sets::same_shape(normal_form<P>(a), normal_form<P>(b)))
+bool equal_by_canonical(const RPred& a, const RPred& b, const P& rep = P{}) {
+  if (dedekind::sets::same_shape(canonical<P>(a, rep), canonical<P>(b, rep)))
     return true;
   throw dedekind::sets::not_admitted(
       "not decided: the normal forms differ, and different normal forms need "
@@ -692,7 +708,7 @@ bool set_equal(const S& a, const S& b) {
       // outside the chain's fragment: the ring's normal forms below
     }
   }
-  return equal_by_normal_form<C>(a.predicate, b.predicate);
+  return equal_by_canonical<C>(a.predicate, b.predicate);
 }
 
 /** @brief A point of the word out of a Python value. */
@@ -707,176 +723,513 @@ Fp to_fp(nb::handle h) {
   return residue_of(h);
 }
 
-/** @brief Whether a term of the sort @c T is read in @c C2 (@c EmbedsInto):
- *  a graph's term lands in the relation's second factor. */
-template <typename C2>
-struct ReadsInto {
-  template <typename T>
-  bool operator()(std::type_identity<T>) const {
-    return dedekind::sets::EmbedsInto<T, C2>;
-  }
-};
-/** @brief The term of a relation at points @c P = (C₁, C₂) certified a
- *  function: a graph atom @c π_2 @c == @c t (@c graph_term) whose term lands
- *  in @c C₂, so every point of @c C₁ has its image there; @c nullptr
- *  otherwise (@c K3 @c * @c B @c | @c (π_2 @c == @c π_1) is a relation, but
- *  U has no image in 𝔹).  @param p the predicate. */
-template <typename P>
-const RTerm* function_term(const RPred& p) {
-  const RTerm* t = dedekind::sets::graph_term(p);
-  if (t == nullptr) return nullptr;
-  const std::size_t s = dedekind::sets::sort_of<P>(*t);
-  if (s != dedekind::sets::no_sort &&
-      !dedekind::sets::with_sort<P>(s, ReadsInto<typename P::second_type>{}))
-    return nullptr;
-  return t;
-}
-
 /** @brief A point of 𝔹 or K₃ out of a Python value: a bool, a Ternary. */
 bool to_bool(nb::handle h) { return from_py_as<bool>(h); }
 Ternary to_ternary(nb::handle h) { return from_py_as<Ternary>(h); }
 
-/** @brief The relations a term cuts out of a product of two universes,
- *  @c 𝔸(C₁) @c * @c 𝔸(C₂) @c | @c pred: each slot has its carrier's sort, an
- *  atom is read in its operands' common sort, and a term mixing the two
- *  carriers is refused when the relation is built.  The canonical form is per
- *  axis.  A relation whose predicate is the graph @c π_2 @c == @c t(π_1) is
- *  certified a function and applied as one.  @tparam C1,C2 the carriers.
- *  @tparam To1,To2 a Python value into each. */
-template <typename C1, typename C2, typename To1, typename To2>
-void bind_relation(nb::module_& m, const char* pair_cls, const char* rel_cls,
-                   const char* name1, const char* name2, nb::object factor1,
-                   nb::object factor2, To1 to1, To2 to2) {
-  using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
-  using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
-  using UU = decltype(U1{} * U2{});
-  using R = decltype(UU{} | std::declval<RPred>());
-  using Point = std::pair<C1, C2>;
-  const std::string shown = std::string(name1) + " × " + name2;
-  const auto pair_of = [to1, to2](nb::handle h) {
-    if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != 2)
-      throw nb::type_error("a point of the product is a pair (x, y)");
-    const nb::tuple t = nb::borrow<nb::tuple>(h);
-    return Point{to1(t[0]), to2(t[1])};
+// ── Relations: one class, the schema as data ─────────────────────────────────
+//
+// A relation over a product of the universes is a schema (a sort per column)
+// and a quantifier-free predicate on π_1 … π_n.  A row is a dedekind::sets::Row
+// over the four carriers, its cells' alternatives its schema, so one class
+// serves every arity and every combination of carriers (#1037).
+
+/** @brief A row over the four carriers of the term surface; a column's sort is
+ *  an index into them. */
+using Cells = dedekind::sets::Row<uint64_t, Fp, bool, Ternary>;
+/** @brief The sort of a carrier: its index among the row's carriers. */
+template <typename C>
+constexpr std::size_t sort_index_v = std::same_as<C, uint64_t> ? 0
+                                     : std::same_as<C, Fp>     ? 1
+                                     : std::same_as<C, bool>   ? 2
+                                                               : 3;
+/** @brief The written name of a sort's universe. */
+const char* universe_name(std::size_t sort) {
+  static constexpr const char* names[] = {"𝔸(u64)", "𝔸(𝔽ₚ)", "𝔹", "K₃"};
+  return names[sort];
+}
+/** @brief A cell of the sort @c sort out of a Python value. */
+Cells::Cell cell_of(std::size_t sort, nb::handle h);
+
+/** @brief A relation over a product of the four carriers (@c relational:rows):
+ *  a term over relations, its schema data, its predicate a reading. */
+using Relation =
+    dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
+using dedekind::relational::classifier;
+using dedekind::relational::converse;
+/** @brief The relation's predicate in normal form: pinned, every quantifier
+ *  eliminated that an atom defines or a finite chain expands, the rest kept.
+ */
+RPred canonical(const Relation& r) {
+  return canonical<Cells>(classifier(r), r.rep());
+}
+/** @brief The relation's predicate pinned and with its quantifiers eliminated
+ *  where an atom defines the column or a finite chain expands it, the atoms
+ *  as written: what the function certificate reads (a normal form would
+ *  rewrite the graph atom π_n == t into π_n − t == 0). */
+RPred certifiable(const Relation& r) {
+  return dedekind::algebra::eliminate_quantifiers<Cells>(
+      pinned<Cells>(classifier(r), r.rep()), TypedConstant{}, r.rep());
+}
+RPred column_member(std::size_t sort, const RTerm& t) {
+  switch (sort) {
+    case sort_index_v<uint64_t>:
+      return member_of<uint64_t>(t);
+    case sort_index_v<Fp>:
+      return member_of<Fp>(t);
+    case sort_index_v<bool>:
+      return member_of<bool>(t);
+    default:
+      return member_of<Ternary>(t);
+  }
+}
+/** @brief A set's unary π read as the first column of a relation. */
+struct FirstColumn {
+  RTerm operator()(unsigned s) const { return RTerm::proj(s == 0 ? 1 : s); }
+};
+/** @brief The slot map of an application: π_i ↦ the i-th argument. */
+struct SlotsTo {
+  const std::vector<RTerm>& args;
+  RTerm operator()(unsigned s) const {
+    return s >= 1 && s <= args.size() ? args[s - 1] : RTerm::proj(s);
+  }
+};
+
+/** @brief A factor of a product as a relation: a relation itself, a universe
+ *  (its one column, ⊤), or a set cut out of a universe by a term (its one
+ *  column, its predicate on π_1).  @throws nb::type_error otherwise. */
+Relation as_relation(nb::handle h) {
+  using UW = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
+  using UF = 𝔸<Fp, Boole, dedekind::sets::Finite>;
+  // A universe or a set over one is a table out of the unit: () ⇸ (C).
+  const auto table = [](std::size_t sort) {
+    return Relation::universe({}, {sort});
   };
-  const auto holds = [pair_of](const auto& s, nb::handle h) {
-    try {
-      return static_cast<bool>(s(pair_of(h)));
-    } catch (const nb::builtin_exception&) {
-      return false;  // not a representative: not a member
-    } catch (const nb::cast_error&) {
-      return false;  // not a value of the carrier
+  if (nb::isinstance<Relation>(h)) return nb::cast<Relation>(h);
+  if (nb::isinstance<UW>(h)) return table(sort_index_v<uint64_t>);
+  if (nb::isinstance<UF>(h)) return table(sort_index_v<Fp>);
+  if (nb::isinstance<pst::Chain<bool>>(h)) return table(sort_index_v<bool>);
+  if (nb::isinstance<pst::Chain<Ternary>>(h))
+    return table(sort_index_v<Ternary>);
+  if (nb::isinstance<Comprehension<UW, RPred>>(h))
+    return (table(sort_index_v<uint64_t>) |
+            nb::cast<Comprehension<UW, RPred>>(h).predicate.map_slots(
+                FirstColumn{}));
+  if (nb::isinstance<Comprehension<UF, RPred>>(h))
+    return (table(sort_index_v<Fp>) |
+            nb::cast<Comprehension<UF, RPred>>(h).predicate.map_slots(
+                FirstColumn{}));
+  throw nb::type_error(
+      "a factor of a product is a universe, a set over one, or a relation");
+}
+/** @brief Whether @c r is a table: built out of universes by the set
+ *  operations, so its empty domain is no split.  An arrow out of the unit
+ *  (a converse, or a composite of one) has an empty domain too, explicitly. */
+bool is_table(const Relation& r) {
+  using K = Relation::Kind;
+  if (!r.dom.empty()) return false;
+  switch (r.kind) {
+    case K::Universe:
+      return true;
+    case K::Converse:
+      return false;
+    case K::Tensor:
+      return is_table(*r.a) && is_table(*r.b);
+    default:  // a former, ∧, ∨, ¬, >>: the left leg's schema
+      return is_table(*r.a);
+  }
+}
+/** @brief A table of n ≥ 2 columns read as the arrow of its first n − 1
+ *  columns (the Function[A, …, B] convention); an arrow stays as it is. */
+Relation as_arrow(const Relation& r) {
+  if (!is_table(r) || r.arity() < 2) return r;
+  return dedekind::relational::split(r, r.arity() - 1);
+}
+/** @brief The object of a universe over one carrier.  @throws nb::type_error
+ *  otherwise. */
+dedekind::relational::Object object_of(nb::handle u, const char* what) {
+  const Relation r = as_relation(u);
+  if (r.kind != Relation::Kind::Universe || r.arity() != 1)
+    throw nb::type_error(
+        (std::string(what) + ": a universe over one carrier").c_str());
+  return r.columns();
+}
+/** @brief Two relations over one product: the schemas must agree. */
+void same_product(const Relation& a, const Relation& b) {
+  if (a.columns() != b.columns())
+    throw nb::type_error("relations over different products");
+}
+/** @brief A row of the schema out of a Python tuple, each cell by its column's
+ *  sort.  @throws nb::type_error for a value that is no point of it. */
+Cells row_of(const Relation& r, nb::handle h) {
+  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != r.arity())
+    throw nb::type_error(
+        ("a point of the product is a tuple of " + std::to_string(r.arity()))
+            .c_str());
+  const nb::tuple t = nb::borrow<nb::tuple>(h);
+  const dedekind::relational::Object cols = r.columns();
+  Cells row;
+  for (std::size_t i = 0; i < r.arity(); ++i)
+    row.cells.push_back(cell_of(cols[i], t[i]));
+  return row;
+}
+Cells::Cell cell_of(std::size_t sort, nb::handle h) {
+  switch (sort) {
+    case sort_index_v<uint64_t>:
+      return Cells::Cell{std::in_place_index<0>, to_word(h)};
+    case sort_index_v<Fp>:
+      return Cells::Cell{std::in_place_index<1>, to_fp(h)};
+    case sort_index_v<bool>:
+      return Cells::Cell{std::in_place_index<2>, to_bool(h)};
+    default:
+      return Cells::Cell{std::in_place_index<3>, to_ternary(h)};
+  }
+}
+/** @brief Whether @c h is a point of the relation: χ(h) = ⊤ (@c verdict). */
+/** @brief The row @c h is in the relation's product; nothing where it is
+ *  none (a value of another carrier, a non-representative, the wrong arity).
+ */
+std::optional<Cells> row_in(const Relation& r, nb::handle h) {
+  try {
+    return row_of(r, h);
+  } catch (const nb::builtin_exception&) {
+    return std::nullopt;  // not a representative, not a tuple of the arity
+  } catch (const nb::cast_error&) {
+    return std::nullopt;  // not a value of the column's carrier
+  }
+}
+/** @brief χ at a row, in K₃: the verdict of the predicate with its
+ *  quantifiers eliminated where they can be, so a middle every atom defines
+ *  is decided and only the rest is searched, within the budget. */
+Ternary verdict_at(const Relation& r, const Cells& row) {
+  return dedekind::sets::verdict(certifiable(r), row, r.budget);
+}
+bool row_holds(const Relation& r, nb::handle h) {
+  const std::optional<Cells> row = row_in(r, h);
+  return row && verdict_at(r, *row) == Ternary::True;
+}
+/** @brief A term's value at a row, in the sort @c C, as a Python object. */
+struct ValueAt {
+  const RTerm& t;
+  const Cells& row;
+  template <typename C>
+  nb::object operator()(std::type_identity<C>) const {
+    return nb::cast(dedekind::sets::term_value_as<C>(t, row));
+  }
+};
+/** @brief The arguments of an application: one value for a function of one
+ *  argument, a tuple of n − 1 otherwise. */
+std::vector<nb::handle> arguments(const Relation& r, nb::handle h) {
+  if (r.arity() == 2) return {h};
+  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != r.arity() - 1)
+    throw nb::type_error(("ap(R, x): R is a function of " +
+                          std::to_string(r.arity() - 1) + " arguments")
+                             .c_str());
+  std::vector<nb::handle> out;
+  for (nb::handle a : nb::borrow<nb::tuple>(h)) out.push_back(a);
+  return out;
+}
+/** @brief @c ap(R, x).  At a point (a tuple of the arity): χ.  At the
+ *  arguments of a relation certified a function: its value.  At terms: χ, or
+ *  the function's term, as a term with the slots replaced by them, its
+ *  numerals pinned to the sorts they had in R. */
+nb::object apply(const Relation& r, nb::handle h) {
+  using dedekind::relational::function_term;
+  const RPred cert = certifiable(r);
+  const bool decided = !dedekind::sets::has_quantifier(cert);
+  // At a whole point: χ.  Of values: in 𝔹 where the normal form is
+  // quantifier-free, else the search's verdict in K₃; a tuple that is no row
+  // of the product is no member.  Of terms: χ as a term of sort 𝔹.
+  if (nb::isinstance<nb::tuple>(h) && nb::len(h) == r.arity()) {
+    std::vector<RTerm> args;
+    bool symbolic = false;
+    for (nb::handle a : nb::borrow<nb::tuple>(h)) {
+      symbolic = symbolic || is_term(a);
+      args.push_back(term_of(a));
     }
+    if (!symbolic) {
+      const std::optional<Cells> row = row_in(r, h);
+      const Ternary v = row ? verdict_at(r, *row) : Ternary::False;
+      if (decided) return nb::bool_(v == Ternary::True);
+      return nb::cast(v);
+    }
+    // At terms: the eliminated classifier with the columns replaced, each
+    // argument also checked to be a value of its column's carrier (a
+    // universe's classifier is ⊤ and would drop its arguments).  A quantifier
+    // that remains has no symbolic reading in 𝔹 yet: refused.
+    if (!decided)
+      throw nb::type_error(
+          "ap(R, terms): R's classifier keeps a quantifier no atom defines; "
+          "a symbolic reading would be K₃-valued (not yet)");
+    const dedekind::relational::Object cols = r.columns();
+    RPred at = cert.map_slots(SlotsTo{args});
+    for (std::size_t i = 0; i < cols.size(); ++i)
+      at = RPred::conj(at, column_member(cols[i], args[i]));
+    return nb::cast(truth_term(at));
+  }
+  const RTerm* f = function_term(r, cert);
+  if (f == nullptr)
+    throw nb::type_error(
+        "ap(R, x): R is not certified a function (π_n == t(π_1 … π_{n−1}), "
+        "t landing in the last column); ap(R, (x₁, …, x_n)) is χ");
+  const std::vector<nb::handle> xs = arguments(r, h);
+  bool symbolic = false;
+  for (nb::handle a : xs) symbolic = symbolic || is_term(a);
+  const dedekind::relational::Object cols = r.columns();
+  if (symbolic) {
+    // A value among the terms is checked in its column now: the function's
+    // term may not use it, and substitution would drop it unchecked.
+    std::vector<RTerm> args;
+    for (std::size_t i = 0; i < xs.size(); ++i) {
+      if (!is_term(xs[i])) (void)cell_of(cols[i], xs[i]);
+      args.push_back(term_of(xs[i]));
+    }
+    return nb::cast(f->map_slots(SlotsTo{args}));
+  }
+  Cells row;
+  for (std::size_t i = 0; i < xs.size(); ++i)
+    row.cells.push_back(cell_of(cols[i], xs[i]));
+  row.cells.push_back(
+      dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>({cols.back()})
+          .cells.front());
+  return dedekind::sets::with_sort<Cells>(cols.back(), ValueAt{*f, row});
+}
+/** @brief The relation written: its universes, and its predicate unless ⊤
+ *  (a relation whose predicate is ⊤ is the product universe itself). */
+std::string written(const Relation& r) {
+  using R = Relation;
+  const auto universes = [](const dedekind::relational::Object& o) {
+    std::string out;
+    for (std::size_t i = 0; i < o.size(); ++i)
+      out += (i ? " × " : "") + std::string(universe_name(o[i]));
+    return out;
   };
-  const auto factors = [factor1, factor2]() {
-    return nb::make_tuple(factor1, factor2);
+  if (r.kind == R::Kind::Universe) return universes(r.columns());
+  // A leg that is not a universe is parenthesised: the term stays legible.
+  const auto leg = [](const Relation& x) {
+    return x.kind == R::Kind::Universe ? written(x) : "(" + written(x) + ")";
   };
-  m.def(
-      "canonical",
-      [](const R& r) { return UU{} | normal_form<Point>(r.predicate); },
-      nb::arg("S"),
-      "canonical(R): the relation with each atom in normal form in its own "
-      "axis' sort (a run list cannot be written back on a product).");
-  nb::class_<UU>(m, pair_cls, "𝔸 × 𝔸: the product universe.")
+  switch (r.kind) {
+    case R::Kind::Comprehension:
+      return leg(*r.a) + " | " + show(r.predicate);
+    case R::Kind::Meet:
+      return leg(*r.a) + " & " + leg(*r.b);
+    case R::Kind::Join:
+      return leg(*r.a) + " | " + leg(*r.b);
+    case R::Kind::Not:
+      return "~" + leg(*r.a);
+    case R::Kind::Converse:
+      return leg(*r.a) + "°";
+    case R::Kind::Tensor:
+      return leg(*r.a) + " × " + leg(*r.b);
+    case R::Kind::Compose:
+      return leg(*r.a) + " >> " + leg(*r.b);
+    case R::Kind::Universe:
+      break;
+  }
+  return "?";
+}
+
+/** @brief The relation class and the products of the universes: every
+ *  universe multiplies with every factor.  @param factors the carriers' Python
+ *  objects, by sort. */
+template <typename... Universes>
+void bind_relations(nb::module_& m, std::vector<nb::object> factors,
+                    nb::class_<Universes>&... universes) {
+  nb::class_<Relation>(
+      m, "ProductRelation",
+      "A relation over a product of the universes: a schema (a sort per "
+      "column) and a predicate on π_1 … π_n.  One class for every arity.")
+      .def("__contains__", &row_holds, nb::arg("x"),
+           "x in R: whether the tuple x is a row of the product at which R's "
+           "predicate holds.")
+      .def("_ap", &apply, nb::arg("x"))
       .def(
-          "__or__", [](const UU& u, const RPred& p) { return u | p; },
+          "__mul__",
+          [](const Relation& a, nb::handle b) {
+            // Two tables tensor as tables; two arrows as arrows.
+            const Relation s = as_relation(b);
+            return a.dom.empty() && s.dom.empty() ? a * s
+                                                  : as_arrow(a) * as_arrow(s);
+          },
+          nb::is_operator(), "R × S: the schemas concatenated.")
+      .def(
+          "__or__", [](const Relation& r, const RPred& p) { return (r | p); },
           nb::is_operator(),
-          "𝔸 × 𝔸 | pred: the relation; every slot, constant and operator is "
-          "checked in its sort now, and a term mixing the two carriers "
-          "refused.")
-      .def("__contains__",
-           [holds](const UU& u, nb::handle h) { return holds(u, h); })
+          "R | pred: the former; every slot, constant and operator is checked "
+          "in its column's sort now, and a term mixing two carriers refused.")
       .def(
-          "_ap",
-          [holds](const UU& u, nb::handle h) -> nb::object {
-            if (is_term(h))
-              throw nb::type_error(
-                  "ap(U × V, t): a point of the product is a pair (t₁, t₂)");
-            if (nb::isinstance<nb::tuple>(h) && nb::len(h) == 2) {
-              const nb::tuple p = nb::borrow<nb::tuple>(h);
-              if (is_term(p[0]) || is_term(p[1]))
-                return nb::cast(
-                    truth_term(RPred::conj(member_of<C1>(term_of(p[0])),
-                                           member_of<C2>(term_of(p[1])))));
-            }
-            return nb::bool_(holds(u, h));
-          },
-          nb::arg("x"),
-          "ap(U × V, (x, y)): χ, ⊤ at every pair of the carriers; at a pair of "
-          "terms, ⊤ where each is a value of its factor's carrier.")
-      .def_prop_ro(
-          "factors", [factors](const UU&) { return factors(); },
-          "The carriers of the product's two coordinates.")
-      .def_prop_ro(
-          "codomain", [m](const UU&) { return m.attr("B"); },
-          "The chain χ is valued in: 𝔹.")
-      .def("__repr__", [shown](const UU&) { return shown; });
-  nb::class_<R>(m, rel_cls, "A relation cut out of the product by a term.")
-      .def("__contains__",
-           [holds](const R& r, nb::handle h) { return holds(r, h); })
-      .def(
-          "_ap",
-          [pair_of, to1](const R& r, nb::handle h) -> nb::object {
-            if (nb::isinstance<nb::tuple>(h)) return nb::cast(r(pair_of(h)));
-            // At a point: the relation as the function it is certified to be.
-            const RTerm* t = function_term<Point>(r.predicate);
-            if (t == nullptr)
-              throw nb::type_error(
-                  "ap(R, x): R is not certified a function (π_2 == t(π_1), t "
-                  "landing in the second factor); ap(R, (x, y)) is χ");
-            // At a term: t with π_1 replaced by it, its numerals pinned to
-            // the sorts they had in R, so it means in its new context what it
-            // meant in R.
-            if (is_term(h)) {
-              const RPred pin = pinned<Point>(r.predicate);
-              return nb::cast(function_term<Point>(pin)->subst(1, term_of(h)));
-            }
-            // t mentions only π_1: read it at a pair whose first coordinate
-            // is x, in the second coordinate's sort, with no copy of the term.
-            return nb::cast(
-                dedekind::sets::term_value_as<C2>(*t, Point{to1(h), C2{}}));
-          },
-          nb::arg("x"),
-          "ap(R, (x, y)): χ at a pair.  ap(R, x): t(x), where R is the graph "
-          "π_2 == t(π_1) of a function; at a term, t with π_1 replaced.")
-      .def_prop_ro(
-          "factors", [factors](const R&) { return factors(); },
-          "The carriers of the relation's two coordinates.")
-      .def_prop_ro(
-          "codomain", [m](const R&) { return m.attr("B"); },
-          "The chain χ is valued in: 𝔹.")
-      .def_prop_ro(
-          "is_function",
-          [](const R& r) {
-            return function_term<Point>(r.predicate) != nullptr;
-          },
-          "Whether R is certified the graph of a function: π_2 == t(π_1), "
-          "functional by its shape, and entire since every operator of a bound "
-          "term is total on the carrier and t lands in the second factor.")
-      .def(
-          "__and__",
-          [](const R& a, const R& b) {
-            return UU{} | RPred::conj(a.predicate, b.predicate);
-          },
+          "__or__", [](const Relation& a, const Relation& b) { return a | b; },
           nb::is_operator())
       .def(
           "__or__",
-          [](const R& a, const R& b) {
-            return UU{} | RPred::disj(a.predicate, b.predicate);
+          [](const Relation&, const RTerm& t) -> Relation {
+            throw nb::type_error(
+                ("R | " + show(t) + ": a term is not a predicate; compare it")
+                    .c_str());
           },
           nb::is_operator())
-      .def("__invert__",
-           [](const R& a) { return UU{} | a.predicate.negated(); })
+      .def(
+          "__and__", [](const Relation& a, const Relation& b) { return a & b; },
+          nb::is_operator())
+      .def(
+          "__rshift__",
+          [](const Relation& a, const Relation& b) {
+            return as_arrow(a) >> as_arrow(b);
+          },
+          nb::is_operator(),
+          "R >> S: Kleisli composition, {(a, c) | ∃b. R(a, b) ∧ S(b, c)}, the "
+          "∃ "
+          "over the whole middle object (a table of n columns composes as the "
+          "arrow of its first n − 1); eliminated by canonical where an atom "
+          "defines a middle column or its carrier is a finite chain.")
+      .def(
+          "project",
+          [](const Relation& r, nb::args cols) {
+            std::vector<unsigned> keep;
+            for (nb::handle c : cols) keep.push_back(nb::cast<unsigned>(c));
+            // Composition with the structural π: the whole relation, read as
+            // a table, then its columns projected; the result a table.
+            return dedekind::relational::split(r, 0) >>
+                   dedekind::relational::proj<PyConst, uint64_t, Fp, bool,
+                                              Ternary>(r.columns(), keep);
+          },
+          "R.project(c, …): the columns c, … kept in that order, the others "
+          "quantified away: R >> π, with π the structural projection.")
+      .def_prop_ro(
+          "converse", [](const Relation& r) { return converse(as_arrow(r)); },
+          "R°: the converse, B ⇸ A, the dagger; a table of n columns as the "
+          "arrow of its first n − 1.")
+      .def_prop_ro(
+          "arrow", [](const Relation& r) { return as_arrow(r); },
+          "A table of n ≥ 2 columns as the arrow of its first n − 1 columns "
+          "(the Function[A, …, B] convention); an arrow as it is.")
+      .def_prop_ro(
+          "dom",
+          [factors](const Relation& r) {
+            nb::list out;
+            for (const std::size_t s : r.dom) out.append(factors[s]);
+            return nb::tuple(out);
+          },
+          "The carriers of the domain's columns: () for a table.")
+      .def_prop_ro(
+          "cod",
+          [factors](const Relation& r) {
+            nb::list out;
+            for (const std::size_t s : r.cod) out.append(factors[s]);
+            return nb::tuple(out);
+          },
+          "The carriers of the codomain's columns.")
+      .def(
+          "__invert__", [](const Relation& a) { return ~a; },
+          "~R: the complement: the predicate in negation normal form, each ∃ "
+          "a ∀ and each ∀ an ∃.")
+      .def(
+          "within",
+          [](const Relation& a, std::uint64_t budget) {
+            Relation out = a;
+            out.budget = budget;
+            return out;
+          },
+          nb::arg("budget"),
+          "R.within(n): the relation whose membership searches at most n "
+          "values for a quantified column no atom defines.")
       .def(
           "__eq__",
-          [](const R& a, const R& b) {
-            return equal_by_normal_form<Point>(a.predicate, b.predicate);
+          [](const Relation& a, const Relation& b) {
+            same_product(a, b);
+            return equal_by_canonical<Cells>(classifier(a), classifier(b),
+                                             a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
-          "differ, which decides nothing.")
-      .def("__repr__",
-           [shown](const R& r) { return shown + " | " + show(r.predicate); });
+          "differ, which decides nothing, or where the products differ.")
+      .def_prop_ro(
+          "classifier", [](const Relation& r) { return classifier(r); },
+          "The classifier χ of the relation on its columns π_1 … π_n, as a "
+          "predicate: a reading "
+          "of the term (a composite's ∃ over the middle, a projection's ∃ "
+          "over the dropped columns, ~ in negation normal form).")
+      .def_prop_ro(
+          "factors",
+          [factors](const Relation& r) {
+            nb::list out;
+            for (const std::size_t s : r.columns()) out.append(factors[s]);
+            return nb::tuple(out);
+          },
+          "The carriers of the relation's columns.")
+      .def_prop_ro(
+          "codomain",
+          [m](const Relation& r) {
+            return m.attr(dedekind::sets::has_quantifier(certifiable(r)) ? "K3"
+                                                                         : "B");
+          },
+          "The chain χ is valued in: 𝔹 where the normal form is "
+          "quantifier-free; K₃ where a quantifier remains and membership "
+          "searches (Σ for ∃: ⊤ or U; Π for ∀: ⊥ or U).")
+      .def_prop_ro(
+          "is_function",
+          [](const Relation& r) {
+            return dedekind::relational::function_term(r, certifiable(r)) !=
+                   nullptr;
+          },
+          "Whether R is certified the graph of a function of its first n − 1 "
+          "columns: π_n == t(π_1 … π_{n−1}), functional by its shape, and "
+          "entire since every operator of a bound term is total on the "
+          "carrier and t lands in the last column.")
+      .def("__repr__", &written);
+  m.def(
+      "canonical",
+      [](const Relation& r) {
+        const RPred nf = canonical(r);
+        // A predicate normalising to ⊤ cuts out the product universe itself.
+        if (nf.kind == RPred::Kind::Top) {
+          Relation u = Relation::universe(r.dom, r.cod);
+          u.budget = r.budget;
+          return u;
+        }
+        Relation out = (Relation::universe(r.dom, r.cod) | nf);
+        out.budget = r.budget;
+        return out;
+      },
+      nb::arg("S"),
+      "canonical(R): each atom in normal form in its column's sort; a "
+      "quantifier eliminated where an atom defines its column (substitution) "
+      "or its carrier is a finite chain (Shannon's expansion), kept "
+      "otherwise.");
+  m.def(
+      "diag",
+      [](nb::handle u) {
+        return dedekind::relational::diag<PyConst, uint64_t, Fp, bool, Ternary>(
+            object_of(u, "diag(U)"));
+      },
+      nb::arg("U"),
+      "diag(U): the identity relation Δ = {(x, x)} on the carrier of U, the "
+      "unit of >> (η of the powerset monad).");
+  m.def(
+      "copy",
+      [](nb::handle u) {
+        return dedekind::relational::copy<PyConst, uint64_t, Fp, bool, Ternary>(
+            object_of(u, "copy(U)"));
+      },
+      nb::arg("U"),
+      "copy(U): x ↦ (x, x), the comonoid of the Frobenius structure on U.");
+  m.def(
+      "merge",
+      [](nb::handle u) {
+        return dedekind::relational::merge<PyConst, uint64_t, Fp, bool,
+                                           Ternary>(object_of(u, "merge(U)"));
+      },
+      nb::arg("U"), "merge(U): the converse of copy(U), (x, x) ↦ x.");
+  // Every universe multiplies with every factor: a universe, a set over one,
+  // a relation.
+  (universes.def(
+       "__mul__",
+       [](const Universes& a, nb::handle b) {
+         return as_relation(nb::cast(a)) * as_relation(b);
+       },
+       nb::is_operator(), "A × B: the product universe, each column its sort."),
+   ...);
 }
 
 /** @brief The sets a term cuts out of a canonical universe: the set
@@ -936,7 +1289,7 @@ void bind_term_sets(nb::module_& m,
         // The atoms first, then the set: an atom normalised into the chain's
         // fragment (π * 1 < 5 to π < 5) is then read as runs, so one pass
         // reaches the fixpoint.
-        const S atoms = U{} | normal_form<C>(s.predicate);
+        const S atoms = U{} | canonical<C>(s.predicate);
         if constexpr (IsTotallyOrdered<C>) {
           try {
             return U{} | run_predicate<C>(dedekind::order::runs(steps(atoms)),
@@ -1434,24 +1787,6 @@ struct Forall {
     return s == former_runtime(s, p);  // S ⊆ P
   }
 };
-/** @brief The product @c A(C₁) @c × @c A(C₂) of two universes: the left
- *  universe's @c * with the right one, and the relations a term cuts out of
- *  it.  One instantiation per ordered pair of carriers.  @tparam C1,C2 the
- *  carriers.  @tparam PyU2 the right universe's Python type. */
-template <typename C1, typename C2, typename PyU2, typename PyU1, typename To1,
-          typename To2>
-void bind_product(nb::module_& m, nb::class_<PyU1>& left, const char* pair_cls,
-                  const char* rel_cls, const char* name1, const char* name2,
-                  nb::object factor1, nb::object factor2, To1 to1, To2 to2) {
-  using U1 = 𝔸<C1, Boole, dedekind::sets::Finite>;
-  using U2 = 𝔸<C2, Boole, dedekind::sets::Finite>;
-  left.def(
-      "__mul__", [](const PyU1&, const PyU2&) { return U1{} * U2{}; },
-      nb::is_operator(),
-      "A × B: the product universe, each slot its own sort.");
-  bind_relation<C1, C2>(m, pair_cls, rel_cls, name1, name2, factor1, factor2,
-                        to1, to2);
-}
 }  // namespace
 
 NB_MODULE(_pst, m) {
@@ -1542,6 +1877,7 @@ NB_MODULE(_pst, m) {
   m.attr("π") = ProjectionTag{0};
   m.attr("π_1") = ProjectionTag{1};
   m.attr("π_2") = ProjectionTag{2};
+  m.attr("π_3") = ProjectionTag{3};
 
   auto term = nb::class_<RTerm>(
       m, "Term",
@@ -1901,6 +2237,11 @@ NB_MODULE(_pst, m) {
   m.def(
       "cond",
       [](const RPred& p, nb::handle a, nb::handle b) {
+        // A guard is decided; a quantifier's reading is a verdict in K₃.
+        if (dedekind::sets::has_quantifier(p))
+          throw nb::type_error(
+              "cond(pred, a, b): a guard with a quantifier has a K₃ verdict, "
+              "no Boolean choice (not yet)");
         return RTerm::cond(p, term_of(a), term_of(b));
       },
       nb::arg("pred"), nb::arg("a"), nb::arg("b"),
@@ -1921,55 +2262,7 @@ NB_MODULE(_pst, m) {
   bind_term_sets<uint64_t>(m, universe_u64, "u64", "U64Set", to_word);
   bind_term_sets<Fp>(m, universe_fp, "𝔽ₚ", "FpSet", to_fp);
 
-  // ── products: every ordered pair of the four carriers ──
-  // Each slot has its own sort, and a relation is a predicate on the pairs.
-  // One class per ordered pair, so k carriers make k² relation classes: the
-  // typed baseline a schema-carrying relation would replace.
-  using U64 = 𝔸<uint64_t, Boole, dedekind::sets::Finite>;
-  using UFp = 𝔸<Fp, Boole, dedekind::sets::Finite>;
-  using UB = pst::Chain<bool>;
-  using UK = pst::Chain<Ternary>;
-  const nb::object fB = m.attr("B"), fK = m.attr("K3");
-  bind_product<uint64_t, uint64_t, U64>(m, universe_u64, "UniverseU64U64Pair",
-                                        "U64U64Relation", "𝔸(u64)", "𝔸(u64)",
-                                        u64_type, u64_type, to_word, to_word);
-  bind_product<uint64_t, Fp, UFp>(m, universe_u64, "UniverseU64FpPair",
-                                  "U64FpRelation", "𝔸(u64)", "𝔸(𝔽ₚ)", u64_type,
-                                  fp_type, to_word, to_fp);
-  bind_product<uint64_t, bool, UB>(m, universe_u64, "UniverseU64BPair",
-                                   "U64BRelation", "𝔸(u64)", "𝔹", u64_type, fB,
-                                   to_word, to_bool);
-  bind_product<uint64_t, Ternary, UK>(m, universe_u64, "UniverseU64K3Pair",
-                                      "U64K3Relation", "𝔸(u64)", "K₃", u64_type,
-                                      fK, to_word, to_ternary);
-  bind_product<Fp, uint64_t, U64>(m, universe_fp, "UniverseFpU64Pair",
-                                  "FpU64Relation", "𝔸(𝔽ₚ)", "𝔸(u64)", fp_type,
-                                  u64_type, to_fp, to_word);
-  bind_product<Fp, Fp, UFp>(m, universe_fp, "UniverseFpFpPair", "FpFpRelation",
-                            "𝔸(𝔽ₚ)", "𝔸(𝔽ₚ)", fp_type, fp_type, to_fp, to_fp);
-  bind_product<Fp, bool, UB>(m, universe_fp, "UniverseFpBPair", "FpBRelation",
-                             "𝔸(𝔽ₚ)", "𝔹", fp_type, fB, to_fp, to_bool);
-  bind_product<Fp, Ternary, UK>(m, universe_fp, "UniverseFpK3Pair",
-                                "FpK3Relation", "𝔸(𝔽ₚ)", "K₃", fp_type, fK,
-                                to_fp, to_ternary);
-  bind_product<bool, uint64_t, U64>(m, chain_b, "UniverseBU64Pair",
-                                    "BU64Relation", "𝔹", "𝔸(u64)", fB, u64_type,
-                                    to_bool, to_word);
-  bind_product<bool, Fp, UFp>(m, chain_b, "UniverseBFpPair", "BFpRelation", "𝔹",
-                              "𝔸(𝔽ₚ)", fB, fp_type, to_bool, to_fp);
-  bind_product<bool, bool, UB>(m, chain_b, "UniverseBBPair", "BBRelation", "𝔹",
-                               "𝔹", fB, fB, to_bool, to_bool);
-  bind_product<bool, Ternary, UK>(m, chain_b, "UniverseBK3Pair", "BK3Relation",
-                                  "𝔹", "K₃", fB, fK, to_bool, to_ternary);
-  bind_product<Ternary, uint64_t, U64>(m, chain_k3, "UniverseK3U64Pair",
-                                       "K3U64Relation", "K₃", "𝔸(u64)", fK,
-                                       u64_type, to_ternary, to_word);
-  bind_product<Ternary, Fp, UFp>(m, chain_k3, "UniverseK3FpPair",
-                                 "K3FpRelation", "K₃", "𝔸(𝔽ₚ)", fK, fp_type,
-                                 to_ternary, to_fp);
-  bind_product<Ternary, bool, UB>(m, chain_k3, "UniverseK3BPair", "K3BRelation",
-                                  "K₃", "𝔹", fK, fB, to_ternary, to_bool);
-  bind_product<Ternary, Ternary, UK>(m, chain_k3, "UniverseK3K3Pair",
-                                     "K3K3Relation", "K₃", "K₃", fK, fK,
-                                     to_ternary, to_ternary);
+  // ── relations: one class, the schema as data (#1037) ──
+  bind_relations(m, {u64_type, fp_type, m.attr("B"), m.attr("K3")},
+                 universe_u64, universe_fp, chain_b, chain_k3);
 }

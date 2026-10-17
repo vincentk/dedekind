@@ -9,9 +9,8 @@ carriers is applied, never implied.  The canonical form is per axis.
 
 import unittest
 
-from dedekind.pst import (
-    A, B, K3, U64, GF_p, Function, Relation, Ternary, ap, canonical, cond, u64, π, π_1, π_2, 𝔽ₚ,  # 𝔽ₚ is Fp (NFKC)
-)
+from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
+from dedekind.trsk import Function, Relation
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
@@ -48,7 +47,7 @@ class TwoCarriersInOneRelation(unittest.TestCase):
 
     def test_a_decided_atom_is_written_as_a_truth_constant(self) -> None:
         N = canonical(U * UF | (π_2 == π_2))
-        self.assertEqual(repr(N), "𝔸(u64) × 𝔸(𝔽ₚ) | ⊤")
+        self.assertEqual(repr(N), "𝔸(u64) × 𝔸(𝔽ₚ)")  # ⊤: the product itself
         self.assertIs(N == N, True)  # rebinds: ⊤ names no sort
         self.assertEqual(repr(canonical(N)), repr(N))
         self.assertIn((1, 1), N)
@@ -156,6 +155,64 @@ class AnArrowKeepsItsSorts(unittest.TestCase):
         chi = U64 * B | (π_2 == ap(S, π_1))
         self.assertIs(ap(chi, 7), True)
         self.assertIs(ap(chi, 3), False)
+
+
+class Tables(unittest.TestCase):
+    """A relation of any arity: one class, its schema (a sort per column) as
+    data; a table is a multi-sorted relation (#1037)."""
+
+    def test_a_product_of_three_carriers(self) -> None:
+        T = U64 * B * GF_p
+        self.assertEqual(repr(T), "𝔸(u64) × 𝔹 × 𝔸(𝔽ₚ)")
+        self.assertEqual(T.factors, (u64, B, 𝔽ₚ))
+        self.assertIsInstance(T, Relation[u64, B, 𝔽ₚ])
+        self.assertIn((7, True, 𝔽ₚ(3)), T)
+        self.assertNotIn((7, Ternary.TRUE, 𝔽ₚ(3)), T)  # K₃ is no column of it
+        self.assertNotIn((7, True), T)  # a point has the product's arity
+        self.assertEqual(type(T), type(U64 * B))  # one class for every arity
+
+    def test_a_former_on_three_columns(self) -> None:
+        R = U64 * B * GF_p | ((π_2 == ap(U64 | (π > 5), π_1)) & (π_3 * 2 == 1))
+        self.assertIn((7, True, 𝔽ₚ(1) / 2), R)
+        self.assertNotIn((7, False, 𝔽ₚ(1) / 2), R)
+        with self.assertRaises(TypeError):
+            U64 * B * GF_p | (π_1 == π_3)  # a word is no element of 𝔽ₚ
+
+    def test_the_product_is_associative_and_shifts_the_slots(self) -> None:
+        left = (U64 * B) * GF_p
+        right = U64 * (B * GF_p)
+        self.assertEqual(repr(left), repr(right))
+        S = U64 * (B * GF_p | (π_2 == 1))  # B × GF_p's π_2 is the product's π_3
+        self.assertIn((5, True, 𝔽ₚ(1)), S)
+        self.assertNotIn((5, True, 𝔽ₚ(2)), S)
+        self.assertEqual(repr(S), "𝔸(u64) × (𝔹 × 𝔸(𝔽ₚ) | π_2 == 1)")  # the term
+        self.assertEqual(repr(S.classifier), "π_3 == 1")  # the reading, shifted
+
+    def test_a_set_is_a_factor(self) -> None:
+        S = (U64 * (U64 | (π > 5)))  # its π is the column π_2
+        self.assertIn((0, 7), S)
+        self.assertNotIn((0, 3), S)
+
+    def test_a_function_of_two_arguments(self) -> None:
+        fib = U64 * U64 * U64 | (π_3 == π_1 + π_2)
+        self.assertIsInstance(fib, Function[u64, u64, u64])
+        self.assertEqual(ap(fib, (3, 5)), 8)
+        self.assertIs(ap(fib, (3, 5, 8)), True)  # χ at a whole row
+        self.assertIs(ap(fib, (3, 5, 9)), False)
+        self.assertEqual(repr(ap(fib, (π, 1))), "(π + 1)")  # the term, at terms
+        mixed = Function[u64, B, 𝔽ₚ](U64 * B * GF_p | (π_3 == cond(π_2 == True, 1, 0)))  # noqa: E712
+        self.assertEqual(ap(mixed, (4, True)), 𝔽ₚ(1))
+
+    def test_relations_over_different_products_do_not_compare(self) -> None:
+        with self.assertRaises(TypeError):
+            (U64 * B) == (U64 * B * B)
+        with self.assertRaises(TypeError):
+            (U64 * B) & (B * U64)
+        self.assertIs((U64 * B | (π_1 + 0 > 3)) == (U64 * B | (π_1 > 3)), True)
+
+    def test_the_normal_form_reads_every_column(self) -> None:
+        R = U64 * U64 * U64 | (π_3 + 0 == π_1 * 1 + π_2)
+        self.assertEqual(R, U64 * U64 * U64 | (π_3 == π_1 + π_2))
 
 
 if __name__ == "__main__":
