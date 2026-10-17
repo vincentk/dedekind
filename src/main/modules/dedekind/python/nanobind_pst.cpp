@@ -49,6 +49,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>  // std::type_identity: a constant's meeting with a carrier
+#include <typeinfo>     // std::bad_cast: a value of another carrier
 #include <utility>
 #include <variant>
 #include <vector>
@@ -814,14 +815,21 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h) {
   }
 }
 /** @brief Whether @c h is a point of the relation: χ(h) = ⊤ (@c verdict). */
-bool row_holds(const Relation& r, nb::handle h) {
+/** @brief The row @c h is in the relation's product; nothing where it is
+ *  none (a value of another carrier, a non-representative, the wrong arity).
+ */
+std::optional<Cells> row_in(const Relation& r, nb::handle h) {
   try {
-    return verdict(r, row_of(r, h)) == Ternary::True;
+    return row_of(r, h);
   } catch (const nb::builtin_exception&) {
-    return false;  // not a representative: not a member
+    return std::nullopt;  // not a representative, not a tuple of the arity
   } catch (const nb::cast_error&) {
-    return false;  // not a value of the column's carrier
+    return std::nullopt;  // not a value of the column's carrier
   }
+}
+bool row_holds(const Relation& r, nb::handle h) {
+  const std::optional<Cells> row = row_in(r, h);
+  return row && verdict(r, *row) == Ternary::True;
 }
 /** @brief A term's value at a row, in the sort @c C, as a Python object. */
 struct ValueAt {
@@ -856,7 +864,9 @@ nb::object apply(const Relation& span, nb::handle h) {
     for (nb::handle a : nb::borrow<nb::tuple>(h))
       symbolic = symbolic || is_term(a);
     if (!symbolic) {
-      const Ternary v = verdict(span, row_of(span, h));
+      // A tuple that is no row of the product is no member: χ = ⊥.
+      const std::optional<Cells> row = row_in(span, h);
+      const Ternary v = row ? verdict(span, *row) : Ternary::False;
       if (reduced(span).hidden.empty()) return nb::bool_(v == Ternary::True);
       return nb::cast(v);
     }
