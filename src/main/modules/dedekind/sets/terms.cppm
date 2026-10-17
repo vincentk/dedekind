@@ -1678,9 +1678,9 @@ std::size_t sort_of(const Term<K>& t, const P& rep) {
 
 /** @brief The slots a term built at run time mentions, as a mask: the run-time
  *  twin of @c slots_v, read with the same @c only_slot.  @param t the term. */
-template <typename K>
+export template <typename K>
 unsigned slots(const Term<K>& t);
-template <typename K>
+export template <typename K>
 unsigned slots(const Pred<K>& p) {
   switch (p.kind) {
     case Pred<K>::Kind::Cmp:
@@ -1694,7 +1694,7 @@ unsigned slots(const Pred<K>& p) {
   }
   return ~0u;
 }
-template <typename K>
+export template <typename K>
 unsigned slots(const Term<K>& t) {
   switch (t.kind) {
     case Term<K>::Kind::Proj:
