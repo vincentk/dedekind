@@ -670,29 +670,12 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       return meet ? Pr::conj(x, y) : Pr::disj(x, y);
     }
     case Pr::Kind::Exists:
-    case Pr::Kind::Forall: {
-      // The body in normal form at the extended row; then the quantifier
-      // eliminated where it can be: by substitution where an atom defines the
-      // bound column (a conjunct π_h == t under ∃, a disjunct π_h != t under
-      // ∀: the fusion law), by Shannon's expansion over a finite chain (∨
-      // under ∃, ∧ under ∀); kept otherwise, its body normalised.
-      const bool universal = p.kind == Pr::Kind::Forall;
-      const P inner = dedekind::sets::with_bound(rep, p.sort);
-      const Pr body = canonical_lifted<P>(*p.p, lift, inner);
-      if (auto d = dedekind::sets::defining_term(body, p.slot, universal))
-        return canonical_lifted<P>(d->rest.subst(p.slot, d->term), lift, rep);
-      const auto cases =
-          dedekind::sets::with_sort<P>(p.sort, ChainValues<K, Lift>{lift});
-      if (!cases.empty()) {
-        Pr all = body.subst(p.slot, cases.front());
-        for (std::size_t i = 1; i < cases.size(); ++i) {
-          const Pr next = body.subst(p.slot, cases[i]);
-          all = universal ? Pr::conj(all, next) : Pr::disj(all, next);
-        }
-        return canonical_lifted<P>(all, lift, rep);
-      }
-      return Pr::bound_like(p, body);
-    }
+    case Pr::Kind::Forall:
+      // A quantifier that survived elimination (@c eliminate_quantifiers):
+      // its body in normal form at the extended row, the node kept.
+      return Pr::bound_like(
+          p, canonical_lifted<P>(*p.p, lift,
+                                 dedekind::sets::with_bound(rep, p.sort)));
     case Pr::Kind::Cmp:
       break;
   }
@@ -715,11 +698,66 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
  *  refused (@c not_admitted).  @tparam P the point type.  @param p the
  *  predicate.  @param lift a coefficient into a constant of the predicate's
  *  type.  @param rep a point of @c P (a row is its own schema). */
+/** @brief The predicate with every quantifier eliminated that can be, the
+ *  atoms left as written: innermost first, by substitution where an atom
+ *  defines the bound column (a conjunct @c π_h @c == @c t under @c ∃, a
+ *  disjunct @c π_h @c != @c t under @c ∀: the fusion law), else by Shannon's
+ *  expansion over a finite chain (@c ∨ under @c ∃, @c ∧ under @c ∀).  A
+ *  quantifier over an infinite carrier no atom defines is kept.  Read on the
+ *  predicate as written (pinned, conditionals not lifted): normalising an
+ *  atom first would turn the defining shape @c π_h @c == @c t into
+ *  @c π_h @c − @c t @c == @c 0.  @tparam P the point type.  @param p the
+ *  predicate.  @param lift a value into a constant that names its sort.
+ *  @param rep a point of @c P. */
+export template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
+                                              const Lift& lift,
+                                              const P& rep = P{}) {
+  using Pr = dedekind::sets::Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+    case Pr::Kind::Cmp:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(eliminate_quantifiers<P>(*p.p, lift, rep),
+                      eliminate_quantifiers<P>(*p.q, lift, rep));
+    case Pr::Kind::Or:
+      return Pr::disj(eliminate_quantifiers<P>(*p.p, lift, rep),
+                      eliminate_quantifiers<P>(*p.q, lift, rep));
+    case Pr::Kind::Exists:
+    case Pr::Kind::Forall: {
+      const bool universal = p.kind == Pr::Kind::Forall;
+      const Pr body = eliminate_quantifiers<P>(
+          *p.p, lift, dedekind::sets::with_bound(rep, p.sort));
+      if (auto d = dedekind::sets::defining_term(body, p.slot, universal))
+        return eliminate_quantifiers<P>(d->rest.subst(p.slot, d->term), lift,
+                                        rep);
+      const auto cases = dedekind::sets::with_sort<P>(
+          p.sort, detail_canonical::ChainValues<K, Lift>{lift});
+      if (!cases.empty()) {
+        Pr all = body.subst(p.slot, cases.front());
+        for (std::size_t i = 1; i < cases.size(); ++i) {
+          const Pr next = body.subst(p.slot, cases[i]);
+          all = universal ? Pr::conj(all, next) : Pr::disj(all, next);
+        }
+        return eliminate_quantifiers<P>(all, lift, rep);
+      }
+      return Pr::bound_like(p, body);
+    }
+  }
+  return p;
+}
+
+/** @brief The normal form of a predicate: its quantifiers eliminated where
+ *  they can be (@c eliminate_quantifiers), its conditionals lifted, its atoms
+ *  normalised and the bounds folded (@c canonical_lifted). */
 export template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical(const dedekind::sets::Pred<K>& p,
                                   const Lift& lift, const P& rep = P{}) {
   return detail_canonical::canonical_lifted<P>(
-      dedekind::sets::lift_conditionals(p), lift, rep);
+      dedekind::sets::lift_conditionals(eliminate_quantifiers<P>(p, lift, rep)),
+      lift, rep);
 }
 
 }  // namespace dedekind::algebra

@@ -93,7 +93,9 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
 TEST_CASE("relational:rows: a finite middle is decided, the product shifts",
           "[relational][rows]") {
   // R: a > 5 on word × 𝔹; S: 𝔹 × word, c = 1 where the flag is set.
-  const Tb above{{word, flag}, Q::cmp(Rel::Gt, T::proj(1), T::constant(5))};
+  // (== / != only: an order comparison needs order's rule, downstream of
+  // relational.)
+  const Tb above{{word, flag}, Q::cmp(Rel::Ne, T::proj(1), T::constant(5))};
   const Tb pick{{flag, word},
                 Q::disj(Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(1)),
                                 Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
@@ -104,8 +106,8 @@ TEST_CASE("relational:rows: a finite middle is decided, the product shifts",
   CHECK(both.predicate(R{{7u, 1u}}));  // the bool reading enumerates 𝔹
   CHECK(both.predicate(R{{7u, 0u}}));
   CHECK_FALSE(both.predicate(R{{7u, 2u}}));
-  CHECK_FALSE(both.predicate(R{{3u, 1u}}));
-  CHECK_THROWS_AS(succ >> above, not_admitted);  // the word is no 𝔹
+  CHECK_FALSE(both.predicate(R{{5u, 1u}}));
+  CHECK_THROWS_AS(above >> succ, not_admitted);  // 𝔹 is not the word
   // A product shifts the right factor's slots, bound ones included.
   const Tb dom = project(succ, {1});
   const Tb pair = dom * dom;

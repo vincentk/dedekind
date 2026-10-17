@@ -755,6 +755,14 @@ using dedekind::relational::verdict;
 RPred normal_form(const Relation& r) {
   return normal_form<Cells>(r.predicate, r.rep());
 }
+/** @brief The relation's predicate pinned and with its quantifiers eliminated
+ *  where an atom defines the column or a finite chain expands it, the atoms
+ *  as written: what the function certificate reads (a normal form would
+ *  rewrite the graph atom π_n == t into π_n − t == 0). */
+RPred certifiable(const Relation& r) {
+  return dedekind::algebra::eliminate_quantifiers<Cells>(
+      pinned<Cells>(r.predicate, r.rep()), TypedConstant{}, r.rep());
+}
 /** @brief A set's unary π read as the first column of a relation. */
 struct FirstColumn {
   RTerm operator()(unsigned s) const { return RTerm::proj(s == 0 ? 1 : s); }
@@ -865,8 +873,8 @@ std::vector<nb::handle> arguments(const Relation& r, nb::handle h) {
  *  numerals pinned to the sorts they had in R. */
 nb::object apply(const Relation& r, nb::handle h) {
   using dedekind::relational::function_term;
-  const RPred nf = normal_form(r);
-  const bool decided = !dedekind::sets::has_quantifier(nf);
+  const RPred cert = certifiable(r);
+  const bool decided = !dedekind::sets::has_quantifier(cert);
   // At a whole point: χ.  Of values: in 𝔹 where the normal form is
   // quantifier-free, else the search's verdict in K₃; a tuple that is no row
   // of the product is no member.  Of terms: χ as a term of sort 𝔹.
@@ -886,7 +894,7 @@ nb::object apply(const Relation& r, nb::handle h) {
     return nb::cast(truth_term(
         pinned<Cells>(r.predicate, r.rep()).map_slots(SlotsTo{args})));
   }
-  const RTerm* f = function_term(r, nf);
+  const RTerm* f = function_term(r, cert);
   if (f == nullptr)
     throw nb::type_error(
         "ap(R, x): R is not certified a function (π_n == t(π_1 … π_{n−1}), "
@@ -1008,7 +1016,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       .def_prop_ro(
           "codomain",
           [m](const Relation& r) {
-            return m.attr(dedekind::sets::has_quantifier(normal_form(r)) ? "K3"
+            return m.attr(dedekind::sets::has_quantifier(certifiable(r)) ? "K3"
                                                                          : "B");
           },
           "The chain χ is valued in: 𝔹 where the normal form is "
@@ -1017,7 +1025,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       .def_prop_ro(
           "is_function",
           [](const Relation& r) {
-            return dedekind::relational::function_term(r, normal_form(r)) !=
+            return dedekind::relational::function_term(r, certifiable(r)) !=
                    nullptr;
           },
           "Whether R is certified the graph of a function of its first n − 1 "
