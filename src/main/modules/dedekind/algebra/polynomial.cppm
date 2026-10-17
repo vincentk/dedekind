@@ -67,7 +67,7 @@
  */
 module;
 
-#include <algorithm>   // std::sort
+#include <algorithm>   // std::sort, the connectives' operands (#884)
 #include <array>       // Monomial's exponents
 #include <bit>         // std::countr_zero, std::bit_width
 #include <compare>     // std::strong_ordering
@@ -661,9 +661,66 @@ struct ChainValues {
     return out;
   }
 };
+/** @brief Whether a predicate is of the kind @c k (a bound to fold). */
+template <typename K>
+struct OfKind {
+  typename dedekind::sets::Pred<K>::Kind k;
+  bool operator()(const dedekind::sets::Pred<K>& q) const {
+    return q.kind == k;
+  }
+};
+/** @brief @c a before @c b in the structural order (#884). */
+struct StructurallyBefore {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return dedekind::sets::structural_order(a, b) < 0;
+  }
+};
+/** @brief @c a and @c b the same tree (equivalent in the structural order). */
+struct StructurallySame {
+  template <typename X>
+  bool operator()(const X& a, const X& b) const {
+    return dedekind::sets::structural_order(a, b) == 0;
+  }
+};
+template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
+                                         const Lift& lift, const P& rep);
+/** @brief The operands of a chain of the connective @c k, each in normal form;
+ *  a normal form that is itself a chain of @c k contributes its operands
+ *  (associativity).  @param out the operands, appended. */
+template <typename P, typename K, typename Lift>
+void operands_of(const dedekind::sets::Pred<K>& p,
+                 typename dedekind::sets::Pred<K>::Kind k, const Lift& lift,
+                 const P& rep, std::vector<dedekind::sets::Pred<K>>& out) {
+  if (p.kind == k) {
+    operands_of<P>(*p.p, k, lift, rep, out);
+    operands_of<P>(*p.q, k, lift, rep, out);
+    return;
+  }
+  const dedekind::sets::Pred<K> c = canonical_lifted<P>(p, lift, rep);
+  if (c.kind != k) {
+    out.push_back(c);
+    return;
+  }
+  // A normal form is a left-folded chain whose operands are normal already.
+  std::vector<const dedekind::sets::Pred<K>*> stack{&c};
+  std::vector<dedekind::sets::Pred<K>> leaves;
+  while (!stack.empty()) {
+    const auto* q = stack.back();
+    stack.pop_back();
+    if (q->kind == k) {
+      stack.push_back(q->q.get());
+      stack.push_back(q->p.get());
+    } else {
+      leaves.push_back(*q);
+    }
+  }
+  out.insert(out.end(), leaves.begin(), leaves.end());
+}
 /** @brief The normal form of a predicate without conditionals: atom by atom,
  *  the bounds ⊤ / ⊥ folded into the connectives (the lattice's units and
- *  absorbers). */
+ *  absorbers), the operands of each connective sorted and kept once. */
 template <typename P, typename K, typename Lift>
 dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
                                          const Lift& lift, const P& rep) {
@@ -674,14 +731,26 @@ dedekind::sets::Pred<K> canonical_lifted(const dedekind::sets::Pred<K>& p,
       return p;
     case Pr::Kind::And:
     case Pr::Kind::Or: {
-      const Pr x = canonical_lifted<P>(*p.p, lift, rep);
-      const Pr y = canonical_lifted<P>(*p.q, lift, rep);
+      // The operands of the whole chain of one connective, each in normal
+      // form; the bounds folded (the unit dropped, the absorber absorbing),
+      // then sorted by the structural order and each kept once
+      // (commutativity, associativity, idempotence: #884).
       const bool meet = p.kind == Pr::Kind::And;
       const auto absorber = meet ? Pr::Kind::Bottom : Pr::Kind::Top;
       const auto unit = meet ? Pr::Kind::Top : Pr::Kind::Bottom;
-      if (x.kind == absorber || y.kind == unit) return x;
-      if (y.kind == absorber || x.kind == unit) return y;
-      return meet ? Pr::conj(x, y) : Pr::disj(x, y);
+      std::vector<Pr> ops;
+      operands_of<P>(p, p.kind, lift, rep, ops);
+      std::erase_if(ops, OfKind<K>{unit});
+      for (const Pr& q : ops)
+        if (q.kind == absorber) return q;
+      if (ops.empty()) return meet ? Pr::top() : Pr::bottom();
+      std::ranges::sort(ops, StructurallyBefore{});
+      ops.erase(std::ranges::unique(ops, StructurallySame{}).begin(),
+                ops.end());
+      Pr all = ops.front();
+      for (std::size_t i = 1; i < ops.size(); ++i)
+        all = meet ? Pr::conj(all, ops[i]) : Pr::disj(all, ops[i]);
+      return all;
     }
     case Pr::Kind::Exists:
     case Pr::Kind::Forall:

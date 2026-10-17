@@ -40,6 +40,7 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 
+#include <compare>  // the order of constants (#884)
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -414,6 +415,25 @@ struct PyConst {
     const int r = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_EQ);
     if (r < 0) throw nb::python_error();
     return r == 1;
+  }
+  /** @brief The structural order of constants (#884, @c canonical's sort
+   *  key): two ints by value; otherwise by the Python type's name, then by
+   *  the spelling.  Total and deterministic; finer than @c == (True and 1
+   *  differ in it). */
+  friend std::weak_ordering constant_order(const PyConst& a, const PyConst& b) {
+    if (is_py_int(a.o) && is_py_int(b.o)) {
+      const int lt = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_LT);
+      const int gt = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_GT);
+      if (lt < 0 || gt < 0) throw nb::python_error();
+      return lt   ? std::weak_ordering::less
+             : gt ? std::weak_ordering::greater
+                  : std::weak_ordering::equivalent;
+    }
+    const std::string ta = Py_TYPE(a.o.ptr())->tp_name;
+    const std::string tb = Py_TYPE(b.o.ptr())->tp_name;
+    if (const auto c = ta <=> tb; c != 0) return c;
+    return nb::cast<std::string>(nb::repr(a.o)) <=>
+           nb::cast<std::string>(nb::repr(b.o));
   }
 };
 /** @brief The constant's meeting with each carrier, found by the library's

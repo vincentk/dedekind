@@ -90,6 +90,7 @@
  */
 module;
 
+#include <compare>  // the structural order of terms (#884)
 #include <concepts>
 #include <cstddef>
 #include <cstdint>  // the search budget of a quantifier
@@ -1950,6 +1951,70 @@ struct Pred {
     return t;
   }
 };
+/** @brief The order of two constants of the grammar: their own three-way
+ *  comparison where they have one; a constant type without one names its
+ *  order beside it (found by argument-dependent lookup, as @c carrier_cast).
+ *  @param a, b the constants. */
+export template <typename K>
+  requires std::three_way_comparable<K>
+std::weak_ordering constant_order(const K& a, const K& b) {
+  return std::weak_order(a, b);
+}
+export template <typename K>
+std::weak_ordering structural_order(const Pred<K>& a, const Pred<K>& b);
+/** @brief The structural order of two terms (#884): by kind (a projection, a
+ *  constant, an operation, a conditional), then a projection by its slot, a
+ *  constant by @c constant_order, an operation by its operator and operands,
+ *  a conditional by its guard and branches.  Total; two terms are equivalent
+ *  in it exactly when they are the same tree.  @param a, b the terms. */
+export template <typename K>
+std::weak_ordering structural_order(const Term<K>& a, const Term<K>& b) {
+  if (const auto c = a.kind <=> b.kind; c != 0) return c;
+  switch (a.kind) {
+    case Term<K>::Kind::Proj:
+      return a.slot <=> b.slot;
+    case Term<K>::Kind::Const:
+      return constant_order(a.value, b.value);
+    case Term<K>::Kind::Bin:
+      if (const auto c = a.op <=> b.op; c != 0) return c;
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      return structural_order(*a.b, *b.b);
+    case Term<K>::Kind::Cond:
+      if (const auto c = structural_order(*a.p, *b.p); c != 0) return c;
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      return structural_order(*a.b, *b.b);
+  }
+  return std::weak_ordering::equivalent;
+}
+/** @brief The structural order of two predicates (#884): by kind first, so
+ *  the comparisons (decided, Δ) precede the connectives and the quantifiers
+ *  (∃ Σ, then ∀ Π); a comparison by its left term, its relation, its right
+ *  term; a connective by its operands; a quantifier by its sort, slot and
+ *  body.  The key @c canonical sorts a conjunction / disjunction by.
+ *  @param a, b the predicates. */
+export template <typename K>
+std::weak_ordering structural_order(const Pred<K>& a, const Pred<K>& b) {
+  if (const auto c = a.kind <=> b.kind; c != 0) return c;
+  switch (a.kind) {
+    case Pred<K>::Kind::Cmp:
+      if (const auto c = structural_order(*a.a, *b.a); c != 0) return c;
+      if (const auto c = a.rel <=> b.rel; c != 0) return c;
+      return structural_order(*a.b, *b.b);
+    case Pred<K>::Kind::And:
+    case Pred<K>::Kind::Or:
+      if (const auto c = structural_order(*a.p, *b.p); c != 0) return c;
+      return structural_order(*a.q, *b.q);
+    case Pred<K>::Kind::Exists:
+    case Pred<K>::Kind::Forall:
+      if (const auto c = a.sort <=> b.sort; c != 0) return c;
+      if (const auto c = a.slot <=> b.slot; c != 0) return c;
+      return structural_order(*a.p, *b.p);
+    case Pred<K>::Kind::Top:
+    case Pred<K>::Kind::Bottom:
+      break;
+  }
+  return std::weak_ordering::equivalent;
+}
 export template <typename K>
 bool has_quantifier(const Pred<K>& p);
 /** @brief Whether a term has a quantifier in a conditional's guard. */

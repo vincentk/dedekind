@@ -6,9 +6,9 @@ it otherwise; membership searches what remains, valued in Σ (∃) or Π (∀).
 Relations are the Kleisli arrows of the powerset monad: ``diag`` is η, ``>>``
 Kleisli composition, the ∃ its μ, and the monad laws are decided by
 ``canonical``.  They form a cartesian bicategory: ``copy`` and ``merge`` are
-the Frobenius spiders, ``R.converse`` the dagger, and those laws are
-witnessed at points (deciding them by ``canonical`` waits for the canonical
-order of conjuncts, #884)."""
+the Frobenius spiders, ``R.converse`` the dagger.  ``canonical`` sorts a
+conjunction's operands (#884), so the spider law is decided by it; a law
+whose middle keeps an ∃ no atom defines is witnessed at points."""
 
 import unittest
 
@@ -142,9 +142,9 @@ class TheKleisliStructure(unittest.TestCase):
 
 class TheFrobeniusStructure(unittest.TestCase):
     """Relations form a cartesian bicategory: copy and merge are the spiders,
-    R ∧ S = merge ∘ (R ⊗ S) ∘ copy, and the converse is the dagger.
-    Witnessed at points: deciding these by canonical needs the canonical order
-    of conjuncts (#884)."""
+    R ∧ S = merge ∘ (R ⊗ S) ∘ copy, and the converse is the dagger.  The
+    spider and R°° = R are decided by canonical; (R;S)° = S°;R° keeps an ∃ no
+    atom defines and is witnessed at points."""
 
     def test_the_meet_is_a_spider(self) -> None:
         spider = copy(U64) >> (succ.arrow * sq.arrow) >> merge(U64)
@@ -152,6 +152,7 @@ class TheFrobeniusStructure(unittest.TestCase):
         self.assertEqual(spider.cod, (u64,))
         for row in ((0, 1), (3, 4), (4, 2), (1, 1), (2, 3)):
             self.assertEqual(ap(spider, row), ap(succ & sq, row), row)
+        self.assertIs(spider == (succ & sq), True)  # decided by canonical (#884)
         # The middle of copy >> (R ⊗ S) is two columns: ∃∃.
         self.assertTrue(repr((copy(U64) >> (succ.arrow * sq.arrow)).classifier)
                         .startswith("∃π_4 ∈ 𝔸(u64). ∃π_5 ∈ 𝔸(u64). "))
