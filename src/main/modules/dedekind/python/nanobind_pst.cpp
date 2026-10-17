@@ -747,7 +747,7 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h);
 /** @brief A relation over a product of the four carriers (@c relational:rows):
  *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
-    dedekind::relational::Rel<PyConst, uint64_t, Fp, bool, Ternary>;
+    dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
 using dedekind::relational::predicate;
 using dedekind::relational::verdict;
 /** @brief The relation's predicate in normal form: pinned, every quantifier

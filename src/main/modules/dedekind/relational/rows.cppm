@@ -72,17 +72,17 @@ namespace dedekind::relational {
  *  reading.  @tparam K the constants' type.  @tparam Cs the carriers a
  *  column may have. */
 export template <typename K, typename... Cs>
-struct Rel {
+struct RelExpr {
   using Point = dedekind::sets::Row<Cs...>;
   using P = dedekind::sets::Pred<K>;
   using T = dedekind::sets::Term<K>;
   enum class Kind { Universe, Where, Meet, Join, Not, Tensor, Compose, Exists };
 
   Kind kind{Kind::Universe};
-  std::vector<std::size_t> schema;  // a sort per column: an index into Cs
-  P predicate = P::top();           // Where: the filter; Universe: ⊤
-  std::shared_ptr<const Rel> a, b;  // the legs
-  std::vector<unsigned> keep;       // Exists: the columns kept, in order
+  std::vector<std::size_t> schema;      // a sort per column: an index into Cs
+  P predicate = P::top();               // Where: the filter; Universe: ⊤
+  std::shared_ptr<const RelExpr> a, b;  // the legs
+  std::vector<unsigned> keep;           // Exists: the columns kept, in order
   std::uint64_t budget = std::uint64_t{1} << 16;  // verdict's search
 
   unsigned arity() const { return static_cast<unsigned>(schema.size()); }
@@ -90,35 +90,36 @@ struct Rel {
   Point rep() const { return dedekind::sets::row_of_sorts<Cs...>(schema); }
 
   /** @brief The universe over the columns @c schema. */
-  static Rel universe(std::vector<std::size_t> schema) {
-    Rel r;
+  static RelExpr universe(std::vector<std::size_t> schema) {
+    RelExpr r;
     r.schema = std::move(schema);
     return r;
   }
   /** @brief A relation given by its predicate on its columns: the former
    *  @c Universe @c | @c p. */
-  static Rel leaf(std::vector<std::size_t> schema, P p,
-                  std::uint64_t budget = std::uint64_t{1} << 16) {
-    Rel r = universe(std::move(schema));
+  static RelExpr leaf(std::vector<std::size_t> schema, P p,
+                      std::uint64_t budget = std::uint64_t{1} << 16) {
+    RelExpr r = universe(std::move(schema));
     r.budget = budget;
     return node(Kind::Where, std::move(r), std::move(p));
   }
-  static Rel node(Kind k, Rel x, P p = P::top()) {
-    Rel r;
+  static RelExpr node(Kind k, RelExpr x, P p = P::top()) {
+    RelExpr r;
     r.kind = k;
     r.schema = x.schema;
     r.budget = x.budget;
     r.predicate = std::move(p);
-    r.a = std::make_shared<const Rel>(std::move(x));
+    r.a = std::make_shared<const RelExpr>(std::move(x));
     return r;
   }
-  static Rel node(Kind k, Rel x, Rel y, std::vector<std::size_t> schema) {
-    Rel r;
+  static RelExpr node(Kind k, RelExpr x, RelExpr y,
+                      std::vector<std::size_t> schema) {
+    RelExpr r;
     r.kind = k;
     r.schema = std::move(schema);
     r.budget = x.budget;
-    r.a = std::make_shared<const Rel>(std::move(x));
-    r.b = std::make_shared<const Rel>(std::move(y));
+    r.a = std::make_shared<const RelExpr>(std::move(x));
+    r.b = std::make_shared<const RelExpr>(std::move(y));
     return r;
   }
 };
@@ -129,31 +130,34 @@ struct Rel {
  *  @c p checked in its column's sort now.  @throws not_admitted for a slot
  *  past the columns, or an operator not admitted. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> where(const Rel<K, Cs...>& r, const dedekind::sets::Pred<K>& p) {
+RelExpr<K, Cs...> where(const RelExpr<K, Cs...>& r,
+                        const dedekind::sets::Pred<K>& p) {
   if (!dedekind::sets::only_arguments(dedekind::sets::slots(p), r.arity() + 1))
     throw dedekind::sets::not_admitted(
         "R | pred: a slot past the relation's columns");
-  dedekind::sets::bind_check<typename Rel<K, Cs...>::Point>(p, r.rep());
-  return Rel<K, Cs...>::node(Rel<K, Cs...>::Kind::Where, r, p);
+  dedekind::sets::bind_check<typename RelExpr<K, Cs...>::Point>(p, r.rep());
+  return RelExpr<K, Cs...>::node(RelExpr<K, Cs...>::Kind::Where, r, p);
 }
 /** @brief @c R @c & @c S and @c R @c | @c S over one product: the lattice's
  *  nodes.  @throws not_admitted over two products. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> operator&(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
+RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& a,
+                            const RelExpr<K, Cs...>& b) {
   if (a.schema != b.schema)
     throw dedekind::sets::not_admitted("relations over different products");
-  return Rel<K, Cs...>::node(Rel<K, Cs...>::Kind::Meet, a, b, a.schema);
+  return RelExpr<K, Cs...>::node(RelExpr<K, Cs...>::Kind::Meet, a, b, a.schema);
 }
 export template <typename K, typename... Cs>
-Rel<K, Cs...> operator|(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
+RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& a,
+                            const RelExpr<K, Cs...>& b) {
   if (a.schema != b.schema)
     throw dedekind::sets::not_admitted("relations over different products");
-  return Rel<K, Cs...>::node(Rel<K, Cs...>::Kind::Join, a, b, a.schema);
+  return RelExpr<K, Cs...>::node(RelExpr<K, Cs...>::Kind::Join, a, b, a.schema);
 }
 /** @brief @c ~R: the complement. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> operator~(const Rel<K, Cs...>& a) {
-  return Rel<K, Cs...>::node(Rel<K, Cs...>::Kind::Not, a);
+RelExpr<K, Cs...> operator~(const RelExpr<K, Cs...>& a) {
+  return RelExpr<K, Cs...>::node(RelExpr<K, Cs...>::Kind::Not, a);
 }
 
 // ── The relational calculus: ⊗, Kleisli composition, ∃ ──────────────────────
@@ -161,8 +165,9 @@ Rel<K, Cs...> operator~(const Rel<K, Cs...>& a) {
 /** @brief @c R @c * @c S: the tensor, the schemas concatenated.  Two
  *  universes make the product universe. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> operator*(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
-  using R = Rel<K, Cs...>;
+RelExpr<K, Cs...> operator*(const RelExpr<K, Cs...>& a,
+                            const RelExpr<K, Cs...>& b) {
+  using R = RelExpr<K, Cs...>;
   std::vector<std::size_t> schema = a.schema;
   schema.insert(schema.end(), b.schema.begin(), b.schema.end());
   if (a.kind == R::Kind::Universe && b.kind == R::Kind::Universe)
@@ -174,8 +179,9 @@ Rel<K, Cs...> operator*(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
  *  column and @c S's first the middle.  @throws not_admitted where those two
  *  columns differ in carrier. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> operator>>(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
-  using R = Rel<K, Cs...>;
+RelExpr<K, Cs...> operator>>(const RelExpr<K, Cs...>& a,
+                             const RelExpr<K, Cs...>& b) {
+  using R = RelExpr<K, Cs...>;
   if (a.arity() == 0 || b.arity() == 0 || a.schema.back() != b.schema.front())
     throw dedekind::sets::not_admitted(
         "R >> S: R's last column and S's first are of one carrier");
@@ -186,8 +192,8 @@ Rel<K, Cs...> operator>>(const Rel<K, Cs...>& a, const Rel<K, Cs...>& b) {
 /** @brief @c η: the identity relation @f$\Delta = \{(x, x)\}@f$ on a
  *  carrier, the unit of @c >>.  @param sort the carrier's sort. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> diag(std::size_t sort) {
-  using R = Rel<K, Cs...>;
+RelExpr<K, Cs...> diag(std::size_t sort) {
+  using R = RelExpr<K, Cs...>;
   using P = typename R::P;
   using T = typename R::T;
   return where(R::universe({sort, sort}),
@@ -196,9 +202,9 @@ Rel<K, Cs...> diag(std::size_t sort) {
 /** @brief The columns @c keep (1-based) in that order, the others quantified
  *  away by ∃.  @throws not_admitted on a repeated or absent column. */
 export template <typename K, typename... Cs>
-Rel<K, Cs...> project(const Rel<K, Cs...>& r,
-                      const std::vector<unsigned>& keep) {
-  using R = Rel<K, Cs...>;
+RelExpr<K, Cs...> project(const RelExpr<K, Cs...>& r,
+                          const std::vector<unsigned>& keep) {
+  using R = RelExpr<K, Cs...>;
   std::vector<bool> seen(r.arity() + 1, false);
   std::vector<std::size_t> schema;
   for (const unsigned c : keep) {
@@ -288,8 +294,8 @@ struct Renumber {
  *  binds the next slot past the columns, so a factor's own bound slots are
  *  renumbered with its columns and never captured.  @param r the relation. */
 export template <typename K, typename... Cs>
-dedekind::sets::Pred<K> predicate(const Rel<K, Cs...>& r) {
-  using R = Rel<K, Cs...>;
+dedekind::sets::Pred<K> predicate(const RelExpr<K, Cs...>& r) {
+  using R = RelExpr<K, Cs...>;
   using P = dedekind::sets::Pred<K>;
   switch (r.kind) {
     case R::Kind::Universe:
@@ -341,8 +347,8 @@ dedekind::sets::Pred<K> predicate(const Rel<K, Cs...>& r) {
 /** @brief χ at a row of the schema, in K₃: the verdict of the predicate
  *  reading within the relation's budget. */
 export template <typename K, typename... Cs>
-dedekind::category::Ternary verdict(const Rel<K, Cs...>& r,
-                                    const typename Rel<K, Cs...>::Point& row) {
+dedekind::category::Ternary verdict(
+    const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
   return dedekind::sets::verdict(predicate(r), row, r.budget);
 }
 /** @brief The term of a relation certified a function of its first @c n − 1
@@ -351,9 +357,9 @@ dedekind::category::Ternary verdict(const Rel<K, Cs...>& r,
  *  @param r the relation.  @param p its predicate reading, pinned or with its
  *  quantifiers eliminated. */
 export template <typename K, typename... Cs>
-const dedekind::sets::Term<K>* function_term(const Rel<K, Cs...>& r,
+const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
                                              const dedekind::sets::Pred<K>& p) {
-  using Point = typename Rel<K, Cs...>::Point;
+  using Point = typename RelExpr<K, Cs...>::Point;
   if (r.arity() < 2 || dedekind::sets::has_quantifier(p)) return nullptr;
   const auto* t = dedekind::sets::graph_term(p, r.arity());
   if (t == nullptr) return nullptr;

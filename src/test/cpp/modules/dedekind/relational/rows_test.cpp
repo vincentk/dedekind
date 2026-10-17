@@ -24,12 +24,12 @@ using dedekind::relational::diag;
 using dedekind::relational::function_term;
 using dedekind::relational::predicate;
 using dedekind::relational::project;
-using dedekind::relational::Rel;
+using dedekind::relational::RelExpr;
 using dedekind::relational::verdict;
 using dedekind::relational::where;
 
 namespace {
-using Re = Rel<int, unsigned, bool>;
+using Re = RelExpr<int, unsigned, bool>;
 using R = Row<unsigned, bool>;
 using T = Term<int>;
 using Q = Pred<int>;
