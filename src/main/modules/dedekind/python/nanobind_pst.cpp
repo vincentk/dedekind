@@ -85,7 +85,7 @@ using dedekind::order::IsTotallyOrdered;
 using dedekind::order::Runs;
 using dedekind::order::steps;
 // The product former 𝔸<A×B> & rel is order's, not found by ADL on sets types.
-using dedekind::order::operator|;
+using dedekind::order::operator&;
 using dedekind::sets::Cardinality;
 using dedekind::sets::finite_cardinality;
 using dedekind::sets::𝔸;

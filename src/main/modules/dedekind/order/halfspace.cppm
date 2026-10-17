@@ -1321,7 +1321,7 @@ static_assert(
 // is imported: order's rules, reachable from the type they are about.
 export namespace dedekind::sets {
 using dedekind::order::operator==;
-using dedekind::order::operator|;
+using dedekind::order::operator&;
 }  // namespace dedekind::sets
 
 // ── Structural inference of the relation properties (Table 3) ───────────────
