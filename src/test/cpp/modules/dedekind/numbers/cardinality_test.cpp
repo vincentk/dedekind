@@ -489,7 +489,7 @@ TEST_CASE(
   // the @c & / @c | overloads (gated on @c same_as<L1, L2>) to fire.
   using L = Boole;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
-    constexpr auto positive_n = ℕ | (π > 5);  // {6, 7, 8, …} ⊂ Cardinality
+    constexpr auto positive_n = ℕ & (π > 5);  // {6, 7, 8, …} ⊂ Cardinality
     auto bounded_pred = [](const SignedCardinality& v) {
       // {…, -1, 0, …, 10} ⊂ ℤ
       return (v <= 10) ? L::True : L::False;
@@ -537,7 +537,7 @@ TEST_CASE(
     };
     const Comprehension<𝔸<SignedCardinality, L>, decltype(bounded_pred)>
         bounded_z{bounded_pred};
-    constexpr auto small_n = ℕ | (π < 5);   // {0, …, 4} ⊂ Cardinality
+    constexpr auto small_n = ℕ & (π < 5);   // {0, …, 4} ⊂ Cardinality
     const auto meet = bounded_z & small_n;  // {0, …, 4} ⊂ Cardinality
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, Cardinality>);
     CHECK(meet(finite_cardinality(0)));

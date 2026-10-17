@@ -15,16 +15,16 @@ import unittest
 from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3
 from dedekind.trsk import Relation, copy, diag, merge
 
-succ = U64 * U64 | (π_2 == π_1 + 1)
-sq = U64 * U64 | (π_2 * π_2 == π_1)
-cube = U64 * U64 | (π_1 * π_1 * π_1 == π_2)
+succ = U64 * U64 & (π_2 == π_1 + 1)
+sq = U64 * U64 & (π_2 * π_2 == π_1)
+cube = U64 * U64 & (π_1 * π_1 * π_1 == π_2)
 
 
 class Composition(unittest.TestCase):
     def test_a_composite_is_a_term_and_its_predicate_a_reading(self) -> None:
         two = succ >> succ
-        self.assertEqual(repr(two), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> "
-                                    "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1))")
+        self.assertEqual(repr(two), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> "
+                                    "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1))")
         self.assertEqual(repr(two.classifier), "∃π_3 ∈ 𝔸(u64). "
                                               "(π_3 == (π_1 + 1)) & (π_2 == (π_3 + 1))")
         self.assertIn((3, 5), two)
@@ -32,15 +32,15 @@ class Composition(unittest.TestCase):
 
     def test_a_defined_middle_is_eliminated_by_substitution(self) -> None:
         two = succ >> succ
-        self.assertIs(two == (U64 * U64 | (π_2 == π_1 + 2)), True)
+        self.assertIs(two == (U64 * U64 & (π_2 == π_1 + 2)), True)
         self.assertNotIn("∃", repr(canonical(two)))
         self.assertIs(two.is_function, True)  # the fusion law
         self.assertEqual(ap(two, 3), 5)
 
     def test_a_middle_on_a_small_carrier_is_expanded(self) -> None:
         # ∃b ∈ 𝔹. a > 5 ∧ c = (1 if b else 0): Shannon's expansion.
-        R = U64 * B | (π_1 > 5)
-        S = B * U64 | (π_2 == cond(π_1 == True, 1, 0))  # noqa: E712
+        R = U64 * B & (π_1 > 5)
+        S = B * U64 & (π_2 == cond(π_1 == True, 1, 0))  # noqa: E712
         RS = R >> S
         self.assertIn((7, 1), RS)
         self.assertIn((7, 0), RS)
@@ -70,8 +70,8 @@ class Composition(unittest.TestCase):
 class Projection(unittest.TestCase):
     def test_a_function_projects_onto_its_whole_domain(self) -> None:
         dom = succ.project(1)  # R >> π: composition with the structural projection
-        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> "
-                                    "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) | π_3 == π_1)")
+        self.assertEqual(repr(dom), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> "
+                                    "(𝔸(u64) × 𝔸(u64) × 𝔸(u64) & π_3 == π_1)")
         # The reading is literal: the composite's ∃ over the whole middle, two
         # columns; canonical eliminates both (each defined by an atom).
         self.assertEqual(repr(dom.classifier), "∃π_2 ∈ 𝔸(u64). ∃π_3 ∈ 𝔸(u64). "
@@ -89,7 +89,7 @@ class Projection(unittest.TestCase):
     def test_spans_compose_with_products_and_the_lattice(self) -> None:
         dom = succ.project(1)
         self.assertIn((5, True), dom * B)
-        same = dom & (U64 * U64 | (π_2 == π_1)).project(1)
+        same = dom & (U64 * U64 & (π_2 == π_1)).project(1)
         self.assertIn((5,), same)
 
 
@@ -99,12 +99,12 @@ class TheTreeStays(unittest.TestCase):
 
     def test_a_meet_is_a_node(self) -> None:
         m = succ & sq
-        self.assertEqual(repr(m), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) & "
-                                  "(𝔸(u64) × 𝔸(u64) | (π_2 * π_2) == π_1)")
+        self.assertEqual(repr(m), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) & "
+                                  "(𝔸(u64) × 𝔸(u64) & (π_2 * π_2) == π_1)")
         self.assertEqual(repr(m.classifier), "(π_2 == (π_1 + 1)) & ((π_2 * π_2) == π_1)")
         self.assertIn((3, 4), ~m | m)  # a join of a complement: still a term
-        self.assertEqual(repr((U64 * U64 | (π_1 > 3)) | (π_2 > 1)),
-                         "(𝔸(u64) × 𝔸(u64) | π_1 > 3) | π_2 > 1")  # two filters, unfused
+        self.assertEqual(repr((U64 * U64 & (π_1 > 3)) & (π_2 > 1)),
+                         "(𝔸(u64) × 𝔸(u64) & π_1 > 3) & π_2 > 1")  # two filters, unfused
 
 
 class TheKleisliStructure(unittest.TestCase):
@@ -115,20 +115,20 @@ class TheKleisliStructure(unittest.TestCase):
 
     def test_the_unit_laws(self) -> None:
         Δ = diag(U64)
-        self.assertEqual(repr(Δ), "𝔸(u64) × 𝔸(u64) | π_1 == π_2")
+        self.assertEqual(repr(Δ), "𝔸(u64) × 𝔸(u64) & π_1 == π_2")
         self.assertIs((Δ >> succ) == succ, True)
         self.assertIs((succ >> Δ) == succ, True)
 
     def test_associativity(self) -> None:
-        three = U64 * U64 | (π_2 == π_1 * 3)
+        three = U64 * U64 & (π_2 == π_1 * 3)
         # sq is b² = a, a relation (b a root of a): its middle no term defines,
         # so the ∃ is kept on both sides and the shapes still agree.
         self.assertIs(((succ >> sq) >> three) == (succ >> (sq >> three)), True)
         self.assertIn("∃", repr(canonical((succ >> sq) >> three).classifier))
         # The square as a function: every middle defined, the ∃s eliminated.
-        square = U64 * U64 | (π_2 == π_1 * π_1)
+        square = U64 * U64 & (π_2 == π_1 * π_1)
         self.assertIs(((succ >> square) >> three) == (succ >> (square >> three)), True)
-        self.assertIs(((succ >> square) >> three) == (U64 * U64 | (π_2 == (π_1 + 1) * (π_1 + 1) * 3)), True)
+        self.assertIs(((succ >> square) >> three) == (U64 * U64 & (π_2 == (π_1 + 1) * (π_1 + 1) * 3)), True)
 
     def test_the_identity_at_points(self) -> None:
         Δ = diag(B)
@@ -158,7 +158,7 @@ class TheFrobeniusStructure(unittest.TestCase):
 
     def test_the_dagger(self) -> None:
         pred = succ.converse
-        self.assertEqual(repr(pred), "(𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1))°")
+        self.assertEqual(repr(pred), "(𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1))°")
         self.assertIn((4, 3), pred)
         self.assertNotIn((3, 4), pred)
         self.assertIs(pred.converse == succ, True)  # R°° = R, by canonical
@@ -174,9 +174,9 @@ class Duality(unittest.TestCase):
     def test_the_complement_of_a_span_is_a_forall(self) -> None:
         dom = succ.project(1)
         co = ~dom
-        self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) | π_2 == (π_1 + 1)) >> ("))
+        self.assertTrue(repr(co).startswith("~((𝔸(u64) × 𝔸(u64) & π_2 == (π_1 + 1)) >> ("))
         self.assertEqual(repr(co.classifier), "∀π_2 ∈ 𝔸(u64). ∀π_3 ∈ 𝔸(u64). "
-                                             "(π_3 != (π_2 + 1)) | (π_1 != π_2)")
+                                             "(π_3 != (π_2 + 1)) & (π_1 != π_2)")
         self.assertEqual(repr(canonical(co)), "𝔸(u64) | ⊥")  # a ∀ defined by π_2 ≠ t
         self.assertNotIn((5,), co)
         self.assertIs(canonical(~co) == canonical(dom), True)
@@ -196,7 +196,7 @@ class Duality(unittest.TestCase):
     def test_a_forall_on_a_small_carrier_is_a_conjunction(self) -> None:
         # R = ∃b ∈ 𝔹. a > 5 ∨ b holds everywhere (b = ⊤ is a witness), so
         # ~R = ∀b ∈ 𝔹. a ≤ 5 ∧ b ≠ ⊤ is empty (b = ⊤ refutes it): Shannon's ∧.
-        R = (U64 * B | ((π_1 > 5) | (π_2 == True))).project(1)  # noqa: E712
+        R = (U64 * B & ((π_1 > 5) & (π_2 == True))).project(1)  # noqa: E712
         self.assertIn((3,), R)
         self.assertIn((7,), R)
         self.assertNotIn((3,), ~R)
@@ -211,7 +211,7 @@ class WhatTheSubstitutionMayAssume(unittest.TestCase):
 
     def test_a_definition_lands_in_the_bound_carrier(self) -> None:
         # ∃b ∈ 𝔹. b == a with a ∈ K₃: U has no Boolean witness.
-        R = (K3 * B | (π_2 == π_1)).project(1)
+        R = (K3 * B & (π_2 == π_1)).project(1)
         self.assertIn((Ternary.TRUE,), R)
         self.assertIn((Ternary.FALSE,), R)
         self.assertNotIn((Ternary.UNKNOWN,), R)
@@ -219,21 +219,21 @@ class WhatTheSubstitutionMayAssume(unittest.TestCase):
 
     def test_ap_at_terms_checks_the_columns(self) -> None:
         with self.assertRaises(TypeError):
-            B | (ap(U64 * U64, (π, π)) == True)  # a bool is no word  # noqa: E712
+            B & (ap(U64 * U64, (π, π)) == True)  # a bool is no word  # noqa: E712
         two = succ >> succ  # its middle is eliminated: a symbolic reading exists
-        S = U64 * U64 | (ap(two, (π_1, π_2)) == True)  # noqa: E712
+        S = U64 * U64 & (ap(two, (π_1, π_2)) == True)  # noqa: E712
         self.assertIn((3, 5), S)
         self.assertNotIn((3, 4), S)
         with self.assertRaises(TypeError):
             ap(sq >> cube, (π_1, π_2))  # a quantifier remains: no symbolic reading
 
     def test_a_boolean_column_admits_no_unknown(self) -> None:
-        S = U64 * K3 | (ap(U64 * B, (π_1, π_2)) == True)  # noqa: E712
+        S = U64 * K3 & (ap(U64 * B, (π_1, π_2)) == True)  # noqa: E712
         self.assertIn((7, Ternary.TRUE), S)
         self.assertNotIn((7, Ternary.UNKNOWN), S)
 
     def test_an_unused_argument_is_checked(self) -> None:
-        first = U64 * U64 * U64 | (π_3 == π_1)
+        first = U64 * U64 * U64 & (π_3 == π_1)
         with self.assertRaises(TypeError):
             ap(first, (π, True))  # True is no word, though the term drops it
 

@@ -18,7 +18,7 @@
  * | node | typed twin | built by |
  * |---|---|---|
  * | @c Universe | @c 𝔸 over @f$A \times B@f$ | @c universe |
- * | @c Comprehension | @c Comprehension, the one set former | @c R @c \| @c p
+ * | @c Comprehension | @c Comprehension, the one set former | @c R @c & @c p
  * | | @c Meet, @c Join, @c Not | @c category::Meet / @c Join / @c Not | @c & @c
  * \| @c ~ | | @c Converse | @c relational:dyadic's @c converse | @c converse |
  * | @c Tensor | the bicategory's ⊗ | @c * |
@@ -151,19 +151,24 @@ inline Object cat(const Object& x, const Object& y) {
 
 // ── The set grammar on relations ────────────────────────────────────────────
 
-/** @brief @c R @c | @c p: the former, every slot, constant and operator of
- *  @c p checked in its column's sort now.  @throws not_admitted for a slot
- *  past the columns, or an operator not admitted. */
+/** @brief @c R @c & @c p: the former, the meet with the subobject @c p
+ *  classifies (#826), every slot, constant and operator of @c p checked in its
+ *  column's sort now.  @throws not_admitted for a slot past the columns, or an
+ *  operator not admitted. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& r,
+RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& r,
                             const dedekind::sets::Pred<K>& p) {
   using R = RelExpr<K, Cs...>;
   if (!dedekind::sets::only_arguments(dedekind::sets::slots(p), r.arity() + 1))
     throw dedekind::sets::not_admitted(
-        "R | pred: a slot past the relation's columns");
+        "R & pred: a slot past the relation's columns");
   dedekind::sets::bind_check<typename R::Point>(p, r.rep());
   return R::unary(R::Kind::Comprehension, r, r.dom, r.cod, p);
 }
+/** @brief @c R @c | @c p: refused; the filter is @c R @c & @c p (#826). */
+export template <typename K, typename... Cs>
+RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>&,
+                            const dedekind::sets::Pred<K>&) = delete;
 /** @brief @c R @c & @c S and @c R @c | @c S between the same objects: the
  *  lattice's nodes.  @throws not_admitted otherwise. */
 export template <typename K, typename... Cs>
@@ -267,7 +272,7 @@ export template <typename K, typename... Cs>
 RelExpr<K, Cs...> diag(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(obj.size());
-  return (R::universe(obj, obj) | detail_rows::identified<K>(n, 0, n));
+  return (R::universe(obj, obj) & detail_rows::identified<K>(n, 0, n));
 }
 /** @brief @c Copy: @f$A \rightsquigarrow A \times A@f$, @f$x \mapsto (x,
  *  x)@f$, the comonoid of the Frobenius structure.  @param obj the object. */
@@ -275,7 +280,7 @@ export template <typename K, typename... Cs>
 RelExpr<K, Cs...> copy(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(obj.size());
-  return (R::universe(obj, detail_rows::cat(obj, obj)) |
+  return (R::universe(obj, detail_rows::cat(obj, obj)) &
           detail_rows::identified<K>(n, 0, 2 * n,
                                      detail_rows::identified<K>(n, 0, n)));
 }
@@ -308,7 +313,7 @@ RelExpr<K, Cs...> proj(const Object& obj, const std::vector<unsigned>& keep) {
                         T::proj(n + static_cast<unsigned>(j) + 1), T::proj(c));
     eqs = eqs.kind == P::Kind::Top ? eq : P::conj(eqs, eq);
   }
-  return (R::universe(obj, cod) | eqs);
+  return (R::universe(obj, cod) & eqs);
 }
 
 // ── The predicate: a reading of the term ────────────────────────────────────

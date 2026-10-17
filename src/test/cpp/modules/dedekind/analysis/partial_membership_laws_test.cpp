@@ -59,7 +59,7 @@ TEST_CASE("partial membership: fix(¬)=Unknown and undecidable classification",
   }
   // ── membership RETURNS Unknown: the intensional image of a set ──
   {
-    constexpr auto gt5 = ℕ | (π > 5);  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
+    constexpr auto gt5 = ℕ & (π > 5);  // {n ∈ ℕ | n > 5} : decidable (ℵ₀)
     static_assert(HasDecidableMembership<decltype(gt5)>);
     constexpr Successor<Cardinality> succ;  // ℕ → ℕ, an arrow as it stands
     constexpr auto img = image(succ, gt5);  // {y | ∃n. n>5 ∧ y=n+1} : Ω

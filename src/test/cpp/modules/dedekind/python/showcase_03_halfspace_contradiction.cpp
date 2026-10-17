@@ -34,8 +34,8 @@ using namespace dedekind::order;
 // Point-free halfspaces over the natural-numbers universe ℕ (= 𝔸<Cardinality>),
 // with the pivots 5 and 3 carried as values in the terms.  A halfspace IS a
 // set, so no Set{} wrapper.
-constexpr auto gt_5 = ℕ | (π > 5);
-constexpr auto lt_3 = ℕ | (π < 3);
+constexpr auto gt_5 = ℕ & (π > 5);
+constexpr auto lt_3 = ℕ & (π < 3);
 
 // Compile-time theorem: the meet folds value-first to the empty Interval on ℕ.
 constexpr auto empty_meet = gt_5 & lt_3;

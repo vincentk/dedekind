@@ -90,7 +90,7 @@ static_assert(!Γ_Φ(std::pair{3u, R2::root()}), "(3, √2) does not.");
 // ==================  Strength reduction: {x ≤ 10} pulls back =================
 // The composite ℝ-predicate reduces to the native unsigned comparison — and the
 // reduced form is a first-class value Interval<unsigned>, {u ≤ 10}.
-constexpr auto native_le_ten = 𝔸<unsigned>{} | (π <= 10u);
+constexpr auto native_le_ten = 𝔸<unsigned>{} & (π <= 10u);
 
 // Boundary: 10 ∈ {x ≤ 10}, 11 ∉ — via the ℝ chain AND the native reduction.
 static_assert((Φ(10u) <= ten) == (native_le_ten(10u) == Boole::True));
@@ -102,7 +102,7 @@ static_assert(!(Φ(11u) <= ten) && !(11u <= 10u), "11 does not.");
 // predicate `native_le_ten` pins by hand above: no native Halfspace to write,
 // decided by single-valuedness alone (Φ is an arrow).  Point-free Trsk spelling
 // for the ℝ-side bound.
-constexpr auto le_ten_ℝ = ℝ | (π <= 10);  // {x ≤ 10} on ℝ, new-style Trsk
+constexpr auto le_ten_ℝ = ℝ & (π <= 10);  // {x ≤ 10} on ℝ, new-style Trsk
 constexpr auto pulled =
     dedekind::relational::preimage(Φ, le_ten_ℝ);  // {u | Φ(u) ≤ 10}
 static_assert(
@@ -115,7 +115,7 @@ static_assert(pulled(10u) == (native_le_ten(10u) == Boole::True),
 // The INTRINSIC clip: {x ≤ −3} pulls back to ∅ over unsigned BY CONSTRUCTION —
 // the predicate ranges over unsigned, so there is no negative u to try, and no
 // negative-pivot Interval<unsigned> is ever built (the ideal: unable to try).
-constexpr auto le_neg3_ℝ = ℝ | (π <= -3);  // {x ≤ −3} on ℝ
+constexpr auto le_neg3_ℝ = ℝ & (π <= -3);  // {x ≤ −3} on ℝ
 constexpr auto clipped = dedekind::relational::preimage(Φ, le_neg3_ℝ);
 static_assert(!clipped(0u) && !clipped(5u) && !clipped(100u),
               "no unsigned u has Φ(u) ≤ −3: the domain type IS the clip.");

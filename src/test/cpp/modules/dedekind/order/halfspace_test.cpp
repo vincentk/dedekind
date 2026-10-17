@@ -35,10 +35,10 @@ constexpr bool is_pos(int x) { return x > 0; }
 
 TEST_CASE("order:halfspace — an order atom binds to the ray it names",
           "[order][halfspace]") {
-  constexpr auto gt = 𝔸<int>{} | (π > 5);
-  constexpr auto ge = 𝔸<int>{} | (π >= 5);
-  constexpr auto lt = 𝔸<int>{} | (π < 5);
-  constexpr auto le = 𝔸<int>{} | (π <= 5);
+  constexpr auto gt = 𝔸<int>{} & (π > 5);
+  constexpr auto ge = 𝔸<int>{} & (π >= 5);
+  constexpr auto lt = 𝔸<int>{} & (π < 5);
+  constexpr auto le = 𝔸<int>{} & (π <= 5);
   STATIC_CHECK(gt == up(5, strict));
   STATIC_CHECK(ge == up(5, closed));
   STATIC_CHECK(lt == down(5, strict));
@@ -82,7 +82,7 @@ TEST_CASE("order:halfspace — excluded middle B ∪ ¬B covers the plane (#365)
           "[order][halfspace][set][complement]") {
   // A set unioned with its complement covers the ambient, the dual of the
   // contradiction B ∩ ¬B = Ø; decided by membership.
-  constexpr auto B = ℕ * ℕ | π_1 > 5;
+  constexpr auto B = ℕ * ℕ & π_1 > 5;
   constexpr auto cover = B | ~B;
   CHECK(static_cast<bool>(
       cover(std::pair{finite_cardinality(6), finite_cardinality(0)})));
@@ -194,7 +194,7 @@ TEST_CASE("order:halfspace: point-free ℕ|pred is carrier-axis decidable (#848)
   // Halfspace in the universe's species, Boole: decidable membership.  Pairs
   // the module-level static_assert witness with a Codecov-visible runtime
   // membership exercise.
-  constexpr auto point_free = ℕ | (π > 5);
+  constexpr auto point_free = ℕ & (π > 5);
   STATIC_CHECK(HasDecidableMembership<decltype(point_free)>);
 
   // Runtime membership on {x ∈ ℕ | x > 5}: 6 ∈, 5 ∉ --- exercises operator()
@@ -235,15 +235,15 @@ TEST_CASE("order:halfspace — projection-arithmetic functional graphs (runtime)
   const auto A = finite_cardinality(std::size_t(a));  // 4
   const auto M = finite_cardinality(std::size_t(m));  // 20
 
-  const auto succ = ℕ * ℕ | π_1 + 1 == π_2;  // b = a + 1
+  const auto succ = ℕ * ℕ & π_1 + 1 == π_2;  // b = a + 1
   CHECK(succ(std::pair{A, finite_cardinality(5)}));
   CHECK_FALSE(succ(std::pair{A, finite_cardinality(6)}));
 
-  const auto dbl = ℕ * ℕ | π_1 * 2 == π_2;  // b = 2a
+  const auto dbl = ℕ * ℕ & π_1 * 2 == π_2;  // b = 2a
   CHECK(dbl(std::pair{finite_cardinality(3), finite_cardinality(6)}));
   CHECK_FALSE(dbl(std::pair{finite_cardinality(3), finite_cardinality(7)}));
 
-  const auto res = ℕ * ℕ | π_1 % 17 == π_2;  // b = a % 17
+  const auto res = ℕ * ℕ & π_1 % 17 == π_2;  // b = a % 17
   CHECK(res(std::pair{M, finite_cardinality(3)}));
   CHECK_FALSE(res(std::pair{M, finite_cardinality(4)}));
 }
@@ -344,18 +344,18 @@ TEST_CASE("order:halfspace — a ray at the carrier's end is a value fact",
           "[order][halfspace][boundary]") {
   // The pivot is a value: {x ≥ 0} on ℕ is all of ℕ, {x > INT_MAX} is empty,
   // and on ℤ (no floor) {z < 0} is neither.
-  STATIC_CHECK((ℕ | (π >= 0)) == ℕ);
-  STATIC_CHECK((𝔸<int>{} | (π > std::numeric_limits<int>::max())) == Ø<int>{});
-  STATIC_CHECK(!((𝔸<SignedCardinality>{} | (π < 0)) == Ø<SignedCardinality>{}));
+  STATIC_CHECK((ℕ & (π >= 0)) == ℕ);
+  STATIC_CHECK((𝔸<int>{} & (π > std::numeric_limits<int>::max())) == Ø<int>{});
+  STATIC_CHECK(!((𝔸<SignedCardinality>{} & (π < 0)) == Ø<SignedCardinality>{}));
   STATIC_CHECK(
-      !((𝔸<SignedCardinality>{} | (π >= 0)) == 𝔸<SignedCardinality>{}));
+      !((𝔸<SignedCardinality>{} & (π >= 0)) == 𝔸<SignedCardinality>{}));
 }
 
 TEST_CASE(
     "order:halfspace — the point-free former threads the universe's species "
     "into the halfspace",
     "[order][halfspace][species]") {
-  constexpr auto hs = 𝔸<int, Kleene>{} | (π > 5);  // {x > 5}, L = Kleene
+  constexpr auto hs = 𝔸<int, Kleene>{} & (π > 5);  // {x > 5}, L = Kleene
   STATIC_CHECK(std::same_as<typename decltype(hs)::logic_species, Kleene>);
   STATIC_CHECK(
       std::same_as<typename decltype(hs)::Codomain, typename Kleene::Ω>);

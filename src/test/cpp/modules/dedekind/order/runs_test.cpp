@@ -79,8 +79,8 @@ TEST_CASE(
 TEST_CASE("order:runs: the two points of 𝔹 partition it",
           "[order][runs][boolean]") {
   // Spelled in the set grammar; equality is the run lists'.
-  constexpr auto b_false = 𝔹 | (π == false);
-  constexpr auto b_true = 𝔹 | (π == true);
+  constexpr auto b_false = 𝔹 & (π == false);
+  constexpr auto b_true = 𝔹 & (π == true);
   STATIC_CHECK(Ø<bool>{} == (b_false & b_true));
   STATIC_CHECK(𝔸<bool>{} == (b_false | b_true));
 }
@@ -94,20 +94,20 @@ TEST_CASE(
   const Q gt2 = Q::cmp(Rel::Gt, T::proj(0), T::constant(2));
   const Q lt5 = Q::cmp(Rel::Lt, T::proj(0), T::constant(5));
   // {x > 2} ∩ {x < 5} = [3, 4], one normal form with the typed term.
-  const auto window = 𝔸<int>{} | Q::conj(gt2, lt5);
+  const auto window = 𝔸<int>{} & Q::conj(gt2, lt5);
   CHECK(window == span(3, 4));
   CHECK(ext(window).breakpoints().size() == 2);
-  CHECK((𝔸<int>{} | Q::disj(lt5, gt2)) == 𝔸<int>{});
+  CHECK((𝔸<int>{} & Q::disj(lt5, gt2)) == 𝔸<int>{});
   // k ⋈ π is read as its converse; != is two runs.
-  CHECK((𝔸<int>{} | Q::cmp(Rel::Lt, T::constant(5), T::proj(0))) ==
+  CHECK((𝔸<int>{} & Q::cmp(Rel::Lt, T::constant(5), T::proj(0))) ==
         I::half(5, Direction::Upward, strict));
   CHECK(std::ranges::distance(runs(steps(
-            𝔸<int>{} | Q::cmp(Rel::Ne, T::proj(0), T::constant(5))))) == 2);
+            𝔸<int>{} & Q::cmp(Rel::Ne, T::proj(0), T::constant(5))))) == 2);
   // Outside the fragment, no normal form yet: refused when read.
   CHECK_THROWS_AS(
-      ext(𝔸<int>{} |
-          Q::cmp(Rel::Eq, T::bin(Arith::Mod, T::proj(0), T::constant(2)),
-                 T::constant(0))),
+      ext(𝔸<int>{} & Q::cmp(Rel::Eq,
+                            T::bin(Arith::Mod, T::proj(0), T::constant(2)),
+                            T::constant(0))),
       not_admitted);
 }
 
@@ -117,26 +117,26 @@ TEST_CASE("order:runs: a run list on a word translates, wrapping at the end",
   using T = Term<int>;
   using Q = Pred<int>;
   constexpr W max = std::numeric_limits<W>::max();
-  const auto gt5 = ext(𝔸<W>{} | Q::cmp(Rel::Gt, T::proj(0), T::constant(5)));
+  const auto gt5 = ext(𝔸<W>{} & Q::cmp(Rel::Gt, T::proj(0), T::constant(5)));
   // x ↦ x + 1 sends {x > 5} to {x > 6} ∪ {0}: the word's end wraps to 0.
   const auto image = translate(gt5, W{1});
   CHECK(image(0));
   CHECK_FALSE(image(6));
   CHECK(image(7));
   CHECK(image ==
-        (𝔸<W>{} | Q::disj(Q::cmp(Rel::Gt, T::proj(0), T::constant(6)),
+        (𝔸<W>{} & Q::disj(Q::cmp(Rel::Gt, T::proj(0), T::constant(6)),
                           Q::cmp(Rel::Eq, T::proj(0), T::constant(0)))));
   // A bounded set shifts cleanly; translating back is the identity.
   const auto bounded =
-      ext(𝔸<W>{} | Q::conj(Q::cmp(Rel::Ge, T::proj(0), T::constant(3)),
+      ext(𝔸<W>{} & Q::conj(Q::cmp(Rel::Ge, T::proj(0), T::constant(3)),
                            Q::cmp(Rel::Lt, T::proj(0), T::constant(8))));
   CHECK(translate(bounded, W{1}) ==
-        (𝔸<W>{} | Q::conj(Q::cmp(Rel::Ge, T::proj(0), T::constant(4)),
+        (𝔸<W>{} & Q::conj(Q::cmp(Rel::Ge, T::proj(0), T::constant(4)),
                           Q::cmp(Rel::Lt, T::proj(0), T::constant(9)))));
   CHECK(translate(translate(bounded, W{1}), max) == bounded);
   // (π − 1) > 5 is the translate of π > 5 by 1: the same set as image.
   CHECK(
-      (𝔸<W>{} | Q::cmp(Rel::Gt, T::bin(Arith::Sub, T::proj(0), T::constant(1)),
+      (𝔸<W>{} & Q::cmp(Rel::Gt, T::bin(Arith::Sub, T::proj(0), T::constant(1)),
                        T::constant(5))) == image);
   CHECK(translate(ext(𝔸<W>{}), W{7}) == 𝔸<W>{});
   CHECK(translate(ext(Ø<W>{}), W{7}) == Ø<W>{});

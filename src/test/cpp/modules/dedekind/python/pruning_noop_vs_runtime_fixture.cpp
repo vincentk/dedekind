@@ -38,10 +38,10 @@ using namespace dedekind::algebra;
 // decided by the run lists (dedekind.order).
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
-constexpr auto b_false = 𝔹 | (π == false);
+constexpr auto b_false = 𝔹 & (π == false);
 
 // { b ∈ 𝔹 | b == true } = the singleton {true} ⊂ 𝔹
-constexpr auto b_true = 𝔹 | (π == true);
+constexpr auto b_true = 𝔹 & (π == true);
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
 static_assert(Ø<bool, Boole>{} == (b_false & b_true));

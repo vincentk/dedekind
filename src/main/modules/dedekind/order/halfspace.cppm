@@ -15,8 +15,8 @@
  *
  * @section halfspace__DSL_Surface
  *
- *     constexpr auto big   = ℕ | (π > 5);
- *     constexpr auto small = ℕ | (π < 3);
+ *     constexpr auto big   = ℕ & (π > 5);
+ *     constexpr auto small = ℕ & (π < 3);
  *     static_assert((big & small) == Ø<Cardinality>{});
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
@@ -251,7 +251,7 @@ export template <dedekind::order::IsTotallyOrdered T,
                  dedekind::category::IsOckhamAlgebra L, IsCardinality C, Rel R,
                  typename K>
   requires(dedekind::order::is_order_rel(R))
-constexpr dedekind::order::Interval<T, L> operator|(
+constexpr dedekind::order::Interval<T, L> operator&(
     const 𝔸<T, L, C>&, const Cmp<R, Projection<0>, Const<K>>& c) {
   return dedekind::order::Interval<T, L>::half(carrier_cast<T>(c.b.value),
                                                dedekind::order::dir_of(R),
@@ -616,12 +616,12 @@ constexpr auto intervals(const S& s) {
 
 /** @section halfspace__PointFree_Decidability
  *
- * The point-free comprehension @c ℕ @c | @c pred reduces to a bare
+ * The point-free comprehension @c ℕ @c & @c pred reduces to a bare
  * @c Halfspace, whose species is the universe's (@c Boole): decidable
  * membership, with no carrier-axis resolver in between. */
 namespace detail_pointfree_decidability {
-using PointFree = decltype(ℕ | (π > 5));
-static_assert(HasDecidableMembership<decltype(ℕ | (π > 5))>,
+using PointFree = decltype(ℕ & (π > 5));
+static_assert(HasDecidableMembership<decltype(ℕ & (π > 5))>,
               "ℕ | x>5 is a decidable (Boole) set.");
 }  // namespace detail_pointfree_decidability
 
@@ -653,7 +653,7 @@ struct ProductRestrict {
   }
 };
 
-/** @brief @c 𝔸<A×B> @c | @c relPred --- the relation as a set object on
+/** @brief @c 𝔸<A×B> @c & @c relPred --- the relation as a set object on
  *  @c A×B.  The universal product carries no factor restriction, so the
  *  relation's membership @b is the rel-predicate: the pure product universe
  *  refined to a subobject.
@@ -664,12 +664,12 @@ struct ProductRestrict {
 export template <typename T1, typename T2, typename L, typename C,
                  IsRelPredicate RP>
   requires(!dedekind::sets::contains_self_v<RP>)  // a χ closes in :recursion
-constexpr auto operator|(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
+constexpr auto operator&(const 𝔸<std::pair<T1, T2>, L, C>&, RP rp) {
   bind_check<std::pair<T1, T2>>(rp);
   return Comprehension<𝔸<std::pair<T1, T2>, L>, RP>{rp};
 }
 
-/** @brief @c product @c | @c relPred --- the relation as a set object on
+/** @brief @c product @c & @c relPred --- the relation as a set object on
  *  @c A×B, keeping the product's own membership (so a restricted product
  *  bounds the relation).
  *  @details Generic over any set object on a pair carrier (a @c Set<pair,…>, a
@@ -687,7 +687,7 @@ export template <typename S, IsRelPredicate RP>
              typename S::Domain::second_type;
            } &&
            (!dedekind::sets::contains_self_v<RP>)  // a χ closes in :recursion
-constexpr auto operator|(const S& prod, RP rp) {
+constexpr auto operator&(const S& prod, RP rp) {
   bind_check<typename S::Domain>(rp);
   using X = std::remove_cvref_t<decltype(classifier(prod))>;
   return Comprehension<𝔸<typename S::Domain, typename S::logic_species>,
@@ -733,16 +733,16 @@ struct InSlot {
 export template <IsTotallyOrdered T, IsOckhamAlgebra L, typename T2,
                  IsCardinality C2>
 constexpr auto operator*(const Interval<T, L>& a, const 𝔸<T2, L, C2>&) {
-  return 𝔸<std::pair<T, T2>, L>{} | InSlot<1, Interval<T, L>>{a};
+  return 𝔸<std::pair<T, T2>, L>{} & InSlot<1, Interval<T, L>>{a};
 }
 export template <typename T1, IsCardinality C1, IsTotallyOrdered T,
                  IsOckhamAlgebra L>
 constexpr auto operator*(const 𝔸<T1, L, C1>&, const Interval<T, L>& b) {
-  return 𝔸<std::pair<T1, T>, L>{} | InSlot<2, Interval<T, L>>{b};
+  return 𝔸<std::pair<T1, T>, L>{} & InSlot<2, Interval<T, L>>{b};
 }
 export template <IsTotallyOrdered Ta, IsTotallyOrdered Tb, IsOckhamAlgebra L>
 constexpr auto operator*(const Interval<Ta, L>& a, const Interval<Tb, L>& b) {
-  return 𝔸<std::pair<Ta, Tb>, L>{} |
+  return 𝔸<std::pair<Ta, Tb>, L>{} &
          (InSlot<1, Interval<Ta, L>>{a} && InSlot<2, Interval<Tb, L>>{b});
 }
 
@@ -838,15 +838,15 @@ constexpr auto cod(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r) {
 /** @section halfspace__Formal_Verification (relational surface) */
 
 // less-than on 𝔹×𝔹, a strongly-typed point-free relation, membership-checked.
-static_assert((𝔹 * 𝔹 | π_1 < π_2)(std::pair{false, true}),
+static_assert((𝔹 * 𝔹 & π_1 < π_2)(std::pair{false, true}),
               "(false, true) ∈ {(x,y) | x < y}.");
-static_assert(!(𝔹 * 𝔹 | π_1 < π_2)(std::pair{true, true}),
+static_assert(!(𝔹 * 𝔹 & π_1 < π_2)(std::pair{true, true}),
               "(true, true) ∉ {(x,y) | x < y}.");
 
 // a meet of two projection predicates: {(x,y) | x ≤ y ∧ y == true}.
-static_assert((𝔹 * 𝔹 | (π_1 <= π_2 && π_2 == true))(std::pair{false, true}),
+static_assert((𝔹 * 𝔹 & (π_1 <= π_2 && π_2 == true))(std::pair{false, true}),
               "(false, true) satisfies x ≤ y ∧ y = true.");
-static_assert(!(𝔹 * 𝔹 | (π_1 <= π_2 && π_2 == true))(std::pair{false, false}),
+static_assert(!(𝔹 * 𝔹 & (π_1 <= π_2 && π_2 == true))(std::pair{false, false}),
               "(false, false) fails y = true.");
 
 // NESTED meet: BOTH operands of the outer && are themselves RelAnd (relational-
@@ -859,7 +859,7 @@ static_assert(
     IsRelPredicate<decltype((π_1 <= π_2 && π_2 == true) &&
                             (π_1 <= π_2 && π_1 < π_2))>,
     "nested (RelAnd && RelAnd) stays IsRelPredicate via ADL on the atom args.");
-static_assert((𝔹 * 𝔹 | ((π_1 <= π_2 && π_2 == true) &&
+static_assert((𝔹 * 𝔹 & ((π_1 <= π_2 && π_2 == true) &&
                         (π_1 <= π_2 && π_1 < π_2)))(std::pair{false, true}),
               "(false, true) satisfies (x ≤ y ∧ y = true) ∧ (x ≤ y ∧ x < y).");
 
@@ -870,47 +870,47 @@ static_assert((𝔹 * 𝔹 | ((π_1 <= π_2 && π_2 == true) &&
 // dedekind::sets::Set arguments (order imports dedekind.relational).
 
 // converse swaps the coordinates; is_relation certifies the product Domain.
-static_assert(converse(𝔹* 𝔹 | π_1 < π_2)(std::pair{true, false}),
+static_assert(converse(𝔹 * 𝔹 & π_1 < π_2)(std::pair{true, false}),
               "converse of < contains (true, false): false < true.");
-static_assert(is_relation(𝔹* 𝔹 | π_1 < π_2),
-              "𝔹*𝔹 | π_1 < π_2 is a relation (IsSet on a product).");
+static_assert(is_relation(𝔹 * 𝔹 & π_1 < π_2),
+              "𝔹*𝔹 & π_1 < π_2 is a relation (IsSet on a product).");
 
 // The arrow lift 𝑦 == ap(f, 𝑥) is the graph of f; for the identity, Δ.
-static_assert((𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+static_assert((𝔹 * 𝔹 & (𝑦 == ap(dedekind::category::Identity<bool>{},
                                 𝑥)))(std::pair{true, true}) &&
-                  !(𝔹 * 𝔹 | (𝑦 == ap(dedekind::category::Identity<bool>{},
+                  !(𝔹 * 𝔹 & (𝑦 == ap(dedekind::category::Identity<bool>{},
                                      𝑥)))(std::pair{true, false}),
               "𝑦 == ap(id, 𝑥) is the diagonal.");
 
-// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ | π_1 + 1 == π_2.
-static_assert((ℕ * ℕ | π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
+// successor graph: {(a,b) | b = a + 1} = ℕ * ℕ & π_1 + 1 == π_2.
+static_assert((ℕ * ℕ & π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
                                                  finite_cardinality(5)}),
               "4 + 1 == 5: (4,5) ∈ the successor graph.");
-static_assert(!(ℕ * ℕ | π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
+static_assert(!(ℕ * ℕ & π_1 + 1 == π_2)(std::pair{finite_cardinality(4),
                                                   finite_cardinality(6)}),
               "4 + 1 != 6: (4,6) ∉ the successor graph.");
 // A RESTRICTED domain: the successor graph over {x ≤ 5} × ℕ.  operator* keeps
 // the ≤5 bound by lifting it to the π_1 cylinder, so x = 7 is excluded even
 // though 8 = 7+1: the factor predicate is not dropped.
-static_assert(((ℕ | (π <= 5)) * ℕ | π_1 + 1 == π_2)(std::pair{
+static_assert(((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(std::pair{
                   finite_cardinality(4), finite_cardinality(5)}),
               "(4,5): 4 ≤ 5 ∧ 5 = 4+1, in the restricted successor graph.");
-static_assert(!((ℕ | (π <= 5)) * ℕ | π_1 + 1 == π_2)(std::pair{
+static_assert(!((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(std::pair{
                   finite_cardinality(7), finite_cardinality(8)}),
               "(7,8): 7 ≰ 5, excluded though 8 = 7+1.");
-// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ | π_1 * 2 == π_2.
-static_assert((ℕ * ℕ | π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
+// doubling graph: {(a,b) | b = 2a} = ℕ * ℕ & π_1 * 2 == π_2.
+static_assert((ℕ * ℕ & π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
                                                  finite_cardinality(6)}),
               "3 * 2 == 6: (3,6) ∈ the doubling graph.");
-static_assert(!(ℕ * ℕ | π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
+static_assert(!(ℕ * ℕ & π_1 * 2 == π_2)(std::pair{finite_cardinality(3),
                                                   finite_cardinality(7)}),
               "3 * 2 != 7: (3,7) ∉ the doubling graph.");
-// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ | π_1 * 3 + 1 == π_2
+// affine graph: {(a,b) | b = 3a+1} = ℕ * ℕ & π_1 * 3 + 1 == π_2
 // (the Collatz odd branch, :collatz).
-static_assert((ℕ * ℕ | π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
+static_assert((ℕ * ℕ & π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
                                                      finite_cardinality(22)}),
               "3·7+1 == 22: (7,22) ∈ the affine graph.");
-static_assert(!(ℕ * ℕ | π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
+static_assert(!(ℕ * ℕ & π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7),
                                                       finite_cardinality(21)}),
               "3·7+1 != 21: (7,21) ∉ the affine graph.");
 
@@ -921,54 +921,54 @@ static_assert(!(ℕ * ℕ | π_1 * 3 + 1 == π_2)(std::pair{finite_cardinality(7
 // declared ℕ --- its EFFECTIVE second projection is only the residue class
 // {0,…,16}, but reading that off is the ∃-elimination behind the Rice wall
 // (§3.3), so cod does not claim surjectivity here.
-static_assert(dom(ℕ* ℕ | π_1 % 17 == π_2)(finite_cardinality(100)),
+static_assert(dom(ℕ * ℕ & π_1 % 17 == π_2)(finite_cardinality(100)),
               "π_A of the residue graph = declared ℕ (entire), contains 100.");
-static_assert(cod(ℕ* ℕ | π_1 % 17 == π_2)(finite_cardinality(3)),
+static_assert(cod(ℕ * ℕ & π_1 % 17 == π_2)(finite_cardinality(3)),
               "π_B = declared codomain ℕ, contains 3 (NOT the effective "
               "{0,…,16} residue image, which would need the ∃-projection).");
 
 // With a RESTRICTED factor, dom recovers the halfspace off the π_1 cylinder:
 // π_A((ℕ|≤5)*ℕ) = {a ≤ 5}, while cod stays the unrestricted ℕ.
-static_assert(dom((ℕ | (π <= 5)) * ℕ)(finite_cardinality(4)),
+static_assert(dom((ℕ & (π <= 5)) * ℕ)(finite_cardinality(4)),
               "π_A recovers {a ≤ 5}: 4 ≤ 5.");
-static_assert(!dom((ℕ | (π <= 5)) * ℕ)(finite_cardinality(7)),
+static_assert(!dom((ℕ & (π <= 5)) * ℕ)(finite_cardinality(7)),
               "π_A recovers {a ≤ 5}: 7 ≰ 5.");
-static_assert(cod((ℕ | (π <= 5)) * ℕ)(finite_cardinality(99)),
+static_assert(cod((ℕ & (π <= 5)) * ℕ)(finite_cardinality(99)),
               "π_B is unrestricted ℕ: contains 99.");
 // The restriction survives a graph refinement (dom digs through
 // ProductRestrict).
-static_assert(dom((ℕ | (π <= 5)) * ℕ | π_1 + 1 == π_2)(finite_cardinality(4)),
+static_assert(dom((ℕ & (π <= 5)) * ℕ & π_1 + 1 == π_2)(finite_cardinality(4)),
               "π_A of the restricted successor still recovers {a ≤ 5}.");
 
 // TWO bounds on the SAME axis: dom recovers the TIGHTER halfspace (their meet),
 // not either bound alone.  Guards axis_factor's both-branch: the factors are
 // recovered Halfspace SETS, so their meet is the set-level & collapse; the
 // predicate-level && would build a categorical Morphism and lose dom/cod.
-static_assert(dom(ℕ* ℕ | (π_1 <= 5 && π_1 <= 3))(finite_cardinality(3)),
+static_assert(dom(ℕ * ℕ & (π_1 <= 5 && π_1 <= 3))(finite_cardinality(3)),
               "π_A of {a ≤ 5 ∧ a ≤ 3} recovers the tighter {a ≤ 3}: 3 ≤ 3.");
-static_assert(!dom(ℕ * ℕ | (π_1 <= 5 && π_1 <= 3))(finite_cardinality(4)),
+static_assert(!dom(ℕ * ℕ & (π_1 <= 5 && π_1 <= 3))(finite_cardinality(4)),
               "π_A recovers the TIGHTER bound: 4 ≤ 5 but 4 ≰ 3, so excluded.");
 // Three same-axis bounds reduce to one factor whatever the association: the
 // meet lattice is closed over its own outputs (#872).
-static_assert(dom(ℕ* ℕ | ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
+static_assert(dom(ℕ * ℕ & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
                   Interval<Cardinality>::bounded(finite_cardinality(2),
                                                  Strictness::NonStrict,
                                                  finite_cardinality(5),
                                                  Strictness::NonStrict),
               "π_A of {1 ≤ a ≤ 5 ∧ a ≥ 2} is the interval [2, 5].");
 static_assert(
-    dom(ℕ* ℕ | ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
-        dom(ℕ * ℕ | (π_1 >= 1 && (π_1 <= 5 && π_1 >= 2))),
+    dom(ℕ * ℕ & ((π_1 >= 1 && π_1 <= 5) && π_1 >= 2)) ==
+        dom(ℕ * ℕ & (π_1 >= 1 && (π_1 <= 5 && π_1 >= 2))),
     "the factor is independent of the association of the three bounds.");
 
 // relational application: apply(R, a) is the fibre {b | (a,b) ∈ R}.  For the
 // residue graph (a function) it is the singleton {a % 17}: apply(R,20) = {3}.
 static_assert(
-    dedekind::relational::apply(ℕ* ℕ | π_1 % 17 == π_2,
+    dedekind::relational::apply(ℕ * ℕ & π_1 % 17 == π_2,
                                 finite_cardinality(20))(finite_cardinality(3)),
     "apply(R,20) = {3}: (20,3) ∈ R since 20 % 17 == 3.");
 static_assert(
-    !dedekind::relational::apply(ℕ * ℕ | π_1 % 17 == π_2,
+    !dedekind::relational::apply(ℕ * ℕ & π_1 % 17 == π_2,
                                  finite_cardinality(20))(finite_cardinality(4)),
     "apply(R,20) does not contain 4.");
 
@@ -1029,7 +1029,7 @@ constexpr auto lowerbounds(const 𝔸<bool, L, C>&) {
 }
 
 // #895/#932: a disjoint bare halfspace-meet collapses to the empty set.
-static_assert(((ℕ | (π > 5)) & (ℕ | (π < 3))) == Ø<Cardinality>{},
+static_assert(((ℕ & (π > 5)) & (ℕ & (π < 3))) == Ø<Cardinality>{},
               "bare {x>5} ∩ {x<3} collapses to the empty set (#895 / #932).");
 
 /** @brief @c max(S) --- the generic extremum: @c S met (@c ∩) with its own
@@ -1063,8 +1063,8 @@ inline constexpr auto ℤ =
 // Exhibit (intensional, infinite case) over ℕ = @c 𝔸<Cardinality> and ℤ =
 // @c 𝔸<SignedCardinality>, both registered chains (ℤ under the posture that
 // its sentinels ±ℵ_0 / NaZ are the memory boundary, not points of ℤ).
-inline constexpr auto le5 = ℕ | (π <= 5);  // {x ∈ ℕ | x ≤ 5}
-inline constexpr auto ge5 = ℕ | (π >= 5);  // {x ∈ ℕ | x ≥ 5}
+inline constexpr auto le5 = ℕ & (π <= 5);  // {x ∈ ℕ | x ≤ 5}
+inline constexpr auto ge5 = ℕ & (π >= 5);  // {x ∈ ℕ | x ≥ 5}
 static_assert(max(le5)(5), "5 = max {x ≤ 5} (read off the pivot).");
 static_assert(!max(le5)(3), "3 is not the greatest element of {x ≤ 5}.");
 static_assert(min(ge5)(5), "5 = min {x ≥ 5}.");
@@ -1072,15 +1072,15 @@ static_assert(!min(ge5)(7), "7 is not the least element of {x ≥ 5}.");
 // DISCRETE strict: {x<5} on ℕ has attained max 4 (the predecessor), NOT ∅; the
 // bound is reached through the NNO's step on the Cardinality proxy, exactly as
 // on a machine integer.
-static_assert(max(ℕ | (π < 5))(4), "4 = max {x < 5} on ℕ.");
-static_assert(!max(ℕ | (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
-static_assert(min(ℕ | (π > 5))(6), "6 = min {x > 5} on ℕ.");
+static_assert(max(ℕ&(π < 5))(4), "4 = max {x < 5} on ℕ.");
+static_assert(!max(ℕ & (π < 5))(5), "5 ∉ {x < 5}, so not its max.");
+static_assert(min(ℕ&(π > 5))(6), "6 = min {x > 5} on ℕ.");
 // ℤ: the same extrema, and the negative side ℕ cannot spell.
-static_assert(max(ℤ | (π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
-static_assert(!max(ℤ | (π <= 5))(3), "3 is not the greatest element.");
-static_assert(min(ℤ | (π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
-static_assert(max(ℤ | (π < 5))(4), "4 = max {x < 5} on ℤ (the step).");
-static_assert(min(ℤ | (π > -5))(-4), "−4 = min {x > −5} on ℤ.");
+static_assert(max(ℤ&(π <= 5))(5), "5 = max {x ≤ 5} on ℤ.");
+static_assert(!max(ℤ & (π <= 5))(3), "3 is not the greatest element.");
+static_assert(min(ℤ&(π >= -5))(-5), "−5 = min {x ≥ −5} on ℤ.");
+static_assert(max(ℤ&(π < 5))(4), "4 = max {x < 5} on ℤ (the step).");
+static_assert(min(ℤ&(π > -5))(-4), "−4 = min {x > −5} on ℤ.");
 
 /** @brief The translation graph @c π_1 @c + @c k @c == @c π_2 and the scaling
  *  graph @c π_1 @c * @c k @c == @c π_2, as the atoms the grammar builds for
@@ -1119,7 +1119,7 @@ constexpr auto operator>>(
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
   const T shift = carrier_cast<T>(a.predicate.a.b.value) +
                   carrier_cast<T>(b.predicate.a.b.value);
-  return 𝔸<std::pair<T, T>, L>{} | (π_1 + shift == π_2);
+  return 𝔸<std::pair<T, T>, L>{} & (π_1 + shift == π_2);
 }
 
 /** @section halfspace__Cover_And_Star  The successor is the cover; the order
@@ -1177,10 +1177,10 @@ static_assert(detail_cover_witness::order_is_cover_star(8),
 // to ∅ via the complement-pair meet.  So the specialisation is checked against
 // the general law, not merely trusted (the Wadler free theorem, mechanised).
 static_assert(max(le5)(5) ==
-                  (le5(5) && (le5 & (ℕ | (π > 5))) == Ø<Cardinality>{}),
+                  (le5(5) && (le5 & (ℕ & (π > 5))) == Ø<Cardinality>{}),
               "specific max(le5) models (∈) ∩ (R/∋) at the pivot.");
 static_assert(min(ge5)(5) ==
-                  (ge5(5) && (ge5 & (ℕ | (π < 5))) == Ø<Cardinality>{}),
+                  (ge5(5) && (ge5 & (ℕ & (π < 5))) == Ø<Cardinality>{}),
               "specific min(ge5) models (∈) ∩ (R/∋) at the pivot.");
 
 // Exhibit (finite case): max 𝔹 = {true}, min 𝔹 = {false} --- the SAME generic
@@ -1199,7 +1199,7 @@ static_assert(max(𝔹)(false) == (𝔹(false) && forall(𝔹, π <= false)),
               "specific max(𝔹) models (∈) ∩ (R/∋), structurally.");
 
 // (The image of a halfspace under a translation --- the pivot shifted by K ---
-// is now the affine pushforward on the GRAPH surface: image(graph | π_1 ⋈ p) =
+// is now the affine pushforward on the GRAPH surface: image(graph & π_1 ⋈ p) =
 // {y ⋈ p+K}, below.  The earlier Translation<T,K>-arrow version is superseded.)
 
 // ── Relative product: composition of relations (Tarski) ────────────────────
@@ -1210,10 +1210,10 @@ static_assert(max(𝔹)(false) == (𝔹(false) && forall(𝔹, π <= false)),
 // dedekind::sets::ComposePred; the >> witnesses reach the operator by ADL.
 
 // ≤ ∘ ≤ = ≤ (transitivity), decidable because the intermediate is Boolean.
-static_assert(static_cast<bool>(((𝔹 * 𝔹 | π_1 <= π_2) >>
-                                 (𝔹 * 𝔹 | π_1 <= π_2))(std::pair{false, true})),
+static_assert(static_cast<bool>(((𝔹 * 𝔹 & π_1 <= π_2) >>
+                                 (𝔹 * 𝔹 & π_1 <= π_2))(std::pair{false, true})),
               "≤ ∘ ≤ contains (false, true).");
-static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π_1 <= π_2) >> (𝔹 * 𝔹 | π_1 <= π_2))(
+static_assert(!static_cast<bool>(((𝔹 * 𝔹 & π_1 <= π_2) >> (𝔹 * 𝔹 & π_1 <= π_2))(
                   std::pair{true, false})),
               "≤ ∘ ≤ excludes (true, false): transitivity recovers ≤.");
 
@@ -1226,37 +1226,37 @@ static_assert(!static_cast<bool>(((𝔹 * 𝔹 | π_1 <= π_2) >> (𝔹 * 𝔹 |
 // reach them by ADL on their dedekind::sets::Set arguments.
 
 // reflexive(<) = < ∪ Δ = ≤ on 𝔹; symmetric(<) = < ∪ <° = ≠ on 𝔹.
-static_assert(static_cast<bool>(reflexive(𝔹* 𝔹 |
+static_assert(static_cast<bool>(reflexive(𝔹 * 𝔹 &
                                           π_1 < π_2)(std::pair{false, false})),
               "reflexive(<) adds the diagonal: (false,false) ∈ < ∪ Δ = ≤.");
-static_assert(!static_cast<bool>(reflexive(𝔹 * 𝔹 |
+static_assert(!static_cast<bool>(reflexive(𝔹 * 𝔹 &
                                            π_1 < π_2)(std::pair{true, false})),
               "reflexive(<) is still ≤: (true,false) ∉ ≤.");
-static_assert(static_cast<bool>(symmetric(𝔹* 𝔹 |
+static_assert(static_cast<bool>(symmetric(𝔹 * 𝔹 &
                                           π_1 < π_2)(std::pair{true, false})),
               "symmetric(<) adds the converse: (true,false) ∈ < ∪ <° = ≠.");
-static_assert(!static_cast<bool>(symmetric(𝔹 * 𝔹 |
+static_assert(!static_cast<bool>(symmetric(𝔹 * 𝔹 &
                                            π_1 < π_2)(std::pair{false, false})),
               "symmetric(<) excludes the diagonal: (false,false) ∉ ≠.");
 
 // The converse is the DAGGER of Rel: an INVOLUTION (R°° = R) that REVERSES
 // composition ((R;S)° = S°;R°) --- the two laws that make it a dagger functor,
 // and the reason a bijective relation's converse IS its inverse (Component A).
-static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π_1 < π_2))(std::pair{
+static_assert(static_cast<bool>(converse(converse(𝔹 * 𝔹 & π_1 < π_2))(std::pair{
                   false, true})) ==
-                  static_cast<bool>((𝔹 * 𝔹 |
+                  static_cast<bool>((𝔹 * 𝔹 &
                                      π_1 < π_2)(std::pair{false, true})),
               "R°° = R at (false,true): the converse is an involution.");
-static_assert(static_cast<bool>(converse(converse(𝔹* 𝔹 | π_1 < π_2))(std::pair{
+static_assert(static_cast<bool>(converse(converse(𝔹 * 𝔹 & π_1 < π_2))(std::pair{
                   true, false})) ==
-                  static_cast<bool>((𝔹 * 𝔹 |
+                  static_cast<bool>((𝔹 * 𝔹 &
                                      π_1 < π_2)(std::pair{true, false})),
               "R°° = R at (true,false): agrees on the excluded pair too.");
 static_assert(
-    static_cast<bool>(converse((𝔹 * 𝔹 | π_1 < π_2) >>
-                               (𝔹 * 𝔹 | π_1 <= π_2))(std::pair{true, false})) ==
-        static_cast<bool>((converse(𝔹 * 𝔹 | π_1 <= π_2) >>
-                           converse(𝔹 * 𝔹 | π_1 < π_2))(std::pair{true,
+    static_cast<bool>(converse((𝔹 * 𝔹 & π_1 < π_2) >>
+                               (𝔹 * 𝔹 & π_1 <= π_2))(std::pair{true, false})) ==
+        static_cast<bool>((converse(𝔹 * 𝔹 & π_1 <= π_2) >>
+                           converse(𝔹 * 𝔹 & π_1 < π_2))(std::pair{true,
                                                                   false})),
     "(R;S)° = S°;R° at (true,false): the converse reverses composition "
     "(dagger contravariance).");
@@ -1266,27 +1266,27 @@ static_assert(
 // union (R;(S∪T) = R;S ∪ R;T); and --- the Schröder property-gated rewrite ---
 // a FUNCTIONAL relation's composition distributes over MEET too (R;(S∩T) =
 // R;S ∩ R;T), which fails for a non-functional relation.
-static_assert(static_cast<bool>(((𝔹 * 𝔹 | π_1 < π_2) >>
+static_assert(static_cast<bool>(((𝔹 * 𝔹 & π_1 < π_2) >>
                                  dedekind::relational::diag<bool>())(std::pair{
                   false, true})) ==
-                  static_cast<bool>((𝔹 * 𝔹 |
+                  static_cast<bool>((𝔹 * 𝔹 &
                                      π_1 < π_2)(std::pair{false, true})),
               "R;Δ = R: the diagonal is the composition unit (the 1).");
 static_assert(
-    static_cast<bool>(((𝔹 * 𝔹 | π_1 <= π_2) >>
-                       ((𝔹 * 𝔹 | π_1 < π_2) | (𝔹 * 𝔹 | π_1 == π_2)))(std::pair{
+    static_cast<bool>(((𝔹 * 𝔹 & π_1 <= π_2) >>
+                       ((𝔹 * 𝔹 & π_1 < π_2) | (𝔹 * 𝔹 & π_1 == π_2)))(std::pair{
         false, true})) ==
-        static_cast<bool>((((𝔹 * 𝔹 | π_1 <= π_2) >> (𝔹 * 𝔹 | π_1 < π_2)) |
-                           ((𝔹 * 𝔹 | π_1 <= π_2) >>
-                            (𝔹 * 𝔹 | π_1 == π_2)))(std::pair{false, true})),
+        static_cast<bool>((((𝔹 * 𝔹 & π_1 <= π_2) >> (𝔹 * 𝔹 & π_1 < π_2)) |
+                           ((𝔹 * 𝔹 & π_1 <= π_2) >>
+                            (𝔹 * 𝔹 & π_1 == π_2)))(std::pair{false, true})),
     "R;(S∪T) = R;S ∪ R;T: composition distributes over union.");
 static_assert(
-    static_cast<bool>(((𝔹 * 𝔹 | π_1 != π_2) >>
-                       ((𝔹 * 𝔹 | π_1 <= π_2) & (𝔹 * 𝔹 | π_1 == π_2)))(std::pair{
+    static_cast<bool>(((𝔹 * 𝔹 & π_1 != π_2) >>
+                       ((𝔹 * 𝔹 & π_1 <= π_2) & (𝔹 * 𝔹 & π_1 == π_2)))(std::pair{
         true, false})) ==
-        static_cast<bool>((((𝔹 * 𝔹 | π_1 != π_2) >> (𝔹 * 𝔹 | π_1 <= π_2)) &
-                           ((𝔹 * 𝔹 | π_1 != π_2) >>
-                            (𝔹 * 𝔹 | π_1 == π_2)))(std::pair{true, false})),
+        static_cast<bool>((((𝔹 * 𝔹 & π_1 != π_2) >> (𝔹 * 𝔹 & π_1 <= π_2)) &
+                           ((𝔹 * 𝔹 & π_1 != π_2) >>
+                            (𝔹 * 𝔹 & π_1 == π_2)))(std::pair{true, false})),
     "functional R ⟹ R;(S∩T) = R;S ∩ R;T: the property-gated Schröder rewrite.");
 
 // ── FIXME(#786): the reflexive-TRANSITIVE closure (the Kleene star R*) is the
@@ -1365,9 +1365,9 @@ namespace dedekind::order {
 // -- but NOT entire (the restriction drops the domain), so it is not a total
 // function, matching the paper's partial-function reading.
 static_assert(
-    dedekind::relational::IsFunctional<decltype((ℤ * ℤ | π_1 + 3 == π_2) |
+    dedekind::relational::IsFunctional<decltype((ℤ * ℤ & π_1 + 3 == π_2) &
                                                 π_1 <= 5)> &&
-        !dedekind::relational::IsEntire<decltype((ℤ * ℤ | π_1 + 3 == π_2) |
+        !dedekind::relational::IsEntire<decltype((ℤ * ℤ & π_1 + 3 == π_2) &
                                                  π_1 <= 5)>,
     "a restricted translation graph is a functional-but-not-entire partial "
     "function, inferred through ProductRestrict.");

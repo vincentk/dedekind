@@ -84,7 +84,7 @@ TEST_CASE("order:terms: a constant meets the carrier beside it",
 
 TEST_CASE("order:terms: a constant is checked when the term is bound",
           "[sets][terms][constants]") {
-  CHECK_THROWS_AS(𝔸<Cardinality>{} | (π + -1 == 3), std::domain_error);
+  CHECK_THROWS_AS(𝔸<Cardinality>{} & (π + -1 == 3), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1.5), std::domain_error);
   CHECK_THROWS_AS(carrier_cast<int>(1e12), std::domain_error);
   CHECK(carrier_cast<int>(2.0) == 2);
@@ -139,10 +139,10 @@ TEST_CASE("order:terms: a term built at run time is read by the same algebras",
   const Q even = Q::cmp(Rel::Eq, T::bin(Arith::Mod, T::proj(0), T::constant(2)),
                         T::constant(0));
   const Q gt2 = Q::cmp(Rel::Gt, T::proj(0), T::constant(2));
-  const auto evens = 𝔸<unsigned>{} | even;
+  const auto evens = 𝔸<unsigned>{} & even;
   CHECK(evens(4u));
   CHECK_FALSE(evens(5u));
-  CHECK((𝔸<unsigned>{} | even.negated())(5u));
+  CHECK((𝔸<unsigned>{} & even.negated())(5u));
   CHECK(Q::conj(even, gt2)(4u));
   CHECK_FALSE(Q::conj(even, gt2)(2u));
   CHECK(Q::disj(even, gt2)(3u));
@@ -228,13 +228,13 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   using dedekind::category::Ternary;
   using NK = std::pair<unsigned, Ternary>;
   // Each slot compared in its own order: the word's, and K₃'s.
-  constexpr auto both = 𝕎 * 𝕂3 | ((π_1 < 5u) && (π_2 >= Ternary::Unknown));
+  constexpr auto both = 𝕎 * 𝕂3 & ((π_1 < 5u) && (π_2 >= Ternary::Unknown));
   STATIC_CHECK(both(NK{3u, Ternary::True}));
   STATIC_CHECK(both(NK{3u, Ternary::Unknown}));
   STATIC_CHECK(!both(NK{3u, Ternary::False}));
   STATIC_CHECK(!both(NK{7u, Ternary::True}));
   // An arrow between the carriers, applied: the graph of a function 𝕎 → K₃.
-  constexpr auto graph = 𝕎 * 𝕂3 | (π_2 == ap(AboveFive{}, π_1));
+  constexpr auto graph = 𝕎 * 𝕂3 & (π_2 == ap(AboveFive{}, π_1));
   STATIC_CHECK(graph(NK{7u, Ternary::True}));
   STATIC_CHECK(graph(NK{2u, Ternary::Unknown}));
   STATIC_CHECK(!graph(NK{7u, Ternary::Unknown}));
@@ -244,8 +244,8 @@ TEST_CASE("order:terms: a term over two carriers, each slot its own sort",
   STATIC_CHECK(dedekind::relational::IsEntire<Graph>);  // f total, into K₃
   // A set is an arrow into Ω: applied to a term, its χ is a term of sort 𝔹,
   // and the relation it is the second coordinate of is χ's graph.
-  constexpr auto above_five = 𝕎 | (π > 5u);
-  constexpr auto chi = 𝕎 * 𝔸<bool>{} | (π_2 == ap(above_five, π_1));
+  constexpr auto above_five = 𝕎 & (π > 5u);
+  constexpr auto chi = 𝕎 * 𝔸<bool>{} & (π_2 == ap(above_five, π_1));
   using NB = std::pair<unsigned, bool>;
   STATIC_CHECK(chi(NB{7u, true}));
   STATIC_CHECK(chi(NB{2u, false}));
@@ -261,7 +261,7 @@ TEST_CASE("order:terms: arrow_of is the converse of graph",
   using dedekind::relational::graph;
   using WW = std::pair<unsigned, unsigned>;
   // A relation certified a function, read back as its arrow.
-  constexpr auto R = 𝕎 * 𝕎 | (π_2 == π_1 * 3u + 1u);
+  constexpr auto R = 𝕎 * 𝕎 & (π_2 == π_1 * 3u + 1u);
   constexpr auto f = arrow_of(R);
   STATIC_CHECK(dedekind::category::IsArrow<decltype(f)>);
   STATIC_CHECK(f(4u) == 13u);

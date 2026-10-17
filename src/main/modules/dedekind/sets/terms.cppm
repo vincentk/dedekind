@@ -123,14 +123,14 @@ using namespace dedekind::category;
  *        identity), @c π_1, @c π_2, @c π_3, and the family @c π_<k>.
  *
  * @details @c π leaves the carrier open: @c π @c > @c 5 is a cut datum, @c π
- * @c == @c v a point, and the former @c carrier @c | @c ... binds it, the
+ * @c == @c v a point, and the former @c carrier @c & @c ... binds it, the
  * constant meeting the carrier exactly.  On a product the variable of slot
  * @c k is the projection @c π_k: called on a point it reads the coordinate, and
  * a comparison of terms over it builds a strongly-typed predicate on the pair
  * (no lambda); @c && conjoins them (@c || joins), distinct from the set-level
  * @c & / @c | on whole relations; and @c product @c | @c predicate restricts
  * the product to the relation.  @c && binds looser than @c |, so the
- * comprehension parenthesises the meet: @c ℕ*ℕ @c | @c (π_1 @c < @c π_2 @c &&
+ * comprehension parenthesises the meet: @c ℕ*ℕ @c & @c (π_1 @c < @c π_2 @c &&
  * @c π_1 @c > @c 5) is the relation @f$\{(x,y) \mid x<y \wedge x>5\}@f$ as an
  * @c IsSet on @c ℕ×ℕ.
  * @see dedekind::category::Projection
@@ -158,7 +158,7 @@ export inline constexpr Projection<3> 𝑧{};
 
 /** @brief A relational predicate: a predicate on the points of a product (or
  *  of a carrier, for an atom on @c π), tagged @c is_rel_predicate; it meets its
- *  universe only at the former @c |.  @tparam T the candidate. */
+ *  universe only at the former @c &.  @tparam T the candidate. */
 export template <typename T>
 concept IsRelPredicate =
     requires { typename std::remove_cvref_t<T>::is_rel_predicate; };
