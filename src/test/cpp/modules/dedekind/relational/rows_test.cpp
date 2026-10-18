@@ -105,8 +105,8 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
     CHECK(verdict(converse(sc), row) ==
           verdict(converse(cube) >> converse(square), row));
   // A projection is composition with π: the domain of succ.
-  const Re table = table(succ);  // () ⇸ word × word
-  const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
+  const Re rows = table(succ);  // () ⇸ word × word
+  const Re dom = rows >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(dom.dom.factors.empty());
   CHECK(dom.cod == W);
   const Q p = classifier(dom);
