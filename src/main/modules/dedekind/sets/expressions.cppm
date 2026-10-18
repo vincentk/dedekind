@@ -1422,6 +1422,13 @@ struct ProductMembership {
 // HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
 // a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
 // as countable.
+/** @brief The cardinality class of a set object's universe. */
+template <typename U>
+struct universe_cardinality;
+template <typename T, typename L, typename C>
+struct universe_cardinality<𝔸<T, L, C>> {
+  using type = C;
+};
 template <typename CA, typename CB>
 struct product_cardinality;
 template <>
@@ -1475,19 +1482,6 @@ constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&)
   return finalize_combine(𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{});
 }
 
-/** @brief A set object as a PLAIN set over its universe: itself when it already
- *  is one (@c PlainSet), else @c {x ∈ universe(s) | s(x)} --- the comprehension
- *  whose species is the join of the universe's and the operand's answer.  The
- *  normalisation the generic product and its species reconciliation rest on. */
-template <IsSetObject S>
-constexpr auto plain_over_universe(const S& s) {
-  if constexpr (PlainSet<S>) {
-    return s;
-  } else {
-    return Comprehension{universe(s), s};
-  }
-}
-
 /**
  * @brief Cartesian product over arbitrary set objects.
  *
@@ -1496,11 +1490,19 @@ constexpr auto plain_over_universe(const S& s) {
  */
 export template <IsSetObject A, IsSetObject B>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  // Normalise BOTH operands to plain sets over their universes; this is what
-  // TERMINATES the generic dispatch (the plain × plain overload matches).  The
-  // species are reconciled there, at their join: ProductMembership lifts each
-  // factor's answer into it.
-  return cartesian_product(plain_over_universe(a), plain_over_universe(b));
+  // The operands are kept as given, so π_1 / π_2 return them (#970): the
+  // membership evaluates each factor's χ and lifts it into the join of their
+  // species; the carrier is the pair of their carriers and the cardinality
+  // the join of their universes'.
+  using Pred = ProductMembership<A, B>;
+  using Pair = std::pair<typename A::Domain, typename B::Domain>;
+  using CC = typename product_cardinality<
+      typename universe_cardinality<
+          std::remove_cvref_t<decltype(universe(a))>>::type,
+      typename universe_cardinality<
+          std::remove_cvref_t<decltype(universe(b))>>::type>::type;
+  return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
+      Pred{a, b}};
 }
 
 /**
@@ -1569,19 +1571,6 @@ static_assert(cartesian_product(Not<𝔸<int>>{𝔸<int>{}},
                                     𝔸<double, Kleene, ℶ_1>{}})(std::pair{
                   0, 0.0}) == Ternary::False,
               "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
-namespace detail_product {
-/** @brief A factor as it was given: @c {x ∈ 𝔸 | S(x)} (the wrapper the
- *  product's normalisation, @c plain_over_universe, puts around a set object
- *  that is not a plain comprehension) @b is @c S. */
-template <typename X>
-constexpr X factor(const X& x) {
-  return x;
-}
-template <typename T, typename L, typename C, IsSetObject S>
-constexpr S factor(const Comprehension<𝔸<T, L, C>, S>& x) {
-  return x.predicate;
-}
-}  // namespace detail_product
 
 /** @brief The product of two set objects is their categorical product, not
  *  only their carriers' (#970, #1039): @c π_1 / @c π_2 on @c A @c × @c B
@@ -1594,14 +1583,14 @@ export template <typename T1, typename T2, typename L, typename C, typename A,
 constexpr auto component(
     const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
     dedekind::category::At<1>) {
-  return detail_product::factor(s.predicate.a);
+  return s.predicate.a;
 }
 export template <typename T1, typename T2, typename L, typename C, typename A,
                  typename B>
 constexpr auto component(
     const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
     dedekind::category::At<2>) {
-  return detail_product::factor(s.predicate.b);
+  return s.predicate.b;
 }
 
 namespace detail_product_witness {
@@ -1651,14 +1640,6 @@ struct SumMembership {
   }
 };
 
-/** @brief The cardinality class of a set object's universe. */
-template <typename U>
-struct universe_cardinality;
-template <typename T, typename L, typename C>
-struct universe_cardinality<𝔸<T, L, C>> {
-  using type = C;
-};
-
 /** @brief Two set objects on different carriers (the ℕ / ℤ pair aside): the
  *  operands of a sum. */
 template <typename A, typename B>
@@ -1682,9 +1663,8 @@ inline constexpr bool is_empty_set_v<Ø<T, L>> = true;
  *    image of one injection, a monic arrow, and pulls back along it without
  *    loss, so the ambient narrows to that summand's carrier (strength
  *    reduction, as @f$a \vee \bot = a@f$ carried through @f$\iota@f$);
- *  - two universes (@f$\mathbb{A}_X + \mathbb{A}_Y = \mathbb{A}_{X+Y}@f$): the
- *    universe of the sum, as @f$\mathbb{A}_X \times \mathbb{A}_Y =
- *    \mathbb{A}_{X \times Y}@f$.
+ *  A sum of two universes stays a sum (χ ≡ ⊤ on it) and keeps its summands,
+ *  so each keeps its own cardinality.
  *  @param a, b the summands. */
 export template <IsSetObject A, IsSetObject B>
 constexpr auto sum(const A& a, const B& b) {
@@ -1699,8 +1679,6 @@ constexpr auto sum(const A& a, const B& b) {
     return a;
   else if constexpr (is_empty_set_v<A>)
     return b;
-  else if constexpr (Is𝔸<A> && Is𝔸<B>)
-    return 𝔸<V, typename M::logic_species, CC>{};
   else
     return Comprehension<𝔸<V, typename M::logic_species, CC>, M>{M{a, b}};
 }
@@ -1715,9 +1693,9 @@ constexpr auto operator|(const A& a, const B& b) {
 export template <typename A, typename B>
   requires HeterogeneousPair<A, B>
 constexpr auto operator&(const A&, const B&) {
-  return Ø<
-      std::variant<typename A::Domain, typename B::Domain>,
-      join_logic_t<typename A::logic_species, typename B::logic_species>>{};
+  return finalize_combine(
+      Ø<std::variant<typename A::Domain, typename B::Domain>,
+        join_logic_t<typename A::logic_species, typename B::logic_species>>{});
 }
 /** @brief The restriction of a set of a sum to its @c k-th summand,
  *  @f$\iota_k^{-1}(s)@f$: the forward map of the lattice isomorphism
@@ -1731,21 +1709,11 @@ export template <std::size_t K, typename X, typename Y, typename L, typename C,
 constexpr auto restriction(
     const Comprehension<𝔸<std::variant<X, Y>, L, C>, SumMembership<A, B>>& s) {
   if constexpr (K == 1)
-    return detail_product::factor(s.predicate.a);
+    return s.predicate.a;
   else
-    return detail_product::factor(s.predicate.b);
+    return s.predicate.b;
 }
 
-/** @brief The restriction of the universe of a sum: the universe of the
- *  summand.  @tparam K the summand, 1 or 2. */
-export template <std::size_t K, typename X, typename Y, typename L, typename C>
-  requires(K == 1 || K == 2)
-constexpr auto restriction(const 𝔸<std::variant<X, Y>, L, C>&) {
-  if constexpr (K == 1)
-    return 𝔸<X, L>{};
-  else
-    return 𝔸<Y, L>{};
-}
 /** @brief A relation out of a sum restricted to one summand: @f$(A + B)
  *  \times C \cong A \times C + B \times C@f$ (distributivity), so
  *  @f$(\iota_k \times \mathrm{id})^{-1}(s \times c) = \iota_k^{-1}(s) \times
@@ -1753,13 +1721,11 @@ constexpr auto restriction(const 𝔸<std::variant<X, Y>, L, C>&) {
  *  relation @c a @c ⇸ @c c.  @tparam K the summand.  @param r the relation. */
 export template <std::size_t K, typename X, typename Y, typename T2, typename L,
                  typename C, typename A, typename B>
-  requires(K == 1 || K == 2) &&
-          requires(const A& a) { restriction<K>(detail_product::factor(a)); }
+  requires(K == 1 || K == 2) && requires(const A& a) { restriction<K>(a); }
 constexpr auto restriction(
     const Comprehension<𝔸<std::pair<std::variant<X, Y>, T2>, L, C>,
                         ProductMembership<A, B>>& r) {
-  return restriction<K>(detail_product::factor(r.predicate.a)) *
-         detail_product::factor(r.predicate.b);
+  return restriction<K>(r.predicate.a) * r.predicate.b;
 }
 
 namespace detail_sum_witness {
@@ -1786,16 +1752,26 @@ static_assert(
     "Sub(X) × Sub(Y)); the sum itself is no product of them");
 static_assert(!(t & three)(In::inl(true)) && !(t & three)(In::inr(3)),
               "the summands are disjoint: a & b across carriers is Ø");
-// Strength reduction: an empty summand narrows the ambient; two universes
-// are the universe of the sum.
+// Strength reduction: an empty summand narrows the ambient.
 static_assert(std::same_as<std::remove_cvref_t<decltype(t | Ø<int>{})>,
                            std::remove_cvref_t<decltype(t)>>,
               "a + Ø ≅ a: the ambient narrows to a's carrier");
-static_assert(Is𝔸<std::remove_cvref_t<decltype(𝔸<bool>{} | 𝔸<int>{})>> &&
-                  std::same_as<typename std::remove_cvref_t<
-                                   decltype(𝔸<bool>{} | 𝔸<int>{})>::Domain,
-                               std::variant<bool, int>>,
-              "𝔸_X + 𝔸_Y = 𝔸_{X+Y}");
+// The operands are kept as given: a lifted (Kleene) factor or summand comes
+// back as itself, with its species; a sum of universes keeps its summands,
+// each with its own cardinality.
+inline constexpr auto tk = lift_to<Kleene>(t);
+using TK = std::remove_cvref_t<decltype(tk)>;
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(dedekind::category::π_1(tk * t))>,
+                 TK> &&
+        std::same_as<std::remove_cvref_t<decltype(restriction<1>(tk | three))>,
+                     TK> &&
+        std::same_as<std::remove_cvref_t<decltype(restriction<1>(
+                         𝔸<double, Kleene, ℶ_1>{} | 𝔸<bool>{}))>,
+                     𝔸<double, Kleene, ℶ_1>>,
+    "factors and summands come back as given");
+static_assert(HasDecidableMembership<std::remove_cvref_t<decltype(tk & three)>>,
+              "the disjoint meet is finalized: Ø of the sum is decidable");
 // A relation out of a sum restricted to a summand (distributivity).
 inline constexpr auto seven = 𝔸<int>{} & (π == 7);
 inline constexpr auto r = (t | three) * seven;
@@ -1813,6 +1789,10 @@ static_assert(
         typename std::remove_cvref_t<decltype((t | Ø<int>{}) * seven)>::Domain,
         std::pair<bool, int>>,
     "a relation out of a + Ø is one out of a");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(restriction<1>(
+                               (𝔸<bool>{} | 𝔸<int>{}) * 𝔸<char>{}))>::Domain,
+                           std::pair<bool, char>>,
+              "a relation out of a sum of universes restricts too");
 }  // namespace detail_sum_witness
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the

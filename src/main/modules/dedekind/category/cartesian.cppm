@@ -333,10 +333,16 @@ auto ι_2(B&& value) {
  *  @tparam A, B the summands. */
 export template <typename A, typename B>
 struct Injections {
-  static constexpr std::variant<A, B> inl(const A& a) {
+  static constexpr std::variant<A, B> inl(const A& a)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<0>, const A&>
+  {
     return std::variant<A, B>(std::in_place_index<0>, a);
   }
-  static constexpr std::variant<A, B> inr(const B& b) {
+  static constexpr std::variant<A, B> inr(const B& b)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<1>, const B&>
+  {
     return std::variant<A, B>(std::in_place_index<1>, b);
   }
 };
@@ -356,7 +362,10 @@ struct Injection {
   using Domain = std::conditional_t<K == 1, A, B>;
   using Codomain = std::variant<A, B>;
   using is_monic_arrow_tag = void;
-  constexpr Codomain operator()(const Domain& x) const {
+  constexpr Codomain operator()(const Domain& x) const
+    requires std::constructible_from<Codomain, std::in_place_index_t<K - 1>,
+                                     const Domain&>
+  {
     return Codomain(std::in_place_index<K - 1>, x);
   }
 };
@@ -364,6 +373,12 @@ static_assert(IsMonicArrow<Injection<1, int, int>> &&
                   IsMonicArrow<Injection<2, int, int>> &&
                   Injection<2, int, int>{}(3).index() == 1,
               "the injections of a sum are monic");
+static_assert(
+    !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,
+                 int, Injections<std::unique_ptr<int>, int>> &&
+        !IsArrow<Injection<1, std::unique_ptr<int>, int>>,
+    "a summand the variant cannot copy in is refused, not accepted and "
+    "broken at the call");
 
 /** @brief A summand whose @c ≤ is a certified chain. */
 template <typename X>
