@@ -12,8 +12,8 @@ whose middle keeps an ∃ no atom defines is witnessed at points."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3
-from dedekind.trsk import Relation, copy, diag, merge
+from dedekind.pst import A, B, K3, U64, Ternary, 𝔽ₚ, ap, canonical, cond, u64, π, π_1, π_2, π_3
+from dedekind.trsk import Relation, copy, diag, inl, inr, kind, merge, operands
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -274,3 +274,141 @@ class WideRelations(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheTermIsInspected(unittest.TestCase):
+    """#1039 D1: a relation is its AST, read by free functions; its objects
+    are products in normal form; inclusion is decided as equality is."""
+
+    def test_kind_and_operands_of_a_relation(self) -> None:
+        two = succ >> succ
+        self.assertEqual(kind(two), "compose")
+        left, right = operands(two)
+        self.assertEqual(kind(left), "comprehension")
+        base, pred = operands(left)
+        self.assertEqual(kind(base), "universe")
+        self.assertEqual(repr(pred), "π_2 == (π_1 + 1)")
+        dom, cod = operands(base)
+        self.assertEqual((kind(dom), kind(cod)), ("unit", "product"))
+        self.assertEqual(kind(~succ), "not")
+        self.assertEqual(kind(succ & sq), "meet")
+
+    def test_an_object_is_a_product_in_normal_form(self) -> None:
+        _, cod = operands(operands(operands(succ * succ)[0])[0])
+        self.assertEqual(repr(cod), "𝔸(u64) × 𝔸(u64)")
+        first, rest = operands(cod)
+        self.assertEqual((kind(first), kind(rest)), ("leaf", "leaf"))
+        self.assertIs(operands(first)[0], u64)  # a leaf's operand: its carrier
+        a, b = operands(cod)
+        self.assertEqual((a * b) * a, a * (b * a))  # associative by construction
+
+    def test_inclusion_is_decided_as_equality_is(self) -> None:
+        self.assertIs((succ & sq) <= succ, True)
+        self.assertIs(succ >= (succ & sq), True)
+        with self.assertRaises(TypeError):
+            succ <= (succ & sq)  # different normal forms decide nothing
+        # A table and its arrow reading: one object, split differently.
+        self.assertIs(succ <= succ.arrow, True)
+        self.assertIs(succ >= succ.arrow, True)
+
+
+F = A(𝔽ₚ)
+
+
+class SumsAcrossCarriers(unittest.TestCase):
+    """#1039 D2: | across carriers is the sum, a set over X + Y; its points
+    inl(x) / inr(y); & across carriers the empty set of the sum."""
+
+    def test_the_sum_of_two_universes(self) -> None:
+        s = U64 | B
+        self.assertEqual(kind(s), "sum")
+        self.assertEqual(repr(s), "𝔸(u64) | 𝔹")
+        self.assertIn((inl(3),), s)
+        self.assertIn((inr(True),), s)
+        self.assertNotIn((3,), s)  # a point of a sum is inl / inr, never inferred
+
+    def test_the_copairing(self) -> None:
+        big = U64 & (π > 3)
+        s = big | (F & (π == 2))
+        self.assertEqual(kind(s), "sum")
+        self.assertIn((inl(5),), s)
+        self.assertNotIn((inl(2),), s)
+        self.assertIn((inr(2),), s)
+        self.assertNotIn((inr(3),), s)
+
+    def test_the_summands_are_operands(self) -> None:
+        left, right = operands(U64 | B)
+        self.assertEqual((kind(left), kind(right)), ("universe", "universe"))
+
+    def test_disjoint_summands(self) -> None:
+        m = (U64 & (π > 3)) & (F & (π == 2))
+        self.assertNotIn((inl(5),), m)
+        self.assertNotIn((inr(2),), m)
+
+    def test_an_empty_summand_leaves_the_other(self) -> None:
+        big = U64 & (π > 3)
+        nothing = F & (π != π)
+        self.assertEqual(repr(big | nothing), repr(big))
+
+    def test_a_sum_is_no_flat_product(self) -> None:
+        # The same columns, B × U64 × B, but another object: never compared.
+        s = U64 | B
+        flat = B * U64 * B & s.classifier
+        with self.assertRaises(TypeError):
+            s == flat  # noqa: B015
+
+    def test_a_summand_without_a_normal_form_stays(self) -> None:
+        # The remainder has no normal form: its emptiness is open, the sum kept.
+        s = (U64 & (π % 2 == 0)) | B
+        self.assertEqual(kind(s), "sum")
+        self.assertIn((inl(4),), s)
+        self.assertNotIn((inl(3),), s)
+
+    def test_a_quantifier_ranges_over_points_only(self) -> None:
+        # No point of 𝔹 + K₃ has its tag and its inactive 𝔹 both True: R is
+        # empty, and the ∃ of R ; R° finds no witness among rows that encode
+        # no point.
+        R = (B | K3) & ((π_1 == True) & (π_2 == True))  # noqa: E712
+        self.assertIn(ap(R >> R.converse, ()), (False, Ternary.FALSE))
+
+    def test_a_point_of_a_sum_applied(self) -> None:
+        s = U64 | B
+        self.assertEqual(ap(s, (inl(3),)), True)
+        self.assertEqual(ap(s, (inr(False),)), True)
+
+    def test_a_column_of_a_sum_projected(self) -> None:
+        tags = (U64 | B).project(1)
+        self.assertIn((False,), tags)
+        self.assertIn((True,), tags)
+
+
+class FrobeniusOnASum(unittest.TestCase):
+    """#1039 D3: the Frobenius structure on X + Y is the summands', block by
+    block: copy, merge and diag on a sum never mix the summands.  Witnessed
+    at points; deciding the mixed blocks ⊥ by canonical needs equality
+    reasoning across atoms, which canonical does not do yet."""
+
+    S = U64 | B
+
+    def test_copy_is_block_diagonal(self) -> None:
+        c = copy(self.S)
+        self.assertIn((inl(3), inl(3), inl(3)), c)
+        self.assertIn((inr(True), inr(True), inr(True)), c)
+        self.assertNotIn((inl(3), inl(3), inr(True)), c)  # a mixed block: Ø
+        self.assertNotIn((inl(3), inr(True), inl(3)), c)
+        self.assertNotIn((inl(3), inl(4), inl(4)), c)
+
+    def test_merge_and_diag(self) -> None:
+        self.assertIn((inr(False), inr(False), inr(False)), merge(self.S))
+        self.assertNotIn((inl(3), inr(False), inl(3)), merge(self.S))
+        self.assertIn((inl(3), inl(3)), diag(self.S))
+        self.assertNotIn((inl(3), inr(True)), diag(self.S))
+
+    def test_a_product_with_a_sum_names_an_object(self) -> None:
+        c = copy((U64 | B) * U64)
+        self.assertIn((inl(3), 5, inl(3), 5, inl(3), 5), c)
+        self.assertNotIn((inl(3), 5, inr(True), 5, inl(3), 5), c)
+
+    def test_a_set_names_no_object(self) -> None:
+        with self.assertRaises(TypeError):
+            copy(U64 & (π > 3))

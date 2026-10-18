@@ -7,8 +7,9 @@
  * Merge the Frobenius spiders, the converse the dagger.  The verdict reads a
  * quantifier over a finite chain by enumeration and over a word by a bounded
  * search, in Σ (∃) or Π (∀).  Elimination (canonical) is algebra's,
- * downstream, and is exercised from Python (test_pst_spans.py), the monad
- * laws with it; the Frobenius and dagger laws are witnessed at points here.
+ * downstream, so the laws are witnessed at points here and DECIDED by the
+ * normal form in algebra/relation_laws_test.cpp: the monad's unit and
+ * associativity, the dagger, the Frobenius spider, table / arrow.
  * Comparisons are == / != only: an order comparison needs order's rule,
  * downstream of relational as well.
  */
@@ -31,7 +32,7 @@ using dedekind::relational::merge;
 using dedekind::relational::Object;
 using dedekind::relational::proj;
 using dedekind::relational::RelExpr;
-using dedekind::relational::split;
+using dedekind::relational::table;
 using dedekind::relational::verdict;
 
 namespace {
@@ -105,9 +106,9 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
     CHECK(verdict(converse(sc), row) ==
           verdict(converse(cube) >> converse(square), row));
   // A projection is composition with π: the domain of succ.
-  const Re table = split(succ, 0);  // () ⇸ word × word
-  const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
-  CHECK(dom.dom.empty());
+  const Re rows = table(succ);  // () ⇸ word × word
+  const Re dom = rows >> proj<int, unsigned, bool>({word, word}, {1});
+  CHECK(dom.dom.factors.empty());
   CHECK(dom.cod == W);
   const Q p = classifier(dom);
   CHECK(p.kind == Q::Kind::Exists);
@@ -129,7 +130,7 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
   narrow.budget = 1;  // b = 0 only
   CHECK(verdict(narrow, R{{4u, 8u}}) == Ternary::Unknown);
   // ∃c ∀b: a search under a search is not made; U.
-  const Re alt = split(nsc, 0) >> proj<int, unsigned, bool>({word, word}, {1});
+  const Re alt = table(nsc) >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(verdict(alt, R{{4u}}) == Ternary::Unknown);
 }
 
@@ -139,7 +140,8 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   // Read without elimination (canonical is algebra's, downstream), the
   // spider's middles are four ∃ over the word, searched within the budget:
   // where the meet holds the witness is found; where it fails the search
-  // can only answer U, never ⊥ (Σ).  The exact law is decided in Python.
+  // can only answer U, never ⊥ (Σ).  The law itself is decided by the normal
+  // form in algebra/relation_laws_test (canonical is algebra's, downstream).
   const Re spider = copy<int, unsigned, bool>(W) >> (succ * words) >>
                     merge<int, unsigned, bool>(W);
   CHECK(spider.dom == W);
@@ -175,4 +177,39 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK((succ * square).kind == Re::Kind::Tensor);
   CHECK_THROWS_AS((succ & Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
                   not_admitted);  // a slot past the columns
+}
+
+TEST_CASE("relational:rows: an object is a product in normal form (#1039)",
+          "[relational][rows][objects]") {
+  const Object A{word}, B{flag}, C{word, flag};
+  CHECK((A * B) * A == A * (B * A));  // associative by construction
+  CHECK(A * Object{} == A);           // 𝟙 the unit
+  CHECK(A * B == Object{word, flag});
+  CHECK(columns(C) == dedekind::relational::Columns{word, flag});
+  CHECK((succ * square).dom == A * A);  // the tensor's objects are products
+}
+
+TEST_CASE("relational:rows: the sum of two tables; table and arrow (#1039)",
+          "[relational][rows][sums]") {
+  namespace rel = dedekind::relational;
+  const Object S = rel::sum(W, Object{flag}, flag);
+  // A sum lays out its tag, then the left summand's columns, then the right's.
+  CHECK(rel::columns(S) == rel::Columns{flag, word, flag});
+  CHECK(S == rel::sum(W, Object{flag}, flag));        // deep equality
+  CHECK_FALSE(S == rel::sum(Object{flag}, W, flag));  // the order of summands
+  const Re s = rel::sum(Re::universe({}, W), Re::universe({}, {flag}));
+  CHECK(s.kind == Re::Kind::Sum);
+  CHECK(s.cod == S);
+  CHECK(classifier(s).kind == Q::Kind::Or);  // the copairing on the tag
+  // A row of the sum is a point: the inactive side at its defaults.
+  CHECK(holds(s, R{{false, 3u, false}}));       // inl(3)
+  CHECK_FALSE(holds(s, R{{false, 3u, true}}));  // no point: the 𝔹 not default
+  CHECK(holds(s, R{{true, 0u, true}}));         // inr(⊤)
+  CHECK_FALSE(holds(s, R{{true, 3u, true}}));  // no point: the word not default
+  CHECK_THROWS_AS(rel::sum(succ, succ), not_admitted);  // tables only, for now
+  // table and arrow move whole factors: Rel's compact-closed iso.
+  CHECK(rel::table(succ).dom == Object{});
+  CHECK(rel::table(succ).cod == W * W);
+  CHECK(rel::arrow(rel::table(succ)).dom == W);
+  CHECK(rel::arrow(rel::table(succ)).cod == W);
 }

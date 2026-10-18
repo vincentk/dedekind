@@ -193,8 +193,7 @@ class RefusalsTest(unittest.TestCase):
     def test_species_and_carriers_do_not_mix(self) -> None:
         with self.assertRaises(TypeError):
             A(bool, Kleene)
-        with self.assertRaises(TypeError):
-            K3 & B  # different chains: no overload
+        self.assertTrue(repr(K3 & B).endswith("& ⊥"))  # across carriers: Ø of the sum (#1039)
         with self.assertRaises(TypeError):
             K3 & (π > 1)  # a numeral on K₃: refused when bound
         self.assertEqual(K3 & (π > True), Ø(K3))  # a bool is read in K₃: True is ⊤

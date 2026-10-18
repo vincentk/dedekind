@@ -23,11 +23,31 @@ monadically, and form a cartesian bicategory::
 Kleisli composition (its ∃ the monad's μ), ``R.converse`` the dagger.  Where
 the ∃ cannot be eliminated, membership searches within a budget, valued in Σ
 (⊤ or U) for ∃ and Π (⊥ or U) for ∀.
+
+A relation is its term, inspected by free functions, not methods:
+``kind(R)`` names the root node (universe, comprehension, meet, join, not,
+converse, tensor, compose) and ``operands(R)`` its children; a domain or
+codomain is an ``Object``, a product of carriers (``kind`` unit, leaf or
+product, ``operands`` the binary reading ``(first, rest)``).  ``repr(R)`` is
+the Trsk set expression, ``repr(canonical(R))`` its normal form; ``==`` and
+the inclusion ``<=`` / ``>=`` are decided by normal forms (``TypeError`` where
+they differ, which decides nothing).
+
+Across carriers, ``|`` is the sum (#1039): ``U64 | B`` is a set over the
+object ``(𝔸(u64) + 𝔹)``, its points written explicitly ``inl(x)`` / ``inr(y)``
+(never inferred: ``bool`` is an ``int``); ``&`` across carriers is the empty
+set of the sum; a summand with no member leaves the other, over its own
+carrier.
 """
 
 from ._pst import copy
 from ._pst import diag
 from ._pst import merge
+from ._pst import Object
+from ._pst import inl
+from ._pst import inr
+from ._pst import kind
+from ._pst import operands
 from .pst import _Annotation, _attr, _is_set_on, _named
 
 
@@ -58,4 +78,4 @@ class Function:
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 
 
-__all__ = ["Relation", "Function", "copy", "diag", "merge"]
+__all__ = ["Relation", "Function", "Object", "copy", "diag", "inl", "inr", "kind", "merge", "operands"]
