@@ -864,7 +864,7 @@ Relation as_relation(nb::handle h) {
  *  (a converse, or a composite of one) has an empty domain too, explicitly. */
 bool is_table(const Relation& r) {
   using K = Relation::Kind;
-  if (!r.dom.empty()) return false;
+  if (!r.dom.factors.empty()) return false;
   switch (r.kind) {
     case K::Universe:
       return true;
@@ -889,7 +889,7 @@ dedekind::relational::Object object_of(nb::handle u, const char* what) {
   if (r.kind != Relation::Kind::Universe || r.arity() != 1)
     throw nb::type_error(
         (std::string(what) + ": a universe over one carrier").c_str());
-  return r.columns();
+  return dedekind::relational::Object(r.columns());
 }
 /** @brief Two relations over one product: the schemas must agree. */
 void same_product(const Relation& a, const Relation& b) {
@@ -904,7 +904,7 @@ Cells row_of(const Relation& r, nb::handle h) {
         ("a point of the product is a tuple of " + std::to_string(r.arity()))
             .c_str());
   const nb::tuple t = nb::borrow<nb::tuple>(h);
-  const dedekind::relational::Object cols = r.columns();
+  const dedekind::relational::Columns cols = r.columns();
   Cells row;
   for (std::size_t i = 0; i < r.arity(); ++i)
     row.cells.push_back(cell_of(cols[i], t[i]));
@@ -998,7 +998,7 @@ nb::object apply(const Relation& r, nb::handle h) {
       throw nb::type_error(
           "ap(R, terms): R's classifier keeps a quantifier no atom defines; "
           "a symbolic reading would be K₃-valued (not yet)");
-    const dedekind::relational::Object cols = r.columns();
+    const dedekind::relational::Columns cols = r.columns();
     RPred at = cert.map_slots(SlotsTo{args});
     for (std::size_t i = 0; i < cols.size(); ++i)
       at = RPred::conj(at, column_member(cols[i], args[i]));
@@ -1012,7 +1012,7 @@ nb::object apply(const Relation& r, nb::handle h) {
   const std::vector<nb::handle> xs = arguments(r, h);
   bool symbolic = false;
   for (nb::handle a : xs) symbolic = symbolic || is_term(a);
-  const dedekind::relational::Object cols = r.columns();
+  const dedekind::relational::Columns cols = r.columns();
   if (symbolic) {
     // A value among the terms is checked in its column now: the function's
     // term may not use it, and substitution would drop it unchecked.
@@ -1035,7 +1035,7 @@ nb::object apply(const Relation& r, nb::handle h) {
  *  (a relation whose predicate is ⊤ is the product universe itself). */
 std::string written(const Relation& r) {
   using R = Relation;
-  const auto universes = [](const dedekind::relational::Object& o) {
+  const auto universes = [](const dedekind::relational::Columns& o) {
     std::string out;
     for (std::size_t i = 0; i < o.size(); ++i)
       out += (i ? " × " : "") + std::string(universe_name(o[i]));
@@ -1067,6 +1067,46 @@ std::string written(const Relation& r) {
   return "?";
 }
 
+/** @brief An object written: its factors' universes joined by @c ×; the unit
+ *  @c 𝟙. */
+std::string written(const dedekind::relational::Object& o) {
+  const dedekind::relational::Columns cols = dedekind::relational::columns(o);
+  if (cols.empty()) return "𝟙";
+  std::string out;
+  for (std::size_t i = 0; i < cols.size(); ++i)
+    out += (i ? " × " : "") + std::string(universe_name(cols[i]));
+  return out;
+}
+/** @brief The node of a relation's term, by name: the reading @c kind. */
+const char* kind_of(const Relation& r) {
+  using K = Relation::Kind;
+  switch (r.kind) {
+    case K::Universe:
+      return "universe";
+    case K::Comprehension:
+      return "comprehension";
+    case K::Meet:
+      return "meet";
+    case K::Join:
+      return "join";
+    case K::Not:
+      return "not";
+    case K::Converse:
+      return "converse";
+    case K::Tensor:
+      return "tensor";
+    case K::Compose:
+      return "compose";
+  }
+  return "?";
+}
+/** @brief The node of an object, by name: the unit, a leaf (one carrier), or a
+ *  product (read as the binary tree @c (first, rest)). */
+const char* kind_of(const dedekind::relational::Object& o) {
+  const std::size_t n = o.factors.size();
+  return n == 0 ? "unit" : n == 1 ? "leaf" : "product";
+}
+
 /** @brief The relation class and the products of the universes: every
  *  universe multiplies with every factor.  @param factors the carriers' Python
  *  objects, by sort. */
@@ -1086,8 +1126,9 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& a, nb::handle b) {
             // Two tables tensor as tables; two arrows as arrows.
             const Relation s = as_relation(b);
-            return a.dom.empty() && s.dom.empty() ? a * s
-                                                  : as_arrow(a) * as_arrow(s);
+            return a.dom.factors.empty() && s.dom.factors.empty()
+                       ? a * s
+                       : as_arrow(a) * as_arrow(s);
           },
           nb::is_operator(), "R × S: the schemas concatenated.")
       .def(
@@ -1135,7 +1176,8 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
             // a table, then its columns projected; the result a table.
             return dedekind::relational::split(r, 0) >>
                    dedekind::relational::proj<PyConst, uint64_t, Fp, bool,
-                                              Ternary>(r.columns(), keep);
+                                              Ternary>(
+                       dedekind::relational::Object(r.columns()), keep);
           },
           "R.project(c, …): the columns c, … kept in that order, the others "
           "quantified away: R >> π, with π the structural projection.")
@@ -1151,7 +1193,8 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "dom",
           [factors](const Relation& r) {
             nb::list out;
-            for (const std::size_t s : r.dom) out.append(factors[s]);
+            for (const std::size_t s : dedekind::relational::columns(r.dom))
+              out.append(factors[s]);
             return nb::tuple(out);
           },
           "The carriers of the domain's columns: () for a table.")
@@ -1159,7 +1202,8 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "cod",
           [factors](const Relation& r) {
             nb::list out;
-            for (const std::size_t s : r.cod) out.append(factors[s]);
+            for (const std::size_t s : dedekind::relational::columns(r.cod))
+              out.append(factors[s]);
             return nb::tuple(out);
           },
           "The carriers of the codomain's columns.")
@@ -1220,7 +1264,78 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "columns: π_n == t(π_1 … π_{n−1}), functional by its shape, and "
           "entire since every operator of a bound term is total on the "
           "carrier and t lands in the last column.")
-      .def("__repr__", &written);
+      .def(
+          "__le__",
+          [](const Relation& a, const Relation& b) {
+            same_product(a, b);
+            return equal_by_canonical<Cells>(classifier(a & b), classifier(a),
+                                             a.rep());
+          },
+          nb::is_operator(),
+          "R <= S: inclusion, R & S == R, decided as == is: True where the "
+          "normal forms agree, TypeError where they differ (which decides "
+          "nothing).  R < S is not offered: normal forms confirm equality, "
+          "never difference.")
+      .def(
+          "__ge__",
+          [](const Relation& a, const Relation& b) {
+            same_product(a, b);
+            return equal_by_canonical<Cells>(classifier(a & b), classifier(b),
+                                             a.rep());
+          },
+          nb::is_operator(), "R >= S: S <= R.")
+      .def("__repr__", [](const Relation& r) { return written(r); });
+  using Obj = dedekind::relational::Object;
+  nb::class_<Obj>(m, "Object",
+                  "An object of the relations: a product of carriers in "
+                  "normal form (associative, unit 𝟙).  Read it with kind / "
+                  "operands; a relation's domain and codomain are objects.")
+      .def(
+          "__eq__", [](const Obj& a, const Obj& b) { return a == b; },
+          nb::is_operator())
+      .def(
+          "__mul__", [](const Obj& a, const Obj& b) { return a * b; },
+          nb::is_operator(), "A × B: the product (associative).")
+      .def("__repr__", [](const Obj& o) { return written(o); });
+  m.def(
+      "kind", [](const Relation& r) { return kind_of(r); }, nb::arg("x"),
+      "kind(x): the node at the root of x's term: for a relation one of "
+      "universe, comprehension, meet, join, not, converse, tensor, compose; "
+      "for an object one of unit, leaf, product.");
+  m.def("kind", [](const Obj& o) { return kind_of(o); }, nb::arg("x"));
+  m.def(
+      "operands",
+      [](const Relation& r) -> nb::tuple {
+        using K = Relation::Kind;
+        switch (r.kind) {
+          case K::Universe:
+            return nb::make_tuple(r.dom, r.cod);
+          case K::Comprehension:
+            return nb::make_tuple(*r.a, r.predicate);
+          case K::Not:
+          case K::Converse:
+            return nb::make_tuple(*r.a);
+          default:
+            return nb::make_tuple(*r.a, *r.b);
+        }
+      },
+      nb::arg("x"),
+      "operands(x): the children of x's root: a universe its domain and "
+      "codomain objects, a comprehension its base and predicate, ~ and the "
+      "converse their operand, the binary nodes their two operands; an "
+      "object's leaf its carrier, a product (first, rest).");
+  m.def(
+      "operands",
+      [factors](const Obj& o) -> nb::tuple {
+        const std::size_t n = o.factors.size();
+        if (n == 0) return nb::make_tuple();
+        if (n == 1) return nb::make_tuple(factors[o.factors.front().sort]);
+        Obj first, rest;
+        first.factors.push_back(o.factors.front());
+        rest.factors.assign(o.factors.begin() + 1, o.factors.end());
+        return nb::make_tuple(first, rest);
+      },
+      nb::arg("x"));
   m.def(
       "canonical",
       [](const Relation& r) {

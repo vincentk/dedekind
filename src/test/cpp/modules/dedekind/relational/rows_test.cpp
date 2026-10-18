@@ -107,7 +107,7 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
   // A projection is composition with π: the domain of succ.
   const Re table = split(succ, 0);  // () ⇸ word × word
   const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
-  CHECK(dom.dom.empty());
+  CHECK(dom.dom.factors.empty());
   CHECK(dom.cod == W);
   const Q p = classifier(dom);
   CHECK(p.kind == Q::Kind::Exists);
@@ -175,4 +175,14 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK((succ * square).kind == Re::Kind::Tensor);
   CHECK_THROWS_AS((succ & Q::cmp(Rel::Eq, T::proj(3), T::constant(1))),
                   not_admitted);  // a slot past the columns
+}
+
+TEST_CASE("relational:rows: an object is a product in normal form (#1039)",
+          "[relational][rows][objects]") {
+  const Object A{word}, B{flag}, C{word, flag};
+  CHECK((A * B) * A == A * (B * A));  // associative by construction
+  CHECK(A * Object{} == A);           // 𝟙 the unit
+  CHECK(A * B == Object{word, flag});
+  CHECK(columns(C) == dedekind::relational::Columns{word, flag});
+  CHECK((succ * square).dom == A * A);  // the tensor's objects are products
 }

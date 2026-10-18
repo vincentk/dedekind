@@ -13,7 +13,7 @@ whose middle keeps an ∃ no atom defines is witnessed at points."""
 import unittest
 
 from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3
-from dedekind.trsk import Relation, copy, diag, merge
+from dedekind.trsk import Relation, copy, diag, kind, merge, operands
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -274,3 +274,36 @@ class WideRelations(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheTermIsInspected(unittest.TestCase):
+    """#1039 D1: a relation is its AST, read by free functions; its objects
+    are products in normal form; inclusion is decided as equality is."""
+
+    def test_kind_and_operands_of_a_relation(self) -> None:
+        two = succ >> succ
+        self.assertEqual(kind(two), "compose")
+        left, right = operands(two)
+        self.assertEqual(kind(left), "comprehension")
+        base, pred = operands(left)
+        self.assertEqual(kind(base), "universe")
+        self.assertEqual(repr(pred), "π_2 == (π_1 + 1)")
+        dom, cod = operands(base)
+        self.assertEqual((kind(dom), kind(cod)), ("unit", "product"))
+        self.assertEqual(kind(~succ), "not")
+        self.assertEqual(kind(succ & sq), "meet")
+
+    def test_an_object_is_a_product_in_normal_form(self) -> None:
+        _, cod = operands(operands(operands(succ * succ)[0])[0])
+        self.assertEqual(repr(cod), "𝔸(u64) × 𝔸(u64)")
+        first, rest = operands(cod)
+        self.assertEqual((kind(first), kind(rest)), ("leaf", "leaf"))
+        self.assertEqual(repr(operands(first)[0]), "𝔸(u64)")
+        a, b = operands(cod)
+        self.assertEqual((a * b) * a, a * (b * a))  # associative by construction
+
+    def test_inclusion_is_decided_as_equality_is(self) -> None:
+        self.assertIs((succ & sq) <= succ, True)
+        self.assertIs(succ >= (succ & sq), True)
+        with self.assertRaises(TypeError):
+            succ <= (succ & sq)  # different normal forms decide nothing

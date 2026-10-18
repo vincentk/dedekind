@@ -60,6 +60,7 @@ module;
 
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
@@ -70,8 +71,48 @@ import dedekind.sets;     // Row, Term, Pred, the sorts, graph_term
 
 namespace dedekind::relational {
 
-/** @brief An object: a product of carriers, a sort per column. */
-export using Object = std::vector<std::size_t>;
+/** @brief The sorts of a row, one per column. */
+export using Columns = std::vector<std::size_t>;
+
+/** @brief A factor of an object: a carrier, the leaf, its sort the column's.
+ *  (A sum @f$X + Y@f$ of two objects is the other factor, #1039.) */
+export struct Factor {
+  std::size_t sort{};
+  friend bool operator==(const Factor&, const Factor&) = default;
+};
+
+/** @brief An object: a product of factors in @b normal @b form, a list.  The
+ *  product is associative with unit @c 1 (the empty list), so
+ *  @f$(A \times B) \times C@f$ and @f$A \times (B \times C)@f$ are the
+ *  same object by construction, and @c >> composes regardless of grouping.
+ *  Read as a binary tree, @c (first, rest), where a tree is asked for
+ *  (@c kind / @c operands in Python).  The columns are its factors'. */
+export struct Object {
+  std::vector<Factor> factors;
+  Object() = default;
+  /** @brief The product of these carriers, one leaf each. */
+  Object(std::initializer_list<std::size_t> sorts) {
+    for (const std::size_t c : sorts) factors.push_back(Factor{c});
+  }
+  explicit Object(const Columns& sorts) {
+    for (const std::size_t c : sorts) factors.push_back(Factor{c});
+  }
+  friend bool operator==(const Object&, const Object&) = default;
+};
+
+/** @brief The columns of an object: its factors' sorts, in order. */
+export inline Columns columns(const Object& o) {
+  Columns out;
+  for (const Factor& f : o.factors) out.push_back(f.sort);
+  return out;
+}
+/** @brief The product @f$A \times B@f$: the factors side by side (the normal
+ *  form of an associative product). */
+export inline Object operator*(const Object& a, const Object& b) {
+  Object out = a;
+  out.factors.insert(out.factors.end(), b.factors.begin(), b.factors.end());
+  return out;
+}
 
 /** @brief A relation @f$A \rightsquigarrow B@f$ built at run time: a term
  *  over relations, its objects @c dom and @c cod data, its classifier a
@@ -99,15 +140,9 @@ struct RelExpr {
   std::shared_ptr<const RelExpr> a, b;            // the legs
   std::uint64_t budget = std::uint64_t{1} << 16;  // verdict's search
 
-  unsigned arity() const {
-    return static_cast<unsigned>(dom.size() + cod.size());
-  }
-  /** @brief The columns: @c dom then @c cod. */
-  Object columns() const {
-    Object all = dom;
-    all.insert(all.end(), cod.begin(), cod.end());
-    return all;
-  }
+  unsigned arity() const { return static_cast<unsigned>(columns().size()); }
+  /** @brief The columns: @c dom's then @c cod's. */
+  Columns columns() const { return relational::columns(dom * cod); }
   /** @brief A row of the columns: the points' representative. */
   Point rep() const { return dedekind::sets::row_of_sorts<Cs...>(columns()); }
 
@@ -140,14 +175,6 @@ struct RelExpr {
     return r;
   }
 };
-
-namespace detail_rows {
-inline Object cat(const Object& x, const Object& y) {
-  Object out = x;
-  out.insert(out.end(), y.begin(), y.end());
-  return out;
-}
-}  // namespace detail_rows
 
 // ── The set grammar on relations ────────────────────────────────────────────
 
@@ -211,8 +238,8 @@ export template <typename K, typename... Cs>
 RelExpr<K, Cs...> operator*(const RelExpr<K, Cs...>& a,
                             const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
-  Object dom = detail_rows::cat(a.dom, b.dom);
-  Object cod = detail_rows::cat(a.cod, b.cod);
+  Object dom = a.dom * b.dom;
+  Object cod = a.cod * b.cod;
   if (a.kind == R::Kind::Universe && b.kind == R::Kind::Universe)
     return R::universe(std::move(dom), std::move(cod));
   return R::binary(R::Kind::Tensor, a, b, std::move(dom), std::move(cod));
@@ -239,9 +266,9 @@ RelExpr<K, Cs...> split(const RelExpr<K, Cs...>& r, unsigned k) {
   if (k > r.arity())
     throw dedekind::sets::not_admitted("split(R, k): k at most the arity");
   RelExpr<K, Cs...> out = r;
-  const Object all = r.columns();
-  out.dom = Object(all.begin(), all.begin() + k);
-  out.cod = Object(all.begin() + k, all.end());
+  const Columns all = r.columns();
+  out.dom = Object(Columns(all.begin(), all.begin() + k));
+  out.cod = Object(Columns(all.begin() + k, all.end()));
   return out;
 }
 
@@ -271,7 +298,7 @@ dedekind::sets::Pred<K> identified(
 export template <typename K, typename... Cs>
 RelExpr<K, Cs...> diag(const Object& obj) {
   using R = RelExpr<K, Cs...>;
-  const unsigned n = static_cast<unsigned>(obj.size());
+  const unsigned n = static_cast<unsigned>(columns(obj).size());
   return (R::universe(obj, obj) & detail_rows::identified<K>(n, 0, n));
 }
 /** @brief @c Copy: @f$A \rightsquigarrow A \times A@f$, @f$x \mapsto (x,
@@ -279,8 +306,8 @@ RelExpr<K, Cs...> diag(const Object& obj) {
 export template <typename K, typename... Cs>
 RelExpr<K, Cs...> copy(const Object& obj) {
   using R = RelExpr<K, Cs...>;
-  const unsigned n = static_cast<unsigned>(obj.size());
-  return (R::universe(obj, detail_rows::cat(obj, obj)) &
+  const unsigned n = static_cast<unsigned>(columns(obj).size());
+  return (R::universe(obj, obj * obj) &
           detail_rows::identified<K>(n, 0, 2 * n,
                                      detail_rows::identified<K>(n, 0, n)));
 }
@@ -298,9 +325,10 @@ RelExpr<K, Cs...> proj(const Object& obj, const std::vector<unsigned>& keep) {
   using R = RelExpr<K, Cs...>;
   using P = typename R::P;
   using T = typename R::T;
-  const unsigned n = static_cast<unsigned>(obj.size());
+  const Columns cols = columns(obj);
+  const unsigned n = static_cast<unsigned>(cols.size());
   std::vector<bool> seen(n + 1, false);
-  Object cod;
+  Columns cod;
   P eqs = P::top();
   for (std::size_t j = 0; j < keep.size(); ++j) {
     const unsigned c = keep[j];
@@ -308,12 +336,12 @@ RelExpr<K, Cs...> proj(const Object& obj, const std::vector<unsigned>& keep) {
       throw dedekind::sets::not_admitted(
           "proj(A, c, …): distinct columns 1 … n");
     seen[c] = true;
-    cod.push_back(obj[c - 1]);
+    cod.push_back(cols[c - 1]);
     const P eq = P::cmp(dedekind::sets::Rel::Eq,
                         T::proj(n + static_cast<unsigned>(j) + 1), T::proj(c));
     eqs = eqs.kind == P::Kind::Top ? eq : P::conj(eqs, eq);
   }
-  return (R::universe(obj, cod) & eqs);
+  return (R::universe(obj, Object(cod)) & eqs);
 }
 
 // ── The predicate: a reading of the term ────────────────────────────────────
@@ -361,8 +389,12 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
   using R = RelExpr<K, Cs...>;
   using P = dedekind::sets::Pred<K>;
   using Map = detail_rows::Ranges<K>;
-  const auto d = [](const R& x) { return static_cast<unsigned>(x.dom.size()); };
-  const auto c = [](const R& x) { return static_cast<unsigned>(x.cod.size()); };
+  const auto d = [](const R& x) {
+    return static_cast<unsigned>(columns(x.dom).size());
+  };
+  const auto c = [](const R& x) {
+    return static_cast<unsigned>(columns(x.cod).size());
+  };
   switch (r.kind) {
     case R::Kind::Universe:
       return P::top();
@@ -406,7 +438,7 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
               static_cast<int>(d(x))});
       P body = detail_rows::conjoined(pa, pb);
       for (unsigned j = m; j >= 1; --j)
-        body = P::exists(x.cod[j - 1], n + j, body);
+        body = P::exists(columns(x.cod)[j - 1], n + j, body);
       return body;
     }
   }
@@ -432,7 +464,7 @@ const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
   const auto* t = dedekind::sets::graph_term(p, r.arity());
   if (t == nullptr) return nullptr;
   const std::size_t s = dedekind::sets::sort_of<Point>(*t, r.rep());
-  const Object all = r.columns();
+  const Columns all = r.columns();
   if (s != dedekind::sets::no_sort &&
       !dedekind::sets::sort_embeds<Point>(s, all.back()))
     return nullptr;
