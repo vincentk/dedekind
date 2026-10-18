@@ -64,6 +64,7 @@ module;
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 export module dedekind.relational:rows;
@@ -330,15 +331,31 @@ RelExpr<K, Cs...> arrow(const RelExpr<K, Cs...>& r) {
 // ── The sum of two tables (#1039) ───────────────────────────────────────────
 
 namespace detail_rows {
-/** @brief The truth value @c b as a constant of the grammar: @c K(b) where
- *  @c K is built from @c bool, else the constant type's own hook beside it
- *  (@c truth_constant, found by argument-dependent lookup). */
-template <typename K>
-K truth(bool b) {
-  if constexpr (std::constructible_from<K, bool>)
-    return K(b);
+/** @brief A carrier's value @c c as a constant of the grammar: the constant
+ *  type's own hook beside it where it has one (@c carrier_constant, found by
+ *  argument-dependent lookup), else @c K(c).  A sum's tag and the defaults of
+ *  its inactive side are written with it. */
+template <typename K, typename C>
+K as_constant(const C& c) {
+  if constexpr (requires { carrier_constant(std::type_identity<K>{}, c); })
+    return carrier_constant(std::type_identity<K>{}, c);
   else
-    return truth_constant(std::type_identity<K>{}, b);
+    return K(c);
+}
+/** @brief @c as_constant as a visitor over a row's cells. */
+template <typename K>
+struct AsConstant {
+  template <typename C>
+  K operator()(const C& c) const {
+    return as_constant<K>(c);
+  }
+};
+/** @brief The default of the sort @c sort as a constant: the representative a
+ *  sum's inactive side holds. */
+template <typename K, typename... Cs>
+K default_constant(std::size_t sort) {
+  return std::visit(AsConstant<K>{},
+                    dedekind::sets::row_of_sorts<Cs...>({sort}).cells.front());
 }
 /** @brief The sort of the 𝔹 carrier among the columns' carriers: a sum's tag.
  */
@@ -467,10 +484,62 @@ struct Ranges {
         static_cast<unsigned>(static_cast<int>(s == 0 ? 0 : s) + shift));
   }
 };
+/** @brief @c π_slot == @c b: a sum's tag picks its side, ⊥ the left. */
+template <typename K>
+dedekind::sets::Pred<K> tag_is(unsigned slot, bool b) {
+  return dedekind::sets::Pred<K>::cmp(
+      dedekind::sets::Rel::Eq, dedekind::sets::Term<K>::proj(slot),
+      dedekind::sets::Term<K>::constant(as_constant<K>(b)));
+}
+/** @brief The columns of @c o from the slot @c first + 1 on at their defaults:
+ *  the inactive side of a sum. */
+template <typename K, typename... Cs>
+dedekind::sets::Pred<K> at_defaults(const Object& o, unsigned first) {
+  using Pr = dedekind::sets::Pred<K>;
+  using T = dedekind::sets::Term<K>;
+  const Columns cols = columns(o);
+  Pr out = Pr::top();
+  for (std::size_t i = 0; i < cols.size(); ++i)
+    out = conjoined(out,
+                    Pr::cmp(dedekind::sets::Rel::Eq,
+                            T::proj(first + static_cast<unsigned>(i) + 1),
+                            T::constant(default_constant<K, Cs...>(cols[i]))));
+  return out;
+}
+/** @brief The columns of @c o from the slot @c first + 1 on encode a point of
+ *  it: at each sum, the tag picks a side and the other holds its defaults,
+ *  recursively.  ⊤ for an object without sums.  Every row of a product of
+ *  leaves is a point; a row of a sum is one only so (a quantifier or a
+ *  complement over the columns must not range over the others). */
+template <typename K, typename... Cs>
+dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
+  using Pr = dedekind::sets::Pred<K>;
+  Pr out = Pr::top();
+  unsigned at = first;
+  for (const Factor& f : o.factors) {
+    if (f.kind == Factor::Kind::Leaf) {
+      ++at;
+      continue;
+    }
+    const unsigned nl = static_cast<unsigned>(columns(*f.left).size());
+    const unsigned nr = static_cast<unsigned>(columns(*f.right).size());
+    const Pr left = conjoined(
+        conjoined(tag_is<K>(at + 1, false), encodes<K, Cs...>(*f.left, at + 1)),
+        at_defaults<K, Cs...>(*f.right, at + 1 + nl));
+    const Pr right =
+        conjoined(conjoined(tag_is<K>(at + 1, true),
+                            encodes<K, Cs...>(*f.right, at + 1 + nl)),
+                  at_defaults<K, Cs...>(*f.left, at + 1));
+    out = conjoined(out, Pr::disj(left, right));
+    at += 1 + nl + nr;
+  }
+  return out;
+}
 }  // namespace detail_rows
 
 /** @brief The predicate of a relation on the columns of its domain then its
- *  codomain, @c π_1 … @c π_n: a reading of the term.  A universe ⊤; a former
+ *  codomain, @c π_1 … @c π_n: a reading of the term.  A universe ⊤ (over a
+ *  sum, the rows that encode a point: @c encodes); a former
  *  its predicate on its base's; the lattice nodes their connectives (a
  * complement the negation normal form, ∃ and ∀ swapped); a converse its base's
  * with the two objects' columns exchanged; a tensor the conjunction, the
@@ -491,7 +560,8 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
   };
   switch (r.kind) {
     case R::Kind::Universe:
-      return P::top();
+      // ⊤ over a product of leaves; over a sum, the rows that encode points.
+      return detail_rows::encodes<K, Cs...>(r.dom * r.cod, 0);
     case R::Kind::Comprehension:
       return detail_rows::conjoined(classifier(*r.a), r.predicate);
     case R::Kind::Meet:
@@ -499,7 +569,10 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
     case R::Kind::Join:
       return P::disj(classifier(*r.a), classifier(*r.b));
     case R::Kind::Not:
-      return classifier(*r.a).negated();
+      // The complement within the points: a row that encodes none stays out.
+      return detail_rows::conjoined(
+          detail_rows::encodes<K, Cs...>(r.dom * r.cod, 0),
+          classifier(*r.a).negated());
     case R::Kind::Converse: {
       const R& x = *r.a;
       return classifier(x).map_slots(Map{
@@ -519,8 +592,8 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
     }
     case R::Kind::Sum: {
       // Columns: the tag, then x's, then y's; each leg's bound slots past
-      // the sum's width.  χ is the copairing on the tag.
-      using T = dedekind::sets::Term<K>;
+      // the sum's width.  χ is the copairing on the tag, the inactive side at
+      // its defaults: a row of the sum is a point.
       const R& x = *r.a;
       const R& y = *r.b;
       const unsigned nx = x.arity(), ny = y.arity();
@@ -528,12 +601,13 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
           classifier(x).map_slots(Map{0, nx, 0, 1, static_cast<int>(1 + ny)});
       const P py = classifier(y).map_slots(
           Map{0, ny, 0, static_cast<int>(1 + nx), static_cast<int>(1 + nx)});
-      const P left = P::cmp(dedekind::sets::Rel::Eq, T::proj(1),
-                            T::constant(detail_rows::truth<K>(false)));
-      const P right = P::cmp(dedekind::sets::Rel::Eq, T::proj(1),
-                             T::constant(detail_rows::truth<K>(true)));
-      return P::disj(detail_rows::conjoined(left, px),
-                     detail_rows::conjoined(right, py));
+      return P::disj(
+          detail_rows::conjoined(
+              detail_rows::conjoined(detail_rows::tag_is<K>(1, false), px),
+              detail_rows::at_defaults<K, Cs...>(y.cod, 1 + nx)),
+          detail_rows::conjoined(
+              detail_rows::conjoined(detail_rows::tag_is<K>(1, true), py),
+              detail_rows::at_defaults<K, Cs...>(x.cod, 1)));
     }
     case R::Kind::Compose: {
       // Columns: dom a, cod b; the middle (cod a = dom b, m columns) bound at
@@ -548,7 +622,10 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
           Map{d(y), y.arity(), static_cast<int>(n),
               static_cast<int>(d(x)) - static_cast<int>(m),
               static_cast<int>(d(x))});
-      P body = detail_rows::conjoined(pa, pb);
+      // The ∃ ranges over the middle's points: over a sum, the rows that
+      // encode one (a row that encodes none would invent a witness).
+      P body = detail_rows::conjoined(detail_rows::encodes<K, Cs...>(x.cod, n),
+                                      detail_rows::conjoined(pa, pb));
       for (unsigned j = m; j >= 1; --j)
         body = P::exists(columns(x.cod)[j - 1], n + j, body);
       return body;

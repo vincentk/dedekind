@@ -347,6 +347,30 @@ class SumsAcrossCarriers(unittest.TestCase):
         nothing = F & (π != π)
         self.assertEqual(repr(big | nothing), repr(big))
 
+    def test_a_summand_without_a_normal_form_stays(self) -> None:
+        # The remainder has no normal form: its emptiness is open, the sum kept.
+        s = (U64 & (π % 2 == 0)) | B
+        self.assertEqual(kind(s), "sum")
+        self.assertIn((inl(4),), s)
+        self.assertNotIn((inl(3),), s)
+
+    def test_a_quantifier_ranges_over_points_only(self) -> None:
+        # No point of 𝔹 + K₃ has its tag and its inactive 𝔹 both True: R is
+        # empty, and the ∃ of R ; R° finds no witness among rows that encode
+        # no point.
+        R = (B | K3) & ((π_1 == True) & (π_2 == True))  # noqa: E712
+        self.assertIn(ap(R >> R.converse, ()), (False, Ternary.FALSE))
+
+    def test_a_point_of_a_sum_applied(self) -> None:
+        s = U64 | B
+        self.assertEqual(ap(s, (inl(3),)), True)
+        self.assertEqual(ap(s, (inr(False),)), True)
+
+    def test_a_column_of_a_sum_projected(self) -> None:
+        tags = (U64 | B).project(1)
+        self.assertIn((False,), tags)
+        self.assertIn((True,), tags)
+
 
 class FrobeniusOnASum(unittest.TestCase):
     """#1039 D3: the Frobenius structure on X + Y is the summands', block by
@@ -369,6 +393,11 @@ class FrobeniusOnASum(unittest.TestCase):
         self.assertNotIn((inl(3), inr(False), inl(3)), merge(self.S))
         self.assertIn((inl(3), inl(3)), diag(self.S))
         self.assertNotIn((inl(3), inr(True)), diag(self.S))
+
+    def test_a_product_with_a_sum_names_an_object(self) -> None:
+        c = copy((U64 | B) * U64)
+        self.assertIn((inl(3), 5, inl(3), 5, inl(3), 5), c)
+        self.assertNotIn((inl(3), 5, inr(True), 5, inl(3), 5), c)
 
     def test_a_set_names_no_object(self) -> None:
         with self.assertRaises(TypeError):

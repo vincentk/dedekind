@@ -421,11 +421,6 @@ struct PyConst {
    *  key): two ints by value; otherwise by the Python type's name, then by
    *  the spelling.  Total and deterministic; finer than @c == (True and 1
    *  differ in it). */
-  /** @brief A sum's tag as a constant: the Python bool (relational:rows asks
-   *  for it through this hook). */
-  friend PyConst truth_constant(std::type_identity<PyConst>, bool b) {
-    return PyConst{nb::bool_(b)};
-  }
   friend std::weak_ordering constant_order(const PyConst& a, const PyConst& b) {
     if (is_py_int(a.o) && is_py_int(b.o)) {
       const int lt = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_LT);
@@ -637,6 +632,12 @@ struct TypedConstant {
   PyConst operator()(bool c) const { return PyConst{nb::bool_(c)}; }
   PyConst operator()(Ternary c) const { return PyConst{nb::cast(c)}; }
 };
+/** @brief A carrier's value as a constant that names its sort: relational:rows
+ *  writes a sum's tag and its inactive side's defaults through this hook. */
+template <typename C>
+PyConst carrier_constant(std::type_identity<PyConst>, const C& c) {
+  return TypedConstant{}(c);
+}
 /** @brief Whether the term @c t is a value of the carrier @c C, as a predicate
  *  that holds wherever it binds: @c t compared with a constant of @c C, so a
  *  term of another sort is refused when the predicate is bound.  A chain's
@@ -908,9 +909,18 @@ std::optional<nb::object> across(char op, nb::handle a, nb::handle b) {
   const Relation s = dedekind::relational::sum(x, y);
   if (op == '&') return nb::cast(s & RPred::bottom());
   // The other summand as it was given, not its table reading.
-  if (canonical(y).kind == RPred::Kind::Bottom) return nb::borrow(a);
-  if (canonical(x).kind == RPred::Kind::Bottom) return nb::borrow(b);
+  if (empty_by_canonical(y)) return nb::borrow(a);
+  if (empty_by_canonical(x)) return nb::borrow(b);
   return nb::cast(s);
+}
+/** @brief Whether the normal form decides @c r empty: a predicate it does
+ *  not reduce (a remainder) leaves the emptiness open, and the sum stays. */
+bool empty_by_canonical(const Relation& r) {
+  try {
+    return canonical(r).kind == RPred::Kind::Bottom;
+  } catch (const dedekind::sets::not_admitted&) {
+    return false;
+  }
 }
 /** @brief @c across as a Python result: the relation, or @c NotImplemented
  *  so Python tries the reflected operator. */
@@ -918,13 +928,14 @@ nb::object across_or_not(char op, nb::handle a, nb::handle b) {
   if (std::optional<nb::object> s = across(op, a, b)) return *s;
   return nb::borrow(Py_NotImplemented);
 }
-/** @brief Whether a relation names an object: a universe, or a sum of
- *  universes (#1039), the full set over its codomain. */
+/** @brief Whether a relation names an object: a universe, or a product or a
+ *  sum of what names one (#1039), the full set over its codomain. */
 bool names_object(const Relation& r) {
   using K = Relation::Kind;
   if (!r.dom.factors.empty()) return false;
   if (r.kind == K::Universe) return true;
-  return r.kind == K::Sum && names_object(*r.a) && names_object(*r.b);
+  return (r.kind == K::Sum || r.kind == K::Tensor) && names_object(*r.a) &&
+         names_object(*r.b);
 }
 /** @brief The object a universe names, or a sum of universes: @c U64,
  *  @c U64 @c * @c B, @c U64 @c | @c B.  @throws nb::type_error otherwise (a set
@@ -1072,20 +1083,22 @@ nb::object apply(const Relation& r, nb::handle h) {
   const bool decided = !dedekind::sets::has_quantifier(cert);
   // At a whole point: χ.  Of values: in 𝔹 where the normal form is
   // quantifier-free, else the search's verdict in K₃; a tuple that is no row
-  // of the product is no member.  Of terms: χ as a term of sort 𝔹.
-  if (nb::isinstance<nb::tuple>(h) && nb::len(h) == r.arity()) {
+  // of the product is no member.  Of terms: χ as a term of sort 𝔹.  A point
+  // has one entry per factor (a sum's inl / inr); terms one per column.
+  bool at_terms = false;
+  if (nb::isinstance<nb::tuple>(h))
+    for (nb::handle a : nb::borrow<nb::tuple>(h))
+      at_terms = at_terms || is_term(a);
+  if (!at_terms && nb::isinstance<nb::tuple>(h) &&
+      nb::len(h) == (r.dom * r.cod).factors.size()) {
+    const std::optional<Cells> row = row_in(r, h);
+    const Ternary v = row ? verdict_at(r, *row) : Ternary::False;
+    if (decided) return nb::bool_(v == Ternary::True);
+    return nb::cast(v);
+  }
+  if (at_terms && nb::len(h) == r.arity()) {
     std::vector<RTerm> args;
-    bool symbolic = false;
-    for (nb::handle a : nb::borrow<nb::tuple>(h)) {
-      symbolic = symbolic || is_term(a);
-      args.push_back(term_of(a));
-    }
-    if (!symbolic) {
-      const std::optional<Cells> row = row_in(r, h);
-      const Ternary v = row ? verdict_at(r, *row) : Ternary::False;
-      if (decided) return nb::bool_(v == Ternary::True);
-      return nb::cast(v);
-    }
+    for (nb::handle a : nb::borrow<nb::tuple>(h)) args.push_back(term_of(a));
     // At terms: the eliminated classifier with the columns replaced, each
     // argument also checked to be a value of its column's carrier (a
     // universe's classifier is ⊤ and would drop its arguments).  A quantifier
@@ -1311,8 +1324,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
             // a table, then its columns projected; the result a table.
             return dedekind::relational::table(r) >>
                    dedekind::relational::proj<PyConst, uint64_t, Fp, bool,
-                                              Ternary>(
-                       dedekind::relational::Object(r.columns()), keep);
+                                              Ternary>(r.dom * r.cod, keep);
           },
           "R.project(c, …): the columns c, … kept in that order, the others "
           "quantified away: R >> π, with π the structural projection.")

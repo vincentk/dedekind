@@ -201,6 +201,11 @@ TEST_CASE("relational:rows: the sum of two tables; table and arrow (#1039)",
   CHECK(s.kind == Re::Kind::Sum);
   CHECK(s.cod == S);
   CHECK(classifier(s).kind == Q::Kind::Or);  // the copairing on the tag
+  // A row of the sum is a point: the inactive side at its defaults.
+  CHECK(holds(s, R{{false, 3u, false}}));       // inl(3)
+  CHECK_FALSE(holds(s, R{{false, 3u, true}}));  // no point: the 𝔹 not default
+  CHECK(holds(s, R{{true, 0u, true}}));         // inr(⊤)
+  CHECK_FALSE(holds(s, R{{true, 3u, true}}));  // no point: the word not default
   CHECK_THROWS_AS(rel::sum(succ, succ), not_admitted);  // tables only, for now
   // table and arrow move whole factors: Rel's compact-closed iso.
   CHECK(rel::table(succ).dom == Object{});
