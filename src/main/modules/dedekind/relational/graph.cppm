@@ -415,7 +415,8 @@ namespace detail_hyperdoctrine {
  *  the join of the substitutions at every value, from @c c upward. */
 template <std::size_t K, typename C, C c, typename T, typename R>
 constexpr auto shannon(const R& r) {
-  const auto here = preimage(Fixed<K, C, c, T>{}, r);
+  // Qualified: category::preimage (the Compose form) is reachable by ADL too.
+  const auto here = dedekind::relational::preimage(Fixed<K, C, c, T>{}, r);
   if constexpr (c == dedekind::sets::chain_top<C>())
     return here;
   else
@@ -441,7 +442,7 @@ constexpr auto image_along(const dedekind::category::Injection<K, X, Y>&,
  *  @f$\Delta_S = \{(x, x) \mid x \in S\}@f$, @c diag. */
 export template <typename X, dedekind::sets::IsSetObject S>
 constexpr auto image_along(const dedekind::category::Copy<X>&, const S& s) {
-  return diag(s);
+  return dedekind::relational::diag(s);
 }
 /** @brief @f$\exists_{\pi_1}@f$, the second factor a finite chain: Shannon. */
 export template <detail_hyperdoctrine::IsPairProjection<1> F,
@@ -467,11 +468,13 @@ constexpr auto image_along(const F&, const R& r) {
 }
 
 export template <dedekind::category::IsArrow F,
-                 dedekind::category::IsOckhamAlgebra L>
+                 dedekind::category::IsOckhamAlgebra L =
+                     dedekind::category::Boole>
   requires std::default_initializable<F>
 struct Preimage;
 export template <dedekind::category::IsArrow F,
-                 dedekind::category::IsOckhamAlgebra L>
+                 dedekind::category::IsOckhamAlgebra L =
+                     dedekind::category::Boole>
   requires std::default_initializable<F>
 struct Dual;
 
@@ -514,7 +517,7 @@ struct Preimage {
   template <typename S>
     requires dedekind::category::Presents<S, Domain>
   constexpr auto operator()(const S& s) const {
-    return preimage(F{}, s);
+    return dedekind::relational::preimage(F{}, s);
   }
   template <typename Op>
   static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
