@@ -59,7 +59,8 @@ import dedekind.category;
 import :cardinality;
 import :boundaries;
 import :expressions;
-import :terms;  // the equality atom π == v
+import :heterogeneous;  // the product, for the witness below
+import :terms;          // the equality atom π == v
 
 /**
  * @section singleton__Mereology
