@@ -87,6 +87,12 @@ export struct Factor {
   Kind kind{Kind::Leaf};
   std::size_t sort{};  // a leaf's carrier; a sum's tag column (𝔹)
   std::shared_ptr<const Object> left, right;  // a sum's summands
+  /** @brief The leaf of a carrier.  @param c its sort. */
+  static Factor leaf(std::size_t c) {
+    Factor f;
+    f.sort = c;
+    return f;
+  }
   friend bool operator==(const Factor& a, const Factor& b) {
     if (a.kind != b.kind || a.sort != b.sort) return false;
     return a.kind == Kind::Leaf ||
@@ -105,10 +111,10 @@ export struct Object {
   Object() = default;
   /** @brief The product of these carriers, one leaf each. */
   Object(std::initializer_list<std::size_t> sorts) {
-    for (const std::size_t c : sorts) factors.push_back(Factor{c});
+    for (const std::size_t c : sorts) factors.push_back(Factor::leaf(c));
   }
   explicit Object(const Columns& sorts) {
-    for (const std::size_t c : sorts) factors.push_back(Factor{c});
+    for (const std::size_t c : sorts) factors.push_back(Factor::leaf(c));
   }
   friend bool operator==(const Object&, const Object&) = default;
 };
