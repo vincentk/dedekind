@@ -918,14 +918,24 @@ nb::object across_or_not(char op, nb::handle a, nb::handle b) {
   if (std::optional<nb::object> s = across(op, a, b)) return *s;
   return nb::borrow(Py_NotImplemented);
 }
-/** @brief The object of a universe over one carrier.  @throws nb::type_error
- *  otherwise. */
+/** @brief Whether a relation names an object: a universe, or a sum of
+ *  universes (#1039), the full set over its codomain. */
+bool names_object(const Relation& r) {
+  using K = Relation::Kind;
+  if (!r.dom.factors.empty()) return false;
+  if (r.kind == K::Universe) return true;
+  return r.kind == K::Sum && names_object(*r.a) && names_object(*r.b);
+}
+/** @brief The object a universe names, or a sum of universes: @c U64,
+ *  @c U64 @c * @c B, @c U64 @c | @c B.  @throws nb::type_error otherwise (a set
+ *  names no object: its predicate would be dropped). */
 dedekind::relational::Object object_of(nb::handle u, const char* what) {
   const Relation r = as_relation(u);
-  if (r.kind != Relation::Kind::Universe || r.arity() != 1)
+  if (!names_object(r))
     throw nb::type_error(
-        (std::string(what) + ": a universe over one carrier").c_str());
-  return dedekind::relational::Object(r.columns());
+        (std::string(what) + ": a universe, a product or a sum of universes")
+            .c_str());
+  return r.cod;
 }
 /** @brief Two relations over one product: the schemas must agree. */
 void same_product(const Relation& a, const Relation& b) {

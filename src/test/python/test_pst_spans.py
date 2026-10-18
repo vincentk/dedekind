@@ -346,3 +346,30 @@ class SumsAcrossCarriers(unittest.TestCase):
         big = U64 & (π > 3)
         nothing = F & (π != π)
         self.assertEqual(repr(big | nothing), repr(big))
+
+
+class FrobeniusOnASum(unittest.TestCase):
+    """#1039 D3: the Frobenius structure on X + Y is the summands', block by
+    block: copy, merge and diag on a sum never mix the summands.  Witnessed
+    at points; deciding the mixed blocks ⊥ by canonical needs equality
+    reasoning across atoms, which canonical does not do yet."""
+
+    S = U64 | B
+
+    def test_copy_is_block_diagonal(self) -> None:
+        c = copy(self.S)
+        self.assertIn((inl(3), inl(3), inl(3)), c)
+        self.assertIn((inr(True), inr(True), inr(True)), c)
+        self.assertNotIn((inl(3), inl(3), inr(True)), c)  # a mixed block: Ø
+        self.assertNotIn((inl(3), inr(True), inl(3)), c)
+        self.assertNotIn((inl(3), inl(4), inl(4)), c)
+
+    def test_merge_and_diag(self) -> None:
+        self.assertIn((inr(False), inr(False), inr(False)), merge(self.S))
+        self.assertNotIn((inl(3), inr(False), inl(3)), merge(self.S))
+        self.assertIn((inl(3), inl(3)), diag(self.S))
+        self.assertNotIn((inl(3), inr(True)), diag(self.S))
+
+    def test_a_set_names_no_object(self) -> None:
+        with self.assertRaises(TypeError):
+            copy(U64 & (π > 3))
