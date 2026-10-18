@@ -384,8 +384,10 @@ static_assert(IsArrow<Copy<bool>>, "Δ: A → A×A must be an arrow.");
 // Copy on a sum stays in the diagonal blocks of (A+B)×(A+B) ≅ A×A + A×B +
 // B×A + B×B: copy_{A+B} ∘ ι_k = (ι_k × ι_k) ∘ copy_k, so copy_{A+B} =
 // copy_A + copy_B (#1039).  The relational merge (Δ†, defined on the diagonal)
-// decomposes alike; the glb merge (Merge<A, Meet>) does not extend: a sum of
-// posets has no meet across its summands.
+// decomposes alike.  The glb merge (Merge<A, Meet>) depends on the order of
+// the sum: under the coproduct of posets (summands side by side) there is no
+// meet across summands; under std::variant's own order, the ordinal sum X ⊕ Y
+// of two chains, the sum is a chain and Δ ⊣ min holds (witnessed below).
 static_assert(
     Copy<std::variant<bool, int>>{}(Injections<bool, int>::inl(true)) ==
             std::pair{Injections<bool, int>::inl(true),
@@ -394,6 +396,14 @@ static_assert(
             std::pair{Injections<bool, int>::inr(3),
                       Injections<bool, int>::inr(3)},
     "copy on Either<A, B> is copy_A + copy_B: no off-diagonal block");
+static_assert(IsCopy<Copy<std::variant<bool, int>>> &&
+                  IsTerminalMorphism<Delete<std::variant<bool, int>>> &&
+                  IsMerge<Merge<std::variant<bool, int>, Inf>>,
+              "Either<A, B> carries the comonoid and a merge");
+static_assert(IsMeetAsRightAdjoint<Copy<std::variant<bool, int>>,
+                                   Merge<std::variant<bool, int>, Inf>>,
+              "under the ordinal sum of two chains, Δ ⊣ min on Either: the "
+              "Galois connection of the cartesian bicategory extends");
 static_assert(IsCopy<Copy<bool>>, "Copy is the canonical model of IsCopy.");
 static_assert(IsMerge<Merge<bool, std::logical_and<bool>>>,
               "Merge is the canonical model of IsMerge.");

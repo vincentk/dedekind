@@ -35,6 +35,7 @@
 module;
 
 #include <concepts>
+#include <cstddef>  // std::size_t: the summand of an injection
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -344,6 +345,46 @@ static_assert(
         Injections<int, int>::inl(1).index() == 0 &&
         Injections<int, int>::inr(1).index() == 1,
     "the named injections keep equal summands apart");
+
+/** @brief The injection @c ι_K : A → A + B as an arrow: monic (it is
+ *  injective, and its image is disjoint from the other summand's), the ground
+ *  of a sum's strength reduction (a set inside one injection's image pulls
+ *  back along it without loss).  @tparam K the summand, 1 or 2. */
+export template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2)
+struct Injection {
+  using Domain = std::conditional_t<K == 1, A, B>;
+  using Codomain = std::variant<A, B>;
+  using is_monic_arrow_tag = void;
+  constexpr Codomain operator()(const Domain& x) const {
+    return Codomain(std::in_place_index<K - 1>, x);
+  }
+};
+static_assert(IsMonicArrow<Injection<1, int, int>> &&
+                  IsMonicArrow<Injection<2, int, int>> &&
+                  Injection<2, int, int>{}(3).index() == 1,
+              "the injections of a sum are monic");
+
+/** @brief A summand whose @c ≤ is a certified chain. */
+template <typename X>
+concept CertifiedChain =
+    std::totally_ordered<X> && is_reflexive_v<X, std::less_equal<>> &&
+    is_transitive_v<X, std::less_equal<>> &&
+    is_antisymmetric_v<X, std::less_equal<>>;
+/** @brief The order @c std::variant's comparisons implement is the @b ordinal
+ *  sum @f$X \oplus Y@f$ (all of @c X below all of @c Y, by index, then within
+ *  the summand); of two chains it is a chain.  It is the carrier's choice, not
+ *  the coproduct of posets (the summands side by side, incomparable), under
+ *  which a sum has no meet across its summands. */
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool is_reflexive_v<std::variant<X, Y>, std::less_equal<>> =
+    true;
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool is_transitive_v<std::variant<X, Y>, std::less_equal<>> =
+    true;
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool
+    is_antisymmetric_v<std::variant<X, Y>, std::less_equal<>> = true;
 
 /**
  * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X
