@@ -7,8 +7,9 @@
  * Merge the Frobenius spiders, the converse the dagger.  The verdict reads a
  * quantifier over a finite chain by enumeration and over a word by a bounded
  * search, in Σ (∃) or Π (∀).  Elimination (canonical) is algebra's,
- * downstream, and is exercised from Python (test_pst_spans.py), the monad
- * laws with it; the Frobenius and dagger laws are witnessed at points here.
+ * downstream, so the laws are witnessed at points here and DECIDED by the
+ * normal form in algebra/relation_laws_test.cpp: the monad's unit and
+ * associativity, the dagger, the Frobenius spider, table / arrow.
  * Comparisons are == / != only: an order comparison needs order's rule,
  * downstream of relational as well.
  */
@@ -139,7 +140,8 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   // Read without elimination (canonical is algebra's, downstream), the
   // spider's middles are four ∃ over the word, searched within the budget:
   // where the meet holds the witness is found; where it fails the search
-  // can only answer U, never ⊥ (Σ).  The exact law is decided in Python.
+  // can only answer U, never ⊥ (Σ).  The law itself is decided by the normal
+  // form in algebra/relation_laws_test (canonical is algebra's, downstream).
   const Re spider = copy<int, unsigned, bool>(W) >> (succ * words) >>
                     merge<int, unsigned, bool>(W);
   CHECK(spider.dom == W);
