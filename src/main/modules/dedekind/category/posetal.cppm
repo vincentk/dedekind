@@ -621,60 +621,51 @@ inline constexpr bool
 
 // The ORDINAL SUM X ⊕ Y: @c std::variant's own comparisons compare the index
 // first, then within the summand, so all of @c X lies below all of @c Y.  The
-// three posetal axioms lift from the summands law by law (as the product's
-// lift componentwise), under either spelling a summand certifies its order
-// in; of two chains it is a chain (@c std::totally_ordered lifts too).  This
-// is the carrier's order, not the coproduct of posets (the summands side by
-// side, incomparable), under which a sum has no meet across its summands:
-// which order the set grammar's @c < across carriers follows is open (#1039).
-namespace detail_ordinal_sum {
-template <typename X>
-inline constexpr bool reflexive_v = is_reflexive_v<X, std::less_equal<>> ||
-                                    is_reflexive_v<X, std::less_equal<X>>;
-template <typename X>
-inline constexpr bool transitive_v = is_transitive_v<X, std::less_equal<>> ||
-                                     is_transitive_v<X, std::less_equal<X>>;
-template <typename X>
-inline constexpr bool antisymmetric_v =
-    is_antisymmetric_v<X, std::less_equal<>> ||
-    is_antisymmetric_v<X, std::less_equal<X>>;
-}  // namespace detail_ordinal_sum
+// three posetal axioms lift from the summands law by law, as the product's
+// lift componentwise, each spelling of @c ≤ on the sum from the SAME spelling
+// on the summands (the transparent @c std::less_equal<> from the transparent,
+// the typed from the typed: no certificate crosses a spelling), through the
+// algebraic per-law concepts @c IsReflexive / @c IsTransitive /
+// @c IsAntisymmetric, not the stdlib's syntactic ones.  Of two chains it is a
+// chain (@c IsTotallyOrderedPosetal, below).  This is the carrier's order,
+// not the coproduct of posets (the summands side by side, incomparable),
+// under which a sum has no meet across its summands: which order the set
+// grammar's @c < across carriers follows is open (#1039).
 template <typename X, typename Y>
 inline constexpr bool is_reflexive_v<std::variant<X, Y>, std::less_equal<>> =
-    detail_ordinal_sum::reflexive_v<X> && detail_ordinal_sum::reflexive_v<Y>;
+    IsReflexive<X, std::less_equal<>> && IsReflexive<Y, std::less_equal<>>;
 template <typename X, typename Y>
 inline constexpr bool is_transitive_v<std::variant<X, Y>, std::less_equal<>> =
-    detail_ordinal_sum::transitive_v<X> && detail_ordinal_sum::transitive_v<Y>;
+    IsTransitive<X, std::less_equal<>> && IsTransitive<Y, std::less_equal<>>;
 template <typename X, typename Y>
 inline constexpr bool
     is_antisymmetric_v<std::variant<X, Y>, std::less_equal<>> =
-        detail_ordinal_sum::antisymmetric_v<X> &&
-        detail_ordinal_sum::antisymmetric_v<Y>;
-// The same under the typed spelling, which the thin-category reading asks for.
+        IsAntisymmetric<X, std::less_equal<>> &&
+        IsAntisymmetric<Y, std::less_equal<>>;
 template <typename X, typename Y>
 inline constexpr bool
     is_reflexive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
-        detail_ordinal_sum::reflexive_v<X> &&
-        detail_ordinal_sum::reflexive_v<Y>;
+        IsReflexive<X, std::less_equal<X>> &&
+        IsReflexive<Y, std::less_equal<Y>>;
 template <typename X, typename Y>
 inline constexpr bool
     is_transitive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
-        detail_ordinal_sum::transitive_v<X> &&
-        detail_ordinal_sum::transitive_v<Y>;
+        IsTransitive<X, std::less_equal<X>> &&
+        IsTransitive<Y, std::less_equal<Y>>;
 template <typename X, typename Y>
 inline constexpr bool is_antisymmetric_v<std::variant<X, Y>,
                                          std::less_equal<std::variant<X, Y>>> =
-    detail_ordinal_sum::antisymmetric_v<X> &&
-    detail_ordinal_sum::antisymmetric_v<Y>;
+    IsAntisymmetric<X, std::less_equal<X>> &&
+    IsAntisymmetric<Y, std::less_equal<Y>>;
 namespace detail_ordinal_sum {
 struct Unordered {};  // no order at all: certifies no law
 }  // namespace detail_ordinal_sum
 static_assert(
-    IsPosetal<std::variant<bool, int>, std::less_equal<>> &&
-        !is_reflexive_v<std::variant<bool, detail_ordinal_sum::Unordered>,
-                        std::less_equal<>>,
-    "the ordinal sum of two certified chains is a poset (a chain); a summand "
-    "without a certified order certifies none");
+    IsTotallyOrderedPosetal<std::variant<bool, int>, std::less_equal<>> &&
+        !IsReflexive<std::variant<bool, detail_ordinal_sum::Unordered>,
+                     std::less_equal<>>,
+    "the ordinal sum of two certified chains is a chain; a summand without a "
+    "certified order certifies none");
 
 // Product-of-posets is a poset: the componentwise lift makes @c ≤× a certified
 // order, so the pair carrier the comonoid copies into is a genuine poset.
