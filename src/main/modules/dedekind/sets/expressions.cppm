@@ -1896,7 +1896,6 @@ struct Restrict {
 };
 
 namespace detail_sum_witness {
-namespace detail_sum_witness {
 using dedekind::category::Injections;
 inline constexpr auto t = 𝔸<bool>{} & (π == true);
 inline constexpr auto three = 𝔸<int>{} & (π == 3);
