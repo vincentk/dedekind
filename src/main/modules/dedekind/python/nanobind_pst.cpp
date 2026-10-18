@@ -901,8 +901,8 @@ std::optional<Relation> across(char op, nb::handle a, nb::handle b) {
   try {
     x = as_relation(a);
     y = as_relation(b);
-  } catch (const nb::type_error&) {
-    return std::nullopt;
+  } catch (const nb::builtin_exception&) {
+    return std::nullopt;  // not a universe, a set over one, or a relation
   }
   if (!is_table(x) || !is_table(y) || x.cod == y.cod) return std::nullopt;
   const Relation s = dedekind::relational::sum(x, y);
