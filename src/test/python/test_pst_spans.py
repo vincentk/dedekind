@@ -12,8 +12,8 @@ whose middle keeps an ∃ no atom defines is witnessed at points."""
 
 import unittest
 
-from dedekind.pst import B, K3, U64, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3
-from dedekind.trsk import Relation, copy, diag, kind, merge, operands
+from dedekind.pst import A, B, K3, U64, Ternary, 𝔽ₚ, ap, canonical, cond, u64, π, π_1, π_2, π_3
+from dedekind.trsk import Relation, copy, diag, inl, inr, kind, merge, operands
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -307,3 +307,42 @@ class TheTermIsInspected(unittest.TestCase):
         self.assertIs(succ >= (succ & sq), True)
         with self.assertRaises(TypeError):
             succ <= (succ & sq)  # different normal forms decide nothing
+
+
+F = A(𝔽ₚ)
+
+
+class SumsAcrossCarriers(unittest.TestCase):
+    """#1039 D2: | across carriers is the sum, a set over X + Y; its points
+    inl(x) / inr(y); & across carriers the empty set of the sum."""
+
+    def test_the_sum_of_two_universes(self) -> None:
+        s = U64 | B
+        self.assertEqual(kind(s), "sum")
+        self.assertEqual(repr(s), "𝔸(u64) | 𝔹")
+        self.assertIn((inl(3),), s)
+        self.assertIn((inr(True),), s)
+        self.assertNotIn((3,), s)  # a point of a sum is inl / inr, never inferred
+
+    def test_the_copairing(self) -> None:
+        big = U64 & (π > 3)
+        s = big | (F & (π == 2))
+        self.assertEqual(kind(s), "sum")
+        self.assertIn((inl(5),), s)
+        self.assertNotIn((inl(2),), s)
+        self.assertIn((inr(2),), s)
+        self.assertNotIn((inr(3),), s)
+
+    def test_the_summands_are_operands(self) -> None:
+        left, right = operands(U64 | B)
+        self.assertEqual((kind(left), kind(right)), ("universe", "universe"))
+
+    def test_disjoint_summands(self) -> None:
+        m = (U64 & (π > 3)) & (F & (π == 2))
+        self.assertNotIn((inl(5),), m)
+        self.assertNotIn((inr(2),), m)
+
+    def test_an_empty_summand_leaves_the_other(self) -> None:
+        big = U64 & (π > 3)
+        nothing = F & (π != π)
+        self.assertEqual(repr(big | nothing), repr(big))

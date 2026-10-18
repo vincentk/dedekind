@@ -49,6 +49,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <string_view>  // the chains' forwarding reads the operator's name
 #include <type_traits>  // std::type_identity: a constant's meeting with a carrier
 #include <typeinfo>     // std::bad_cast: a value of another carrier
 #include <utility>
@@ -420,6 +421,11 @@ struct PyConst {
    *  key): two ints by value; otherwise by the Python type's name, then by
    *  the spelling.  Total and deterministic; finer than @c == (True and 1
    *  differ in it). */
+  /** @brief A sum's tag as a constant: the Python bool (relational:rows asks
+   *  for it through this hook). */
+  friend PyConst truth_constant(std::type_identity<PyConst>, bool b) {
+    return PyConst{nb::bool_(b)};
+  }
   friend std::weak_ordering constant_order(const PyConst& a, const PyConst& b) {
     if (is_py_int(a.o) && is_py_int(b.o)) {
       const int lt = PyObject_RichCompareBool(a.o.ptr(), b.o.ptr(), Py_LT);
@@ -879,8 +885,37 @@ bool is_table(const Relation& r) {
 /** @brief A table of n ≥ 2 columns read as the arrow of its first n − 1
  *  columns (the Function[A, …, B] convention); an arrow stays as it is. */
 Relation as_arrow(const Relation& r) {
-  if (!is_table(r) || r.arity() < 2) return r;
-  return dedekind::relational::split(r, r.arity() - 1);
+  if (!is_table(r) || (r.dom * r.cod).factors.size() < 2) return r;
+  return dedekind::relational::arrow(r);
+}
+RPred canonical(const Relation& r);
+/** @brief @c a @c | @c b and @c a @c & @c b across carriers (#1039): two
+ *  tables (sets) over different objects land in their sum, @c | the sum
+ *  itself, @c & its empty set (the summands are disjoint).  A summand with no
+ *  member (its normal form ⊥) leaves the other, over its own carrier: the
+ *  strength reduction @f$a + \varnothing \cong a@f$.  @c nullopt where
+ *  both are over one object or either is no table: the operator's own reading
+ *  applies.  @param op @c '|' or @c '&'. */
+std::optional<Relation> across(char op, nb::handle a, nb::handle b) {
+  Relation x, y;
+  try {
+    x = as_relation(a);
+    y = as_relation(b);
+  } catch (const nb::type_error&) {
+    return std::nullopt;
+  }
+  if (!is_table(x) || !is_table(y) || x.cod == y.cod) return std::nullopt;
+  const Relation s = dedekind::relational::sum(x, y);
+  if (op == '&') return s & RPred::bottom();
+  if (canonical(y).kind == RPred::Kind::Bottom) return x;
+  if (canonical(x).kind == RPred::Kind::Bottom) return y;
+  return s;
+}
+/** @brief @c across as a Python result: the relation, or @c NotImplemented
+ *  so Python tries the reflected operator. */
+nb::object across_or_not(char op, nb::handle a, nb::handle b) {
+  if (std::optional<Relation> s = across(op, a, b)) return nb::cast(*s);
+  return nb::borrow(Py_NotImplemented);
 }
 /** @brief The object of a universe over one carrier.  @throws nb::type_error
  *  otherwise. */
@@ -896,18 +931,68 @@ void same_product(const Relation& a, const Relation& b) {
   if (a.columns() != b.columns())
     throw nb::type_error("relations over different products");
 }
-/** @brief A row of the schema out of a Python tuple, each cell by its column's
- *  sort.  @throws nb::type_error for a value that is no point of it. */
-Cells row_of(const Relation& r, nb::handle h) {
-  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != r.arity())
-    throw nb::type_error(
-        ("a point of the product is a tuple of " + std::to_string(r.arity()))
-            .c_str());
+/** @brief A point of a sum, @c inl(x) (the left summand, @c tag 1) or
+ *  @c inr(y) (the right, @c tag 2): explicit, never inferred from the Python
+ *  type (@c bool is an @c int). */
+struct Tagged {
+  unsigned tag;
+  nb::object value;
+};
+void cells_of(const dedekind::relational::Object& o, nb::handle h, Cells& row);
+/** @brief A column group's representative cells: the inactive side of a sum
+ *  holds them, so a row stays a plain tuple and equality plain equality. */
+void default_cells(const dedekind::relational::Object& o, Cells& row) {
+  for (const std::size_t s : dedekind::relational::columns(o))
+    row.cells.push_back(
+        dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>({s})
+            .cells.front());
+}
+/** @brief The cells of one factor out of its Python value: a leaf's value;
+ *  a sum's @c inl / @c inr, the tag then both sides (the inactive one at its
+ *  representative). */
+void cells_of(const dedekind::relational::Factor& f, nb::handle h, Cells& row) {
+  using F = dedekind::relational::Factor;
+  if (f.kind == F::Kind::Leaf) {
+    row.cells.push_back(cell_of(f.sort, h));
+    return;
+  }
+  if (!nb::isinstance<Tagged>(h))
+    throw nb::type_error("a point of a sum is inl(x) or inr(y)");
+  const Tagged& t = nb::cast<const Tagged&>(h);
+  row.cells.push_back(Cells::Cell{std::in_place_index<2>, t.tag == 2});
+  if (t.tag == 1) {
+    cells_of(*f.left, t.value, row);
+    default_cells(*f.right, row);
+  } else {
+    default_cells(*f.left, row);
+    cells_of(*f.right, t.value, row);
+  }
+}
+/** @brief The cells of an object out of its Python value: one factor's value
+ *  bare, several factors' a tuple, one entry per factor. */
+void cells_of(const dedekind::relational::Object& o, nb::handle h, Cells& row) {
+  if (o.factors.size() == 1) return cells_of(o.factors.front(), h, row);
+  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != o.factors.size())
+    throw nb::type_error(("a point of the product is a tuple of " +
+                          std::to_string(o.factors.size()))
+                             .c_str());
   const nb::tuple t = nb::borrow<nb::tuple>(h);
-  const dedekind::relational::Columns cols = r.columns();
+  for (std::size_t i = 0; i < o.factors.size(); ++i)
+    cells_of(o.factors[i], t[i], row);
+}
+/** @brief A row of the schema out of a Python tuple, one entry per factor of
+ *  the domain then the codomain (a leaf's value, a sum's @c inl / @c inr).
+ *  @throws nb::type_error for a value that is no point of it. */
+Cells row_of(const Relation& r, nb::handle h) {
+  const dedekind::relational::Object all = r.dom * r.cod;
+  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != all.factors.size())
+    throw nb::type_error(("a point of the product is a tuple of " +
+                          std::to_string(all.factors.size()))
+                             .c_str());
+  const nb::tuple t = nb::borrow<nb::tuple>(h);
   Cells row;
-  for (std::size_t i = 0; i < r.arity(); ++i)
-    row.cells.push_back(cell_of(cols[i], t[i]));
+  for (std::size_t i = 0; i < all.factors.size(); ++i)
+    cells_of(all.factors[i], t[i], row);
   return row;
 }
 Cells::Cell cell_of(std::size_t sort, nb::handle h) {
@@ -1061,6 +1146,8 @@ std::string written(const Relation& r) {
       return leg(*r.a) + " × " + leg(*r.b);
     case R::Kind::Compose:
       return leg(*r.a) + " >> " + leg(*r.b);
+    case R::Kind::Sum:  // across carriers, | is the sum (#1039)
+      return leg(*r.a) + " | " + leg(*r.b);
     case R::Kind::Universe:
       break;
   }
@@ -1070,11 +1157,16 @@ std::string written(const Relation& r) {
 /** @brief An object written: its factors' universes joined by @c ×; the unit
  *  @c 𝟙. */
 std::string written(const dedekind::relational::Object& o) {
-  const dedekind::relational::Columns cols = dedekind::relational::columns(o);
-  if (cols.empty()) return "𝟙";
+  using F = dedekind::relational::Factor;
+  if (o.factors.empty()) return "𝟙";
   std::string out;
-  for (std::size_t i = 0; i < cols.size(); ++i)
-    out += (i ? " × " : "") + std::string(universe_name(cols[i]));
+  for (std::size_t i = 0; i < o.factors.size(); ++i) {
+    const F& f = o.factors[i];
+    out += i ? " × " : "";
+    out += f.kind == F::Kind::Leaf
+               ? std::string(universe_name(f.sort))
+               : "(" + written(*f.left) + " + " + written(*f.right) + ")";
+  }
   return out;
 }
 /** @brief The node of a relation's term, by name: the reading @c kind. */
@@ -1097,13 +1189,17 @@ const char* kind_of(const Relation& r) {
       return "tensor";
     case K::Compose:
       return "compose";
+    case K::Sum:
+      return "sum";
   }
   return "?";
 }
 /** @brief The node of an object, by name: the unit, a leaf (one carrier), or a
  *  product (read as the binary tree @c (first, rest)). */
 const char* kind_of(const dedekind::relational::Object& o) {
+  using F = dedekind::relational::Factor;
   const std::size_t n = o.factors.size();
+  if (n == 1 && o.factors.front().kind == F::Kind::Sum) return "sum";
   return n == 0 ? "unit" : n == 1 ? "leaf" : "product";
 }
 
@@ -1143,8 +1239,16 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           nb::is_operator())
       .def(
-          "__or__", [](const Relation& a, const Relation& b) { return a | b; },
-          nb::is_operator())
+          "__or__",
+          [](const Relation& a, const Relation& b) {
+            if (std::optional<Relation> s =
+                    across('|', nb::cast(a), nb::cast(b)))
+              return *s;
+            return a | b;
+          },
+          nb::is_operator(),
+          "R | S: the join over one object; across objects (two tables) the "
+          "sum, a set over X + Y.")
       .def(
           "__and__",
           [](const Relation&, const RTerm& t) -> Relation {
@@ -1154,7 +1258,27 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           nb::is_operator())
       .def(
-          "__and__", [](const Relation& a, const Relation& b) { return a & b; },
+          "__and__",
+          [](const Relation& a, const Relation& b) {
+            if (std::optional<Relation> s =
+                    across('&', nb::cast(a), nb::cast(b)))
+              return *s;
+            return a & b;
+          },
+          nb::is_operator(),
+          "R & S: the meet over one object; across objects the empty set of "
+          "the sum.")
+      .def(
+          "__or__",
+          [](const Relation& a, nb::handle b) {
+            return across_or_not('|', nb::cast(a), b);
+          },
+          nb::is_operator())
+      .def(
+          "__and__",
+          [](const Relation& a, nb::handle b) {
+            return across_or_not('&', nb::cast(a), b);
+          },
           nb::is_operator())
       .def(
           "__rshift__",
@@ -1174,7 +1298,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
             for (nb::handle c : cols) keep.push_back(nb::cast<unsigned>(c));
             // Composition with the structural π: the whole relation, read as
             // a table, then its columns projected; the result a table.
-            return dedekind::relational::split(r, 0) >>
+            return dedekind::relational::table(r) >>
                    dedekind::relational::proj<PyConst, uint64_t, Fp, bool,
                                               Ternary>(
                        dedekind::relational::Object(r.columns()), keep);
@@ -1301,7 +1425,8 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       "kind", [](const Relation& r) { return kind_of(r); }, nb::arg("x"),
       "kind(x): the node at the root of x's term: for a relation one of "
       "universe, comprehension, meet, join, not, converse, tensor, compose; "
-      "for an object one of unit, leaf, product.");
+      "or sum (across carriers); for an object one of unit, leaf, product, "
+      "sum.");
   m.def("kind", [](const Obj& o) { return kind_of(o); }, nb::arg("x"));
   m.def(
       "operands",
@@ -1329,6 +1454,10 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       [factors](const Obj& o) -> nb::tuple {
         const std::size_t n = o.factors.size();
         if (n == 0) return nb::make_tuple();
+        if (n == 1 &&
+            o.factors.front().kind == dedekind::relational::Factor::Kind::Sum)
+          return nb::make_tuple(*o.factors.front().left,
+                                *o.factors.front().right);
         if (n == 1) return nb::make_tuple(factors[o.factors.front().sort]);
         Obj first, rest;
         first.factors.push_back(o.factors.front());
@@ -1388,6 +1517,42 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
        },
        nb::is_operator(), "A × B: the product universe, each column its sort."),
    ...);
+  // Across carriers, | is the sum and & its empty set (#1039).
+  (universes.def(
+       "__or__",
+       [](const Universes& a, nb::handle b) {
+         return across_or_not('|', nb::cast(a), b);
+       },
+       nb::is_operator()),
+   ...);
+  (universes.def(
+       "__and__",
+       [](const Universes& a, nb::handle b) {
+         return across_or_not('&', nb::cast(a), b);
+       },
+       nb::is_operator()),
+   ...);
+  nb::class_<Tagged>(m, "Tagged",
+                     "A point of a sum: inl(x) in the left summand, inr(y) in "
+                     "the right.")
+      .def("__repr__",
+           [](const Tagged& t) {
+             return std::string(t.tag == 1 ? "inl(" : "inr(") +
+                    nb::cast<std::string>(nb::repr(t.value)) + ")";
+           })
+      .def(
+          "__eq__",
+          [](const Tagged& a, const Tagged& b) {
+            return a.tag == b.tag && a.value.equal(b.value);
+          },
+          nb::is_operator());
+  m.def(
+      "inl", [](nb::object x) { return Tagged{1, std::move(x)}; }, nb::arg("x"),
+      "inl(x): x in the left summand of a sum (explicit: never inferred from "
+      "the Python type, since bool is an int).");
+  m.def(
+      "inr", [](nb::object y) { return Tagged{2, std::move(y)}; }, nb::arg("y"),
+      "inr(y): y in the right summand of a sum.");
 }
 
 /** @brief The sets a term cuts out of a canonical universe: the set
@@ -1496,6 +1661,18 @@ void bind_term_sets(nb::module_& m,
           },
           nb::is_operator())
       .def("__invert__", [](const S& a) { return U{} & a.predicate.negated(); })
+      .def(
+          "__or__",
+          [](const S& a, nb::handle b) {
+            return across_or_not('|', nb::cast(a), b);
+          },
+          nb::is_operator(), "S | T across carriers: the sum (#1039).")
+      .def(
+          "__and__",
+          [](const S& a, nb::handle b) {
+            return across_or_not('&', nb::cast(a), b);
+          },
+          nb::is_operator(), "S & T across carriers: the empty set of the sum.")
       .def("__eq__", set_equal<C, S>, nb::is_operator(),
            "A == B: equality in the free algebra the carrier's laws give the "
            "term.  A chain's run lists decide it; otherwise the normal forms "
@@ -1859,7 +2036,13 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
        {"__or__", "__and__", "__xor__", "__eq__", "__ne__", "__le__", "__ge__"})
     ch.def(
         op,
-        [op](const Ch&, nb::handle other) {
+        [op](const Ch& self, nb::handle other) -> nb::object {
+          // Across carriers, | is the sum and & its empty set (#1039).
+          const std::string_view o{op};
+          if (o == "__or__" || o == "__and__")
+            if (std::optional<Relation> s =
+                    across(o == "__or__" ? '|' : '&', nb::cast(self), other))
+              return nb::cast(*s);
           return full_universe<C>().attr(op)(other);
         },
         nb::is_operator());

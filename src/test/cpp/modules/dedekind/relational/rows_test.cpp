@@ -31,7 +31,7 @@ using dedekind::relational::merge;
 using dedekind::relational::Object;
 using dedekind::relational::proj;
 using dedekind::relational::RelExpr;
-using dedekind::relational::split;
+using dedekind::relational::table;
 using dedekind::relational::verdict;
 
 namespace {
@@ -105,7 +105,7 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
     CHECK(verdict(converse(sc), row) ==
           verdict(converse(cube) >> converse(square), row));
   // A projection is composition with π: the domain of succ.
-  const Re table = split(succ, 0);  // () ⇸ word × word
+  const Re table = table(succ);  // () ⇸ word × word
   const Re dom = table >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(dom.dom.factors.empty());
   CHECK(dom.cod == W);
@@ -129,7 +129,7 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
   narrow.budget = 1;  // b = 0 only
   CHECK(verdict(narrow, R{{4u, 8u}}) == Ternary::Unknown);
   // ∃c ∀b: a search under a search is not made; U.
-  const Re alt = split(nsc, 0) >> proj<int, unsigned, bool>({word, word}, {1});
+  const Re alt = table(nsc) >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(verdict(alt, R{{4u}}) == Ternary::Unknown);
 }
 
@@ -185,4 +185,24 @@ TEST_CASE("relational:rows: an object is a product in normal form (#1039)",
   CHECK(A * B == Object{word, flag});
   CHECK(columns(C) == dedekind::relational::Columns{word, flag});
   CHECK((succ * square).dom == A * A);  // the tensor's objects are products
+}
+
+TEST_CASE("relational:rows: the sum of two tables; table and arrow (#1039)",
+          "[relational][rows][sums]") {
+  namespace rel = dedekind::relational;
+  const Object S = rel::sum(W, Object{flag}, flag);
+  // A sum lays out its tag, then the left summand's columns, then the right's.
+  CHECK(rel::columns(S) == rel::Columns{flag, word, flag});
+  CHECK(S == rel::sum(W, Object{flag}, flag));        // deep equality
+  CHECK_FALSE(S == rel::sum(Object{flag}, W, flag));  // the order of summands
+  const Re s = rel::sum(Re::universe({}, W), Re::universe({}, {flag}));
+  CHECK(s.kind == Re::Kind::Sum);
+  CHECK(s.cod == S);
+  CHECK(classifier(s).kind == Q::Kind::Or);  // the copairing on the tag
+  CHECK_THROWS_AS(rel::sum(succ, succ), not_admitted);  // tables only, for now
+  // table and arrow move whole factors: Rel's compact-closed iso.
+  CHECK(rel::table(succ).dom == Object{});
+  CHECK(rel::table(succ).cod == W * W);
+  CHECK(rel::arrow(rel::table(succ)).dom == W);
+  CHECK(rel::arrow(rel::table(succ)).cod == W);
 }

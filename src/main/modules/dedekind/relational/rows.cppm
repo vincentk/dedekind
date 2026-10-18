@@ -58,10 +58,12 @@
  */
 module;
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 export module dedekind.relational:rows;
@@ -74,11 +76,22 @@ namespace dedekind::relational {
 /** @brief The sorts of a row, one per column. */
 export using Columns = std::vector<std::size_t>;
 
-/** @brief A factor of an object: a carrier, the leaf, its sort the column's.
- *  (A sum @f$X + Y@f$ of two objects is the other factor, #1039.) */
+export struct Object;
+inline bool same_object(const Object& a, const Object& b);
+/** @brief A factor of an object: a carrier (a leaf, its sort the column's), or
+ *  the sum @f$X + Y@f$ of two objects (#1039).  A sum lays out a tag column
+ *  (𝔹: which summand), then the left summand's columns, then the right's; a
+ *  row reads only the active side, so every column keeps one carrier. */
 export struct Factor {
-  std::size_t sort{};
-  friend bool operator==(const Factor&, const Factor&) = default;
+  enum class Kind { Leaf, Sum };
+  Kind kind{Kind::Leaf};
+  std::size_t sort{};  // a leaf's carrier; a sum's tag column (𝔹)
+  std::shared_ptr<const Object> left, right;  // a sum's summands
+  friend bool operator==(const Factor& a, const Factor& b) {
+    if (a.kind != b.kind || a.sort != b.sort) return false;
+    return a.kind == Kind::Leaf ||
+           (same_object(*a.left, *b.left) && same_object(*a.right, *b.right));
+  }
 };
 
 /** @brief An object: a product of factors in @b normal @b form, a list.  The
@@ -100,10 +113,33 @@ export struct Object {
   friend bool operator==(const Object&, const Object&) = default;
 };
 
-/** @brief The columns of an object: its factors' sorts, in order. */
+inline bool same_object(const Object& a, const Object& b) { return a == b; }
+/** @brief The columns of an object: per factor, a leaf's sort; a sum's tag,
+ *  then its left summand's columns, then its right's. */
+inline void append_columns(const Object& o, Columns& out) {
+  for (const Factor& f : o.factors) {
+    out.push_back(f.sort);
+    if (f.kind == Factor::Kind::Sum) {
+      append_columns(*f.left, out);
+      append_columns(*f.right, out);
+    }
+  }
+}
 export inline Columns columns(const Object& o) {
   Columns out;
-  for (const Factor& f : o.factors) out.push_back(f.sort);
+  append_columns(o, out);
+  return out;
+}
+/** @brief The object @f$X + Y@f$: one sum factor, its tag column of sort
+ *  @c tag (the 𝔹 carrier's).  @param x, y the summands. */
+export inline Object sum(const Object& x, const Object& y, std::size_t tag) {
+  Factor f;
+  f.kind = Factor::Kind::Sum;
+  f.sort = tag;
+  f.left = std::make_shared<const Object>(x);
+  f.right = std::make_shared<const Object>(y);
+  Object out;
+  out.factors.push_back(std::move(f));
   return out;
 }
 /** @brief The product @f$A \times B@f$: the factors side by side (the normal
@@ -131,7 +167,8 @@ struct RelExpr {
     Not,
     Converse,
     Tensor,
-    Compose
+    Compose,
+    Sum
   };
 
   Kind kind{Kind::Universe};
@@ -256,20 +293,71 @@ RelExpr<K, Cs...> operator>>(const RelExpr<K, Cs...>& a,
     throw dedekind::sets::not_admitted("R >> S: R's codomain is S's domain");
   return R::binary(R::Kind::Compose, a, b, a.dom, b.cod);
 }
-/** @brief The same relation with its columns split at @c k: the first @c k
- *  the domain, the rest the codomain.  A table @f$() \rightsquigarrow A_1
- *  \times \dots \times A_n@f$ read as the arrow of its first @c n − 1
- *  columns, say.  The reading is unchanged; only @c >>, @c * and @c converse
- *  see the split. */
+/** @brief @f$A \rightsquigarrow B@f$ read as the table @f$1
+ *  \rightsquigarrow A \times B@f$: every factor moved to the codomain.  Rel
+ *  is compact closed, @f$A \times B \rightsquigarrow C \cong A
+ *  \rightsquigarrow B \times C@f$, so the rows are the same; only @c >>,
+ *  @c * and @c converse see where the factors sit.  Whole factors move: a
+ *  sum's columns stay together. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> split(const RelExpr<K, Cs...>& r, unsigned k) {
-  if (k > r.arity())
-    throw dedekind::sets::not_admitted("split(R, k): k at most the arity");
+RelExpr<K, Cs...> table(const RelExpr<K, Cs...>& r) {
   RelExpr<K, Cs...> out = r;
-  const Columns all = r.columns();
-  out.dom = Object(Columns(all.begin(), all.begin() + k));
-  out.cod = Object(Columns(all.begin() + k, all.end()));
+  out.cod = r.dom * r.cod;
+  out.dom = Object{};
   return out;
+}
+/** @brief A relation read as the arrow of all its factors but the last (the
+ *  @c Function[A, …, B] convention): @f$1 \rightsquigarrow A_1 \times \dots
+ *  \times A_n@f$ as @f$A_1 \times \dots \times A_{n-1} \rightsquigarrow
+ *  A_n@f$.  The same compact-closed iso as @c table, the other way. */
+export template <typename K, typename... Cs>
+RelExpr<K, Cs...> arrow(const RelExpr<K, Cs...>& r) {
+  const Object all = r.dom * r.cod;
+  if (all.factors.empty())
+    throw dedekind::sets::not_admitted("arrow(R): R has no factor");
+  RelExpr<K, Cs...> out = r;
+  out.dom.factors.assign(all.factors.begin(), all.factors.end() - 1);
+  out.cod.factors.assign(all.factors.end() - 1, all.factors.end());
+  return out;
+}
+
+// ── The sum of two tables (#1039) ───────────────────────────────────────────
+
+namespace detail_rows {
+/** @brief The truth value @c b as a constant of the grammar: @c K(b) where
+ *  @c K is built from @c bool, else the constant type's own hook beside it
+ *  (@c truth_constant, found by argument-dependent lookup). */
+template <typename K>
+K truth(bool b) {
+  if constexpr (std::constructible_from<K, bool>)
+    return K(b);
+  else
+    return truth_constant(std::type_identity<K>{}, b);
+}
+/** @brief The sort of the 𝔹 carrier among the columns' carriers: a sum's tag.
+ */
+template <typename... Cs>
+constexpr std::size_t tag_sort() {
+  constexpr bool is_bool[] = {std::same_as<Cs, bool>...};
+  for (std::size_t i = 0; i < sizeof...(Cs); ++i)
+    if (is_bool[i]) return i;
+  return sizeof...(Cs);
+}
+}  // namespace detail_rows
+
+/** @brief @f$A + B@f$: the sum of two tables (sets), a table over the object
+ *  @f$X + Y@f$, its χ the copairing @f$[\chi_A, \chi_B]@f$ on the tag.
+ *  @throws not_admitted for a relation with a domain (a sum of arrows is
+ *  not taken yet). */
+export template <typename K, typename... Cs>
+RelExpr<K, Cs...> sum(const RelExpr<K, Cs...>& a, const RelExpr<K, Cs...>& b) {
+  using R = RelExpr<K, Cs...>;
+  static_assert(detail_rows::tag_sort<Cs...>() < sizeof...(Cs),
+                "a sum's tag is a 𝔹 column: bool among the carriers");
+  if (!a.dom.factors.empty() || !b.dom.factors.empty())
+    throw dedekind::sets::not_admitted("A + B: the sum of two tables (sets)");
+  return R::binary(R::Kind::Sum, a, b, Object{},
+                   sum(a.cod, b.cod, detail_rows::tag_sort<Cs...>()));
 }
 
 // ── The named relations: η and the Frobenius spiders ────────────────────────
@@ -422,6 +510,24 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
           Map{d(y), y.arity(), static_cast<int>(d(x)),
               static_cast<int>(d(x) + c(x)), static_cast<int>(x.arity())});
       return detail_rows::conjoined(pa, pb);
+    }
+    case R::Kind::Sum: {
+      // Columns: the tag, then x's, then y's; each leg's bound slots past
+      // the sum's width.  χ is the copairing on the tag.
+      using T = dedekind::sets::Term<K>;
+      const R& x = *r.a;
+      const R& y = *r.b;
+      const unsigned nx = x.arity(), ny = y.arity();
+      const P px =
+          classifier(x).map_slots(Map{0, nx, 0, 1, static_cast<int>(1 + ny)});
+      const P py = classifier(y).map_slots(
+          Map{0, ny, 0, static_cast<int>(1 + nx), static_cast<int>(1 + nx)});
+      const P left = P::cmp(dedekind::sets::Rel::Eq, T::proj(1),
+                            T::constant(detail_rows::truth<K>(false)));
+      const P right = P::cmp(dedekind::sets::Rel::Eq, T::proj(1),
+                             T::constant(detail_rows::truth<K>(true)));
+      return P::disj(detail_rows::conjoined(left, px),
+                     detail_rows::conjoined(right, py));
     }
     case R::Kind::Compose: {
       // Columns: dom a, cod b; the middle (cod a = dom b, m columns) bound at
