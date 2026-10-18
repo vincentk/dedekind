@@ -16,7 +16,8 @@
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
  *                            heterogeneous -> Unknown via Kleene).
- *  - cartesian_product    -- A x B as a Set of pairs.
+ *  - the expressions across carriers (A × B, A + B, the ℕ / ℤ widening) are
+ *    @c :heterogeneous.
  *  - Relation, SetFunction -- subobjects of products.
  *  - relates, is_single_valued_at -- point-wise witnesses.
  *  - power_set / 𝔓         -- default (deleted) gate here; the ordered/convex
@@ -417,138 +418,6 @@ constexpr auto lift_to(const S& s) {
 // @c !! peel / @c are_complement_sets_v collapse all fold into the reducer's
 // complement laws (#834 / #829 / #946).
 
-// ---------------------------------------------------------------------------
-// Cross-carrier meet on the variant pair (existential proof, slice of #362)
-// ---------------------------------------------------------------------------
-//
-// When two sets are intersected and their carriers are related by the
-// canonical embedding ℕ ↪ ℤ, the result's carrier should be the @b
-// tighter of the two — the library picks the pullback along the
-// embedding.  Mathematically:
-//
-//   A ⊂ ℕ,  B ⊂ ℤ,  ℕ ↪ ℤ
-//   ⇒  A ∩ B ⊂ ℕ  (not ⊂ ℤ).
-//
-// This is the @b carrier @b strength-reduction rule: the carrier
-// "lattice" (ℕ < ℤ < ℚ < ℝ < ℂ) drives the resulting carrier of binary
-// set operations.  #362 tracks the @b general framework (any pair in
-// the lattice); the overloads below land the @b existential @b proof
-// for the variant pair (Cardinality, SignedCardinality), which is the
-// load-bearing case for Paper 3's type-directed-collapse story.
-//
-// The result predicate evaluates @c lhs(v) @c && @c rhs(lift(v)) where
-// @c v has the smaller carrier's type and @c lift is the exported
-// @c lift_cardinality_to_signed from @c :cardinality (the single
-// source of truth for the variant-level ℕ ↪ ℤ embedding; reachable
-// here because @c :expressions imports @c :cardinality).
-//
-// Future iterations under #362 will replace this hand-coded pair with
-// a @c carrier_lattice_meet_t<T1, T2> trait and a generic overload
-// that dispatches across the full lattice.  See
-// @c docs/design/carrier-lattice.md for the design discussion.
-
-/** @brief The two carriers of the one cross-carrier pair the library ships,
- *  ℕ ↪ ℤ on the variant proxies: @c A is a set object over @c Cardinality,
- *  @c B one over @c SignedCardinality, in the same species.  Any set object
- *  qualifies (a halfspace, a comprehension, a node): only χ is read. */
-template <typename A, typename B>
-concept NatZedPair =
-    IsSetObject<A> && IsSetObject<B> &&
-    std::same_as<typename A::Domain, Cardinality> &&
-    std::same_as<typename B::Domain, SignedCardinality> &&
-    std::same_as<typename A::logic_species, typename B::logic_species>;
-
-/** @brief Cross-carrier meet: a set over ℕ @c & a set over ℤ @c → a set over
- *  ℕ (carrier strength-reduction; closes a slice of #362).  The intersection
- *  is contained in ℕ, so the result carrier is @c Cardinality. */
-export template <typename A, typename B>
-  requires NatZedPair<A, B>
-constexpr auto operator&(const A& lhs, const B& rhs) {
-  using L = typename A::logic_species;
-  auto predicate = [lhs, rhs](const Cardinality& v) {
-    return L::AND(lhs(v), rhs(lift_cardinality_to_signed(v)));
-  };
-  return Comprehension<𝔸<Cardinality, L>, decltype(predicate)>{predicate};
-}
-
-/** @brief Symmetric: a set over ℤ @c & a set over ℕ delegates to the
- *  canonical direction; the result still tightens to ℕ. */
-export template <typename A, typename B>
-  requires NatZedPair<B, A>
-constexpr auto operator&(const A& lhs, const B& rhs) {
-  return rhs & lhs;
-}
-
-namespace detail {
-/** @brief Helpers for the partial inverse of @c
- *         lift_cardinality_to_signed (the canonical ℕ ↪ ℤ embedding).
- *
- *  @c sc_is_in_natural_image(v) returns whether @c v lies in the
- *  image of ℕ inside @c SignedCardinality — equivalently, whether
- *  @c v is neither negative finite, @c -ℵ_0, nor @c NaZ.  When that
- *  predicate holds, @c project_signed_to_natural(v) projects @c v
- *  back to @c Cardinality.  Calling @c project_signed_to_natural on
- *  values outside the image violates its precondition.
- *
- *  This is the operational shadow of "ℕ ⊂ ℤ as a partial reverse":
- *  the injection ℕ ↪ ℤ has a partial inverse on the non-negative
- *  fragment of ℤ.  @c std::optional is intentionally not used here —
- *  the predicate-then-project split keeps the cross-carrier @c
- *  operator| below in pure @c constexpr-friendly territory and lets
- *  the predicate be reused on the @c Set's branching choice. */
-constexpr bool sc_is_negative_finite(const SignedCardinality& v) noexcept {
-  if (!std::holds_alternative<SignedExtensionalCardinal<>>(v)) return false;
-  return std::get<SignedExtensionalCardinal<>>(v).negative();
-}
-
-constexpr bool sc_is_in_natural_image(const SignedCardinality& v) noexcept {
-  if (std::holds_alternative<NaZ>(v)) return false;
-  if (std::holds_alternative<NegativeInfinity>(v)) return false;
-  if (sc_is_negative_finite(v)) return false;
-  return true;
-}
-
-constexpr Cardinality project_signed_to_natural(
-    const SignedCardinality& v) noexcept {
-  // Pre: sc_is_in_natural_image(v) holds.
-  if (std::holds_alternative<PositiveInfinity>(v)) {
-    return Cardinality{ℵ_0{}};
-  }
-  return Cardinality{std::get<SignedExtensionalCardinal<>>(v).magnitude()};
-}
-}  // namespace detail
-
-/** @brief Cross-carrier join: a set over ℕ @c | a set over ℤ @c → a set over
- *  ℤ (carrier widening; closes a slice of #362).  The union may contain
- *  negative integers from the @c rhs side, so the result carrier widens to ℤ.
- *
- *  Membership for @c v @c : @c ℤ:
- *    * If @c v lives in the image of ℕ ↪ ℤ (non-negative, not @c NaZ,
- *      not @c -ℵ_0), evaluate @c lhs on the projected ℕ value and OR
- *      with @c rhs(v).
- *    * Otherwise @c v is not in ℕ, so @c lhs(v) is structurally @c
- *      false; the union reduces to @c rhs(v). */
-export template <typename A, typename B>
-  requires NatZedPair<A, B>
-constexpr auto operator|(const A& lhs, const B& rhs) {
-  using L = typename A::logic_species;
-  auto predicate = [lhs, rhs](const SignedCardinality& v) {
-    if (detail::sc_is_in_natural_image(v)) {
-      return L::OR(lhs(detail::project_signed_to_natural(v)), rhs(v));
-    }
-    return rhs(v);
-  };
-  return Comprehension<𝔸<SignedCardinality, L>, decltype(predicate)>{predicate};
-}
-
-/** @brief Symmetric: a set over ℤ @c | a set over ℕ delegates to the
- *  canonical direction; the result still widens to ℤ. */
-export template <typename A, typename B>
-  requires NatZedPair<B, A>
-constexpr auto operator|(const A& lhs, const B& rhs) {
-  return rhs | lhs;
-}
-
 /** @section expressions__Reducer_Leaf_Combiner
  *
  *  The set meet / join route through the generic lattice-law term reducer
@@ -807,6 +676,81 @@ constexpr auto operator~(const P& p) {
     return dedekind::category::Not<D>{p};
   }
 }
+
+/** @brief The complement as an @b arrow on the object @f$\mathrm{Sub}(T, L)@f$
+ *  (@c Subobjects, @c :boundaries), @f$S \mapsto \neg S@f$: an endomorphism,
+ * its domain and codomain the one object, presented by every set object over
+ *  @c T in @c L.  It is an involution by the reducer's own law
+ *  @f$\neg\neg A \to A@f$: @c operator~ peels the node, so @c ~~s @b is @c s,
+ *  by type, for every presentation @c s; the certificate reads that law at the
+ *  representative.  The first arrow on sets @c category::IsInvolution admits:
+ *  the concept quantifies over the object, not over one value type
+ *  (@c morphism__Objects_And_Their_Presentations).
+ *  @tparam T the carrier.  @tparam L the logic species. */
+export template <typename T, IsOckhamAlgebra L = Boole>
+struct Complement {
+  using Domain = Subobjects<T, L>;
+  using Codomain = Subobjects<T, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Subobjects<T, L>>
+  constexpr auto operator()(const S& s) const {
+    return ~s;
+  }
+  /** @brief @f$\neg\neg = \mathrm{id}@f$, read off the reducer at the
+   *  universe: @c ~~𝔸 is @c 𝔸 by type. */
+  template <typename X>
+  static constexpr bool is_involutive_v =
+      std::same_as<X, Subobjects<T, L>> &&
+      std::same_as<
+          std::remove_cvref_t<decltype(~~std::declval<const 𝔸<T, L>&>())>,
+          𝔸<T, L>>;
+};
+}  // namespace dedekind::sets
+namespace dedekind::category {
+/** @brief The complement reverses inclusion: @f$a \subseteq b \Rightarrow
+ *  \neg b \subseteq \neg a@f$, for every carrier and logic. */
+template <typename T, typename L>
+struct is_antimonotone<dedekind::sets::Complement<T, L>, std::less_equal<>>
+    : std::true_type {};
+/** @brief The complement is its own antitone adjoint, @f$a \subseteq \neg b
+ *  \iff b \subseteq \neg a@f$: the De Morgan algebra @f$\mathrm{Sub}(T, L)@f$
+ *  as a Galois connection, for every carrier and logic. */
+template <typename T, typename L>
+struct is_adjoint<dedekind::sets::Complement<T, L>,
+                  dedekind::sets::Complement<T, L>, std::less_equal<>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::sets {
+namespace detail_complement_witness {
+inline constexpr auto three = 𝔸<int>{} & (π == 3);
+static_assert(dedekind::category::IsInvolution<Complement<int>> &&
+                  dedekind::category::IsInvolution<Complement<int, Kleene>>,
+              "the complement is an involution on Sub(int): an arrow on an "
+              "object presented by many types, through IsInvolution itself");
+static_assert(dedekind::category::IsContravariantFunctor<Complement<int>> &&
+                  dedekind::category::IsGaloisConnection<Complement<int>,
+                                                         Complement<int>>,
+              "the complement reverses inclusion and is its own adjoint: "
+              "a ⊆ ¬b ⟺ b ⊆ ¬a, the De Morgan algebra Sub(int) categorically");
+static_assert(
+    std::same_as<std::remove_cvref_t<
+                     decltype(Complement<int>{}(Complement<int>{}(three)))>,
+                 std::remove_cvref_t<decltype(three)>> &&
+        !Complement<int>{}(three)(3) && Complement<int>{}(three)(4),
+    "at a comprehension: ~~s is s by type, ~s the complement at points");
+// The identity on the object composes with the arrows on it, both ways.
+static_assert(
+    IsArrow<Identity<Subobjects<int>>> &&
+        std::same_as<
+            std::remove_cvref_t<decltype(Compose<Identity<Subobjects<int>>,
+                                                 Complement<int>>{}(three))>,
+            std::remove_cvref_t<decltype(Complement<int>{}(three))>> &&
+        std::same_as<std::remove_cvref_t<
+                         decltype(Compose<Complement<int>,
+                                          Identity<Subobjects<int>>>{}(three))>,
+                     std::remove_cvref_t<decltype(Complement<int>{}(three))>>,
+    "id ∘ ¬ = ¬ = ¬ ∘ id on Sub(int)");
+}  // namespace detail_complement_witness
 
 /** @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469), a FREE
  *  combinator over @c IsSubobject (like @c & / @c | / @c ~), so it composes
@@ -1384,197 +1328,6 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
 }  // namespace dedekind::sets
 
 namespace dedekind::sets {
-
-/**
- * @brief Membership predicate of a Cartesian product: @f$(x,y)\in A\times B
- *        \iff x\in A \wedge y\in B@f$.
- *
- * @details A @b named functor (not a capturing lambda), so a product @c Set
- * carries a structural, comparable predicate type rather than an opaque closure
- * (#844, [[feedback_no_lambdas_opacity]]).  It stores the two component @c Set
- * operands and evaluates each on its projection, going through @c
- * Set::operator() so the logic lift is preserved.  Mirrors the @c
- * dedekind::relational::RelAnd shape, which already ships as a @c Set<pair>
- * predicate across translation units.
- */
-export template <typename A, typename B>
-struct ProductMembership {
-  A a;
-  B b;
-  /** @brief The product's species: the join of the factors'.  Each factor's
-   *  answer is lifted into it and the conjunction is that species' @c AND, so
-   *  a Kleene factor keeps @c Unknown and a @c Chain<int> factor keeps its
-   *  grade (the carrier's own @c && would collapse both to @c bool). */
-  using logic_species =
-      join_logic_t<typename A::logic_species, typename B::logic_species>;
-  template <typename P>
-  constexpr typename logic_species::Ω operator()(const P& p) const {
-    using L = logic_species;
-    return L::AND(dedekind::category::lift_logic<L>(a(p.first)),
-                  dedekind::category::lift_logic<L>(b(p.second)));
-  }
-};
-
-// The cartesian-product cardinality is the JOIN of the factors on the lattice
-// Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
-// factors, Finite only when both are finite.  The primary is left INCOMPLETE
-// (no @c type): a cardinality pair outside the known lattice (Finite / ℵ<N>) is
-// HONESTLY REJECTED at compile time rather than silently downgraded to ℵ_0 ---
-// a blanket fallback would misclassify e.g. a custom uncountable tag × Finite
-// as countable.
-template <typename CA, typename CB>
-struct product_cardinality;
-template <>
-struct product_cardinality<Finite, Finite> {
-  using type = Finite;
-};
-template <std::size_t N>
-struct product_cardinality<Finite, ℵ<N>> {
-  using type = ℵ<N>;
-};
-template <std::size_t N>
-struct product_cardinality<ℵ<N>, Finite> {
-  using type = ℵ<N>;
-};
-template <std::size_t M, std::size_t N>
-struct product_cardinality<ℵ<M>, ℵ<N>> {
-  using type = ℵ<(M > N ? M : N)>;
-};
-
-/**
- * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
- *
- * Constructs a comprehension over 𝔸<pair<T1,T2>> whose membership
- * predicate checks element-wise membership in both component sets.
- */
-export template <typename T1, typename L1, typename P1, typename T2,
-                 typename L2, typename P2, typename C1, typename C2>
-  requires dedekind::category::HaveLogicJoin<
-      typename Comprehension<𝔸<T1, L1, C1>, P1>::logic_species,
-      typename Comprehension<𝔸<T2, L2, C2>, P2>::logic_species>
-constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
-                                 const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
-  // Dispatch and reconcile on the factors' EFFECTIVE species (a comprehension
-  // may answer above its base's tag); the product lives in their join.
-  using Pair = std::pair<T1, T2>;
-  using Pred = ProductMembership<Comprehension<𝔸<T1, L1, C1>, P1>,
-                                 Comprehension<𝔸<T2, L2, C2>, P2>>;
-  using CC = typename product_cardinality<C1, C2>::type;
-  return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
-      Pred{a, b}};
-}
-
-/** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
- *  product of two universes is the universe over the pair carrier, in the
- *  join of the factors' species. */
-export template <typename A, typename LA, typename CA, typename B, typename LB,
-                 typename CB>
-  requires dedekind::category::HaveLogicJoin<LA, LB>
-constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
-  using CC = typename product_cardinality<CA, CB>::type;
-  return finalize_combine(𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{});
-}
-
-/** @brief A set object as a PLAIN set over its universe: itself when it already
- *  is one (@c PlainSet), else @c {x ∈ universe(s) | s(x)} --- the comprehension
- *  whose species is the join of the universe's and the operand's answer.  The
- *  normalisation the generic product and its species reconciliation rest on. */
-template <IsSetObject S>
-constexpr auto plain_over_universe(const S& s) {
-  if constexpr (PlainSet<S>) {
-    return s;
-  } else {
-    return Comprehension{universe(s), s};
-  }
-}
-
-/**
- * @brief Cartesian product over arbitrary set objects.
- *
- * Normalises each operand to a plain set over its universe and delegates to
- * the plain × plain product, which reconciles the species at their join.
- */
-export template <IsSetObject A, IsSetObject B>
-constexpr auto cartesian_product(const A& a, const B& b) {
-  // Normalise BOTH operands to plain sets over their universes; this is what
-  // TERMINATES the generic dispatch (the plain × plain overload matches).  The
-  // species are reconciled there, at their join: ProductMembership lifts each
-  // factor's answer into it.
-  return cartesian_product(plain_over_universe(a), plain_over_universe(b));
-}
-
-/**
- * @brief The @b universal set of products: @f$\mathbb{A}_A \times \mathbb{A}_B
- * =
- *        \mathbb{A}_{A\times B}@f$, spelled as the universe over the product
- *        carrier (@c IsProduct).
- *
- * @details Two @b total factors carry no restriction to lift, so the product
- * @b is the pure product universe @c 𝔸<pair<A,B>> --- not a refinement of it.
- * This is the base case of the cylinder decomposition @f$A\times B =
- * \pi_1^{-1}(A)\cap\pi_2^{-1}(B)@f$: with @c A, @c B universal both cylinders
- * are the whole universe, so their intersection is too.  A @b restricted
- * factor instead lifts its predicate onto its axis (@c dedekind.order:
- * @c π_I over a halfspace), refining this universe into a proper subobject.
- * The old melting form (@c pa(first) @c && @c pb(second) captured in an
- * anonymous closure) discarded the factor structure; keeping the universe
- * explicit lets @c dom / @c cod read the factors back.
- */
-export template <typename A, typename LA, typename CA, typename B, typename LB,
-                 typename CB>
-  requires std::same_as<LA, LB>
-constexpr auto operator*(const 𝔸<A, LA, CA>& a, const 𝔸<B, LB, CB>& b) {
-  return cartesian_product(a, b);
-}
-
-/** @brief Infix sugar for cartesian product over sets. */
-export template <typename T1, typename L1, typename P1, typename T2,
-                 typename L2, typename P2, typename C1, typename C2>
-  requires std::same_as<L1, L2>
-constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
-                         const Comprehension<𝔸<T2, L2, C2>, P2>& b) {
-  return cartesian_product(a, b);
-}
-
-/** @brief Infix sugar for cartesian product over ambient species values. */
-export template <IsSetObject A, IsSetObject B>
-constexpr auto operator*(const A& a, const B& b) {
-  return cartesian_product(a, b);
-}
-
-using CanonicalIntSet = 𝔸<int>;
-using CanonicalIntProductSet =
-    decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
-                               std::declval<const CanonicalIntSet&>()));
-using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
-
-static_assert(
-    dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
-    "sets::cartesian_product must expose a std::pair product domain.");
-// The product of two set objects is a set object (today's witness) ...
-static_assert(IsSetObject<CanonicalIntProductSet>,
-              "A × B is a set object over the pair carrier.");
-// Mixed-species nodes: the complement of a Boole universe and of a Kleene one
-// (the continuum universes carry Kleene); the product reconciles at the join
-// (Kleene) instead of re-entering the generic overload.
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(cartesian_product(
-                     Not<𝔸<int>>{𝔸<int>{}},
-                     Not<𝔸<double, Kleene, ℶ_1>>{
-                         𝔸<double, Kleene, ℶ_1>{}}))>::logic_species,
-                 Kleene>,
-    "a Boole × Kleene product lands in the join species.");
-static_assert(cartesian_product(Not<𝔸<int>>{𝔸<int>{}},
-                                Not<𝔸<double, Kleene, ℶ_1>>{
-                                    𝔸<double, Kleene, ℶ_1>{}})(std::pair{
-                  0, 0.0}) == Ternary::False,
-              "(0, 0.0) ∉ ¬𝔸 × ¬𝔸: both complements are empty.");
-// FIXME(#970): ... and SHOULD be the categorical product OF THE FACTORS, not
-// only of their carriers: `IsProduct<decltype(A * B), A, B, MakeCartesian>`,
-// with π_1 / π_2 on the product SET returning the factor set objects (the
-// legs already ride in ProductMembership::a / ::b; the 𝔸 × 𝔸 overload drops
-// them) and the factors constrained IsSetObject.  Today only the carrier-level
-// IsProduct above holds.  Lands with the IsSetObject MUST slice.
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the
 // @c IsRelation concept, and the @c relates / @c dom / @c cod / @c apply /

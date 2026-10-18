@@ -59,7 +59,8 @@ import dedekind.category;
 import :cardinality;
 import :boundaries;
 import :expressions;
-import :terms;  // the equality atom π == v
+import :heterogeneous;  // the product, for the witness below
+import :terms;          // the equality atom π == v
 
 /**
  * @section singleton__Mereology
@@ -203,6 +204,35 @@ constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, Point<T1>>& a,
   return Singleton<std::pair<T1, T2>, L1>{
       std::pair{a.predicate.pivot, b.predicate.pivot}};
 }
+
+/** @brief The legs of a point of a pair, @f$\{(a, b)\} = \{a\} \times
+ *  \{b\}@f$: the product of two points collapses to this point, and its
+ *  projections are the two points again (#970).  @param s the point of the
+ *  pair.  @return the point of the first / second coordinate. */
+export template <typename A, typename B, typename L, typename C>
+constexpr auto component(
+    const Comprehension<𝔸<std::pair<A, B>, L, C>, Point<std::pair<A, B>>>& s,
+    dedekind::category::At<1>) {
+  return 𝔸<A, L>{} & Point<A>{s.predicate.pivot.first};
+}
+export template <typename A, typename B, typename L, typename C>
+constexpr auto component(
+    const Comprehension<𝔸<std::pair<A, B>, L, C>, Point<std::pair<A, B>>>& s,
+    dedekind::category::At<2>) {
+  return 𝔸<B, L>{} & Point<B>{s.predicate.pivot.second};
+}
+// The product of two points is the point of the pair, and still their
+// product: π_k give the points back (#970).
+static_assert(dedekind::category::IsProduct<
+                  std::remove_cvref_t<decltype((𝔸<bool>{} & (π == true)) *
+                                               (𝔸<bool>{} & (π == false)))>,
+                  std::remove_cvref_t<decltype(𝔸<bool>{} & (π == true))>,
+                  std::remove_cvref_t<decltype(𝔸<bool>{} & (π == false))>> &&
+                  dedekind::category::π_1((𝔸<bool>{} & (π == true)) *
+                                          (𝔸<bool>{} & (π == false)))(true) &&
+                  !dedekind::category::π_2((𝔸<bool>{} & (π == true)) *
+                                           (𝔸<bool>{} & (π == false)))(true),
+              "{a} × {b} = {(a, b)}, its projections {a} and {b}");
 
 static_assert(IsSet<Singleton<int>>, "A singleton must be a set.");
 

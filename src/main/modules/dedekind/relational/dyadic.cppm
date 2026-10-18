@@ -486,9 +486,14 @@ export template <typename S>
 struct CoreflexivePred {
   using is_rel_predicate = void;
   S s;
+  /** @brief @f$x = y \wedge x \in S@f$ in the set's own logic: a Kleene
+   *  @c S keeps @c Unknown and @c False (a @c bool cast would read
+   *  @c Ternary::False, @c -1, as true). */
   template <typename A>
-  constexpr bool operator()(const std::pair<A, A>& p) const {
-    return p.first == p.second && static_cast<bool>(s(p.first));
+  constexpr auto operator()(const std::pair<A, A>& p) const {
+    using L = typename S::logic_species;
+    return L::AND(dedekind::category::lift_logic<L>(p.first == p.second),
+                  dedekind::category::lift_logic<L>(s(p.first)));
   }
 };
 

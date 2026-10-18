@@ -468,6 +468,37 @@ static_assert(
     dedekind::category::IsProduct<𝔸<std::pair<int, bool>>, 𝔸<int>, 𝔸<bool>>,
     "the universe of a pair carrier is the product of the factor universes.");
 
+/** @brief The subobjects of a carrier in a logic, @f$\mathrm{Sub}(T, L)@f$
+ *  (@f$\mathrm{Sub}(\mathbb{A}_T)@f$, @f$\chi@f$ valued in @c L), as an
+ *  @b object: the domain or codomain of an arrow on sets --- the complement,
+ *  the pushforward along an injection.  No one type is this object: every set
+ *  object over the carrier in that logic presents it (the expression grammar is
+ *  a type-indexed family: @c 𝔸, a comprehension, a @c Meet / @c Join / @c Not
+ *  node), and the universe, its top, is the representative, so
+ *  @c category::IsArrow checks an arrow on sets at the universe and asks the
+ *  result to be a set object over it
+ *  (@c morphism__Objects_And_Their_Presentations).  A universe's cardinality
+ *  class is a bound, not part of the object.
+ *  @tparam T the carrier.  @tparam L the logic species. */
+export template <typename T, IsOckhamAlgebra L = Boole>
+struct Subobjects {
+  using archetype = 𝔸<T, L>;
+  template <typename S>
+  static constexpr bool presents = requires {
+    requires IsSetObject<S>;
+    requires std::same_as<typename S::Domain, T>;
+    requires std::same_as<typename S::logic_species, L>;
+  };
+};
+static_assert(
+    dedekind::category::Presents<𝔸<int>, Subobjects<int>> &&
+        dedekind::category::Presents<Ø<int>, Subobjects<int>> &&
+        !dedekind::category::Presents<𝔸<int, Kleene>, Subobjects<int>> &&
+        !dedekind::category::Presents<int, Subobjects<int>> &&
+        std::same_as<dedekind::category::archetype_t<Subobjects<int>>, 𝔸<int>>,
+    "Sub(int) is presented by the set objects over int in 𝔹, the "
+    "universe its representative");
+
 }  // namespace dedekind::sets
 
 // ── The legs of the category-level set objects ───────────────────────────────

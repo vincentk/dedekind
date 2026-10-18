@@ -73,6 +73,8 @@ module;
 
 #include <algorithm>    // std::ranges::all_of
 #include <concepts>     // std::equality_comparable, std::same_as
+#include <cstddef>      // std::size_t: the slot of a projection
+#include <functional>   // std::less_equal: the inclusion order
 #include <ranges>       // std::ranges::input_range, range_value_t
 #include <type_traits>  // std::remove_cvref_t
 #include <utility>      // std::pair
@@ -369,6 +371,281 @@ constexpr auto preimage(F f, S s) {
                        PreimagePredicate<Arr, St>>{
       PreimagePredicate<Arr, St>{f, s}};
 }
+
+/** @section graph__Hyperdoctrine
+ *  Quantifiers are the adjoints of substitution (Lawvere).  For an arrow
+ *  @f$f : A \to B@f$ the three operations on subobjects
+ *  @f[ \exists_f \dashv f^{-1} \dashv \forall_f, \qquad
+ *      \mathrm{Sub}(A, L) \rightleftarrows \mathrm{Sub}(B, L) @f]
+ *  are arrows between the objects @c Subobjects (@c sets): the pushforward
+ *  @c Image, the pullback @c Preimage (substitution, @c preimage above), and
+ *  the dual image @c Dual @f$= \neg\,\exists_f\,\neg@f$, a composite of
+ *  three arrows (@c category::Compose at a presented object).  Both
+ *  adjunctions are witnessed through @c category::IsGaloisConnection, the
+ *  arrows carrying their certificates.  The pullback is total; the images are
+ *  @b partial, defined where the @f$\exists@f$ is eliminated --- the Rice wall
+ *  of the effective domain (@c dom above) stated as a partial arrow:
+ *  along an injection (the sum's pushforward, @c sets::Inject), along the
+ *  diagonal (@c diag, the coreflexive), and along a projection whose other
+ *  factor is a finite chain (Shannon's expansion, the join of the
+ *  substitutions at each value: the typed twin of the run-time
+ *  @c ChainValues).  The certificates (monotone, adjoint) are stated once for
+ *  the whole family, as specialisations of @c category::is_monotone /
+ *  @c is_adjoint on its pattern: theorems, not tags.  Frobenius reciprocity and
+ * Beck--Chevalley (#909) are then equations between these arrows, checked
+ * below. */
+
+/** @brief The arrow that fixes one factor of a pair: @f$x \mapsto (c, x)@f$
+ *  (@c K = 1) or @f$x \mapsto (x, c)@f$ (@c K = 2).  Substitution along it is
+ *  one case of Shannon's expansion.  @tparam K the slot the constant takes.
+ *  @tparam C the constant's carrier.  @tparam c the constant.  @tparam T the
+ *  free factor. */
+export template <std::size_t K, typename C, C c, typename T>
+  requires(K == 1 || K == 2)
+struct Fixed {
+  using Domain = T;
+  using Codomain = std::conditional_t<K == 1, std::pair<C, T>, std::pair<T, C>>;
+  constexpr Codomain operator()(const T& x) const {
+    if constexpr (K == 1)
+      return Codomain{c, x};
+    else
+      return Codomain{x, c};
+  }
+};
+
+namespace detail_hyperdoctrine {
+/** @brief @f$\exists c \in C.\ R(\ldots c \ldots)@f$ over a finite chain:
+ *  the join of the substitutions at every value, from @c c upward. */
+template <std::size_t K, typename C, C c, typename T, typename R>
+constexpr auto shannon(const R& r) {
+  // Qualified: category::preimage (the Compose form) is reachable by ADL too.
+  const auto here = dedekind::relational::preimage(Fixed<K, C, c, T>{}, r);
+  if constexpr (c == dedekind::sets::chain_top<C>())
+    return here;
+  else
+    return here | shannon<K, C, dedekind::category::Successor<C>{}(c), T>(r);
+}
+/** @brief Whether @c F is the projection @f$\pi_K@f$ out of a pair. */
+template <typename F, std::size_t K>
+concept IsPairProjection = dedekind::category::IsArrow<F> && requires {
+  typename dedekind::category::Dom<F>::first_type;
+  typename dedekind::category::Dom<F>::second_type;
+} && std::same_as<F, dedekind::category::Π<K, dedekind::category::Dom<F>>>;
+}  // namespace detail_hyperdoctrine
+
+/** @brief @f$\exists_\iota@f$ along an injection: the sum's pushforward. */
+export template <std::size_t K, typename X, typename Y,
+                 dedekind::sets::IsSetObject S>
+constexpr auto image_along(const dedekind::category::Injection<K, X, Y>&,
+                           const S& s) {
+  using L = typename S::logic_species;
+  return dedekind::sets::Inject<K, 𝔸<X, L>, 𝔸<Y, L>>{}(s);
+}
+/** @brief @f$\exists_\Delta@f$ along the diagonal: the coreflexive
+ *  @f$\Delta_S = \{(x, x) \mid x \in S\}@f$, @c diag. */
+export template <typename X, dedekind::sets::IsSetObject S>
+constexpr auto image_along(const dedekind::category::Copy<X>&, const S& s) {
+  return dedekind::relational::diag(s);
+}
+/** @brief @f$\exists_{\pi_1}@f$, the second factor a finite chain: Shannon. */
+export template <detail_hyperdoctrine::IsPairProjection<1> F,
+                 dedekind::sets::IsSetObject R>
+  requires dedekind::category::IsFiniteChain<
+               typename dedekind::category::Dom<F>::second_type> &&
+           dedekind::category::HasNNOStep<
+               typename dedekind::category::Dom<F>::second_type>
+constexpr auto image_along(const F&, const R& r) {
+  using B = typename dedekind::category::Dom<F>::second_type;
+  using A = typename dedekind::category::Dom<F>::first_type;
+  return detail_hyperdoctrine::shannon<2, B, dedekind::sets::chain_bottom<B>(),
+                                       A>(r);
+}
+/** @brief @f$\exists_{\pi_2}@f$, the first factor a finite chain: Shannon. */
+export template <detail_hyperdoctrine::IsPairProjection<2> F,
+                 dedekind::sets::IsSetObject R>
+  requires dedekind::category::IsFiniteChain<
+               typename dedekind::category::Dom<F>::first_type> &&
+           dedekind::category::HasNNOStep<
+               typename dedekind::category::Dom<F>::first_type>
+constexpr auto image_along(const F&, const R& r) {
+  using A = typename dedekind::category::Dom<F>::first_type;
+  using B = typename dedekind::category::Dom<F>::second_type;
+  return detail_hyperdoctrine::shannon<1, A, dedekind::sets::chain_bottom<A>(),
+                                       B>(r);
+}
+
+export template <dedekind::category::IsArrow F,
+                 dedekind::category::IsOckhamAlgebra L =
+                     dedekind::category::Boole>
+  requires std::default_initializable<F>
+struct Preimage;
+export template <dedekind::category::IsArrow F,
+                 dedekind::category::IsOckhamAlgebra L =
+                     dedekind::category::Boole>
+  requires std::default_initializable<F>
+struct Dual;
+
+/** @brief @f$\exists_f : \mathrm{Sub}(A, L) \to \mathrm{Sub}(B, L)@f$, the
+ *  image along @f$f : A \to B@f$: @f$a \mapsto f[a] = \{f(x) \mid x \in a\}@f$.
+ *  Partial: defined where @c image_along eliminates the @f$\exists@f$.
+ *  Monotone; the left adjoint of @c Preimage.  @tparam F the arrow, stateless.
+ *  @tparam L the logic. */
+export template <dedekind::category::IsArrow F,
+                 dedekind::category::IsOckhamAlgebra L =
+                     dedekind::category::Boole>
+  requires std::default_initializable<F>
+struct Image {
+  using Domain = dedekind::sets::Subobjects<dedekind::category::Dom<F>, L>;
+  using Codomain = dedekind::sets::Subobjects<dedekind::category::Cod<F>, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Domain> &&
+             requires(const S& s) { image_along(F{}, s); }
+  constexpr auto operator()(const S& s) const {
+    return image_along(F{}, s);
+  }
+};
+/** @brief @f$f^{-1} : \mathrm{Sub}(B, L) \to \mathrm{Sub}(A, L)@f$,
+ *  substitution along @f$f@f$: @f$b \mapsto \{x \mid f(x) \in b\}@f$
+ *  (@c preimage, @f$\chi_b \circ f@f$).  Total, a lattice homomorphism,
+ *  monotone; the right adjoint of @c Image and the left adjoint of @c Dual.
+ *  @tparam F the arrow, stateless.  @tparam L the logic. */
+export template <dedekind::category::IsArrow F,
+                 dedekind::category::IsOckhamAlgebra L>
+  requires std::default_initializable<F>
+struct Preimage {
+  using Domain = dedekind::sets::Subobjects<dedekind::category::Cod<F>, L>;
+  using Codomain = dedekind::sets::Subobjects<dedekind::category::Dom<F>, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Domain>
+  constexpr auto operator()(const S& s) const {
+    return dedekind::relational::preimage(F{}, s);
+  }
+};
+/** @brief @f$\forall_f : \mathrm{Sub}(A, L) \to \mathrm{Sub}(B, L)@f$, the
+ *  dual image: @f$a \mapsto \{y \mid \forall x.\ f(x) = y \Rightarrow x \in
+ *  a\}@f$, which is @f$\neg\,\exists_f\,\neg@f$ (De Morgan: the logic is an
+ *  Ockham algebra), a composite of three arrows on presented objects.  The
+ *  right adjoint of @c Preimage; monotone, as anti∘co∘anti.  @tparam F the
+ *  arrow, stateless.  @tparam L the logic. */
+export template <dedekind::category::IsArrow F,
+                 dedekind::category::IsOckhamAlgebra L>
+  requires std::default_initializable<F>
+struct Dual {
+  using Domain = dedekind::sets::Subobjects<dedekind::category::Dom<F>, L>;
+  using Codomain = dedekind::sets::Subobjects<dedekind::category::Cod<F>, L>;
+  using Composite = dedekind::category::Compose<
+      dedekind::category::Compose<
+          dedekind::sets::Complement<dedekind::category::Dom<F>, L>,
+          Image<F, L>>,
+      dedekind::sets::Complement<dedekind::category::Cod<F>, L>>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Domain> &&
+             requires(const S& s) { Composite{}(s); }
+  constexpr auto operator()(const S& s) const {
+    return Composite{}(s);
+  }
+};
+
+}  // namespace dedekind::relational
+namespace dedekind::category {
+/** @brief The hyperdoctrine, stated once for every arrow @c F: the three
+ *  operations preserve inclusion, and @f$\exists_f \dashv f^{-1} \dashv
+ *  \forall_f@f$ --- @f$f[a] \subseteq b \iff a \subseteq f^{-1}(b)@f$ and
+ *  @f$f^{-1}(b) \subseteq a \iff b \subseteq \forall_f a@f$ (Lawvere; in
+ *  Set, for every @f$f@f$). */
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Image<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Preimage<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Dual<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_adjoint<dedekind::relational::Image<F, L>,
+                  dedekind::relational::Preimage<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_adjoint<dedekind::relational::Preimage<F, L>,
+                  dedekind::relational::Dual<F, L>, std::less_equal<>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::relational {
+namespace detail_hyperdoctrine_witness {
+using dedekind::category::Copy;
+using dedekind::category::Injection;
+using dedekind::category::IsGaloisConnection;
+using dedekind::category::Π;
+using dedekind::sets::Inject;
+using dedekind::sets::Restrict;
+using dedekind::sets::π;
+// An arrow 𝔹 → int and its graph {(⊥, 3), (⊤, 7)} ⊆ 𝔹 × int.
+struct Code {
+  using Domain = bool;
+  using Codomain = int;
+  constexpr int operator()(const bool& b) const { return b ? 7 : 3; }
+};
+struct Seven {
+  using Domain = bool;
+  using Codomain = int;
+  constexpr int operator()(const bool&) const { return 7; }
+};
+inline constexpr auto R = graph(Code{});
+inline constexpr auto three = 𝔸<int>{} & (π == 3);
+using P2 = Π<2, std::pair<bool, int>>;
+using Ex = Image<P2>;
+using Sb = Preimage<P2>;
+using Al = Dual<P2>;
+static_assert(IsGaloisConnection<Ex, Sb> && IsGaloisConnection<Sb, Al>,
+              "∃_π ⊣ π* ⊣ ∀_π over 𝔹 × int: the hyperdoctrine triple, "
+              "through IsGaloisConnection");
+static_assert(Ex{}(R)(7) && Ex{}(R)(3) && !Ex{}(R)(5),
+              "∃b. (b, n) ∈ R: the image of Code, {3, 7}, by Shannon over 𝔹");
+static_assert(!Al{}(R)(7) && Al{}(graph(Seven{}))(7) &&
+                  !Al{}(graph(Seven{}))(3),
+              "∀b. (b, n) ∈ R: a constant arrow's value, nothing else");
+static_assert(Sb{}(three)(std::pair{true, 3}) &&
+                  !Sb{}(three)(std::pair{true, 5}),
+              "π*a is the cylinder over a");
+// Frobenius reciprocity: ∃_f(R ∧ f*a) = ∃_f R ∧ a, at points.
+static_assert(Ex{}(R& Sb{}(three))(3) && !Ex{}(R & Sb{}(three))(7) &&
+                  (Ex{}(R)&three)(3) && !(Ex{}(R)&three)(7),
+              "Frobenius reciprocity ∃(R ∧ π*a) = ∃R ∧ a");
+// The diagonal: diag ⊣ Δ⁻¹ (#6 of the sum's follow-ups; #873).
+using Dg = Image<Copy<int>>;
+using Dr = Preimage<Copy<int>>;
+static_assert(IsGaloisConnection<Dg, Dr>,
+              "diag ⊣ Δ⁻¹: a ↦ Δ_a is left adjoint "
+              "to R ↦ {x | (x, x) ∈ R}");
+static_assert(Dg{}(three)(std::pair{3, 3}) && !Dg{}(three)(std::pair{3, 4}) &&
+                  Dr{}(Dg{}(three))(3) && !Dr{}(Dg{}(three))(4),
+              "Δ_a is the coreflexive of a; its diagonal restriction is a");
+static_assert(Image<Copy<int>, dedekind::category::Kleene>{}(
+                  dedekind::sets::Ø<int, dedekind::category::Kleene>{})(
+                  std::pair{0, 0}) == dedekind::category::Ternary::False,
+              "a Kleene diagonal image keeps its logic: Ø's is False, not a "
+              "bool-cast −1");
+// The injection: the general ∃_ι ⊣ ι⁻¹ agrees with the sum's own arrows.
+using I1 = Injection<1, bool, int>;
+using Ix = Image<I1>;
+using Ip = Preimage<I1>;
+inline constexpr auto t = 𝔸<bool>{} & (π == true);
+static_assert(IsGaloisConnection<Ix, Ip>, "∃_ι ⊣ ι⁻¹ through Image / Preimage");
+static_assert(Ip{}(Ix{}(t))(true) && !Ip{}(Ix{}(t))(false) &&
+                  Restrict<1, 𝔸<bool>, 𝔸<int>>{}(Ix{}(t))(true),
+              "ι⁻¹ ι[a] = a: Preimage at points, Restrict by type (the "
+              "reduced form)");
+// Beck–Chevalley (#909) on the squares of the sum: the two injections' square
+// has the empty pullback (coproducts are disjoint), so ι₂* ∃_{ι₁} = ∃_Ø Ø* = Ø,
+// by type; one injection's square with itself has pullback the summand, so
+// ι₁* ∃_{ι₁} = id (the unit, witnessed in sets).
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(Restrict<2, 𝔸<bool>, 𝔸<int>>{}(
+                     Inject<1, 𝔸<bool>, 𝔸<int>>{}(t)))>,
+                 dedekind::sets::Ø<int>>,
+    "Beck–Chevalley on the disjointness square: ι₂* ∃_{ι₁} a = Ø, by type");
+}  // namespace detail_hyperdoctrine_witness
 
 /** @section graph__Formal_Verification */
 

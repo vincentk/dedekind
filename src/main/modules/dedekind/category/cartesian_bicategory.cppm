@@ -42,6 +42,7 @@ module;
 #include <concepts>    // std::same_as
 #include <functional>  // std::less_equal (default order), std::logical_and
 #include <utility>     // std::pair: the binary product (cf. :limit)
+#include <variant>     // std::variant: the binary sum (copy on a sum)
 
 export module dedekind.category:cartesian_bicategory;
 
@@ -52,6 +53,7 @@ import :limit;       // One (terminal object), π_1 / π_2, IsProduct
 import :species;     // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
 import :logic;       // Ternary (Kleene K₃, the 3-chain carrier witness)
 import :lattice;     // Meet AST node + MakeMeet: the meet-trichotomy witness
+import :cartesian;   // Injections: the sum's named ι_1 / ι_2
 
 namespace dedekind::category {
 
@@ -379,6 +381,29 @@ inline constexpr bool is_antimonotone_v<Tensor<R, S>, ProductLeq<LeqR, LeqS>> =
 // of its concept: Copy ⊨ IsCopy (Δ:A→A×A), Merge ⊨ IsMerge (Δ†:A×A→A), Delete ⊨
 // IsTerminalMorphism (ε:A→One, the counit; concept reused from :limit).
 static_assert(IsArrow<Copy<bool>>, "Δ: A → A×A must be an arrow.");
+// Copy on a sum stays in the diagonal blocks of (A+B)×(A+B) ≅ A×A + A×B +
+// B×A + B×B: copy_{A+B} ∘ ι_k = (ι_k × ι_k) ∘ copy_k, so copy_{A+B} =
+// copy_A + copy_B (#1039).  The relational merge (Δ†, defined on the diagonal)
+// decomposes alike.  The glb merge (Merge<A, Meet>) depends on the order of
+// the sum: under the coproduct of posets (summands side by side) there is no
+// meet across summands; under std::variant's own order, the ordinal sum X ⊕ Y
+// of two chains, the sum is a chain and Δ ⊣ min holds (witnessed below).
+static_assert(
+    Copy<std::variant<bool, int>>{}(Injections<bool, int>::inl(true)) ==
+            std::pair{Injections<bool, int>::inl(true),
+                      Injections<bool, int>::inl(true)} &&
+        Copy<std::variant<bool, int>>{}(Injections<bool, int>::inr(3)) ==
+            std::pair{Injections<bool, int>::inr(3),
+                      Injections<bool, int>::inr(3)},
+    "copy on Either<A, B> is copy_A + copy_B: no off-diagonal block");
+static_assert(IsCopy<Copy<std::variant<bool, int>>> &&
+                  IsTerminalMorphism<Delete<std::variant<bool, int>>> &&
+                  IsMerge<Merge<std::variant<bool, int>, Inf>>,
+              "Either<A, B> carries the comonoid and a merge");
+static_assert(IsMeetAsRightAdjoint<Copy<std::variant<bool, int>>,
+                                   Merge<std::variant<bool, int>, Inf>>,
+              "under the ordinal sum of two chains, Δ ⊣ min on Either: the "
+              "Galois connection of the cartesian bicategory extends");
 static_assert(IsCopy<Copy<bool>>, "Copy is the canonical model of IsCopy.");
 static_assert(IsMerge<Merge<bool, std::logical_and<bool>>>,
               "Merge is the canonical model of IsMerge.");

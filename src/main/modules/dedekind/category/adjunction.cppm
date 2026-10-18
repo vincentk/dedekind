@@ -426,8 +426,15 @@ concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
  *  self-adjunction in @c algebra:ordered_algebra).
  *  @tparam F the left adjoint.  @tparam G the right adjoint.  @tparam Op the
  *  order. */
+/** @brief The trait behind @c is_adjoint_v, a struct so that a downstream
+ *  module states an adjunction for a whole arrow family at once --- a theorem
+ *  (@f$\exists_f \dashv f^{-1}@f$ for every @f$f@f$) as one partial
+ *  specialisation on the family's pattern, where a variable-template partial
+ *  specialisation would not fire across the module boundary. */
+export template <typename F, typename G, typename Op>
+struct is_adjoint : std::false_type {};
 export template <typename F, typename G, typename Op = std::less_equal<>>
-inline constexpr bool is_adjoint_v = false;
+inline constexpr bool is_adjoint_v = is_adjoint<F, G, Op>::value;
 template <typename F, typename G, typename Op>
   requires IsIsomorphism<F> && IsMonotone<F, Op> &&
                std::same_as<std::remove_cvref_t<decltype(inverse(

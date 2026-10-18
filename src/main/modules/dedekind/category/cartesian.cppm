@@ -35,6 +35,7 @@
 module;
 
 #include <concepts>
+#include <cstddef>  // std::size_t: the summand of an injection
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -324,6 +325,60 @@ auto ι_2(B&& value) {
     return Var(std::forward<B>(value));
   }
 }
+
+/** @brief The injections of the coproduct @c std::variant<A, B> as a named
+ *  operation (@c IsCoproduct's @c Op, #881): @c inl / @c inr place a value by
+ *  @b index, so equal summands stay apart (@c variant<int, int>).  Static
+ *  members, as the concept asks for @c Op::inl(a) / @c Op::inr(b).
+ *  @tparam A, B the summands. */
+export template <typename A, typename B>
+struct Injections {
+  static constexpr std::variant<A, B> inl(const A& a)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<0>, const A&>
+  {
+    return std::variant<A, B>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<A, B> inr(const B& b)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<1>, const B&>
+  {
+    return std::variant<A, B>(std::in_place_index<1>, b);
+  }
+};
+static_assert(
+    IsCoproduct<std::variant<int, int>, int, int, Injections<int, int>> &&
+        Injections<int, int>::inl(1).index() == 0 &&
+        Injections<int, int>::inr(1).index() == 1,
+    "the named injections keep equal summands apart");
+
+/** @brief The injection @c ι_K : A → A + B as an arrow: monic (it is
+ *  injective, and its image is disjoint from the other summand's), the ground
+ *  of a sum's strength reduction (a set inside one injection's image pulls
+ *  back along it without loss).  @tparam K the summand, 1 or 2. */
+export template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2)
+struct Injection {
+  using Domain = std::conditional_t<K == 1, A, B>;
+  using Codomain = std::variant<A, B>;
+  using is_monic_arrow_tag = void;
+  constexpr Codomain operator()(const Domain& x) const
+    requires std::constructible_from<Codomain, std::in_place_index_t<K - 1>,
+                                     const Domain&>
+  {
+    return Codomain(std::in_place_index<K - 1>, x);
+  }
+};
+static_assert(IsMonicArrow<Injection<1, int, int>> &&
+                  IsMonicArrow<Injection<2, int, int>> &&
+                  Injection<2, int, int>{}(3).index() == 1,
+              "the injections of a sum are monic");
+static_assert(
+    !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,
+                 int, Injections<std::unique_ptr<int>, int>> &&
+        !IsArrow<Injection<1, std::unique_ptr<int>, int>>,
+    "a summand the variant cannot copy in is refused, not accepted and "
+    "broken at the call");
 
 /**
  * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X

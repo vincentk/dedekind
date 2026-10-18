@@ -44,7 +44,9 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::bool_constant: the monotone witness
 #include <utility>
+#include <variant>  // the ordinal sum: std::variant's own order
 
 export module dedekind.category:posetal;
 
@@ -375,8 +377,17 @@ static_assert(
  *          Default relation @c std::less_equal<> matches the partition
  *          convention (see partition header).
  */
+/** @brief The trait behind @c is_monotone_v, a struct so that a downstream
+ *  module can state the fact for a whole arrow @b family at once (a partial
+ *  specialisation on the family's pattern; a variable-template partial
+ *  specialisation does not fire across module boundaries, a struct's does):
+ *  the theorem that every @c Preimage<F> preserves inclusion is stated once,
+ *  not tagged per instance. */
+export template <typename F, typename Op>
+struct is_monotone : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
-inline constexpr bool is_monotone_v = false;
+inline constexpr bool is_monotone_v =
+    is_monotone<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsMonotone
@@ -400,8 +411,13 @@ concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
  *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
  *          @c IsMonotone (two flips cancel).
  */
+/** @brief The trait behind @c is_antimonotone_v; a struct, as @c is_monotone,
+ *  for the family-wide facts stated downstream. */
+export template <typename F, typename Op>
+struct is_antimonotone : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
-inline constexpr bool is_antimonotone_v = false;
+inline constexpr bool is_antimonotone_v =
+    is_antimonotone<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsAntiMonotone
@@ -602,6 +618,54 @@ template <typename A, typename B, typename LeqA, typename LeqB>
 inline constexpr bool
     is_antisymmetric_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
         is_antisymmetric_v<A, LeqA> && is_antisymmetric_v<B, LeqB>;
+
+// The ORDINAL SUM X ⊕ Y: @c std::variant's own comparisons compare the index
+// first, then within the summand, so all of @c X lies below all of @c Y.  The
+// three posetal axioms lift from the summands law by law, as the product's
+// lift componentwise, each spelling of @c ≤ on the sum from the SAME spelling
+// on the summands (the transparent @c std::less_equal<> from the transparent,
+// the typed from the typed: no certificate crosses a spelling), through the
+// algebraic per-law concepts @c IsReflexive / @c IsTransitive /
+// @c IsAntisymmetric, not the stdlib's syntactic ones.  Of two chains it is a
+// chain (@c IsTotallyOrderedPosetal, below).  This is the carrier's order,
+// not the coproduct of posets (the summands side by side, incomparable),
+// under which a sum has no meet across its summands: which order the set
+// grammar's @c < across carriers follows is open (#1039).
+template <typename X, typename Y>
+inline constexpr bool is_reflexive_v<std::variant<X, Y>, std::less_equal<>> =
+    IsReflexive<X, std::less_equal<>> && IsReflexive<Y, std::less_equal<>>;
+template <typename X, typename Y>
+inline constexpr bool is_transitive_v<std::variant<X, Y>, std::less_equal<>> =
+    IsTransitive<X, std::less_equal<>> && IsTransitive<Y, std::less_equal<>>;
+template <typename X, typename Y>
+inline constexpr bool
+    is_antisymmetric_v<std::variant<X, Y>, std::less_equal<>> =
+        IsAntisymmetric<X, std::less_equal<>> &&
+        IsAntisymmetric<Y, std::less_equal<>>;
+template <typename X, typename Y>
+inline constexpr bool
+    is_reflexive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
+        IsReflexive<X, std::less_equal<X>> &&
+        IsReflexive<Y, std::less_equal<Y>>;
+template <typename X, typename Y>
+inline constexpr bool
+    is_transitive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
+        IsTransitive<X, std::less_equal<X>> &&
+        IsTransitive<Y, std::less_equal<Y>>;
+template <typename X, typename Y>
+inline constexpr bool is_antisymmetric_v<std::variant<X, Y>,
+                                         std::less_equal<std::variant<X, Y>>> =
+    IsAntisymmetric<X, std::less_equal<X>> &&
+    IsAntisymmetric<Y, std::less_equal<Y>>;
+namespace detail_ordinal_sum {
+struct Unordered {};  // no order at all: certifies no law
+}  // namespace detail_ordinal_sum
+static_assert(
+    IsTotallyOrderedPosetal<std::variant<bool, int>, std::less_equal<>> &&
+        !IsReflexive<std::variant<bool, detail_ordinal_sum::Unordered>,
+                     std::less_equal<>>,
+    "the ordinal sum of two certified chains is a chain; a summand without a "
+    "certified order certifies none");
 
 // Product-of-posets is a poset: the componentwise lift makes @c ≤× a certified
 // order, so the pair carrier the comonoid copies into is a genuine poset.
