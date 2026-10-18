@@ -389,8 +389,11 @@ constexpr auto preimage(F f, S s) {
  *  diagonal (@c diag, the coreflexive), and along a projection whose other
  *  factor is a finite chain (Shannon's expansion, the join of the
  *  substitutions at each value: the typed twin of the run-time
- *  @c ChainValues).  Frobenius reciprocity and Beck--Chevalley (#909) are
- *  then equations between these arrows, checked below. */
+ *  @c ChainValues).  The certificates (monotone, adjoint) are stated once for
+ *  the whole family, as specialisations of @c category::is_monotone /
+ *  @c is_adjoint on its pattern: theorems, not tags.  Frobenius reciprocity and
+ * Beck--Chevalley (#909) are then equations between these arrows, checked
+ * below. */
 
 /** @brief The arrow that fixes one factor of a pair: @f$x \mapsto (c, x)@f$
  *  (@c K = 1) or @f$x \mapsto (x, c)@f$ (@c K = 2).  Substitution along it is
@@ -496,12 +499,6 @@ struct Image {
   constexpr auto operator()(const S& s) const {
     return image_along(F{}, s);
   }
-  template <typename Op>
-  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
-  /** @brief @f$f[a] \subseteq b \iff a \subseteq f^{-1}(b)@f$. */
-  template <typename G, typename Op>
-  static constexpr bool is_adjoint_v =
-      std::same_as<G, Preimage<F, L>> && std::same_as<Op, std::less_equal<>>;
 };
 /** @brief @f$f^{-1} : \mathrm{Sub}(B, L) \to \mathrm{Sub}(A, L)@f$,
  *  substitution along @f$f@f$: @f$b \mapsto \{x \mid f(x) \in b\}@f$
@@ -519,12 +516,6 @@ struct Preimage {
   constexpr auto operator()(const S& s) const {
     return dedekind::relational::preimage(F{}, s);
   }
-  template <typename Op>
-  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
-  /** @brief @f$f^{-1}(b) \subseteq a \iff b \subseteq \forall_f a@f$. */
-  template <typename G, typename Op>
-  static constexpr bool is_adjoint_v =
-      std::same_as<G, Dual<F, L>> && std::same_as<Op, std::less_equal<>>;
 };
 /** @brief @f$\forall_f : \mathrm{Sub}(A, L) \to \mathrm{Sub}(B, L)@f$, the
  *  dual image: @f$a \mapsto \{y \mid \forall x.\ f(x) = y \Rightarrow x \in
@@ -549,10 +540,34 @@ struct Dual {
   constexpr auto operator()(const S& s) const {
     return Composite{}(s);
   }
-  template <typename Op>
-  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
 };
 
+}  // namespace dedekind::relational
+namespace dedekind::category {
+/** @brief The hyperdoctrine, stated once for every arrow @c F: the three
+ *  operations preserve inclusion, and @f$\exists_f \dashv f^{-1} \dashv
+ *  \forall_f@f$ --- @f$f[a] \subseteq b \iff a \subseteq f^{-1}(b)@f$ and
+ *  @f$f^{-1}(b) \subseteq a \iff b \subseteq \forall_f a@f$ (Lawvere; in
+ *  Set, for every @f$f@f$). */
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Image<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Preimage<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_monotone<dedekind::relational::Dual<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_adjoint<dedekind::relational::Image<F, L>,
+                  dedekind::relational::Preimage<F, L>, std::less_equal<>>
+    : std::true_type {};
+template <typename F, typename L>
+struct is_adjoint<dedekind::relational::Preimage<F, L>,
+                  dedekind::relational::Dual<F, L>, std::less_equal<>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::relational {
 namespace detail_hyperdoctrine_witness {
 using dedekind::category::Copy;
 using dedekind::category::Injection;

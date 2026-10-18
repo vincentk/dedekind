@@ -376,18 +376,14 @@ static_assert(
  *          Default relation @c std::less_equal<> matches the partition
  *          convention (see partition header).
  */
+/** @brief The trait behind @c is_monotone_v, a struct so that a downstream
+ *  module can state the fact for a whole arrow @b family at once (a partial
+ *  specialisation on the family's pattern; a variable-template partial
+ *  specialisation does not fire across module boundaries, a struct's does):
+ *  the theorem that every @c Preimage<F> preserves inclusion is stated once,
+ *  not tagged per instance. */
 export template <typename F, typename Op>
 struct is_monotone : std::false_type {};
-/** @brief Discovery: an arrow may carry its own witness, a nested
- *  @c is_monotone_v<Op> (as @c :involution's @c is_involutive); a generic
- *  arrow family downstream certifies itself this way, where a partial
- *  specialisation across the module boundary would not fire. */
-template <typename F, typename Op>
-  requires requires {
-    { F::template is_monotone_v<Op> } -> std::convertible_to<bool>;
-  }
-struct is_monotone<F, Op> : std::bool_constant<F::template is_monotone_v<Op>> {
-};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_monotone_v =
     is_monotone<std::remove_cvref_t<F>, Op>::value;
@@ -414,16 +410,10 @@ concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
  *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
  *          @c IsMonotone (two flips cancel).
  */
+/** @brief The trait behind @c is_antimonotone_v; a struct, as @c is_monotone,
+ *  for the family-wide facts stated downstream. */
 export template <typename F, typename Op>
 struct is_antimonotone : std::false_type {};
-/** @brief Discovery: an arrow may carry its own witness, a nested
- *  @c is_antimonotone_v<Op> (as @c is_monotone). */
-template <typename F, typename Op>
-  requires requires {
-    { F::template is_antimonotone_v<Op> } -> std::convertible_to<bool>;
-  }
-struct is_antimonotone<F, Op>
-    : std::bool_constant<F::template is_antimonotone_v<Op>> {};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_antimonotone_v =
     is_antimonotone<std::remove_cvref_t<F>, Op>::value;

@@ -827,17 +827,6 @@ struct Complement {
   constexpr auto operator()(const S& s) const {
     return ~s;
   }
-  /** @brief @f$a \subseteq b \Rightarrow \neg b \subseteq \neg a@f$: the
-   *  complement reverses inclusion, a contravariant functor on the poset
-   *  @f$\mathrm{Sub}(T, L)@f$. */
-  template <typename Op>
-  static constexpr bool is_antimonotone_v = std::same_as<Op, std::less_equal<>>;
-  /** @brief Self-adjoint, antitone: @f$a \subseteq \neg b \iff b \subseteq
-   *  \neg a@f$ --- the De Morgan algebra @f$\mathrm{Sub}(T, L)@f$ stated as a
-   *  Galois connection of the complement with itself. */
-  template <typename G, typename Op>
-  static constexpr bool is_adjoint_v =
-      std::same_as<G, Complement<T, L>> && std::same_as<Op, std::less_equal<>>;
   /** @brief @f$\neg\neg = \mathrm{id}@f$, read off the reducer at the
    *  universe: @c ~~𝔸 is @c 𝔸 by type. */
   template <typename X>
@@ -847,6 +836,22 @@ struct Complement {
           std::remove_cvref_t<decltype(~~std::declval<const 𝔸<T, L>&>())>,
           𝔸<T, L>>;
 };
+}  // namespace dedekind::sets
+namespace dedekind::category {
+/** @brief The complement reverses inclusion: @f$a \subseteq b \Rightarrow
+ *  \neg b \subseteq \neg a@f$, for every carrier and logic. */
+template <typename T, typename L>
+struct is_antimonotone<dedekind::sets::Complement<T, L>, std::less_equal<>>
+    : std::true_type {};
+/** @brief The complement is its own antitone adjoint, @f$a \subseteq \neg b
+ *  \iff b \subseteq \neg a@f$: the De Morgan algebra @f$\mathrm{Sub}(T, L)@f$
+ *  as a Galois connection, for every carrier and logic. */
+template <typename T, typename L>
+struct is_adjoint<dedekind::sets::Complement<T, L>,
+                  dedekind::sets::Complement<T, L>, std::less_equal<>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::sets {
 namespace detail_complement_witness {
 inline constexpr auto three = 𝔸<int>{} & (π == 3);
 static_assert(dedekind::category::IsInvolution<Complement<int>> &&
@@ -1875,15 +1880,6 @@ struct Inject {
     else
       return sum_over<USum>(Ø<typename UA::Domain, L>{}, s);
   }
-  /** @brief @f$a \subseteq b \Rightarrow \iota[a] \subseteq \iota[b]@f$. */
-  template <typename Op>
-  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
-  /** @brief @f$\exists_\iota \dashv \iota^{-1}@f$: @f$\iota[a] \subseteq s
-   *  \iff a \subseteq \iota^{-1}(s)@f$, the image--preimage adjunction, for
-   *  the monic @f$\iota@f$ with unit the identity. */
-  template <typename G, typename Op>
-  static constexpr bool is_adjoint_v = std::same_as<G, Restrict<K, UA, UB>> &&
-                                       std::same_as<Op, std::less_equal<>>;
 };
 /** @brief @f$\iota_K^{-1}@f$ as an arrow: the restriction, lifted into the
  *  sum's logic (a summand given in a smaller logic sits in the sum's by
@@ -1905,12 +1901,26 @@ struct Restrict {
   constexpr auto operator()(const S& s) const {
     return lift_to<L>(restriction<K>(s));
   }
-  /** @brief @f$s \subseteq t \Rightarrow \iota^{-1}(s) \subseteq
-   *  \iota^{-1}(t)@f$. */
-  template <typename Op>
-  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
 };
 
+}  // namespace dedekind::sets
+namespace dedekind::category {
+/** @brief The pushforward and the pullback along an injection preserve
+ *  inclusion, and @f$\exists_{\iota_K} \dashv \iota_K^{-1}@f$: @f$\iota[a]
+ *  \subseteq s \iff a \subseteq \iota^{-1}(s)@f$, the image--preimage
+ *  adjunction, for every sum; @f$\iota@f$ monic makes the unit the identity. */
+template <std::size_t K, typename UA, typename UB>
+struct is_monotone<dedekind::sets::Inject<K, UA, UB>, std::less_equal<>>
+    : std::true_type {};
+template <std::size_t K, typename UA, typename UB>
+struct is_monotone<dedekind::sets::Restrict<K, UA, UB>, std::less_equal<>>
+    : std::true_type {};
+template <std::size_t K, typename UA, typename UB>
+struct is_adjoint<dedekind::sets::Inject<K, UA, UB>,
+                  dedekind::sets::Restrict<K, UA, UB>, std::less_equal<>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::sets {
 namespace detail_sum_witness {
 using dedekind::category::Injections;
 inline constexpr auto t = 𝔸<bool>{} & (π == true);
