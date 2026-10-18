@@ -298,7 +298,7 @@ class TheTermIsInspected(unittest.TestCase):
         self.assertEqual(repr(cod), "𝔸(u64) × 𝔸(u64)")
         first, rest = operands(cod)
         self.assertEqual((kind(first), kind(rest)), ("leaf", "leaf"))
-        self.assertEqual(repr(operands(first)[0]), "𝔸(u64)")
+        self.assertIs(operands(first)[0], u64)  # a leaf's operand: its carrier
         a, b = operands(cod)
         self.assertEqual((a * b) * a, a * (b * a))  # associative by construction
 
