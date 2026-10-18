@@ -385,6 +385,20 @@ inline constexpr bool is_transitive_v<std::variant<X, Y>, std::less_equal<>> =
 template <CertifiedChain X, CertifiedChain Y>
 inline constexpr bool
     is_antisymmetric_v<std::variant<X, Y>, std::less_equal<>> = true;
+// The same laws under the typed spelling, which the thin-category reading of
+// the order (IsThinCategory) asks for.
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool
+    is_reflexive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
+        true;
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool
+    is_transitive_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
+        true;
+template <CertifiedChain X, CertifiedChain Y>
+inline constexpr bool is_antisymmetric_v<std::variant<X, Y>,
+                                         std::less_equal<std::variant<X, Y>>> =
+    true;
 
 /**
  * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X
