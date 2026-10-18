@@ -666,11 +666,15 @@ inline constexpr bool is_antisymmetric_v<std::variant<X, Y>,
                                          std::less_equal<std::variant<X, Y>>> =
     detail_ordinal_sum::antisymmetric_v<X> &&
     detail_ordinal_sum::antisymmetric_v<Y>;
+namespace detail_ordinal_sum {
+struct Unordered {};  // no order at all: certifies no law
+}  // namespace detail_ordinal_sum
 static_assert(
     IsPosetal<std::variant<bool, int>, std::less_equal<>> &&
-        !is_reflexive_v<std::variant<bool, double>, std::less_equal<>>,
-    "the ordinal sum of two certified chains is a poset (a chain); a "
-    "summand without a certified order (double: NaN) certifies none");
+        !is_reflexive_v<std::variant<bool, detail_ordinal_sum::Unordered>,
+                        std::less_equal<>>,
+    "the ordinal sum of two certified chains is a poset (a chain); a summand "
+    "without a certified order certifies none");
 
 // Product-of-posets is a poset: the componentwise lift makes @c ≤× a certified
 // order, so the pair carrier the comonoid copies into is a genuine poset.
