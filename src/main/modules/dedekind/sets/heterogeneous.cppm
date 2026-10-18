@@ -269,9 +269,27 @@ constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
 export template <typename A, typename LA, typename CA, typename B, typename LB,
                  typename CB>
   requires dedekind::category::HaveLogicJoin<LA, LB>
-constexpr auto cartesian_product(const 𝔸<A, LA, CA>&, const 𝔸<B, LB, CB>&) {
+constexpr auto cartesian_product(const 𝔸<A, LA, CA>& a, const 𝔸<B, LB, CB>& b) {
   using CC = typename product_cardinality<CA, CB>::type;
-  return finalize_combine(𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{});
+  using U = std::remove_cvref_t<decltype(finalize_combine(
+      𝔸<std::pair<A, B>, join_logic_t<LA, LB>, CC>{}))>;
+  // The universe over the pair only where its projections give the factors
+  // back exactly; a factor whose cardinality bound or species the pair
+  // universe cannot carry keeps its leg (#970: π_k return the factors).
+  if constexpr (std::same_as<
+                    std::remove_cvref_t<decltype(dedekind::category::π_1(
+                        std::declval<const U&>()))>,
+                    𝔸<A, LA, CA>> &&
+                std::same_as<
+                    std::remove_cvref_t<decltype(dedekind::category::π_2(
+                        std::declval<const U&>()))>,
+                    𝔸<B, LB, CB>>) {
+    return U{};
+  } else {
+    using Pred = ProductMembership<𝔸<A, LA, CA>, 𝔸<B, LB, CB>>;
+    return Comprehension<𝔸<std::pair<A, B>, typename Pred::logic_species, CC>,
+                         Pred>{Pred{a, b}};
+  }
 }
 
 /**
@@ -604,10 +622,13 @@ struct Inject {
   template <typename S>
     requires dedekind::category::Presents<S, Domain>
   constexpr auto operator()(const S& s) const {
+    // Over the input's own universe: its cardinality bound is kept.
     if constexpr (K == 1)
-      return sum_over<USum>(s, Ø<typename UB::Domain, L>{});
+      return sum_over<sum_universe_t<universe_t<S>, UB>>(
+          s, Ø<typename UB::Domain, L>{});
     else
-      return sum_over<USum>(Ø<typename UA::Domain, L>{}, s);
+      return sum_over<sum_universe_t<UA, universe_t<S>>>(
+          Ø<typename UA::Domain, L>{}, s);
   }
 };
 /** @brief @f$\iota_K^{-1}@f$ as an arrow: the restriction, lifted into the
@@ -741,6 +762,25 @@ static_assert(!Re1{}(~s)(true) && Re1{}(~s)(false) && Re1{}(s & s)(true) &&
                   !Re1{}(Ø<std::variant<bool, int>>{})(true),
               "ι⁻¹ is a lattice homomorphism, Ø to Ø, the universe to the "
               "universe");
+// The universe product keeps a factor its pair universe cannot carry (#970).
+using FiniteInt = 𝔸<int, Boole, Finite>;
+static_assert(
+    dedekind::category::IsProduct<
+        std::remove_cvref_t<decltype(FiniteInt{} * 𝔸<bool>{})>, FiniteInt,
+        𝔸<bool>> &&
+        dedekind::category::IsProduct<
+            std::remove_cvref_t<decltype(𝔸<int, Kleene>{} * 𝔸<bool, Kleene>{})>,
+            𝔸<int, Kleene>, 𝔸<bool, Kleene>> &&
+        Is𝔸<std::remove_cvref_t<decltype(𝔸<int>{} * 𝔸<bool>{})>>,
+    "π_k of a universe product give the factors back: collapsed to the pair "
+    "universe only where that is exact");
+// The pushforward keeps its input's cardinality bound.
+static_assert(
+    std::same_as<universe_t<std::remove_cvref_t<
+                     decltype(Inject<1, 𝔸<double, Kleene>, 𝔸<bool, Kleene>>{}(
+                         𝔸<double, Kleene, ℶ_1>{}))>>,
+                 𝔸<std::variant<double, bool>, Kleene, ℶ_1>>,
+    "ι[a] over the continuum stays over the continuum");
 }  // namespace detail_sum_witness
 
 }  // namespace dedekind::sets

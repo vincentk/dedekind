@@ -450,8 +450,10 @@ constexpr auto image_along(const dedekind::category::Copy<X>&, const S& s) {
 /** @brief @f$\exists_{\pi_1}@f$, the second factor a finite chain: Shannon. */
 export template <detail_hyperdoctrine::IsPairProjection<1> F,
                  dedekind::sets::IsSetObject R>
-  requires dedekind::category::IsPst<
-      typename dedekind::category::Dom<F>::second_type>
+  requires dedekind::category::IsFiniteChain<
+               typename dedekind::category::Dom<F>::second_type> &&
+           dedekind::category::HasNNOStep<
+               typename dedekind::category::Dom<F>::second_type>
 constexpr auto image_along(const F&, const R& r) {
   using B = typename dedekind::category::Dom<F>::second_type;
   using A = typename dedekind::category::Dom<F>::first_type;
@@ -461,8 +463,10 @@ constexpr auto image_along(const F&, const R& r) {
 /** @brief @f$\exists_{\pi_2}@f$, the first factor a finite chain: Shannon. */
 export template <detail_hyperdoctrine::IsPairProjection<2> F,
                  dedekind::sets::IsSetObject R>
-  requires dedekind::category::IsPst<
-      typename dedekind::category::Dom<F>::first_type>
+  requires dedekind::category::IsFiniteChain<
+               typename dedekind::category::Dom<F>::first_type> &&
+           dedekind::category::HasNNOStep<
+               typename dedekind::category::Dom<F>::first_type>
 constexpr auto image_along(const F&, const R& r) {
   using A = typename dedekind::category::Dom<F>::first_type;
   using B = typename dedekind::category::Dom<F>::second_type;
@@ -617,6 +621,11 @@ static_assert(IsGaloisConnection<Dg, Dr>,
 static_assert(Dg{}(three)(std::pair{3, 3}) && !Dg{}(three)(std::pair{3, 4}) &&
                   Dr{}(Dg{}(three))(3) && !Dr{}(Dg{}(three))(4),
               "Δ_a is the coreflexive of a; its diagonal restriction is a");
+static_assert(Image<Copy<int>, dedekind::category::Kleene>{}(
+                  dedekind::sets::Ø<int, dedekind::category::Kleene>{})(
+                  std::pair{0, 0}) == dedekind::category::Ternary::False,
+              "a Kleene diagonal image keeps its logic: Ø's is False, not a "
+              "bool-cast −1");
 // The injection: the general ∃_ι ⊣ ι⁻¹ agrees with the sum's own arrows.
 using I1 = Injection<1, bool, int>;
 using Ix = Image<I1>;

@@ -820,6 +820,18 @@ struct Identity final {
    */
   constexpr T operator()(const T& x) const noexcept { return x; }
 
+  /** @brief The identity at a presentation of @c T, where @c T is an object
+   *  that names its presentations (@c
+   * morphism__Objects_And_Their_Presentations): the presentation itself.  A
+   * value-typed @c T keeps the overload above. */
+  template <typename S>
+    requires(!std::same_as<std::remove_cvref_t<S>, T>) &&
+            requires { T::template presents<std::remove_cvref_t<S>>; } &&
+            Presents<S, T>
+  constexpr S operator()(const S& s) const noexcept {
+    return s;
+  }
+
   /**
    * @brief The Functorial Action (Morphism -> Morphism).
    *
@@ -882,8 +894,9 @@ struct Compose final {
    *  the result converts to the codomain's value type it is returned as that
    *  type, as before. */
   template <typename X>
-    requires Presents<X, Domain>
-  constexpr auto operator()(const X& x) const {
+    requires Presents<X, Domain> &&
+             requires(const F& f_, const G& g_, const X& x_) { g_(f_(x_)); }
+  constexpr decltype(auto) operator()(const X& x) const {
     if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
       return static_cast<Codomain>(g(f(x)));
     else

@@ -738,6 +738,18 @@ static_assert(
                  std::remove_cvref_t<decltype(three)>> &&
         !Complement<int>{}(three)(3) && Complement<int>{}(three)(4),
     "at a comprehension: ~~s is s by type, ~s the complement at points");
+// The identity on the object composes with the arrows on it, both ways.
+static_assert(
+    IsArrow<Identity<Subobjects<int>>> &&
+        std::same_as<
+            std::remove_cvref_t<decltype(Compose<Identity<Subobjects<int>>,
+                                                 Complement<int>>{}(three))>,
+            std::remove_cvref_t<decltype(Complement<int>{}(three))>> &&
+        std::same_as<std::remove_cvref_t<
+                         decltype(Compose<Complement<int>,
+                                          Identity<Subobjects<int>>>{}(three))>,
+                     std::remove_cvref_t<decltype(Complement<int>{}(three))>>,
+    "id ∘ ¬ = ¬ = ¬ ∘ id on Sub(int)");
 }  // namespace detail_complement_witness
 
 /** @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469), a FREE
