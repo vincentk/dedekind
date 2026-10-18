@@ -54,7 +54,8 @@ module;
 
 export module dedekind.category:involution;
 
-import :morphism;  // Identity<T>: the identity arrow, a trivial involution
+import :morphism;  // IsArrow / Dom / Cod / Morphism: the arrow language;
+                   // Identity
 import :species;   // identity_v: the Op-identity the (co)isometry law is
                    // measured against
 
@@ -113,10 +114,36 @@ struct is_involutive<Identity<T>, T> : std::true_type {};
  * @f$f(f(x)) = x@f$.  @c :lattice's @c IsInvolutiveEndofunctor is this same
  * predicate under the lattice-complement reading.
  */
-export template <typename F, typename T>
+namespace detail_involution {
+/** @brief The object an arrow is an endomorphism on: its domain. */
+template <typename F>
+struct endo_object {};
+template <IsArrow F>
+struct endo_object<F> {
+  using type = Dom<F>;
+};
+/** @brief @c F as an arrow on the object @c T: itself when it is one; a bare
+ *  callable (@c std::logical_not, a logic's @c RFL) read as the arrow
+ *  @c T @c → @c T (@c Morphism), the value-type default where the object is one
+ *  type and the callable's shape is its arrow. */
+template <typename F, typename T>
+using endo_arrow_t = std::conditional_t<IsArrow<F>, F, Morphism<T, T, F>>;
+}  // namespace detail_involution
+
+/** @brief Stated in arrow language: @c F is an endomorphism on the object @c T
+ *  (@c IsArrow, domain and codomain @c T --- applying it twice returns to the
+ *  domain) carrying the certificate @f$f \circ f = \mathrm{id}_T@f$.  @c T
+ *  defaults to the arrow's domain; a bare callable names it.  The object may be
+ *  presented by many types (@c morphism__Objects_And_Their_Presentations), so
+ *  the complement on @f$\mathrm{Sub}(T)@f$ is an involution here, through
+ *  this one concept. */
+export template <typename F,
+                 typename T = typename detail_involution::endo_object<F>::type>
 concept IsInvolution =
-    std::invocable<F, T> &&
-    std::convertible_to<std::invoke_result_t<F, T>, T> && is_involutive_v<F, T>;
+    IsArrow<detail_involution::endo_arrow_t<F, T>> &&
+    std::same_as<Dom<detail_involution::endo_arrow_t<F, T>>, T> &&
+    std::same_as<Cod<detail_involution::endo_arrow_t<F, T>>, T> &&
+    is_involutive_v<F, T>;
 
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution

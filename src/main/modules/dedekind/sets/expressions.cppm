@@ -808,6 +808,48 @@ constexpr auto operator~(const P& p) {
   }
 }
 
+/** @brief The complement as an @b arrow on the object @f$\mathrm{Sub}(T, L)@f$
+ *  (@c Subobjects, @c :boundaries), @f$S \mapsto \neg S@f$: an endomorphism,
+ * its domain and codomain the one object, presented by every set object over
+ *  @c T in @c L.  It is an involution by the reducer's own law
+ *  @f$\neg\neg A \to A@f$: @c operator~ peels the node, so @c ~~s @b is @c s,
+ *  by type, for every presentation @c s; the certificate reads that law at the
+ *  representative.  The first arrow on sets @c category::IsInvolution admits:
+ *  the concept quantifies over the object, not over one value type
+ *  (@c morphism__Objects_And_Their_Presentations).
+ *  @tparam T the carrier.  @tparam L the logic species. */
+export template <typename T, IsOckhamAlgebra L = Boole>
+struct Complement {
+  using Domain = Subobjects<T, L>;
+  using Codomain = Subobjects<T, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Subobjects<T, L>>
+  constexpr auto operator()(const S& s) const {
+    return ~s;
+  }
+  /** @brief @f$\neg\neg = \mathrm{id}@f$, read off the reducer at the
+   *  universe: @c ~~𝔸 is @c 𝔸 by type. */
+  template <typename X>
+  static constexpr bool is_involutive_v =
+      std::same_as<X, Subobjects<T, L>> &&
+      std::same_as<
+          std::remove_cvref_t<decltype(~~std::declval<const 𝔸<T, L>&>())>,
+          𝔸<T, L>>;
+};
+namespace detail_complement_witness {
+inline constexpr auto three = 𝔸<int>{} & (π == 3);
+static_assert(dedekind::category::IsInvolution<Complement<int>> &&
+                  dedekind::category::IsInvolution<Complement<int, Kleene>>,
+              "the complement is an involution on Sub(int): an arrow on an "
+              "object presented by many types, through IsInvolution itself");
+static_assert(
+    std::same_as<std::remove_cvref_t<
+                     decltype(Complement<int>{}(Complement<int>{}(three)))>,
+                 std::remove_cvref_t<decltype(three)>> &&
+        !Complement<int>{}(three)(3) && Complement<int>{}(three)(4),
+    "at a comprehension: ~~s is s by type, ~s the complement at points");
+}  // namespace detail_complement_witness
+
 /** @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469), a FREE
  *  combinator over @c IsSubobject (like @c & / @c | / @c ~), so it composes
  *  uniformly whether an operand is a @c Set, a @c Meet / @c Join, or a
@@ -1666,21 +1708,35 @@ inline constexpr bool is_empty_set_v<Ø<T, L>> = true;
  *  A sum of two universes stays a sum (χ ≡ ⊤ on it) and keeps its summands,
  *  so each keeps its own cardinality.
  *  @param a, b the summands. */
+/** @brief The universe of the sum of two universes: the coproduct carrier,
+ *  the join of the species, the join of the cardinality classes (as for the
+ *  product). */
+template <typename UA, typename UB>
+struct sum_universe;
+template <typename X, typename LA, typename CA, typename Y, typename LB,
+          typename CB>
+struct sum_universe<𝔸<X, LA, CA>, 𝔸<Y, LB, CB>> {
+  using type = 𝔸<std::variant<X, Y>, join_logic_t<LA, LB>,
+                 typename product_cardinality<CA, CB>::type>;
+};
+template <typename UA, typename UB>
+using sum_universe_t = typename sum_universe<UA, UB>::type;
+/** @brief The subobject @c (a, b) of the sum over the universe @c USum, as
+ *  built: no reduction.  @c sum reduces first; the pushforward @c Inject never
+ *  does. */
+template <Is𝔸 USum, IsSetObject A, IsSetObject B>
+constexpr auto sum_over(const A& a, const B& b) {
+  using M = SumMembership<A, B>;
+  return Comprehension<USum, M>{M{a, b}};
+}
 export template <IsSetObject A, IsSetObject B>
 constexpr auto sum(const A& a, const B& b) {
-  using M = SumMembership<A, B>;
-  using V = std::variant<typename A::Domain, typename B::Domain>;
-  using CC = typename product_cardinality<
-      typename universe_cardinality<
-          std::remove_cvref_t<decltype(universe(a))>>::type,
-      typename universe_cardinality<
-          std::remove_cvref_t<decltype(universe(b))>>::type>::type;
   if constexpr (is_empty_set_v<B>)
     return a;
   else if constexpr (is_empty_set_v<A>)
     return b;
   else
-    return Comprehension<𝔸<V, typename M::logic_species, CC>, M>{M{a, b}};
+    return sum_over<sum_universe_t<universe_t<A>, universe_t<B>>>(a, b);
 }
 /** @brief @c a @c | @c b on different carriers: their sum. */
 export template <typename A, typename B>
@@ -1728,6 +1784,118 @@ constexpr auto restriction(
   return restriction<K>(r.predicate.a) * r.predicate.b;
 }
 
+/** @brief @f$\iota_K^{-1}@f$ is a lattice homomorphism (a pullback preserves
+ *  @f$\wedge, \vee, \neg, \bot, \top@f$): the restriction reaches through the
+ *  lattice's nodes to the sums beneath, and the boundaries restrict to the
+ *  boundaries --- the universe of the sum to the universe of the summand (the
+ *  sum's cardinality class kept: a sound bound, the summand's own is not
+ *  recorded on a bare universe), @c Ø to @c Ø.  @tparam K the summand. */
+export template <std::size_t K, typename X, typename Y, typename L, typename C>
+  requires(K == 1 || K == 2)
+constexpr auto restriction(const 𝔸<std::variant<X, Y>, L, C>&) {
+  return 𝔸<std::conditional_t<K == 1, X, Y>, L, C>{};
+}
+export template <std::size_t K, typename X, typename Y, typename L>
+  requires(K == 1 || K == 2)
+constexpr auto restriction(const Ø<std::variant<X, Y>, L>&) {
+  return Ø<std::conditional_t<K == 1, X, Y>, L>{};
+}
+export template <std::size_t K, typename A>
+  requires(K == 1 || K == 2) && requires(const A& a) { restriction<K>(a); }
+constexpr auto restriction(const dedekind::category::Not<A>& n) {
+  return ~restriction<K>(n.base);
+}
+export template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2) && requires(const A& a, const B& b) {
+    restriction<K>(a);
+    restriction<K>(b);
+  }
+constexpr auto restriction(const dedekind::category::Meet<A, B>& m) {
+  return restriction<K>(m.lhs) & restriction<K>(m.rhs);
+}
+export template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2) && requires(const A& a, const B& b) {
+    restriction<K>(a);
+    restriction<K>(b);
+  }
+constexpr auto restriction(const dedekind::category::Join<A, B>& j) {
+  return restriction<K>(j.lhs) | restriction<K>(j.rhs);
+}
+
+/** @section expressions__Sum_Adjunction
+ *  The two arrows of a sum, on the objects @f$\mathrm{Sub}(X, L)@f$ and
+ *  @f$\mathrm{Sub}(X + Y, L)@f$ (@c Subobjects, @c :boundaries; @c L the sum's
+ *  logic): the pushforward along the injection, @f$\exists_{\iota_K} : a
+ *  \mapsto \iota_K[a]@f$ (@c Inject), and the pullback @f$\iota_K^{-1}@f$
+ *  (@c Restrict).  Both monotone, and @f$\exists_{\iota_K} \dashv
+ *  \iota_K^{-1}@f$: a Galois connection, witnessed through
+ *  @c category::IsGaloisConnection on these objects --- the arrows carry their
+ *  certificates (monotone, adjoint), read by member discovery.  The unit
+ *  @f$\iota_K^{-1}\,\iota_K[a] = a@f$ holds @b by @b type (@f$\iota_K@f$ is
+ *  monic, @c category::Injection); the counit @f$\iota_K[\iota_K^{-1} s]
+ *  \subseteq s@f$ is witnessed at points. */
+export template <std::size_t K, Is𝔸 UA, Is𝔸 UB>
+  requires(K == 1 || K == 2)
+struct Restrict;
+
+/** @brief @f$\exists_{\iota_K}@f$: a set of the summand as the set of the sum
+ *  that is it on its summand and empty on the other, @b kept as a sum (the
+ *  strength reduction @c a @c | @c Ø @c → @c a is the inverse direction).  The
+ *  left adjoint of @c Restrict.  @tparam K the summand.  @tparam UA, UB the
+ *  summands' universes. */
+export template <std::size_t K, Is𝔸 UA, Is𝔸 UB>
+  requires(K == 1 || K == 2)
+struct Inject {
+  using USum = sum_universe_t<UA, UB>;
+  using L = typename USum::logic_species;
+  using Domain =
+      Subobjects<typename std::conditional_t<K == 1, UA, UB>::Domain, L>;
+  using Codomain = Subobjects<typename USum::Domain, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Domain>
+  constexpr auto operator()(const S& s) const {
+    if constexpr (K == 1)
+      return sum_over<USum>(s, Ø<typename UB::Domain, L>{});
+    else
+      return sum_over<USum>(Ø<typename UA::Domain, L>{}, s);
+  }
+  /** @brief @f$a \subseteq b \Rightarrow \iota[a] \subseteq \iota[b]@f$. */
+  template <typename Op>
+  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
+  /** @brief @f$\exists_\iota \dashv \iota^{-1}@f$: @f$\iota[a] \subseteq s
+   *  \iff a \subseteq \iota^{-1}(s)@f$, the image--preimage adjunction, for
+   *  the monic @f$\iota@f$ with unit the identity. */
+  template <typename G, typename Op>
+  static constexpr bool is_adjoint_v = std::same_as<G, Restrict<K, UA, UB>> &&
+                                       std::same_as<Op, std::less_equal<>>;
+};
+/** @brief @f$\iota_K^{-1}@f$ as an arrow: the restriction, lifted into the
+ *  sum's logic (a summand given in a smaller logic sits in the sum's by
+ *  @f$\Sigma \hookrightarrow \Omega@f$).  The right adjoint of @c Inject.
+ *  Defined on every presentation @c restriction reaches: the sums, their
+ *  lattice nodes, the boundaries.  @tparam K the summand.  @tparam UA, UB the
+ *  summands' universes. */
+export template <std::size_t K, Is𝔸 UA, Is𝔸 UB>
+  requires(K == 1 || K == 2)
+struct Restrict {
+  using USum = sum_universe_t<UA, UB>;
+  using L = typename USum::logic_species;
+  using Domain = Subobjects<typename USum::Domain, L>;
+  using Codomain =
+      Subobjects<typename std::conditional_t<K == 1, UA, UB>::Domain, L>;
+  template <typename S>
+    requires dedekind::category::Presents<S, Domain> &&
+             requires(const S& s) { restriction<K>(s); }
+  constexpr auto operator()(const S& s) const {
+    return lift_to<L>(restriction<K>(s));
+  }
+  /** @brief @f$s \subseteq t \Rightarrow \iota^{-1}(s) \subseteq
+   *  \iota^{-1}(t)@f$. */
+  template <typename Op>
+  static constexpr bool is_monotone_v = std::same_as<Op, std::less_equal<>>;
+};
+
+namespace detail_sum_witness {
 namespace detail_sum_witness {
 using dedekind::category::Injections;
 inline constexpr auto t = 𝔸<bool>{} & (π == true);
@@ -1735,6 +1903,7 @@ inline constexpr auto three = 𝔸<int>{} & (π == 3);
 inline constexpr auto s = t | three;
 using S = std::remove_cvref_t<decltype(s)>;
 using In = Injections<bool, int>;
+using USum = sum_universe_t<𝔸<bool>, 𝔸<int>>;
 static_assert(std::same_as<typename S::Domain, std::variant<bool, int>>,
               "a | b over 𝔹 and int lives on 𝔹 + int");
 static_assert(s(In::inl(true)) && !s(In::inl(false)) && s(In::inr(3)) &&
@@ -1793,6 +1962,31 @@ static_assert(std::same_as<typename std::remove_cvref_t<decltype(restriction<1>(
                                (𝔸<bool>{} | 𝔸<int>{}) * 𝔸<char>{}))>::Domain,
                            std::pair<bool, char>>,
               "a relation out of a sum of universes restricts too");
+// The sum's arrows and their adjunction, through the library's own concepts.
+using In1 = Inject<1, 𝔸<bool>, 𝔸<int>>;
+using Re1 = Restrict<1, 𝔸<bool>, 𝔸<int>>;
+static_assert(dedekind::category::IsArrow<In1> &&
+                  dedekind::category::IsArrow<Re1> &&
+                  dedekind::category::IsGaloisConnection<In1, Re1>,
+              "∃_ι ⊣ ι⁻¹ on Sub(𝔹) and Sub(𝔹 + int): a Galois connection "
+              "between objects presented by many types");
+static_assert(std::same_as<std::remove_cvref_t<decltype(Re1{}(In1{}(t)))>,
+                           std::remove_cvref_t<decltype(t)>>,
+              "the unit ι⁻¹ ι[a] = a, by type: ι is monic");
+static_assert(In1{}(Re1{}(s))(In::inl(true)) &&
+                  !In1{}(Re1{}(s))(In::inl(false)) &&
+                  !In1{}(Re1{}(s))(In::inr(3)) && s(In::inr(3)),
+              "the counit ι[ι⁻¹ s] ⊆ s, proper where s has a second summand");
+static_assert(In1{}(t)(In::inl(true)) && !In1{}(t)(In::inr(3)),
+              "ι[a] is a on its summand and empty on the other");
+// ι⁻¹ through the lattice's nodes and at the boundaries.
+static_assert(!Re1{}(~s)(true) && Re1{}(~s)(false) && Re1{}(s & s)(true) &&
+                  Re1{}(s | ~s)(true) &&
+                  dedekind::category::Presents<decltype(Re1{}(USum{})),
+                                               Subobjects<bool>> &&
+                  !Re1{}(Ø<std::variant<bool, int>>{})(true),
+              "ι⁻¹ is a lattice homomorphism, Ø to Ø, the universe to the "
+              "universe");
 }  // namespace detail_sum_witness
 
 // The relation CORE --- the @c Relation / @c SetFunction aliases, the

@@ -44,6 +44,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::bool_constant: the monotone witness
 #include <utility>
 
 export module dedekind.category:posetal;
@@ -375,8 +376,21 @@ static_assert(
  *          Default relation @c std::less_equal<> matches the partition
  *          convention (see partition header).
  */
+export template <typename F, typename Op>
+struct is_monotone : std::false_type {};
+/** @brief Discovery: an arrow may carry its own witness, a nested
+ *  @c is_monotone_v<Op> (as @c :involution's @c is_involutive); a generic
+ *  arrow family downstream certifies itself this way, where a partial
+ *  specialisation across the module boundary would not fire. */
+template <typename F, typename Op>
+  requires requires {
+    { F::template is_monotone_v<Op> } -> std::convertible_to<bool>;
+  }
+struct is_monotone<F, Op> : std::bool_constant<F::template is_monotone_v<Op>> {
+};
 export template <typename F, typename Op = std::less_equal<>>
-inline constexpr bool is_monotone_v = false;
+inline constexpr bool is_monotone_v =
+    is_monotone<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsMonotone

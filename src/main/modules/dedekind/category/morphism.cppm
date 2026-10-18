@@ -250,17 +250,59 @@ export struct spoke_arrow_tag {};
  */
 export struct hub_arrow_tag {};
 
+/** @section morphism__Objects_And_Their_Presentations
+ *  @c Domain and @c Codomain name @b objects.  By default an object is
+ *  presented by one value type, itself: @c IsArrow checks the call on it and
+ *  asks the result to convert to it.  That is not always possible.  A
+ *  type-indexed family (an expression grammar, each expression its own type so
+ *  the reducer can rewrite at compile time) presents @b one object by @b many
+ *  types, and no single type is the object: the sets over a carrier are
+ *  @c 𝔸, comprehensions, @c Meet / @c Join / @c Not nodes, one object
+ *  @f$\mathrm{Sub}(T)@f$ (@c sets::Subobjects).  Such an object names its
+ *  presentations (@c presents<S>) and one representative (@c archetype), and
+ *  @c IsArrow reads them: the call is checked on the archetype, the result is
+ *  asked to present the codomain.  A concept quantifies over no types, so the
+ *  ∀ over presentations is the arrow's own constrained @c operator() (every
+ *  @c S that presents the domain); the concept checks the representative. */
+
+/** @brief @c S presents the object @c C: a value convertible to @c C (the
+ *  default: the object is one value type), or a type the object names
+ *  (@c C::presents<S>).  @tparam S the presentation.  @tparam C the object. */
+export template <typename S, typename C>
+concept Presents = std::convertible_to<S, C> || (requires {
+                     {
+                       C::template presents<std::remove_cvref_t<S>>
+                     } -> std::convertible_to<bool>;
+                   } && C::template presents<std::remove_cvref_t<S>>);
+
+/** @brief The representative presentation of an object: itself for a value
+ *  type; the one it names (@c C::archetype) otherwise. */
+export template <typename C>
+struct archetype {
+  using type = C;
+};
+template <typename C>
+  requires requires { typename C::archetype; }
+struct archetype<C> {
+  using type = typename C::archetype;
+};
+export template <typename C>
+using archetype_t = typename archetype<C>::type;
+
 /**
  * @concept IsArrow
- * @brief A type that knows its own Domain (A) and Codomain (B).
+ * @brief A type that knows its own Domain (A) and Codomain (B), objects it
+ *        maps between: called at the domain's representative, its result
+ *        presents the codomain (@c morphism__Objects_And_Their_Presentations).
  */
 export template <typename F>
 concept IsArrow =
     requires {
       typename std::remove_cvref_t<F>::Domain;
       typename std::remove_cvref_t<F>::Codomain;
-    } && requires(const std::remove_cvref_t<F>& f,
-                  const typename std::remove_cvref_t<F>::Domain& x) {
+    } &&
+    requires(const std::remove_cvref_t<F>& f,
+             const archetype_t<typename std::remove_cvref_t<F>::Domain>& x) {
       // CONST-invocable (not merely invocable on a mutable f): a morphism is
       // pure (Juliet Posture §2 "Pure, Terminating Arrows ... effect-free"), so
       // applying it must not mutate it.  A mutable-only operator() is a
@@ -268,9 +310,7 @@ concept IsArrow =
       // b ⟹ f(a) = f(b)); it is excluded here at the type boundary.  A memoized
       // arrow (mutable cache + const operator()) stays const-invocable and
       // observationally pure, so it survives.
-      {
-        f(x)
-      } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
+      { f(x) } -> Presents<typename std::remove_cvref_t<F>::Codomain>;
     };
 
 // ---------------------------------------------------------------------------
