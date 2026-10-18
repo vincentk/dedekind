@@ -206,8 +206,7 @@ class Tables(unittest.TestCase):
     def test_relations_over_different_products_do_not_compare(self) -> None:
         with self.assertRaises(TypeError):
             (U64 * B) == (U64 * B * B)
-        with self.assertRaises(TypeError):
-            (U64 * B) & (B * U64)
+        self.assertTrue(repr((U64 * B) & (B * U64)).endswith("& ⊥"))  # Ø of the sum (#1039)
         self.assertIs((U64 * B & (π_1 + 0 > 3)) == (U64 * B & (π_1 > 3)), True)
 
     def test_the_normal_form_reads_every_column(self) -> None:

@@ -896,7 +896,7 @@ RPred canonical(const Relation& r);
  *  strength reduction @f$a + \varnothing \cong a@f$.  @c nullopt where
  *  both are over one object or either is no table: the operator's own reading
  *  applies.  @param op @c '|' or @c '&'. */
-std::optional<Relation> across(char op, nb::handle a, nb::handle b) {
+std::optional<nb::object> across(char op, nb::handle a, nb::handle b) {
   Relation x, y;
   try {
     x = as_relation(a);
@@ -906,15 +906,16 @@ std::optional<Relation> across(char op, nb::handle a, nb::handle b) {
   }
   if (!is_table(x) || !is_table(y) || x.cod == y.cod) return std::nullopt;
   const Relation s = dedekind::relational::sum(x, y);
-  if (op == '&') return s & RPred::bottom();
-  if (canonical(y).kind == RPred::Kind::Bottom) return x;
-  if (canonical(x).kind == RPred::Kind::Bottom) return y;
-  return s;
+  if (op == '&') return nb::cast(s & RPred::bottom());
+  // The other summand as it was given, not its table reading.
+  if (canonical(y).kind == RPred::Kind::Bottom) return nb::borrow(a);
+  if (canonical(x).kind == RPred::Kind::Bottom) return nb::borrow(b);
+  return nb::cast(s);
 }
 /** @brief @c across as a Python result: the relation, or @c NotImplemented
  *  so Python tries the reflected operator. */
 nb::object across_or_not(char op, nb::handle a, nb::handle b) {
-  if (std::optional<Relation> s = across(op, a, b)) return nb::cast(*s);
+  if (std::optional<nb::object> s = across(op, a, b)) return *s;
   return nb::borrow(Py_NotImplemented);
 }
 /** @brief The object of a universe over one carrier.  @throws nb::type_error
@@ -1240,11 +1241,11 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           nb::is_operator())
       .def(
           "__or__",
-          [](const Relation& a, const Relation& b) {
-            if (std::optional<Relation> s =
+          [](const Relation& a, const Relation& b) -> nb::object {
+            if (std::optional<nb::object> s =
                     across('|', nb::cast(a), nb::cast(b)))
               return *s;
-            return a | b;
+            return nb::cast(a | b);
           },
           nb::is_operator(),
           "R | S: the join over one object; across objects (two tables) the "
@@ -1259,11 +1260,11 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           nb::is_operator())
       .def(
           "__and__",
-          [](const Relation& a, const Relation& b) {
-            if (std::optional<Relation> s =
+          [](const Relation& a, const Relation& b) -> nb::object {
+            if (std::optional<nb::object> s =
                     across('&', nb::cast(a), nb::cast(b)))
               return *s;
-            return a & b;
+            return nb::cast(a & b);
           },
           nb::is_operator(),
           "R & S: the meet over one object; across objects the empty set of "
@@ -2040,9 +2041,9 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
           // Across carriers, | is the sum and & its empty set (#1039).
           const std::string_view o{op};
           if (o == "__or__" || o == "__and__")
-            if (std::optional<Relation> s =
+            if (std::optional<nb::object> s =
                     across(o == "__or__" ? '|' : '&', nb::cast(self), other))
-              return nb::cast(*s);
+              return *s;
           return full_universe<C>().attr(op)(other);
         },
         nb::is_operator());
