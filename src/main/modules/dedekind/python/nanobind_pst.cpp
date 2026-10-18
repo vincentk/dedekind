@@ -890,6 +890,15 @@ Relation as_arrow(const Relation& r) {
   return dedekind::relational::arrow(r);
 }
 RPred canonical(const Relation& r);
+/** @brief Whether the normal form decides @c r empty: a predicate it does
+ *  not reduce (a remainder) leaves the emptiness open, and the sum stays. */
+bool empty_by_canonical(const Relation& r) {
+  try {
+    return canonical(r).kind == RPred::Kind::Bottom;
+  } catch (const dedekind::sets::not_admitted&) {
+    return false;
+  }
+}
 /** @brief @c a @c | @c b and @c a @c & @c b across carriers (#1039): two
  *  tables (sets) over different objects land in their sum, @c | the sum
  *  itself, @c & its empty set (the summands are disjoint).  A summand with no
@@ -912,15 +921,6 @@ std::optional<nb::object> across(char op, nb::handle a, nb::handle b) {
   if (empty_by_canonical(y)) return nb::borrow(a);
   if (empty_by_canonical(x)) return nb::borrow(b);
   return nb::cast(s);
-}
-/** @brief Whether the normal form decides @c r empty: a predicate it does
- *  not reduce (a remainder) leaves the emptiness open, and the sum stays. */
-bool empty_by_canonical(const Relation& r) {
-  try {
-    return canonical(r).kind == RPred::Kind::Bottom;
-  } catch (const dedekind::sets::not_admitted&) {
-    return false;
-  }
 }
 /** @brief @c across as a Python result: the relation, or @c NotImplemented
  *  so Python tries the reflected operator. */
