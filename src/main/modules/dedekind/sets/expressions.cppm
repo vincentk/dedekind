@@ -827,6 +827,17 @@ struct Complement {
   constexpr auto operator()(const S& s) const {
     return ~s;
   }
+  /** @brief @f$a \subseteq b \Rightarrow \neg b \subseteq \neg a@f$: the
+   *  complement reverses inclusion, a contravariant functor on the poset
+   *  @f$\mathrm{Sub}(T, L)@f$. */
+  template <typename Op>
+  static constexpr bool is_antimonotone_v = std::same_as<Op, std::less_equal<>>;
+  /** @brief Self-adjoint, antitone: @f$a \subseteq \neg b \iff b \subseteq
+   *  \neg a@f$ --- the De Morgan algebra @f$\mathrm{Sub}(T, L)@f$ stated as a
+   *  Galois connection of the complement with itself. */
+  template <typename G, typename Op>
+  static constexpr bool is_adjoint_v =
+      std::same_as<G, Complement<T, L>> && std::same_as<Op, std::less_equal<>>;
   /** @brief @f$\neg\neg = \mathrm{id}@f$, read off the reducer at the
    *  universe: @c ~~𝔸 is @c 𝔸 by type. */
   template <typename X>
@@ -842,6 +853,11 @@ static_assert(dedekind::category::IsInvolution<Complement<int>> &&
                   dedekind::category::IsInvolution<Complement<int, Kleene>>,
               "the complement is an involution on Sub(int): an arrow on an "
               "object presented by many types, through IsInvolution itself");
+static_assert(dedekind::category::IsContravariantFunctor<Complement<int>> &&
+                  dedekind::category::IsGaloisConnection<Complement<int>,
+                                                         Complement<int>>,
+              "the complement reverses inclusion and is its own adjoint: "
+              "a ⊆ ¬b ⟺ b ⊆ ¬a, the De Morgan algebra Sub(int) categorically");
 static_assert(
     std::same_as<std::remove_cvref_t<
                      decltype(Complement<int>{}(Complement<int>{}(three)))>,

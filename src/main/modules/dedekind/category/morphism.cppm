@@ -876,8 +876,19 @@ struct Compose final {
   using Codomain = Cod<G>;
   F f;
   G g;
-  /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)). */
-  constexpr Codomain operator()(const Domain& x) const { return g(f(x)); }
+  /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
+   *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
+   *  between objects presented by many types compose like any other.  Where
+   *  the result converts to the codomain's value type it is returned as that
+   *  type, as before. */
+  template <typename X>
+    requires Presents<X, Domain>
+  constexpr auto operator()(const X& x) const {
+    if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
+      return static_cast<Codomain>(g(f(x)));
+    else
+      return g(f(x));
+  }
 };
 
 /** @brief The contravariant @b substitution / pullback @c f*: pull a codomain

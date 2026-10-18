@@ -414,8 +414,19 @@ concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
  *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
  *          @c IsMonotone (two flips cancel).
  */
+export template <typename F, typename Op>
+struct is_antimonotone : std::false_type {};
+/** @brief Discovery: an arrow may carry its own witness, a nested
+ *  @c is_antimonotone_v<Op> (as @c is_monotone). */
+template <typename F, typename Op>
+  requires requires {
+    { F::template is_antimonotone_v<Op> } -> std::convertible_to<bool>;
+  }
+struct is_antimonotone<F, Op>
+    : std::bool_constant<F::template is_antimonotone_v<Op>> {};
 export template <typename F, typename Op = std::less_equal<>>
-inline constexpr bool is_antimonotone_v = false;
+inline constexpr bool is_antimonotone_v =
+    is_antimonotone<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsAntiMonotone
