@@ -948,9 +948,12 @@ dedekind::relational::Object object_of(nb::handle u, const char* what) {
             .c_str());
   return r.cod;
 }
-/** @brief Two relations over one product: the schemas must agree. */
+/** @brief Two relations over one object, @c dom @c × @c cod: the same
+ *  factors, sums kept (a sum's columns are no flat product's), however the
+ *  factors are split between domain and codomain (a table and its arrow
+ *  reading agree). */
 void same_product(const Relation& a, const Relation& b) {
-  if (a.columns() != b.columns())
+  if (a.dom * a.cod != b.dom * b.cod)
     throw nb::type_error("relations over different products");
 }
 /** @brief A point of a sum, @c inl(x) (the left summand, @c tag 1) or
@@ -1415,11 +1418,13 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__le__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_canonical<Cells>(classifier(a & b), classifier(a),
-                                             a.rep());
+            return equal_by_canonical<Cells>(
+                RPred::conj(classifier(a), classifier(b)), classifier(a),
+                a.rep());
           },
           nb::is_operator(),
-          "R <= S: inclusion, R & S == R, decided as == is: True where the "
+          "R <= S: inclusion, χ_R ∧ χ_S == χ_R over one object (a table and "
+          "its arrow reading compare), decided as == is: True where the "
           "normal forms agree, TypeError where they differ (which decides "
           "nothing).  R < S is not offered: normal forms confirm equality, "
           "never difference.")
@@ -1427,8 +1432,9 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__ge__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_canonical<Cells>(classifier(a & b), classifier(b),
-                                             a.rep());
+            return equal_by_canonical<Cells>(
+                RPred::conj(classifier(a), classifier(b)), classifier(b),
+                a.rep());
           },
           nb::is_operator(), "R >= S: S <= R.")
       .def("__repr__", [](const Relation& r) { return written(r); });

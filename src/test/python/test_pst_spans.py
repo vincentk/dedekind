@@ -307,6 +307,9 @@ class TheTermIsInspected(unittest.TestCase):
         self.assertIs(succ >= (succ & sq), True)
         with self.assertRaises(TypeError):
             succ <= (succ & sq)  # different normal forms decide nothing
+        # A table and its arrow reading: one object, split differently.
+        self.assertIs(succ <= succ.arrow, True)
+        self.assertIs(succ >= succ.arrow, True)
 
 
 F = A(𝔽ₚ)
@@ -346,6 +349,13 @@ class SumsAcrossCarriers(unittest.TestCase):
         big = U64 & (π > 3)
         nothing = F & (π != π)
         self.assertEqual(repr(big | nothing), repr(big))
+
+    def test_a_sum_is_no_flat_product(self) -> None:
+        # The same columns, B × U64 × B, but another object: never compared.
+        s = U64 | B
+        flat = B * U64 * B & s.classifier
+        with self.assertRaises(TypeError):
+            s == flat  # noqa: B015
 
     def test_a_summand_without_a_normal_form_stays(self) -> None:
         # The remainder has no normal form: its emptiness is open, the sum kept.
