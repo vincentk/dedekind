@@ -50,7 +50,8 @@ module;
 
 #include <concepts>    // std::invocable, std::convertible_to
 #include <functional>  // std::logical_not / std::bit_not (canonical involutions)
-#include <type_traits>  // std::invoke_result_t, std::is_integral_v
+#include <type_traits>
+#include <utility>  // std::declval: the bare callable read as endo<T>(f)  // std::invoke_result_t, std::is_integral_v
 
 export module dedekind.category:involution;
 
@@ -115,35 +116,26 @@ struct is_involutive<Identity<T>, T> : std::true_type {};
  * predicate under the lattice-complement reading.
  */
 namespace detail_involution {
-/** @brief The object an arrow is an endomorphism on: its domain. */
-template <typename F>
-struct endo_object {};
-template <IsArrow F>
-struct endo_object<F> {
-  using type = Dom<F>;
-};
-/** @brief @c F as an arrow on the object @c T: itself when it is one; a bare
- *  callable (@c std::logical_not, a logic's @c RFL) read as the arrow
- *  @c T @c → @c T (@c Morphism), the value-type default where the object is one
- *  type and the callable's shape is its arrow. */
+/** @brief @c F read as an arrow on the object @c T: itself when it is one; a
+ *  bare callable (@c std::logical_not, a logic's @c RFL) as the endomorphism
+ *  @c endo<T>(f) (@c :morphism), the value-type default where the object is
+ *  one type and the callable's shape is its arrow. */
 template <typename F, typename T>
-using endo_arrow_t = std::conditional_t<IsArrow<F>, F, Morphism<T, T, F>>;
+using on_t =
+    std::conditional_t<IsArrow<F>, F, decltype(endo<T>(std::declval<F>()))>;
 }  // namespace detail_involution
 
 /** @brief Stated in arrow language: @c F is an endomorphism on the object @c T
- *  (@c IsArrow, domain and codomain @c T --- applying it twice returns to the
- *  domain) carrying the certificate @f$f \circ f = \mathrm{id}_T@f$.  @c T
- *  defaults to the arrow's domain; a bare callable names it.  The object may be
- *  presented by many types (@c morphism__Objects_And_Their_Presentations), so
+ *  (@c IsEndomorphism, domain and codomain @c T --- applying it twice returns
+ *  to the domain) carrying the certificate @f$f \circ f = \mathrm{id}_T@f$.  @c
+ * T defaults to the arrow's domain; a bare callable names it.  The object may
+ * be presented by many types (@c morphism__Objects_And_Their_Presentations), so
  *  the complement on @f$\mathrm{Sub}(T)@f$ is an involution here, through
  *  this one concept. */
-export template <typename F,
-                 typename T = typename detail_involution::endo_object<F>::type>
-concept IsInvolution =
-    IsArrow<detail_involution::endo_arrow_t<F, T>> &&
-    std::same_as<Dom<detail_involution::endo_arrow_t<F, T>>, T> &&
-    std::same_as<Cod<detail_involution::endo_arrow_t<F, T>>, T> &&
-    is_involutive_v<F, T>;
+export template <typename F, typename T = Dom<F>>
+concept IsInvolution = IsEndomorphism<detail_involution::on_t<F, T>> &&
+                       std::same_as<Dom<detail_involution::on_t<F, T>>, T> &&
+                       is_involutive_v<F, T>;
 
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution
