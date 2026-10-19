@@ -387,14 +387,13 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
  */
 export template <typename T>
 concept SupInfLattice =
-    SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
-                          is_transitive_v<T, std::less_equal<T>> &&
-                          is_antisymmetric_v<T, std::less_equal<T>> &&
-                          is_connex_v<T, std::less_equal<T>>) ||
-                         (is_reflexive_v<T, std::less_equal<>> &&
-                          is_transitive_v<T, std::less_equal<>> &&
-                          is_antisymmetric_v<T, std::less_equal<>> &&
-                          is_connex_v<T, std::less_equal<>>));
+    SupInfOperand<T> &&
+    ((IsReflexive<T, std::less_equal<T>> &&
+      IsTransitive<T, std::less_equal<T>> &&
+      IsAntisymmetric<T, std::less_equal<T>> &&
+      IsConnex<T, std::less_equal<T>>) ||
+     (IsReflexive<T, std::less_equal<>> && IsTransitive<T, std::less_equal<>> &&
+      IsAntisymmetric<T, std::less_equal<>> && IsConnex<T, std::less_equal<>>));
 
 // #934: the ref-returning @c std::ranges::max / @c std::ranges::min niebloid
 // lattice-law blanket was retired here.  Its semilattice / distributive laws

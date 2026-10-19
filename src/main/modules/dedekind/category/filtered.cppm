@@ -128,8 +128,8 @@ inline constexpr bool is_directed_v = is_directed<T, Rel>::value;
  *         syntactic @c std::totally_ordered<T>, which @c double satisfies
  *         (#1043). */
 template <typename T>
-  requires(is_reflexive_v<T, std::less_equal<T>> &&
-           is_connex_v<T, std::less_equal<T>>)
+  requires(IsReflexive<T, std::less_equal<T>> &&
+           IsConnex<T, std::less_equal<T>>)
 struct is_directed<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -184,8 +184,8 @@ inline constexpr bool is_codirected_v = is_codirected<T, Rel>::value;
 /** @brief A reflexive, connex @c <= is codirected: the lesser of @c a and
  *         @c b bounds both from below (#1043, as @c is_directed). */
 template <typename T>
-  requires(is_reflexive_v<T, std::less_equal<T>> &&
-           is_connex_v<T, std::less_equal<T>>)
+  requires(IsReflexive<T, std::less_equal<T>> &&
+           IsConnex<T, std::less_equal<T>>)
 struct is_codirected<T, std::less_equal<T>> : std::true_type {};
 
 /**
