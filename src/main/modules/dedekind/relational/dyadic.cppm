@@ -813,27 +813,31 @@ inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
         [dedekind::relational::Law::Surjective] == Ternary::True;
-template <typename B, typename A, typename L, typename R>
-inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+template <typename B, typename A, typename L, typename Card, typename R>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<R>>> =
     dedekind::relational::Laws::swapped(
         dedekind::relational::laws_of_v<R>)[dedekind::relational::Law::Total] ==
     Ternary::True;
-template <typename B, typename A, typename L, typename R>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+template <typename B, typename A, typename L, typename Card, typename R>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<R>>> =
     dedekind::relational::Laws::swapped(
         dedekind::relational::laws_of_v<
             R>)[dedekind::relational::Law::Univalent] == Ternary::True;
-template <typename B, typename A, typename L, typename R>
-inline constexpr bool is_left_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+template <typename B, typename A, typename L, typename Card, typename R>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<R>>> =
     dedekind::relational::Laws::swapped(
         dedekind::relational::laws_of_v<
             R>)[dedekind::relational::Law::Injective] == Ternary::True;
-template <typename B, typename A, typename L, typename R>
-inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+template <typename B, typename A, typename L, typename Card, typename R>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<R>>> =
     dedekind::relational::Laws::swapped(
         dedekind::relational::laws_of_v<
             R>)[dedekind::relational::Law::Surjective] == Ternary::True;
