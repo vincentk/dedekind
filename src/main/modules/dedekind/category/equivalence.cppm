@@ -199,20 +199,23 @@ concept IsEquality =
 template <typename T, typename Rel>
   requires(
       is_equality_v<T, Rel> && !requires { T::template is_reflexive_v<Rel>; } &&
-      !IsWalkableChain<T, Rel>)  // the chain law decides it there: one rule
+      !IsChainDecidedReflexive<T, Rel>)  // the law decides it there: one rule
 struct is_reflexive<T, Rel> : std::true_type {};
 template <typename T, typename Rel>
   requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_symmetric_v<Rel>; })
+           !requires { T::template is_symmetric_v<Rel>; } &&
+           !IsChainDecidedSymmetric<T, Rel>)
 struct is_symmetric<T, Rel> : std::true_type {};
 template <typename T, typename Rel>
   requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_transitive_v<Rel>; })
+           !requires { T::template is_transitive_v<Rel>; } &&
+           !IsChainDecidedTransitive<T, Rel>)
 struct is_transitive<T, Rel> : std::true_type {};
 // ... and antisymmetric: Δ ∩ Δ° ≤ Δ.
 template <typename T, typename Rel>
   requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_antisymmetric_v<Rel>; })
+           !requires { T::template is_antisymmetric_v<Rel>; } &&
+           !IsChainDecidedAntisymmetric<T, Rel>)
 struct is_antisymmetric<T, Rel> : std::true_type {};
 
 /** @brief Symmetry at a point (@c mereology__The_Laws_At_A_Point). */
@@ -223,6 +226,34 @@ export template <typename Rel, typename T>
 constexpr bool symmetric_at(const Rel& rel, const T& a, const T& b) {
   return static_cast<bool>(rel(a, b)) == static_cast<bool>(rel(b, a));
 }
+/** @brief Symmetry over a whole chain (@c mereology__The_Laws_On_A_Chain). */
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
+  }
+constexpr bool symmetric_on(const Rel& rel, const T& lo, const T& hi) {
+  for (T a = lo;; a = successor(a)) {
+    for (T b = lo;; b = successor(b)) {
+      if (!symmetric_at(rel, a, b)) return false;
+      if (chain_end(b, hi)) break;
+    }
+    if (chain_end(a, hi)) return true;
+  }
+}
+/** @brief Symmetry, stated once for every relation on a walkable chain. */
+export template <typename T, typename Rel>
+concept IsChainDecidedSymmetric = IsWalkableChain<T, Rel, 2> && !requires {
+  T::template is_symmetric_v<Rel>;
+} && requires {
+  typename std::bool_constant<symmetric_on(Rel{}, identity_v<T, Sup>,
+                                           identity_v<T, Inf>)>;
+};
+template <typename T, typename Rel>
+  requires IsChainDecidedSymmetric<T, Rel>
+struct is_symmetric<T, Rel>
+    : std::bool_constant<symmetric_on(Rel{}, identity_v<T, Sup>,
+                                      identity_v<T, Inf>)> {};
 /** @brief Equality at a point: the relation answers as @c == does. */
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {

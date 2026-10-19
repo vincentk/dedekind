@@ -1202,15 +1202,9 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
  *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
  *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
  *  review), so this explicit registration is what makes @c Ternary posetal. */
-// Reflexivity is not registered here: K₃ is a discrete bounded chain (its
-// step above, its bounds the identities of Sup / Inf), so the law decides it
-// for every relation on K₃ (:mereology, reflexive_on along the chain).
-template <>
-inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Ternary, std::less_equal<>> = true;
+// Nothing registered here: K₃ is a discrete bounded chain (its step above,
+// its bounds the identities of Sup / Inf), so each order law is decided by
+// its law for every relation on K₃ (:mereology, the laws on a chain).
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
                   is_transitive_v<Ternary, std::less_equal<>> &&
@@ -1223,26 +1217,19 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  Reflexivity is decided by the law, for every relation
- *  on K₃ (@c :mereology); the other three laws are hand-registered for THIS
- *  carrier: the @c :mereology blankets certify the integral types only, never
- *  an arbitrary enum (#946 review), and never by @c std::totally_ordered
+ *  not reach them.  Each law is decided by its law, for every relation on
+ *  K₃ (@c :mereology), nothing registered for THIS carrier: the @c :mereology
+ * blankets certify the integral types only, never an arbitrary enum (#946
+ * review), and never by @c std::totally_ordered
  *  (#1043).  It
  *  is also the order the @c :mereology @c SupInfLattice gate certifies against
  * (a genuine total order cannot contain NaN). */
-template <>
-inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
-    true;
-template <>
-inline constexpr bool is_connex_v<Ternary, std::less_equal<Ternary>> = true;
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
               "K₃ is a total order under the typed std::less_equal<Ternary> "
-              "(reflexivity decided, the other order laws hand-registered)");
+              "(every order law decided along the chain)");
 
 // One law, every relation on K₃: ≤ (both spellings), ≥ and == are reflexive,
 // <, > and != are not, with no registration per operator.
@@ -1251,6 +1238,10 @@ static_assert(IsReflexive<Ternary, std::less_equal<Ternary>> &&
                   IsReflexive<Ternary, std::greater_equal<Ternary>> &&
                   IsReflexive<Ternary, std::equal_to<Ternary>>,
               "≤, ≥ and == on K₃ are reflexive: the law decides each");
+static_assert(IsTotalOrder<Ternary, std::greater_equal<Ternary>> &&
+                  IsEquivalence<Ternary, std::equal_to<Ternary>>,
+              "≥ on K₃ is a total order and == an equivalence: every law "
+              "decided, none registered");
 static_assert(!IsReflexive<Ternary, std::less<Ternary>> &&
                   !IsReflexive<Ternary, std::greater<Ternary>> &&
                   !IsReflexive<Ternary, std::not_equal_to<Ternary>>,
