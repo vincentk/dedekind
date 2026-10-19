@@ -121,7 +121,7 @@ using SetFunction = Relation<T1, T2, L, P>;
  *
  * @note This @b concept, @c IsRelation<S,T1,T2>, is Definition Trsk (§4)
  * made structural: a relation is an @b Lwv @b set @b object (@c IsSetObject,
- * @c :boundaries --- a subobject of a regular carrier with χ into a named Ω)
+ * @c :boundaries --- a subobject of a carrier with χ into a named Ω)
  * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, read
  * through the product's API, whatever spells it) and whose @b universe is
  * the product of the factor universes, @c 𝔸<T1×T2> @c ≅ @c 𝔸<T1> @c ×
@@ -846,6 +846,62 @@ inline constexpr bool is_right_total_v<
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
         [dedekind::relational::Law::Surjective] == Ternary::True;
+
+// The meet R ∧ S (RelAnd) keeps univalence and injectivity from either side;
+// totality and surjectivity it may lose, so the rule certifies neither.
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::meet(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Total] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::meet(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::meet(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Injective] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::meet(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Surjective] == Ternary::True;
+static_assert(
+    is_right_unique_v<decltype(dedekind::relational::diag<bool>() &
+                               dedekind::relational::diag<bool>())> &&
+        is_left_unique_v<decltype(dedekind::relational::diag<bool>() &
+                                  dedekind::relational::diag<bool>())> &&
+        !is_left_total_v<decltype(dedekind::relational::diag<bool>() &
+                                  dedekind::relational::diag<bool>())>,
+    "Δ ∧ Δ: the meet rule keeps univalence and injectivity, and certifies no "
+    "totality though Δ ∧ Δ = Δ is total: sound, not complete");
 
 static_assert(
     is_left_unique_v<decltype(dedekind::relational::diag<bool>())> &&

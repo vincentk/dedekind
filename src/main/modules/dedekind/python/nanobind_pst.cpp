@@ -1230,9 +1230,6 @@ const char* kind_of(const dedekind::relational::Object& o) {
   return n == 0 ? "unit" : n == 1 ? "leaf" : "product";
 }
 
-/** @brief The relation class and the products of the universes: every
- *  universe multiplies with every factor.  @param factors the carriers' Python
- *  objects, by sort. */
 /** @brief A set over the relations, read as the sets over a carrier are: x in
  *  S, ap(S, x) its χ in K₃ (inferred, or not), & | ~ its grammar.  Built on
  *  the library's sets of relations, 𝔸<Relation> & Total<Relation>{} and so
@@ -1242,6 +1239,9 @@ struct LawSet {
   std::string shown;
 };
 
+/** @brief The relation class and the products of the universes: every
+ *  universe multiplies with every factor.  @param factors the carriers' Python
+ *  objects, by sort. */
 template <typename... Universes>
 void bind_relations(nb::module_& m, std::vector<nb::object> factors,
                     nb::class_<Universes>&... universes) {
@@ -1466,8 +1466,9 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       "injective, surjective), inferred over the term by the rules that "
       "preserve it.  A table of n columns is read as the arrow of its first "
       "n − 1, as >> and converse read it.  x in S where the law is inferred; "
-      "ap(S, x) the answer in K₃: True inferred, Unknown not (never False: "
-      "the rules certify, they do not refute); S & T, S | T, ~S the sets' "
+      "ap(S, x) the answer in K₃: True inferred, Unknown not.  A law set never "
+      "answers False (the rules certify, they do not refute); ~S answers "
+      "False exactly where the law was inferred.  S & T, S | T, ~S the sets' "
       "grammar.")
       .def(
           "__contains__",

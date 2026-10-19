@@ -615,10 +615,11 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //   | + reflexive + symmetric + transitive       | equivalence relation|
 //   | + reflexive + antisymmetric + transitive   | partial order       |
 //   | + left-total + right-unique                | function (here)     |
-//   | + left-total + right-unique + monic + epic | bijection           |
+//   | + left-total + right-unique + left-unique  |                     |
+//   |   + right-total                            | bijection (Rel iso) |
 //
 // Note the indexing difference: @c :mereology's traits are keyed on
-// @c (T, Op) (homogeneous binary operation); the two traits added here
+// @c (T, Op) (homogeneous binary operation); the four traits added here
 // are keyed on @c R alone (the relation type), which lets the @c A ≠
 // @c B function shape work without extra parameters.
 //
@@ -781,6 +782,14 @@ template <typename F>
                  { fn(a) == b } -> std::convertible_to<bool>;
                }
 inline constexpr bool is_right_unique_v<arrow_as_relation<F>> = true;
+// A monic arrow of Set is an injective relation, an epic one surjective: the
+// two further laws read off the arrow's own certificates.
+template <typename F>
+  requires IsArrow<F> && IsMonicArrow<F>
+inline constexpr bool is_left_unique_v<arrow_as_relation<F>> = true;
+template <typename F>
+  requires IsArrow<F> && IsEpicArrow<F>
+inline constexpr bool is_right_total_v<arrow_as_relation<F>> = true;
 
 // Bridge :morphism ↔ :cartesian: every IsArrow induces an
 // IsBinaryFunction via arrow_as_relation.  Demonstrated on the

@@ -715,17 +715,23 @@ constexpr unsigned column_mask(unsigned lo, unsigned hi) {
   return m;
 }
 /** @brief Whether each column in @c [lo, hi) is defined by a conjunct of @c p
- *  over the columns of @c others alone, and whether nothing else is asked
- *  (the residual ⊤).  @return (every column defined, residual ⊤). */
-template <typename K>
+ *  over the columns of @c others alone, by a term that lands in the column's
+ *  sort (as @c function_term asks: a K₃ term defines no 𝔹 column), and
+ *  whether nothing else is asked (the residual ⊤).
+ *  @return (every column defined, residual ⊤). */
+template <typename P, typename K>
 std::pair<bool, bool> defined_columns(const dedekind::sets::Pred<K>& p,
-                                      unsigned lo, unsigned hi,
-                                      unsigned others) {
+                                      unsigned lo, unsigned hi, unsigned others,
+                                      const Columns& cols, const P& rep) {
   using Q = dedekind::sets::Pred<K>;
   Q rest = p;
   for (unsigned s = lo; s < hi; ++s) {
     const auto d = dedekind::sets::defining_term(rest, s);
     if (!d || (dedekind::sets::slots(d->term) & ~others) != 0u)
+      return {false, false};
+    const std::size_t sort = dedekind::sets::sort_of<P>(d->term, rep);
+    if (sort != dedekind::sets::no_sort &&
+        !dedekind::sets::sort_embeds<P>(sort, cols[s - 1]))
       return {false, false};
     rest = d->rest;
   }
@@ -739,14 +745,16 @@ std::pair<bool, bool> defined_columns(const dedekind::sets::Pred<K>& p,
  *  codomain's: injective, and surjective.  @c Δ is all four; @c copy a map
  *  and injective; its converse @c merge univalent, injective and surjective.
  *  @param p the predicate on the columns.  @param nd the domain's columns.
- *  @param n all the columns. */
-template <typename K>
-Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd, unsigned n) {
+ *  @param cols the sorts of all the columns.  @param rep a row of them. */
+template <typename P, typename K>
+Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
+                    const Columns& cols, const P& rep) {
+  const unsigned n = static_cast<unsigned>(cols.size());
   Laws l;
   const auto [cod_defined, cod_only] =
-      defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1));
+      defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1), cols, rep);
   const auto [dom_defined, dom_only] =
-      defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1));
+      defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1), cols, rep);
   if (cod_defined) {
     l.set(Law::Univalent);
     if (cod_only) l.set(Law::Total);
@@ -757,9 +765,6 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd, unsigned n) {
   }
   return l;
 }
-}  // namespace detail_rows
-
-namespace detail_rows {
 /** @brief The laws of @c r read at the split @c nd (its first @c nd columns
  *  the domain): the split belongs to the node being read, so a lattice node's
  *  legs share its columns, a converse's leg has them transposed, and only the
@@ -775,7 +780,7 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
     case R::Kind::Universe:
       return Laws::universe();
     case R::Kind::Comprehension: {
-      const Laws here = predicate_laws(r.predicate, nd, r.arity());
+      const Laws here = predicate_laws(r.predicate, nd, r.columns(), r.rep());
       // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
       return r.a->kind == R::Kind::Universe
                  ? here

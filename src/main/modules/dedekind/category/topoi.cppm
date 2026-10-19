@@ -400,7 +400,8 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
                       };
 
 /** @section topoi__L_Sets
- *  A subobject of a regular carrier whose characteristic map lands in a named
+ *  A subobject of a carrier (copies asked, not decidable equality: @c IsLSet)
+ *  whose characteristic map lands in a named
  *  bounded chain @f$L@f$ is an @b L-set (Goguen 1967).  At @f$L = \mathbb{B}@f$
  *  this is Lawvere's @c Set, which @ref IsSet refines with the ETCS axioms as
  *  implemented here (NNO, well-pointedness, the power-object-lattice

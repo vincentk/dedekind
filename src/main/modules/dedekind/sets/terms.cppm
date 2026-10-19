@@ -2267,7 +2267,7 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       const bool universal = p.kind == Pr::Kind::Forall;
       // Once the bound slot is gone, the quantifiers inside it bind one slot
       // lower: every slot above it moves down (the next-slot invariant).
-      const auto unbound_raw = [&](const Pr& q) {
+      const auto unbound = [&](const Pr& q) {
         return q.map_slots(ShiftDown<K>{p.slot});
       };
       // A definition first, looked for through the inner quantifiers of the
@@ -2283,15 +2283,10 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       };
       if (auto d = defined_through(*p.p, p.slot, universal, 0u);
           d && lands(d->term))
-        return eliminate_quantifiers<P>(
-            unbound_raw(d->rest.subst(p.slot, d->term)), lift, rep);
+        return eliminate_quantifiers<P>(unbound(d->rest.subst(p.slot, d->term)),
+                                        lift, rep);
       const Pr body = eliminate_quantifiers<P>(
           *p.p, lift, dedekind::sets::with_bound(rep, p.sort));
-      // Once the bound slot is gone, the quantifiers inside it bind one slot
-      // lower: every slot above it moves down (the next-slot invariant).
-      const auto unbound = [&](const Pr& q) {
-        return q.map_slots(ShiftDown<K>{p.slot});
-      };
       if (auto d = dedekind::sets::defining_term(body, p.slot, universal);
           d && lands(d->term))
         return eliminate_quantifiers<P>(unbound(d->rest.subst(p.slot, d->term)),
