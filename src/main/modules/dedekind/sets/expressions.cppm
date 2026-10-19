@@ -58,7 +58,6 @@ export module dedekind.sets:expressions;
 
 import dedekind.category;
 import :boundaries;     // For 𝔸, Ø
-import :setobject;      // IsSetObject: the noun every set type here realises
 import :cardinality;    // For Cardinality / SignedCardinality (cross-carrier
                         // meet)
 import :computability;  // HasDecidableMembership
@@ -515,7 +514,8 @@ export struct SetCombine {
   }
 };
 
-// ── The set-object legs of the opaque arm (IsSetObject, :setobject) ──────────
+// ── The set-object legs of the opaque arm (IsSetObject, :boundaries)
+// ──────────
 //
 // A comprehension's universe is its BASE's universe: the mereological whole is
 // what the base is a part of, restriction only shrinks the part.  So `ℕ | P`
@@ -870,7 +870,7 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
 // ── The apex views: meet = pullback, join = pushout in Sub(U) (#881)
 // ──────────
 //
-// A lattice node is a set object structurally (:setobject) and carries only
+// A lattice node is a set object structurally (:boundaries) and carries only
 // the arrow vocabulary in :category.  The categorical reading of A & B as the
 // PULLBACK of the cospan ι_A, ι_B (and of A | B as the PUSHOUT of the span
 // from Ø) needs the apex's member shape and its legs, π_1 / π_2 resp. ι1 / ι2

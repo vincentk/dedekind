@@ -119,7 +119,7 @@ using SetFunction = Relation<T1, T2, L, P>;
  *
  * @note This @b concept, @c IsRelation<S,T1,T2>, is Definition Trsk (§4)
  * made structural: a relation is an @b Lwv @b set @b object (@c IsSetObject,
- * @c :setobject --- a subobject of a regular carrier with χ into a named Ω)
+ * @c :boundaries --- a subobject of a regular carrier with χ into a named Ω)
  * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, spelled
  * as @c std::pair, the encoding the calculus builds) and whose @b universe is
  * the product of the factor universes, @c 𝔸<T1×T2> @c ≅ @c 𝔸<T1> @c ×
