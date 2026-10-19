@@ -225,12 +225,10 @@ TEST_CASE(
     "[category][cartesian][relation][equivalence][graph]") {
   SECTION(
       "std::equal_to<int> is the canonical equivalence relation: "
-      "reflexive, symmetric, transitive (registered upstream in :cartesian)") {
+      "reflexive, symmetric, transitive, derived from == being equality") {
     STATIC_CHECK(IsBinaryRelation<std::equal_to<int>, int, int>);
-    STATIC_CHECK(is_reflexive_relation_v<std::equal_to<int>>);
-    STATIC_CHECK(is_symmetric_relation_v<std::equal_to<int>>);
-    STATIC_CHECK(is_transitive_relation_v<std::equal_to<int>>);
-    STATIC_CHECK(IsEquivalenceRelation<std::equal_to<int>, int>);
+    STATIC_CHECK(IsEquality<int, std::equal_to<int>>);
+    STATIC_CHECK(IsEquivalence<int, std::equal_to<int>>);
     // Equivalence on V × V is structurally an undirected graph (the
     // identity loops + a-loops only when a == b).
     STATIC_CHECK(IsUndirectedGraph<std::equal_to<int>, int>);
@@ -251,10 +249,10 @@ TEST_CASE(
       "negative facts as type-checked documentation") {
     STATIC_CHECK(IsBinaryRelation<std::less<int>, int, int>);
     STATIC_CHECK(IsDirectedGraph<std::less<int>, int>);
-    // No traits opt-in by default — std::less is not an equivalence.
-    STATIC_CHECK(!is_reflexive_relation_v<std::less<int>>);
-    STATIC_CHECK(!is_symmetric_relation_v<std::less<int>>);
-    STATIC_CHECK(!IsEquivalenceRelation<std::less<int>, int>);
+    // No law certified — std::less is not an equivalence.
+    STATIC_CHECK(!IsReflexive<int, std::less<int>>);
+    STATIC_CHECK(!IsSymmetric<int, std::less<int>>);
+    STATIC_CHECK(!IsEquivalence<int, std::less<int>>);
     STATIC_CHECK(!IsUndirectedGraph<std::less<int>, int>);
   }
 
@@ -270,7 +268,7 @@ TEST_CASE(
     };
     STATIC_CHECK(IsBinaryRelation<R, int, int>);
     STATIC_CHECK(IsDirectedGraph<R, int>);
-    STATIC_CHECK(!IsEquivalenceRelation<R, int>);
+    STATIC_CHECK(!IsEquivalence<int, R>);
     STATIC_CHECK(!IsBinaryFunction<R, int, int>);
   }
 }

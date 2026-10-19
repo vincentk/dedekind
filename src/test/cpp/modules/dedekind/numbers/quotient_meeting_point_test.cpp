@@ -4,7 +4,7 @@
  * final slice of the quotient Form-chain epic).  Mirrors #698 Slice 10's
  * lattice meeting-point: four canonical carriers exercise the rows
  * they honestly support, jointly populating the row tower from
- * @c IsEquivalenceRelation through @c IsExactCategory.
+ * @c IsEquivalence through @c IsExactCategory.
  *
  * The four canonical carriers:
  *
@@ -44,7 +44,7 @@ TEST_CASE("quotient meeting-point — bool fires equivalence + congruence rows",
    *  Indirectly @c bool inhabits the First-Iso crown (Slice 4) as
    *  @c Modular<2> ≅ bool. */
   STATIC_CHECK(IsBinaryRelation<std::equal_to<bool>, bool, bool>);
-  STATIC_CHECK(IsEquivalenceRelation<std::equal_to<bool>, bool>);
+  STATIC_CHECK(IsEquivalence<bool, std::equal_to<bool>>);
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::plus<bool>>);
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::multiplies<bool>>);
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::bit_xor<bool>>);
@@ -130,8 +130,8 @@ TEST_CASE(
   using Z6 = Modular<6>;
   using Q = Rational<int>;
 
-  // Row 1 (IsEquivalenceRelation) — bool leg
-  STATIC_CHECK(IsEquivalenceRelation<std::equal_to<bool>, bool>);
+  // Row 1 (IsEquivalence) — bool leg
+  STATIC_CHECK(IsEquivalence<bool, std::equal_to<bool>>);
 
   // Row 2 (IsCongruence) — bool leg
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::bit_xor<bool>>);

@@ -190,7 +190,7 @@ TEST_CASE(
   // At a power-of-two modulus (8 | 2^w) native + preserves ≡ mod 8, so the
   // relation is a genuine congruence and Modular<8> = unsigned/(≡ mod 8) is a
   // machine congruence quotient:
-  STATIC_CHECK(IsEquivalenceRelation<Cong8, unsigned>);
+  STATIC_CHECK(IsEquivalence<unsigned, Cong8>);
   STATIC_CHECK(IsCongruence<Cong8, unsigned, std::plus<unsigned>>);
   STATIC_CHECK(IsCongruenceQuotient<Z8, std::plus<unsigned>>);
 

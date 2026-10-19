@@ -63,7 +63,7 @@ module;
 
 export module dedekind.sequences:tail;
 
-import dedekind.category; // IsCongruence / IsEquivalenceRelation + relation
+import dedekind.category; // IsCongruence / IsEquivalence + relation
                           // and congruence opt-in traits (#718)
 import :path;             // Path + pointwise operator+
 
@@ -231,29 +231,31 @@ namespace dedekind::category {
 
 // Tail-equivalence inherits each relational property from the carrier's
 // own equality: it is reflexive / symmetric / transitive exactly when
-// @c std::equal_to<T> is.  This mirrors the codebase's equality policy
-// (std::equal_to<V> is registered an equivalence only for reflexive
-// carriers — std::integral V), so IEEE floats are correctly excluded:
+// @c std::equal_to<T> is an equivalence (certified where == is equality: the
+// integral types, @c :equivalence), so IEEE floats are correctly excluded:
 // NaN ≠ NaN breaks reflexivity, so TailEquivalent<double> is NOT an
 // equivalence relation (and hence not a congruence).
 template <typename T>
-  requires is_reflexive_relation_v<std::equal_to<T>>
-inline constexpr bool
-    is_reflexive_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
+  requires IsEquivalence<T, std::equal_to<T>>
+inline constexpr bool is_reflexive_v<dedekind::sequences::Path<T>,
+                                     dedekind::sequences::TailEquivalent<T>> =
+    true;
 template <typename T>
-  requires is_symmetric_relation_v<std::equal_to<T>>
-inline constexpr bool
-    is_symmetric_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
+  requires IsEquivalence<T, std::equal_to<T>>
+inline constexpr bool is_symmetric_v<dedekind::sequences::Path<T>,
+                                     dedekind::sequences::TailEquivalent<T>> =
+    true;
 template <typename T>
-  requires is_transitive_relation_v<std::equal_to<T>>
-inline constexpr bool
-    is_transitive_relation_v<dedekind::sequences::TailEquivalent<T>> = true;
+  requires IsEquivalence<T, std::equal_to<T>>
+inline constexpr bool is_transitive_v<dedekind::sequences::Path<T>,
+                                      dedekind::sequences::TailEquivalent<T>> =
+    true;
 
 // …and a congruence with respect to Path's pointwise addition (agreeing
 // past N₁ and past N₂ ⇒ the sums agree past max(N₁,N₂)) — gated on the
 // carrier's equality being a bona fide equivalence, same policy.
 template <typename T>
-  requires IsEquivalenceRelation<std::equal_to<T>, T>
+  requires IsEquivalence<T, std::equal_to<T>>
 inline constexpr bool is_congruence_v<dedekind::sequences::TailEquivalent<T>,
                                       dedekind::sequences::Path<T>,
                                       std::plus<dedekind::sequences::Path<T>>> =
@@ -266,9 +268,8 @@ namespace dedekind::sequences {
 /** @section tail__Formal_Verification */
 
 // Tail-equivalence over Path<int> is an equivalence relation…
-static_assert(
-    dedekind::category::IsEquivalenceRelation<TailEquivalent<int>, Path<int>>,
-    "Tail-equivalence must be an equivalence relation on Path<int>.");
+static_assert(dedekind::category::IsEquivalence<Path<int>, TailEquivalent<int>>,
+              "Tail-equivalence must be an equivalence relation on Path<int>.");
 
 // …and a congruence w.r.t. pointwise + — so Path<int>/~tail is a
 // well-defined quotient algebra (the #718 IsCongruence link).
