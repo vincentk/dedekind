@@ -67,7 +67,7 @@
  *
  * @section filtered__Boolean_Witness
  * @c bool with @c std::less_equal is filtered: @c true is the upper
- * bound of every pair (and @c std::totally_ordered<bool> witnesses
+ * bound of every pair (its reflexive, connex @c <= witnesses
  * @c is_directed_v through the specialisation below).  The
  * 2-element thin category is also filtered.
  *
@@ -122,10 +122,14 @@ struct is_directed<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_directed_v = is_directed<T, Rel>::value;
 
-/** @brief Every totally ordered carrier under @c std::less_equal is
- *         directed: @c max(a, b) is the upper bound of every pair. */
+/** @brief A reflexive, connex @c <= is directed: of @c a and @c b one is
+ *         above the other, and it bounds both (reflexivity bounds itself).
+ *         Derived from the certificates (@c :mereology), not from the
+ *         syntactic @c std::totally_ordered<T>, which @c double satisfies
+ *         (#1043). */
 template <typename T>
-  requires std::totally_ordered<T>
+  requires(is_reflexive_v<T, std::less_equal<T>> &&
+           is_connex_v<T, std::less_equal<T>>)
 struct is_directed<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -138,7 +142,7 @@ struct is_directed<T, std::less_equal<T>> : std::true_type {};
  * because exhibiting @c c for arbitrary @c a, @c b in a generic
  * concept body is awkward; the trait specialisation captures the
  * mathematical content for the canonical witnesses
- * (@c std::totally_ordered carriers).
+ * (the certified chains: reflexive and connex).
  */
 export template <typename T, typename Rel>
 concept IsDirected = requires(T a, T b) {
@@ -175,10 +179,11 @@ struct is_codirected<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_codirected_v = is_codirected<T, Rel>::value;
 
-/** @brief Every totally ordered carrier under @c std::less_equal is
- *         codirected: @c min(a, b) is the lower bound of every pair. */
+/** @brief A reflexive, connex @c <= is codirected: the lesser of @c a and
+ *         @c b bounds both from below (#1043, as @c is_directed). */
 template <typename T>
-  requires std::totally_ordered<T>
+  requires(is_reflexive_v<T, std::less_equal<T>> &&
+           is_connex_v<T, std::less_equal<T>>)
 struct is_codirected<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -230,5 +235,10 @@ static_assert(IsFilteredCategory<bool>,
 static_assert(IsFilteredCategory<int>,
               "int with std::less_equal is filtered (totally ordered "
               "carriers are trivially directed).");
+
+static_assert(!is_directed_v<double, std::less_equal<double>> &&
+                  !is_codirected_v<double, std::less_equal<double>>,
+              "<= on double is not directed: NaN has no upper bound "
+              "(#1043; std::totally_ordered<double> certifies nothing)");
 
 }  // namespace dedekind::category

@@ -657,6 +657,13 @@ inline constexpr bool is_antisymmetric_v<std::variant<X, Y>,
                                          std::less_equal<std::variant<X, Y>>> =
     IsAntisymmetric<X, std::less_equal<X>> &&
     IsAntisymmetric<Y, std::less_equal<Y>>;
+template <typename X, typename Y>
+inline constexpr bool is_connex_v<std::variant<X, Y>, std::less_equal<>> =
+    IsConnex<X, std::less_equal<>> && IsConnex<Y, std::less_equal<>>;
+template <typename X, typename Y>
+inline constexpr bool
+    is_connex_v<std::variant<X, Y>, std::less_equal<std::variant<X, Y>>> =
+        IsConnex<X, std::less_equal<X>> && IsConnex<Y, std::less_equal<Y>>;
 namespace detail_ordinal_sum {
 struct Unordered {};  // no order at all: certifies no law
 }  // namespace detail_ordinal_sum
@@ -674,5 +681,12 @@ static_assert(
               ProductLeq<std::less_equal<int>, std::less_equal<int>>>,
     "ℤ×ℤ under the componentwise product order ≤× is a poset (product of "
     "posets is a poset).");
+// ... but not a chain: connexity is the one order law a product does not
+// inherit ((0,1) and (1,0) are incomparable), so it is never derived
+// componentwise (#1043).
+static_assert(
+    !IsTotalOrder<std::pair<int, int>,
+                  ProductLeq<std::less_equal<int>, std::less_equal<int>>>,
+    "ℤ×ℤ under ≤× is no total order: (0,1) and (1,0) are incomparable");
 
 }  // namespace dedekind::category

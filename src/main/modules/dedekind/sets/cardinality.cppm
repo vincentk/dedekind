@@ -1971,6 +1971,10 @@ inline constexpr bool
 template <typename W>
 inline constexpr bool is_antisymmetric_v<dedekind::sets::ExtensionalCardinal<W>,
                                          std::less_equal<>> = true;
+template <typename W>
+inline constexpr bool
+    is_connex_v<dedekind::sets::ExtensionalCardinal<W>, std::less_equal<>> =
+        true;
 
 static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
               "ExtensionalCardinal<> must certify as a total ring.");
@@ -2048,6 +2052,9 @@ inline constexpr bool is_transitive_v<
 template <typename S>
 inline constexpr bool is_antisymmetric_v<
     dedekind::sets::SignedExtensionalCardinal<S>, std::less_equal<>> = true;
+template <typename S>
+inline constexpr bool is_connex_v<dedekind::sets::SignedExtensionalCardinal<S>,
+                                  std::less_equal<>> = true;
 
 static_assert(IsRing<Z1, std::plus<Z1>, std::multiplies<Z1>>,
               "SignedExtensionalCardinal<> must certify as a total ring.");
@@ -2183,6 +2190,8 @@ inline constexpr bool is_transitive_v<SC, std::less_equal<>> = true;
 
 template <>
 inline constexpr bool is_antisymmetric_v<SC, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<SC, std::less_equal<>> = true;
 
 static_assert(IsTotalOrder<SC, std::less_equal<>, bool>,
               "SignedCardinality is a certified total order under <=: the "
@@ -2272,6 +2281,8 @@ inline constexpr bool is_transitive_v<Card, std::less_equal<>> = true;
 
 template <>
 inline constexpr bool is_antisymmetric_v<Card, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<Card, std::less_equal<>> = true;
 
 static_assert(IsCommutativeMonoid<Card, std::plus<Card>>,
               "Cardinality must certify as a commutative monoid under "

@@ -1190,6 +1190,8 @@ template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
 template <>
 inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_connex_v<Ternary, std::less_equal<>> = true;
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
                   is_transitive_v<Ternary, std::less_equal<>> &&
@@ -1202,25 +1204,27 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  Reflexivity rides the @c :species @c totally_ordered @c
- *  std::less_equal<T> specialisation (a scoped enum has built-in relational
- *  operators, so @c std::totally_ordered<Ternary> holds); transitivity and
- *  antisymmetry are hand-registered below for THIS carrier, because the
- *  @c :species blanket no longer certifies arbitrary enums (#946 review).  It
+ *  not reach them.  All four laws are hand-registered below for THIS
+ *  carrier: the @c :mereology blankets certify the integral types only, never
+ *  an arbitrary enum (#946 review), and never by @c std::totally_ordered
+ *  (#1043).  It
  *  is also the order the @c :mereology @c SupInfLattice gate certifies against
  * (a genuine total order cannot contain NaN). */
+template <>
+inline constexpr bool is_reflexive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>
 inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
     true;
+template <>
+inline constexpr bool is_connex_v<Ternary, std::less_equal<Ternary>> = true;
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
               "K₃ is a total order under the typed std::less_equal<Ternary> "
-              "(reflexivity via the :species totally_ordered specialisation, "
-              "transitivity / antisymmetry hand-registered for Ternary)");
+              "(the order laws hand-registered for Ternary)");
 
 /** @brief @c Percentage's total order under @c <=: the 101-chain
  *  @c 0 @c < @c 1 @c < @c … @c < @c 100, with a defaulted @c <=> on one
@@ -1234,11 +1238,19 @@ inline constexpr bool is_transitive_v<Percentage, std::less_equal<>> = true;
 template <>
 inline constexpr bool is_antisymmetric_v<Percentage, std::less_equal<>> = true;
 template <>
+inline constexpr bool is_connex_v<Percentage, std::less_equal<>> = true;
+template <>
+inline constexpr bool is_reflexive_v<Percentage, std::less_equal<Percentage>> =
+    true;
+template <>
 inline constexpr bool is_transitive_v<Percentage, std::less_equal<Percentage>> =
     true;
 template <>
 inline constexpr bool
     is_antisymmetric_v<Percentage, std::less_equal<Percentage>> = true;
+template <>
+inline constexpr bool is_connex_v<Percentage, std::less_equal<Percentage>> =
+    true;
 static_assert(IsTotalOrder<Percentage, std::less_equal<>, bool> &&
                   IsTotalOrder<Percentage, std::less_equal<Percentage>, bool>,
               "Percentage is a certified total order under <=.");

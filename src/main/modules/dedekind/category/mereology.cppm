@@ -63,10 +63,12 @@ export template <typename T, typename Rel>
 inline constexpr bool is_reflexive_v = is_reflexive<T, Rel>::value;
 
 /** @section mereology__The_Reflexivity_Axiom */
-// General case: Any type T is reflexive under std::less_equal
-// if it satisfies basic totally_ordered requirements.
+// The built-in integral / @c bool @c <= is reflexive; the same rule as
+// transitivity and antisymmetry below (#1043).  @c std::totally_ordered<T> is
+// no certificate: it is syntactic, and @c double satisfies it although
+// @c NaN @c <= @c NaN is false.  Any other carrier registers its own order.
 template <typename T>
-  requires std::totally_ordered<T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
 struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
 
 /**
@@ -140,17 +142,42 @@ concept IsAntisymmetric = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
+/** @section mereology__Connexity: a <= b || b <= a
+ *  Any two elements are comparable: the law that makes a partial order a
+ *  chain.  In Rel it reads @c ⊤ @c ≤ @c R @c ∪ @c R°; its disjunction is why
+ *  it is not inherited by products (a product of chains is no chain), so it is
+ *  certified per carrier, never derived componentwise.  Distinct from
+ *  @c is_total_v (@c :total), the totality of an @b operation. */
+export template <typename T, typename Rel>
+struct is_connex : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_connex_v<Rel>; }
+struct is_connex<T, Rel> : std::bool_constant<T::template is_connex_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_connex_v = is_connex<T, Rel>::value;
+
+// The built-in integral / @c bool @c <= is a chain.
+template <typename T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+struct is_connex<T, std::less_equal<T>> : std::true_type {};
+
 /**
- * @brief Proof: Integral types satisfy the Total Order axioms.
- * @details [Architectural Decision 2026-04-01]:
- * We specifically whitelist std::integral types here because they satisfy
- * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b)
- * without exception.
- *
- * @note [Future Work]: Floating-point types (double/float) are currently
- * excluded from this blanket proof due to IEEE 754 'NaN' violating
- * Reflexivity. To support them, we will require a 'Safe' wrapper or a
- * NaN-aware comparison morphism.
+ * @concept IsConnex
+ * @brief Formal verification: a ≤ b ∨ b ≤ a.
+ */
+export template <typename T, typename Rel>
+concept IsConnex = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_connex_v<T, Rel>; };
+
+/**
+ * @brief Proof: @c <= on the integral types is a total order (reflexive,
+ * transitive, antisymmetric, connex), under the transparent spelling as under
+ * the typed one above.
+ * @note Floating-point types are excluded: NaN breaks reflexivity and
+ * connexity.  The NaN-free carrier is @c safe_float (@c :morphologies).
  */
 template <std::integral T>
 inline constexpr bool is_reflexive_v<T, std::less_equal<>> = true;
@@ -160,6 +187,9 @@ inline constexpr bool is_transitive_v<T, std::less_equal<>> = true;
 
 template <std::integral T>
 inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_connex_v<T, std::less_equal<>> = true;
 
 /** @section mereology__Lattice_Op_Gate (Sup / Inf law gate)
  *
@@ -178,28 +208,15 @@ inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
  * @b either spelling.  The three laws are grouped @b per @b relation and the
  * two @b complete certificates are OR'd, @b not OR'd law-by-law: a mixed
  * carrier (antisymmetry certified typed, transitivity only transparent) has all
- * three laws under @b neither single relation, so it must not pass.  This
- * matters because reflexivity alone is available for any @c
- * std::totally_ordered <T> via the general @c is_reflexive specialisation, so
- * raw @c double satisfies the typed reflexive leg; grouping per relation means
- * @c double (no transitive / antisymmetric under either spelling) and @c
- * std::optional<double> / @c void (no complete certificate either way) all stay
- * excluded.
+ * four laws under @b neither single relation, so it must not pass.
  *
- * FIXME(#934 follow-up): the gate certifies a @b partial order (reflexive +
- * transitive + antisymmetric) plus @b syntactic @c std::totally_ordered, but
- * @c Sup / @c Inf are honest lattice ops only on a @b total (connex) order: on
- * a non-total poset, @c Sup of incomparable @c a, @c b is order-dependent, so
- * @c is_commutative_v<T, Sup> would be false while the gate still admitted it.
- * No live mis-certification: every carrier currently registered against this
- * blanket (@c int and the integral blanket, @c Ternary, @c safe_float<F>,
- * @c Rational<I>, @c Cut<Q>, the cardinals) is a genuine @b chain.  @c :species
- * has no connex / linearity relation trait (@c is_total_v here is @b operation
- * totality, not order connexity), so a proper fix adds one and registers it for
- * each chain carrier across @c :species / @c :logic / @c :morphologies /
- * @c :numbers --- a cross-module sweep deferred to a #934 follow-up slice
- * rather than balloon this one (a partial registration would instead re-break
- * the transparent carriers, cf. the safe_float regression). */
+ * @par A chain, not a poset (#1043).
+ * The certificate is a @b total order: reflexive, transitive, antisymmetric
+ * @b and connex.  @c Sup / @c Inf are @c max / @c min, honest lattice ops only
+ * on a chain: on a poset, @c Sup of incomparable @c a, @c b is order-dependent,
+ * so @c is_commutative_v<T, Sup> would be false.  Connexity is certified per
+ * carrier (@c is_connex_v), not read off the syntactic
+ * @c std::totally_ordered<T>, which @c double satisfies. */
 
 /**
  * @concept SupInfOperand
@@ -219,21 +236,22 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
  * @brief A carrier on which @c max / @c min (and @c Sup / @c Inf) are honest
  *        @b lattice ops: usable (@c SupInfOperand) @b and carrying a certified
  *        order.
- * @details Requires a @b complete reflexive + transitive + antisymmetric
- * certificate under @b one @c std::less_equal spelling --- typed
- * @c std::less_equal<T> @b or transparent @c std::less_equal<> (see
- * @c mereology__Lattice_Op_Gate for why the legs are grouped per relation, and
- * for the deferred totality/connex tightening).
+ * @details Requires a @b complete total-order certificate (reflexive,
+ * transitive, antisymmetric, connex) under @b one @c std::less_equal spelling
+ * --- typed @c std::less_equal<T> @b or transparent @c std::less_equal<> (see
+ * @c mereology__Lattice_Op_Gate for why the legs are grouped per relation).
  * @tparam T The candidate carrier type.
  */
 export template <typename T>
 concept SupInfLattice =
     SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
                           is_transitive_v<T, std::less_equal<T>> &&
-                          is_antisymmetric_v<T, std::less_equal<T>>) ||
+                          is_antisymmetric_v<T, std::less_equal<T>> &&
+                          is_connex_v<T, std::less_equal<T>>) ||
                          (is_reflexive_v<T, std::less_equal<>> &&
                           is_transitive_v<T, std::less_equal<>> &&
-                          is_antisymmetric_v<T, std::less_equal<>>));
+                          is_antisymmetric_v<T, std::less_equal<>> &&
+                          is_connex_v<T, std::less_equal<>>));
 
 // #934: the ref-returning @c std::ranges::max / @c std::ranges::min niebloid
 // lattice-law blanket was retired here.  Its semilattice / distributive laws
@@ -346,19 +364,16 @@ inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
 
 // Negative witnesses (co-located; :species is upstream of :total, so assert the
 // trait directly, not IsDistributiveLattice).
-// (1) Raw floats: NaN breaks max/min commutativity, so no double lattice.
-// Per-relation grouping is load-bearing: double satisfies the TYPED reflexive
-// leg (via the std::totally_ordered general is_reflexive spec) but neither the
-// typed transitive/antisymmetric legs nor any transparent leg, so it has NO
-// complete three-law certificate under either relation.  A law-by-law OR would
-// wrongly borrow the reflexive leg and admit it; the grouped OR does not.
-static_assert(is_reflexive_v<double, std::less_equal<double>> &&
-                  !is_transitive_v<double, std::less_equal<double>> &&
-                  !is_transitive_v<double, std::less_equal<>> &&
+// (1) Raw floats: NaN breaks reflexivity and connexity of <= (NaN <= NaN and
+// NaN <= x are false), so double carries no order law under either spelling
+// (#1043: std::totally_ordered<double> holds, and certifies nothing).
+static_assert(!IsReflexive<double, std::less_equal<double>> &&
+                  !IsReflexive<double, std::less_equal<>> &&
+                  !IsConnex<double, std::less_equal<double>> &&
+                  !IsConnex<double, std::less_equal<>> &&
                   !SupInfLattice<double>,
-              "per-relation gate: double has only the typed reflexive leg, no "
-              "complete order certificate under either relation, so it is "
-              "excluded");
+              "<= on double is not reflexive (NaN <= NaN is false), so double "
+              "carries no order certificate under either spelling");
 static_assert(!is_commutative_v<double, Sup>,
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
@@ -386,8 +401,8 @@ static_assert(!is_commutative_v<std::optional<double>, Sup>,
 static_assert(!is_commutative_v<void, Sup>,
               "SupInfLattice gate: a non-usable carrier (void: neither ordered "
               "nor copyable) is not a Sup/Inf lattice carrier");
-// Positive-preserved witness: every usable non-float ordered carrier keeps the
-// laws (int and the scoped-enum Ternary carrier alike).
+// Positive-preserved witness: every certified chain keeps the laws (int and
+// the scoped-enum Ternary carrier alike).
 static_assert(SupInfLattice<int> && is_commutative_v<int, Sup> &&
                   is_idempotent_v<int, Inf>,
               "int (and every SupInfLattice carrier) keeps the Sup/Inf lattice "
@@ -446,13 +461,14 @@ concept IsPartialOrder = IsPartRelation<T, Rel, Ω>;
  * @brief Linear/total refinement of `IsPartialOrder`.
  *
  * @details
- * A total order is a partial order where any two elements are comparable.
- * In this library we certify that comparability via `std::totally_ordered<T>`
- * while preserving the configurable relation witness and Ω codomain.
+ * A total order is a partial order where any two elements are comparable:
+ * @c Rel on @c T is connex (@c is_connex_v), certified per carrier like the
+ * other three laws, never read off the syntactic @c std::totally_ordered<T>
+ * (#1043).
  */
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename Ω = bool>
-concept IsTotalOrder = IsPartialOrder<T, Rel, Ω> && std::totally_ordered<T> &&
+concept IsTotalOrder = IsPartialOrder<T, Rel, Ω> && is_connex_v<T, Rel> &&
                        requires(Rel rel, T a, T b) {
                          { rel(a, b) } -> std::same_as<Ω>;
                          { rel(b, a) } -> std::same_as<Ω>;
@@ -776,6 +792,9 @@ static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,
               "Total-order stage must refine partial-order parthood.");
+static_assert(!IsTotalOrder<double>,
+              "<= on double is no total order: NaN is comparable with nothing "
+              "(#1043; std::totally_ordered<double> certifies nothing)");
 
 static_assert(IsMereologicalMeetMagma<int, Inf>);
 static_assert(IsMereologicalJoinMagma<int, Sup>);

@@ -213,6 +213,10 @@ inline constexpr bool
 template <long D, typename Q>
 inline constexpr bool is_antisymmetric_v<dedekind::numbers::QuadraticReal<D, Q>,
                                          std::less_equal<>> = true;
+template <long D, typename Q>
+inline constexpr bool
+    is_connex_v<dedekind::numbers::QuadraticReal<D, Q>, std::less_equal<>> =
+        true;
 
 /** @section quadratic__Field_Axioms
  *  ℚ(√D) is a GENUINE field: every axiom below is @b witnessed by computation

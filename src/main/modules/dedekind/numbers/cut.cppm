@@ -236,6 +236,9 @@ inline constexpr bool
 template <typename Q>
 inline constexpr bool
     is_antisymmetric_v<dedekind::numbers::Cut<Q>, std::less_equal<>> = true;
+template <typename Q>
+inline constexpr bool
+    is_connex_v<dedekind::numbers::Cut<Q>, std::less_equal<>> = true;
 
 }  // namespace dedekind::category
 
