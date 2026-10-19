@@ -218,8 +218,8 @@ concept IsEntire = dedekind::category::is_left_total_v<std::remove_cvref_t<R>>;
 // of A×B of the parallel pair (f∘π_A, π_B) --- @c category::IsEqualizer, not an
 // @c IsIsomorphism arrow (see the @c graph__The_Graph_Is_An_Equalizer header
 // note and the witness in @c algebra:halfspace_transport, #876).
-export template <typename R, typename A, typename B>
-concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B> &&
+export template <typename R, typename A, typename B, typename Ω = bool>
+concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B, Ω> &&
                      IsFunctional<R> && IsEntire<R>;
 
 /** @brief The arrow a function's graph atom names, the converse of @c graph:

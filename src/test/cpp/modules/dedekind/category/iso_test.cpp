@@ -25,7 +25,26 @@ struct Flip {
 constexpr Flip inverse(Flip f) noexcept { return f; }
 }  // namespace client_ns
 
+// A client involution certified only as an involution, with NO inverse of its
+// own: the self-inverse hook in :morphism (ordinary lookup) makes it an iso.
+namespace client_ns {
+struct Neg {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return -x; }
+};
+}  // namespace client_ns
+template <>
+struct dedekind::category::is_involutive<client_ns::Neg, int> : std::true_type {
+};
+
 using namespace dedekind::category;
+
+static_assert(
+    IsInvolution<client_ns::Neg> && IsIsomorphism<client_ns::Neg> &&
+        IsMonicArrow<client_ns::Neg>,
+    "an involution in an unrelated namespace is an isomorphism, found "
+    "by ordinary lookup, not only by ADL into dedekind::category");
 
 // ── Type-level: iso ⟹ monic ∧ epic ∧ bijective ∧ retractable, all derived ────
 static_assert(IsIsomorphism<client_ns::Flip>,

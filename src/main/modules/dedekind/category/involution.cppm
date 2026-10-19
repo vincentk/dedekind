@@ -155,14 +155,13 @@ struct is_involutive<Morphism<A, A, Impl>, A>
     : std::bool_constant<is_involutive_v<Impl, A>> {};
 
 /** @brief An involution is its own inverse: @f$f \circ f = \mathrm{id}@f$
- *  makes @c f an @c IsIsomorphism, with no @c inverse hook of its own.  The
+ *  makes @c f an @c IsIsomorphism, through the @c :morphism hook (found by
+ *  ordinary lookup, wherever @c f lives), with no @c inverse of its own.  The
  *  hooks for a specific arrow (@c Identity, the negate @c Morphism) are more
  *  specialised and keep precedence. */
-export template <IsArrow F>
-  requires IsInvolution<std::remove_cvref_t<F>>
-[[nodiscard]] constexpr std::remove_cvref_t<F> inverse(const F& f) {
-  return f;
-}
+template <typename F>
+  requires(IsArrow<F> && IsInvolution<F>)
+struct is_self_inverse<F> : std::true_type {};
 
 namespace detail_involution {
 constexpr auto not_bool = endo<bool>(std::logical_not<bool>{});

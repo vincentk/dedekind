@@ -435,16 +435,16 @@ struct Meet {  // A ∧ B
    *  never a @c Truth<L> wrapper), so this is sound there.  A callable whose
    *  codomain is @c Truth<L> would need unwrapping first; that path is not
    *  reached through @c sets. */
-  template <typename X>
-    requires requires(const A& l, const B& r, const X& x) {
-      l(x);
-      r(x);
+  template <typename... X>
+    requires requires(const A& l, const B& r, const X&... x) {
+      l(x...);
+      r(x...);
     }
-  constexpr auto operator()(const X& x) const {
+  constexpr auto operator()(const X&... x) const {
     if constexpr (requires { typename A::logic_species; }) {
-      return A::logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+      return A::logic_species::AND(π_1(*this)(x...), π_2(*this)(x...));
     } else {
-      return π_1(*this)(x) && π_2(*this)(x);
+      return π_1(*this)(x...) && π_2(*this)(x...);
     }
   }
 };
@@ -456,16 +456,16 @@ struct Join {  // A ∨ B
    *  @c logic_species the combination is that logic's @c OR; for plain
    *  bool-returning callables it is the bare @c ||.  Operand storage is touched
    *  only through the @c π_1 / @c π_2 accessors. */
-  template <typename X>
-    requires requires(const A& l, const B& r, const X& x) {
-      l(x);
-      r(x);
+  template <typename... X>
+    requires requires(const A& l, const B& r, const X&... x) {
+      l(x...);
+      r(x...);
     }
-  constexpr auto operator()(const X& x) const {
+  constexpr auto operator()(const X&... x) const {
     if constexpr (requires { typename A::logic_species; }) {
-      return A::logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+      return A::logic_species::OR(π_1(*this)(x...), π_2(*this)(x...));
     } else {
-      return π_1(*this)(x) || π_2(*this)(x);
+      return π_1(*this)(x...) || π_2(*this)(x...);
     }
   }
 };
@@ -499,13 +499,13 @@ struct Meet<A, B> {  // A ∧ B: two matching arrows into Ω give one
   using Domain = Dom<A>;
   using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
-  template <typename X>
-    requires requires(const A& l, const B& r, const X& x) {
-      l(x);
-      r(x);
+  template <typename... X>
+    requires requires(const A& l, const B& r, const X&... x) {
+      l(x...);
+      r(x...);
     }
-  constexpr auto operator()(const X& x) const {
-    return logic_species::AND(π_1(*this)(x), π_2(*this)(x));
+  constexpr auto operator()(const X&... x) const {
+    return logic_species::AND(π_1(*this)(x...), π_2(*this)(x...));
   }
 };
 
@@ -523,13 +523,13 @@ struct Join<A, B> {  // A ∨ B: two matching arrows into Ω give one
   using Domain = Dom<A>;
   using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
-  template <typename X>
-    requires requires(const A& l, const B& r, const X& x) {
-      l(x);
-      r(x);
+  template <typename... X>
+    requires requires(const A& l, const B& r, const X&... x) {
+      l(x...);
+      r(x...);
     }
-  constexpr auto operator()(const X& x) const {
-    return logic_species::OR(π_1(*this)(x), π_2(*this)(x));
+  constexpr auto operator()(const X&... x) const {
+    return logic_species::OR(π_1(*this)(x...), π_2(*this)(x...));
   }
 };
 
@@ -539,13 +539,13 @@ struct Not {  // ¬A (complement)
   /** @brief Evaluate the complement at @c x.  With a @c logic_species the value
    *  is that logic's @c RFL (reflection / negation, honouring Kleene / Heyting
    *  Ω); for a plain bool-returning callable it is the bare @c !. */
-  template <typename X>
-    requires requires(const A& b, const X& x) { b(x); }
-  constexpr auto operator()(const X& x) const {
+  template <typename... X>
+    requires requires(const A& b, const X&... x) { b(x...); }
+  constexpr auto operator()(const X&... x) const {
     if constexpr (requires { typename A::logic_species; }) {
-      return A::logic_species::RFL(base(x));
+      return A::logic_species::RFL(base(x...));
     } else {
-      return !base(x);
+      return !base(x...);
     }
   }
 };
@@ -562,10 +562,10 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
   using Domain = Dom<A>;
   using Codomain = Cod<A>;
   using logic_species = typename A::logic_species;
-  template <typename X>
-    requires requires(const A& b, const X& x) { b(x); }
-  constexpr auto operator()(const X& x) const {
-    return logic_species::RFL(base(x));
+  template <typename... X>
+    requires requires(const A& b, const X&... x) { b(x...); }
+  constexpr auto operator()(const X&... x) const {
+    return logic_species::RFL(base(x...));
   }
 };
 

@@ -710,9 +710,12 @@ using dedekind::sets::RelAnd;
 using dedekind::sets::RelOr;
 using detail_laws::Endo;
 
-// LEAF Δ: equality.
+// LEAF Δ: equality, where the carrier's == is (DiagPred compares by ==, so
+// over double (NaN, NaN) is no member and Δ no equality: the carrier's
+// certificate, not a new one).
 template <typename A, typename L, typename C>
-struct is_equality<A, Endo<A, L, C, DiagPred<A>>> : std::true_type {};
+struct is_equality<A, Endo<A, L, C, DiagPred<A>>>
+    : std::bool_constant<is_equality_v<A, std::equal_to<A>>> {};
 // LEAF relation_of(op): the laws of op on A, as op's.
 template <typename A, typename L, typename C, typename Op>
 struct is_equality<A, Endo<A, L, C, PairwisePred<Op>>>
@@ -819,4 +822,21 @@ static_assert(
 static_assert(IsReflexive<bool, decltype(dedekind::relational::diag<bool>() >>
                                          dedekind::relational::diag<bool>())>,
               "Δ;Δ is reflexive by the composition rule");
+static_assert(
+    !IsEquality<double, decltype(dedekind::relational::diag<double>())> &&
+        !IsReflexive<double, decltype(dedekind::relational::diag<double>())>,
+    "Δ over double is no equality: (NaN, NaN) is no member");
+static_assert(
+    dedekind::relational::IsFunction<
+        decltype(dedekind::relational::diag<bool, Kleene>()), bool, bool,
+        Ternary>,
+    "Δ answering in K₃ is a function, read with its own truth object");
+static_assert(
+    IsBinaryRelation<
+        std::remove_cvref_t<decltype(~dedekind::relational::diag<bool>())>,
+        bool, bool> &&
+        (~dedekind::relational::diag<bool>())(false, true) &&
+        !(~dedekind::relational::diag<bool>())(true, true),
+    "the complement keeps the binary call: the lattice nodes forward their "
+    "arguments, whatever their number");
 }  // namespace dedekind::category

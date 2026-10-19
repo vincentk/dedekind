@@ -1075,6 +1075,22 @@ static_assert(
     IsArrow<decltype(id<int>() >> id<int>())>,
     "Unity: id composed with itself must remain the Identity Morphism.");
 
+/** @brief Hook: an arrow that is its own inverse (@f$f \circ f =
+ * \mathrm{id}@f$). Declared here, with the @c inverse it licenses, ahead of @c
+ * IsIsomorphism, so that concept finds the inverse by ordinary lookup for an
+ * arrow in any namespace, not only through argument-dependent lookup.  @c
+ * :involution sets it for every certified involution. */
+export template <typename F>
+struct is_self_inverse : std::false_type {};
+export template <typename F>
+inline constexpr bool is_self_inverse_v = is_self_inverse<F>::value;
+/** @brief A self-inverse arrow is its own inverse. */
+export template <typename F>
+  requires is_self_inverse_v<std::remove_cvref_t<F>>
+[[nodiscard]] constexpr std::remove_cvref_t<F> inverse(const F& f) {
+  return f;
+}
+
 /**
  * @concept IsIsomorphism
  * @brief An Arrow f: A -> B with a guaranteed Inverse g: B -> A.

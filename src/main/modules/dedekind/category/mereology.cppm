@@ -90,9 +90,11 @@ struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification of the identity relation.
  */
 export template <typename T, typename Rel, typename Ω = bool>
-concept IsReflexive = IsTruthObject<Ω> && requires(const Rel& rel, const T& a) {
-  { rel(a, a) } -> std::convertible_to<Ω>;
-} && requires { requires is_reflexive_v<T, std::remove_cvref_t<Rel>>; };
+concept IsReflexive =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a) {
+      { rel(a, a) } -> std::convertible_to<Ω>;
+    } && requires { requires is_reflexive_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section mereology__Transitivity: (a <= b && b <= c) => a <= c */
 export template <typename T, typename Rel>
@@ -124,7 +126,8 @@ struct is_transitive<T, std::less_equal<T>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsTransitive =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_transitive_v<T, std::remove_cvref_t<Rel>>; };
 
@@ -154,7 +157,8 @@ struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsAntisymmetric =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_antisymmetric_v<T, std::remove_cvref_t<Rel>>; };
 
@@ -185,7 +189,8 @@ struct is_connex<T, std::less_equal<T>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsConnex =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_connex_v<T, std::remove_cvref_t<Rel>>; };
 
@@ -196,6 +201,20 @@ concept IsConnex =
  *  run-time relation (@c relational:rows) reads them as well (#1045: one
  *  definition per property, read on both sides).  @c Ω @c = @c bool here;
  *  the many-valued reading is the run-time side's. */
+namespace detail_mereology {
+/** @brief A certified relation callable only on a mutable object: the law
+ *  concepts' const-callability contract rejects it under every reference
+ *  qualification. */
+struct MutableOnly {
+  bool operator()(int, int) { return true; }
+};
+}  // namespace detail_mereology
+template <>
+struct is_reflexive<int, detail_mereology::MutableOnly> : std::true_type {};
+static_assert(!IsReflexive<int, detail_mereology::MutableOnly> &&
+                  !IsReflexive<int, detail_mereology::MutableOnly&>,
+              "a mutable-only call is no relation, by value or by reference");
+
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
     { r(x, x) } -> std::convertible_to<bool>;

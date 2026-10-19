@@ -127,7 +127,8 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsSymmetric =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
       { rel(b, a) } -> std::convertible_to<Ω>;
     } && requires { requires is_symmetric_v<T, std::remove_cvref_t<Rel>>; };
@@ -185,7 +186,8 @@ struct is_equality<std::pair<A, B>, std::equal_to<>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsEquality =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
 

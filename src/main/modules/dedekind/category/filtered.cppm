@@ -146,7 +146,8 @@ struct is_directed<T, std::less_equal<T>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsDirected =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_directed_v<T, std::remove_cvref_t<Rel>>; };
 
@@ -194,7 +195,8 @@ struct is_codirected<T, std::less_equal<T>> : std::true_type {};
  */
 export template <typename T, typename Rel, typename Ω = bool>
 concept IsCodirected =
-    IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_codirected_v<T, std::remove_cvref_t<Rel>>; };
 
