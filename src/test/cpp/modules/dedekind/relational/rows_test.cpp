@@ -284,16 +284,11 @@ TEST_CASE("relational:rows: the laws of χ: closure, variance, the dagger",
   using dedekind::relational::Law;
   using dedekind::relational::laws;
   const std::vector<Re> fixtures{
-      succ,
-      square,
-      words,
-      diag<int, unsigned, bool>(W),
-      ~succ,
-      converse(succ),
-      succ >> succ,
-      square & succ,
-      merge<int, unsigned, bool>(W) >>
-          dedekind::relational::copy<int, unsigned, bool>(W)};
+      succ, square, words, diag<int, unsigned, bool>(W), ~succ, converse(succ),
+      succ >> succ, square & succ,
+      // the spider form of Δ: W → W, through the middle W × W
+      dedekind::relational::copy<int, unsigned, bool>(W) >>
+          merge<int, unsigned, bool>(W)};
   const auto chi = [](Law w, const Re& r) { return laws(r)[w]; };
   for (const Law w : every_law) {
     for (const Re& f : fixtures) {
