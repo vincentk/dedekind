@@ -975,15 +975,18 @@ concept IsCongruence = IsEquivalence<V, R> && is_congruence_v<R, V, Op> &&
 // other equivalence (≡ mod N, tail-equivalence, cosets of a subgroup) is a
 // congruence only where proved, operation by operation.
 // ---------------------------------------------------------------------------
-template <typename V, typename Op>
-  requires is_equality_v<V, std::equal_to<V>>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, Op> = true;
+template <typename R, typename V, typename Op>
+  requires is_equality_v<V, R>
+inline constexpr bool is_congruence_v<R, V, Op> = true;
 
 static_assert(IsCongruence<std::equal_to<int>, int, std::plus<int>>,
               "std::equal_to<int> is a congruence w.r.t. + on int: "
               "equality is preserved by every operation (Leibniz).");
 static_assert(IsCongruence<std::equal_to<int>, int, std::multiplies<int>>,
               "std::equal_to<int> is a congruence w.r.t. * on int.");
+static_assert(IsCongruence<std::equal_to<>, int, std::plus<int>>,
+              "the transparent == on int is equality too: a congruence "
+              "for every operation");
 static_assert(
     IsCongruence<std::equal_to<unsigned>, unsigned, std::bit_or<unsigned>>,
     "std::equal_to<unsigned> is a congruence w.r.t. bitwise OR.");

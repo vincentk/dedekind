@@ -253,9 +253,10 @@ inline constexpr bool is_transitive_v<dedekind::sequences::Path<T>,
 
 // …and a congruence with respect to Path's pointwise addition (agreeing
 // past N₁ and past N₂ ⇒ the sums agree past max(N₁,N₂)) — gated on the
-// carrier's equality being a bona fide equivalence, same policy.
+// carrier's equality being a congruence for + itself: an equivalence alone
+// does not lift (|x| = |y| relates 3 and -3, yet 3+5 and -3+5 differ).
 template <typename T>
-  requires IsEquivalence<T, std::equal_to<T>>
+  requires IsCongruence<std::equal_to<T>, T, std::plus<T>>
 inline constexpr bool is_congruence_v<dedekind::sequences::TailEquivalent<T>,
                                       dedekind::sequences::Path<T>,
                                       std::plus<dedekind::sequences::Path<T>>> =
