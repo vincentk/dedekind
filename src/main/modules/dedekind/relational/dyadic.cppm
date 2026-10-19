@@ -641,9 +641,21 @@ export enum class Law : unsigned { Total, Univalent, Injective, Surjective };
 export inline constexpr std::array<Law, 4> every_law{
     Law::Total, Law::Univalent, Law::Injective, Law::Surjective};
 
-/** @brief The operations of the calculus on arrows, as the engine sees them:
- *  free of the representation (a @c RelExpr node, a typed predicate). */
-export enum class Node { Compose, Tensor, Sum, Meet, Join, Not, Converse };
+/** @brief The nodes of a relational term: its two leaves (the full relation,
+ *  a comprehension) and the operations of the calculus.  @c RelExpr's
+ *  @c Kind (@c relational:rows), and what the engine reads, free of the
+ *  representation (a run-time node, a typed predicate). */
+export enum class Node {
+  Universe,
+  Comprehension,
+  Meet,
+  Join,
+  Not,
+  Converse,
+  Tensor,
+  Compose,
+  Sum
+};
 
 // The facts a law-set is DECLARED, theorems of the allegory (Freyd & Scedrov,
 // Categories, Allegories, 2.1), from which every rule below follows: its
@@ -702,7 +714,9 @@ export constexpr dedekind::category::Ternary infer(
     case Node::Join:
       return is_up_set(w) ? Kleene::OR(a, b) : Ternary::Unknown;
     case Node::Not:
-      return Ternary::Unknown;
+    case Node::Universe:
+    case Node::Comprehension:
+      return Ternary::Unknown;  // a leaf answers by its shape, not here
     case Node::Converse:
       return a;
   }
@@ -739,7 +753,10 @@ export struct Laws {
   }
   /** @brief The engine at a node, law by law: the legs' answers in, the
    *  node's out; @c ° reads its operand at the dagger law. */
-  static constexpr Laws node(Node n, const Laws& a, const Laws& b = Laws{}) {
+  static constexpr Laws node(Node n, const Laws& a) {
+    return node(n, a, Laws{});
+  }
+  static constexpr Laws node(Node n, const Laws& a, const Laws& b) {
     Laws out;
     for (const Law w : every_law)
       out.of[static_cast<unsigned>(w)] =

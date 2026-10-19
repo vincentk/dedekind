@@ -180,17 +180,7 @@ struct RelExpr {
   using Point = dedekind::sets::Row<Cs...>;
   using P = dedekind::sets::Pred<K>;
   using T = dedekind::sets::Term<K>;
-  enum class Kind {
-    Universe,
-    Comprehension,
-    Meet,
-    Join,
-    Not,
-    Converse,
-    Tensor,
-    Compose,
-    Sum
-  };
+  using Kind = Node;  // the nodes of a relational term (:dyadic)
 
   Kind kind{Kind::Universe};
   Object dom, cod;
@@ -777,34 +767,29 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   const auto own = [](const R& x) {
     return static_cast<unsigned>(columns(x.dom).size());
   };
-  const auto legs = [&](Node n) {
-    return Laws::node(n, laws_at(*r.a, own(*r.a)), laws_at(*r.b, own(*r.b)));
-  };
   switch (r.kind) {
-    case R::Kind::Universe:
+    case Node::Universe:
       // The full relation on inhabited carriers: total and surjective.
       return Laws::from(true, false, false, true);
-    case R::Kind::Comprehension: {
+    case Node::Comprehension: {
       const Laws here = predicate_laws(r.predicate, nd, r.columns(), r.rep());
       // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
-      return r.a->kind == R::Kind::Universe
+      return r.a->kind == Node::Universe
                  ? here
                  : Laws::node(Node::Meet, laws_at(*r.a, nd), here);
     }
-    case R::Kind::Meet:
-      return Laws::node(Node::Meet, laws_at(*r.a, nd), laws_at(*r.b, nd));
-    case R::Kind::Join:
-      return Laws::node(Node::Join, laws_at(*r.a, nd), laws_at(*r.b, nd));
-    case R::Kind::Not:
-      return Laws::node(Node::Not, laws_at(*r.a, nd));
-    case R::Kind::Converse:
-      return Laws::node(Node::Converse, laws_at(*r.a, r.arity() - nd));
-    case R::Kind::Tensor:
-      return legs(Node::Tensor);
-    case R::Kind::Compose:
-      return legs(Node::Compose);
-    case R::Kind::Sum:
-      return legs(Node::Sum);
+    case Node::Meet:
+    case Node::Join:
+      return Laws::node(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
+    case Node::Not:
+      return Laws::node(r.kind, laws_at(*r.a, nd));
+    case Node::Converse:
+      return Laws::node(r.kind, laws_at(*r.a, r.arity() - nd));
+    case Node::Tensor:
+    case Node::Compose:
+    case Node::Sum:
+      return Laws::node(r.kind, laws_at(*r.a, own(*r.a)),
+                        laws_at(*r.b, own(*r.b)));
   }
   return Laws{};
 }
