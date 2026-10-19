@@ -44,13 +44,13 @@ constexpr bool everywhere3(Law law) {
   return true;
 }
 
-constexpr auto Δ = diag<bool>();
+constexpr auto delta = diag<bool>();
 constexpr auto le = relation_of<bool>(std::less_equal<bool>{});
 constexpr auto ge = converse(le);
 constexpr auto both =
-    le & ge;  // = Δ, by the meet rules: reflexive, antisymmetric
+    le & ge;  // = delta, by the meet rules: reflexive, antisymmetric
 constexpr auto either = le | ge;  // = ⊤, by the join rules: reflexive, connex
-constexpr auto twice = Δ >> Δ;    // reflexive by the composition rule
+constexpr auto twice = delta >> delta;  // reflexive by the composition rule
 
 template <typename Rel>
 using bare = std::remove_cvref_t<Rel>;
@@ -59,14 +59,15 @@ using bare = std::remove_cvref_t<Rel>;
 TEST_CASE("structure: the leaves declare, the composites derive (#1047)",
           "[relational][structure][laws]") {
   SECTION("Δ is equality; equivalence and antisymmetry follow") {
-    STATIC_CHECK(IsEquality<bool, bare<decltype(Δ)>>);
-    STATIC_CHECK(IsEquivalence<bool, bare<decltype(Δ)>>);
-    STATIC_CHECK(IsAntisymmetric<bool, bare<decltype(Δ)>>);
-    STATIC_CHECK(!IsConnex<bool, bare<decltype(Δ)>>);  // not declared, not true
+    STATIC_CHECK(IsEquality<bool, bare<decltype(delta)>>);
+    STATIC_CHECK(IsEquivalence<bool, bare<decltype(delta)>>);
+    STATIC_CHECK(IsAntisymmetric<bool, bare<decltype(delta)>>);
     STATIC_CHECK(
-        everywhere2([](bool a, bool b) { return equality_at(Δ, a, b); }));
+        !IsConnex<bool, bare<decltype(delta)>>);  // not declared, not true
+    STATIC_CHECK(
+        everywhere2([](bool a, bool b) { return equality_at(delta, a, b); }));
     STATIC_CHECK(everywhere3(
-        [](bool a, bool b, bool c) { return transitive_at(Δ, a, b, c); }));
+        [](bool a, bool b, bool c) { return transitive_at(delta, a, b, c); }));
   }
 
   SECTION(
