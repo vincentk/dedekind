@@ -434,21 +434,41 @@ constexpr bool chain_reaches(T lo, const T& hi, std::size_t budget) {
  *  @note The step must be the chain's @b cover, so that the walk from the
  *  bottom visits every value: that is what makes the chain discrete, and it
  *  is the carrier's obligation, not checked here.  A carrier that answers
- *  through its own member keeps that answer. */
+ *  through its own member keeps that answer.  @b Order: a carrier's step
+ *  and bounds must be declared before anything asks whether one of its
+ *  relations is reflexive (as for every trait registration: an answer, once
+ *  instantiated, is fixed). */
+/** @concept IsWalkableChain
+ *  @brief @c Rel is a stateless relation on a discrete bounded chain @c T that
+ *  the law can walk: a step, two bounds, the top within the budget, and the
+ *  walk and the law both constant expressions (a carrier or relation that
+ *  cannot be evaluated at compile time is simply not decided here, rather than
+ *  an error).  Exported so a rule elsewhere can yield to this one. */
+export template <typename T, typename Rel>
+concept IsWalkableChain =
+    std::default_initializable<Rel> &&
+    !requires { T::template is_reflexive_v<Rel>; } &&
+    requires {
+      identity_v<T, Sup>;
+      identity_v<T, Inf>;
+    } &&
+    requires(const Rel& r, const T& x) {
+      { r(x, x) } -> std::convertible_to<bool>;
+      { successor(x) } -> std::convertible_to<T>;
+      { x == x } -> std::convertible_to<bool>;
+    } &&
+    requires {
+      typename std::bool_constant<chain_reaches(
+          identity_v<T, Sup>, identity_v<T, Inf>, chain_walk_budget)>;
+    } &&
+    chain_reaches(identity_v<T, Sup>, identity_v<T, Inf>, chain_walk_budget) &&
+    requires {
+      typename std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
+                                               identity_v<T, Inf>)>;
+    };
+
 template <typename T, typename Rel>
-  requires(
-      std::default_initializable<Rel> &&
-      !requires { T::template is_reflexive_v<Rel>; } &&
-      requires {
-        identity_v<T, Sup>;
-        identity_v<T, Inf>;
-      } &&
-      requires(const Rel& r, const T& x) {
-        { r(x, x) } -> std::convertible_to<bool>;
-        { successor(x) } -> std::convertible_to<T>;
-        { x == x } -> std::convertible_to<bool>;
-      } &&
-      chain_reaches(identity_v<T, Sup>, identity_v<T, Inf>, chain_walk_budget))
+  requires IsWalkableChain<T, Rel>
 struct is_reflexive<T, Rel>
     : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
                                       identity_v<T, Inf>)> {};
@@ -488,6 +508,17 @@ static_assert(
                  std::less_equal<detail_mereology::Dial<5000>>>,
     "a chain longer than the walk budget gets no certificate from the law "
     "(uncertified, not refuted)");
+namespace detail_mereology {
+/** @brief A relation the compiler cannot evaluate: its call is not constexpr.
+ */
+struct RuntimeLe {
+  bool operator()(const Dial<4>& a, const Dial<4>& b) const { return a <= b; }
+};
+}  // namespace detail_mereology
+static_assert(
+    !IsReflexive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe>,
+    "a relation that is no constant expression is not decided by "
+    "the law: uncertified, and no compile error");
 
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered

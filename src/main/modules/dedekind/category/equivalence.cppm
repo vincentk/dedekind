@@ -197,8 +197,9 @@ concept IsEquality =
 // never declared per carrier.  A type that answers a law through its own
 // member (the discovery specialisation) keeps that answer.
 template <typename T, typename Rel>
-  requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_reflexive_v<Rel>; })
+  requires(
+      is_equality_v<T, Rel> && !requires { T::template is_reflexive_v<Rel>; } &&
+      !IsWalkableChain<T, Rel>)  // the chain law decides it there: one rule
 struct is_reflexive<T, Rel> : std::true_type {};
 template <typename T, typename Rel>
   requires(is_equality_v<T, Rel> &&
@@ -286,6 +287,18 @@ static_assert(IsEquivalence<int, detail_equality::SameInt> &&
                   IsAntisymmetric<int, detail_equality::SameInt>,
               "a custom relation certified the diagonal is an equivalence, "
               "and antisymmetric, without further declaration");
+// A discrete bounded chain whose == is also certified equality: the chain
+// law and the equality rule would both answer; the equality rule yields, so
+// there is one answer and no ambiguity.
+template <>
+struct is_equality<detail_mereology::Dial<3>,
+                   std::equal_to<detail_mereology::Dial<3>>> : std::true_type {
+};
+static_assert(IsReflexive<detail_mereology::Dial<3>,
+                          std::equal_to<detail_mereology::Dial<3>>> &&
+                  IsEquivalence<detail_mereology::Dial<3>,
+                                std::equal_to<detail_mereology::Dial<3>>>,
+              "== on a chain that is also equality: reflexive, once");
 static_assert(!IsEquality<double, std::equal_to<double>> &&
                   !IsEquivalence<double, std::equal_to<double>>,
               "== on double is no equality and no equivalence: NaN == NaN is "
