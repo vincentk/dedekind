@@ -1464,9 +1464,11 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
       m, "RelationSet",
       "A set of relations cut out by a law of the arrows (total, univalent, "
       "injective, surjective), inferred over the term by the rules that "
-      "preserve it.  x in S where the law is inferred; ap(S, x) the answer in "
-      "K₃: True inferred, Unknown not (never False: the rules certify, they do "
-      "not refute); S & T, S | T, ~S the sets' grammar.")
+      "preserve it.  A table of n columns is read as the arrow of its first "
+      "n − 1, as >> and converse read it.  x in S where the law is inferred; "
+      "ap(S, x) the answer in K₃: True inferred, Unknown not (never False: "
+      "the rules certify, they do not refute); S & T, S | T, ~S the sets' "
+      "grammar.")
       .def(
           "__contains__",
           [](const LawSet& s, nb::handle h) {
@@ -1515,15 +1517,17 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
         𝔸<Relation>{} & dedekind::relational::Injective<Relation>{};
     const auto surjective =
         𝔸<Relation>{} & dedekind::relational::Surjective<Relation>{};
-    m.attr("total") =
-        LawSet{[total](const Relation& r) { return total(r); }, "total"};
+    m.attr("total") = LawSet{
+        [total](const Relation& r) { return total(as_arrow(r)); }, "total"};
     m.attr("univalent") = LawSet{
-        [univalent](const Relation& r) { return univalent(r); }, "univalent"};
+        [univalent](const Relation& r) { return univalent(as_arrow(r)); },
+        "univalent"};
     m.attr("injective") = LawSet{
-        [injective](const Relation& r) { return injective(r); }, "injective"};
-    m.attr("surjective") =
-        LawSet{[surjective](const Relation& r) { return surjective(r); },
-               "surjective"};
+        [injective](const Relation& r) { return injective(as_arrow(r)); },
+        "injective"};
+    m.attr("surjective") = LawSet{
+        [surjective](const Relation& r) { return surjective(as_arrow(r)); },
+        "surjective"};
   }
   m.def(
       "kind", [](const Relation& r) { return kind_of(r); }, nb::arg("x"),

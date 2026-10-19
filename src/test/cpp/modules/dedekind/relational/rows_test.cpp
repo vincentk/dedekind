@@ -249,7 +249,10 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   CHECK(laws(succ >> succ) == Laws::from(true, true, false, false));
   CHECK(laws(converse(succ)) == Laws::from(false, false, true, true));
   CHECK(laws(converse(converse(succ))) == laws(succ));
-  CHECK(laws(square & succ) == Laws::from(false, true, false, false));
+  // square is {(a, c) | c² = a}: a is a function of c, so it is injective
+  // and surjective; the meet keeps univalence from succ, injectivity from it.
+  CHECK(laws(square) == Laws::from(false, false, true, true));
+  CHECK(laws(square & succ) == Laws::from(false, true, true, false));
   CHECK(laws(~succ) == Laws{});
   CHECK(laws(diag<int, unsigned, bool>(W) >>
              converse(diag<int, unsigned, bool>(W))) == all);
