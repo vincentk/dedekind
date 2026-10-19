@@ -1196,13 +1196,10 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
               "K₃: registered ∧-identity is ⊤ = True");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
- *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
- *  @c std::integral) it is outside the @c :species integral / bool blanket, so
- *  its order legs are hand-registered here for the specific carrier whose order
- *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
- *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
- *  review), so this explicit registration is what makes @c Ternary posetal. */
-// Nothing registered here: K₃ is a discrete bounded chain (its step above,
+ *  @c False @c < @c Unknown @c < @c True; a scoped enum, so no blanket over
+ *  types covers it (an arbitrary enum's @c <=> may fail the laws; #946
+ *  review).  Nothing registered here: */
+// K₃ is a discrete bounded chain (its step above,
 // its bounds the identities of Sup / Inf), so each order law is decided by
 // its law for every relation on K₃ (:mereology, the laws on a chain).
 
@@ -1218,10 +1215,8 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
  *  not reach them.  Each law is decided by its law, for every relation on
- *  K₃ (@c :mereology), nothing registered for THIS carrier: the @c :mereology
- * blankets certify the integral types only, never an arbitrary enum (#946
- * review), and never by @c std::totally_ordered
- *  (#1043).  It
+ *  K₃ (@c :mereology), nothing registered for THIS carrier, and never by
+ *  @c std::totally_ordered (#1043).  It
  *  is also the order the @c :mereology @c SupInfLattice gate certifies against
  * (a genuine total order cannot contain NaN). */
 

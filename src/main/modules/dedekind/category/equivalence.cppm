@@ -206,13 +206,7 @@ export template <typename Rel, typename T>
     { successor(x) } -> std::convertible_to<T>;
   }
 constexpr bool symmetric_on(const Rel& rel, const T& lo, const T& hi) {
-  for (T a = lo;; a = successor(a)) {
-    for (T b = lo;; b = successor(b)) {
-      if (!symmetric_at(rel, a, b)) return false;
-      if (chain_end(b, hi)) break;
-    }
-    if (chain_end(a, hi)) return true;
-  }
+  return holds_on<2>(symmetric_at<Rel, T>, rel, lo, hi);
 }
 /** @brief Symmetry, stated once for every relation on a walkable chain. */
 export template <typename T, typename Rel>

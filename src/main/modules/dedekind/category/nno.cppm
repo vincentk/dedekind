@@ -136,7 +136,7 @@ module;
 
 export module dedekind.category:nno;
 
-import :logic;  // Ternary: the K₃ chain, whose step lives here
+import :logic;  // Ternary: the K₃ chain and its step
 import :morphism;
 
 namespace dedekind::category {

@@ -258,16 +258,28 @@ template <typename T>
 constexpr bool chain_end(const T& a, const T& hi) {
   return a == hi || successor(a) == a;
 }
+/** @brief A law of @c Arity points, at every tuple of points from @c lo to
+ *  @c hi: the one walk every law below reads. */
+template <std::size_t Arity, typename Law, typename Rel, typename T,
+          typename... Fixed>
+constexpr bool holds_on(Law law, const Rel& rel, const T& lo, const T& hi,
+                        const Fixed&... fixed) {
+  if constexpr (sizeof...(Fixed) == Arity) {
+    return law(rel, fixed...);
+  } else {
+    for (T a = lo;; a = successor(a)) {
+      if (!holds_on<Arity>(law, rel, lo, hi, fixed..., a)) return false;
+      if (chain_end(a, hi)) return true;
+    }
+  }
+}
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
     { r(x, x) } -> std::convertible_to<bool>;
     { successor(x) } -> std::convertible_to<T>;
   }
 constexpr bool reflexive_on(const Rel& rel, const T& lo, const T& hi) {
-  for (T a = lo;; a = successor(a)) {
-    if (!reflexive_at(rel, a)) return false;
-    if (chain_end(a, hi)) return true;
-  }
+  return holds_on<1>(reflexive_at<Rel, T>, rel, lo, hi);
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -275,13 +287,7 @@ export template <typename Rel, typename T>
     { successor(x) } -> std::convertible_to<T>;
   }
 constexpr bool antisymmetric_on(const Rel& rel, const T& lo, const T& hi) {
-  for (T a = lo;; a = successor(a)) {
-    for (T b = lo;; b = successor(b)) {
-      if (!antisymmetric_at(rel, a, b)) return false;
-      if (chain_end(b, hi)) break;
-    }
-    if (chain_end(a, hi)) return true;
-  }
+  return holds_on<2>(antisymmetric_at<Rel, T>, rel, lo, hi);
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -289,13 +295,7 @@ export template <typename Rel, typename T>
     { successor(x) } -> std::convertible_to<T>;
   }
 constexpr bool connex_on(const Rel& rel, const T& lo, const T& hi) {
-  for (T a = lo;; a = successor(a)) {
-    for (T b = lo;; b = successor(b)) {
-      if (!connex_at(rel, a, b)) return false;
-      if (chain_end(b, hi)) break;
-    }
-    if (chain_end(a, hi)) return true;
-  }
+  return holds_on<2>(connex_at<Rel, T>, rel, lo, hi);
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -303,16 +303,7 @@ export template <typename Rel, typename T>
     { successor(x) } -> std::convertible_to<T>;
   }
 constexpr bool transitive_on(const Rel& rel, const T& lo, const T& hi) {
-  for (T a = lo;; a = successor(a)) {
-    for (T b = lo;; b = successor(b)) {
-      for (T c = lo;; c = successor(c)) {
-        if (!transitive_at(rel, a, b, c)) return false;
-        if (chain_end(c, hi)) break;
-      }
-      if (chain_end(b, hi)) break;
-    }
-    if (chain_end(a, hi)) return true;
-  }
+  return holds_on<3>(transitive_at<Rel, T>, rel, lo, hi);
 }
 
 /**

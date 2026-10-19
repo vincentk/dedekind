@@ -28,9 +28,10 @@
  * @f$() \rightsquigarrow A_1 \times \dots \times A_n@f$, and a projection is
  * composition with the structural relation @c proj.  Nothing is flattened at
  * construction: @c R @c & @c S is a @c Meet node over two relations.  The
- * @b classifier χ of a relation on its columns is a @b reading (@c classifier,
- * a fold), as are its verdict and its written form; @c canonical (algebra)
- * normalises the reading.  Rewrites on the tree are the phase after this.
+ * @b classifier χ of a relation on its columns is a @b reading (a fold,
+ * @c predicate_of), as are its verdict and its written form; @c canonical
+ * (algebra) normalises the reading.  Rewrites on the tree are the phase after
+ * this.
  *
  * @section rows__The_Kleisli_Structure
  * A relation is the Kleisli arrow @f$A \to \mathcal{P}B@f$ of the powerset
@@ -41,7 +42,7 @@
  * | @f$\eta@f$, @f$a \mapsto \{a\}@f$ | the identity @f$\Delta_A@f$ | @c diag |
  * | Kleisli composition | the relative product @f$R;S@f$ | @c >> |
  * | @f$\mu@f$, the union | the @f$\exists@f$ over the middle object | @c
- * Pred::exists, one per column of the middle, in @c classifier(R @c >> @c S) |
+ * Pred::exists, one per middle column, in @c predicate_of(R @c >> @c S) |
  *
  * The monad laws are decided by @c canonical where the ∃ eliminates:
  * @f$\Delta;R = R = R;\Delta@f$ and @f$(R;S);T = R;(S;T)@f$.
