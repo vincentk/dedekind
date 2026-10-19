@@ -561,6 +561,11 @@ concept IsΩ =
       requires IsOckhamAlgebra<typename T::logic_species>;
     };
 
+static_assert(IsTruthObject<bool> && IsTruthObject<Ternary> &&
+                  IsTruthObject<Percentage> && !IsTruthObject<int>,
+              "the laws of a relation take bool, K₃ and Percent answers (each "
+              "has a top), not int ones");
+
 /**
  * @concept IsPst
  * @brief A truth-object that is a @b bounded @b chain: an @c IsΩ classifier

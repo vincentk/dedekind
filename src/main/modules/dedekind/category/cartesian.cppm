@@ -691,7 +691,8 @@ inline constexpr bool is_right_unique_v = false;
  */
 export template <typename R, typename A, typename B>
 concept IsBinaryFunction =
-    IsBinaryRelation<R, A, B> && is_left_total_v<R> && is_right_unique_v<R>;
+    IsBinaryRelation<R, A, B> && is_left_total_v<std::remove_cvref_t<R>> &&
+    is_right_unique_v<std::remove_cvref_t<R>>;
 
 /**
  * @brief Adapter: realise an @c IsArrow @c F @c : @c A @c → @c B as a

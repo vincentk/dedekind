@@ -207,10 +207,11 @@ namespace dedekind::relational {
 //    Bird--de Moor). ──────────────────────────────────────────────────────────
 // FUNCTIONAL (single-valued, right-unique).
 export template <typename R>
-concept IsFunctional = dedekind::category::is_right_unique_v<R>;
+concept IsFunctional =
+    dedekind::category::is_right_unique_v<std::remove_cvref_t<R>>;
 // ENTIRE (total, left-total).
 export template <typename R>
-concept IsEntire = dedekind::category::is_left_total_v<R>;
+concept IsEntire = dedekind::category::is_left_total_v<std::remove_cvref_t<R>>;
 // A FUNCTION is a relation that is functional and entire (nLab, verbatim).
 // The signature is the TRIPLE (domain A, codomain B, predicate R): R is the
 // equalizing predicate f(a)=b, so a functional graph IS the equalizer subobject
