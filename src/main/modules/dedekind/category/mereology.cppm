@@ -594,12 +594,18 @@ namespace detail_mereology {
 using D4 = Dial<4>;
 using D100 = Dial<100>;
 }  // namespace detail_mereology
+namespace detail_mereology {
+template <typename Rel>
+inline constexpr bool chain_order =
+    IsReflexive<D4, Rel> && IsTransitive<D4, Rel> && IsAntisymmetric<D4, Rel> &&
+    IsConnex<D4, Rel>;
+}  // namespace detail_mereology
 static_assert(
-    IsTotalOrder<detail_mereology::D4, std::less_equal<detail_mereology::D4>> &&
-        IsTotalOrder<detail_mereology::D4,
-                     std::greater_equal<detail_mereology::D4>>,
-    "a 4-value chain that is no enum: ≤ and ≥ are total orders, every law "
-    "decided, nothing registered");
+    detail_mereology::chain_order<std::less_equal<detail_mereology::D4>> &&
+        detail_mereology::chain_order<std::greater_equal<detail_mereology::D4>>,
+    "a 4-value chain that is no enum: ≤ and ≥ are reflexive, "
+    "transitive, antisymmetric and connex, every law decided, nothing "
+    "registered");
 static_assert(
     IsTransitive<detail_mereology::D4, std::less<detail_mereology::D4>> &&
         IsAntisymmetric<detail_mereology::D4,
