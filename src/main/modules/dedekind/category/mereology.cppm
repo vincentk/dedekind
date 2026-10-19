@@ -50,13 +50,15 @@ namespace dedekind::category {
  * @concept IsTruthObject
  * @brief @c Ω may carry a relation's answer in the laws below: it has a top
  *        @c ⊤, the value a law asserts (reflexivity is @c rel(a, @c a) @c = @c
- *        ⊤).  @c bool (top @c true) is the default; @c Ternary, @c Percentage
- *        and the other bounded chains name theirs @c Ω::True.  A statement of
+ *        ⊤).  @c bool (top @c true) is the default; @c Ternary names its
+ *        @c Ω::True, a value type with a species (@c Percentage, the bounded
+ *        chains) finds it on the species.  A statement of
  *        intent, not a certificate: the laws come before logic, so the truth
  *        objects are only certified downstream (@c :logic, @c IsΩ).
  */
 export template <typename Ω>
-concept IsTruthObject = std::same_as<Ω, bool> || requires { Ω::True; };
+concept IsTruthObject = std::same_as<Ω, bool> || requires { Ω::True; } ||
+                        requires { Ω::logic_species::True; };
 
 /**
  * @brief Trait to mark a relation as reflexive: a ~ a = True
