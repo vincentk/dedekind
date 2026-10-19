@@ -63,6 +63,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>  // the slot bits of a column mask
 #include <memory>
 #include <type_traits>
 #include <utility>  // std::pair: a point of a relation, dom × cod
@@ -73,6 +74,7 @@ export module dedekind.relational:rows;
 
 import dedekind.category; // Ternary
 import dedekind.sets;     // Row, Term, Pred, the sorts, graph_term
+import :dyadic;           // Law, Laws: the rule table, read over the term
 
 namespace dedekind::relational {
 
@@ -700,5 +702,116 @@ const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
     return nullptr;
   return t;
 }
+
+// ── The laws of an arrow, inferred over the term (#1045) ─────────────────────
+namespace detail_rows {
+/** @brief The bit of a slot in a mask, as @c slots spells it. */
+constexpr unsigned slot_bit(unsigned s) {
+  return s < std::numeric_limits<unsigned>::digits ? 1u << s : ~0u;
+}
+constexpr unsigned column_mask(unsigned lo, unsigned hi) {
+  unsigned m = 0;
+  for (unsigned s = lo; s < hi; ++s) m |= slot_bit(s);
+  return m;
+}
+/** @brief Whether each column in @c [lo, hi) is defined by a conjunct of @c p
+ *  over the columns of @c others alone, and whether nothing else is asked
+ *  (the residual ⊤).  @return (every column defined, residual ⊤). */
+template <typename K>
+std::pair<bool, bool> defined_columns(const dedekind::sets::Pred<K>& p,
+                                      unsigned lo, unsigned hi,
+                                      unsigned others) {
+  using Q = dedekind::sets::Pred<K>;
+  Q rest = p;
+  for (unsigned s = lo; s < hi; ++s) {
+    const auto d = dedekind::sets::defining_term(rest, s);
+    if (!d || (dedekind::sets::slots(d->term) & ~others) != 0u)
+      return {false, false};
+    rest = d->rest;
+  }
+  return {true, rest.kind == Q::Kind::Top};
+}
+/** @brief The laws a comprehension certifies by the shape of its predicate:
+ *  every codomain column defined by a term over the domain columns is
+ *  univalence (at most one row above a point); with nothing else asked,
+ *  totality too (an admitted operator is total on its carrier, so the term
+ *  is a value at every point).  Dually, the domain columns defined over the
+ *  codomain's: injective, and surjective.  @c Δ is all four; @c copy a map
+ *  and injective; its converse @c merge univalent, injective and surjective.
+ *  @param p the predicate on the columns.  @param nd the domain's columns.
+ *  @param n all the columns. */
+template <typename K>
+Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd, unsigned n) {
+  Laws l;
+  const auto [cod_defined, cod_only] =
+      defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1));
+  const auto [dom_defined, dom_only] =
+      defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1));
+  if (cod_defined) {
+    l.set(Law::Univalent);
+    if (cod_only) l.set(Law::Total);
+  }
+  if (dom_defined) {
+    l.set(Law::Injective);
+    if (dom_only) l.set(Law::Surjective);
+  }
+  return l;
+}
+}  // namespace detail_rows
+
+/** @brief The laws of a relation, inferred: a fold over the term reading the
+ *  rule table (@c Laws, @c :dyadic) at each node, the leaves certified by
+ *  their shape (@c detail_rows::predicate_laws).  @c True where a rule
+ *  infers the law, @c Unknown where none does; the normal form may still
+ *  decide the inclusion (@c algebra, @c canonical).  @param r the relation. */
+export template <typename K, typename... Cs>
+Laws laws(const RelExpr<K, Cs...>& r) {
+  using R = RelExpr<K, Cs...>;
+  switch (r.kind) {
+    case R::Kind::Universe:
+      return Laws::universe();
+    case R::Kind::Comprehension: {
+      const unsigned nd = static_cast<unsigned>(columns(r.dom).size());
+      const Laws here = detail_rows::predicate_laws(r.predicate, nd, r.arity());
+      // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
+      return r.a->kind == R::Kind::Universe ? here
+                                            : Laws::meet(laws(*r.a), here);
+    }
+    case R::Kind::Meet:
+      return Laws::meet(laws(*r.a), laws(*r.b));
+    case R::Kind::Join:
+      return Laws::join(laws(*r.a), laws(*r.b));
+    case R::Kind::Not:
+      return Laws{};
+    case R::Kind::Converse:
+      return Laws::swapped(laws(*r.a));
+    case R::Kind::Tensor:
+    case R::Kind::Compose:
+    case R::Kind::Sum:
+      return Laws::both(laws(*r.a), laws(*r.b));
+  }
+  return Laws{};
+}
+
+/** @brief The relations certified the law @c W: a datum on the universe of
+ *  relations, so @c 𝔸<Re>{} @c & @c Total<Re>{} is the set of total
+ *  relations, membership its χ in K₃ (inferred, or not), and a map or an
+ *  isomorphism a meet of such sets, nothing stored.  Its complement is never
+ *  inhabited by inference (@c ¬True, else @c Unknown): Σ, not Π.
+ *  @tparam Re the relation type.  @tparam W the law. */
+export template <typename Re, Law W>
+struct LawSet {
+  using Domain = Re;
+  using Codomain = dedekind::category::Ternary;
+  Codomain operator()(const Re& r) const { return laws(r)[W]; }
+};
+export template <typename Re>
+using Total = LawSet<Re, Law::Total>;
+export template <typename Re>
+using Univalent = LawSet<Re, Law::Univalent>;
+export template <typename Re>
+using Injective = LawSet<Re, Law::Injective>;
+export template <typename Re>
+using Surjective = LawSet<Re, Law::Surjective>;
 
 }  // namespace dedekind::relational

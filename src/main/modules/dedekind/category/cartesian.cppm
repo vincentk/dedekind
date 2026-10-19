@@ -602,6 +602,8 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //   | equality (Δ)       | @c is_equality_v<T, Rel>    | @c :equivalence  |
 //   | left-total         | @c is_left_total_v<R>       | @b :cartesian    |
 //   | right-unique       | @c is_right_unique_v<R>     | @b :cartesian    |
+//   | left-unique        | @c is_left_unique_v<R>      | @b :cartesian    |
+//   | right-total        | @c is_right_total_v<R>      | @b :cartesian    |
 //
 // Compositions (as a wider taxonomy across the project):
 //
@@ -678,6 +680,19 @@ inline constexpr bool is_left_total_v = false;
  */
 export template <typename R>
 inline constexpr bool is_right_unique_v = false;
+
+/** @brief Left-uniqueness (injectivity of the relation): each @c b @c ∈ @c B
+ *  is related to at most one @c a; @c R° right-unique.  Same opt-in pattern;
+ *  derived for the relational nodes by the rule table (@c relational:dyadic,
+ *  @c Laws). */
+export template <typename R>
+inline constexpr bool is_left_unique_v = false;
+
+/** @brief Right-totality (surjectivity of the relation): every @c b @c ∈ @c B
+ *  is related to some @c a; @c R° left-total.  Same opt-in pattern, derived
+ *  likewise.  With the other three: an isomorphism of Rel. */
+export template <typename R>
+inline constexpr bool is_right_total_v = false;
 
 /**
  * @concept IsBinaryFunction

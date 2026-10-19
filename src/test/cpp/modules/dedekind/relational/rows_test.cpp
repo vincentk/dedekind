@@ -227,3 +227,44 @@ TEST_CASE("relational:rows: a RelExpr is a relation (IsRelation)",
   // A point not of the shape dom × cod is none of the relation's.
   CHECK(succ(std::pair{R{}, R{{3u, 4u}}}) == Ternary::False);
 }
+
+TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
+          "[relational][rows][laws]") {
+  using dedekind::relational::Law;
+  using dedekind::relational::Laws;
+  using dedekind::relational::laws;
+  using dedekind::sets::𝔸;
+  const auto all = Laws::from(true, true, true, true);
+  // Leaves, by their shape: Δ is an isomorphism; a graph a map; the universe
+  // total and surjective; copy a map and injective, merge its converse.
+  CHECK(laws(diag<int, unsigned, bool>(W)) == all);
+  CHECK(laws(succ) == Laws::from(true, true, false, false));
+  CHECK(laws(words) == Laws::universe());
+  CHECK(laws(dedekind::relational::copy<int, unsigned, bool>(W)) ==
+        Laws::from(true, true, true, false));
+  CHECK(laws(merge<int, unsigned, bool>(W)) ==
+        Laws::from(false, true, true, true));
+  // Nodes, by the rules: ; keeps what both have, ° swaps, & keeps univalence
+  // from either side, ~ nothing.
+  CHECK(laws(succ >> succ) == Laws::from(true, true, false, false));
+  CHECK(laws(converse(succ)) == Laws::from(false, false, true, true));
+  CHECK(laws(converse(converse(succ))) == laws(succ));
+  CHECK(laws(square & succ) == Laws::from(false, true, false, false));
+  CHECK(laws(~succ) == Laws{});
+  CHECK(laws(diag<int, unsigned, bool>(W) >>
+             converse(diag<int, unsigned, bool>(W))) == all);
+  // The sets: 𝔸<Re> & Total<Re>{} is the set of total relations, a map the
+  // meet of two such sets, χ in K₃.
+  using dedekind::relational::Total;
+  using dedekind::relational::Univalent;
+  const auto total = 𝔸<Re>{} & Total<Re>{};
+  const auto map = total & (𝔸<Re>{} & Univalent<Re>{});
+  STATIC_CHECK(dedekind::sets::IsSetObject<decltype(total)>);
+  CHECK(total(succ) == Ternary::True);
+  CHECK(total(converse(succ)) == Ternary::Unknown);
+  CHECK(map(succ >> succ) == Ternary::True);
+  CHECK(map(words) == Ternary::Unknown);
+  // The complement certifies nothing: refuted where inferred, else Unknown.
+  CHECK((~total)(succ) == Ternary::False);
+  CHECK((~total)(~succ) == Ternary::Unknown);
+}

@@ -94,3 +94,19 @@ TEST_CASE("relational laws: table and arrow, Rel's compact-closed iso",
   CHECK(t.dom == Object{});
   CHECK(same(dedekind::relational::arrow(t), succ));
 }
+
+TEST_CASE("relational laws: the inferred laws agree with the normal form",
+          "[algebra][relational][laws]") {
+  using dedekind::relational::converse;
+  using dedekind::relational::Law;
+  using dedekind::relational::laws;
+  const Re eta = dedekind::relational::diag<Word, Word, bool>(W);
+  // Total, Δ ≤ R ; R°, as Δ ∧ (R ; R°) = Δ: inferred, and decided.
+  REQUIRE(laws(succ)[Law::Total] == dedekind::category::Ternary::True);
+  CHECK(same(eta & (succ >> converse(succ)), eta));
+  REQUIRE(laws(eta)[Law::Total] == dedekind::category::Ternary::True);
+  CHECK(same(eta & (eta >> converse(eta)), eta));
+  // Univalent, R° ; R ≤ Δ, as (R° ; R) ∧ Δ = R° ; R.
+  REQUIRE(laws(eta)[Law::Univalent] == dedekind::category::Ternary::True);
+  CHECK(same((converse(eta) >> eta) & eta, converse(eta) >> eta));
+}

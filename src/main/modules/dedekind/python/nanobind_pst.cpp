@@ -1233,6 +1233,15 @@ const char* kind_of(const dedekind::relational::Object& o) {
 /** @brief The relation class and the products of the universes: every
  *  universe multiplies with every factor.  @param factors the carriers' Python
  *  objects, by sort. */
+/** @brief A set over the relations, read as the sets over a carrier are: x in
+ *  S, ap(S, x) its χ in K₃ (inferred, or not), & | ~ its grammar.  Built on
+ *  the library's sets of relations, 𝔸<Relation> & Total<Relation>{} and so
+ *  on (#1045). */
+struct LawSet {
+  std::function<Ternary(const Relation&)> chi;
+  std::string shown;
+};
+
 template <typename... Universes>
 void bind_relations(nb::module_& m, std::vector<nb::object> factors,
                     nb::class_<Universes>&... universes) {
@@ -1450,6 +1459,72 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__mul__", [](const Obj& a, const Obj& b) { return a * b; },
           nb::is_operator(), "A × B: the product (associative).")
       .def("__repr__", [](const Obj& o) { return written(o); });
+  // ── The sets of relations the laws cut out (#1045) ──
+  nb::class_<LawSet>(
+      m, "RelationSet",
+      "A set of relations cut out by a law of the arrows (total, univalent, "
+      "injective, surjective), inferred over the term by the rules that "
+      "preserve it.  x in S where the law is inferred; ap(S, x) the answer in "
+      "K₃: True inferred, Unknown not (never False: the rules certify, they do "
+      "not refute); S & T, S | T, ~S the sets' grammar.")
+      .def(
+          "__contains__",
+          [](const LawSet& s, nb::handle h) {
+            return nb::isinstance<Relation>(h) &&
+                   s.chi(nb::cast<const Relation&>(h)) == Ternary::True;
+          },
+          nb::arg("x"))
+      .def(
+          "_ap", [](const LawSet& s, const Relation& r) { return s.chi(r); },
+          nb::arg("x"))
+      .def(
+          "__and__",
+          [](const LawSet& a, const LawSet& b) {
+            return LawSet{[a, b](const Relation& r) {
+                            return Kleene::AND(a.chi(r), b.chi(r));
+                          },
+                          a.shown + " & " + b.shown};
+          },
+          nb::is_operator())
+      .def(
+          "__or__",
+          [](const LawSet& a, const LawSet& b) {
+            return LawSet{[a, b](const Relation& r) {
+                            return Kleene::OR(a.chi(r), b.chi(r));
+                          },
+                          "(" + a.shown + " | " + b.shown + ")"};
+          },
+          nb::is_operator())
+      .def("__invert__",
+           [](const LawSet& a) {
+             return LawSet{
+                 [a](const Relation& r) { return Kleene::RFL(a.chi(r)); },
+                 "~(" + a.shown + ")"};
+           })
+      .def_prop_ro(
+          "codomain", [m](const LawSet&) { return m.attr("K3"); },
+          "The chain χ is valued in: K₃.")
+      .def("__repr__",
+           [](const LawSet& s) { return "𝔸(Relation) & " + s.shown; });
+  {
+    using dedekind::sets::𝔸;
+    const auto total = 𝔸<Relation>{} & dedekind::relational::Total<Relation>{};
+    const auto univalent =
+        𝔸<Relation>{} & dedekind::relational::Univalent<Relation>{};
+    const auto injective =
+        𝔸<Relation>{} & dedekind::relational::Injective<Relation>{};
+    const auto surjective =
+        𝔸<Relation>{} & dedekind::relational::Surjective<Relation>{};
+    m.attr("total") =
+        LawSet{[total](const Relation& r) { return total(r); }, "total"};
+    m.attr("univalent") = LawSet{
+        [univalent](const Relation& r) { return univalent(r); }, "univalent"};
+    m.attr("injective") = LawSet{
+        [injective](const Relation& r) { return injective(r); }, "injective"};
+    m.attr("surjective") =
+        LawSet{[surjective](const Relation& r) { return surjective(r); },
+               "surjective"};
+  }
   m.def(
       "kind", [](const Relation& r) { return kind_of(r); }, nb::arg("x"),
       "kind(x): the node at the root of x's term: for a relation one of "

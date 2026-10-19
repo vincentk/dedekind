@@ -60,10 +60,12 @@
  */
 module;
 
-#include <concepts>     // std::same_as
-#include <functional>   // std::less_equal: ≤ on 𝔹 as a set of pairs (witness)
-#include <type_traits>  // std::remove_cvref_t (the factor-universe types)
-#include <utility>      // std::pair
+#include <array>       // Laws: the four laws of an arrow, as a value
+#include <concepts>    // std::same_as
+#include <functional>  // std::less_equal: ≤ on 𝔹 as a set of pairs (witness)
+#include <initializer_list>  // the laws a rule ranges over
+#include <type_traits>       // std::remove_cvref_t (the factor-universe types)
+#include <utility>           // std::pair
 
 export module dedekind.relational:dyadic;
 
@@ -627,6 +629,106 @@ static_assert(
     !dedekind::category::IsCopy<decltype(diag<bool>())>,
     "relational Δ (χ:A×A→Ω) is NOT the copy diagonal Δ:A→A×A (IsCopy).");
 
+// ── The laws of an arrow of Rel, and the rules that preserve them (#1045) ────
+/** @brief A law of an arrow of Rel, an inclusion: total @f$\Delta \le
+ * R;R^\circ@f$, univalent @f$R^\circ;R \le \Delta@f$, injective @f$R;R^\circ
+ * \le \Delta@f$, surjective @f$\Delta \le R^\circ;R@f$.  A map is total and
+ * univalent; an isomorphism all four. */
+export enum class Law : unsigned { Total, Univalent, Injective, Surjective };
+
+/** @brief The laws an arrow is certified: one answer in K₃ per law, @c True
+ *  where a rule infers it, @c Unknown where none does; never @c False, the
+ *  rules certify and do not refute (sound, not complete).  A @c constexpr
+ *  value, so the rules below are read by the compiler on a typed relation
+ *  (the traits of @c :cartesian) and by the program over a @c RelExpr
+ *  (@c relational:rows, @c laws): one rule table, two readers. */
+export struct Laws {
+  std::array<dedekind::category::Ternary, 4> of{
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown};
+  constexpr dedekind::category::Ternary operator[](Law w) const {
+    return of[static_cast<unsigned>(w)];
+  }
+  constexpr Laws& set(Law w) {
+    of[static_cast<unsigned>(w)] = dedekind::category::Ternary::True;
+    return *this;
+  }
+  constexpr bool operator==(const Laws&) const = default;
+  /** @brief Declared answers, read off four witnesses. */
+  static constexpr Laws from(bool total, bool univalent, bool injective,
+                             bool surjective) {
+    Laws l;
+    if (total) l.set(Law::Total);
+    if (univalent) l.set(Law::Univalent);
+    if (injective) l.set(Law::Injective);
+    if (surjective) l.set(Law::Surjective);
+    return l;
+  }
+  /** @brief The full relation on inhabited carriers: total and surjective. */
+  static constexpr Laws universe() {
+    return Laws{}.set(Law::Total).set(Law::Surjective);
+  }
+  /** @brief The rule for @c ; @c ⊗ and @c +: a law both operands have. */
+  static constexpr Laws both(const Laws& a, const Laws& b) {
+    Laws l;
+    for (unsigned i = 0; i < 4; ++i)
+      if (a.of[i] == dedekind::category::Ternary::True &&
+          b.of[i] == dedekind::category::Ternary::True)
+        l.of[i] = dedekind::category::Ternary::True;
+    return l;
+  }
+  /** @brief The rule for @c °: total ↔ surjective, univalent ↔ injective. */
+  static constexpr Laws swapped(const Laws& a) {
+    Laws l;
+    l.of[0] = a.of[3];
+    l.of[3] = a.of[0];
+    l.of[1] = a.of[2];
+    l.of[2] = a.of[1];
+    return l;
+  }
+  /** @brief The rule for @c &: univalent and injective from either operand;
+   *  a meet can lose totality and surjectivity. */
+  static constexpr Laws meet(const Laws& a, const Laws& b) {
+    Laws l;
+    for (const Law w : {Law::Univalent, Law::Injective})
+      if (a[w] == dedekind::category::Ternary::True ||
+          b[w] == dedekind::category::Ternary::True)
+        l.set(w);
+    return l;
+  }
+  /** @brief The rule for @c |: total and surjective from either operand; a
+   *  join can lose univalence and injectivity. */
+  static constexpr Laws join(const Laws& a, const Laws& b) {
+    Laws l;
+    for (const Law w : {Law::Total, Law::Surjective})
+      if (a[w] == dedekind::category::Ternary::True ||
+          b[w] == dedekind::category::Ternary::True)
+        l.set(w);
+    return l;
+  }
+};
+static_assert(Laws::swapped(Laws::swapped(Laws::universe())) ==
+                  Laws::universe(),
+              "°° is the identity on the laws");
+static_assert(Laws::both(Laws::from(true, true, true, true),
+                         Laws::from(true, true, true, true)) ==
+                  Laws::from(true, true, true, true),
+              "iso ; iso is iso: the isomorphisms form a groupoid");
+static_assert(Laws::meet(Laws::universe(), Laws::universe()) == Laws{},
+              "a meet of universes is certified nothing by the rule");
+
+/** @brief The rule table read for a typed relation: its four laws as the
+ *  @c :cartesian traits answer them, declared on a leaf or derived on a node
+ *  (the readers in the @c category namespace below). */
+export template <typename R>
+inline constexpr Laws laws_of_v =
+    Laws::from(dedekind::category::is_left_total_v<R>,
+               dedekind::category::is_right_unique_v<R>,
+               dedekind::category::is_left_unique_v<R>,
+               dedekind::category::is_right_total_v<R>);
+
 }  // namespace dedekind::relational
 
 // ── Trait registry: relation-property certificates for :dyadic's predicates ──
@@ -652,30 +754,105 @@ inline constexpr bool is_left_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
                                   dedekind::relational::DiagPred<A>>> = true;
 
-// NODE: the relative product R;S propagates BOTH properties through @c >> ---
-// it is functional iff both factors are, and entire iff both factors are (§3.2
-// Table 3's containments composing; the retained intermediate @c B reconstructs
-// the two factor relations).  Functionality was @c order-level, entireness
-// @c algebra-level before the extraction; both are pure relation-algebra, so
-// both live here now.
-template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B, typename Card>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
-    dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
-    is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
+// LEAF: Δ is also injective and surjective: an isomorphism of Rel.
+template <typename A, typename L, typename C>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+
+// NODES: each trait reads the rule table (relational::Laws) on the operands'
+// laws, the same constexpr rules the run-time fold over a RelExpr reads.
+// The relative product R;S keeps a law both factors have (the retained
+// intermediate @c B reconstructs the factor relations); the converse swaps
+// total with surjective and univalent with injective.
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B, typename Card>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
-    is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
+    dedekind::relational::Laws::both(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Total] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::both(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_left_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::both(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Injective] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::both(
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Surjective] == Ternary::True;
+template <typename B, typename A, typename L, typename R>
+inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+    dedekind::relational::Laws::swapped(
+        dedekind::relational::laws_of_v<R>)[dedekind::relational::Law::Total] ==
+    Ternary::True;
+template <typename B, typename A, typename L, typename R>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+    dedekind::relational::Laws::swapped(
+        dedekind::relational::laws_of_v<
+            R>)[dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename B, typename A, typename L, typename R>
+inline constexpr bool is_left_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+    dedekind::relational::Laws::swapped(
+        dedekind::relational::laws_of_v<
+            R>)[dedekind::relational::Law::Injective] == Ternary::True;
+template <typename B, typename A, typename L, typename R>
+inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<B, A>, L>, dedekind::relational::SwapPred<R>>> =
+    dedekind::relational::Laws::swapped(
+        dedekind::relational::laws_of_v<
+            R>)[dedekind::relational::Law::Surjective] == Ternary::True;
+
+static_assert(
+    is_left_unique_v<decltype(dedekind::relational::diag<bool>())> &&
+        is_right_total_v<decltype(dedekind::relational::diag<bool>())>,
+    "Δ is an isomorphism of Rel: all four laws");
+static_assert(is_left_total_v<decltype(dedekind::relational::converse(
+                      dedekind::relational::diag<bool>()))> &&
+                  is_right_unique_v<decltype(dedekind::relational::converse(
+                      dedekind::relational::diag<bool>()))>,
+              "Δ° is a map, read through the converse rule (swap) on Δ's laws");
+static_assert(dedekind::relational::laws_of_v<
+                  decltype(dedekind::relational::diag<bool>() >>
+                           dedekind::relational::converse(
+                               dedekind::relational::diag<bool>()))> ==
+                  dedekind::relational::Laws::from(true, true, true, true),
+              "Δ ; Δ° is an isomorphism: the compose rule on two isomorphisms");
 
 static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is FUNCTIONAL (single-valued).");
