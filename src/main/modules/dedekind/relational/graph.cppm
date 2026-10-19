@@ -422,7 +422,7 @@ template <std::size_t K, typename C, C c, typename T, typename R>
 constexpr auto shannon(const R& r) {
   // Qualified: category::preimage (the Compose form) is reachable by ADL too.
   const auto here = dedekind::relational::preimage(Fixed<K, C, c, T>{}, r);
-  if constexpr (c == dedekind::sets::chain_top<C>())
+  if constexpr (c == dedekind::category::identity_v<C, dedekind::category::Inf>)
     return here;
   else
     return here | shannon<K, C, dedekind::category::Successor<C>{}(c), T>(r);
@@ -459,8 +459,8 @@ export template <detail_hyperdoctrine::IsPairProjection<1> F,
 constexpr auto image_along(const F&, const R& r) {
   using B = typename dedekind::category::Dom<F>::second_type;
   using A = typename dedekind::category::Dom<F>::first_type;
-  return detail_hyperdoctrine::shannon<2, B, dedekind::sets::chain_bottom<B>(),
-                                       A>(r);
+  return detail_hyperdoctrine::shannon<
+      2, B, dedekind::category::identity_v<B, dedekind::category::Sup>, A>(r);
 }
 /** @brief @f$\exists_{\pi_2}@f$, the first factor a finite chain: Shannon. */
 export template <detail_hyperdoctrine::IsPairProjection<2> F,
@@ -472,8 +472,8 @@ export template <detail_hyperdoctrine::IsPairProjection<2> F,
 constexpr auto image_along(const F&, const R& r) {
   using A = typename dedekind::category::Dom<F>::first_type;
   using B = typename dedekind::category::Dom<F>::second_type;
-  return detail_hyperdoctrine::shannon<1, A, dedekind::sets::chain_bottom<A>(),
-                                       B>(r);
+  return detail_hyperdoctrine::shannon<
+      1, A, dedekind::category::identity_v<A, dedekind::category::Sup>, B>(r);
 }
 
 export template <dedekind::category::IsArrow F,

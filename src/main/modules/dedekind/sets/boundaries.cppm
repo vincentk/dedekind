@@ -76,18 +76,6 @@ using dedekind::category::IsLSet;
  *  bare @c Ø{} denotes "the empty set" with no carrier to name; it compares
  *  equal to any @c Ø<T> through the cross-carrier @c operator== below, letting
  *  a collapse be asserted as @c (a @c & @c ~a) @c == @c Ø{}. */
-/** @brief A truth chain's bottom, its species' ⊥.  @tparam C the chain.
- *  @return @c False of the species whose @c Ω is @c C. */
-export template <IsPst C>
-constexpr C chain_bottom() {
-  return classifier_logic_t<C>::False;
-}
-/** @brief A truth chain's top, its species' ⊤.  @tparam C the chain.
- *  @return @c True of the species whose @c Ω is @c C. */
-export template <IsPst C>
-constexpr C chain_top() {
-  return classifier_logic_t<C>::True;
-}
 
 export template <typename T = std::nullptr_t, typename L = Boole>
 struct Ø final {

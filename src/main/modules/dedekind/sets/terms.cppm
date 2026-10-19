@@ -108,8 +108,7 @@ module;
 export module dedekind.sets:terms;
 
 import dedekind.category;
-import :boundaries;  // chain_bottom / chain_top: a finite chain's values, for ∃
-                     // / ∀
+import :boundaries;   // the set objects
 import :cardinality;  // IsRingIntegral; Cardinality, the ℕ carrier constants
                       // meet
 
@@ -1074,10 +1073,10 @@ export template <typename C>
 C search_value(std::uint64_t i) {
   if constexpr (dedekind::category::IsPst<C>) {
     std::uint64_t n = 1;
-    for (C v = chain_bottom<C>(); v != chain_top<C>();
+    for (C v = identity_v<C, Sup>; v != identity_v<C, Inf>;
          v = dedekind::category::Successor<C>{}(v))
       ++n;
-    C v = chain_bottom<C>();
+    C v = identity_v<C, Sup>;
     for (std::uint64_t k = i % n; k > 0; --k)
       v = dedekind::category::Successor<C>{}(v);
     return v;
@@ -1294,12 +1293,12 @@ struct Value {
       } else if constexpr (dedekind::category::IsPst<C>) {
         const bool universal = t.kind == Pred<K>::Kind::Forall;
         P row = with_bound(v.p, t.sort);
-        for (C c = chain_bottom<C>();;
+        for (C c = identity_v<C, Sup>;;
              c = dedekind::category::Successor<C>{}(c)) {
           set_bound(row, c);
           const bool holds = Value<P>{row}.steer(*t.p);
           if (holds != universal) return holds;
-          if (c == chain_top<C>()) return universal;
+          if (c == identity_v<C, Inf>) return universal;
         }
       } else {
         throw not_admitted(
@@ -1424,12 +1423,12 @@ struct Verdict {
       P row = with_bound(v.point, t.sort);
       if constexpr (dedekind::category::IsPst<C>) {
         Ternary all = universal ? Ternary::True : Ternary::False;
-        for (C c = chain_bottom<C>();;
+        for (C c = identity_v<C, Sup>;;
              c = dedekind::category::Successor<C>{}(c)) {
           set_bound(row, c);
           const Ternary here = Verdict{row, v.budget}(*t.p);
           all = universal ? Kleene::AND(all, here) : Kleene::OR(all, here);
-          if (c == chain_top<C>()) return all;
+          if (c == identity_v<C, Inf>) return all;
         }
       } else {
         // An opposite quantifier over an infinite carrier inside: a search

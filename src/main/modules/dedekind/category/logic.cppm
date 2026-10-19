@@ -439,7 +439,7 @@ constexpr P operator!(P a) noexcept {
 
 // NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
 // / identity_v static_asserts) are placed at the END of this partition, below
-// the #912/#933 Ternary :total registrations (identity_trait<Ternary, Sup/Inf>)
+// the #912/#933 Ternary :total identities (identity_v<Ternary, Sup/Inf>)
 // and the Ternary operator<=> that SupInfLattice<Ternary> needs.  The Kleene
 // witnesses forward-reference those, so they must follow them.  The member
 // aliases (JoinOp / MeetOp / RflOp) stay inside each species struct (they
@@ -720,6 +720,22 @@ using classifier_logic_t =
 export template <typename T>
 concept IsClassifierAnswer =
     requires { typename ClassifierLogic<std::remove_cvref_t<T>>::type; };
+
+/** @brief A classifier answer's ends are its species' ⊥ and ⊤: the identities
+ *  of @c Sup (∨) and @c Inf (∧), derived once for every answer (𝔹, K₃,
+ *  @c Percentage, …), the one spelling of a truth chain's bottom and top. */
+template <IsClassifierAnswer C>
+  requires requires { classifier_logic_t<C>::False; }
+struct identity_trait<C, Sup> {
+  using value_type = C;
+  static constexpr C value = classifier_logic_t<C>::False;
+};
+template <IsClassifierAnswer C>
+  requires requires { classifier_logic_t<C>::True; }
+struct identity_trait<C, Inf> {
+  using value_type = C;
+  static constexpr C value = classifier_logic_t<C>::True;
+};
 
 // ---------------------------------------------------------------------------
 // The dominance order on logic species: a meet-semilattice with 𝔹 at the
@@ -1175,25 +1191,14 @@ static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
                   Inf{}(Ternary::True, Ternary::True) == Ternary::True,
               "K₃: ⊤ = True is the meet (∧ = Inf) identity");
 
-/** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
- *  @c identity_v<bool, std::logical_or<bool>> @c == @c false (⊥) registration
- *  in @c :species (the join / OR identity is the bottom, not the top). */
-template <>
-struct identity_trait<Ternary, Sup> {
-  using value_type = Ternary;
-  static constexpr Ternary value = Ternary::False;
-};
-/** @brief ∧-identity (⊤) of the K₃ lattice: @c True. */
-template <>
-struct identity_trait<Ternary, Inf> {
-  using value_type = Ternary;
-  static constexpr Ternary value = Ternary::True;
-};
-
+// K₃'s ∨ / ∧ identities are its species' ⊥ / ⊤, derived for every classifier
+// answer (identity_trait<C, Sup / Inf> above).
 static_assert(identity_v<Ternary, Sup> == Ternary::False,
-              "K₃: registered ∨-identity is ⊥ = False");
+              "K₃: the ∨-identity is ⊥ = False");
 static_assert(identity_v<Ternary, Inf> == Ternary::True,
-              "K₃: registered ∧-identity is ⊤ = True");
+              "K₃: the ∧-identity is ⊤ = True");
+static_assert(identity_v<bool, Sup> == false && identity_v<bool, Inf> == true,
+              "𝔹: the ∨ / ∧ identities are ⊥ / ⊤");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
  *  @c False @c < @c Unknown @c < @c True; a scoped enum, so no blanket over
