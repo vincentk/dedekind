@@ -728,13 +728,13 @@ template <IsClassifierAnswer C>
   requires requires { classifier_logic_t<C>::False; }
 struct identity_trait<C, Sup> {
   using value_type = C;
-  static constexpr C value = classifier_logic_t<C>::False;
+  static constexpr C value = C{classifier_logic_t<C>::False};
 };
 template <IsClassifierAnswer C>
   requires requires { classifier_logic_t<C>::True; }
 struct identity_trait<C, Inf> {
   using value_type = C;
-  static constexpr C value = classifier_logic_t<C>::True;
+  static constexpr C value = C{classifier_logic_t<C>::True};
 };
 
 // ---------------------------------------------------------------------------
@@ -1199,6 +1199,9 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
               "K₃: the ∧-identity is ⊤ = True");
 static_assert(identity_v<bool, Sup> == false && identity_v<bool, Inf> == true,
               "𝔹: the ∨ / ∧ identities are ⊥ / ⊤");
+static_assert(identity_v<Truth<Boole>, Sup>.value == false &&
+                  identity_v<Truth<Boole>, Inf>.value == true,
+              "a truth wrapper's ends are its species' ⊥ / ⊤ too");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
  *  @c False @c < @c Unknown @c < @c True; a scoped enum, so no blanket over

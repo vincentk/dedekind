@@ -223,4 +223,6 @@ TEST_CASE("relational:rows: a RelExpr is a relation (IsRelation)",
   STATIC_CHECK(dedekind::relational::IsRelation<Re, R, R>);
   CHECK(succ(std::pair{R{{3u}}, R{{4u}}}) == Ternary::True);
   CHECK(succ(std::pair{R{{3u}}, R{{5u}}}) == Ternary::False);
+  // A point not of the shape dom × cod is none of the relation's.
+  CHECK(succ(std::pair{R{}, R{{3u, 4u}}}) == Ternary::False);
 }

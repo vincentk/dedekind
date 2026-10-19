@@ -492,17 +492,22 @@ constexpr bool fits_budget(std::size_t n, std::size_t arity) {
  *  before anything asks about one of its relations (as for every trait
  *  registration: an answer, once instantiated, is fixed). */
 export template <typename T, typename Rel, std::size_t Arity>
-concept IsWalkableChain = std::default_initializable<Rel> && requires {
-  identity_v<T, Sup>;
-  identity_v<T, Inf>;
-} && requires(const Rel& r, const T& x) {
-  { r(x, x) } -> std::convertible_to<bool>;
-  { successor(x) } -> std::convertible_to<T>;
-  { x == x } -> std::convertible_to<bool>;
-} && requires {
-  typename std::integral_constant<
-      std::size_t, chain_length(identity_v<T, Sup>, identity_v<T, Inf>)>;
-} && fits_budget(chain_length(identity_v<T, Sup>, identity_v<T, Inf>), Arity);
+concept IsWalkableChain =
+    std::default_initializable<Rel> && std::is_empty_v<Rel> &&
+    requires {
+      identity_v<T, Sup>;
+      identity_v<T, Inf>;
+    } &&
+    requires(const Rel& r, const T& x) {
+      { r(x, x) } -> std::convertible_to<bool>;
+      { successor(x) } -> std::convertible_to<T>;
+      { x == x } -> std::convertible_to<bool>;
+    } &&
+    requires {
+      typename std::integral_constant<
+          std::size_t, chain_length(identity_v<T, Sup>, identity_v<T, Inf>)>;
+    } &&
+    fits_budget(chain_length(identity_v<T, Sup>, identity_v<T, Inf>), Arity);
 
 /** @brief Each law, stated once for every relation on a walkable chain: the
  *  certificate the concept reads @b is the law over the whole chain, for

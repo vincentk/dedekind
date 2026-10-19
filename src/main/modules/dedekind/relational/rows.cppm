@@ -78,6 +78,16 @@ namespace dedekind::relational {
 
 /** @brief The sorts of a row, one per column. */
 export using Columns = std::vector<std::size_t>;
+/** @brief The row @c r has the columns @c cols: one cell per column, each of
+ *  the column's sort.  @tparam R the row.  @param r a row.  @param cols the
+ *  sorts. */
+template <typename R>
+bool of_columns(const R& r, const Columns& cols) {
+  if (r.cells.size() != cols.size()) return false;
+  for (std::size_t i = 0; i < cols.size(); ++i)
+    if (r.cells[i].index() != cols[i]) return false;
+  return true;
+}
 
 export struct Object;
 inline bool same_object(const Object& a, const Object& b);
@@ -204,8 +214,12 @@ struct RelExpr {
     Domain value;
   };
   Domain ι(const Member& m) const { return m.value; }
-  /** @brief χ: the verdict at the joined row of the point. */
+  /** @brief χ: the verdict at the joined row of the point; a point not of
+   *  the shape @c dom @c × @c cod is none of the relation's. */
   Codomain operator()(const Domain& p) const {
+    if (!of_columns(p.first, relational::columns(dom)) ||
+        !of_columns(p.second, relational::columns(cod)))
+      return dedekind::category::Ternary::False;
     Point row = p.first;
     row.cells.insert(row.cells.end(), p.second.cells.begin(),
                      p.second.cells.end());
