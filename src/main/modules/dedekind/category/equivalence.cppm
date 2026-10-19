@@ -191,33 +191,6 @@ concept IsEquality =
       { rel(a, b) } -> std::convertible_to<Ω>;
     } && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
 
-// The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ
-// (reflexive), Δ° = Δ (symmetric), Δ ; Δ = Δ (transitive).  Derived for every
-// certified <T, Rel> (the spellings of == and any carrier's own equality),
-// never declared per carrier.  A type that answers a law through its own
-// member (the discovery specialisation) keeps that answer.
-template <typename T, typename Rel>
-  requires(
-      is_equality_v<T, Rel> && !requires { T::template is_reflexive_v<Rel>; } &&
-      !IsChainDecidedReflexive<T, Rel>)  // the law decides it there: one rule
-struct is_reflexive<T, Rel> : std::true_type {};
-template <typename T, typename Rel>
-  requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_symmetric_v<Rel>; } &&
-           !IsChainDecidedSymmetric<T, Rel>)
-struct is_symmetric<T, Rel> : std::true_type {};
-template <typename T, typename Rel>
-  requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_transitive_v<Rel>; } &&
-           !IsChainDecidedTransitive<T, Rel>)
-struct is_transitive<T, Rel> : std::true_type {};
-// ... and antisymmetric: Δ ∩ Δ° ≤ Δ.
-template <typename T, typename Rel>
-  requires(is_equality_v<T, Rel> &&
-           !requires { T::template is_antisymmetric_v<Rel>; } &&
-           !IsChainDecidedAntisymmetric<T, Rel>)
-struct is_antisymmetric<T, Rel> : std::true_type {};
-
 /** @brief Symmetry at a point (@c mereology__The_Laws_At_A_Point). */
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -254,6 +227,34 @@ template <typename T, typename Rel>
 struct is_symmetric<T, Rel>
     : std::bool_constant<symmetric_on(Rel{}, identity_v<T, Sup>,
                                       identity_v<T, Inf>)> {};
+
+// The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ
+// (reflexive), Δ° = Δ (symmetric), Δ ; Δ = Δ (transitive).  Derived for every
+// certified <T, Rel> (the spellings of == and any carrier's own equality),
+// never declared per carrier.  A type that answers a law through its own
+// member (the discovery specialisation) keeps that answer.
+template <typename T, typename Rel>
+  requires(
+      is_equality_v<T, Rel> && !requires { T::template is_reflexive_v<Rel>; } &&
+      !IsChainDecidedReflexive<T, Rel>)  // the law decides it there: one rule
+struct is_reflexive<T, Rel> : std::true_type {};
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_symmetric_v<Rel>; } &&
+           !IsChainDecidedSymmetric<T, Rel>)
+struct is_symmetric<T, Rel> : std::true_type {};
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_transitive_v<Rel>; } &&
+           !IsChainDecidedTransitive<T, Rel>)
+struct is_transitive<T, Rel> : std::true_type {};
+// ... and antisymmetric: Δ ∩ Δ° ≤ Δ.
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_antisymmetric_v<Rel>; } &&
+           !IsChainDecidedAntisymmetric<T, Rel>)
+struct is_antisymmetric<T, Rel> : std::true_type {};
+
 /** @brief Equality at a point: the relation answers as @c == does. */
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {

@@ -1239,9 +1239,11 @@ static_assert(IsReflexive<Ternary, std::less_equal<Ternary>> &&
                   IsReflexive<Ternary, std::equal_to<Ternary>>,
               "≤, ≥ and == on K₃ are reflexive: the law decides each");
 static_assert(IsTotalOrder<Ternary, std::greater_equal<Ternary>> &&
-                  IsEquivalence<Ternary, std::equal_to<Ternary>>,
-              "≥ on K₃ is a total order and == an equivalence: every law "
-              "decided, none registered");
+                  IsReflexive<Ternary, std::equal_to<Ternary>> &&
+                  IsTransitive<Ternary, std::equal_to<Ternary>> &&
+                  IsAntisymmetric<Ternary, std::equal_to<Ternary>>,
+              "≥ on K₃ is a total order, == reflexive, transitive and "
+              "antisymmetric: every law decided, none registered");
 static_assert(!IsReflexive<Ternary, std::less<Ternary>> &&
                   !IsReflexive<Ternary, std::greater<Ternary>> &&
                   !IsReflexive<Ternary, std::not_equal_to<Ternary>>,
