@@ -35,6 +35,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>  // std::size_t
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
@@ -221,6 +222,19 @@ export template <typename Rel, typename T>
   }
 constexpr bool reflexive_at(const Rel& rel, const T& a) {
   return static_cast<bool>(rel(a, a));
+}
+/** @brief Reflexivity on a finite carrier, decided: @c rel(a, @c a) at every
+ *  one of @c values.  The law @c IsReflexive certifies, as a @c constexpr, so
+ *  a finite carrier's certificate is computed rather than declared.
+ *  @param rel the relation.  @param values every value of the carrier. */
+export template <typename Rel, typename T, std::size_t N>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+  }
+constexpr bool reflexive_on(const Rel& rel, const T (&values)[N]) {
+  for (const T& a : values)
+    if (!reflexive_at(rel, a)) return false;
+  return true;
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {

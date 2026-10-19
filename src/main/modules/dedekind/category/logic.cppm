@@ -1182,6 +1182,11 @@ static_assert(identity_v<Ternary, Sup> == Ternary::False,
 static_assert(identity_v<Ternary, Inf> == Ternary::True,
               "K₃: registered ∧-identity is ⊤ = True");
 
+/** @brief K₃'s carrier, every value: the finite set its order laws are
+ *  decided on. */
+inline constexpr Ternary ternary_values[] = {Ternary::False, Ternary::Unknown,
+                                             Ternary::True};
+
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
  *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
  *  @c std::integral) it is outside the @c :species integral / bool blanket, so
@@ -1189,8 +1194,11 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
  *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
  *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
  *  review), so this explicit registration is what makes @c Ternary posetal. */
+// Reflexivity is decided, not declared: the law (reflexive_on) at each of the
+// three values.
 template <>
-inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> = true;
+inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> =
+    reflexive_on(std::less_equal<>{}, ternary_values);
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
 template <>
@@ -1209,14 +1217,16 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  All four laws are hand-registered below for THIS
+ *  not reach them.  Reflexivity is decided over the three values
+ *  (@c reflexive_on); the other three laws are hand-registered for THIS
  *  carrier: the @c :mereology blankets certify the integral types only, never
  *  an arbitrary enum (#946 review), and never by @c std::totally_ordered
  *  (#1043).  It
  *  is also the order the @c :mereology @c SupInfLattice gate certifies against
  * (a genuine total order cannot contain NaN). */
 template <>
-inline constexpr bool is_reflexive_v<Ternary, std::less_equal<Ternary>> = true;
+inline constexpr bool is_reflexive_v<Ternary, std::less_equal<Ternary>> =
+    reflexive_on(std::less_equal<Ternary>{}, ternary_values);
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>
@@ -1229,7 +1239,23 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
               "K₃ is a total order under the typed std::less_equal<Ternary> "
-              "(the order laws hand-registered for Ternary)");
+              "(reflexivity decided, the other order laws hand-registered)");
+
+// A compile-time value checked both ways: the concept on its type (through
+// the decided certificate above), the law on the value itself.  And the law
+// refuses what is false: < is not reflexive on K₃.
+namespace detail_logic {
+constexpr std::less_equal<Ternary> le{};
+constexpr std::less<Ternary> lt{};
+}  // namespace detail_logic
+static_assert(
+    IsReflexive<Ternary, std::remove_cvref_t<decltype(detail_logic::le)>> &&
+        reflexive_on(detail_logic::le, ternary_values),
+    "≤ on K₃: the concept holds on its type, the law on the value");
+static_assert(!reflexive_on(detail_logic::lt, ternary_values) &&
+                  !IsReflexive<Ternary, std::less<Ternary>>,
+              "< on K₃ is not reflexive: the law refutes it, the concept "
+              "does not hold");
 
 /** @brief @c Percentage's total order under @c <=: the 101-chain
  *  @c 0 @c < @c 1 @c < @c … @c < @c 100, with a defaulted @c <=> on one
