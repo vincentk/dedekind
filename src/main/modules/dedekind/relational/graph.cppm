@@ -218,9 +218,11 @@ concept IsEntire = dedekind::category::is_left_total_v<std::remove_cvref_t<R>>;
 // of A×B of the parallel pair (f∘π_A, π_B) --- @c category::IsEqualizer, not an
 // @c IsIsomorphism arrow (see the @c graph__The_Graph_Is_An_Equalizer header
 // note and the witness in @c algebra:halfspace_transport, #876).
+//
+// One definition: category's IsBinaryFunction (relation ∧ right-unique ∧
+// left-total), read here by its relational name, not restated.
 export template <typename R, typename A, typename B, typename Ω = bool>
-concept IsFunction = dedekind::category::IsBinaryRelation<R, A, B, Ω> &&
-                     IsFunctional<R> && IsEntire<R>;
+concept IsFunction = dedekind::category::IsBinaryFunction<R, A, B, Ω>;
 
 /** @brief The arrow a function's graph atom names, the converse of @c graph:
  *  a relation @c A×B @c | @c (π_2 @c == @c t) certified a function is the
@@ -777,19 +779,6 @@ static_assert(dedekind::category::IsBinaryRelation<Divides, int, int>,
               "Divides is a binary relation on int × int.");
 static_assert(!IsFunction<Divides, int, int>,
               "Divides is a relation but NOT a function (not single-valued).");
-
-// Pullback / drift-detector: IsFunction (functional ∧ entire) is exactly
-// category::IsBinaryFunction.  Spelled independently here, so a future change
-// to either definition that broke the equivalence would fail this witness.
-static_assert(
-    IsFunction<dedekind::category::arrow_as_relation<
-                   dedekind::category::Identity<int>>,
-               int, int> ==
-        dedekind::category::IsBinaryFunction<
-            dedekind::category::arrow_as_relation<
-                dedekind::category::Identity<int>>,
-            int, int>,
-    "IsFunction (functional ∧ entire) must coincide with IsBinaryFunction.");
 
 // graph(f) participates as a relation (IsGraph = IsRelation) on its pair type.
 static_assert(IsGraph<decltype(Γ_id), int, int>,
