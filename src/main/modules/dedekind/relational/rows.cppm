@@ -241,6 +241,24 @@ struct RelExpr {
   }
 };
 
+// ── The set-object legs, where the protocol looks for them ──────────────────
+// IsSetObject calls universe(s) and classifier(s) unqualified, from a
+// partition that sees only the type's own namespace (argument-dependent
+// lookup), so a set object outside dedekind::sets provides both beside it.
+
+/** @brief The universe leg: every pair of rows, under the relation's logic. */
+export template <typename K, typename... Cs>
+constexpr auto universe(const RelExpr<K, Cs...>&) {
+  using R = RelExpr<K, Cs...>;
+  return dedekind::sets::𝔸<typename R::Domain, typename R::logic_species>{};
+}
+/** @brief The classifier leg: the relation is its own membership map (χ at a
+ *  point); its predicate reading on columns is @c predicate_of. */
+export template <typename K, typename... Cs>
+constexpr const RelExpr<K, Cs...>& classifier(const RelExpr<K, Cs...>& r) {
+  return r;
+}
+
 // ── The set grammar on relations ────────────────────────────────────────────
 
 /** @brief @c R @c & @c p: the former, the meet with the subobject @c p
