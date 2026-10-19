@@ -35,7 +35,6 @@ module;
 export module dedekind.sets:heterogeneous;
 
 import dedekind.category;
-import :setobject;      // IsSetObject, universe_t
 import :cardinality;    // Cardinality / SignedCardinality: the ℕ / ℤ widening
 import :boundaries;     // 𝔸, Ø, Subobjects, finalize_combine
 import :computability;  // HasDecidableMembership (witnesses)

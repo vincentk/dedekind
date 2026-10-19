@@ -439,7 +439,7 @@ constexpr P operator!(P a) noexcept {
 
 // NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
 // / identity_v static_asserts) are placed at the END of this partition, below
-// the #912/#933 Ternary :total registrations (identity_trait<Ternary, Sup/Inf>)
+// the #912/#933 Ternary :total identities (identity_v<Ternary, Sup/Inf>)
 // and the Ternary operator<=> that SupInfLattice<Ternary> needs.  The Kleene
 // witnesses forward-reference those, so they must follow them.  The member
 // aliases (JoinOp / MeetOp / RflOp) stay inside each species struct (they
@@ -452,6 +452,19 @@ export constexpr Ternary operator||(Ternary a, Ternary b) {
   return Kleene::OR(a, b);
 }
 export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
+
+/** @brief K₃'s step: the cover False → Unknown → True, saturating at the
+ *  top (and its dual at the bottom), the NNO step of the chain (@c :nno). */
+export constexpr Ternary successor(Ternary a) noexcept {
+  return a == Ternary::True
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) + 1);
+}
+export constexpr Ternary predecessor(Ternary a) noexcept {
+  return a == Ternary::False
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) - 1);
+}
 
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
@@ -707,6 +720,22 @@ using classifier_logic_t =
 export template <typename T>
 concept IsClassifierAnswer =
     requires { typename ClassifierLogic<std::remove_cvref_t<T>>::type; };
+
+/** @brief A classifier answer's ends are its species' ⊥ and ⊤: the identities
+ *  of @c Sup (∨) and @c Inf (∧), derived once for every answer (𝔹, K₃,
+ *  @c Percentage, …), the one spelling of a truth chain's bottom and top. */
+template <IsClassifierAnswer C>
+  requires requires { classifier_logic_t<C>::False; }
+struct identity_trait<C, Sup> {
+  using value_type = C;
+  static constexpr C value = C{classifier_logic_t<C>::False};
+};
+template <IsClassifierAnswer C>
+  requires requires { classifier_logic_t<C>::True; }
+struct identity_trait<C, Inf> {
+  using value_type = C;
+  static constexpr C value = C{classifier_logic_t<C>::True};
+};
 
 // ---------------------------------------------------------------------------
 // The dominance order on logic species: a meet-semilattice with 𝔹 at the
@@ -1162,41 +1191,25 @@ static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
                   Inf{}(Ternary::True, Ternary::True) == Ternary::True,
               "K₃: ⊤ = True is the meet (∧ = Inf) identity");
 
-/** @brief ∨-identity (⊥) of the K₃ lattice: @c False.  Mirrors the
- *  @c identity_v<bool, std::logical_or<bool>> @c == @c false (⊥) registration
- *  in @c :species (the join / OR identity is the bottom, not the top). */
-template <>
-struct identity_trait<Ternary, Sup> {
-  using value_type = Ternary;
-  static constexpr Ternary value = Ternary::False;
-};
-/** @brief ∧-identity (⊤) of the K₃ lattice: @c True. */
-template <>
-struct identity_trait<Ternary, Inf> {
-  using value_type = Ternary;
-  static constexpr Ternary value = Ternary::True;
-};
-
+// K₃'s ∨ / ∧ identities are its species' ⊥ / ⊤, derived for every classifier
+// answer (identity_trait<C, Sup / Inf> above).
 static_assert(identity_v<Ternary, Sup> == Ternary::False,
-              "K₃: registered ∨-identity is ⊥ = False");
+              "K₃: the ∨-identity is ⊥ = False");
 static_assert(identity_v<Ternary, Inf> == Ternary::True,
-              "K₃: registered ∧-identity is ⊤ = True");
+              "K₃: the ∧-identity is ⊤ = True");
+static_assert(identity_v<bool, Sup> == false && identity_v<bool, Inf> == true,
+              "𝔹: the ∨ / ∧ identities are ⊥ / ⊤");
+static_assert(identity_v<Truth<Boole>, Sup>.value == false &&
+                  identity_v<Truth<Boole>, Inf>.value == true,
+              "a truth wrapper's ends are its species' ⊥ / ⊤ too");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
- *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
- *  @c std::integral) it is outside the @c :species integral / bool blanket, so
- *  its order legs are hand-registered here for the specific carrier whose order
- *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
- *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
- *  review), so this explicit registration is what makes @c Ternary posetal. */
-template <>
-inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<>> = true;
-template <>
-inline constexpr bool is_connex_v<Ternary, std::less_equal<>> = true;
+ *  @c False @c < @c Unknown @c < @c True; a scoped enum, so no blanket over
+ *  types covers it (an arbitrary enum's @c <=> may fail the laws; #946
+ *  review).  Nothing registered here: */
+// K₃ is a discrete bounded chain (its step above,
+// its bounds the identities of Sup / Inf), so each order law is decided by
+// its law for every relation on K₃ (:mereology, the laws on a chain).
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
                   is_transitive_v<Ternary, std::less_equal<>> &&
@@ -1209,27 +1222,35 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  All four laws are hand-registered below for THIS
- *  carrier: the @c :mereology blankets certify the integral types only, never
- *  an arbitrary enum (#946 review), and never by @c std::totally_ordered
- *  (#1043).  It
+ *  not reach them.  Each law is decided by its law, for every relation on
+ *  K₃ (@c :mereology), nothing registered for THIS carrier, and never by
+ *  @c std::totally_ordered (#1043).  It
  *  is also the order the @c :mereology @c SupInfLattice gate certifies against
  * (a genuine total order cannot contain NaN). */
-template <>
-inline constexpr bool is_reflexive_v<Ternary, std::less_equal<Ternary>> = true;
-template <>
-inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
-template <>
-inline constexpr bool is_antisymmetric_v<Ternary, std::less_equal<Ternary>> =
-    true;
-template <>
-inline constexpr bool is_connex_v<Ternary, std::less_equal<Ternary>> = true;
 
 static_assert(is_reflexive_v<Ternary, std::less_equal<Ternary>> &&
                   is_transitive_v<Ternary, std::less_equal<Ternary>> &&
                   is_antisymmetric_v<Ternary, std::less_equal<Ternary>>,
               "K₃ is a total order under the typed std::less_equal<Ternary> "
-              "(the order laws hand-registered for Ternary)");
+              "(every order law decided along the chain)");
+
+// One law, every relation on K₃: ≤ (both spellings), ≥ and == are reflexive,
+// <, > and != are not, with no registration per operator.
+static_assert(IsReflexive<Ternary, std::less_equal<Ternary>> &&
+                  IsReflexive<Ternary, std::less_equal<>> &&
+                  IsReflexive<Ternary, std::greater_equal<Ternary>> &&
+                  IsReflexive<Ternary, std::equal_to<Ternary>>,
+              "≤, ≥ and == on K₃ are reflexive: the law decides each");
+static_assert(IsTotalOrder<Ternary, std::greater_equal<Ternary>> &&
+                  IsReflexive<Ternary, std::equal_to<Ternary>> &&
+                  IsTransitive<Ternary, std::equal_to<Ternary>> &&
+                  IsAntisymmetric<Ternary, std::equal_to<Ternary>>,
+              "≥ on K₃ is a total order, == reflexive, transitive and "
+              "antisymmetric: every law decided, none registered");
+static_assert(!IsReflexive<Ternary, std::less<Ternary>> &&
+                  !IsReflexive<Ternary, std::greater<Ternary>> &&
+                  !IsReflexive<Ternary, std::not_equal_to<Ternary>>,
+              "<, > and != on K₃ are not reflexive: the law refutes each");
 
 /** @brief @c Percentage's total order under @c <=: the 101-chain
  *  @c 0 @c < @c 1 @c < @c … @c < @c 100, with a defaulted @c <=> on one

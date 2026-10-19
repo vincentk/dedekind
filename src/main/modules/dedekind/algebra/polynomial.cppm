@@ -652,10 +652,10 @@ struct ChainValues {
     if constexpr (dedekind::category::IsPst<C> && requires(const C& c) {
                     { lift(c) } -> std::convertible_to<K>;
                   }) {
-      for (C v = dedekind::sets::chain_bottom<C>();;
+      for (C v = identity_v<C, Sup>;;
            v = dedekind::category::Successor<C>{}(v)) {
         out.push_back(dedekind::sets::Term<K>::constant(lift(v)));
-        if (v == dedekind::sets::chain_top<C>()) break;
+        if (v == identity_v<C, Inf>) break;
       }
     }
     return out;

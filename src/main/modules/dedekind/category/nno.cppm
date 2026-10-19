@@ -136,7 +136,7 @@ module;
 
 export module dedekind.category:nno;
 
-import :logic;  // Ternary: the K₃ chain, whose step lives here
+import :logic;  // Ternary: the K₃ chain and its step
 import :morphism;
 
 namespace dedekind::category {
@@ -223,16 +223,7 @@ constexpr T successor(const T& n) {
  *  integral, so its successor already saturates (@c true + 1 narrows to
  *  @c true); its predecessor must not wrap. */
 export constexpr bool predecessor(bool) noexcept { return false; }
-export constexpr Ternary successor(Ternary a) noexcept {
-  return a == Ternary::True
-             ? a
-             : static_cast<Ternary>(static_cast<std::int8_t>(a) + 1);
-}
-export constexpr Ternary predecessor(Ternary a) noexcept {
-  return a == Ternary::False
-             ? a
-             : static_cast<Ternary>(static_cast<std::int8_t>(a) - 1);
-}
+// K₃'s step (successor / predecessor) lives with Ternary, in :logic.
 
 /** @brief A carrier with both NNO steps available: the shape a
  *  value-determined point collapse needs (@c succ(lo) @c == @c pred(hi)). */

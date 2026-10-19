@@ -1,7 +1,7 @@
 /** @file dedekind/sets/setobject_test.cpp
  *
  * The noun, exercised at runtime: a set object is (universe, χ).  The
- * @c static_assert witnesses in @c :setobject / @c :boundaries pin the shape;
+ * @c static_assert witnesses in @c :boundaries pin the shape;
  * this test drives the two legs and the lattice nodes as values so the fold is
  * covered where Codecov can see it.
  */
@@ -26,7 +26,7 @@ struct IsPositive {
 };
 }  // namespace
 
-TEST_CASE("sets:setobject — the two legs of a set object at runtime",
+TEST_CASE("sets:boundaries — the two legs of a set object at runtime",
           "[sets][setobject][legs]") {
   const auto even = Comprehension<𝔸<int, Boole>, IsEven>{IsEven{}};
   const auto positive = Comprehension<𝔸<int, Boole>, IsPositive>{IsPositive{}};

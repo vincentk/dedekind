@@ -60,8 +60,6 @@ import :ranges;
 
 namespace dedekind::sequences {
 using namespace dedekind::category;
-using dedekind::sets::chain_bottom;
-using dedekind::sets::chain_top;
 using dedekind::sets::HasDecidableMembership;
 using dedekind::sets::Ø;
 using dedekind::sets::𝔸;
@@ -121,7 +119,7 @@ export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr auto runs(const S& s) {
   using C = typename S::Domain;
-  return runs(s, chain_bottom<C>(), chain_top<C>());
+  return runs(s, identity_v<C, Sup>, identity_v<C, Inf>);
 }
 
 /** @section pst__Formal_Verification */

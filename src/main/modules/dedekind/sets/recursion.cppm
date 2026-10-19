@@ -56,7 +56,7 @@ export module dedekind.sets:recursion;
 
 import dedekind.category;
 import :cardinality;  // IsRingIntegral
-import :setobject;    // IsSetObject
+import :boundaries;   // IsSetObject
 import :terms;        // the term grammar: projections, term_value, the descent
 import :expressions;  // 𝔸, Comprehension
 import :singleton;    // π == v, for the witnesses

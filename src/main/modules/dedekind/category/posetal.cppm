@@ -610,14 +610,14 @@ struct ProductLeq {
 // The three posetal axioms lift componentwise onto the pair under @c ≤×.
 template <typename A, typename B, typename LeqA, typename LeqB>
 inline constexpr bool is_reflexive_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
-    is_reflexive_v<A, LeqA> && is_reflexive_v<B, LeqB>;
+    IsReflexive<A, LeqA> && IsReflexive<B, LeqB>;
 template <typename A, typename B, typename LeqA, typename LeqB>
 inline constexpr bool is_transitive_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
-    is_transitive_v<A, LeqA> && is_transitive_v<B, LeqB>;
+    IsTransitive<A, LeqA> && IsTransitive<B, LeqB>;
 template <typename A, typename B, typename LeqA, typename LeqB>
 inline constexpr bool
     is_antisymmetric_v<std::pair<A, B>, ProductLeq<LeqA, LeqB>> =
-        is_antisymmetric_v<A, LeqA> && is_antisymmetric_v<B, LeqB>;
+        IsAntisymmetric<A, LeqA> && IsAntisymmetric<B, LeqB>;
 
 // The ORDINAL SUM X ⊕ Y: @c std::variant's own comparisons compare the index
 // first, then within the summand, so all of @c X lies below all of @c Y.  The

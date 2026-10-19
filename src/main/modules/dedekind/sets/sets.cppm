@@ -36,7 +36,6 @@
  */
 export module dedekind.sets;
 
-export import :setobject;  // the noun: IsSetObject, upstream of everything
 export import :cardinality;
 export import :boundaries;
 export import :computability;

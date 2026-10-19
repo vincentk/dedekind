@@ -119,9 +119,9 @@ using SetFunction = Relation<T1, T2, L, P>;
  *
  * @note This @b concept, @c IsRelation<S,T1,T2>, is Definition Trsk (§4)
  * made structural: a relation is an @b Lwv @b set @b object (@c IsSetObject,
- * @c :setobject --- a subobject of a regular carrier with χ into a named Ω)
- * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, spelled
- * as @c std::pair, the encoding the calculus builds) and whose @b universe is
+ * @c :boundaries --- a subobject of a regular carrier with χ into a named Ω)
+ * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, read
+ * through the product's API, whatever spells it) and whose @b universe is
  * the product of the factor universes, @c 𝔸<T1×T2> @c ≅ @c 𝔸<T1> @c ×
  * @c 𝔸<T2> --- that last clause is what makes @c dom / @c cod below
  * projections (@c π_1 / @c π_2 of the universe leg) rather than
@@ -144,7 +144,6 @@ using SetFunction = Relation<T1, T2, L, P>;
 export template <typename S, typename T1, typename T2>
 concept IsRelation =
     dedekind::sets::IsSetObject<S> &&
-    std::same_as<typename S::Domain, std::pair<T1, T2>> &&
     dedekind::category::IsProduct<typename S::Domain, T1, T2> &&
     dedekind::category::IsProduct<
         dedekind::sets::universe_t<S>,
@@ -826,6 +825,19 @@ static_assert(
     !IsEquality<double, decltype(dedekind::relational::diag<double>())> &&
         !IsReflexive<double, decltype(dedekind::relational::diag<double>())>,
     "Δ over double is no equality: (NaN, NaN) is no member");
+// A compile-time value in our own language, checked both ways: ≥ on K₃ as a
+// set of pairs.  The concept holds on its type (the leaf reads ≥'s certificate,
+// which the law decides), and the law holds on the value itself, called
+// through the set's binary call.
+static_assert(
+    IsReflexive<
+        Ternary,
+        std::remove_cvref_t<decltype(dedekind::relational::relation_of<Ternary>(
+            std::greater_equal<Ternary>{}))>> &&
+        reflexive_on(dedekind::relational::relation_of<Ternary>(
+                         std::greater_equal<Ternary>{}),
+                     Ternary::False, Ternary::True),
+    "≥ on K₃ as a set of pairs: reflexive by the concept and by the law");
 static_assert(
     IsBinaryFunction<decltype(dedekind::relational::diag<bool, Kleene>()), bool,
                      bool, Ternary>,

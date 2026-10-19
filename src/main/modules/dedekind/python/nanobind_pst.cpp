@@ -72,6 +72,8 @@ using dedekind::category::classifier_logic_t;
 using dedekind::category::cover;
 using dedekind::category::HasNNOStep;
 using dedekind::category::Identity;
+using dedekind::category::identity_v;
+using dedekind::category::Inf;
 using dedekind::category::IsFiniteChain;
 using dedekind::category::IsOckhamAlgebra;
 using dedekind::category::IsPst;
@@ -79,6 +81,7 @@ using dedekind::category::join_logic_t;
 using dedekind::category::Kleene;
 using dedekind::category::Predecessor;
 using dedekind::category::Successor;
+using dedekind::category::Sup;
 using dedekind::category::Ternary;
 using dedekind::order::ext;
 using dedekind::order::Interval;
@@ -109,15 +112,15 @@ struct Chain;
 template <>
 struct Chain<bool> {
   static constexpr const char* name = "𝔹";
-  static constexpr bool bottom = dedekind::sets::chain_bottom<bool>();
-  static constexpr bool top = dedekind::sets::chain_top<bool>();
+  static constexpr bool bottom = identity_v<bool, Sup>;
+  static constexpr bool top = identity_v<bool, Inf>;
   static constexpr Cardinality cardinality = finite_cardinality(2);
 };
 template <>
 struct Chain<Ternary> {
   static constexpr const char* name = "K₃";
-  static constexpr Ternary bottom = dedekind::sets::chain_bottom<Ternary>();
-  static constexpr Ternary top = dedekind::sets::chain_top<Ternary>();
+  static constexpr Ternary bottom = identity_v<Ternary, Sup>;
+  static constexpr Ternary top = identity_v<Ternary, Inf>;
   static constexpr Cardinality cardinality = finite_cardinality(3);
 };
 
@@ -600,8 +603,7 @@ template <typename C, typename L>
 auto former_runtime(const pst::Set<C, L>& s, const RPred& p) {
   const auto c = 𝔸<C>{} & p;  // every operator and constant checked here
   return ext(s & Runs<C>(dedekind::sequences::ScanSteps<decltype(c)>{
-                     c, dedekind::sets::chain_bottom<C>(),
-                     dedekind::sets::chain_top<C>()}));
+                     c, identity_v<C, Sup>, identity_v<C, Inf>}));
 }
 
 /** @brief The elements of a set of a chain, run by run, from its least. */
@@ -648,11 +650,10 @@ template <typename C>
 RPred member_of(const RTerm& t) {
   if constexpr (IsPst<C>) {
     RPred any = RPred::bottom();
-    for (C c = dedekind::sets::chain_bottom<C>();;
-         c = dedekind::category::Successor<C>{}(c)) {
+    for (C c = identity_v<C, Sup>;; c = dedekind::category::Successor<C>{}(c)) {
       any = RPred::disj(
           any, RPred::cmp(Rel::Eq, t, RTerm::constant(TypedConstant{}(c))));
-      if (c == dedekind::sets::chain_top<C>()) return any;
+      if (c == identity_v<C, Inf>) return any;
     }
   } else if constexpr (std::unsigned_integral<C>)
     return RPred::cmp(Rel::Ge, t, RTerm::constant(TypedConstant{}(C{})));
@@ -782,13 +783,13 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h);
  *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
     dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
-using dedekind::relational::classifier;
 using dedekind::relational::converse;
+using dedekind::relational::predicate_of;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
 RPred canonical(const Relation& r) {
-  return canonical<Cells>(classifier(r), r.rep());
+  return canonical<Cells>(predicate_of(r), r.rep());
 }
 /** @brief The relation's predicate pinned and with its quantifiers eliminated
  *  where an atom defines the column or a finite chain expands it, the atoms
@@ -796,7 +797,7 @@ RPred canonical(const Relation& r) {
  *  rewrite the graph atom π_n == t into π_n − t == 0). */
 RPred certifiable(const Relation& r) {
   return dedekind::algebra::eliminate_quantifiers<Cells>(
-      pinned<Cells>(classifier(r), r.rep()), TypedConstant{}, r.rep());
+      pinned<Cells>(predicate_of(r), r.rep()), TypedConstant{}, r.rep());
 }
 RPred column_member(std::size_t sort, const RTerm& t) {
   switch (sort) {
@@ -1375,14 +1376,14 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__eq__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_canonical<Cells>(classifier(a), classifier(b),
+            return equal_by_canonical<Cells>(predicate_of(a), predicate_of(b),
                                              a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
           "differ, which decides nothing, or where the products differ.")
       .def_prop_ro(
-          "classifier", [](const Relation& r) { return classifier(r); },
+          "classifier", [](const Relation& r) { return predicate_of(r); },
           "The classifier χ of the relation on its columns π_1 … π_n, as a "
           "predicate: a reading "
           "of the term (a composite's ∃ over the middle, a projection's ∃ "
@@ -1419,7 +1420,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
             return equal_by_canonical<Cells>(
-                RPred::conj(classifier(a), classifier(b)), classifier(a),
+                RPred::conj(predicate_of(a), predicate_of(b)), predicate_of(a),
                 a.rep());
           },
           nb::is_operator(),
@@ -1433,7 +1434,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
             return equal_by_canonical<Cells>(
-                RPred::conj(classifier(a), classifier(b)), classifier(b),
+                RPred::conj(predicate_of(a), predicate_of(b)), predicate_of(b),
                 a.rep());
           },
           nb::is_operator(), "R >= S: S <= R.")
@@ -1954,8 +1955,8 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
          "_ap",
          [](const S& s, nb::handle x) -> nb::object {
            if (!is_term(x)) return nb::cast(s(from_py_as<C>(x)));
-           const C lo = dedekind::sets::chain_bottom<C>();
-           const C hi = dedekind::sets::chain_top<C>();
+           const C lo = identity_v<C, Sup>;
+           const C hi = identity_v<C, Inf>;
            const RTerm t = term_of(x);
            if constexpr (std::same_as<L, Boole>) {
              return nb::cast(

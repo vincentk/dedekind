@@ -35,6 +35,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>  // std::size_t: the walk budget
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
@@ -246,6 +247,65 @@ constexpr bool connex_at(const Rel& rel, const T& a, const T& b) {
   return rel(a, b) || rel(b, a);
 }
 
+/** @section mereology__The_Laws_On_A_Chain
+ *  Each law over a whole discrete chain, decided: the law at a point, at every
+ *  point (pair, triple) from @c lo to @c hi, the chain walked by the carrier's
+ *  own @c successor (found by argument-dependent lookup).  @c constexpr, so the
+ *  compiler decides a certificate with them and the program a run-time
+ *  relation with the same functions.  Precondition: @c hi is reached from
+ *  @c lo by the step (the rules below check it before calling). */
+template <typename T>
+constexpr bool chain_end(const T& a, const T& hi) {
+  return a == hi || successor(a) == a;
+}
+/** @brief A law of @c Arity points, at every tuple of points from @c lo to
+ *  @c hi: the one walk every law below reads. */
+template <std::size_t Arity, typename Law, typename Rel, typename T,
+          typename... Fixed>
+constexpr bool holds_on(Law law, const Rel& rel, const T& lo, const T& hi,
+                        const Fixed&... fixed) {
+  if constexpr (sizeof...(Fixed) == Arity) {
+    return law(rel, fixed...);
+  } else {
+    for (T a = lo;; a = successor(a)) {
+      if (!holds_on<Arity>(law, rel, lo, hi, fixed..., a)) return false;
+      if (chain_end(a, hi)) return true;
+    }
+  }
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
+  }
+constexpr bool reflexive_on(const Rel& rel, const T& lo, const T& hi) {
+  return holds_on<1>(reflexive_at<Rel, T>, rel, lo, hi);
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
+  }
+constexpr bool antisymmetric_on(const Rel& rel, const T& lo, const T& hi) {
+  return holds_on<2>(antisymmetric_at<Rel, T>, rel, lo, hi);
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
+  }
+constexpr bool connex_on(const Rel& rel, const T& lo, const T& hi) {
+  return holds_on<2>(connex_at<Rel, T>, rel, lo, hi);
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
+  }
+constexpr bool transitive_on(const Rel& rel, const T& lo, const T& hi) {
+  return holds_on<3>(transitive_at<Rel, T>, rel, lo, hi);
+}
+
 /**
  * @brief Proof: @c <= on the integral types is a total order (reflexive,
  * transitive, antisymmetric, connex), under the transparent spelling as under
@@ -318,14 +378,13 @@ concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
  */
 export template <typename T>
 concept SupInfLattice =
-    SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
-                          is_transitive_v<T, std::less_equal<T>> &&
-                          is_antisymmetric_v<T, std::less_equal<T>> &&
-                          is_connex_v<T, std::less_equal<T>>) ||
-                         (is_reflexive_v<T, std::less_equal<>> &&
-                          is_transitive_v<T, std::less_equal<>> &&
-                          is_antisymmetric_v<T, std::less_equal<>> &&
-                          is_connex_v<T, std::less_equal<>>));
+    SupInfOperand<T> &&
+    ((IsReflexive<T, std::less_equal<T>> &&
+      IsTransitive<T, std::less_equal<T>> &&
+      IsAntisymmetric<T, std::less_equal<T>> &&
+      IsConnex<T, std::less_equal<T>>) ||
+     (IsReflexive<T, std::less_equal<>> && IsTransitive<T, std::less_equal<>> &&
+      IsAntisymmetric<T, std::less_equal<>> && IsConnex<T, std::less_equal<>>));
 
 // #934: the ref-returning @c std::ranges::max / @c std::ranges::min niebloid
 // lattice-law blanket was retired here.  Its semilattice / distributive laws
@@ -382,6 +441,202 @@ export struct Inf {
     return a < b ? a : b;
   }
 };
+
+/** @brief The walk budget of a discrete bounded chain: a chain is decided
+ *  only when its top is reached from its bottom within this many steps (a
+ *  machine word is a discrete bounded chain too, but 2⁶⁴ steps is no
+ *  compile-time decision). */
+inline constexpr std::size_t chain_walk_budget = 1024;
+/** @brief The evaluation budget of a law: a law of @c k variables on a chain
+ *  of @c n values costs @c nᵏ evaluations, and is decided only within this
+ *  (reflexivity on a long chain, transitivity only on a short one). */
+inline constexpr std::size_t law_evaluation_budget = std::size_t{1} << 16;
+
+/** @brief The number of values from @c lo to @c hi by the carrier's
+ *  @c successor; 0 when @c hi is not reached within @c chain_walk_budget (the
+ *  top, a fixpoint of the step, short of @c hi). */
+template <typename T>
+constexpr std::size_t chain_length(T lo, const T& hi) {
+  for (std::size_t n = 1; n <= chain_walk_budget; ++n) {
+    if (lo == hi) return n;
+    const T next = successor(lo);
+    if (next == lo) return 0;
+    lo = next;
+  }
+  return 0;
+}
+/** @brief Whether a law of @c arity variables on a chain of @c n values fits
+ *  @c law_evaluation_budget. */
+constexpr bool fits_budget(std::size_t n, std::size_t arity) {
+  if (n == 0) return false;
+  std::size_t cost = 1;
+  for (std::size_t k = 0; k < arity; ++k) {
+    cost *= n;
+    if (cost > law_evaluation_budget) return false;
+  }
+  return true;
+}
+
+/** @concept IsWalkableChain
+ *  @brief @c Rel is a stateless relation on a discrete bounded chain @c T on
+ *  which a law of @c Arity variables can be decided: a step (@c successor, by
+ *  argument-dependent lookup, as for @c HasNNOStep), a least and a greatest
+ *  value (the identities of @c Sup and @c Inf), the top reached from the
+ *  bottom within @c chain_walk_budget, and @c nᴬʳⁱᵗʸ within
+ *  @c law_evaluation_budget, all as constant expressions (what cannot be
+ *  evaluated at compile time is simply not decided here, rather than an
+ *  error).
+ *  @note The step must be the chain's @b cover, so the walk visits every
+ *  value: that is what makes the chain discrete, the carrier's obligation,
+ *  not checked here.  @b Order: a carrier's step and bounds must be declared
+ *  before anything asks about one of its relations (as for every trait
+ *  registration: an answer, once instantiated, is fixed). */
+export template <typename T, typename Rel, std::size_t Arity>
+concept IsWalkableChain =
+    std::default_initializable<Rel> && std::is_empty_v<Rel> &&
+    requires {
+      identity_v<T, Sup>;
+      identity_v<T, Inf>;
+    } &&
+    requires(const Rel& r, const T& x) {
+      { r(x, x) } -> std::convertible_to<bool>;
+      { successor(x) } -> std::convertible_to<T>;
+      { x == x } -> std::convertible_to<bool>;
+    } &&
+    requires {
+      typename std::integral_constant<
+          std::size_t, chain_length(identity_v<T, Sup>, identity_v<T, Inf>)>;
+    } &&
+    fits_budget(chain_length(identity_v<T, Sup>, identity_v<T, Inf>), Arity);
+
+/** @brief Each law, stated once for every relation on a walkable chain: the
+ *  certificate the concept reads @b is the law over the whole chain, for
+ *  @c ≤, @c ≥, @c ==, or any stateless relation, decided and never registered
+ *  per operator.  A carrier that answers through its own member keeps that
+ *  answer; a law the compiler cannot evaluate is not decided here.  Exported
+ *  conditions, so a rule elsewhere can yield to these. */
+export template <typename T, typename Rel>
+concept IsChainDecidedReflexive = IsWalkableChain<T, Rel, 1> && !requires {
+  T::template is_reflexive_v<Rel>;
+} && requires {
+  typename std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
+                                           identity_v<T, Inf>)>;
+};
+export template <typename T, typename Rel>
+concept IsChainDecidedAntisymmetric = IsWalkableChain<T, Rel, 2> && !requires {
+  T::template is_antisymmetric_v<Rel>;
+} && requires {
+  typename std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
+                                               identity_v<T, Inf>)>;
+};
+export template <typename T, typename Rel>
+concept IsChainDecidedConnex = IsWalkableChain<T, Rel, 2> && !requires {
+  T::template is_connex_v<Rel>;
+} && requires {
+  typename std::bool_constant<connex_on(Rel{}, identity_v<T, Sup>,
+                                        identity_v<T, Inf>)>;
+};
+export template <typename T, typename Rel>
+concept IsChainDecidedTransitive = IsWalkableChain<T, Rel, 3> && !requires {
+  T::template is_transitive_v<Rel>;
+} && requires {
+  typename std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
+                                            identity_v<T, Inf>)>;
+};
+
+template <typename T, typename Rel>
+  requires IsChainDecidedReflexive<T, Rel>
+struct is_reflexive<T, Rel>
+    : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
+                                      identity_v<T, Inf>)> {};
+template <typename T, typename Rel>
+  requires IsChainDecidedAntisymmetric<T, Rel>
+struct is_antisymmetric<T, Rel>
+    : std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
+                                          identity_v<T, Inf>)> {};
+template <typename T, typename Rel>
+  requires IsChainDecidedConnex<T, Rel>
+struct is_connex<T, Rel> : std::bool_constant<connex_on(
+                               Rel{}, identity_v<T, Sup>, identity_v<T, Inf>)> {
+};
+template <typename T, typename Rel>
+  requires IsChainDecidedTransitive<T, Rel>
+struct is_transitive<T, Rel>
+    : std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
+                                       identity_v<T, Inf>)> {};
+
+namespace detail_mereology {
+/** @brief A discrete bounded chain of @c N values that is no enum: a class
+ *  with a cover step and two bounds, nothing registered about its relations.
+ */
+template <int N>
+struct Dial {
+  int v;
+  friend constexpr auto operator<=>(const Dial&, const Dial&) = default;
+  friend constexpr Dial successor(Dial d) {
+    return {d.v < N - 1 ? d.v + 1 : d.v};
+  }
+};
+}  // namespace detail_mereology
+template <int N>
+struct identity_trait<detail_mereology::Dial<N>, Sup> {
+  static constexpr detail_mereology::Dial<N> value{0};
+};
+template <int N>
+struct identity_trait<detail_mereology::Dial<N>, Inf> {
+  static constexpr detail_mereology::Dial<N> value{N - 1};
+};
+namespace detail_mereology {
+using D4 = Dial<4>;
+using D100 = Dial<100>;
+}  // namespace detail_mereology
+namespace detail_mereology {
+template <typename Rel>
+inline constexpr bool chain_order =
+    IsReflexive<D4, Rel> && IsTransitive<D4, Rel> && IsAntisymmetric<D4, Rel> &&
+    IsConnex<D4, Rel>;
+}  // namespace detail_mereology
+static_assert(
+    detail_mereology::chain_order<std::less_equal<detail_mereology::D4>> &&
+        detail_mereology::chain_order<std::greater_equal<detail_mereology::D4>>,
+    "a 4-value chain that is no enum: ≤ and ≥ are reflexive, "
+    "transitive, antisymmetric and connex, every law decided, nothing "
+    "registered");
+static_assert(
+    IsTransitive<detail_mereology::D4, std::less<detail_mereology::D4>> &&
+        IsAntisymmetric<detail_mereology::D4,
+                        std::less<detail_mereology::D4>> &&
+        !IsReflexive<detail_mereology::D4, std::less<detail_mereology::D4>> &&
+        !IsConnex<detail_mereology::D4, std::less<detail_mereology::D4>>,
+    "< on it: transitive and antisymmetric, neither reflexive nor connex, "
+    "each decided by its law");
+static_assert(
+    IsAntisymmetric<detail_mereology::D100,
+                    std::less_equal<detail_mereology::D100>> &&
+        IsConnex<detail_mereology::D100,
+                 std::less_equal<detail_mereology::D100>> &&
+        !IsTransitive<detail_mereology::D100,
+                      std::less_equal<detail_mereology::D100>>,
+    "a 100-value chain: the laws of two variables are decided (10⁴ "
+    "evaluations), transitivity is not (10⁶, past the budget: uncertified, "
+    "not refuted)");
+static_assert(
+    !IsReflexive<detail_mereology::Dial<5000>,
+                 std::less_equal<detail_mereology::Dial<5000>>>,
+    "a chain longer than the walk budget gets no certificate from the law "
+    "(uncertified, not refuted)");
+namespace detail_mereology {
+/** @brief A relation the compiler cannot evaluate: its call is not constexpr.
+ */
+struct RuntimeLe {
+  bool operator()(const Dial<4>& a, const Dial<4>& b) const { return a <= b; }
+};
+}  // namespace detail_mereology
+static_assert(
+    !IsReflexive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe> &&
+        !IsTransitive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe>,
+    "a relation that is no constant expression is not decided by "
+    "the law: uncertified, and no compile error");
 
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered
