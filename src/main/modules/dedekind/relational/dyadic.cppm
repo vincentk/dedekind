@@ -826,6 +826,19 @@ static_assert(
     !IsEquality<double, decltype(dedekind::relational::diag<double>())> &&
         !IsReflexive<double, decltype(dedekind::relational::diag<double>())>,
     "Δ over double is no equality: (NaN, NaN) is no member");
+// A compile-time value in our own language, checked both ways: ≥ on K₃ as a
+// set of pairs.  The concept holds on its type (the leaf reads ≥'s certificate,
+// which the law decides), and the law holds on the value itself, called
+// through the set's binary call.
+static_assert(
+    IsReflexive<
+        Ternary,
+        std::remove_cvref_t<decltype(dedekind::relational::relation_of<Ternary>(
+            std::greater_equal<Ternary>{}))>> &&
+        reflexive_on(dedekind::relational::relation_of<Ternary>(
+                         std::greater_equal<Ternary>{}),
+                     Ternary::False, Ternary::True),
+    "≥ on K₃ as a set of pairs: reflexive by the concept and by the law");
 static_assert(
     IsBinaryFunction<decltype(dedekind::relational::diag<bool, Kleene>()), bool,
                      bool, Ternary>,

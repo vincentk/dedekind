@@ -401,6 +401,29 @@ export struct Inf {
   }
 };
 
+/** @brief Reflexivity, stated once for every relation on a finite enumerated
+ *  chain: an enum with a step (@c successor, found by argument-dependent
+ *  lookup) and a least and a greatest value (the identities of @c Sup and
+ *  @c Inf).  For such a carrier the certificate @c IsReflexive reads @b is the
+ *  law, @c reflexive_on along the whole chain, for @c ≤, @c ≥, @c ==, or any
+ *  stateless relation on it: decided, never registered per operator.  Enums
+ *  only, so the walk is short by construction (a machine word is a chain too,
+ *  but 2⁶⁴ steps is no compile-time decision). */
+template <typename T, typename Rel>
+  requires(
+      std::is_enum_v<T> && std::default_initializable<Rel> &&
+      requires {
+        identity_v<T, Sup>;
+        identity_v<T, Inf>;
+      } &&
+      requires(const Rel& r, const T& x) {
+        { r(x, x) } -> std::convertible_to<bool>;
+        { successor(x) } -> std::convertible_to<T>;
+      })
+struct is_reflexive<T, Rel>
+    : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
+                                      identity_v<T, Inf>)> {};
+
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered
 // here since the concepts are trait-gated (IsIdempotent / IsCommutative / ...
