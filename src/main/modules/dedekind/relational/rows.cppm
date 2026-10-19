@@ -766,45 +766,52 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
   return l;
 }
 /** @brief The laws of @c r read at the split @c nd (its first @c nd columns
- *  the domain): the split belongs to the node being read, so a lattice node's
- *  legs share its columns, a converse's leg has them transposed, and only the
- *  legs of @c ⊗ @c ; @c + carry their own (@c arrow re-splits a root, not its
- *  legs). */
+ *  the domain): a leaf by its shape, a node by the engine (@c Laws::node,
+ *  @c :dyadic) on its legs' laws.  The split belongs to the node being read,
+ *  so a lattice node's legs share its columns, a converse's leg has them
+ *  transposed, and only the legs of @c ⊗ @c ; @c + carry their own (@c arrow
+ *  re-splits a root, not its legs). */
 template <typename K, typename... Cs>
 Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   using R = RelExpr<K, Cs...>;
   const auto own = [](const R& x) {
     return static_cast<unsigned>(columns(x.dom).size());
   };
+  const auto legs = [&](Node n) {
+    return Laws::node(n, laws_at(*r.a, own(*r.a)), laws_at(*r.b, own(*r.b)));
+  };
   switch (r.kind) {
     case R::Kind::Universe:
-      return Laws::universe();
+      // The full relation on inhabited carriers: total and surjective.
+      return Laws::from(true, false, false, true);
     case R::Kind::Comprehension: {
       const Laws here = predicate_laws(r.predicate, nd, r.columns(), r.rep());
       // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
       return r.a->kind == R::Kind::Universe
                  ? here
-                 : Laws::meet(laws_at(*r.a, nd), here);
+                 : Laws::node(Node::Meet, laws_at(*r.a, nd), here);
     }
     case R::Kind::Meet:
-      return Laws::meet(laws_at(*r.a, nd), laws_at(*r.b, nd));
+      return Laws::node(Node::Meet, laws_at(*r.a, nd), laws_at(*r.b, nd));
     case R::Kind::Join:
-      return Laws::join(laws_at(*r.a, nd), laws_at(*r.b, nd));
+      return Laws::node(Node::Join, laws_at(*r.a, nd), laws_at(*r.b, nd));
     case R::Kind::Not:
-      return Laws{};
+      return Laws::node(Node::Not, laws_at(*r.a, nd));
     case R::Kind::Converse:
-      return Laws::swapped(laws_at(*r.a, r.arity() - nd));
+      return Laws::node(Node::Converse, laws_at(*r.a, r.arity() - nd));
     case R::Kind::Tensor:
+      return legs(Node::Tensor);
     case R::Kind::Compose:
+      return legs(Node::Compose);
     case R::Kind::Sum:
-      return Laws::both(laws_at(*r.a, own(*r.a)), laws_at(*r.b, own(*r.b)));
+      return legs(Node::Sum);
   }
   return Laws{};
 }
 }  // namespace detail_rows
 
 /** @brief The laws of a relation, inferred: a fold over the term reading the
- *  rule table (@c Laws, @c :dyadic) at each node, the leaves certified by
+ *  engine (@c infer, @c :dyadic) at each node, the leaves certified by
  *  their shape (@c detail_rows::predicate_laws), at the relation's own split
  *  of its columns into domain and codomain.  @c True where a rule infers the
  *  law, @c Unknown where none does; the normal form may still decide the
@@ -817,8 +824,11 @@ Laws laws(const RelExpr<K, Cs...>& r) {
 /** @brief The relations certified the law @c W: a datum on the universe of
  *  relations, so @c 𝔸<Re>{} @c & @c Total<Re>{} is the set of total
  *  relations, membership its χ in K₃ (inferred, or not), and a map or an
- *  isomorphism a meet of such sets, nothing stored.  Its complement is never
- *  inhabited by inference (@c ¬True, else @c Unknown): Σ, not Π.
+ *  isomorphism a meet of such sets, nothing stored.  Its χ obeys the facts
+ *  the set is declared: closed under @c >>, so @c S(f) @c ∧ @c S(g) @c ≤
+ *  @c S(f @c >> @c g); a down-set or an up-set in ⊆; carried by @c ° to its
+ *  dagger law.  Its complement is never inhabited by inference (@c ¬True,
+ *  else @c Unknown): Σ, not Π.
  *  @tparam Re the relation type.  @tparam W the law. */
 export template <typename Re, Law W>
 struct LawSet {

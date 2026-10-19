@@ -239,13 +239,13 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   // total and surjective; copy a map and injective, merge its converse.
   CHECK(laws(diag<int, unsigned, bool>(W)) == all);
   CHECK(laws(succ) == Laws::from(true, true, false, false));
-  CHECK(laws(words) == Laws::universe());
+  CHECK(laws(words) == Laws::from(true, false, false, true));
   CHECK(laws(dedekind::relational::copy<int, unsigned, bool>(W)) ==
         Laws::from(true, true, true, false));
   CHECK(laws(merge<int, unsigned, bool>(W)) ==
         Laws::from(false, true, true, true));
-  // Nodes, by the rules: ; keeps what both have, ° swaps, & keeps univalence
-  // from either side, ~ nothing.
+  // Nodes, by the engine on the declared facts: closure under ;, the dagger's
+  // action under °, the down-sets under &, nothing under ~.
   CHECK(laws(succ >> succ) == Laws::from(true, true, false, false));
   CHECK(laws(converse(succ)) == Laws::from(false, false, true, true));
   CHECK(laws(converse(converse(succ))) == laws(succ));
@@ -270,4 +270,41 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   // The complement certifies nothing: refuted where inferred, else Unknown.
   CHECK((~total)(succ) == Ternary::False);
   CHECK((~total)(~succ) == Ternary::Unknown);
+}
+
+TEST_CASE("relational:rows: the laws of χ: closure, variance, the dagger",
+          "[relational][rows][laws]") {
+  // The facts a law-set is declared, as laws of its χ over the fixtures: for
+  // a set closed under >>, S(f) ∧ S(g) ≤ S(f >> g); a down-set holds f & g
+  // as soon as it holds a leg, an up-set f | g; S(f°) = S°(f).
+  using dedekind::category::Kleene;
+  using dedekind::relational::dagger;
+  using dedekind::relational::every_law;
+  using dedekind::relational::is_up_set;
+  using dedekind::relational::Law;
+  using dedekind::relational::laws;
+  const std::vector<Re> fixtures{
+      succ,
+      square,
+      words,
+      diag<int, unsigned, bool>(W),
+      ~succ,
+      converse(succ),
+      succ >> succ,
+      square & succ,
+      merge<int, unsigned, bool>(W) >>
+          dedekind::relational::copy<int, unsigned, bool>(W)};
+  const auto chi = [](Law w, const Re& r) { return laws(r)[w]; };
+  for (const Law w : every_law) {
+    for (const Re& f : fixtures) {
+      CHECK(chi(w, converse(f)) == chi(dagger(w), f));
+      for (const Re& g : fixtures) {
+        CHECK(Kleene::AND(chi(w, f), chi(w, g)) <= chi(w, f >> g));
+        if (is_up_set(w))
+          CHECK(Kleene::OR(chi(w, f), chi(w, g)) <= chi(w, f | g));
+        else
+          CHECK(Kleene::OR(chi(w, f), chi(w, g)) <= chi(w, f & g));
+      }
+    }
+  }
 }
