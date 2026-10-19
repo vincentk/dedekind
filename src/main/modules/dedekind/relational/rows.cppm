@@ -759,38 +759,54 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd, unsigned n) {
 }
 }  // namespace detail_rows
 
-/** @brief The laws of a relation, inferred: a fold over the term reading the
- *  rule table (@c Laws, @c :dyadic) at each node, the leaves certified by
- *  their shape (@c detail_rows::predicate_laws).  @c True where a rule
- *  infers the law, @c Unknown where none does; the normal form may still
- *  decide the inclusion (@c algebra, @c canonical).  @param r the relation. */
-export template <typename K, typename... Cs>
-Laws laws(const RelExpr<K, Cs...>& r) {
+namespace detail_rows {
+/** @brief The laws of @c r read at the split @c nd (its first @c nd columns
+ *  the domain): the split belongs to the node being read, so a lattice node's
+ *  legs share its columns, a converse's leg has them transposed, and only the
+ *  legs of @c ⊗ @c ; @c + carry their own (@c arrow re-splits a root, not its
+ *  legs). */
+template <typename K, typename... Cs>
+Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   using R = RelExpr<K, Cs...>;
+  const auto own = [](const R& x) {
+    return static_cast<unsigned>(columns(x.dom).size());
+  };
   switch (r.kind) {
     case R::Kind::Universe:
       return Laws::universe();
     case R::Kind::Comprehension: {
-      const unsigned nd = static_cast<unsigned>(columns(r.dom).size());
-      const Laws here = detail_rows::predicate_laws(r.predicate, nd, r.arity());
+      const Laws here = predicate_laws(r.predicate, nd, r.arity());
       // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
-      return r.a->kind == R::Kind::Universe ? here
-                                            : Laws::meet(laws(*r.a), here);
+      return r.a->kind == R::Kind::Universe
+                 ? here
+                 : Laws::meet(laws_at(*r.a, nd), here);
     }
     case R::Kind::Meet:
-      return Laws::meet(laws(*r.a), laws(*r.b));
+      return Laws::meet(laws_at(*r.a, nd), laws_at(*r.b, nd));
     case R::Kind::Join:
-      return Laws::join(laws(*r.a), laws(*r.b));
+      return Laws::join(laws_at(*r.a, nd), laws_at(*r.b, nd));
     case R::Kind::Not:
       return Laws{};
     case R::Kind::Converse:
-      return Laws::swapped(laws(*r.a));
+      return Laws::swapped(laws_at(*r.a, r.arity() - nd));
     case R::Kind::Tensor:
     case R::Kind::Compose:
     case R::Kind::Sum:
-      return Laws::both(laws(*r.a), laws(*r.b));
+      return Laws::both(laws_at(*r.a, own(*r.a)), laws_at(*r.b, own(*r.b)));
   }
   return Laws{};
+}
+}  // namespace detail_rows
+
+/** @brief The laws of a relation, inferred: a fold over the term reading the
+ *  rule table (@c Laws, @c :dyadic) at each node, the leaves certified by
+ *  their shape (@c detail_rows::predicate_laws), at the relation's own split
+ *  of its columns into domain and codomain.  @c True where a rule infers the
+ *  law, @c Unknown where none does; the normal form may still decide the
+ *  inclusion (@c algebra, @c canonical).  @param r the relation. */
+export template <typename K, typename... Cs>
+Laws laws(const RelExpr<K, Cs...>& r) {
+  return detail_rows::laws_at(r, static_cast<unsigned>(columns(r.dom).size()));
 }
 
 /** @brief The relations certified the law @c W: a datum on the universe of
