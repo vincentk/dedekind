@@ -186,9 +186,9 @@ static_assert(
     IsIsomorphism<std::remove_cvref_t<decltype(detail_involution::flip_neg)>> &&
         !IsInvolution<
             std::remove_cvref_t<decltype(detail_involution::flip_neg)>, int> &&
-        detail_involution::flip_neg(3) == 2,
-    "~ ∘ − is an isomorphism (two involutions compose to one) but no "
-    "involution: ~(−3) = 2, applied twice ~(−2) = 1 ≠ 3; no rule "
+        detail_involution::flip_neg(3) == 4,
+    "− ∘ ~ is an isomorphism (two involutions compose to one) but no "
+    "involution: −(~3) = 4, applied twice −(~4) = 5 ≠ 3; no rule "
     "certifies what is false");
 
 /**
