@@ -215,6 +215,16 @@ struct Comprehension
     return L::AND(dedekind::category::lift_logic<L>(base(x)),
                   dedekind::category::lift_logic<L>(predicate(x)));
   }
+  /** @brief χ on the components of a product carrier: a comprehension over
+   *  @c A @c × @c B is a binary relation, and @c r(a, @c b) @b is
+   *  @c r(⟨a, b⟩), the two presentations of one arrow by the product's
+   *  universal property, @f$\mathrm{Hom}(A\times B, \Omega) \cong
+   *  \mathrm{Multi}((A, B), \Omega)@f$ (#1047). */
+  template <typename D = typename Base::Domain>
+    requires IsPairing<D>
+  constexpr auto operator()(const leg_1_t<D>& a, const leg_2_t<D>& b) const {
+    return (*this)(D{a, b});
+  }
   /** @brief Heterogeneous χ: a value of a type @c U the datum @b declares it
    *  admits (@c Predicate::admits<U>) is asked unnarrowed, so
    *  @c Singleton<int>{1}(1.5) is @c False.  The universe is not asked

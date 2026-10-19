@@ -650,10 +650,11 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
  * the value-level @c relational::Relation<T1, T2, L, P> alias, which models
  * the relation as a Set of pairs.  The two readings are isomorphic.
  */
-export template <typename R, typename A, typename B>
-concept IsBinaryRelation = requires(R const& r, A const& a, B const& b) {
-  { r(a, b) } -> std::convertible_to<bool>;
-};
+export template <typename R, typename A, typename B, typename Ω = bool>
+concept IsBinaryRelation =
+    IsTruthObject<Ω> && requires(R const& r, A const& a, B const& b) {
+      { r(a, b) } -> std::convertible_to<Ω>;
+    };
 
 /**
  * @brief User-declared left-totality witness for a binary relation.
@@ -689,9 +690,10 @@ inline constexpr bool is_right_unique_v = false;
  *          posetal / equivalence axes (reflexive / symmetric /
  *          antisymmetric / transitive) in @c :mereology.
  */
-export template <typename R, typename A, typename B>
+export template <typename R, typename A, typename B, typename Ω = bool>
 concept IsBinaryFunction =
-    IsBinaryRelation<R, A, B> && is_left_total_v<R> && is_right_unique_v<R>;
+    IsBinaryRelation<R, A, B, Ω> && is_left_total_v<std::remove_cvref_t<R>> &&
+    is_right_unique_v<std::remove_cvref_t<R>>;
 
 /**
  * @brief Adapter: realise an @c IsArrow @c F @c : @c A @c → @c B as a

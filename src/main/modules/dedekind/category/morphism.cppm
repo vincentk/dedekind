@@ -1075,6 +1075,22 @@ static_assert(
     IsArrow<decltype(id<int>() >> id<int>())>,
     "Unity: id composed with itself must remain the Identity Morphism.");
 
+/** @brief Hook: an arrow that is its own inverse (@f$f \circ f =
+ * \mathrm{id}@f$). Declared here, with the @c inverse it licenses, ahead of @c
+ * IsIsomorphism, so that concept finds the inverse by ordinary lookup for an
+ * arrow in any namespace, not only through argument-dependent lookup.  @c
+ * :involution sets it for every certified involution. */
+export template <typename F>
+struct is_self_inverse : std::false_type {};
+export template <typename F>
+inline constexpr bool is_self_inverse_v = is_self_inverse<F>::value;
+/** @brief A self-inverse arrow is its own inverse. */
+export template <typename F>
+  requires is_self_inverse_v<std::remove_cvref_t<F>>
+[[nodiscard]] constexpr std::remove_cvref_t<F> inverse(const F& f) {
+  return f;
+}
+
 /**
  * @concept IsIsomorphism
  * @brief An Arrow f: A -> B with a guaranteed Inverse g: B -> A.
@@ -1118,6 +1134,22 @@ export template <typename A, typename B, typename Impl>
 [[nodiscard]] constexpr auto inverse(Morphism<A, B, Impl> f) noexcept {
   return f;  // Negate is its own inverse
 }
+
+/** @brief A composite of isomorphisms is one: @f$(g \circ f)^{-1} = f^{-1}
+ *  \circ g^{-1}@f$, the inverses run the other way round.  The rule, not a
+ *  declaration per composite; with the involution rule (@c :involution, an
+ *  involution is its own inverse) the composite of two involutions is an
+ *  isomorphism, though in general no involution. */
+export template <IsArrow F, IsArrow G>
+  requires(IsIsomorphism<F> && IsIsomorphism<G>)
+[[nodiscard]] constexpr auto inverse(const Compose<F, G>& c) {
+  using Gi = std::remove_cvref_t<decltype(inverse(c.g))>;
+  using Fi = std::remove_cvref_t<decltype(inverse(c.f))>;
+  return Compose<Gi, Fi>{inverse(c.g), inverse(c.f)};
+}
+
+static_assert(IsIsomorphism<Compose<Identity<int>, Identity<int>>>,
+              "id ∘ id is an isomorphism by (g∘f)⁻¹ = f⁻¹∘g⁻¹");
 
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate>,
@@ -1194,6 +1226,13 @@ concept IsMonicArrow =
 template <typename T>
 inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
 
+// A composite of monos is monic: g∘f(x) = g∘f(y) ⇒ f(x) = f(y) ⇒ x = y.  The
+// rule, not a declaration per composite (the converse, g∘f monic ⇒ f monic,
+// reads a part off the whole and is not a trait rule).
+template <IsArrow F, IsArrow G>
+  requires(IsMonicArrow<F> && IsMonicArrow<G>)
+inline constexpr bool is_monic_arrow_v<Compose<F, G>> = true;
+
 static_assert(IsMonicArrow<Identity<int>>,
               "Identity must be recognised as a monic arrow.");
 
@@ -1231,6 +1270,16 @@ concept IsEpicArrow = IsArrow<E> && (is_epic_arrow_v<E> || IsIsomorphism<E>);
 // id(t) == t, so every element is hit.
 template <typename T>
 inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
+
+// A composite of epis is epic: every z is g(y) for some y, itself f(x).
+template <IsArrow F, IsArrow G>
+  requires(IsEpicArrow<F> && IsEpicArrow<G>)
+inline constexpr bool is_epic_arrow_v<Compose<F, G>> = true;
+
+static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
+                  IsEpicArrow<Compose<Identity<int>, Identity<int>>>,
+              "id ∘ id is monic and epic by the composition rules (and an "
+              "isomorphism by the inverse rule above)");
 
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");

@@ -87,7 +87,7 @@ namespace dedekind::category {
 // @c :mereology / @c :logic.  The structural-shape requirement (Rel{}
 // is callable on @c T @c × @c T → @c bool) is carried by the
 // @c IsReflexive / @c IsSymmetric / @c IsTransitive concepts directly,
-// each of which already includes the @c Rel{}(a, b) callable check.
+// each of which already includes the @c rel(a, b) callable check.
 
 // ---------------------------------------------------------------------------
 // is_symmetric: the missing axiom trait, completing the reflexive /
@@ -122,14 +122,16 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  * @brief @b Formal verification: @c Rel(a, @c b) @c ⇔ @c Rel(b, @c a).
  *
  * Mirrors @c IsReflexive / @c IsTransitive in @c :mereology: structural
- * shape (@c Rel{} is callable on the symmetric pair) plus the
+ * shape (@c rel is callable on the symmetric pair, answering in @c Ω) plus the
  * engineer-supplied trait declaration.
  */
-export template <typename T, typename Rel>
-concept IsSymmetric = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-  { Rel{}(b, a) } -> std::convertible_to<bool>;
-} && requires { requires is_symmetric_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsSymmetric =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+      { rel(b, a) } -> std::convertible_to<Ω>;
+    } && requires { requires is_symmetric_v<T, std::remove_cvref_t<Rel>>; };
 
 // ---------------------------------------------------------------------------
 // Equality: one certificate, the equivalence laws derived.
@@ -182,10 +184,12 @@ struct is_equality<std::pair<A, B>, std::equal_to<>> : std::true_type {};
  * @concept IsEquality
  * @brief @c Rel on @c T is equality of values (the diagonal).
  */
-export template <typename T, typename Rel>
-concept IsEquality = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsEquality =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
 
 // The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ
 // (reflexive), Δ° = Δ (symmetric), Δ ; Δ = Δ (transitive).  Derived for every
@@ -204,6 +208,29 @@ template <typename T, typename Rel>
   requires(is_equality_v<T, Rel> &&
            !requires { T::template is_transitive_v<Rel>; })
 struct is_transitive<T, Rel> : std::true_type {};
+// ... and antisymmetric: Δ ∩ Δ° ≤ Δ.
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_antisymmetric_v<Rel>; })
+struct is_antisymmetric<T, Rel> : std::true_type {};
+
+/** @brief Symmetry at a point (@c mereology__The_Laws_At_A_Point). */
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+  }
+constexpr bool symmetric_at(const Rel& rel, const T& a, const T& b) {
+  return static_cast<bool>(rel(a, b)) == static_cast<bool>(rel(b, a));
+}
+/** @brief Equality at a point: the relation answers as @c == does. */
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { x == x } -> std::convertible_to<bool>;
+  }
+constexpr bool equality_at(const Rel& rel, const T& a, const T& b) {
+  return static_cast<bool>(rel(a, b)) == static_cast<bool>(a == b);
+}
 
 // ---------------------------------------------------------------------------
 // IsEquivalence: the textbook equivalence-relation concept.
@@ -255,9 +282,10 @@ struct SameInt {
 }  // namespace detail_equality
 template <>
 struct is_equality<int, detail_equality::SameInt> : std::true_type {};
-static_assert(IsEquivalence<int, detail_equality::SameInt>,
-              "a custom relation certified the diagonal is an equivalence "
-              "without further declaration");
+static_assert(IsEquivalence<int, detail_equality::SameInt> &&
+                  IsAntisymmetric<int, detail_equality::SameInt>,
+              "a custom relation certified the diagonal is an equivalence, "
+              "and antisymmetric, without further declaration");
 static_assert(!IsEquality<double, std::equal_to<double>> &&
                   !IsEquivalence<double, std::equal_to<double>>,
               "== on double is no equality and no equivalence: NaN == NaN is "

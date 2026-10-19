@@ -39,8 +39,8 @@ TEST_CASE(
   const Relation<int, int, Boole, decltype(graph_pred)> R{graph_pred};
 
   STATIC_CHECK(IsRelation<decltype(R), int, int>);
-  CHECK(relates(R, 3, 6) == true);
-  CHECK(relates(R, 3, 7) == false);
+  CHECK(R(3, 6) == true);
+  CHECK(R(3, 7) == false);
 
   // Definition Trsk at runtime: the relation's universe is 𝔸<int × int>, and
   // dom / cod are its two projections --- the factor universes, which accept
@@ -78,8 +78,8 @@ TEST_CASE("relation core: witnesses preserve ternary logic",
   // R is explicitly Kleene-parameterised, so @c relates returns
   // @c Ternary directly --- these comparisons stay Ternary-valued regardless
   // of the carrier-axis cut (#622).
-  CHECK(relates(R, 3, 6) == Ternary::Unknown);
-  CHECK(relates(R, 3, 7) == Ternary::True);
+  CHECK(R(3, 6) == Ternary::Unknown);
+  CHECK(R(3, 7) == Ternary::True);
 
   const SetFunction<int, int, Kleene, TriRel> F{TriRel{}};
   CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
@@ -94,9 +94,9 @@ TEST_CASE(
   const Relation<int, int, Boole, TriRel> R{TriRel{}};
   STATIC_CHECK(std::same_as<typename decltype(R)::logic_species, Kleene>);
   STATIC_CHECK(IsRelation<decltype(R), int, int>);
-  CHECK(relates(R, 3, 6) == Ternary::Unknown);
-  CHECK(relates(R, 3, 7) == Ternary::True);
-  CHECK(relates(R, 1, 1) == Ternary::False);
+  CHECK(R(3, 6) == Ternary::Unknown);
+  CHECK(R(3, 7) == Ternary::True);
+  CHECK(R(1, 1) == Ternary::False);
 
   const SetFunction<int, int, Boole, TriRel> F{TriRel{}};
   CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);

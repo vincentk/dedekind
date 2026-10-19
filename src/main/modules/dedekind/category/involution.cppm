@@ -148,6 +148,48 @@ static_assert(!IsInvolution<decltype([](int x) { return x + 1; }), int>,
 static_assert(std::logical_not<bool>{}(std::logical_not<bool>{}(true)) == true,
               "!!true = true: negation is an involution.");
 
+/** @brief The arrow wrapping a callable has the law iff the callable does:
+ *  @c endo<A>(f) is an involution when @c f is. */
+template <typename A, typename Impl>
+struct is_involutive<Morphism<A, A, Impl>, A>
+    : std::bool_constant<is_involutive_v<Impl, A>> {};
+
+/** @brief An involution is its own inverse: @f$f \circ f = \mathrm{id}@f$
+ *  makes @c f an @c IsIsomorphism, through the @c :morphism hook (found by
+ *  ordinary lookup, wherever @c f lives), with no @c inverse of its own.  The
+ *  hooks for a specific arrow (@c Identity, the negate @c Morphism) are more
+ *  specialised and keep precedence. */
+template <typename F>
+  requires(IsArrow<F> && IsInvolution<F>)
+struct is_self_inverse<F> : std::true_type {};
+
+namespace detail_involution {
+constexpr auto not_bool = endo<bool>(std::logical_not<bool>{});
+constexpr auto not_not = not_bool >> not_bool;  // an involution twice
+// two different involutions on int: ~ and − do not commute
+constexpr auto flip_neg = endo<int>(std::bit_not<int>{}) >>
+                          endo<int>(std::negate<int>{});
+}  // namespace detail_involution
+static_assert(
+    IsInvolution<std::remove_cvref_t<decltype(detail_involution::not_bool)>> &&
+        IsIsomorphism<
+            std::remove_cvref_t<decltype(detail_involution::not_bool)>>,
+    "endo<bool>(!) is an involution (the law forwarded from the "
+    "callable), hence an isomorphism (its own inverse)");
+static_assert(
+    IsIsomorphism<std::remove_cvref_t<decltype(detail_involution::not_not)>> &&
+        detail_involution::not_not(true) == true,
+    "! ∘ ! is an isomorphism by (g∘f)⁻¹ = f⁻¹∘g⁻¹, and the identity "
+    "at every point");
+static_assert(
+    IsIsomorphism<std::remove_cvref_t<decltype(detail_involution::flip_neg)>> &&
+        !IsInvolution<
+            std::remove_cvref_t<decltype(detail_involution::flip_neg)>, int> &&
+        detail_involution::flip_neg(3) == 4,
+    "− ∘ ~ is an isomorphism (two involutions compose to one) but no "
+    "involution: −(~3) = 4, applied twice −(~4) = 5 ≠ 3; no rule "
+    "certifies what is false");
+
 /**
  * @section involution__Dagger_Category
  * @brief The @f$\dagger@f$-category surface built on @c IsInvolution:

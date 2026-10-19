@@ -61,6 +61,7 @@
 module;
 
 #include <concepts>     // std::same_as
+#include <functional>   // std::less_equal: ≤ on 𝔹 as a set of pairs (witness)
 #include <type_traits>  // std::remove_cvref_t (the factor-universe types)
 #include <utility>      // std::pair
 
@@ -149,14 +150,6 @@ concept IsRelation =
         dedekind::sets::universe_t<S>,
         std::remove_cvref_t<𝔸<T1, typename S::logic_species>>,
         std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
-
-/** @brief Relation membership witness: (a,b) ∈ R, in the relation's @b own
- *  species (the comprehension's, which may sit above its base's tag). */
-export template <typename T1, typename T2, typename L, typename P, typename C>
-constexpr auto relates(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
-                       const T1& a, const T2& b) {
-  return r(std::pair<T1, T2>{a, b});
-}
 
 /**
  * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
@@ -277,8 +270,8 @@ export template <typename T1, typename T2, typename L, typename P>
 constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
                                    const T1& x, const T2& y1, const T2& y2) {
   using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
-  const auto m1 = relates(f, x, y1);
-  const auto m2 = relates(f, x, y2);
+  const auto m1 = f(x, y1);
+  const auto m2 = f(x, y2);
   const auto both_related = Lf::AND(m1, m2);
   const auto equal_outputs = dedekind::category::lift_logic<Lf>(y1 == y2);
   // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
@@ -469,6 +462,29 @@ struct DiagPred {
     return p.first == p.second;
   }
 };
+
+/** @brief A binary predicate on @c A read at the pair @c ⟨a, b⟩: the other
+ *  direction of the bridge a set over a product crosses (#1047), so
+ *  @c std::less_equal<bool> is a set of pairs.  Named, so it carries @c op
+ *  and the set inherits every law @c op has on @c A (the rules below). */
+export template <typename Op>
+struct PairwisePred {
+  using is_rel_predicate = void;
+  Op op;
+  template <typename Pair>
+  constexpr auto operator()(const Pair& p) const {
+    return op(p.first, p.second);
+  }
+};
+
+/** @brief @c relation_of<A>(op): the relation @f$\{(a, b) \mid op(a, b)\}
+ *  \subseteq A \times A@f$ of a binary predicate on @c A. */
+export template <typename A, typename L = dedekind::category::Boole,
+                 typename Op>
+constexpr auto relation_of(Op op) {
+  return Comprehension<𝔸<std::pair<A, A>, L>, PairwisePred<Op>>{
+      PairwisePred<Op>{op}};
+}
 
 /** @brief The DIAGONAL (identity relation) @f$\Delta = \{(a,a)\}@f$ on a
  *  carrier @c A --- @c {π_1==π_2} --- the reflexive-closure unit and the @c 1
@@ -672,4 +688,154 @@ static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>() >>
 static_assert(is_left_total_v<decltype(dedekind::relational::diag<bool>() >>
                                        dedekind::relational::diag<bool>())>,
               "Δ;Δ is ENTIRE: the NODE rule composes through >>.");
+
+// ── The laws of an endo-relation, derived through the operations (#1047) ─────
+// The <T, Rel> laws (:mereology, :equivalence) on a relation over A × A.  Two
+// leaves declare: Δ is equality (so reflexive, symmetric, transitive and
+// antisymmetric follow in :equivalence), and relation_of(op) has every law op
+// has on A.  Every node derives its laws from its legs by a rule that holds
+// for all relations; where a law is not preserved in general (transitivity
+// through ∪ or ;, connexity through ∩) no rule is stated, so a composite that
+// happens to have it is not certified: sound, not complete.
+namespace detail_laws {
+template <typename A, typename L, typename C, typename P>
+using Endo =
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>, P>;
+}  // namespace detail_laws
+using dedekind::relational::ComposePred;
+using dedekind::relational::DiagPred;
+using dedekind::relational::PairwisePred;
+using dedekind::relational::SwapPred;
+using dedekind::sets::RelAnd;
+using dedekind::sets::RelOr;
+using detail_laws::Endo;
+
+// LEAF Δ: equality, where the carrier's == is (DiagPred compares by ==, so
+// over double (NaN, NaN) is no member and Δ no equality: the carrier's
+// certificate, not a new one).
+template <typename A, typename L, typename C>
+struct is_equality<A, Endo<A, L, C, DiagPred<A>>>
+    : std::bool_constant<is_equality_v<A, std::equal_to<A>>> {};
+// LEAF relation_of(op): the laws of op on A, as op's.
+template <typename A, typename L, typename C, typename Op>
+struct is_equality<A, Endo<A, L, C, PairwisePred<Op>>>
+    : std::bool_constant<is_equality_v<A, Op>> {};
+template <typename A, typename L, typename C, typename Op>
+inline constexpr bool is_reflexive_v<A, Endo<A, L, C, PairwisePred<Op>>> =
+    is_reflexive_v<A, Op>;
+template <typename A, typename L, typename C, typename Op>
+inline constexpr bool is_symmetric_v<A, Endo<A, L, C, PairwisePred<Op>>> =
+    is_symmetric_v<A, Op>;
+template <typename A, typename L, typename C, typename Op>
+inline constexpr bool is_transitive_v<A, Endo<A, L, C, PairwisePred<Op>>> =
+    is_transitive_v<A, Op>;
+template <typename A, typename L, typename C, typename Op>
+inline constexpr bool is_antisymmetric_v<A, Endo<A, L, C, PairwisePred<Op>>> =
+    is_antisymmetric_v<A, Op>;
+template <typename A, typename L, typename C, typename Op>
+inline constexpr bool is_connex_v<A, Endo<A, L, C, PairwisePred<Op>>> =
+    is_connex_v<A, Op>;
+
+// NODE R ∩ S: reflexive, symmetric, transitive when both legs are
+// ((R∩S);(R∩S) ≤ R;R ∩ S;S); antisymmetric when either is.
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_reflexive_v<A, Endo<A, L, C, RelAnd<PR, PS>>> =
+    is_reflexive_v<A, Endo<A, L, C, PR>> &&
+    is_reflexive_v<A, Endo<A, L, C, PS>>;
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_symmetric_v<A, Endo<A, L, C, RelAnd<PR, PS>>> =
+    is_symmetric_v<A, Endo<A, L, C, PR>> &&
+    is_symmetric_v<A, Endo<A, L, C, PS>>;
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_transitive_v<A, Endo<A, L, C, RelAnd<PR, PS>>> =
+    is_transitive_v<A, Endo<A, L, C, PR>> &&
+    is_transitive_v<A, Endo<A, L, C, PS>>;
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_antisymmetric_v<A, Endo<A, L, C, RelAnd<PR, PS>>> =
+    is_antisymmetric_v<A, Endo<A, L, C, PR>> ||
+    is_antisymmetric_v<A, Endo<A, L, C, PS>>;
+
+// NODE R ∪ S: reflexive and connex when either leg is; symmetric when both.
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_reflexive_v<A, Endo<A, L, C, RelOr<PR, PS>>> =
+    is_reflexive_v<A, Endo<A, L, C, PR>> ||
+    is_reflexive_v<A, Endo<A, L, C, PS>>;
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_symmetric_v<A, Endo<A, L, C, RelOr<PR, PS>>> =
+    is_symmetric_v<A, Endo<A, L, C, PR>> &&
+    is_symmetric_v<A, Endo<A, L, C, PS>>;
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_connex_v<A, Endo<A, L, C, RelOr<PR, PS>>> =
+    is_connex_v<A, Endo<A, L, C, PR>> || is_connex_v<A, Endo<A, L, C, PS>>;
+
+// NODE R°: every law of an endo-relation survives the converse (each is
+// invariant under swapping the two columns).
+template <typename A, typename L, typename C, typename P>
+inline constexpr bool is_reflexive_v<A, Endo<A, L, C, SwapPred<P>>> =
+    is_reflexive_v<A, Endo<A, L, C, P>>;
+template <typename A, typename L, typename C, typename P>
+inline constexpr bool is_symmetric_v<A, Endo<A, L, C, SwapPred<P>>> =
+    is_symmetric_v<A, Endo<A, L, C, P>>;
+template <typename A, typename L, typename C, typename P>
+inline constexpr bool is_transitive_v<A, Endo<A, L, C, SwapPred<P>>> =
+    is_transitive_v<A, Endo<A, L, C, P>>;
+template <typename A, typename L, typename C, typename P>
+inline constexpr bool is_antisymmetric_v<A, Endo<A, L, C, SwapPred<P>>> =
+    is_antisymmetric_v<A, Endo<A, L, C, P>>;
+template <typename A, typename L, typename C, typename P>
+inline constexpr bool is_connex_v<A, Endo<A, L, C, SwapPred<P>>> =
+    is_connex_v<A, Endo<A, L, C, P>>;
+
+// NODE R;S (endo): reflexive when both legs are (Δ = Δ;Δ ≤ R;S).  Transitivity
+// is not preserved by composition (two equivalences compose to an equivalence
+// only when they commute), so no rule.
+template <typename A, typename L, typename C, typename PR, typename PS>
+inline constexpr bool is_reflexive_v<A, Endo<A, L, C, ComposePred<PR, PS, A>>> =
+    is_reflexive_v<A, Endo<A, L, C, PR>> &&
+    is_reflexive_v<A, Endo<A, L, C, PS>>;
+
+// Witnesses: the type-level reading on the composites.  The value-level
+// reading (the laws at points, exhaustive over 𝔹) is in structure_test.
+static_assert(
+    IsEquality<bool, decltype(dedekind::relational::diag<bool>())> &&
+        IsEquivalence<bool, decltype(dedekind::relational::diag<bool>())> &&
+        IsAntisymmetric<bool, decltype(dedekind::relational::diag<bool>())>,
+    "Δ is equality; its equivalence laws and antisymmetry follow");
+static_assert(
+    IsTotalOrder<bool, decltype(dedekind::relational::relation_of<bool>(
+                           std::less_equal<bool>{}))>,
+    "≤ on 𝔹 as a set of pairs inherits the chain laws of "
+    "std::less_equal<bool>");
+static_assert(
+    IsReflexive<bool, decltype(dedekind::relational::relation_of<bool>(
+                                   std::less_equal<bool>{}) &
+                               dedekind::relational::converse(
+                                   dedekind::relational::relation_of<bool>(
+                                       std::less_equal<bool>{})))> &&
+        IsAntisymmetric<bool,
+                        decltype(dedekind::relational::relation_of<bool>(
+                                     std::less_equal<bool>{}) &
+                                 dedekind::relational::converse(
+                                     dedekind::relational::relation_of<bool>(
+                                         std::less_equal<bool>{})))>,
+    "≤ ∩ ≥ is reflexive and antisymmetric by the meet rules");
+static_assert(IsReflexive<bool, decltype(dedekind::relational::diag<bool>() >>
+                                         dedekind::relational::diag<bool>())>,
+              "Δ;Δ is reflexive by the composition rule");
+static_assert(
+    !IsEquality<double, decltype(dedekind::relational::diag<double>())> &&
+        !IsReflexive<double, decltype(dedekind::relational::diag<double>())>,
+    "Δ over double is no equality: (NaN, NaN) is no member");
+static_assert(
+    IsBinaryFunction<decltype(dedekind::relational::diag<bool, Kleene>()), bool,
+                     bool, Ternary>,
+    "Δ answering in K₃ is a function, read with its own truth object");
+static_assert(
+    IsBinaryRelation<
+        std::remove_cvref_t<decltype(~dedekind::relational::diag<bool>())>,
+        bool, bool> &&
+        (~dedekind::relational::diag<bool>())(false, true) &&
+        !(~dedekind::relational::diag<bool>())(true, true),
+    "the complement keeps the binary call: the lattice nodes forward their "
+    "arguments, whatever their number");
 }  // namespace dedekind::category

@@ -144,10 +144,12 @@ struct is_directed<T, std::less_equal<T>> : std::true_type {};
  * mathematical content for the canonical witnesses
  * (the certified chains: reflexive and connex).
  */
-export template <typename T, typename Rel>
-concept IsDirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_directed_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsDirected =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_directed_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section filtered__Codirectedness: ∀a,b ∃c. c ≤ a ∧ c ≤ b
  *
@@ -191,10 +193,12 @@ struct is_codirected<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification of the codirectedness axiom:
  *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(c, a) ∧ Rel(c, b).
  */
-export template <typename T, typename Rel>
-concept IsCodirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_codirected_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsCodirected =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_codirected_v<T, std::remove_cvref_t<Rel>>; };
 
 /**
  * @concept IsFilteredCategory

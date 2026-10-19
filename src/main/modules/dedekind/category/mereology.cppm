@@ -47,6 +47,20 @@ import :morphism;
 namespace dedekind::category {
 
 /**
+ * @concept IsTruthObject
+ * @brief @c Ω may carry a relation's answer in the laws below: it has a top
+ *        @c ⊤, the value a law asserts (reflexivity is @c rel(a, @c a) @c = @c
+ *        ⊤).  @c bool (top @c true) is the default; @c Ternary names its
+ *        @c Ω::True, a value type with a species (@c Percentage, the bounded
+ *        chains) finds it on the species.  A statement of
+ *        intent, not a certificate: the laws come before logic, so the truth
+ *        objects are only certified downstream (@c :logic, @c IsΩ).
+ */
+export template <typename Ω>
+concept IsTruthObject = std::same_as<Ω, bool> || requires { Ω::True; } ||
+                        requires { Ω::logic_species::True; };
+
+/**
  * @brief Trait to mark a relation as reflexive: a ~ a = True
  **/
 export template <typename T, typename Rel>
@@ -75,10 +89,12 @@ struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
  * @concept IsReflexive
  * @brief Formal verification of the identity relation.
  */
-export template <typename T, typename Rel>
-concept IsReflexive = requires(T a) {
-  { Rel{}(a, a) };
-} && requires { requires is_reflexive_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsReflexive =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a) {
+      { rel(a, a) } -> std::convertible_to<Ω>;
+    } && requires { requires is_reflexive_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section mereology__Transitivity: (a <= b && b <= c) => a <= c */
 export template <typename T, typename Rel>
@@ -108,10 +124,12 @@ struct is_transitive<T, std::less_equal<T>> : std::true_type {};
  * @concept IsTransitive
  * @brief Formal verification: (a ≤ b ∧ b ≤ c) ⇒ a ≤ c.
  */
-export template <typename T, typename Rel>
-concept IsTransitive = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_transitive_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsTransitive =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_transitive_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section mereology__Antisymmetry: (a <= b && b <= a) => a == b */
 export template <typename T, typename Rel>
@@ -137,10 +155,12 @@ struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
  * @concept IsAntisymmetric
  * @brief Formal verification: (a ≤ b ∧ b ≤ a) ⇒ a = b.
  */
-export template <typename T, typename Rel>
-concept IsAntisymmetric = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_antisymmetric_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsAntisymmetric =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_antisymmetric_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section mereology__Connexity: a <= b || b <= a
  *  Any two elements are comparable: the law that makes a partial order a
@@ -167,10 +187,64 @@ struct is_connex<T, std::less_equal<T>> : std::true_type {};
  * @concept IsConnex
  * @brief Formal verification: a ≤ b ∨ b ≤ a.
  */
-export template <typename T, typename Rel>
-concept IsConnex = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_connex_v<T, Rel>; };
+export template <typename T, typename Rel, typename Ω = bool>
+concept IsConnex =
+    IsTruthObject<Ω> &&
+    requires(const std::remove_cvref_t<Rel>& rel, const T& a, const T& b) {
+      { rel(a, b) } -> std::convertible_to<Ω>;
+    } && requires { requires is_connex_v<T, std::remove_cvref_t<Rel>>; };
+
+/** @section mereology__The_Laws_At_A_Point
+ *  Each law of a relation, read on a @b value at given points: the same
+ *  statement the trait certifies for every point, decidable here for one.
+ *  A relation over a finite carrier is checked exhaustively by these; a
+ *  run-time relation (@c relational:rows) reads them as well (#1045: one
+ *  definition per property, read on both sides).  @c Ω @c = @c bool here;
+ *  the many-valued reading is the run-time side's. */
+namespace detail_mereology {
+/** @brief A certified relation callable only on a mutable object: the law
+ *  concepts' const-callability contract rejects it under every reference
+ *  qualification. */
+struct MutableOnly {
+  bool operator()(int, int) { return true; }
+};
+}  // namespace detail_mereology
+template <>
+struct is_reflexive<int, detail_mereology::MutableOnly> : std::true_type {};
+static_assert(!IsReflexive<int, detail_mereology::MutableOnly> &&
+                  !IsReflexive<int, detail_mereology::MutableOnly&>,
+              "a mutable-only call is no relation, by value or by reference");
+
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+  }
+constexpr bool reflexive_at(const Rel& rel, const T& a) {
+  return static_cast<bool>(rel(a, a));
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+  }
+constexpr bool transitive_at(const Rel& rel, const T& a, const T& b,
+                             const T& c) {
+  return !(rel(a, b) && rel(b, c)) || rel(a, c);
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+    { x == x } -> std::convertible_to<bool>;
+  }
+constexpr bool antisymmetric_at(const Rel& rel, const T& a, const T& b) {
+  return !(rel(a, b) && rel(b, a)) || a == b;
+}
+export template <typename Rel, typename T>
+  requires requires(const Rel& r, const T& x) {
+    { r(x, x) } -> std::convertible_to<bool>;
+  }
+constexpr bool connex_at(const Rel& rel, const T& a, const T& b) {
+  return rel(a, b) || rel(b, a);
+}
 
 /**
  * @brief Proof: @c <= on the integral types is a total order (reflexive,
