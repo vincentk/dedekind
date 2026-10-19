@@ -827,9 +827,8 @@ static_assert(
         !IsReflexive<double, decltype(dedekind::relational::diag<double>())>,
     "Δ over double is no equality: (NaN, NaN) is no member");
 static_assert(
-    dedekind::relational::IsFunction<
-        decltype(dedekind::relational::diag<bool, Kleene>()), bool, bool,
-        Ternary>,
+    IsBinaryFunction<decltype(dedekind::relational::diag<bool, Kleene>()), bool,
+                     bool, Ternary>,
     "Δ answering in K₃ is a function, read with its own truth object");
 static_assert(
     IsBinaryRelation<
