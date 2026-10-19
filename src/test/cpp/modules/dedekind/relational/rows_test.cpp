@@ -15,6 +15,8 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <utility>
 #include <vector>
 
 import dedekind.category; // Ternary
@@ -218,6 +220,18 @@ TEST_CASE("relational:rows: a RelExpr is a relation (IsRelation)",
           "[relational][rows][relation]") {
   // Its points are a row of the domain and a row of the codomain, read through
   // the product's API; membership is the verdict there, in K₃.
+  // The chain under IsRelation, one link at a time (each names its own
+  // failure, where IsSetObject's trait would not).
+  STATIC_CHECK(std::regular<Re::Domain>);
+  STATIC_CHECK(dedekind::category::IsArrow<Re>);
+  STATIC_CHECK(dedekind::category::IsPredicate<Re>);
+  STATIC_CHECK(dedekind::category::IsSubobject<Re, Re::Domain>);
+  STATIC_CHECK(dedekind::category::IsLSet<Re>);
+  STATIC_CHECK(
+      dedekind::sets::Is𝔸Of<
+          decltype(dedekind::sets::universe(std::declval<const Re&>())), Re>);
+  STATIC_CHECK(dedekind::sets::IsSetObject<Re>);
+  STATIC_CHECK(dedekind::category::IsProduct<Re::Domain, R, R>);
   STATIC_CHECK(dedekind::relational::IsRelation<Re, R, R>);
   CHECK(succ(std::pair{R{{3u}}, R{{4u}}}) == Ternary::True);
   CHECK(succ(std::pair{R{{3u}}, R{{5u}}}) == Ternary::False);
