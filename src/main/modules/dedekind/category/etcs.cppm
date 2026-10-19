@@ -403,20 +403,25 @@ concept HasETCSAxioms =
  * construction @c make_χ, which needs decidable equality), not merely
  * unsatisfied.  The leading @c std::regular clause short-circuits to
  * @c false first, shielding @c IsSet from that hard error (witnessed in
- * @c sets/subobject_lattice_carriers_test.cpp).  FIXME(#779): make
+ * @c sets/subobject_lattice_carriers_test.cpp).  It is asked @b here, not
+ * of every L-set: an L-set's carrier need only have copies
+ * (@c std::semiregular, @c IsLSet), equality of sets being the Rice cycle.
+ * FIXME(#779): make
  * @c HasETCSAxioms SFINAE-total, after which this ordering becomes
  * defensive rather than load-bearing.
  */
 export template <typename A>
 concept IsSet =
-    IsLSet<A> && std::same_as<typename A::logic_species, Boole> &&  // Ω = 𝔹
+    std::regular<typename A::Domain> && IsLSet<A> &&
+    std::same_as<typename A::logic_species, Boole> &&  // Ω = 𝔹
     HasETCSAxioms<A> && IsCartesianClosed<CanonicalSetCCC<typename A::Domain>>;
 
 // IsSet is a TOTAL predicate (#779): on a carrier that is not std::regular the
-// conjunction fails at IsLSet first, so the ETCS axioms --- whose subobject
+// conjunction fails at its first clause, so the ETCS axioms --- whose subobject
 // classifier construction would be ill-formed there --- are never evaluated.
+// Such a carrier still has L-sets: decidable equality is the ETCS set's ask.
 namespace detail_etcs_total_witness {
-struct NonRegular {};  // copyable, no operator== : not std::regular
+struct NonRegular {};  // copyable, no operator== : semiregular, not regular
 struct SetOverNonRegular {
   using Domain = NonRegular;
   using logic_species = Boole;
@@ -427,11 +432,13 @@ struct SetOverNonRegular {
   constexpr NonRegular ι(const Member& m) const { return m.value; }
   constexpr bool operator()(const NonRegular&) const { return true; }
 };
-static_assert(!IsLSet<SetOverNonRegular>,
-              "a set over a non-regular carrier is not an L-set (and the "
-              "concept says so instead of failing to compile).");
+static_assert(IsLSet<SetOverNonRegular>,
+              "a set over a carrier without decidable equality is an L-set: "
+              "copies are asked, == is not (equality of sets is the Rice "
+              "cycle, #970).");
 static_assert(!IsSet<SetOverNonRegular>,
-              "… hence not an ETCS set: IsSet is total (#779).");
+              "… but not an ETCS set: IsSet asks std::regular first, and says "
+              "so instead of failing to compile (#779).");
 }  // namespace detail_etcs_total_witness
 
 /**
