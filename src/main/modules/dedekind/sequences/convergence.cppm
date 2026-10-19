@@ -293,7 +293,7 @@ concept IsAbsolutelyConvergent =
 // the #719 design review: periodic compresses the index
 // (@c ℕ ↠ ℤ/Nℤ); absorptive compresses the codomain (eventually
 // constant; @c ℕ → @c {z}).  Both lift the carrier-axis vocabulary
-// (@c is_periodic_v / @c is_absorptive_v in @c :species) onto the
+// (@c is_periodic_v in @c :total, @c is_absorptive_v in @c :species) onto the
 // sequence axis.
 //
 // Anchors: Bishop §2 (bounded / monotone); Bolzano-Weierstrass
@@ -334,7 +334,7 @@ concept IsMonotoneSequence = IsSequence<Seq> && is_monotone_sequence_v<Seq>;
 /** @brief Opt-in: @c Seq is periodic with period @c N
  *         (@c s(n) @c = @c s(n+N) for all n).  Index-side compression:
  *         the sequence factors through @c ℕ/Nℤ.  Sequence-axis analog
- *         of @c :species's @c is_periodic_v<T, Op>. */
+ *         of @c :total's @c is_periodic_v<T, Op>. */
 export template <typename Seq, std::size_t N>
 inline constexpr bool is_periodic_sequence_v = false;
 

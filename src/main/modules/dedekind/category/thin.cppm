@@ -63,9 +63,7 @@ module;
 export module dedekind.category:thin;
 
 import :logic;
-import :species;  // is_reflexive_v, is_transitive_v traits — defined in
-                  // :species; :mereology imports them without re-exporting,
-                  // so we must import :species directly here.
+import :mereology;  // is_reflexive_v, is_transitive_v
 
 namespace dedekind::category {
 

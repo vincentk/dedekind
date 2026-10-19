@@ -2133,7 +2133,7 @@ inline constexpr bool
 // Saturation rather than periodicity: SignedCardinality is unbounded
 // and escalates to ±ℵ_0 on overflow.  This is the load-bearing
 // trait that satisfies the IsTotal pragmatic certificate.  See
-// `is_saturating` in `category:species`.
+// `is_saturating` in `category:total`.
 template <>
 struct is_saturating<SC, std::plus<SC>> : std::true_type {};
 

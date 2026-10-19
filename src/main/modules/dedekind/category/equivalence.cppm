@@ -74,8 +74,8 @@ module;
 export module dedekind.category:equivalence;
 
 import :morphism;
-import :species;  // is_reflexive_v / is_transitive_v / IsReflexive /
-                  // IsTransitive
+import :mereology;  // is_reflexive_v / is_transitive_v / IsReflexive /
+                    // IsTransitive
 
 namespace dedekind::category {
 
@@ -98,7 +98,7 @@ namespace dedekind::category {
  *        (∀x, y: @c Rel(x, @c y) @c ⇔ @c Rel(y, @c x)).
  *
  * @details Default @c false; specialise to @c true to declare symmetry.
- * Follows the same shape as @c :species's @c is_reflexive /
+ * Follows the same shape as @c :mereology's @c is_reflexive /
  * @c is_transitive: a class template specialised by partial
  * specialisation, with a member-detection bridge from @c T's nested
  * @c is_symmetric_v static.
@@ -120,7 +120,7 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  * @concept IsSymmetric
  * @brief @b Formal verification: @c Rel(a, @c b) @c ⇔ @c Rel(b, @c a).
  *
- * Mirrors @c IsReflexive / @c IsTransitive in @c :species: structural
+ * Mirrors @c IsReflexive / @c IsTransitive in @c :mereology: structural
  * shape (@c Rel{} is callable on the symmetric pair) plus the
  * engineer-supplied trait declaration.
  */

@@ -49,7 +49,6 @@ import :logic;
 import :limit;
 import :mereology;
 import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
-import :species;
 
 namespace dedekind::category {
 

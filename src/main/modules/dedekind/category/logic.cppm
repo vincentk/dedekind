@@ -262,8 +262,8 @@ export struct Kleene final {
   /** @section logic__Kleene_Op_Types (#923)
    *  @brief The op-@b types @c OR / @c AND / @c RFL @b are.  Kleene's join /
    *  meet @b are @c max / @c min on the @c K₃ chain, i.e. the value-returning
-   *  @c Sup / @c Inf from @c :species (@b not the @c std::ranges::max / @c min
-   *  niebloids, which return @c const @c T& and fail @c IsClosedUnder; #912/
+   *  @c Sup / @c Inf from @c :mereology (@b not the @c std::ranges::max / @c
+   * min niebloids, which return @c const @c T& and fail @c IsClosedUnder; #912/
    *  #933).  ¬ is @c logic_complement<Kleene>. */
   using JoinOp = Sup;
   using MeetOp = Inf;
@@ -327,7 +327,7 @@ struct Chain final {
   /** @section logic__Chain_Op_Types (#923)
    *  @brief The op-@b types @c OR / @c AND / @c RFL @b are: join / meet @b are
    *  @c max / @c min (the numeric order @b is the truth order), i.e. the
-   *  value-returning @c Sup / @c Inf from @c :species; ¬ is
+   *  value-returning @c Sup / @c Inf from @c :mereology; ¬ is
    *  @c logic_complement<Chain<T>>.  @c Chain<T> reaches @c
    * IsDistributiveLattice through these.
    *  @note #935 makes @b no boundedness claim about @c Chain<T> either way: the
@@ -456,7 +456,7 @@ export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
  *
- *  Supplies the @c < the value-returning @c :species ops @c Inf / @c Sup
+ *  Supplies the @c < the value-returning @c :mereology ops @c Inf / @c Sup
  *  need to compute the Kleene meet / join on @c Ternary directly, so the
  *  Form-chain @c Meet / @c Join slots reuse the generic lattice ops
  *  rather than carrying named Ternary-specific function-object struct
@@ -1125,8 +1125,9 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
  * @c FIXME(#934)).  Their lattice-law traits (@c is_idempotent_v /
  * @c is_associative_v / @c is_commutative_v / @c is_distributive_v /
  * @c is_absorptive_v) are registered generically over every carrier in
- * @c :species, so @c IsDistributiveLattice<Ternary, Sup, Inf> follows once the
- * two pieces below are supplied:
+ * @c :mereology (the Sup / Inf law blanket), so @c
+ * IsDistributiveLattice<Ternary, Sup, Inf> follows once the two pieces below
+ * are supplied:
  *
  *   1. the @b bounds (@c identity_v): @c ⊥ @c = @c False (∨-identity) and
  *      @c ⊤ @c = @c True (∧-identity), lifting the finite chain from
@@ -1206,8 +1207,8 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  operators, so @c std::totally_ordered<Ternary> holds); transitivity and
  *  antisymmetry are hand-registered below for THIS carrier, because the
  *  @c :species blanket no longer certifies arbitrary enums (#946 review).  It
- *  is also the order the @c :species @c SupInfLattice gate certifies against (a
- *  genuine total order cannot contain NaN). */
+ *  is also the order the @c :mereology @c SupInfLattice gate certifies against
+ * (a genuine total order cannot contain NaN). */
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>

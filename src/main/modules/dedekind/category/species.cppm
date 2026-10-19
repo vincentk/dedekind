@@ -44,7 +44,6 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
-#include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:species;
@@ -141,7 +140,7 @@ export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
 // Meet / join idempotence is registered on the value-returning @c Sup / @c Inf
-// ops (see @c species__Value_Lattice_Ops), gated on @c SupInfLattice<T>.  The
+// ops (see @c mereology__Value_Lattice_Ops), gated on @c SupInfLattice<T>.  The
 // old @c std::ranges::min / @c max niebloid registrations were retired in #934.
 
 // --- THE STORAGE (Facts) ---
@@ -311,198 +310,6 @@ template <typename Op>
                std::same_as<Op, std::logical_or<void>>
 inline constexpr bool is_associative_v<bool, Op> = true;
 
-/**
- * @brief Trait to mark a relation as reflexive: a ~ a = True
- **/
-export template <typename T, typename Rel>
-struct is_reflexive : std::false_type {};
-
-// Discovery: Look for a member variable 'is_reflexive_v'
-template <typename T, typename Rel>
-  requires requires { T::template is_reflexive_v<Rel>; }
-struct is_reflexive<T, Rel>
-    : std::bool_constant<T::template is_reflexive_v<Rel>> {};
-
-// The Bridge (The "v" helper)
-export template <typename T, typename Rel>
-inline constexpr bool is_reflexive_v = is_reflexive<T, Rel>::value;
-
-/** @section species__The_Reflexivity_Axiom */
-// General case: Any type T is reflexive under std::less_equal
-// if it satisfies basic totally_ordered requirements.
-template <typename T>
-  requires std::totally_ordered<T>
-struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
-
-/**
- * @concept IsReflexive
- * @brief Formal verification of the identity relation.
- */
-export template <typename T, typename Rel>
-concept IsReflexive = requires(T a) {
-  { Rel{}(a, a) };
-} && requires { requires is_reflexive_v<T, Rel>; };
-
-/** @section species__Transitivity: (a <= b && b <= c) => a <= c */
-export template <typename T, typename Rel>
-struct is_transitive : std::false_type {};
-
-template <typename T, typename Rel>
-  requires requires { T::template is_transitive_v<Rel>; }
-struct is_transitive<T, Rel>
-    : std::bool_constant<T::template is_transitive_v<Rel>> {};
-
-export template <typename T, typename Rel>
-inline constexpr bool is_transitive_v = is_transitive<T, Rel>::value;
-
-// The built-in integral / @c bool @c <= is a genuine total order, hence
-// transitive (and antisymmetric, below).  Enums are DELIBERATELY excluded: a
-// scoped enum may supply an ADL @c operator<= / @c operator<=> that is neither
-// transitive nor antisymmetric, so a blanket over @c is_enum_v<T> would
-// unsoundly certify ARBITRARY enums as partial orders.  A specific enum carrier
-// whose order is known (e.g. @c Ternary) hand-registers both legs at its home
-// partition (@c :logic).  @c double is neither integral nor @c bool, so the
-// raw-float rejection is preserved (#933 / #934).
-template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool>
-struct is_transitive<T, std::less_equal<T>> : std::true_type {};
-
-/**
- * @concept IsTransitive
- * @brief Formal verification: (a ≤ b ∧ b ≤ c) ⇒ a ≤ c.
- */
-export template <typename T, typename Rel>
-concept IsTransitive = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_transitive_v<T, Rel>; };
-
-/** @section species__Antisymmetry: (a <= b && b <= a) => a == b */
-export template <typename T, typename Rel>
-struct is_antisymmetric : std::false_type {};
-
-template <typename T, typename Rel>
-  requires requires { T::template is_antisymmetric_v<Rel>; }
-struct is_antisymmetric<T, Rel>
-    : std::bool_constant<T::template is_antisymmetric_v<Rel>> {};
-
-export template <typename T, typename Rel>
-inline constexpr bool is_antisymmetric_v = is_antisymmetric<T, Rel>::value;
-
-// Enums are excluded for the same reason as transitivity: an enum's ADL @c <=
-// may fail antisymmetry, so blanketing @c is_enum_v<T> is unsound.  A known
-// enum carrier (@c Ternary) hand-registers this leg at @c :logic; @c double is
-// neither integral nor @c bool, preserving the raw-float rejection (#933/#934).
-template <typename T>
-  requires std::is_integral_v<T> || std::is_same_v<T, bool>
-struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
-
-/**
- * @concept IsAntisymmetric
- * @brief Formal verification: (a ≤ b ∧ b ≤ a) ⇒ a = b.
- */
-export template <typename T, typename Rel>
-concept IsAntisymmetric = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_antisymmetric_v<T, Rel>; };
-
-/** @section species__Directedness: ∀a,b ∃c. a ≤ c ∧ b ≤ c
- *
- *  @brief Trait to mark a relation as @b directed: every pair of
- *         elements has an upper bound.
- *
- *  @details Directedness is the one-sided existence axiom that
- *  upgrades a preorder / thin category to a @b filtered category
- *  (#698 row 3): every finite subset has SOME upper bound (induction
- *  reduces this to the pairwise case).
- *
- *  Filtered ⊊ thin: every filtered category is thin, but filtered
- *  additionally requires the upper-bound existence claim.  Note that
- *  filtered does @b not require antisymmetry — it is parallel to,
- *  not downstream of, @c :posetal in the Form-chain.
- */
-export template <typename T, typename Rel>
-struct is_directed : std::false_type {};
-
-/** @brief Discovery: types may opt in via a nested @c is_directed_v
- *         template member, mirroring the @c is_reflexive_v /
- *         @c is_transitive_v / @c is_antisymmetric_v discovery pattern. */
-template <typename T, typename Rel>
-  requires requires { T::template is_directed_v<Rel>; }
-struct is_directed<T, Rel>
-    : std::bool_constant<T::template is_directed_v<Rel>> {};
-
-export template <typename T, typename Rel>
-inline constexpr bool is_directed_v = is_directed<T, Rel>::value;
-
-/** @brief Every totally ordered carrier under @c std::less_equal is
- *         directed: @c max(a, b) is the upper bound of every pair. */
-template <typename T>
-  requires std::totally_ordered<T>
-struct is_directed<T, std::less_equal<T>> : std::true_type {};
-
-/**
- * @concept IsDirected
- * @brief Formal verification of the directedness axiom:
- *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(a, c) ∧ Rel(b, c).
- *
- * @details At the value level, every pair has an upper bound under
- * @c Rel.  Specialised at trait level rather than constructively
- * because exhibiting @c c for arbitrary @c a, @c b in a generic
- * concept body is awkward; the trait specialisation captures the
- * mathematical content for the canonical witnesses
- * (@c std::totally_ordered carriers).
- */
-export template <typename T, typename Rel>
-concept IsDirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_directed_v<T, Rel>; };
-
-/** @section species__Codirectedness: ∀a,b ∃c. c ≤ a ∧ c ≤ b
- *
- *  @brief Trait to mark a relation as @b codirected: every pair of
- *         elements has a lower bound.
- *
- *  @details Codirectedness is the dual of directedness — every pair has
- *  SOME lower bound, not necessarily a greatest lower bound (meet).
- *  Combined with directedness and posetal structure (antisymmetry), it
- *  upgrades a filtered category to a @b lattice category (#698 row 4):
- *
- *    lattice = posetal + filtered (UB exists) + cofiltered (LB exists)
- *            + universality (UB / LB are unique by antisymmetry)
- *
- *  Filtered and cofiltered are dual existence axioms; together with
- *  antisymmetry they suffice for the Form-witness assembly of
- *  @c IsLatticeCategory in @c :lattice.
- */
-export template <typename T, typename Rel>
-struct is_codirected : std::false_type {};
-
-/** @brief Discovery: types may opt in via a nested @c is_codirected_v
- *         template member, mirroring the sibling trait patterns. */
-template <typename T, typename Rel>
-  requires requires { T::template is_codirected_v<Rel>; }
-struct is_codirected<T, Rel>
-    : std::bool_constant<T::template is_codirected_v<Rel>> {};
-
-export template <typename T, typename Rel>
-inline constexpr bool is_codirected_v = is_codirected<T, Rel>::value;
-
-/** @brief Every totally ordered carrier under @c std::less_equal is
- *         codirected: @c min(a, b) is the lower bound of every pair. */
-template <typename T>
-  requires std::totally_ordered<T>
-struct is_codirected<T, std::less_equal<T>> : std::true_type {};
-
-/**
- * @concept IsCodirected
- * @brief Formal verification of the codirectedness axiom:
- *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(c, a) ∧ Rel(c, b).
- */
-export template <typename T, typename Rel>
-concept IsCodirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-} && requires { requires is_codirected_v<T, Rel>; };
-
 /** @section species__Categorical_Inverses: The 'Undo' Bricks */
 
 /** @brief In XOR, every element is its own inverse (Involutive). */
@@ -663,27 +470,6 @@ inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_and<T>> = true;
 
-/**
- * @brief Proof: Integral types satisfy the Total Order axioms.
- * @details [Architectural Decision 2026-04-01]:
- * We specifically whitelist std::integral types here because they satisfy
- * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b)
- * without exception.
- *
- * @note [Future Work]: Floating-point types (double/float) are currently
- * excluded from this blanket proof due to IEEE 754 'NaN' violating
- * Reflexivity. To support them, we will require a 'Safe' wrapper or a
- * NaN-aware comparison morphism.
- */
-template <std::integral T>
-inline constexpr bool is_reflexive_v<T, std::less_equal<>> = true;
-
-template <std::integral T>
-inline constexpr bool is_transitive_v<T, std::less_equal<>> = true;
-
-template <std::integral T>
-inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
-
 // 2. Boolean AND (Conjunction)
 template <>
 inline constexpr bool is_associative_v<bool, std::bit_and<bool>> = true;
@@ -789,87 +575,6 @@ static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
 static_assert(
     !is_associative_v<int, std::plus<int>>,
     "Honesty Check: Signed addition is NOT associative due to UB hazards.");
-
-/** @section species__Property_Ledger: Periodicity
- *  A type is periodic if it defines a circular topology where
- *  "stepping off the edge" results in a valid, defined wrap.
- */
-export template <typename T, typename Op>
-struct is_periodic : std::false_type {};
-
-export template <typename T, typename Op>
-inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
-
-/** @section species__Property_Ledger_2: Saturation
- *  A type is saturating under @c Op if it defines an extended-range
- *  topology where "stepping off the edge" escalates to a saturating
- *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
- *  archetypal carrier is @c sets::SignedCardinality (#377) ---
- *  the ℤ ∪ {±ℵ_0, NaZ} extended-integer carrier whose @c + is total
- *  by escalation, not by wrap.
- *
- *  Distinct from @c is_idempotent_v, which says the operation is
- *  globally stable (a*a = a for all a).  Saturation is the milder
- *  claim that the operation is total because any out-of-range
- *  result has a defined saturating image.
- */
-export template <typename T, typename Op>
-struct is_saturating : std::false_type {};
-
-export template <typename T, typename Op>
-inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
-
-/** @brief Path D to totality: the operation is total because the carrier is
- *  @b exact --- arithmetic with no rounding, @c Op(a,b) defined and lossless
- *  up to the carrier's out-of-memory tripwire.  The archetypes are the exact
- * number fields
- *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
- *  @c *.  Distinct from the three machine-finite paths, which are total by
- *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
- * is total because its arithmetic is @b closed and exact.
- *
- *  @note @b Total @b for @b all @b practical @b purposes.  ℕ, ℤ, ℚ (and the
- * reals built on ℚ) are designed so the boundary on a computation is @b
- * physical --- the deployer's chosen carrier precision, exhausted only when the
- * machine runs out of memory --- and @b explicit in the data type, not a silent
- * arithmetic wraparound.  That finite scope is one reading of Eqn 2 (a carrier
- * @b models
- * @f$\le\beth_1@f$ but @b materialises @f$<\aleph_0@f$): responsibility for the
- * boundary rests with whoever deploys, and it is clear from the type.  So this
- * trait certifies exactness-and-totality @b in @b that @b regime; keeping it a
- * distinct EXACT path (rather than folding ℚ into "saturating") records that ℚ
- * is an exact field bounded by physics, not a designed saturating semiring.
- * Opt-in (default false).
- */
-export template <typename T, typename Op>
-struct is_exact_total : std::false_type {};
-
-export template <typename T, typename Op>
-inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
-
-/**
- * Unsigned integers are natively periodic under
- * addition/subtraction/multiplication.
- **/
-// The unsigned words wrap: ℤ/2^w.  bool is std::unsigned_integral too, but
-// std::plus<bool> is ∨ (the sum truncates), which saturates and has no
-// inverses: bool's rig is spelled logical_or / logical_and below, and
-// std::plus<bool> is registered as nothing.
-template <typename T>
-  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
-struct is_periodic<T, std::plus<T>> : std::true_type {};
-
-template <typename T>
-  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
-struct is_periodic<T, std::minus<T>> : std::true_type {};
-
-template <typename T>
-  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
-struct is_periodic<T, std::multiplies<T>> : std::true_type {};
-
-// XOR is Periodic (Order 2), ensuring its totality
-template <std::integral T>
-struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
 
 /**
  * @section species__Ring_like_distributivity_for_unsigned_integrals
@@ -1015,93 +720,6 @@ concept IsIdempotent = is_idempotent_v<T, std::remove_cvref_t<Op>>;
 // concept layer moves.
 
 /**
- * @concept IsPeriodic
- * @brief Taxonomic Decorator: Certifies that an operation is circular (wraps).
- * This is the "Safety Certificate" for machine totality.
- */
-export template <typename T, typename Op>
-concept IsPeriodic = is_periodic_v<T, Op>;
-
-/** @section species__Lattice_Op_Gate (Sup / Inf law gate)
- *
- * @details The value-returning @c Sup / @c Inf order-lattice law blanket below
- * is gated on @c SupInfLattice<T> so it never over-certifies a carrier on which
- * the ops are not honest lattice ops.  The gate is defined here, upstream of
- * the blanket.  (#934 retired the parallel @c std::ranges::max / @c
- * std::ranges::min niebloid blanket that this gate used to guard as well.)
- *
- * @par Either @c std::less_equal spelling, complete per relation.
- * Carriers register their order traits under one of two conventions: the typed
- * @c std::less_equal<T> (@c int / @c bool via the integral blanket, @c Ternary)
- * or the transparent @c std::less_equal<> (@c safe_float<F>, @c Rational<I>,
- * @c Cut<Q>, cardinals).  Both are @c :species traits (no DAG dependency on
- * @c :order, which is downstream), so the gate accepts a certificate under
- * @b either spelling.  The three laws are grouped @b per @b relation and the
- * two @b complete certificates are OR'd, @b not OR'd law-by-law: a mixed
- * carrier (antisymmetry certified typed, transitivity only transparent) has all
- * three laws under @b neither single relation, so it must not pass.  This
- * matters because reflexivity alone is available for any @c
- * std::totally_ordered <T> via the general @c is_reflexive specialisation, so
- * raw @c double satisfies the typed reflexive leg; grouping per relation means
- * @c double (no transitive / antisymmetric under either spelling) and @c
- * std::optional<double> / @c void (no complete certificate either way) all stay
- * excluded.
- *
- * FIXME(#934 follow-up): the gate certifies a @b partial order (reflexive +
- * transitive + antisymmetric) plus @b syntactic @c std::totally_ordered, but
- * @c Sup / @c Inf are honest lattice ops only on a @b total (connex) order: on
- * a non-total poset, @c Sup of incomparable @c a, @c b is order-dependent, so
- * @c is_commutative_v<T, Sup> would be false while the gate still admitted it.
- * No live mis-certification: every carrier currently registered against this
- * blanket (@c int and the integral blanket, @c Ternary, @c safe_float<F>,
- * @c Rational<I>, @c Cut<Q>, the cardinals) is a genuine @b chain.  @c :species
- * has no connex / linearity relation trait (@c is_total_v here is @b operation
- * totality, not order connexity), so a proper fix adds one and registers it for
- * each chain carrier across @c :species / @c :logic / @c :morphologies /
- * @c :numbers --- a cross-module sweep deferred to a #934 follow-up slice
- * rather than balloon this one (a partial registration would instead re-break
- * the transparent carriers, cf. the safe_float regression). */
-
-/**
- * @concept SupInfOperand
- * @brief A carrier on which @c Sup / @c Inf (and @c max / @c min) are a
- * genuine, usable value op: totally ordered (for @c <) and copy-constructible
- * (the winner is @b returned @b by @b value).  This is the CALL gate: @c
- * Sup{}(1.0, 2.0) is a valid call that returns a value, so raw floats are @b
- * not excluded here; only the lattice @b laws fail on them (see @c
- * SupInfLattice).
- * @tparam T The candidate carrier type.
- */
-export template <typename T>
-concept SupInfOperand = std::totally_ordered<T> && std::copy_constructible<T>;
-
-/**
- * @concept SupInfLattice
- * @brief A carrier on which @c max / @c min (and @c Sup / @c Inf) are honest
- *        @b lattice ops: usable (@c SupInfOperand) @b and carrying a certified
- *        order.
- * @details Requires a @b complete reflexive + transitive + antisymmetric
- * certificate under @b one @c std::less_equal spelling --- typed
- * @c std::less_equal<T> @b or transparent @c std::less_equal<> (see
- * @c species__Lattice_Op_Gate for why the legs are grouped per relation, and
- * for the deferred totality/connex tightening).
- * @tparam T The candidate carrier type.
- */
-export template <typename T>
-concept SupInfLattice =
-    SupInfOperand<T> && ((is_reflexive_v<T, std::less_equal<T>> &&
-                          is_transitive_v<T, std::less_equal<T>> &&
-                          is_antisymmetric_v<T, std::less_equal<T>>) ||
-                         (is_reflexive_v<T, std::less_equal<>> &&
-                          is_transitive_v<T, std::less_equal<>> &&
-                          is_antisymmetric_v<T, std::less_equal<>>));
-
-// #934: the ref-returning @c std::ranges::max / @c std::ranges::min niebloid
-// lattice-law blanket was retired here.  Its semilattice / distributive laws
-// now live solely on the value-returning @c Sup / @c Inf ops (see
-// @c species__Value_Lattice_Ops), still gated on @c SupInfLattice<T>.
-
-/**
  * @brief The Absorber Trait (Axiom: a ∨ (a ∧ b) = a).
  * Represents the structural tethering between two dual operations.
  *
@@ -1111,8 +729,8 @@ concept SupInfLattice =
  * draft considered a separate @c morphologies:absorption partition
  * but settled on @c :mereology since the consumer concepts already
  * live there).  The opt-in specialisations for the canonical
- * operator pairs ((Sup, Inf), (logical_or, logical_and), the
- * (bit_xor, bit_and) Boolean-ring non-witness) stay here, alongside
+ * operator pairs ((logical_or, logical_and), the (bit_xor, bit_and)
+ * Boolean-ring non-witness) stay here, alongside
  * the trait-variable template, so that other concepts in
  * @c category (e.g.\ @c IsLattice in @c :total,
  * @c IsMereologicalSkewLattice in @c :mereology,
@@ -1127,7 +745,7 @@ inline constexpr bool is_absorptive_v = false;
 
 // 1. Integers (and any certified-total-order carrier): Sup/Inf mutual
 // absorption is registered on the value-returning ops (see
-// @c species__Value_Lattice_Ops); the retired #934 niebloid form lived here.
+// @c mereology__Value_Lattice_Ops); the retired #934 niebloid form lived here.
 
 // 2. Boolean / Kleene logic: OR/AND mutual absorption.
 template <typename T>
@@ -1142,159 +760,6 @@ template <std::integral T>
 inline constexpr bool is_absorptive_v<T, std::bit_or<>, std::bit_and<>> = true;
 template <std::integral T>
 inline constexpr bool is_absorptive_v<T, std::bit_and<>, std::bit_or<>> = true;
-
-/** @section species__Value_Lattice_Ops (Sup / Inf)
- *
- * @brief Value-returning chain lattice ops --- the honest @c T @c × @c T @c →
- *        @c T meet / join.
- *
- * @details The @c std::ranges::max / @c std::ranges::min niebloids @b select
- * and @b alias an argument: they return @c const @c T&, not a fresh @c T.  So
- * @c IsClosedUnder<T, Op> (which demands @c { @c Op{}(a,b) @c } @c -> @c
- * same_as<T>) rejects them, and the strict monoid / bounded-lattice ladder
- * (@c IsMonoid @c → @c IsMagma @c → @c IsClosedUnder in @c :total) is
- * unreachable through the niebloid --- only the lenient @c
- * IsOrderLatticeOperations path (which checks @c convertible_to<T>) admits it.
- * @c Sup / @c Inf return a @b copy of the winner, so they are honest @c
- * T @c × @c T @c → @c T ops that reach the whole ladder and never dangle on
- * temporaries.  They compute the ternary directly (no niebloid inside).
- *
- * @b Sole @b lattice @b ops (#934): @c Sup / @c Inf are now the @b only
- * carriers of the order-lattice laws (idempotence, associativity,
- * commutativity, distributivity, absorption).  The ref-returning @c
- * std::ranges::max /
- * @c std::ranges::min niebloids no longer carry any lattice-law registration
- * --- every carrier lattice-op site (defaults + concept template args across
- * @c :lattice / @c :mereology / @c :posetal / @c :total / @c :order) was
- * migrated to @c Sup / @c Inf, retiring the pre-existing niebloid blanket.
- * Reaching the strict monoid / bounded-lattice rung (@c IsClosedUnder needs @c
- * same_as<T>) may flip a carrier's bounded-lattice status (see #941 for @c
- * Chain<int>). The law blanket stays gated on the @c SupInfLattice certificate
- * (see
- * @c species__Lattice_Op_Gate above). */
-
-/** @brief Join @c ∨: the least upper bound on a chain (@c max), returned
- *  @b by value as an honest @c T @c × @c T @c → @c T. */
-export struct Sup {
-  /** @brief Value-returning join: returns @c max(a,b) by value (a copy of the
-   *  winner), never a reference into an argument. */
-  template <SupInfOperand T>
-  constexpr T operator()(const T& a, const T& b) const {
-    return a < b ? b : a;
-  }
-};
-/** @brief Meet @c ∧: the greatest lower bound on a chain (@c min), returned
- *  @b by value.  Value-returning sibling of @c Sup. */
-export struct Inf {
-  /** @brief Value-returning meet: returns @c min(a,b) by value (a copy of the
-   *  winner), never a reference into an argument. */
-  template <SupInfOperand T>
-  constexpr T operator()(const T& a, const T& b) const {
-    return a < b ? a : b;
-  }
-};
-
-// Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
-// retired the parallel std::ranges::max / min niebloid blanket); registered
-// here since the concepts are trait-gated (IsIdempotent / IsCommutative / ...
-// look up is_*_v, they are not structural).
-//
-// The SupInfLattice<T> gate is load-bearing, NOT decoration.  The trait check
-// never instantiates Sup/Inf, so an unconstrained blanket would certify laws
-// for types where the op is not even a usable value function or where the laws
-// fail:
-//   * non-totally_ordered / non-copyable T: Sup/Inf can't be called at all
-//     (e.g. is_commutative_v<void, Sup> would spuriously be true);
-//   * any carrier whose order contains NaN: raw double, but ALSO wrappers like
-//     std::optional<double> (totally_ordered + copyable + NOT floating_point),
-//     where max/min are non-commutative (Sup{}(NaN,x)=NaN vs Sup{}(x,NaN)=x).
-// SupInfLattice certifies POSITIVELY via the repo's total-order traits
-// (reflexive/transitive/antisymmetric under std::less_equal<T>) rather than a
-// negative !floating_point proxy: a genuine total order cannot contain NaN, so
-// double AND optional<double> --- which never register those traits --- are
-// both excluded, whereas integrals / scoped-enum chains register them and pass.
-// Without the gate this blanket would falsely certify
-// IsDistributiveLattice<double, ...> / <optional<double>, ...>, contradicting
-// the library's raw-float rejection.
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_idempotent_v<T, Sup> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_associative_v<T, Sup> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_commutative_v<T, Sup> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_idempotent_v<T, Inf> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_associative_v<T, Inf> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_commutative_v<T, Inf> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_distributive_v<T, Sup, Inf> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_distributive_v<T, Inf, Sup> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_absorptive_v<T, Sup, Inf> = true;
-template <typename T>
-  requires SupInfLattice<T>
-inline constexpr bool is_absorptive_v<T, Inf, Sup> = true;
-
-// Negative witnesses (co-located; :species is upstream of :total, so assert the
-// trait directly, not IsDistributiveLattice).
-// (1) Raw floats: NaN breaks max/min commutativity, so no double lattice.
-// Per-relation grouping is load-bearing: double satisfies the TYPED reflexive
-// leg (via the std::totally_ordered general is_reflexive spec) but neither the
-// typed transitive/antisymmetric legs nor any transparent leg, so it has NO
-// complete three-law certificate under either relation.  A law-by-law OR would
-// wrongly borrow the reflexive leg and admit it; the grouped OR does not.
-static_assert(is_reflexive_v<double, std::less_equal<double>> &&
-                  !is_transitive_v<double, std::less_equal<double>> &&
-                  !is_transitive_v<double, std::less_equal<>> &&
-                  !SupInfLattice<double>,
-              "per-relation gate: double has only the typed reflexive leg, no "
-              "complete order certificate under either relation, so it is "
-              "excluded");
-static_assert(!is_commutative_v<double, Sup>,
-              "raw floats rejected: NaN breaks max/min commutativity (no "
-              "double lattice carrier)");
-static_assert(!is_commutative_v<double, Inf>,
-              "raw floats rejected: NaN breaks max/min commutativity (no "
-              "double lattice carrier)");
-// (2) A float-CONTAINING wrapper: std::optional<double> is totally_ordered +
-// copyable + NOT floating_point, so a !floating_point proxy would have leaked
-// it in.  The positive certified-order gate excludes it (it registers the
-// transitive/antisymmetric order traits under NEITHER std::less_equal spelling)
-// --- this pins that the ORDER cert, not a type-category float check, is doing
-// the work.
-static_assert(SupInfOperand<std::optional<double>> &&
-                  !SupInfLattice<std::optional<double>>,
-              "optional<double> IS a usable Sup/Inf operand (ordered + "
-              "copyable) yet fails the certified-order gate --- so the ORDER "
-              "cert, not a !floating_point proxy, is what excludes it");
-static_assert(!is_commutative_v<std::optional<double>, Sup>,
-              "float-containing wrappers rejected: optional<double>'s order "
-              "contains NaN, so it is not a lattice carrier");
-// (3) Non-usable carriers: the trait check never instantiates Sup/Inf, so
-// without SupInfLattice a type on which the op cannot even be called (not
-// totally_ordered / not copy_constructible --- here void) would be spuriously
-// certified.
-static_assert(!is_commutative_v<void, Sup>,
-              "SupInfLattice gate: a non-usable carrier (void: neither ordered "
-              "nor copyable) is not a Sup/Inf lattice carrier");
-// Positive-preserved witness: every usable non-float ordered carrier keeps the
-// laws (int and the scoped-enum Ternary carrier alike).
-static_assert(SupInfLattice<int> && is_commutative_v<int, Sup> &&
-                  is_idempotent_v<int, Inf>,
-              "int (and every SupInfLattice carrier) keeps the Sup/Inf lattice "
-              "laws");
 
 /** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 

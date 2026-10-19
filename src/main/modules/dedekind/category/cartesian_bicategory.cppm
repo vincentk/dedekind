@@ -50,7 +50,7 @@ import :morphism;    // IsArrow, Dom, Cod, Identity
 import :adjunction;  // IsGaloisConnection (F left-adjoint-to G in a poset)
 import :posetal;     // IsPosetal (thin cat); is_monotone_v / IsMonotone
 import :limit;       // One (terminal object), π_1 / π_2, IsProduct
-import :species;     // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
+import :mereology;   // Inf / Sup: the injected value-level glb / lub (∧ / ∨)
 import :logic;       // Ternary (Kleene K₃, the 3-chain carrier witness)
 import :lattice;     // Meet AST node + MakeMeet: the meet-trichotomy witness
 import :cartesian;   // Injections: the sum's named ι_1 / ι_2
