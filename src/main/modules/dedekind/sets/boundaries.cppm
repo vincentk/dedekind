@@ -47,8 +47,9 @@ module;
 #include <cstdint>  // u64, the machine word
 #include <functional>
 #include <limits>
-#include <ranges>   // std::ranges::range (emptiness-by-size overload)
-#include <utility>  // std::pair (Ø × S cartesian-product return type)
+#include <ranges>       // std::ranges::range (emptiness-by-size overload)
+#include <type_traits>  // std::remove_cvref_t: the legs of a product carrier
+#include <utility>      // std::pair (Ø × S cartesian-product return type)
 
 export module dedekind.sets:boundaries;
 
@@ -257,17 +258,24 @@ struct default_cardinality<bool> {
 export template <typename T>
 using default_cardinality_t = typename default_cardinality<T>::type;
 
-/** @brief A carrier that is a @c std::pair: a set over it is a binary
- *  relation, and answers @c r(a, @c b) as @c r({a, @c b}) (#1047).  The
- *  pair only: other @c IsProduct carriers (@c Rational, @c Complex) are
- *  values in their own right, not tuples to be taken apart. */
+/** @brief The legs of a product carrier: the types @c π_1 and @c π_2 return.
+ *  @tparam D the carrier. */
 export template <typename D>
-concept IsPairCarrier =
-    requires {
-      typename D::first_type;
-      typename D::second_type;
-    } &&
-    std::same_as<D, std::pair<typename D::first_type, typename D::second_type>>;
+using leg_1_t = std::remove_cvref_t<decltype(dedekind::category::π_1(
+    std::declval<const D&>()))>;
+export template <typename D>
+using leg_2_t = std::remove_cvref_t<decltype(dedekind::category::π_2(
+    std::declval<const D&>()))>;
+
+/** @brief A carrier that is the product of its two legs and is built from
+ *  them (the pairing ⟨a, b⟩): a set over it answers @c r(a, @c b) as
+ *  @c r(⟨a, b⟩) (#1047).  @c IsProduct, plus construction from the legs:
+ *  @c std::pair, @c Complex (ℂ ≅ ℝ×ℝ) and @c Rational (the pairing then the
+ *  quotient ℤ×ℤ → ℚ, so @c r(n, @c d) asks whether n/d is a member).
+ *  @tparam D the carrier. */
+export template <typename D>
+concept IsPairing = dedekind::category::IsProduct<D, leg_1_t<D>, leg_2_t<D>> &&
+                    std::constructible_from<D, leg_1_t<D>, leg_2_t<D>>;
 
 /**
  * @struct 𝔸
@@ -374,12 +382,12 @@ struct 𝔸 final {
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
-  /** @brief χ on the components: over a pair carrier the universe is the full
-   *  relation, @c r(a, @c b) @c = @c r({a, @c b}) (#1047). */
+  /** @brief χ on the components: over a product carrier the universe is the
+   *  full relation, @c r(a, @c b) @c = @c r(⟨a, b⟩) (#1047). */
   template <typename D = T>
-    requires IsPairCarrier<D>
-  constexpr typename L::Ω operator()(const typename D::first_type&,
-                                     const typename D::second_type&) const {
+    requires IsPairing<D>
+  constexpr typename L::Ω operator()(const leg_1_t<D>&,
+                                     const leg_2_t<D>&) const {
     return L::True;
   }
 
