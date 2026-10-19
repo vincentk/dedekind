@@ -35,6 +35,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>  // std::size_t: the walk budget
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
@@ -401,17 +402,43 @@ export struct Inf {
   }
 };
 
-/** @brief Reflexivity, stated once for every relation on a finite enumerated
- *  chain: an enum with a step (@c successor, found by argument-dependent
- *  lookup) and a least and a greatest value (the identities of @c Sup and
- *  @c Inf).  For such a carrier the certificate @c IsReflexive reads @b is the
- *  law, @c reflexive_on along the whole chain, for @c ≤, @c ≥, @c ==, or any
- *  stateless relation on it: decided, never registered per operator.  Enums
- *  only, so the walk is short by construction (a machine word is a chain too,
- *  but 2⁶⁴ steps is no compile-time decision). */
+/** @brief The walk budget of a discrete bounded chain: a chain is decided
+ *  only when its top is reached from its bottom within this many steps (a
+ *  machine word is a discrete bounded chain too, but 2⁶⁴ steps is no
+ *  compile-time decision). */
+inline constexpr std::size_t chain_walk_budget = 1024;
+
+/** @brief Whether @c hi is reached from @c lo by the carrier's @c successor
+ *  within @c budget steps (the top, a fixpoint of the step, short of @c hi
+ *  means it is not). */
+template <typename T>
+constexpr bool chain_reaches(T lo, const T& hi, std::size_t budget) {
+  for (std::size_t n = 0; n <= budget; ++n) {
+    if (lo == hi) return true;
+    const T next = successor(lo);
+    if (next == lo) return false;
+    lo = next;
+  }
+  return false;
+}
+
+/** @brief Reflexivity, stated once for every relation on a discrete bounded
+ *  chain: a carrier with a step (@c successor, found by argument-dependent
+ *  lookup, as for @c HasNNOStep) and a least and a greatest value (the
+ *  identities of @c Sup and @c Inf), the top reached from the bottom within
+ *  @c chain_walk_budget.  For such a carrier the certificate @c IsReflexive
+ *  reads @b is the law, @c reflexive_on along the whole chain, for @c ≤,
+ *  @c ≥, @c ==, or any stateless relation on it: decided, never registered
+ *  per operator.  A longer chain gets no certificate from here (uncertified,
+ *  not refuted).
+ *  @note The step must be the chain's @b cover, so that the walk from the
+ *  bottom visits every value: that is what makes the chain discrete, and it
+ *  is the carrier's obligation, not checked here.  A carrier that answers
+ *  through its own member keeps that answer. */
 template <typename T, typename Rel>
   requires(
-      std::is_enum_v<T> && std::default_initializable<Rel> &&
+      std::default_initializable<Rel> &&
+      !requires { T::template is_reflexive_v<Rel>; } &&
       requires {
         identity_v<T, Sup>;
         identity_v<T, Inf>;
@@ -419,10 +446,48 @@ template <typename T, typename Rel>
       requires(const Rel& r, const T& x) {
         { r(x, x) } -> std::convertible_to<bool>;
         { successor(x) } -> std::convertible_to<T>;
-      })
+        { x == x } -> std::convertible_to<bool>;
+      } &&
+      chain_reaches(identity_v<T, Sup>, identity_v<T, Inf>, chain_walk_budget))
 struct is_reflexive<T, Rel>
     : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
                                       identity_v<T, Inf>)> {};
+
+namespace detail_mereology {
+/** @brief A discrete bounded chain of @c N values that is no enum: a class
+ *  with a cover step and two bounds, nothing registered about its relations.
+ */
+template <int N>
+struct Dial {
+  int v;
+  friend constexpr auto operator<=>(const Dial&, const Dial&) = default;
+  friend constexpr Dial successor(Dial d) {
+    return {d.v < N - 1 ? d.v + 1 : d.v};
+  }
+};
+}  // namespace detail_mereology
+template <int N>
+struct identity_trait<detail_mereology::Dial<N>, Sup> {
+  static constexpr detail_mereology::Dial<N> value{0};
+};
+template <int N>
+struct identity_trait<detail_mereology::Dial<N>, Inf> {
+  static constexpr detail_mereology::Dial<N> value{N - 1};
+};
+static_assert(
+    IsReflexive<detail_mereology::Dial<4>,
+                std::less_equal<detail_mereology::Dial<4>>> &&
+        IsReflexive<detail_mereology::Dial<4>,
+                    std::equal_to<detail_mereology::Dial<4>>> &&
+        !IsReflexive<detail_mereology::Dial<4>,
+                     std::less<detail_mereology::Dial<4>>>,
+    "a 4-value chain that is no enum: ≤ and == decided reflexive, < refuted, "
+    "by the one law");
+static_assert(
+    !IsReflexive<detail_mereology::Dial<5000>,
+                 std::less_equal<detail_mereology::Dial<5000>>>,
+    "a chain longer than the walk budget gets no certificate from the law "
+    "(uncertified, not refuted)");
 
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered

@@ -1202,7 +1202,7 @@ static_assert(identity_v<Ternary, Inf> == Ternary::True,
  *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
  *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
  *  review), so this explicit registration is what makes @c Ternary posetal. */
-// Reflexivity is not registered here: K₃ is a finite enumerated chain (its
+// Reflexivity is not registered here: K₃ is a discrete bounded chain (its
 // step above, its bounds the identities of Sup / Inf), so the law decides it
 // for every relation on K₃ (:mereology, reflexive_on along the chain).
 template <>
