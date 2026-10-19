@@ -669,12 +669,17 @@ dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
   }
   return P::top();
 }
-/** @brief χ at a row of the columns, in K₃: the verdict of the predicate
- *  reading within the relation's budget. */
+/** @brief χ at a row of the columns, in K₃: the predicate reading with every
+ *  quantifier an atom defines eliminated first (the fusion law), the rest
+ *  searched within the relation's budget.  The one χ: Python binds this. */
 export template <typename K, typename... Cs>
 dedekind::category::Ternary verdict(
     const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
-  return dedekind::sets::verdict(predicate_of(r), row, r.budget);
+  using Point = typename RelExpr<K, Cs...>::Point;
+  return dedekind::sets::verdict(
+      dedekind::sets::eliminate_quantifiers<Point>(
+          predicate_of(r), dedekind::sets::NoConstants{}, r.rep()),
+      row, r.budget);
 }
 /** @brief The term of a relation certified a function of its first @c n − 1
  *  columns: a quantifier-free graph atom @c π_n @c == @c t(π_1 … π_{n−1})

@@ -796,7 +796,7 @@ RPred canonical(const Relation& r) {
  *  as written: what the function certificate reads (a normal form would
  *  rewrite the graph atom π_n == t into π_n − t == 0). */
 RPred certifiable(const Relation& r) {
-  return dedekind::algebra::eliminate_quantifiers<Cells>(
+  return dedekind::sets::eliminate_quantifiers<Cells>(
       pinned<Cells>(predicate_of(r), r.rep()), TypedConstant{}, r.rep());
 }
 RPred column_member(std::size_t sort, const RTerm& t) {
@@ -1046,11 +1046,10 @@ std::optional<Cells> row_in(const Relation& r, nb::handle h) {
     return std::nullopt;  // not a value of the column's carrier
   }
 }
-/** @brief χ at a row, in K₃: the verdict of the predicate with its
- *  quantifiers eliminated where they can be, so a middle every atom defines
- *  is decided and only the rest is searched, within the budget. */
+/** @brief χ at a row, in K₃: the relation's own verdict
+ *  (@c relational::verdict), the one χ C++ and Python share. */
 Ternary verdict_at(const Relation& r, const Cells& row) {
-  return dedekind::sets::verdict(certifiable(r), row, r.budget);
+  return dedekind::relational::verdict(r, row);
 }
 bool row_holds(const Relation& r, nb::handle h) {
   const std::optional<Cells> row = row_in(r, h);

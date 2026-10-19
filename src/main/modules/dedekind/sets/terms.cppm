@@ -2182,6 +2182,136 @@ std::optional<Definition<K>> defining_term(const Pred<K>& p, unsigned slot,
   return std::nullopt;
 }
 
+/** @brief No carrier value as a constant: the lift that names nothing, so
+ *  @c eliminate_quantifiers eliminates by definition alone and leaves every
+ *  quantifier over a chain to the search. */
+export struct NoConstants {};
+/** @brief The values of a finite chain as constants, through @c lift: the
+ *  cases of Shannon's expansion; none for any other carrier. */
+template <typename K, typename Lift>
+struct ChainValues {
+  const Lift& lift;
+  template <typename C>
+  std::vector<dedekind::sets::Term<K>> operator()(std::type_identity<C>) const {
+    std::vector<dedekind::sets::Term<K>> out;
+    if constexpr (dedekind::category::IsPst<C> && requires(const C& c) {
+                    { lift(c) } -> std::convertible_to<K>;
+                  }) {
+      for (C v = identity_v<C, Sup>;;
+           v = dedekind::category::Successor<C>{}(v)) {
+        out.push_back(dedekind::sets::Term<K>::constant(lift(v)));
+        if (v == identity_v<C, Inf>) break;
+      }
+    }
+    return out;
+  }
+};
+/** @brief The slots above an eliminated bound slot, moved down by one. */
+template <typename K>
+struct ShiftDown {
+  unsigned above;
+  dedekind::sets::Term<K> operator()(unsigned s) const {
+    return dedekind::sets::Term<K>::proj(s > above ? s - 1 : s);
+  }
+};
+/** @brief A definition of the slot found through a block of quantifiers of
+ *  the same kind (which commute): the defining atom's term, free of the
+ *  slots those quantifiers bind, and the block with that atom removed. */
+template <typename K>
+std::optional<dedekind::sets::Definition<K>> defined_through(
+    const dedekind::sets::Pred<K>& q, unsigned slot, bool universal,
+    unsigned bound) {
+  using Pr = dedekind::sets::Pred<K>;
+  if (q.quantifier() && (q.kind == Pr::Kind::Forall) == universal) {
+    const unsigned bit =
+        q.slot < std::numeric_limits<unsigned>::digits ? 1u << q.slot : 0u;
+    if (auto d = defined_through(*q.p, slot, universal, bound | bit))
+      return dedekind::sets::Definition<K>{d->term, Pr::bound_like(q, d->rest)};
+    return std::nullopt;
+  }
+  auto d = dedekind::sets::defining_term(q, slot, universal);
+  if (d && (dedekind::sets::slots(d->term) & bound) == 0u) return d;
+  return std::nullopt;
+}
+/** @brief The predicate with every quantifier eliminated that can be, the
+ *  atoms left as written: innermost first, by substitution where an atom
+ *  defines the bound column (a conjunct @c π_h @c == @c t under @c ∃, a
+ *  disjunct @c π_h @c != @c t under @c ∀: the fusion law), else by Shannon's
+ *  expansion over a finite chain (@c ∨ under @c ∃, @c ∧ under @c ∀).  A
+ *  quantifier over an infinite carrier no atom defines is kept, as is one
+ *  over a chain whose values @c lift cannot name (@c NoConstants: by
+ *  definition only).  Read on the
+ *  predicate as written (pinned, conditionals not lifted): normalising an
+ *  atom first would turn the defining shape @c π_h @c == @c t into
+ *  @c π_h @c − @c t @c == @c 0.  @tparam P the point type.  @param p the
+ *  predicate.  @param lift a value into a constant that names its sort.
+ *  @param rep a point of @c P. */
+export template <typename P, typename K, typename Lift>
+dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
+                                              const Lift& lift,
+                                              const P& rep = P{}) {
+  using Pr = dedekind::sets::Pred<K>;
+  switch (p.kind) {
+    case Pr::Kind::Top:
+    case Pr::Kind::Bottom:
+    case Pr::Kind::Cmp:
+      return p;
+    case Pr::Kind::And:
+      return Pr::conj(eliminate_quantifiers<P>(*p.p, lift, rep),
+                      eliminate_quantifiers<P>(*p.q, lift, rep));
+    case Pr::Kind::Or:
+      return Pr::disj(eliminate_quantifiers<P>(*p.p, lift, rep),
+                      eliminate_quantifiers<P>(*p.q, lift, rep));
+    case Pr::Kind::Exists:
+    case Pr::Kind::Forall: {
+      const bool universal = p.kind == Pr::Kind::Forall;
+      // Once the bound slot is gone, the quantifiers inside it bind one slot
+      // lower: every slot above it moves down (the next-slot invariant).
+      const auto unbound_raw = [&](const Pr& q) {
+        return q.map_slots(ShiftDown<K>{p.slot});
+      };
+      // A definition first, looked for through the inner quantifiers of the
+      // same kind (they commute): substituting before an inner one is
+      // expanded keeps the defining atom at the top of its connective.
+      // A definition substitutes only a term that lands in the bound column's
+      // carrier: ∃b ∈ 𝔹. b == t has a witness only where t is a value of 𝔹
+      // (a K₃ term may be U); 𝔹 ↪ K₃ the other way is fine.
+      const auto lands = [&](const dedekind::sets::Term<K>& t) {
+        const std::size_t s = dedekind::sets::sort_of<P>(t, rep);
+        return s == dedekind::sets::no_sort ||
+               dedekind::sets::sort_embeds<P>(s, p.sort);
+      };
+      if (auto d = defined_through(*p.p, p.slot, universal, 0u);
+          d && lands(d->term))
+        return eliminate_quantifiers<P>(
+            unbound_raw(d->rest.subst(p.slot, d->term)), lift, rep);
+      const Pr body = eliminate_quantifiers<P>(
+          *p.p, lift, dedekind::sets::with_bound(rep, p.sort));
+      // Once the bound slot is gone, the quantifiers inside it bind one slot
+      // lower: every slot above it moves down (the next-slot invariant).
+      const auto unbound = [&](const Pr& q) {
+        return q.map_slots(ShiftDown<K>{p.slot});
+      };
+      if (auto d = dedekind::sets::defining_term(body, p.slot, universal);
+          d && lands(d->term))
+        return eliminate_quantifiers<P>(unbound(d->rest.subst(p.slot, d->term)),
+                                        lift, rep);
+      const auto cases =
+          dedekind::sets::with_sort<P>(p.sort, ChainValues<K, Lift>{lift});
+      if (!cases.empty()) {
+        Pr all = body.subst(p.slot, cases.front());
+        for (std::size_t i = 1; i < cases.size(); ++i) {
+          const Pr next = body.subst(p.slot, cases[i]);
+          all = universal ? Pr::conj(all, next) : Pr::disj(all, next);
+        }
+        return eliminate_quantifiers<P>(unbound(all), lift, rep);
+      }
+      return Pr::bound_like(p, body);
+    }
+  }
+  return p;
+}
+
 /** @brief Whether a mask names only slots among @c π_1 … @c π_{n−1}, the
  *  arguments of a graph whose result is @c π_n.  @param mask the slots.
  *  @param n the result slot. */

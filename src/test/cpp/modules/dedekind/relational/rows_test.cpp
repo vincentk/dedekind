@@ -73,10 +73,11 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 3);  // the next slot past the two columns
   CHECK(p.sort == word);
-  // The bounded search: a witness m = 4 for (3, 5); none for (3, 6) within
-  // the budget, so U, never ⊥.
+  // ∃m. m = a + 1 ∧ c = m + 1: the atom defines m, so the verdict eliminates
+  // the ∃ (c = a + 1 + 1) and refutes (3, 6) outright: ⊥, not U.  The
+  // reading keeps the ∃ as written.
   CHECK(verdict(two, R{{3u, 5u}}) == Ternary::True);
-  CHECK(verdict(two, R{{3u, 6u}}) == Ternary::Unknown);
+  CHECK(verdict(two, R{{3u, 6u}}) == Ternary::False);
   CHECK(function_term(two, p) == nullptr);  // not quantifier-free as read
   // A quantifier is found in a conditional's guard, too.
   CHECK(has_quantifier(
