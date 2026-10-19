@@ -46,10 +46,10 @@ module;
 export module dedekind.category:cartesian;
 
 import :logic;
+import :equivalence;  // IsEquivalence, IsSymmetric, IsEquality
 import :limit;
 import :mereology;
 import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
-import :species;
 
 namespace dedekind::category {
 
@@ -594,12 +594,14 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //
 //   | property           | trait                       | located in       |
 //   |--------------------|-----------------------------|------------------|
-//   | reflexive          | @c is_reflexive_v<T, Op>    | @c :mereology    |
-//   | transitive         | @c is_transitive_v<T, Op>   | @c :mereology    |
-//   | antisymmetric      | @c is_antisymmetric_v<T, Op>| @c :mereology    |
+//   | reflexive          | @c is_reflexive_v<T, Rel>   | @c :mereology    |
+//   | transitive         | @c is_transitive_v<T, Rel>  | @c :mereology    |
+//   | antisymmetric      | @c is_antisymmetric_v<T,Rel>| @c :mereology    |
+//   | connex             | @c is_connex_v<T, Rel>      | @c :mereology    |
+//   | symmetric          | @c is_symmetric_v<T, Rel>   | @c :equivalence  |
+//   | equality (Δ)       | @c is_equality_v<T, Rel>    | @c :equivalence  |
 //   | left-total         | @c is_left_total_v<R>       | @b :cartesian    |
 //   | right-unique       | @c is_right_unique_v<R>     | @b :cartesian    |
-//   | symmetric          | (filed for follow-up)       | @c :mereology    |
 //
 // Compositions (as a wider taxonomy across the project):
 //
@@ -861,61 +863,6 @@ constexpr To lift(From const&) {
 // ---------------------------------------------------------------------------
 
 /**
- * @brief User-declared reflexivity witness for a binary relation.
- * @details Reflexivity: @c R(a, @c a) holds for every @c a.  Cannot be
- *          checked at compile time in general; opt-in.  Sibling to
- *          @c :mereology's @c is_reflexive_v<T, Op> (which is keyed on
- *          a binary @b operation, not a binary @b relation).
- */
-export template <typename R>
-inline constexpr bool is_reflexive_relation_v = false;
-
-/**
- * @brief User-declared symmetry witness for a binary relation.
- * @details Symmetry: @c R(a, @c b) implies @c R(b, @c a).  Combined
- *          with reflexivity and transitivity, characterises an
- *          @b equivalence @b relation; combined with @c IsBinaryRelation
- *          on a homogeneous @c V @c × @c V, characterises an
- *          @b undirected @b graph.
- */
-export template <typename R>
-inline constexpr bool is_symmetric_relation_v = false;
-
-/**
- * @brief User-declared antisymmetry witness for a binary relation.
- * @details Antisymmetry: @c R(a, @c b) and @c R(b, @c a) imply @c a
- *          @c == @c b.  Combined with reflexivity and transitivity,
- *          characterises a @b partial @b order.  Sibling to
- *          @c :mereology's @c is_antisymmetric_v<T, Op>.
- */
-export template <typename R>
-inline constexpr bool is_antisymmetric_relation_v = false;
-
-/**
- * @brief User-declared transitivity witness for a binary relation.
- * @details Transitivity: @c R(a, @c b) and @c R(b, @c c) imply
- *          @c R(a, @c c).  Sibling to @c :mereology's
- *          @c is_transitive_v<T, Op>.
- */
-export template <typename R>
-inline constexpr bool is_transitive_relation_v = false;
-
-/**
- * @concept IsEquivalenceRelation
- * @brief A homogeneous binary relation @c R @c ⊆ @c V @c × @c V is an
- *        @b equivalence @b relation when reflexive, symmetric, and
- *        transitive.
- * @details Combines @c IsBinaryRelation<R, V, V> with the three opt-in
- *          honesty traits.  Canonical witness: @c std::equal_to<V>
- *          (registered below for @c V @c = @c int as the existential
- *          proof).
- */
-export template <typename R, typename V>
-concept IsEquivalenceRelation =
-    IsBinaryRelation<R, V, V> && is_reflexive_relation_v<R> &&
-    is_symmetric_relation_v<R> && is_transitive_relation_v<R>;
-
-/**
  * @concept IsDirectedGraph
  * @brief A homogeneous binary relation @c R @c ⊆ @c V @c × @c V on a
  *        vertex set @c V is a @b directed @b graph: each ordered pair
@@ -934,52 +881,14 @@ concept IsDirectedGraph = IsBinaryRelation<R, V, V>;
  *        symmetric: @c R(u, @c v) iff @c R(v, @c u).
  */
 export template <typename R, typename V>
-concept IsUndirectedGraph = IsDirectedGraph<R, V> && is_symmetric_relation_v<R>;
+concept IsUndirectedGraph = IsDirectedGraph<R, V> && IsSymmetric<V, R>;
 
-// ---------------------------------------------------------------------------
-// Canonical existential-proof witness: std::equal_to<V> is the equivalence
-// relation on V — but ONLY for integral V.  Floating-point @c V breaks
-// reflexivity (NaN @c == @c NaN is false under IEEE 754); user-defined
-// types may have an @c operator== that violates equivalence laws (the
-// project trusts only what it verifies, and it has not verified
-// arbitrary user-defined equality).  The constraint is therefore
-// @c std::integral<V>; equality on integral types is a true equivalence
-// (no NaN, no overflow-induced asymmetry).  Floating-point and user-
-// defined V are NOT registered here; downstream callers that want
-// structural-equivalence treatment for those carriers register their
-// own opt-in traits site-locally.
-// ---------------------------------------------------------------------------
-template <std::integral V>
-inline constexpr bool is_reflexive_relation_v<std::equal_to<V>> = true;
-template <std::integral V>
-inline constexpr bool is_symmetric_relation_v<std::equal_to<V>> = true;
-template <std::integral V>
-inline constexpr bool is_transitive_relation_v<std::equal_to<V>> = true;
-
-static_assert(IsBinaryRelation<std::equal_to<int>, int, int>,
-              "std::equal_to<int> is a binary relation on int × int.");
-static_assert(IsEquivalenceRelation<std::equal_to<int>, int>,
-              "std::equal_to<int> is the canonical equivalence relation: "
-              "reflexive, symmetric, transitive.");
-static_assert(IsDirectedGraph<std::equal_to<int>, int>,
-              "Every binary relation on V × V is a directed graph "
-              "structurally; std::equal_to<int> is the trivial loop graph.");
-static_assert(IsUndirectedGraph<std::equal_to<int>, int>,
-              "std::equal_to<int> is symmetric, hence an undirected graph.");
-
-// Negative witness: std::equal_to<double> is NOT registered as
-// reflexive (NaN == NaN is false under IEEE 754), so it does not
-// fire IsEquivalenceRelation.  Pinned mechanically so the policy
-// is type-checked, not just commentary.
-static_assert(!is_reflexive_relation_v<std::equal_to<double>>,
-              "std::equal_to<double> is NOT reflexive (NaN == NaN is false "
-              "under IEEE 754); the integral-only constraint above prevents "
-              "the floating-point specialisation from firing.");
-static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
-              "std::equal_to<double> is therefore NOT registered as an "
-              "equivalence relation; downstream callers needing structural "
-              "equivalence on double must opt-in site-locally with a NaN-"
-              "exclusion clause.");
+// Equality on V × V is structurally an undirected graph: the loops.
+static_assert(IsDirectedGraph<std::equal_to<int>, int> &&
+                  IsUndirectedGraph<std::equal_to<int>, int>,
+              "== on int is a symmetric relation: the undirected loop graph");
+static_assert(!IsUndirectedGraph<std::equal_to<double>, double>,
+              "== on double is not certified symmetric (no equality: NaN)");
 
 // ---------------------------------------------------------------------------
 // Congruence (universal-algebra anchor — #718 Slice 0).
@@ -1007,7 +916,7 @@ static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
  * @details A congruence is an equivalence relation preserved by @c Op:
  *          @c R(x, x') @c ∧ @c R(y, y') @c ⇒ @c R(Op(x, y), @c Op(x', y')).
  *          The full congruence definition is then
- *          @c IsEquivalenceRelation<R, T> @c ∧ @c is_congruence_v<R, T, Op>.
+ *          @c IsEquivalence<T, R> @c ∧ @c is_congruence_v<R, T, Op>.
  *          Cannot be checked at compile time in general; opt-in.
  *
  * Single-operation form.  Multi-op congruences for ring-flavoured
@@ -1023,7 +932,7 @@ inline constexpr bool is_congruence_v = false;
  *        @b congruence w.r.t.\ operation @c Op when it is an
  *        equivalence relation and respects @c Op.
  *
- * @details Stratifies @c IsEquivalenceRelation by the operation that
+ * @details Stratifies @c IsEquivalence by the operation that
  *          must be respected: every congruence is an equivalence
  *          relation, but not every equivalence relation is a congruence
  *          (a textbook foil: @c |x| @c = @c |y| on @c ℤ is an
@@ -1051,68 +960,44 @@ inline constexpr bool is_congruence_v = false;
  * obligation.
  */
 export template <typename R, typename V, typename Op>
-concept IsCongruence =
-    IsEquivalenceRelation<R, V> && is_congruence_v<R, V, Op> &&
-    requires(const V& v, const Op& op) {
-      { op(v, v) } -> std::convertible_to<V>;
-    };
+concept IsCongruence = IsEquivalence<V, R> && is_congruence_v<R, V, Op> &&
+                       requires(const V& v, const Op& op) {
+                         { op(v, v) } -> std::convertible_to<V>;
+                       };
 
 // ---------------------------------------------------------------------------
-// Canonical positive witnesses: std::equal_to<V> is a congruence on
-// integral V w.r.t.\ the std-lib binary operations registered below
-// (plus / multiplies / minus / bit_or / bit_and / bit_xor).
-//
-// Reasoning: equality is the smallest equivalence relation on V; if
-// x == x' and y == y' then Op(x, y) is the same computation as
-// Op(x', y') by referential transparency, so Op(x, y) == Op(x', y').
-// This argument extends to any well-defined Op on integral V; the
-// finite registered list reflects the project's std-lib opt-in
-// discipline (downstream callers opt-in for further Ops or custom
-// callables site-locally), not a constraint on which Ops the
-// argument applies to.
-//
-// The integral constraint mirrors the upstream IsEquivalenceRelation
-// gate (via is_reflexive_relation_v / is_symmetric_relation_v /
-// is_transitive_relation_v) that excludes NaN-on-float pathology for
-// std::equal_to.
+// Equality is a congruence for every operation (Leibniz): if x = x' and
+// y = y', then Op(x, y) and Op(x', y') are the same computation on the same
+// values.  Derived from the equality certificate, for every Op at once.  Two
+// conditions carry it: == is the diagonal (identity of values, not a coarser
+// equivalence that Op could see through, as -0.0 == +0.0 is to 1/x), and Op
+// is a function of values (pure, the Juliet posture of every arrow).  Any
+// other equivalence (≡ mod N, tail-equivalence, cosets of a subgroup) is a
+// congruence only where proved, operation by operation.
 // ---------------------------------------------------------------------------
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::plus<V>> = true;
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::multiplies<V>> =
-    true;
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::minus<V>> =
-    true;
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_or<V>> =
-    true;
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_and<V>> =
-    true;
-template <std::integral V>
-inline constexpr bool is_congruence_v<std::equal_to<V>, V, std::bit_xor<V>> =
-    true;
+template <typename R, typename V, typename Op>
+  requires is_equality_v<V, R>
+inline constexpr bool is_congruence_v<R, V, Op> = true;
 
 static_assert(IsCongruence<std::equal_to<int>, int, std::plus<int>>,
               "std::equal_to<int> is a congruence w.r.t. + on int: "
-              "equality is preserved by + via referential transparency "
-              "(and similarly for the other std-lib binary ops "
-              "registered above).");
+              "equality is preserved by every operation (Leibniz).");
 static_assert(IsCongruence<std::equal_to<int>, int, std::multiplies<int>>,
               "std::equal_to<int> is a congruence w.r.t. * on int.");
+static_assert(IsCongruence<std::equal_to<>, int, std::plus<int>>,
+              "the transparent == on int is equality too: a congruence "
+              "for every operation");
 static_assert(
     IsCongruence<std::equal_to<unsigned>, unsigned, std::bit_or<unsigned>>,
     "std::equal_to<unsigned> is a congruence w.r.t. bitwise OR.");
 
-// Negative witness: std::equal_to<double> is not an equivalence relation
-// (NaN == NaN is false under IEEE 754), so it cannot be a congruence
-// for any operation — IsEquivalenceRelation is the upstream gate.
+// Negative witness: std::equal_to<double> is no equality and no equivalence
+// (NaN == NaN is false under IEEE 754), so it is a congruence for no
+// operation.
 static_assert(!IsCongruence<std::equal_to<double>, double, std::plus<double>>,
               "std::equal_to<double> is not an equivalence relation under "
               "IEEE 754 (NaN-on-reflexivity); therefore not a congruence "
-              "for any operation.  Honest-Rejection inherited from "
-              "IsEquivalenceRelation upstream.");
+              "for any operation.");
 
 // ---------------------------------------------------------------------------
 // operator[] — eval / CCC counit (#531, step 1).

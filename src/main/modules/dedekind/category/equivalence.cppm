@@ -70,12 +70,13 @@ module;
 #include <concepts>
 #include <functional>
 #include <type_traits>
+#include <utility>  // std::pair: Δ_A × Δ_B = Δ_{A×B}
 
 export module dedekind.category:equivalence;
 
 import :morphism;
-import :species;  // is_reflexive_v / is_transitive_v / IsReflexive /
-                  // IsTransitive
+import :mereology;  // is_reflexive_v / is_transitive_v / IsReflexive /
+                    // IsTransitive
 
 namespace dedekind::category {
 
@@ -98,7 +99,7 @@ namespace dedekind::category {
  *        (∀x, y: @c Rel(x, @c y) @c ⇔ @c Rel(y, @c x)).
  *
  * @details Default @c false; specialise to @c true to declare symmetry.
- * Follows the same shape as @c :species's @c is_reflexive /
+ * Follows the same shape as @c :mereology's @c is_reflexive /
  * @c is_transitive: a class template specialised by partial
  * specialisation, with a member-detection bridge from @c T's nested
  * @c is_symmetric_v static.
@@ -120,7 +121,7 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  * @concept IsSymmetric
  * @brief @b Formal verification: @c Rel(a, @c b) @c ⇔ @c Rel(b, @c a).
  *
- * Mirrors @c IsReflexive / @c IsTransitive in @c :species: structural
+ * Mirrors @c IsReflexive / @c IsTransitive in @c :mereology: structural
  * shape (@c Rel{} is callable on the symmetric pair) plus the
  * engineer-supplied trait declaration.
  */
@@ -131,36 +132,78 @@ concept IsSymmetric = requires(T a, T b) {
 } && requires { requires is_symmetric_v<T, Rel>; };
 
 // ---------------------------------------------------------------------------
-// std::equal_to<T> as the canonical equivalence relation on integral
-// (non-floating-point) carriers.
+// Equality: one certificate, the equivalence laws derived.
 // ---------------------------------------------------------------------------
-//
-// std::equal_to<T> is the project's canonical equivalence relation on any
-// std::regular T whose == is bit-perfect: reflexive, symmetric, and
-// transitive by the std::regular contract.  We deliberately exclude
-// floating-point carriers here because IEEE-754 NaN breaks reflexivity
-// (NaN == NaN is false), so std::equal_to<double> is NOT a textbook
-// equivalence relation despite double being std::regular.  The Mazur-
-// equivalence escape hatch (#591) is the right home for the floating-
-// point case; ε-equivalence rather than == is the operative relation
-// there.
-//
-// The integral constraint matches the policy in @c category:cartesian
-// (which anchors integral-only registrations on the same axis).  Pin
-// all three traits via partial specialisation so the canonical integral
-// case fires without per-carrier opt-in.
+
+/**
+ * @brief Trait: @c Rel on @c T @b is equality, the diagonal Δ: @c Rel(a, b)
+ *        holds iff @c a and @c b are the same value.
+ *
+ * @details Stronger than an equivalence: it is the finest one, and the one
+ * under which every function respects its arguments (Leibniz: substituting
+ * equals for equals changes no result).  So it is not implied by
+ * @c std::regular<T>: @c double is regular, yet @c NaN @c == @c NaN is false
+ * (no equivalence at all) and @c -0.0 @c == @c +0.0 while
+ * @c 1/(-0.0) @c != @c 1/(+0.0) (an equivalence, but not the diagonal).
+ * A type whose @c == compares a representation coarser than its values is in
+ * the same position.  Certified for the built-in integral types and @c bool;
+ * a product inherits it from its factors (Δ_A × Δ_B = Δ_{A×B}); any other
+ * carrier registers its own.
+ */
+export template <typename T, typename Rel>
+struct is_equality : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_equality_v<Rel>; }
+struct is_equality<T, Rel>
+    : std::bool_constant<T::template is_equality_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_equality_v = is_equality<T, Rel>::value;
 
 template <typename T>
-  requires std::regular<T> && (!std::floating_point<T>)
-struct is_reflexive<T, std::equal_to<T>> : std::true_type {};
-
+  requires std::is_integral_v<T>
+struct is_equality<T, std::equal_to<T>> : std::true_type {};
 template <typename T>
-  requires std::regular<T> && (!std::floating_point<T>)
-struct is_symmetric<T, std::equal_to<T>> : std::true_type {};
+  requires std::is_integral_v<T>
+struct is_equality<T, std::equal_to<>> : std::true_type {};
 
-template <typename T>
-  requires std::regular<T> && (!std::floating_point<T>)
-struct is_transitive<T, std::equal_to<T>> : std::true_type {};
+template <typename A, typename B>
+  requires(is_equality_v<A, std::equal_to<A>> &&
+           is_equality_v<B, std::equal_to<B>>)
+struct is_equality<std::pair<A, B>, std::equal_to<std::pair<A, B>>>
+    : std::true_type {};
+template <typename A, typename B>
+  requires(is_equality_v<A, std::equal_to<>> &&
+           is_equality_v<B, std::equal_to<>>)
+struct is_equality<std::pair<A, B>, std::equal_to<>> : std::true_type {};
+
+/**
+ * @concept IsEquality
+ * @brief @c Rel on @c T is equality of values (the diagonal).
+ */
+export template <typename T, typename Rel>
+concept IsEquality = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
+
+// The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ
+// (reflexive), Δ° = Δ (symmetric), Δ ; Δ = Δ (transitive).  Derived for every
+// certified <T, Rel> (the spellings of == and any carrier's own equality),
+// never declared per carrier.  A type that answers a law through its own
+// member (the discovery specialisation) keeps that answer.
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_reflexive_v<Rel>; })
+struct is_reflexive<T, Rel> : std::true_type {};
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_symmetric_v<Rel>; })
+struct is_symmetric<T, Rel> : std::true_type {};
+template <typename T, typename Rel>
+  requires(is_equality_v<T, Rel> &&
+           !requires { T::template is_transitive_v<Rel>; })
+struct is_transitive<T, Rel> : std::true_type {};
 
 // ---------------------------------------------------------------------------
 // IsEquivalence: the textbook equivalence-relation concept.
@@ -190,14 +233,35 @@ export template <typename T, typename Rel>
 concept IsEquivalence =
     IsReflexive<T, Rel> && IsSymmetric<T, Rel> && IsTransitive<T, Rel>;
 
-// Witnesses: std::equal_to<T> on std::regular T satisfies IsEquivalence
-// for the canonical primitive carriers.
-
-static_assert(IsEquivalence<int, std::equal_to<int>>,
-              "std::equal_to<int> must satisfy IsEquivalence on int (the "
-              "canonical witness over std::regular<T>).");
+// Witnesses: equality is an equivalence, derived from the certificate; a
+// product's equality is its factors'; double's == is no equality (NaN), and
+// a regular type is not certified for being regular.
+static_assert(IsEquality<int, std::equal_to<int>> &&
+                  IsEquivalence<int, std::equal_to<int>> &&
+                  IsEquivalence<int, std::equal_to<>>,
+              "== on int is equality, hence an equivalence (both spellings)");
 static_assert(IsEquivalence<bool, std::equal_to<bool>>,
-              "std::equal_to<bool> must satisfy IsEquivalence on bool.");
+              "== on bool is equality, hence an equivalence");
+static_assert(
+    IsEquivalence<std::pair<int, bool>, std::equal_to<std::pair<int, bool>>> &&
+        IsEquivalence<std::pair<int, bool>, std::equal_to<>>,
+    "== on int × bool is equality, under both spellings: "
+    "Δ_A × Δ_B = Δ_{A×B}");
+namespace detail_equality {
+/** @brief A carrier's own equality, certified once: the laws follow. */
+struct SameInt {
+  constexpr bool operator()(int a, int b) const { return a == b; }
+};
+}  // namespace detail_equality
+template <>
+struct is_equality<int, detail_equality::SameInt> : std::true_type {};
+static_assert(IsEquivalence<int, detail_equality::SameInt>,
+              "a custom relation certified the diagonal is an equivalence "
+              "without further declaration");
+static_assert(!IsEquality<double, std::equal_to<double>> &&
+                  !IsEquivalence<double, std::equal_to<double>>,
+              "== on double is no equality and no equivalence: NaN == NaN is "
+              "false");
 
 // ---------------------------------------------------------------------------
 // IsHashFunction: hash arrows as first-class citizens (#598/#605 scout).

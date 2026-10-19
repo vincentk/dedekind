@@ -509,16 +509,16 @@ struct cyclic_order<dedekind::morphologies::Modular<N>,
 
 template <auto N>
 inline constexpr bool
-    is_reflexive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
-        true;
+    is_reflexive_v<typename dedekind::morphologies::Modular<N>::machine_type,
+                   dedekind::morphologies::ModularCongruence<N>> = true;
 template <auto N>
 inline constexpr bool
-    is_symmetric_relation_v<dedekind::morphologies::ModularCongruence<N>> =
-        true;
+    is_symmetric_v<typename dedekind::morphologies::Modular<N>::machine_type,
+                   dedekind::morphologies::ModularCongruence<N>> = true;
 template <auto N>
 inline constexpr bool
-    is_transitive_relation_v<dedekind::morphologies::ModularCongruence<N>> =
-        true;
+    is_transitive_v<typename dedekind::morphologies::Modular<N>::machine_type,
+                    dedekind::morphologies::ModularCongruence<N>> = true;
 
 // The native machine op preserves ≡ mod N only when N | 2^w --- i.e.\ when N
 // is a power of two.  The carrier is unsigned = ℤ/2^w, whose congruence
@@ -560,9 +560,9 @@ struct quotient_congruence<dedekind::morphologies::Modular<N>> {
 // preserve the congruence: the mod-8 relation is an equivalence, a congruence
 // for +, and Modular<8> = unsigned/(≡ mod 8) is the genuine (non-trivial) H-leg
 // congruence quotient --- witnessed by a relation, not a bare type pointer.
-static_assert(IsEquivalenceRelation<
-                  dedekind::morphologies::ModularCongruence<8u>, unsigned>,
-              "x ≡ y (mod 8) is reflexive, symmetric, transitive.");
+static_assert(
+    IsEquivalence<unsigned, dedekind::morphologies::ModularCongruence<8u>>,
+    "x ≡ y (mod 8) is reflexive, symmetric, transitive.");
 static_assert(IsCongruence<dedekind::morphologies::ModularCongruence<8u>,
                            unsigned, std::plus<unsigned>>,
               "x ≡ y (mod 8) is preserved by native + (8 | 2^w): a genuine "

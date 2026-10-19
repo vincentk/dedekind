@@ -49,10 +49,121 @@ export module dedekind.category:total;
 
 import :discrete;
 import :morphism;
+import :mereology;  // Sup / Inf
 import :posetal;
 import :species;
 
 namespace dedekind::category {
+
+/** @section total__Property_Ledger: Periodicity
+ *  A type is periodic if it defines a circular topology where
+ *  "stepping off the edge" results in a valid, defined wrap.
+ */
+export template <typename T, typename Op>
+struct is_periodic : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
+
+/** @section total__Property_Ledger_2: Saturation
+ *  A type is saturating under @c Op if it defines an extended-range
+ *  topology where "stepping off the edge" escalates to a saturating
+ *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
+ *  archetypal carrier is @c sets::SignedCardinality (#377) ---
+ *  the ℤ ∪ {±ℵ_0, NaZ} extended-integer carrier whose @c + is total
+ *  by escalation, not by wrap.
+ *
+ *  Distinct from @c is_idempotent_v, which says the operation is
+ *  globally stable (a*a = a for all a).  Saturation is the milder
+ *  claim that the operation is total because any out-of-range
+ *  result has a defined saturating image.
+ */
+export template <typename T, typename Op>
+struct is_saturating : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
+
+/** @brief Path D to totality: the operation is total because the carrier is
+ *  @b exact --- arithmetic with no rounding, @c Op(a,b) defined and lossless
+ *  up to the carrier's out-of-memory tripwire.  The archetypes are the exact
+ * number fields
+ *  (@c Rational = ℚ, @c QuadraticReal = ℚ(√D)) under @c + and
+ *  @c *.  Distinct from the three machine-finite paths, which are total by
+ *  staying in a bounded range (wrap / stabilise / saturate); an exact carrier
+ * is total because its arithmetic is @b closed and exact.
+ *
+ *  @note @b Total @b for @b all @b practical @b purposes.  ℕ, ℤ, ℚ (and the
+ * reals built on ℚ) are designed so the boundary on a computation is @b
+ * physical --- the deployer's chosen carrier precision, exhausted only when the
+ * machine runs out of memory --- and @b explicit in the data type, not a silent
+ * arithmetic wraparound.  That finite scope is one reading of Eqn 2 (a carrier
+ * @b models
+ * @f$\le\beth_1@f$ but @b materialises @f$<\aleph_0@f$): responsibility for the
+ * boundary rests with whoever deploys, and it is clear from the type.  So this
+ * trait certifies exactness-and-totality @b in @b that @b regime; keeping it a
+ * distinct EXACT path (rather than folding ℚ into "saturating") records that ℚ
+ * is an exact field bounded by physics, not a designed saturating semiring.
+ * Opt-in (default false).
+ */
+export template <typename T, typename Op>
+struct is_exact_total : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
+
+/**
+ * Unsigned integers are natively periodic under
+ * addition/subtraction/multiplication.
+ **/
+// The unsigned words wrap: ℤ/2^w.  bool is std::unsigned_integral too, but
+// std::plus<bool> is ∨ (the sum truncates), which saturates and has no
+// inverses: bool's rig is spelled logical_or / logical_and below, and
+// std::plus<bool> is registered as nothing.
+template <typename T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
+struct is_periodic<T, std::plus<T>> : std::true_type {};
+
+template <typename T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
+struct is_periodic<T, std::minus<T>> : std::true_type {};
+
+template <typename T>
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
+struct is_periodic<T, std::multiplies<T>> : std::true_type {};
+
+// XOR is Periodic (Order 2), ensuring its totality
+template <std::integral T>
+struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
+
+/**
+ * @concept IsPeriodic
+ * @brief Taxonomic Decorator: Certifies that an operation is circular (wraps).
+ * This is the "Safety Certificate" for machine totality.
+ */
+export template <typename T, typename Op>
+concept IsPeriodic = is_periodic_v<T, Op>;
+
+/**
+ * @concept IsSaturating
+ * @brief Taxonomic Decorator: certifies that an operation reaches
+ *        out-of-range values via a saturating escalation (e.g.\
+ *        @f$\pm \aleph_0@f$) rather than wrapping or being undefined.
+ *
+ * @details The one-op sibling of @c IsAbsorptive.  Where absorption
+ * names the law that one operation collapses pairs through another
+ * (a lattice fact), saturation names the law that an operation
+ * escalates to a fixed sentinel on out-of-range inputs (an
+ * extended-range fact).  Both feed @c category:total's
+ * @c IsTotal pragmatic certificate via their underlying trait
+ * variables; @c IsTotal in @c :total reaches for the trait
+ * variable @c is_saturating_v directly so the upstream layer does
+ * not depend on this partition's concept-level surface.
+ *
+ * Introduced under #377 for @c sets::SignedCardinality.
+ */
+export template <typename T, typename Op = std::plus<T>>
+concept IsSaturating = is_saturating_v<T, Op>;
 
 /** @brief Reverse a three-way comparison: @c less ↔ @c greater, @c equal fixed.
  *  The shared helper for carriers that compute an ordering in one direction and

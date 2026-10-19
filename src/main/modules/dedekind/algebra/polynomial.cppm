@@ -882,6 +882,9 @@ template <std::size_t N>
 inline constexpr bool
     is_antisymmetric_v<dedekind::algebra::Monomial<N>, std::less_equal<>> =
         true;
+template <std::size_t N>
+inline constexpr bool
+    is_connex_v<dedekind::algebra::Monomial<N>, std::less_equal<>> = true;
 // The free commutative monoid: exponents add.
 template <std::size_t N>
 inline constexpr bool

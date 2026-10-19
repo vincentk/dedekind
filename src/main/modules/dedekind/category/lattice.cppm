@@ -168,14 +168,15 @@ import :involution;  // is_involutive_v + IsInvolution (extracted from here)
 import :posetal;     // IsPosetal — row 2 (thin + antisymmetric);
                      // IsOrderLatticeOperations — bottom-up algebraic surface
 import :filtered;    // IsFilteredCategory — row 3 (directed thin cat)
-import :species;     // is_codirected_v — cofiltered companion to is_directed_v
-import :limit;       // IsInitialObject / IsTerminalObject — row 5
-                     // universal-property witnesses (relaxed via tag
-                     // discovery to admit LatticeBottom/LatticeTop).
-import :cartesian;   // IsExponential — row 6 universal-property witness
-                     // (structural recogniser post-#698 Slice 6; admits
-                     // both Set/Cpp function-space exponentials AND
-                     // lattice-internal value exponentials uniformly).
+import :mereology;   // Sup / Inf, the order laws
+import :species;
+import :limit;      // IsInitialObject / IsTerminalObject — row 5
+                    // universal-property witnesses (relaxed via tag
+                    // discovery to admit LatticeBottom/LatticeTop).
+import :cartesian;  // IsExponential — row 6 universal-property witness
+                    // (structural recogniser post-#698 Slice 6; admits
+                    // both Set/Cpp function-space exponentials AND
+                    // lattice-internal value exponentials uniformly).
 
 namespace dedekind::category {
 
@@ -1588,7 +1589,7 @@ static_assert(
  *  - @c size_t: large finite totally-ordered chain (Slices 6/7 already
  *    pinned @c bool and @c int).
  *  - @c Sup / @c Inf identity: the Form-chain @c Meet / @c Join slots
- *    @b are the value-returning @c :species lattice ops @c Sup / @c Inf
+ *    @b are the value-returning @c :mereology lattice ops @c Sup / @c Inf
  *    (pinned via an explicit instantiation that names them, #934). */
 
 static_assert(IsHeytingLatticeCategory<std::size_t>,

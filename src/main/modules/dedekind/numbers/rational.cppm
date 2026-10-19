@@ -469,6 +469,9 @@ template <dedekind::morphologies::IsInteger I>
 inline constexpr bool
     is_antisymmetric_v<dedekind::numbers::Rational<I>, std::less_equal<>> =
         true;
+template <dedekind::morphologies::IsInteger I>
+inline constexpr bool
+    is_connex_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
 
 }  // namespace dedekind::category
 

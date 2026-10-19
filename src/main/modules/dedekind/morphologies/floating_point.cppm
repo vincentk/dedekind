@@ -302,6 +302,10 @@ inline constexpr bool
 template <std::floating_point F>
 inline constexpr bool is_antisymmetric_v<dedekind::morphologies::safe_float<F>,
                                          std::less_equal<>> = true;
+template <std::floating_point F>
+inline constexpr bool
+    is_connex_v<dedekind::morphologies::safe_float<F>, std::less_equal<>> =
+        true;
 
 }  // namespace dedekind::category
 
