@@ -144,7 +144,6 @@ using SetFunction = Relation<T1, T2, L, P>;
 export template <typename S, typename T1, typename T2>
 concept IsRelation =
     dedekind::sets::IsSetObject<S> &&
-    std::same_as<typename S::Domain, std::pair<T1, T2>> &&
     dedekind::category::IsProduct<typename S::Domain, T1, T2> &&
     dedekind::category::IsProduct<
         dedekind::sets::universe_t<S>,

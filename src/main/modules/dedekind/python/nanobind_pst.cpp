@@ -782,13 +782,13 @@ Cells::Cell cell_of(std::size_t sort, nb::handle h);
  *  a term over relations, its schema data, its predicate a reading. */
 using Relation =
     dedekind::relational::RelExpr<PyConst, uint64_t, Fp, bool, Ternary>;
-using dedekind::relational::classifier;
 using dedekind::relational::converse;
+using dedekind::relational::predicate_of;
 /** @brief The relation's predicate in normal form: pinned, every quantifier
  *  eliminated that an atom defines or a finite chain expands, the rest kept.
  */
 RPred canonical(const Relation& r) {
-  return canonical<Cells>(classifier(r), r.rep());
+  return canonical<Cells>(predicate_of(r), r.rep());
 }
 /** @brief The relation's predicate pinned and with its quantifiers eliminated
  *  where an atom defines the column or a finite chain expands it, the atoms
@@ -796,7 +796,7 @@ RPred canonical(const Relation& r) {
  *  rewrite the graph atom π_n == t into π_n − t == 0). */
 RPred certifiable(const Relation& r) {
   return dedekind::algebra::eliminate_quantifiers<Cells>(
-      pinned<Cells>(classifier(r), r.rep()), TypedConstant{}, r.rep());
+      pinned<Cells>(predicate_of(r), r.rep()), TypedConstant{}, r.rep());
 }
 RPred column_member(std::size_t sort, const RTerm& t) {
   switch (sort) {
@@ -1375,14 +1375,14 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "__eq__",
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
-            return equal_by_canonical<Cells>(classifier(a), classifier(b),
+            return equal_by_canonical<Cells>(predicate_of(a), predicate_of(b),
                                              a.rep());
           },
           nb::is_operator(),
           "R == S: True where the normal forms agree; TypeError where they "
           "differ, which decides nothing, or where the products differ.")
       .def_prop_ro(
-          "classifier", [](const Relation& r) { return classifier(r); },
+          "classifier", [](const Relation& r) { return predicate_of(r); },
           "The classifier χ of the relation on its columns π_1 … π_n, as a "
           "predicate: a reading "
           "of the term (a composite's ∃ over the middle, a projection's ∃ "
@@ -1419,7 +1419,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
             return equal_by_canonical<Cells>(
-                RPred::conj(classifier(a), classifier(b)), classifier(a),
+                RPred::conj(predicate_of(a), predicate_of(b)), predicate_of(a),
                 a.rep());
           },
           nb::is_operator(),
@@ -1433,7 +1433,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           [](const Relation& a, const Relation& b) {
             same_product(a, b);
             return equal_by_canonical<Cells>(
-                RPred::conj(classifier(a), classifier(b)), classifier(b),
+                RPred::conj(predicate_of(a), predicate_of(b)), predicate_of(b),
                 a.rep());
           },
           nb::is_operator(), "R >= S: S <= R.")

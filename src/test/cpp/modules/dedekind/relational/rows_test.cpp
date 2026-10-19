@@ -23,13 +23,13 @@ import dedekind.sets;
 
 using namespace dedekind::sets;
 using dedekind::category::Ternary;
-using dedekind::relational::classifier;
 using dedekind::relational::converse;
 using dedekind::relational::copy;
 using dedekind::relational::diag;
 using dedekind::relational::function_term;
 using dedekind::relational::merge;
 using dedekind::relational::Object;
+using dedekind::relational::predicate_of;
 using dedekind::relational::proj;
 using dedekind::relational::RelExpr;
 using dedekind::relational::table;
@@ -67,7 +67,7 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   CHECK(two.kind == Re::Kind::Compose);  // not flattened
   CHECK(two.dom == W);
   CHECK(two.cod == W);
-  const Q p = classifier(two);  // the reading: ∃ over the middle, μ
+  const Q p = predicate_of(two);  // the reading: ∃ over the middle, μ
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 3);  // the next slot past the two columns
   CHECK(p.sort == word);
@@ -79,11 +79,11 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   // A quantifier is found in a conditional's guard, too.
   CHECK(has_quantifier(
       Q::cmp(Rel::Eq, T::cond(p, T::constant(1), T::proj(1)), T::proj(2))));
-  CHECK_FALSE(has_quantifier(classifier(succ)));
+  CHECK_FALSE(has_quantifier(predicate_of(succ)));
   // The lattice keeps its nodes: R & S is a Meet, ~R a Not.
   CHECK((succ & square).kind == Re::Kind::Meet);
   CHECK((~succ).kind == Re::Kind::Not);
-  CHECK(classifier(~succ).rel == Rel::Ne);  // read: negation normal form
+  CHECK(predicate_of(~succ).rel == Rel::Ne);  // read: negation normal form
   CHECK_THROWS_AS((succ & diag<int, unsigned, bool>({flag})), not_admitted);
 }
 
@@ -110,7 +110,7 @@ TEST_CASE("relational:rows: η, the dagger, and the structural projection",
   const Re dom = rows >> proj<int, unsigned, bool>({word, word}, {1});
   CHECK(dom.dom.factors.empty());
   CHECK(dom.cod == W);
-  const Q p = classifier(dom);
+  const Q p = predicate_of(dom);
   CHECK(p.kind == Q::Kind::Exists);
   CHECK(verdict(dom, R{{5u}}) == Ternary::True);    // 6 is found
   CHECK(verdict(~dom, R{{5u}}) == Ternary::False);  // ∀: 6 refutes it
@@ -151,7 +151,7 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK(verdict(succ & words, R{{3u, 5u}}) == Ternary::False);
   CHECK(verdict(spider, R{{3u, 5u}}) == Ternary::Unknown);  // Σ: never ⊥
   // The middle of copy >> (R ⊗ S) is two columns: ∃∃, outermost first.
-  const Q p = classifier(copy<int, unsigned, bool>(W) >> (succ * square));
+  const Q p = predicate_of(copy<int, unsigned, bool>(W) >> (succ * square));
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 4);
   REQUIRE(p.p->kind == Q::Kind::Exists);
@@ -165,7 +165,7 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
                        Q::cmp(Rel::Eq, T::proj(2), T::constant(1))),
                Q::conj(Q::cmp(Rel::Eq, T::proj(1), T::constant(0)),
                        Q::cmp(Rel::Eq, T::proj(2), T::constant(0)))));
-  const Q both = classifier(above >> pick);
+  const Q both = predicate_of(above >> pick);
   CHECK(both.sort == flag);
   CHECK(both(R{{7u, 1u}}));
   CHECK(both(R{{7u, 0u}}));
@@ -200,7 +200,7 @@ TEST_CASE("relational:rows: the sum of two tables; table and arrow (#1039)",
   const Re s = rel::sum(Re::universe({}, W), Re::universe({}, {flag}));
   CHECK(s.kind == Re::Kind::Sum);
   CHECK(s.cod == S);
-  CHECK(classifier(s).kind == Q::Kind::Or);  // the copairing on the tag
+  CHECK(predicate_of(s).kind == Q::Kind::Or);  // the copairing on the tag
   // A row of the sum is a point: the inactive side at its defaults.
   CHECK(holds(s, R{{false, 3u, false}}));       // inl(3)
   CHECK_FALSE(holds(s, R{{false, 3u, true}}));  // no point: the 𝔹 not default
@@ -212,4 +212,13 @@ TEST_CASE("relational:rows: the sum of two tables; table and arrow (#1039)",
   CHECK(rel::table(succ).cod == W * W);
   CHECK(rel::arrow(rel::table(succ)).dom == W);
   CHECK(rel::arrow(rel::table(succ)).cod == W);
+}
+
+TEST_CASE("relational:rows: a RelExpr is a relation (IsRelation)",
+          "[relational][rows][relation]") {
+  // Its points are a row of the domain and a row of the codomain, read through
+  // the product's API; membership is the verdict there, in K₃.
+  STATIC_CHECK(dedekind::relational::IsRelation<Re, R, R>);
+  CHECK(succ(std::pair{R{{3u}}, R{{4u}}}) == Ternary::True);
+  CHECK(succ(std::pair{R{{3u}}, R{{5u}}}) == Ternary::False);
 }

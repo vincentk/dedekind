@@ -64,6 +64,7 @@ module;
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
+#include <utility>  // std::pair: a point of a relation, dom × cod
 #include <variant>
 #include <vector>
 
@@ -189,6 +190,26 @@ struct RelExpr {
   Columns columns() const { return relational::columns(dom * cod); }
   /** @brief A row of the columns: the points' representative. */
   Point rep() const { return dedekind::sets::row_of_sorts<Cs...>(columns()); }
+
+  // ── A RelExpr IS a relation (relational::IsRelation) ──
+  /** @brief A point of the relation: a row of the domain and a row of the
+   *  codomain, the product @c dom @c × @c cod, read through @c π_1 / @c π_2. */
+  using Domain = std::pair<Point, Point>;
+  /** @brief Membership answers in K₃: decided, or not yet (the verdict's
+   *  search). */
+  using logic_species = dedekind::category::Kleene;
+  using Codomain = dedekind::category::Ternary;
+  struct Member {
+    Domain value;
+  };
+  Domain ι(const Member& m) const { return m.value; }
+  /** @brief χ: the verdict at the joined row of the point. */
+  Codomain operator()(const Domain& p) const {
+    Point row = p.first;
+    row.cells.insert(row.cells.end(), p.second.cells.begin(),
+                     p.second.cells.end());
+    return verdict(*this, row);
+  }
 
   /** @brief The universe @f$A \times B@f$: the full relation. */
   static RelExpr universe(Object dom, Object cod) {
@@ -548,7 +569,7 @@ dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
  *  quantifier binds the next slot past the columns, so a leg's own bound
  *  slots are renumbered with its columns and never captured. */
 export template <typename K, typename... Cs>
-dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
+dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
   using R = RelExpr<K, Cs...>;
   using P = dedekind::sets::Pred<K>;
   using Map = detail_rows::Ranges<K>;
@@ -563,29 +584,29 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
       // ⊤ over a product of leaves; over a sum, the rows that encode points.
       return detail_rows::encodes<K, Cs...>(r.dom * r.cod, 0);
     case R::Kind::Comprehension:
-      return detail_rows::conjoined(classifier(*r.a), r.predicate);
+      return detail_rows::conjoined(predicate_of(*r.a), r.predicate);
     case R::Kind::Meet:
-      return P::conj(classifier(*r.a), classifier(*r.b));
+      return P::conj(predicate_of(*r.a), predicate_of(*r.b));
     case R::Kind::Join:
-      return P::disj(classifier(*r.a), classifier(*r.b));
+      return P::disj(predicate_of(*r.a), predicate_of(*r.b));
     case R::Kind::Not:
       // The complement within the points: a row that encodes none stays out.
       return detail_rows::conjoined(
           detail_rows::encodes<K, Cs...>(r.dom * r.cod, 0),
-          classifier(*r.a).negated());
+          predicate_of(*r.a).negated());
     case R::Kind::Converse: {
       const R& x = *r.a;
-      return classifier(x).map_slots(Map{
+      return predicate_of(x).map_slots(Map{
           d(x), x.arity(), static_cast<int>(c(x)), -static_cast<int>(d(x)), 0});
     }
     case R::Kind::Tensor: {
       // Columns: dom a, dom b, cod a, cod b.
       const R& x = *r.a;
       const R& y = *r.b;
-      const P pa = classifier(x).map_slots(Map{d(x), x.arity(), 0,
-                                               static_cast<int>(d(y)),
-                                               static_cast<int>(y.arity())});
-      const P pb = classifier(y).map_slots(
+      const P pa = predicate_of(x).map_slots(Map{d(x), x.arity(), 0,
+                                                 static_cast<int>(d(y)),
+                                                 static_cast<int>(y.arity())});
+      const P pb = predicate_of(y).map_slots(
           Map{d(y), y.arity(), static_cast<int>(d(x)),
               static_cast<int>(d(x) + c(x)), static_cast<int>(x.arity())});
       return detail_rows::conjoined(pa, pb);
@@ -598,8 +619,8 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
       const R& y = *r.b;
       const unsigned nx = x.arity(), ny = y.arity();
       const P px =
-          classifier(x).map_slots(Map{0, nx, 0, 1, static_cast<int>(1 + ny)});
-      const P py = classifier(y).map_slots(
+          predicate_of(x).map_slots(Map{0, nx, 0, 1, static_cast<int>(1 + ny)});
+      const P py = predicate_of(y).map_slots(
           Map{0, ny, 0, static_cast<int>(1 + nx), static_cast<int>(1 + nx)});
       return P::disj(
           detail_rows::conjoined(
@@ -615,10 +636,10 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
       const R& x = *r.a;
       const R& y = *r.b;
       const unsigned n = r.arity(), m = c(x);
-      const P pa = classifier(x).map_slots(
+      const P pa = predicate_of(x).map_slots(
           Map{d(x), x.arity(), 0, static_cast<int>(n) - static_cast<int>(d(x)),
               static_cast<int>(c(y))});
-      const P pb = classifier(y).map_slots(
+      const P pb = predicate_of(y).map_slots(
           Map{d(y), y.arity(), static_cast<int>(n),
               static_cast<int>(d(x)) - static_cast<int>(m),
               static_cast<int>(d(x))});
@@ -638,7 +659,7 @@ dedekind::sets::Pred<K> classifier(const RelExpr<K, Cs...>& r) {
 export template <typename K, typename... Cs>
 dedekind::category::Ternary verdict(
     const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
-  return dedekind::sets::verdict(classifier(r), row, r.budget);
+  return dedekind::sets::verdict(predicate_of(r), row, r.budget);
 }
 /** @brief The term of a relation certified a function of its first @c n − 1
  *  columns: a quantifier-free graph atom @c π_n @c == @c t(π_1 … π_{n−1})

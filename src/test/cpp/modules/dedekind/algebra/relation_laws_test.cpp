@@ -18,8 +18,8 @@ import dedekind.relational;
 import dedekind.sets;
 
 using dedekind::algebra::canonical;
-using dedekind::relational::classifier;
 using dedekind::relational::Object;
+using dedekind::relational::predicate_of;
 using dedekind::sets::Arith;
 using dedekind::sets::Rel;
 using dedekind::sets::same_shape;
@@ -44,8 +44,8 @@ struct Lift {
 /** @brief The law @c a = @c b, decided: the two classifiers' normal forms are
  *  the same tree. */
 bool same(const Re& a, const Re& b) {
-  return same_shape(canonical<Point>(classifier(a), Lift{}, a.rep()),
-                    canonical<Point>(classifier(b), Lift{}, a.rep()));
+  return same_shape(canonical<Point>(predicate_of(a), Lift{}, a.rep()),
+                    canonical<Point>(predicate_of(b), Lift{}, a.rep()));
 }
 
 const Re words = Re::universe(W, W);
