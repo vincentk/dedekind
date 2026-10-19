@@ -148,7 +148,7 @@ export template <typename T, typename Rel, typename Ω = bool>
 concept IsDirected =
     IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
-    } && requires { requires is_directed_v<T, Rel>; };
+    } && requires { requires is_directed_v<T, std::remove_cvref_t<Rel>>; };
 
 /** @section filtered__Codirectedness: ∀a,b ∃c. c ≤ a ∧ c ≤ b
  *
@@ -196,7 +196,7 @@ export template <typename T, typename Rel, typename Ω = bool>
 concept IsCodirected =
     IsTruthObject<Ω> && requires(const Rel& rel, const T& a, const T& b) {
       { rel(a, b) } -> std::convertible_to<Ω>;
-    } && requires { requires is_codirected_v<T, Rel>; };
+    } && requires { requires is_codirected_v<T, std::remove_cvref_t<Rel>>; };
 
 /**
  * @concept IsFilteredCategory
