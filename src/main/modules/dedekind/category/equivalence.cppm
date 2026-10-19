@@ -87,7 +87,7 @@ namespace dedekind::category {
 // @c :mereology / @c :logic.  The structural-shape requirement (Rel{}
 // is callable on @c T @c × @c T → @c bool) is carried by the
 // @c IsReflexive / @c IsSymmetric / @c IsTransitive concepts directly,
-// each of which already includes the @c Rel{}(a, b) callable check.
+// each of which already includes the @c rel(a, b) callable check.
 
 // ---------------------------------------------------------------------------
 // is_symmetric: the missing axiom trait, completing the reflexive /
@@ -126,9 +126,9 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  * engineer-supplied trait declaration.
  */
 export template <typename T, typename Rel>
-concept IsSymmetric = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
-  { Rel{}(b, a) } -> std::convertible_to<bool>;
+concept IsSymmetric = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
+  { rel(b, a) } -> std::convertible_to<bool>;
 } && requires { requires is_symmetric_v<T, Rel>; };
 
 // ---------------------------------------------------------------------------
@@ -183,8 +183,8 @@ struct is_equality<std::pair<A, B>, std::equal_to<>> : std::true_type {};
  * @brief @c Rel on @c T is equality of values (the diagonal).
  */
 export template <typename T, typename Rel>
-concept IsEquality = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsEquality = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_equality_v<T, std::remove_cvref_t<Rel>>; };
 
 // The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ

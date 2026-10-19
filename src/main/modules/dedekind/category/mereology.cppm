@@ -76,8 +76,8 @@ struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification of the identity relation.
  */
 export template <typename T, typename Rel>
-concept IsReflexive = requires(T a) {
-  { Rel{}(a, a) };
+concept IsReflexive = requires(const Rel& rel, const T& a) {
+  { rel(a, a) };
 } && requires { requires is_reflexive_v<T, Rel>; };
 
 /** @section mereology__Transitivity: (a <= b && b <= c) => a <= c */
@@ -109,8 +109,8 @@ struct is_transitive<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification: (a ≤ b ∧ b ≤ c) ⇒ a ≤ c.
  */
 export template <typename T, typename Rel>
-concept IsTransitive = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsTransitive = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_transitive_v<T, Rel>; };
 
 /** @section mereology__Antisymmetry: (a <= b && b <= a) => a == b */
@@ -138,8 +138,8 @@ struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification: (a ≤ b ∧ b ≤ a) ⇒ a = b.
  */
 export template <typename T, typename Rel>
-concept IsAntisymmetric = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsAntisymmetric = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
 /** @section mereology__Connexity: a <= b || b <= a
@@ -168,8 +168,8 @@ struct is_connex<T, std::less_equal<T>> : std::true_type {};
  * @brief Formal verification: a ≤ b ∨ b ≤ a.
  */
 export template <typename T, typename Rel>
-concept IsConnex = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsConnex = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_connex_v<T, Rel>; };
 
 /**

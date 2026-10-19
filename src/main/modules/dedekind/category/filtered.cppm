@@ -145,8 +145,8 @@ struct is_directed<T, std::less_equal<T>> : std::true_type {};
  * (the certified chains: reflexive and connex).
  */
 export template <typename T, typename Rel>
-concept IsDirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsDirected = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_directed_v<T, Rel>; };
 
 /** @section filtered__Codirectedness: ∀a,b ∃c. c ≤ a ∧ c ≤ b
@@ -192,8 +192,8 @@ struct is_codirected<T, std::less_equal<T>> : std::true_type {};
  *        ∀ a, b ∈ T. ∃ c ∈ T. Rel(c, a) ∧ Rel(c, b).
  */
 export template <typename T, typename Rel>
-concept IsCodirected = requires(T a, T b) {
-  { Rel{}(a, b) } -> std::convertible_to<bool>;
+concept IsCodirected = requires(const Rel& rel, const T& a, const T& b) {
+  { rel(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_codirected_v<T, Rel>; };
 
 /**

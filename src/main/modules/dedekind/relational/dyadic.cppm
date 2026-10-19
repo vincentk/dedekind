@@ -150,14 +150,6 @@ concept IsRelation =
         std::remove_cvref_t<𝔸<T1, typename S::logic_species>>,
         std::remove_cvref_t<𝔸<T2, typename S::logic_species>>>;
 
-/** @brief Relation membership witness: (a,b) ∈ R, in the relation's @b own
- *  species (the comprehension's, which may sit above its base's tag). */
-export template <typename T1, typename T2, typename L, typename P, typename C>
-constexpr auto relates(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
-                       const T1& a, const T2& b) {
-  return r(std::pair<T1, T2>{a, b});
-}
-
 /**
  * @brief The @b declared domain of a relation @c R ⊆ A×B: the universal set
  *        @c 𝔸<A> over the first factor --- @c π₁'s codomain.
@@ -277,8 +269,8 @@ export template <typename T1, typename T2, typename L, typename P>
 constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
                                    const T1& x, const T2& y1, const T2& y2) {
   using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
-  const auto m1 = relates(f, x, y1);
-  const auto m2 = relates(f, x, y2);
+  const auto m1 = f(x, y1);
+  const auto m2 = f(x, y2);
   const auto both_related = Lf::AND(m1, m2);
   const auto equal_outputs = dedekind::category::lift_logic<Lf>(y1 == y2);
   // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)

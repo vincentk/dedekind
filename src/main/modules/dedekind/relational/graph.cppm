@@ -179,11 +179,10 @@ constexpr Graph<std::remove_cvref_t<F>> graph(F f) {
 // the graph of a total function.  Mark both faces on the @c Graph<F> type (the
 // @c Set<pair> form), the same convention @c arrow_as_relation already carries,
 // so @c IsFunctional / @c IsEntire hold on @c graph(f) itself, not only on the
-// 2-argument indicator.  (@c IsFunction<R,A,B> stays the 2-argument reading ---
-// it needs the @c r(a,b) call shape, which the 1-argument @c Set<pair> graph
-// does not have.)  Closes the gap that a graph was a relation but not yet a
-// marked function, and lets the relative product below gate on @c IsFunctional
-// at this partition's own level.
+// 2-argument indicator.  A set over a product answers @c r(a, @c b) as well as
+// @c r({a, @c b}) (#1047), so @c IsFunction<R,A,B> holds on the graph too.
+// Lets the relative product below gate on @c IsFunctional at this partition's
+// own level.
 //
 // CAVEAT: @c is_left_total_v (entireness) below is registered unconditionally,
 // which assumes @c F is a @b total arrow.  @c is_right_unique_v (single-valued)
@@ -752,18 +751,18 @@ struct Divides {
 };
 }  // namespace
 
-// The IsFunction certificate (functional ∧ entire, by construction) is carried
-// by arrow_as_relation<F> --- the 2-arg form to which graph(f)'s membership is
-// definitionally equal pointwise (Γ_id witness above).  graph(f) itself is the
-// Set<pair> reification, certified IsSet (a subobject of A × B); reifying
-// IsFunction on the unary-on-pair Set form is deferred.
-// FIXME(#783): forward is_right_unique / is_left_total onto the graph type so
-// this assertion lands on graph(f) directly, not only on the adapter.
+// The IsFunction certificate (functional ∧ entire, by construction) holds on
+// both presentations of one function: the 2-argument arrow_as_relation<F>, and
+// graph(f), the Set<pair> reification, which answers r(a, b) as r({a, b})
+// (#1047: the product's universal property).
 static_assert(
     IsFunction<dedekind::category::arrow_as_relation<
                    dedekind::category::Identity<int>>,
-               int, int>,
-    "arrow_as_relation<Identity> is a function: functional ∧ entire.");
+               int, int> &&
+        IsFunction<decltype(Γ_id), int, int>,
+    "id is a function on both presentations: arrow_as_relation and graph(id)");
+static_assert(Γ_id(3, 3) && !Γ_id(3, 4),
+              "graph(id) answers r(a, b) as r({a, b})");
 
 // Subtyping witness: {function} ⊂ {relation}.  A function IS A relation...
 static_assert(

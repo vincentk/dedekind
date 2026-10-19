@@ -257,6 +257,18 @@ struct default_cardinality<bool> {
 export template <typename T>
 using default_cardinality_t = typename default_cardinality<T>::type;
 
+/** @brief A carrier that is a @c std::pair: a set over it is a binary
+ *  relation, and answers @c r(a, @c b) as @c r({a, @c b}) (#1047).  The
+ *  pair only: other @c IsProduct carriers (@c Rational, @c Complex) are
+ *  values in their own right, not tuples to be taken apart. */
+export template <typename D>
+concept IsPairCarrier =
+    requires {
+      typename D::first_type;
+      typename D::second_type;
+    } &&
+    std::same_as<D, std::pair<typename D::first_type, typename D::second_type>>;
+
 /**
  * @struct 𝔸
  * @brief The universal set over the carrier @c T: the terminal object ⊤ of
@@ -362,6 +374,14 @@ struct 𝔸 final {
 
   /** @brief The axiom of total presence: χ(x) = ⊤ for every @c x. */
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
+  /** @brief χ on the components: over a pair carrier the universe is the full
+   *  relation, @c r(a, @c b) @c = @c r({a, @c b}) (#1047). */
+  template <typename D = T>
+    requires IsPairCarrier<D>
+  constexpr typename L::Ω operator()(const typename D::first_type&,
+                                     const typename D::second_type&) const {
+    return L::True;
+  }
 
   /** @brief Membership as a named query: @c 𝔸<T>{}.contains(v) reads more
    *  directly than @c 𝔸<T>{}(v) at listing sites.  Returns @c L::Ω so the
