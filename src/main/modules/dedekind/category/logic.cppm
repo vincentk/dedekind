@@ -453,6 +453,19 @@ export constexpr Ternary operator||(Ternary a, Ternary b) {
 }
 export constexpr Ternary operator!(Ternary a) { return Kleene::RFL(a); }
 
+/** @brief K₃'s step: the cover False → Unknown → True, saturating at the
+ *  top (and its dual at the bottom), the NNO step of the chain (@c :nno). */
+export constexpr Ternary successor(Ternary a) noexcept {
+  return a == Ternary::True
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) + 1);
+}
+export constexpr Ternary predecessor(Ternary a) noexcept {
+  return a == Ternary::False
+             ? a
+             : static_cast<Ternary>(static_cast<std::int8_t>(a) - 1);
+}
+
 /** @brief Truth-order @c <=> on @c Ternary: the chain
  *         @c False @c (-1) @c < @c Unknown @c (0) @c < @c True @c (1).
  *
@@ -1182,11 +1195,6 @@ static_assert(identity_v<Ternary, Sup> == Ternary::False,
 static_assert(identity_v<Ternary, Inf> == Ternary::True,
               "K₃: registered ∧-identity is ⊤ = True");
 
-/** @brief K₃'s carrier, every value: the finite set its order laws are
- *  decided on. */
-inline constexpr Ternary ternary_values[] = {Ternary::False, Ternary::Unknown,
-                                             Ternary::True};
-
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
  *  @c False @c < @c Unknown @c < @c True; being a scoped enum (not
  *  @c std::integral) it is outside the @c :species integral / bool blanket, so
@@ -1194,11 +1202,11 @@ inline constexpr Ternary ternary_values[] = {Ternary::False, Ternary::Unknown,
  *  IS known.  The @c :species blanket deliberately does NOT cover @c is_enum_v
  *  (an arbitrary enum's ADL @c <=> may fail transitivity / antisymmetry; #946
  *  review), so this explicit registration is what makes @c Ternary posetal. */
-// Reflexivity is decided, not declared: the law (reflexive_on) at each of the
-// three values.
+// Reflexivity is decided, not declared: the law (reflexive_on) walked along
+// the chain False → Unknown → True by K₃'s own step.
 template <>
 inline constexpr bool is_reflexive_v<Ternary, std::less_equal<>> =
-    reflexive_on(std::less_equal<>{}, ternary_values);
+    reflexive_on(std::less_equal<>{}, Ternary::False, Ternary::True);
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<>> = true;
 template <>
@@ -1217,7 +1225,7 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  *  order concepts (@c IsPartRelation / @c IsPosetal / @c IsTotalOrder / @c
  *  IsThinCategory) default @c Rel to the @b typed @c std::less_equal<Ternary>
  *  and query the traits for @b that exact type, so the transparent form does
- *  not reach them.  Reflexivity is decided over the three values
+ *  not reach them.  Reflexivity is decided along the chain
  *  (@c reflexive_on); the other three laws are hand-registered for THIS
  *  carrier: the @c :mereology blankets certify the integral types only, never
  *  an arbitrary enum (#946 review), and never by @c std::totally_ordered
@@ -1226,7 +1234,7 @@ static_assert(is_reflexive_v<Ternary, std::less_equal<>> &&
  * (a genuine total order cannot contain NaN). */
 template <>
 inline constexpr bool is_reflexive_v<Ternary, std::less_equal<Ternary>> =
-    reflexive_on(std::less_equal<Ternary>{}, ternary_values);
+    reflexive_on(std::less_equal<Ternary>{}, Ternary::False, Ternary::True);
 template <>
 inline constexpr bool is_transitive_v<Ternary, std::less_equal<Ternary>> = true;
 template <>
@@ -1250,9 +1258,9 @@ constexpr std::less<Ternary> lt{};
 }  // namespace detail_logic
 static_assert(
     IsReflexive<Ternary, std::remove_cvref_t<decltype(detail_logic::le)>> &&
-        reflexive_on(detail_logic::le, ternary_values),
+        reflexive_on(detail_logic::le, Ternary::False, Ternary::True),
     "≤ on K₃: the concept holds on its type, the law on the value");
-static_assert(!reflexive_on(detail_logic::lt, ternary_values) &&
+static_assert(!reflexive_on(detail_logic::lt, Ternary::False, Ternary::True) &&
                   !IsReflexive<Ternary, std::less<Ternary>>,
               "< on K₃ is not reflexive: the law refutes it, the concept "
               "does not hold");

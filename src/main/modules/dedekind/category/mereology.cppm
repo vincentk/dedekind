@@ -35,7 +35,6 @@ module;
 
 #include <algorithm>
 #include <concepts>
-#include <cstddef>  // std::size_t
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
@@ -223,18 +222,23 @@ export template <typename Rel, typename T>
 constexpr bool reflexive_at(const Rel& rel, const T& a) {
   return static_cast<bool>(rel(a, a));
 }
-/** @brief Reflexivity on a finite carrier, decided: @c rel(a, @c a) at every
- *  one of @c values.  The law @c IsReflexive certifies, as a @c constexpr, so
- *  a finite carrier's certificate is computed rather than declared.
- *  @param rel the relation.  @param values every value of the carrier. */
-export template <typename Rel, typename T, std::size_t N>
+/** @brief Reflexivity on a finite chain, decided: @c rel(a, @c a) at every
+ *  value from @c lo to @c hi, walked by the carrier's own @c successor (found
+ *  by argument-dependent lookup).  The law @c IsReflexive certifies, as a
+ *  @c constexpr, so a finite carrier's certificate is computed rather than
+ *  declared.  Stops at @c hi, or at the top if @c hi is not above @c lo.
+ *  @param rel the relation.  @param lo the least value.  @param hi the
+ *  greatest. */
+export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
     { r(x, x) } -> std::convertible_to<bool>;
+    { successor(x) } -> std::convertible_to<T>;
   }
-constexpr bool reflexive_on(const Rel& rel, const T (&values)[N]) {
-  for (const T& a : values)
+constexpr bool reflexive_on(const Rel& rel, T lo, const T& hi) {
+  for (T a = lo;; a = successor(a)) {
     if (!reflexive_at(rel, a)) return false;
-  return true;
+    if (a == hi || successor(a) == a) return a == hi;
+  }
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
