@@ -2632,7 +2632,7 @@ NB_MODULE(_pst, m) {
       .def_prop_ro(
           "_cardinality",
           [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
-            return nb::object(u64_type.attr("modulus"));
+            return nb::object(u64_type.attr("_modulus"));
           })
       .def_prop_ro(
           "_carrier",
