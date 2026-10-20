@@ -14,11 +14,11 @@ import dedekind.category;
 using namespace dedekind::category;
 
 namespace {
-using Not = NegationArrow<Boole>;
-using Id = Identity<bool>;
+using Negation = NegationArrow<Boole>;
+using Same = Identity<bool>;
 
-constexpr ArrowLaws profile_of_not = ordered_arrow_laws_v<Not>;
-constexpr ArrowLaws profile_of_id = ordered_arrow_laws_v<Id>;
+constexpr ArrowLaws profile_of_not = ordered_arrow_laws_v<Negation>;
+constexpr ArrowLaws profile_of_id = ordered_arrow_laws_v<Same>;
 
 /** @brief A step of a pipeline built at runtime. */
 enum class Step { Id, Not };
@@ -42,12 +42,12 @@ TEST_CASE("arrow laws: the leaves, declared", "[category][laws]") {
 
 TEST_CASE("arrow laws: reader 1, by type at compile time", "[category][laws]") {
   // The traits on Compose read the engine: the sign table.
-  STATIC_CHECK(IsMonotone<Compose<Not, Not>>);     // anti ∘ anti
-  STATIC_CHECK(IsAntiMonotone<Compose<Id, Not>>);  // mono ∘ anti
-  STATIC_CHECK(!IsMonotone<Compose<Id, Not>>);
+  STATIC_CHECK(IsMonotone<Compose<Negation, Negation>>);  // anti ∘ anti
+  STATIC_CHECK(IsAntiMonotone<Compose<Same, Negation>>);  // mono ∘ anti
+  STATIC_CHECK(!IsMonotone<Compose<Same, Negation>>);
   // And a cata with the law algebra, the same engine as a fold.
   constexpr ArrowLaws twice =
-      cata(LawAlgebra<>{}, Compose<Not, Not>{Not{}, Not{}});
+      cata(LawAlgebra<>{}, Compose<Negation, Negation>{Negation{}, Negation{}});
   STATIC_CHECK(twice[ArrowLaw::Monotone] == Ternary::True);
   STATIC_CHECK(twice[ArrowLaw::Antitone] == Ternary::Unknown);
 }
@@ -62,5 +62,6 @@ TEST_CASE("arrow laws: reader 2, by value at runtime", "[category][laws]") {
   CHECK(laws_of_pipeline({})[ArrowLaw::Monotone] == Ternary::True);  // id
   // The two readers agree.
   CHECK(laws_of_pipeline({Step::Not, Step::Not}) ==
-        cata(LawAlgebra<>{}, Compose<Not, Not>{Not{}, Not{}}));
+        cata(LawAlgebra<>{},
+             Compose<Negation, Negation>{Negation{}, Negation{}}));
 }
