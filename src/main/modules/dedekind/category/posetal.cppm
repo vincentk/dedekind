@@ -636,8 +636,9 @@ export using ArrowLaws = Profile<ArrowLaw, every_arrow_law.size()>;
  *    monotone and antitone ∘ antitone are monotone; mixed, antitone);
  *  - @b duality: ⟨f, g⟩ is injective when either leg is, [f, g] surjective
  *    when either leg is; both keep a variance their legs share.
- *  The formers other than ∘ are read once their arrow types exist (#1049,
- *  the second commit).  @param w the law.  @param n the former.  @param a
+ *  The formers' arrow types and their readers are in @c :cartesian
+ *  (@c ProductArrow, @c SumArrow, @c Pairing, @c Copairing).  @param w the
+ *  law.  @param n the former.  @param a
  *  @param b the legs' profiles (for ∘, @c a is the first arrow applied). */
 export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
                                const ArrowLaws& b) {

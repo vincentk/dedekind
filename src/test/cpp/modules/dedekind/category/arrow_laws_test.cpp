@@ -65,3 +65,19 @@ TEST_CASE("arrow laws: reader 2, by value at runtime", "[category][laws]") {
         cata(LawAlgebra<>{},
              Compose<Negation, Negation>{Negation{}, Negation{}}));
 }
+
+TEST_CASE("arrow laws: the formers, × + ⟨,⟩ [,]", "[category][laws]") {
+  using Pair = ProductArrow<Negation, Negation>;
+  // By type: the readers on the formers.
+  STATIC_CHECK(IsMonicArrow<ProductArrow<Same, Same>>);
+  STATIC_CHECK(IsEpicArrow<Copairing<Same, Same>>);
+  STATIC_CHECK(
+      IsAntiMonotone<Pair, ProductLeq<std::less_equal<>, std::less_equal<>>>);
+  // By fold: cata reaches through a former and a composition.
+  constexpr ArrowLaws through =
+      cata(LawAlgebra<>{}, Compose<Pair, Pair>{Pair{}, Pair{}});
+  STATIC_CHECK(through[ArrowLaw::Antitone] == Ternary::Unknown);
+  constexpr ArrowLaws pair = cata(LawAlgebra<>{}, Pair{});
+  STATIC_CHECK(pair[ArrowLaw::Antitone] == Ternary::True);  // anti × anti
+  CHECK(Pair{}({true, false}) == std::pair{false, true});
+}

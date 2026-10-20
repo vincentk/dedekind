@@ -120,10 +120,11 @@ export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
-import :posetal;   // ArrowLaws, arrow_node, arrow_laws_v: the law engine
-                   // LawAlgebra folds
-import :morphism;  // IsArrow, Compose, π_1 / π_2: the first concrete term
-                   // functor
+import :posetal;    // ArrowLaws, arrow_node, arrow_laws_v: the law engine
+                    // LawAlgebra folds
+import :cartesian;  // the formers × + ⟨,⟩ [,]: their legs, their nodes
+import :morphism;   // IsArrow, Compose, π_1 / π_2: the first concrete term
+                    // functor
 
 namespace dedekind::category {
 
@@ -383,6 +384,26 @@ struct LawAlgebra {
   constexpr ArrowLaws operator()(const Compose<F, G>&, const ArrowLaws& f,
                                  const ArrowLaws& g) const {
     return arrow_node(ArrowNode::Compose, f, g);
+  }
+  template <typename F, typename G>
+  constexpr ArrowLaws operator()(const ProductArrow<F, G>&, const ArrowLaws& f,
+                                 const ArrowLaws& g) const {
+    return arrow_node(ArrowNode::Product, f, g);
+  }
+  template <typename F, typename G>
+  constexpr ArrowLaws operator()(const SumArrow<F, G>&, const ArrowLaws& f,
+                                 const ArrowLaws& g) const {
+    return arrow_node(ArrowNode::Sum, f, g);
+  }
+  template <typename F, typename G>
+  constexpr ArrowLaws operator()(const Pairing<F, G>&, const ArrowLaws& f,
+                                 const ArrowLaws& g) const {
+    return arrow_node(ArrowNode::Pairing, f, g);
+  }
+  template <typename F, typename G>
+  constexpr ArrowLaws operator()(const Copairing<F, G>&, const ArrowLaws& f,
+                                 const ArrowLaws& g) const {
+    return arrow_node(ArrowNode::Copairing, f, g);
   }
 };
 

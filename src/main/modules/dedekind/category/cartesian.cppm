@@ -50,6 +50,8 @@ import :equivalence;  // IsEquivalence, IsSymmetric, IsEquality
 import :limit;
 import :mereology;
 import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
+import :posetal;   // the laws of a function (arrow_node, arrow_laws_v),
+                   // ProductLeq
 
 namespace dedekind::category {
 
@@ -1068,5 +1070,144 @@ inline constexpr bool is_eval_arrow_v = false;
 export template <typename Seq, typename Idx>
 concept IsEvalArrow =
     HasSubscriptOperator<Seq, Idx> && is_eval_arrow_v<Seq, Idx>;
+
+// ---------------------------------------------------------------------------
+// The formers of functions: f × g, f + g, ⟨f, g⟩, [f, g] (#1049)
+// ---------------------------------------------------------------------------
+
+/** @section cartesian__The_Formers_Of_Functions
+ *  Products and sums of functions, as arrows: the algebraic data types of the
+ *  posture, @c std::pair the product and @c std::variant the sum.  @c f × g
+ *  and @c f + g act componentwise / casewise; the pairing ⟨f, g⟩ sends one
+ *  argument into a product, the copairing [f, g] is case analysis out of a sum
+ *  (@c std::visit's shape: the fold of a sum).  Each exposes its two legs, so
+ *  @c cata folds through it, and each reads its laws off the law engine
+ *  (@c :posetal, @c arrow_node).  Monotonicity is read on a product under the
+ *  product order @c ProductLeq; a sum has no registered order, so its
+ *  variance is left to the engine's value level. */
+/** @brief f × g : A × C → B × D, componentwise. */
+export template <IsArrow F, IsArrow G>
+struct ProductArrow {
+  using Domain = std::pair<Dom<F>, Dom<G>>;
+  using Codomain = std::pair<Cod<F>, Cod<G>>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return {f(x.first), g(x.second)};
+  }
+};
+/** @brief f + g : A + C → B + D, casewise. */
+export template <IsArrow F, IsArrow G>
+struct SumArrow {
+  using Domain = std::variant<Dom<F>, Dom<G>>;
+  using Codomain = std::variant<Cod<F>, Cod<G>>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    if (x.index() == 0)
+      return Codomain{std::in_place_index<0>, f(std::get<0>(x))};
+    return Codomain{std::in_place_index<1>, g(std::get<1>(x))};
+  }
+};
+/** @brief ⟨f, g⟩ : A → B × C, one argument into a product. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>>
+struct Pairing {
+  using Domain = Dom<F>;
+  using Codomain = std::pair<Cod<F>, Cod<G>>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const { return {f(x), g(x)}; }
+};
+/** @brief [f, g] : A + B → C, case analysis out of a sum. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Cod<G>>
+struct Copairing {
+  using Domain = std::variant<Dom<F>, Dom<G>>;
+  using Codomain = Cod<F>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return x.index() == 0 ? f(std::get<0>(x)) : g(std::get<1>(x));
+  }
+};
+
+/** @brief The legs of a former, for @c cata. */
+export template <typename F, typename G>
+constexpr auto legs(const ProductArrow<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+export template <typename F, typename G>
+constexpr auto legs(const SumArrow<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+export template <typename F, typename G>
+constexpr auto legs(const Pairing<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+export template <typename F, typename G>
+constexpr auto legs(const Copairing<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+
+// The readers: each former's laws, by the engine on its legs' profiles.
+template <typename F, typename G>
+inline constexpr bool is_monic_arrow_v<ProductArrow<F, G>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_epic_arrow_v<ProductArrow<F, G>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+template <typename F, typename G, typename LeqA, typename LeqB>
+inline constexpr bool
+    is_monotone_v<ProductArrow<F, G>, ProductLeq<LeqA, LeqB>> =
+        arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,
+                   arrow_laws_v<G, LeqB>)[ArrowLaw::Monotone] == Ternary::True;
+template <typename F, typename G, typename LeqA, typename LeqB>
+inline constexpr bool
+    is_antimonotone_v<ProductArrow<F, G>, ProductLeq<LeqA, LeqB>> =
+        arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,
+                   arrow_laws_v<G, LeqB>)[ArrowLaw::Antitone] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_monic_arrow_v<SumArrow<F, G>> =
+    arrow_node(ArrowNode::Sum, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_epic_arrow_v<SumArrow<F, G>> =
+    arrow_node(ArrowNode::Sum, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_monic_arrow_v<Pairing<F, G>> =
+    arrow_node(ArrowNode::Pairing, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_epic_arrow_v<Copairing<F, G>> =
+    arrow_node(ArrowNode::Copairing, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+
+namespace detail_formers_witness {
+using I = Identity<int>;
+using B = Identity<bool>;
+static_assert(IsArrow<ProductArrow<I, B>> && IsArrow<SumArrow<I, B>> &&
+                  IsArrow<Pairing<I, I>> && IsArrow<Copairing<I, I>>,
+              "the formers are arrows");
+static_assert(IsMonicArrow<ProductArrow<I, B>> &&
+                  IsEpicArrow<ProductArrow<I, B>>,
+              "id × id is a bijection: closure under ×");
+static_assert(IsMonicArrow<SumArrow<I, B>> && IsEpicArrow<SumArrow<I, B>>,
+              "id + id is a bijection: closure under +");
+static_assert(IsMonicArrow<Pairing<I, I>>,
+              "⟨f, g⟩ is injective as soon as one leg is (the diagonal)");
+static_assert(IsEpicArrow<Copairing<I, I>>,
+              "[f, g] is surjective as soon as one leg is (the codiagonal)");
+static_assert(IsMonotone<ProductArrow<I, I>,
+                         ProductLeq<std::less_equal<>, std::less_equal<>>>,
+              "monotone × monotone is monotone, under the product order");
+static_assert(ProductArrow<I, B>{}({3, true}) == std::pair{3, true} &&
+                  Copairing<I, I>{}(std::variant<int, int>{
+                      std::in_place_index<1>, 4}) == 4,
+              "the formers compute");
+}  // namespace detail_formers_witness
 
 }  // namespace dedekind::category
