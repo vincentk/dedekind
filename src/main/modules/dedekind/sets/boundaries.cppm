@@ -590,7 +590,9 @@ concept IsSetObject =
     // where the compiler can read it: an overload on IsSetObject is then more
     // constrained than one on IsArrow, the set's meaning the more specific
     // (its * a cartesian product).
-    dedekind::category::IsCharacteristic<std::remove_cvref_t<S>> &&
+    // Passed S itself, not its decay: subsumption matches atoms by their
+    // parameter mapping too, and IsArrow strips cv-qualifiers on its own.
+    dedekind::category::IsCharacteristic<S> &&
     is_set_object<std::remove_cvref_t<S>>::value;  // decays: decltype(a & b) is
                                                    // const
 
