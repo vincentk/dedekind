@@ -389,7 +389,7 @@ struct LawAlgebra {
    *  descends (@c cata's @c steer): the product (sum) fact on the factors,
    *  which the pairing (copairing) rule alone would lose. */
   template <typename A, typename F, typename B, typename G>
-    requires IsProductForm<A, B>
+    requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
   constexpr ArrowLaws steer(
       const Pairing<Compose<A, F>, Compose<B, G>>& t) const {
     return arrow_node(ArrowNode::Product, cata(*this, t.f.g),

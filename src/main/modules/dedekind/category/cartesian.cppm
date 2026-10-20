@@ -1143,12 +1143,6 @@ constexpr auto legs(const Copairing<F, G>& a) {
   return std::tuple{a.f, a.g};
 }
 
-/** @brief The defining form of a product, recognised: a pairing of the two
- *  projections, each composed with a factor. */
-template <typename A, typename B>
-concept IsProductForm =
-    std::same_as<A, Π<1, Dom<A>>> && std::same_as<B, Π<2, Dom<B>>>;
-
 // The readers: each former's laws, by the engine on the profiles of what it is
 // made of.  The product's (sum's) defining form is read through its factors.
 template <typename F, typename G>
@@ -1156,25 +1150,25 @@ inline constexpr bool is_monic_arrow_v<Pairing<F, G>> =
     arrow_node(ArrowNode::Pairing, arrow_laws_v<F>,
                arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
 template <typename A, typename F, typename B, typename G>
-  requires IsProductForm<A, B>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
 inline constexpr bool is_monic_arrow_v<Pairing<Compose<A, F>, Compose<B, G>>> =
     arrow_node(ArrowNode::Product, arrow_laws_v<F>,
                arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
 template <typename A, typename F, typename B, typename G>
-  requires IsProductForm<A, B>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
 inline constexpr bool is_epic_arrow_v<Pairing<Compose<A, F>, Compose<B, G>>> =
     arrow_node(ArrowNode::Product, arrow_laws_v<F>,
                arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
 template <typename A, typename F, typename B, typename G, typename LeqA,
           typename LeqB>
-  requires IsProductForm<A, B>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
 inline constexpr bool is_monotone_v<Pairing<Compose<A, F>, Compose<B, G>>,
                                     ProductLeq<LeqA, LeqB>> =
     arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,
                arrow_laws_v<G, LeqB>)[ArrowLaw::Monotone] == Ternary::True;
 template <typename A, typename F, typename B, typename G, typename LeqA,
           typename LeqB>
-  requires IsProductForm<A, B>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
 inline constexpr bool is_antimonotone_v<Pairing<Compose<A, F>, Compose<B, G>>,
                                         ProductLeq<LeqA, LeqB>> =
     arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,

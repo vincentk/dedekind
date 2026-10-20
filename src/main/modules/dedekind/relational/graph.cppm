@@ -427,12 +427,6 @@ constexpr auto shannon(const R& r) {
   else
     return here | shannon<K, C, dedekind::category::Successor<C>{}(c), T>(r);
 }
-/** @brief Whether @c F is the projection @f$\pi_K@f$ out of a pair. */
-template <typename F, std::size_t K>
-concept IsPairProjection = dedekind::category::IsArrow<F> && requires {
-  typename dedekind::category::Dom<F>::first_type;
-  typename dedekind::category::Dom<F>::second_type;
-} && std::same_as<F, dedekind::category::Π<K, dedekind::category::Dom<F>>>;
 }  // namespace detail_hyperdoctrine
 
 /** @brief @f$\exists_\iota@f$ along an injection: the sum's pushforward. */
@@ -450,7 +444,7 @@ constexpr auto image_along(const dedekind::category::Copy<X>&, const S& s) {
   return dedekind::relational::diag(s);
 }
 /** @brief @f$\exists_{\pi_1}@f$, the second factor a finite chain: Shannon. */
-export template <detail_hyperdoctrine::IsPairProjection<1> F,
+export template <dedekind::category::IsPairProjection<1> F,
                  dedekind::sets::IsSetObject R>
   requires dedekind::category::IsFiniteChain<
                typename dedekind::category::Dom<F>::second_type> &&
@@ -463,7 +457,7 @@ constexpr auto image_along(const F&, const R& r) {
       2, B, dedekind::category::identity_v<B, dedekind::category::Sup>, A>(r);
 }
 /** @brief @f$\exists_{\pi_2}@f$, the first factor a finite chain: Shannon. */
-export template <detail_hyperdoctrine::IsPairProjection<2> F,
+export template <dedekind::category::IsPairProjection<2> F,
                  dedekind::sets::IsSetObject R>
   requires dedekind::category::IsFiniteChain<
                typename dedekind::category::Dom<F>::first_type> &&
