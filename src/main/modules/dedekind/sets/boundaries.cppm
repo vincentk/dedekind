@@ -586,10 +586,11 @@ struct is_set_object<dedekind::category::Not<A>> : is_set_object<A> {};
  *  bounded law and the codomain leg decide. */
 export template <typename S>
 concept IsSetObject =
-    // A set is an arrow (its χ), stated where the compiler can read it: an
-    // overload on IsSetObject is then more constrained than one on IsArrow,
-    // the set's meaning the more specific (its * a cartesian product).
-    dedekind::category::IsArrow<std::remove_cvref_t<S>> &&
+    // A set is its characteristic map χ (a predicate, hence an arrow), stated
+    // where the compiler can read it: an overload on IsSetObject is then more
+    // constrained than one on IsArrow, the set's meaning the more specific
+    // (its * a cartesian product).
+    dedekind::category::IsCharacteristic<std::remove_cvref_t<S>> &&
     is_set_object<std::remove_cvref_t<S>>::value;  // decays: decltype(a & b) is
                                                    // const
 
