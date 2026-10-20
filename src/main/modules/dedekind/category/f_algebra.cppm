@@ -111,6 +111,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::less_equal: LawAlgebra's default order
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -119,6 +120,8 @@ export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
+import :logic;     // ArrowLaws, arrow_node: the law engine LawAlgebra folds
+import :posetal;   // ordered_arrow_laws_v: a leaf's profile with its variances
 import :morphism;  // IsArrow, Compose, π_1 / π_2: the first concrete term
                    // functor
 
@@ -356,6 +359,25 @@ export struct BetaReduction {
   template <typename N, typename... R>
   constexpr auto operator()(const N& node, const R&... reduced) const {
     return reduce_β(node, reduced...);
+  }
+};
+
+/** @brief The law algebra: a leaf is its declared profile, a node the law
+ *  engine on its legs' profiles (@c :logic, @c arrow_node).  The second
+ *  algebra for the same @c cata: @c BetaReduction lands in a normal form (a
+ *  free algebra, so it decides equality), @c LawAlgebra in a finite domain of
+ *  profiles (an abstract interpretation, so it certifies, sound, not
+ *  complete).  @tparam Op the order the variances are read under. */
+export template <typename Op = std::less_equal<>>
+struct LawAlgebra {
+  template <typename A>
+  constexpr ArrowLaws operator()(const A&) const {
+    return ordered_arrow_laws_v<A, Op>;
+  }
+  template <typename F, typename G>
+  constexpr ArrowLaws operator()(const Compose<F, G>&, const ArrowLaws& f,
+                                 const ArrowLaws& g) const {
+    return arrow_node(ArrowNode::Compose, f, g);
   }
 };
 

@@ -58,9 +58,11 @@
 module;
 
 #include <algorithm>
+#include <array>  // a profile: one K₃ answer per law
 #include <cmath>
 #include <compare>  // std::strong_ordering — operator<=> on Ternary.
 #include <concepts>
+#include <cstddef>
 #include <cstdint>  // std::int8_t — Ternary int cast for the <=> body.
 #include <functional>
 #include <limits>       // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
@@ -1601,5 +1603,183 @@ static_assert(
 static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
                   identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
               "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
+
+// ---------------------------------------------------------------------------
+// The laws of an arrow: a profile per arrow, and one engine (#1049)
+// ---------------------------------------------------------------------------
+
+/** @section logic__The_Laws_Of_An_Arrow
+ *  A law of an arrow (injective, surjective, monotone, …) is a class of
+ *  arrows; the laws an arrow is known to have are its @b profile, one answer
+ *  in K₃ per law: @c True where certified, @c Unknown where not, never
+ *  @c False (the engine certifies, it does not refute).  The profiles are a
+ *  finite algebra over the formers of arrows (∘, ×, +, ⟨,⟩, [,]): per law a
+ *  homomorphism into (Σ, ∧) = ({True, Unknown}, Kleene's ∧) where the law is
+ *  closed under the former, the sign product where it is a variance, and an
+ *  entailment that saturates a profile.  The profile of an arrow term is then
+ *  the unique homomorphism out of the term algebra (initial-algebra
+ *  semantics: a fold, @c LawAlgebra for @c cata in @c :f_algebra), sound
+ *  because each former's rule soundly abstracts the former (abstract
+ *  interpretation: inferred ≤ true).  Read twice: by the traits on
+ *  @c Compose at compile time (below, and @c :posetal), by a fold over a term
+ *  built at runtime.
+ *  @tparam E the laws, an enumeration.  @tparam N how many. */
+export template <typename E, std::size_t N>
+struct Profile {
+  std::array<Ternary, N> of{};  // value-initialised: every law Unknown
+  constexpr Ternary operator[](E w) const {
+    return of[static_cast<std::size_t>(w)];
+  }
+  constexpr Profile& set(E w) {
+    of[static_cast<std::size_t>(w)] = Ternary::True;
+    return *this;
+  }
+  constexpr bool operator==(const Profile&) const = default;
+};
+static_assert(Ternary{} == Ternary::Unknown,
+              "a value-initialised profile certifies nothing");
+
+/** @brief The laws of a function. */
+export enum class ArrowLaw : unsigned {
+  Injective,
+  Surjective,
+  Monotone,
+  Antitone,
+  Involutive
+};
+export inline constexpr std::array<ArrowLaw, 5> every_arrow_law{
+    ArrowLaw::Injective, ArrowLaw::Surjective, ArrowLaw::Monotone,
+    ArrowLaw::Antitone, ArrowLaw::Involutive};
+/** @brief The formers of arrows: g ∘ f, f × g, f + g, ⟨f, g⟩, [f, g]. */
+export enum class ArrowNode { Compose, Product, Sum, Pairing, Copairing };
+/** @brief The profile of an arrow. */
+export using ArrowLaws = Profile<ArrowLaw, 5>;
+
+namespace detail_laws {
+/** @brief A law both legs have: closure, the homomorphism into (Σ, ∧). */
+constexpr Ternary both(const ArrowLaws& a, const ArrowLaws& b, ArrowLaw w) {
+  return Kleene::AND(a[w], b[w]);
+}
+/** @brief A law either leg has. */
+constexpr Ternary either(const ArrowLaws& a, const ArrowLaws& b, ArrowLaw w) {
+  return Kleene::OR(a[w], b[w]);
+}
+}  // namespace detail_laws
+
+/** @brief The engine at one law: a former's answer from its legs' profiles.
+ *  The facts, each a theorem about functions:
+ *  - @b closure: injective and surjective functions are closed under ∘, ×,
+ *    +; so are monotone, antitone and involutive ones under × and +;
+ *  - @b the @b sign @b table: variance multiplies along ∘ (monotone ∘
+ *    monotone and antitone ∘ antitone are monotone; mixed, antitone);
+ *  - @b duality: ⟨f, g⟩ is injective when either leg is, [f, g] surjective
+ *    when either leg is; both keep a variance their legs share.
+ *  @param w the law.  @param n the former.  @param a @param b the legs'
+ *  profiles (for ∘, @c a is the first arrow applied). */
+export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
+                               const ArrowLaws& b) {
+  using detail_laws::both;
+  using detail_laws::either;
+  using L = ArrowLaw;
+  switch (n) {
+    case ArrowNode::Compose:
+      switch (w) {
+        case L::Injective:
+        case L::Surjective:
+          return both(a, b, w);
+        case L::Monotone:
+          return Kleene::OR(both(a, b, L::Monotone), both(a, b, L::Antitone));
+        case L::Antitone:
+          return Kleene::OR(Kleene::AND(a[L::Monotone], b[L::Antitone]),
+                            Kleene::AND(a[L::Antitone], b[L::Monotone]));
+        case L::Involutive:
+          return Ternary::Unknown;
+      }
+      break;
+    case ArrowNode::Product:
+    case ArrowNode::Sum:
+      return both(a, b, w);
+    case ArrowNode::Pairing:
+      if (w == L::Injective) return either(a, b, w);
+      if (w == L::Monotone || w == L::Antitone) return both(a, b, w);
+      return Ternary::Unknown;
+    case ArrowNode::Copairing:
+      if (w == L::Surjective) return either(a, b, w);
+      if (w == L::Monotone || w == L::Antitone) return both(a, b, w);
+      return Ternary::Unknown;
+  }
+  return Ternary::Unknown;
+}
+/** @brief Entailment: an involution is its own inverse, so a bijection. */
+export constexpr ArrowLaws saturated(ArrowLaws p) {
+  if (p[ArrowLaw::Involutive] == Ternary::True)
+    p.set(ArrowLaw::Injective).set(ArrowLaw::Surjective);
+  return p;
+}
+/** @brief The engine at a former, law by law, its legs and its answer
+ *  saturated. */
+export constexpr ArrowLaws arrow_node(ArrowNode n, const ArrowLaws& a,
+                                      const ArrowLaws& b) {
+  const ArrowLaws sa = saturated(a), sb = saturated(b);
+  ArrowLaws out;
+  for (const ArrowLaw w : every_arrow_law)
+    out.of[static_cast<std::size_t>(w)] = infer(w, n, sa, sb);
+  return saturated(out);
+}
+
+namespace detail_laws {
+template <typename F>
+constexpr ArrowLaws declared_arrow_laws() {
+  ArrowLaws p;
+  if constexpr (IsMonicArrow<F>) p.set(ArrowLaw::Injective);
+  if constexpr (IsEpicArrow<F>) p.set(ArrowLaw::Surjective);
+  if constexpr (requires { typename F::Domain; })
+    if constexpr (is_involutive_v<F, typename F::Domain>)
+      p.set(ArrowLaw::Involutive);
+  return saturated(p);
+}
+}  // namespace detail_laws
+/** @brief The profile of an arrow as this partition sees it: monic, epic,
+ *  involutive (the variances join in @c :posetal, @c ordered_arrow_laws_v). */
+export template <typename F>
+inline constexpr ArrowLaws arrow_laws_v = detail_laws::declared_arrow_laws<F>();
+
+// The readers on composition: g ∘ f is monic / epic by the engine on its legs
+// (the rules that were stated per trait in :morphism, now one engine).
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_monic_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_epic_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+
+namespace detail_laws_witness {
+static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
+                  IsEpicArrow<Compose<Identity<int>, Identity<int>>>,
+              "id ∘ id is monic and epic: the closure facts on its legs");
+static_assert(
+    arrow_node(ArrowNode::Compose, ArrowLaws{}.set(ArrowLaw::Antitone),
+               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Monotone] ==
+        Ternary::True,
+    "the sign table: antitone ∘ antitone is monotone");
+static_assert(arrow_node(ArrowNode::Compose,
+                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{})[ArrowLaw::Injective] == Ternary::Unknown,
+              "closure needs both legs: nothing from one");
+static_assert(arrow_node(ArrowNode::Pairing,
+                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{})[ArrowLaw::Injective] == Ternary::True,
+              "⟨f, g⟩ is injective as soon as one leg is");
+static_assert(
+    arrow_node(ArrowNode::Copairing, ArrowLaws{},
+               ArrowLaws{}.set(ArrowLaw::Surjective))[ArrowLaw::Surjective] ==
+        Ternary::True,
+    "[f, g] is surjective as soon as one leg is: the dual");
+static_assert(saturated(ArrowLaws{}.set(
+                  ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
+              "entailment: an involution is a bijection");
+}  // namespace detail_laws_witness
 
 }  // namespace dedekind::category

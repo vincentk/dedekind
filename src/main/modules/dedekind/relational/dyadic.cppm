@@ -738,20 +738,7 @@ export constexpr dedekind::category::Ternary infer(
  *  @c constexpr value, so the engine is read by the compiler on a typed
  *  relation (the traits of @c :cartesian, below) and by the program over a
  *  @c RelExpr (@c relational:rows, @c laws): one engine, two readers. */
-export struct Laws {
-  std::array<dedekind::category::Ternary, 4> of{
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown};
-  constexpr dedekind::category::Ternary operator[](Law w) const {
-    return of[static_cast<unsigned>(w)];
-  }
-  constexpr Laws& set(Law w) {
-    of[static_cast<unsigned>(w)] = dedekind::category::Ternary::True;
-    return *this;
-  }
-  constexpr bool operator==(const Laws&) const = default;
+export struct Laws : dedekind::category::Profile<Law, 4> {
   /** @brief Declared answers, read off four witnesses. */
   static constexpr Laws from(bool total, bool univalent, bool injective,
                              bool surjective) {

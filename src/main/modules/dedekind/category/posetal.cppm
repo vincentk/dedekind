@@ -549,20 +549,32 @@ static_assert(IsVariant<LiftLogic<Boole>>,
 //   co∘co   = co        (monotone ∘ monotone)
 //   anti∘anti = co       (two order-reversals cancel)
 //   co∘anti = anti,  anti∘co = anti
-// Each is a Horn clause whose premises gate on the @c IsMonotone /
-// @c IsAntiMonotone CONCEPTS of the legs; the disjunction in one specialization
-// (rather than two same-headed specializations) keeps overload selection
-// unambiguous.  This is the rule that was MISSING while composition was only
-// the ad-hoc @c operator>>; reifying @c Compose seated it.
-template <typename F, typename G, typename Op>
-  requires((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
-           (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>))
-inline constexpr bool is_monotone_v<Compose<F, G>, Op> = true;
+// The sign table is a fact of the law engine (@c :logic, @c infer): each trait
+// below reads it on the legs' profiles, one rule for both readers (#1049). This
+// is the rule that was MISSING while composition was only the ad-hoc @c
+// operator>>; reifying @c Compose seated it.
+/** @brief The profile of an arrow with its variances under @c Op: the
+ *  engine's input on an ordered carrier (@c :logic, @c arrow_laws_v). */
+template <typename F, typename Op>
+constexpr ArrowLaws ordered_arrow_laws() {
+  ArrowLaws p = arrow_laws_v<F>;
+  if constexpr (IsMonotone<F, Op>) p.set(ArrowLaw::Monotone);
+  if constexpr (IsAntiMonotone<F, Op>) p.set(ArrowLaw::Antitone);
+  return saturated(p);
+}
+export template <typename F, typename Op = std::less_equal<>>
+inline constexpr ArrowLaws ordered_arrow_laws_v = ordered_arrow_laws<F, Op>();
 
 template <typename F, typename G, typename Op>
-  requires((IsMonotone<F, Op> && IsAntiMonotone<G, Op>) ||
-           (IsAntiMonotone<F, Op> && IsMonotone<G, Op>))
-inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> = true;
+inline constexpr bool is_monotone_v<Compose<F, G>, Op> =
+    arrow_node(ArrowNode::Compose, ordered_arrow_laws_v<F, Op>,
+               ordered_arrow_laws_v<G, Op>)[ArrowLaw::Monotone] ==
+    Ternary::True;
+template <typename F, typename G, typename Op>
+inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> =
+    arrow_node(ArrowNode::Compose, ordered_arrow_laws_v<F, Op>,
+               ordered_arrow_laws_v<G, Op>)[ArrowLaw::Antitone] ==
+    Ternary::True;
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
               "co∘co=co: identity composed with itself is monotone.");

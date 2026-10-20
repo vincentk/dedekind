@@ -1,0 +1,66 @@
+/**
+ * @file arrow_laws_test.cpp
+ * @brief The laws of an arrow, one engine, two readers (#1049): by type at
+ *        compile time (the traits on @c Compose, a @c cata with
+ *        @c LawAlgebra), by value at runtime (a fold over a pipeline built
+ *        from input: @c std::accumulate, the free monoid's fold).
+ */
+#include <catch2/catch_test_macros.hpp>
+#include <functional>
+#include <numeric>
+#include <vector>
+
+import dedekind.category;
+using namespace dedekind::category;
+
+namespace {
+using Not = NegationArrow<Boole>;
+using Id = Identity<bool>;
+
+constexpr ArrowLaws profile_of_not = ordered_arrow_laws_v<Not>;
+constexpr ArrowLaws profile_of_id = ordered_arrow_laws_v<Id>;
+
+/** @brief A step of a pipeline built at runtime. */
+enum class Step { Id, Not };
+ArrowLaws laws_of_step(Step s) {
+  return s == Step::Not ? profile_of_not : profile_of_id;
+}
+ArrowLaws compose_laws(const ArrowLaws& so_far, Step next) {
+  return arrow_node(ArrowNode::Compose, so_far, laws_of_step(next));
+}
+ArrowLaws laws_of_pipeline(const std::vector<Step>& steps) {
+  return std::accumulate(steps.begin(), steps.end(), profile_of_id,
+                         compose_laws);
+}
+}  // namespace
+
+TEST_CASE("arrow laws: the leaves, declared", "[category][laws]") {
+  STATIC_CHECK(profile_of_not[ArrowLaw::Antitone] == Ternary::True);
+  STATIC_CHECK(profile_of_id[ArrowLaw::Monotone] == Ternary::True);
+  STATIC_CHECK(profile_of_id[ArrowLaw::Injective] == Ternary::True);
+}
+
+TEST_CASE("arrow laws: reader 1, by type at compile time", "[category][laws]") {
+  // The traits on Compose read the engine: the sign table.
+  STATIC_CHECK(IsMonotone<Compose<Not, Not>>);     // anti ∘ anti
+  STATIC_CHECK(IsAntiMonotone<Compose<Id, Not>>);  // mono ∘ anti
+  STATIC_CHECK(!IsMonotone<Compose<Id, Not>>);
+  // And a cata with the law algebra, the same engine as a fold.
+  constexpr ArrowLaws twice =
+      cata(LawAlgebra<>{}, Compose<Not, Not>{Not{}, Not{}});
+  STATIC_CHECK(twice[ArrowLaw::Monotone] == Ternary::True);
+  STATIC_CHECK(twice[ArrowLaw::Antitone] == Ternary::Unknown);
+}
+
+TEST_CASE("arrow laws: reader 2, by value at runtime", "[category][laws]") {
+  // The same arrows composed from data: the free monoid on the steps, folded.
+  CHECK(laws_of_pipeline({Step::Not, Step::Not})[ArrowLaw::Monotone] ==
+        Ternary::True);
+  CHECK(laws_of_pipeline({Step::Not})[ArrowLaw::Antitone] == Ternary::True);
+  CHECK(laws_of_pipeline({Step::Not, Step::Not,
+                          Step::Not})[ArrowLaw::Antitone] == Ternary::True);
+  CHECK(laws_of_pipeline({})[ArrowLaw::Monotone] == Ternary::True);  // id
+  // The two readers agree.
+  CHECK(laws_of_pipeline({Step::Not, Step::Not}) ==
+        cata(LawAlgebra<>{}, Compose<Not, Not>{Not{}, Not{}}));
+}
