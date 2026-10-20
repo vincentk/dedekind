@@ -4,7 +4,7 @@
 import unittest
 
 from dedekind.pst import K3, U64, Ternary, ap, π_1, π_2
-from dedekind.trsk import injective, surjective, total, univalent
+from dedekind.trsk import copy, injective, surjective, total, univalent
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -32,6 +32,20 @@ class Laws(unittest.TestCase):
         self.assertEqual(ap(~total, ~succ), Ternary.UNKNOWN)  # Σ, not Π
         self.assertEqual((total & univalent).codomain, K3)
         self.assertEqual(repr(total & univalent), "𝔸(Relation) & total & univalent")
+
+
+class OneCertificate(unittest.TestCase):
+    """``R.is_function`` is ``R in total & univalent``; ``ap`` evaluates the
+    terms that certify it, one per codomain column."""
+
+    def test_is_function_is_the_law_set(self) -> None:
+        for R in (succ, sq, succ >> succ, sq & succ, ~succ, copy(U64)):
+            self.assertIs(R.is_function, R in total & univalent)
+
+    def test_a_map_into_a_product(self) -> None:
+        c = copy(U64)
+        self.assertIs(c.is_function, True)
+        self.assertEqual(ap(c, 3), (3, 3))
 
 
 if __name__ == "__main__":

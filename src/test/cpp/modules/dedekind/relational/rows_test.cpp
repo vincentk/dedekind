@@ -28,7 +28,7 @@ using dedekind::category::Ternary;
 using dedekind::relational::converse;
 using dedekind::relational::copy;
 using dedekind::relational::diag;
-using dedekind::relational::function_term;
+using dedekind::relational::function_terms;
 using dedekind::relational::merge;
 using dedekind::relational::Object;
 using dedekind::relational::predicate_of;
@@ -78,7 +78,18 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   // reading keeps the ∃ as written.
   CHECK(verdict(two, R{{3u, 5u}}) == Ternary::True);
   CHECK(verdict(two, R{{3u, 6u}}) == Ternary::False);
-  CHECK(function_term(two, p) == nullptr);  // not quantifier-free as read
+  CHECK(!function_terms(two, p));  // not quantifier-free as read
+  // Eliminated, the middle is gone and the value is a term: π_1 + 1 + 1.
+  const auto ts =
+      function_terms(two, dedekind::sets::eliminate_quantifiers<R>(
+                              p, dedekind::sets::NoConstants{}, two.rep()));
+  REQUIRE(ts);
+  CHECK(ts->size() == 1);
+  // A map into a product has a term per codomain column: copy, x ↦ (x, x).
+  const auto cp = dedekind::relational::copy<int, unsigned, bool>(W);
+  const auto cs = function_terms(cp, predicate_of(cp));
+  REQUIRE(cs);
+  CHECK(cs->size() == 2);
   // A quantifier is found in a conditional's guard, too.
   CHECK(has_quantifier(
       Q::cmp(Rel::Eq, T::cond(p, T::constant(1), T::proj(1)), T::proj(2))));

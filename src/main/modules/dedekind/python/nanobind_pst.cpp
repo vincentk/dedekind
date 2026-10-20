@@ -1064,16 +1064,26 @@ struct ValueAt {
     return nb::cast(dedekind::sets::term_value_as<C>(t, row));
   }
 };
+/** @brief Whether the relation, read as an arrow, is certified a map: total
+ *  and univalent by the laws inferred over its term (@c R in @c total @c &
+ *  @c univalent). */
+bool certified_map(const Relation& r) {
+  using dedekind::relational::Law;
+  const auto l = dedekind::relational::laws(as_arrow(r));
+  return l[Law::Total] == Ternary::True && l[Law::Univalent] == Ternary::True;
+}
 /** @brief The arguments of an application: one value for a function of one
- *  argument, a tuple of n − 1 otherwise. */
-std::vector<nb::handle> arguments(const Relation& r, nb::handle h) {
-  if (r.arity() == 2) return {h};
-  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != r.arity() - 1)
-    throw nb::type_error(("ap(R, x): R is a function of " +
-                          std::to_string(r.arity() - 1) + " arguments")
-                             .c_str());
+ *  argument, a tuple of one per domain column otherwise.  @param a the
+ *  relation read as an arrow. */
+std::vector<nb::handle> arguments(const Relation& a, nb::handle h) {
+  const std::size_t nd = dedekind::relational::columns(a.dom).size();
+  if (nd == 1) return {h};
+  if (!nb::isinstance<nb::tuple>(h) || nb::len(h) != nd)
+    throw nb::type_error(
+        ("ap(R, x): R is a function of " + std::to_string(nd) + " arguments")
+            .c_str());
   std::vector<nb::handle> out;
-  for (nb::handle a : nb::borrow<nb::tuple>(h)) out.push_back(a);
+  for (nb::handle a_i : nb::borrow<nb::tuple>(h)) out.push_back(a_i);
   return out;
 }
 /** @brief @c ap(R, x).  At a point (a tuple of the arity): χ.  At the
@@ -1081,7 +1091,6 @@ std::vector<nb::handle> arguments(const Relation& r, nb::handle h) {
  *  the function's term, as a term with the slots replaced by them, its
  *  numerals pinned to the sorts they had in R. */
 nb::object apply(const Relation& r, nb::handle h) {
-  using dedekind::relational::function_term;
   const RPred cert = certifiable(r);
   const bool decided = !dedekind::sets::has_quantifier(cert);
   // At a whole point: χ.  Of values: in 𝔹 where the normal form is
@@ -1116,32 +1125,53 @@ nb::object apply(const Relation& r, nb::handle h) {
       at = RPred::conj(at, column_member(cols[i], args[i]));
     return nb::cast(truth_term(at));
   }
-  const RTerm* f = function_term(r, cert);
-  if (f == nullptr)
+  if (!certified_map(r))
     throw nb::type_error(
-        "ap(R, x): R is not certified a function (π_n == t(π_1 … π_{n−1}), "
-        "t landing in the last column); ap(R, (x₁, …, x_n)) is χ");
-  const std::vector<nb::handle> xs = arguments(r, h);
+        "ap(R, x): R is not certified a function (R in total & univalent); "
+        "ap(R, (x₁, …, x_n)) is χ");
+  const Relation arrow = as_arrow(r);
+  const auto terms = dedekind::relational::function_terms(arrow, cert);
+  if (!terms)
+    throw nb::type_error(
+        "ap(R, x): R is certified a function, but its predicate does not "
+        "spell its value as terms (yet); ap(R, (x₁, …, x_n)) is χ");
+  const std::vector<nb::handle> xs = arguments(arrow, h);
   bool symbolic = false;
   for (nb::handle a : xs) symbolic = symbolic || is_term(a);
-  const dedekind::relational::Columns cols = r.columns();
+  const dedekind::relational::Columns dom =
+      dedekind::relational::columns(arrow.dom);
+  const dedekind::relational::Columns cod =
+      dedekind::relational::columns(arrow.cod);
+  // One value per codomain column: the value itself for one, a tuple else.
+  const auto result = [](std::vector<nb::object> vs) -> nb::object {
+    if (vs.size() == 1) return vs.front();
+    nb::list l;
+    for (auto& v : vs) l.append(v);
+    return nb::tuple(l);
+  };
+  std::vector<nb::object> vs;
   if (symbolic) {
     // A value among the terms is checked in its column now: the function's
     // term may not use it, and substitution would drop it unchecked.
     std::vector<RTerm> args;
     for (std::size_t i = 0; i < xs.size(); ++i) {
-      if (!is_term(xs[i])) (void)cell_of(cols[i], xs[i]);
+      if (!is_term(xs[i])) (void)cell_of(dom[i], xs[i]);
       args.push_back(term_of(xs[i]));
     }
-    return nb::cast(f->map_slots(SlotsTo{args}));
+    for (const RTerm& t : *terms)
+      vs.push_back(nb::cast(t.map_slots(SlotsTo{args})));
+    return result(std::move(vs));
   }
   Cells row;
   for (std::size_t i = 0; i < xs.size(); ++i)
-    row.cells.push_back(cell_of(cols[i], xs[i]));
-  row.cells.push_back(
-      dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>({cols.back()})
-          .cells.front());
-  return dedekind::sets::with_sort<Cells>(cols.back(), ValueAt{*f, row});
+    row.cells.push_back(cell_of(dom[i], xs[i]));
+  for (const auto& c :
+       dedekind::sets::row_of_sorts<uint64_t, Fp, bool, Ternary>(cod).cells)
+    row.cells.push_back(c);
+  for (std::size_t j = 0; j < cod.size(); ++j)
+    vs.push_back(
+        dedekind::sets::with_sort<Cells>(cod[j], ValueAt{(*terms)[j], row}));
+  return result(std::move(vs));
 }
 /** @brief The relation written: its universes, and its predicate unless ⊤
  *  (a relation whose predicate is ⊤ is the product universe itself). */
@@ -1414,15 +1444,12 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "quantifier-free; K₃ where a quantifier remains and membership "
           "searches (Σ for ∃: ⊤ or U; Π for ∀: ⊥ or U).")
       .def_prop_ro(
-          "is_function",
-          [](const Relation& r) {
-            return dedekind::relational::function_term(r, certifiable(r)) !=
-                   nullptr;
-          },
-          "Whether R is certified the graph of a function of its first n − 1 "
-          "columns: π_n == t(π_1 … π_{n−1}), functional by its shape, and "
-          "entire since every operator of a bound term is total on the "
-          "carrier and t lands in the last column.")
+          "is_function", [](const Relation& r) { return certified_map(r); },
+          "Whether R, read as an arrow (a table of n columns as the arrow of "
+          "its first n − 1), is certified a function: R in total & univalent, "
+          "the laws inferred over its term (#1045).  A leaf is one when every "
+          "codomain column is defined by a term over the domain landing in "
+          "its sort and nothing else is asked; a composite by the rules.")
       .def(
           "__le__",
           [](const Relation& a, const Relation& b) {
