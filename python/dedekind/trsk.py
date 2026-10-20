@@ -83,7 +83,10 @@ class Function:
         def holds(x):
             if len(fs) == 2 and _is_set_on(x, fs[0]):
                 return _attr(x, "codomain") == fs[1]
-            return _attr(x, "factors") == fs and x in function
+            # The certificate is the arrow's own split; the annotation promises
+            # one output, the last factor, so the split must be that one.
+            return (_attr(x, "factors") == fs and x in function
+                    and _attr(_attr(x, "arrow"), "cod") == fs[-1:])
 
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 

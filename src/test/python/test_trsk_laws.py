@@ -3,8 +3,8 @@
 
 import unittest
 
-from dedekind.pst import K3, U64, Ternary, ap, π_1, π_2
-from dedekind.trsk import copy, function, injective, surjective, total, univalent
+from dedekind.pst import K3, U64, Ternary, ap, u64, π_1, π_2, π_3
+from dedekind.trsk import Function, copy, function, injective, surjective, total, univalent
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -47,6 +47,12 @@ class Functions(unittest.TestCase):
         c = copy(U64)
         self.assertIn(c, function)
         self.assertEqual(ap(c, 3), (3, 3))
+        # A function, but not of the signature Function[u64, u64, u64]
+        # promises (two inputs, one output): the annotation reads the split.
+        with self.assertRaises(TypeError):
+            Function[u64, u64, u64](c)
+        add = U64 * U64 * U64 & (π_3 == π_1 + π_2)
+        self.assertIs(Function[u64, u64, u64](add), add)
 
     def test_functions_compose(self) -> None:
         # function is closed under >> because total and univalent each are:
