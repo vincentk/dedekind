@@ -1135,21 +1135,16 @@ constexpr SumArrow<F, G> sum_arrow(const F& f, const G& g) {
 
 /** @brief f * g = f × g and f + g = f + g on arrows: the product and coproduct
  *  functors' action on arrows, as category theory writes them (Mac Lane,
- *  Awodey).  For arrows only, and not for a set (a subobject, with its
- *  @c Member surface): a set's @c * is its own cartesian product, and the
- *  term grammar's @c * @c + (pointwise, on terms) are not arrows.  Where the
- *  hom-sets are additive (@c geometry's function spaces), their own @c + (the
- *  sum of parallel arrows) is the more specific overload and keeps its
- *  meaning, as in an additive category.  @param f @param g the arrows. */
+ *  Awodey).  A more specific overload keeps its own meaning: a set's @c * (its
+ *  cartesian product, the classifier read through ∧), an additive hom-set's
+ *  @c + (@c geometry's function spaces: the sum of parallel arrows, as in an
+ *  additive category); the term grammar's @c * @c + act on terms, which are
+ *  not arrows.  @param f @param g the arrows. */
 export template <IsArrow F, IsArrow G>
-  requires(
-      !requires { typename F::Member; } && !requires { typename G::Member; })
 constexpr ProductArrow<F, G> operator*(const F& f, const G& g) {
   return product_arrow(f, g);
 }
 export template <IsArrow F, IsArrow G>
-  requires(
-      !requires { typename F::Member; } && !requires { typename G::Member; })
 constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
   return sum_arrow(f, g);
 }
