@@ -471,13 +471,15 @@ struct Join {  // A ∨ B
 };
 
 /** @section lattice__Nodes_over_arrows
- *  A node over two arrows into ONE truth object is itself such an arrow: the
+ *  A node over two arrows into truth objects is itself such an arrow: the
  *  lattice of arrows @c A @c → @c Ω is computed pointwise (@c Meet by @c AND,
- *  @c Join by @c OR, @c Not by @c RFL of the operands' shared @c
- * logic_species). When the operands declare the @c IsArrow vocabulary --- @c
- * Domain /
- *  @c Codomain / @c logic_species --- and agree on it, the node declares the
- *  same, so it composes, reduces and evaluates as an arrow.  That is ALL a
+ *  @c Join by @c OR, @c Not by @c RFL).  Operands of two species meet in their
+ *  @b join species (@c join_logic_t, the dominance 𝔹 ↪ K₃ ↪ …), each answer
+ *  lifted into it (@c lift_logic), as a comprehension combines its base and
+ *  predicate; one shared species is the case where the join is that species.
+ *  When the operands declare the @c IsArrow vocabulary --- @c Domain /
+ *  @c Codomain / @c logic_species --- the node declares it too, so it
+ *  composes, reduces and evaluates as an arrow.  That is ALL a
  *  node carries here: the @b subobject reading (a member shape, the inclusion
  *  @c ι, the pullback / pushout apex legs) is set semantics and lives
  *  downstream in @c dedekind.sets, where a node over set objects is a set
@@ -487,49 +489,53 @@ struct Join {  // A ∨ B
  *  vocabulary the primaries above apply. */
 export template <typename A, typename B>
   requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
-           std::same_as<Cod<A>, Cod<B>> &&
            requires {
              typename A::logic_species;
              typename B::logic_species;
            } &&
-           std::same_as<typename A::logic_species, typename B::logic_species>
-struct Meet<A, B> {  // A ∧ B: two matching arrows into Ω give one
+           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+struct Meet<A,
+            B> {  // A ∧ B: two arrows into truth objects with a join give one
   A lhs;
   B rhs;
+  using logic_species =
+      join_logic_t<typename A::logic_species, typename B::logic_species>;
   using Domain = Dom<A>;
-  using Codomain = Cod<A>;
-  using logic_species = typename A::logic_species;
+  using Codomain = typename logic_species::Ω;
   template <typename... X>
     requires requires(const A& l, const B& r, const X&... x) {
-      l(x...);
-      r(x...);
+      lift_logic<logic_species>(l(x...));
+      lift_logic<logic_species>(r(x...));
     }
   constexpr auto operator()(const X&... x) const {
-    return logic_species::AND(π_1(*this)(x...), π_2(*this)(x...));
+    return logic_species::AND(lift_logic<logic_species>(π_1(*this)(x...)),
+                              lift_logic<logic_species>(π_2(*this)(x...)));
   }
 };
 
 export template <typename A, typename B>
   requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
-           std::same_as<Cod<A>, Cod<B>> &&
            requires {
              typename A::logic_species;
              typename B::logic_species;
            } &&
-           std::same_as<typename A::logic_species, typename B::logic_species>
-struct Join<A, B> {  // A ∨ B: two matching arrows into Ω give one
+           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+struct Join<A,
+            B> {  // A ∨ B: two arrows into truth objects with a join give one
   A lhs;
   B rhs;
+  using logic_species =
+      join_logic_t<typename A::logic_species, typename B::logic_species>;
   using Domain = Dom<A>;
-  using Codomain = Cod<A>;
-  using logic_species = typename A::logic_species;
+  using Codomain = typename logic_species::Ω;
   template <typename... X>
     requires requires(const A& l, const B& r, const X&... x) {
-      l(x...);
-      r(x...);
+      lift_logic<logic_species>(l(x...));
+      lift_logic<logic_species>(r(x...));
     }
   constexpr auto operator()(const X&... x) const {
-    return logic_species::OR(π_1(*this)(x...), π_2(*this)(x...));
+    return logic_species::OR(lift_logic<logic_species>(π_1(*this)(x...)),
+                             lift_logic<logic_species>(π_2(*this)(x...)));
   }
 };
 
