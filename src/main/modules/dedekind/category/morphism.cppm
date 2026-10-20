@@ -1226,12 +1226,8 @@ concept IsMonicArrow =
 template <typename T>
 inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
 
-// A composite of monos is monic: g∘f(x) = g∘f(y) ⇒ f(x) = f(y) ⇒ x = y.  The
-// rule, not a declaration per composite (the converse, g∘f monic ⇒ f monic,
-// reads a part off the whole and is not a trait rule).
-template <IsArrow F, IsArrow G>
-  requires(IsMonicArrow<F> && IsMonicArrow<G>)
-inline constexpr bool is_monic_arrow_v<Compose<F, G>> = true;
+// A composite of monos is monic: a reader of the law engine (:posetal, the
+// laws of functions), declared before any partition reads it.
 
 static_assert(IsMonicArrow<Identity<int>>,
               "Identity must be recognised as a monic arrow.");
@@ -1271,15 +1267,7 @@ concept IsEpicArrow = IsArrow<E> && (is_epic_arrow_v<E> || IsIsomorphism<E>);
 template <typename T>
 inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 
-// A composite of epis is epic: every z is g(y) for some y, itself f(x).
-template <IsArrow F, IsArrow G>
-  requires(IsEpicArrow<F> && IsEpicArrow<G>)
-inline constexpr bool is_epic_arrow_v<Compose<F, G>> = true;
-
-static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
-                  IsEpicArrow<Compose<Identity<int>, Identity<int>>>,
-              "id ∘ id is monic and epic by the composition rules (and an "
-              "isomorphism by the inverse rule above)");
+// A composite of epis is epic: a reader of the law engine (:posetal).
 
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");

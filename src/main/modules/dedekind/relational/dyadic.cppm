@@ -713,17 +713,18 @@ export constexpr Law dagger(Law w) {
 export constexpr dedekind::category::Ternary infer(
     Law w, Node n, dedekind::category::Ternary a,
     dedekind::category::Ternary b = dedekind::category::Ternary::Unknown) {
-  using dedekind::category::Kleene;
+  using dedekind::category::Inf;
+  using dedekind::category::Sup;
   using dedekind::category::Ternary;
   switch (n) {
     case Node::Compose:
     case Node::Tensor:
     case Node::Sum:
-      return closed_under(w, n) ? Kleene::AND(a, b) : Ternary::Unknown;
+      return closed_under(w, n) ? Inf{}(a, b) : Ternary::Unknown;
     case Node::Meet:
-      return is_up_set(w) ? Ternary::Unknown : Kleene::OR(a, b);
+      return is_up_set(w) ? Ternary::Unknown : Sup{}(a, b);
     case Node::Join:
-      return is_up_set(w) ? Kleene::OR(a, b) : Ternary::Unknown;
+      return is_up_set(w) ? Sup{}(a, b) : Ternary::Unknown;
     case Node::Not:
     case Node::Universe:
     case Node::Comprehension:
@@ -738,20 +739,17 @@ export constexpr dedekind::category::Ternary infer(
  *  @c constexpr value, so the engine is read by the compiler on a typed
  *  relation (the traits of @c :cartesian, below) and by the program over a
  *  @c RelExpr (@c relational:rows, @c laws): one engine, two readers. */
-export struct Laws {
-  std::array<dedekind::category::Ternary, 4> of{
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown,
-      dedekind::category::Ternary::Unknown};
-  constexpr dedekind::category::Ternary operator[](Law w) const {
-    return of[static_cast<unsigned>(w)];
+/** @brief The engine at one node and one law, as a function of the law; the
+ *  converse reads its operand at the dagger law. */
+struct NodeAt {
+  Node n;
+  dedekind::category::Profile<Law, 4> a, b;
+  constexpr dedekind::category::Ternary operator()(Law w) const {
+    return infer(w, n, n == Node::Converse ? a[dagger(w)] : a[w], b[w]);
   }
-  constexpr Laws& set(Law w) {
-    of[static_cast<unsigned>(w)] = dedekind::category::Ternary::True;
-    return *this;
-  }
-  constexpr bool operator==(const Laws&) const = default;
+};
+export struct Laws : dedekind::category::Profile<Law, 4> {
+  using Profile = dedekind::category::Profile<Law, 4>;
   /** @brief Declared answers, read off four witnesses. */
   static constexpr Laws from(bool total, bool univalent, bool injective,
                              bool surjective) {
@@ -769,9 +767,7 @@ export struct Laws {
   }
   static constexpr Laws node(Node n, const Laws& a, const Laws& b) {
     Laws out;
-    for (const Law w : every_law)
-      out.of[static_cast<unsigned>(w)] =
-          infer(w, n, n == Node::Converse ? a[dagger(w)] : a[w], b[w]);
+    static_cast<Profile&>(out) = Profile::tabulate(NodeAt{n, a, b});
     return out;
   }
 };
@@ -1029,18 +1025,18 @@ static_assert(is_left_total_v<decltype(dedekind::relational::diag<bool>() >>
 // for all relations; where a law is not preserved in general (transitivity
 // through ∪ or ;, connexity through ∩) no rule is stated, so a composite that
 // happens to have it is not certified: sound, not complete.
-namespace detail_laws {
+namespace detail_endo_laws {
 template <typename A, typename L, typename C, typename P>
 using Endo =
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>, P>;
-}  // namespace detail_laws
+}  // namespace detail_endo_laws
 using dedekind::relational::ComposePred;
 using dedekind::relational::DiagPred;
 using dedekind::relational::PairwisePred;
 using dedekind::relational::SwapPred;
 using dedekind::sets::RelAnd;
 using dedekind::sets::RelOr;
-using detail_laws::Endo;
+using detail_endo_laws::Endo;
 
 // LEAF Δ: equality, where the carrier's == is (DiagPred compares by ==, so
 // over double (NaN, NaN) is no member and Δ no equality: the carrier's

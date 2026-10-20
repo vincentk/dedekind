@@ -347,7 +347,10 @@ constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
   return cartesian_product(a, b);
 }
 
-/** @brief Infix sugar for cartesian product over ambient species values. */
+/** @brief Infix sugar for cartesian product over ambient species values.  A
+ *  set is also an arrow (its χ), and @c IsSetObject says so, so this overload
+ *  is more constrained than the arrows' @c * (the product functor,
+ *  @c category:cartesian): on sets, @c * is the cartesian product. */
 export template <IsSetObject A, IsSetObject B>
 constexpr auto operator*(const A& a, const B& b) {
   return cartesian_product(a, b);

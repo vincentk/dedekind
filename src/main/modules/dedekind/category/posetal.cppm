@@ -42,7 +42,9 @@
 module;
 
 #include <algorithm>
+#include <array>  // the laws of a function, enumerated
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <type_traits>  // std::bool_constant: the monotone witness
 #include <utility>
@@ -53,10 +55,12 @@ export module dedekind.category:posetal;
 import :logic;
 import :mereology;
 import :species;
-import :morphism;  // IsArrow / IsBijectiveArrow / Identity (gates for
-                   // IsMonotone / IsAntiMonotone / IsOrderIsomorphism)
-import :thin;      // IsThinCategory — the faithful row-1 inclusion that
-                   // IsPosetal explicitly imports per #698 Slice 1.
+import :involution;  // IsInvolution: the law the engine reads, as the iso hook
+                     // does
+import :morphism;    // IsArrow / IsBijectiveArrow / Identity (gates for
+                     // IsMonotone / IsAntiMonotone / IsOrderIsomorphism)
+import :thin;        // IsThinCategory — the faithful row-1 inclusion that
+                     // IsPosetal explicitly imports per #698 Slice 1.
 
 namespace dedekind::category {
 
@@ -549,20 +553,236 @@ static_assert(IsVariant<LiftLogic<Boole>>,
 //   co∘co   = co        (monotone ∘ monotone)
 //   anti∘anti = co       (two order-reversals cancel)
 //   co∘anti = anti,  anti∘co = anti
-// Each is a Horn clause whose premises gate on the @c IsMonotone /
-// @c IsAntiMonotone CONCEPTS of the legs; the disjunction in one specialization
-// (rather than two same-headed specializations) keeps overload selection
-// unambiguous.  This is the rule that was MISSING while composition was only
-// the ad-hoc @c operator>>; reifying @c Compose seated it.
-template <typename F, typename G, typename Op>
-  requires((IsMonotone<F, Op> && IsMonotone<G, Op>) ||
-           (IsAntiMonotone<F, Op> && IsAntiMonotone<G, Op>))
-inline constexpr bool is_monotone_v<Compose<F, G>, Op> = true;
+// The sign table is a fact of the law engine (@c :logic, @c infer): each trait
+// below reads it on the legs' profiles, one rule for both readers (#1049). This
+// is the rule that was MISSING while composition was only the ad-hoc @c
+// operator>>; reifying @c Compose seated it.
+// ---------------------------------------------------------------------------
+// A profile: one answer in K₃ per law (#1049)
+// ---------------------------------------------------------------------------
 
+/** @brief The laws an arrow is known to have, one answer in K₃ per law:
+ *  @c True where certified, @c Unknown where not, never @c False (a profile
+ *  certifies, it does not refute).  The pointwise lift Ω^E of the truth chain
+ *  to the laws (@c lattice__Omega_First_Pointwise_Lift), restricted to its
+ *  sub-chain Σ = {Unknown < True}: combined law by law with @c Inf / @c Sup.
+ *  Read by the laws of functions below and by the laws of relations
+ *  (@c relational:dyadic).  @tparam E the laws, an enumeration
+ *  0 … N − 1.  @tparam N how many. */
+export template <typename E, std::size_t N>
+struct Profile {
+  std::array<Ternary, N> of{};  // value-initialised: every law Unknown
+  constexpr Ternary operator[](E w) const {
+    return of[static_cast<std::size_t>(w)];
+  }
+  constexpr Profile& set(E w) {
+    of[static_cast<std::size_t>(w)] = Ternary::True;
+    return *this;
+  }
+  constexpr bool operator==(const Profile&) const = default;
+  /** @brief The profile whose answer at each law is @c f(law): the one loop
+   *  every engine runs, law by law.  @param f the answer per law. */
+  template <typename F>
+  static constexpr Profile tabulate(const F& f) {
+    Profile out;
+    for (std::size_t i = 0; i < N; ++i) out.of[i] = f(static_cast<E>(i));
+    return out;
+  }
+};
+static_assert(Ternary{} == Ternary::Unknown,
+              "a value-initialised profile certifies nothing");
+
+// ---------------------------------------------------------------------------
+// The laws of a function: one engine, read by type and by value (#1049)
+// ---------------------------------------------------------------------------
+
+/** @section posetal__The_Laws_Of_A_Function
+ *  A law of a function (injective, surjective, monotone, antitone,
+ *  involutive) is a class of arrows; an arrow's @b profile (@c Profile,
+ *  @c :logic) is the laws it is known to have.  The profiles are a finite
+ *  algebra over the formers of arrows (∘, ×, +, ⟨,⟩, [,]): per law a
+ *  homomorphism into (Σ, ∧) where the law is closed under the former, the
+ *  sign product where it is a variance (the group {+, −} of #908, with an
+ *  absorbing "unknown"), and an entailment that saturates a profile (a
+ *  closure operator).  The profile of an arrow term is the unique
+ *  homomorphism out of the term algebra (initial-algebra semantics: a fold,
+ *  @c LawAlgebra for @c cata in @c :f_algebra), sound because each former's
+ *  rule soundly abstracts the former (abstract interpretation: inferred ≤
+ *  true).  Read twice: by the traits on @c Compose at compile time (below),
+ *  by a fold over a term built at runtime.  Monotone and antitone are read
+ *  under an order @c Op; a former over a product reads each leg under its
+ *  own order and combines the profiles here. */
+export enum class ArrowLaw : unsigned {
+  Injective,
+  Surjective,
+  Monotone,
+  Antitone,
+  Involutive
+};
+export inline constexpr std::array<ArrowLaw, 5> every_arrow_law{
+    ArrowLaw::Injective, ArrowLaw::Surjective, ArrowLaw::Monotone,
+    ArrowLaw::Antitone, ArrowLaw::Involutive};
+/** @brief The formers of arrows: g ∘ f, f × g, f + g, ⟨f, g⟩, [f, g]. */
+export enum class ArrowNode { Compose, Product, Sum, Pairing, Copairing };
+/** @brief The profile of a function. */
+export using ArrowLaws = Profile<ArrowLaw, every_arrow_law.size()>;
+
+/** @brief The engine at one law: a former's answer from its legs' profiles,
+ *  their laws combined by the chain's own @c Inf (both legs) and @c Sup
+ *  (either leg).  The facts, each a theorem about functions:
+ *  - @b closure: injective and surjective functions are closed under ∘, ×,
+ *    +; involutive ones under × and +; monotone ones under × (the
+ *    componentwise order) and + (@c std::variant's order, by summand first);
+ *    antitone ones under × only (a sum's order keeps inl < inr, it does not
+ *    reverse it);
+ *  - @b the @b sign @b table: variance multiplies along ∘ (monotone ∘
+ *    monotone and antitone ∘ antitone are monotone; mixed, antitone);
+ *  - @b duality: ⟨f, g⟩ is injective when either leg is, [f, g] surjective
+ *    when either leg is; ⟨f, g⟩ keeps a variance both legs share, [f, g]
+ *    none (it compares across summands, which neither leg governs).
+ *  A variance is read under an order; these facts are about the former's own
+ *  order (componentwise, by summand), and a fold under another order drops
+ *  them (@c without_variance).
+ *  The formers are in @c :cartesian: ⟨,⟩ and [,] as arrow types, × and + by
+ *  their defining forms (f × g = ⟨f ∘ π₁, g ∘ π₂⟩, f + g = [ι₁ ∘ f, ι₂ ∘ g]),
+ *  recognised by the readers so the facts on × and + keep their precision.
+ *  @param w the law.  @param n the former.  @param a
+ *  @param b the legs' profiles (for ∘, @c a is the first arrow applied). */
+export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
+                               const ArrowLaws& b) {
+  using L = ArrowLaw;
+  switch (n) {
+    case ArrowNode::Compose:
+      switch (w) {
+        case L::Injective:
+        case L::Surjective:
+          return Inf{}(a[w], b[w]);
+        case L::Monotone:
+          return Sup{}(Inf{}(a[L::Monotone], b[L::Monotone]),
+                       Inf{}(a[L::Antitone], b[L::Antitone]));
+        case L::Antitone:
+          return Sup{}(Inf{}(a[L::Monotone], b[L::Antitone]),
+                       Inf{}(a[L::Antitone], b[L::Monotone]));
+        case L::Involutive:
+          return Ternary::Unknown;
+      }
+      break;
+    case ArrowNode::Product:
+      return Inf{}(a[w], b[w]);
+    case ArrowNode::Sum:
+      if (w == L::Antitone) return Ternary::Unknown;
+      return Inf{}(a[w], b[w]);
+    case ArrowNode::Pairing:
+      if (w == L::Injective) return Sup{}(a[w], b[w]);
+      if (w == L::Monotone || w == L::Antitone) return Inf{}(a[w], b[w]);
+      return Ternary::Unknown;
+    case ArrowNode::Copairing:
+      if (w == L::Surjective) return Sup{}(a[w], b[w]);
+      return Ternary::Unknown;
+  }
+  return Ternary::Unknown;
+}
+/** @brief Entailment, a closure operator on profiles: an involution is its
+ *  own inverse, so a bijection.  The engine applies it to values; a typed
+ *  arrow already has it through the iso hook (@c :involution, an involution
+ *  is self-inverse, so monic and epic). */
+export constexpr ArrowLaws saturated(ArrowLaws p) {
+  if (p[ArrowLaw::Involutive] == Ternary::True)
+    p.set(ArrowLaw::Injective).set(ArrowLaw::Surjective);
+  return p;
+}
+/** @brief The laws that do not depend on an order: a profile read under an
+ *  order the former's variance facts are not about. */
+export constexpr ArrowLaws without_variance(ArrowLaws p) {
+  p.of[static_cast<std::size_t>(ArrowLaw::Monotone)] = Ternary::Unknown;
+  p.of[static_cast<std::size_t>(ArrowLaw::Antitone)] = Ternary::Unknown;
+  return p;
+}
+/** @brief The engine at one former and one law, as a function of the law. */
+struct ArrowNodeAt {
+  ArrowNode n;
+  ArrowLaws a, b;
+  constexpr Ternary operator()(ArrowLaw w) const { return infer(w, n, a, b); }
+};
+/** @brief The engine at a former, law by law, its legs and its answer
+ *  saturated. */
+export constexpr ArrowLaws arrow_node(ArrowNode n, const ArrowLaws& a,
+                                      const ArrowLaws& b) {
+  return saturated(
+      ArrowLaws::tabulate(ArrowNodeAt{n, saturated(a), saturated(b)}));
+}
+
+/** @brief The profile of a typed arrow, its variances under @c Op.  Read off
+ *  the concepts (an iso, hence an involution, is already monic and epic).
+ *  @tparam F the arrow.  @tparam Op the order. */
+template <typename F, typename Op>
+constexpr ArrowLaws declared_arrow_laws() {
+  ArrowLaws p;
+  if constexpr (IsMonicArrow<F>) p.set(ArrowLaw::Injective);
+  if constexpr (IsEpicArrow<F>) p.set(ArrowLaw::Surjective);
+  if constexpr (IsMonotone<F, Op>) p.set(ArrowLaw::Monotone);
+  if constexpr (IsAntiMonotone<F, Op>) p.set(ArrowLaw::Antitone);
+  if constexpr (requires { typename F::Domain; })
+    if constexpr (IsInvolution<F>) p.set(ArrowLaw::Involutive);
+  return p;
+}
+export template <typename F, typename Op = std::less_equal<>>
+inline constexpr ArrowLaws arrow_laws_v = declared_arrow_laws<F, Op>();
+
+// The readers on composition, one engine for all four traits: g ∘ f is
+// monic / epic / monotone / antitone by the engine on its legs' profiles.
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_monic_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_epic_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
 template <typename F, typename G, typename Op>
-  requires((IsMonotone<F, Op> && IsAntiMonotone<G, Op>) ||
-           (IsAntiMonotone<F, Op> && IsMonotone<G, Op>))
-inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> = true;
+inline constexpr bool is_monotone_v<Compose<F, G>, Op> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F, Op>,
+               arrow_laws_v<G, Op>)[ArrowLaw::Monotone] == Ternary::True;
+template <typename F, typename G, typename Op>
+inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F, Op>,
+               arrow_laws_v<G, Op>)[ArrowLaw::Antitone] == Ternary::True;
+
+namespace detail_arrow_laws_witness {
+static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
+                  IsEpicArrow<Compose<Identity<int>, Identity<int>>>,
+              "id ∘ id is monic and epic: the closure facts on its legs");
+static_assert(
+    arrow_node(ArrowNode::Compose, ArrowLaws{}.set(ArrowLaw::Antitone),
+               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Monotone] ==
+        Ternary::True,
+    "the sign table: antitone ∘ antitone is monotone");
+static_assert(arrow_node(ArrowNode::Compose,
+                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{})[ArrowLaw::Injective] == Ternary::Unknown,
+              "closure needs both legs: nothing from one");
+static_assert(arrow_node(ArrowNode::Pairing,
+                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{})[ArrowLaw::Injective] == Ternary::True,
+              "⟨f, g⟩ is injective as soon as one leg is");
+static_assert(
+    arrow_node(ArrowNode::Copairing, ArrowLaws{},
+               ArrowLaws{}.set(ArrowLaw::Surjective))[ArrowLaw::Surjective] ==
+        Ternary::True,
+    "[f, g] is surjective as soon as one leg is: the dual");
+static_assert(saturated(ArrowLaws{}.set(
+                  ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
+              "entailment: an involution is a bijection");
+static_assert(
+    arrow_node(ArrowNode::Sum, ArrowLaws{}.set(ArrowLaw::Antitone),
+               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
+            Ternary::Unknown &&
+        arrow_node(ArrowNode::Copairing, ArrowLaws{}.set(ArrowLaw::Monotone),
+                   ArrowLaws{}.set(ArrowLaw::Monotone))[ArrowLaw::Monotone] ==
+            Ternary::Unknown,
+    "a sum keeps inl < inr, so no antitone; a copairing compares "
+    "across summands, so no variance at all");
+}  // namespace detail_arrow_laws_witness
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
               "co∘co=co: identity composed with itself is monotone.");

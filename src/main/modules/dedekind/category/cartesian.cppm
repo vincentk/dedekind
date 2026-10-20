@@ -50,6 +50,8 @@ import :equivalence;  // IsEquivalence, IsSymmetric, IsEquality
 import :limit;
 import :mereology;
 import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
+import :posetal;   // the laws of a function (arrow_node, arrow_laws_v),
+                   // ProductLeq
 
 namespace dedekind::category {
 
@@ -1068,5 +1070,173 @@ inline constexpr bool is_eval_arrow_v = false;
 export template <typename Seq, typename Idx>
 concept IsEvalArrow =
     HasSubscriptOperator<Seq, Idx> && is_eval_arrow_v<Seq, Idx>;
+
+// ---------------------------------------------------------------------------
+// The formers of functions: f × g, f + g, ⟨f, g⟩, [f, g] (#1049)
+// ---------------------------------------------------------------------------
+
+/** @section cartesian__The_Formers_Of_Functions
+ *  Products and sums of functions: the algebraic data types of the posture,
+ *  @c std::pair the product and @c std::variant the sum.  Two formers are
+ *  primitive: the pairing ⟨f, g⟩ sends one argument into a product, the
+ *  copairing [f, g] is case analysis out of a sum (@c std::visit's shape: the
+ *  fold of a sum).  The other two are @b defined by them, as in the textbook:
+ *  f × g = ⟨f ∘ π₁, g ∘ π₂⟩ and f + g = [ι₁ ∘ f, ι₂ ∘ g].
+ *
+ *  The law engine (@c :posetal, @c arrow_node) keeps × and + as facts of
+ *  their own because the derived form loses precision: ⟨f ∘ π₁, g ∘ π₂⟩ is
+ *  jointly injective though neither leg is, so the pairing rule alone
+ *  certifies nothing.  The readers below, and @c LawAlgebra's @c steer,
+ *  recognise the defining form and apply the product (sum) fact to f and g;
+ *  any other pairing gets the pairing rule, which is the honest answer
+ *  (⟨f ∘ π₁, f ∘ π₁⟩ is not injective).  Monotonicity is read on a product
+ *  under the product order @c ProductLeq; a sum has no canonical order, so
+ *  its variance stays at the engine's value level. */
+/** @brief ⟨f, g⟩ : A → B × C, one argument into a product. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>>
+struct Pairing {
+  using Domain = Dom<F>;
+  using Codomain = std::pair<Cod<F>, Cod<G>>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const { return {f(x), g(x)}; }
+};
+/** @brief [f, g] : A + B → C, case analysis out of a sum. */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Cod<G>>
+struct Copairing {
+  using Domain = std::variant<Dom<F>, Dom<G>>;
+  using Codomain = Cod<F>;
+  F f;
+  G g;
+  constexpr Codomain operator()(const Domain& x) const {
+    return x.index() == 0 ? f(std::get<0>(x)) : g(std::get<1>(x));
+  }
+};
+/** @brief f × g = ⟨f ∘ π₁, g ∘ π₂⟩ : A × C → B × D. */
+export template <IsArrow F, IsArrow G>
+using ProductArrow = Pairing<Compose<Π<1, std::pair<Dom<F>, Dom<G>>>, F>,
+                             Compose<Π<2, std::pair<Dom<F>, Dom<G>>>, G>>;
+/** @brief f + g = [ι₁ ∘ f, ι₂ ∘ g] : A + C → B + D. */
+export template <IsArrow F, IsArrow G>
+using SumArrow = Copairing<Compose<F, Injection<1, Cod<F>, Cod<G>>>,
+                           Compose<G, Injection<2, Cod<F>, Cod<G>>>>;
+/** @brief f × g, built.  @param f @param g the factors. */
+export template <IsArrow F, IsArrow G>
+constexpr ProductArrow<F, G> product_arrow(const F& f, const G& g) {
+  return {{{}, f}, {{}, g}};
+}
+/** @brief f + g, built.  @param f @param g the summands. */
+export template <IsArrow F, IsArrow G>
+constexpr SumArrow<F, G> sum_arrow(const F& f, const G& g) {
+  return {{f, {}}, {g, {}}};
+}
+
+/** @brief f * g = f × g and f + g = f + g on arrows: the product and coproduct
+ *  functors' action on arrows, as category theory writes them (Mac Lane,
+ *  Awodey).  A more specific overload keeps its own meaning: a set's @c * (its
+ *  cartesian product, the classifier read through ∧), an additive hom-set's
+ *  @c + (@c geometry's function spaces: the sum of parallel arrows, as in an
+ *  additive category); the term grammar's @c * @c + act on terms, which are
+ *  not arrows.  @param f @param g the arrows. */
+export template <IsArrow F, IsArrow G>
+constexpr ProductArrow<F, G> operator*(const F& f, const G& g) {
+  return product_arrow(f, g);
+}
+export template <IsArrow F, IsArrow G>
+constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
+  return sum_arrow(f, g);
+}
+
+/** @brief The legs of a former, for @c cata. */
+export template <typename F, typename G>
+constexpr auto legs(const Pairing<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+export template <typename F, typename G>
+constexpr auto legs(const Copairing<F, G>& a) {
+  return std::tuple{a.f, a.g};
+}
+
+// The readers: each former's laws, by the engine on the profiles of what it is
+// made of.  The product's (sum's) defining form is read through its factors.
+template <typename F, typename G>
+inline constexpr bool is_monic_arrow_v<Pairing<F, G>> =
+    arrow_node(ArrowNode::Pairing, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename A, typename F, typename B, typename G>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+inline constexpr bool is_monic_arrow_v<Pairing<Compose<A, F>, Compose<B, G>>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename A, typename F, typename B, typename G>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+inline constexpr bool is_epic_arrow_v<Pairing<Compose<A, F>, Compose<B, G>>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+template <typename A, typename F, typename B, typename G, typename LeqA,
+          typename LeqB>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+inline constexpr bool is_monotone_v<Pairing<Compose<A, F>, Compose<B, G>>,
+                                    ProductLeq<LeqA, LeqB>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,
+               arrow_laws_v<G, LeqB>)[ArrowLaw::Monotone] == Ternary::True;
+template <typename A, typename F, typename B, typename G, typename LeqA,
+          typename LeqB>
+  requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
+inline constexpr bool is_antimonotone_v<Pairing<Compose<A, F>, Compose<B, G>>,
+                                        ProductLeq<LeqA, LeqB>> =
+    arrow_node(ArrowNode::Product, arrow_laws_v<F, LeqA>,
+               arrow_laws_v<G, LeqB>)[ArrowLaw::Antitone] == Ternary::True;
+template <typename F, typename G>
+inline constexpr bool is_epic_arrow_v<Copairing<F, G>> =
+    arrow_node(ArrowNode::Copairing, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+template <typename F, typename G, typename X, typename Y>
+inline constexpr bool is_monic_arrow_v<
+    Copairing<Compose<F, Injection<1, X, Y>>, Compose<G, Injection<2, X, Y>>>> =
+    arrow_node(ArrowNode::Sum, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Injective] == Ternary::True;
+template <typename F, typename G, typename X, typename Y>
+inline constexpr bool is_epic_arrow_v<
+    Copairing<Compose<F, Injection<1, X, Y>>, Compose<G, Injection<2, X, Y>>>> =
+    arrow_node(ArrowNode::Sum, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Surjective] == Ternary::True;
+
+namespace detail_formers_witness {
+using I = Identity<int>;
+using B = Identity<bool>;
+static_assert(IsArrow<ProductArrow<I, B>> && IsArrow<SumArrow<I, B>> &&
+                  IsArrow<Pairing<I, I>> && IsArrow<Copairing<I, I>>,
+              "the formers are arrows");
+static_assert(product_arrow(I{}, B{})({3, true}) == std::pair{3, true} &&
+                  sum_arrow(I{}, B{})(std::variant<int, bool>{
+                      std::in_place_index<1>, true}) ==
+                      std::variant<int, bool>{std::in_place_index<1>, true},
+              "f × g and f + g compute through their defining forms");
+static_assert(
+    IsMonicArrow<ProductArrow<I, B>> && IsEpicArrow<ProductArrow<I, B>>,
+    "id × id is a bijection: the product fact, read through ⟨id ∘ π₁, "
+    "id ∘ π₂⟩");
+static_assert(IsMonicArrow<SumArrow<I, B>> && IsEpicArrow<SumArrow<I, B>>,
+              "id + id is a bijection: the sum fact, read through [ι₁ ∘ id, ι₂ "
+              "∘ id]");
+static_assert(!IsMonicArrow<Pairing<Compose<Π<1, std::pair<int, int>>, I>,
+                                    Compose<Π<1, std::pair<int, int>>, I>>>,
+              "⟨id ∘ π₁, id ∘ π₁⟩ forgets the second component: not the "
+              "product form, and not certified injective");
+static_assert(IsMonicArrow<Pairing<I, I>>,
+              "⟨f, g⟩ is injective as soon as one leg is (the diagonal)");
+static_assert(std::same_as<decltype(I{} * B{}), ProductArrow<I, B>> &&
+                  std::same_as<decltype(I{} + B{}), SumArrow<I, B>> &&
+                  (I{} * B{})({3, true}) == std::pair{3, true},
+              "f * g and f + g are the product and the sum of the arrows");
+static_assert(IsEpicArrow<Copairing<I, I>>,
+              "[f, g] is surjective as soon as one leg is (the codiagonal)");
+static_assert(IsMonotone<ProductArrow<I, I>,
+                         ProductLeq<std::less_equal<>, std::less_equal<>>>,
+              "monotone × monotone is monotone, under the product order");
+}  // namespace detail_formers_witness
 
 }  // namespace dedekind::category
