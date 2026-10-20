@@ -155,8 +155,8 @@ jobs:
         from dedekind.pst import A, image, u64, π
 
         U = A(u64)
-        assert (U | (π > 3)) & (U | (π < 5)) == U | (π == 4)
-        assert image(succ(int), U | (π > 5)) == U | ((π > 6) | (π == 0))
+        assert (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)
+        assert image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))
         print("python-wheel-smoke-ok")
         PY
 
