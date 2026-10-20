@@ -1226,7 +1226,8 @@ concept IsMonicArrow =
 template <typename T>
 inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
 
-// A composite of monos is monic: a reader of the law engine, in :logic.
+// A composite of monos is monic: a reader of the law engine (:posetal, the
+// laws of functions), declared before any partition reads it.
 
 static_assert(IsMonicArrow<Identity<int>>,
               "Identity must be recognised as a monic arrow.");
@@ -1266,7 +1267,7 @@ concept IsEpicArrow = IsArrow<E> && (is_epic_arrow_v<E> || IsIsomorphism<E>);
 template <typename T>
 inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 
-// A composite of epis is epic: a reader of the law engine, in :logic.
+// A composite of epis is epic: a reader of the law engine (:posetal).
 
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");

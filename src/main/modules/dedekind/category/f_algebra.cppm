@@ -120,8 +120,8 @@ export module dedekind.category:f_algebra;
 
 export import :functor;
 import :limit;
-import :logic;     // ArrowLaws, arrow_node: the law engine LawAlgebra folds
-import :posetal;   // ordered_arrow_laws_v: a leaf's profile with its variances
+import :posetal;   // ArrowLaws, arrow_node, arrow_laws_v: the law engine
+                   // LawAlgebra folds
 import :morphism;  // IsArrow, Compose, π_1 / π_2: the first concrete term
                    // functor
 
@@ -363,7 +363,8 @@ export struct BetaReduction {
 };
 
 /** @brief The law algebra: a leaf is its declared profile, a node the law
- *  engine on its legs' profiles (@c :logic, @c arrow_node).  The second
+ *  engine on its legs' profiles (@c :posetal, @c arrow_node); any other
+ *  node certifies nothing (sound).  The second
  *  algebra for the same @c cata: @c BetaReduction lands in a normal form (a
  *  free algebra, so it decides equality), @c LawAlgebra in a finite domain of
  *  profiles (an abstract interpretation, so it certifies, sound, not
@@ -372,7 +373,11 @@ export template <typename Op = std::less_equal<>>
 struct LawAlgebra {
   template <typename A>
   constexpr ArrowLaws operator()(const A&) const {
-    return ordered_arrow_laws_v<A, Op>;
+    return arrow_laws_v<A, Op>;
+  }
+  template <typename N, typename R0, typename... R>
+  constexpr ArrowLaws operator()(const N&, const R0&, const R&...) const {
+    return ArrowLaws{};
   }
   template <typename F, typename G>
   constexpr ArrowLaws operator()(const Compose<F, G>&, const ArrowLaws& f,

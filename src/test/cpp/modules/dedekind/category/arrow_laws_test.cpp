@@ -17,8 +17,8 @@ namespace {
 using Negation = NegationArrow<Boole>;
 using Same = Identity<bool>;
 
-constexpr ArrowLaws profile_of_not = ordered_arrow_laws_v<Negation>;
-constexpr ArrowLaws profile_of_id = ordered_arrow_laws_v<Same>;
+constexpr ArrowLaws profile_of_not = arrow_laws_v<Negation>;
+constexpr ArrowLaws profile_of_id = arrow_laws_v<Same>;
 
 /** @brief A step of a pipeline built at runtime. */
 enum class Step { Id, Not };
