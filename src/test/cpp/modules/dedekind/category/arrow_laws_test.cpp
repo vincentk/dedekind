@@ -74,10 +74,10 @@ TEST_CASE("arrow laws: the formers, × + ⟨,⟩ [,]", "[category][laws]") {
   STATIC_CHECK(
       IsAntiMonotone<Pair, ProductLeq<std::less_equal<>, std::less_equal<>>>);
   // By fold: cata reaches through a former and a composition.
-  constexpr ArrowLaws through =
-      cata(LawAlgebra<>{}, Compose<Pair, Pair>{Pair{}, Pair{}});
+  constexpr Pair p = product_arrow(Negation{}, Negation{});
+  constexpr ArrowLaws through = cata(LawAlgebra<>{}, Compose<Pair, Pair>{p, p});
   STATIC_CHECK(through[ArrowLaw::Antitone] == Ternary::Unknown);
-  constexpr ArrowLaws pair = cata(LawAlgebra<>{}, Pair{});
+  constexpr ArrowLaws pair = cata(LawAlgebra<>{}, p);
   STATIC_CHECK(pair[ArrowLaw::Antitone] == Ternary::True);  // anti × anti
-  CHECK(Pair{}({true, false}) == std::pair{false, true});
+  CHECK(p({true, false}) == std::pair{false, true});
 }

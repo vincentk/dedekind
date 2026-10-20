@@ -122,7 +122,7 @@ export import :functor;
 import :limit;
 import :posetal;    // ArrowLaws, arrow_node, arrow_laws_v: the law engine
                     // LawAlgebra folds
-import :cartesian;  // the formers × + ⟨,⟩ [,]: their legs, their nodes
+import :cartesian;  // the formers ⟨,⟩ [,] and the defining forms of × +
 import :morphism;   // IsArrow, Compose, π_1 / π_2: the first concrete term
                     // functor
 
@@ -385,15 +385,21 @@ struct LawAlgebra {
                                  const ArrowLaws& g) const {
     return arrow_node(ArrowNode::Compose, f, g);
   }
-  template <typename F, typename G>
-  constexpr ArrowLaws operator()(const ProductArrow<F, G>&, const ArrowLaws& f,
-                                 const ArrowLaws& g) const {
-    return arrow_node(ArrowNode::Product, f, g);
+  /** @brief The defining forms of × and +, recognised before the fold
+   *  descends (@c cata's @c steer): the product (sum) fact on the factors,
+   *  which the pairing (copairing) rule alone would lose. */
+  template <typename A, typename F, typename B, typename G>
+    requires IsProductForm<A, B>
+  constexpr ArrowLaws steer(
+      const Pairing<Compose<A, F>, Compose<B, G>>& t) const {
+    return arrow_node(ArrowNode::Product, cata(*this, t.f.g),
+                      cata(*this, t.g.g));
   }
-  template <typename F, typename G>
-  constexpr ArrowLaws operator()(const SumArrow<F, G>&, const ArrowLaws& f,
-                                 const ArrowLaws& g) const {
-    return arrow_node(ArrowNode::Sum, f, g);
+  template <typename F, typename G, typename X, typename Y>
+  constexpr ArrowLaws steer(
+      const Copairing<Compose<F, Injection<1, X, Y>>,
+                      Compose<G, Injection<2, X, Y>>>& t) const {
+    return arrow_node(ArrowNode::Sum, cata(*this, t.f.f), cata(*this, t.g.f));
   }
   template <typename F, typename G>
   constexpr ArrowLaws operator()(const Pairing<F, G>&, const ArrowLaws& f,
