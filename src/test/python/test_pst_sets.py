@@ -9,6 +9,7 @@ import unittest
 
 from dedekind.pst import (
     𝔸, Ø, η, π, 𝔹, K3, Ternary, Boole, Kleene, ap, canonical, exists, forall, lift,
+    codomain, identity, is_decidable,
     any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
 )
 
@@ -85,8 +86,8 @@ class GrammarOverBTest(unittest.TestCase):
 
 class KleeneValuedTest(unittest.TestCase):
     def test_verdicts_in_k3(self) -> None:
-        H = K3.identity  # χ(x) = x, valued in K₃
-        self.assertFalse(H.is_decidable)
+        H = identity(K3)  # χ(x) = x, valued in K₃
+        self.assertFalse(is_decidable(H))
         self.assertEqual(ap(H, U), U)
         self.assertIn(T, H)  # `in` is the decided membership χ(x) = ⊤
         self.assertNotIn(U, H)
@@ -102,9 +103,9 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(A(Ternary, Kleene) == A(Ternary, Kleene), T)
 
     def test_cuts_and_fibres_are_decidable_sets(self) -> None:
-        H = K3.identity
+        H = identity(K3)
         cut_U = K3 & (ap(H, π) >= U)  # χ applied to π, compared on the chain
-        self.assertTrue(cut_U.is_decidable)
+        self.assertTrue(is_decidable(cut_U))
         self.assertIs(cut_U == (K3 & (π >= U)), True)
         self.assertIs((K3 & (ap(H, π) >= T)) == η(T), True)
         self.assertIs((K3 & (ap(H, π) == U)) == η(U), True)
@@ -113,7 +114,7 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertEqual(repr(H), "{χ ≥ ⊤}: {⊤}; {χ ≥ U}: [U, ⊤]")
 
     def test_a_set_applied_to_a_term_is_its_arrow(self) -> None:
-        # ap(S, t) is χ_S as a term of sort S.codomain: a decidable table's
+        # ap(S, t) is χ_S as a term of sort codomain(S): a decidable table's
         # run predicate as a conditional into 𝔹.
         S = K3 & (π > F)
         self.assertEqual(repr(ap(S, π)), f"cond(π >= {U!r}, True, False)")
@@ -123,7 +124,7 @@ class KleeneValuedTest(unittest.TestCase):
         self.assertIs((B & (ap(top, π) == True)) == top, True)  # noqa: E712
         # An L-valued table's χ is a conditional over its cuts, of sort K₃;
         # a term is not a predicate on any universe: compare it.
-        H = K3.identity
+        H = identity(K3)
         for universe, term in ((K3, ap(H, π)), (A(Ternary, Kleene), ap(H, π)),
                                (K3, ap(S, π)), (B, π * 1)):
             with self.assertRaises(TypeError):
@@ -133,7 +134,7 @@ class KleeneValuedTest(unittest.TestCase):
         # 𝔹 ↪ K₃: a value of 𝔹 is read in K₃ wherever the two meet, the one
         # coercion of the grammar; any other two carriers meet through ap.
         S = K3 & (π > F)  # χ into 𝔹
-        H = K3.identity  # χ into K₃
+        H = identity(K3)  # χ into K₃
         self.assertEqual(K3 & (ap(H, π) == ap(S, π)), η(F) | η(T))  # U ≠ ⊤
         self.assertEqual(K3 & (ap(H, π) >= True), η(T))  # True is ⊤
         self.assertEqual(B & (π == T), B & (π == True))  # noqa: E712
@@ -148,7 +149,7 @@ class KleeneValuedTest(unittest.TestCase):
     def test_lift(self) -> None:
         S = K3 & (π > F)
         L = lift(S)
-        self.assertFalse(L.is_decidable)
+        self.assertFalse(is_decidable(L))
         self.assertEqual(ap(L, U), T)
         self.assertEqual(L == lift(K3 & (π >= U)), T)
         self.assertEqual((K3 & (ap(L, π) >= U)) == S, True)
@@ -159,9 +160,9 @@ class MixedSpeciesTest(unittest.TestCase):
 
     def test_lattice_in_the_join(self) -> None:
         S = K3 & (π > F)  # Boolean: {U, ⊤}
-        H = K3.identity  # K₃-valued: χ(x) = x
+        H = identity(K3)  # K₃-valued: χ(x) = x
         M = S & H
-        self.assertFalse(M.is_decidable)
+        self.assertFalse(is_decidable(M))
         self.assertEqual(ap(M, U), U)  # ⊤ ∧ U
         self.assertEqual(ap(M, T), T)
         self.assertEqual(ap(M, F), F)
@@ -170,12 +171,12 @@ class MixedSpeciesTest(unittest.TestCase):
         self.assertEqual(lift(S) == (S & A(Ternary, Kleene)), T)
         # ^ across species: (⊤ ⊕ U) = U at U, ⊤ ⊕ ⊤ = ⊥ at ⊤, in K₃ either way.
         for X in (S ^ H, H ^ S):
-            self.assertFalse(X.is_decidable)
+            self.assertFalse(is_decidable(X))
             self.assertEqual((ap(X, F), ap(X, U), ap(X, T)), (F, U, F))
 
     def test_queries_in_the_join(self) -> None:
         S = K3 & (π > F)
-        H = K3.identity
+        H = identity(K3)
         # ⋀ (χ_S ⇔ χ_H): agree at ⊥ and ⊤, to degree U at U.
         self.assertEqual(S == H, U)
         self.assertEqual(H == S, U)

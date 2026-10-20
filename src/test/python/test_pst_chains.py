@@ -10,7 +10,7 @@ Python flags.
 
 import unittest
 
-from dedekind.pst import 𝔹, A, K3, Set, Ternary, ap, π
+from dedekind.pst import 𝔹, A, K3, Set, Ternary, ap, π, bottom, cardinality, carrier, identity, is_bounded, is_decidable, is_dense, is_truth_object, saturates, top
 from dedekind.trsk import Function
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
@@ -21,8 +21,8 @@ B = 𝔹
 
 class PstEndpointsAndStepTest(unittest.TestCase):
     def test_bool_chain(self) -> None:
-        self.assertIs(B.bottom, False)
-        self.assertIs(B.top, True)
+        self.assertIs(bottom(B), False)
+        self.assertIs(top(B), True)
         self.assertIs(B.succ(False), True)
         self.assertIs(B.succ(True), True)  # saturates at ⊤
         self.assertIs(B.pred(False), False)  # saturates at ⊥
@@ -30,8 +30,8 @@ class PstEndpointsAndStepTest(unittest.TestCase):
         self.assertIsNone(B.cover(True))  # the cover is partial at ⊤
 
     def test_kleene_chain(self) -> None:
-        self.assertEqual(K3.bottom, Ternary.FALSE)
-        self.assertEqual(K3.top, Ternary.TRUE)
+        self.assertEqual(bottom(K3), Ternary.FALSE)
+        self.assertEqual(top(K3), Ternary.TRUE)
         self.assertEqual(K3.succ(Ternary.FALSE), Ternary.UNKNOWN)
         self.assertEqual(K3.succ(Ternary.UNKNOWN), Ternary.TRUE)
         self.assertEqual(K3.succ(Ternary.TRUE), Ternary.TRUE)
@@ -65,15 +65,15 @@ class PstIndexingByPositionTest(unittest.TestCase):
 class PstClassificationTest(unittest.TestCase):
     def test_concept_verdicts(self) -> None:
         for chain in (B, K3):
-            self.assertTrue(chain.is_bounded)
-            self.assertFalse(chain.is_dense)  # a chain with the step is discrete
-            self.assertTrue(chain.saturates)
-        self.assertTrue(B.is_truth_object)
-        self.assertTrue(K3.is_truth_object)
+            self.assertTrue(is_bounded(chain))
+            self.assertFalse(is_dense(chain))  # a chain with the step is discrete
+            self.assertTrue(saturates(chain))
+        self.assertTrue(is_truth_object(B))
+        self.assertTrue(is_truth_object(K3))
 
     def test_cardinalities(self) -> None:
-        self.assertEqual(B.cardinality, 2)
-        self.assertEqual(K3.cardinality, 3)
+        self.assertEqual(cardinality(B), 2)
+        self.assertEqual(cardinality(K3), 3)
 
     def test_written_forms_are_the_names(self) -> None:
         self.assertEqual(repr(𝔹), "𝔹")
@@ -91,11 +91,11 @@ class AUniverseIsItsFullRunList(unittest.TestCase):
     of metadata of the full run list, against any operand."""
 
     def test_the_lattice_against_a_k3_valued_set(self) -> None:
-        H = K3.identity  # χ(x) = x, valued in K₃
+        H = identity(K3)  # χ(x) = x, valued in K₃
         F, U, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
         self.assertEqual([ap(K3 & H, v) for v in (F, U, T)], [F, U, T])  # H itself
         self.assertEqual((K3 | H) == K3, Ternary.TRUE)
-        self.assertFalse((K3 ^ H).is_decidable)
+        self.assertFalse(is_decidable((K3 ^ H)))
 
     def test_subset_queries_between_universes(self) -> None:
         self.assertIs(𝔹 <= 𝔹, True)
@@ -106,7 +106,7 @@ class AUniverseIsItsFullRunList(unittest.TestCase):
         self.assertEqual(K3 & (ap(K3, π) == True), K3)  # noqa: E712
 
     def test_its_metadata(self) -> None:
-        self.assertIs(K3.is_decidable, True)
-        self.assertEqual(K3.carrier, K3)
+        self.assertIs(is_decidable(K3), True)
+        self.assertEqual(carrier(K3), K3)
         self.assertIsInstance(K3, Set[K3])
         self.assertIs(Function[K3, 𝔹](K3), K3)

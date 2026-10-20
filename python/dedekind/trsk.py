@@ -15,17 +15,18 @@ monadically, and form a cartesian bicategory::
     two = succ >> succ                     # Kleisli composition: ∃ over the middle
     two == (U64 * U64 & (π_2 == π_1 + 2))  # True: canonical eliminates the ∃
     diag(U64) >> succ == succ              # True: η, the unit of >>
-    copy(U64) >> (succ.arrow * succ.arrow) >> merge(U64)   # succ ∧ succ: a spider
-    succ.converse                          # the dagger
+    copy(U64) >> (arrow(succ) * arrow(succ)) >> merge(U64) # succ ∧ succ: a spider
+    converse(succ)                         # the dagger
     Function[u64, u64](succ)               # the graph of a function, checked
 
 ``copy`` and ``merge`` are the Frobenius spiders, ``diag`` is η, ``>>`` the
-Kleisli composition (its ∃ the monad's μ), ``R.converse`` the dagger.  Where
+Kleisli composition (its ∃ the monad's μ), ``converse(R)`` the dagger.  Where
 the ∃ cannot be eliminated, membership searches within a budget, valued in Σ
 (⊤ or U) for ∃ and Π (⊥ or U) for ∀.
 
-A relation is its term, inspected by free functions, not methods:
-``kind(R)`` names the root node (universe, comprehension, meet, join, not,
+A relation is its term, inspected by free functions, not methods (#1054):
+``dom(R)``, ``cod(R)``, ``factors(R)``, ``classifier(R)``, ``arrow(R)``,
+``converse(R)``; ``kind(R)`` names the root node (universe, comprehension, meet, join, not,
 converse, tensor, compose) and ``operands(R)`` its children; a domain or
 codomain is an ``Object``, a product of carriers (``kind`` unit, leaf or
 product, ``operands`` the binary reading ``(first, rest)``).  ``repr(R)`` is
@@ -48,6 +49,11 @@ from ._pst import inl
 from ._pst import inr
 from ._pst import kind
 from ._pst import operands
+from ._pst import arrow
+from ._pst import cod
+from ._pst import converse
+from ._pst import dom
+from ._pst import factors
 from ._pst import total
 from ._pst import univalent
 from ._pst import injective
@@ -68,7 +74,7 @@ class Relation:
     def __class_getitem__(cls, factors):
         fs = factors if isinstance(factors, tuple) else (factors,)
         return _Annotation(f"Relation[{', '.join(map(_named, fs))}]",
-                           lambda x: _attr(x, "factors") == fs)
+                           lambda x: _attr(x, "_factors") == fs)
 
 
 class Function:
@@ -82,14 +88,15 @@ class Function:
 
         def holds(x):
             if len(fs) == 2 and _is_set_on(x, fs[0]):
-                return _attr(x, "codomain") == fs[1]
+                return _attr(x, "_codomain") == fs[1]
             # The certificate is the arrow's own split; the annotation promises
             # one output, the last factor, so the split must be that one.
-            return (_attr(x, "factors") == fs and x in function
-                    and _attr(_attr(x, "arrow"), "cod") == fs[-1:])
+            return (_attr(x, "_factors") == fs and x in function
+                    and _attr(_attr(x, "_arrow"), "_cod") == fs[-1:])
 
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 
 
-__all__ = ["Relation", "Function", "Object", "copy", "diag", "function", "inl", "inr", "injective", "kind",
-           "merge", "operands", "surjective", "total", "univalent"]
+__all__ = ["Function", "Object", "Relation", "arrow", "cod", "converse", "copy", "diag", "dom",
+           "factors", "function", "injective", "inl", "inr", "kind", "merge", "operands",
+           "surjective", "total", "univalent"]

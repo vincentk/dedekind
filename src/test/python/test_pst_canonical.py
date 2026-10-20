@@ -9,7 +9,7 @@ verdict, not a Python flag.
 
 import unittest
 
-from dedekind.pst import A, ap, u64, 𝔽ₚ  # 𝔽ₚ is the name Fp (NFKC)
+from dedekind.pst import A, ap, u64, 𝔽ₚ, cardinality, carrier, is_field, is_ring, modulus  # 𝔽ₚ is the name Fp (NFKC)
 
 P = 2**64 - 59
 
@@ -86,12 +86,12 @@ class TheField(unittest.TestCase):
 
 class TheUniverses(unittest.TestCase):
     def test_the_concepts_classify_them(self) -> None:
-        self.assertTrue(u64.is_ring)
-        self.assertFalse(u64.is_field)
-        self.assertTrue(𝔽ₚ.is_ring)
-        self.assertTrue(𝔽ₚ.is_field)
-        self.assertEqual(u64.modulus, 2**64)
-        self.assertEqual(𝔽ₚ.modulus, P)
+        self.assertTrue(is_ring(u64))
+        self.assertFalse(is_field(u64))
+        self.assertTrue(is_ring(𝔽ₚ))
+        self.assertTrue(is_field(𝔽ₚ))
+        self.assertEqual(modulus(u64), 2**64)
+        self.assertEqual(modulus(𝔽ₚ), P)
 
     def test_membership_is_by_representative(self) -> None:
         R, F = A(u64), A(𝔽ₚ)
@@ -103,10 +103,10 @@ class TheUniverses(unittest.TestCase):
         self.assertIn(𝔽ₚ(7), F)
         self.assertNotIn(P - 1, F)  # its representative is -1
         self.assertFalse(ap(R, "5"))
-        self.assertEqual(R.cardinality, 2**64)
-        self.assertEqual(F.cardinality, P)
-        self.assertIs(R.carrier, u64)
-        self.assertIs(F.carrier, 𝔽ₚ)
+        self.assertEqual(cardinality(R), 2**64)
+        self.assertEqual(cardinality(F), P)
+        self.assertIs(carrier(R), u64)
+        self.assertIs(carrier(F), 𝔽ₚ)
         self.assertEqual(repr(R), "𝔸(u64)")
         self.assertEqual(repr(F), "𝔸(𝔽ₚ)")
 

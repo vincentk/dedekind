@@ -28,10 +28,17 @@ as the paper spells it::
     exists(K3, π > F)         # True;  forall(K3, π > F) is False
     canonical(S) == S;  repr(S)  # True; "[U, ⊤]": held as its run list
 
-    H = K3.identity              # χ(x) = x, valued in K₃
+    H = identity(K3)             # χ(x) = x, valued in K₃
     H == H                       # Ternary.UNKNOWN: reflexive only up to the
                                  # excluded middle, where the set is U
     K3 & (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
+
+A set, a chain and a carrier are read by free functions, not properties
+(#1054): ``carrier(S)``, ``universe(S)``, ``codomain(S)``, ``classifier(S)``,
+``cardinality(S)``, ``is_decidable(S)``; on a truth chain ``bottom``, ``top``,
+``identity``, ``name`` and the verdicts ``is_bounded``, ``is_dense``,
+``is_truth_object``, ``saturates``; on a carrier ``is_ring``, ``is_field``,
+``modulus``.
 
 Every handle over a truth chain is a run list, the library's normal form of
 these sets, valued in its species (a K₃-valued set is a step function on the
@@ -56,7 +63,7 @@ The canonical ring and field, each as large as a machine word allows::
     5 in 𝔸(u64);  -1 in 𝔸(𝔽ₚ)   # True; True: ints that are representatives
     𝔽ₚ(-1) == -1                # True, and 𝔽ₚ(-1) != p - 1: equal to the
                                 # int it represents, so hashing agrees
-    u64.is_field;  𝔽ₚ.is_field  # False; True: the C++ concepts' verdict
+    is_field(u64);  is_field(𝔽ₚ)  # False; True: the C++ concepts' verdict
 
 The term surface (#1006, exhibit 3): a term names no carrier, and the former
 ``A(carrier) & term`` binds it, casting every constant into the carrier and
@@ -134,6 +141,23 @@ from ._pst import π
 from ._pst import π_1
 from ._pst import π_2
 from ._pst import π_3
+from ._pst import bottom
+from ._pst import cardinality
+from ._pst import carrier
+from ._pst import classifier
+from ._pst import codomain
+from ._pst import identity
+from ._pst import is_bounded
+from ._pst import is_decidable
+from ._pst import is_dense
+from ._pst import is_field
+from ._pst import is_ring
+from ._pst import is_truth_object
+from ._pst import modulus
+from ._pst import name
+from ._pst import saturates
+from ._pst import top
+from ._pst import universe
 
 
 class _Annotation:
@@ -171,7 +195,7 @@ def _attr(x, name):
 
 
 def _is_set_on(x, c):
-    return _attr(x, "factors") is None and _attr(x, "carrier") is not None and _attr(x, "carrier") == c
+    return _attr(x, "_factors") is None and _attr(x, "_carrier") is not None and _attr(x, "_carrier") == c
 
 
 class Set:
@@ -190,4 +214,7 @@ __all__ = [
     "A", "B", "K3", "U64", "GF_p", "Ternary", "u64", "Fp", "Boole", "Kleene",
     "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set",
     "lift", "image", "preimage",
+    # the readings: free functions, one spelling each (#1054)
+    "bottom", "cardinality", "carrier", "classifier", "codomain", "identity", "is_bounded", "is_decidable", "is_dense",
+    "is_field", "is_ring", "is_truth_object", "modulus", "name", "saturates", "top", "universe",
 ]
