@@ -210,13 +210,13 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
       });
   return nb::class_<Ch>(m, cls, doc)
       .def_prop_ro(
-          "name", [](const Ch&) { return std::string(Ch::name); },
+          "_name", [](const Ch&) { return std::string(Ch::name); },
           "The chain's name.")
       .def_prop_ro(
-          "bottom", [](const Ch&) { return to_py<C>(Ch::bottom); },
+          "_bottom", [](const Ch&) { return to_py<C>(Ch::bottom); },
           "⊥, the least element.")
       .def_prop_ro(
-          "top", [](const Ch&) { return to_py<C>(Ch::top); },
+          "_top", [](const Ch&) { return to_py<C>(Ch::top); },
           "⊤, the greatest element.")
       .def(
           "succ",
@@ -250,21 +250,21 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           "__iter__", [](const Ch&) { return ChainIter<C>{Ch::bottom}; },
           "Unfold the chain from ⊥ by the cover; stops where the cover stops.")
       .def_prop_ro(
-          "is_bounded", [](const Ch&) { return true; },
+          "_is_bounded", [](const Ch&) { return true; },
           "Every Pst chain is bounded: it has ⊥ and ⊤.")
       .def_prop_ro(
-          "is_truth_object", [](const Ch&) { return IsPst<C>; },
+          "_is_truth_object", [](const Ch&) { return IsPst<C>; },
           "IsPst<C>: whether the chain is a truth object (carries ∧, ∨, ¬).")
       // FIXME(#1004): IsDiscrete is not exported yet; read as !is_dense.
       .def_prop_ro(
-          "is_dense", [](const Ch&) { return IsDense<C>; },
+          "_is_dense", [](const Ch&) { return IsDense<C>; },
           "IsDense<C>: whether a midpoint always exists (never, on a chain "
           "with the step).")
       .def_prop_ro(
-          "saturates", [](const Ch&) { return pst::saturates<C>(); },
+          "_saturates", [](const Ch&) { return pst::saturates<C>(); },
           "Whether S(⊤) = ⊤: the successor's posture at the top.")
       .def_prop_ro(
-          "cardinality",
+          "_cardinality",
           [](const Ch&) { return to_py_cardinality(Ch::cardinality); },
           "The number of elements: 2, 3, or ℵ₀.")
       .def(
@@ -1372,15 +1372,15 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "R.project(c, …): the columns c, … kept in that order, the others "
           "quantified away: R >> π, with π the structural projection.")
       .def_prop_ro(
-          "converse", [](const Relation& r) { return converse(as_arrow(r)); },
+          "_converse", [](const Relation& r) { return converse(as_arrow(r)); },
           "R°: the converse, B ⇸ A, the dagger; a table of n columns as the "
           "arrow of its first n − 1.")
       .def_prop_ro(
-          "arrow", [](const Relation& r) { return as_arrow(r); },
+          "_arrow", [](const Relation& r) { return as_arrow(r); },
           "A table of n ≥ 2 columns as the arrow of its first n − 1 columns "
           "(the Function[A, …, B] convention); an arrow as it is.")
       .def_prop_ro(
-          "dom",
+          "_dom",
           [factors](const Relation& r) {
             nb::list out;
             for (const std::size_t s : dedekind::relational::columns(r.dom))
@@ -1389,7 +1389,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           "The carriers of the domain's columns: () for a table.")
       .def_prop_ro(
-          "cod",
+          "_cod",
           [factors](const Relation& r) {
             nb::list out;
             for (const std::size_t s : dedekind::relational::columns(r.cod))
@@ -1422,13 +1422,13 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "R == S: True where the normal forms agree; TypeError where they "
           "differ, which decides nothing, or where the products differ.")
       .def_prop_ro(
-          "classifier", [](const Relation& r) { return predicate_of(r); },
+          "_classifier", [](const Relation& r) { return predicate_of(r); },
           "The classifier χ of the relation on its columns π_1 … π_n, as a "
           "predicate: a reading "
           "of the term (a composite's ∃ over the middle, a projection's ∃ "
           "over the dropped columns, ~ in negation normal form).")
       .def_prop_ro(
-          "factors",
+          "_factors",
           [factors](const Relation& r) {
             nb::list out;
             for (const std::size_t s : r.columns()) out.append(factors[s]);
@@ -1436,7 +1436,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           },
           "The carriers of the relation's columns.")
       .def_prop_ro(
-          "codomain",
+          "_codomain",
           [m](const Relation& r) {
             return m.attr(dedekind::sets::has_quantifier(certifiable(r)) ? "K3"
                                                                          : "B");
@@ -1526,7 +1526,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
                  "~(" + a.shown + ")"};
            })
       .def_prop_ro(
-          "codomain", [m](const LawSet&) { return m.attr("K3"); },
+          "_codomain", [m](const LawSet&) { return m.attr("K3"); },
           "The chain χ is valued in: K₃.")
       .def("__repr__",
            [](const LawSet& s) { return "𝔸(Relation) & " + s.shown; });
@@ -1730,7 +1730,7 @@ void bind_term_sets(nb::module_& m,
           },
           nb::is_operator())
       .def_prop_ro(
-          "codomain", [m](const U&) { return m.attr("B"); },
+          "_codomain", [m](const U&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹 (the universe's χ is constant ⊤).");
   const char* canonical_doc =
       "canonical(S): the same set in canonical form, where its theory has "
@@ -1814,12 +1814,12 @@ void bind_term_sets(nb::module_& m,
           [](const S& a, const S& b) { return !set_equal<C, S>(a, b); },
           nb::is_operator(),
           "A != B: decided where the run lists decide; else TypeError.")
-      .def_prop_ro("universe", [](const S&) { return U{}; })
+      .def_prop_ro("_universe", [](const S&) { return U{}; })
       .def_prop_ro(
-          "carrier", [](const S&) { return nb::cast(U{}).attr("carrier"); },
+          "_carrier", [](const S&) { return nb::cast(U{}).attr("_carrier"); },
           "The carrier the set lives on.")
       .def_prop_ro(
-          "codomain", [m](const S&) { return m.attr("B"); },
+          "_codomain", [m](const S&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹.")
       .def("__repr__", [shown](const S& s) {
         return shown + " & " + shown_filter(s.predicate);
@@ -1915,7 +1915,7 @@ void bind_term_sets(nb::module_& m,
             [count](const S& s) { return nb::cast<std::size_t>(count(s)); },
             "The number of elements.")
         .def_prop_ro(
-            "cardinality", [count](const S& s) { return count(s); },
+            "_cardinality", [count](const S& s) { return count(s); },
             "The number of elements, as a Python int (2⁶⁴ for the universe).")
         .def(
             "__iter__",
@@ -2113,13 +2113,13 @@ nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
           "__invert__", [](const S& a) { return ext(~a); },
           "~A: the complement, the species' reflection pointwise.")
       .def_prop_ro(
-          "is_decidable", [](const S&) { return std::same_as<L, Boole>; },
+          "_is_decidable", [](const S&) { return std::same_as<L, Boole>; },
           "HasDecidableMembership: whether χ answers in 𝔹.")
       .def_prop_ro(
-          "carrier", [](const S&) { return pst::Chain<C>{}; },
+          "_carrier", [](const S&) { return pst::Chain<C>{}; },
           "The chain the set lives on.")
       .def_prop_ro(
-          "codomain",
+          "_codomain",
           [m](const S&) { return m.attr(std::same_as<L, Boole> ? "B" : "K3"); },
           "The chain χ is valued in: 𝔹 for a decidable set, K₃ for a "
           "K₃-valued one.");
@@ -2176,7 +2176,7 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
           return full_universe<C>().attr(op)(other);
         },
         nb::is_operator());
-  for (const char* prop : {"carrier", "is_decidable"})
+  for (const char* prop : {"_carrier", "_is_decidable"})
     ch.def_prop_ro(prop,
                    [prop](const Ch&) { return full_universe<C>().attr(prop); });
   ch.def(
@@ -2210,10 +2210,10 @@ void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
           "ap(U, x) = ⊤: the universe holds every element; at a term, the "
           "constant True.")
       .def_prop_ro(
-          "codomain", [m](const Ch&) { return m.attr("B"); },
+          "_codomain", [m](const Ch&) { return m.attr("B"); },
           "The chain χ is valued in: 𝔹.")
       .def_prop_ro(
-          "identity",
+          "_identity",
           [](const Ch&) {
             return pst::Set<C, classifier_logic_t<C>>(
                 dedekind::order::IdentitySteps<C>{});
@@ -2270,6 +2270,71 @@ struct Forall {
   }
 };
 }  // namespace
+
+/** @brief The readings of a term, as free functions: @c dom(R), @c
+ *  classifier(S), @c codomain(S) …, one spelling, as @c ap reads @c _ap.  Each
+ *  class provides the private attribute @c _name it answers; a value without
+ *  it is no term the reading applies to (#1054). */
+void bind_readings(nb::module_& m) {
+  struct Reading {
+    const char* name;
+    const char* doc;
+  };
+  static constexpr Reading readings[] = {
+      {"dom", "dom(R): the carriers of a relation's domain columns."},
+      {"cod", "cod(R): the carriers of a relation's codomain columns."},
+      {"factors", "factors(R): the carriers of all a relation's columns."},
+      {"converse", "converse(R): the dagger R°, the relation read backwards."},
+      {"arrow",
+       "arrow(R): a table of n columns read as the arrow of its first n − 1."},
+      {"classifier",
+       "classifier(R): the predicate χ of a relation on its columns, a reading "
+       "of its term."},
+      {"codomain", "codomain(S): the chain χ is valued in (B or K3)."},
+      {"carrier", "carrier(S): the carrier a set lives on."},
+      {"universe", "universe(S): the universe a set is cut out of."},
+      {"cardinality", "cardinality(S): the number of elements of a set."},
+      {"is_decidable",
+       "is_decidable(S): whether membership is decided (χ valued in B)."},
+      {"identity",
+       "identity(C): χ(x) = x on a truth chain, a set valued in it."},
+      {"name", "name(C): the written name of a chain."},
+      {"bottom", "bottom(C): the least element of a truth chain."},
+      {"top", "top(C): the greatest element of a truth chain."},
+      {"is_bounded", "is_bounded(C): the C++ concepts' verdict on the chain."},
+      {"is_dense", "is_dense(C): the C++ concepts' verdict on the chain."},
+      {"is_truth_object",
+       "is_truth_object(C): the C++ concepts' verdict on the chain."},
+      {"saturates",
+       "saturates(C): whether the step saturates at the ends (succ(⊤) = ⊤)."},
+      {"is_ring", "is_ring(T): the C++ concepts' verdict on the carrier."},
+      {"is_field", "is_field(T): the C++ concepts' verdict on the carrier."},
+      {"modulus", "modulus(T): the size of a modular carrier."},
+  };
+  for (const Reading& r : readings) {
+    const std::string name = r.name;
+    m.def(
+        r.name,
+        [name](nb::handle x) -> nb::object {
+          // One lookup: the getter runs once (a reading may be costly), a
+          // missing attribute is no term the reading applies to, and any
+          // other error the getter raises propagates.
+          const std::string attr = "_" + name;
+          PyObject* v = PyObject_GetAttrString(x.ptr(), attr.c_str());
+          if (v == nullptr) {
+            if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+              throw nb::python_error();
+            PyErr_Clear();
+            throw nb::type_error((name +
+                                  "(x): " + nb::cast<std::string>(nb::repr(x)) +
+                                  " has no " + name)
+                                     .c_str());
+          }
+          return nb::steal(v);
+        },
+        nb::arg("x"), r.doc);
+  }
+}
 
 NB_MODULE(_pst, m) {
   // A refusal when a term is bound (an operator not admitted on the carrier, a
@@ -2471,12 +2536,12 @@ NB_MODULE(_pst, m) {
       .def(
           "__ge__", [](const Word& a, const Word& b) { return a >= b; },
           nb::is_operator());
-  u64.attr("modulus") = nb::steal(PyNumber_Add(
+  u64.attr("_modulus") = nb::steal(PyNumber_Add(
       py_int(std::numeric_limits<uint64_t>::max()).ptr(), py_int(1).ptr()));
-  u64.attr("is_ring") =
+  u64.attr("_is_ring") =
       nb::bool_(IsCommutativeRing<uint64_t, std::plus<uint64_t>,
                                   std::multiplies<uint64_t>>);
-  u64.attr("is_field") = nb::bool_(
+  u64.attr("_is_field") = nb::bool_(
       IsField<uint64_t, std::plus<uint64_t>, std::multiplies<uint64_t>>);
 
   auto fp = nb::class_<Fp>(
@@ -2553,10 +2618,10 @@ NB_MODULE(_pst, m) {
           nb::is_operator(),
           "An int equals the element it represents: 𝔽ₚ(-1) == -1 but not "
           "p - 1, so the hash is the representative's.");
-  fp.attr("modulus") = py_int(Fp::modulus);
-  fp.attr("is_ring") =
+  fp.attr("_modulus") = py_int(Fp::modulus);
+  fp.attr("_is_ring") =
       nb::bool_(IsCommutativeRing<Fp, std::plus<Fp>, std::multiplies<Fp>>);
-  fp.attr("is_field") =
+  fp.attr("_is_field") =
       nb::bool_(IsField<Fp, std::plus<Fp>, std::multiplies<Fp>>);
   const nb::object u64_type = u64;
   const nb::object fp_type = fp;
@@ -2573,12 +2638,12 @@ NB_MODULE(_pst, m) {
              return nb::bool_(in_u64(x));
            })
       .def_prop_ro(
-          "cardinality",
+          "_cardinality",
           [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
-            return nb::object(u64_type.attr("modulus"));
+            return nb::object(u64_type.attr("_modulus"));
           })
       .def_prop_ro(
-          "carrier",
+          "_carrier",
           [u64_type](const 𝔸<uint64_t, Boole, dedekind::sets::Finite>&) {
             return u64_type;
           })
@@ -2596,11 +2661,11 @@ NB_MODULE(_pst, m) {
              if (is_term(x)) return nb::cast(universe_at<Fp>(term_of(x)));
              return nb::bool_(in_fp(x));
            })
-      .def_prop_ro("cardinality",
+      .def_prop_ro("_cardinality",
                    [](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
                      return py_int(Fp::modulus);
                    })
-      .def_prop_ro("carrier",
+      .def_prop_ro("_carrier",
                    [fp_type](const 𝔸<Fp, Boole, dedekind::sets::Finite>&) {
                      return fp_type;
                    })
@@ -2747,4 +2812,7 @@ NB_MODULE(_pst, m) {
   // ── relations: one class, the schema as data (#1037) ──
   bind_relations(m, {u64_type, fp_type, m.attr("B"), m.attr("K3")},
                  universe_u64, universe_fp, chain_b, chain_k3);
+
+  // ── the readings, one spelling each (#1054) ──
+  bind_readings(m);
 }

@@ -16,7 +16,7 @@ many-sorted terms.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Kleene, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ
+from dedekind.pst import A, B, K3, Kleene, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, identity
 from dedekind.trsk import Function, Relation
 
 F, U_, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
@@ -32,7 +32,7 @@ class Sets(unittest.TestCase):
         with self.assertRaises(TypeError):
             Set[𝔽ₚ](S)
         self.assertIsInstance(K3 & (π > F), Set[K3])
-        self.assertIsInstance(K3.identity, Set[K3])
+        self.assertIsInstance(identity(K3), Set[K3])
         self.assertNotIsInstance(K3 & (π > F), Set[B])
         self.assertEqual(repr(Set[u64]), "Set[u64]")
 
@@ -47,7 +47,7 @@ class ASetIsAFunction(unittest.TestCase):
         self.assertIs(Function[u64, B](S), S)  # χ : u64 → 𝔹
         self.assertEqual(ap(S, 4), True)
         self.assertIsInstance(K3 & (π > F), Function[K3, B])  # decidable over K₃
-        self.assertIsInstance(K3.identity, Function[K3, K3])  # K₃-valued over K₃
+        self.assertIsInstance(identity(K3), Function[K3, K3])  # K₃-valued over K₃
         with self.assertRaises(TypeError):
             Function[u64, K3](S)  # its χ is 𝔹-valued
         with self.assertRaises(TypeError):

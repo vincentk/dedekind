@@ -11,7 +11,7 @@ and wraps at the end.  Nothing is decided in Python.
 import unittest
 
 from dedekind.jlt import id, pred, refl, succ
-from dedekind.pst import A, ap, canonical, image, preimage, u64, π
+from dedekind.pst import A, ap, canonical, image, preimage, u64, π, cardinality
 
 U = A(u64)
 MAX = 2**64 - 1
@@ -47,7 +47,7 @@ class OneSetOneNormalForm(unittest.TestCase):
         region = above(3) & below(5)
         self.assertEqual(region, point(4))
         self.assertEqual(repr(canonical(region)), "𝔸(u64) & (π == 4)")
-        self.assertEqual(region.cardinality, 1)
+        self.assertEqual(cardinality(region), 1)
         self.assertEqual(len(region), 1)
         self.assertTrue(ap(region, 4))
         self.assertFalse(ap(region, 5))
@@ -100,8 +100,8 @@ class OneSetOneNormalForm(unittest.TestCase):
         self.assertFalse(s & ~s)
         self.assertTrue(s)
         self.assertEqual(s | ~s, everything)
-        self.assertEqual(everything.cardinality, 2**64)
-        self.assertEqual(U.cardinality, 2**64)
+        self.assertEqual(cardinality(everything), 2**64)
+        self.assertEqual(cardinality(U), 2**64)
 
     def test_a_term_outside_the_catalogue_has_no_normal_form(self) -> None:
         evens = U & (π % 2 == 0)

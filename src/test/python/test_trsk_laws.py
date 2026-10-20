@@ -3,7 +3,7 @@
 
 import unittest
 
-from dedekind.pst import K3, U64, Ternary, ap, u64, π_1, π_2, π_3
+from dedekind.pst import K3, U64, Ternary, ap, u64, π_1, π_2, π_3, codomain
 from dedekind.trsk import Function, copy, function, injective, surjective, total, univalent
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
@@ -30,7 +30,7 @@ class Laws(unittest.TestCase):
     def test_the_complement_certifies_nothing(self) -> None:
         self.assertEqual(ap(~total, succ), Ternary.FALSE)  # refuted: inferred
         self.assertEqual(ap(~total, ~succ), Ternary.UNKNOWN)  # Σ, not Π
-        self.assertEqual((total & univalent).codomain, K3)
+        self.assertEqual(codomain((total & univalent)), K3)
         self.assertEqual(repr(total & univalent), "𝔸(Relation) & total & univalent")
 
 

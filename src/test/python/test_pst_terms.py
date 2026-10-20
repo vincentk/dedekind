@@ -10,7 +10,7 @@ constant; order comparisons on an ordered carrier.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ
+from dedekind.pst import A, B, K3, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, carrier, universe
 
 P = 2**64 - 59
 
@@ -161,7 +161,7 @@ class TheSetsCombine(unittest.TestCase):
         self.assertNotIn(3, outside)
         self.assertIn(7, (U & (π < 3)) | (U & (π > 6)))
         self.assertEqual(repr(window), "𝔸(u64) & ((π > 2) & (π < 5))")
-        self.assertIs(window.universe.carrier, u64)
+        self.assertIs(carrier(universe(window)), u64)
         succ = U * U & (π_2 == π_1 + 1)
         self.assertIn((4, 5), succ)
         self.assertNotIn((4, 6), succ)

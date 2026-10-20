@@ -9,8 +9,8 @@ carriers is applied, never implied.  The canonical form is per axis.
 
 import unittest
 
-from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
-from dedekind.trsk import Function, Relation, function
+from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ, codomain  # 𝔽ₚ is Fp (NFKC)
+from dedekind.trsk import Function, Relation, classifier, factors, function
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
@@ -78,7 +78,7 @@ class EveryPairOfCarriers(unittest.TestCase):
         for a, x in names:
             for b, y in names:
                 self.assertEqual(repr(a * b), f"{x} × {y}")
-                self.assertEqual((a * b).codomain, B)
+                self.assertEqual(codomain((a * b)), B)
 
     def test_a_function_across_carriers(self) -> None:
         # A set is an arrow into 𝔹: applied to π_1, it is the graph of χ.
@@ -164,7 +164,7 @@ class Tables(unittest.TestCase):
     def test_a_product_of_three_carriers(self) -> None:
         T = U64 * B * GF_p
         self.assertEqual(repr(T), "𝔸(u64) × 𝔹 × 𝔸(𝔽ₚ)")
-        self.assertEqual(T.factors, (u64, B, 𝔽ₚ))
+        self.assertEqual(factors(T), (u64, B, 𝔽ₚ))
         self.assertIsInstance(T, Relation[u64, B, 𝔽ₚ])
         self.assertIn((7, True, 𝔽ₚ(3)), T)
         self.assertNotIn((7, Ternary.TRUE, 𝔽ₚ(3)), T)  # K₃ is no column of it
@@ -186,7 +186,7 @@ class Tables(unittest.TestCase):
         self.assertIn((5, True, 𝔽ₚ(1)), S)
         self.assertNotIn((5, True, 𝔽ₚ(2)), S)
         self.assertEqual(repr(S), "𝔸(u64) × (𝔹 × 𝔸(𝔽ₚ) & (π_2 == 1))")  # the term
-        self.assertEqual(repr(S.classifier), "π_3 == 1")  # the reading, shifted
+        self.assertEqual(repr(classifier(S)), "π_3 == 1")  # the reading, shifted
 
     def test_a_set_is_a_factor(self) -> None:
         S = (U64 * (U64 & (π > 5)))  # its π is the column π_2
