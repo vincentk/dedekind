@@ -54,6 +54,12 @@ from ._pst import injective
 from ._pst import surjective
 from .pst import _Annotation, _attr, _is_set_on, _named
 
+#: The functions: the relations that are total and univalent, read as an
+#: arrow (a table of n columns as the arrow of its first n − 1).  A set of
+#: relations like the four it meets: ``R in function``, ``ap(function, R)``;
+#: closed under ``>>`` as both of them are.
+function = total & univalent
+
 
 class Relation:
     """``Relation[A, B, …]``: a relation on ``A × B × …``, one column per
@@ -77,10 +83,10 @@ class Function:
         def holds(x):
             if len(fs) == 2 and _is_set_on(x, fs[0]):
                 return _attr(x, "codomain") == fs[1]
-            return _attr(x, "factors") == fs and _attr(x, "is_function") is True
+            return _attr(x, "factors") == fs and x in function
 
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 
 
-__all__ = ["Relation", "Function", "Object", "copy", "diag", "inl", "inr", "injective", "kind", "merge",
-           "operands", "surjective", "total", "univalent"]
+__all__ = ["Relation", "Function", "Object", "copy", "diag", "function", "inl", "inr", "injective", "kind",
+           "merge", "operands", "surjective", "total", "univalent"]

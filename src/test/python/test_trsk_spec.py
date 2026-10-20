@@ -69,7 +69,9 @@ class RelationAsSymbolicFunction(unittest.TestCase):
 
         U = A(u64)
         law = U * U * U & (π_3 == π_1 + π_2)
-        self.assertTrue(law.is_function)  # functional in π_3
+        from dedekind.trsk import function
+
+        self.assertIn(law, function)  # functional in π_3
         if not hasattr(law, "solve"):
             self.skipTest("#1006 exhibit 3: solve is not bound yet")
         fib = law.solve(0, 1)

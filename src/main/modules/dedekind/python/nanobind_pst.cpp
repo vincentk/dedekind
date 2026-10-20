@@ -1127,7 +1127,8 @@ nb::object apply(const Relation& r, nb::handle h) {
   }
   if (!certified_map(r))
     throw nb::type_error(
-        "ap(R, x): R is not certified a function (R in total & univalent); "
+        "ap(R, x): R is not certified a function (R in function, the set "
+        "total & univalent); "
         "ap(R, (x₁, …, x_n)) is χ");
   const Relation arrow = as_arrow(r);
   const auto terms = dedekind::relational::function_terms(arrow, cert);
@@ -1443,13 +1444,6 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
           "The chain χ is valued in: 𝔹 where the normal form is "
           "quantifier-free; K₃ where a quantifier remains and membership "
           "searches (Σ for ∃: ⊤ or U; Π for ∀: ⊥ or U).")
-      .def_prop_ro(
-          "is_function", [](const Relation& r) { return certified_map(r); },
-          "Whether R, read as an arrow (a table of n columns as the arrow of "
-          "its first n − 1), is certified a function: R in total & univalent, "
-          "the laws inferred over its term (#1045).  A leaf is one when every "
-          "codomain column is defined by a term over the domain landing in "
-          "its sort and nothing else is asked; a composite by the rules.")
       .def(
           "__le__",
           [](const Relation& a, const Relation& b) {

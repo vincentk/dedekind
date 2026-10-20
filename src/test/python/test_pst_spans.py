@@ -13,7 +13,7 @@ whose middle keeps an ∃ no atom defines is witnessed at points."""
 import unittest
 
 from dedekind.pst import A, B, K3, U64, Ternary, 𝔽ₚ, ap, canonical, cond, u64, π, π_1, π_2, π_3
-from dedekind.trsk import Relation, copy, diag, inl, inr, kind, merge, operands
+from dedekind.trsk import Relation, copy, diag, function, inl, inr, kind, merge, operands
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -34,7 +34,7 @@ class Composition(unittest.TestCase):
         two = succ >> succ
         self.assertIs(two == (U64 * U64 & (π_2 == π_1 + 2)), True)
         self.assertNotIn("∃", repr(canonical(two)))
-        self.assertIs(two.is_function, True)  # the fusion law
+        self.assertIn(two, function)  # the fusion law
         self.assertEqual(ap(two, 3), 5)
 
     def test_a_middle_on_a_small_carrier_is_expanded(self) -> None:
@@ -54,7 +54,7 @@ class Composition(unittest.TestCase):
         sc = sq >> cube
         self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(sc.classifier))
         self.assertIn("∃π_3 ∈ 𝔸(u64)", repr(canonical(sc)))
-        self.assertIs(sc.is_function, False)
+        self.assertNotIn(sc, function)
         self.assertEqual(sc.codomain, K3)
         self.assertEqual(ap(sc, (4, 8)), Ternary.TRUE)  # b = 2, a witness
         self.assertEqual(ap(sc, (4, 9)), Ternary.UNKNOWN)  # none within the budget

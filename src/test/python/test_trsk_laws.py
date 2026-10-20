@@ -4,7 +4,7 @@
 import unittest
 
 from dedekind.pst import K3, U64, Ternary, ap, π_1, π_2
-from dedekind.trsk import copy, injective, surjective, total, univalent
+from dedekind.trsk import copy, function, injective, surjective, total, univalent
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)
@@ -34,18 +34,31 @@ class Laws(unittest.TestCase):
         self.assertEqual(repr(total & univalent), "𝔸(Relation) & total & univalent")
 
 
-class OneCertificate(unittest.TestCase):
-    """``R.is_function`` is ``R in total & univalent``; ``ap`` evaluates the
+class Functions(unittest.TestCase):
+    """``function`` is the set ``total & univalent``; ``ap`` evaluates the
     terms that certify it, one per codomain column."""
 
-    def test_is_function_is_the_law_set(self) -> None:
+    def test_function_is_the_meet_of_two_laws(self) -> None:
         for R in (succ, sq, succ >> succ, sq & succ, ~succ, copy(U64)):
-            self.assertIs(R.is_function, R in total & univalent)
+            self.assertIs(R in function, R in total and R in univalent)
+        self.assertEqual(ap(function, sq), Ternary.UNKNOWN)
 
     def test_a_map_into_a_product(self) -> None:
         c = copy(U64)
-        self.assertIs(c.is_function, True)
+        self.assertIn(c, function)
         self.assertEqual(ap(c, 3), (3, 3))
+
+    def test_functions_compose(self) -> None:
+        # function is closed under >> because total and univalent each are:
+        # function(g) ∧ function(h) ≤ function(g >> h), and the composite
+        # applies as the two in turn.
+        triple = U64 * U64 & (π_2 == π_1 * 3)
+        fs = (succ, triple, succ >> triple)
+        for g in fs:
+            for h in fs:
+                self.assertIn(g >> h, function)
+                for x in (0, 1, 7):
+                    self.assertEqual(ap(g >> h, x), ap(h, ap(g, x)))
 
 
 if __name__ == "__main__":
