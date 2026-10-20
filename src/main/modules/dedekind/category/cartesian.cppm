@@ -1133,6 +1133,27 @@ constexpr SumArrow<F, G> sum_arrow(const F& f, const G& g) {
   return {{f, {}}, {g, {}}};
 }
 
+/** @brief f * g = f × g and f + g = f + g on arrows: the product and coproduct
+ *  functors' action on arrows, as category theory writes them (Mac Lane,
+ *  Awodey).  For arrows only, and not for a set (a subobject, with its
+ *  @c Member surface): a set's @c * is its own cartesian product, and the
+ *  term grammar's @c * @c + (pointwise, on terms) are not arrows.  Where the
+ *  hom-sets are additive (@c geometry's function spaces), their own @c + (the
+ *  sum of parallel arrows) is the more specific overload and keeps its
+ *  meaning, as in an additive category.  @param f @param g the arrows. */
+export template <IsArrow F, IsArrow G>
+  requires(
+      !requires { typename F::Member; } && !requires { typename G::Member; })
+constexpr ProductArrow<F, G> operator*(const F& f, const G& g) {
+  return product_arrow(f, g);
+}
+export template <IsArrow F, IsArrow G>
+  requires(
+      !requires { typename F::Member; } && !requires { typename G::Member; })
+constexpr SumArrow<F, G> operator+(const F& f, const G& g) {
+  return sum_arrow(f, g);
+}
+
 /** @brief The legs of a former, for @c cata. */
 export template <typename F, typename G>
 constexpr auto legs(const Pairing<F, G>& a) {
@@ -1212,6 +1233,10 @@ static_assert(!IsMonicArrow<Pairing<Compose<Π<1, std::pair<int, int>>, I>,
               "product form, and not certified injective");
 static_assert(IsMonicArrow<Pairing<I, I>>,
               "⟨f, g⟩ is injective as soon as one leg is (the diagonal)");
+static_assert(std::same_as<decltype(I{} * B{}), ProductArrow<I, B>> &&
+                  std::same_as<decltype(I{} + B{}), SumArrow<I, B>> &&
+                  (I{} * B{})({3, true}) == std::pair{3, true},
+              "f * g and f + g are the product and the sum of the arrows");
 static_assert(IsEpicArrow<Copairing<I, I>>,
               "[f, g] is surjective as soon as one leg is (the codiagonal)");
 static_assert(IsMonotone<ProductArrow<I, I>,
