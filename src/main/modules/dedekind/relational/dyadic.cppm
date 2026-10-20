@@ -60,10 +60,12 @@
  */
 module;
 
-#include <concepts>     // std::same_as
-#include <functional>   // std::less_equal: ≤ on 𝔹 as a set of pairs (witness)
-#include <type_traits>  // std::remove_cvref_t (the factor-universe types)
-#include <utility>      // std::pair
+#include <array>       // Laws: the four laws of an arrow, as a value
+#include <concepts>    // std::same_as
+#include <functional>  // std::less_equal: ≤ on 𝔹 as a set of pairs (witness)
+#include <initializer_list>  // the laws a rule ranges over
+#include <type_traits>       // std::remove_cvref_t (the factor-universe types)
+#include <utility>           // std::pair
 
 export module dedekind.relational:dyadic;
 
@@ -119,7 +121,7 @@ using SetFunction = Relation<T1, T2, L, P>;
  *
  * @note This @b concept, @c IsRelation<S,T1,T2>, is Definition Trsk (§4)
  * made structural: a relation is an @b Lwv @b set @b object (@c IsSetObject,
- * @c :boundaries --- a subobject of a regular carrier with χ into a named Ω)
+ * @c :boundaries --- a subobject of a carrier with χ into a named Ω)
  * whose carrier is the product @c T1×T2 (@c IsProduct<Domain,T1,T2>, read
  * through the product's API, whatever spells it) and whose @b universe is
  * the product of the factor universes, @c 𝔸<T1×T2> @c ≅ @c 𝔸<T1> @c ×
@@ -627,6 +629,188 @@ static_assert(
     !dedekind::category::IsCopy<decltype(diag<bool>())>,
     "relational Δ (χ:A×A→Ω) is NOT the copy diagonal Δ:A→A×A (IsCopy).");
 
+// ── The laws of an arrow of Rel: sets of arrows, and the facts they are ──────
+// ── declared (#1045) ─────────────────────────────────────────────────────────
+/** @brief A law of an arrow of Rel, an inclusion: total @f$\Delta \le
+ * R;R^\circ@f$, univalent @f$R^\circ;R \le \Delta@f$, injective @f$R;R^\circ
+ * \le \Delta@f$, surjective @f$\Delta \le R^\circ;R@f$.  Each names the @b set
+ * of the arrows with that law (@c 𝔸<Re> @c & @c Total<Re>{}, @c
+ * relational:rows); a map is total and univalent, an isomorphism all four:
+ * meets of those sets, with nothing of their own. */
+export enum class Law : unsigned { Total, Univalent, Injective, Surjective };
+export inline constexpr std::array<Law, 4> every_law{
+    Law::Total, Law::Univalent, Law::Injective, Law::Surjective};
+
+/** @brief The nodes of a relational term: its two leaves (the full relation,
+ *  a comprehension) and the operations of the calculus.  @c RelExpr's
+ *  @c Kind (@c relational:rows), and what the engine reads, free of the
+ *  representation (a run-time node, a typed predicate). */
+export enum class Node {
+  Universe,
+  Comprehension,
+  Meet,
+  Join,
+  Not,
+  Converse,
+  Tensor,
+  Compose,
+  Sum
+};
+
+// The facts a law-set is DECLARED, theorems of the allegory (Freyd & Scedrov,
+// Categories, Allegories, 2.1), from which every rule below follows: its
+// closure under the monoidal operations, its variance in ⊆, its image under °.
+// Declared, not derived: deciding them needs the inclusion calculus on
+// universally quantified statements, where the normal form decides instances.
+/** @brief Closure: the arrows with the law @c w form a sub-algebra under
+ *  @c n.  Each of the four is closed under @c ; and @c ⊗.  The @c + of this
+ *  calculus is the sum of two @b tables, @f$1 \to A + B@f$ (not the direct
+ *  sum of arrows @f$1 + 1 \to A + B@f$): one input, both outputs, so it keeps
+ *  totality, surjectivity and injectivity but not univalence. */
+export constexpr bool closed_under(Law w, Node n) {
+  switch (n) {
+    case Node::Compose:
+    case Node::Tensor:
+      return true;
+    case Node::Sum:
+      return w != Law::Univalent;
+    default:
+      return false;
+  }
+}
+/** @brief Variance in the inclusion order: total and surjective are
+ *  @b up-sets (@c R @c ≤ @c S and @c R total ⇒ @c S total), univalent and
+ *  injective @b down-sets (@c S univalent ⇒ @c R univalent). */
+export constexpr bool is_up_set(Law w) {
+  return w == Law::Total || w == Law::Surjective;
+}
+/** @brief The dagger's action: @c ° carries total to surjective and univalent
+ *  to injective, an involution on the laws. */
+export constexpr Law dagger(Law w) {
+  switch (w) {
+    case Law::Total:
+      return Law::Surjective;
+    case Law::Surjective:
+      return Law::Total;
+    case Law::Univalent:
+      return Law::Injective;
+    case Law::Injective:
+      return Law::Univalent;
+  }
+  return w;
+}
+
+/** @brief The engine, one for every law and every representation: a node's
+ *  answer in K₃ from the law's facts and its legs' answers @c a, @c b.  Where
+ *  the set is closed under the node, both legs; a down-set holds @c f @c & @c g
+ *  when it holds @c f or @c g (@c f @c & @c g @c ≤ @c f), an up-set holds
+ *  @c f @c | @c g likewise; @c ° is answered by the operand at the dagger law
+ *  (@c a, looked up by the caller); @c ~ by no fact.  @c True where inferred,
+ *  @c Unknown where no fact applies, never @c False: the facts certify, they
+ *  do not refute (sound, not complete).  So for a closed set @c S,
+ *  @c S(f) @c ∧ @c S(g) @c ≤ @c S(f @c >> @c g): a law of the sets' χ, tested
+ *  in @c rows_test. */
+export constexpr dedekind::category::Ternary infer(
+    Law w, Node n, dedekind::category::Ternary a,
+    dedekind::category::Ternary b = dedekind::category::Ternary::Unknown) {
+  using dedekind::category::Kleene;
+  using dedekind::category::Ternary;
+  switch (n) {
+    case Node::Compose:
+    case Node::Tensor:
+    case Node::Sum:
+      return closed_under(w, n) ? Kleene::AND(a, b) : Ternary::Unknown;
+    case Node::Meet:
+      return is_up_set(w) ? Ternary::Unknown : Kleene::OR(a, b);
+    case Node::Join:
+      return is_up_set(w) ? Kleene::OR(a, b) : Ternary::Unknown;
+    case Node::Not:
+    case Node::Universe:
+    case Node::Comprehension:
+      return Ternary::Unknown;  // a leaf answers by its shape, not here
+    case Node::Converse:
+      return a;
+  }
+  return Ternary::Unknown;
+}
+
+/** @brief The laws an arrow is certified: one answer in K₃ per law.  A
+ *  @c constexpr value, so the engine is read by the compiler on a typed
+ *  relation (the traits of @c :cartesian, below) and by the program over a
+ *  @c RelExpr (@c relational:rows, @c laws): one engine, two readers. */
+export struct Laws {
+  std::array<dedekind::category::Ternary, 4> of{
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown,
+      dedekind::category::Ternary::Unknown};
+  constexpr dedekind::category::Ternary operator[](Law w) const {
+    return of[static_cast<unsigned>(w)];
+  }
+  constexpr Laws& set(Law w) {
+    of[static_cast<unsigned>(w)] = dedekind::category::Ternary::True;
+    return *this;
+  }
+  constexpr bool operator==(const Laws&) const = default;
+  /** @brief Declared answers, read off four witnesses. */
+  static constexpr Laws from(bool total, bool univalent, bool injective,
+                             bool surjective) {
+    Laws l;
+    if (total) l.set(Law::Total);
+    if (univalent) l.set(Law::Univalent);
+    if (injective) l.set(Law::Injective);
+    if (surjective) l.set(Law::Surjective);
+    return l;
+  }
+  /** @brief The engine at a node, law by law: the legs' answers in, the
+   *  node's out; @c ° reads its operand at the dagger law. */
+  static constexpr Laws node(Node n, const Laws& a) {
+    return node(n, a, Laws{});
+  }
+  static constexpr Laws node(Node n, const Laws& a, const Laws& b) {
+    Laws out;
+    for (const Law w : every_law)
+      out.of[static_cast<unsigned>(w)] =
+          infer(w, n, n == Node::Converse ? a[dagger(w)] : a[w], b[w]);
+    return out;
+  }
+};
+namespace detail_laws_witness {
+using dedekind::category::Ternary;
+static_assert(infer(Law::Total, Node::Compose, Ternary::True, Ternary::True) ==
+                  Ternary::True,
+              "lt(f) ∧ lt(g) ⇒ lt(f >> g): closure under composition");
+static_assert(infer(Law::Total, Node::Compose, Ternary::True,
+                    Ternary::Unknown) == Ternary::Unknown,
+              "… and nothing without both legs");
+static_assert(infer(Law::Univalent, Node::Meet, Ternary::Unknown,
+                    Ternary::True) == Ternary::True,
+              "a down-set holds f & g as soon as it holds g");
+static_assert(infer(Law::Total, Node::Meet, Ternary::True, Ternary::True) ==
+                  Ternary::Unknown,
+              "an up-set is certified nothing of a meet: sound, not complete");
+static_assert(infer(Law::Univalent, Node::Sum, Ternary::True, Ternary::True) ==
+                  Ternary::Unknown,
+              "the sum of two tables has both their rows above the one input");
+static_assert(dagger(dagger(Law::Injective)) == Law::Injective,
+              "° is an involution on the laws");
+static_assert(Laws::node(Node::Converse,
+                         Laws::node(Node::Converse,
+                                    Laws::from(true, true, false, false))) ==
+                  Laws::from(true, true, false, false),
+              "°° is the identity on an arrow's laws");
+}  // namespace detail_laws_witness
+
+/** @brief The engine read for a typed relation: its four laws as the
+ *  @c :cartesian traits answer them, declared on a leaf or inferred on a node
+ *  (the readers in the @c category namespace below). */
+export template <typename R>
+inline constexpr Laws laws_of_v =
+    Laws::from(dedekind::category::is_left_total_v<R>,
+               dedekind::category::is_right_unique_v<R>,
+               dedekind::category::is_left_unique_v<R>,
+               dedekind::category::is_right_total_v<R>);
+
 }  // namespace dedekind::relational
 
 // ── Trait registry: relation-property certificates for :dyadic's predicates ──
@@ -652,30 +836,179 @@ inline constexpr bool is_left_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
                                   dedekind::relational::DiagPred<A>>> = true;
 
-// NODE: the relative product R;S propagates BOTH properties through @c >> ---
-// it is functional iff both factors are, and entire iff both factors are (§3.2
-// Table 3's containments composing; the retained intermediate @c B reconstructs
-// the two factor relations).  Functionality was @c order-level, entireness
-// @c algebra-level before the extraction; both are pure relation-algebra, so
-// both live here now.
-template <typename A, typename C, typename L, typename PR, typename PS,
-          typename B, typename Card>
-inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
-    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
-    dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
-    is_right_unique_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
+// LEAF: Δ is also injective and surjective: an isomorphism of Rel.
+template <typename A, typename L, typename C>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+template <typename A, typename L, typename C>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
+                                  dedekind::relational::DiagPred<A>>> = true;
+
+// NODES: each trait reads the engine (relational::infer, through Laws::node)
+// on the operands' laws, as the run-time fold over a RelExpr does.  The
+// relative product R;S (the retained intermediate @c B reconstructs the factor
+// relations), the converse (the swapped predicate's carrier reconstructs its
+// operand), the meet R ∧ S (RelAnd).
 template <typename A, typename C, typename L, typename PR, typename PS,
           typename B, typename Card>
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>> &&
-    is_left_total_v<dedekind::sets::Comprehension<
-        dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>;
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Compose,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Total] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Compose,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_left_unique_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Compose,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Injective] == Ternary::True;
+template <typename A, typename C, typename L, typename PR, typename PS,
+          typename B, typename Card>
+inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
+    dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
+    dedekind::relational::ComposePred<PR, PS, B>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Compose,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<B, C>, L, Card>, PS>>)
+        [dedekind::relational::Law::Surjective] == Ternary::True;
+template <typename B, typename A, typename L, typename Card, typename P>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<P>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Converse,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
+        [dedekind::relational::Law::Total] == Ternary::True;
+template <typename B, typename A, typename L, typename Card, typename P>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<P>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Converse,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
+        [dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename B, typename A, typename L, typename Card, typename P>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<P>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Converse,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
+        [dedekind::relational::Law::Injective] == Ternary::True;
+template <typename B, typename A, typename L, typename Card, typename P>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
+                                  dedekind::relational::SwapPred<P>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Converse,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
+        [dedekind::relational::Law::Surjective] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_left_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Meet,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Total] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_right_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Meet,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Univalent] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_left_unique_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Meet,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Injective] == Ternary::True;
+template <typename A, typename B, typename L, typename Card, typename PR,
+          typename PS>
+inline constexpr bool is_right_total_v<
+    dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
+                                  dedekind::sets::RelAnd<PR, PS>>> =
+    dedekind::relational::Laws::node(
+        dedekind::relational::Node::Meet,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
+        dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
+            dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PS>>)
+        [dedekind::relational::Law::Surjective] == Ternary::True;
+
+static_assert(
+    is_left_unique_v<decltype(dedekind::relational::diag<bool>())> &&
+        is_right_total_v<decltype(dedekind::relational::diag<bool>())>,
+    "Δ is an isomorphism of Rel: all four laws");
+static_assert(is_left_total_v<decltype(dedekind::relational::converse(
+                      dedekind::relational::diag<bool>()))> &&
+                  is_right_unique_v<decltype(dedekind::relational::converse(
+                      dedekind::relational::diag<bool>()))>,
+              "Δ° is a map: the dagger carries Δ's laws");
+static_assert(
+    dedekind::relational::laws_of_v<
+        decltype(dedekind::relational::diag<bool>() >>
+                 dedekind::relational::converse(
+                     dedekind::relational::diag<bool>()))> ==
+        dedekind::relational::Laws::from(true, true, true, true),
+    "Δ ; Δ° is an isomorphism: the four sets are closed under composition");
+static_assert(
+    is_right_unique_v<decltype(dedekind::relational::diag<bool>() &
+                               dedekind::relational::diag<bool>())> &&
+        is_left_unique_v<decltype(dedekind::relational::diag<bool>() &
+                                  dedekind::relational::diag<bool>())> &&
+        !is_left_total_v<decltype(dedekind::relational::diag<bool>() &
+                                  dedekind::relational::diag<bool>())>,
+    "Δ ∧ Δ: the down-sets hold a meet, the up-sets are certified nothing of it "
+    "though Δ ∧ Δ = Δ is total: sound, not complete");
 
 static_assert(is_right_unique_v<decltype(dedekind::relational::diag<bool>())>,
               "Δ is FUNCTIONAL (single-valued).");

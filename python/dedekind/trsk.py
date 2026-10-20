@@ -48,6 +48,10 @@ from ._pst import inl
 from ._pst import inr
 from ._pst import kind
 from ._pst import operands
+from ._pst import total
+from ._pst import univalent
+from ._pst import injective
+from ._pst import surjective
 from .pst import _Annotation, _attr, _is_set_on, _named
 
 
@@ -78,4 +82,5 @@ class Function:
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 
 
-__all__ = ["Relation", "Function", "Object", "copy", "diag", "inl", "inr", "kind", "merge", "operands"]
+__all__ = ["Relation", "Function", "Object", "copy", "diag", "inl", "inr", "injective", "kind", "merge",
+           "operands", "surjective", "total", "univalent"]

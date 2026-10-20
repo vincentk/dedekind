@@ -400,7 +400,8 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
                       };
 
 /** @section topoi__L_Sets
- *  A subobject of a regular carrier whose characteristic map lands in a named
+ *  A subobject of a carrier (copies asked, not decidable equality: @c IsLSet)
+ *  whose characteristic map lands in a named
  *  bounded chain @f$L@f$ is an @b L-set (Goguen 1967).  At @f$L = \mathbb{B}@f$
  *  this is Lawvere's @c Set, which @ref IsSet refines with the ETCS axioms as
  *  implemented here (NNO, well-pointedness, the power-object-lattice
@@ -427,8 +428,14 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *  @c IsProduct.
  */
 
-/** @brief An L-set: a subobject of a regular carrier with @f$\chi : X \to L@f$
- *  into a named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).  Pst is
+/** @brief An L-set: a subobject of a carrier with @f$\chi : X \to L@f$ into a
+ *  named bounded chain @f$L@f$ (@c Codomain @c = @c L::Ω).  The carrier is
+ *  asked for copies (@c std::semiregular), not for a decidable @c ==: the
+ *  equality of sets is the Rice cycle (#970), not a trait of the carrier, so
+ *  the relations of a hom-set are a carrier too (@c 𝔸<RelExpr>, #1045).  An
+ *  ETCS set asks decidable equality itself (@c IsSet, whose classifier
+ *  construction needs it), as @c IsArrow asks an archetype of its domain
+ *  rather than a value type (@c archetype_t).  Pst is
  *  asked of the @b species (an Ockham algebra whose @c Ω is totally ordered),
  *  not of the bare @c Ω, so a @c Chain<int> set (@c Ω @c = @c int) qualifies
  *  while a bare @c int never does.  The chain is the @b registered total order
@@ -439,7 +446,8 @@ concept IsSubobject = IsCharacteristic<S> && std::same_as<Dom<S>, A> &&
  *          @c Member, @c ι, callable χ). */
 export template <typename S>
 concept IsLSet =
-    std::regular<typename S::Domain> && IsSubobject<S, typename S::Domain> &&
+    std::semiregular<typename S::Domain> &&
+    IsSubobject<S, typename S::Domain> &&
     requires { typename S::logic_species; } &&
     std::same_as<typename S::Codomain, typename S::logic_species::Ω> &&
     IsOckhamAlgebra<typename S::logic_species> &&

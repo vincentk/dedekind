@@ -63,6 +63,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>  // the slot bits of a column mask
 #include <memory>
 #include <type_traits>
 #include <utility>  // std::pair: a point of a relation, dom × cod
@@ -73,6 +74,7 @@ export module dedekind.relational:rows;
 
 import dedekind.category; // Ternary
 import dedekind.sets;     // Row, Term, Pred, the sorts, graph_term
+import :dyadic;           // Law, Laws: the rule table, read over the term
 
 namespace dedekind::relational {
 
@@ -178,17 +180,7 @@ struct RelExpr {
   using Point = dedekind::sets::Row<Cs...>;
   using P = dedekind::sets::Pred<K>;
   using T = dedekind::sets::Term<K>;
-  enum class Kind {
-    Universe,
-    Comprehension,
-    Meet,
-    Join,
-    Not,
-    Converse,
-    Tensor,
-    Compose,
-    Sum
-  };
+  using Kind = Node;  // the nodes of a relational term (:dyadic)
 
   Kind kind{Kind::Universe};
   Object dom, cod;
@@ -669,12 +661,17 @@ dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
   }
   return P::top();
 }
-/** @brief χ at a row of the columns, in K₃: the verdict of the predicate
- *  reading within the relation's budget. */
+/** @brief χ at a row of the columns, in K₃: the predicate reading with every
+ *  quantifier an atom defines eliminated first (the fusion law), the rest
+ *  searched within the relation's budget.  The one χ: Python binds this. */
 export template <typename K, typename... Cs>
 dedekind::category::Ternary verdict(
     const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
-  return dedekind::sets::verdict(predicate_of(r), row, r.budget);
+  using Point = typename RelExpr<K, Cs...>::Point;
+  return dedekind::sets::verdict(
+      dedekind::sets::eliminate_quantifiers<Point>(
+          predicate_of(r), dedekind::sets::NoConstants{}, r.rep()),
+      row, r.budget);
 }
 /** @brief The term of a relation certified a function of its first @c n − 1
  *  columns: a quantifier-free graph atom @c π_n @c == @c t(π_1 … π_{n−1})
@@ -695,5 +692,169 @@ const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
     return nullptr;
   return t;
 }
+
+// ── The laws of an arrow, inferred over the term (#1045) ─────────────────────
+namespace detail_rows {
+/** @brief The bit of a slot in a mask, as @c slots spells it. */
+constexpr unsigned slot_bit(unsigned s) {
+  return s < std::numeric_limits<unsigned>::digits ? 1u << s : ~0u;
+}
+constexpr unsigned column_mask(unsigned lo, unsigned hi) {
+  unsigned m = 0;
+  for (unsigned s = lo; s < hi; ++s) m |= slot_bit(s);
+  return m;
+}
+/** @brief Whether each column in @c [lo, hi) is defined by a conjunct of @c p
+ *  over the columns of @c others alone, by a term that lands in the column's
+ *  sort (as @c function_term asks: a K₃ term defines no 𝔹 column), and
+ *  whether nothing else is asked (the residual ⊤).
+ *  @return (every column defined, residual ⊤). */
+template <typename P, typename K>
+std::pair<bool, bool> defined_columns(const dedekind::sets::Pred<K>& p,
+                                      unsigned lo, unsigned hi, unsigned others,
+                                      const Columns& cols, const P& rep) {
+  using Q = dedekind::sets::Pred<K>;
+  Q rest = p;
+  for (unsigned s = lo; s < hi; ++s) {
+    const auto d = dedekind::sets::defining_term(rest, s);
+    if (!d || (dedekind::sets::slots(d->term) & ~others) != 0u)
+      return {false, false};
+    const std::size_t sort = dedekind::sets::sort_of<P>(d->term, rep);
+    if (sort != dedekind::sets::no_sort &&
+        !dedekind::sets::sort_embeds<P>(sort, cols[s - 1]))
+      return {false, false};
+    rest = d->rest;
+  }
+  return {true, rest.kind == Q::Kind::Top};
+}
+/** @brief The laws a comprehension certifies by the shape of its predicate:
+ *  every codomain column defined by a term over the domain columns is
+ *  univalence (at most one row above a point); with nothing else asked,
+ *  totality too (an admitted operator is total on its carrier, so the term
+ *  is a value at every point).  Dually, the domain columns defined over the
+ *  codomain's: injective, and surjective.  @c Δ is all four; @c copy a map
+ *  and injective; its converse @c merge univalent, injective and surjective.
+ *  @param p the predicate on the columns.  @param nd the domain's columns.
+ *  @param cols the sorts of all the columns.  @param rep a row of them. */
+template <typename P, typename K>
+Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
+                    const Columns& cols, const P& rep) {
+  const unsigned n = static_cast<unsigned>(cols.size());
+  Laws l;
+  const auto [cod_defined, cod_only] =
+      defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1), cols, rep);
+  const auto [dom_defined, dom_only] =
+      defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1), cols, rep);
+  if (cod_defined) {
+    l.set(Law::Univalent);
+    if (cod_only) l.set(Law::Total);
+  }
+  if (dom_defined) {
+    l.set(Law::Injective);
+    if (dom_only) l.set(Law::Surjective);
+  }
+  return l;
+}
+/** @brief The laws of @c r read at the split @c nd (its first @c nd columns
+ *  the domain): a leaf by its shape, a node by the engine (@c Laws::node,
+ *  @c :dyadic) on its legs' laws.  The split belongs to the node being read:
+ *  a lattice node's legs share its columns; an operation's facts hold at its
+ *  own boundary, so @c ; @c ⊗ @c + and @c ° read their legs at their own
+ *  splits, and a root re-split by @c arrow or @c table is read by its shape. */
+template <typename K, typename... Cs>
+Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
+  using R = RelExpr<K, Cs...>;
+  const auto own = [](const R& x) {
+    return static_cast<unsigned>(columns(x.dom).size());
+  };
+  // The term's whole predicate read by its shape at the requested split: a
+  // universe over a sum object constrains its rows (encodes), and an
+  // operation re-split as a table or an arrow is no longer that operation.
+  const auto by_shape = [&] {
+    return predicate_laws(predicate_of(r), nd, r.columns(), r.rep());
+  };
+  // Whether the node still stands at its operation's boundary: arrow / table
+  // rewrite a root's objects and leave its legs, so the boundary is read off
+  // the legs, not off the split asked for.
+  const auto at_own_boundary = [&] {
+    switch (r.kind) {
+      case Node::Compose:
+        return r.dom == r.a->dom && r.cod == r.b->cod;
+      case Node::Tensor:
+        return r.dom == r.a->dom * r.b->dom && r.cod == r.a->cod * r.b->cod;
+      case Node::Sum:
+        return r.dom.factors.empty();  // the sum of tables, 1 → A + B
+      case Node::Converse:
+        return r.dom == r.a->cod && r.cod == r.a->dom;
+      default:
+        return true;
+    }
+  };
+  switch (r.kind) {
+    case Node::Universe:
+      // The full relation on inhabited carriers: total and surjective.
+      return Laws::from(true, false, false, true);
+    case Node::Comprehension:
+      // {x ∈ U | p}: the universe adds nothing but its encoding; R & p is a
+      // meet.
+      return r.a->kind == Node::Universe
+                 ? by_shape()
+                 : Laws::node(
+                       Node::Meet, laws_at(*r.a, nd),
+                       predicate_laws(r.predicate, nd, r.columns(), r.rep()));
+    case Node::Meet:
+    case Node::Join:
+      return Laws::node(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
+    case Node::Not:
+      return Laws::node(r.kind, laws_at(*r.a, nd));
+    case Node::Converse:
+    case Node::Tensor:
+    case Node::Compose:
+    case Node::Sum:
+      // The facts hold at the operation's own boundary only.
+      if (nd != own(r) || !at_own_boundary()) return by_shape();
+      if (r.kind == Node::Converse)
+        return Laws::node(r.kind, laws_at(*r.a, own(*r.a)));
+      return Laws::node(r.kind, laws_at(*r.a, own(*r.a)),
+                        laws_at(*r.b, own(*r.b)));
+  }
+  return Laws{};
+}
+}  // namespace detail_rows
+
+/** @brief The laws of a relation, inferred: a fold over the term reading the
+ *  engine (@c infer, @c :dyadic) at each node, the leaves certified by
+ *  their shape (@c detail_rows::predicate_laws), at the relation's own split
+ *  of its columns into domain and codomain.  @c True where a rule infers the
+ *  law, @c Unknown where none does; the normal form may still decide the
+ *  inclusion (@c algebra, @c canonical).  @param r the relation. */
+export template <typename K, typename... Cs>
+Laws laws(const RelExpr<K, Cs...>& r) {
+  return detail_rows::laws_at(r, static_cast<unsigned>(columns(r.dom).size()));
+}
+
+/** @brief The relations certified the law @c W: a datum on the universe of
+ *  relations, so @c 𝔸<Re>{} @c & @c Total<Re>{} is the set of total
+ *  relations, membership its χ in K₃ (inferred, or not), and a map or an
+ *  isomorphism a meet of such sets, nothing stored.  Its χ obeys the facts
+ *  the set is declared: closed under @c >>, so @c S(f) @c ∧ @c S(g) @c ≤
+ *  @c S(f @c >> @c g); a down-set or an up-set in ⊆; carried by @c ° to its
+ *  dagger law.  Its complement is never inhabited by inference (@c ¬True,
+ *  else @c Unknown): Σ, not Π.
+ *  @tparam Re the relation type.  @tparam W the law. */
+export template <typename Re, Law W>
+struct LawSet {
+  using Domain = Re;
+  using Codomain = dedekind::category::Ternary;
+  Codomain operator()(const Re& r) const { return laws(r)[W]; }
+};
+export template <typename Re>
+using Total = LawSet<Re, Law::Total>;
+export template <typename Re>
+using Univalent = LawSet<Re, Law::Univalent>;
+export template <typename Re>
+using Injective = LawSet<Re, Law::Injective>;
+export template <typename Re>
+using Surjective = LawSet<Re, Law::Surjective>;
 
 }  // namespace dedekind::relational

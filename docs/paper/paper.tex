@@ -618,7 +618,7 @@ With these assumptions acknowledged, one can define:
 \label{def:lwv-set}
 In $\mathbf{Lwv}$:
 \begin{enumerate}
-\item A \emph{set} over a regular (\cppinline{std::regular}) carrier \cppinline{A} in $\mathbf{Jlt}$ is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Equation~\ref{eqn:dominance}).
+\item A \emph{set} over a carrier \cppinline{A} in $\mathbf{Jlt}$ (\cppinline{std::semiregular}: copies are asked of the carrier, not decidable equality, which the Boolean ETCS \cppinline{IsSet} asks separately) is a \emph{subobject} of \cppinline{A}: a type \cppinline{S} satisfying \cppinline{IsSubobject<S, A>}, whose characteristic predicate $\chi_S : A \to \Omega$ classifies membership (decidably when $\chi_S$ factors through the Boolean $\Sigma$, Equation~\ref{eqn:dominance}).
 \item A \emph{relation} is a subobject of the Cartesian product \cppinline{::Domain} $\times$ \cppinline{::Codomain}.
 \item A \emph{set} is thus just the points its test accepts: the \cppinline{true}-slice, not the \cppinline{false} or \cppinline{Unknown} rest.\footnote{Categorically, the true-fibre of $\chi_S$: the pullback of $\top$ along $\chi_S$, the true-slice of its graph rather than the whole graph.}
 \end{enumerate}
@@ -732,7 +732,7 @@ op2 ::= '|' | '&' | '^'
 generator ::= '𝔸' carrier | 'Ø' carrier
   | 'η' '(' value ')'
   | <any IsSet>
-carrier ::= <any std::regular type>
+carrier ::= <any std::semiregular type>
 \end{minted}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -791,7 +791,7 @@ Listing~\ref{lst:pruning} exhibits a checked-in extract that tests this type-dir
 \label{sec:ddk_ordered}
 % ============================================================
 
-The algebra so far asks only \emph{equality} of the carrier: membership, the Boolean lattice, and the subset order $\subseteq$ --- the rightmost column of Table~\ref{tab:lattice-lift} --- are all pointwise lifts of the order on $\Omega$, so they hold for any \cppinline{std::regular} carrier.
+The algebra so far asks nothing of the carrier beyond copies: membership, the Boolean lattice, and the subset order $\subseteq$ --- the rightmost column of Table~\ref{tab:lattice-lift} --- are all pointwise lifts of the order on $\Omega$, so they hold for any \cppinline{std::semiregular} carrier, the relations of a hom-set among them; the carrier's own equality enters only with the ETCS axioms (\cppinline{IsSet}).
 A second, independent order enters when the carrier's \emph{elements} are themselves ordered ($\le$): now element comparisons (\cppinline{π > 5}), the halfspaces they cut by comprehension, the quantifiers over them, and the extrema below all become available.
 This is the first rung that asks the carrier for more than equality; its grammar extension is Listing~\ref{lst:extrema_def}.
 

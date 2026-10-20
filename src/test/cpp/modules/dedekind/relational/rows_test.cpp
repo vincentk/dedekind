@@ -73,10 +73,11 @@ TEST_CASE("relational:rows: a relation is a term; its predicate a reading",
   REQUIRE(p.kind == Q::Kind::Exists);
   CHECK(p.slot == 3);  // the next slot past the two columns
   CHECK(p.sort == word);
-  // The bounded search: a witness m = 4 for (3, 5); none for (3, 6) within
-  // the budget, so U, never ⊥.
+  // ∃m. m = a + 1 ∧ c = m + 1: the atom defines m, so the verdict eliminates
+  // the ∃ (c = a + 1 + 1) and refutes (3, 6) outright: ⊥, not U.  The
+  // reading keeps the ∃ as written.
   CHECK(verdict(two, R{{3u, 5u}}) == Ternary::True);
-  CHECK(verdict(two, R{{3u, 6u}}) == Ternary::Unknown);
+  CHECK(verdict(two, R{{3u, 6u}}) == Ternary::False);
   CHECK(function_term(two, p) == nullptr);  // not quantifier-free as read
   // A quantifier is found in a conditional's guard, too.
   CHECK(has_quantifier(
@@ -139,11 +140,11 @@ TEST_CASE("relational:rows: Σ and Π, and one level of search",
 TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
           "[relational][rows]") {
   // R ∧ S = merge ∘ (R ⊗ S) ∘ copy, at points: the spider form of the meet.
-  // Read without elimination (canonical is algebra's, downstream), the
-  // spider's middles are four ∃ over the word, searched within the budget:
-  // where the meet holds the witness is found; where it fails the search
-  // can only answer U, never ⊥ (Σ).  The law itself is decided by the normal
-  // form in algebra/relation_laws_test (canonical is algebra's, downstream).
+  // The spider's middles are four ∃ over the word, each defined by an atom
+  // (copy's and merge's diagonals, succ's graph), so the verdict eliminates
+  // them all and decides the meet at a point as it decides R & S: ⊥ where it
+  // fails, not U.  The law itself is decided by the normal form in
+  // algebra/relation_laws_test (canonical is algebra's, downstream).
   const Re spider = copy<int, unsigned, bool>(W) >> (succ * words) >>
                     merge<int, unsigned, bool>(W);
   CHECK(spider.dom == W);
@@ -151,7 +152,7 @@ TEST_CASE("relational:rows: the Frobenius spiders, a finite middle object",
   CHECK(verdict(succ & words, R{{3u, 4u}}) == Ternary::True);
   CHECK(verdict(spider, R{{3u, 4u}}) == Ternary::True);  // the witness
   CHECK(verdict(succ & words, R{{3u, 5u}}) == Ternary::False);
-  CHECK(verdict(spider, R{{3u, 5u}}) == Ternary::Unknown);  // Σ: never ⊥
+  CHECK(verdict(spider, R{{3u, 5u}}) == Ternary::False);  // decided
   // The middle of copy >> (R ⊗ S) is two columns: ∃∃, outermost first.
   const Q p = predicate_of(copy<int, unsigned, bool>(W) >> (succ * square));
   REQUIRE(p.kind == Q::Kind::Exists);
@@ -225,4 +226,101 @@ TEST_CASE("relational:rows: a RelExpr is a relation (IsRelation)",
   CHECK(succ(std::pair{R{{3u}}, R{{5u}}}) == Ternary::False);
   // A point not of the shape dom × cod is none of the relation's.
   CHECK(succ(std::pair{R{}, R{{3u, 4u}}}) == Ternary::False);
+}
+
+TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
+          "[relational][rows][laws]") {
+  using dedekind::relational::Law;
+  using dedekind::relational::Laws;
+  using dedekind::relational::laws;
+  using dedekind::sets::𝔸;
+  const auto all = Laws::from(true, true, true, true);
+  // Leaves, by their shape: Δ is an isomorphism; a graph a map; the universe
+  // total and surjective; copy a map and injective, merge its converse.
+  CHECK(laws(diag<int, unsigned, bool>(W)) == all);
+  CHECK(laws(succ) == Laws::from(true, true, false, false));
+  CHECK(laws(words) == Laws::from(true, false, false, true));
+  CHECK(laws(dedekind::relational::copy<int, unsigned, bool>(W)) ==
+        Laws::from(true, true, true, false));
+  CHECK(laws(merge<int, unsigned, bool>(W)) ==
+        Laws::from(false, true, true, true));
+  // Nodes, by the engine on the declared facts: closure under ;, the dagger's
+  // action under °, the down-sets under &, nothing under ~.
+  CHECK(laws(succ >> succ) == Laws::from(true, true, false, false));
+  CHECK(laws(converse(succ)) == Laws::from(false, false, true, true));
+  CHECK(laws(converse(converse(succ))) == laws(succ));
+  // square is {(a, c) | c² = a}: a is a function of c, so it is injective
+  // and surjective; the meet keeps univalence from succ, injectivity from it.
+  CHECK(laws(square) == Laws::from(false, false, true, true));
+  CHECK(laws(square & succ) == Laws::from(false, true, true, false));
+  CHECK(laws(~succ) == Laws{});
+  CHECK(laws(diag<int, unsigned, bool>(W) >>
+             converse(diag<int, unsigned, bool>(W))) == all);
+  // The facts hold at an operation's own boundary: re-split as a table, Δ ; Δ
+  // is 1 → W × W with every diagonal row above the one input, read by its
+  // shape (a ∃ it cannot see through).  A table out of the unit is injective
+  // by that shape alone (one input), and its converse univalent.
+  CHECK(laws(table(diag<int, unsigned, bool>(W) >>
+                   diag<int, unsigned, bool>(W))) ==
+        Laws::from(false, false, true, false));
+  CHECK(laws(table(succ)) == Laws::from(false, false, true, false));
+  CHECK(laws(converse(table(succ))) == Laws::from(false, true, false, false));
+  // The sets: 𝔸<Re> & Total<Re>{} is the set of total relations, a map the
+  // meet of two such sets, χ in K₃.
+  using dedekind::relational::Total;
+  using dedekind::relational::Univalent;
+  const auto total = 𝔸<Re>{} & Total<Re>{};
+  const auto map = total & (𝔸<Re>{} & Univalent<Re>{});
+  STATIC_CHECK(dedekind::sets::IsSetObject<decltype(total)>);
+  CHECK(total(succ) == Ternary::True);
+  CHECK(total(converse(succ)) == Ternary::Unknown);
+  CHECK(map(succ >> succ) == Ternary::True);
+  CHECK(map(words) == Ternary::Unknown);
+  // The complement certifies nothing: refuted where inferred, else Unknown.
+  CHECK((~total)(succ) == Ternary::False);
+  CHECK((~total)(~succ) == Ternary::Unknown);
+}
+
+TEST_CASE("relational:rows: the laws of χ: closure, variance, the dagger",
+          "[relational][rows][laws]") {
+  // The facts a law-set is declared, as laws of its χ over the fixtures: for
+  // a set closed under >>, S(f) ∧ S(g) ≤ S(f >> g); a down-set holds f & g
+  // as soon as it holds a leg, an up-set f | g; S(f°) = S°(f).
+  using dedekind::category::Kleene;
+  using dedekind::relational::dagger;
+  using dedekind::relational::every_law;
+  using dedekind::relational::is_up_set;
+  using dedekind::relational::Law;
+  using dedekind::relational::laws;
+  const std::vector<Re> fixtures{
+      succ, square, words, diag<int, unsigned, bool>(W), ~succ, converse(succ),
+      succ >> succ, square & succ,
+      // the spider form of Δ: W → W, through the middle W × W
+      dedekind::relational::copy<int, unsigned, bool>(W) >>
+          merge<int, unsigned, bool>(W)};
+  const auto chi = [](Law w, const Re& r) { return laws(r)[w]; };
+  for (const Law w : every_law) {
+    for (const Re& f : fixtures) {
+      CHECK(chi(w, converse(f)) == chi(dagger(w), f));
+      for (const Re& g : fixtures) {
+        CHECK(Kleene::AND(chi(w, f), chi(w, g)) <= chi(w, f >> g));
+        if (is_up_set(w))
+          CHECK(Kleene::OR(chi(w, f), chi(w, g)) <= chi(w, f | g));
+        else
+          CHECK(Kleene::OR(chi(w, f), chi(w, g)) <= chi(w, f & g));
+      }
+    }
+  }
+}
+
+TEST_CASE("relational:rows: a bare numeral stays under its quantifier",
+          "[relational][rows]") {
+  // ∃m. m == 1 ∧ m == 1: the defining term 1 has no sort of its own, so the
+  // verdict keeps the quantifier (substituted, 1 == 1 would stand on a mixed
+  // row with no column to read it in) and the search finds m = 1.
+  const Re one = words & Q::cmp(Rel::Eq, T::proj(2), T::constant(1));
+  const Re pick =
+      Re::universe(W, {flag}) & Q::cmp(Rel::Eq, T::proj(1), T::constant(1));
+  CHECK(verdict(one >> pick, R{{3u, false}}) == Ternary::True);
+  CHECK(verdict(one >> pick, R{{3u, true}}) == Ternary::True);
 }
