@@ -631,11 +631,18 @@ export using ArrowLaws = Profile<ArrowLaw, every_arrow_law.size()>;
  *  their laws combined by the chain's own @c Inf (both legs) and @c Sup
  *  (either leg).  The facts, each a theorem about functions:
  *  - @b closure: injective and surjective functions are closed under ∘, ×,
- *    +; so are monotone, antitone and involutive ones under × and +;
+ *    +; involutive ones under × and +; monotone ones under × (the
+ *    componentwise order) and + (@c std::variant's order, by summand first);
+ *    antitone ones under × only (a sum's order keeps inl < inr, it does not
+ *    reverse it);
  *  - @b the @b sign @b table: variance multiplies along ∘ (monotone ∘
  *    monotone and antitone ∘ antitone are monotone; mixed, antitone);
  *  - @b duality: ⟨f, g⟩ is injective when either leg is, [f, g] surjective
- *    when either leg is; both keep a variance their legs share.
+ *    when either leg is; ⟨f, g⟩ keeps a variance both legs share, [f, g]
+ *    none (it compares across summands, which neither leg governs).
+ *  A variance is read under an order; these facts are about the former's own
+ *  order (componentwise, by summand), and a fold under another order drops
+ *  them (@c without_variance).
  *  The formers are in @c :cartesian: ⟨,⟩ and [,] as arrow types, × and + by
  *  their defining forms (f × g = ⟨f ∘ π₁, g ∘ π₂⟩, f + g = [ι₁ ∘ f, ι₂ ∘ g]),
  *  recognised by the readers so the facts on × and + keep their precision.
@@ -661,7 +668,9 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
       }
       break;
     case ArrowNode::Product:
+      return Inf{}(a[w], b[w]);
     case ArrowNode::Sum:
+      if (w == L::Antitone) return Ternary::Unknown;
       return Inf{}(a[w], b[w]);
     case ArrowNode::Pairing:
       if (w == L::Injective) return Sup{}(a[w], b[w]);
@@ -669,7 +678,6 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
       return Ternary::Unknown;
     case ArrowNode::Copairing:
       if (w == L::Surjective) return Sup{}(a[w], b[w]);
-      if (w == L::Monotone || w == L::Antitone) return Inf{}(a[w], b[w]);
       return Ternary::Unknown;
   }
   return Ternary::Unknown;
@@ -681,6 +689,13 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
 export constexpr ArrowLaws saturated(ArrowLaws p) {
   if (p[ArrowLaw::Involutive] == Ternary::True)
     p.set(ArrowLaw::Injective).set(ArrowLaw::Surjective);
+  return p;
+}
+/** @brief The laws that do not depend on an order: a profile read under an
+ *  order the former's variance facts are not about. */
+export constexpr ArrowLaws without_variance(ArrowLaws p) {
+  p.of[static_cast<std::size_t>(ArrowLaw::Monotone)] = Ternary::Unknown;
+  p.of[static_cast<std::size_t>(ArrowLaw::Antitone)] = Ternary::Unknown;
   return p;
 }
 /** @brief The engine at one former and one law, as a function of the law. */
@@ -758,6 +773,15 @@ static_assert(
 static_assert(saturated(ArrowLaws{}.set(
                   ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
               "entailment: an involution is a bijection");
+static_assert(
+    arrow_node(ArrowNode::Sum, ArrowLaws{}.set(ArrowLaw::Antitone),
+               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
+            Ternary::Unknown &&
+        arrow_node(ArrowNode::Copairing, ArrowLaws{}.set(ArrowLaw::Monotone),
+                   ArrowLaws{}.set(ArrowLaw::Monotone))[ArrowLaw::Monotone] ==
+            Ternary::Unknown,
+    "a sum keeps inl < inr, so no antitone; a copairing compares "
+    "across summands, so no variance at all");
 }  // namespace detail_arrow_laws_witness
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,

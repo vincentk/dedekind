@@ -385,13 +385,20 @@ static_assert(π_1(std::pair{7, false}) == 7 && !π_2(std::pair{7, false}) &&
               "π_k reads the k-th component; π is the identity");
 /** @brief Whether @c F is the projection @f$\pi_K@f$ out of a pair: the
  *  recogniser the law readers (@c :cartesian, a product's defining form) and
- *  the hyperdoctrine (@c relational:graph) read.  @tparam F an arrow.
+ *  the hyperdoctrine (@c relational:graph) read.  A genuine @c std::pair only:
+ *  a pair-like carrier with more state is no product of its two members.
+ * @tparam F an arrow.
  *  @tparam K the slot. */
 export template <typename F, std::size_t K>
-concept IsPairProjection = IsArrow<F> && requires {
-  typename Dom<F>::first_type;
-  typename Dom<F>::second_type;
-} && std::same_as<F, Π<K, Dom<F>>>;
+concept IsPairProjection =
+    IsArrow<F> &&
+    requires {
+      typename Dom<F>::first_type;
+      typename Dom<F>::second_type;
+    } &&
+    std::same_as<Dom<F>, std::pair<typename Dom<F>::first_type,
+                                   typename Dom<F>::second_type>> &&
+    std::same_as<F, Π<K, Dom<F>>>;
 
 static_assert(std::same_as<Π<0, int>, Identity<int>> &&
                   IsArrow<Π<1, std::pair<int, bool>>> &&

@@ -74,10 +74,18 @@ TEST_CASE("arrow laws: the formers, × + ⟨,⟩ [,]", "[category][laws]") {
   STATIC_CHECK(
       IsAntiMonotone<Pair, ProductLeq<std::less_equal<>, std::less_equal<>>>);
   // By fold: cata reaches through a former and a composition.
+  using Order = ProductLeq<std::less_equal<>, std::less_equal<>>;
   constexpr Pair p = product_arrow(Negation{}, Negation{});
-  constexpr ArrowLaws through = cata(LawAlgebra<>{}, Compose<Pair, Pair>{p, p});
+  constexpr ArrowLaws through =
+      cata(LawAlgebra<Order>{}, Compose<Pair, Pair>{p, p});
   STATIC_CHECK(through[ArrowLaw::Antitone] == Ternary::Unknown);
-  constexpr ArrowLaws pair = cata(LawAlgebra<>{}, p);
+  STATIC_CHECK(through[ArrowLaw::Monotone] == Ternary::True);  // anti ∘ anti
+  constexpr ArrowLaws pair = cata(LawAlgebra<Order>{}, p);
   STATIC_CHECK(pair[ArrowLaw::Antitone] == Ternary::True);  // anti × anti
+  // Under the lexicographic order on pairs the variance facts do not apply.
+  STATIC_CHECK(cata(LawAlgebra<>{}, p)[ArrowLaw::Antitone] == Ternary::Unknown);
+  STATIC_CHECK(cata(LawAlgebra<>{}, p)[ArrowLaw::Injective] == Ternary::True);
+  // The default fold (β-reduction) passes through the formers too.
+  CHECK(cata(Pairing<Same, Same>{})(true) == std::pair{true, true});
   CHECK(p({true, false}) == std::pair{false, true});
 }

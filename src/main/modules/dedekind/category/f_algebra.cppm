@@ -259,6 +259,15 @@ constexpr Identity<T> reduce_β(const Compose<F, G>&, const Identity<T>& i,
                                const Identity<U>&) {
   return i;  // id ∘ id = id (disambiguates the two single-sided overloads)
 }
+/** @brief A pairing (copairing) rebuilt from its reduced legs: inert. */
+export template <typename F, typename G, typename RF, typename RG>
+constexpr auto reduce_β(const Pairing<F, G>&, const RF& rf, const RG& rg) {
+  return Pairing<RF, RG>{rf, rg};
+}
+export template <typename F, typename G, typename RF, typename RG>
+constexpr auto reduce_β(const Copairing<F, G>&, const RF& rf, const RG& rg) {
+  return Copairing<RF, RG>{rf, rg};
+}
 /** @} */
 
 /** @section f_algebra__The_Term_Functor
@@ -288,6 +297,14 @@ export template <typename β, typename T>
 constexpr auto cata(const β& alg, const T& t);
 
 namespace detail_f_algebra {
+/** @brief The component orders of a product order, where @c Op is one. */
+template <typename Op>
+struct component_orders {};
+template <typename LA, typename LB>
+struct component_orders<ProductLeq<LA, LB>> {
+  using first = LA;
+  using second = LB;
+};
 template <typename β, typename T, std::size_t... I>
 constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
   const auto ls = legs(t);
@@ -392,14 +409,31 @@ struct LawAlgebra {
     requires(IsPairProjection<A, 1> && IsPairProjection<B, 2>)
   constexpr ArrowLaws steer(
       const Pairing<Compose<A, F>, Compose<B, G>>& t) const {
-    return arrow_node(ArrowNode::Product, cata(*this, t.f.g),
-                      cata(*this, t.g.g));
+    // A product's variance is about the componentwise order: each factor
+    // under its own component order; under any other order, no variance.
+    if constexpr (requires {
+                    typename detail_f_algebra::component_orders<Op>::first;
+                  }) {
+      using O = detail_f_algebra::component_orders<Op>;
+      return arrow_node(ArrowNode::Product,
+                        cata(LawAlgebra<typename O::first>{}, t.f.g),
+                        cata(LawAlgebra<typename O::second>{}, t.g.g));
+    } else {
+      return without_variance(arrow_node(ArrowNode::Product, cata(*this, t.f.g),
+                                         cata(*this, t.g.g)));
+    }
   }
   template <typename F, typename G, typename X, typename Y>
   constexpr ArrowLaws steer(
       const Copairing<Compose<F, Injection<1, X, Y>>,
                       Compose<G, Injection<2, X, Y>>>& t) const {
-    return arrow_node(ArrowNode::Sum, cata(*this, t.f.f), cata(*this, t.g.f));
+    // A sum's variance is about std::variant's own order (by summand).
+    const ArrowLaws laws =
+        arrow_node(ArrowNode::Sum, cata(*this, t.f.f), cata(*this, t.g.f));
+    if constexpr (std::same_as<Op, std::less_equal<>>)
+      return laws;
+    else
+      return without_variance(laws);
   }
   template <typename F, typename G>
   constexpr ArrowLaws operator()(const Pairing<F, G>&, const ArrowLaws& f,
