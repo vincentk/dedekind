@@ -533,7 +533,11 @@ export template <typename A, typename B>
            requires {
              typename predicate_logic<A>::type;
              typename predicate_logic<B>::type;
-           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>>
+           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>> &&
+           LiftableInto<Cod<A>, join_logic_t<predicate_logic_t<A>,
+                                             predicate_logic_t<B>>> &&
+           LiftableInto<
+               Cod<B>, join_logic_t<predicate_logic_t<A>, predicate_logic_t<B>>>
 struct Meet<A,
             B> {  // A ∧ B: two arrows into truth objects with a join give one
   A lhs;
@@ -558,7 +562,11 @@ export template <typename A, typename B>
            requires {
              typename predicate_logic<A>::type;
              typename predicate_logic<B>::type;
-           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>>
+           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>> &&
+           LiftableInto<Cod<A>, join_logic_t<predicate_logic_t<A>,
+                                             predicate_logic_t<B>>> &&
+           LiftableInto<
+               Cod<B>, join_logic_t<predicate_logic_t<A>, predicate_logic_t<B>>>
 struct Join<A,
             B> {  // A ∨ B: two arrows into truth objects with a join give one
   A lhs;
