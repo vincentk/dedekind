@@ -347,8 +347,18 @@ constexpr auto operator*(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
   return cartesian_product(a, b);
 }
 
-/** @brief Infix sugar for cartesian product over ambient species values. */
+/** @brief Infix sugar for cartesian product over ambient species values.  A
+ *  set is also an arrow (its χ), so the arrows' @c * (the product functor,
+ *  @c category:cartesian) applies too; the set's reading is the more specific
+ *  one, stated here: a set object that is an arrow is more constrained than
+ *  an arrow, and its @c * is its cartesian product. */
 export template <IsSetObject A, IsSetObject B>
+  requires(dedekind::category::IsArrow<A> && dedekind::category::IsArrow<B>)
+constexpr auto operator*(const A& a, const B& b) {
+  return cartesian_product(a, b);
+}
+export template <IsSetObject A, IsSetObject B>
+  requires(!(dedekind::category::IsArrow<A> && dedekind::category::IsArrow<B>))
 constexpr auto operator*(const A& a, const B& b) {
   return cartesian_product(a, b);
 }
