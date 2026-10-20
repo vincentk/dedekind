@@ -10,7 +10,7 @@ carriers is applied, never implied.  The canonical form is per axis.
 import unittest
 
 from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
-from dedekind.trsk import Function, Relation
+from dedekind.trsk import Function, Relation, function
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
@@ -121,7 +121,7 @@ class AnArrowKeepsItsSorts(unittest.TestCase):
     def test_a_function_lands_in_its_codomain(self) -> None:
         R = K3 * B & (π_2 == π_1)  # a relation: U has no image in 𝔹
         self.assertIn((Ternary.TRUE, True), R)
-        self.assertIs(R.is_function, False)
+        self.assertNotIn(R, function)
         self.assertNotIsInstance(R, Function[K3, B])
         with self.assertRaises(TypeError):
             ap(R, Ternary.UNKNOWN)

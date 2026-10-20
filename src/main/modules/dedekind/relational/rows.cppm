@@ -65,6 +65,7 @@ module;
 #include <initializer_list>
 #include <limits>  // the slot bits of a column mask
 #include <memory>
+#include <optional>  // a column's defining term, if any
 #include <type_traits>
 #include <utility>  // std::pair: a point of a relation, dom × cod
 #include <variant>
@@ -73,7 +74,7 @@ module;
 export module dedekind.relational:rows;
 
 import dedekind.category; // Ternary
-import dedekind.sets;     // Row, Term, Pred, the sorts, graph_term
+import dedekind.sets;     // Row, Term, Pred, the sorts, defining_term
 import :dyadic;           // Law, Laws: the rule table, read over the term
 
 namespace dedekind::relational {
@@ -673,25 +674,6 @@ dedekind::category::Ternary verdict(
           predicate_of(r), dedekind::sets::NoConstants{}, r.rep()),
       row, r.budget);
 }
-/** @brief The term of a relation certified a function of its first @c n − 1
- *  columns: a quantifier-free graph atom @c π_n @c == @c t(π_1 … π_{n−1})
- *  whose term lands in the last column's sort; @c nullptr otherwise.
- *  @param r the relation.  @param p its classifier, pinned or with its
- *  quantifiers eliminated. */
-export template <typename K, typename... Cs>
-const dedekind::sets::Term<K>* function_term(const RelExpr<K, Cs...>& r,
-                                             const dedekind::sets::Pred<K>& p) {
-  using Point = typename RelExpr<K, Cs...>::Point;
-  if (r.arity() < 2 || dedekind::sets::has_quantifier(p)) return nullptr;
-  const auto* t = dedekind::sets::graph_term(p, r.arity());
-  if (t == nullptr) return nullptr;
-  const std::size_t s = dedekind::sets::sort_of<Point>(*t, r.rep());
-  const Columns all = r.columns();
-  if (s != dedekind::sets::no_sort &&
-      !dedekind::sets::sort_embeds<Point>(s, all.back()))
-    return nullptr;
-  return t;
-}
 
 // ── The laws of an arrow, inferred over the term (#1045) ─────────────────────
 namespace detail_rows {
@@ -704,28 +686,36 @@ constexpr unsigned column_mask(unsigned lo, unsigned hi) {
   for (unsigned s = lo; s < hi; ++s) m |= slot_bit(s);
   return m;
 }
-/** @brief Whether each column in @c [lo, hi) is defined by a conjunct of @c p
- *  over the columns of @c others alone, by a term that lands in the column's
- *  sort (as @c function_term asks: a K₃ term defines no 𝔹 column), and
- *  whether nothing else is asked (the residual ⊤).
- *  @return (every column defined, residual ⊤). */
+/** @brief The columns @c [lo, hi) as defined by @c p: per column the term of
+ *  a conjunct defining it over the columns of @c others alone, landing in the
+ *  column's sort (a K₃ term defines no 𝔹 column), and whether nothing else is
+ *  asked (the residual ⊤).  Nothing where a column is not so defined. */
+template <typename K>
+struct Defined {
+  std::vector<dedekind::sets::Term<K>> terms;
+  bool only;
+};
 template <typename P, typename K>
-std::pair<bool, bool> defined_columns(const dedekind::sets::Pred<K>& p,
-                                      unsigned lo, unsigned hi, unsigned others,
-                                      const Columns& cols, const P& rep) {
+std::optional<Defined<K>> defined_columns(const dedekind::sets::Pred<K>& p,
+                                          unsigned lo, unsigned hi,
+                                          unsigned others, const Columns& cols,
+                                          const P& rep) {
   using Q = dedekind::sets::Pred<K>;
+  Defined<K> out{{}, false};
   Q rest = p;
   for (unsigned s = lo; s < hi; ++s) {
     const auto d = dedekind::sets::defining_term(rest, s);
     if (!d || (dedekind::sets::slots(d->term) & ~others) != 0u)
-      return {false, false};
+      return std::nullopt;
     const std::size_t sort = dedekind::sets::sort_of<P>(d->term, rep);
     if (sort != dedekind::sets::no_sort &&
         !dedekind::sets::sort_embeds<P>(sort, cols[s - 1]))
-      return {false, false};
+      return std::nullopt;
+    out.terms.push_back(d->term);
     rest = d->rest;
   }
-  return {true, rest.kind == Q::Kind::Top};
+  out.only = rest.kind == Q::Kind::Top;
+  return out;
 }
 /** @brief The laws a comprehension certifies by the shape of its predicate:
  *  every codomain column defined by a term over the domain columns is
@@ -741,17 +731,15 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
                     const Columns& cols, const P& rep) {
   const unsigned n = static_cast<unsigned>(cols.size());
   Laws l;
-  const auto [cod_defined, cod_only] =
-      defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1), cols, rep);
-  const auto [dom_defined, dom_only] =
-      defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1), cols, rep);
-  if (cod_defined) {
+  if (const auto c = defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1),
+                                     cols, rep)) {
     l.set(Law::Univalent);
-    if (cod_only) l.set(Law::Total);
+    if (c->only) l.set(Law::Total);
   }
-  if (dom_defined) {
+  if (const auto d = defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1),
+                                     cols, rep)) {
     l.set(Law::Injective);
-    if (dom_only) l.set(Law::Surjective);
+    if (d->only) l.set(Law::Surjective);
   }
   return l;
 }
@@ -770,9 +758,15 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   // The term's whole predicate read by its shape at the requested split: a
   // universe over a sum object constrains its rows (encodes), and an
   // operation re-split as a table or an arrow is no longer that operation.
-  const auto by_shape = [&] {
-    return predicate_laws(predicate_of(r), nd, r.columns(), r.rep());
+  using Point = typename RelExpr<K, Cs...>::Point;
+  // A predicate read by its shape, its quantifiers that an atom defines
+  // eliminated first (the fusion law: a graph under ∃ is still a graph).
+  const auto shape = [&](const dedekind::sets::Pred<K>& p) {
+    return predicate_laws(dedekind::sets::eliminate_quantifiers<Point>(
+                              p, dedekind::sets::NoConstants{}, r.rep()),
+                          nd, r.columns(), r.rep());
   };
+  const auto by_shape = [&] { return shape(predicate_of(r)); };
   // Whether the node still stands at its operation's boundary: arrow / table
   // rewrite a root's objects and leave its legs, so the boundary is read off
   // the legs, not off the split asked for.
@@ -799,9 +793,8 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
       // meet.
       return r.a->kind == Node::Universe
                  ? by_shape()
-                 : Laws::node(
-                       Node::Meet, laws_at(*r.a, nd),
-                       predicate_laws(r.predicate, nd, r.columns(), r.rep()));
+                 : Laws::node(Node::Meet, laws_at(*r.a, nd),
+                              shape(r.predicate));
     case Node::Meet:
     case Node::Join:
       return Laws::node(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
@@ -856,5 +849,22 @@ export template <typename Re>
 using Injective = LawSet<Re, Law::Injective>;
 export template <typename Re>
 using Surjective = LawSet<Re, Law::Surjective>;
+
+/** @brief The value of a relation certified a map, as terms: per codomain
+ *  column the term over the domain columns that defines it in @c p, when
+ *  every codomain column is so defined and nothing else is asked (what makes
+ *  a leaf total and univalent by its shape); nothing otherwise.  What
+ *  @c ap(R, x) evaluates.  @param r the relation.  @param p its predicate,
+ *  pinned or with its quantifiers eliminated. */
+export template <typename K, typename... Cs>
+std::optional<std::vector<dedekind::sets::Term<K>>> function_terms(
+    const RelExpr<K, Cs...>& r, const dedekind::sets::Pred<K>& p) {
+  const unsigned nd = static_cast<unsigned>(columns(r.dom).size());
+  const auto c = detail_rows::defined_columns(
+      p, nd + 1, r.arity() + 1, detail_rows::column_mask(1, nd + 1),
+      r.columns(), r.rep());
+  if (!c || !c->only) return std::nullopt;
+  return c->terms;
+}
 
 }  // namespace dedekind::relational
