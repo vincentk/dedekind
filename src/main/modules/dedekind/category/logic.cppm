@@ -58,11 +58,9 @@
 module;
 
 #include <algorithm>
-#include <array>  // a profile: one K₃ answer per law
 #include <cmath>
 #include <compare>  // std::strong_ordering — operator<=> on Ternary.
 #include <concepts>
-#include <cstddef>
 #include <cstdint>  // std::int8_t — Ternary int cast for the <=> body.
 #include <functional>
 #include <limits>       // std::numeric_limits: Chain<T> bounds (INT_MIN/MAX).
@@ -1603,40 +1601,5 @@ static_assert(
 static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
                   identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
               "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
-
-// ---------------------------------------------------------------------------
-// A profile: one answer in K₃ per law (#1049)
-// ---------------------------------------------------------------------------
-
-/** @brief The laws an arrow is known to have, one answer in K₃ per law:
- *  @c True where certified, @c Unknown where not, never @c False (a profile
- *  certifies, it does not refute).  The pointwise lift Ω^E of the truth chain
- *  to the laws (@c lattice__Omega_First_Pointwise_Lift), restricted to its
- *  sub-chain Σ = {Unknown < True}: combined law by law with @c Inf / @c Sup.
- *  The laws of functions and their engine are in @c :posetal; the laws of
- *  relations in @c relational:dyadic.  @tparam E the laws, an enumeration
- *  0 … N − 1.  @tparam N how many. */
-export template <typename E, std::size_t N>
-struct Profile {
-  std::array<Ternary, N> of{};  // value-initialised: every law Unknown
-  constexpr Ternary operator[](E w) const {
-    return of[static_cast<std::size_t>(w)];
-  }
-  constexpr Profile& set(E w) {
-    of[static_cast<std::size_t>(w)] = Ternary::True;
-    return *this;
-  }
-  constexpr bool operator==(const Profile&) const = default;
-  /** @brief The profile whose answer at each law is @c f(law): the one loop
-   *  every engine runs, law by law.  @param f the answer per law. */
-  template <typename F>
-  static constexpr Profile tabulate(const F& f) {
-    Profile out;
-    for (std::size_t i = 0; i < N; ++i) out.of[i] = f(static_cast<E>(i));
-    return out;
-  }
-};
-static_assert(Ternary{} == Ternary::Unknown,
-              "a value-initialised profile certifies nothing");
 
 }  // namespace dedekind::category

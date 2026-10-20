@@ -44,6 +44,7 @@ module;
 #include <algorithm>
 #include <array>  // the laws of a function, enumerated
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <type_traits>  // std::bool_constant: the monotone witness
 #include <utility>
@@ -556,6 +557,41 @@ static_assert(IsVariant<LiftLogic<Boole>>,
 // below reads it on the legs' profiles, one rule for both readers (#1049). This
 // is the rule that was MISSING while composition was only the ad-hoc @c
 // operator>>; reifying @c Compose seated it.
+// ---------------------------------------------------------------------------
+// A profile: one answer in K₃ per law (#1049)
+// ---------------------------------------------------------------------------
+
+/** @brief The laws an arrow is known to have, one answer in K₃ per law:
+ *  @c True where certified, @c Unknown where not, never @c False (a profile
+ *  certifies, it does not refute).  The pointwise lift Ω^E of the truth chain
+ *  to the laws (@c lattice__Omega_First_Pointwise_Lift), restricted to its
+ *  sub-chain Σ = {Unknown < True}: combined law by law with @c Inf / @c Sup.
+ *  Read by the laws of functions below and by the laws of relations
+ *  (@c relational:dyadic).  @tparam E the laws, an enumeration
+ *  0 … N − 1.  @tparam N how many. */
+export template <typename E, std::size_t N>
+struct Profile {
+  std::array<Ternary, N> of{};  // value-initialised: every law Unknown
+  constexpr Ternary operator[](E w) const {
+    return of[static_cast<std::size_t>(w)];
+  }
+  constexpr Profile& set(E w) {
+    of[static_cast<std::size_t>(w)] = Ternary::True;
+    return *this;
+  }
+  constexpr bool operator==(const Profile&) const = default;
+  /** @brief The profile whose answer at each law is @c f(law): the one loop
+   *  every engine runs, law by law.  @param f the answer per law. */
+  template <typename F>
+  static constexpr Profile tabulate(const F& f) {
+    Profile out;
+    for (std::size_t i = 0; i < N; ++i) out.of[i] = f(static_cast<E>(i));
+    return out;
+  }
+};
+static_assert(Ternary{} == Ternary::Unknown,
+              "a value-initialised profile certifies nothing");
+
 // ---------------------------------------------------------------------------
 // The laws of a function: one engine, read by type and by value (#1049)
 // ---------------------------------------------------------------------------
