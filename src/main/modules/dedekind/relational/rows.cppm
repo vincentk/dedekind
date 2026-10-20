@@ -773,6 +773,23 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   const auto by_shape = [&] {
     return predicate_laws(predicate_of(r), nd, r.columns(), r.rep());
   };
+  // Whether the node still stands at its operation's boundary: arrow / table
+  // rewrite a root's objects and leave its legs, so the boundary is read off
+  // the legs, not off the split asked for.
+  const auto at_own_boundary = [&] {
+    switch (r.kind) {
+      case Node::Compose:
+        return r.dom == r.a->dom && r.cod == r.b->cod;
+      case Node::Tensor:
+        return r.dom == r.a->dom * r.b->dom && r.cod == r.a->cod * r.b->cod;
+      case Node::Sum:
+        return r.dom.factors.empty();  // the sum of tables, 1 → A + B
+      case Node::Converse:
+        return r.dom == r.a->cod && r.cod == r.a->dom;
+      default:
+        return true;
+    }
+  };
   switch (r.kind) {
     case Node::Universe:
       // The full relation on inhabited carriers: total and surjective.
@@ -795,7 +812,7 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
     case Node::Compose:
     case Node::Sum:
       // The facts hold at the operation's own boundary only.
-      if (nd != own(r)) return by_shape();
+      if (nd != own(r) || !at_own_boundary()) return by_shape();
       if (r.kind == Node::Converse)
         return Laws::node(r.kind, laws_at(*r.a, own(*r.a)));
       return Laws::node(r.kind, laws_at(*r.a, own(*r.a)),

@@ -257,11 +257,14 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   CHECK(laws(diag<int, unsigned, bool>(W) >>
              converse(diag<int, unsigned, bool>(W))) == all);
   // The facts hold at an operation's own boundary: re-split as a table, Δ ; Δ
-  // is 1 → W × W with every diagonal row above the one input, and is read by
-  // its shape (a ∃ it cannot see through): nothing certified.
+  // is 1 → W × W with every diagonal row above the one input, read by its
+  // shape (a ∃ it cannot see through).  A table out of the unit is injective
+  // by that shape alone (one input), and its converse univalent.
   CHECK(laws(table(diag<int, unsigned, bool>(W) >>
-                   diag<int, unsigned, bool>(W))) == Laws{});
-  CHECK(laws(converse(table(succ))) == Laws{});
+                   diag<int, unsigned, bool>(W))) ==
+        Laws::from(false, false, true, false));
+  CHECK(laws(table(succ)) == Laws::from(false, false, true, false));
+  CHECK(laws(converse(table(succ))) == Laws::from(false, true, false, false));
   // The sets: 𝔸<Re> & Total<Re>{} is the set of total relations, a map the
   // meet of two such sets, χ in K₃.
   using dedekind::relational::Total;
