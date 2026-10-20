@@ -74,18 +74,6 @@ constexpr auto lift_classifier_constant(Constant&& value) {
 
 /** @section topoi__Point_Free_Composition_Engine */
 
-/** @brief An arrow that names its logic species and answers in it:
- *  @c Cod<P> @c = @c P::logic_species::Ω.  The species vouches for an answer
- *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
-export template <typename P>
-concept IsSpeciesTaggedArrow =
-    requires { typename std::remove_cvref_t<P>::logic_species; } &&
-    IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
-    std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
-    requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
-      { p(x) } -> std::same_as<Cod<P>>;
-    };
-
 /**
  * @brief The Predicate Morphism: the DSL's membership test, i.e. the
  *        characteristic arrow @f$\chi_A : A \to \Omega@f$.
@@ -116,22 +104,6 @@ export template <typename P>
 concept IsPredicate =
     IsArrow<P> && !std::same_as<std::remove_cvref_t<P>, bool> &&
     ((IsΩ<Cod<P>> && LogicalMap<P, Dom<P>>) || IsSpeciesTaggedArrow<P>);
-
-/** @brief The logic species a predicate answers in: its own, when it names
- *  one (@c IsSpeciesTaggedArrow), else the species of its answer type.  The
- *  combinators and @c Subobject read this, so a @c Chain<int> set (answer
- *  @c int, species @c Chain<int>) conjoins in @c Chain<int>. */
-template <typename P>
-struct predicate_logic {
-  using type = classifier_logic_t<Cod<P>>;
-};
-template <typename P>
-  requires IsSpeciesTaggedArrow<P>
-struct predicate_logic<P> {
-  using type = typename std::remove_cvref_t<P>::logic_species;
-};
-export template <typename P>
-using predicate_logic_t = typename predicate_logic<P>::type;
 
 /**
  * @concept IsCharacteristic

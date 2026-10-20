@@ -301,23 +301,25 @@ using At = std::integral_constant<std::size_t, K>;
 template <typename P>
 concept TupleLike = requires { std::tuple_size<P>::value; };
 
-/** @brief The @c k-th component of a tuple-like product.  @param p the point.
- */
+/** @brief The @c k-th component of a tuple-like product, by reference: a
+ *  projection reads its point without copying it (a string or vector carrier
+ *  stays where it is).  @c π_k returns a temporary's component by value.
+ *  @param p the point. */
 export template <typename P, std::size_t K>
   requires TupleLike<P> && (K >= 1) && (K <= std::tuple_size_v<P>)
-constexpr auto component(const P& p, At<K>) {
+constexpr const auto& component(const P& p, At<K>) {
   return std::get<K - 1>(p);
 }
 /** @brief The components of a pair-like product that is not tuple-like.
  *  @param p the point. */
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.first; }
-constexpr auto component(const P& p, At<1>) {
+constexpr const auto& component(const P& p, At<1>) {
   return p.first;
 }
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.second; }
-constexpr auto component(const P& p, At<2>) {
+constexpr const auto& component(const P& p, At<2>) {
   return p.second;
 }
 
@@ -329,6 +331,13 @@ struct Projection {
     requires requires(const P& p) { component(p, At<K>{}); }
   constexpr decltype(auto) operator()(const P& p) const {
     return component(p, At<K>{});
+  }
+  /** @brief A temporary's component, by value (no reference into it). */
+  template <typename P>
+    requires(!std::is_lvalue_reference_v<P>) &&
+            requires(const P& p) { component(p, At<K>{}); }
+  constexpr auto operator()(P&& p) const {
+    return auto(component(p, At<K>{}));
   }
 };
 /** @brief The projection out of the one-fold product @c A¹ ≅ A: the identity
