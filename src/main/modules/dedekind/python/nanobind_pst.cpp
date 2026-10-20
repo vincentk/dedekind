@@ -2288,8 +2288,8 @@ void bind_readings(nb::module_& m) {
       {"arrow",
        "arrow(R): a table of n columns read as the arrow of its first n − 1."},
       {"classifier",
-       "classifier(S): the predicate χ of a set or relation, a reading of its "
-       "term."},
+       "classifier(R): the predicate χ of a relation on its columns, a reading "
+       "of its term."},
       {"codomain", "codomain(S): the chain χ is valued in (B or K3)."},
       {"carrier", "carrier(S): the carrier a set lives on."},
       {"universe", "universe(S): the universe a set is cut out of."},
@@ -2316,13 +2316,21 @@ void bind_readings(nb::module_& m) {
     m.def(
         r.name,
         [name](nb::handle x) -> nb::object {
+          // One lookup: the getter runs once (a reading may be costly), a
+          // missing attribute is no term the reading applies to, and any
+          // other error the getter raises propagates.
           const std::string attr = "_" + name;
-          if (!nb::hasattr(x, attr.c_str()))
+          PyObject* v = PyObject_GetAttrString(x.ptr(), attr.c_str());
+          if (v == nullptr) {
+            if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+              throw nb::python_error();
+            PyErr_Clear();
             throw nb::type_error((name +
                                   "(x): " + nb::cast<std::string>(nb::repr(x)) +
                                   " has no " + name)
                                      .c_str());
-          return x.attr(attr.c_str());
+          }
+          return nb::steal(v);
         },
         nb::arg("x"), r.doc);
   }

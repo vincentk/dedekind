@@ -18,7 +18,7 @@ it, and iteration from ⊥ by the cover.
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
 as the paper spells it::
 
-    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall
+    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall, identity
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
     S = K3 & (π > F)          # generator & pred      -> {U, ⊤}
@@ -34,7 +34,7 @@ as the paper spells it::
     K3 & (ap(H, π) >= U)      # the α-cut: χ applied to π, compared on the chain
 
 A set, a chain and a carrier are read by free functions, not properties
-(#1054): ``carrier(S)``, ``universe(S)``, ``codomain(S)``, ``classifier(S)``,
+(#1054): ``carrier(S)``, ``universe(S)``, ``codomain(S)``,
 ``cardinality(S)``, ``is_decidable(S)``; on a truth chain ``bottom``, ``top``,
 ``identity``, ``name`` and the verdicts ``is_bounded``, ``is_dense``,
 ``is_truth_object``, ``saturates``; on a carrier ``is_ring``, ``is_field``,
@@ -54,7 +54,7 @@ outside that catalogue evaluates but does not compare.  Reduction stays in C++.
 
 The canonical ring and field, each as large as a machine word allows::
 
-    from dedekind.pst import 𝔸, u64, 𝔽ₚ   # 𝔽ₚ is the name Fp (NFKC)
+    from dedekind.pst import 𝔸, is_field, u64, 𝔽ₚ   # 𝔽ₚ is the name Fp (NFKC)
 
     u64(2**64 - 1) + 1          # u64(0): the ring ℤ/2⁶⁴ wraps
     u64(7) // 2;  u64(7) % 2    # by a nonzero word; u64(7) / 2 is a TypeError
@@ -144,7 +144,6 @@ from ._pst import π_3
 from ._pst import bottom
 from ._pst import cardinality
 from ._pst import carrier
-from ._pst import classifier
 from ._pst import codomain
 from ._pst import identity
 from ._pst import is_bounded
@@ -215,6 +214,6 @@ __all__ = [
     "Ø", "η", "π", "π_1", "π_2", "π_3", "Term", "Pred", "exists", "forall", "ap", "canonical", "cond", "Set",
     "lift", "image", "preimage",
     # the readings: free functions, one spelling each (#1054)
-    "bottom", "cardinality", "carrier", "classifier", "codomain", "identity", "is_bounded", "is_decidable", "is_dense",
+    "bottom", "cardinality", "carrier", "codomain", "identity", "is_bounded", "is_decidable", "is_dense",
     "is_field", "is_ring", "is_truth_object", "modulus", "name", "saturates", "top", "universe",
 ]

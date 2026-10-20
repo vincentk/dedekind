@@ -9,7 +9,7 @@ Relations are the Kleisli arrows of the powerset monad, composed
 monadically, and form a cartesian bicategory::
 
     from dedekind.pst import U64, π_1, π_2, canonical
-    from dedekind.trsk import Function, copy, diag, merge
+    from dedekind.trsk import Function, arrow, converse, copy, diag, merge
 
     succ = U64 * U64 & (π_2 == π_1 + 1)
     two = succ >> succ                     # Kleisli composition: ∃ over the middle
@@ -50,6 +50,7 @@ from ._pst import inr
 from ._pst import kind
 from ._pst import operands
 from ._pst import arrow
+from ._pst import classifier
 from ._pst import cod
 from ._pst import converse
 from ._pst import dom
@@ -97,6 +98,6 @@ class Function:
         return _Annotation(f"Function[{', '.join(map(_named, fs))}]", holds)
 
 
-__all__ = ["Function", "Object", "Relation", "arrow", "cod", "converse", "copy", "diag", "dom",
-           "factors", "function", "injective", "inl", "inr", "kind", "merge", "operands",
-           "surjective", "total", "univalent"]
+__all__ = ["Function", "Object", "Relation", "arrow", "classifier", "cod", "converse", "copy",
+           "diag", "dom", "factors", "function", "injective", "inl", "inr", "kind", "merge",
+           "operands", "surjective", "total", "univalent"]

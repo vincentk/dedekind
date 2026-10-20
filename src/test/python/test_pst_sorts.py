@@ -9,8 +9,8 @@ carriers is applied, never implied.  The canonical form is per axis.
 
 import unittest
 
-from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ, classifier, codomain  # 𝔽ₚ is Fp (NFKC)
-from dedekind.trsk import Function, Relation, function, factors
+from dedekind.pst import A, B, K3, U64, GF_p, Ternary, ap, canonical, cond, u64, π, π_1, π_2, π_3, 𝔽ₚ, codomain  # 𝔽ₚ is Fp (NFKC)
+from dedekind.trsk import Function, Relation, classifier, factors, function
 
 U, UF = A(u64), A(𝔽ₚ)
 third = 𝔽ₚ(1) / 3
