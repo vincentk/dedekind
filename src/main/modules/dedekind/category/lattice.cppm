@@ -470,6 +470,46 @@ struct Join {  // A ∨ B
   }
 };
 
+/** @brief An arrow that names its logic species and answers in it:
+ *  @c Cod<P> @c = @c P::logic_species::Ω.  The species vouches for an answer
+ *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
+export template <typename P>
+concept IsSpeciesTaggedArrow =
+    requires { typename std::remove_cvref_t<P>::logic_species; } &&
+    IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
+    std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
+    requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
+      { p(x) } -> std::same_as<Cod<P>>;
+    };
+
+/** @brief The logic species a predicate answers in: its own, when it names
+ *  one (@c IsSpeciesTaggedArrow), else the species of its answer type, and a
+ *  composite the species of its last arrow.  No @c type where none applies
+ *  (a substitution failure, not an error).  The lattice nodes over arrows and
+ *  the combinators and @c Subobject (@c :topoi) read this, so a
+ *  @c Chain<int> set (answer @c int, species @c Chain<int>) conjoins in
+ *  @c Chain<int>, and a set pulled back along an arrow (a cylinder,
+ *  χ ∘ π) answers in the set's species. */
+export template <typename P>
+struct predicate_logic {};
+template <typename P>
+  requires(!IsSpeciesTaggedArrow<P>) && IsClassifierAnswer<Cod<P>>
+struct predicate_logic<P> {
+  using type = classifier_logic_t<Cod<P>>;
+};
+template <typename P>
+  requires IsSpeciesTaggedArrow<P>
+struct predicate_logic<P> {
+  using type = typename std::remove_cvref_t<P>::logic_species;
+};
+template <typename F, typename G>
+  requires requires { typename predicate_logic<G>::type; }
+struct predicate_logic<Compose<F, G>> {
+  using type = typename predicate_logic<G>::type;
+};
+export template <typename P>
+using predicate_logic_t = typename predicate_logic<P>::type;
+
 /** @section lattice__Nodes_over_arrows
  *  A node over two arrows into truth objects is itself such an arrow: the
  *  lattice of arrows @c A @c → @c Ω is computed pointwise (@c Meet by @c AND,
@@ -477,8 +517,9 @@ struct Join {  // A ∨ B
  *  @b join species (@c join_logic_t, the dominance 𝔹 ↪ K₃ ↪ …), each answer
  *  lifted into it (@c lift_logic), as a comprehension combines its base and
  *  predicate; one shared species is the case where the join is that species.
- *  When the operands declare the @c IsArrow vocabulary --- @c Domain /
- *  @c Codomain / @c logic_species --- the node declares it too, so it
+ *  When the operands are arrows that answer in a species (@c predicate_logic:
+ *  declared, read off the answer type, or a composite's last arrow's), the
+ *  node declares @c Domain / @c Codomain / @c logic_species too, so it
  *  composes, reduces and evaluates as an arrow.  That is ALL a
  *  node carries here: the @b subobject reading (a member shape, the inclusion
  *  @c ι, the pullback / pushout apex legs) is set semantics and lives
@@ -490,16 +531,15 @@ struct Join {  // A ∨ B
 export template <typename A, typename B>
   requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
            requires {
-             typename A::logic_species;
-             typename B::logic_species;
-           } &&
-           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+             typename predicate_logic<A>::type;
+             typename predicate_logic<B>::type;
+           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>>
 struct Meet<A,
             B> {  // A ∧ B: two arrows into truth objects with a join give one
   A lhs;
   B rhs;
   using logic_species =
-      join_logic_t<typename A::logic_species, typename B::logic_species>;
+      join_logic_t<predicate_logic_t<A>, predicate_logic_t<B>>;
   using Domain = Dom<A>;
   using Codomain = typename logic_species::Ω;
   template <typename... X>
@@ -516,16 +556,15 @@ struct Meet<A,
 export template <typename A, typename B>
   requires IsArrow<A> && IsArrow<B> && std::same_as<Dom<A>, Dom<B>> &&
            requires {
-             typename A::logic_species;
-             typename B::logic_species;
-           } &&
-           HaveLogicJoin<typename A::logic_species, typename B::logic_species>
+             typename predicate_logic<A>::type;
+             typename predicate_logic<B>::type;
+           } && HaveLogicJoin<predicate_logic_t<A>, predicate_logic_t<B>>
 struct Join<A,
             B> {  // A ∨ B: two arrows into truth objects with a join give one
   A lhs;
   B rhs;
   using logic_species =
-      join_logic_t<typename A::logic_species, typename B::logic_species>;
+      join_logic_t<predicate_logic_t<A>, predicate_logic_t<B>>;
   using Domain = Dom<A>;
   using Codomain = typename logic_species::Ω;
   template <typename... X>

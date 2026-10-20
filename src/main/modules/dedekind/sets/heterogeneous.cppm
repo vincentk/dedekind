@@ -177,34 +177,30 @@ constexpr auto operator|(const A& lhs, const B& rhs) {
 }
 
 /**
- * @brief Membership predicate of a Cartesian product: @f$(x,y)\in A\times B
- *        \iff x\in A \wedge y\in B@f$.
- *
- * @details A @b named functor (not a capturing lambda), so a product @c Set
- * carries a structural, comparable predicate type rather than an opaque closure
- * (#844, [[feedback_no_lambdas_opacity]]).  It stores the two component @c Set
- * operands and evaluates each on its projection, going through @c
- * Set::operator() so the logic lift is preserved.  Mirrors the @c
- * dedekind::relational::RelAnd shape, which already ships as a @c Set<pair>
- * predicate across translation units.
+ * @brief Membership of a cartesian product: @f$(x, y) \in A \times B \iff x
+ *        \in A \wedge y \in B@f$, the meet of the two @b cylinders
+ *        @f$\chi_A \circ \pi_1@f$ and @f$\chi_B \circ \pi_2@f$.  So
+ *        @f$\chi_{A \times B} = \wedge \circ (\chi_A \times \chi_B)@f$ and
+ *        @f$A \times B = (A \times Y) \cap (X \times B)@f$: no predicate of
+ *        its own, the library's meet (in the join of the factors' species,
+ *        each answer lifted) over its projections composed with the factors.
  */
 export template <typename A, typename B>
-struct ProductMembership {
-  A a;
-  B b;
-  /** @brief The product's species: the join of the factors'.  Each factor's
-   *  answer is lifted into it and the conjunction is that species' @c AND, so
-   *  a Kleene factor keeps @c Unknown and a @c Chain<int> factor keeps its
-   *  grade (the carrier's own @c && would collapse both to @c bool). */
-  using logic_species =
-      join_logic_t<typename A::logic_species, typename B::logic_species>;
-  template <typename P>
-  constexpr typename logic_species::Ω operator()(const P& p) const {
-    using L = logic_species;
-    return L::AND(dedekind::category::lift_logic<L>(a(p.first)),
-                  dedekind::category::lift_logic<L>(b(p.second)));
-  }
-};
+using ProductMembership = dedekind::category::Meet<
+    dedekind::category::Compose<
+        dedekind::category::Π<
+            1, std::pair<typename A::Domain, typename B::Domain>>,
+        A>,
+    dedekind::category::Compose<
+        dedekind::category::Π<
+            2, std::pair<typename A::Domain, typename B::Domain>>,
+        B>>;
+/** @brief The product's membership, built from its factors.  @param a
+ *  @param b the factors. */
+template <typename A, typename B>
+constexpr ProductMembership<A, B> product_membership(const A& a, const B& b) {
+  return {{{}, a}, {{}, b}};
+}
 
 // The cartesian-product cardinality is the JOIN of the factors on the lattice
 // Finite < ℵ<0> < ℵ<1> < …: |A×B| = |A|·|B| = max(|A|,|B|) for infinite
@@ -259,7 +255,7 @@ constexpr auto cartesian_product(const Comprehension<𝔸<T1, L1, C1>, P1>& a,
                                  Comprehension<𝔸<T2, L2, C2>, P2>>;
   using CC = typename product_cardinality<C1, C2>::type;
   return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
-      Pred{a, b}};
+      product_membership(a, b)};
 }
 
 /** @brief @f$\mathbb{A}_A \times \mathbb{A}_B = \mathbb{A}_{A\times B}@f$: the
@@ -287,7 +283,7 @@ constexpr auto cartesian_product(const 𝔸<A, LA, CA>& a, const 𝔸<B, LB, CB>
   } else {
     using Pred = ProductMembership<𝔸<A, LA, CA>, 𝔸<B, LB, CB>>;
     return Comprehension<𝔸<std::pair<A, B>, typename Pred::logic_species, CC>,
-                         Pred>{Pred{a, b}};
+                         Pred>{product_membership(a, b)};
   }
 }
 
@@ -311,7 +307,7 @@ constexpr auto cartesian_product(const A& a, const B& b) {
       typename universe_cardinality<
           std::remove_cvref_t<decltype(universe(b))>>::type>::type;
   return Comprehension<𝔸<Pair, typename Pred::logic_species, CC>, Pred>{
-      Pred{a, b}};
+      product_membership(a, b)};
 }
 
 /**
@@ -395,14 +391,14 @@ export template <typename T1, typename T2, typename L, typename C, typename A,
 constexpr auto component(
     const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
     dedekind::category::At<1>) {
-  return s.predicate.a;
+  return s.predicate.lhs.g;  // the first cylinder's set
 }
 export template <typename T1, typename T2, typename L, typename C, typename A,
                  typename B>
 constexpr auto component(
     const Comprehension<𝔸<std::pair<T1, T2>, L, C>, ProductMembership<A, B>>& s,
     dedekind::category::At<2>) {
-  return s.predicate.b;
+  return s.predicate.rhs.g;  // the second cylinder's set
 }
 
 namespace detail_product_witness {
@@ -435,8 +431,8 @@ static_assert(dedekind::category::π_1(t* f)(true) &&
  *  identification the tagged sum does not make. */
 
 /** @brief Membership of a sum: the copairing @f$[\chi_a, \chi_b]@f$, each
- *  answer lifted into the join of the summands' species.  A named functor, as
- *  @c ProductMembership. */
+ *  answer lifted into the join of the summands' species.  A named functor (the
+ *  product's dual is the meet of its cylinders, @c ProductMembership). */
 export template <typename A, typename B>
 struct SumMembership {
   A a;
@@ -551,7 +547,7 @@ export template <std::size_t K, typename X, typename Y, typename T2, typename L,
 constexpr auto restriction(
     const Comprehension<𝔸<std::pair<std::variant<X, Y>, T2>, L, C>,
                         ProductMembership<A, B>>& r) {
-  return restriction<K>(r.predicate.a) * r.predicate.b;
+  return restriction<K>(r.predicate.lhs.g) * r.predicate.rhs.g;
 }
 
 /** @brief @f$\iota_K^{-1}@f$ is a lattice homomorphism (a pullback preserves
