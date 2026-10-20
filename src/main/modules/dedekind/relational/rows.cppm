@@ -757,37 +757,47 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
 }
 /** @brief The laws of @c r read at the split @c nd (its first @c nd columns
  *  the domain): a leaf by its shape, a node by the engine (@c Laws::node,
- *  @c :dyadic) on its legs' laws.  The split belongs to the node being read,
- *  so a lattice node's legs share its columns, a converse's leg has them
- *  transposed, and only the legs of @c ⊗ @c ; @c + carry their own (@c arrow
- *  re-splits a root, not its legs). */
+ *  @c :dyadic) on its legs' laws.  The split belongs to the node being read:
+ *  a lattice node's legs share its columns; an operation's facts hold at its
+ *  own boundary, so @c ; @c ⊗ @c + and @c ° read their legs at their own
+ *  splits, and a root re-split by @c arrow or @c table is read by its shape. */
 template <typename K, typename... Cs>
 Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   using R = RelExpr<K, Cs...>;
   const auto own = [](const R& x) {
     return static_cast<unsigned>(columns(x.dom).size());
   };
+  // The term's whole predicate read by its shape at the requested split: a
+  // universe over a sum object constrains its rows (encodes), and an
+  // operation re-split as a table or an arrow is no longer that operation.
+  const auto by_shape = [&] {
+    return predicate_laws(predicate_of(r), nd, r.columns(), r.rep());
+  };
   switch (r.kind) {
     case Node::Universe:
       // The full relation on inhabited carriers: total and surjective.
       return Laws::from(true, false, false, true);
-    case Node::Comprehension: {
-      const Laws here = predicate_laws(r.predicate, nd, r.columns(), r.rep());
-      // {x ∈ U | p}: the universe adds nothing; R & p is a meet.
+    case Node::Comprehension:
+      // {x ∈ U | p}: the universe adds nothing but its encoding; R & p is a
+      // meet.
       return r.a->kind == Node::Universe
-                 ? here
-                 : Laws::node(Node::Meet, laws_at(*r.a, nd), here);
-    }
+                 ? by_shape()
+                 : Laws::node(
+                       Node::Meet, laws_at(*r.a, nd),
+                       predicate_laws(r.predicate, nd, r.columns(), r.rep()));
     case Node::Meet:
     case Node::Join:
       return Laws::node(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
     case Node::Not:
       return Laws::node(r.kind, laws_at(*r.a, nd));
     case Node::Converse:
-      return Laws::node(r.kind, laws_at(*r.a, r.arity() - nd));
     case Node::Tensor:
     case Node::Compose:
     case Node::Sum:
+      // The facts hold at the operation's own boundary only.
+      if (nd != own(r)) return by_shape();
+      if (r.kind == Node::Converse)
+        return Laws::node(r.kind, laws_at(*r.a, own(*r.a)));
       return Laws::node(r.kind, laws_at(*r.a, own(*r.a)),
                         laws_at(*r.b, own(*r.b)));
   }

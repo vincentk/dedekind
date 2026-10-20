@@ -256,6 +256,12 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   CHECK(laws(~succ) == Laws{});
   CHECK(laws(diag<int, unsigned, bool>(W) >>
              converse(diag<int, unsigned, bool>(W))) == all);
+  // The facts hold at an operation's own boundary: re-split as a table, Δ ; Δ
+  // is 1 → W × W with every diagonal row above the one input, and is read by
+  // its shape (a ∃ it cannot see through): nothing certified.
+  CHECK(laws(table(diag<int, unsigned, bool>(W) >>
+                   diag<int, unsigned, bool>(W))) == Laws{});
+  CHECK(laws(converse(table(succ))) == Laws{});
   // The sets: 𝔸<Re> & Total<Re>{} is the set of total relations, a map the
   // meet of two such sets, χ in K₃.
   using dedekind::relational::Total;
@@ -302,4 +308,16 @@ TEST_CASE("relational:rows: the laws of χ: closure, variance, the dagger",
       }
     }
   }
+}
+
+TEST_CASE("relational:rows: a bare numeral stays under its quantifier",
+          "[relational][rows]") {
+  // ∃m. m == 1 ∧ m == 1: the defining term 1 has no sort of its own, so the
+  // verdict keeps the quantifier (substituted, 1 == 1 would stand on a mixed
+  // row with no column to read it in) and the search finds m = 1.
+  const Re one = words & Q::cmp(Rel::Eq, T::proj(2), T::constant(1));
+  const Re pick =
+      Re::universe(W, {flag}) & Q::cmp(Rel::Eq, T::proj(1), T::constant(1));
+  CHECK(verdict(one >> pick, R{{3u, false}}) == Ternary::True);
+  CHECK(verdict(one >> pick, R{{3u, true}}) == Ternary::True);
 }

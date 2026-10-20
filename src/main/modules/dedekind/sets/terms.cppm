@@ -2276,10 +2276,15 @@ dedekind::sets::Pred<K> eliminate_quantifiers(const dedekind::sets::Pred<K>& p,
       // A definition substitutes only a term that lands in the bound column's
       // carrier: ∃b ∈ 𝔹. b == t has a witness only where t is a value of 𝔹
       // (a K₃ term may be U); 𝔹 ↪ K₃ the other way is fine.
+      // A term of no sort (a bare numeral) lands only where the lift names
+      // its carrier: moved into the bound column it would lose the sort its
+      // context gave it (1 == 1 on a mixed row).  Under NoConstants the
+      // quantifier stays, for the search.
       const auto lands = [&](const dedekind::sets::Term<K>& t) {
         const std::size_t s = dedekind::sets::sort_of<P>(t, rep);
-        return s == dedekind::sets::no_sort ||
-               dedekind::sets::sort_embeds<P>(s, p.sort);
+        if (s == dedekind::sets::no_sort)
+          return !std::is_same_v<Lift, NoConstants>;
+        return dedekind::sets::sort_embeds<P>(s, p.sort);
       };
       if (auto d = defined_through(*p.p, p.slot, universal, 0u);
           d && lands(d->term))

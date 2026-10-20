@@ -662,10 +662,21 @@ export enum class Node {
 // closure under the monoidal operations, its variance in ⊆, its image under °.
 // Declared, not derived: deciding them needs the inclusion calculus on
 // universally quantified statements, where the normal form decides instances.
-/** @brief Closure: the arrows with the law @c w form a sub-algebra of the
- *  hom-monoid under @c n, for @c ; @c ⊗ and @c +.  Each of the four is. */
-export constexpr bool closed_under(Law, Node n) {
-  return n == Node::Compose || n == Node::Tensor || n == Node::Sum;
+/** @brief Closure: the arrows with the law @c w form a sub-algebra under
+ *  @c n.  Each of the four is closed under @c ; and @c ⊗.  The @c + of this
+ *  calculus is the sum of two @b tables, @f$1 \to A + B@f$ (not the direct
+ *  sum of arrows @f$1 + 1 \to A + B@f$): one input, both outputs, so it keeps
+ *  totality, surjectivity and injectivity but not univalence. */
+export constexpr bool closed_under(Law w, Node n) {
+  switch (n) {
+    case Node::Compose:
+    case Node::Tensor:
+      return true;
+    case Node::Sum:
+      return w != Law::Univalent;
+    default:
+      return false;
+  }
 }
 /** @brief Variance in the inclusion order: total and surjective are
  *  @b up-sets (@c R @c ≤ @c S and @c R total ⇒ @c S total), univalent and
@@ -778,6 +789,9 @@ static_assert(infer(Law::Univalent, Node::Meet, Ternary::Unknown,
 static_assert(infer(Law::Total, Node::Meet, Ternary::True, Ternary::True) ==
                   Ternary::Unknown,
               "an up-set is certified nothing of a meet: sound, not complete");
+static_assert(infer(Law::Univalent, Node::Sum, Ternary::True, Ternary::True) ==
+                  Ternary::Unknown,
+              "the sum of two tables has both their rows above the one input");
 static_assert(dagger(dagger(Law::Injective)) == Law::Injective,
               "° is an involution on the laws");
 static_assert(Laws::node(Node::Converse,
