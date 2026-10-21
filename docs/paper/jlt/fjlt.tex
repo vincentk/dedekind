@@ -158,12 +158,13 @@ Figure~\ref{fig:fjlt-translation} gives the translation.
 Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
 
 \begin{figure}[htbp]
-\footnotesize
+\scriptsize
 \[
 \begin{array}{l@{\quad}l}
 \multicolumn{2}{l}{\textit{types}} \\
-\llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{a function-object type has one value} \\
-\llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket \qquad \llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\[6pt]
+\llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{one value per function-object type} \\
+\llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket & \\
+\llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
 \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{R} & \text{one field per requirement} \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
@@ -175,9 +176,9 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}} \\
 \llbracket \Delta \Vdash \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{\textsc{E-Op}} \\[6pt]
 \multicolumn{2}{l}{\textit{declarations}} \\
-\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) \{ return } e\texttt{; \}} \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
-\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) \{ return } e\texttt{; \}} \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
-\texttt{struct } O \texttt{ \{ ... operator()(}\overline{x}\texttt{) ... \{ return } e\texttt{; \} \};} \;\mapsto\; O = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an operation} \\
+\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
+\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
+\texttt{struct } O \texttt{ \{ ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} \;\mapsto\; O = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an operation} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}} \\
