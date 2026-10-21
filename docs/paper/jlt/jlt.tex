@@ -24,7 +24,7 @@ We show that they are available in standard \Cpp{23}, with a stock compiler and 
 The vehicle is a fragment of the language we call the \emph{Juliet Posture} ($\mathbf{Jlt}$), defined by three rules: values are \cppinline{std::semiregular} and functions \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or explicit fuel.
 Under these rules a \Cpp{} program translates into System~F: concepts and traits by the dictionary-passing translation of type classes, recursion by the fold encoding of data types, so programs in the fragment are parametric and terminate.
 A side effect is that one program runs at compile time or at runtime, unchanged.
-As a running example, algebraic laws of functions (injectivity, monotonicity, involution) are stated once as \cppinline{constexpr} values and read twice: by concepts at compile time, by an ordinary fold at runtime.
+As a running example, the unit and the laws of a monoid are stated once, as \cppinline{constexpr} functions of the operation, and read twice: by concepts at compile time, by ordinary calls at runtime.
 The two readers are the two halves of the dictionary-passing translation, side by side.
 The rules are a discipline the compiler does not enforce; we state where the correspondence holds, where it is a translation rather than an isomorphism, and what the fragment gives up.
 \end{abstract}
@@ -301,13 +301,13 @@ A concept checks signatures.
 It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
 It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
 \cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the last \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
-Section~\ref{sec:laws} is about where such facts come from, which ones can be decided rather than declared, and what can be inferred from them.
+Section~\ref{sec:limits} says what this leaves to the author.
 The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should; the one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
 
-One rule remains, and it is the one the running example of Section~\ref{sec:laws} lives on.
+One rule remains.
 An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one.
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
 Under translation it is a function from the components' records to the composite's:
@@ -316,7 +316,6 @@ pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
                 (da.unit, db.unit)
 \end{minted}
 The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{Known as the Paterson conditions in the type-class literature; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
-Section~\ref{sec:laws} builds pairs and compositions of \emph{functions} this way, and reads their laws off the components' laws with exactly these functions.
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}
@@ -379,166 +378,12 @@ Rule~3 is likewise checkable for the loop forms the grammar admits.
 So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
 Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
-\section{Laws of Functions}
-\label{sec:laws}
-
-Section~\ref{sec:translation} stated laws about operations, one \cppinline{bool} each, and nobody inferred anything.
-This section states laws about \emph{functions}, and the point is inference: a composite function has laws its parts imply, and the same engine that infers them is read by a concept at compile time and by a fold at runtime.
-Listings~\ref{lst:laws} and~\ref{lst:readers} show one law family, variance, at one former, composition; Table~\ref{tab:laws} is the whole engine.
-
-% Verbatim up to formatting in jlt_listings_test.cpp (namespace laws), which
-% also checks the tree's monotone(f, op) / antitone / IsMonotone agree.
-\begin{listing}[htbp]
-\begin{cpp}
-enum class Ternary { False, Unknown, True };
-constexpr Ternary both(Ternary a, Ternary b) { return a < b ? a : b; }
-constexpr Ternary either(Ternary a, Ternary b) { return a < b ? b : a; }
-
-struct Variance {
-  Ternary monotone, antitone;
-  constexpr bool operator==(const Variance&) const = default;
-};
-
-constexpr Variance compose(Variance a, Variance b) {
-  return {either(both(a.monotone, b.monotone), both(a.antitone, b.antitone)),
-          either(both(a.monotone, b.antitone), both(a.antitone, b.monotone))};
-}
-\end{cpp}
-\begin{cpp}
-struct Same {
-  using Domain = bool;
-  using Codomain = bool;
-  constexpr bool operator()(bool x) const { return x; }
-};
-struct Negation {
-  using Domain = bool;
-  using Codomain = bool;
-  constexpr bool operator()(bool x) const { return !x; }
-};
-template <typename F, typename G>
-struct Compose {
-  using Domain = typename F::Domain;
-  using Codomain = typename G::Codomain;
-  F f;
-  G g;
-  constexpr Codomain operator()(Domain x) const { return g(f(x)); }
-};
-\end{cpp}
-\caption{The variance of a function: the values, the profile, the engine, and the arrows.
-Top: Kleene's three values on their chain, the profile of a function at the two variance laws, and the engine: the sign table, as a function on profiles.
-Bottom: two arrows and the former $\circ$, as programs.}
-\label{lst:laws}
-\end{listing}
-
-\begin{listing}[htbp]
-\begin{cpp}
-using Order = std::less_equal<bool>;
-
-template <typename F, typename Op>
-constexpr Variance variance(F, Op) {
-  return {Ternary::Unknown, Ternary::Unknown};
-}
-template <>
-constexpr Variance variance(Same, Order) {
-  return {Ternary::True, Ternary::Unknown};
-}
-template <>
-constexpr Variance variance(Negation, Order) {
-  return {Ternary::Unknown, Ternary::True};
-}
-template <typename F, typename G, typename Op>
-constexpr Variance variance(Compose<F, G> c, Op op) {
-  return compose(variance(c.f, op), variance(c.g, op));
-}
-
-template <typename F, typename Op>
-concept IsMonotone = variance(F{}, Op{}).monotone == Ternary::True;
-
-static_assert( IsMonotone<Compose<Negation, Negation>, Order>);
-static_assert(!IsMonotone<Compose<Same, Negation>, Order>);
-static_assert(variance(Compose<Same, Negation>{}, Order{}) ==
-              Variance{Ternary::Unknown, Ternary::True});
-
-enum class Step { Same, Negation };
-template <size_t N>
-constexpr Variance variance(std::array<Step, N> steps, Order op) {
-  Variance acc = variance(Same{}, op);
-  for (size_t i = 0; i < N; ++i)
-    acc = compose(acc, steps[i] == Step::Negation ? variance(Negation{}, op)
-                                                  : variance(Same{}, op));
-  return acc;
-}
-
-static_assert(variance(std::array{Step::Negation, Step::Negation}, Order{}) ==
-              variance(Compose<Negation, Negation>{}, Order{}));
-\end{cpp}
-\caption{The variance of a function, inferred along composition and read twice.
-The laws are declared at the leaves (\cppinline{Same} is monotone, \cppinline{Negation} antitone), inferred at the former by a constrained overload that is the engine of Listing~\ref{lst:laws} applied to the legs, and read twice: by the concept \cppinline{IsMonotone} at the type, and by a fold over steps given as data.
-The last line is the two readers agreeing.}
-\label{lst:readers}
-\end{listing}
-
-\paragraph{A profile is a record of laws, in three values.}
-In Section~\ref{sec:translation} a law was a \cppinline{bool} someone declared.
-Here a law can also be inferred, and an inference can fail to apply, so the answer has a third value: a profile records, per law, \emph{True} where the law is certified and \emph{Unknown} where it is not.
-It never records \emph{False}: a profile certifies, it does not refute, and \cppinline{!IsMonotone<Compose<Same, Negation>, Order>} says that the composite is not \emph{known} to be monotone, which is all it can say.
-The three values are Kleene's, on the chain $\mathit{False} < \mathit{Unknown} < \mathit{True}$, and \cppinline{both} and \cppinline{either} are the chain's meet and join, Kleene's strong $\land$ and $\lor$.\footnote{As a set this is \cppinline{std::optional<bool>}, with \cppinline{std::nullopt} for \emph{Unknown}; what the engine uses is the order and the two connectives, which \cppinline{optional} does not have, so the listing defines the three values as an enumeration, which is a term of the grammar once sums are in, and not a primitive.}
-Under translation the profile is what the law fields of Section~\ref{sec:translation}'s records become when they are $K_3$-valued instead of \texttt{Bool}-valued, and a type of ours (\cppinline{Variance}) is a record type, which the grammar now admits.
-
-\paragraph{The formers, and one fact each.}
-The functions of this paper are built from leaves by five formers: composition $g \circ f$, product $f \times g$, sum $f + g$, pairing $\langle f, g \rangle$ and copairing $[f, g]$.
-A composite's profile is a function of its legs' profiles, one such function per former, and Table~\ref{tab:laws} is the whole of it.
-Three rows of the table carry a fact each, and they are the three paragraphs that follow.
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-law & $g \circ f$ & $f \times g$ & $f + g$ & $\langle f, g \rangle$ & $[f, g]$ \\
-\midrule
-injective  & both & both & both & either & ? \\
-surjective & both & both & both & ? & either \\
-monotone   & sign & both & both & both & ? \\
-antitone   & sign & both & ? & both & ? \\
-involutive & ? & both & both & ? & ? \\
-\bottomrule
-\end{tabular}
-\caption{The engine: a composite's answer at a law from its legs' answers.
-\emph{both} is Kleene's $\land$ of the legs' answers, \emph{either} their $\lor$, \emph{sign} the table of Listing~\ref{lst:laws}, and ? is \emph{Unknown} whatever the legs say.
-Each entry is a theorem about functions; the \emph{both} entries are closure of the law under the former, the \emph{either} entries are the duality of pairing and copairing, and the \emph{sign} entries are variance.}
-\label{tab:laws}
-\end{table}
-
-\emph{Composition multiplies variance.}
-Monotone and antitone are the two variances of a function between ordered sets: order-preserving and order-reversing, or, reading each ordered set as a category, covariant and contravariant.\footnote{The same sign discipline, on type constructors instead of functions, is Scala's \texttt{+T} and \texttt{-T}: composition multiplies signs there too.}
-Along $g \circ f$ the signs multiply: monotone after monotone is monotone, antitone after antitone is monotone, and mixed is antitone.
-That is the whole of \cppinline{compose} in the listing, and \cppinline{Negation} $\circ$ \cppinline{Negation} being monotone is its first consequence.
-A variance is read under an order, so the engine's facts are about the former's own order, componentwise for $\times$ and by summand for $+$; a profile read under another order keeps only the laws that mention no order.
-
-\emph{Pairing and copairing are dual, and the table shows it.}
-$\langle f, g \rangle$ is injective when \emph{either} leg is, since a pair determines its components; $[f, g]$ is surjective when either leg is, since a copair covers each summand's image.
-Swap the law and the former and the entry is the same: that is the duality, and in the engine it is \cppinline{either} in two places.
-Pairing keeps a variance both legs share; copairing keeps none, because its order compares across summands, which neither leg governs.
-
-\emph{Product and sum are closures.}
-$f \times g$ keeps every law both legs have; $f + g$ keeps every law but antitone, since \cppinline{std::variant}'s order puts every left summand below every right one and no leg can reverse that.
-The two are not primitive: $f \times g = \langle f \circ \pi_1,\, g \circ \pi_2 \rangle$ and $f + g = [\iota_1 \circ f,\, \iota_2 \circ g]$, and the engine recognises these defining forms before it descends, since the pairing rule alone would read $f \times g$ as a pairing and lose the closure fact.
-
-\paragraph{Two readers of one engine.}
-\cppinline{variance} is one function, and Listing~\ref{lst:readers} reads it twice.
-The concept \cppinline{IsMonotone<F, Op>} reads it at the type, \cppinline{variance(F{}, Op{})}, which Rule~1 makes possible: every arrow is \cppinline{std::semiregular}, so \cppinline{F{}} exists and is a constant.
-The fold \cppinline{variance(steps, op)} reads it at values, over steps given as data, and the only thing it folds with is \cppinline{compose}.
-The last \cppinline{static_assert} says the two agree on $\mathit{Negation} \circ \mathit{Negation}$, and the test behind the listings runs the fold on an array built at runtime.
-In the terms of Section~\ref{sec:translation}: the constrained overload on \cppinline{Compose} is the instance with a context, a function from the legs' records to the composite's; the concept is the compiler resolving that record; the fold is the record passed as a value.
-And Corollary~\ref{cor:parametricity} is why reading a composite's law off its legs is sound: \cppinline{Compose<F, G>} cannot do anything with its argument that \cppinline{f} and \cppinline{g} do not provide, so a law of the legs that survives the former is a law of the composite.
-Soundness is all the engine claims; the inferred profile is below the true one, and where it says \emph{Unknown} the function may well have the law.
-The library's engine has the five laws and five formers of Table~\ref{tab:laws} in forty lines, read by the traits on \cppinline{Compose} at compile time and by a fold (\cppinline{cata} with a law algebra) at runtime; the listings are the $2 \times 1$ corner of it.
-
 \section{Two Binding Times}
 \label{sec:binding}
-% Establishes: the same program at compile time and at runtime; Unknown as
-% the price of structural recursion on fuel.
+% Establishes: the same program at compile time and at runtime (square and
+% times of Section 2; unit and commutative of Section 3, which the test calls
+% at runtime); fuel as a runtime value, and out-of-fuel as the price of
+% structural recursion on it.
 
 \section{Guarantees}
 \label{sec:guarantees}
@@ -590,7 +435,8 @@ A generic FJlt function satisfies the free theorem of its System~F type.
 \end{corollary}
 
 By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem.
-\cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}; the readers of Section~\ref{sec:laws} rest on exactly this, since a law of a composite can be read off the components only because the composite cannot do anything the components' records do not provide.
+\cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}.
+It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records: the composite cannot do anything the components' records do not provide.
 
 All five are claims about FJlt.
 What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.

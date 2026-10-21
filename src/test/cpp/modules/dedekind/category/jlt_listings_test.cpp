@@ -1,6 +1,6 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
- * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 2 to 4),
+ * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 2 and 3),
  * verbatim up to formatting,
  * so that CI holds the paper to the code.  The listings declare their own
  * unit and laws, so they live in their own namespace; the TEST_CASE then
@@ -147,83 +147,6 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 
-// Section 4, the laws of functions: Kleene's three values and the profile
-// with its engine; two arrows and a former as programs; the laws declared at
-// the leaves, inferred at the former, read by a concept and by a fold.
-namespace laws {
-enum class Ternary { False, Unknown, True };
-constexpr Ternary both(Ternary a, Ternary b) { return a < b ? a : b; }
-constexpr Ternary either(Ternary a, Ternary b) { return a < b ? b : a; }
-
-struct Variance {
-  Ternary monotone, antitone;
-  constexpr bool operator==(const Variance&) const = default;
-};
-
-constexpr Variance compose(Variance a, Variance b) {
-  return {either(both(a.monotone, b.monotone), both(a.antitone, b.antitone)),
-          either(both(a.monotone, b.antitone), both(a.antitone, b.monotone))};
-}
-
-struct Same {
-  using Domain = bool;
-  using Codomain = bool;
-  constexpr bool operator()(bool x) const { return x; }
-};
-struct Negation {
-  using Domain = bool;
-  using Codomain = bool;
-  constexpr bool operator()(bool x) const { return !x; }
-};
-template <typename F, typename G>
-struct Compose {
-  using Domain = typename F::Domain;
-  using Codomain = typename G::Codomain;
-  F f;
-  G g;
-  constexpr Codomain operator()(Domain x) const { return g(f(x)); }
-};
-
-using Order = std::less_equal<bool>;
-
-template <typename F, typename Op>
-constexpr Variance variance(F, Op) {
-  return {Ternary::Unknown, Ternary::Unknown};
-}
-template <>
-constexpr Variance variance(Same, Order) {
-  return {Ternary::True, Ternary::Unknown};
-}
-template <>
-constexpr Variance variance(Negation, Order) {
-  return {Ternary::Unknown, Ternary::True};
-}
-template <typename F, typename G, typename Op>
-constexpr Variance variance(Compose<F, G> c, Op op) {
-  return compose(variance(c.f, op), variance(c.g, op));
-}
-
-template <typename F, typename Op>
-concept IsMonotone = variance(F{}, Op{}).monotone == Ternary::True;
-
-static_assert(IsMonotone<Compose<Negation, Negation>, Order>);
-static_assert(!IsMonotone<Compose<Same, Negation>, Order>);
-static_assert(variance(Compose<Same, Negation>{}, Order{}) ==
-              Variance{Ternary::Unknown, Ternary::True});
-
-enum class Step { Same, Negation };
-template <size_t N>
-constexpr Variance variance(std::array<Step, N> steps, Order op) {
-  Variance acc = variance(Same{}, op);
-  for (size_t i = 0; i < N; ++i)
-    acc = compose(acc, steps[i] == Step::Negation ? variance(Negation{}, op)
-                                                  : variance(Same{}, op));
-  return acc;
-}
-
-static_assert(variance(std::array{Step::Negation, Step::Negation}, Order{}) ==
-              variance(Compose<Negation, Negation>{}, Order{}));
-}  // namespace laws
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
@@ -271,32 +194,6 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         C::distributive<size_t>(std::bit_and<size_t>{}, std::bit_or<size_t>{}));
     CHECK(C::distributive<bool>(std::logical_and<bool>{},
                                 std::logical_or<bool>{}));
-  }
-
-  SECTION("Section 4: the laws of a pipeline built at runtime") {
-    namespace W = jlt_listing::laws;
-    std::array<W::Step, 3> steps{W::Step::Negation, W::Step::Same,
-                                 W::Step::Negation};
-    CHECK(W::variance(steps, W::Order{}).monotone == W::Ternary::True);
-    CHECK(W::variance(steps, W::Order{}).antitone == W::Ternary::Unknown);
-  }
-
-  SECTION("Section 4: the tree's laws agree with the listing's") {
-    using Neg = C::NegationArrow<C::Boole>;
-    using Id = C::Identity<bool>;
-    constexpr C::Compose<Neg, Neg> nn{Neg{}, Neg{}};
-    constexpr C::Compose<Id, Neg> sn{Id{}, Neg{}};
-    STATIC_CHECK(C::monotone(nn) == C::Ternary::True);
-    STATIC_CHECK(C::antitone(nn) == C::Ternary::Unknown);
-    STATIC_CHECK(C::monotone(sn) == C::Ternary::Unknown);
-    STATIC_CHECK(C::antitone(sn) == C::Ternary::True);
-    STATIC_CHECK(C::IsMonotone<C::Compose<Neg, Neg>>);
-    STATIC_CHECK(!C::IsMonotone<C::Compose<Id, Neg>>);
-    STATIC_CHECK(C::injective(C::Compose<Id, Id>{Id{}, Id{}}) ==
-                 C::Ternary::True);
-    STATIC_CHECK(C::injective(nn) == C::Ternary::Unknown);
-    STATIC_CHECK(C::arrow_laws(nn)[C::ArrowLaw::Monotone] == C::monotone(nn));
-    CHECK(C::monotone(nn) == C::Ternary::True);
   }
 
   SECTION("The tree's shapes accept the listings' semirings") {
