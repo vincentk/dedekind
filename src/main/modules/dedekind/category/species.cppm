@@ -392,6 +392,12 @@ constexpr bool distributive(Mul, Add) {
   return is_distributive_v<T, Mul, Add>;
 }
 
+// FIXME(#981): read as functions so far: the unit and the four laws above
+// (what the Jlt paper shows).  Still read as variable templates:
+// partial_unit_v, is_invertible_v, is_periodic_v, is_total_v.  The
+// member-template registrations (T::template unit_v<Op>, ...) are storage
+// and stay.
+
 /** @brief The Shorthand for the Registry. */
 export template <typename T, typename Op>
 inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;

@@ -545,33 +545,38 @@ concept FractionBacking =
 
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> && associative<I>
-(std::plus<I>{}) inline constexpr bool is_associative_v<
+               FractionBacking<I, std::multiplies<I>> &&
+               (associative<I>(std::plus<I>{}))
+inline constexpr bool is_associative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 template <typename I>
-  requires FractionBacking<I, std::multiplies<I>> && associative<I>
-(std::multiplies<I>{}) inline constexpr bool is_associative_v<
-    dedekind::numbers::Rational<I>,
-    std::multiplies<dedekind::numbers::Rational<I>>> = true;
+  requires FractionBacking<I, std::multiplies<I>> &&
+               (associative<I>(std::multiplies<I>{}))
+inline constexpr bool
+    is_associative_v<dedekind::numbers::Rational<I>,
+                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> && commutative<I>
-(std::plus<I>{}) inline constexpr bool is_commutative_v<
+               FractionBacking<I, std::multiplies<I>> &&
+               (commutative<I>(std::plus<I>{}))
+inline constexpr bool is_commutative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 template <typename I>
-  requires FractionBacking<I, std::multiplies<I>> && commutative<I>
-(std::multiplies<I>{}) inline constexpr bool is_commutative_v<
-    dedekind::numbers::Rational<I>,
-    std::multiplies<dedekind::numbers::Rational<I>>> = true;
+  requires FractionBacking<I, std::multiplies<I>> &&
+               (commutative<I>(std::multiplies<I>{}))
+inline constexpr bool
+    is_commutative_v<dedekind::numbers::Rational<I>,
+                     std::multiplies<dedekind::numbers::Rational<I>>> = true;
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
-               FractionBacking<I, std::multiplies<I>> && distributive<I>
-(std::multiplies<I>{}, std::plus<I>{}) inline constexpr bool is_distributive_v<
-    dedekind::numbers::Rational<I>,
-    std::multiplies<dedekind::numbers::Rational<I>>,
-    std::plus<dedekind::numbers::Rational<I>>> = true;
+               FractionBacking<I, std::multiplies<I>> &&
+               (distributive<I>(std::multiplies<I>{}, std::plus<I>{}))
+inline constexpr bool
+    is_distributive_v<dedekind::numbers::Rational<I>,
+                      std::multiplies<dedekind::numbers::Rational<I>>,
+                      std::plus<dedekind::numbers::Rational<I>>> = true;
 
 // Fraction + uses I's + and ×; fraction × uses I's ×.  Exact over a
 // non-wrapping backing.
