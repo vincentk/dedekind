@@ -54,15 +54,15 @@ Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cp
 
 % Compiles standalone with clang++ 22 -std=c++23 (probe 2026-10-21); the
 % exhibit test in the tree is still to be added.  Note extern: the primary is
-% declared, never defined; the tree keys its identity_v on std::plus<T>.
+% declared, never defined; the tree calls it identity_v and keys it on std::plus<T>.
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename T, typename Op> extern const T identity_v;
+template <typename T, typename Op> extern const T unit_v;
 
 template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) }        -> std::same_as<T>;
-  { identity_v<T, Op> } -> std::convertible_to<T>;
+  { unit_v<T, Op> } -> std::convertible_to<T>;
 };
 
 template <typename T, typename Op = std::plus<>>
@@ -70,18 +70,18 @@ template <typename T, typename Op = std::plus<>>
 constexpr T twice(T x) { return Op{}(x, x); }
 \end{cpp}
 \begin{cpp}
-template <> inline constexpr bool identity_v<bool, std::logical_and<>> = true;
-template <> inline constexpr bool identity_v<bool, std::logical_or<>>  = false;
+template <> inline constexpr bool unit_v<bool, std::logical_and<>> = true;
+template <> inline constexpr bool unit_v<bool, std::logical_or<>>  = false;
 
 static_assert( IsMonoid<bool, std::logical_and<>>);
 static_assert( IsMonoid<bool, std::logical_or<>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
 \end{cpp}
 \begin{cpp}
-template <> inline constexpr size_t identity_v<size_t, std::plus<>> = 0;
-template <> inline constexpr size_t identity_v<size_t, std::multiplies<>> = 1;
-template <> inline constexpr size_t identity_v<size_t, std::bit_or<>> = 0;
-template <> inline constexpr size_t identity_v<size_t, std::bit_and<>> = SIZE_MAX;
+template <> inline constexpr size_t unit_v<size_t, std::plus<>> = 0;
+template <> inline constexpr size_t unit_v<size_t, std::multiplies<>> = 1;
+template <> inline constexpr size_t unit_v<size_t, std::bit_or<>> = 0;
+template <> inline constexpr size_t unit_v<size_t, std::bit_and<>> = SIZE_MAX;
 
 static_assert(IsMonoid<size_t, std::plus<>>);
 static_assert(IsMonoid<size_t, std::multiplies<>>);
@@ -117,7 +117,7 @@ Two of them deserve a sentence each.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
 And a unit is a choice.
 The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a row of the trait.
-In Haskell that someone writes an \texttt{instance}; here they specialise \cppinline{identity_v}, and the one-definition rule makes sure they do it once.
+In Haskell that someone writes an \texttt{instance}; here they specialise \cppinline{unit_v}, and the one-definition rule makes sure they do it once.
 
 \begin{table}[ht]
 \centering
@@ -175,7 +175,7 @@ It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the
 It cannot see that \cppinline{Mul} distributes over \cppinline{Add}.
 \cppinline{IsDistributive<T, Mul, Add>} is therefore not a fact the compiler decides about \cppinline{T}.
 It is a fact someone states, like the unit, and Section~\ref{sec:laws} is about where such facts come from, who reads them, and what can be inferred from them.
-The shape permits \cppinline{identity_v<T, Add> == identity_v<T, Mul>}, as a semiring should; the one-element carrier witnesses it.
+The shape permits \cppinline{unit_v<T, Add> == unit_v<T, Mul>}, as a semiring should; the one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
