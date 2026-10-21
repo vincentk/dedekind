@@ -1,26 +1,48 @@
 % Featherweight Jlt (FJlt): the core calculus of the Jlt fragment, its
 % translation into System F, and the three theorems with proof sketches
 % (#981, option B; full proofs and mechanisation: #849).
+%
+% Division of labour (decided 2026-10-21): the body
+% (Section~\ref{sec:translation}) carries the claims, one worked example, the
+% rules that example uses, and the theorem statements.  This appendix carries
+% what a sceptic needs to check them: the full grammar, typing, evaluation,
+% the complete translation, and the proof sketches.  Nothing a theorem rests on
+% appears here only.
 
 \section{Featherweight Jlt}
 \label{app:fjlt}
 % Design (decided on #981): no overlapping instances; fold and explicit fuel as
 % the only recursion; laws as ordinary values; multi-parameter instances with
-% contexts.
+% contexts; associated types and same-type constraints as in F^G; instance
+% resolution terminates because contexts mention only proper subterms;
+% struct templates are type operators (abbreviations); dictionaries are
+% resolved at concrete types, as C++ instantiates them.
 
 \subsection{Syntax}
 \label{app:fjlt:syntax}
+% FJ style: the grammar is a subset of C++23, written with overbars and
+% metavariables.  Programs, structs, concepts, instances (trait
+% specialisations), generic functions, terms, types, constraints.
 
 \subsection{Typing}
 \label{app:fjlt:typing}
+% Well-formed programs; constraint entailment (instance resolution); typing of
+% terms.  The rules the body did not show.
 
 \subsection{Evaluation}
 \label{app:fjlt:evaluation}
+% Call-by-value reduction; folds unfold on their fuel.
 
 \subsection{Translation into System F}
 \label{app:fjlt:translation}
+% Rule by rule: types, constraints, instances, functions, calls, structs and
+% sums, function objects as closures, data and folds as Church encodings, fuel
+% as Church numerals.  Closes with the one-page summary table (FJlt
+% construct / System F image / reading).
 
 \subsection{Theorems}
 \label{app:fjlt:theorems}
-% Type preservation; simulation; coherence.  Corollaries: termination
-% (Girard), parametricity (Reynolds).
+% Proof sketches for the statements of Section~\ref{sec:translation:theorems}:
+% type preservation; simulation; coherence (one instance per constraint at a
+% concrete type, the ODR).  Corollaries: termination (Girard), parametricity
+% (Reynolds).

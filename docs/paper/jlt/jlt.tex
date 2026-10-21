@@ -41,10 +41,40 @@ The rules are a discipline the compiler does not enforce; we state where the cor
 
 \section{The Translation}
 \label{sec:translation}
-% Establishes: the informal reading of a Jlt program in System F (concepts as
-% classes, trait specialisations as instances with contexts, the ODR as
-% coherence, folds as Church eliminators); points to the calculus
-% (Appendix~\ref{app:fjlt}) for the statements.
+% Establishes: what a reader must believe about the System F reading, by one
+% example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
+% is the warranty; a reader who stops here knows the claims and their cost.
+
+\subsection{One class, one instance, one function}
+\label{sec:translation:example}
+% A Monoid concept, its instance at std::uint64_t, a generic `twice`, a call.
+% Alongside: the record type, the record value, the extra parameter, the call
+% with the dictionary filled in.  This IS dictionary passing (Wadler, Blott).
+
+\subsection{Instances with contexts}
+\label{sec:translation:contexts}
+% Monoid<pair<A, B>> requires Monoid<A> && Monoid<B>: a function from
+% dictionaries to a dictionary.  The bridge to Section~\ref{sec:laws}: the
+% readers on a composite are such functions.
+
+\subsection{The rules the argument uses}
+\label{sec:translation:rules}
+% Only the rules the example exercised: concept -> record type; trait
+% specialisation -> dictionary (value, or function of its context); requires
+% clause -> parameter; qualified call -> application; fold with fuel -> Church
+% eliminator.  The remaining rules are mechanical and sit in
+% Appendix~\ref{app:fjlt:translation}.
+
+\subsection{What the translation guarantees}
+\label{sec:translation:theorems}
+% The three theorem STATEMENTS (type preservation, simulation, coherence as the
+% ODR), with the corollaries (termination, parametricity).  Proof sketches:
+% Appendix~\ref{app:fjlt:theorems}.
+
+\subsection{From \Cpp{} to the calculus}
+\label{sec:translation:adequacy}
+% The adequacy argument in prose: which C++23 features the fragment keeps,
+% which it forbids, and the gap (the compiler does not enforce the rules).
 
 \section{Laws of Functions}
 \label{sec:laws}
