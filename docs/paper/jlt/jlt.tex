@@ -45,17 +45,144 @@ The rules are a discipline the compiler does not enforce; we state where the cor
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
 % is the warranty; a reader who stops here knows the claims and their cost.
 
-\subsection{One class, one instance, one function}
+\subsection{One shape, two monoids}
 \label{sec:translation:example}
-% A Monoid concept, its instance at std::uint64_t, a generic `twice`, a call.
-% Alongside: the record type, the record value, the extra parameter, the call
-% with the dictionary filled in.  This IS dictionary passing (Wadler, Blott).
+
+Here is the whole translation in one shape.
+A monoid is a carrier with an associative operation and a unit for it.
+Listing~\ref{lst:monoid} states that shape as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}, and then shows that \cppinline{std::uint64_t} has it twice.
+
+% Exhibit test pending: identity_v / total_v registrations for the transparent
+% std::plus<> and friends (the tree keys them on std::plus<T>).
+\begin{listing}[ht]
+\begin{cpp}
+template <typename T, typename Op>
+concept Monoid = std::semiregular<T> && Total<T, Op>
+              && requires(const T a, const T b) {
+  { Op{}(a, b) }        -> std::same_as<T>;
+  { identity_v<T, Op> } -> std::same_as<T>;
+};
+
+static_assert(Monoid<std::uint64_t, std::plus<>>);
+static_assert(Monoid<std::uint64_t, std::multiplies<>>);
+
+template <typename T, typename Op = std::plus<>>
+  requires Monoid<T, Op>
+constexpr T twice(T x) { return Op{}(x, x); }
+
+static_assert(twice<std::uint64_t>(21) == 42);
+static_assert(twice<std::uint64_t, std::multiplies<>>(21) == 441);
+\end{cpp}
+\begin{minted}{text}
+MonoidDict T Op  =  { total : 𝟙,  unit : T,  op : T → T → T }
+plus_u64   =  { total = ∗,  unit = 0,  op = λa. λb. a + b }
+times_u64  =  { total = ∗,  unit = 1,  op = λa. λb. a · b }
+twice      =  Λ T. Λ Op. λ d : MonoidDict T Op. λ x : T.  d.op x x
+twice [u64] [plus]  plus_u64  21
+twice [u64] [times] times_u64 21
+\end{minted}
+\caption{The monoid shape, and two monoids on one carrier; below it, the same program in System~F, line for line.
+The shape has four requirements of three kinds: a standard concept (rule~1), a declared judgment (\cppinline{Total}, a trait), an operation the compiler reads off the carrier, and a unit, which is a choice and therefore also a trait.
+The operation is part of the index, so one carrier has an additive and a multiplicative monoid, and nobody wrote a struct for either.}
+\label{lst:monoid}
+\end{listing}
+
+The lower half of the listing reads the upper half as a System~F program.
+The concept is a record type, one field per requirement.
+A \cppinline{requires} clause on a function is one more parameter, the record.
+A call passes the record, and the compiler finds the record to pass.
+That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}; the record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
+Two of them deserve a sentence each.
+\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
+And a unit is a choice.
+The compiler can see that \cppinline{std::uint64_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a trait specialisation.
+In Haskell that someone writes an \texttt{instance}; here they write
+\begin{cpp}
+template <> inline constexpr std::uint64_t identity_v<std::uint64_t, std::plus<>> = 0;
+\end{cpp}
+and the one-definition rule makes sure they write it once.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}XXX@{}}
+\toprule
+\Cpp{23} & type-class reading & under translation \\
+\midrule
+concept & class & record type \\
+requirement met by the type's own operation & an instance nobody wrote & field filled by a primitive \\
+trait specialisation & instance & field supplied by a value \\
+constrained trait specialisation & instance with a context & function from records to a record \\
+\cppinline{requires} clause on a function & class constraint & one more parameter \\
+\bottomrule
+\end{tabularx}
+\caption{Dictionary passing, met in \Cpp{}.
+The second row has no Haskell counterpart: concepts are structural, so a type that has the operation satisfies the shape without a declaration.}
+\label{tab:dictionary}
+\end{table}
+
+The operation being part of the index is a small thing with a known payoff.
+Haskell indexes an instance by the carrier alone, so one carrier has one monoid and the second needs a wrapper type (\texttt{Sum}, \texttt{Product}).
+Here \cppinline{Monoid<T, Op>} is a relation between a carrier and an operation, and the two \cppinline{static_assert}s above are its two witnesses at one carrier.
+The defaulted \cppinline{Op} picks the additive reading when a caller does not care.
+
+\subsection{Shapes compose by conjunction}
+\label{sec:translation:semiring}
+
+A semiring is two monoids on one carrier, with laws tying them together.
+Listing~\ref{lst:semiring} states it as a conjunction of shapes and tests it on two carriers, accepting both, and tests the monoid shape on two more, rejecting both.
+
+\begin{listing}[ht]
+\begin{cpp}
+template <typename T, typename Add, typename Mul>
+concept Semiring = CommutativeMonoid<T, Add> && Monoid<T, Mul>
+                && Distributive<T, Mul, Add> && Annihilating<T, Mul, Add>;
+
+static_assert( Semiring<std::uint64_t, std::plus<>, std::multiplies<>>);
+static_assert( Semiring<bool, std::logical_or<>, std::logical_and<>>);
+static_assert(!Monoid<bool, std::plus<>>);
+static_assert(!Monoid<int, std::plus<>>);
+\end{cpp}
+\caption{The semiring shape as a conjunction, and four verdicts.
+$(\mathbb{Z}/2^{64}, +, \cdot)$ and $(\mathbb{B}, \lor, \land)$ are semirings.
+$(\mathbb{B}, +)$ is not a monoid, because \cppinline{true + true} is the \cppinline{int} 2 and the return-type requirement fails.
+$(\mathbb{Z}, +)$ on \cppinline{int} is not a monoid, because signed overflow is undefined behaviour, so \cppinline{Total<int, std::plus<>>} is declared false.}
+\label{lst:semiring}
+\end{listing}
+
+The four verdicts fill a $2 \times 2$ table, and the table is the point of the listing.
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & accepted & rejected \\
+\midrule
+structurally, read off the type & $(\mathbb{Z}/2^{64}, +, \cdot)$, $(\mathbb{B}, \lor, \land)$ & $(\mathbb{B}, +)$: not closed \\
+by declaration, a trait records a judgment & $0$ and $1$ as the units & $(\mathbb{Z}, +)$ on \cppinline{int}: not total \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Structural where the type has the operation, declared where a fact has to be recorded.
+Both kinds are requirements of the same shape, and both become fields of the same record.
+Under translation the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
+
+One thing the listing does not do, and cannot.
+A concept checks signatures.
+It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
+It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and the \cppinline{bool} row shows why that matters: $(\mathbb{B}, \lor, \land)$ distributes, $(\mathbb{B}, +, \cdot)$ is not even closed, and the shape only notices the second.
+\cppinline{Distributive<T, Mul, Add>} is therefore not a fact the compiler decides about \cppinline{T}.
+It is a fact someone states, like the unit, and Section~\ref{sec:laws} is about where such facts come from, who reads them, and what can be inferred from them.
+The shape permits \cppinline{identity_v<T, Add> == identity_v<T, Mul>}, as a semiring should; the one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
-% Monoid<pair<A, B>> requires Monoid<A> && Monoid<B>: a function from
-% dictionaries to a dictionary.  The bridge to Section~\ref{sec:laws}: the
-% readers on a composite are such functions.
+% A constrained trait specialisation: the constant maps into a monoid form a
+% monoid pointwise, and the unit of the composite needs the unit of the
+% codomain (identity_registry<ConstantMorphism<A, B>, Op> requires
+% IsPointed<B, Op>).  A function from dictionaries to a dictionary.  The
+% bridge to Section~\ref{sec:laws}: the readers on a composite are such
+% functions.
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}
