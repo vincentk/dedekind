@@ -729,6 +729,38 @@ constexpr ArrowLaws declared_arrow_laws() {
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr ArrowLaws arrow_laws_v = declared_arrow_laws<F, Op>();
 
+/** @section posetal__The_Laws_Read_As_Functions
+ *  The laws of an arrow read as functions of the arrow's value and the
+ *  order: @c monotone(f, op), @c antitone(f, op), @c injective(f),
+ *  @c surjective(f), @c involutive(f), each a @c Ternary, and
+ *  @c arrow_laws(f, op), the whole profile.  Same split as @c unit<T>(Op{})
+ *  in @c :species: the traits store the facts, these functions read them,
+ *  at compile time and at runtime alike (the Jlt paper, Section 4). */
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr ArrowLaws arrow_laws(const F&, Op = {}) {
+  return arrow_laws_v<F, Op>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr Ternary monotone(const F&, Op = {}) {
+  return arrow_laws_v<F, Op>[ArrowLaw::Monotone];
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr Ternary antitone(const F&, Op = {}) {
+  return arrow_laws_v<F, Op>[ArrowLaw::Antitone];
+}
+export template <IsArrow F>
+constexpr Ternary injective(const F&) {
+  return arrow_laws_v<F>[ArrowLaw::Injective];
+}
+export template <IsArrow F>
+constexpr Ternary surjective(const F&) {
+  return arrow_laws_v<F>[ArrowLaw::Surjective];
+}
+export template <IsArrow F>
+constexpr Ternary involutive(const F&) {
+  return arrow_laws_v<F>[ArrowLaw::Involutive];
+}
+
 // The readers on composition, one engine for all four traits: g ∘ f is
 // monic / epic / monotone / antitone by the engine on its legs' profiles.
 template <IsArrow F, IsArrow G>
