@@ -119,7 +119,7 @@ Two of them deserve a sentence each.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
 And a unit is a choice.
 The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a specialisation of \cppinline{unit}.
-In Haskell that someone writes an \texttt{instance}; here they specialise a function, and the one-definition rule makes sure they do it once.
+An instance declaration in a type-class system is the same act; here it is a specialisation, and the one-definition rule makes sure there is one.
 The primary is declared and deleted rather than left out, for a reason worth a footnote.\footnote{A plain overload \cppinline{unit(std::plus<size_t>)} beside the concept is never found: inside the concept, \cppinline{unit(Op{})} is looked up by argument-dependent lookup in the namespace of \cppinline{Op}, which is \cppinline{std}, not ours.
 The deleted primary is found by name, and its specialisations with it.
 A call to the primary itself is a substitution failure, so an operation nobody registered is rejected, not silently accepted.
@@ -141,12 +141,12 @@ constrained overload & instance with a context & function from records to a reco
 \bottomrule
 \end{tabularx}
 \caption{Dictionary passing, met in \Cpp{}.
-The second row has no Haskell counterpart: concepts are structural, so a type that has the operation satisfies the shape without a declaration.}
+The second row has no counterpart in a nominal type-class system: concepts are structural, so a type that has the operation satisfies the shape without a declaration.}
 \label{tab:dictionary}
 \end{table}
 
-The operation being part of the index is a small thing with a known payoff.
-Haskell indexes an instance by the carrier alone, so one carrier has one monoid and the second needs a wrapper type (\texttt{Sum}, \texttt{Product}).
+The operation being part of the index is a small thing with a payoff.
+A class indexed by the carrier alone gives one carrier one monoid, and the second monoid needs a wrapper type.\footnote{\texttt{Sum} and \texttt{Product} in Haskell's base library.}
 Here \cppinline{IsMonoid<T, Op>} is a relation between a carrier and an operation, and the six \cppinline{static_assert}s of Listing~\ref{lst:monoid} are six of its witnesses at two carriers.
 The defaulted \cppinline{Op} picks the additive reading when a caller does not care.
 
@@ -259,9 +259,9 @@ Below, the translation: a function from two records to a record.}
 The two requirements of the shape are met in two different ways, as in Listing~\ref{lst:monoid}.
 The operation is structural: \cppinline{Pairwise<OpA, OpB>} has a call operator on pairs, so the compiler reads it off the type.
 The unit is declared, by a constrained overload of \cppinline{unit}, and the constraint is the context: \cppinline{OpA} and \cppinline{OpB} must be monoid operations themselves.
-In Haskell this is \texttt{instance (Monoid a, Monoid b) => Monoid (a, b)}, and under translation it is a function from the two components' records to the pair's record.
+Under translation it is a function from the two components' records to the pair's record.
 The nested \cppinline{static_assert} shows the compiler applying that function twice, outside in.
-The recursion ends because each context mentions only proper parts of the operation it is for, which is the condition under which instance resolution terminates.\footnote{Stated for Haskell as the Paterson conditions; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
+The recursion ends because each context mentions only proper parts of the operation it is for, which is the condition under which instance resolution terminates.\footnote{Known as the Paterson conditions in the type-class literature; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
 
 \cppinline{Pairwise} is the first type this paper has defined, and it is not a carrier.
 It is a former: an operation on operations, taking the two components' operations to the pair's.
