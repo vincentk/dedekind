@@ -86,7 +86,55 @@ Terms are variables, constants, calls with explicit or deduced type arguments, a
 
 \subsection{Theorems}
 \label{app:fjlt:theorems}
-% Proof sketches for the statements of Section~\ref{sec:translation:theorems}:
-% type preservation; simulation; coherence (one instance per constraint at a
-% concrete type, the ODR).  Corollaries: termination (Girard), parametricity
-% (Reynolds).
+% Proof sketches for the statements of Section~\ref{sec:guarantees}.  They
+% rest on the typing rules (A.2), the evaluation rules (A.3) and the
+% translation (A.4), which are still to be written; each sketch names the
+% cases it needs from them.  Full proofs and a mechanisation are future work.
+
+The statements are in Section~\ref{sec:guarantees}; here are the sketches.
+Throughout, the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products and records, which is conservative over System~F proper (records are nested pairs, pairs are Church-encoded).
+
+\begin{proof}[Sketch of Theorem~\ref{thm:preservation}, type preservation]
+By induction on the typing derivation of $\Gamma \vdash e : \tau$, with one case per rule of Section~\ref{app:fjlt:typing}.
+Three cases carry the weight.
+\emph{Generic function.}
+A declaration $\texttt{template <typename }\overline{\alpha}\texttt{> requires }\overline{Q}\texttt{ constexpr }\tau\; f(\overline{\tau\; x})\ \{\ \texttt{return } e;\ \}$ is typed with $\overline{\alpha}$ abstract and the constraints $\overline{Q}$ as assumptions on them.
+Its translation is $\Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x : \llbracket \tau \rrbracket}.\,\llbracket e \rrbracket$, and the induction hypothesis for $e$ holds in the context extended by the record variables $\overline{q}$, since every operation $e$ uses on an $\alpha$ is, by the typing rule, a field of one of the $\overline{Q}$; this is where the rule that bodies are typed against their constraints does its work.
+\emph{Call.}
+At $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ the typing rule demands that each instantiated constraint $Q[\overline{\tau}/\overline{\alpha}]$ be \emph{entailed}, i.e. resolved to an instance; the translation applies $\llbracket f \rrbracket$ to $\overline{\llbracket \tau \rrbracket}$, then to the records those instances translate to, then to $\overline{\llbracket e \rrbracket}$.
+Each record has the demanded type by the \emph{instance} case, so the application is well-typed.
+\emph{Instance.}
+An explicit specialisation of a trait at concrete types translates to a record value whose field types are the trait's return type at those types; an instance with a context (a constrained generic function) translates, by the first case, to a function from the context's records to such a record.
+The remaining cases (variables, constants, function-object application, pairs, laws as \texttt{Bool} fields) are immediate.
+\end{proof}
+
+\begin{proof}[Sketch of Theorem~\ref{thm:simulation}, simulation]
+By induction on the evaluation derivation $e \Downarrow v$ of Section~\ref{app:fjlt:evaluation}, showing $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$.
+\emph{Call.}
+$f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ evaluates by resolving the instances, evaluating the arguments, and evaluating the body with the resolved specialisations in scope.
+On the System~F side, $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket$ with the records $\overline{d}$ substituted for $\overline{q}$; a trait read $t\texttt{<}\overline{\tau}\texttt{>(}\ldots\texttt{)}$ in the body has become a field projection $q.t$, and by Theorem~\ref{thm:coherence} the field holds the translation of the specialisation FJlt resolved.
+\emph{Function objects.}
+$O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{v}\texttt{)}$ evaluates by the standard's definition of $O$; its translation is the closure $\llbracket O \rrbracket$ applied to $\overline{\llbracket v \rrbracket}$, and the closure is chosen so that the two agree on constants.
+\emph{Folds and fuel} are the productions of Section~\ref{sec:binding}; a loop over fuel $n$ translates to the Church numeral $\overline{n}$ applied to the step function, and $n$ steps of the loop are $n$ unfoldings of the numeral.
+For the converse at base types: a closed System~F term of type $\llbracket b \rrbracket$ normalises to a constant (strong normalisation plus the shape of normal forms at base types), both evaluations are deterministic, and the forward direction already identifies that constant with $\llbracket v \rrbracket$.
+\end{proof}
+
+\begin{proof}[Sketch of Theorem~\ref{thm:coherence}, coherence]
+Instance resolution is defined in Section~\ref{app:fjlt:typing} as a relation between a constraint at concrete types and the declarations that match it; the claim is that this relation is a partial function.
+For an explicit specialisation, two declarations at the same types are a redefinition, which the well-formedness conditions on programs forbid (in \Cpp{}, the one-definition rule).
+For instances with contexts, the design decision of no overlapping instances means that at most one constrained generic function matches a given constraint at concrete types; in \Cpp{}, two that match are an ambiguous call, which is ill-formed, and one that matches only under its context resolves the context first, recursively, and the recursion is well-founded because a context mentions only proper parts of the types the instance is for.
+So a well-formed program resolves each constraint at each concrete instantiation to at most one record, and the translation, which is defined by that resolution, is a function of the program.
+\end{proof}
+
+\begin{proof}[Sketch of Corollary~\ref{cor:termination}, termination]
+By Theorem~\ref{thm:simulation}, an FJlt evaluation of $e$ is simulated by a reduction of $\llbracket e \rrbracket$, a System~F term with products; System~F with products is strongly normalising (Girard; see Girard, Lafont and Taylor, \emph{Proofs and Types}), so the reduction, and with it the evaluation, is finite.
+Fuel enters as a Church numeral, i.e. as a term, not as a recursion scheme the type system would have to admit.
+\end{proof}
+
+\begin{proof}[Sketch of Corollary~\ref{cor:parametricity}, parametricity]
+By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem gives its free theorem, and the record parameters are ordinary term parameters in it, which is why the theorem relates behaviour at two instantiations through the relation between their records.
+The reading in Section~\ref{sec:laws} is the special case where the relation is a law of the components.
+\end{proof}
+
+What the sketches do not do: they do not fix the typing and evaluation rules they induct on, which Sections~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation} are to state, and they do not treat the productions for sums, folds and fuel, which arrive with Sections~\ref{sec:laws} and~\ref{sec:binding}.
+Full proofs, and a mechanisation, are future work.
