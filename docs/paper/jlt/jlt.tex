@@ -328,7 +328,7 @@ The compiler applies such functions outside in, as often as the composite nests,
 \subsection{What the translation guarantees}
 \label{sec:translation:theorems}
 
-Three theorems and two corollaries, stated in Section~\ref{sec:guarantees} once the running example has shown what they are good for, and proved in sketch in Appendix~\ref{app:fjlt:theorems}: the translation preserves types, it preserves evaluation, and it is a function of the program (coherence); consequently every Jlt program terminates and every generic Jlt function is parametric.
+Three theorems and three corollaries, stated in Section~\ref{sec:guarantees} once the running example has shown what they are good for, and proved in sketch in Appendix~\ref{app:fjlt:theorems}: the translation preserves types, it preserves evaluation, and it is a function of the program (coherence); consequently every Jlt program terminates, every generic Jlt function is parametric, and well-typed programs evaluate to values.
 
 \subsection{From \Cpp{} to the calculus}
 \label{sec:translation:adequacy}
@@ -438,7 +438,15 @@ By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem.
 \cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}.
 It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records: the composite cannot do anything the components' records do not provide.
 
-All five are claims about FJlt.
+\begin{corollary}[Type soundness]
+\label{cor:soundness}
+A well-typed closed FJlt term of base type evaluates to a value.
+\end{corollary}
+
+This is the theorem a reader of Featherweight Java expects first, and here it comes last, because it is inherited: the term's image is well-typed (Theorem~\ref{thm:preservation}) and so reduces to a normal form, which at a base type is a constant, and the converse half of Theorem~\ref{thm:simulation} carries that constant back.
+Featherweight Java has to prove progress and preservation over its own rules; a translation imports them.
+
+All six are claims about FJlt.
 What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
 
 \section{Limits and Seams}

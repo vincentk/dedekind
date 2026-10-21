@@ -137,5 +137,12 @@ Fuel enters as a Church numeral, i.e. as a term, not as a recursion scheme the t
 By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem gives its free theorem, and the record parameters are ordinary term parameters in it, which is why the theorem relates behaviour at two instantiations through the relation between their records.
 \end{proof}
 
+\begin{proof}[Sketch of Corollary~\ref{cor:soundness}, type soundness]
+Let $e$ be closed and well-typed at a base type $b$.
+By Theorem~\ref{thm:preservation}, $\llbracket e \rrbracket$ is a closed System~F term of type $\llbracket b \rrbracket$; by strong normalisation it has a normal form, and a closed normal form at $\llbracket b \rrbracket$ is a constant $c$ (no variable is free, no $\lambda$ or $\Lambda$ has that type, and the eliminators of the encoded base types reduce on constants).
+The converse half of Theorem~\ref{thm:simulation} then gives $e \Downarrow v$ with $\llbracket v \rrbracket = c$.
+Nothing here is specific to FJlt beyond the two theorems; it is the standard argument that a translation into a sound calculus is sound.
+\end{proof}
+
 What the sketches do not do: they do not fix the typing and evaluation rules they induct on, which Sections~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation} are to state, and they do not treat fuel as a runtime value, which arrives with Section~\ref{sec:binding}.
 Full proofs, and a mechanisation, are future work.
