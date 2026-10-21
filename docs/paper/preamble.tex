@@ -1,0 +1,124 @@
+% Shared preamble of the papers in docs/paper (paper.tex, jlt/jlt.tex).
+% Each paper adds its own \addbibresource (the path to references.bib is
+% relative to the paper's directory).
+% LuaLaTeX handles UTF-8 natively; fontspec lets the document pick up any
+% Unicode glyphs present in the default font, including mathematical script
+% characters used in listings (ℕ, ℤ, ℚ, ℝ, ℂ, Ø, and similar). We keep the
+% `newunicodechar` fallbacks for body text so amsmath glyphs (\mathbb) are
+% used in paragraphs.  Code listings use the `minted` package (Pygments-
+% backed) with native UTF-8 — no per-character literate table needed.
+\usepackage{fontspec}
+\usepackage{newunicodechar}
+\usepackage[english]{babel}    % Language support
+\usepackage{geometry}          % Adjust page margins
+\geometry{margin=1in}
+
+% --- Recommended Math & Science Packages ---
+\usepackage{amsmath, amssymb, amsthm} % Essential math tools
+\usepackage{mathtools}
+\usepackage{mathrsfs}
+
+% Theorem environments (amsthm is loaded above).
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\newtheorem{conjecture}{Conjecture}
+\usepackage{graphicx}                  % Support for images
+\usepackage{hyperref}                  % Clickable links & cross-refs
+\usepackage{booktabs}                  % High-quality tables
+% csquotes is loaded later — after `minted` (which pulls in `fvextra`)
+% to silence the fvextra/csquotes load-order warning.
+
+\newunicodechar{∩}{\ensuremath{\cap}}
+\newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
+\newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+\newunicodechar{𝔽}{\ensuremath{\mathbb{F}}}
+\newunicodechar{∃}{\ensuremath{\exists}}
+\newunicodechar{π}{\ensuremath{\pi}}
+\newunicodechar{⊂}{\ensuremath{\subset}}
+\newunicodechar{⊆}{\ensuremath{\subseteq}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{∉}{\ensuremath{\notin}}
+\newunicodechar{∧}{\ensuremath{\land}}
+\newunicodechar{∨}{\ensuremath{\lor}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{μ}{\ensuremath{\mu}}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{β}{\ensuremath{\beta}}
+\newunicodechar{λ}{\ensuremath{\lambda}}
+\newunicodechar{Ω}{\ensuremath{\Omega}}
+\newunicodechar{𝔸}{\ensuremath{\mathbb{A}}}
+\newunicodechar{↔}{\ensuremath{\leftrightarrow}}
+\newunicodechar{χ}{\ensuremath{\chi}}
+\newunicodechar{Σ}{\ensuremath{\Sigma}}
+\newunicodechar{Τ}{\ensuremath{\mathrm{T}}}
+
+% For code listings
+\usepackage{xcolor}
+% Landscape tables:
+\usepackage[figuresright]{rotating}
+\usepackage[table]{xcolor}
+\usepackage{pdflscape}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+
+% Graphs
+\usepackage{graphviz}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds}
+\usepackage{tikz-cd}
+
+\usepackage{draftwatermark}
+\SetWatermarkScale{5}
+
+\usepackage[style=numeric, sorting=none]{biblatex}
+
+% `minted` (Pygments-backed) handles UTF-8 natively in code listings —
+% no per-character literate table needed.  Requires `lualatex -shell-escape`
+% (the build pipeline in docs/paper/Makefile and the CI install step in
+% the project Makefile are updated accordingly).
+\usepackage{minted}
+\usepackage{csquotes}  % Load after minted/fvextra to silence load-order warning.
+
+% Use JuliaMono for code listings — designed specifically for Unicode-rich
+% source (Julia uses the full math repertoire) with native coverage of
+% Greek (φ, Σ, Τ, χ, ...), math double-struck (ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻, 𝔽, ...),
+% math-fraktur, math-script, sub/superscripts, and arrows.  Replaces the
+% earlier `lmmono10` (no Greek) and `Fira Mono` (no math-double-struck)
+% choices made in the lstlisting era.  Installed locally via
+% `brew install --cask font-juliamono`; CI install adds `fonts-juliamono`
+% (Ubuntu 22.04+) under ci-install-paper-deps in the project Makefile.
+% Scale=0.90 keeps glyph metrics close to the document's serif body.
+\setmonofont{JuliaMono}[Scale=0.90]
+
+\setminted{
+  fontsize=\small,
+  breaklines=true,
+  breakanywhere=true,
+  frame=single,
+  framesep=2mm,
+  autogobble,
+}
+\usemintedstyle{friendly}
+
+% C++ is the default code-listing language in this paper; declare short
+% block + inline aliases so source markup reads `\begin{cpp}...\end{cpp}`
+% and `\cppinline{...}` rather than the verbose `\begin{minted}{cpp}` /
+% `\mintinline{cpp}{...}` forms.  The optional `[name]` first argument
+% names the environment directly; without it minted would produce
+% `\begin{cppcode}` and `\cpp{...}`, which would collide with our \cpp
+% short alias usage.
+\newminted[cpp]{cpp}{}
+\newmintinline[cppinline]{cpp}{}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+
+\newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
+\newcommand{\fish}{\mathbin{\gg}}
+\newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}

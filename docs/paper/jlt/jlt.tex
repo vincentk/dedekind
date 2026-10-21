@@ -1,0 +1,80 @@
+% !TEX TS-program = lualatex
+\documentclass[11pt, a4paper]{article}
+
+% The shared preamble and bibliography live one directory up.
+% Build from this directory: lualatex -shell-escape -halt-on-error jlt.tex
+\input{../preamble}
+\addbibresource{../references.bib}
+\graphicspath{{../figures/}}
+
+\title{The Juliet Posture: Structurally Typed Functional Programming in Standard \Cpp{23}}
+\author{Vincent Kr\"autler}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Parametric polymorphism, type classes, structural recursion and algebraic laws are usually associated with languages built for them: Haskell, OCaml, Agda.
+We show that they are available in standard \Cpp{23}, with a stock compiler and no extensions.
+The vehicle is a fragment of the language we call the \emph{Juliet Posture} ($\mathbf{Jlt}$), defined by three rules: values are \cppinline{std::semiregular} and functions \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or explicit fuel.
+Under these rules a \Cpp{} program translates into System~F: concepts and traits by the dictionary-passing translation of type classes, recursion by the fold encoding of data types, so programs in the fragment are parametric and terminate.
+A side effect is that one program runs at compile time or at runtime, unchanged.
+As a running example, algebraic laws of functions (injectivity, monotonicity, involution) are stated once as \cppinline{constexpr} values and read twice: by concepts at compile time, by an ordinary fold at runtime.
+The two readers are the two halves of the dictionary-passing translation, side by side.
+The rules are a discipline the compiler does not enforce; we state where the correspondence holds, where it is a translation rather than an isomorphism, and what the fragment gives up.
+\end{abstract}
+
+% Section skeleton (#981).  Each section names what it must establish; prose
+% follows once the calculus (appendix) is drafted.
+
+\section{Introduction}
+\label{sec:intro}
+% Establishes: the claim (fancy FP with a recent clang++), the audience (C++
+% first, System F as the warranty), the contributions, the roadmap.
+
+\section{The Posture}
+\label{sec:posture}
+% Establishes: the three rules, each with a small listing, and what each buys
+% (referential transparency; parametricity via dictionaries; termination via
+% folds).  Compliance is at the level of the paper's listings.
+
+\section{The Translation}
+\label{sec:translation}
+% Establishes: the informal reading of a Jlt program in System F (concepts as
+% classes, trait specialisations as instances with contexts, the ODR as
+% coherence, folds as Church eliminators); points to the calculus
+% (Appendix~\ref{app:fjlt}) for the statements.
+
+\section{Laws of Functions}
+\label{sec:laws}
+% Establishes: the running example.  Laws as constexpr values (a profile); the
+% declared facts (closure, the sign table, entailment); the formers (pairing,
+% copairing; product and sum by their defining forms); the two readers as the
+% two halves of the dictionary translation.
+
+\section{Two Binding Times}
+\label{sec:binding}
+% Establishes: the same program at compile time and at runtime; Unknown as
+% the price of structural recursion on fuel.
+
+\section{Limits and Seams}
+\label{sec:limits}
+% Establishes: the rules are a discipline, not enforced; a translation, not an
+% isomorphism; the adequacy argument and its gap; the seams found while
+% building the example (#981).
+
+\section{Related Work}
+\label{sec:related}
+% Establishes: F^G (Siek, Lumsdaine) as the nearest neighbour; the
+% Featherweight line; type classes and concepts; formal semantics of C++
+% fragments.  What is new.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\appendix
+\input{fjlt}
+
+\printbibliography
+\end{document}
