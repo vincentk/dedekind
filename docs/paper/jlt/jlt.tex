@@ -52,44 +52,46 @@ Here is the whole translation in one shape.
 A monoid is a carrier with an associative operation and a unit for it.
 Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}, and then populates it: \cppinline{bool} has it twice, \cppinline{size_t} four times.
 
-% Compiles standalone with clang++ 22 -std=c++23 (probe 2026-10-21); the
-% exhibit test in the tree is still to be added.  Note extern: the primary is
-% declared, never defined; the tree calls it identity_v and keys it on std::plus<T>.
+% Compiles and runs standalone with clang++ 22 -std=c++23 (probe 2026-10-21);
+% the exhibit test in the tree is still to be added.  The tree spells the
+% unit as the variable template unit_v<T, Op>; it follows the paper next.
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename T, typename Op> extern const T unit_v;
+template <typename Op> constexpr auto unit(Op) = delete;
 
 template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
-  { Op{}(a, b) }        -> std::same_as<T>;
-  { unit_v<T, Op> } -> std::convertible_to<T>;
+  { Op{}(a, b) } -> std::same_as<T>;
+  { unit(Op{}) } -> std::same_as<T>;
 };
 
-template <typename T, typename Op = std::plus<>>
+template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T twice(T x) { return Op{}(x, x); }
 \end{cpp}
 \begin{cpp}
-template <> inline constexpr bool unit_v<bool, std::logical_and<>> = true;
-template <> inline constexpr bool unit_v<bool, std::logical_or<>>  = false;
+template <> constexpr auto unit(std::logical_and<bool>) { return true; }
+template <> constexpr auto unit(std::logical_or<bool>) { return false; }
 
-static_assert( IsMonoid<bool, std::logical_and<>>);
-static_assert( IsMonoid<bool, std::logical_or<>>);
-static_assert(!IsMonoid<bool, std::plus<>>);
+static_assert( IsMonoid<bool, std::logical_and<bool>>);
+static_assert( IsMonoid<bool, std::logical_or<bool>>);
+static_assert(!IsMonoid<bool, std::plus<bool>>);
 \end{cpp}
 \begin{cpp}
-template <> inline constexpr size_t unit_v<size_t, std::plus<>> = 0;
-template <> inline constexpr size_t unit_v<size_t, std::multiplies<>> = 1;
-template <> inline constexpr size_t unit_v<size_t, std::bit_or<>> = 0;
-template <> inline constexpr size_t unit_v<size_t, std::bit_and<>> = SIZE_MAX;
+template <> constexpr auto unit(std::plus<size_t>) { return size_t{0}; }
+template <> constexpr auto unit(std::multiplies<size_t>) { return size_t{1}; }
+template <> constexpr auto unit(std::bit_or<size_t>) { return size_t{0}; }
+template <> constexpr auto unit(std::bit_and<size_t>) {
+  return size_t{SIZE_MAX};
+}
 
-static_assert(IsMonoid<size_t, std::plus<>>);
-static_assert(IsMonoid<size_t, std::multiplies<>>);
-static_assert(IsMonoid<size_t, std::bit_or<>>);
-static_assert(IsMonoid<size_t, std::bit_and<>>);
+static_assert(IsMonoid<size_t, std::plus<size_t>>);
+static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
+static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
+static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
 static_assert(twice<size_t>(21) == 42);
-static_assert(twice<size_t, std::multiplies<>>(21) == 441);
+static_assert(twice<size_t, std::multiplies<size_t>>(21) == 441);
 \end{cpp}
 \begin{minted}{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T }
@@ -99,11 +101,11 @@ twice     =  Λ T. Λ Op. λ d : MonoidDict T Op. λ x : T.  d.op x x
 twice [u64] [plus] plus_u64 21
 \end{minted}
 \caption{The monoid shape, populated.
-Top: a trait for the unit, declared and empty; the shape, with one requirement the compiler reads off the carrier and one it reads from the trait; a function over the shape.
+Top: \cppinline{unit}, a function of the operation, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
 Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under \cppinline{+}, which yields an \cppinline{int}.
 Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them.
 Bottom: the same in System~F.
-The shape is a record type, each populated trait row is a record, of which two are shown, and the function takes the record as a parameter.
+The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
 The operation is part of the index, so one carrier has several monoids, and nobody wrote a struct for any of them.}
 \label{lst:monoid}
 \end{listing}
@@ -116,8 +118,13 @@ That is dictionary passing, the translation of type classes into System~F,\footn
 Two of them deserve a sentence each.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
 And a unit is a choice.
-The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a row of the trait.
-In Haskell that someone writes an \texttt{instance}; here they specialise \cppinline{unit_v}, and the one-definition rule makes sure they do it once.
+The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a specialisation of \cppinline{unit}.
+In Haskell that someone writes an \texttt{instance}; here they specialise a function, and the one-definition rule makes sure they do it once.
+The primary is declared and deleted rather than left out, for a reason worth a footnote.\footnote{A plain overload \cppinline{unit(std::plus<size_t>)} beside the concept is never found: inside the concept, \cppinline{unit(Op{})} is looked up by argument-dependent lookup in the namespace of \cppinline{Op}, which is \cppinline{std}, not ours.
+The deleted primary is found by name, and its specialisations with it.
+A call to the primary itself is a substitution failure, so an operation nobody registered is rejected, not silently accepted.
+Section~\ref{sec:limits} lists this wall.}
+\cppinline{unit} is a value-level function, so the fact is also visible at runtime, where \cppinline{unit(op)} is an ordinary call; Section~\ref{sec:binding} uses this.
 
 \begin{table}[ht]
 \centering
@@ -128,8 +135,8 @@ In Haskell that someone writes an \texttt{instance}; here they specialise \cppin
 \midrule
 concept & class & record type \\
 requirement met by the type's own operation & an instance nobody wrote & field filled by a primitive \\
-trait specialisation & instance & field supplied by a value \\
-constrained trait specialisation & instance with a context & function from records to a record \\
+explicit specialisation of a deleted function template & instance & field supplied by a value \\
+constrained overload & instance with a context & function from records to a record \\
 \cppinline{requires} clause on a function & class constraint & one more parameter \\
 \bottomrule
 \end{tabularx}
@@ -146,45 +153,119 @@ The defaulted \cppinline{Op} picks the additive reading when a caller does not c
 \subsection{Shapes compose by conjunction}
 \label{sec:translation:semiring}
 
-A semiring is two monoids on one carrier, with a law tying them together.
-Listing~\ref{lst:semiring} states it as a conjunction of shapes and finds three of them among the monoids of Listing~\ref{lst:monoid}.
+A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
+Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:monoid} stated the unit, as functions of the operation, and then states the shape as a conjunction and finds three semirings among the monoids we have.
 
+% Compiles and runs standalone (same probe as Listing 1).
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename T, typename Add, typename Mul>
-concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul>
-                  && IsDistributive<T, Mul, Add>;
+template <typename Op> constexpr bool commutative(Op) = delete;
+template <typename Mul, typename Add>
+constexpr bool distributive(Mul, Add) = delete;
 
-static_assert(IsSemiring<size_t, std::plus<>,       std::multiplies<>>);
-static_assert(IsSemiring<size_t, std::bit_or<>,     std::bit_and<>>);
-static_assert(IsSemiring<bool,   std::logical_or<>, std::logical_and<>>);
+template <typename T, typename Op>
+concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative(Op{});
+
+template <typename T, typename Add, typename Mul>
+concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
+                     distributive(Mul{}, Add{});
 \end{cpp}
-\caption{The semiring shape as a conjunction, and three semirings: $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$, and $(\mathbb{B}, \lor, \land)$.}
+\begin{cpp}
+template <> constexpr bool commutative(std::plus<size_t>) { return true; }
+template <> constexpr bool commutative(std::bit_or<size_t>) { return true; }
+template <> constexpr bool commutative(std::logical_or<bool>) { return true; }
+template <>
+constexpr bool distributive(std::multiplies<size_t>, std::plus<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive(std::bit_and<size_t>, std::bit_or<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive(std::logical_and<bool>, std::logical_or<bool>) {
+  return true;
+}
+
+static_assert( IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+static_assert( IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
+static_assert( IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
+\end{cpp}
+\caption{Laws as functions of the operation, and the semiring shape as a conjunction.
+Top: two laws, declared and deleted, and the two shapes that require them.
+Bottom: six certificates, and three semirings: $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$.
+The last line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.}
 \label{lst:semiring}
 \end{listing}
 
 Two kinds of requirement went into these verdicts.
 Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{true + true} is not a \cppinline{bool}.
-Declared ones a trait records: the units.
-Both are requirements of the same shape, and both become fields of the same record.
-Under translation the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
+Declared ones a specialisation records: the units, and now the laws.
+Both are requirements of the same shape, and both become fields of the same record; a law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
 
 One thing the listing does not do, and cannot.
 A concept checks signatures.
 It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
-It cannot see that \cppinline{Mul} distributes over \cppinline{Add}.
-\cppinline{IsDistributive<T, Mul, Add>} is therefore not a fact the compiler decides about \cppinline{T}.
-It is a fact someone states, like the unit, and Section~\ref{sec:laws} is about where such facts come from, who reads them, and what can be inferred from them.
-The shape permits \cppinline{unit_v<T, Add> == unit_v<T, Mul>}, as a semiring should; the one-element carrier witnesses it.
+It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
+\cppinline{distributive(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the last \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
+Section~\ref{sec:laws} is about where such facts come from, which ones can be decided rather than declared, and what can be inferred from them.
+The shape permits \cppinline{unit(Add{}) == unit(Mul{})}, as a semiring should; the one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
-% A constrained trait specialisation: the constant maps into a monoid form a
-% monoid pointwise, and the unit of the composite needs the unit of the
-% codomain (identity_registry<ConstantMorphism<A, B>, Op> requires
-% IsPointed<B, Op>).  A function from dictionaries to a dictionary.  The
-% bridge to Section~\ref{sec:laws}: the readers on a composite are such
-% functions.
+
+A pair of monoids is a monoid, pointwise.
+Listing~\ref{lst:pair} says so once, for all pairs, and the compiler then finds the monoids on \cppinline{std::pair<size_t, bool>} and on pairs of pairs by itself.
+
+% Compiles and runs standalone (same probe as Listing 1).
+\begin{listing}[htbp]
+\begin{cpp}
+template <typename OpA, typename OpB>
+struct Pairwise {
+  template <typename A, typename B>
+  constexpr auto operator()(std::pair<A, B> x, std::pair<A, B> y) const {
+    return std::pair{OpA{}(x.first, y.first), OpB{}(x.second, y.second)};
+  }
+};
+
+template <typename OpA, typename OpB>
+  requires IsMonoid<decltype(unit(OpA{})), OpA> &&
+           IsMonoid<decltype(unit(OpB{})), OpB>
+constexpr auto unit(Pairwise<OpA, OpB>) {
+  return std::pair{unit(OpA{}), unit(OpB{})};
+}
+
+using Both = Pairwise<std::plus<size_t>, std::logical_and<bool>>;
+static_assert(IsMonoid<std::pair<size_t, bool>, Both>);
+static_assert(IsMonoid<std::pair<std::pair<size_t, bool>, size_t>,
+                       Pairwise<Both, std::multiplies<size_t>>>);
+static_assert(twice<std::pair<size_t, bool>, Both>({21, true}) ==
+              std::pair<size_t, bool>{42, true});
+\end{cpp}
+\begin{minted}{text}
+pairwise  =  Λ A. Λ B. Λ OpA. Λ OpB.
+             λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
+             { unit = (da.unit, db.unit),
+               op   = λx. λy. (da.op x.1 y.1, db.op x.2 y.2) }
+\end{minted}
+\caption{Pairs of monoids are monoids.
+\cppinline{Pairwise} is the pairing of two operations, a function object built from two function objects.
+Its unit is the pair of units, provided both components have one: a constrained overload, whose \cppinline{requires} clause is the context.
+Below, the translation: a function from two records to a record.}
+\label{lst:pair}
+\end{listing}
+
+The two requirements of the shape are met in two different ways, as in Listing~\ref{lst:monoid}.
+The operation is structural: \cppinline{Pairwise<OpA, OpB>} has a call operator on pairs, so the compiler reads it off the type.
+The unit is declared, by a constrained overload of \cppinline{unit}, and the constraint is the context: \cppinline{OpA} and \cppinline{OpB} must be monoid operations themselves.
+In Haskell this is \texttt{instance (Monoid a, Monoid b) => Monoid (a, b)}, and under translation it is a function from the two components' records to the pair's record.
+The nested \cppinline{static_assert} shows the compiler applying that function twice, outside in.
+The recursion ends because each context mentions only proper parts of the operation it is for, which is the condition under which instance resolution terminates.\footnote{Stated for Haskell as the Paterson conditions; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
+
+\cppinline{Pairwise} is the first type this paper has defined, and it is not a carrier.
+It is a former: an operation on operations, taking the two components' operations to the pair's.
+Section~\ref{sec:laws} is about formers, and the readers of a law on a composite are exactly such functions, from the components' records to the composite's.
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}

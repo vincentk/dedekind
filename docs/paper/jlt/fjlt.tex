@@ -26,7 +26,7 @@ Figure~\ref{fig:fjlt-syntax} gives its grammar in the style of Featherweight Jav
 Every FJlt program is a \Cpp{23} program with the same meaning; the converse fails by design.
 The listings of Section~\ref{sec:translation} are FJlt programs, with \cppinline{static_assert(e)} read as the claim that the closed term $e$ evaluates to \cppinline{true}.
 
-Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\cppinline{bool}, \cppinline{size_t}), $O$ over the standard function-object types (\cppinline{std::plus<>}, \cppinline{std::logical_and<>}, \ldots), $C$ over concept names, $t$ over trait names, $f$ over function names, $x$ over term variables and $c$ over constants.
+Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\cppinline{bool}, \cppinline{size_t}), $O$ over function-object templates, the standard ones (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) and the formers, $C$ over concept names, $f$ over function names, $x$ over term variables and $c$ over constants.
 
 % Productions still to come, with the sections that need them: sums
 % (std::variant, std::visit) and the pairing/copairing formers (§4);
@@ -38,27 +38,30 @@ Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\
 \begin{array}{lcl@{\hspace{0.6em}}l}
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
 D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{R}\texttt{;} & \text{shape} \\
-  & | & \texttt{template <typename }\overline{\alpha}\texttt{> extern const } \tau\; t\texttt{;} & \text{trait} \\
-  & | & \texttt{template <> inline constexpr } \tau\; t\texttt{<}\overline{\tau}\texttt{> = } e\texttt{;} & \text{instance} \\
-  & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ inline constexpr } \tau\; t\texttt{<}\overline{\tau}\texttt{> = } e\texttt{;} & \text{instance with context} \\
-  & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\[3pt]
+  & | & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
+  & | & \texttt{template <> constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{instance} \\
+  & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\
+  & | & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{} & \text{former} \\
+  &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \\
+  &   & \qquad \texttt{\{ return } e\texttt{; \} \};} & \\[3pt]
 R &::=& Q & \text{nested shape} \\
-  & | & t\texttt{<}\overline{\tau}\texttt{>} & \text{declared judgment} \\
-  & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> std::convertible\_to<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
+  & | & e & \text{law} \\
+  & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> std::same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; O \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} & \text{type} \\[3pt]
-e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; O\texttt{\{\}(}\overline{e}\texttt{)} \;\mid\; t\texttt{<}\overline{\tau}\texttt{>} & \text{term} \\
+\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{decltype(}e\texttt{)} & \text{type} \\[3pt]
+e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
   & \mid & \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
 \end{array}
 \]
 \normalsize
 \caption{The syntax of FJlt, a subset of \Cpp{23}.
 A program is a sequence of declarations and a closed term.
-A shape is a concept; its requirements are nested shapes, declared judgments (traits of type \cppinline{bool}) and operations with their result types.
-A trait is a variable template that is declared and never defined; an instance is an explicit specialisation of it, an instance with a context a constrained partial specialisation.
-An operation's result type is a requirement up to conversion, so that \cppinline{std::same_as} in a listing is a tightening the grammar permits.
-A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}.
-Terms are variables, constants, calls with explicit type arguments, applications of a function object, trait lookups and pairs.}
+A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types.
+A trait is a function template declared and deleted, its return type \cppinline{auto} where the instances choose it; an instance is an explicit specialisation of it; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
+A former is a function object built from function objects, with a generic call operator.
+A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
+The standard function objects and the formers are the only function objects; a term applies one by constructing it.
+Terms are variables, constants, calls with explicit or deduced type arguments, applications and pairs.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
