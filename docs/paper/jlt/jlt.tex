@@ -7,6 +7,10 @@
 \addbibresource{../references.bib}
 \graphicspath{{../figures/}}
 
+% Semantic brackets for the translation, without stmaryrd.
+\providecommand{\llbracket}{[\![}
+\providecommand{\rrbracket}{]\!]}
+
 \title{The Juliet Posture: Structurally Typed Functional Programming in Standard \Cpp{23}}
 \author{Vincent Kr\"autler}
 \date{\today}
@@ -35,9 +39,94 @@ The rules are a discipline the compiler does not enforce; we state where the cor
 
 \section{The Posture}
 \label{sec:posture}
-% Establishes: the three rules, each with a small listing, and what each buys
-% (referential transparency; parametricity via dictionaries; termination via
-% folds).  Compliance is at the level of the paper's listings.
+
+Jlt is not a dialect and not a library.
+It is standard \Cpp{23} under three rules, and a program follows the rules or it does not; the compiler enforces some of them and we say which.
+Listing~\ref{lst:posture} shows each rule once.
+
+% Verbatim up to formatting in category/jlt_listings_test.cpp (Rule 2 reuses
+% Listing 1's shape).
+\begin{listing}[htbp]
+\begin{cpp}
+static_assert(std::semiregular<size_t>);
+static_assert(std::semiregular<std::pair<size_t, bool>>);
+
+constexpr size_t square(size_t x) { return x * x; }
+
+static_assert(square(12) == 144);
+\end{cpp}
+\begin{cpp}
+template <typename T>
+constexpr T twice_loose(T x) { return x + x; }
+
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T twice(T x) { return Op{}(x, x); }
+
+static_assert(twice_loose(std::string{"ab"}) == "abab");
+static_assert(twice<size_t>(21) == 42);
+\end{cpp}
+\begin{cpp}
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  T acc = unit<T>(Op{});
+  for (size_t i = 0; i < n; ++i) acc = Op{}(acc, x);
+  return acc;
+}
+
+static_assert(times<size_t>(7, 6) == 42);
+\end{cpp}
+\caption{The three rules, one panel each.
+Rule~1: values are \cppinline{std::semiregular}, functions are \cppinline{constexpr} and pure, so \cppinline{square(12)} is a fact the compiler can check.
+Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and compiles for \cppinline{std::string}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
+Rule~3: recursion only folds; the loop runs over fuel given in advance, \cppinline{n}, and is a fold over it.}
+\label{lst:posture}
+\end{listing}
+
+\paragraph{Rule 1: values and pure functions.}
+Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
+Every function is \cppinline{constexpr} and depends on its arguments alone.
+What this buys is that a call is a value, with no time attached to it.
+The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
+
+\paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
+Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
+\cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included.
+\cppinline{twice} keeps it: every operation in the body is one that \cppinline{IsMonoid<T, Op>} names.
+What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
+The compiler does not enforce this rule at all.
+A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted and so would be a version of \cppinline{twice} that used \cppinline{+} behind its \cppinline{requires} clause.
+This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
+
+\paragraph{Rule 3: recursion only folds.}
+A Jlt function recurses by folding over something finite: a term, a finite carrier, or an amount of fuel supplied by the caller.
+\cppinline{times} folds over \cppinline{n}: the loop's bound is fixed before it starts, so the loop is a fold over the numeral \cppinline{n}, and a fold terminates.
+What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
+What this buys is termination and, with Rule~2, the System~F reading: a fold over fuel is a Church numeral applied to a step function (Appendix~\ref{app:fjlt:translation}).
+What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of fuel}; Section~\ref{sec:binding} shows the price being paid.
+The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}lXXl@{}}
+\toprule
+rule & buys & costs & enforced \\
+\midrule
+1 values, pure functions & one program, two binding times & no state, no I/O inside & partly \\
+2 behaviour through concepts & the System~F reading & no ad hoc use of a type & no \\
+3 recursion folds & termination & \emph{out of fuel} as an answer & at compile time \\
+\bottomrule
+\end{tabularx}
+\caption{The posture at a glance.}
+\label{tab:posture}
+\end{table}
+
+Two remarks on scope.
+The rules are checked at the level of this paper's listings, each of which compiles as written, not at the level of a library; Section~\ref{sec:limits} says what else in the surrounding code the rules do not reach.
+And the rules are a subset by discipline, not by tooling: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}, and the appendix makes the subset precise.
 
 \section{The Translation}
 \label{sec:translation}
@@ -239,9 +328,8 @@ Section~\ref{sec:laws} builds pairs and compositions of \emph{functions} this wa
 
 \subsection{What the translation guarantees}
 \label{sec:translation:theorems}
-% The three theorem STATEMENTS (type preservation, simulation, coherence as the
-% ODR), with the corollaries (termination, parametricity).  Proof sketches:
-% Appendix~\ref{app:fjlt:theorems}.
+
+Three theorems and two corollaries, stated in Section~\ref{sec:guarantees} once the running example has shown what they are good for, and proved in sketch in Appendix~\ref{app:fjlt:theorems}: the translation preserves types, it preserves evaluation, and it is a function of the program (coherence); consequently every Jlt program terminates and every generic Jlt function is parametric.
 
 \subsection{From \Cpp{} to the calculus}
 \label{sec:translation:adequacy}
@@ -259,6 +347,58 @@ Section~\ref{sec:laws} builds pairs and compositions of \emph{functions} this wa
 \label{sec:binding}
 % Establishes: the same program at compile time and at runtime; Unknown as
 % the price of structural recursion on fuel.
+
+\section{Guarantees}
+\label{sec:guarantees}
+% The three theorems about the translation of Section~\ref{sec:translation}
+% and Appendix~\ref{app:fjlt}, stated after the exhibits so that each can
+% point at one.  Proof sketches in Appendix~\ref{app:fjlt:theorems}; the
+% adequacy argument (C++ -> FJlt) is Section~\ref{sec:translation:adequacy}
+% and is not a theorem.
+
+Write $P$ for an FJlt program and $\llbracket P \rrbracket$ for its translation into System~F.
+
+\begin{theorem}[Type preservation]
+\label{thm:preservation}
+If $\Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in System~F.
+\end{theorem}
+
+A well-formed FJlt program translates to a well-typed term.
+Each \cppinline{requires} clause has become a record parameter, and at each call the instance the compiler resolved supplies a record of the type that parameter demands.
+
+\begin{theorem}[Simulation]
+\label{thm:simulation}
+If $e$ evaluates to $v$ in FJlt, then $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$ in System~F, and for closed terms of base type the converse holds.
+\end{theorem}
+
+What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
+
+\begin{theorem}[Coherence]
+\label{thm:coherence}
+The translation is a function of the program: two resolutions of the same constraint at the same concrete types yield the same record.
+\end{theorem}
+
+In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
+It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with one meaning in the whole program, and therefore something a law can be stated about.
+
+\begin{corollary}[Termination]
+\label{cor:termination}
+Every FJlt program terminates.
+\end{corollary}
+
+By Theorem~\ref{thm:simulation} and strong normalisation of System~F (Girard).
+Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
+
+\begin{corollary}[Parametricity]
+\label{cor:parametricity}
+A generic FJlt function satisfies the free theorem of its System~F type.
+\end{corollary}
+
+By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem.
+\cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}; the readers of Section~\ref{sec:laws} rest on exactly this, since a law of a composite can be read off the components only because the composite cannot do anything the components' records do not provide.
+
+All five are claims about FJlt.
+What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
 
 \section{Limits and Seams}
 \label{sec:limits}
