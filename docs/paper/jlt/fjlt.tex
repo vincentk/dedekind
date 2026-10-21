@@ -26,12 +26,18 @@ Figure~\ref{fig:fjlt-syntax} gives its grammar in the style of Featherweight Jav
 Every FJlt program is a \Cpp{23} program with the same meaning; the converse fails by design.
 The listings of Section~\ref{sec:translation} are FJlt programs, with \cppinline{static_assert(e)} read as the claim that the closed term $e$ evaluates to \cppinline{true}.
 
-Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\cppinline{bool}, \cppinline{size_t}), $O$ over function-object templates, the standard ones (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots) and the formers, $C$ over concept names, $f$ over function names, $x$ over term variables and $c$ over constants.
+Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\cppinline{bool}, \cppinline{size_t}), $O$ over the standard function-object templates (\cppinline{std::plus}, \cppinline{std::logical_and}, \ldots), $C$ over concept names, $f$ over function names, $x$ over term variables and $c$ over constants.
 
 % Productions still to come, with the sections that need them: sums
-% (std::variant, std::visit) and the pairing/copairing formers (§4);
-% user-defined function objects as closures (§4); fold and fuel (§5);
+% (std::variant, std::visit) and the pairing/copairing formers, i.e. function
+% objects of ours with a generic call operator (§4); fold and fuel (§5);
 % associated types and same-type constraints (§4, F^G style).
+% Parked for §6 (Limits and Seams), found 2026-10-21 while probing a pair
+% monoid on std::pair: (1) an operator on std::pair of standard carriers
+% cannot be supplied from outside std, since ADL only searches std; (2) the
+% typed std::plus<T> declares its result type, so a shape accepts
+% std::plus<std::pair<...>> and the call then fails inside <functional>;
+% the transparent std::plus<> is honest (decltype in its signature).
 \begin{figure}[htbp]
 \footnotesize
 \[
@@ -40,10 +46,8 @@ P &::=& \overline{D}\; e & \text{program} \\[3pt]
 D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{R}\texttt{;} & \text{shape} \\
   & | & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
   & | & \texttt{template <> constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{instance} \\
-  & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\
-  & | & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{} & \text{former} \\
-  &   & \qquad \texttt{template <typename }\overline{\beta}\texttt{> constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const} & \\
-  &   & \qquad \texttt{\{ return } e\texttt{; \} \};} & \\[3pt]
+  & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\[3pt]
+
 R &::=& Q & \text{nested shape} \\
   & | & e & \text{law} \\
   & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> std::same\_as<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
@@ -58,9 +62,8 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\
 A program is a sequence of declarations and a closed term.
 A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types.
 A trait is a function template declared and deleted, its return type \cppinline{auto} where the instances choose it; an instance is an explicit specialisation of it; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
-A former is a function object built from function objects, with a generic call operator.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
-The standard function objects and the formers are the only function objects; a term applies one by constructing it.
+The standard function objects are the only function objects; a term applies one by constructing it.
 Terms are variables, constants, calls with explicit or deduced type arguments, applications and pairs.}
 \label{fig:fjlt-syntax}
 \end{figure}

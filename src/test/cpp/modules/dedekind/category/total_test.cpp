@@ -48,7 +48,7 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
                         std::multiplies<unsigned int>>);
   }
 
-  SECTION("Pointed factories: zero<A,B,Op>() and unit<A,B,Op>() at runtime") {
+  SECTION("Pointed factory zero<A,B,Op>() at runtime") {
     // Runtime witnesses for the @c IsPointed-gated constant-morphism factories
     // re-homed from @c :discrete to @c :total under #637.  Compile-time
     // witnesses are pinned alongside the definitions in @c :total; this section
@@ -63,7 +63,7 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
 
     // Multiplicative unit: maps everything to unit_v<int,
     // std::multiplies<int>> = 1.
-    auto u_int = unit<int, int, std::multiplies<int>>();
+    auto u_int = zero<int, int, std::multiplies<int>>();
     CHECK(u_int(0) == 1);
     CHECK(u_int(99) == 1);
     CHECK(u_int(-7) == 1);

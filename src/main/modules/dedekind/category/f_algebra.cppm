@@ -198,7 +198,7 @@ concept IsTerminalFCoalgebra =
 // @c static_asserts here make the compiler the witness rather than
 // deferring the check to the test suite.
 
-// (1) The unique terminal-typed morphism @c unit<One>() :
+// (1) The unique terminal-typed morphism @c bang<One>() :
 //     @c One @c → @c One is structurally the structure map of an
 //     F-algebra over @c identity_functor<TerminalCategory> with
 //     carrier @c One.  Composes @c :limit's terminal-object data
@@ -207,8 +207,8 @@ concept IsTerminalFCoalgebra =
 //     content: the identity endomorphism on the terminal object is
 //     the canonical F-algebra structure map at carrier @c One.
 static_assert(
-    IsFAlgebra<One, decltype(unit<One>()), identity_functor<TerminalCategory>>,
-    "Bridge :f_algebra ↔ :limit: unit<One>() : One → One is structurally "
+    IsFAlgebra<One, decltype(bang<One>()), identity_functor<TerminalCategory>>,
+    "Bridge :f_algebra ↔ :limit: bang<One>() : One → One is structurally "
     "the F-algebra structure map for identity_functor on TerminalCategory "
     "with carrier One.  Fails fast if :limit's One / TerminalCategory or "
     ":functor's IsFAlgebra / identity_functor invariants drift apart.");

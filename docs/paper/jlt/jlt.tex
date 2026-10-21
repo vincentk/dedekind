@@ -215,57 +215,16 @@ The shape permits \cppinline{unit(Add{}) == unit(Mul{})}, as a semiring should; 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
 
-A pair of monoids is a monoid, pointwise.
-Listing~\ref{lst:pair} says so once, for all pairs, and the compiler then finds the monoids on \cppinline{std::pair<size_t, bool>} and on pairs of pairs by itself.
-
-% Compiles and runs standalone (same probe as Listing 1).
-\begin{listing}[htbp]
-\begin{cpp}
-template <typename OpA, typename OpB>
-struct Pairwise {
-  template <typename A, typename B>
-  constexpr auto operator()(std::pair<A, B> x, std::pair<A, B> y) const {
-    return std::pair{OpA{}(x.first, y.first), OpB{}(x.second, y.second)};
-  }
-};
-
-template <typename OpA, typename OpB>
-  requires IsMonoid<decltype(unit(OpA{})), OpA> &&
-           IsMonoid<decltype(unit(OpB{})), OpB>
-constexpr auto unit(Pairwise<OpA, OpB>) {
-  return std::pair{unit(OpA{}), unit(OpB{})};
-}
-
-using Both = Pairwise<std::plus<size_t>, std::logical_and<bool>>;
-static_assert(IsMonoid<std::pair<size_t, bool>, Both>);
-static_assert(IsMonoid<std::pair<std::pair<size_t, bool>, size_t>,
-                       Pairwise<Both, std::multiplies<size_t>>>);
-static_assert(twice<std::pair<size_t, bool>, Both>({21, true}) ==
-              std::pair<size_t, bool>{42, true});
-\end{cpp}
+One rule remains, and it is the one the running example of Section~\ref{sec:laws} lives on.
+An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one.
+In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
+Under translation it is a function from the components' records to the composite's:
 \begin{minted}{text}
-pairwise  =  Λ A. Λ B. Λ OpA. Λ OpB.
-             λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
-             { unit = (da.unit, db.unit),
-               op   = λx. λy. (da.op x.1 y.1, db.op x.2 y.2) }
+pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
+                (da.unit, db.unit)
 \end{minted}
-\caption{Pairs of monoids are monoids.
-\cppinline{Pairwise} is the pairing of two operations, a function object built from two function objects.
-Its unit is the pair of units, provided both components have one: a constrained overload, whose \cppinline{requires} clause is the context.
-Below, the translation: a function from two records to a record.}
-\label{lst:pair}
-\end{listing}
-
-The two requirements of the shape are met in two different ways, as in Listing~\ref{lst:monoid}.
-The operation is structural: \cppinline{Pairwise<OpA, OpB>} has a call operator on pairs, so the compiler reads it off the type.
-The unit is declared, by a constrained overload of \cppinline{unit}, and the constraint is the context: \cppinline{OpA} and \cppinline{OpB} must be monoid operations themselves.
-Under translation it is a function from the two components' records to the pair's record.
-The nested \cppinline{static_assert} shows the compiler applying that function twice, outside in.
-The recursion ends because each context mentions only proper parts of the operation it is for, which is the condition under which instance resolution terminates.\footnote{Known as the Paterson conditions in the type-class literature; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
-
-\cppinline{Pairwise} is the first type this paper has defined, and it is not a carrier.
-It is a former: an operation on operations, taking the two components' operations to the pair's.
-Section~\ref{sec:laws} is about formers, and the readers of a law on a composite are exactly such functions, from the components' records to the composite's.
+The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{Known as the Paterson conditions in the type-class literature; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
+Section~\ref{sec:laws} builds pairs and compositions of \emph{functions} this way, and reads their laws off the components' laws with exactly these functions.
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}

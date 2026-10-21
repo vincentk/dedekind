@@ -66,14 +66,14 @@ static_assert(IsAction<decltype(zero<int, int>()), int>,
 
 // Verify that the Unit Morphism fulfills the Action Axioms
 // (Mapping everything to identity satisfies the "Neutrality" of the action)
-static_assert(IsAction<decltype(unit<int, int>()), int>,
+static_assert(IsAction<decltype(zero<int, int, std::multiplies<int>>()), int>,
               "Unit Morphism must satisfy the Action axioms (Absorption).");
 
 /** @section action__Axiomatic_Verification */
 
 constexpr auto z = zero<int, int>();
 constexpr auto highway = id<int>();
-constexpr auto u = unit<int, int>();
+constexpr auto u = zero<int, int, std::multiplies<int>>();
 
 // 1. Verification of Absorption (Level 1 Logic)
 // The Zero Morphism maps any input to the Point 0.

@@ -467,7 +467,8 @@ struct unit_registry<ConstantMorphism<A, B>, Op> {
 /**
  * @brief @c zero<A, B, Op>(): the constant morphism @c A @c → @c B that
  *        maps everything to the @c Op-identity element of @c B.
- *        Defaults to @c std::plus<B> (additive identity, i.e. zero).
+ *        Defaults to @c std::plus<B> (additive identity, i.e. zero); with
+ *        @c std::multiplies<B> it is the constant at one.
  */
 export template <typename A, typename B, typename Op = std::plus<B>>
   requires IsPointed<B, Op>
@@ -475,23 +476,9 @@ constexpr auto zero() {
   return ConstantMorphism<A, B>{unit_v<B, Op>};
 }
 
-/**
- * @brief @c unit<A, B, Op>(): the constant morphism @c A @c → @c B that
- *        maps everything to the @c Op-identity element of @c B.
- *        Defaults to @c std::multiplies<B> (multiplicative identity, i.e.
- *        one).  Distinct from @c :limit's nullary @c unit<T>() which
- *        produces the unique terminal-morphism @c T @c → @c One; the
- *        two are namespace-overloaded with disjoint template-argument
- *        shapes.
- */
-export template <typename A, typename B, typename Op = std::multiplies<B>>
-  requires IsPointed<B, Op>
-constexpr auto unit() {
-  return ConstantMorphism<A, B>{unit_v<B, Op>};
-}
-
 static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
-static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
+static_assert(IsPointed<decltype(zero<int, int, std::multiplies<int>>()),
+                        std::multiplies<int>>);
 
 // Functional correctness: maps to the Op-identity element.
 static_assert(
@@ -501,10 +488,6 @@ static_assert(
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(zero<int, int>())>,
               "Totality Error: zero() must be total constant over its domain.");
-
-// 3. Verify it is a Total Arrow (defined for all x in Domain)
-static_assert(IsTotalArrow<decltype(unit<int, int>())>,
-              "Totality Error: unit() must be total constant over its domain.");
 
 /**
  * @concept IsMagma
