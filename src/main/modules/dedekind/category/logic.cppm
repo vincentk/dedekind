@@ -125,7 +125,7 @@ concept IsOckhamAlgebra = requires(typename L::Ω a, typename L::Ω b) {
  *        @c :total law registry is keyed on.
  *
  * @details The @c :species / @c :total law machinery
- * (@c is_distributive_v<T, Join, Meet>, @c identity_v<T, Op>,
+ * (@c is_distributive_v<T, Join, Meet>, @c unit_v<T, Op>,
  * @c IsDistributiveLattice / @c IsBoundedLattice) keys every law on the
  * operation's @b type (a function object such as @c std::logical_or<bool>,
  * @c dedekind::category::Sup, @c dedekind::category::Inf).  The logic species
@@ -438,8 +438,8 @@ constexpr P operator!(P a) noexcept {
 }
 
 // NB (#923): the op-type bridge WITNESSES (is_distributive_v / is_absorptive_v
-// / identity_v static_asserts) are placed at the END of this partition, below
-// the #912/#933 Ternary :total identities (identity_v<Ternary, Sup/Inf>)
+// / unit_v static_asserts) are placed at the END of this partition, below
+// the #912/#933 Ternary :total identities (unit_v<Ternary, Sup/Inf>)
 // and the Ternary operator<=> that SupInfLattice<Ternary> needs.  The Kleene
 // witnesses forward-reference those, so they must follow them.  The member
 // aliases (JoinOp / MeetOp / RflOp) stay inside each species struct (they
@@ -726,13 +726,13 @@ concept IsClassifierAnswer =
  *  @c Percentage, …), the one spelling of a truth chain's bottom and top. */
 template <IsClassifierAnswer C>
   requires requires { classifier_logic_t<C>::False; }
-struct identity_trait<C, Sup> {
+struct unit_trait<C, Sup> {
   using value_type = C;
   static constexpr C value = C{classifier_logic_t<C>::False};
 };
 template <IsClassifierAnswer C>
   requires requires { classifier_logic_t<C>::True; }
-struct identity_trait<C, Inf> {
+struct unit_trait<C, Inf> {
   using value_type = C;
   static constexpr C value = C{classifier_logic_t<C>::True};
 };
@@ -1163,7 +1163,7 @@ static_assert(Kleene::RFL(Ternary::True) == Ternary::False &&
  * IsDistributiveLattice<Ternary, Sup, Inf> follows once the two pieces below
  * are supplied:
  *
- *   1. the @b bounds (@c identity_v): @c ⊥ @c = @c False (∨-identity) and
+ *   1. the @b bounds (@c unit_v): @c ⊥ @c = @c False (∨-identity) and
  *      @c ⊤ @c = @c True (∧-identity), lifting the finite chain from
  *      @c IsDistributiveLattice up to @c IsBoundedLattice / @c IsPointed
  *      (@c Chain<int> cannot reach this rung: @c ℤ is unbounded);
@@ -1192,15 +1192,15 @@ static_assert(Inf{}(Ternary::True, Ternary::False) == Ternary::False &&
               "K₃: ⊤ = True is the meet (∧ = Inf) identity");
 
 // K₃'s ∨ / ∧ identities are its species' ⊥ / ⊤, derived for every classifier
-// answer (identity_trait<C, Sup / Inf> above).
-static_assert(identity_v<Ternary, Sup> == Ternary::False,
+// answer (unit_trait<C, Sup / Inf> above).
+static_assert(unit_v<Ternary, Sup> == Ternary::False,
               "K₃: the ∨-identity is ⊥ = False");
-static_assert(identity_v<Ternary, Inf> == Ternary::True,
+static_assert(unit_v<Ternary, Inf> == Ternary::True,
               "K₃: the ∧-identity is ⊤ = True");
-static_assert(identity_v<bool, Sup> == false && identity_v<bool, Inf> == true,
+static_assert(unit_v<bool, Sup> == false && unit_v<bool, Inf> == true,
               "𝔹: the ∨ / ∧ identities are ⊥ / ⊤");
-static_assert(identity_v<Truth<Boole>, Sup>.value == false &&
-                  identity_v<Truth<Boole>, Inf>.value == true,
+static_assert(unit_v<Truth<Boole>, Sup>.value == false &&
+                  unit_v<Truth<Boole>, Inf>.value == true,
               "a truth wrapper's ends are its species' ⊥ / ⊤ too");
 
 /** @brief K₃'s total order under @c <=.  @c Ternary is the 3-chain
@@ -1566,7 +1566,7 @@ static_assert(!is_decided<Kleene>(Ternary::Unknown),
  *  separately: @c logic_complement<L> is the @c :involution witness that ¬ is
  *  an involution (@c logic_negation_is_involutive_v above).
  *  @note At the END of the partition on purpose: the @c Kleene witnesses
- * consume the merged #912/#933 @c Ternary bounds (@c identity_trait<Ternary,
+ * consume the merged #912/#933 @c Ternary bounds (@c unit_trait<Ternary,
  * Sup/Inf>) and the @c Ternary @c operator<=> (@c SupInfLattice<Ternary>), all
  * declared earlier in the file.
  *  @note @c Percent is @b not bridged here (its @c [0,100] invariant is not
@@ -1598,8 +1598,8 @@ static_assert(
 
 // Bounds resolve through the declared op-types for the finite Kleene chain
 // (⊥ = ∨-identity, ⊤ = ∧-identity), via the merged #912/#933 Ternary bounds.
-static_assert(identity_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
-                  identity_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
+static_assert(unit_v<Kleene::Ω, Kleene::JoinOp> == Kleene::False &&
+                  unit_v<Kleene::Ω, Kleene::MeetOp> == Kleene::True,
               "K₃ bounds via op-types: ⊥ = False (∨-id), ⊤ = True (∧-id)");
 
 }  // namespace dedekind::category

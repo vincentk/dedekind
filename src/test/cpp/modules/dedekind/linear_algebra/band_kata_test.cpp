@@ -31,7 +31,7 @@
 //        `banded_entry` helper gates the dyad by the band, ⊕-zero off-band).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import dedekind.category; // IsArrow, identity_v
+import dedekind.category; // IsArrow, unit_v
 import dedekind.algebra;  // MaxPlus, semiring_ops
 import dedekind.sets;     // ℕ, Cardinality, finite_cardinality, the product (*)
 import dedekind.order;    // the relational-predicate DSL
@@ -50,7 +50,7 @@ namespace {
 using MP = MaxPlus<unsigned long long>;   // the max-plus dioid (CPM carrier)
 using TropMult = semiring_ops<MP>::mult;  // ⊗ = saturating +
 using TropPlus = semiring_ops<MP>::add;   // ⊕ = max
-constexpr MP kTropZero = identity_v<MP, TropPlus>;  // ⊕-identity (−∞): off-band
+constexpr MP kTropZero = unit_v<MP, TropPlus>;  // ⊕-identity (−∞): off-band
 
 // The rank-1 weight rule u : ℕ → max-plus, u(x) = x (the log-domain "exp(x)").
 // An IsArrow over the INFINITE basis — intensional, never tabulated.

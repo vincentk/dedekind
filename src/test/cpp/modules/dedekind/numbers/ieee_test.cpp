@@ -46,10 +46,8 @@ static_assert(
     is_kleene_associative_v<IEEE<double>, IEEEAdd<double>>,
     "IEEE fast lane should certify Kleene associativity by explicit policy");
 
-static_assert(partial_identity_v<IEEE<double>, IEEEAdd<double>>.resolve() ==
-                  0.0,
+static_assert(partial_unit_v<IEEE<double>, IEEEAdd<double>>.resolve() == 0.0,
               "IEEE addition identity should be 0");
 
-static_assert(partial_identity_v<IEEE<double>, IEEEMul<double>>.resolve() ==
-                  1.0,
+static_assert(partial_unit_v<IEEE<double>, IEEEMul<double>>.resolve() == 1.0,
               "IEEE multiplication identity should be 1");

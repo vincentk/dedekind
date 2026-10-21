@@ -83,7 +83,7 @@ TEST_CASE(
       "MaxPlus: the SAME star is the longest path (algebraic path problem)") {
     using MP = MaxPlus<unsigned long long>;
     using Add = typename dedekind::algebra::semiring_ops<MP>::add;
-    const MP bot = dedekind::category::identity_v<MP, Add>;
+    const MP bot = dedekind::category::unit_v<MP, Add>;
     auto wedge = [bot](std::size_t i, std::size_t j) {
       return (j == i + 1) ? MP::of(1) : bot;
     };
@@ -97,7 +97,7 @@ TEST_CASE(
   SECTION("MinPlus: one semiring apart, the star is the shortest path") {
     using MP = MinPlus<unsigned long long>;
     using Add = typename dedekind::algebra::semiring_ops<MP>::add;
-    const MP top = dedekind::category::identity_v<MP, Add>;  // ⊕-id = +∞
+    const MP top = dedekind::category::unit_v<MP, Add>;  // ⊕-id = +∞
     auto wedge = [top](std::size_t i, std::size_t j) {
       return (j == i + 1) ? MP::of(1) : top;
     };
@@ -117,7 +117,7 @@ TEST_CASE(
   using Mult =
       typename dedekind::algebra::semiring_ops<Mat>::mult;  // ⊗ = MatTimes
   using SAdd = typename dedekind::algebra::semiring_ops<MP>::add;
-  const MP bot = dedekind::category::identity_v<MP, SAdd>;  // ⊕-identity (−∞)
+  const MP bot = dedekind::category::unit_v<MP, SAdd>;  // ⊕-identity (−∞)
 
   auto mk = [](MP a, MP b, MP c, MP d) {
     Mat m{};

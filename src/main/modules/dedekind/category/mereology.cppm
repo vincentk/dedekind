@@ -493,21 +493,17 @@ constexpr bool fits_budget(std::size_t n, std::size_t arity) {
  *  registration: an answer, once instantiated, is fixed). */
 export template <typename T, typename Rel, std::size_t Arity>
 concept IsWalkableChain =
-    std::default_initializable<Rel> && std::is_empty_v<Rel> &&
-    requires {
-      identity_v<T, Sup>;
-      identity_v<T, Inf>;
-    } &&
-    requires(const Rel& r, const T& x) {
+    std::default_initializable<Rel> && std::is_empty_v<Rel> && requires {
+      unit_v<T, Sup>;
+      unit_v<T, Inf>;
+    } && requires(const Rel& r, const T& x) {
       { r(x, x) } -> std::convertible_to<bool>;
       { successor(x) } -> std::convertible_to<T>;
       { x == x } -> std::convertible_to<bool>;
-    } &&
-    requires {
+    } && requires {
       typename std::integral_constant<
-          std::size_t, chain_length(identity_v<T, Sup>, identity_v<T, Inf>)>;
-    } &&
-    fits_budget(chain_length(identity_v<T, Sup>, identity_v<T, Inf>), Arity);
+          std::size_t, chain_length(unit_v<T, Sup>, unit_v<T, Inf>)>;
+    } && fits_budget(chain_length(unit_v<T, Sup>, unit_v<T, Inf>), Arity);
 
 /** @brief Each law, stated once for every relation on a walkable chain: the
  *  certificate the concept reads @b is the law over the whole chain, for
@@ -519,51 +515,49 @@ export template <typename T, typename Rel>
 concept IsChainDecidedReflexive = IsWalkableChain<T, Rel, 1> && !requires {
   T::template is_reflexive_v<Rel>;
 } && requires {
-  typename std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
-                                           identity_v<T, Inf>)>;
+  typename std::bool_constant<reflexive_on(Rel{}, unit_v<T, Sup>,
+                                           unit_v<T, Inf>)>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedAntisymmetric = IsWalkableChain<T, Rel, 2> && !requires {
   T::template is_antisymmetric_v<Rel>;
 } && requires {
-  typename std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
-                                               identity_v<T, Inf>)>;
+  typename std::bool_constant<antisymmetric_on(Rel{}, unit_v<T, Sup>,
+                                               unit_v<T, Inf>)>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedConnex = IsWalkableChain<T, Rel, 2> && !requires {
   T::template is_connex_v<Rel>;
 } && requires {
-  typename std::bool_constant<connex_on(Rel{}, identity_v<T, Sup>,
-                                        identity_v<T, Inf>)>;
+  typename std::bool_constant<connex_on(Rel{}, unit_v<T, Sup>, unit_v<T, Inf>)>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedTransitive = IsWalkableChain<T, Rel, 3> && !requires {
   T::template is_transitive_v<Rel>;
 } && requires {
-  typename std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
-                                            identity_v<T, Inf>)>;
+  typename std::bool_constant<transitive_on(Rel{}, unit_v<T, Sup>,
+                                            unit_v<T, Inf>)>;
 };
 
 template <typename T, typename Rel>
   requires IsChainDecidedReflexive<T, Rel>
 struct is_reflexive<T, Rel>
-    : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
-                                      identity_v<T, Inf>)> {};
+    : std::bool_constant<reflexive_on(Rel{}, unit_v<T, Sup>, unit_v<T, Inf>)> {
+};
 template <typename T, typename Rel>
   requires IsChainDecidedAntisymmetric<T, Rel>
-struct is_antisymmetric<T, Rel>
-    : std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
-                                          identity_v<T, Inf>)> {};
+struct is_antisymmetric<T, Rel> : std::bool_constant<antisymmetric_on(
+                                      Rel{}, unit_v<T, Sup>, unit_v<T, Inf>)> {
+};
 template <typename T, typename Rel>
   requires IsChainDecidedConnex<T, Rel>
-struct is_connex<T, Rel> : std::bool_constant<connex_on(
-                               Rel{}, identity_v<T, Sup>, identity_v<T, Inf>)> {
-};
+struct is_connex<T, Rel>
+    : std::bool_constant<connex_on(Rel{}, unit_v<T, Sup>, unit_v<T, Inf>)> {};
 template <typename T, typename Rel>
   requires IsChainDecidedTransitive<T, Rel>
 struct is_transitive<T, Rel>
-    : std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
-                                       identity_v<T, Inf>)> {};
+    : std::bool_constant<transitive_on(Rel{}, unit_v<T, Sup>, unit_v<T, Inf>)> {
+};
 
 namespace detail_mereology {
 /** @brief A discrete bounded chain of @c N values that is no enum: a class
@@ -579,11 +573,11 @@ struct Dial {
 };
 }  // namespace detail_mereology
 template <int N>
-struct identity_trait<detail_mereology::Dial<N>, Sup> {
+struct unit_trait<detail_mereology::Dial<N>, Sup> {
   static constexpr detail_mereology::Dial<N> value{0};
 };
 template <int N>
-struct identity_trait<detail_mereology::Dial<N>, Inf> {
+struct unit_trait<detail_mereology::Dial<N>, Inf> {
   static constexpr detail_mereology::Dial<N> value{N - 1};
 };
 namespace detail_mereology {

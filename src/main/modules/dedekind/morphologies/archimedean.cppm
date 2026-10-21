@@ -66,7 +66,7 @@ using namespace dedekind::sequences;
  *     a Domain element.  Operational; what the @c IsCyclic shape
  *     concept reaches for when walking a cyclic chain.
  *   - @b Concept-level: @c order::IsSuccessor<T>, asserting @c x +
- *     identity_v<T, std::multiplies<T>> is well-typed and that @c T
+ *     unit_v<T, std::multiplies<T>> is well-typed and that @c T
  *     is a partial magma + multiplicatively pointed.  Axiomatic;
  *     the trait the @c order::IsArchimedean composition demands.
  *

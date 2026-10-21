@@ -23,7 +23,7 @@
 import dedekind.algebra;
 import dedekind.category;
 
-using dedekind::category::identity_v;
+using dedekind::category::unit_v;
 
 namespace {
 
@@ -32,10 +32,10 @@ using Plus = std::bit_xor<bool>;
 using Times = std::bit_and<bool>;
 
 // Field identities via the library's trait registrations ---
-// identity_trait<bool, std::bit_xor<bool>>::value is false;
-// identity_trait<bool, std::bit_and<bool>>::value is true.
-inline constexpr bool ZERO = identity_v<bool, Plus>;
-inline constexpr bool ONE = identity_v<bool, Times>;
+// unit_trait<bool, std::bit_xor<bool>>::value is false;
+// unit_trait<bool, std::bit_and<bool>>::value is true.
+inline constexpr bool ZERO = unit_v<bool, Plus>;
+inline constexpr bool ONE = unit_v<bool, Times>;
 
 constexpr Plus plus{};
 constexpr Times times{};

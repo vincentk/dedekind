@@ -20,7 +20,7 @@
  * allocation.
  *
  * @section species__Taxonomic_Traits
- * - identity_v<T, Op>  : The neutral element for a specific operation.
+ * - unit_v<T, Op>  : The neutral element for a specific operation.
  * - is_associative_v   : Static proof of grouping independence.
  * - is_commutative_v   : Static proof of order independence.
  *
@@ -145,7 +145,7 @@ inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
 // --- THE STORAGE (Facts) ---
 template <typename T, typename Op>
-struct identity_registry {};  // Empty box
+struct unit_registry {};  // Empty box
 
 /** @section species__Lattice Identities */
 
@@ -154,7 +154,7 @@ template <typename T, typename Op>
   requires(std::signed_integral<T> || std::floating_point<T>) &&
           (std::same_as<Op, std::ranges::greater> ||
            std::same_as<Op, std::ranges::greater_equal>)
-struct identity_registry<T, Op> {
+struct unit_registry<T, Op> {
   static constexpr T value = std::numeric_limits<T>::lowest();
 };
 
@@ -163,7 +163,7 @@ template <typename T, typename Op>
   requires(std::signed_integral<T> || std::floating_point<T>) &&
           (std::same_as<Op, std::ranges::less> ||
            std::same_as<Op, std::ranges::less_equal>)
-struct identity_registry<T, Op> {
+struct unit_registry<T, Op> {
   static constexpr T value = std::numeric_limits<T>::max();
 };
 
@@ -173,7 +173,7 @@ struct identity_registry<T, Op> {
 template <typename T, typename Op>
   requires std::integral<T> &&
            (std::same_as<Op, std::plus<T>> || std::same_as<Op, std::plus<void>>)
-struct identity_registry<T, Op> {
+struct unit_registry<T, Op> {
   static constexpr T value = T{0};
 };
 
@@ -181,43 +181,46 @@ struct identity_registry<T, Op> {
 template <typename T, typename Op>
   requires std::integral<T> && (std::same_as<Op, std::multiplies<T>> ||
                                 std::same_as<Op, std::multiplies<void>>)
-struct identity_registry<T, Op> {
+struct unit_registry<T, Op> {
   static constexpr T value = T{1};
 };
 
 /** @section species__Bitwise_Pointed_Species */
 
 // 1. Bitwise OR/XOR Identity is 0
-template <typename T>
-  requires std::integral<T>
-struct identity_registry<T, std::bit_or<T>> {
+template <typename T, typename Op>
+  requires std::integral<T> && (std::same_as<Op, std::bit_or<T>> ||
+                                std::same_as<Op, std::bit_or<void>>)
+struct unit_registry<T, Op> {
   static constexpr T value = T(0);
 };
 
-template <typename T>
-  requires std::integral<T>
-struct identity_registry<T, std::bit_xor<T>> {
+template <typename T, typename Op>
+  requires std::integral<T> && (std::same_as<Op, std::bit_xor<T>> ||
+                                std::same_as<Op, std::bit_xor<void>>)
+struct unit_registry<T, Op> {
   static constexpr T value = T(0);
 };
 
 // 2. Bitwise AND Identity is All-Ones (~0)
-template <typename T>
-  requires std::integral<T>
-struct identity_registry<T, std::bit_and<T>> {
+template <typename T, typename Op>
+  requires std::integral<T> && (std::same_as<Op, std::bit_and<T>> ||
+                                std::same_as<Op, std::bit_and<void>>)
+struct unit_registry<T, Op> {
   static constexpr T value = ~T(0);
 };
 
 // 3. Floats under Addition (Zero)
 template <typename T>
   requires std::floating_point<T>
-struct identity_registry<T, std::plus<T>> {
+struct unit_registry<T, std::plus<T>> {
   static constexpr T value = T(0.0);
 };
 
 // 3. Floats under Multiplication (One)
 template <typename T>
   requires std::floating_point<T>
-struct identity_registry<T, std::multiplies<T>> {
+struct unit_registry<T, std::multiplies<T>> {
   static constexpr T value = T(1.0);
 };
 
@@ -226,7 +229,7 @@ struct identity_registry<T, std::multiplies<T>> {
 template <typename Op>
   requires std::same_as<Op, std::logical_or<bool>> ||
            std::same_as<Op, std::logical_or<void>>
-struct identity_registry<bool, Op> {
+struct unit_registry<bool, Op> {
   static constexpr bool value = false;
 };
 
@@ -235,7 +238,7 @@ struct identity_registry<bool, Op> {
 template <typename Op>
   requires std::same_as<Op, std::logical_and<bool>> ||
            std::same_as<Op, std::logical_and<void>>
-struct identity_registry<bool, Op> {
+struct unit_registry<bool, Op> {
   static constexpr bool value = true;
 };
 
@@ -244,7 +247,7 @@ struct identity_registry<bool, Op> {
 template <typename Op>
   requires std::same_as<Op, std::bit_xor<bool>> ||
            std::same_as<Op, std::bit_xor<void>>
-struct identity_registry<bool, Op> {
+struct unit_registry<bool, Op> {
   static constexpr bool value = false;
 };
 
@@ -252,24 +255,23 @@ struct identity_registry<bool, Op> {
 // Exported so that types defined in other modules (e.g. dedekind.numbers)
 // can provide explicit specializations to register their identity elements.
 export template <typename T, typename Op, typename = void>
-struct identity_trait : identity_registry<T, Op> {};
+struct unit_trait : unit_registry<T, Op> {};
 
 // Special "Discovery" track for types that define their own identity internally
 template <typename T, typename Op>
-struct identity_trait<T, Op,
-                      std::void_t<decltype(T::template identity_v<Op>)>> {
-  static constexpr T value = T::template identity_v<Op>;
+struct unit_trait<T, Op, std::void_t<decltype(T::template unit_v<Op>)>> {
+  static constexpr T value = T::template unit_v<Op>;
 };
 
 // --- THE SERVICE DESK (Public API) ---
 export template <typename T, typename Op>
-  requires requires { identity_trait<T, Op>::value; }
-inline constexpr T identity_v = identity_trait<T, Op>::value;
+  requires requires { unit_trait<T, Op>::value; }
+inline constexpr T unit_v = unit_trait<T, Op>::value;
 
 // NOTE (#637 re-home): the @c IsPointed concept moved to @c :total, where
 // it sits with its consumers @c IsUnitalMagma / @c IsMonoid / @c IsLoop /
-// @c IsGroup.  @c IsPointed @em uses the @c identity_v / @c identity_trait
-// / @c identity_registry trait machinery defined above (which stays here in
+// @c IsGroup.  @c IsPointed @em uses the @c unit_v / @c unit_trait
+// / @c unit_registry trait machinery defined above (which stays here in
 // @c :species as the trait-registry surface), but is conceptually
 // universal-algebra rather than species-level.  Consumers reach
 // @c IsPointed through @c :total or via @c import dedekind.category.
@@ -370,7 +372,7 @@ template <>
 inline constexpr bool is_invertible_v<bool, std::bit_xor<bool>> = true;
 
 template <>
-struct identity_trait<bool, std::bit_xor<bool>> {
+struct unit_trait<bool, std::bit_xor<bool>> {
   using value_type = bool;
   static constexpr bool value = false;
 };
@@ -400,19 +402,19 @@ template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
 template <std::unsigned_integral T>
-struct identity_trait<T, std::plus<>> {
+struct unit_trait<T, std::plus<>> {
   using value_type = T;
   static constexpr T value = 0;
 };
 
 template <std::integral T>
-struct identity_trait<T, std::plus<T>> {
+struct unit_trait<T, std::plus<T>> {
   using value_type = T;
   static constexpr T value = 0;
 };
 
 template <std::integral T>
-struct identity_trait<T, std::multiplies<>> {
+struct unit_trait<T, std::multiplies<>> {
   using value_type = T;
   static constexpr T value = 1;
 };
@@ -431,7 +433,7 @@ template <std::signed_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = false;
 
 template <std::unsigned_integral T>
-struct identity_trait<T, std::multiplies<T>> {
+struct unit_trait<T, std::multiplies<T>> {
   using value_type = T;
   static constexpr T value = 1;
 };
@@ -457,13 +459,13 @@ template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_xor<T>> = true;
 
 template <std::integral T>
-struct identity_trait<T, std::bit_xor<T>> {
+struct unit_trait<T, std::bit_xor<T>> {
   using value_type = T;
   static constexpr T value = 0;
 };
 
 // 2. Bitwise AND: Associative and Commutative.
-// Note: We intentionally omit identity_v for (int, &).
+// Note: We intentionally omit unit_v for (int, &).
 template <std::integral T>
 inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
 
@@ -476,7 +478,7 @@ inline constexpr bool is_associative_v<bool, std::bit_and<bool>> = true;
 template <>
 inline constexpr bool is_commutative_v<bool, std::bit_and<bool>> = true;
 template <>
-struct identity_trait<bool, std::bit_and<bool>> {
+struct unit_trait<bool, std::bit_and<bool>> {
   using value_type = bool;
   static constexpr bool value = true;
 };
@@ -513,7 +515,7 @@ template <std::integral T>
 inline constexpr bool is_associative_v<T, std::bit_or<>> = true;
 
 template <std::integral T>
-struct identity_trait<T, std::bit_or<>> {
+struct unit_trait<T, std::bit_or<>> {
   using value_type = T;
   static constexpr T value = 0;
 };
@@ -531,7 +533,7 @@ inline constexpr bool is_commutative_v<T, std::bit_and<>> = true;
 /** @brief The top of the bit lattice: every bit set, @c ~T{} (an unsigned
  *  word's @c & identity; @c true on @c bool). */
 template <std::unsigned_integral T>
-struct identity_trait<T, std::bit_and<>> {
+struct unit_trait<T, std::bit_and<>> {
   using value_type = T;
   static constexpr T value = static_cast<T>(~T{});
 };
@@ -560,16 +562,16 @@ inline constexpr bool is_distributive_v<T, std::bit_or<>, std::bit_and<>> =
  * @section species__Taxonomic_Validation
  * @brief Self-verifying the structural integrity of the reified species.
  */
-static_assert(identity_v<bool, std::logical_or<bool>> == false,
+static_assert(unit_v<bool, std::logical_or<bool>> == false,
               "Taxonomy Error: Boolean OR identity must be False (⊥).");
 
-static_assert(identity_v<bool, std::logical_and<bool>> == true,
+static_assert(unit_v<bool, std::logical_and<bool>> == true,
               "Taxonomy Error: Boolean AND identity must be True (⊤).");
 
-static_assert(identity_v<int, std::plus<int>> == 0,
+static_assert(unit_v<int, std::plus<int>> == 0,
               "Taxonomy Error: Integer additive identity must be 0.");
 
-static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
+static_assert(unit_v<size_t, std::multiplies<size_t>> == 1,
               "Taxonomy Error: Unsigned multiplicative identity must be 1.");
 
 static_assert(
@@ -806,10 +808,10 @@ static_assert(is_idempotent_v<unsigned int, std::bit_and<unsigned int>>,
 static_assert(is_commutative_v<int, std::bit_or<int>>,
               "Axiom Error: Bitwise 'OR' must be commutative.");
 
-static_assert(identity_v<bool, std::logical_or<bool>> == false,
+static_assert(unit_v<bool, std::logical_or<bool>> == false,
               "Logic Error: Boolean Or-Monoid identity must be False.");
 
-static_assert(identity_v<bool, std::logical_and<bool>> == true,
+static_assert(unit_v<bool, std::logical_and<bool>> == true,
               "Logic Error: Boolean And-Monoid identity must be True.");
 
 // 5. Verify Material Constants
@@ -828,7 +830,7 @@ static_assert(
     !is_associative_v<int, std::multiplies<>>,
     "Honesty Check: Signed multiplication is NOT associative due to UB.");
 
-static_assert(identity_v<int, std::multiplies<>> == 1,
+static_assert(unit_v<int, std::multiplies<>> == 1,
               "Axiom Error: Multiplicative identity must be 1.");
 
 // Bitwise OR
@@ -836,7 +838,7 @@ static_assert(is_idempotent_v<int, std::bit_or<>>,
               "Axiom Error: Bitwise OR must be idempotent.");
 static_assert(is_commutative_v<int, std::bit_or<>>,
               "Axiom Error: Bitwise OR must be commutative.");
-static_assert(identity_v<int, std::bit_or<>> == 0,
+static_assert(unit_v<int, std::bit_or<>> == 0,
               "Logic Error: Bitwise OR identity must be 0.");
 
 // Bitwise AND

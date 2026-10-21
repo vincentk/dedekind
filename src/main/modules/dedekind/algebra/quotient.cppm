@@ -54,7 +54,7 @@
  * single @c quotient_algebra_base<Q> specialisation; @c category:total reads
  * the laws and totality off it without per-trait enumeration.  Carrier-
  * specific bits (additive identity values, additive inverse via @c -q)
- * remain at the carrier site as @c identity_trait / @c inverse_trait
+ * remain at the carrier site as @c unit_trait / @c inverse_trait
  * specialisations because their construction depends on the carrier's
  * internal layout.
  *

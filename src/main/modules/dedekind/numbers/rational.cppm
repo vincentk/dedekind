@@ -431,7 +431,7 @@ inline constexpr bool is_kleene_commutative_v<
     true;
 
 template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     dedekind::numbers::Rational<I>(I{0}, I{1});
 
@@ -446,7 +446,7 @@ inline constexpr bool is_kleene_commutative_v<
     true;
 
 template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     dedekind::numbers::Rational<I>(I{1}, I{1});
 
@@ -596,15 +596,15 @@ struct is_exact_total<dedekind::numbers::Rational<I>,
 // these don't propagate trivially because the quotient witness has its
 // own constructor shape.
 template <dedekind::morphologies::IsInteger I>
-struct identity_trait<dedekind::numbers::Rational<I>,
-                      std::plus<dedekind::numbers::Rational<I>>> {
+struct unit_trait<dedekind::numbers::Rational<I>,
+                  std::plus<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{0}, I{1}};
 };
 
 template <dedekind::morphologies::IsInteger I>
-struct identity_trait<dedekind::numbers::Rational<I>,
-                      std::multiplies<dedekind::numbers::Rational<I>>> {
+struct unit_trait<dedekind::numbers::Rational<I>,
+                  std::multiplies<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{1}, I{1}};
 };

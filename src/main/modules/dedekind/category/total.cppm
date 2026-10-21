@@ -419,7 +419,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  * @concept IsPointed
  * @brief A type @c T has a chosen identity element under operation @c Op.
  * @details Replaces the missing `HasIdentity` for Level 0.1.  The identity
- *          element is looked up via the @c identity_v trait registered in
+ *          element is looked up via the @c unit_v trait registered in
  *          @c :species; @c IsPointed pins the existence claim at the concept
  *          level.  Re-homed from @c :species to @c :total under #637 ---
  *          this is universal-algebra content (chosen-element witness for a
@@ -428,7 +428,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  */
 export template <typename T, typename Op>
 concept IsPointed = requires {
-  { identity_v<T, Op> } -> std::convertible_to<T>;
+  { unit_v<T, Op> } -> std::convertible_to<T>;
 };
 
 static_assert(IsPointed<bool, std::logical_or<bool>>,
@@ -454,14 +454,14 @@ static_assert(IsPointed<double, std::multiplies<double>>,
  */
 
 /**
- * @brief @c identity_registry specialisation for @c ConstantMorphism<A, B>.
+ * @brief @c unit_registry specialisation for @c ConstantMorphism<A, B>.
  *        Registers the constant-at-identity-element-of-@c B as the identity
  *        element of @c ConstantMorphism<A, B> under operation @c Op.
  */
 template <typename A, typename B, typename Op>
   requires IsPointed<B, Op>
-struct identity_registry<ConstantMorphism<A, B>, Op> {
-  static constexpr ConstantMorphism<A, B> value{identity_v<B, Op>};
+struct unit_registry<ConstantMorphism<A, B>, Op> {
+  static constexpr ConstantMorphism<A, B> value{unit_v<B, Op>};
 };
 
 /**
@@ -472,7 +472,7 @@ struct identity_registry<ConstantMorphism<A, B>, Op> {
 export template <typename A, typename B, typename Op = std::plus<B>>
   requires IsPointed<B, Op>
 constexpr auto zero() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
+  return ConstantMorphism<A, B>{unit_v<B, Op>};
 }
 
 /**
@@ -487,7 +487,7 @@ constexpr auto zero() {
 export template <typename A, typename B, typename Op = std::multiplies<B>>
   requires IsPointed<B, Op>
 constexpr auto unit() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
+  return ConstantMorphism<A, B>{unit_v<B, Op>};
 }
 
 static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
@@ -922,8 +922,8 @@ concept IsDistributiveLattice =
 /**
  * @concept IsBoundedLattice
  * @brief A @ref IsLattice whose join and meet each carry an identity: the
- *        bottom @f$\bot@f$ (@c identity_v<T,Join>) and top @f$\top@f$
- *        (@c identity_v<T,Meet>).
+ *        bottom @f$\bot@f$ (@c unit_v<T,Join>) and top @f$\top@f$
+ *        (@c unit_v<T,Meet>).
  * @details A lattice is @b bounded when it has a least and a greatest element,
  * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
  * meet-semilattices are each an @ref IsMonoid (commutativity is already forced

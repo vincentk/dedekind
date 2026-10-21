@@ -29,11 +29,10 @@ void audit_feature_cube() {
 
   // --- Plane 3: Identity & Mapping (The "Boundary" constants) ---
   if constexpr (IsPointed<T, Op>) {
-    STATIC_CHECK(requires { identity_v<T, Op>; });
+    STATIC_CHECK(requires { unit_v<T, Op>; });
     // We strip the cv-qualifiers (like 'const') from the constexpr storage
     // so that it matches the raw species type T.
-    STATIC_CHECK(
-        std::same_as<std::remove_cvref_t<decltype(identity_v<T, Op>)>, T>);
+    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(unit_v<T, Op>)>, T>);
   }
 
   // if constexpr (IsSet<T>) {

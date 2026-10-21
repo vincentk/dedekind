@@ -291,7 +291,7 @@ namespace dedekind::category {
 // inheritance on `GaloisFieldRegistration`, as per #382.  The
 // SpeciesTraits-based discovery specs in `algebra:registration` lift
 // these member templates into the free-standing traits
-// (`is_associative<T, Op>::value`, `identity_trait<T, Op>::value`,
+// (`is_associative<T, Op>::value`, `unit_trait<T, Op>::value`,
 // etc.); the Galois-specific variable-template discovery
 // (`is_galois_field_v` / `galois_order_v`) lives below in the
 // `dedekind::algebra` block to avoid a `:galois` ↔ `:registration`

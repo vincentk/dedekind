@@ -66,11 +66,11 @@ TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
 TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
           "[category][morphisms][algebra]") {
   SECTION("Small Category Identity Proof") {
-    // Verify that the identity_trait is correctly resolved for primitive
+    // Verify that the unit_trait is correctly resolved for primitive
     // species.
-    CHECK(identity_v<int, std::plus<int>> == 0);
-    CHECK(identity_v<bool, std::logical_and<bool>> == true);
-    CHECK(identity_v<bool, std::logical_or<bool>> == false);
+    CHECK(unit_v<int, std::plus<int>> == 0);
+    CHECK(unit_v<bool, std::logical_and<bool>> == true);
+    CHECK(unit_v<bool, std::logical_or<bool>> == false);
   }
 
   SECTION("Monic and Epic Arrow concepts on Identity") {

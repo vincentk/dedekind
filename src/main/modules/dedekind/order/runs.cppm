@@ -232,7 +232,7 @@ constexpr std::optional<V> least() {
   else if constexpr (std::same_as<V, SignedCardinality>)
     return V{NegativeInfinity{}};
   else if constexpr (IsPst<V>)
-    return identity_v<V, Sup>;
+    return unit_v<V, Sup>;
   else
     return std::nullopt;
 }
@@ -247,7 +247,7 @@ constexpr std::optional<V> greatest() {
   else if constexpr (std::same_as<V, SignedCardinality>)
     return V{PositiveInfinity{}};
   else if constexpr (IsPst<V>)
-    return identity_v<V, Inf>;
+    return unit_v<V, Inf>;
   else
     return std::nullopt;
 }

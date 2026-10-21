@@ -43,7 +43,7 @@
  * free) and the migration of @c Involutive_Endofunctor, which need the
  * @c :morphism arrow surface.
  *
- * @build_order imports @c :species (@c identity_v); upstream of @c :lattice /
+ * @build_order imports @c :species (@c unit_v); upstream of @c :lattice /
  *              @c :category.
  */
 module;
@@ -57,7 +57,7 @@ export module dedekind.category:involution;
 
 import :morphism;  // IsArrow / Dom / Cod / Morphism: the arrow language;
                    // Identity
-import :species;   // identity_v: the Op-identity the (co)isometry law is
+import :species;   // unit_v: the Op-identity the (co)isometry law is
                    // measured against
 
 namespace dedekind::category {
@@ -298,19 +298,19 @@ concept IsDagger = IsInvolution<Dagger, T>;
 /** @brief The isometry law, @b computed on an arrow @c f:
  *  @f$f^\dagger \circ f = \mathrm{id}@f$ --- the dagger is a @b left inverse.
  *  General over the dagger @c Dagger and composition @c Op (@c id is the
- *  @c Op-identity @c identity_v); @b no linearity.  @c f is an @b endo-arrow
+ *  @c Op-identity @c unit_v); @b no linearity.  @c f is an @b endo-arrow
  *  (@c Op a monoid on the single object @c T); a general @f$f:A\to B@f$
  * isometry is the multi-object case, left to the arrow surface. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_isometry(const T& f) {
-  return Op{}(Dagger{}(f), f) == identity_v<T, Op>;
+  return Op{}(Dagger{}(f), f) == unit_v<T, Op>;
 }
 
 /** @brief The coisometry law: @f$f \circ f^\dagger = \mathrm{id}@f$ --- the
  *  dagger is a @b right inverse. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_coisometry(const T& f) {
-  return Op{}(f, Dagger{}(f)) == identity_v<T, Op>;
+  return Op{}(f, Dagger{}(f)) == unit_v<T, Op>;
 }
 
 /** @brief The unitary law: isometry @b and coisometry, hence

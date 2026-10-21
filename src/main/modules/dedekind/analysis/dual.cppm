@@ -365,7 +365,7 @@ export inline constexpr auto embed_ℝ_𝔻 =
 // off F (× multiplies out, so its laws rest on F's commutative-ring laws).  The
 // carrier-
 // specific bits (additive identity, additive inverse) live next to it
-// as identity_trait / inverse_trait specialisations.
+// as unit_trait / inverse_trait specialisations.
 //
 // Textbook references: Lang §III.1; Eisenbud §16.5.
 // ---------------------------------------------------------------------------
@@ -400,16 +400,16 @@ struct is_exact_total<dedekind::analysis::Dual<F>,
 
 template <typename F>
   requires std::regular<F>
-struct identity_trait<dedekind::analysis::Dual<F>,
-                      std::plus<dedekind::analysis::Dual<F>>> {
+struct unit_trait<dedekind::analysis::Dual<F>,
+                  std::plus<dedekind::analysis::Dual<F>>> {
   using value_type = dedekind::analysis::Dual<F>;
   static constexpr value_type value = value_type{F{}, F{}};
 };
 
 template <typename F>
   requires std::regular<F>
-struct identity_trait<dedekind::analysis::Dual<F>,
-                      std::multiplies<dedekind::analysis::Dual<F>>> {
+struct unit_trait<dedekind::analysis::Dual<F>,
+                  std::multiplies<dedekind::analysis::Dual<F>>> {
   using value_type = dedekind::analysis::Dual<F>;
   static constexpr value_type value = value_type{F{1}, F{}};
 };

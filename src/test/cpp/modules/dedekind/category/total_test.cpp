@@ -55,13 +55,13 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
     // exercises the function bodies at runtime so coverage instrumentation
     // sees the move.
 
-    // Additive zero: maps everything to identity_v<int, std::plus<int>> = 0.
+    // Additive zero: maps everything to unit_v<int, std::plus<int>> = 0.
     auto z_int = zero<int, int, std::plus<int>>();
     CHECK(z_int(0) == 0);
     CHECK(z_int(7) == 0);
     CHECK(z_int(-42) == 0);
 
-    // Multiplicative unit: maps everything to identity_v<int,
+    // Multiplicative unit: maps everything to unit_v<int,
     // std::multiplies<int>> = 1.
     auto u_int = unit<int, int, std::multiplies<int>>();
     CHECK(u_int(0) == 1);
@@ -73,7 +73,7 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
     CHECK(z_dbl_to_int(3.14) == 0);
     CHECK(z_dbl_to_int(-1.5) == 0);
 
-    // Boolean multiplicative unit: identity_v<bool, std::logical_and<bool>> =
+    // Boolean multiplicative unit: unit_v<bool, std::logical_and<bool>> =
     // true.
     auto u_int_to_bool = unit<int, bool, std::logical_and<bool>>();
     CHECK(u_int_to_bool(0) == true);

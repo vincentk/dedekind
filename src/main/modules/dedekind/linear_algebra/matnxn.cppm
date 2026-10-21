@@ -39,7 +39,7 @@ module;
 export module dedekind.linear_algebra:matnxn;
 
 import dedekind.algebra;  // semiring_ops, IsSemiring, MaxPlus (witness)
-import dedekind.category; // IsSemiring, identity_v, identity_registry, traits
+import dedekind.category; // IsSemiring, unit_v, unit_registry, traits
 import dedekind.sets;     // Finite (dimension tag)
 import :contracts;        // ColumnOrientation/RowOrientation, IsMatrix,
                           // IsColumnVector
@@ -263,7 +263,7 @@ struct MatNxNV {
   {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    const S zero = dedekind::category::identity_v<S, Add>;
+    const S zero = dedekind::category::unit_v<S, Add>;
     Ket<S, N> r{};
     for (std::size_t i = 0; i < N; ++i) {
       S acc = zero;
@@ -426,7 +426,7 @@ constexpr MatNxNV<S, N> zero_matrix() {
   MatNxNV<S, N> z{};
   for (std::size_t i = 0; i < N; ++i)
     for (std::size_t j = 0; j < N; ++j)
-      z.e[i][j] = dedekind::category::identity_v<S, Add>;
+      z.e[i][j] = dedekind::category::unit_v<S, Add>;
   return z;
 }
 
@@ -436,7 +436,7 @@ constexpr MatNxNV<S, N> identity_matrix() {
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
   MatNxNV<S, N> id = zero_matrix<S, N>();
   for (std::size_t i = 0; i < N; ++i)
-    id.e[i][i] = dedekind::category::identity_v<S, Mult>;
+    id.e[i][i] = dedekind::category::unit_v<S, Mult>;
   return id;
 }
 
@@ -462,7 +462,7 @@ struct MatTimes {
                                      const MatNxNV<S, N>& b) const {
     using Add = typename dedekind::algebra::semiring_ops<S>::add;
     using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-    const S zero = dedekind::category::identity_v<S, Add>;
+    const S zero = dedekind::category::unit_v<S, Add>;
     MatNxNV<S, N> c{};
     for (std::size_t i = 0; i < N; ++i)
       for (std::size_t j = 0; j < N; ++j) {
@@ -493,19 +493,19 @@ struct TransposeF {
 namespace dedekind::category {
 
 /** @brief @c ⊕-identity of @c Mat(S) is the zero matrix.  Registered on the
- *         exported @c identity_trait extension point (the internal
- *         @c identity_registry box is not reachable across modules), exactly
+ *         exported @c unit_trait extension point (the internal
+ *         @c unit_registry box is not reachable across modules), exactly
  *         as @c dedekind::algebra::Tropical registers its own @c ∞ / @c 0. */
 template <typename S, std::size_t N>
-struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
-                      dedekind::linear_algebra::MatPlus<S, N>> {
+struct unit_trait<dedekind::linear_algebra::MatNxNV<S, N>,
+                  dedekind::linear_algebra::MatPlus<S, N>> {
   static constexpr auto value = dedekind::linear_algebra::zero_matrix<S, N>();
 };
 
 /** @brief @c ⊗-identity of @c Mat(S) is the identity matrix. */
 template <typename S, std::size_t N>
-struct identity_trait<dedekind::linear_algebra::MatNxNV<S, N>,
-                      dedekind::linear_algebra::MatTimes<S, N>> {
+struct unit_trait<dedekind::linear_algebra::MatNxNV<S, N>,
+                  dedekind::linear_algebra::MatTimes<S, N>> {
   static constexpr auto value =
       dedekind::linear_algebra::identity_matrix<S, N>();
 };
@@ -532,13 +532,12 @@ struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
  *         @c IsSemimodule, hence an @c IsColumnVector / @c IsCovector.  One
  *         registration for both orientations. */
 template <typename S, std::size_t N, typename O>
-struct identity_trait<
-    dedekind::linear_algebra::SemimoduleVec<S, N, O>,
-    std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>> {
+struct unit_trait<dedekind::linear_algebra::SemimoduleVec<S, N, O>,
+                  std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>> {
   static constexpr auto value = [] {
     dedekind::linear_algebra::SemimoduleVec<S, N, O> z{};
     for (std::size_t i = 0; i < N; ++i)
-      z.c[i] = identity_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
+      z.c[i] = unit_v<S, typename dedekind::algebra::semiring_ops<S>::add>;
     return z;
   }();
 };

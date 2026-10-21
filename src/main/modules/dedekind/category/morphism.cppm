@@ -995,7 +995,7 @@ inline constexpr bool is_commutative_v<Identity<T>, Op> =
  * is the Identity Morphism itself (id ∘ id = id).
  */
 template <typename T, typename Op>
-inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
+inline constexpr Identity<T> unit_v<Identity<T>, Op> = Identity<T>{};
 
 /**
  * @section morphism__Categorical

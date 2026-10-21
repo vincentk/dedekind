@@ -41,12 +41,12 @@ using dedekind::algebra::galois_order_v;
 using dedekind::algebra::is_galois_field_v;
 using dedekind::algebra::IsGaloisField;
 using dedekind::algebra::𝔽64;
-using dedekind::category::identity_v;
+using dedekind::category::unit_v;
 
 namespace {
 
-inline constexpr 𝔽64 ZERO64 = identity_v<𝔽64, std::plus<𝔽64>>;
-inline constexpr 𝔽64 ONE64 = identity_v<𝔽64, std::multiplies<𝔽64>>;
+inline constexpr 𝔽64 ZERO64 = unit_v<𝔽64, std::plus<𝔽64>>;
+inline constexpr 𝔽64 ONE64 = unit_v<𝔽64, std::multiplies<𝔽64>>;
 
 constexpr 𝔽64 pow(𝔽64 a, int n) {
   𝔽64 result = ONE64;

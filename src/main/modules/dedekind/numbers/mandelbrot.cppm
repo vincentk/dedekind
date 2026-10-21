@@ -93,7 +93,7 @@ constexpr auto mandelbrot_step(const Complex<R>& c) {
 
 export template <IsComplexScalar R>
 constexpr auto mandelbrot_orbit(const Complex<R>& c) {
-  const auto zero = partial_identity_v<Complex<R>, PartialAddComplex<R>>;
+  const auto zero = partial_unit_v<Complex<R>, PartialAddComplex<R>>;
   return iterate(zero, mandelbrot_step(c));
 }
 

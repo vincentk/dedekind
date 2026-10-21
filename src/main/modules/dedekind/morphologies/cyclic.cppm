@@ -425,15 +425,15 @@ struct is_periodic<dedekind::morphologies::Modular<N>,
 /** @section cyclic__Identities */
 
 template <auto N>
-struct identity_trait<dedekind::morphologies::Modular<N>,
-                      std::plus<dedekind::morphologies::Modular<N>>> {
+struct unit_trait<dedekind::morphologies::Modular<N>,
+                  std::plus<dedekind::morphologies::Modular<N>>> {
   using value_type = dedekind::morphologies::Modular<N>;
   static constexpr value_type value = value_type{0};
 };
 
 template <auto N>
-struct identity_trait<dedekind::morphologies::Modular<N>,
-                      std::multiplies<dedekind::morphologies::Modular<N>>> {
+struct unit_trait<dedekind::morphologies::Modular<N>,
+                  std::multiplies<dedekind::morphologies::Modular<N>>> {
   using value_type = dedekind::morphologies::Modular<N>;
   static constexpr value_type value = value_type{1};
 };
