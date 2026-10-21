@@ -102,7 +102,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 A Jlt function recurses in one way: \cppinline{std::ranges::fold_left} over a range whose length is fixed before the fold starts, \cppinline{std::views::repeat(x, n)} or \cppinline{std::views::iota(0, n)}.
 \cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} folds the monoid's operation over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
-What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the Church numeral $\overline{n}$ applied to the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which the numeral builds (Appendix~\ref{app:fjlt:translation}).
+What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the Church numeral $\overline{n}$ applied to the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which the numeral builds (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of fuel}; Section~\ref{sec:binding} shows the price being paid.
 The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the one loop is inside \cppinline{std::ranges::fold_left}, and every function composes.
 
@@ -313,7 +313,8 @@ Under translation it is a function from the components' records to the composite
 pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
                 (da.unit, db.unit)
 \end{minted}
-The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{Known as the Paterson conditions in the type-class literature; the FJlt syntax enforces it by construction, since a context can only mention the type arguments of the operation being specialised.}
+The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}; GHC calls them the Paterson conditions.
+The FJlt syntax enforces them by construction, since a context can only mention the type arguments of the operation being specialised.}
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}
@@ -370,7 +371,7 @@ The two rows marked \emph{by reading} are the whole gap: the compiler accepts pr
 Five of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
 The two that remain are Rule~2 and Rule~3, and they are posture.
 A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did; a loop whose bound changes as it runs compiles anyway.
-Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that \Cpp{}'s concepts proposals once included and the shipped feature does not,\footnote{The dropped check is the subject of Section~\ref{sec:related}.} so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
+Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
 Rule~3 is likewise checkable for the loop forms the grammar admits.
 
 So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
@@ -473,7 +474,7 @@ It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with
 Every FJlt program terminates.
 \end{corollary}
 
-By Theorem~\ref{thm:simulation} and strong normalisation of System~F (Girard).
+By Theorem~\ref{thm:simulation} and strong normalisation of System~F~\cite{girard1989proofs}.
 Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
 
 \begin{corollary}[Parametricity]
@@ -481,7 +482,7 @@ Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bou
 A generic FJlt function satisfies the free theorem of its System~F type.
 \end{corollary}
 
-By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem.
+By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynolds1983types}.
 \cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}.
 It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records: the composite cannot do anything the components' records do not provide.
 
@@ -490,7 +491,7 @@ It is also why an instance with a context (Section~\ref{sec:translation:contexts
 A well-typed closed FJlt term of base type evaluates to a value.
 \end{corollary}
 
-This is the theorem a reader of Featherweight Java expects first, and here it comes last, because it is inherited: the term's image is well-typed (Theorem~\ref{thm:preservation}) and so reduces to a normal form, which at a base type is a constant, and the converse half of Theorem~\ref{thm:simulation} carries that constant back.
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it comes last, because it is inherited: the term's image is well-typed (Theorem~\ref{thm:preservation}) and so reduces to a normal form, which at a base type is a constant, and the converse half of Theorem~\ref{thm:simulation} carries that constant back.
 Featherweight Java has to prove progress and preservation over its own rules; a translation imports them.
 
 All six are claims about FJlt.
@@ -564,9 +565,32 @@ A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cann
 
 \section{Related Work}
 \label{sec:related}
-% Establishes: F^G (Siek, Lumsdaine) as the nearest neighbour; the
-% Featherweight line; type classes and concepts; formal semantics of C++
-% fragments.  What is new.
+
+\paragraph{Type classes.}
+Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}: a class is a record type, an instance a record, a constraint a parameter, and a constrained call passes the record the compiler resolved.
+Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the one row without a counterpart there, structural satisfaction, is the difference Bernardy et al.~\cite{bernardy2010generic} place at the centre of their comparison of concepts and type classes.
+
+\paragraph{Concepts, and the calculus next door.}
+The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
+It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies against their constraints; those concepts were removed in 2009~\cite{stroustrup2009remove}, and the feature that shipped in \Cpp{20} checks uses and not definitions, which is the gap Rule~2 names.
+$F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs and FJlt's function-specialisation instances do not provide (Section~\ref{sec:limits}); FJlt is the smaller calculus, and the price of being a subset of a shipped language.
+Garcia et al.~\cite{garcia2007extended} compare eight languages' support for generic programming against a fixed design; the rows of their table that \Cpp{} lacked at the time, multi-type concepts and retroactive modelling, are the rows Listing~\ref{lst:monoid} exercises with \cppinline{IsMonoid<T, Op>} and specialisations on types one does not own.
+
+\paragraph{Featherweight calculi.}
+Featherweight Java~\cite{igarashi2001featherweight} set the pattern: a core calculus small enough to prove things about, with a syntax that is a subset of the host language's.
+Its theorems are proved directly, progress and preservation over its own rules, because type soundness of a language with subtyping has no simpler calculus to inherit from.
+Featherweight Go~\cite{griesemer2020featherweight} follows the pattern for structural subtyping and monomorphisation, and \emph{Generic Go to Go}~\cite{ellis2022generic} proves a dictionary-passing translation correct by a bisimulation; that is the genre Section~\ref{sec:guarantees} is in, preservation and simulation of a translation, with soundness, termination and parametricity inherited from the target rather than proved from scratch.
+
+\paragraph{Formal semantics of \Cpp{}.}
+CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a machine-checked type safety proof for multiple inheritance; Ramananandro, Dos Reis and Leroy~\cite{ramananandro2011layout,ramananandro2012construction} mechanise object layout, construction and destruction in Coq.
+These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, which is why FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
+
+\paragraph{The target.}
+Strong normalisation of System~F is Girard's~\cite{girard1989proofs}, parametricity Reynolds'~\cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's~\cite{bohm1985automatic}; the appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
+
+\paragraph{What is new here.}
+Not the translation, which is Wadler and Blott's, nor the calculus-with-concepts, which is $F^G$'s.
+What is new is the claim that the shipped language already contains the fragment: three rules on standard \Cpp{23}, a core calculus whose syntax is that \Cpp{} and whose listings compile and run under a stock compiler at both binding times, an adequacy argument that says where the compiler stops checking and the author starts, and a list of the seams met on the way.
 
 \section{Conclusion}
 \label{sec:conclusion}
