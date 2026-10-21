@@ -81,7 +81,7 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 template <> inline constexpr size_t identity_v<size_t, std::plus<>> = 0;
 template <> inline constexpr size_t identity_v<size_t, std::multiplies<>> = 1;
 template <> inline constexpr size_t identity_v<size_t, std::bit_or<>> = 0;
-template <> inline constexpr size_t identity_v<size_t, std::bit_and<>> = ~size_t{};
+template <> inline constexpr size_t identity_v<size_t, std::bit_and<>> = SIZE_MAX;
 
 static_assert(IsMonoid<size_t, std::plus<>>);
 static_assert(IsMonoid<size_t, std::multiplies<>>);
