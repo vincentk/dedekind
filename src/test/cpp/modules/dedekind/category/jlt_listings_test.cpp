@@ -1,6 +1,6 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
- * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 2 and 3),
+ * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 2 to 4),
  * verbatim up to formatting,
  * so that CI holds the paper to the code.  The listings declare their own
  * unit and laws, so they live in their own namespace; the TEST_CASE then
@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -137,15 +138,37 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
+template <typename F, typename T>
+constexpr T iterate(F step, T x, size_t n) {
+  for (size_t i = 0; i < n; ++i) x = step(x);
+  return x;
+}
+
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  T acc = unit<T>(Op{});
-  for (size_t i = 0; i < n; ++i) acc = Op{}(acc, x);
-  return acc;
+  return iterate(std::bind_front(Op{}, x), unit<T>(Op{}), n);
 }
 
 static_assert(times<size_t>(7, 6) == 42);
+
+// Section 4, two binding times: fuel, and running out of it.
+template <typename P>
+constexpr std::pair<size_t, bool> advance(P pred, std::pair<size_t, bool> s) {
+  return s.second ? s : std::pair{s.first + 1, pred(s.first + 1)};
+}
+
+template <typename P>
+constexpr std::optional<size_t> first(P pred, size_t fuel) {
+  std::pair<size_t, bool> s = iterate(std::bind_front(advance<P>, pred),
+                                      std::pair{size_t{0}, pred(0)}, fuel);
+  return s.second ? std::optional{s.first} : std::nullopt;
+}
+
+constexpr bool over_1000(size_t n) { return n * n > 1000; }
+
+static_assert(first(over_1000, 40) == 32);
+static_assert(!first(over_1000, 30));
 
 }  // namespace jlt_listing
 
@@ -167,6 +190,16 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::square(twelve) == 144);
     CHECK(L::times<size_t>(7, twelve) == 84);
+  }
+
+  SECTION(
+      "Section 4: the same fold, with a fuel it did not have at compile "
+      "time") {
+    for (size_t fuel : {size_t{30}, size_t{31}, size_t{32}, size_t{40}}) {
+      const std::optional<size_t> found = L::first(L::over_1000, fuel);
+      CHECK(found.has_value() == (fuel >= 32));
+      if (found) CHECK(*found == 32);
+    }
   }
 
   SECTION("The tree agrees with every unit the listings declare") {
