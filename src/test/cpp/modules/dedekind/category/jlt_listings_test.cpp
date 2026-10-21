@@ -292,7 +292,9 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     STATIC_CHECK(C::antitone(sn) == C::Ternary::True);
     STATIC_CHECK(C::IsMonotone<C::Compose<Neg, Neg>>);
     STATIC_CHECK(!C::IsMonotone<C::Compose<Id, Neg>>);
-    STATIC_CHECK(C::injective(nn) == C::Ternary::True);
+    STATIC_CHECK(C::injective(C::Compose<Id, Id>{Id{}, Id{}}) ==
+                 C::Ternary::True);
+    STATIC_CHECK(C::injective(nn) == C::Ternary::Unknown);
     STATIC_CHECK(C::arrow_laws(nn)[C::ArrowLaw::Monotone] == C::monotone(nn));
     CHECK(C::monotone(nn) == C::Ternary::True);
   }
