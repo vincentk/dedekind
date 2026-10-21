@@ -127,8 +127,8 @@ TEST_CASE(
 
   // Positive: the hand-written specialisations for the canonical
   // (+, *) ops still hold.
-  STATIC_CHECK(dedekind::category::is_associative_v<M, std::plus<M>>);
-  STATIC_CHECK(dedekind::category::is_associative_v<M, std::multiplies<M>>);
+  STATIC_CHECK(dedekind::category::associative<M>(std::plus<M>{}));
+  STATIC_CHECK(dedekind::category::associative<M>(std::multiplies<M>{}));
 
   // Negative: the discovery did NOT accidentally claim Modular<N>
   // is a Galois field under (+, *).  Modular<256> is a commutative

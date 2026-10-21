@@ -9,10 +9,10 @@ using namespace dedekind::category;
 template <typename T, typename Op = std::plus<T>>
 void audit_feature_cube() {
   // --- Plane 1: Algebraic Invariants (The "Manner" of Action) ---
-  STATIC_CHECK(is_associative_v<T, Op>);
-  STATIC_CHECK(is_commutative_v<T, Op>);
+  STATIC_CHECK(associative<T>(Op{}));
+  STATIC_CHECK(commutative<T>(Op{}));
 
-  if constexpr (is_idempotent_v<T, Op>) {
+  if constexpr (idempotent<T>(Op{})) {
     STATIC_CHECK(IsIdempotent<T, Op>);
   }
 
@@ -29,10 +29,10 @@ void audit_feature_cube() {
 
   // --- Plane 3: Identity & Mapping (The "Boundary" constants) ---
   if constexpr (IsPointed<T, Op>) {
-    STATIC_CHECK(requires { unit_v<T, Op>; });
+    STATIC_CHECK(requires { unit<T>(Op{}); });
     // We strip the cv-qualifiers (like 'const') from the constexpr storage
     // so that it matches the raw species type T.
-    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(unit_v<T, Op>)>, T>);
+    STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(unit<T>(Op{}))>, T>);
   }
 
   // if constexpr (IsSet<T>) {

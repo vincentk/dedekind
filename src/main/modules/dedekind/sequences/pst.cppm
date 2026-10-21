@@ -119,7 +119,7 @@ export template <IsPstSet S>
   requires IsPst<typename S::Domain>
 constexpr auto runs(const S& s) {
   using C = typename S::Domain;
-  return runs(s, unit_v<C, Sup>, unit_v<C, Inf>);
+  return runs(s, unit<C>(Sup{}), unit<C>(Inf{}));
 }
 
 /** @section pst__Formal_Verification */

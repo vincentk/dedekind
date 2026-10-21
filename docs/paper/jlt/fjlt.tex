@@ -45,7 +45,7 @@ Metavariables: $\alpha, \beta$ range over type variables, $b$ over base types (\
 P &::=& \overline{D}\; e & \text{program} \\[3pt]
 D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \texttt{ = } \overline{R}\texttt{;} & \text{shape} \\
   & | & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
-  & | & \texttt{template <> constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{instance} \\
+  & | & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{instance} \\
   & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\[3pt]
 
 R &::=& Q & \text{nested shape} \\
@@ -61,7 +61,7 @@ e &::=& x \;\mid\; c \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\
 \caption{The syntax of FJlt, a subset of \Cpp{23}.
 A program is a sequence of declarations and a closed term.
 A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types.
-A trait is a function template declared and deleted, its return type \cppinline{auto} where the instances choose it; an instance is an explicit specialisation of it; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
+A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
 The standard function objects are the only function objects; a term applies one by constructing it.
 Terms are variables, constants, calls with explicit or deduced type arguments, applications and pairs.}

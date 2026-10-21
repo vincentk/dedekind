@@ -20,7 +20,7 @@
  * allocation.
  *
  * @section species__Taxonomic_Traits
- * - unit_v<T, Op>  : The neutral element for a specific operation.
+ * - unit<T>(Op{})  : The neutral element for a specific operation.
  * - is_associative_v   : Static proof of grouping independence.
  * - is_commutative_v   : Static proof of order independence.
  *
@@ -264,9 +264,21 @@ struct unit_trait<T, Op, std::void_t<decltype(T::template unit_v<Op>)>> {
 };
 
 // --- THE SERVICE DESK (Public API) ---
+/**
+ * @brief The unit of @c Op at the carrier @c T, read as @c unit<T>(Op{}).
+ * @details A function of the operation's value: concepts read it at compile
+ *          time, an ordinary call reads it at runtime.  Registration stays
+ *          with @c unit_trait / @c unit_registry, since a class template
+ *          admits partial specialisation (whole families of carriers, across
+ *          modules) and a function template does not.
+ * @tparam T  The carrier.
+ * @tparam Op The operation (deduced).
+ */
 export template <typename T, typename Op>
   requires requires { unit_trait<T, Op>::value; }
-inline constexpr T unit_v = unit_trait<T, Op>::value;
+constexpr T unit(Op) {
+  return unit_trait<T, Op>::value;
+}
 
 // NOTE (#637 re-home): the @c IsPointed concept moved to @c :total, where
 // it sits with its consumers @c IsUnitalMagma / @c IsMonoid / @c IsLoop /
@@ -350,6 +362,35 @@ struct inverse_trait {
  */
 export template <typename T, typename Mult, typename Add>
 inline constexpr bool is_distributive_v = false;
+
+/**
+ * @brief The laws as functions of the operation: @c associative<T>(Op{}),
+ *        @c commutative<T>(Op{}), @c idempotent<T>(Op{}) and
+ *        @c distributive<T>(Mul{}, Add{}).
+ * @details Same split as @c unit: the @c is_*_v variable templates store the
+ *          facts (partial specialisation, across modules), these functions
+ *          read them, at compile time and at runtime alike.
+ * @tparam T The carrier.
+ */
+export template <typename T, typename Op>
+constexpr bool associative(Op) {
+  return is_associative_v<T, Op>;
+}
+
+export template <typename T, typename Op>
+constexpr bool commutative(Op) {
+  return is_commutative_v<T, Op>;
+}
+
+export template <typename T, typename Op>
+constexpr bool idempotent(Op) {
+  return is_idempotent_v<T, Op>;
+}
+
+export template <typename T, typename Mul, typename Add>
+constexpr bool distributive(Mul, Add) {
+  return is_distributive_v<T, Mul, Add>;
+}
 
 /** @brief The Shorthand for the Registry. */
 export template <typename T, typename Op>
@@ -557,25 +598,31 @@ inline constexpr bool is_distributive_v<T, std::bit_and<>, std::bit_or<>> =
 template <typename T>
 inline constexpr bool is_distributive_v<T, std::bit_or<>, std::bit_and<>> =
     std::integral<T>;
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_and<T>, std::bit_or<T>> =
+    std::integral<T>;
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_or<T>, std::bit_and<T>> =
+    std::integral<T>;
 
 /**
  * @section species__Taxonomic_Validation
  * @brief Self-verifying the structural integrity of the reified species.
  */
-static_assert(unit_v<bool, std::logical_or<bool>> == false,
+static_assert(unit<bool>(std::logical_or<bool>{}) == false,
               "Taxonomy Error: Boolean OR identity must be False (⊥).");
 
-static_assert(unit_v<bool, std::logical_and<bool>> == true,
+static_assert(unit<bool>(std::logical_and<bool>{}) == true,
               "Taxonomy Error: Boolean AND identity must be True (⊤).");
 
-static_assert(unit_v<int, std::plus<int>> == 0,
+static_assert(unit<int>(std::plus<int>{}) == 0,
               "Taxonomy Error: Integer additive identity must be 0.");
 
-static_assert(unit_v<size_t, std::multiplies<size_t>> == 1,
+static_assert(unit<size_t>(std::multiplies<size_t>{}) == 1,
               "Taxonomy Error: Unsigned multiplicative identity must be 1.");
 
 static_assert(
-    !is_associative_v<int, std::plus<int>>,
+    !associative<int>(std::plus<int>{}),
     "Honesty Check: Signed addition is NOT associative due to UB hazards.");
 
 /**
@@ -672,10 +719,10 @@ concept IsFinite = !IsTransfinite<T>;
 // @c constexpr @c Inf @c meet is @c const @c Inf), but the law traits are keyed
 // on the bare op type, so we normalise here so both spellings resolve (#934).
 export template <typename T, typename Op>
-concept IsAssociative = is_associative_v<T, std::remove_cvref_t<Op>>;
+concept IsAssociative = associative<T>(std::remove_cvref_t<Op>{});
 
 export template <typename T, typename Op>
-concept IsCommutative = is_commutative_v<T, std::remove_cvref_t<Op>>;
+concept IsCommutative = commutative<T>(std::remove_cvref_t<Op>{});
 
 /** @section species__Commutative Verification: The Symmetry Law */
 
@@ -709,12 +756,12 @@ concept IsDistributive = requires(T a, T b, T c) {
   // We check the semantic presence of the law (usually via a trait); cv-strip
   // the op types so a const-qualified op (decltype of a constexpr object) keys
   // the same registration as the bare type (#934).
-  requires is_distributive_v<T, std::remove_cvref_t<Mul>,
-                             std::remove_cvref_t<Add>>;
+  requires distributive<T>(std::remove_cvref_t<Mul>{},
+                           std::remove_cvref_t<Add>{});
 };
 
 export template <typename T, typename Op>
-concept IsIdempotent = is_idempotent_v<T, std::remove_cvref_t<Op>>;
+concept IsIdempotent = idempotent<T>(std::remove_cvref_t<Op>{});
 
 // NOTE (#637 re-home): @c IsInvertible moved to @c :total alongside @c
 // IsPointed (which it composes with).  The @c is_invertible_v trait
@@ -786,7 +833,7 @@ inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_xor<T>> =
 
 /** @section species__Atomic_Floor_Verification */
 
-static_assert(!is_associative_v<int, std::plus<int>>,
+static_assert(!associative<int>(std::plus<int>{}),
               "Honesty Check: Signed addition is NOT associative due to UB.");
 
 // 1. Verify "Species" Registration (Section 2.2.1)
@@ -796,22 +843,22 @@ static_assert(IsSpecies<bool>,
               "Taxonomy Error: bool must be a registered Species.");
 
 // 2. Verify Algebraic Invariants (The "Feature Cube", Table 2)
-static_assert(is_idempotent_v<bool, std::logical_or<bool>>,
+static_assert(idempotent<bool>(std::logical_or<bool>{}),
               "Axiom Error: Boolean 'OR' must be idempotent.");
 
-static_assert(is_idempotent_v<bool, std::logical_and<bool>>,
+static_assert(idempotent<bool>(std::logical_and<bool>{}),
               "Axiom Error: Boolean 'AND' must be idempotent.");
 
-static_assert(is_idempotent_v<unsigned int, std::bit_and<unsigned int>>,
+static_assert(idempotent<unsigned int>(std::bit_and<unsigned int>{}),
               "Axiom Error: Bitwise 'AND' must be idempotent for integrals.");
 
-static_assert(is_commutative_v<int, std::bit_or<int>>,
+static_assert(commutative<int>(std::bit_or<int>{}),
               "Axiom Error: Bitwise 'OR' must be commutative.");
 
-static_assert(unit_v<bool, std::logical_or<bool>> == false,
+static_assert(unit<bool>(std::logical_or<bool>{}) == false,
               "Logic Error: Boolean Or-Monoid identity must be False.");
 
-static_assert(unit_v<bool, std::logical_and<bool>> == true,
+static_assert(unit<bool>(std::logical_and<bool>{}) == true,
               "Logic Error: Boolean And-Monoid identity must be True.");
 
 // 5. Verify Material Constants
@@ -822,57 +869,57 @@ static_assert(
     "Field Error: Continuous species (double) must have characteristic 0.");
 
 // Unsigned is modular and safe (Associative)
-static_assert(is_associative_v<unsigned int, std::multiplies<>>,
+static_assert(associative<unsigned int>(std::multiplies<>{}),
               "Axiom Error: Unsigned multiplication must be associative.");
 
 // Signed is rejected due to UB overflow hazard
 static_assert(
-    !is_associative_v<int, std::multiplies<>>,
+    !associative<int>(std::multiplies<>{}),
     "Honesty Check: Signed multiplication is NOT associative due to UB.");
 
-static_assert(unit_v<int, std::multiplies<>> == 1,
+static_assert(unit<int>(std::multiplies<>{}) == 1,
               "Axiom Error: Multiplicative identity must be 1.");
 
 // Bitwise OR
-static_assert(is_idempotent_v<int, std::bit_or<>>,
+static_assert(idempotent<int>(std::bit_or<>{}),
               "Axiom Error: Bitwise OR must be idempotent.");
-static_assert(is_commutative_v<int, std::bit_or<>>,
+static_assert(commutative<int>(std::bit_or<>{}),
               "Axiom Error: Bitwise OR must be commutative.");
-static_assert(unit_v<int, std::bit_or<>> == 0,
+static_assert(unit<int>(std::bit_or<>{}) == 0,
               "Logic Error: Bitwise OR identity must be 0.");
 
 // Bitwise AND
-static_assert(is_idempotent_v<int, std::bit_and<>>,
+static_assert(idempotent<int>(std::bit_and<>{}),
               "Axiom Error: Bitwise AND must be idempotent.");
-static_assert(is_associative_v<int, std::bit_and<>>,
+static_assert(associative<int>(std::bit_and<>{}),
               "Axiom Error: Bitwise AND must be associative.");
 
-static_assert(!is_associative_v<int, std::modulus<>>,
+static_assert(!associative<int>(std::modulus<>{}),
               "Axiom Error: Modulus is not associative.");
-static_assert(!is_commutative_v<int, std::modulus<>>,
+static_assert(!commutative<int>(std::modulus<>{}),
               "Axiom Error: Modulus is not commutative.");
 
 /** @section species__Distributive_Certifications */
 
 // 1. Unsigned: Multiplicative Distribution over Addition is Total.
-static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
+static_assert(distributive<unsigned int>(std::multiplies<>{}, std::plus<>{}),
               "Axiom Error: Unsigned * must distribute over +.");
 
 // 2. Signed: Multiplicative Distribution over Addition is REJECTED.
-static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
+static_assert(!distributive<int>(std::multiplies<>{}, std::plus<>{}),
               "Honesty Check: Signed * does NOT distribute over + due to UB.");
 
 // Modular<N>'s distributivity static_assert lives in morphologies:cyclic
 // (the carrier moved there as part of #378).
 
 // 3. Bitwise Distributivity: AND distributes over OR (Boolean Ring properties).
-static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,
+static_assert(distributive<unsigned int>(std::bit_and<>{}, std::bit_or<>{}),
               "Axiom Error: Bitwise AND must distribute over bitwise OR.");
 
 // 4. Verification: Multiplication does NOT distribute over bitwise OR.
 // (a * (b | c) != (a * b) | (a * c) in general).
 static_assert(
-    !is_distributive_v<int, std::multiplies<>, std::bit_or<>>,
+    !distributive<int>(std::multiplies<>{}, std::bit_or<>{}),
     "Logic Error: Multiplication should not distribute over bitwise OR.");
 
 // The `is_cyclic_group` / `cyclic_order` specialisations for

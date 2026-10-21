@@ -50,7 +50,7 @@ namespace {
 using MP = MaxPlus<unsigned long long>;   // the max-plus dioid (CPM carrier)
 using TropMult = semiring_ops<MP>::mult;  // ⊗ = saturating +
 using TropPlus = semiring_ops<MP>::add;   // ⊕ = max
-constexpr MP kTropZero = unit_v<MP, TropPlus>;  // ⊕-identity (−∞): off-band
+constexpr MP kTropZero = unit<MP>(TropPlus{});  // ⊕-identity (−∞): off-band
 
 // The rank-1 weight rule u : ℕ → max-plus, u(x) = x (the log-domain "exp(x)").
 // An IsArrow over the INFINITE basis — intensional, never tabulated.

@@ -146,7 +146,7 @@ namespace dedekind::algebra {
  */
 export template <typename S, typename Add, typename Mult>
 concept IsTropical = dedekind::category::IsSemiring<S, Add, Mult> &&
-                     dedekind::category::is_idempotent_v<S, Add>;
+                     dedekind::category::idempotent<S>(Add{});
 
 /**
  * @brief Canonical semiring operations of a carrier, so combinators can

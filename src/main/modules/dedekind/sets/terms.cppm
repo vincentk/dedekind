@@ -1073,10 +1073,10 @@ export template <typename C>
 C search_value(std::uint64_t i) {
   if constexpr (dedekind::category::IsPst<C>) {
     std::uint64_t n = 1;
-    for (C v = unit_v<C, Sup>; v != unit_v<C, Inf>;
+    for (C v = unit<C>(Sup{}); v != unit<C>(Inf{});
          v = dedekind::category::Successor<C>{}(v))
       ++n;
-    C v = unit_v<C, Sup>;
+    C v = unit<C>(Sup{});
     for (std::uint64_t k = i % n; k > 0; --k)
       v = dedekind::category::Successor<C>{}(v);
     return v;
@@ -1293,11 +1293,11 @@ struct Value {
       } else if constexpr (dedekind::category::IsPst<C>) {
         const bool universal = t.kind == Pred<K>::Kind::Forall;
         P row = with_bound(v.p, t.sort);
-        for (C c = unit_v<C, Sup>;; c = dedekind::category::Successor<C>{}(c)) {
+        for (C c = unit<C>(Sup{});; c = dedekind::category::Successor<C>{}(c)) {
           set_bound(row, c);
           const bool holds = Value<P>{row}.steer(*t.p);
           if (holds != universal) return holds;
-          if (c == unit_v<C, Inf>) return universal;
+          if (c == unit<C>(Inf{})) return universal;
         }
       } else {
         throw not_admitted(
@@ -1422,11 +1422,11 @@ struct Verdict {
       P row = with_bound(v.point, t.sort);
       if constexpr (dedekind::category::IsPst<C>) {
         Ternary all = universal ? Ternary::True : Ternary::False;
-        for (C c = unit_v<C, Sup>;; c = dedekind::category::Successor<C>{}(c)) {
+        for (C c = unit<C>(Sup{});; c = dedekind::category::Successor<C>{}(c)) {
           set_bound(row, c);
           const Ternary here = Verdict{row, v.budget}(*t.p);
           all = universal ? Kleene::AND(all, here) : Kleene::OR(all, here);
-          if (c == unit_v<C, Inf>) return all;
+          if (c == unit<C>(Inf{})) return all;
         }
       } else {
         // An opposite quantifier over an infinite carrier inside: a search
@@ -2195,9 +2195,9 @@ struct ChainValues {
     if constexpr (dedekind::category::IsPst<C> && requires(const C& c) {
                     { lift(c) } -> std::convertible_to<K>;
                   }) {
-      for (C v = unit_v<C, Sup>;; v = dedekind::category::Successor<C>{}(v)) {
+      for (C v = unit<C>(Sup{});; v = dedekind::category::Successor<C>{}(v)) {
         out.push_back(dedekind::sets::Term<K>::constant(lift(v)));
-        if (v == unit_v<C, Inf>) break;
+        if (v == unit<C>(Inf{})) break;
       }
     }
     return out;

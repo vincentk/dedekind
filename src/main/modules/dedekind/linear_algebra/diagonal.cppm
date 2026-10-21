@@ -221,8 +221,8 @@ using DiagonalZero = Diagonal<D, zero_rule<T>>;
  * codomain (where they coincide with the @c ⊗ / @c ⊕ identities); a sibling of
  * @ref identity_rule (@c i↦1) and @ref zero_rule (@c i↦0).  @note NOT the units
  * of a general rig whose identities differ from @c 1/@c 0 (e.g. the tropical
- * dioid, @c ⊕-id @c = @c −∞); such a carrier would take @c unit_v<T,Mult> /
- * @c unit_v<T,Add> instead --- not needed at the ℂ use sites here. */
+ * dioid, @c ⊕-id @c = @c −∞); such a carrier would take @c unit<T>(Mult{}) /
+ * @c unit<T>(Add{}) instead --- not needed at the ℂ use sites here. */
 export template <typename T, typename D = std::size_t>
 struct one_hot {
   D k;

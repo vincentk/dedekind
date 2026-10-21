@@ -303,14 +303,14 @@ concept IsDagger = IsInvolution<Dagger, T>;
  * isometry is the multi-object case, left to the arrow surface. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_isometry(const T& f) {
-  return Op{}(Dagger{}(f), f) == unit_v<T, Op>;
+  return Op{}(Dagger{}(f), f) == unit<T>(Op{});
 }
 
 /** @brief The coisometry law: @f$f \circ f^\dagger = \mathrm{id}@f$ --- the
  *  dagger is a @b right inverse. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_coisometry(const T& f) {
-  return Op{}(f, Dagger{}(f)) == unit_v<T, Op>;
+  return Op{}(f, Dagger{}(f)) == unit<T>(Op{});
 }
 
 /** @brief The unitary law: isometry @b and coisometry, hence

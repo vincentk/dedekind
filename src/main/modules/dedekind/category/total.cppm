@@ -299,7 +299,7 @@ export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
           is_periodic_v<T, std::remove_cvref_t<Op>> ||     // A: wraps
-          is_idempotent_v<T, std::remove_cvref_t<Op>> ||   // B: stable
+          idempotent<T>(std::remove_cvref_t<Op>{}) ||      // B: stable
           is_saturating_v<T, std::remove_cvref_t<Op>> ||   // C: escalates
           is_exact_total_v<T, std::remove_cvref_t<Op>> ||  // D: exact
           is_total_by_construction_v<T, std::remove_cvref_t<Op>>  // E: built
@@ -342,35 +342,35 @@ struct is_total_by_construction<D, std::multiplies<D>>
  *  @tparam B the base carrier. */
 template <typename B>
 concept CommutativeRingLaws =
-    is_associative_v<B, std::plus<B>> && is_commutative_v<B, std::plus<B>> &&
-    is_associative_v<B, std::multiplies<B>> &&
-    is_distributive_v<B, std::multiplies<B>, std::plus<B>>;
+    associative<B>(std::plus<B>{}) && commutative<B>(std::plus<B>{}) &&
+    associative<B>(std::multiplies<B>{}) &&
+    distributive<B>(std::multiplies<B>{}, std::plus<B>{});
 
 template <IsConstructed D>
 inline constexpr bool is_associative_v<D, std::plus<D>> =
-    is_associative_v<typename construction_base<D>::type,
-                     std::plus<typename construction_base<D>::type>>;
+    associative<typename construction_base<D>::type>(
+        std::plus<typename construction_base<D>::type>{});
 template <IsConstructed D>
 inline constexpr bool is_commutative_v<D, std::plus<D>> =
-    is_commutative_v<typename construction_base<D>::type,
-                     std::plus<typename construction_base<D>::type>>;
+    commutative<typename construction_base<D>::type>(
+        std::plus<typename construction_base<D>::type>{});
 template <IsConstructed D>
 inline constexpr bool is_associative_v<D, std::multiplies<D>> =
-    is_associative_v<typename construction_base<D>::type,
-                     std::multiplies<typename construction_base<D>::type>> &&
+    associative<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 template <IsConstructed D>
 inline constexpr bool is_commutative_v<D, std::multiplies<D>> =
-    is_commutative_v<typename construction_base<D>::type,
-                     std::multiplies<typename construction_base<D>::type>> &&
+    commutative<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 template <IsConstructed D>
 inline constexpr bool is_distributive_v<D, std::multiplies<D>, std::plus<D>> =
-    is_distributive_v<typename construction_base<D>::type,
-                      std::multiplies<typename construction_base<D>::type>,
-                      std::plus<typename construction_base<D>::type>> &&
+    distributive<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{},
+        std::plus<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 
@@ -428,7 +428,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  */
 export template <typename T, typename Op>
 concept IsPointed = requires {
-  { unit_v<T, Op> } -> std::convertible_to<T>;
+  { unit<T>(Op{}) } -> std::convertible_to<T>;
 };
 
 static_assert(IsPointed<bool, std::logical_or<bool>>,
@@ -461,7 +461,7 @@ static_assert(IsPointed<double, std::multiplies<double>>,
 template <typename A, typename B, typename Op>
   requires IsPointed<B, Op>
 struct unit_registry<ConstantMorphism<A, B>, Op> {
-  static constexpr ConstantMorphism<A, B> value{unit_v<B, Op>};
+  static constexpr ConstantMorphism<A, B> value{unit<B>(Op{})};
 };
 
 /**
@@ -473,7 +473,7 @@ struct unit_registry<ConstantMorphism<A, B>, Op> {
 export template <typename A, typename B, typename Op = std::plus<B>>
   requires IsPointed<B, Op>
 constexpr auto zero() {
-  return ConstantMorphism<A, B>{unit_v<B, Op>};
+  return ConstantMorphism<A, B>{unit<B>(Op{})};
 }
 
 static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
@@ -905,8 +905,8 @@ concept IsDistributiveLattice =
 /**
  * @concept IsBoundedLattice
  * @brief A @ref IsLattice whose join and meet each carry an identity: the
- *        bottom @f$\bot@f$ (@c unit_v<T,Join>) and top @f$\top@f$
- *        (@c unit_v<T,Meet>).
+ *        bottom @f$\bot@f$ (@c unit<T>(Join{})) and top @f$\top@f$
+ *        (@c unit<T>(Meet{})).
  * @details A lattice is @b bounded when it has a least and a greatest element,
  * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
  * meet-semilattices are each an @ref IsMonoid (commutativity is already forced

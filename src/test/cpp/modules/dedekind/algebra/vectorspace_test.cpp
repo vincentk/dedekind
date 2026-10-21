@@ -33,13 +33,13 @@ import dedekind.category;
 
 using dedekind::algebra::Bit2U64Action;
 using dedekind::algebra::𝔽64;
-using dedekind::category::unit_v;
+using dedekind::category::unit;
 
 namespace {
 
-inline constexpr 𝔽64 ZERO64 = unit_v<𝔽64, std::plus<𝔽64>>;
-inline constexpr bool F2_ZERO = unit_v<bool, std::bit_xor<bool>>;
-inline constexpr bool F2_ONE = unit_v<bool, std::bit_and<bool>>;
+inline constexpr 𝔽64 ZERO64 = unit<𝔽64>(std::plus<𝔽64>{});
+inline constexpr bool F2_ZERO = unit<bool>(std::bit_xor<bool>{});
+inline constexpr bool F2_ONE = unit<bool>(std::bit_and<bool>{});
 
 constexpr std::bit_xor<bool> f2_plus{};
 constexpr std::bit_and<bool> f2_times{};

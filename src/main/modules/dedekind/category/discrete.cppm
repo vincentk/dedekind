@@ -66,7 +66,7 @@ template <typename A, typename B, typename Op>
 inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
 
 // NOTE (#637 re-home): the algebra-flavoured @c zero<A, B, Op>() factory
-// (the constant morphism pointing at @c unit_v<B, Op>) plus the @c
+// (the constant morphism pointing at @c unit<B>(Op{})) plus the @c
 // unit_registry specialisation for
 // @c ConstantMorphism<A, B> moved to @c :total, where they sit with @c
 // IsPointed (their primary user) and the @c IsUnitalMagma / @c IsMonoid

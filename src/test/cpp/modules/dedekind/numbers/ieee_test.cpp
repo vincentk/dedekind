@@ -39,7 +39,7 @@ TEST_CASE("IEEE map/bind and lane conversions", "[numbers][ieee][unsafe]") {
   CHECK_FALSE(discharge_ieee(inf).has_value());
 }
 
-static_assert(is_associative_v<IEEE<double>, IEEEAdd<double>>,
+static_assert(associative<IEEE<double>>(IEEEAdd<double>{}),
               "IEEE fast lane should certify associativity by explicit policy");
 
 static_assert(

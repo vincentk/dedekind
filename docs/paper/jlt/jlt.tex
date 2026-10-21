@@ -52,17 +52,16 @@ Here is the whole translation in one shape.
 A monoid is a carrier with an associative operation and a unit for it.
 Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}, and then populates it: \cppinline{bool} has it twice, \cppinline{size_t} four times.
 
-% Compiles and runs standalone with clang++ 22 -std=c++23 (probe 2026-10-21);
-% the exhibit test in the tree is still to be added.  The tree spells the
-% unit as the variable template unit_v<T, Op>; it follows the paper next.
+% Verbatim in src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp,
+% which also checks that the tree's unit<T>(Op{}) and laws agree.
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename Op> constexpr auto unit(Op) = delete;
+template <typename T, typename Op> constexpr T unit(Op) = delete;
 
 template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
-  { unit(Op{}) } -> std::same_as<T>;
+  { unit<T>(Op{}) } -> std::same_as<T>;
 };
 
 template <typename T, typename Op = std::plus<T>>
@@ -70,19 +69,19 @@ template <typename T, typename Op = std::plus<T>>
 constexpr T twice(T x) { return Op{}(x, x); }
 \end{cpp}
 \begin{cpp}
-template <> constexpr auto unit(std::logical_and<bool>) { return true; }
-template <> constexpr auto unit(std::logical_or<bool>) { return false; }
+template <> constexpr bool unit<bool>(std::logical_and<bool>) { return true; }
+template <> constexpr bool unit<bool>(std::logical_or<bool>) { return false; }
 
 static_assert( IsMonoid<bool, std::logical_and<bool>>);
 static_assert( IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<bool>>);
 \end{cpp}
 \begin{cpp}
-template <> constexpr auto unit(std::plus<size_t>) { return size_t{0}; }
-template <> constexpr auto unit(std::multiplies<size_t>) { return size_t{1}; }
-template <> constexpr auto unit(std::bit_or<size_t>) { return size_t{0}; }
-template <> constexpr auto unit(std::bit_and<size_t>) {
-  return size_t{SIZE_MAX};
+template <> constexpr size_t unit<size_t>(std::plus<size_t>) { return 0; }
+template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
+template <> constexpr size_t unit<size_t>(std::bit_or<size_t>) { return 0; }
+template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) {
+  return SIZE_MAX;
 }
 
 static_assert(IsMonoid<size_t, std::plus<size_t>>);
@@ -101,7 +100,7 @@ twice     =  Λ T. Λ Op. λ d : MonoidDict T Op. λ x : T.  d.op x x
 twice [u64] [plus] plus_u64 21
 \end{minted}
 \caption{The monoid shape, populated.
-Top: \cppinline{unit}, a function of the operation, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
+Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
 Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under \cppinline{+}, which yields an \cppinline{int}.
 Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them.
 Bottom: the same in System~F.
@@ -120,11 +119,11 @@ Two of them deserve a sentence each.
 And a unit is a choice.
 The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a specialisation of \cppinline{unit}.
 An instance declaration in a type-class system is the same act; here it is a specialisation, and the one-definition rule makes sure there is one.
-The primary is declared and deleted rather than left out, for a reason worth a footnote.\footnote{A plain overload \cppinline{unit(std::plus<size_t>)} beside the concept is never found: inside the concept, \cppinline{unit(Op{})} is looked up by argument-dependent lookup in the namespace of \cppinline{Op}, which is \cppinline{std}, not ours.
+The primary is declared and deleted rather than left out, for a reason worth a footnote.\footnote{A plain overload \cppinline{unit(std::plus<size_t>)} beside the concept is never found: inside the concept, \cppinline{unit<T>(Op{})} is looked up by argument-dependent lookup in the namespace of \cppinline{Op}, which is \cppinline{std}, not ours.
 The deleted primary is found by name, and its specialisations with it.
 A call to the primary itself is a substitution failure, so an operation nobody registered is rejected, not silently accepted.
 Section~\ref{sec:limits} lists this wall.}
-\cppinline{unit} is a value-level function, so the fact is also visible at runtime, where \cppinline{unit(op)} is an ordinary call; Section~\ref{sec:binding} uses this.
+\cppinline{unit} is a value-level function, so the fact is also visible at runtime, where \cppinline{unit<size_t>(op)} is an ordinary call; Section~\ref{sec:binding} uses this.
 
 \begin{table}[ht]
 \centering
@@ -156,34 +155,38 @@ The defaulted \cppinline{Op} picks the additive reading when a caller does not c
 A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
 Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:monoid} stated the unit, as functions of the operation, and then states the shape as a conjunction and finds three semirings among the monoids we have.
 
-% Compiles and runs standalone (same probe as Listing 1).
+% Verbatim in jlt_listings_test.cpp (as Listing 1).
 \begin{listing}[htbp]
 \begin{cpp}
-template <typename Op> constexpr bool commutative(Op) = delete;
-template <typename Mul, typename Add>
+template <typename T, typename Op> constexpr bool commutative(Op) = delete;
+template <typename T, typename Mul, typename Add>
 constexpr bool distributive(Mul, Add) = delete;
 
 template <typename T, typename Op>
-concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative(Op{});
+concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
 
 template <typename T, typename Add, typename Mul>
 concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
-                     distributive(Mul{}, Add{});
+                     distributive<T>(Mul{}, Add{});
 \end{cpp}
 \begin{cpp}
-template <> constexpr bool commutative(std::plus<size_t>) { return true; }
-template <> constexpr bool commutative(std::bit_or<size_t>) { return true; }
-template <> constexpr bool commutative(std::logical_or<bool>) { return true; }
 template <>
-constexpr bool distributive(std::multiplies<size_t>, std::plus<size_t>) {
+constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
+template <>
+constexpr bool commutative<size_t>(std::bit_or<size_t>) { return true; }
+template <>
+constexpr bool commutative<bool>(std::logical_or<bool>) { return true; }
+template <>
+constexpr bool distributive<size_t>(std::multiplies<size_t>, std::plus<size_t>) {
   return true;
 }
 template <>
-constexpr bool distributive(std::bit_and<size_t>, std::bit_or<size_t>) {
+constexpr bool distributive<size_t>(std::bit_and<size_t>, std::bit_or<size_t>) {
   return true;
 }
 template <>
-constexpr bool distributive(std::logical_and<bool>, std::logical_or<bool>) {
+constexpr bool distributive<bool>(std::logical_and<bool>,
+                                  std::logical_or<bool>) {
   return true;
 }
 
@@ -208,9 +211,9 @@ One thing the listing does not do, and cannot.
 A concept checks signatures.
 It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
 It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
-\cppinline{distributive(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the last \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
+\cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the last \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
 Section~\ref{sec:laws} is about where such facts come from, which ones can be decided rather than declared, and what can be inferred from them.
-The shape permits \cppinline{unit(Add{}) == unit(Mul{})}, as a semiring should; the one-element carrier witnesses it.
+The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should; the one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}

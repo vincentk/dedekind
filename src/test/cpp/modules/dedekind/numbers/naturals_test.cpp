@@ -79,8 +79,8 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
   SECTION("Small Category Identity Proof") {
     // Verify that the unit_trait is correctly resolved for primitive
     // species.
-    CHECK(unit_v<int, std::plus<int>> == 0);
-    CHECK(unit_v<bool, std::logical_and<bool>> == true);
-    CHECK(unit_v<bool, std::logical_or<bool>> == false);
+    CHECK(unit<int>(std::plus<int>{}) == 0);
+    CHECK(unit<bool>(std::logical_and<bool>{}) == true);
+    CHECK(unit<bool>(std::logical_or<bool>{}) == false);
   }
 }

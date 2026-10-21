@@ -152,10 +152,10 @@ concept SatisfiesVectorSpaceAxioms =
 
       // Unit axiom is checked when a multiplicative identity witness exists.
       requires(
-          !requires { dedekind::category::unit_v<F, MultF>; } ||
+          !requires { dedekind::category::unit<F>(MultF{}); } ||
           requires {
             {
-              Act{}(dedekind::category::unit_v<F, MultF>, x)
+              Act{}(dedekind::category::unit<F>(MultF{}), x)
             } -> std::same_as<V>;
           });
     };

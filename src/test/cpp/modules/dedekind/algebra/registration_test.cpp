@@ -38,17 +38,17 @@ using Mult64 = std::multiplies<𝔽64>;
 TEST_CASE(
     "registration — SpeciesTraits-based discovery lifts struct traits for 𝔽64",
     "[algebra][registration]") {
-  using dedekind::category::is_associative_v;
-  using dedekind::category::is_commutative_v;
+  using dedekind::category::associative;
+  using dedekind::category::commutative;
   using dedekind::category::is_invertible_v;
   using dedekind::category::is_periodic_v;
-  using dedekind::category::unit_v;
+  using dedekind::category::unit;
 
   // Associativity + commutativity (both ops).
-  STATIC_CHECK(is_associative_v<𝔽64, Add64>);
-  STATIC_CHECK(is_associative_v<𝔽64, Mult64>);
-  STATIC_CHECK(is_commutative_v<𝔽64, Add64>);
-  STATIC_CHECK(is_commutative_v<𝔽64, Mult64>);
+  STATIC_CHECK(associative<𝔽64>(Add64{}));
+  STATIC_CHECK(associative<𝔽64>(Mult64{}));
+  STATIC_CHECK(commutative<𝔽64>(Add64{}));
+  STATIC_CHECK(commutative<𝔽64>(Mult64{}));
 
   // Totality via periodicity (both ops).
   STATIC_CHECK(is_periodic_v<𝔽64, Add64>);
@@ -60,8 +60,8 @@ TEST_CASE(
 
   // Identities from the registration helper, not a per-carrier
   // unit_trait specialisation.
-  STATIC_CHECK(unit_v<𝔽64, Add64> == 𝔽64{});
-  STATIC_CHECK(unit_v<𝔽64, Mult64> == 𝔽64{std::uint8_t{1}});
+  STATIC_CHECK(unit<𝔽64>(Add64{}) == 𝔽64{});
+  STATIC_CHECK(unit<𝔽64>(Mult64{}) == 𝔽64{std::uint8_t{1}});
 }
 
 TEST_CASE(

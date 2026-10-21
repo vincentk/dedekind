@@ -337,7 +337,7 @@ inline constexpr bool
     is_commutative_v<dedekind::numbers::Complex<R>,
                      std::multiplies<dedekind::numbers::Complex<R>>> =
         IsRng<R, std::plus<R>, std::multiplies<R>> &&
-        is_commutative_v<R, std::multiplies<R>>;
+        commutative<R>(std::multiplies<R>{});
 
 template <typename R>
 inline constexpr bool

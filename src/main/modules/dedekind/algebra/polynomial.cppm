@@ -199,7 +199,8 @@ class Polynomial {
   /** @brief A constant. */
   constexpr explicit Polynomial(R scalar) {
     if (scalar != zero_coefficient())
-      terms_.emplace_back(unit_v<M, std::multiplies<M>>, std::move(scalar));
+      terms_.emplace_back(dedekind::category::unit<M>(std::multiplies<M>{}),
+                          std::move(scalar));
   }
   /** @brief The sum of the given terms, in any order: combined, sorted, zero
    *  coefficients dropped.  @param terms monomial and coefficient pairs. */
@@ -296,8 +297,12 @@ class Polynomial {
  private:
   std::vector<term_type> terms_;
 
-  static constexpr R zero_coefficient() { return unit_v<R, std::plus<R>>; }
-  static constexpr R unit() { return unit_v<R, std::multiplies<R>>; }
+  static constexpr R zero_coefficient() {
+    return dedekind::category::unit<R>(std::plus<R>{});
+  }
+  static constexpr R unit() {
+    return dedekind::category::unit<R>(std::multiplies<R>{});
+  }
   /** @brief The additive inverse of a coefficient, where @c R certifies one:
    *  the category's @c inverse_v bridge where @c R registers an @c inverse,
    *  else @c 0 @c - @c c (a carrier whose certificate is the trait alone). */
@@ -450,10 +455,10 @@ struct Poly {
   /** @brief @c 1/k on the field; a @c k that is 0 on the carrier (p on 𝔽ₚ)
    *  is refused. */
   static constexpr C reciprocal(const C& k) {
-    if (k == unit_v<C, std::plus<C>>)
+    if (k == unit<C>(std::plus<C>{}))
       throw std::domain_error(
           "a division by a constant that is 0 on the carrier");
-    return unit_v<C, std::multiplies<C>> / k;
+    return unit<C>(std::multiplies<C>{}) / k;
   }
 };
 
@@ -476,7 +481,7 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
                                 const Lift& lift) {
   using T = dedekind::sets::Term<K>;
   using dedekind::sets::Arith;
-  if (p.is_zero()) return T::constant(lift(unit_v<C, std::plus<C>>));
+  if (p.is_zero()) return T::constant(lift(unit<C>(std::plus<C>{})));
   T sum;
   bool first = true;
   for (auto it = p.support().rbegin(); it != p.support().rend(); ++it) {
@@ -496,7 +501,7 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
       }
     }
     const T term = constant ? T::constant(lift(c))
-                   : c == unit_v<C, std::multiplies<C>>
+                   : c == unit<C>(std::multiplies<C>{})
                        ? product
                        : T::bin(Arith::Mul, T::constant(lift(c)), product);
     sum = first ? term : T::bin(Arith::Add, sum, term);
@@ -512,7 +517,7 @@ dedekind::sets::Term<K> as_term(const Polynomial<C, Monomial<N>>& p,
  *  leading coefficient. */
 export template <typename C>
 constexpr C unit_normaliser(const C&) {
-  return unit_v<C, std::multiplies<C>>;
+  return unit<C>(std::multiplies<C>{});
 }
 /** @brief On a word, ℤ/2ⁿ: @c c @c = @c 2ᵏ·o with @c o odd, and the odd
  *  elements are the units, so @c o⁻¹ (Newton's iteration, 2-adic: each step
@@ -575,7 +580,7 @@ dedekind::sets::Pred<K> canonical_atom_in(const dedekind::sets::Pred<K>& p,
         if constexpr (requires(const C& a, const C& b) { a / b; }) {
           if (dedekind::sets::admits(On<C>{}, dedekind::sets::FieldDivision{},
                                      true)) {
-            d = d * P(unit_v<C, std::multiplies<C>> / d.leading_coefficient());
+            d = d * P(unit<C>(std::multiplies<C>{}) / d.leading_coefficient());
             field = true;
           }
         }
@@ -583,7 +588,7 @@ dedekind::sets::Pred<K> canonical_atom_in(const dedekind::sets::Pred<K>& p,
       }
       return Pr::cmp(
           p.rel, as_term<K>(d, lift),
-          dedekind::sets::Term<K>::constant(lift(unit_v<C, std::plus<C>>)));
+          dedekind::sets::Term<K>::constant(lift(unit<C>(std::plus<C>{}))));
     }
   }
   return Pr::cmp(p.rel, as_term<K>(x, lift), as_term<K>(y, lift));

@@ -146,7 +146,7 @@ concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
            std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
               requires {
                 {
-                  f(dedekind::category::unit_v<M, std::plus<M>>)
+                  f(dedekind::category::unit<M>(std::plus<M>{}))
                 } -> std::same_as<M>;
               };
 };
@@ -194,7 +194,7 @@ concept IsLinearMorphism =
  */
 export template <typename A, typename B, typename Op>
 struct ZeroAction final {
-  constexpr B operator()(const A&) const noexcept { return unit_v<B, Op>; }
+  constexpr B operator()(const A&) const noexcept { return unit<B>(Op{}); }
 };
 
 /** @section action__Module_FreeModule_EndoRing_Trait_Registry
