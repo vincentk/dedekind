@@ -333,8 +333,51 @@ Three theorems and two corollaries, stated in Section~\ref{sec:guarantees} once 
 
 \subsection{From \Cpp{} to the calculus}
 \label{sec:translation:adequacy}
-% The adequacy argument in prose: which C++23 features the fragment keeps,
-% which it forbids, and the gap (the compiler does not enforce the rules).
+
+The theorems are about FJlt.
+For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
+
+\emph{Every FJlt program is a \Cpp{23} program, with the same meaning.}
+This direction is by construction.
+The grammar of Figure~\ref{fig:fjlt-syntax} is a subset of the \Cpp{} grammar, written in \Cpp{}'s own spelling, and FJlt's evaluation is \Cpp{}'s constant evaluation restricted to that subset.
+The argument is a walk over the productions: a concept is a concept, an explicit specialisation is one, a call with explicit type arguments is one, and in each case the \Cpp{} standard's rule for the construct is the FJlt rule.
+Two places in that walk deserve a sentence.
+Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently; at runtime it can, which is why the listings' carriers are unsigned, and why \cppinline{int} appears in this paper only as a counter-example.
+And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
+
+\emph{A \Cpp{} program that follows the three rules is an FJlt program.}
+This direction is not a theorem, because the compiler does not check it, and the point of Rule~2 is exactly the part it does not check.
+Table~\ref{tab:adequacy} lists what \Cpp{} has and FJlt does not, and how each is kept out.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+\Cpp{} has & FJlt does not, because & kept out by \\
+\midrule
+bodies checked at instantiation & bodies are typed against the constraint & Rule~2, by reading \\
+overloading & one function per name, plus its specialisations & the grammar \\
+argument-dependent lookup & instances are found by the trait's name & the grammar, and Section~\ref{sec:limits} \\
+implicit conversions & result types are exact & \texttt{std::same\_as} \\
+references, \texttt{const}, moves & values are copied & erased: an optimisation, not a meaning \\
+state, pointers, exceptions & functions are pure & Rule~1, and constant evaluation \\
+unbounded loops, general recursion & recursion folds & Rule~3, by reading \\
+\bottomrule
+\end{tabularx}
+\caption{What the adequacy argument has to keep out of a Jlt program, and what keeps it out.
+The two rows marked \emph{by reading} are the whole gap: the compiler accepts programs that break them.}
+\label{tab:adequacy}
+\end{table}
+
+Five of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
+The two that remain are Rule~2 and Rule~3, and they are posture.
+A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did; a loop whose bound changes as it runs compiles anyway.
+Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that \Cpp{}'s concepts proposals once included and the shipped feature does not,\footnote{The dropped check is the subject of Section~\ref{sec:related}.} so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
+Rule~3 is likewise checkable for the loop forms the grammar admits.
+
+So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
+Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
 \section{Laws of Functions}
 \label{sec:laws}
