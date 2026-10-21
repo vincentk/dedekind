@@ -73,19 +73,130 @@ Terms are variables, constants, function names, calls with explicit or deduced t
 
 \subsection{Typing}
 \label{app:fjlt:typing}
-% Well-formed programs; constraint entailment (instance resolution); typing of
-% terms.  The rules the body did not show.
+
+Three judgments, in the usual shape.
+$\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints.
+$\Delta; \Gamma \vdash e : \tau$ types a term.
+$\vdash D$ says a declaration is well formed, and a program is well formed when its declarations are and its closed term has a type.
+Figure~\ref{fig:fjlt-typing} gives the rules that carry weight; the ones for constants, pairs, optionals, conditionals and the arithmetic of base types are the obvious ones and are omitted.
+
+\paragraph{Resolution.}
+A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$: the explicit specialisation at $\overline{\tau}$ if there is one, otherwise the generic function whose head matches $\overline{\tau}$ and whose context is entailed, recursively.
+The deleted primary never resolves, which is how an operation nobody registered fails a shape.
+Well-formedness requires resolution to be a partial function: no two specialisations at one head, and no two generic functions whose heads both match an instantiation (the no-overlap condition); and it requires every context to mention only proper parts of the head's type arguments, so that resolution terminates~\cite{sulzmann2007understanding}.
+
+\begin{figure}[htbp]
+\footnotesize
+\[
+\begin{array}{c}
+\textsc{(E-Assume)}\quad \dfrac{Q \in \Delta}{\Delta \Vdash Q}
+\qquad
+\textsc{(E-Law)}\quad \dfrac{\Delta; \varnothing \vdash e : \texttt{bool} \qquad e \Downarrow \texttt{true}}{\Delta \Vdash e}
+\\[12pt]
+\textsc{(E-Shape)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{R} \qquad \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
+\\[12pt]
+\textsc{(E-Op)}\quad \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
+\\[12pt]
+\textsc{(T-Var)}\quad \dfrac{x : \tau \in \Gamma}{\Delta; \Gamma \vdash x : \tau}
+\qquad
+\textsc{(T-Op)}\quad \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma \text{ (the standard's signature)} \qquad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
+\\[12pt]
+\textsc{(T-Call)}\quad \dfrac{f : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
+\\[12pt]
+\textsc{(T-Trait)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration of type } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
+\\[12pt]
+\textsc{(T-Trait-Assumed)}\quad \dfrac{C\texttt{<}\overline{\alpha}\texttt{>} \in \Delta \qquad f \text{ is a requirement of } C \text{ at } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\alpha}\texttt{>(}\overline{e}\texttt{)} : \tau}
+\\[12pt]
+\textsc{(T-Fold)}\quad \dfrac{\Delta; \Gamma \vdash r : \texttt{range<}\tau\texttt{>} \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
+\qquad
+\dfrac{\Delta; \Gamma \vdash x : \tau \qquad \Delta; \Gamma \vdash n : \texttt{size\_t}}{\Delta; \Gamma \vdash \texttt{repeat(}x\texttt{, }n\texttt{)} : \texttt{range<}\tau\texttt{>}}
+\\[12pt]
+\textsc{(D-Generic)}\quad \dfrac{\overline{\alpha}, \overline{Q};\; \overline{x : \tau_x} \vdash e : \tau}{\vdash \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\\[12pt]
+\textsc{(D-Instance)}\quad \dfrac{\varnothing;\; \overline{x : \tau_x} \vdash e : \tau}{\vdash \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}}}
+\end{array}
+\]
+\normalsize
+\caption{Entailment, typing and well-formedness, the rules that carry weight.
+\textsc{E-Law} is where a law is a value: entailment evaluates it, so a shape with a law is satisfied only at instances whose certificate holds, and the stratification of laws (closed terms of base type) keeps typing and evaluation from chasing each other.
+\textsc{E-Op} reads $S$ as equality for \cppinline{std::same_as} and as conversion for \cppinline{std::convertible_to}.
+\textsc{T-Trait-Assumed} is the rule that makes \textsc{D-Generic} a definition check: inside a constrained body a trait is reachable only through a constraint in $\Delta$.
+\cppinline{iota(0, n)} is typed like \cppinline{repeat} with $\tau = $ \cppinline{size_t}.}
+\label{fig:fjlt-typing}
+\end{figure}
 
 \subsection{Evaluation}
 \label{app:fjlt:evaluation}
-% Call-by-value reduction; folds unfold on their fuel.
+
+Evaluation is big-step, $e \Downarrow v$, on closed terms, with values $v ::= c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt}$.
+It is \Cpp{}'s constant evaluation restricted to the grammar, and Figure~\ref{fig:fjlt-eval} gives the three rules that are not generic.
+
+\begin{figure}[htbp]
+\footnotesize
+\[
+\begin{array}{c}
+\textsc{(V-Call)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } \ldots f\texttt{(}\overline{\tau_x\; x}\texttt{) \{ return } e\texttt{; \}} \qquad \overline{e_i \Downarrow v_i} \qquad e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \Downarrow v}{f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \Downarrow v}
+\\[12pt]
+\textsc{(V-Op)}\quad \dfrac{\overline{e_i \Downarrow v_i} \qquad O\texttt{<}\overline{\tau}\texttt{>} \text{ applied to } \overline{v} \text{ is } v \text{ by the standard}}{O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} \Downarrow v}
+\\[12pt]
+\textsc{(V-Fold)}\quad \dfrac{x \Downarrow v_x \qquad n \Downarrow k \qquad a \Downarrow s_0 \qquad f\texttt{(}s_{i-1}\texttt{, }v_x\texttt{)} \Downarrow s_i \text{ for } i = 1 \ldots k}{\texttt{fold\_left(repeat(}x\texttt{, }n\texttt{), }a\texttt{, }f\texttt{)} \Downarrow s_k}
+\end{array}
+\]
+\normalsize
+\caption{Evaluation.
+\textsc{V-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
+\textsc{V-Fold} over \cppinline{iota(0, n)} feeds $i - 1$ in place of $v_x$ at step $i$.
+Constants, pairs, optionals and conditionals evaluate as expected, and the arithmetic of base types is the standard's, which at compile time refuses undefined behaviour.}
+\label{fig:fjlt-eval}
+\end{figure}
 
 \subsection{Translation into System F}
 \label{app:fjlt:translation}
-% Rule by rule: types, constraints, instances, functions, calls, structs and
-% sums, function objects as closures, data and folds as Church encodings, fuel
-% as Church numerals.  Closes with the one-page summary table (FJlt
-% construct / System F image / reading).
+
+The target is System~F with products, sums and the base types of Section~\ref{sec:posture} taken as constants with their operations; records are nested pairs, and the base types could be Church-encoded, so the target is conservative over System~F.
+Figure~\ref{fig:fjlt-translation} gives the translation.
+Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbracket \Delta \Vdash Q \rrbracket$ is the record that witnesses $Q$, built by the same recursion as resolution.
+
+\begin{figure}[htbp]
+\footnotesize
+\[
+\begin{array}{l@{\quad}l}
+\multicolumn{2}{l}{\textit{types}} \\
+\llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{a function-object type has one value} \\
+\llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket \qquad \llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\[6pt]
+\multicolumn{2}{l}{\textit{constraints, as record types}} \\
+\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{R} & \text{one field per requirement} \\
+\llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
+\llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
+\llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \text{an operation on parameters } \overline{x : \tau_x} \\[6pt]
+\multicolumn{2}{l}{\textit{dictionaries, from entailment derivations}} \\
+\llbracket \Delta \Vdash Q \rrbracket = q \text{ if } Q \in \Delta \text{ with record variable } q & \text{\textsc{E-Assume}} \\
+\llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
+\llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}} \\
+\llbracket \Delta \Vdash \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{\textsc{E-Op}} \\[6pt]
+\multicolumn{2}{l}{\textit{declarations}} \\
+\texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) \{ return } e\texttt{; \}} \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
+\texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) \{ return } e\texttt{; \}} \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
+\texttt{struct } O \texttt{ \{ ... operator()(}\overline{x}\texttt{) ... \{ return } e\texttt{; \} \};} \;\mapsto\; O = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an operation} \\
+\texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
+\multicolumn{2}{l}{\textit{terms}} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait}, resolved to a specialisation} \\
+\llbracket f\texttt{<}\overline{\alpha}\texttt{>(}\overline{e}\texttt{)} \rrbracket = q.f\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait-Assumed}} \\
+\llbracket O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} \rrbracket = O\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Op}} \\
+\llbracket \texttt{fold\_left(repeat(}x\texttt{, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \llbracket n \rrbracket\,[\sigma]\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket & \text{the numeral} \\
+\llbracket \texttt{fold\_left(iota(0, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \pi_2\,(\llbracket n \rrbracket\,[\mathbb{N} \times \sigma]\,\mathit{step}\,(0, \llbracket a \rrbracket)) & \text{primitive recursion} \\
+\qquad \text{where } \mathit{step} = \lambda p.\,(\pi_1 p + 1,\; \llbracket f \rrbracket\,(\pi_2 p)\,(\pi_1 p)) & \\
+\llbracket e_1 \texttt{ ? } e_2 \texttt{ : } e_3 \rrbracket = \mathbf{if}\ \llbracket e_1 \rrbracket\ \mathbf{then}\ \llbracket e_2 \rrbracket\ \mathbf{else}\ \llbracket e_3 \rrbracket & \text{case on } \mathit{Bool} \\
+\llbracket \texttt{std::optional\{}e\texttt{\}} \rrbracket = \mathrm{inr}\,\llbracket e \rrbracket \qquad \llbracket \texttt{std::nullopt} \rrbracket = \mathrm{inl}\,() & \\
+\end{array}
+\]
+\normalsize
+\caption{The translation.
+A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
+Where \cppinline{size_t} is read as $\mathbb{N}$, $\llbracket n \rrbracket$ is the Church numeral of the value of $n$; the translation of a term with a runtime \cppinline{n} is the term with $n$ as a free variable of numeral type, and Theorem~\ref{thm:simulation} is stated for closed terms.}
+\label{fig:fjlt-translation}
+\end{figure}
 
 \subsection{Theorems}
 \label{app:fjlt:theorems}
@@ -98,7 +209,7 @@ The statements are in Section~\ref{sec:guarantees}; here are the sketches.
 Throughout, the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products and records, which is conservative over System~F proper (records are nested pairs, pairs are Church-encoded).
 
 \begin{proof}[Sketch of Theorem~\ref{thm:preservation}, type preservation]
-By induction on the typing derivation of $\Gamma \vdash e : \tau$, with one case per rule of Section~\ref{app:fjlt:typing}.
+By induction on the typing derivation of $\Delta; \Gamma \vdash e : \tau$, with one case per rule of Figure~\ref{fig:fjlt-typing}.
 Three cases carry the weight.
 \emph{Generic function.}
 A declaration $\texttt{template <typename }\overline{\alpha}\texttt{> requires }\overline{Q}\texttt{ constexpr }\tau\; f(\overline{\tau\; x})\ \{\ \texttt{return } e;\ \}$ is typed with $\overline{\alpha}$ abstract and the constraints $\overline{Q}$ as assumptions on them.
@@ -112,7 +223,7 @@ The remaining cases (variables, constants, function-object application, pairs, l
 \end{proof}
 
 \begin{proof}[Sketch of Theorem~\ref{thm:simulation}, simulation]
-By induction on the evaluation derivation $e \Downarrow v$ of Section~\ref{app:fjlt:evaluation}, showing $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$.
+By induction on the evaluation derivation $e \Downarrow v$ of Figure~\ref{fig:fjlt-eval}, showing $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$.
 \emph{Call.}
 $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ evaluates by resolving the instances, evaluating the arguments, and evaluating the body with the resolved specialisations in scope.
 On the System~F side, $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket$ with the records $\overline{d}$ substituted for $\overline{q}$; a trait read $t\texttt{<}\overline{\tau}\texttt{>(}\ldots\texttt{)}$ in the body has become a field projection $q.t$, and by Theorem~\ref{thm:coherence} the field holds the translation of the specialisation FJlt resolved.
@@ -125,7 +236,7 @@ For the converse at base types: a closed System~F term of type $\llbracket b \rr
 \end{proof}
 
 \begin{proof}[Sketch of Theorem~\ref{thm:coherence}, coherence]
-Instance resolution is defined in Section~\ref{app:fjlt:typing} as a relation between a constraint at concrete types and the declarations that match it; the claim is that this relation is a partial function.
+Resolution is defined in Section~\ref{app:fjlt:typing} as a relation between a trait at concrete types and the declarations that match it; the claim is that this relation is a partial function, and well-formedness demands it.
 For an explicit specialisation, two declarations at the same types are a redefinition, which the well-formedness conditions on programs forbid (in \Cpp{}, the one-definition rule).
 For instances with contexts, the design decision of no overlapping instances means that at most one constrained generic function matches a given constraint at concrete types; in \Cpp{}, two that match are an ambiguous call, which is ill-formed, and one that matches only under its context resolves the context first, recursively, and the recursion is well-founded because a context mentions only proper parts of the types the instance is for.
 So a well-formed program resolves each constraint at each concrete instantiation to at most one record, and the translation, which is defined by that resolution, is a function of the program.
@@ -147,5 +258,5 @@ The converse half of Theorem~\ref{thm:simulation} then gives $e \Downarrow v$ wi
 Nothing here is specific to FJlt beyond the two theorems; it is the standard argument that a translation into a sound calculus is sound.
 \end{proof}
 
-What the sketches do not do: they do not fix the typing and evaluation rules they induct on, which Sections~\ref{app:fjlt:typing} and~\ref{app:fjlt:evaluation} are to state, and they take \cppinline{fold_left} over \cppinline{repeat} and \cppinline{iota} as primitives with the evaluation rules just stated, trusting the standard library for them as Section~\ref{sec:translation:adequacy} says.
+What the sketches do not do: they induct over the rules of Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-eval} as given, which omit the generic cases, and they take \cppinline{fold_left} over \cppinline{repeat} and \cppinline{iota} as primitives with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for it as Section~\ref{sec:translation:adequacy} says.
 Full proofs, and a mechanisation, are future work.

@@ -318,11 +318,29 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 
 \subsection{The rules the argument uses}
 \label{sec:translation:rules}
-% Only the rules the example exercised: concept -> record type; trait
-% specialisation -> dictionary (value, or function of its context); requires
-% clause -> parameter; qualified call -> application; fold with fuel -> Church
-% eliminator.  The remaining rules are mechanical and sit in
-% Appendix~\ref{app:fjlt:translation}.
+
+Everything the listings did is covered by six rules of the translation, and Table~\ref{tab:rules} states them; the rest of the translation is bookkeeping and sits in Appendix~\ref{app:fjlt:translation}.
+Read the table with Listing~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<size_t>(std::plus<size_t>)} the third, \cppinline{twice} the fourth and its \cppinline{static_assert}s the fifth.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}lXX@{}}
+\toprule
+FJlt & System~F & \\
+\midrule
+\texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & a record type, one field per requirement \\
+\texttt{constexpr τ f(τ̄) = delete} & nothing & a trait is only its instances \\
+\texttt{template <> constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
+\texttt{template <ᾱ> requires Q̄ constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
+\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
+\texttt{fold\_left(repeat(x, n), a, f)} & $\overline{n}\,[\sigma]\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & fuel is a Church numeral \\
+\bottomrule
+\end{tabularx}
+\caption{The six rules of the translation that the listings exercise.
+A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter, which is the second half of the fifth row.}
+\label{tab:rules}
+\end{table}
 
 \subsection{What the translation guarantees}
 \label{sec:translation:theorems}
