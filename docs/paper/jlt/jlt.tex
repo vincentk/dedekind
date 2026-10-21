@@ -498,9 +498,69 @@ What they say about a \Cpp{} program is mediated by the adequacy argument of Sec
 
 \section{Limits and Seams}
 \label{sec:limits}
-% Establishes: the rules are a discipline, not enforced; a translation, not an
-% isomorphism; the adequacy argument and its gap; the seams found while
-% building the example (#981).
+
+Everything in this section was met while writing the listings, and each item is a place where "standard \Cpp{23} under three rules" is thinner than the sentence sounds.
+Table~\ref{tab:seams} lists them; the paragraphs say what each one costs and what, if anything, closes it.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}XXl@{}}
+\toprule
+seam & where it showed & status \\
+\midrule
+bodies are not checked against constraints & \texttt{twice\_loose}, Listing~\ref{lst:posture} & by reading; a tool could \\
+loops are not checked for a bound & Rule~3 & by reading; the paper has none \\
+lookup stops at \texttt{std} & the deleted primary, Listing~\ref{lst:monoid} & worked around \\
+a typed function object promises what its body cannot keep & \texttt{std::plus<T>} on a pair & avoided \\
+facts live in tables, instances in functions & the library behind the listings & open \\
+the library is part of the toolchain & \texttt{std::bind\_front} & worked around \\
+the compiler has its own fuel & constant evaluation & kept in the program's hands \\
+undefined behaviour has one binding time & signed carriers & avoided \\
+\bottomrule
+\end{tabularx}
+\caption{What the listings ran into, and where each item stands.}
+\label{tab:seams}
+\end{table}
+
+\paragraph{The two rules the compiler does not check.}
+Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
+A template body is checked against the type it is instantiated at, not against its \cppinline{requires} clause, so \cppinline{twice_loose} compiles; a loop is not checked for a bound, so \cppinline{while (true)} compiles.
+Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem; we have not written one, and this paper's listings are checked by reading and by a test that compiles and runs them.
+Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is \cppinline{std::ranges::fold_left}'s.
+
+\paragraph{Lookup stops at \cppinline{std}.}
+A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
+So \cppinline{unit(std::plus<size_t>)} declared beside the concept is never found, and Listing~\ref{lst:monoid} declares a deleted primary instead, which is found by name and specialised.
+The same wall makes an operator on \cppinline{std::pair} of standard carriers unreachable from inside \cppinline{std::plus}: a pair of monoids is a monoid, but not through \cppinline{std::plus<std::pair<A, B>>}, which is why the former of two operations must be a type of ours.
+This is the one place the translation's "instance resolution" and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name, and nothing else.
+
+\paragraph{A typed function object promises what its body cannot keep.}
+\cppinline{std::plus<T>} declares its result type as \cppinline{T}, so a shape that asks \cppinline|{ Op{}(a, b) } -> std::same_as<T>| is satisfied for any \cppinline{T}, including one with no \cppinline{+}; the failure comes later, inside \cppinline{<functional>}, when something evaluates the call.
+The transparent \cppinline{std::plus<>} is honest, since its result type is \cppinline{decltype(t + u)} and the shape sees the failure.
+It is the body-versus-signature gap of Rule~2 one level down, in the standard library, and the listings avoid it by never asking a typed function object about a carrier it was not written for.
+
+\paragraph{Facts live in tables, instances in functions.}
+FJlt's instance is a specialisation of a function template, and the listings are written that way.
+The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
+The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it; a function template cannot be partially specialised, and an overload in its place runs into the lookup wall above.
+So the library is FJlt at its reads and not at its registrations, and the adequacy argument covers the listings, not the library.
+Closing the gap would mean a resolution mechanism for families that is found by name, which \Cpp{} does not have; the honest statement is that FJlt's instance resolution is a subset of what the library needs.
+
+\paragraph{The library is part of the toolchain.}
+"Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
+\cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses; the listing that used it now uses a fold instead.
+The listings were built with one compiler against two standard libraries, and that is what "compiles as written" means here.
+
+\paragraph{The compiler has its own fuel.}
+Constant evaluation is bounded by a step limit the compiler sets, and a program that exhausts it fails to compile.
+Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
+Template instantiation depth is a second such knob; the listings are nowhere near either.
+
+\paragraph{Undefined behaviour has one binding time.}
+Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
+This is the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
+A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
 \section{Related Work}
 \label{sec:related}
