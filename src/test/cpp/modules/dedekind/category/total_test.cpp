@@ -75,7 +75,7 @@ TEST_CASE("Total: The Path to Symmetry (Table 2)",
 
     // Boolean multiplicative unit: unit_v<bool, std::logical_and<bool>> =
     // true.
-    auto u_int_to_bool = unit<int, bool, std::logical_and<bool>>();
+    auto u_int_to_bool = zero<int, bool, std::logical_and<bool>>();
     CHECK(u_int_to_bool(0) == true);
     CHECK(u_int_to_bool(123) == true);
   }
