@@ -76,7 +76,7 @@ constexpr T iterate(F step, T x, size_t n) {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return iterate(std::bind_front(Op{}, x), unit<T>(Op{}), n);
+  return iterate([x](T acc) { return Op{}(acc, x); }, unit<T>(Op{}), n);
 }
 
 static_assert(times<size_t>(7, 6) == 42);
@@ -106,7 +106,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 
 \paragraph{Rule 3: recursion only folds.}
 A Jlt function recurses in one way: \cppinline{iterate(step, x, n)}, which applies \cppinline{step} to \cppinline{x} exactly \cppinline{n} times.
-\cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} is \cppinline{iterate} with the monoid's operation as the step and its unit as the start.
+\cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} is \cppinline{iterate} with the monoid's operation, closed over \cppinline{x}, as the step and its unit as the start.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
 What this buys is termination and, with Rule~2, the System~F reading: \cppinline{iterate(step, x, n)} is the Church numeral $\overline{n}$ applied to \cppinline{step} and \cppinline{x} (Appendix~\ref{app:fjlt:translation}).
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of fuel}; Section~\ref{sec:binding} shows the price being paid.
@@ -396,14 +396,12 @@ Listing~\ref{lst:fuel} searches the naturals for the first one with a property, 
 \begin{listing}[htbp]
 \begin{cpp}
 template <typename P>
-constexpr std::pair<size_t, bool> advance(P pred, std::pair<size_t, bool> s) {
-  return s.second ? s : std::pair{s.first + 1, pred(s.first + 1)};
-}
-
-template <typename P>
 constexpr std::optional<size_t> first(P pred, size_t fuel) {
-  std::pair<size_t, bool> s = iterate(std::bind_front(advance<P>, pred),
-                                      std::pair{size_t{0}, pred(0)}, fuel);
+  std::pair<size_t, bool> s = iterate(
+      [pred](std::pair<size_t, bool> s) {
+        return s.second ? s : std::pair{s.first + 1, pred(s.first + 1)};
+      },
+      std::pair{size_t{0}, pred(0)}, fuel);
   return s.second ? std::optional{s.first} : std::nullopt;
 }
 
@@ -413,7 +411,7 @@ static_assert(first(over_1000, 40) == 32);
 static_assert(!first(over_1000, 30));
 \end{cpp}
 \caption{Fuel, and running out of it.
-\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has.
+The step, a closure over the property, advances a state (the candidate, whether it has the property) and freezes it once it has.
 \cppinline{first} iterates it \cppinline{fuel} times and reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none within 30 steps".}
 \label{lst:fuel}

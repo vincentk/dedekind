@@ -147,21 +147,19 @@ constexpr T iterate(F step, T x, size_t n) {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return iterate(std::bind_front(Op{}, x), unit<T>(Op{}), n);
+  return iterate([x](T acc) { return Op{}(acc, x); }, unit<T>(Op{}), n);
 }
 
 static_assert(times<size_t>(7, 6) == 42);
 
 // Section 4, two binding times: fuel, and running out of it.
 template <typename P>
-constexpr std::pair<size_t, bool> advance(P pred, std::pair<size_t, bool> s) {
-  return s.second ? s : std::pair{s.first + 1, pred(s.first + 1)};
-}
-
-template <typename P>
 constexpr std::optional<size_t> first(P pred, size_t fuel) {
-  std::pair<size_t, bool> s = iterate(std::bind_front(advance<P>, pred),
-                                      std::pair{size_t{0}, pred(0)}, fuel);
+  std::pair<size_t, bool> s = iterate(
+      [pred](std::pair<size_t, bool> s) {
+        return s.second ? s : std::pair{s.first + 1, pred(s.first + 1)};
+      },
+      std::pair{size_t{0}, pred(0)}, fuel);
   return s.second ? std::optional{s.first} : std::nullopt;
 }
 

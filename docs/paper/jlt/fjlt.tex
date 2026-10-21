@@ -53,7 +53,7 @@ Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{std::optional<}\tau\texttt{>} & \text{type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
   & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
-  & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} \;\mid\; \texttt{std::bind\_front(}e\texttt{, }\overline{e}\texttt{)} & \\
+  & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} \;\mid\; \texttt{[}\overline{x}\texttt{](}\overline{\tau\; y}\texttt{) \{ return } e\texttt{; \}} & \\
   & \mid & \texttt{iterate(}e\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over fuel} \\
 \end{array}
 \]
@@ -63,8 +63,8 @@ A program is a sequence of declarations and a closed term.
 A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types, exact (\cppinline{std::same_as}) or up to conversion (\cppinline{std::convertible_to}).
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
-The standard function objects are the only function objects; a term applies one by constructing it, or partially applies it with \cppinline{std::bind_front}.
-Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs and optionals.
+The standard function objects and closures are the only function objects; a term applies a standard one by constructing it, and a closure captures by value, which is the $\lambda$ of the target written in \Cpp{}.
+Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs, optionals and closures.
 \cppinline{iterate} is the one recursion primitive: it applies its first argument to its second as many times as its third says, and Section~\ref{sec:posture} defines it in three lines, the only loop the paper contains.}
 \label{fig:fjlt-syntax}
 \end{figure}
