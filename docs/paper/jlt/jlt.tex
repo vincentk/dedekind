@@ -384,7 +384,7 @@ Section~\ref{sec:limits} is the list of places where the first condition is hard
 
 Section~\ref{sec:translation} stated laws about operations, one \cppinline{bool} each, and nobody inferred anything.
 This section states laws about \emph{functions}, and the point is inference: a composite function has laws its parts imply, and the same engine that infers them is read by a concept at compile time and by a fold at runtime.
-Listing~\ref{lst:laws} shows one law family, variance, at one former, composition; Table~\ref{tab:laws} is the whole engine.
+Listings~\ref{lst:laws} and~\ref{lst:readers} show one law family, variance, at one former, composition; Table~\ref{tab:laws} is the whole engine.
 
 % Verbatim up to formatting in jlt_listings_test.cpp (namespace laws), which
 % also checks the tree's monotone(f, op) / antitone / IsMonotone agree.
@@ -424,6 +424,13 @@ struct Compose {
   constexpr Codomain operator()(Domain x) const { return g(f(x)); }
 };
 \end{cpp}
+\caption{The variance of a function: the values, the profile, the engine, and the arrows.
+Top: Kleene's three values on their chain, the profile of a function at the two variance laws, and the engine: the sign table, as a function on profiles.
+Bottom: two arrows and the former $\circ$, as programs.}
+\label{lst:laws}
+\end{listing}
+
+\begin{listing}[htbp]
 \begin{cpp}
 using Order = std::less_equal<bool>;
 
@@ -466,11 +473,9 @@ static_assert(variance(std::array{Step::Negation, Step::Negation}, Order{}) ==
               variance(Compose<Negation, Negation>{}, Order{}));
 \end{cpp}
 \caption{The variance of a function, inferred along composition and read twice.
-Top: Kleene's three values on their chain, the profile of a function at the two variance laws, and the engine: the sign table, as a function on profiles.
-Middle: two arrows and the former $\circ$, as programs.
-Bottom: the laws, declared at the leaves (\cppinline{Same} is monotone, \cppinline{Negation} antitone), inferred at the former by a constrained overload that is the engine applied to the legs, and read twice: by the concept \cppinline{IsMonotone} at the type, and by a fold over steps given as data.
+The laws are declared at the leaves (\cppinline{Same} is monotone, \cppinline{Negation} antitone), inferred at the former by a constrained overload that is the engine of Listing~\ref{lst:laws} applied to the legs, and read twice: by the concept \cppinline{IsMonotone} at the type, and by a fold over steps given as data.
 The last line is the two readers agreeing.}
-\label{lst:laws}
+\label{lst:readers}
 \end{listing}
 
 \paragraph{A profile is a record of laws, in three values.}
@@ -521,14 +526,14 @@ $f \times g$ keeps every law both legs have; $f + g$ keeps every law but antiton
 The two are not primitive: $f \times g = \langle f \circ \pi_1,\, g \circ \pi_2 \rangle$ and $f + g = [\iota_1 \circ f,\, \iota_2 \circ g]$, and the engine recognises these defining forms before it descends, since the pairing rule alone would read $f \times g$ as a pairing and lose the closure fact.
 
 \paragraph{Two readers of one engine.}
-\cppinline{variance} is one function, and the listing reads it twice.
+\cppinline{variance} is one function, and Listing~\ref{lst:readers} reads it twice.
 The concept \cppinline{IsMonotone<F, Op>} reads it at the type, \cppinline{variance(F{}, Op{})}, which Rule~1 makes possible: every arrow is \cppinline{std::semiregular}, so \cppinline{F{}} exists and is a constant.
 The fold \cppinline{variance(steps, op)} reads it at values, over steps given as data, and the only thing it folds with is \cppinline{compose}.
-The last \cppinline{static_assert} says the two agree on $\mathit{Negation} \circ \mathit{Negation}$, and the test behind the listing runs the fold on an array built at runtime.
+The last \cppinline{static_assert} says the two agree on $\mathit{Negation} \circ \mathit{Negation}$, and the test behind the listings runs the fold on an array built at runtime.
 In the terms of Section~\ref{sec:translation}: the constrained overload on \cppinline{Compose} is the instance with a context, a function from the legs' records to the composite's; the concept is the compiler resolving that record; the fold is the record passed as a value.
 And Corollary~\ref{cor:parametricity} is why reading a composite's law off its legs is sound: \cppinline{Compose<F, G>} cannot do anything with its argument that \cppinline{f} and \cppinline{g} do not provide, so a law of the legs that survives the former is a law of the composite.
 Soundness is all the engine claims; the inferred profile is below the true one, and where it says \emph{Unknown} the function may well have the law.
-The library's engine has the five laws and five formers of Table~\ref{tab:laws} in forty lines, read by the traits on \cppinline{Compose} at compile time and by a fold (\cppinline{cata} with a law algebra) at runtime; the listing is the $2 \times 1$ corner of it.
+The library's engine has the five laws and five formers of Table~\ref{tab:laws} in forty lines, read by the traits on \cppinline{Compose} at compile time and by a fold (\cppinline{cata} with a law algebra) at runtime; the listings are the $2 \times 1$ corner of it.
 
 \section{Two Binding Times}
 \label{sec:binding}
