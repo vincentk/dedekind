@@ -63,12 +63,13 @@ TEST_CASE(
    *         @c false_type by default, and @c IsInvolutiveEndofunctor
    *         fails closed.
    *
-   *  @note @c std::negate<unsigned> @b is actually involutive (unsigned
-   *  arithmetic is modulo, so @c -(-x) @c == @c x), but no
-   *  specialisation has been registered for it — this test demonstrates
-   *  the opt-in pattern, not non-involutiveness.  A genuinely
-   *  non-involutive callable would also fail, but for a different
-   *  structural reason. */
-  STATIC_CHECK_FALSE(IsInvolutiveEndofunctor<std::negate<unsigned>, unsigned>);
-  STATIC_CHECK_FALSE(is_involutive_v<std::negate<unsigned>, unsigned>);
+   *  @note @c std::negate<unsigned> @b is involutive (unsigned arithmetic
+   *  is modulo, so @c -(-x) @c == @c x) and is registered as such in
+   *  @c :involution.  @c std::negate<int> is NOT registered, on purpose:
+   *  @c -INT_MIN is undefined behaviour, so it is an involution on all
+   *  values but one, and that one makes it not a function on @c int.  It
+   *  is the witness here that the trait fails closed. */
+  STATIC_CHECK(IsInvolutiveEndofunctor<std::negate<unsigned>, unsigned>);
+  STATIC_CHECK_FALSE(IsInvolutiveEndofunctor<std::negate<int>, int>);
+  STATIC_CHECK_FALSE(is_involutive_v<std::negate<int>, int>);
 }
