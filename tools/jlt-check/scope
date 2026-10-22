@@ -15,7 +15,7 @@ rule1-rvalue-reference-params     tools/jlt-check/fixtures/rule1.cpp  jlt_listin
 rule1-forwarding-reference-params tools/jlt-check/fixtures/rule1.cpp  jlt_listing  2
 rule1-boxed-mutable-pointee   tools/jlt-check/fixtures/boxed.cpp  jlt_listing  3
 rule1-no-volatile             tools/jlt-check/fixtures/volatile.cpp  jlt_listing  3
-rule1-no-reference-returns    tools/jlt-check/fixtures/members.cpp  jlt_listing  4
+rule1-no-reference-returns    tools/jlt-check/fixtures/members.cpp  jlt_listing  5
 rule1-const-member-functions  tools/jlt-check/fixtures/members.cpp  jlt_listing  3
 rule1-no-mutable-globals      tools/jlt-check/fixtures/globals.cpp  jlt_listing  3
 rule1-boxed-identity          tools/jlt-check/fixtures/boxed.cpp  jlt_listing  5

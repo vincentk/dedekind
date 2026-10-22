@@ -30,6 +30,11 @@ constexpr const auto& second(const P& p) {  // reference 3: in a template
   return p.b;
 }
 
+using Ref = const int&;
+constexpr Ref first_alias(const Pair& p) {  // reference 5: through an alias
+  return p.a;
+}
+
 constexpr int value_of(const Pair& p) { return p.a; }  // fine: a value
 
 struct Steps {
