@@ -1,0 +1,6 @@
+# Rule 1: a function depends on its arguments alone, so no state outlives a
+# call.  A namespace-scope or static data member variable that is neither
+# const nor constexpr is such state: any function may write it, and every
+# later call would see the change.  Local variables may change (the
+# mutation cannot leak); static locals have their own rule.
+match varDecl(hasGlobalStorage(), unless(anyOf(isStaticLocal(), isConstexpr(), hasType(isConstQualified()), isImplicit())), isExpansionInMainFile(), hasAncestor(scope))
