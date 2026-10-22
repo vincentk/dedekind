@@ -223,6 +223,12 @@ struct Over1000 {
 static_assert(first<Over1000>(40) == 32);
 static_assert(!first<Over1000>(30));
 
+// The library's view of a contiguous interval of a finite chain, the range the
+// paper's grammar admits beside repeat and iota.
+using dedekind::category::chain_view;
+static_assert(std::ranges::fold_left(chain_view{size_t{3}, size_t{5}},
+                                     size_t{0}, std::plus<size_t>{}) == 12);
+
 }  // namespace jlt_listing
 
 TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
@@ -260,6 +266,14 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::square(twelve) == 144);
     CHECK(L::times<size_t>(7, twelve) == 84);
+  }
+
+  SECTION("Section 4: a fold over an interval of a chain, at runtime") {
+    size_t lo = 3, hi = 5;
+    CHECK(std::ranges::fold_left(L::chain_view{lo, hi}, size_t{0},
+                                 std::plus<size_t>{}) == 12);
+    CHECK(std::ranges::fold_left(L::chain_view{false, true}, 0,
+                                 [](int n, bool) { return n + 1; }) == 2);
   }
 
   SECTION(

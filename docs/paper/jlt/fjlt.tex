@@ -59,7 +59,7 @@ e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\o
   & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
   & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} & \\
   & \mid & \texttt{std::ranges::fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over fuel} \\[3pt]
-r &::=& \texttt{std::views::repeat(}e\texttt{, }e\texttt{)} \;\mid\; \texttt{std::views::iota(}e\texttt{, }e\texttt{)} & \text{range of fixed length} \\
+r &::=& \texttt{std::views::repeat(}e\texttt{, }e\texttt{)} \;\mid\; \texttt{std::views::iota(}e\texttt{, }e\texttt{)} \;\mid\; \texttt{chain\_view\{}e\texttt{, }e\texttt{\}} & \text{range of fixed length} \\
 \end{array}
 \]
 \normalsize
@@ -70,7 +70,7 @@ A trait is a function template declared and deleted, indexed by a carrier and a 
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
 The standard function objects and the operations a program declares (a struct with fields and a call operator, itself generic where the listing writes \cppinline{auto}; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}.
 Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs and optionals.
-\cppinline{std::ranges::fold_left} is the one recursion primitive, over a range whose length is fixed before the fold starts: \cppinline{repeat(x, n)}, $n$ copies of $x$, or \cppinline{iota(0, n)}, the first $n$ naturals.}
+\cppinline{std::ranges::fold_left} is the one recursion primitive, over a range whose length is fixed before the fold starts: \cppinline{repeat(x, n)}, $n$ copies of $x$; \cppinline{iota(0, n)}, the first $n$ naturals; or \cppinline{chain_view{lo, hi}}, the contiguous interval of a finite chain from \cppinline{lo} to \cppinline{hi} walked by its covering step, of which \cppinline{iota} is the instance on \cppinline{size_t}.}
 \label{fig:fjlt-syntax}
 \end{figure}
 
@@ -162,7 +162,7 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \normalsize
 \caption{Evaluation.
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
-\textsc{S-Fold} over \cppinline{iota(i, j)} steps to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)} when $i < j$ and to $a$ otherwise.
+\textsc{S-Fold} over \cppinline{iota(i, j)} steps to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)} when $i < j$ and to $a$ otherwise; over \cppinline{chain_view{lo, hi}} it steps to \cppinline{chain_view{cover(lo), hi}} with \cppinline{f(a, lo)} when \cppinline{lo <= hi} and the cover exists, and to $a$ otherwise, so a fold over an interval of a finite chain takes as many steps as the interval has elements.
 Constants, pairs and optionals are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.}
 \label{fig:fjlt-eval}
 \end{figure}
@@ -214,6 +214,10 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \llbracket \texttt{fold\_left(repeat(}x\texttt{, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \mathit{iter}\,[\sigma]\,\llbracket n \rrbracket\,(\lambda s.\,\llbracket f \rrbracket^{\!\circ}\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket & \text{the iterator} \\
 \llbracket \texttt{fold\_left(iota(0, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \pi_2\,(\mathit{iter}\,[\mathbb{N} \times \sigma]\,\llbracket n \rrbracket\,\mathit{step}\,(0, \llbracket a \rrbracket)) & \text{primitive recursion} \\
 \qquad \text{where } \mathit{step} = \lambda p.\,(\pi_1 p + 1,\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 p)) & \\
+\llbracket \texttt{fold\_left(chain\_view\{}lo\texttt{, }hi\texttt{\}, }a\texttt{, }f\texttt{)} \rrbracket & \text{an interval of a chain:} \\
+\qquad = \pi_2\,(\mathit{iter}\,[\llbracket C \rrbracket \times \sigma]\,|[lo, hi]|\,\mathit{step}_C\,(\llbracket lo \rrbracket, \llbracket a \rrbracket)) & \\
+\qquad \text{where } \mathit{step}_C = \lambda p.\,(\mathit{cover}\,(\pi_1 p),\; \llbracket f \rrbracket^{\!\circ}\,(\pi_2 p)\,(\pi_1 p)) & \\
+\qquad \text{and } |[lo, hi]| \text{ is the interval's length, a natural number} & \\
 \llbracket e_1 \texttt{ ? } e_2 \texttt{ : } e_3 \rrbracket = \mathbf{if}\ \llbracket e_1 \rrbracket\ \mathbf{then}\ \llbracket e_2 \rrbracket\ \mathbf{else}\ \llbracket e_3 \rrbracket & \text{case on } \mathit{Bool} \\
 \llbracket \texttt{std::optional\{}e\texttt{\}} \rrbracket = \mathrm{inr}\,\llbracket e \rrbracket \qquad \llbracket \texttt{std::nullopt} \rrbracket = \mathrm{inl}\,() & \\
 \end{array}
@@ -223,7 +227,8 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 A function object is a pair of its fields and its call function, so a fieldless \cppinline{std::plus<size_t>} is $((), \mathit{plus})$, passing it as a step uses its second component, and reading a field uses its first.
 A trait has no image of its own; its specialisations are closed terms $f_{\overline{\tau}}$, and a generic function that serves as an instance with a context is the function from records to a record that \textsc{E-Shape} builds its dictionary with.
 Where \cppinline{size_t} is read as $\mathbb{N}$, $\llbracket n \rrbracket$ is the natural number that is $n$'s value; the translation of a term with a runtime \cppinline{n} is the term with $n$ as a free variable of type $\mathbb{N}$, and Theorem~\ref{thm:simulation} is stated for closed terms.
-The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.}
+The call function of a constrained operation abstracts over its dictionaries as a generic function does, and an application supplies them.
+The iterator is the catamorphism of a finite prefix of $\mathbb{N}$, and a fold over \cppinline{chain_view{lo, hi}} is the same catamorphism of a finite interval of any chain, its length a natural number because the chain is finite; the library's set recursion is this fold, and its \cppinline{cata} over terms is the same construction over a different initial algebra, outside this grammar.}
 \label{fig:fjlt-translation}
 \end{figure}
 
@@ -305,7 +310,7 @@ Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation
 \textsc{S-Op}: $(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \textsc{S-Std} and \textsc{S-Prim}: one $\delta$-step to the constant the standard assigns, by the assumption that the primitives' translations compute the standard's functions on constants.
 \textsc{S-If} and \textsc{S-Proj}: a case reduction, a projection.
-\textsc{S-Fold}: $\mathit{iter}\,[\sigma]\,(k{+}1)\,s\,\llbracket a \rrbracket \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(s\,\llbracket a \rrbracket) \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(\llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket v \rrbracket)$ with $s = \lambda t.\,\llbracket f \rrbracket^{\!\circ}\,t\,\llbracket v \rrbracket$, and the last term is $\llbracket \texttt{fold\_left(repeat(}v\texttt{, }k\texttt{), }f\texttt{(}a\texttt{, }v\texttt{), }f\texttt{)} \rrbracket$; the fuel-zero case is one step of the iterator; over \cppinline{iota}, the same with the pair step.
+\textsc{S-Fold}: $\mathit{iter}\,[\sigma]\,(k{+}1)\,s\,\llbracket a \rrbracket \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(s\,\llbracket a \rrbracket) \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(\llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket v \rrbracket)$ with $s = \lambda t.\,\llbracket f \rrbracket^{\!\circ}\,t\,\llbracket v \rrbracket$, and the last term is $\llbracket \texttt{fold\_left(repeat(}v\texttt{, }k\texttt{), }f\texttt{(}a\texttt{, }v\texttt{), }f\texttt{)} \rrbracket$; the fuel-zero case is one step of the iterator; over \cppinline{iota} and over \cppinline{chain_view}, the same with the pair step, the cover advancing the first component.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:termination}, termination]

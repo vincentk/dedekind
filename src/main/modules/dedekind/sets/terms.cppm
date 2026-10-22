@@ -90,13 +90,16 @@
  */
 module;
 
+#include <algorithm>  // fold_left / any_of / all_of / transform over a chain
 #include <concepts>
 #include <cstddef>
 #include <cstdint>  // the search budget of a quantifier
 #include <functional>
+#include <iterator>  // std::back_inserter
 #include <limits>
 #include <memory>  // std::shared_ptr: the legs of a term built at run time
 #include <optional>
+#include <ranges>  // chain_view is a range
 #include <stdexcept>
 #include <string>  // the spelling of a refusal
 #include <tuple>
@@ -1293,12 +1296,17 @@ struct Value {
       } else if constexpr (dedekind::category::IsPst<C>) {
         const bool universal = t.kind == Pred<K>::Kind::Forall;
         P row = with_bound(v.p, t.sort);
-        for (C c = unit<C>(Sup{});; c = dedekind::category::Successor<C>{}(c)) {
+        // A fold over the whole chain, ⊥ to ⊤, with the early exit a
+        // quantifier has: any_of / all_of over the interval, a range whose
+        // length is fixed before the walk (the Jlt paper, Rule 3).
+        const auto holds_at = [&](C c) {
           set_bound(row, c);
-          const bool holds = Value<P>{row}.steer(*t.p);
-          if (holds != universal) return holds;
-          if (c == unit<C>(Inf{})) return universal;
-        }
+          return Value<P>{row}.steer(*t.p);
+        };
+        const dedekind::category::chain_view<C> whole{unit<C>(Sup{}),
+                                                      unit<C>(Inf{})};
+        return universal ? std::ranges::all_of(whole, holds_at)
+                         : std::ranges::any_of(whole, holds_at);
       } else {
         throw not_admitted(
             "∃ / ∀ over an infinite carrier is a Σ / Π verdict: read it with "
@@ -1421,13 +1429,16 @@ struct Verdict {
       const bool universal = t.kind == Pred<K>::Kind::Forall;
       P row = with_bound(v.point, t.sort);
       if constexpr (dedekind::category::IsPst<C>) {
-        Ternary all = universal ? Ternary::True : Ternary::False;
-        for (C c = unit<C>(Sup{});; c = dedekind::category::Successor<C>{}(c)) {
+        // The same fold, in K₃ and without an early exit: fold_left over the
+        // interval with Kleene's AND / OR.
+        const auto verdict_at = [&](Ternary all, C c) {
           set_bound(row, c);
           const Ternary here = Verdict{row, v.budget}(*t.p);
-          all = universal ? Kleene::AND(all, here) : Kleene::OR(all, here);
-          if (c == unit<C>(Inf{})) return all;
-        }
+          return universal ? Kleene::AND(all, here) : Kleene::OR(all, here);
+        };
+        return std::ranges::fold_left(
+            dedekind::category::chain_view<C>{unit<C>(Sup{}), unit<C>(Inf{})},
+            universal ? Ternary::True : Ternary::False, verdict_at);
       } else {
         // An opposite quantifier over an infinite carrier inside: a search
         // cannot witness ∃ through a ∀ it cannot decide, nor refute a ∀
@@ -2195,10 +2206,12 @@ struct ChainValues {
     if constexpr (dedekind::category::IsPst<C> && requires(const C& c) {
                     { lift(c) } -> std::convertible_to<K>;
                   }) {
-      for (C v = unit<C>(Sup{});; v = dedekind::category::Successor<C>{}(v)) {
-        out.push_back(dedekind::sets::Term<K>::constant(lift(v)));
-        if (v == unit<C>(Inf{})) break;
-      }
+      const auto constant_at = [&](C v) {
+        return dedekind::sets::Term<K>::constant(lift(v));
+      };
+      std::ranges::transform(
+          dedekind::category::chain_view<C>{unit<C>(Sup{}), unit<C>(Inf{})},
+          std::back_inserter(out), constant_at);
     }
     return out;
   }

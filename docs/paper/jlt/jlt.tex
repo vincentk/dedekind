@@ -183,7 +183,7 @@ A template body is checked at instantiation, against the type actually supplied,
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3: recursion only folds.}
-A Jlt function recurses in one way: \cppinline{std::ranges::fold_left} over a range whose length is fixed before the fold starts, \cppinline{std::views::repeat(x, n)} or \cppinline{std::views::iota(0, n)}.
+A Jlt function recurses in one way: \cppinline{std::ranges::fold_left} over a range whose length is fixed before the fold starts, \cppinline{std::views::repeat(x, n)}, \cppinline{std::views::iota(0, n)}, or more generally a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, of which \cppinline{iota} is the instance on \cppinline{size_t}.
 \cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} folds the monoid's operation over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
 What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the natural number $n$ iterating the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which iteration builds (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
@@ -525,11 +525,15 @@ struct Over1000 {
 
 static_assert(first<Over1000>(40) == 32);
 static_assert(!first<Over1000>(30));
+
+static_assert(std::ranges::fold_left(chain_view{size_t{3}, size_t{5}}, size_t{0},
+                                     std::plus<size_t>{}) == 12);
 \end{cpp}
 \caption{Fuel, and running out of it.
 \cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
 \cppinline{first} folds it over the first \cppinline{fuel} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
-The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".}
+The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
+The last line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.}
 \label{lst:fuel}
 \end{listing}
 
@@ -556,6 +560,11 @@ Clang 22, \texttt{-std=c++23 -O2}, x86-64, Intel syntax; \cppinline{times_rt} is
 \label{lst:asm}
 \end{listing}
 The compiler has a fuel of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
+
+\paragraph{Set recursion in the library.}
+The library behind these listings decides membership and quantifiers over finite ordered carriers, and every one of its recursions is this fold: its normal form of a set on a window is a pipeline over \cppinline{chain_view{lo, hi}}, the interval of the chain between two elements walked by the covering step, and its quantifiers are \cppinline{std::ranges::any_of} and \cppinline{all_of} over the whole chain, \cppinline{chain_view{⊥, ⊤}}, an early exit being a fold with a frozen state as \cppinline{first} shows.
+\cppinline{iota(0, n)} is the same view on \cppinline{size_t}, so the two listings above and the library's set recursion are instances of one production of the grammar.
+What the library also has, and this paper's grammar does not, is structural recursion over \emph{terms}, the fold of a syntax tree; that is the third kind of fold Rule~3 names, and the sequel's.
 
 \paragraph{Why not a generator.}
 \Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}, and it is the natural reflex for a bounded computation that should not allocate.
