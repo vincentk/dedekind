@@ -63,7 +63,7 @@ export template <typename T, typename Op>
 inline constexpr bool is_kleene_invertible_v = false;
 
 export template <typename T, typename Op>
-inline constexpr T partial_identity_v = T{};
+inline constexpr T partial_unit_v = T{};
 
 // Specialization for the Classical/Binary result
 template <typename T>
@@ -168,7 +168,7 @@ concept IsPartialAssociative = IsPartialMagma<T, Op> && requires {
  */
 export template <typename T, typename Op>
 concept HasPartialIdentity = IsPartialMagma<T, Op> && requires {
-  { partial_identity_v<T, Op> } -> std::convertible_to<T>;
+  { partial_unit_v<T, Op> } -> std::convertible_to<T>;
 };
 
 /**
@@ -201,7 +201,7 @@ template <typename T>
 inline constexpr bool is_kleene_associative_v<T, SafeAddTransform<T>> = true;
 
 template <typename T>
-inline constexpr T partial_identity_v<T, SafeAddTransform<T>> = T(0);
+inline constexpr T partial_unit_v<T, SafeAddTransform<T>> = T(0);
 
 /**
  * @brief Addition that consults a user-supplied numeric boundary policy.
@@ -237,8 +237,9 @@ inline constexpr bool is_kleene_invertible_v<
     T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
-inline constexpr T partial_identity_v<
-    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = T(0);
+inline constexpr T
+    partial_unit_v<T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> =
+        T(0);
 
 /** @brief Multiplication with user-supplied numeric boundary policy. */
 export template <std::integral T,
@@ -265,8 +266,9 @@ inline constexpr bool is_kleene_commutative_v<
     T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
-inline constexpr T partial_identity_v<
-    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = T(1);
+inline constexpr T
+    partial_unit_v<T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> =
+        T(1);
 
 /** @brief Division with user-supplied numeric boundary policy. */
 export template <std::integral T,

@@ -153,7 +153,7 @@ inline constexpr bool is_kleene_commutative_v<dedekind::ieee::IEEE<F>,
 
 template <std::floating_point F>
 inline constexpr dedekind::ieee::IEEE<F>
-    partial_identity_v<dedekind::ieee::IEEE<F>, dedekind::ieee::IEEEAdd<F>> =
+    partial_unit_v<dedekind::ieee::IEEE<F>, dedekind::ieee::IEEEAdd<F>> =
         dedekind::ieee::IEEE<F>{F{0}};
 
 template <std::floating_point F>
@@ -168,7 +168,7 @@ inline constexpr bool is_kleene_commutative_v<dedekind::ieee::IEEE<F>,
 
 template <std::floating_point F>
 inline constexpr dedekind::ieee::IEEE<F>
-    partial_identity_v<dedekind::ieee::IEEE<F>, dedekind::ieee::IEEEMul<F>> =
+    partial_unit_v<dedekind::ieee::IEEE<F>, dedekind::ieee::IEEEMul<F>> =
         dedekind::ieee::IEEE<F>{F{1}};
 
 }  // namespace dedekind::category

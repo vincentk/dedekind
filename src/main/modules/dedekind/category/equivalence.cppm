@@ -213,14 +213,14 @@ export template <typename T, typename Rel>
 concept IsChainDecidedSymmetric = IsWalkableChain<T, Rel, 2> && !requires {
   T::template is_symmetric_v<Rel>;
 } && requires {
-  typename std::bool_constant<symmetric_on(Rel{}, identity_v<T, Sup>,
-                                           identity_v<T, Inf>)>;
+  typename std::bool_constant<symmetric_on(Rel{}, unit<T>(Sup{}),
+                                           unit<T>(Inf{}))>;
 };
 template <typename T, typename Rel>
   requires IsChainDecidedSymmetric<T, Rel>
 struct is_symmetric<T, Rel>
-    : std::bool_constant<symmetric_on(Rel{}, identity_v<T, Sup>,
-                                      identity_v<T, Inf>)> {};
+    : std::bool_constant<symmetric_on(Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))> {
+};
 
 // The three equivalence laws are the diagonal's, read in Rel: Δ ≤ Δ
 // (reflexive), Δ° = Δ (symmetric), Δ ; Δ = Δ (transitive).  Derived for every

@@ -107,14 +107,14 @@ namespace dedekind::category {
 
 /** @brief @c ⊕-identity is the @c ∞ sentinel. */
 template <typename T, bool M>
-struct identity_trait<dedekind::algebra::Tropical<T, M>,
-                      dedekind::algebra::TropicalPlus, void> {
+struct unit_trait<dedekind::algebra::Tropical<T, M>,
+                  dedekind::algebra::TropicalPlus, void> {
   static constexpr dedekind::algebra::Tropical<T, M> value{false, T{}};
 };
 /** @brief @c ⊗-identity is @c 0. */
 template <typename T, bool M>
-struct identity_trait<dedekind::algebra::Tropical<T, M>,
-                      std::plus<dedekind::algebra::Tropical<T, M>>, void> {
+struct unit_trait<dedekind::algebra::Tropical<T, M>,
+                  std::plus<dedekind::algebra::Tropical<T, M>>, void> {
   static constexpr dedekind::algebra::Tropical<T, M> value{true, T{}};
 };
 /** @brief @c ⊗ (= T's @c + with the @c ∞ sentinel absorbing) is total exactly
@@ -146,7 +146,7 @@ namespace dedekind::algebra {
  */
 export template <typename S, typename Add, typename Mult>
 concept IsTropical = dedekind::category::IsSemiring<S, Add, Mult> &&
-                     dedekind::category::is_idempotent_v<S, Add>;
+                     dedekind::category::idempotent<S>(Add{});
 
 /**
  * @brief Canonical semiring operations of a carrier, so combinators can

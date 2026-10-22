@@ -85,8 +85,8 @@ TEST_CASE(
   /** @brief The variety V we exercise: carriers with both
    *         associative + and commutative +.  @c Modular<6> is the
    *         canonical cyclic-ring inhabitant. */
-  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
-  STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);
+  STATIC_CHECK(associative<Z6>(std::plus<Z6>{}));
+  STATIC_CHECK(commutative<Z6>(std::plus<Z6>{}));
 }
 
 TEST_CASE(
@@ -97,8 +97,8 @@ TEST_CASE(
    *         lifts both axioms from the base @c Modular<6> to any
    *         @c Q registered as a quotient. */
   using H = hsp_closed_witnesses::H_image_of_Z6;
-  STATIC_CHECK(is_associative_v<H, std::plus<H>>);
-  STATIC_CHECK(is_commutative_v<H, std::plus<H>>);
+  STATIC_CHECK(associative<H>(std::plus<H>{}));
+  STATIC_CHECK(commutative<H>(std::plus<H>{}));
 }
 
 TEST_CASE(
@@ -109,8 +109,8 @@ TEST_CASE(
    *         @c subalgebra_base propagation lifts both axioms from the
    *         base to any registered subalgebra. */
   using S = hsp_closed_witnesses::S_subalg_of_Z6;
-  STATIC_CHECK(is_associative_v<S, std::plus<S>>);
-  STATIC_CHECK(is_commutative_v<S, std::plus<S>>);
+  STATIC_CHECK(associative<S>(std::plus<S>{}));
+  STATIC_CHECK(commutative<S>(std::plus<S>{}));
 }
 
 TEST_CASE(
@@ -121,8 +121,8 @@ TEST_CASE(
    *         lifts both axioms componentwise from the base to any
    *         registered direct product. */
   using P = hsp_closed_witnesses::P_product_of_Z6;
-  STATIC_CHECK(is_associative_v<P, std::plus<P>>);
-  STATIC_CHECK(is_commutative_v<P, std::plus<P>>);
+  STATIC_CHECK(associative<P>(std::plus<P>{}));
+  STATIC_CHECK(commutative<P>(std::plus<P>{}));
 }
 
 TEST_CASE(
@@ -139,14 +139,14 @@ TEST_CASE(
 
   // The four-fold static_assert pinning Birkhoff: base + three HSP
   // legs, each carrier showing both axioms of V.
-  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);  // base
-  STATIC_CHECK(is_associative_v<H, std::plus<H>>);    // H
-  STATIC_CHECK(is_associative_v<S, std::plus<S>>);    // S
-  STATIC_CHECK(is_associative_v<P, std::plus<P>>);    // P
-  STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);  // base
-  STATIC_CHECK(is_commutative_v<H, std::plus<H>>);    // H
-  STATIC_CHECK(is_commutative_v<S, std::plus<S>>);    // S
-  STATIC_CHECK(is_commutative_v<P, std::plus<P>>);    // P
+  STATIC_CHECK(associative<Z6>(std::plus<Z6>{}));  // base
+  STATIC_CHECK(associative<H>(std::plus<H>{}));    // H
+  STATIC_CHECK(associative<S>(std::plus<S>{}));    // S
+  STATIC_CHECK(associative<P>(std::plus<P>{}));    // P
+  STATIC_CHECK(commutative<Z6>(std::plus<Z6>{}));  // base
+  STATIC_CHECK(commutative<H>(std::plus<H>{}));    // H
+  STATIC_CHECK(commutative<S>(std::plus<S>{}));    // S
+  STATIC_CHECK(commutative<P>(std::plus<P>{}));    // P
 }
 
 TEST_CASE(
@@ -162,8 +162,8 @@ TEST_CASE(
   using S = hsp_closed_witnesses::S_subalg_of_Z6;
 
   // Distributivity propagation (a law of the variety):
-  STATIC_CHECK(is_distributive_v<Z6, std::multiplies<Z6>, std::plus<Z6>>);
-  STATIC_CHECK(is_distributive_v<S, std::multiplies<S>, std::plus<S>>);
+  STATIC_CHECK(distributive<Z6>(std::multiplies<Z6>{}, std::plus<Z6>{}));
+  STATIC_CHECK(distributive<S>(std::multiplies<S>{}, std::plus<S>{}));
 
   // Totality by construction (Path E): S's + is Z6's +, which is total.
   STATIC_CHECK(is_total_v<Z6, std::plus<Z6>>);

@@ -269,14 +269,14 @@ inline constexpr bool
         true;
 
 template <long D, typename Q>
-struct identity_trait<dedekind::numbers::QuadraticReal<D, Q>,
-                      std::plus<dedekind::numbers::QuadraticReal<D, Q>>> {
+struct unit_trait<dedekind::numbers::QuadraticReal<D, Q>,
+                  std::plus<dedekind::numbers::QuadraticReal<D, Q>>> {
   using value_type = dedekind::numbers::QuadraticReal<D, Q>;
   static constexpr value_type value{};  // 0
 };
 template <long D, typename Q>
-struct identity_trait<dedekind::numbers::QuadraticReal<D, Q>,
-                      std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>> {
+struct unit_trait<dedekind::numbers::QuadraticReal<D, Q>,
+                  std::multiplies<dedekind::numbers::QuadraticReal<D, Q>>> {
   using value_type = dedekind::numbers::QuadraticReal<D, Q>;
   static constexpr value_type value{1};  // 1
 };

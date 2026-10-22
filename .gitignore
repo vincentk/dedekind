@@ -57,6 +57,19 @@ docs/paper/*.run.xml
 # the inline-comment form here landed at PR #514 but didn't actually
 # ignore paper.pdf for any consumer.)
 docs/paper/paper.pdf
+# The Jlt paper (docs/paper/jlt): the same build artefacts.
+docs/paper/jlt/*.aux
+docs/paper/jlt/*.bbl
+docs/paper/jlt/*.bcf
+docs/paper/jlt/*.blg
+docs/paper/jlt/*.fdb_latexmk
+docs/paper/jlt/*.fls
+docs/paper/jlt/*.log
+docs/paper/jlt/*.out
+docs/paper/jlt/*.toc
+docs/paper/jlt/*.run.xml
+docs/paper/jlt/_minted*/
+docs/paper/jlt/jlt.pdf
 **/*.synctex.gz
 
 build_ci/**

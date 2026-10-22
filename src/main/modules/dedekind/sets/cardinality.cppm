@@ -1925,13 +1925,13 @@ using namespace dedekind::sets;
 using C1 = dedekind::sets::ExtensionalCardinal<>;
 
 template <>
-struct identity_trait<C1, std::plus<C1>> {
+struct unit_trait<C1, std::plus<C1>> {
   using value_type = C1;
   static constexpr value_type value = value_type{0};
 };
 
 template <>
-struct identity_trait<C1, std::multiplies<C1>> {
+struct unit_trait<C1, std::multiplies<C1>> {
   using value_type = C1;
   static constexpr value_type value = value_type{1};
 };
@@ -1991,13 +1991,13 @@ static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
 using Z1 = dedekind::sets::SignedExtensionalCardinal<>;
 
 template <>
-struct identity_trait<Z1, std::plus<Z1>> {
+struct unit_trait<Z1, std::plus<Z1>> {
   using value_type = Z1;
   static constexpr value_type value = value_type{0};
 };
 
 template <>
-struct identity_trait<Z1, std::multiplies<Z1>> {
+struct unit_trait<Z1, std::multiplies<Z1>> {
   using value_type = Z1;
   static constexpr value_type value = value_type{1};
 };
@@ -2108,14 +2108,14 @@ static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
 using SC = dedekind::sets::SignedCardinality;
 
 template <>
-struct identity_trait<SC, std::plus<SC>> {
+struct unit_trait<SC, std::plus<SC>> {
   using value_type = SC;
   static constexpr value_type value =
       SC{dedekind::sets::SignedExtensionalCardinal<>{0}};
 };
 
 template <>
-struct identity_trait<SC, std::multiplies<SC>> {
+struct unit_trait<SC, std::multiplies<SC>> {
   using value_type = SC;
   static constexpr value_type value =
       SC{dedekind::sets::SignedExtensionalCardinal<>{1}};
@@ -2234,13 +2234,13 @@ static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
 using Card = dedekind::sets::Cardinality;
 
 template <>
-struct identity_trait<Card, std::plus<Card>> {
+struct unit_trait<Card, std::plus<Card>> {
   using value_type = Card;
   static constexpr value_type value = dedekind::sets::finite_cardinality(0);
 };
 
 template <>
-struct identity_trait<Card, std::multiplies<Card>> {
+struct unit_trait<Card, std::multiplies<Card>> {
   using value_type = Card;
   static constexpr value_type value = dedekind::sets::finite_cardinality(1);
 };

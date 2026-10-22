@@ -86,7 +86,7 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
 /**
  * @section monad__Monad_as_Monoid
  * We bridge the gap:
- *   η (Unit)           <--> identity_v (Monoid Unit)
+ *   η (Unit)           <--> unit_v (Monoid Unit)
  *   μ (Multiplication) <--> Op         (Monoid Operation)
  *
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T

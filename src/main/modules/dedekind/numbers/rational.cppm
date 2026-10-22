@@ -431,7 +431,7 @@ inline constexpr bool is_kleene_commutative_v<
     true;
 
 template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
     dedekind::numbers::Rational<I>(I{0}, I{1});
 
@@ -446,7 +446,7 @@ inline constexpr bool is_kleene_commutative_v<
     true;
 
 template <dedekind::morphologies::IsInteger I>
-inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+inline constexpr dedekind::numbers::Rational<I> partial_unit_v<
     dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
     dedekind::numbers::Rational<I>(I{1}, I{1});
 
@@ -546,33 +546,33 @@ concept FractionBacking =
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
                FractionBacking<I, std::multiplies<I>> &&
-               is_associative_v<I, std::plus<I>>
+               (associative<I>(std::plus<I>{}))
 inline constexpr bool is_associative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 template <typename I>
   requires FractionBacking<I, std::multiplies<I>> &&
-               is_associative_v<I, std::multiplies<I>>
+               (associative<I>(std::multiplies<I>{}))
 inline constexpr bool
     is_associative_v<dedekind::numbers::Rational<I>,
                      std::multiplies<dedekind::numbers::Rational<I>>> = true;
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
                FractionBacking<I, std::multiplies<I>> &&
-               is_commutative_v<I, std::plus<I>>
+               (commutative<I>(std::plus<I>{}))
 inline constexpr bool is_commutative_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
     true;
 template <typename I>
   requires FractionBacking<I, std::multiplies<I>> &&
-               is_commutative_v<I, std::multiplies<I>>
+               (commutative<I>(std::multiplies<I>{}))
 inline constexpr bool
     is_commutative_v<dedekind::numbers::Rational<I>,
                      std::multiplies<dedekind::numbers::Rational<I>>> = true;
 template <typename I>
   requires FractionBacking<I, std::plus<I>> &&
                FractionBacking<I, std::multiplies<I>> &&
-               is_distributive_v<I, std::multiplies<I>, std::plus<I>>
+               (distributive<I>(std::multiplies<I>{}, std::plus<I>{}))
 inline constexpr bool
     is_distributive_v<dedekind::numbers::Rational<I>,
                       std::multiplies<dedekind::numbers::Rational<I>>,
@@ -596,15 +596,15 @@ struct is_exact_total<dedekind::numbers::Rational<I>,
 // these don't propagate trivially because the quotient witness has its
 // own constructor shape.
 template <dedekind::morphologies::IsInteger I>
-struct identity_trait<dedekind::numbers::Rational<I>,
-                      std::plus<dedekind::numbers::Rational<I>>> {
+struct unit_trait<dedekind::numbers::Rational<I>,
+                  std::plus<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{0}, I{1}};
 };
 
 template <dedekind::morphologies::IsInteger I>
-struct identity_trait<dedekind::numbers::Rational<I>,
-                      std::multiplies<dedekind::numbers::Rational<I>>> {
+struct unit_trait<dedekind::numbers::Rational<I>,
+                  std::multiplies<dedekind::numbers::Rational<I>>> {
   using value_type = dedekind::numbers::Rational<I>;
   static constexpr value_type value = value_type{I{1}, I{1}};
 };
@@ -1058,14 +1058,14 @@ static_assert(
     "ℚ is exact, not saturating.");
 // Over a WRAPPING word the fraction laws are not certified: a wrapped
 // cross-product breaks associativity silently, so no field claim is made.
-static_assert(!dedekind::category::is_associative_v<
-                  Rational<SignedExtensionalCardinal<>>,
-                  std::plus<Rational<SignedExtensionalCardinal<>>>> &&
-                  !dedekind::category::IsField<
-                      Rational<SignedExtensionalCardinal<>>,
-                      std::plus<Rational<SignedExtensionalCardinal<>>>,
-                      std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
-              "fractions over a wrapping word are not certified a field.");
+static_assert(
+    !dedekind::category::associative<Rational<SignedExtensionalCardinal<>>>(
+        std::plus<Rational<SignedExtensionalCardinal<>>>{}) &&
+        !dedekind::category::IsField<
+            Rational<SignedExtensionalCardinal<>>,
+            std::plus<Rational<SignedExtensionalCardinal<>>>,
+            std::multiplies<Rational<SignedExtensionalCardinal<>>>>,
+    "fractions over a wrapping word are not certified a field.");
 // A field is a fortiori a ring and a semiring --- the full ladder on ℚ, pinned.
 static_assert(
     dedekind::category::IsRing<Rational<default_integer>,

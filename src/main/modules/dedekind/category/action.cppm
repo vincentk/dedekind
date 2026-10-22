@@ -66,14 +66,14 @@ static_assert(IsAction<decltype(zero<int, int>()), int>,
 
 // Verify that the Unit Morphism fulfills the Action Axioms
 // (Mapping everything to identity satisfies the "Neutrality" of the action)
-static_assert(IsAction<decltype(unit<int, int>()), int>,
+static_assert(IsAction<decltype(zero<int, int, std::multiplies<int>>()), int>,
               "Unit Morphism must satisfy the Action axioms (Absorption).");
 
 /** @section action__Axiomatic_Verification */
 
 constexpr auto z = zero<int, int>();
 constexpr auto highway = id<int>();
-constexpr auto u = unit<int, int>();
+constexpr auto u = zero<int, int, std::multiplies<int>>();
 
 // 1. Verification of Absorption (Level 1 Logic)
 // The Zero Morphism maps any input to the Point 0.
@@ -146,7 +146,7 @@ concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
            std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
               requires {
                 {
-                  f(dedekind::category::identity_v<M, std::plus<M>>)
+                  f(dedekind::category::unit<M>(std::plus<M>{}))
                 } -> std::same_as<M>;
               };
 };
@@ -194,7 +194,7 @@ concept IsLinearMorphism =
  */
 export template <typename A, typename B, typename Op>
 struct ZeroAction final {
-  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
+  constexpr B operator()(const A&) const noexcept { return unit<B>(Op{}); }
 };
 
 /** @section action__Module_FreeModule_EndoRing_Trait_Registry

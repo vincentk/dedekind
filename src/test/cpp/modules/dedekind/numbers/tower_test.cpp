@@ -79,14 +79,14 @@ static_assert(is_kleene_associative_v<Rational<machine_integer>,
                                       PartialAddRational<machine_integer>>);
 static_assert(is_kleene_commutative_v<Rational<machine_integer>,
                                       PartialAddRational<machine_integer>>);
-static_assert(partial_identity_v<Rational<machine_integer>,
+static_assert(partial_unit_v<Rational<machine_integer>,
                                  PartialAddRational<machine_integer>>.num() ==
               0);
 static_assert(is_kleene_associative_v<Rational<machine_integer>,
                                       PartialMulRational<machine_integer>>);
 static_assert(is_kleene_commutative_v<Rational<machine_integer>,
                                       PartialMulRational<machine_integer>>);
-static_assert(partial_identity_v<Rational<machine_integer>,
+static_assert(partial_unit_v<Rational<machine_integer>,
                                  PartialMulRational<machine_integer>>.num() ==
               1);
 

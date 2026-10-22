@@ -130,8 +130,10 @@ module;
 #include <cstddef>
 #include <cstdint>     // std::int8_t (the K₃ step)
 #include <functional>  // std::invoke
+#include <iterator>    // std::default_sentinel_t: where chain_view's walk ends
 #include <limits>      // a machine word's ends, where its step has no value
 #include <optional>    // std::optional = 1 + N, the NNO's functor
+#include <ranges>      // std::ranges::view_interface: chain_view is a range
 #include <type_traits>
 
 export module dedekind.category:nno;
@@ -304,6 +306,75 @@ constexpr std::optional<N> cover(const N& n) {
   if (s == n) return std::nullopt;
   return s;
 }
+/** @section nno__Chain_View
+ *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
+ *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
+ *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
+ *  this (@c Ternary has no @c ++, @c Cardinality no @c difference_type), so
+ *  @c sequences::to_iota_view is this view's integral face.  A forward view
+ * (the walk restarts from @c lo), O(1) state: the current element and the end.
+ *  @tparam C the chain, with the covering step. */
+export template <HasNNOStep C>
+  requires std::totally_ordered<C>
+class chain_view : public std::ranges::view_interface<chain_view<C>> {
+ public:
+  /** @brief The walk's position: the current element, the end, and whether
+   *  the walk is still live. */
+  class iterator {
+   public:
+    using value_type = C;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::forward_iterator_tag;
+    constexpr iterator() = default;
+    /** @param lo the first element.  @param hi the last; an empty walk when
+     *  @c lo @c > @c hi. */
+    constexpr iterator(C lo, C hi) : current_(lo), hi_(hi), live_(lo <= hi) {}
+    /** @return the current element, by value. */
+    constexpr C operator*() const { return current_; }
+    /** @brief Step to the cover of the current element; the walk ends after
+     *  @c hi, or at a saturating top short of it.  @return this iterator. */
+    constexpr iterator& operator++() {
+      if (current_ == hi_) {
+        live_ = false;
+      } else if (const auto next = cover(current_); next.has_value()) {
+        current_ = *next;
+      } else {
+        live_ = false;  // a saturating top short of hi: nothing above it
+      }
+      return *this;
+    }
+    /** @return the position before the step. */
+    constexpr iterator operator++(int) {
+      iterator before = *this;
+      ++*this;
+      return before;
+    }
+    friend constexpr bool operator==(const iterator&,
+                                     const iterator&) = default;
+    /** @return whether the walk has ended. */
+    friend constexpr bool operator==(const iterator& it,
+                                     std::default_sentinel_t) {
+      return !it.live_;
+    }
+
+   private:
+    C current_{};
+    C hi_{};
+    bool live_ = false;
+  };
+  constexpr chain_view() = default;
+  /** @param lo the window's bottom.  @param hi its top (inclusive). */
+  constexpr chain_view(C lo, C hi) : lo_(lo), hi_(hi) {}
+  /** @return the walk, starting at @c lo. */
+  constexpr iterator begin() const { return {lo_, hi_}; }
+  /** @return the sentinel the walk compares equal to once it has ended. */
+  constexpr std::default_sentinel_t end() const { return {}; }
+
+ private:
+  C lo_{};
+  C hi_{};
+};
+
 /** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
  *  predecessor read partially, @c nullopt at the least element (a fixpoint of
  *  @c P, or a machine word's least value).  Not the destructor @c Out, which

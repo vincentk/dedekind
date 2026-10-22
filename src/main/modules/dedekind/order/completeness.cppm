@@ -56,7 +56,7 @@ concept IsSuccessor = IsPartialMagma<T, std::plus<T>> &&
                       IsPointed<T, std::multiplies<T>> && requires(const T x) {
                         // The Successor Morphism: S(x) = x + 1
                         {
-                          x + identity_v<T, std::multiplies<T>>
+                          x + unit<T>(std::multiplies<T>{})
                         } -> std::same_as<T>;
                       };
 

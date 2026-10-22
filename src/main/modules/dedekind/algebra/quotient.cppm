@@ -54,7 +54,7 @@
  * single @c quotient_algebra_base<Q> specialisation; @c category:total reads
  * the laws and totality off it without per-trait enumeration.  Carrier-
  * specific bits (additive identity values, additive inverse via @c -q)
- * remain at the carrier site as @c identity_trait / @c inverse_trait
+ * remain at the carrier site as @c unit_trait / @c inverse_trait
  * specialisations because their construction depends on the carrier's
  * internal layout.
  *
@@ -208,14 +208,14 @@ concept IsCongruenceQuotient =
 // well-behaved base (@c Rational @c = @c Frac(I), @c Complex, @c Dual).
 // Forwarding via the CONGRUENCE is deliberately NOT done, and would be @b
 // unsound for a machine-carrier quotient: @c Modular<N>'s carrier @c V
-// (@c unsigned/@c int) has broken arithmetic --- @c is_associative_v<int,
-// std::plus<int>> is @b false (overflow) --- so forwarding @c V's laws to @c Q
-// would make @c Modular<N> non-associative, which is @b wrong: @c Modular<N> is
-// associative by its own total mod-N construction.  Its laws are @b intrinsic,
-// not inherited; the congruence merely @b witnesses @c Q @c = @c V/R.  The two
-// paths (forward-from-base vs.\ witness-intrinsic) serve disjoint quotient
-// classes and coexist by design; #801's "retire @c quotient_algebra_base" is
-// unsound to merge for exactly this reason.
+// (@c unsigned/@c int) has broken arithmetic --- @c
+// associative<int>(std::plus<int>{}) is @b false (overflow) --- so forwarding
+// @c V's laws to @c Q would make @c Modular<N> non-associative, which is @b
+// wrong: @c Modular<N> is associative by its own total mod-N construction.  Its
+// laws are @b intrinsic, not inherited; the congruence merely @b witnesses @c Q
+// @c = @c V/R.  The two paths (forward-from-base vs.\ witness-intrinsic) serve
+// disjoint quotient classes and coexist by design; #801's "retire @c
+// quotient_algebra_base" is unsound to merge for exactly this reason.
 //
 // Self-contained witness that the relational H-leg plumbing composes.  @c
 // IntByEquality is the identity quotient @c int/(=): @c std::equal_to is the

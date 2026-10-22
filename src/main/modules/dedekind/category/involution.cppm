@@ -43,13 +43,16 @@
  * free) and the migration of @c Involutive_Endofunctor, which need the
  * @c :morphism arrow surface.
  *
- * @build_order imports @c :species (@c identity_v); upstream of @c :lattice /
+ * @build_order imports @c :species (@c unit_v); upstream of @c :lattice /
  *              @c :category.
  */
 module;
 
+#include <algorithm>   // std::ranges::reverse: the involution on strings
 #include <concepts>    // std::invocable, std::convertible_to
+#include <cstddef>     // std::size_t, the carrier of the negate witness
 #include <functional>  // std::logical_not / std::bit_not (canonical involutions)
+#include <string>      // the carrier of Reverse
 #include <type_traits>
 #include <utility>  // std::declval: the bare callable read as endo<T>(f)  // std::invoke_result_t, std::is_integral_v
 
@@ -57,7 +60,7 @@ export module dedekind.category:involution;
 
 import :morphism;  // IsArrow / Dom / Cod / Morphism: the arrow language;
                    // Identity
-import :species;   // identity_v: the Op-identity the (co)isometry law is
+import :species;   // unit_v: the Op-identity the (co)isometry law is
                    // measured against
 
 namespace dedekind::category {
@@ -92,6 +95,27 @@ struct is_involutive<std::logical_not<bool>, bool> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T> && (!std::is_same_v<T, bool>)
 struct is_involutive<std::bit_not<T>, T> : std::true_type {};
+
+/** @brief Canonical: unary minus is an involution on the @b unsigned integral
+ *  carriers, where @c -x is @c 2^n - x and @c -(-x) = x for every @c x.  The
+ *  signed carriers are EXCLUDED: @c -INT_MIN is undefined behaviour, so
+ *  @c std::negate<int> is an involution on all values but one, and that one
+ *  makes it not a function.  (The Jlt paper's Listing 1 states both.) */
+template <std::unsigned_integral T>
+struct is_involutive<std::negate<T>, T> : std::true_type {};
+
+/** @brief An involution on a carrier that is not a number: reversing a string
+ *  twice is the identity.  A pure function object, value in and value out, so
+ *  that it is an arrow in the sense of the Jlt paper's Rule 1; registered so
+ *  the certificate's reach beyond arithmetic is witnessed once. */
+export struct Reverse {
+  constexpr std::string operator()(std::string s) const {
+    std::ranges::reverse(s);
+    return s;
+  }
+};
+template <>
+struct is_involutive<Reverse, std::string> : std::true_type {};
 
 /** @brief The identity arrow is (trivially) an involution: @c id(id(x)) = x,
  *  so @c id⁻¹ = id.  @c Identity is the degenerate case where @b idempotent
@@ -142,6 +166,13 @@ concept IsInvolution = IsEndomorphism<detail_involution::on_t<F, T>> &&
  *  (@c !!x = x): a certified witness that the seed rejects non-involutions. */
 static_assert(IsInvolution<std::logical_not<bool>, bool>);
 static_assert(IsInvolution<std::bit_not<int>, int>);
+static_assert(IsInvolution<std::negate<std::size_t>, std::size_t>);
+static_assert(!IsInvolution<std::negate<int>, int>,
+              "unary minus on a signed carrier is not certified: -INT_MIN is "
+              "undefined, so it is not a function on int.");
+static_assert(IsInvolution<Reverse, std::string>);
+static_assert(Reverse{}(Reverse{}(std::string{"posture"})) == "posture",
+              "reversing twice is the identity, at compile time too.");
 static_assert(!IsInvolution<decltype([](int x) { return x + 1; }), int>,
               "a merely-composable endomap is NOT an involution: the seed "
               "requires the is_involutive_v certificate, not just the shape.");
@@ -298,19 +329,19 @@ concept IsDagger = IsInvolution<Dagger, T>;
 /** @brief The isometry law, @b computed on an arrow @c f:
  *  @f$f^\dagger \circ f = \mathrm{id}@f$ --- the dagger is a @b left inverse.
  *  General over the dagger @c Dagger and composition @c Op (@c id is the
- *  @c Op-identity @c identity_v); @b no linearity.  @c f is an @b endo-arrow
+ *  @c Op-identity @c unit_v); @b no linearity.  @c f is an @b endo-arrow
  *  (@c Op a monoid on the single object @c T); a general @f$f:A\to B@f$
  * isometry is the multi-object case, left to the arrow surface. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_isometry(const T& f) {
-  return Op{}(Dagger{}(f), f) == identity_v<T, Op>;
+  return Op{}(Dagger{}(f), f) == unit<T>(Op{});
 }
 
 /** @brief The coisometry law: @f$f \circ f^\dagger = \mathrm{id}@f$ --- the
  *  dagger is a @b right inverse. */
 export template <typename Dagger, typename Op, typename T>
 constexpr bool is_coisometry(const T& f) {
-  return Op{}(f, Dagger{}(f)) == identity_v<T, Op>;
+  return Op{}(f, Dagger{}(f)) == unit<T>(Op{});
 }
 
 /** @brief The unitary law: isometry @b and coisometry, hence

@@ -62,7 +62,7 @@ namespace dedekind::category {
  * canonical C++ representative of the categorical "1". Every species T admits
  * exactly one morphism T → One (the constant function).
  *
- * @see IsTerminalObject, unit()
+ * @see IsTerminalObject, bang()
  */
 export using One = std::monostate;
 
@@ -106,14 +106,14 @@ export template <typename F>
 concept IsTerminalMorphism = IsMorphicTotal<F>;
 
 /**
- * @brief The unit morphism factory: produces the unique arrow !: T → One.
+ * @brief The terminal map factory: produces the unique arrow !: T → One.
  * @details For every species T there is exactly one morphism to the Terminal
  * Object. This factory constructs it as a constant function that ignores its
  * input and returns `One{}` (`std::monostate{}`).
  * @tparam T The domain species.
  */
 export template <typename T>
-auto unit() {
+auto bang() {
   return arrow<T, One>([](const T&) { return One{}; });
 }
 
@@ -193,11 +193,11 @@ auto zero() {
  * @concept HasUniqueMorphismTo
  * @brief Asserts that there exists a unique morphism from T to U = One.
  * @details Encodes the universal property of the Terminal Object: for every
- * species T, the factory `unit<T>()` produces the unique arrow T → One.
+ * species T, the factory `bang<T>()` produces the unique arrow T → One.
  */
 export template <typename T, typename U>
 concept HasUniqueMorphismTo = std::same_as<U, One> && requires {
-  { unit<T>() } -> IsTerminalMorphism;
+  { bang<T>() } -> IsTerminalMorphism;
 };
 
 /**

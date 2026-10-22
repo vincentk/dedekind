@@ -191,7 +191,7 @@ concept IsField = IsAlgebraOnSet<X, Add, Mult> &&
  * \wedge)@f$, via @c std::bit_and<bool>.
  *
  * The @c is_associative_v / @c is_commutative_v / @c is_invertible_v
- * / @c identity_trait / @c is_distributive_v specialisations live in
+ * / @c unit_trait / @c is_distributive_v specialisations live in
  * @c dedekind.category:species alongside the other @c bool operator
  * facts; they compose here to witness
  * @c dedekind::category::IsField<bool, std::bit_xor<bool>,

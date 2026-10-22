@@ -43,7 +43,7 @@ module;
 export module dedekind.optimization:closure;
 
 import dedekind.algebra;   // semiring_ops, IsTropical
-import dedekind.category;  // identity_v, IsSemiring
+import dedekind.category;  // unit_v, IsSemiring
 import dedekind.sequences; // fold, Net, FiniteSeq
 
 namespace dedekind::optimization {
@@ -145,9 +145,9 @@ constexpr S semiring_closure(std::size_t source, std::size_t sink,
                              const Edges& edges, CostFn cost) {
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-  static_assert(S{} == dedekind::category::identity_v<S, Add>);  // 0-bar is S{}
-  FiniteNet<S, Cap> d{};                                   // 0-bar everywhere
-  d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar at source
+  static_assert(S{} == dedekind::category::unit<S>(Add{}));  // 0-bar is S{}
+  FiniteNet<S, Cap> d{};                                     // 0-bar everywhere
+  d.at(source) = dedekind::category::unit<S>(Mult{});        // 1-bar at source
   return dedekind::sequences::fold(edges, d, Relax<S, Cap, CostFn>{cost})(sink);
 }
 
@@ -246,9 +246,9 @@ constexpr FiniteNet<std::size_t, Cap> annotate(std::size_t source,
                                                CostFn cost) {
   using Add = typename dedekind::algebra::semiring_ops<S>::add;
   using Mult = typename dedekind::algebra::semiring_ops<S>::mult;
-  static_assert(S{} == dedekind::category::identity_v<S, Add>);
+  static_assert(S{} == dedekind::category::unit<S>(Add{}));
   CriticalPathState<S, Cap> a{};
-  a.d.at(source) = dedekind::category::identity_v<S, Mult>;  // 1-bar
+  a.d.at(source) = dedekind::category::unit<S>(Mult{});  // 1-bar
   return dedekind::sequences::fold(edges, a,
                                    CriticalPathStep<S, Cap, CostFn>{cost})
       .pred;

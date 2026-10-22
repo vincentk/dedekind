@@ -32,13 +32,13 @@
  *       base classes that expose member templates
  *       @c is_associative_v<Op>, @c is_commutative_v<Op>,
  *       @c is_invertible_v<Op>, @c is_periodic_v<Op>,
- *       @c identity_v<Op>, @c is_distributive_v<MultOp, AddOp>, with
+ *       @c unit_v<Op>, @c is_distributive_v<MultOp, AddOp>, with
  *       the obvious per-op conditions baked in.
  *
  *   (2) @c SpeciesTraits-based \emph{discovery} partial
  *       specialisations for each of the corresponding free-standing
  *       traits in @c dedekind.category (@c is_associative,
- *       @c is_commutative, \ldots, @c identity_trait,
+ *       @c is_commutative, \ldots, @c unit_trait,
  *       @c is_invertible_v, \ldots).  Each one has the shape ``if
  *       @c SpeciesTraits<T> exposes member template @c is_foo_v,
  *       then @c is_foo<T, Op>::value is that''.
@@ -111,7 +111,7 @@ namespace dedekind::algebra {
  *   - @c is_periodic_v<Op>     = Op is Add or Mult (carries @c IsTotal
  *                                for periodic wrapping carriers; idempotent
  *                                carriers choose a different totality witness)
- *   - @c identity_v<Op>        = Zero when Op is Add, One when Op is Mult
+ *   - @c unit_v<Op>        = Zero when Op is Add, One when Op is Mult
  *   - @c is_distributive_v<MultOp, AddOp>
  *                              = MultOp is Mult and AddOp is Add
  *
@@ -146,7 +146,7 @@ struct RigRegistration {
 
   template <typename Op>
     requires(std::same_as<Op, Add> || std::same_as<Op, Mult>)
-  static constexpr T identity_v = std::same_as<Op, Add> ? T(Zero) : T(One);
+  static constexpr T unit_v = std::same_as<Op, Add> ? T(Zero) : T(One);
 
   template <typename MultOp, typename AddOp>
   static constexpr bool is_distributive_v =
@@ -271,7 +271,7 @@ concept SpeciesTraitsHasIsDistributive = RegisteredViaHelper<T> && requires {
 
 template <typename T, typename Op>
 concept SpeciesTraitsHasIdentity = RegisteredViaHelper<T> && requires {
-  SpeciesTraits<T>::template identity_v<Op>;
+  SpeciesTraits<T>::template unit_v<Op>;
 };
 
 // Discovery partial specialisations of the free-standing traits.
@@ -319,9 +319,9 @@ inline constexpr bool is_distributive_v<T, std::multiplies<T>, std::plus<T>> =
 
 template <typename T, typename Op>
   requires SpeciesTraitsHasIdentity<T, Op>
-struct identity_trait<T, Op, void> {
+struct unit_trait<T, Op, void> {
   using value_type = T;
-  static constexpr T value = SpeciesTraits<T>::template identity_v<Op>;
+  static constexpr T value = SpeciesTraits<T>::template unit_v<Op>;
 };
 
 }  // namespace dedekind::category

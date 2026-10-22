@@ -137,7 +137,7 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
 TEST_CASE("image(IsTerminalMorphism F, S) — terminal-codomain collapse (#661)",
           "[sets][image][terminal-morphism]") {
   using dedekind::category::One;
-  const auto bang = dedekind::category::unit<int>();  // !: int → One
+  const auto bang = dedekind::category::bang<int>();  // !: int → One
 
   SECTION("Universe source → Singleton<One> (inhabited collapse)") {
     constexpr 𝔸<int> universe;

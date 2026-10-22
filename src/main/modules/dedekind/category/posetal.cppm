@@ -402,6 +402,15 @@ inline constexpr bool is_monotone_v =
  *          Op(F(x), @c F(y)).  Per Mac Lane, this is the canonical
  *          shape of an arrow between posetal categories.
  */
+/** @brief Is @c F declared monotone under @c Op?  Reads the registration
+ *  the concept below reads; a predicate on the order's value for orders that
+ *  are empty types (the Jlt paper's spelling, #981).  The concept reads the
+ *  registration by type, since an order may carry state.
+ *  @tparam F the arrow.  @tparam Op the order. */
+export template <typename F, typename Op = std::less_equal<>>
+constexpr bool monotone(Op) {
+  return is_monotone_v<F, Op>;
+}
 export template <typename F, typename Op = std::less_equal<>>
 concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
 
@@ -626,6 +635,10 @@ export inline constexpr std::array<ArrowLaw, 5> every_arrow_law{
 export enum class ArrowNode { Compose, Product, Sum, Pairing, Copairing };
 /** @brief The profile of a function. */
 export using ArrowLaws = Profile<ArrowLaw, every_arrow_law.size()>;
+
+/** @brief What a profile says about monotonicity: the law read off the
+ *  fold's result, in K₃ (@c True where certified, @c Unknown where not). */
+export constexpr Ternary monotone(ArrowLaws p) { return p[ArrowLaw::Monotone]; }
 
 /** @brief The engine at one law: a former's answer from its legs' profiles,
  *  their laws combined by the chain's own @c Inf (both legs) and @c Sup

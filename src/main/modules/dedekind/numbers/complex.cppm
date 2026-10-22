@@ -261,7 +261,7 @@ inline constexpr bool is_kleene_commutative_v<
 
 template <typename R>
   requires dedekind::numbers::IsComplexScalar<R>
-inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
+inline constexpr dedekind::numbers::Complex<R> partial_unit_v<
     dedekind::numbers::Complex<R>, dedekind::numbers::PartialAddComplex<R>> =
     dedekind::numbers::Complex<R>{R{}, R{}};
 
@@ -273,7 +273,7 @@ inline constexpr bool is_kleene_commutative_v<
 
 template <typename R>
   requires dedekind::numbers::IsComplexScalar<R>
-inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
+inline constexpr dedekind::numbers::Complex<R> partial_unit_v<
     dedekind::numbers::Complex<R>, dedekind::numbers::PartialMulComplex<R>> =
     dedekind::numbers::Complex<R>{R{1}, R{}};
 
@@ -337,7 +337,7 @@ inline constexpr bool
     is_commutative_v<dedekind::numbers::Complex<R>,
                      std::multiplies<dedekind::numbers::Complex<R>>> =
         IsRng<R, std::plus<R>, std::multiplies<R>> &&
-        is_commutative_v<R, std::multiplies<R>>;
+        commutative<R>(std::multiplies<R>{});
 
 template <typename R>
 inline constexpr bool
@@ -632,8 +632,8 @@ struct is_commutative<dedekind::numbers::UnitRoot<N>,
                       std::multiplies<dedekind::numbers::UnitRoot<N>>>
     : std::true_type {};
 template <unsigned N>
-struct identity_trait<dedekind::numbers::UnitRoot<N>,
-                      std::multiplies<dedekind::numbers::UnitRoot<N>>> {
+struct unit_trait<dedekind::numbers::UnitRoot<N>,
+                  std::multiplies<dedekind::numbers::UnitRoot<N>>> {
   using value_type = dedekind::numbers::UnitRoot<N>;
   static constexpr value_type value{};  // ζ^0 = 1
 };
@@ -886,7 +886,7 @@ static_assert(std::same_as<typename Complex<QuadraticReal<2>>::ScalarCarrier,
 // and totality off R (× multiplies out, so its laws are registered above,
 // gated on IsRng<R>).
 // The carrier-specific bits (additive identity, additive inverse) live
-// next to it as identity_trait / inverse_trait specialisations.
+// next to it as unit_trait / inverse_trait specialisations.
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
@@ -897,15 +897,15 @@ struct quotient_algebra_base<dedekind::numbers::Complex<R>> {
 };
 
 template <dedekind::numbers::IsComplexScalar R>
-struct identity_trait<dedekind::numbers::Complex<R>,
-                      std::plus<dedekind::numbers::Complex<R>>> {
+struct unit_trait<dedekind::numbers::Complex<R>,
+                  std::plus<dedekind::numbers::Complex<R>>> {
   using value_type = dedekind::numbers::Complex<R>;
   static constexpr value_type value = value_type{R{}, R{}};
 };
 
 template <dedekind::numbers::IsComplexScalar R>
-struct identity_trait<dedekind::numbers::Complex<R>,
-                      std::multiplies<dedekind::numbers::Complex<R>>> {
+struct unit_trait<dedekind::numbers::Complex<R>,
+                  std::multiplies<dedekind::numbers::Complex<R>>> {
   using value_type = dedekind::numbers::Complex<R>;
   static constexpr value_type value = value_type{R{1}, R{}};
 };

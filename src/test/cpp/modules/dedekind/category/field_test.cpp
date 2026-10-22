@@ -70,12 +70,12 @@ struct TrivialField {
 namespace dedekind::category {
 
 template <>
-struct identity_trait<TrivialField, std::plus<TrivialField>> {
+struct unit_trait<TrivialField, std::plus<TrivialField>> {
   using value_type = TrivialField;
   static constexpr value_type value{};
 };
 template <>
-struct identity_trait<TrivialField, std::multiplies<TrivialField>> {
+struct unit_trait<TrivialField, std::multiplies<TrivialField>> {
   using value_type = TrivialField;
   static constexpr value_type value{};
 };

@@ -36,6 +36,8 @@ ArrowLaws laws_of_pipeline(const std::vector<Step>& steps) {
 
 TEST_CASE("arrow laws: the leaves, declared", "[category][laws]") {
   STATIC_CHECK(profile_of_not[ArrowLaw::Antitone] == Ternary::True);
+  STATIC_CHECK(profile_of_not[ArrowLaw::Involutive] == Ternary::True);
+  STATIC_CHECK(profile_of_not[ArrowLaw::Injective] == Ternary::True);
   STATIC_CHECK(profile_of_id[ArrowLaw::Monotone] == Ternary::True);
   STATIC_CHECK(profile_of_id[ArrowLaw::Injective] == Ternary::True);
 }

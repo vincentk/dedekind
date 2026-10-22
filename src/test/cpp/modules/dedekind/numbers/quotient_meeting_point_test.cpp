@@ -58,9 +58,9 @@ TEST_CASE("quotient meeting-point — Modular<6> fires HSP propagation (Slice 5)
    *         HSP-closed crown uses @c Modular<6> as the base, exercised
    *         here directly. */
   using Z6 = Modular<6>;
-  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
-  STATIC_CHECK(is_commutative_v<Z6, std::plus<Z6>>);
-  STATIC_CHECK(is_distributive_v<Z6, std::multiplies<Z6>, std::plus<Z6>>);
+  STATIC_CHECK(associative<Z6>(std::plus<Z6>{}));
+  STATIC_CHECK(commutative<Z6>(std::plus<Z6>{}));
+  STATIC_CHECK(distributive<Z6>(std::multiplies<Z6>{}, std::plus<Z6>{}));
 }
 
 TEST_CASE(
@@ -137,7 +137,7 @@ TEST_CASE(
   STATIC_CHECK(IsCongruence<std::equal_to<bool>, bool, std::bit_xor<bool>>);
 
   // Row 5 (HSP propagation) — Modular<6> leg
-  STATIC_CHECK(is_associative_v<Z6, std::plus<Z6>>);
+  STATIC_CHECK(associative<Z6>(std::plus<Z6>{}));
 
   // Row 5 / IsQuotientAlgebra — ℂ over ℚ leg; ℚ itself is a localization,
   // not a homomorphic image, and says so.

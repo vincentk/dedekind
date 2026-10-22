@@ -29,7 +29,7 @@ TEST_CASE("ETCS axioms: 3 and 8 (terminal and initial objects)",
   STATIC_CHECK(IsInitialObject<Zero>);
   STATIC_CHECK(std::same_as<Zero, std::nullptr_t>);
 
-  auto u = unit<int>();
+  auto u = bang<int>();
   CHECK(u(42) == One{});
 
   STATIC_CHECK(HasUniqueMorphismTo<int, One>);

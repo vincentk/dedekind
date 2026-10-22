@@ -56,7 +56,7 @@ module;
 export module dedekind.linear_algebra:transfer;
 
 import dedekind.algebra;    // IsSemiring, semiring_ops, Tropical/MaxPlus, ⊕/⊗
-import dedekind.category;   // IsArrow, IsSemiring, identity_v, closure, Boole
+import dedekind.category;   // IsArrow, IsSemiring, unit_v, closure, Boole
 import dedekind.order;      // IsDirectedSet
 import dedekind.relational; // converse / is_relation (Tarski :dyadic, #792)
 import dedekind.sets; // dedekind::sets::Comprehension<dedekind::sets::𝔸<pair,L>, P> — the DSL relation carrier
@@ -114,11 +114,11 @@ export template <
 constexpr S inner_product(const Bra& w, const Ket& v) {
   using WD = typename std::remove_cvref_t<Bra>::Domain;
   using VD = typename std::remove_cvref_t<Ket>::Domain;
-  return add_fold<Add>(
-      std::make_index_sequence<N>{}, dedekind::category::identity_v<S, Add>,
-      [&](std::size_t k) {
-        return Mult{}(w(static_cast<WD>(k)), v(static_cast<VD>(k)));
-      });
+  return add_fold<Add>(std::make_index_sequence<N>{},
+                       dedekind::category::unit<S>(Add{}), [&](std::size_t k) {
+                         return Mult{}(w(static_cast<WD>(k)),
+                                       v(static_cast<VD>(k)));
+                       });
 }
 
 // ---------------------------------------------------------------------------
@@ -152,8 +152,8 @@ namespace detail_geom {
  *  running power. */
 template <typename S, typename Add, typename Mult>
 constexpr std::pair<S, S> geo_pair(const S& r, std::size_t N) {
-  const S zero = dedekind::category::identity_v<S, Add>;
-  const S one = dedekind::category::identity_v<S, Mult>;
+  const S zero = dedekind::category::unit<S>(Add{});
+  const S one = dedekind::category::unit<S>(Mult{});
   if (N == 0) return {zero, one};
   const std::pair<S, S> lo =
       geo_pair<S, Add, Mult>(r, N / 2);                  // Σ_{k<⌊N/2⌋}, r^⌊N/2⌋
@@ -360,7 +360,7 @@ export template <
   requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr S matmul_entry(const A& a, const B& b, std::size_t i, std::size_t j) {
   return add_fold<Add>(std::make_index_sequence<N>{},
-                       dedekind::category::identity_v<S, Add>,
+                       dedekind::category::unit<S>(Add{}),
                        [&](std::size_t k) { return Mult{}(a(i, k), b(k, j)); });
 }
 
@@ -403,7 +403,7 @@ export template <
   requires dedekind::category::IsSemiring<S, Add, Mult>
 constexpr S transfer_chain(Bead bead) {
   return add_fold<Mult>(std::make_index_sequence<L>{},
-                        dedekind::category::identity_v<S, Mult>,
+                        dedekind::category::unit<S>(Mult{}),
                         [&](std::size_t m) { return bead(m); });
 }
 
@@ -657,7 +657,7 @@ static_assert(!Bstar[3][0], "acyclic: 3 does not reach 0.");
 // not a bool Set<pair>; it is Mat(S)'s vocabulary, so a named @c (i,j)→MP
 // adjacency carrier.
 using TropAdd = typename dedekind::algebra::semiring_ops<MP>::add;
-inline constexpr MP mp_bot = dedekind::category::identity_v<MP, TropAdd>;
+inline constexpr MP mp_bot = dedekind::category::unit<MP>(TropAdd{});
 struct WeightedUnitPath {
   constexpr MP operator()(std::size_t i, std::size_t j) const {
     return (j == i + 1) ? MP::of(1) : mp_bot;

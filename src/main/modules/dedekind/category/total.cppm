@@ -342,35 +342,35 @@ struct is_total_by_construction<D, std::multiplies<D>>
  *  @tparam B the base carrier. */
 template <typename B>
 concept CommutativeRingLaws =
-    is_associative_v<B, std::plus<B>> && is_commutative_v<B, std::plus<B>> &&
-    is_associative_v<B, std::multiplies<B>> &&
-    is_distributive_v<B, std::multiplies<B>, std::plus<B>>;
+    associative<B>(std::plus<B>{}) && commutative<B>(std::plus<B>{}) &&
+    associative<B>(std::multiplies<B>{}) &&
+    distributive<B>(std::multiplies<B>{}, std::plus<B>{});
 
 template <IsConstructed D>
 inline constexpr bool is_associative_v<D, std::plus<D>> =
-    is_associative_v<typename construction_base<D>::type,
-                     std::plus<typename construction_base<D>::type>>;
+    associative<typename construction_base<D>::type>(
+        std::plus<typename construction_base<D>::type>{});
 template <IsConstructed D>
 inline constexpr bool is_commutative_v<D, std::plus<D>> =
-    is_commutative_v<typename construction_base<D>::type,
-                     std::plus<typename construction_base<D>::type>>;
+    commutative<typename construction_base<D>::type>(
+        std::plus<typename construction_base<D>::type>{});
 template <IsConstructed D>
 inline constexpr bool is_associative_v<D, std::multiplies<D>> =
-    is_associative_v<typename construction_base<D>::type,
-                     std::multiplies<typename construction_base<D>::type>> &&
+    associative<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 template <IsConstructed D>
 inline constexpr bool is_commutative_v<D, std::multiplies<D>> =
-    is_commutative_v<typename construction_base<D>::type,
-                     std::multiplies<typename construction_base<D>::type>> &&
+    commutative<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 template <IsConstructed D>
 inline constexpr bool is_distributive_v<D, std::multiplies<D>, std::plus<D>> =
-    is_distributive_v<typename construction_base<D>::type,
-                      std::multiplies<typename construction_base<D>::type>,
-                      std::plus<typename construction_base<D>::type>> &&
+    distributive<typename construction_base<D>::type>(
+        std::multiplies<typename construction_base<D>::type>{},
+        std::plus<typename construction_base<D>::type>{}) &&
     (!construction_base<D>::times_mixes_plus ||
      CommutativeRingLaws<typename construction_base<D>::type>);
 
@@ -419,7 +419,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  * @concept IsPointed
  * @brief A type @c T has a chosen identity element under operation @c Op.
  * @details Replaces the missing `HasIdentity` for Level 0.1.  The identity
- *          element is looked up via the @c identity_v trait registered in
+ *          element is looked up via the @c unit_v trait registered in
  *          @c :species; @c IsPointed pins the existence claim at the concept
  *          level.  Re-homed from @c :species to @c :total under #637 ---
  *          this is universal-algebra content (chosen-element witness for a
@@ -428,7 +428,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  */
 export template <typename T, typename Op>
 concept IsPointed = requires {
-  { identity_v<T, Op> } -> std::convertible_to<T>;
+  { unit_trait<T, Op>::value } -> std::convertible_to<T>;
 };
 
 static_assert(IsPointed<bool, std::logical_or<bool>>,
@@ -454,44 +454,31 @@ static_assert(IsPointed<double, std::multiplies<double>>,
  */
 
 /**
- * @brief @c identity_registry specialisation for @c ConstantMorphism<A, B>.
+ * @brief @c unit_registry specialisation for @c ConstantMorphism<A, B>.
  *        Registers the constant-at-identity-element-of-@c B as the identity
  *        element of @c ConstantMorphism<A, B> under operation @c Op.
  */
 template <typename A, typename B, typename Op>
   requires IsPointed<B, Op>
-struct identity_registry<ConstantMorphism<A, B>, Op> {
-  static constexpr ConstantMorphism<A, B> value{identity_v<B, Op>};
+struct unit_registry<ConstantMorphism<A, B>, Op> {
+  static constexpr ConstantMorphism<A, B> value{unit<B>(Op{})};
 };
 
 /**
  * @brief @c zero<A, B, Op>(): the constant morphism @c A @c → @c B that
  *        maps everything to the @c Op-identity element of @c B.
- *        Defaults to @c std::plus<B> (additive identity, i.e. zero).
+ *        Defaults to @c std::plus<B> (additive identity, i.e. zero); with
+ *        @c std::multiplies<B> it is the constant at one.
  */
 export template <typename A, typename B, typename Op = std::plus<B>>
   requires IsPointed<B, Op>
 constexpr auto zero() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
-}
-
-/**
- * @brief @c unit<A, B, Op>(): the constant morphism @c A @c → @c B that
- *        maps everything to the @c Op-identity element of @c B.
- *        Defaults to @c std::multiplies<B> (multiplicative identity, i.e.
- *        one).  Distinct from @c :limit's nullary @c unit<T>() which
- *        produces the unique terminal-morphism @c T @c → @c One; the
- *        two are namespace-overloaded with disjoint template-argument
- *        shapes.
- */
-export template <typename A, typename B, typename Op = std::multiplies<B>>
-  requires IsPointed<B, Op>
-constexpr auto unit() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
+  return ConstantMorphism<A, B>{unit<B>(Op{})};
 }
 
 static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
-static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
+static_assert(IsPointed<decltype(zero<int, int, std::multiplies<int>>()),
+                        std::multiplies<int>>);
 
 // Functional correctness: maps to the Op-identity element.
 static_assert(
@@ -501,10 +488,6 @@ static_assert(
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(zero<int, int>())>,
               "Totality Error: zero() must be total constant over its domain.");
-
-// 3. Verify it is a Total Arrow (defined for all x in Domain)
-static_assert(IsTotalArrow<decltype(unit<int, int>())>,
-              "Totality Error: unit() must be total constant over its domain.");
 
 /**
  * @concept IsMagma
@@ -922,8 +905,8 @@ concept IsDistributiveLattice =
 /**
  * @concept IsBoundedLattice
  * @brief A @ref IsLattice whose join and meet each carry an identity: the
- *        bottom @f$\bot@f$ (@c identity_v<T,Join>) and top @f$\top@f$
- *        (@c identity_v<T,Meet>).
+ *        bottom @f$\bot@f$ (@c unit<T>(Join{})) and top @f$\top@f$
+ *        (@c unit<T>(Meet{})).
  * @details A lattice is @b bounded when it has a least and a greatest element,
  * @f$a \vee \bot = a@f$ and @f$a \wedge \top = a@f$; equivalently its join- and
  * meet-semilattices are each an @ref IsMonoid (commutativity is already forced

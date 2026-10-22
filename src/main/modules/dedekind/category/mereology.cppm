@@ -348,7 +348,7 @@ inline constexpr bool is_connex_v<T, std::less_equal<>> = true;
  * The certificate is a @b total order: reflexive, transitive, antisymmetric
  * @b and connex.  @c Sup / @c Inf are @c max / @c min, honest lattice ops only
  * on a chain: on a poset, @c Sup of incomparable @c a, @c b is order-dependent,
- * so @c is_commutative_v<T, Sup> would be false.  Connexity is certified per
+ * so @c commutative<T>(Sup{}) would be false.  Connexity is certified per
  * carrier (@c is_connex_v), not read off the syntactic
  * @c std::totally_ordered<T>, which @c double satisfies. */
 
@@ -493,21 +493,17 @@ constexpr bool fits_budget(std::size_t n, std::size_t arity) {
  *  registration: an answer, once instantiated, is fixed). */
 export template <typename T, typename Rel, std::size_t Arity>
 concept IsWalkableChain =
-    std::default_initializable<Rel> && std::is_empty_v<Rel> &&
-    requires {
-      identity_v<T, Sup>;
-      identity_v<T, Inf>;
-    } &&
-    requires(const Rel& r, const T& x) {
+    std::default_initializable<Rel> && std::is_empty_v<Rel> && requires {
+      unit<T>(Sup{});
+      unit<T>(Inf{});
+    } && requires(const Rel& r, const T& x) {
       { r(x, x) } -> std::convertible_to<bool>;
       { successor(x) } -> std::convertible_to<T>;
       { x == x } -> std::convertible_to<bool>;
-    } &&
-    requires {
+    } && requires {
       typename std::integral_constant<
-          std::size_t, chain_length(identity_v<T, Sup>, identity_v<T, Inf>)>;
-    } &&
-    fits_budget(chain_length(identity_v<T, Sup>, identity_v<T, Inf>), Arity);
+          std::size_t, chain_length(unit<T>(Sup{}), unit<T>(Inf{}))>;
+    } && fits_budget(chain_length(unit<T>(Sup{}), unit<T>(Inf{})), Arity);
 
 /** @brief Each law, stated once for every relation on a walkable chain: the
  *  certificate the concept reads @b is the law over the whole chain, for
@@ -519,51 +515,49 @@ export template <typename T, typename Rel>
 concept IsChainDecidedReflexive = IsWalkableChain<T, Rel, 1> && !requires {
   T::template is_reflexive_v<Rel>;
 } && requires {
-  typename std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
-                                           identity_v<T, Inf>)>;
+  typename std::bool_constant<reflexive_on(Rel{}, unit<T>(Sup{}),
+                                           unit<T>(Inf{}))>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedAntisymmetric = IsWalkableChain<T, Rel, 2> && !requires {
   T::template is_antisymmetric_v<Rel>;
 } && requires {
-  typename std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
-                                               identity_v<T, Inf>)>;
+  typename std::bool_constant<antisymmetric_on(Rel{}, unit<T>(Sup{}),
+                                               unit<T>(Inf{}))>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedConnex = IsWalkableChain<T, Rel, 2> && !requires {
   T::template is_connex_v<Rel>;
 } && requires {
-  typename std::bool_constant<connex_on(Rel{}, identity_v<T, Sup>,
-                                        identity_v<T, Inf>)>;
+  typename std::bool_constant<connex_on(Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))>;
 };
 export template <typename T, typename Rel>
 concept IsChainDecidedTransitive = IsWalkableChain<T, Rel, 3> && !requires {
   T::template is_transitive_v<Rel>;
 } && requires {
-  typename std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
-                                            identity_v<T, Inf>)>;
+  typename std::bool_constant<transitive_on(Rel{}, unit<T>(Sup{}),
+                                            unit<T>(Inf{}))>;
 };
 
 template <typename T, typename Rel>
   requires IsChainDecidedReflexive<T, Rel>
 struct is_reflexive<T, Rel>
-    : std::bool_constant<reflexive_on(Rel{}, identity_v<T, Sup>,
-                                      identity_v<T, Inf>)> {};
+    : std::bool_constant<reflexive_on(Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))> {
+};
 template <typename T, typename Rel>
   requires IsChainDecidedAntisymmetric<T, Rel>
-struct is_antisymmetric<T, Rel>
-    : std::bool_constant<antisymmetric_on(Rel{}, identity_v<T, Sup>,
-                                          identity_v<T, Inf>)> {};
+struct is_antisymmetric<T, Rel> : std::bool_constant<antisymmetric_on(
+                                      Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))> {
+};
 template <typename T, typename Rel>
   requires IsChainDecidedConnex<T, Rel>
-struct is_connex<T, Rel> : std::bool_constant<connex_on(
-                               Rel{}, identity_v<T, Sup>, identity_v<T, Inf>)> {
-};
+struct is_connex<T, Rel>
+    : std::bool_constant<connex_on(Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))> {};
 template <typename T, typename Rel>
   requires IsChainDecidedTransitive<T, Rel>
 struct is_transitive<T, Rel>
-    : std::bool_constant<transitive_on(Rel{}, identity_v<T, Sup>,
-                                       identity_v<T, Inf>)> {};
+    : std::bool_constant<transitive_on(Rel{}, unit<T>(Sup{}), unit<T>(Inf{}))> {
+};
 
 namespace detail_mereology {
 /** @brief A discrete bounded chain of @c N values that is no enum: a class
@@ -579,11 +573,11 @@ struct Dial {
 };
 }  // namespace detail_mereology
 template <int N>
-struct identity_trait<detail_mereology::Dial<N>, Sup> {
+struct unit_trait<detail_mereology::Dial<N>, Sup> {
   static constexpr detail_mereology::Dial<N> value{0};
 };
 template <int N>
-struct identity_trait<detail_mereology::Dial<N>, Inf> {
+struct unit_trait<detail_mereology::Dial<N>, Inf> {
   static constexpr detail_mereology::Dial<N> value{N - 1};
 };
 namespace detail_mereology {
@@ -648,7 +642,7 @@ static_assert(
 // for types where the op is not even a usable value function or where the laws
 // fail:
 //   * non-totally_ordered / non-copyable T: Sup/Inf can't be called at all
-//     (e.g. is_commutative_v<void, Sup> would spuriously be true);
+//     (e.g. commutative<void>(Sup{}) would spuriously be true);
 //   * any carrier whose order contains NaN: raw double, but ALSO wrappers like
 //     std::optional<double> (totally_ordered + copyable + NOT floating_point),
 //     where max/min are non-commutative (Sup{}(NaN,x)=NaN vs Sup{}(x,NaN)=x).
@@ -703,10 +697,10 @@ static_assert(!IsReflexive<double, std::less_equal<double>> &&
                   !SupInfLattice<double>,
               "<= on double is not reflexive (NaN <= NaN is false), so double "
               "carries no order certificate under either spelling");
-static_assert(!is_commutative_v<double, Sup>,
+static_assert(!commutative<double>(Sup{}),
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
-static_assert(!is_commutative_v<double, Inf>,
+static_assert(!commutative<double>(Inf{}),
               "raw floats rejected: NaN breaks max/min commutativity (no "
               "double lattice carrier)");
 // (2) A float-CONTAINING wrapper: std::optional<double> is totally_ordered +
@@ -720,20 +714,20 @@ static_assert(SupInfOperand<std::optional<double>> &&
               "optional<double> IS a usable Sup/Inf operand (ordered + "
               "copyable) yet fails the certified-order gate --- so the ORDER "
               "cert, not a !floating_point proxy, is what excludes it");
-static_assert(!is_commutative_v<std::optional<double>, Sup>,
+static_assert(!commutative<std::optional<double>>(Sup{}),
               "float-containing wrappers rejected: optional<double>'s order "
               "contains NaN, so it is not a lattice carrier");
 // (3) Non-usable carriers: the trait check never instantiates Sup/Inf, so
 // without SupInfLattice a type on which the op cannot even be called (not
 // totally_ordered / not copy_constructible --- here void) would be spuriously
 // certified.
-static_assert(!is_commutative_v<void, Sup>,
+static_assert(!commutative<void>(Sup{}),
               "SupInfLattice gate: a non-usable carrier (void: neither ordered "
               "nor copyable) is not a Sup/Inf lattice carrier");
 // Positive-preserved witness: every certified chain keeps the laws (int and
 // the scoped-enum Ternary carrier alike).
-static_assert(SupInfLattice<int> && is_commutative_v<int, Sup> &&
-                  is_idempotent_v<int, Inf>,
+static_assert(SupInfLattice<int> && commutative<int>(Sup{}) &&
+                  idempotent<int>(Inf{}),
               "int (and every SupInfLattice carrier) keeps the Sup/Inf lattice "
               "laws");
 

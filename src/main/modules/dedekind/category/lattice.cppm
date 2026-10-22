@@ -1131,8 +1131,8 @@ inline constexpr bool is_join_node_v<Join<A, B>> = true;
  *  chain) case derives from the @b concept gates @c IsLatticeCategory<T> @c &&
  *  @c IsOrderDistributiveLatticeOperations<T> — so a carrier that is not a
  *  lattice under @c std::less_equal is @b not licensed to distribute (NB the
- *  bare @c is_distributive_v<T,max,min> trait is unconditionally @c true, which
- *  would license any carrier — hence the concept gate).  A NON-chain
+ *  bare @c distributive<T>(max{}, min{}) trait is unconditionally @c true,
+ * which would license any carrier — hence the concept gate).  A NON-chain
  *  distributive lattice (a custom @c Ord) opts in by specialising this to
  *  @c true (the Jlt assertion — the same posture as the injected total order).
  *  A canonical chain is gated distributive but never actually distributes: its

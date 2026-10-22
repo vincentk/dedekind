@@ -295,10 +295,8 @@ struct is_codirected<T, dedekind::order::bit_subset_eq<T>> : std::true_type {};
  * spec)
  *    - @c is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>>     (variable
  * spec)
- *    - @c is_distributive_v<T, std::bit_or<T>, std::bit_and<T>>   (variable
- * spec)
- *    - @c is_distributive_v<T, std::bit_and<T>, std::bit_or<T>>   (variable
- * spec)
+ *  (The typed distributivity pair lives in @c :species, beside the
+ *  transparent one.)
  *
  *  Variable-template partial specs in this file embed the constraint
  *  in the @b value (cf. @c species.cppm:740 / :745 pattern with
@@ -312,14 +310,6 @@ inline constexpr bool is_absorptive_v<T, std::bit_or<T>, std::bit_and<T>> =
 
 template <typename T>
 inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_or<T>> =
-    std::is_integral_v<T>;
-
-template <typename T>
-inline constexpr bool is_distributive_v<T, std::bit_or<T>, std::bit_and<T>> =
-    std::is_integral_v<T>;
-
-template <typename T>
-inline constexpr bool is_distributive_v<T, std::bit_and<T>, std::bit_or<T>> =
     std::is_integral_v<T>;
 
 /** @brief @c HeytingExponential specialisation for the bitwise Boolean

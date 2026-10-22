@@ -189,7 +189,7 @@ struct OneDimensionalVector {
   }
 
   template <typename Op>
-  static constexpr auto identity_v = []() {
+  static constexpr auto unit_v = []() {
     if constexpr (std::same_as<Op, std::plus<OneDimensionalVector>> ||
                   std::same_as<Op, std::plus<void>>) {
       return OneDimensionalVector{};

@@ -453,18 +453,18 @@ struct product_algebra_base<dedekind::linear_algebra::Covec2V<T>> {
 };
 
 // Carrier-specific additive identity + inverse on Vec2V / Covec2V.
-// These don't propagate trivially because identity_trait::value is a
+// These don't propagate trivially because unit_trait::value is a
 // constructed value of the carrier, requiring the carrier's ctor.
 template <typename T>
-struct identity_trait<dedekind::linear_algebra::Vec2V<T>,
-                      std::plus<dedekind::linear_algebra::Vec2V<T>>> {
+struct unit_trait<dedekind::linear_algebra::Vec2V<T>,
+                  std::plus<dedekind::linear_algebra::Vec2V<T>>> {
   using value_type = dedekind::linear_algebra::Vec2V<T>;
   static constexpr value_type value = value_type{T{}, T{}};
 };
 
 template <typename T>
-struct identity_trait<dedekind::linear_algebra::Covec2V<T>,
-                      std::plus<dedekind::linear_algebra::Covec2V<T>>> {
+struct unit_trait<dedekind::linear_algebra::Covec2V<T>,
+                  std::plus<dedekind::linear_algebra::Covec2V<T>>> {
   using value_type = dedekind::linear_algebra::Covec2V<T>;
   static constexpr value_type value = value_type{T{}, T{}};
 };

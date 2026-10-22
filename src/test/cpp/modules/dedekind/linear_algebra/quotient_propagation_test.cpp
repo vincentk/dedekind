@@ -22,8 +22,8 @@ namespace {
 
 using dedekind::algebra::Polynomial;
 using dedekind::analysis::Dual;
-using dedekind::category::is_associative_v;
-using dedekind::category::is_commutative_v;
+using dedekind::category::associative;
+using dedekind::category::commutative;
 using dedekind::category::is_exact_total_v;
 using dedekind::category::is_periodic_v;
 using dedekind::category::is_total_v;
@@ -70,20 +70,20 @@ TEST_CASE(
     "[algebra][quotient][propagation]") {
   // Rational<I> registers associativity directly, gated on I's; the second H
   // (Cplx, Dual) propagates from it.
-  STATIC_CHECK(is_associative_v<Q, std::plus<Q>>);
-  STATIC_CHECK(is_associative_v<Q, std::multiplies<Q>>);
+  STATIC_CHECK(associative<Q>(std::plus<Q>{}));
+  STATIC_CHECK(associative<Q>(std::multiplies<Q>{}));
   // Composes through the second H (Cplx, Dual).
-  STATIC_CHECK(is_associative_v<CQ, std::plus<CQ>>);
-  STATIC_CHECK(is_associative_v<DQ, std::plus<DQ>>);
+  STATIC_CHECK(associative<CQ>(std::plus<CQ>{}));
+  STATIC_CHECK(associative<DQ>(std::plus<DQ>{}));
 }
 
 TEST_CASE("HSP propagation: commutativity lifts componentwise (P)",
           "[algebra][quotient][propagation]") {
   // unsigned int is commutative under +/* (modular arithmetic);
   // P propagation lifts to Vec2V<unsigned int>.
-  STATIC_CHECK(is_commutative_v<V2u, std::plus<V2u>>);
+  STATIC_CHECK(commutative<V2u>(std::plus<V2u>{}));
   // Q under + is commutative (registered on Rational<I>, gated on I's).
-  STATIC_CHECK(is_commutative_v<Q, std::plus<Q>>);
+  STATIC_CHECK(commutative<Q>(std::plus<Q>{}));
 }
 
 TEST_CASE("HSP propagation: IsTotal certificate lifts via the right path",
@@ -109,7 +109,7 @@ TEST_CASE("HSP propagation: no over-firing on undeclared carriers",
           "[algebra][quotient][propagation][negative]") {
   // signed int does NOT satisfy is_associative under + (signed-overflow
   // UB), and the propagation must not invent it.
-  STATIC_CHECK_FALSE(is_associative_v<int, std::plus<int>>);
+  STATIC_CHECK_FALSE(associative<int>(std::plus<int>{}));
   // Also does not falsely fire on plain primitives that aren't declared
   // as quotient / product / free algebras.
   STATIC_CHECK_FALSE(IsQuotientAlgebra<int>);
