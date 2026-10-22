@@ -43,6 +43,22 @@ inline long sharers(const std::shared_ptr<const int>& p) {
   return p.use_count();  // boxed-identity 3
 }
 
+template <typename T>
+long sharers_of(const std::shared_ptr<const T>& p) {
+  return p.use_count();  // boxed-identity 4: dependent member
+}
+
+template <typename T>
+bool same_box_of(const std::shared_ptr<const T>& p,
+                 const std::shared_ptr<const T>& q) {
+  return p == q;  // boxed-identity 5: dependent equality
+}
+
+template <typename T>
+bool empty_of(const std::shared_ptr<const T>& p) {
+  return p == nullptr;  // fine: dependent, but asks only for emptiness
+}
+
 inline bool empty(const std::shared_ptr<const int>& p) {
   return p == nullptr;  // fine: asks whether the box is empty
 }

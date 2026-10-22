@@ -2,4 +2,4 @@
 # reference (T&& with T a type parameter of the function template, or
 # auto&&) binds lvalues as mutable references.  A class template's T&& is a
 # sink and counted as one.  volatile is never a value: rule1-no-volatile.
-match parmVarDecl(allOf(hasType(hasCanonicalType(references(qualType(templateTypeParmType(), unless(isConstQualified()))))), hasType(hasCanonicalType(rValueReferenceType())), unless(hasType(rValueReferenceType(pointee(templateTypeParmType(hasDeclaration(templateTypeParmDecl(hasDeclContext(cxxRecordDecl()))))))))), hasDeclContext(functionDecl(unless(cxxMethodDecl(ofClass(cxxRecordDecl(isLambda())))))), isExpansionInMainFile(), hasAncestor(scope))
+match parmVarDecl(allOf(hasType(hasCanonicalType(references(qualType(templateTypeParmType(), unless(isConstQualified()))))), hasType(hasCanonicalType(rValueReferenceType())), unless(hasType(hasUnqualifiedDesugaredType(rValueReferenceType(pointee(templateTypeParmType(hasDeclaration(templateTypeParmDecl(hasDeclContext(cxxRecordDecl())))))))))), hasDeclContext(functionDecl(unless(cxxMethodDecl(ofClass(cxxRecordDecl(isLambda())))))), isExpansionInMainFile(), hasAncestor(scope))

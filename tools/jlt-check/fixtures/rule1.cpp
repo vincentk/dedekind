@@ -39,6 +39,12 @@ struct Sink {
   constexpr void take(T&& x) const {}  // rvalue-reference 2: T is the class's
 };
 
+template <typename T>
+struct AliasSink {
+  using Sunk = T&&;
+  constexpr void take(Sunk x) const {}  // rvalue-reference 3: aliased class T
+};
+
 using Ref = std::size_t&;
 constexpr std::size_t via(Ref x) {  // lvalue-reference 2
   return x;
