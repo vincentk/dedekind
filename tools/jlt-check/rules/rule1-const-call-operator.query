@@ -1,0 +1,3 @@
+# Rule 1: a function argument is a const value with a const call operator.
+# A static operator() has no object and is exempt; so are lambdas.
+match cxxMethodDecl(hasOverloadedOperatorName("()"), unless(anyOf(isConst(), isStaticStorageClass(), ofClass(cxxRecordDecl(isLambda())))), isExpansionInMainFile(), hasAncestor(scope))

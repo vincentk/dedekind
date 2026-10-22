@@ -685,7 +685,8 @@ Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
 A template body is checked against the type it is instantiated at, not against its \cppinline{requires} clause, so \cppinline{twice_loose} compiles; a loop is not checked for a bound, so \cppinline{while (true)} compiles.
 Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem.
 One is in progress in the repository: a step after the build in continuous integration reparses the listings through the compiler's own front end and fails on a finding, and each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
-Today it checks Rule~3's ban on loops; the rest of Rules~1 and~3 are syntactic and follow, and Rule~2 is the remaining work.
+Today it checks Rule~3's ban on loops and five syntactic parts of Rule~1: functions are \cppinline{constexpr}, call operators \cppinline{const}, parameters not passed by non-\cppinline{const} reference, and no \cppinline{throw} and no static state; it reports the same counts for the library's \texttt{category} module without failing on them.
+The rest of Rules~1 and~3 needs code rather than a pattern and follows, and Rule~2 is the remaining work.
 Until then the listings are checked by reading, by that step, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is \cppinline{std::ranges::fold_left}'s.
 

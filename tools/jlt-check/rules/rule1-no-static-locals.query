@@ -1,0 +1,3 @@
+# Rule 1: no state between calls.  A constexpr static local is a constant
+# and exempt.
+match varDecl(isStaticLocal(), unless(isConstexpr()), isExpansionInMainFile(), hasAncestor(scope))

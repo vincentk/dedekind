@@ -178,7 +178,7 @@ format-check:
 # The Jlt checker (#1060): a post-processing step over the build's compilation
 # database; the gate is tools/jlt-check/scope.
 jlt-check:
-	tools/jlt-check/jlt-check.sh $(CLANG_QUERY) $(BUILD_DIR)
+	python3 tools/jlt-check/jlt_check.py $(CLANG_QUERY) $(BUILD_DIR)
 
 install-hooks:
 	git config core.hooksPath .githooks
