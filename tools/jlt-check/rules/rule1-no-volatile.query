@@ -1,0 +1,4 @@
+# Rule 1: values cannot change behind the program's back.  volatile says
+# something outside the program may change or observe the object, the
+# opposite of a value: any object, reference or pointer to volatile.
+match valueDecl(hasType(qualType(anyOf(isVolatileQualified(), references(qualType(isVolatileQualified())), pointsTo(qualType(isVolatileQualified()))))), isExpansionInMainFile(), hasAncestor(scope))

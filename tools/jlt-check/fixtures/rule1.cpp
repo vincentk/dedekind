@@ -34,6 +34,11 @@ constexpr std::size_t forward_auto(auto&& x) {  // forwarding-reference 2
   return sizeof(x);
 }
 
+template <typename T>
+struct Sink {
+  constexpr void take(T&& x) const {}  // rvalue-reference 2: T is the class's
+};
+
 using Ref = std::size_t&;
 constexpr std::size_t via(Ref x) {  // lvalue-reference 2
   return x;

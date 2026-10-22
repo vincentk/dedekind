@@ -15,6 +15,13 @@ struct Node {
   std::shared_ptr<Leaf> mutable_leg;    // boxed-mutable-pointee 1
 };
 
+template <typename T>
+struct Tree {
+  std::shared_ptr<const Tree> fine;  // a boxed value in a template: fine
+  std::shared_ptr<T> leg;            // boxed-mutable-pointee 3: dependent
+  std::shared_ptr<const T> cleg;     // fine: dependent, const
+};
+
 inline std::shared_ptr<const int> boxed() {
   return std::make_shared<const int>(1);  // fine
 }

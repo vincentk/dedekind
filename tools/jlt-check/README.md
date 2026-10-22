@@ -35,9 +35,10 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-no-throw` | a `throw` |
 | `rule1-no-static-locals` | a static local that is not `constexpr` |
 | `rule1-lvalue-reference-params` | a parameter by lvalue reference to a non-`const` type: the mutation channel |
-| `rule1-rvalue-reference-params` | a parameter by rvalue reference to a concrete non-`const` type: a sink |
-| `rule1-forwarding-reference-params` | a parameter `T&&` / `auto&&` on a template type parameter |
-| `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member with `T` not `const` |
+| `rule1-rvalue-reference-params` | a parameter by rvalue reference to a non-`const` type that is not forwarding (a concrete type, or a class template's parameter): a sink |
+| `rule1-forwarding-reference-params` | a parameter `T&&` with `T` a type parameter of the function template, or `auto&&` |
+| `rule1-no-volatile` | any object, reference or pointer to `volatile`: never a value |
+| `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
 

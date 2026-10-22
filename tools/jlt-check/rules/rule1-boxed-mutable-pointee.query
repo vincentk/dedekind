@@ -6,3 +6,4 @@
 # unresolved in the template pattern and not seen here (plugin work).
 match callExpr(callee(functionDecl(hasName("::std::make_shared"), hasTemplateArgument(0, refersToType(unless(isConstQualified()))))), isExpansionInMainFile(), hasAncestor(scope))
 match fieldDecl(hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::shared_ptr"), hasTemplateArgument(0, refersToType(unless(isConstQualified())))))))), isExpansionInMainFile(), hasAncestor(scope))
+match fieldDecl(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr"))), hasTemplateArgument(0, refersToType(unless(isConstQualified())))))), isExpansionInMainFile(), hasAncestor(scope))
