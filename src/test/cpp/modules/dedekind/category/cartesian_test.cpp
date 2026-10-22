@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
+#include <memory>
 #include <utility>
 #include <variant>
 
@@ -136,6 +137,20 @@ TEST_CASE("CCC: CurryPlus", "[category][cartesian]") {
 
   CHECK(add_five(10) == 15);
   CHECK(curried_plus(10)(20) == 30);
+}
+
+TEST_CASE("CCC: Curry a move-only morphism", "[category][cartesian]") {
+  // A morphism that owns a unique_ptr cannot be copied; curry holds it as a
+  // boxed value (a shared_ptr to const) so that every closure shares it.
+  auto plus_offset =
+      arrow([offset = std::make_unique<int>(100)](std::pair<int, int> p) {
+        return p.first + p.second + *offset;
+      });
+  STATIC_CHECK(!std::copy_constructible<decltype(plus_offset)>);
+  auto curried = curry(std::move(plus_offset));
+  auto add_five = curried(5);
+  CHECK(add_five(20) == 125);
+  CHECK(curried(10)(20) == 130);
 }
 
 TEST_CASE("Cartesian: Product Mediation", "[category][cartesian][labeled]") {

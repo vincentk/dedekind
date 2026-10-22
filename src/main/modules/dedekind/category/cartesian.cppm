@@ -210,11 +210,21 @@ constexpr auto curry(F&& f) {
   using X = typename Dom<F>::first_type;
   using A = typename Dom<F>::second_type;
 
-  // The morphism is a value (IsArrow requires a const call operator), so each
-  // closure holds its own copy: no shared, mutable heap cell.
-  return arrow([f = std::decay_t<F>(std::forward<F>(f))](const X& x) {
-    return exponential([f, x](const A& a) { return f({x, a}); });
-  });
+  // The morphism is called, never changed (IsArrow requires a const call
+  // operator).  A copyable morphism is copied into each closure; a move-only
+  // one is held as a boxed value, a shared_ptr to const, so every closure
+  // shares it and none can change it.
+  using G = std::decay_t<F>;
+  if constexpr (std::copy_constructible<G>) {
+    return arrow([g = G(std::forward<F>(f))](const X& x) {
+      return exponential([g, x](const A& a) { return g({x, a}); });
+    });
+  } else {
+    auto box = std::make_shared<const G>(std::forward<F>(f));
+    return arrow([box](const X& x) {
+      return exponential([box, x](const A& a) { return (*box)({x, a}); });
+    });
+  }
 }
 
 /**
