@@ -161,7 +161,8 @@ static_assert(times<size_t>(7, 6) == 42);
 \end{cpp}
 \caption{The three rules, one panel each.
 Rule~1: values are \cppinline{std::semiregular}, functions are \cppinline{constexpr} and pure, so \cppinline{square(12)} is a fact the compiler can check.
-Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and compiles for \cppinline{std::string}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
+Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and so compiles for every type with a \cppinline{+}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
+The string is not the breach, the body is: strings are a monoid under \cppinline{+}, and \cppinline{twice} admits them the moment someone registers their unit, the empty string.
 Rule~3: recursion only folds, over finite data or over an explicit budget; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.}
 \label{lst:posture}
 \end{listing}
@@ -178,7 +179,7 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
-\cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included.
+\cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included; that concatenation happens to be a monoid is luck, not a declaration.
 \cppinline{twice} keeps it: every operation in the body is one that \cppinline{IsMonoid<T, Op>} names.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
 The compiler does not enforce this rule at all.
@@ -277,8 +278,11 @@ twice [u64] [plus] plus_u64 21
 \end{minted}
 \caption{The monoid shape, populated.
 Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
-Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}; the typed \cppinline{std::plus<bool>} would declare a \cppinline{bool} result and fail only for want of a unit.
-Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them.
+Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
+Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them; \cppinline{size_t} wraps by definition, so it is a monoid, $\mathbb{Z}/2^{64}$, and \cppinline{twice<size_t>(SIZE_MAX)} is \cppinline{SIZE_MAX - 1} at both binding times.
+Two carriers are absent from this paper and the shape would pass both.
+\cppinline{int} is closed by type and not by value: signed overflow is undefined, constant evaluation rejects \cppinline{twice<int>(INT_MAX)} and the processor would wrap it, so the two binding times of Section~\ref{sec:binding} would disagree.
+\cppinline{double} is closed by type and by value, IEEE being total, and the laws fail: \cppinline{+} is not associative, and \cppinline{NaN + 0 == NaN} is false, so the unit law fails at NaN; this is the case only a declared law can refuse, which Section~\ref{sec:translation:semiring} is for.
 Bottom: the same in System~F.
 The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
 The operation is part of the index, so one carrier has several monoids, and nobody wrote a struct for any of them.}
