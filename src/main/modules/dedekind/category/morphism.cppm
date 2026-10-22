@@ -757,7 +757,7 @@ struct Rule {
 /** @section morphism__Rule_Overloads */
 // Specifically target Rule to kill the 'bool' ambiguity and fix deduction.
 export template <typename A, typename B>
-auto operator&&(const Rule<A, B>& p1, const Rule<A, B>& p2) {
+constexpr auto operator&&(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   return Rule<A, B>{[p1, p2](const A& x) {
     using S = typename SpeciesTraits<B>::species;
     return B{S::AND(p1(x).value, p2(x).value)};
@@ -765,7 +765,7 @@ auto operator&&(const Rule<A, B>& p1, const Rule<A, B>& p2) {
 }
 
 export template <typename A, typename B>
-auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
+constexpr auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   return Rule<A, B>{[p1, p2](const A& x) {
     using S = typename SpeciesTraits<B>::species;
     return B{S::OR(p1(x).value, p2(x).value)};

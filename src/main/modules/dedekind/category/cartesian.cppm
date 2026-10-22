@@ -206,20 +206,25 @@ using Exponential =
  * @brief Currying: (X × A → B) ⟹ (X → B^A)
  */
 export template <IsArrowFromProduct F>
-auto curry(F&& f) {
+constexpr auto curry(F&& f) {
   using X = typename Dom<F>::first_type;
   using A = typename Dom<F>::second_type;
 
-  // Heap-allocate the morphism to ensure it can be captured by the inner lambda
-  // and called multiple times without copying.
-  auto shared_f = std::make_shared<std::decay_t<F>>(std::forward<F>(f));
-
-  return arrow([shared_f](const X& x) {
-    return exponential([shared_f, x](const A& a) {
-      // Call the shared morphism
-      return (*shared_f)({x, a});
+  // The morphism is called, never changed (IsArrow requires a const call
+  // operator).  A copyable morphism is copied into each closure; a move-only
+  // one is held as a boxed value, a shared_ptr to const, so every closure
+  // shares it and none can change it.
+  using G = std::decay_t<F>;
+  if constexpr (std::copy_constructible<G>) {
+    return arrow([g = G(std::forward<F>(f))](const X& x) {
+      return exponential([g, x](const A& a) { return g({x, a}); });
     });
-  });
+  } else {
+    auto box = std::make_shared<const G>(std::forward<F>(f));
+    return arrow([box](const X& x) {
+      return exponential([box, x](const A& a) { return (*box)({x, a}); });
+    });
+  }
 }
 
 /**
@@ -229,7 +234,7 @@ auto curry(F&& f) {
  */
 export template <IsArrow F>
   requires IsArrow<Cod<F>>
-auto uncurry(F&& f) {
+constexpr auto uncurry(F&& f) {
   using X = Dom<F>;
   using Exp = Cod<F>;
   using A = Dom<Exp>;
@@ -303,7 +308,7 @@ concept IsCoproduct =
  * unambiguously select the first alternative.
  */
 export template <typename A, typename B>
-auto ι_1(A&& value) {
+constexpr auto ι_1(A&& value) {
   using Var = std::variant<A, B>;
   if constexpr (std::same_as<A, B>) {
     return Var(std::in_place_index<0>, std::forward<A>(value));
@@ -319,7 +324,7 @@ auto ι_1(A&& value) {
  * unambiguously select the second alternative.
  */
 export template <typename A, typename B>
-auto ι_2(B&& value) {
+constexpr auto ι_2(B&& value) {
   using Var = std::variant<A, B>;
   if constexpr (std::same_as<A, B>) {
     return Var(std::in_place_index<1>, std::forward<B>(value));
@@ -389,7 +394,7 @@ static_assert(
  */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, Cod<G>>  // Must map to the same Target X
-auto mediate_coproduct(F&& f, G&& g) {
+constexpr auto mediate_coproduct(F&& f, G&& g) {
   using A = Dom<F>;
   using B = Dom<G>;
   using X = Cod<F>;
@@ -424,7 +429,7 @@ auto mediate_coproduct(F&& f, G&& g) {
  */
 export template <typename F, typename A>
   requires IsExponential<F, A, std::invoke_result_t<F, A>>
-auto eval(F&& f, A&& a) -> decltype(auto) {
+constexpr auto eval(F&& f, A&& a) -> decltype(auto) {
   return std::invoke(std::forward<F>(f), std::forward<A>(a));
 }
 

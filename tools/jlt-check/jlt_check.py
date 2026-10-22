@@ -41,13 +41,14 @@ def read_scope():
             yield rule, pathlib.Path(f).relative_to(ROOT).as_posix(), namespace, expected
 
 
-def matcher(rule):
-    """The rule's one match line."""
+def matchers(rule):
+    """The rule's match lines; its findings are the sum of their counts (a
+    rule may need one per kind of syntax node, e.g. a call and a member)."""
     lines = [l for l in (HERE / "rules" / f"{rule}.query").read_text().splitlines()
              if l.startswith("match ")]
-    if len(lines) != 1:
-        sys.exit(f"jlt-check: rules/{rule}.query: want exactly one match line")
-    return lines[0]
+    if not lines:
+        sys.exit(f"jlt-check: rules/{rule}.query: want at least one match line")
+    return lines
 
 
 def run(query, build, path, namespace, rules):
@@ -58,7 +59,11 @@ def run(query, build, path, namespace, rules):
     # The probe runs first: a scope that names no namespace in this file
     # would make every rule count zero, so its absence is a failure.
     script.append("match namespaceDecl(hasName(\"%s\"), isExpansionInMainFile())" % namespace)
-    script += [matcher(r) for r in rules]
+    owner = []  # the rule each match line belongs to, in script order
+    for r in rules:
+        for m in matchers(r):
+            script.append(m)
+            owner.append(r)
     if path.startswith("tools/jlt-check/fixtures/"):
         args = [str(ROOT / path), "--", "-std=c++23", "-xc++"]
     else:
@@ -69,17 +74,19 @@ def run(query, build, path, namespace, rules):
     # clang-query prints a count after each match command, in order; the
     # findings of match k are the notes between count k-1 and count k.
     counts = [int(c) for c in COUNT.findall(out)]
-    if p.returncode != 0 or len(counts) != len(rules) + 1:
+    if p.returncode != 0 or len(counts) != len(owner) + 1:
         return None, None, out
     if counts[0] == 0:
         return None, None, f"namespace {namespace} does not occur in {path}"
-    counts = counts[1:]
+    total = {r: 0 for r in rules}
+    where = {r: [] for r in rules}
     marks = list(COUNT.finditer(out))
-    where, start = {}, marks[0].end()
-    for r, m in zip(rules, marks[1:]):
-        where[r] = BINDS.findall(out, start, m.start())
+    start = marks[0].end()
+    for r, n, m in zip(owner, counts[1:], marks[1:]):
+        total[r] += n
+        where[r] += BINDS.findall(out, start, m.start())
         start = m.end()
-    return dict(zip(rules, counts)), where, out
+    return total, where, out
 
 
 def main():
@@ -111,6 +118,8 @@ def main():
                 row["findings"] += n
                 if n:
                     print(f"jlt-check: report {rule} {f}: {n}")
+                    for loc in where[rule]:
+                        print(f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}")
                 continue
             row["gated"] += 1
             ok = n == int(expected)
@@ -121,10 +130,10 @@ def main():
                     print(f"  {loc}")
 
     print("\njlt-check: coverage")
-    print(f"  {'rule':<30} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
+    print(f"  {'rule':<34} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
     for rule in sorted(per_rule):
         r = per_rule[rule]
-        print(f"  {rule:<30} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
+        print(f"  {rule:<34} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
     print(f"jlt-check: {failures} failure(s)")
     return 1 if failures else 0
 

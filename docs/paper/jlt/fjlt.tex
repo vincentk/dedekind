@@ -54,10 +54,12 @@ R &::=& Q & \text{nested shape} \\
   & | & e & \text{law} \\
   & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
-\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{std::optional<}\tau\texttt{>} & \text{type} \\[3pt]
+\tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{std::optional<}\tau\texttt{>} & \text{type} \\
+  & \mid & \texttt{std::shared\_ptr<const }\tau\texttt{>} & \text{boxed value} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
   & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} & \\
+  & \mid & \texttt{std::make\_shared<const }\tau\texttt{>(}e\texttt{)} \;\mid\; \texttt{*}e & \text{box, unbox} \\
   & \mid & \texttt{std::ranges::fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over a budget} \\
   & \mid & \texttt{cata(}e\texttt{, }e\texttt{)} & \text{fold over a term} \\[3pt]
 r &::=& \texttt{std::views::repeat(}e\texttt{, }e\texttt{)} \;\mid\; \texttt{std::views::iota(}e\texttt{, }e\texttt{)} \;\mid\; \texttt{chain\_view\{}e\texttt{, }e\texttt{\}} & \text{range of fixed length} \\
@@ -70,7 +72,8 @@ A shape is a concept; its requirements are nested shapes, laws (closed \cppinlin
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$ of the grammar, since a value is immutable and a reference to one denotes it.
 The standard function objects and the operations a program declares (a struct with fields and a call operator, itself generic where the listing writes \cppinline{auto}; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}; the call operator is \cppinline{const}, so applying a function object observes it, as Rule~1 requires of a value.
-Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs and optionals.
+Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs, optionals and boxed values.
+A box is built and read, and nothing else: there is no term for \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value, and that absence is what makes a box a value.
 There are two recursion primitives, one per kind of finiteness.
 \cppinline{std::ranges::fold_left} folds over a range whose length is fixed before the fold starts: \cppinline{repeat(x, n)}, $n$ copies of $x$, which is an explicit budget; \cppinline{iota(0, n)}, the first $n$ naturals; or \cppinline{chain_view{lo, hi}}, the contiguous interval of a finite chain from \cppinline{lo} to \cppinline{hi} walked by its covering step, of which \cppinline{iota} is the instance on \cppinline{size_t}.
 \cppinline{cata(alg, t)} folds over a term: an operation whose fields are terms is a node, a term is a finite composition of nodes, and the fold applies the algebra to each node and the folded values of its legs, one node at a time.}
@@ -84,7 +87,7 @@ Three judgments, in the usual shape.
 $\Delta \Vdash Q$ says that the constraint $Q$ is \emph{entailed} in the context $\Delta$, which holds type variables and assumed constraints.
 $\Delta; \Gamma \vdash e : \tau$ types a term.
 $\vdash D$ says a declaration is well formed, and a program is well formed when its declarations are and its closed term has a type.
-Figure~\ref{fig:fjlt-typing} gives the rules that carry weight; the ones for constants, pairs, optionals, conditionals and the arithmetic of base types are the obvious ones and are omitted.
+Figure~\ref{fig:fjlt-typing} gives the rules that carry weight; the ones for constants, pairs, optionals, boxes, conditionals and the arithmetic of base types are the obvious ones and are omitted.
 
 \paragraph{Resolution.}
 A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$: the explicit specialisation at $\overline{\tau}$ if there is one, otherwise the generic function whose head matches $\overline{\tau}$ and whose context is entailed, recursively.
@@ -147,10 +150,11 @@ Evaluation is small-step and call-by-value on closed terms, $e \longrightarrow e
 \[
 \begin{array}{rcl}
 v &::=& c \mid f \mid O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}} \mid \texttt{std::pair\{}v\texttt{, }v\texttt{\}} \mid \texttt{std::optional\{}v\texttt{\}} \mid \texttt{std::nullopt} \\
+  &\mid& \texttt{std::make\_shared<const }\tau\texttt{>(}v\texttt{)} \\
 E &::=& [\,] \mid f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E\texttt{(}\overline{e}\texttt{)} \mid v\texttt{(}\overline{v}\texttt{, }E\texttt{, }\overline{e}\texttt{)} \mid E \oplus e \mid v \oplus E \mid E \texttt{ ? } e \texttt{ : } e \mid \ldots
 \end{array}
 \]
-where the elided contexts are the remaining argument positions of pairs, optionals, projections, constructions and folds, each evaluated left to right.
+where the elided contexts are the remaining argument positions of pairs, optionals, boxes, projections, constructions and folds, each evaluated left to right.
 It is \Cpp{}'s constant evaluation restricted to the grammar, and Figure~\ref{fig:fjlt-eval} gives the rules; $e \Downarrow v$ abbreviates $e \longrightarrow^{*} v$.
 The context grammar picks one redex per non-value term, so the relation is deterministic.
 
@@ -164,6 +168,7 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \textsc{(S-Prim)} & c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operation, total by the choice of } \oplus \\[3pt]
 \textsc{(S-If)} & \texttt{true ? } e_1 \texttt{ : } e_2 \longrightarrow e_1 \qquad \texttt{false ? } e_1 \texttt{ : } e_2 \longrightarrow e_2 \\[3pt]
 \textsc{(S-Proj)} & \texttt{std::pair\{}v_1\texttt{, }v_2\texttt{\}.first} \longrightarrow v_1 \qquad O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v}\texttt{\}.}y_i \longrightarrow v_i \\[3pt]
+\textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[3pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(repeat(}v\texttt{, }k{+}1\texttt{), }a\texttt{, }f\texttt{)} \longrightarrow \texttt{fold\_left(repeat(}v\texttt{, }k\texttt{), }f\texttt{(}a\texttt{, }v\texttt{), }f\texttt{)} \\
  & \texttt{fold\_left(repeat(}v\texttt{, 0), }a\texttt{, }f\texttt{)} \longrightarrow a \\[3pt]
 \textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \quad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[3pt]
@@ -175,7 +180,8 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
 \textsc{S-Fold} over \cppinline{iota(i, j)}, with $i \le j$ by typing, steps to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)} when $i < j$ and to $a$ when $i = j$; over \cppinline{chain_view{lo, hi}} it consumes \cppinline{lo}: when \cppinline{lo < hi} and the cover of \cppinline{lo} exists it steps to \cppinline{chain_view{cover(lo), hi}} with \cppinline{f(a, lo)}, when \cppinline{lo == hi} or the cover is absent it steps to the empty range with \cppinline{f(a, lo)}, and when \cppinline{lo > hi} it steps to $a$; so a fold over an interval of a finite chain takes as many steps as the interval has elements, the last one included.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
-Constants, pairs and optionals are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.}
+Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
+\textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.}
 \label{fig:fjlt-eval}
 \end{figure}
 
@@ -195,7 +201,8 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \text{a function object: its fields and its call function} \\
 \llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket & \\
-\llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\[6pt]
+\llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\
+\llbracket \texttt{std::shared\_ptr<const }\tau\texttt{>} \rrbracket = 1 \times \llbracket \tau \rrbracket & \text{a box is a unary product} \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
 \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{R} & \text{one field per requirement} \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
@@ -237,6 +244,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \qquad & \text{the node rebuilt beside its result} \\
 \llbracket e_1 \texttt{ ? } e_2 \texttt{ : } e_3 \rrbracket = \mathbf{if}\ \llbracket e_1 \rrbracket\ \mathbf{then}\ \llbracket e_2 \rrbracket\ \mathbf{else}\ \llbracket e_3 \rrbracket & \text{case on } \mathit{Bool} \\
 \llbracket \texttt{std::optional\{}e\texttt{\}} \rrbracket = \mathrm{inr}\,\llbracket e \rrbracket \qquad \llbracket \texttt{std::nullopt} \rrbracket = \mathrm{inl}\,() & \\
+\llbracket \texttt{std::make\_shared<const }\tau\texttt{>(}e\texttt{)} \rrbracket = ((), \llbracket e \rrbracket) \qquad \llbracket \texttt{*}e \rrbracket = \pi_2\,\llbracket e \rrbracket & \text{nothing observes which box} \\
 \end{array}
 \]
 \normalsize
@@ -312,7 +320,7 @@ Otherwise the term is a value, or a redex of one of the following shapes, each o
 A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), and the body it resolves to precedes the call by the declaration order, so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
 An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared operation, \textsc{S-Std} for a standard one, whose operations are total by the choice of $O$.
 A primitive $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\oplus$.
-A conditional on a constant of type \cppinline{bool}, a projection of a pair or of a constructed object, a fold whose a budget is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Proj}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
+A conditional on a constant of type \cppinline{bool}, a projection of a pair or of a constructed object, an unbox of a box, a fold whose a budget is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
 Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument and is used below without further comment.
 \end{proof}
 
@@ -322,13 +330,13 @@ If $e \longrightarrow e'$ then $\llbracket e \rrbracket \longrightarrow^{+} \llb
 \end{lemma}
 
 \begin{proof}
-Values: constants to constants, function objects to pairs of values, pairs to pairs, optionals to injections.
+Values: constants to constants, function objects to pairs of values, pairs to pairs, optionals to injections, boxes to pairs with unit.
 Steps, by cases on the rule; by \textsc{S-Ctx} and the fact that the translation of a context is a context, it suffices to treat the redex.
 \textsc{S-Call} to a specialisation: $f_{\overline{\sigma}}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$.
 \textsc{S-Call} to a generic function: $f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by type application and $\beta$-reduction to $\llbracket e_f \rrbracket$ with $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$, $\overline{d}$ for $\overline{q}$ and $\overline{\llbracket v \rrbracket}$ for $\overline{x}$; in it, each use of a requirement, translated as $q.r\,\overline{\llbracket e \rrbracket}$, has become $d.r\,\overline{\llbracket e \rrbracket}$, and by Lemma~\ref{lem:resolve} these reduce, once their arguments are values, to the translations of the resolved instances; the result is $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$, the term the source stepped to, whose requirement uses are typed by \textsc{T-Trait} at the concrete types.
 \textsc{S-Op}: $(\pi_2\,(\overline{\llbracket v_y \rrbracket}, O_{\mathrm{call}}\,\overline{\llbracket v_y \rrbracket}))\,[\overline{\sigma}]\,\overline{d}\,\overline{\llbracket v \rrbracket}$ reduces by projection, type application and $\beta$-reduction to $\llbracket e_O \rrbracket$ with fields, dictionaries and arguments substituted, which is $\llbracket e' \rrbracket$ by the same argument as for a generic call.
 \textsc{S-Std} and \textsc{S-Prim}: one $\delta$-step to the constant the standard assigns, by the assumption that the primitives' translations compute the standard's functions on constants.
-\textsc{S-If} and \textsc{S-Proj}: a case reduction, a projection.
+\textsc{S-If}, \textsc{S-Proj} and \textsc{S-Unbox}: a case reduction, a projection, a projection; the box is a unary product rather than nothing so that unboxing is a step on both sides and the simulation stays strict.
 \textsc{S-Fold}: $\mathit{iter}\,[\sigma]\,(k{+}1)\,s\,\llbracket a \rrbracket \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(s\,\llbracket a \rrbracket) \longrightarrow \mathit{iter}\,[\sigma]\,k\,s\,(\llbracket f \rrbracket^{\!\circ}\,\llbracket a \rrbracket\,\llbracket v \rrbracket)$ with $s = \lambda t.\,\llbracket f \rrbracket^{\!\circ}\,t\,\llbracket v \rrbracket$, and the last term is $\llbracket \texttt{fold\_left(repeat(}v\texttt{, }k\texttt{), }f\texttt{(}a\texttt{, }v\texttt{), }f\texttt{)} \rrbracket$; the budget-zero case is one step of the iterator; over \cppinline{iota(i, j)} the same with the pair step from $(\llbracket i \rrbracket, \llbracket a \rrbracket)$, the iterator's count $\llbracket j \rrbracket \mathbin{\dot{-}} \llbracket i \rrbracket$ decreasing by one as the source's $i$ increases by one, which is why the reduct \cppinline{iota(i + 1, j)} is exactly the next iterate; over \cppinline{chain_view}, the same with $\mathit{next}$ advancing the first component and the count the number of elements, so the last element is consumed before the count reaches zero.
 \textsc{S-Cata}: $\mathit{fold}_F\,\beta\,(\mathrm{in}\,n) \longrightarrow \beta\,(F(\mathit{fold}_F\,\beta)\,n)$ is one step of the term's iterator; $\beta$ then rebuilds the node from the first components, which reduces to $\llbracket n \rrbracket$ since each leg's pair has that leg as its first component, and applies $\llbracket \mathit{alg} \rrbracket^{\!\circ}$ to it and to the second components $\pi_2\,(\mathit{fold}_F\,\beta\,\llbracket l_i \rrbracket)$, which are $\llbracket \texttt{cata(}\mathit{alg}\texttt{, }l_i\texttt{)} \rrbracket$; after those projections the term is the translation of the source's reduct.
 \end{proof}

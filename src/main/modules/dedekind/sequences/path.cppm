@@ -347,12 +347,14 @@ export template <typename R>
 constexpr auto from_range(R&& range) {
   using U = std::ranges::range_value_t<R>;
 
-  auto values = std::make_shared<std::vector<U>>();
+  std::vector<U> built;
   if constexpr (std::ranges::sized_range<R>) {
-    values->reserve(static_cast<typename std::vector<U>::size_type>(
+    built.reserve(static_cast<typename std::vector<U>::size_type>(
         std::ranges::size(range)));
   }
-  for (auto&& value : range) values->push_back(static_cast<U>(value));
+  for (auto&& value : range) built.push_back(static_cast<U>(value));
+  // A boxed value: the path's copies share one const vector.
+  const auto values = std::make_shared<const std::vector<U>>(std::move(built));
 
   return FinitePath<U>{
       [values](std::size_t i) {
@@ -587,13 +589,15 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
                          0};
   }
 
-  auto values = std::make_shared<std::vector<T>>();
-  values->reserve(length);
-  values->push_back(std::move(seed));
+  std::vector<T> built;
+  built.reserve(length);
+  built.push_back(std::move(seed));
 
   auto f = std::forward<Step>(step);
   for (std::size_t i = 1; i < length; ++i)
-    values->push_back(std::invoke(f, values->back()));
+    built.push_back(std::invoke(f, built.back()));
+  // A boxed value: the path's copies share one const vector.
+  const auto values = std::make_shared<const std::vector<T>>(std::move(built));
 
   return FinitePath<T>{
       [values](std::size_t i) {

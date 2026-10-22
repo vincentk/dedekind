@@ -1,11 +1,25 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <limits>
 #include <optional>
 #include <tuple>
+#include <utility>
 
 import dedekind.category;
 
 using namespace dedekind::category;
+
+// The checked arithmetic is a Kleisli arrow of the maybe monad: T x T ->
+// Maybe<T>, nothing on overflow.  Bind threads it, and overflow short-circuits
+// the rest of the chain (#1061).
+namespace maybe_witness {
+constexpr int big = std::numeric_limits<int>::max();
+static_assert((Maybe<std::pair<int, int>>{{40, 2}} >>=
+               SafeAddTransform<int>{}) == Maybe<int>{42});
+static_assert(!(Maybe<std::pair<int, int>>{{big, 1}} >>=
+                SafeAddTransform<int>{}));
+static_assert(!(Maybe<std::pair<int, int>>{} >>= SafeAddTransform<int>{}));
+}  // namespace maybe_witness
 
 TEST_CASE("Category: Kleisli Extension Concepts", "[category][kleisli]") {
   // Maybe is a monad (Kleisli extension only); std::tuple<T> is the

@@ -1,0 +1,10 @@
+# Rule 1, the boxed value: a box is compared by what it holds, never by which
+# box it is.  get(), use_count(), owner_before() and == between two
+# shared_ptrs observe identity or sharing, so referential transparency breaks
+# through them.  Comparing with nullptr asks whether the box is empty and is
+# allowed.
+match cxxMemberCallExpr(callee(cxxMethodDecl(hasAnyName("get", "use_count", "owner_before"))), on(expr(hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::shared_ptr")))))))), isExpansionInMainFile(), hasAncestor(scope))
+match cxxOperatorCallExpr(hasOverloadedOperatorName("=="), hasArgument(0, expr(hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::shared_ptr")))))))), hasArgument(1, expr(hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::shared_ptr")))))))), isExpansionInMainFile(), hasAncestor(scope))
+match cxxDependentScopeMemberExpr(anyOf(hasMemberName("get"), hasMemberName("use_count"), hasMemberName("owner_before")), hasObjectExpression(expr(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr")))))))), isExpansionInMainFile(), hasAncestor(scope))
+match binaryOperator(hasOperatorName("=="), hasLHS(expr(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr")))))))), hasRHS(expr(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr")))))))), isExpansionInMainFile(), hasAncestor(scope))
+match cxxOperatorCallExpr(hasOverloadedOperatorName("=="), hasArgument(0, expr(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr")))))))), hasArgument(1, expr(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr")))))))), isExpansionInMainFile(), hasAncestor(scope))

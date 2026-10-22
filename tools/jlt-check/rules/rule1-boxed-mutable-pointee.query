@@ -1,0 +1,9 @@
+# Rule 1, the boxed value: std::shared_ptr is admitted as the representation
+# of a value (a heap cell for a recursive or shared structure) only when its
+# pointee is const, so nothing can change what every copy shares.  A
+# make_shared<T> call or a shared_ptr<T> member with T not const is a finding.
+# Limitation: a make_shared whose argument depends on a template parameter is
+# unresolved in the template pattern and not seen here (plugin work).
+match callExpr(callee(functionDecl(hasName("::std::make_shared"), hasTemplateArgument(0, refersToType(unless(isConstQualified()))))), isExpansionInMainFile(), hasAncestor(scope))
+match fieldDecl(hasType(hasUnqualifiedDesugaredType(recordType(hasDeclaration(classTemplateSpecializationDecl(hasName("::std::shared_ptr"), hasTemplateArgument(0, refersToType(unless(isConstQualified())))))))), isExpansionInMainFile(), hasAncestor(scope))
+match fieldDecl(hasType(hasUnqualifiedDesugaredType(templateSpecializationType(hasDeclaration(classTemplateDecl(hasName("::std::shared_ptr"))), hasTemplateArgument(0, refersToType(unless(isConstQualified())))))), isExpansionInMainFile(), hasAncestor(scope))

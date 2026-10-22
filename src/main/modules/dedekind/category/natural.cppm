@@ -315,7 +315,7 @@ struct identity_transformation {
 
   F f_map;
 
-  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
+  constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // In the common single-species case, the source object label can be reused
     // directly as the target witness. Otherwise, return the lifted identity
     // arrow itself: by the functor identity law, fmap(id_c(c)) = id_{F(c)}.
@@ -339,7 +339,7 @@ struct vertical_composition {
   Α α;
   Β β;
 
-  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
+  constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     return α(c) >> β(c);
   }
 };
@@ -358,7 +358,7 @@ struct horizontal_composition {
   Β β;
   G g_functor;  // Required for mapping the components of α through G
 
-  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
+  constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (β * α)_c = G'(α_c) >> β_{F(c)}
     // or equivalent: β_{F'(c)} >> G(α_c)
     return G_prime{}.φ(α(c)) >>
