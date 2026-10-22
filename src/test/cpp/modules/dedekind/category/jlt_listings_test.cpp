@@ -235,13 +235,15 @@ using dedekind::category::ArrowLaw;
 using dedekind::category::Boole;
 using dedekind::category::cata;
 using dedekind::category::Compose;
+using dedekind::category::IsMonotone;
 using dedekind::category::LawAlgebra;
+using dedekind::category::monotone;
 using dedekind::category::NegationArrow;
 using dedekind::category::Ternary;
 using Negation = NegationArrow<Boole>;
-static_assert(cata(LawAlgebra<>{},
-                   Compose<Negation, Negation>{})[ArrowLaw::Monotone] ==
+static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
               Ternary::True);
+static_assert(IsMonotone<Compose<Negation, Negation>>);
 
 }  // namespace jlt_listing
 
@@ -284,7 +286,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("Section 4: a fold over a term, at runtime") {
     L::Compose<L::Negation, L::Negation> twice_not{};
-    CHECK(L::cata(L::LawAlgebra<>{}, twice_not)[L::ArrowLaw::Monotone] ==
+    CHECK(L::monotone(L::cata(L::LawAlgebra<>{}, twice_not)) ==
           L::Ternary::True);
     CHECK(L::cata(L::LawAlgebra<>{}, twice_not)[L::ArrowLaw::Antitone] ==
           L::Ternary::Unknown);

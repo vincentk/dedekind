@@ -56,7 +56,7 @@ R &::=& Q & \text{nested shape} \\
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{std::optional<}\tau\texttt{>} & \text{type} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
-  & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} \;\mid\; e\texttt{[}c\texttt{]} & \\
+  & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
   & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} & \\
   & \mid & \texttt{std::ranges::fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over a budget} \\
   & \mid & \texttt{cata(}e\texttt{, }e\texttt{)} & \text{fold over a term} \\[3pt]
@@ -70,7 +70,7 @@ A shape is a concept; its requirements are nested shapes, laws (closed \cppinlin
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$ of the grammar, since a value is immutable and a reference to one denotes it.
 The standard function objects and the operations a program declares (a struct with fields and a call operator, itself generic where the listing writes \cppinline{auto}; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}; the call operator is \cppinline{const}, so applying a function object observes it, as Rule~1 requires of a value.
-Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs, optionals, and indexing by a constant, \cppinline{e[c]}, which is a projection of a product of fixed size (a law profile indexed by a law is one).
+Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs and optionals.
 There are two recursion primitives, one per kind of finiteness.
 \cppinline{std::ranges::fold_left} folds over a range whose length is fixed before the fold starts: \cppinline{repeat(x, n)}, $n$ copies of $x$, which is an explicit budget; \cppinline{iota(0, n)}, the first $n$ naturals; or \cppinline{chain_view{lo, hi}}, the contiguous interval of a finite chain from \cppinline{lo} to \cppinline{hi} walked by its covering step, of which \cppinline{iota} is the instance on \cppinline{size_t}.
 \cppinline{cata(alg, t)} folds over a term: an operation whose fields are terms is a node, a term is a finite composition of nodes, and the fold applies the algebra to each node and the folded values of its legs, one node at a time.}
@@ -220,7 +220,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction} \\
 \llbracket e\texttt{(}\overline{e'}\texttt{)} \rrbracket = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d}\,\overline{\llbracket e' \rrbracket} & \text{\textsc{T-Op}: application,} \\
 \qquad \text{with } \overline{d} = \overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\beta}] \rrbracket} \text{ the call operator's dictionaries} & \\
-\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) \qquad \llbracket e\texttt{[}c\texttt{]} \rrbracket = \pi_c\,\llbracket e \rrbracket & \text{projections; a product of fixed size is nested pairs} \\
+\llbracket e\texttt{.}y_i \rrbracket = \pi_i\,(\pi_1\,\llbracket e \rrbracket) & \text{projection} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>} \rrbracket^{\!\circ} = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d} & \text{the callable of a step: a function name,} \\
 \llbracket e \rrbracket^{\!\circ} = (\pi_2\,\llbracket e \rrbracket)\,[\overline{\llbracket \sigma \rrbracket}]\,\overline{d} & \text{a function object; elaborated at the fold's types,} \\
 \qquad \text{with } \overline{d} \text{ the dictionaries of its constraints at } \overline{\sigma} & \text{its dictionaries supplied} \\
