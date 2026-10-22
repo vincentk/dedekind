@@ -1,6 +1,6 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
- * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 2 to 4),
+ * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 1 to 4),
  * verbatim up to formatting,
  * so that CI holds the paper to the code.  The listings declare their own
  * unit and laws, so they live in their own namespace; the TEST_CASE then
@@ -23,6 +23,39 @@ import dedekind.category;
 
 namespace jlt_listing {
 using std::size_t;
+
+// Section 1: declared, entailed, inferred.
+namespace intro {
+struct Negation {
+  constexpr bool operator()(bool x) const { return !x; }
+};
+template <typename F, typename G>
+struct Compose {
+  F f;
+  G g;
+  constexpr bool operator()(bool x) const { return g(f(x)); }
+};
+
+template <typename F>
+constexpr bool involutive(F) {
+  return false;
+}
+template <>
+constexpr bool involutive(Negation) {
+  return true;
+}
+template <typename F>
+constexpr bool bijective(F f) {
+  return involutive(f);
+}
+template <typename F, typename G>
+constexpr bool bijective(Compose<F, G> c) {
+  return bijective(c.f) && bijective(c.g);
+}
+
+static_assert(bijective(Compose{Negation{}, Negation{}}));
+static_assert(!involutive(Compose{Negation{}, Negation{}}));
+}  // namespace intro
 
 // Listing 1, top: the shape, unpopulated.
 template <typename T, typename Op>
@@ -176,6 +209,14 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   using std::size_t;
   namespace L = jlt_listing;
   namespace C = dedekind::category;
+
+  SECTION("Section 1: the same laws, read at runtime") {
+    namespace I = jlt_listing::intro;
+    I::Compose<I::Negation, I::Negation> twice_not{};
+    CHECK(I::bijective(twice_not));
+    CHECK(!I::involutive(twice_not));
+    CHECK(twice_not(true));
+  }
 
   SECTION("Listing 1: the same unit, called on a value") {
     std::plus<size_t> plus;

@@ -46,13 +46,14 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
   & | & \texttt{template <typename }\overline{\alpha}\texttt{> constexpr } \tau\; f\texttt{(}\overline{\tau}\texttt{) = delete;} & \text{trait} \\
   & | & \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{instance} \\
   & | & \texttt{template <typename }\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ constexpr } \tau\; f\texttt{(}\overline{\tau\; x}\texttt{) \{ return } e\texttt{; \}} & \text{generic function} \\
-  & | & \texttt{struct } O \texttt{ \{ constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \text{operation} \\[3pt]
+  & | & \texttt{template <typename }\overline{\alpha}\texttt{> struct } O \texttt{ \{ } \overline{\tau\; y}\texttt{;} & \text{operation} \\
+  &   & \qquad \texttt{constexpr } \tau \texttt{ operator()(}\overline{\tau\; x}\texttt{) const \{ return } e\texttt{; \} \};} & \\[3pt]
 R &::=& Q & \text{nested shape} \\
   & | & e & \text{law} \\
   & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
 Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{std::pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{std::optional<}\tau\texttt{>} & \text{type} \\[3pt]
-e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} & \text{term} \\
+e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
   & \mid & e \oplus e \;\mid\; e \texttt{ ? } e \texttt{ : } e \;\mid\; \texttt{std::pair\{}e\texttt{, }e\texttt{\}} \;\mid\; e\texttt{.first} \;\mid\; e\texttt{.second} & \\
   & \mid & \texttt{std::optional\{}e\texttt{\}} \;\mid\; \texttt{std::nullopt} & \\
   & \mid & \texttt{std::ranges::fold\_left(}r\texttt{, }e\texttt{, }e\texttt{)} & \text{fold over fuel} \\[3pt]
@@ -65,7 +66,7 @@ A program is a sequence of declarations and a closed term.
 A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types, exact (\cppinline{std::same_as}) or up to conversion (\cppinline{std::convertible_to}).
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has.
-The standard function objects and the operations a program declares (a struct with a call operator) are the only function objects; a term applies one by constructing it.
+The standard function objects and the operations a program declares (a struct with fields and a call operator; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}.
 Terms are variables, constants, function names, calls with explicit or deduced type arguments, applications, arithmetic and comparisons, conditionals, pairs and optionals.
 \cppinline{std::ranges::fold_left} is the one recursion primitive, over a range whose length is fixed before the fold starts: \cppinline{repeat(x, n)}, $n$ copies of $x$, or \cppinline{iota(0, n)}, the first $n$ naturals.}
 \label{fig:fjlt-syntax}
@@ -162,7 +163,7 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \[
 \begin{array}{l@{\quad}l}
 \multicolumn{2}{l}{\textit{types}} \\
-\llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{one value per function-object type} \\
+\llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b \qquad \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} & \text{a function object is its fields} \\
 \llbracket \texttt{std::pair<}\tau_1\texttt{, }\tau_2\texttt{>} \rrbracket = \llbracket \tau_1 \rrbracket \times \llbracket \tau_2 \rrbracket & \\
 \llbracket \texttt{std::optional<}\tau\texttt{>} \rrbracket = 1 + \llbracket \tau \rrbracket & \\[6pt]
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
@@ -178,13 +179,13 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \multicolumn{2}{l}{\textit{declarations}} \\
 \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
 \texttt{template <}\overline{\alpha}\texttt{> requires } \overline{Q}\texttt{ ... } f\texttt{(}\overline{x}\texttt{) ... } e \;\mapsto\; f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{a generic function} \\
-\texttt{struct } O \texttt{ \{ ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} \;\mapsto\; O = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an operation} \\
+\texttt{struct } O \texttt{ \{ } \overline{y}\texttt{; ... operator()(}\overline{x}\texttt{) ... } e \texttt{ ... \};} \;\mapsto\; O = \lambda\overline{y}.\,\lambda\overline{x}.\,\llbracket e \rrbracket & \text{an operation, closed over its fields} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait}, resolved to a specialisation} \\
 \llbracket f\texttt{<}\overline{\alpha}\texttt{>(}\overline{e}\texttt{)} \rrbracket = q.f\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait-Assumed}} \\
-\llbracket O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} \rrbracket = O\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Op}} \\
+\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}(}\overline{e}\texttt{)} \rrbracket = O\,\overline{\llbracket e_y \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Op}} \\
 \llbracket \texttt{fold\_left(repeat(}x\texttt{, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \llbracket n \rrbracket\,[\sigma]\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket & \text{the numeral} \\
 \llbracket \texttt{fold\_left(iota(0, }n\texttt{), }a\texttt{, }f\texttt{)} \rrbracket = \pi_2\,(\llbracket n \rrbracket\,[\mathbb{N} \times \sigma]\,\mathit{step}\,(0, \llbracket a \rrbracket)) & \text{primitive recursion} \\
 \qquad \text{where } \mathit{step} = \lambda p.\,(\pi_1 p + 1,\; \llbracket f \rrbracket\,(\pi_2 p)\,(\pi_1 p)) & \\

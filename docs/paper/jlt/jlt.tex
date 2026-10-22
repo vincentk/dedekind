@@ -34,8 +34,85 @@ The rules are a discipline the compiler does not enforce; we state where the cor
 
 \section{Introduction}
 \label{sec:intro}
-% Establishes: the claim (fancy FP with a recent clang++), the audience (C++
-% first, System F as the warranty), the contributions, the roadmap.
+
+The case for functional programming has been made the same way for forty years, and it is a good case.
+A function that depends on its arguments alone can be replaced by its value: programs can be read as equations, rewritten by them, and reasoned about by them~\cite{hughes1989why}.
+A function that is polymorphic in a type cannot inspect that type, so its type alone says a great deal about what it does~\cite{wadler1989theorems}.
+A class of types with operations and laws, Haskell's type classes, lets generic code be written once against the laws and checked against them~\cite{wadler1989adhoc}.
+The case is usually made in a language built around it, and that is where this paper departs: it makes the case in standard \Cpp{23}, with a stock compiler and no extensions.
+
+Two things make \Cpp{} the right place to make it now.
+The first is where \Cpp{} is.
+The systems that machine learning runs on and the software that embedded devices run are, to a large extent, \Cpp{}, and a growing number of the people who write them arrive from Python with a functional vocabulary and no idea how much of it the language already supports.
+The second is what \Cpp{} shipped and what it did not.
+\Cpp{20} added concepts, constraints on template parameters that are checked at each use, after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}; what it dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints and nothing else.
+The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
+
+The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of deliberately restricting oneself to the part of \Cpp{23} that reads as System~F.
+It has three rules.
+Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
+Generic code varies with a type only through that type's concepts and traits.
+Recursion only folds, over a range whose length is fixed before the fold starts.
+Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; and what System~F guarantees, termination and parametricity, the program inherits.
+"Posture" is the honest word: the compiler enforces some of the rules and not others, and Section~\ref{sec:translation:adequacy} says which.
+
+There is a reason to care about the checked part beyond taste.
+The last few years have shown what a formal system with a checker is worth once machines write in it: proofs in Lean~\cite{demoura2021lean} found by learned search are accepted because the checker, not the author, says so~\cite{hubert2025olympiad}.
+\Cpp{} is not a theorem prover.
+But under the posture its compiler does check something of the same kind: a \cppinline{static_assert} on a \cppinline{constexpr} function is a claim the compiler verifies, a concept is a claim about a type the compiler decides, and the same program runs unchanged at runtime, so what was checked once is what executes.
+A discipline that makes a mainstream compiler into a checker of this modest sort is worth stating precisely, and that is what the calculus in the appendix is for.
+
+Listing~\ref{lst:intro} shows the kind of thing the posture buys, in nine lines.
+A law of a function is a value, declared at a leaf (\cppinline{Negation} is an involution), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
+The compiler reads the chain at compile time in the \cppinline{static_assert}s, and the same functions answer at runtime.
+The last line is the honest answer on the composite: it is not known to be an involution, which is all that can be said, and \cppinline{false} here means \emph{not known}, not \emph{no}.
+
+% Verbatim up to formatting in jlt_listings_test.cpp (namespace intro).
+\begin{listing}[htbp]
+\begin{cpp}
+struct Negation {
+  constexpr bool operator()(bool x) const { return !x; }
+};
+template <typename F, typename G>
+struct Compose {
+  F f;
+  G g;
+  constexpr bool operator()(bool x) const { return g(f(x)); }
+};
+
+template <typename F> constexpr bool involutive(F) { return false; }
+template <> constexpr bool involutive(Negation) { return true; }
+template <typename F> constexpr bool bijective(F f) { return involutive(f); }
+template <typename F, typename G>
+constexpr bool bijective(Compose<F, G> c) {
+  return bijective(c.f) && bijective(c.g);
+}
+
+static_assert( bijective(Compose{Negation{}, Negation{}}));
+static_assert(!involutive(Compose{Negation{}, Negation{}}));
+\end{cpp}
+\caption{Declared, entailed, inferred.
+\cppinline{involutive} is declared at \cppinline{Negation}; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
+Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.}
+\label{lst:intro}
+\end{listing}
+
+\paragraph{Contributions.}
+The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
+\begin{enumerate}
+\item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
+\item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F; three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
+\item An adequacy argument from \Cpp{} to the calculus that states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository, which is what compliance means here.
+\end{enumerate}
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a checker, which Section~\ref{sec:limits} argues is a tool rather than a research problem.
+
+\paragraph{Audience and plan.}
+The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers arriving from Python who want a systems language without giving up the vocabulary they reason in; and for readers of programming languages who want to know what a shipped language already contains.
+Section~\ref{sec:posture} states the rules.
+Section~\ref{sec:translation} shows the translation on a monoid, states the rules it uses and argues adequacy.
+Section~\ref{sec:binding} runs the same program at both binding times, with fuel.
+Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, and Section~\ref{sec:related} where it sits; the calculus, its rules and the proof sketches are the appendix.
 
 \section{The Posture}
 \label{sec:posture}
