@@ -327,16 +327,11 @@ constexpr const auto& component(const P& p, At<2>) {
  *  @tparam K the slot, from 1. */
 export template <std::size_t K>
 struct Projection {
+  /** @brief The component, as a value: one overload for lvalues and
+   *  temporaries alike, and no reference into a product that may die. */
   template <typename P>
     requires requires(const P& p) { component(p, At<K>{}); }
-  constexpr decltype(auto) operator()(const P& p) const {
-    return component(p, At<K>{});
-  }
-  /** @brief A temporary's component, by value (no reference into it). */
-  template <typename P>
-    requires(!std::is_lvalue_reference_v<P>) &&
-            requires(const P& p) { component(p, At<K>{}); }
-  constexpr auto operator()(P p) const {
+  constexpr auto operator()(const P& p) const {
     return auto(component(p, At<K>{}));
   }
 };
