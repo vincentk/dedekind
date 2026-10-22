@@ -43,6 +43,14 @@ struct Steps {
   };
 };
 
+struct Reiterator {  // not the protocol: the exemption is by exact name
+  int i = 0;
+  constexpr Reiterator& again() {  // const-member 3, reference 4
+    ++i;
+    return *this;
+  }
+};
+
 }  // namespace jlt_listing
 
 // Harness: the violations again, outside the namespace, not counted.
