@@ -11,8 +11,11 @@ the prebuilt module files must exist.
 
 - `rules/<rule>.query`: one `clang-query` matcher per check, named for the rule
   of the paper it checks.  A match is a finding.
-- `scope`: the gate, one line per `<rule> <file>` pair.  Growing the checker is
-  adding a rule file and a line here.
+- `scope`: the gate, one line per `<rule> <file> [expected]`.  Growing the
+  checker is adding a rule file and a line here.
+- `fixtures/`: one negative control per rule, standalone (no imports), with
+  its expected finding count in `scope`; it proves the matcher fires, so a
+  zero on a real file is not vacuous.
 - `jlt-check.sh`: runs every pair in `scope`, prints the findings, and fails if
   there are any, or if a file does not parse.
 

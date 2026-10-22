@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Run every <rule> <file> pair of tools/jlt-check/scope through clang-query;
-# fail on any finding, and on any file that does not parse.
+# Run every <rule> <file> [expected] line of tools/jlt-check/scope through
+# clang-query; fail when a file's findings differ from its expected count
+# (default 0), and on any file that does not parse.
 # Usage: jlt-check.sh [CLANG_QUERY] [BUILD_DIR]
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -15,9 +16,16 @@ build="${2:-$root/build}"
 
 findings=0
 failures=0
-while read -r rule file; do
+while read -r rule file expected; do
   case "$rule" in '' | '#'*) continue ;; esac
-  out="$("$query" -p "$build" -f "$here/rules/$rule.query" "$root/$file" 2>&1)" || {
+  expected="${expected:-0}"
+  # A fixture under tools/jlt-check/fixtures is standalone: no imports, no
+  # entry in the compilation database, so it is parsed with explicit flags.
+  case "$file" in
+  tools/jlt-check/fixtures/*) args=("$root/$file" -- -std=c++23 -xc++) ;;
+  *) args=(-p "$build" "$root/$file") ;;
+  esac
+  out="$("$query" -f "$here/rules/$rule.query" "${args[@]}" 2>&1)" || {
     echo "jlt-check: $rule $file: clang-query failed" >&2
     echo "$out" >&2
     failures=$((failures + 1))
@@ -30,10 +38,15 @@ while read -r rule file; do
     continue
   fi
   n="$(grep -oE '^[0-9]+ match' <<<"$out" | awk '{s += $1} END {print s + 0}')"
-  echo "jlt-check: $rule $file: $n finding(s)"
-  if [ "$n" -gt 0 ]; then
-    grep -E "note: \"root\" binds here" -B0 -A0 <<<"$out" || true
-    findings=$((findings + n))
+  echo "jlt-check: $rule $file: $n finding(s), expected $expected"
+  if [ "$n" -ne "$expected" ]; then
+    grep -E "note: \"root\" binds here" <<<"$out" || true
+    if [ "$expected" -eq 0 ]; then
+      findings=$((findings + n))
+    else
+      echo "jlt-check: $rule $file: the control expected $expected, so the rule is mis-scoped" >&2
+      failures=$((failures + 1))
+    fi
   fi
 done <"$here/scope"
 

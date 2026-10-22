@@ -1,2 +1,6 @@
-# <rule> <file>, relative to the repository root.  A pair here is a gate.
+# <rule> <file> [expected], relative to the repository root.  A line is a gate:
+# the file must have exactly `expected` findings under the rule (default 0).
+# A fixture with expected > 0 is the rule's negative control: it proves the
+# matcher fires, so a zero elsewhere is not vacuous.
+rule3-no-loops tools/jlt-check/fixtures/rule3-loops.cpp 4
 rule3-no-loops src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp
