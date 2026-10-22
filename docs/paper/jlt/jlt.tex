@@ -703,7 +703,10 @@ The listings were built with one compiler against two standard libraries, and th
 \paragraph{The compiler has its own budget.}
 Constant evaluation is bounded by a step limit the compiler sets, and a program that exhausts it fails to compile.
 Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
-Template instantiation depth is a second such knob; the listings are nowhere near either.
+The two kinds of fold meet the compiler differently, which is an idiosyncrasy of \Cpp{} but exactly the boundary this section is drawing.
+A fold over a budget has no recursion and meets no depth limit.
+A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
+Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either.
 
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
