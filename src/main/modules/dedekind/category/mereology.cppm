@@ -1064,7 +1064,7 @@ concept Parthood = IsPartOfRelation<T, T, bool>;
  * raw pointers.
  */
 export template <typename Whole>
-constexpr decltype(auto) arrow_drill_down(const Whole& whole)
+constexpr auto arrow_drill_down(const Whole& whole)
   requires requires { whole.operator->(); }
 {
   return *whole.operator->();
@@ -1072,7 +1072,7 @@ constexpr decltype(auto) arrow_drill_down(const Whole& whole)
 
 /** @brief Pointer overload for generic drill-down projection. */
 export template <typename T>
-constexpr const T& arrow_drill_down(const T* whole) {
+constexpr T arrow_drill_down(const T* whole) {
   return *whole;
 }
 

@@ -855,7 +855,7 @@ struct Compose final {
   template <typename X>
     requires Presents<X, Domain> &&
              requires(const F& f_, const G& g_, const X& x_) { g_(f_(x_)); }
-  constexpr decltype(auto) operator()(const X& x) const {
+  constexpr auto operator()(const X& x) const {
     if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
       return static_cast<Codomain>(g(f(x)));
     else

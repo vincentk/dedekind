@@ -754,10 +754,10 @@ export struct Laws : dedekind::category::Profile<Law, 4> {
   static constexpr Laws from(bool total, bool univalent, bool injective,
                              bool surjective) {
     Laws l;
-    if (total) l.set(Law::Total);
-    if (univalent) l.set(Law::Univalent);
-    if (injective) l.set(Law::Injective);
-    if (surjective) l.set(Law::Surjective);
+    if (total) l = l.with(Law::Total);
+    if (univalent) l = l.with(Law::Univalent);
+    if (injective) l = l.with(Law::Injective);
+    if (surjective) l = l.with(Law::Surjective);
     return l;
   }
   /** @brief The engine at a node, law by law: the legs' answers in, the

@@ -294,7 +294,7 @@ static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
  * @return Reference to the `min` component used as the relation witness.
  */
 export template <typename Whole>
-constexpr decltype(auto) arrow_drill_down_min(const Whole& whole)
+constexpr auto arrow_drill_down_min(const Whole& whole)
   requires requires { arrow_drill_down(whole).min; }
 {
   return arrow_drill_down(whole).min;
@@ -584,9 +584,12 @@ struct Profile {
   constexpr Ternary operator[](E w) const {
     return of[static_cast<std::size_t>(w)];
   }
-  constexpr Profile& set(E w) {
-    of[static_cast<std::size_t>(w)] = Ternary::True;
-    return *this;
+  /** @brief This profile with law @c w certified: a new profile, this one
+   *  unchanged.  @param w the law. */
+  constexpr Profile with(E w) const {
+    Profile p = *this;
+    p.of[static_cast<std::size_t>(w)] = Ternary::True;
+    return p;
   }
   constexpr bool operator==(const Profile&) const = default;
   /** @brief The profile whose answer at each law is @c f(law): the one loop
@@ -701,7 +704,7 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
  *  is self-inverse, so monic and epic). */
 export constexpr ArrowLaws saturated(ArrowLaws p) {
   if (p[ArrowLaw::Involutive] == Ternary::True)
-    p.set(ArrowLaw::Injective).set(ArrowLaw::Surjective);
+    p = p.with(ArrowLaw::Injective).with(ArrowLaw::Surjective);
   return p;
 }
 /** @brief The laws that do not depend on an order: a profile read under an
@@ -731,12 +734,12 @@ export constexpr ArrowLaws arrow_node(ArrowNode n, const ArrowLaws& a,
 template <typename F, typename Op>
 constexpr ArrowLaws declared_arrow_laws() {
   ArrowLaws p;
-  if constexpr (IsMonicArrow<F>) p.set(ArrowLaw::Injective);
-  if constexpr (IsEpicArrow<F>) p.set(ArrowLaw::Surjective);
-  if constexpr (IsMonotone<F, Op>) p.set(ArrowLaw::Monotone);
-  if constexpr (IsAntiMonotone<F, Op>) p.set(ArrowLaw::Antitone);
+  if constexpr (IsMonicArrow<F>) p = p.with(ArrowLaw::Injective);
+  if constexpr (IsEpicArrow<F>) p = p.with(ArrowLaw::Surjective);
+  if constexpr (IsMonotone<F, Op>) p = p.with(ArrowLaw::Monotone);
+  if constexpr (IsAntiMonotone<F, Op>) p = p.with(ArrowLaw::Antitone);
   if constexpr (requires { typename F::Domain; })
-    if constexpr (IsInvolution<F>) p.set(ArrowLaw::Involutive);
+    if constexpr (IsInvolution<F>) p = p.with(ArrowLaw::Involutive);
   return p;
 }
 export template <typename F, typename Op = std::less_equal<>>
@@ -766,32 +769,32 @@ static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
                   IsEpicArrow<Compose<Identity<int>, Identity<int>>>,
               "id ∘ id is monic and epic: the closure facts on its legs");
 static_assert(
-    arrow_node(ArrowNode::Compose, ArrowLaws{}.set(ArrowLaw::Antitone),
-               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Monotone] ==
+    arrow_node(ArrowNode::Compose, ArrowLaws{}.with(ArrowLaw::Antitone),
+               ArrowLaws{}.with(ArrowLaw::Antitone))[ArrowLaw::Monotone] ==
         Ternary::True,
     "the sign table: antitone ∘ antitone is monotone");
 static_assert(arrow_node(ArrowNode::Compose,
-                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{}.with(ArrowLaw::Injective),
                          ArrowLaws{})[ArrowLaw::Injective] == Ternary::Unknown,
               "closure needs both legs: nothing from one");
 static_assert(arrow_node(ArrowNode::Pairing,
-                         ArrowLaws{}.set(ArrowLaw::Injective),
+                         ArrowLaws{}.with(ArrowLaw::Injective),
                          ArrowLaws{})[ArrowLaw::Injective] == Ternary::True,
               "⟨f, g⟩ is injective as soon as one leg is");
 static_assert(
     arrow_node(ArrowNode::Copairing, ArrowLaws{},
-               ArrowLaws{}.set(ArrowLaw::Surjective))[ArrowLaw::Surjective] ==
+               ArrowLaws{}.with(ArrowLaw::Surjective))[ArrowLaw::Surjective] ==
         Ternary::True,
     "[f, g] is surjective as soon as one leg is: the dual");
-static_assert(saturated(ArrowLaws{}.set(
+static_assert(saturated(ArrowLaws{}.with(
                   ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
               "entailment: an involution is a bijection");
 static_assert(
-    arrow_node(ArrowNode::Sum, ArrowLaws{}.set(ArrowLaw::Antitone),
-               ArrowLaws{}.set(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
+    arrow_node(ArrowNode::Sum, ArrowLaws{}.with(ArrowLaw::Antitone),
+               ArrowLaws{}.with(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
             Ternary::Unknown &&
-        arrow_node(ArrowNode::Copairing, ArrowLaws{}.set(ArrowLaw::Monotone),
-                   ArrowLaws{}.set(ArrowLaw::Monotone))[ArrowLaw::Monotone] ==
+        arrow_node(ArrowNode::Copairing, ArrowLaws{}.with(ArrowLaw::Monotone),
+                   ArrowLaws{}.with(ArrowLaw::Monotone))[ArrowLaw::Monotone] ==
             Ternary::Unknown,
     "a sum keeps inl < inr, so no antitone; a copairing compares "
     "across summands, so no variance at all");

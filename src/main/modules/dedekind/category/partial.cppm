@@ -83,8 +83,7 @@ struct Partial {
   T value;
   Ternary status;  // Use 'status' consistently
 
-  constexpr const T& operator*() const noexcept { return value; }
-  constexpr T& operator*() noexcept { return value; }
+  constexpr T operator*() const noexcept { return value; }
 
   constexpr bool operator==(const Partial& other) const {
     return (status == Ternary::True && other.status == Ternary::True)
@@ -101,8 +100,7 @@ struct TernaryResult {
   Ternary status;
   T value;
 
-  constexpr const T& operator*() const noexcept { return value; }
-  constexpr T& operator*() noexcept { return value; }
+  constexpr T operator*() const noexcept { return value; }
 };
 
 // 1. Classical

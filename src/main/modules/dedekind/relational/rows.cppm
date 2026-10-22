@@ -733,13 +733,13 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
   Laws l;
   if (const auto c = defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1),
                                      cols, rep)) {
-    l.set(Law::Univalent);
-    if (c->only) l.set(Law::Total);
+    l = l.with(Law::Univalent);
+    if (c->only) l = l.with(Law::Total);
   }
   if (const auto d = defined_columns(p, 1, nd + 1, column_mask(nd + 1, n + 1),
                                      cols, rep)) {
-    l.set(Law::Injective);
-    if (d->only) l.set(Law::Surjective);
+    l = l.with(Law::Injective);
+    if (d->only) l = l.with(Law::Surjective);
   }
   return l;
 }

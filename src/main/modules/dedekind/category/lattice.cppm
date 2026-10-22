@@ -641,24 +641,24 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
  *  reference to that @c IsSet (the downstream @c sets lift relies on this).
  *  Still @c ->convertible_to<A>, so @c IsProduct is satisfied. */
 export template <typename A, typename B>
-constexpr const A& component(const Meet<A, B>& m, At<1>) {
+constexpr A component(const Meet<A, B>& m, At<1>) {
   return m.lhs;
 }
 /** @brief π_2: the right-operand accessor of a meet, by const-reference (see
  *  @c π_1). */
 export template <typename A, typename B>
-constexpr const B& component(const Meet<A, B>& m, At<2>) {
+constexpr B component(const Meet<A, B>& m, At<2>) {
   return m.rhs;
 }
 /** @brief π_1: the left-operand accessor of a join, by const-reference (see the
  *  meet overload). */
 export template <typename A, typename B>
-constexpr const A& component(const Join<A, B>& j, At<1>) {
+constexpr A component(const Join<A, B>& j, At<1>) {
   return j.lhs;
 }
 /** @brief π_2: the right-operand accessor of a join, by const-reference. */
 export template <typename A, typename B>
-constexpr const B& component(const Join<A, B>& j, At<2>) {
+constexpr B component(const Join<A, B>& j, At<2>) {
   return j.rhs;
 }
 

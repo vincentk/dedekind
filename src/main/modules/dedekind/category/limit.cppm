@@ -307,19 +307,19 @@ concept TupleLike = requires { std::tuple_size<P>::value; };
  *  @param p the point. */
 export template <typename P, std::size_t K>
   requires TupleLike<P> && (K >= 1) && (K <= std::tuple_size_v<P>)
-constexpr const auto& component(const P& p, At<K>) {
+constexpr auto component(const P& p, At<K>) {
   return std::get<K - 1>(p);
 }
 /** @brief The components of a pair-like product that is not tuple-like.
  *  @param p the point. */
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.first; }
-constexpr const auto& component(const P& p, At<1>) {
+constexpr auto component(const P& p, At<1>) {
   return p.first;
 }
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.second; }
-constexpr const auto& component(const P& p, At<2>) {
+constexpr auto component(const P& p, At<2>) {
   return p.second;
 }
 
@@ -362,9 +362,7 @@ struct ProjectionAt {
   using Domain = P;
   using Codomain =
       std::remove_cvref_t<decltype(Projection<K>{}(std::declval<const P&>()))>;
-  constexpr decltype(auto) operator()(const P& p) const {
-    return Projection<K>{}(p);
-  }
+  constexpr auto operator()(const P& p) const { return Projection<K>{}(p); }
 };
 template <std::size_t K, typename P>
 struct projection_arrow {
