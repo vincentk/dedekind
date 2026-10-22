@@ -123,10 +123,10 @@ def main():
                     print(f"  {loc}")
 
     print("\njlt-check: coverage")
-    print(f"  {'rule':<30} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
+    print(f"  {'rule':<34} {'files gated':>12} {'files reported':>15} {'findings reported':>18}")
     for rule in sorted(per_rule):
         r = per_rule[rule]
-        print(f"  {rule:<30} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
+        print(f"  {rule:<34} {r['gated']:>12} {r['reported']:>15} {r['findings']:>18}")
     print(f"jlt-check: {failures} failure(s)")
     return 1 if failures else 0
 
