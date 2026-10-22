@@ -1363,6 +1363,18 @@ export template <typename L>
 inline constexpr bool logic_negation_is_involutive_v =
     IsInvolution<logic_complement<L>, typename L::Ω>;
 
+/** @brief The arrow form of the reflection carries the same certificate: @c
+ *  NegationArrow<L> is an involution on @c L::Ω exactly when the species'
+ *  complement is, so the laws engine (@c :posetal) sees ¬ as its own inverse
+ *  and, through saturation, as monic and epic. */
+template <typename L>
+struct is_involutive<NegationArrow<L>, typename L::Ω>
+    : std::bool_constant<logic_negation_is_involutive_v<L>> {};
+
+static_assert(IsInvolution<NegationArrow<Boole>> &&
+                  IsInvolution<NegationArrow<Kleene>>,
+              "the negation arrow is an involution on 𝔹 and on K₃");
+
 static_assert(logic_negation_is_involutive_v<Boole>,
               "𝔹: ¬ is an involution, so !!A = A is sound");
 static_assert(logic_negation_is_involutive_v<Kleene>,
