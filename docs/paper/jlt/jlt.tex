@@ -53,7 +53,7 @@ It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
 Recursion only folds, over a range whose length is fixed before the fold starts.
-Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; what System~F guarantees of the image, parametricity above all, the program inherits, and termination it has by construction.
+Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; and what System~F guarantees, termination and parametricity, the program inherits.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Section~\ref{sec:translation:adequacy} says which.
 
 There is a reason to care about the checked part beyond taste.
@@ -186,7 +186,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 A Jlt function recurses in one way: \cppinline{std::ranges::fold_left} over a range whose length is fixed before the fold starts, \cppinline{std::views::repeat(x, n)} or \cppinline{std::views::iota(0, n)}.
 \cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} folds the monoid's operation over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
-What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the Church numeral $\overline{n}$ applied to the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which the numeral builds (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
+What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the natural number $n$ iterating the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which iteration builds (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of fuel}; Section~\ref{sec:binding} shows the price being paid.
 The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the one loop is inside \cppinline{std::ranges::fold_left}, and every function composes.
 
@@ -418,7 +418,7 @@ FJlt & System~F & \\
 \texttt{template <> constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
 \texttt{template <ᾱ> requires Q̄ constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
-\texttt{fold\_left(repeat(x, n), a, f)} & $\overline{n}\,[\sigma]\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & fuel is a Church numeral \\
+\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & fuel is a natural number, iterated \\
 \bottomrule
 \end{tabularx}
 \caption{The six rules of the translation that the listings exercise.
@@ -509,12 +509,14 @@ constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
   return s.second ? s : std::pair{i, P{}(i)};
 }
 
+constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
+  return s.second ? std::optional{s.first} : std::nullopt;
+}
+
 template <IsPredicate P>
 constexpr std::optional<size_t> first(size_t fuel) {
-  std::pair<size_t, bool> s =
-      std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
-                             std::pair{size_t{0}, false}, advance<P>);
-  return s.second ? std::optional{s.first} : std::nullopt;
+  return found(std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
+                                      std::pair{size_t{0}, false}, advance<P>));
 }
 
 struct Over1000 {
@@ -526,7 +528,7 @@ static_assert(!first<Over1000>(30));
 \end{cpp}
 \caption{Fuel, and running out of it.
 \cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
-\cppinline{first} folds it over the first \cppinline{fuel} naturals and reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
+\cppinline{first} folds it over the first \cppinline{fuel} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".}
 \label{lst:fuel}
 \end{listing}
@@ -584,7 +586,7 @@ Each \cppinline{requires} clause has become a record parameter, and at each call
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket$ and $\llbracket e' \rrbracket$ reduce to a common term in System~F, and values translate to values; for closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
+If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values; for closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
@@ -602,8 +604,7 @@ It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with
 Every FJlt program terminates.
 \end{corollary}
 
-Proved directly: declarations are ordered so that no body calls a later one, and the only recursion is a fold over fuel fixed before it starts, so every reduction sequence is finite.
-Strong normalisation of System~F~\cite{girard1989proofs} says the same of the translation's image, and Theorem~\ref{thm:simulation} makes the two agree.
+By Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}: every step of the program is at least one step of its image, and the image cannot step forever.
 Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
 
 \begin{corollary}[Parametricity]
@@ -725,7 +726,7 @@ What is new is the claim that the shipped language already contains the fragment
 \label{sec:conclusion}
 
 Three rules on standard \Cpp{23} were stated, and a program that keeps them is a term of a core calculus whose syntax is that \Cpp{}.
-The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to numerals.
+The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to iteration.
 The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 Every listing in the paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository.
 

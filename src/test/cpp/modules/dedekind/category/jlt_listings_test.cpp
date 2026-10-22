@@ -206,12 +206,14 @@ constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
   return s.second ? s : std::pair{i, P{}(i)};
 }
 
+constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
+  return s.second ? std::optional{s.first} : std::nullopt;
+}
+
 template <IsPredicate P>
 constexpr std::optional<size_t> first(size_t fuel) {
-  std::pair<size_t, bool> s =
-      std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
-                             std::pair{size_t{0}, false}, advance<P>);
-  return s.second ? std::optional{s.first} : std::nullopt;
+  return found(std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
+                                      std::pair{size_t{0}, false}, advance<P>));
 }
 
 struct Over1000 {
