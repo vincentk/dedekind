@@ -238,6 +238,14 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(!I::involutive(std::negate<int>{}));
   }
 
+  SECTION("Section 1: the tree certifies the same involutions") {
+    STATIC_CHECK(C::IsInvolution<std::logical_not<bool>, bool>);
+    STATIC_CHECK(C::IsInvolution<std::bit_not<size_t>, size_t>);
+    STATIC_CHECK(C::IsInvolution<std::negate<size_t>, size_t>);
+    STATIC_CHECK(!C::IsInvolution<std::negate<int>, int>);
+    CHECK(C::Reverse{}(C::Reverse{}(std::string{"posture"})) == "posture");
+  }
+
   SECTION("Listing 1: the same unit, called on a value") {
     std::plus<size_t> plus;
     std::bit_and<size_t> bit_and;
