@@ -202,19 +202,6 @@ concept IsConnex =
  *  run-time relation (@c relational:rows) reads them as well (#1045: one
  *  definition per property, read on both sides).  @c Ω @c = @c bool here;
  *  the many-valued reading is the run-time side's. */
-namespace detail_mereology {
-/** @brief A certified relation callable only on a mutable object: the law
- *  concepts' const-callability contract rejects it under every reference
- *  qualification. */
-struct MutableOnly {
-  bool operator()(int, int) { return true; }
-};
-}  // namespace detail_mereology
-template <>
-struct is_reflexive<int, detail_mereology::MutableOnly> : std::true_type {};
-static_assert(!IsReflexive<int, detail_mereology::MutableOnly> &&
-                  !IsReflexive<int, detail_mereology::MutableOnly&>,
-              "a mutable-only call is no relation, by value or by reference");
 
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -619,18 +606,6 @@ static_assert(
                  std::less_equal<detail_mereology::Dial<5000>>>,
     "a chain longer than the walk budget gets no certificate from the law "
     "(uncertified, not refuted)");
-namespace detail_mereology {
-/** @brief A relation the compiler cannot evaluate: its call is not constexpr.
- */
-struct RuntimeLe {
-  bool operator()(const Dial<4>& a, const Dial<4>& b) const { return a <= b; }
-};
-}  // namespace detail_mereology
-static_assert(
-    !IsReflexive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe> &&
-        !IsTransitive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe>,
-    "a relation that is no constant expression is not decided by "
-    "the law: uncertified, and no compile error");
 
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered

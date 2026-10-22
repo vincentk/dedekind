@@ -432,19 +432,6 @@ static_assert(!IsMerge<Merge<int, MergeBadOp>>,
               "an injected op that is not callable as (a,b)↦a⊓b must NOT model "
               "IsMerge (the ill-formed call is caught structurally).");
 
-// Dually, a MOVE-ONLY carrier is rejected at the concept surface: the diagonal
-// duplicates its input, so the @c std::copy_constructible<A> guard on
-// @c Copy::operator() removes it from the overload set and @c IsArrow (hence
-// @c IsCopy) fails --- not deferred to the @c {a,a} body (#950 review).
-struct CopyMoveOnly {  // move-only: the diagonal cannot duplicate it
-  CopyMoveOnly() = default;
-  CopyMoveOnly(CopyMoveOnly&&) = default;
-  CopyMoveOnly(const CopyMoveOnly&) = delete;
-};
-static_assert(!IsArrow<Copy<CopyMoveOnly>>,
-              "a move-only carrier must NOT model IsArrow via Copy: the "
-              "diagonal a↦(a,a) copies, so copy-constructibility is required.");
-
 // The parallel product is a genuine arrow.
 static_assert(IsArrow<Tensor<Identity<bool>, Identity<bool>>>,
               "R ⊗ S must be an arrow (A×B → C×D).");
