@@ -753,12 +753,12 @@ export struct Laws : dedekind::category::Profile<Law, 4> {
   /** @brief Declared answers, read off four witnesses. */
   static constexpr Laws from(bool total, bool univalent, bool injective,
                              bool surjective) {
-    Laws l;
-    if (total) l = l.with(Law::Total);
-    if (univalent) l = l.with(Law::Univalent);
-    if (injective) l = l.with(Law::Injective);
-    if (surjective) l = l.with(Law::Surjective);
-    return l;
+    Profile p;
+    if (total) p = p.with(Law::Total);
+    if (univalent) p = p.with(Law::Univalent);
+    if (injective) p = p.with(Law::Injective);
+    if (surjective) p = p.with(Law::Surjective);
+    return Laws{p};
   }
   /** @brief The engine at a node, law by law: the legs' answers in, the
    *  node's out; @c ° reads its operand at the dagger law. */

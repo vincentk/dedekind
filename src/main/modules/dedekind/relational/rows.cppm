@@ -730,7 +730,7 @@ template <typename P, typename K>
 Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
                     const Columns& cols, const P& rep) {
   const unsigned n = static_cast<unsigned>(cols.size());
-  Laws l;
+  Laws::Profile l;
   if (const auto c = defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1),
                                      cols, rep)) {
     l = l.with(Law::Univalent);
@@ -741,7 +741,7 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
     l = l.with(Law::Injective);
     if (d->only) l = l.with(Law::Surjective);
   }
-  return l;
+  return Laws{l};
 }
 /** @brief The laws of @c r read at the split @c nd (its first @c nd columns
  *  the domain): a leaf by its shape, a node by the engine (@c Laws::node,
