@@ -25,6 +25,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <limits>
+#include <optional>
 
 export module dedekind.category:numeric;
 
@@ -60,7 +61,7 @@ namespace detail {
 #endif
 
 template <std::signed_integral T>
-constexpr bool add_overflow_signed(T a, T b, T& out) {
+constexpr std::optional<T> checked_add_signed(T a, T b) {
 #if defined(__GNUC__) || defined(__clang__)
   // Use a fixed builtin signature to avoid template-dependent overload
   // ambiguity across compilers.
@@ -68,36 +69,33 @@ constexpr bool add_overflow_signed(T a, T b, T& out) {
     long long tmp = 0;
     if (__builtin_saddll_overflow(static_cast<long long>(a),
                                   static_cast<long long>(b), &tmp)) {
-      return true;
+      return std::nullopt;
     }
     if (tmp > static_cast<long long>(std::numeric_limits<T>::max()) ||
         tmp < static_cast<long long>(std::numeric_limits<T>::min())) {
-      return true;
+      return std::nullopt;
     }
-    out = static_cast<T>(tmp);
-    return false;
+    return static_cast<T>(tmp);
   } else {
     // Portable fallback for signed types wider than long long.
     if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
         (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
-      return true;
+      return std::nullopt;
     }
-    out = static_cast<T>(a + b);
-    return false;
+    return static_cast<T>(a + b);
   }
 #else
   // Portable fallback
   if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
       (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
-    return true;
+    return std::nullopt;
   }
-  out = static_cast<T>(a + b);
-  return false;
+  return static_cast<T>(a + b);
 #endif
 }
 
 template <std::signed_integral T>
-constexpr bool mul_overflow_signed(T a, T b, T& out) {
+constexpr std::optional<T> checked_mul_signed(T a, T b) {
 #if defined(__GNUC__) || defined(__clang__)
   // Use a fixed builtin signature to avoid template-dependent overload
   // ambiguity across compilers.
@@ -105,43 +103,38 @@ constexpr bool mul_overflow_signed(T a, T b, T& out) {
     long long tmp = 0;
     if (__builtin_smulll_overflow(static_cast<long long>(a),
                                   static_cast<long long>(b), &tmp)) {
-      return true;
+      return std::nullopt;
     }
     if (tmp > static_cast<long long>(std::numeric_limits<T>::max()) ||
         tmp < static_cast<long long>(std::numeric_limits<T>::min())) {
-      return true;
+      return std::nullopt;
     }
-    out = static_cast<T>(tmp);
-    return false;
+    return static_cast<T>(tmp);
   } else {
     // Portable fallback for signed types wider than long long.
     if (a == 0 || b == 0) {
-      out = static_cast<T>(0);
-      return false;
+      return static_cast<T>(0);
     }
     if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
         (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
         (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
         (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
-      return true;
+      return std::nullopt;
     }
-    out = static_cast<T>(a * b);
-    return false;
+    return static_cast<T>(a * b);
   }
 #else
   // Portable fallback
   if (a == 0 || b == 0) {
-    out = static_cast<T>(0);
-    return false;
+    return static_cast<T>(0);
   }
   if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
       (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
       (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
       (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
-    return true;
+    return std::nullopt;
   }
-  out = static_cast<T>(a * b);
-  return false;
+  return static_cast<T>(a * b);
 #endif
 }
 
@@ -234,13 +227,13 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    T result{};
-    if (detail::add_overflow_signed(a, b, result)) {
+    const std::optional<T> result = detail::checked_add_signed(a, b);
+    if (!result) {
       return {T{}, Ternary::Unknown};
     }
 
-    const Ternary support_result = policy(result);
-    return {result, Kleene::AND(support_inputs, support_result)};
+    const Ternary support_result = policy(*result);
+    return {*result, Kleene::AND(support_inputs, support_result)};
   } else {
     const T result = static_cast<T>(a + b);
     const Ternary support_result = policy(result);
@@ -285,13 +278,13 @@ constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    T result{};
-    if (detail::mul_overflow_signed(a, b, result)) {
+    const std::optional<T> result = detail::checked_mul_signed(a, b);
+    if (!result) {
       return {T{}, Ternary::Unknown};
     }
 
-    const Ternary support_result = policy(result);
-    return {result, Kleene::AND(support_inputs, support_result)};
+    const Ternary support_result = policy(*result);
+    return {*result, Kleene::AND(support_inputs, support_result)};
   } else {
     const T result = static_cast<T>(a * b);
     const Ternary support_result = policy(result);
