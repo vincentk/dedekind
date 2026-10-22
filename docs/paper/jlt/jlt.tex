@@ -169,6 +169,7 @@ Rule~3: recursion only folds, over finite data or over an explicit budget; \cppi
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.
+Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
@@ -462,7 +463,7 @@ bodies checked at instantiation & bodies are typed against the constraint & Rule
 overloading & one function per name, plus its specialisations & the grammar \\
 argument-dependent lookup & instances are found by the trait's name & the grammar, and Section~\ref{sec:limits} \\
 implicit conversions & result types are exact & \texttt{std::same\_as} \\
-references, \texttt{const}, moves & values are copied & erased: an optimisation, not a meaning \\
+references, moves & values are copied; \texttt{const T} and \texttt{const T\&} are one value & erased: an optimisation, not a meaning \\
 state, pointers, exceptions & functions are pure & Rule~1, and constant evaluation \\
 unbounded loops, general recursion & recursion folds & Rule~3, by reading \\
 \bottomrule
