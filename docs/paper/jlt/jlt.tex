@@ -707,6 +707,8 @@ The two kinds of fold meet the compiler differently, which is an idiosyncrasy of
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
 Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either.
+That the budget is a \emph{value} is a choice, and this is where it pays: a bound that lives in data is available at both binding times, so a fold over it is a loop in the library and meets no limit of the compiler's, whereas a bound that lives in a type exists only at compile time, under the compiler's counter.
+The library's folds over chains make that choice, and it is why its set recursion runs unchanged at runtime.
 
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
