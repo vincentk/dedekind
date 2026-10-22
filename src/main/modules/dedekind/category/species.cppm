@@ -724,11 +724,16 @@ concept IsFinite = !IsTransfinite<T>;
 // has a @c const-qualified @c decltype (e.g. @c decltype(meet) for
 // @c constexpr @c Inf @c meet is @c const @c Inf), but the law traits are keyed
 // on the bare op type, so we normalise here so both spellings resolve (#934).
+// The concepts read the registrations BY TYPE and never construct @c Op: a
+// library operation may carry state (a capturing comparator, a product order
+// of two orders) or lack a constexpr default constructor.  The value-taking
+// readers @c associative<T>(Op{}) etc. are for operations that are empty
+// types, as every operation of the Jlt paper (#981) is.
 export template <typename T, typename Op>
-concept IsAssociative = associative<T>(std::remove_cvref_t<Op>{});
+concept IsAssociative = is_associative_v<T, std::remove_cvref_t<Op>>;
 
 export template <typename T, typename Op>
-concept IsCommutative = commutative<T>(std::remove_cvref_t<Op>{});
+concept IsCommutative = is_commutative_v<T, std::remove_cvref_t<Op>>;
 
 /** @section species__Commutative Verification: The Symmetry Law */
 
@@ -767,7 +772,7 @@ concept IsDistributive = requires(T a, T b, T c) {
 };
 
 export template <typename T, typename Op>
-concept IsIdempotent = idempotent<T>(std::remove_cvref_t<Op>{});
+concept IsIdempotent = is_idempotent_v<T, std::remove_cvref_t<Op>>;
 
 // NOTE (#637 re-home): @c IsInvertible moved to @c :total alongside @c
 // IsPointed (which it composes with).  The @c is_invertible_v trait

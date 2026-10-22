@@ -402,15 +402,17 @@ inline constexpr bool is_monotone_v =
  *          Op(F(x), @c F(y)).  Per Mac Lane, this is the canonical
  *          shape of an arrow between posetal categories.
  */
-/** @brief The predicate behind @c IsMonotone: is @c F declared monotone
- *  under @c Op?  Reads the trait; the concept is derived from it.
+/** @brief Is @c F declared monotone under @c Op?  Reads the registration
+ *  the concept below reads; a predicate on the order's value for orders that
+ *  are empty types (the Jlt paper's spelling, #981).  The concept reads the
+ *  registration by type, since an order may carry state.
  *  @tparam F the arrow.  @tparam Op the order. */
 export template <typename F, typename Op = std::less_equal<>>
 constexpr bool monotone(Op) {
   return is_monotone_v<F, Op>;
 }
 export template <typename F, typename Op = std::less_equal<>>
-concept IsMonotone = IsArrow<F> && monotone<F>(Op{});
+concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
 
 /**
  * @brief User-declared anti-monotonicity witness for an arrow type

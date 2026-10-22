@@ -428,7 +428,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
  */
 export template <typename T, typename Op>
 concept IsPointed = requires {
-  { unit<T>(Op{}) } -> std::convertible_to<T>;
+  { unit_trait<T, Op>::value } -> std::convertible_to<T>;
 };
 
 static_assert(IsPointed<bool, std::logical_or<bool>>,

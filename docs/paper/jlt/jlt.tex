@@ -550,7 +550,7 @@ static_assert(IsMonotone<Compose<Negation, Negation>>);
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
 The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.
 The last two lines are Rule~3's other kind, a fold over a term: the library's one engine, \cppinline{cata}, folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and the predicate \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; \cppinline{Negation} is the library's negation arrow on $\mathbb{B}$.
-The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept is derived from a predicate of the same name on the type, \cppinline{monotone<F>(Op\{\})}, and that predicate reads a trait which the library defines on \cppinline{Compose} by the same algebra the fold runs.}
+The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate \cppinline{monotone<F>(Op\{\})} read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.}
 \label{lst:fuel}
 \end{listing}
 
