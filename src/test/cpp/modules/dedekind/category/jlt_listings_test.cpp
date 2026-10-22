@@ -26,14 +26,11 @@ using std::size_t;
 
 // Section 1: declared, entailed, inferred.
 namespace intro {
-struct Negation {
-  constexpr bool operator()(bool x) const { return !x; }
-};
 template <typename F, typename G>
 struct Compose {
   F f;
   G g;
-  constexpr bool operator()(bool x) const { return g(f(x)); }
+  constexpr auto operator()(auto x) const { return g(f(x)); }
 };
 
 template <typename F>
@@ -41,9 +38,18 @@ constexpr bool involutive(F) {
   return false;
 }
 template <>
-constexpr bool involutive(Negation) {
+constexpr bool involutive(std::logical_not<bool>) {
   return true;
 }
+template <>
+constexpr bool involutive(std::bit_not<size_t>) {
+  return true;
+}
+template <>
+constexpr bool involutive(std::negate<size_t>) {
+  return true;
+}
+
 template <typename F>
 constexpr bool bijective(F f) {
   return involutive(f);
@@ -53,8 +59,11 @@ constexpr bool bijective(Compose<F, G> c) {
   return bijective(c.f) && bijective(c.g);
 }
 
-static_assert(bijective(Compose{Negation{}, Negation{}}));
-static_assert(!involutive(Compose{Negation{}, Negation{}}));
+static_assert(bijective(Compose{std::bit_not<size_t>{},
+                                std::negate<size_t>{}}));
+static_assert(!involutive(Compose{std::logical_not<bool>{},
+                                  std::logical_not<bool>{}}));
+static_assert(!involutive(std::negate<int>{}));
 }  // namespace intro
 
 // Listing 1, top: the shape, unpopulated.
@@ -212,10 +221,11 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("Section 1: the same laws, read at runtime") {
     namespace I = jlt_listing::intro;
-    I::Compose<I::Negation, I::Negation> twice_not{};
-    CHECK(I::bijective(twice_not));
-    CHECK(!I::involutive(twice_not));
-    CHECK(twice_not(true));
+    I::Compose<std::bit_not<size_t>, std::negate<size_t>> c{};
+    CHECK(I::bijective(c));
+    CHECK(!I::involutive(c));
+    CHECK(c(size_t{5}) == 6);
+    CHECK(!I::involutive(std::negate<int>{}));
   }
 
   SECTION("Listing 1: the same unit, called on a value") {

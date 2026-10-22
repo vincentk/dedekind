@@ -62,38 +62,42 @@ The last few years have shown what a formal system with a checker is worth once 
 But under the posture its compiler does check something of the same kind: a \cppinline{static_assert} on a \cppinline{constexpr} function is a claim the compiler verifies, a concept is a claim about a type the compiler decides, and the same program runs unchanged at runtime, so what was checked once is what executes.
 A discipline that makes a mainstream compiler into a checker of this modest sort is worth stating precisely, and that is what the calculus in the appendix is for.
 
-Listing~\ref{lst:intro} shows the kind of thing the posture buys, in nine lines.
-A law of a function is a value, declared at a leaf (\cppinline{Negation} is an involution), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
+Listing~\ref{lst:intro} shows the kind of thing the posture buys, in a dozen lines.
+A law of a function is a value, declared at the leaves (\cppinline{!} on \cppinline{bool}, \cppinline{~} and unary \cppinline{-} on \cppinline{size_t} are involutions, and the standard library already has them as function objects), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
 The compiler reads the chain at compile time in the \cppinline{static_assert}s, and the same functions answer at runtime.
-The last line is the honest answer on the composite: it is not known to be an involution, which is all that can be said, and \cppinline{false} here means \emph{not known}, not \emph{no}.
+The last two lines are the honest answers: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined; \cppinline{false} here means \emph{not known}, not \emph{no}.
 
 % Verbatim up to formatting in jlt_listings_test.cpp (namespace intro).
 \begin{listing}[htbp]
 \begin{cpp}
-struct Negation {
-  constexpr bool operator()(bool x) const { return !x; }
-};
 template <typename F, typename G>
 struct Compose {
   F f;
   G g;
-  constexpr bool operator()(bool x) const { return g(f(x)); }
+  constexpr auto operator()(auto x) const { return g(f(x)); }
 };
 
 template <typename F> constexpr bool involutive(F) { return false; }
-template <> constexpr bool involutive(Negation) { return true; }
+template <> constexpr bool involutive(std::logical_not<bool>) { return true; }
+template <> constexpr bool involutive(std::bit_not<size_t>) { return true; }
+template <> constexpr bool involutive(std::negate<size_t>) { return true; }
+
 template <typename F> constexpr bool bijective(F f) { return involutive(f); }
 template <typename F, typename G>
 constexpr bool bijective(Compose<F, G> c) {
   return bijective(c.f) && bijective(c.g);
 }
 
-static_assert( bijective(Compose{Negation{}, Negation{}}));
-static_assert(!involutive(Compose{Negation{}, Negation{}}));
+static_assert(
+    bijective(Compose{std::bit_not<size_t>{}, std::negate<size_t>{}}));
+static_assert(
+    !involutive(Compose{std::logical_not<bool>{}, std::logical_not<bool>{}}));
+static_assert(!involutive(std::negate<int>{}));
 \end{cpp}
 \caption{Declared, entailed, inferred.
-\cppinline{involutive} is declared at \cppinline{Negation}; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
-Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.}
+\cppinline{involutive} is declared at three standard function objects; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
+Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
+\cppinline{Compose} is the one type the listing defines, a former of functions.}
 \label{lst:intro}
 \end{listing}
 
