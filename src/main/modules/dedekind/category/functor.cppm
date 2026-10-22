@@ -83,12 +83,15 @@
 
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <tuple>  // tuple_functor — bona-fide Frobenius carrier (#632)
+#include <utility>
 
 export module dedekind.category:functor;
 
@@ -668,22 +671,26 @@ constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
  * @details The function stops when `equal(next, current)` holds or after the
  * configured iteration budget. This gives the category layer a concrete,
  * typed fixed-point operator without hard-coding any specific domain theory.
+ * A fixed point certifies itself: the result @c r is one exactly when
+ * `equal(step(r), r)`, so a caller that needs to know whether the budget
+ * ran out checks that, in one step.
  */
 export template <typename T, typename Step, typename Equal = std::equal_to<>>
   requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
 constexpr T fixed_point(T seed, Step step, Equal equal = {},
                         std::size_t max_iterations = 1024) {
-  auto current = seed;
-
-  for (std::size_t i = 0; i < max_iterations; ++i) {
-    auto next = std::invoke(step, current);
-    if (std::invoke(equal, next, current)) {
-      return next;
-    }
-    current = next;
-  }
-
-  return current;
+  // A fold over the budget whose state (the iterate, whether it is fixed)
+  // freezes once a fixed point is found (Rule 3).
+  return std::ranges::fold_left(
+             std::views::iota(std::size_t{0}, max_iterations),
+             std::pair<T, bool>{std::move(seed), false},
+             [&step, &equal](std::pair<T, bool> state, std::size_t) {
+               if (state.second) return state;
+               T next = std::invoke(step, state.first);
+               const bool fixed = std::invoke(equal, next, state.first);
+               return std::pair<T, bool>{std::move(next), fixed};
+             })
+      .first;
 }
 
 /** @brief Alias emphasizing order-theoretic reading of the fixed point. */

@@ -593,9 +593,9 @@ struct Profile {
    *  every engine runs, law by law.  @param f the answer per law. */
   template <typename F>
   static constexpr Profile tabulate(const F& f) {
-    Profile out;
-    for (std::size_t i = 0; i < N; ++i) out.of[i] = f(static_cast<E>(i));
-    return out;
+    return [&f]<std::size_t... I>(std::index_sequence<I...>) {
+      return Profile{std::array<Ternary, N>{f(static_cast<E>(I))...}};
+    }(std::make_index_sequence<N>{});
   }
 };
 static_assert(Ternary{} == Ternary::Unknown,

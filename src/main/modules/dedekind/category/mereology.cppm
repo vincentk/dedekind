@@ -38,6 +38,7 @@ module;
 #include <cstddef>  // std::size_t: the walk budget
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
+#include <ranges>
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:mereology;
@@ -456,12 +457,13 @@ constexpr std::size_t chain_length(T lo, const T& hi) {
  *  @c law_evaluation_budget. */
 constexpr bool fits_budget(std::size_t n, std::size_t arity) {
   if (n == 0) return false;
-  std::size_t cost = 1;
-  for (std::size_t k = 0; k < arity; ++k) {
-    cost *= n;
-    if (cost > law_evaluation_budget) return false;
-  }
-  return true;
+  // n^arity, capped one past the budget so the product cannot overflow
+  // (n <= chain_walk_budget): a fold over arity copies of n (Rule 3).
+  return std::ranges::fold_left(std::views::repeat(n, arity), std::size_t{1},
+                                [](std::size_t cost, std::size_t m) {
+                                  return std::min<std::size_t>(
+                                      cost * m, law_evaluation_budget + 1);
+                                }) <= law_evaluation_budget;
 }
 
 /** @concept IsWalkableChain
