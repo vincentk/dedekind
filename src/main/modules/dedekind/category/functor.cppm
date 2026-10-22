@@ -261,7 +261,7 @@ concept IsShapedFunctor = IsFunctor<F> && requires {
 template <typename 𝗙, typename 𝗳>
   requires IsShapedFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
 [[nodiscard]]
-constexpr auto φ(𝗙 const&, 𝗳&&) -> typename 𝗙::template Shape<
+constexpr auto φ(𝗙 const&, 𝗳) -> typename 𝗙::template Shape<
     std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
 
 /**
@@ -339,8 +339,8 @@ struct maybe_functor {
   /** @brief φ: The Morphic Lift with Short-Circuiting Law */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    return arrow([f = std::forward<𝗳>(f)](std::optional<T> const& m) {
+  constexpr auto φ(𝗳 f) const {
+    return arrow([f = std::move(f)](std::optional<T> const& m) {
       // The Law: If the input is empty, the result remains empty.
       return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
     });
@@ -375,8 +375,8 @@ struct tuple_functor {
    *  by mapping the single element. */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    return arrow([f = std::forward<𝗳>(f)](std::tuple<T> const& t) {
+  constexpr auto φ(𝗳 f) const {
+    return arrow([f = std::move(f)](std::tuple<T> const& t) {
       return std::tuple{std::invoke(f, std::get<0>(t))};
     });
   }
@@ -511,9 +511,9 @@ export template <typename 𝗙, typename 𝗚>
            std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
                         typename std::remove_cvref_t<𝗚>::Σ_cat>
 [[nodiscard]]
-constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
+constexpr auto operator>>(𝗙 f, 𝗚 g) {
   return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
-      std::forward<𝗙>(f), std::forward<𝗚>(g)};
+      std::move(f), std::move(g)};
 }
 
 /**
@@ -525,9 +525,9 @@ export template <typename 𝗙, typename 𝗚>
            std::same_as<typename std::remove_cvref_t<𝗚>::Τ_cat,
                         typename std::remove_cvref_t<𝗙>::Σ_cat>
 [[nodiscard]]
-constexpr auto operator<<(𝗙&& f, 𝗚&& g) {
+constexpr auto operator<<(𝗙 f, 𝗚 g) {
   return composite_functor<std::remove_cvref_t<𝗚>, std::remove_cvref_t<𝗙>>{
-      std::forward<𝗚>(g), std::forward<𝗙>(f)};
+      std::move(g), std::move(f)};
 }
 
 /**
@@ -757,7 +757,7 @@ struct trace_functor {
 
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ([[maybe_unused]] 𝗳&& f) const {
+  constexpr auto φ([[maybe_unused]] 𝗳 f) const {
     return StringArrow{.label = "lifted", .domain_id = 0, .codomain_id = 0};
   }
 
@@ -805,8 +805,8 @@ struct identity_functor {
     requires IsArrow<std::remove_cvref_t<𝗳>> &&
              std::same_as<typename std::remove_cvref_t<𝗳>::Domain,
                           typename Cat::Species>
-  constexpr auto φ(𝗳&& f) const {
-    return std::forward<𝗳>(f);
+  constexpr auto φ(𝗳 f) const {
+    return std::move(f);
   }
 
   // The shape is also generic: Id(A) = A
