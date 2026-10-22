@@ -111,6 +111,8 @@ def main():
                 row["findings"] += n
                 if n:
                     print(f"jlt-check: report {rule} {f}: {n}")
+                    for loc in where[rule]:
+                        print(f"  {pathlib.Path(loc).relative_to(ROOT) if loc.startswith(str(ROOT)) else loc}")
                 continue
             row["gated"] += 1
             ok = n == int(expected)
