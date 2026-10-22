@@ -149,18 +149,14 @@ TEST_CASE("ETCS: std containers lift to IsSet directly via ambient_set (#607)",
     CHECK(S.χ(true));
   }
 
-  SECTION("Lifetime: lvalue overload tracks the underlying container") {
-    // The lvalue overload captures by reference; mutating the container
-    // after the lift is reflected in subsequent χ queries.  This is the
-    // documented contract: caller keeps the container alive, and the
-    // lifted Subobject sees its current state.
+  SECTION("Value: the lift does not see later changes to the container") {
+    // The lifted set is a value: the container is copied into a box, so
+    // mutating the caller's container after the lift changes nothing.
     std::unordered_set<int> evolving{1, 2, 3};
     const auto S = ambient_set(evolving);
+    evolving.insert(4);
+    evolving.erase(2);
     CHECK(S.χ(2));
     CHECK_FALSE(S.χ(4));
-    evolving.insert(4);
-    CHECK(S.χ(4));  // ← the lift saw the mutation
-    evolving.erase(2);
-    CHECK_FALSE(S.χ(2));  // ← and the deletion
   }
 }

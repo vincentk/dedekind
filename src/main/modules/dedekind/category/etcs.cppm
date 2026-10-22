@@ -90,6 +90,7 @@ module;
 #include <algorithm>  // std::ranges::find (range-lift membership test)
 #include <concepts>
 #include <functional>
+#include <memory>  // std::shared_ptr: a lifted container is a boxed value
 #include <ranges>  // std::ranges::input_range (std views ↪ IsSet)
 #include <set>
 #include <type_traits>
@@ -461,13 +462,12 @@ constexpr auto ambient_set(Pred&& predicate) {
 // @c contains member as a callable predicate and forwards to the
 // universal @c ambient_set<A>(Pred) above.
 //
-// Lifetime contract:
-//   * lvalue overload — captures the container by reference; the caller
-//     keeps the container alive for as long as the lifted Subobject is
-//     reachable.  Zero-copy.
-//   * rvalue overload — moves the container into the lambda; the lifted
-//     Subobject owns its predicate's data.  One std-level move, no
-//     wrapper-level copy.
+// Value contract: the lifted set is a value.  The container is taken by
+// value and kept as a boxed value, a std::shared_ptr to a const container, so
+// the lifted Subobject is cheap to copy, owns what it reads, and sees no later
+// change to the caller's container.  Lifting an lvalue copies it once.  (A
+// reference capture would alias the caller's container, and a temporary
+// would dangle; neither is a value.)
 //
 // This is slice 1 of #607's wrapper-dissolution plan: no removals yet,
 // but std types are now first-class IsSet citizens via the lift.
@@ -476,43 +476,27 @@ constexpr auto ambient_set(Pred&& predicate) {
 // Singleton-replacement that takes a single @c T value).
 // ---------------------------------------------------------------------------
 
-/** @brief Lift @c std::unordered_set<T, ...> by const-ref into an IsSet
- *         object.  Borrows lifetime; zero copy. (#607 slice 1) */
+/** @brief Lift @c std::unordered_set<T, ...> into an IsSet object, by value:
+ *         the container is boxed, the lifted Subobject a value.
+ *         (#607 slice 1, #1061) */
 export template <typename T, typename Hash, typename Equal, typename Alloc>
-constexpr auto ambient_set(const std::unordered_set<T, Hash, Equal, Alloc>& s)
+constexpr auto ambient_set(std::unordered_set<T, Hash, Equal, Alloc> s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>([&s](const T& x) -> bool { return s.contains(x); });
+  auto box = std::make_shared<const std::unordered_set<T, Hash, Equal, Alloc>>(
+      std::move(s));
+  return ambient_set<T>([box](const T& x) -> bool { return box->contains(x); });
 }
 
-/** @brief Lift @c std::unordered_set<T, ...> by rvalue.  Moves the
- *         container into the predicate; lifted Subobject owns the data.
- *         (#607 slice 1) */
-export template <typename T, typename Hash, typename Equal, typename Alloc>
-constexpr auto ambient_set(std::unordered_set<T, Hash, Equal, Alloc>&& s)
-  requires IsSpecies<T>
-{
-  return ambient_set<T>(
-      [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
-}
-
-/** @brief Lift @c std::set<T, ...> by const-ref.  Borrows lifetime;
- *         zero copy. (#607 slice 1) */
+/** @brief Lift @c std::set<T, ...> into an IsSet object, by value: the
+ *         container is boxed, the lifted Subobject a value.
+ *         (#607 slice 1, #1061) */
 export template <typename T, typename Compare, typename Alloc>
-constexpr auto ambient_set(const std::set<T, Compare, Alloc>& s)
+constexpr auto ambient_set(std::set<T, Compare, Alloc> s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>([&s](const T& x) -> bool { return s.contains(x); });
-}
-
-/** @brief Lift @c std::set<T, ...> by rvalue.  Moves the container
- *         into the predicate. (#607 slice 1) */
-export template <typename T, typename Compare, typename Alloc>
-constexpr auto ambient_set(std::set<T, Compare, Alloc>&& s)
-  requires IsSpecies<T>
-{
-  return ambient_set<T>(
-      [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
+  auto box = std::make_shared<const std::set<T, Compare, Alloc>>(std::move(s));
+  return ambient_set<T>([box](const T& x) -> bool { return box->contains(x); });
 }
 
 /** @brief Lift any @c std::ranges::input_range (a view, span, or container)

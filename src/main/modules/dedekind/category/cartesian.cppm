@@ -210,15 +210,10 @@ constexpr auto curry(F&& f) {
   using X = typename Dom<F>::first_type;
   using A = typename Dom<F>::second_type;
 
-  // Heap-allocate the morphism to ensure it can be captured by the inner lambda
-  // and called multiple times without copying.
-  auto shared_f = std::make_shared<std::decay_t<F>>(std::forward<F>(f));
-
-  return arrow([shared_f](const X& x) {
-    return exponential([shared_f, x](const A& a) {
-      // Call the shared morphism
-      return (*shared_f)({x, a});
-    });
+  // The morphism is a value (IsArrow requires a const call operator), so each
+  // closure holds its own copy: no shared, mutable heap cell.
+  return arrow([f = std::decay_t<F>(std::forward<F>(f))](const X& x) {
+    return exponential([f, x](const A& a) { return f({x, a}); });
   });
 }
 
