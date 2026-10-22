@@ -21,6 +21,15 @@ constexpr std::size_t checked(std::size_t x) {
   return x;
 }
 
+constexpr std::size_t sink(std::size_t&& x) {  // const-reference-params 2
+  return x;
+}
+
+using Ref = std::size_t&;
+constexpr std::size_t via(Ref x) {  // const-reference-params 3
+  return x;
+}
+
 inline std::size_t counter() {  // constexpr 3
   static std::size_t n = 0;  // no-static-locals 1
   return ++n;
@@ -41,6 +50,9 @@ constexpr std::size_t table(std::size_t i) {
 }
 template <typename T>
 constexpr T unit(T) = delete;
+template <typename T>
+concept Incrementable = requires(T& t) { ++t; };  // a requires local, not a parameter
+
 constexpr auto lambda = [](std::size_t x) mutable { return ++x; };
 
 }  // namespace jlt_listing

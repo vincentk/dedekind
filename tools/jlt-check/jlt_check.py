@@ -55,6 +55,9 @@ def run(query, build, path, namespace, rules):
     script = ["set output diag",
               "set traversal IgnoreUnlessSpelledInSource",
               f'let scope namespaceDecl(hasName("{namespace}"))']
+    # The probe runs first: a scope that names no namespace in this file
+    # would make every rule count zero, so its absence is a failure.
+    script.append("match namespaceDecl(hasName(\"%s\"), isExpansionInMainFile())" % namespace)
     script += [matcher(r) for r in rules]
     if path.startswith("tools/jlt-check/fixtures/"):
         args = [str(ROOT / path), "--", "-std=c++23", "-xc++"]
@@ -66,10 +69,14 @@ def run(query, build, path, namespace, rules):
     # clang-query prints a count after each match command, in order; the
     # findings of match k are the notes between count k-1 and count k.
     counts = [int(c) for c in COUNT.findall(out)]
-    if p.returncode != 0 or len(counts) != len(rules):
+    if p.returncode != 0 or len(counts) != len(rules) + 1:
         return None, None, out
-    where, start = {}, 0
-    for r, m in zip(rules, COUNT.finditer(out)):
+    if counts[0] == 0:
+        return None, None, f"namespace {namespace} does not occur in {path}"
+    counts = counts[1:]
+    marks = list(COUNT.finditer(out))
+    where, start = {}, marks[0].end()
+    for r, m in zip(rules, marks[1:]):
         where[r] = BINDS.findall(out, start, m.start())
         start = m.end()
     return dict(zip(rules, counts)), where, out
@@ -93,7 +100,7 @@ def main():
         rules = [r for r, _ in entries]
         counts, where, out = run(query, build, f, ns, rules)
         if counts is None:
-            print(f"jlt-check: {f}: does not parse, or a matcher did not run", file=sys.stderr)
+            print(f"jlt-check: {f}: does not parse, a matcher did not run, or the scope is absent", file=sys.stderr)
             print("\n".join(out.splitlines()[:30]), file=sys.stderr)
             failures += 1
             continue

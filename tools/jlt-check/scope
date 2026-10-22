@@ -10,7 +10,7 @@ rule1-constexpr              tools/jlt-check/fixtures/rule1.cpp        jlt_listi
 rule1-const-call-operator    tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
 rule1-no-throw               tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
 rule1-no-static-locals       tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
-rule1-const-reference-params tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
+rule1-const-reference-params tools/jlt-check/fixtures/rule1.cpp        jlt_listing  3
 
 # The paper's listings: gated.
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
