@@ -207,58 +207,81 @@ Where \cppinline{size_t} is read as $\mathbb{N}$, $\llbracket n \rrbracket$ is t
 % translation (A.4), which are still to be written; each sketch names the
 % cases it needs from them.  Full proofs and a mechanisation are future work.
 
-The statements are in Section~\ref{sec:guarantees}; here are the sketches.
-Throughout, the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products and records, which is conservative over System~F proper (records are nested pairs, pairs are Church-encoded).
+The statements are in Section~\ref{sec:guarantees}; the proofs are here, complete relative to the rules of Figures~\ref{fig:fjlt-typing} to~\ref{fig:fjlt-translation}, whose omitted cases (constants, pairs, optionals, conditionals, the arithmetic of base types) are the textbook ones.
+Throughout, the translation $\llbracket \cdot \rrbracket$ is the one of Section~\ref{app:fjlt:translation}, into System~F with products, sums and the base types as constants, which is conservative over System~F proper.
+A context translates pointwise: $\llbracket \Delta \rrbracket$ has a type variable for each $\alpha \in \Delta$ and a record variable $q_Q : \llbracket Q \rrbracket$ for each assumed constraint $Q \in \Delta$, and $\llbracket \Gamma \rrbracket = \overline{x : \llbracket \tau \rrbracket}$.
+Two facts about the target are used without proof: System~F is strongly normalising~\cite{girard1989proofs}, and substitution of types for type variables preserves typing.
 
-\begin{proof}[Sketch of Theorem~\ref{thm:preservation}, type preservation]
-By induction on the typing derivation of $\Delta; \Gamma \vdash e : \tau$, with one case per rule of Figure~\ref{fig:fjlt-typing}.
-Three cases carry the weight.
-\emph{Generic function.}
-A declaration $\texttt{template <typename }\overline{\alpha}\texttt{> requires }\overline{Q}\texttt{ constexpr }\tau\; f(\overline{\tau\; x})\ \{\ \texttt{return } e;\ \}$ is typed with $\overline{\alpha}$ abstract and the constraints $\overline{Q}$ as assumptions on them.
-Its translation is $\Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x : \llbracket \tau \rrbracket}.\,\llbracket e \rrbracket$, and the induction hypothesis for $e$ holds in the context extended by the record variables $\overline{q}$, since every operation $e$ uses on an $\alpha$ is, by the typing rule, a field of one of the $\overline{Q}$; this is where the rule that bodies are typed against their constraints does its work.
-\emph{Call.}
-At $f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ the typing rule demands that each instantiated constraint $Q[\overline{\tau}/\overline{\alpha}]$ be \emph{entailed}, i.e. resolved to an instance; the translation applies $\llbracket f \rrbracket$ to $\overline{\llbracket \tau \rrbracket}$, then to the records those instances translate to, then to $\overline{\llbracket e \rrbracket}$.
-Each record has the demanded type by the \emph{instance} case, so the application is well-typed.
-\emph{Instance.}
-An explicit specialisation of a trait at concrete types translates to a record value whose field types are the trait's return type at those types; an instance with a context (a constrained generic function) translates, by the first case, to a function from the context's records to such a record.
-The remaining cases (variables, constants, function-object application, pairs, laws as \texttt{Bool} fields) are immediate.
+\begin{lemma}[Dictionaries are well typed]
+\label{lem:dict}
+If $\Delta \Vdash Q$, then $\llbracket \Delta \rrbracket; \varnothing \vdash \llbracket \Delta \Vdash Q \rrbracket : \llbracket Q \rrbracket$.
+\end{lemma}
+
+\begin{proof}
+By induction on the entailment derivation, mutually with Theorem~\ref{thm:preservation}, the induction being on the size of the derivation.
+\textsc{E-Assume}: the dictionary is the variable $q_Q$, which $\llbracket \Delta \rrbracket$ types at $\llbracket Q \rrbracket$.
+\textsc{E-Shape}: $Q = C\texttt{<}\overline{\tau}\texttt{>}$, the dictionary is the record $\{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\}$, each field has type $\llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]$ by the induction hypothesis, and that is the field type of $\llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket$ by definition.
+\textsc{E-Law}: the dictionary is $\mathit{true} : \mathit{Bool}$.
+\textsc{E-Op}: the premise types $e$ at $\tau'$ under $\overline{x : \tau_x}$, so by Theorem~\ref{thm:preservation} on a smaller derivation $\llbracket e \rrbracket : \llbracket \tau' \rrbracket$ under $\overline{x : \llbracket \tau_x \rrbracket}$, and $\lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau' \rrbracket$; for \cppinline{std::same_as} $\tau' = \tau$, and for \cppinline{std::convertible_to} the translation inserts the conversion, a constant of type $\llbracket \tau' \rrbracket \to \llbracket \tau \rrbracket$, so the field has type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ in both cases.
 \end{proof}
 
-\begin{proof}[Sketch of Theorem~\ref{thm:simulation}, simulation]
-By induction on the evaluation derivation $e \Downarrow v$ of Figure~\ref{fig:fjlt-eval}, showing $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$.
-\emph{Call.}
-$f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)}$ evaluates by resolving the instances, evaluating the arguments, and evaluating the body with the resolved specialisations in scope.
-On the System~F side, $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket v \rrbracket}$ $\beta$-reduces to $\llbracket e_f \rrbracket$ with the records $\overline{d}$ substituted for $\overline{q}$; a trait read $t\texttt{<}\overline{\tau}\texttt{>(}\ldots\texttt{)}$ in the body has become a field projection $q.t$, and by Theorem~\ref{thm:coherence} the field holds the translation of the specialisation FJlt resolved.
-\emph{Function objects.}
-$O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{v}\texttt{)}$ evaluates by the standard's definition of $O$; its translation is the closure $\llbracket O \rrbracket$ applied to $\overline{\llbracket v \rrbracket}$, and the closure is chosen so that the two agree on constants.
-\emph{Fuel.}
-\cppinline{fold_left(repeat(x, n), a, f)} evaluates by applying $f$ to the accumulator and $x$, $n$ times; it translates to the Church numeral $\overline{n}$ applied to $\lambda a.\,\llbracket f \rrbracket\,a\,\llbracket x \rrbracket$ and $\llbracket a \rrbracket$, and $n$ steps are $n$ unfoldings of the numeral.
-\cppinline{fold_left(iota(0, n), a, f)} is primitive recursion: the numeral applied to a step on pairs $(i, a) \mapsto (i + 1, f\,a\,i)$, projected.
-For the converse at base types: a closed System~F term of type $\llbracket b \rrbracket$ normalises to a constant (strong normalisation plus the shape of normal forms at base types), both evaluations are deterministic, and the forward direction already identifies that constant with $\llbracket v \rrbracket$.
+\begin{proof}[Proof of Theorem~\ref{thm:preservation}, type preservation]
+By induction on the typing derivation, one case per rule.
+\textsc{T-Var}: $\llbracket x \rrbracket = x$, and $\llbracket \Gamma \rrbracket$ types it at $\llbracket \tau \rrbracket$.
+\textsc{T-Op}: $\llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}(}\overline{e}\texttt{)} \rrbracket = O\,\overline{\llbracket e_y \rrbracket}\,\overline{\llbracket e \rrbracket}$; for a standard function object $O$ is a constant of the standard signature's translation, for a declared operation $O = \lambda\overline{y}.\,\lambda\overline{x}.\,\llbracket e_O \rrbracket$ has type $\overline{\llbracket \tau_y \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on its body, and the arguments have the right types by the induction hypothesis.
+\textsc{T-Call}: $f$ was declared by \textsc{D-Generic}, so $f = \Lambda\overline{\alpha}.\,\lambda\overline{q : \llbracket Q \rrbracket}.\,\lambda\overline{x}.\,\llbracket e_f \rrbracket$ has type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on that declaration; applying it to $\overline{\llbracket \sigma \rrbracket}$ gives, by type substitution, $\overline{\llbracket Q[\overline{\sigma}/\overline{\alpha}] \rrbracket} \to \overline{\llbracket \tau_x[\overline{\sigma}/\overline{\alpha}] \rrbracket} \to \llbracket \tau[\overline{\sigma}/\overline{\alpha}] \rrbracket$; the records $\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}$ have the parameter types by Lemma~\ref{lem:dict}, and the arguments theirs by the induction hypothesis.
+\textsc{T-Trait}: the call resolved to a specialisation declared by \textsc{D-Instance}, so $f_{\overline{\sigma}} = \lambda\overline{x}.\,\llbracket e \rrbracket : \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$ by the induction hypothesis on that declaration, and the arguments have the right types.
+If it resolved to a generic function with an entailed context, the case is \textsc{T-Call} with the context's dictionaries.
+\textsc{T-Trait-Assumed}: $C\texttt{<}\overline{\alpha}\texttt{>} \in \Delta$, so $q_C : \llbracket C\texttt{<}\overline{\alpha}\texttt{>} \rrbracket$ is in $\llbracket \Delta \rrbracket$, and the projection $q_C.f$ has the field's type $\overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$.
+\textsc{T-Fold} over \cppinline{repeat}: $\llbracket n \rrbracket : \mathbb{N}$, so $\llbracket n \rrbracket\,[\sigma] : (\sigma \to \sigma) \to \sigma \to \sigma$; the step $\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket$ has type $\sigma \to \sigma$ since $\llbracket f \rrbracket : \sigma \times \tau \to \sigma$ (curried in the target) and $\llbracket x \rrbracket : \tau$; applied to $\llbracket a \rrbracket : \sigma$ the whole has type $\sigma$.
+Over \cppinline{iota}, the numeral is used at $\mathbb{N} \times \sigma$ with the pair step, and $\pi_2$ of the result has type $\sigma$.
+\textsc{D-Generic}: the body is typed under $\overline{\alpha}, \overline{Q}$ and $\overline{x : \tau_x}$, so by the induction hypothesis $\llbracket e \rrbracket : \llbracket \tau \rrbracket$ under type variables $\overline{\alpha}$, record variables $\overline{q : \llbracket Q \rrbracket}$ and $\overline{x : \llbracket \tau_x \rrbracket}$, and the abstraction has the stated polymorphic type; this is the case that uses \textsc{T-Trait-Assumed}, since the body reaches a trait only through $\Delta$.
+\textsc{D-Instance}: the same with an empty $\Delta$.
+The omitted rules are the textbook cases for pairs, sums and conditionals.
 \end{proof}
 
-\begin{proof}[Sketch of Theorem~\ref{thm:coherence}, coherence]
-Resolution is defined in Section~\ref{app:fjlt:typing} as a relation between a trait at concrete types and the declarations that match it; the claim is that this relation is a partial function, and well-formedness demands it.
-For an explicit specialisation, two declarations at the same types are a redefinition, which the well-formedness conditions on programs forbid (in \Cpp{}, the one-definition rule).
-For instances with contexts, the design decision of no overlapping instances means that at most one constrained generic function matches a given constraint at concrete types; in \Cpp{}, two that match are an ambiguous call, which is ill-formed, and one that matches only under its context resolves the context first, recursively, and the recursion is well-founded because a context mentions only proper parts of the types the instance is for.
-So a well-formed program resolves each constraint at each concrete instantiation to at most one record, and the translation, which is defined by that resolution, is a function of the program.
+\begin{lemma}[Dictionaries agree with resolution]
+\label{lem:resolve}
+If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete, and the requirement $f$ of $C$ at $\overline{\sigma}$ resolves to a specialisation $f_{\overline{\sigma}}$, then $\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.f = \lambda\overline{x}.\,\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{x}\texttt{)} \rrbracket = f_{\overline{\sigma}}$ up to $\eta$.
+\end{lemma}
+
+\begin{proof}
+The field is built by \textsc{E-Op} from the requirement's expression $e$, in which the call to $f$ is a \textsc{T-Trait} and translates to $f_{\overline{\sigma}}$ applied to the parameters; abstracting the parameters again gives $f_{\overline{\sigma}}$ up to $\eta$.
 \end{proof}
 
-\begin{proof}[Sketch of Corollary~\ref{cor:termination}, termination]
-By Theorem~\ref{thm:simulation}, an FJlt evaluation of $e$ is simulated by a reduction of $\llbracket e \rrbracket$, a System~F term with products; System~F with products is strongly normalising (Girard; see Girard, Lafont and Taylor, \emph{Proofs and Types}), so the reduction, and with it the evaluation, is finite.
-Fuel enters as a Church numeral, i.e. as a term, not as a recursion scheme the type system would have to admit.
+\begin{proof}[Proof of Theorem~\ref{thm:simulation}, simulation]
+First, every value translates to a value: constants to constants, function objects to closures, pairs to pairs, optionals to injections.
+Then by induction on the evaluation derivation $e \Downarrow v$, showing $\llbracket e \rrbracket \longrightarrow^{*} \llbracket v \rrbracket$.
+\textsc{V-Call} to a specialisation: $\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket}$; by the induction hypothesis the arguments reduce to $\overline{\llbracket v \rrbracket}$, $f_{\overline{\sigma}}$ is $\lambda\overline{x}.\,\llbracket e_f \rrbracket$, and $\beta$-reduction gives $\llbracket e_f \rrbracket[\overline{\llbracket v \rrbracket}/\overline{x}] = \llbracket e_f[\overline{v}/\overline{x}] \rrbracket$ (the translation commutes with substitution of values), which reduces to $\llbracket v \rrbracket$ by the induction hypothesis on the body.
+\textsc{V-Call} to a generic function: $\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ with $\overline{d}$ the dictionaries; type application and $\beta$-reduction substitute $\overline{\llbracket \sigma \rrbracket}$ for $\overline{\alpha}$ and $\overline{d}$ for $\overline{q}$ in $\llbracket e_f \rrbracket$; the body's trait reads $q.f$ have become $d.f$, which by Lemma~\ref{lem:resolve} is the translation of the specialisation that resolution chose for the instantiated body $e_f[\overline{\sigma}/\overline{\alpha}]$, so the reduct is $\llbracket e_f[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \rrbracket$ and the induction hypothesis on the body finishes the case.
+\textsc{V-Op}: for a standard function object the closure $O$ is chosen to compute the standard's function on constants, which is an assumption on the primitives; for a declared operation the case is a $\beta$-reduction followed by the induction hypothesis on its body.
+\textsc{V-Fold}: by an inner induction on $k$.
+The numeral $\overline{k}$ applied to the step and $\llbracket s_0 \rrbracket$ unfolds to $k$ applications of the step; after $i$ of them the term is $\llbracket s_i \rrbracket$ by the inner hypothesis and the outer one on $f\texttt{(}s_{i-1}\texttt{, }v_x\texttt{)} \Downarrow s_i$; over \cppinline{iota} the pair carries the index, and $\pi_2$ at the end reads off $\llbracket s_k \rrbracket$.
+Conditionals reduce by the case on $\mathit{Bool}$; pairs and optionals are congruences.
+For the converse at a base type: $\llbracket e \rrbracket$ has a normal form by strong normalisation, a closed normal form at $\llbracket b \rrbracket$ is a constant $c$, FJlt evaluation is deterministic and total on well-typed closed terms of base type (Corollary~\ref{cor:soundness}), so $e \Downarrow v$ for some $v$, and the forward direction identifies $\llbracket v \rrbracket$ with $c$.
 \end{proof}
 
-\begin{proof}[Sketch of Corollary~\ref{cor:parametricity}, parametricity]
-By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem gives its free theorem, and the record parameters are ordinary term parameters in it, which is why the theorem relates behaviour at two instantiations through the relation between their records.
+\begin{proof}[Proof of Theorem~\ref{thm:coherence}, coherence]
+Resolution is a partial function by well-formedness: at most one specialisation at a head, no two generic heads matching one instantiation, and contexts well-founded, so the recursion through contexts terminates with one answer.
+The entailment rules are syntax-directed, one rule per shape of $Q$ (\textsc{E-Assume} applies only to assumed constraints, which are variables, never concrete), so two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on that shape they build the same dictionary: the same variable, the same record of fields by the induction hypothesis, the same $\mathit{true}$, the same $\lambda\overline{x}.\,\llbracket e \rrbracket$ in which every trait call resolved the same way.
+Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, the records in \textsc{T-Call} are determined by the program, and the translation is a function of it.
 \end{proof}
 
-\begin{proof}[Sketch of Corollary~\ref{cor:soundness}, type soundness]
+\begin{proof}[Proof of Corollary~\ref{cor:termination}, termination]
+By Theorem~\ref{thm:simulation}, an evaluation of $e$ is simulated by a reduction of $\llbracket e \rrbracket$, a term of System~F with products, which is strongly normalising~\cite{girard1989proofs}; the reduction is finite, so the evaluation is.
+Fuel enters as a numeral, a term, not as a recursion scheme the type system would have to admit.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:parametricity}, parametricity]
+By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a closed System~F term of type $\forall\overline{\alpha}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket$; Reynolds' abstraction theorem~\cite{reynolds1983types} gives its free theorem, in which the record parameters are ordinary term parameters, so the theorem relates behaviour at two instantiations through the relation between their records.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:soundness}, type soundness]
 Let $e$ be closed and well-typed at a base type $b$.
-By Theorem~\ref{thm:preservation}, $\llbracket e \rrbracket$ is a closed System~F term of type $\llbracket b \rrbracket$; by strong normalisation it has a normal form, and a closed normal form at $\llbracket b \rrbracket$ is a constant $c$ (no variable is free, no $\lambda$ or $\Lambda$ has that type, and the eliminators of the encoded base types reduce on constants).
+By Theorem~\ref{thm:preservation}, $\llbracket e \rrbracket$ is a closed System~F term of type $\llbracket b \rrbracket$; by strong normalisation it has a normal form, and a closed normal form at $\llbracket b \rrbracket$ is a constant $c$, since no variable is free, no $\lambda$ or $\Lambda$ has that type, and the eliminators of the base types reduce on constants.
 The converse half of Theorem~\ref{thm:simulation} then gives $e \Downarrow v$ with $\llbracket v \rrbracket = c$.
 Nothing here is specific to FJlt beyond the two theorems; it is the standard argument that a translation into a sound calculus is sound.
 \end{proof}
 
-What the sketches do not do: they induct over the rules of Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-eval} as given, which omit the generic cases, and they take \cppinline{fold_left} over \cppinline{repeat} and \cppinline{iota} as primitives with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for it as Section~\ref{sec:translation:adequacy} says.
-Full proofs, and a mechanisation, are future work.
+What the proofs do not do: they induct over the rules of Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-eval} as given, which omit the generic cases, and they take \cppinline{fold_left} over \cppinline{repeat} and \cppinline{iota} as primitives with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for it as Section~\ref{sec:translation:adequacy} says.
+Their mechanisation is future work.
