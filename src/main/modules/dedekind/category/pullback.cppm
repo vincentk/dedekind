@@ -136,7 +136,7 @@ template <typename L, typename Π, typename F, typename G>
   requires IsOckhamAlgebra<L> && IsArrow<F> && IsArrow<G> &&
            IsProduct<Π, Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>> &&
            std::equality_comparable<Cod<F>>
-auto make_χ(F f, G g) {
+constexpr auto make_χ(F f, G g) {
   using Ω = typename L::Ω;
 
   // We capture by value because Morphism is a lightweight skeletal struct.
@@ -166,7 +166,7 @@ auto make_χ(F f, G g) {
  * @return A `Subobject<Π, χ>` representing P = X ×_Z Y.
  */
 export template <typename L = Boole, typename Π, typename F_Raw, typename G_Raw>
-auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
+constexpr auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
   // 1. Lift raw callables into formal Morphisms using your skeletal factory.
   auto f = arrow(std::forward<F_Raw>(f_raw));
   auto g = arrow(std::forward<G_Raw>(g_raw));

@@ -185,7 +185,7 @@ concept IsPartialSupportClassifier =
 /** @brief Addition with overflow check (Classical Logic). */
 export template <std::integral T>
 struct SafeAddTransform {
-  std::optional<T> operator()(std::pair<T, T> p) const noexcept {
+  constexpr std::optional<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     if constexpr (std::is_signed_v<T>) {
       if (b > 0 && a > (std::numeric_limits<T>::max() - b)) return std::nullopt;
@@ -215,7 +215,7 @@ export template <std::integral T,
 struct BoundedAddTransform {
   BoundaryPolicy boundary{};
 
-  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+  constexpr TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     const auto witness = certify_add(a, b, boundary);
     return {witness.status, witness.value};
@@ -248,7 +248,7 @@ export template <std::integral T,
 struct BoundedMulTransform {
   BoundaryPolicy boundary{};
 
-  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+  constexpr TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     const auto witness = certify_mul(a, b, boundary);
     return {witness.status, witness.value};
@@ -277,7 +277,7 @@ export template <std::integral T,
 struct BoundedDivTransform {
   BoundaryPolicy boundary{};
 
-  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+  constexpr TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     const auto witness = certify_div(a, b, boundary);
     return {witness.status, witness.value};
@@ -289,7 +289,7 @@ struct BoundedDivTransform {
 /** @brief Division with truncation-awareness (Ternary Logic). */
 export template <std::integral T>
 struct HonestDivTransform {
-  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+  constexpr TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     if (b == 0) return {Ternary::False, T(0)};
     if (a % b != 0) return {Ternary::Unknown, static_cast<T>(a / b)};

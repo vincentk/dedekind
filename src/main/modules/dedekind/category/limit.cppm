@@ -113,7 +113,7 @@ concept IsTerminalMorphism = IsMorphicTotal<F>;
  * @tparam T The domain species.
  */
 export template <typename T>
-auto bang() {
+constexpr auto bang() {
   return arrow<T, One>([](const T&) { return One{}; });
 }
 
@@ -182,7 +182,7 @@ concept IsProjectedTerminalObject =
  * @tparam T The codomain species.
  */
 export template <typename T>
-auto zero() {
+constexpr auto zero() {
   return arrow<Zero, T>([](Zero) -> T {
     // Logically unreachable annihilator
     std::terminate();
@@ -589,7 +589,7 @@ static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
  */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
-auto mediate_product(F&& f, G&& g) {
+constexpr auto mediate_product(F&& f, G&& g) {
   using X = Dom<F>;
   using A = Cod<F>;
   using B = Cod<G>;

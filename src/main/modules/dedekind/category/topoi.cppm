@@ -668,7 +668,7 @@ concept IsPredicatePair =
  *  @c IsPredicate; plain @c Ω-valued arrows get a plain arrow as before. */
 export template <typename P, typename Q>
   requires IsPredicatePair<P, Q>
-auto operator&&(P&& p, Q&& q) {
+constexpr auto operator&&(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
@@ -686,7 +686,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-auto operator&&(C&& constant, P&& p) {
+constexpr auto operator&&(C&& constant, P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
@@ -702,7 +702,7 @@ export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-auto operator&&(P&& p, C&& constant) {
+constexpr auto operator&&(P&& p, C&& constant) {
   return std::forward<C>(constant) && std::forward<P>(p);
 }
 
@@ -711,7 +711,7 @@ auto operator&&(P&& p, C&& constant) {
  */
 export template <typename P, typename Q>
   requires IsPredicatePair<P, Q>
-auto operator||(P&& p, Q&& q) {
+constexpr auto operator||(P&& p, Q&& q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
@@ -729,7 +729,7 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-auto operator||(C&& constant, P&& p) {
+constexpr auto operator||(C&& constant, P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
@@ -745,7 +745,7 @@ export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-auto operator||(P&& p, C&& constant) {
+constexpr auto operator||(P&& p, C&& constant) {
   return std::forward<C>(constant) || std::forward<P>(p);
 }
 
@@ -753,7 +753,7 @@ auto operator||(P&& p, C&& constant) {
  *  @note Textbook term: pseudocomplement/complement depending on Ω.
  */
 export template <IsPredicate P>
-auto operator!(P&& p) {
+constexpr auto operator!(P&& p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   if constexpr (IsSpeciesTaggedArrow<P>) {
@@ -854,7 +854,7 @@ constexpr auto classifier_unknown() {
  */
 export template <typename L = Boole>
   requires IsOckhamAlgebra<L>
-auto logical_true() {
+constexpr auto logical_true() {
   return arrow<One, typename L::Ω>([](One) { return L::True; });
 }
 
@@ -863,7 +863,7 @@ auto logical_true() {
  */
 export template <typename L = Boole>
   requires IsOckhamAlgebra<L>
-auto logical_false() {
+constexpr auto logical_false() {
   return arrow<One, typename L::Ω>([](One) { return L::False; });
 }
 
