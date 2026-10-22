@@ -50,6 +50,7 @@ module;
 
 #include <algorithm>   // std::ranges::reverse: the involution on strings
 #include <concepts>    // std::invocable, std::convertible_to
+#include <cstddef>     // std::size_t, the carrier of the negate witness
 #include <functional>  // std::logical_not / std::bit_not (canonical involutions)
 #include <string>      // the carrier of Reverse
 #include <type_traits>
