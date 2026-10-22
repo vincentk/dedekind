@@ -1,0 +1,6 @@
+# Rule 3: recursion only folds.  No loop statement inside the Jlt namespaces;
+# a fold is std::ranges::fold_left over a finite range, or cata over a term.
+# The match is scoped to the listings' namespaces, so a test harness around
+# them (Catch sections) is not judged.
+set output diag
+match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), isExpansionInMainFile(), hasAncestor(namespaceDecl(hasName("jlt_listing"))))

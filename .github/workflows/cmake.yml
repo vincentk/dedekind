@@ -34,7 +34,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 22
-        sudo apt-get install -y clang-22 ninja-build clang-format-22 llvm-22
+        sudo apt-get install -y clang-22 ninja-build clang-format-22 llvm-22 clang-tools-22
 
     # Create the .venv up front and prepend it to GITHUB_PATH so every
     # subsequent step uses the same virtualenv as a local dev box does.
@@ -56,6 +56,9 @@ jobs:
 
     - name: Build & Run Integration Tests
       run: make integration-test CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    - name: Jlt Check (post-processing over the compilation database)
+      run: make jlt-check CLANG_QUERY=clang-query-22
 
     - name: Validate Checked-In LLVM IR Fixture
       run: make ir-fixture-check CXX=clang++-22

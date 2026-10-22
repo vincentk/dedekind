@@ -1,0 +1,2 @@
+# <rule> <file>, relative to the repository root.  A pair here is a gate.
+rule3-no-loops src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp
