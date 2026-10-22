@@ -469,6 +469,13 @@ A template body that uses an operation its constraints do not name compiles anyw
 Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
 Rule~3 is likewise checkable for the loop forms the grammar admits.
 
+One more thing the walk has to say, because \Cpp{} does not pass dictionaries.
+The translation is a model of what a constrained call means, not of what the compiler emits.
+What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} and \cppinline{std::plus<size_t>} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime; Section~\ref{sec:binding} shows the instruction the compiler is left with.
+What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
+The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first is the one that carries the theorems.
+
 So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
 Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
@@ -520,6 +527,20 @@ That is the whole price of Rule~3, and it is paid in the type rather than in a c
 \paragraph{Fuel at compile time is the same fuel.}
 \cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(fuel)} with \cppinline{fuel} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
+What the processor runs is Listing~\ref{lst:asm}: the fold over \cppinline{repeat(x, n)} with \cppinline{plus} is one multiplication, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body.
+The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
+
+\begin{listing}[htbp]
+\begin{minted}{gas}
+times_rt(size_t x, size_t n):
+        mov     rax, rdi
+        imul    rax, rsi
+        ret
+\end{minted}
+\caption{What \cppinline{times<size_t>(x, n)} compiles to: \cppinline{x * n}.
+Clang 22, \texttt{-std=c++23 -O2}, x86-64, Intel syntax; \cppinline{times_rt} is a non-template wrapper so that the function is emitted at all.}
+\label{lst:asm}
+\end{listing}
 The compiler has a fuel of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
 
 \paragraph{Why not a generator.}
@@ -702,7 +723,7 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-A checker for the second rule: a tool over the compiler's syntax tree that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
+A checker for the second rule: a \texttt{clang-tidy} check that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
