@@ -110,9 +110,9 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F; three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
 \item An adequacy argument from \Cpp{} to the calculus that states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository, which is what compliance means here.
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, which is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a checker, which Section~\ref{sec:limits} argues is a tool rather than a research problem.
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a finished checker, which Section~\ref{sec:limits} argues is a tool rather than a research problem, and which is work in progress in the repository.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers arriving from Python who want a systems language without giving up the vocabulary they reason in; and for readers of programming languages who want to know what a shipped language already contains.
@@ -683,7 +683,10 @@ undefined behaviour has one binding time & signed carriers & avoided \\
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
 A template body is checked against the type it is instantiated at, not against its \cppinline{requires} clause, so \cppinline{twice_loose} compiles; a loop is not checked for a bound, so \cppinline{while (true)} compiles.
-Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem; we have not written one, and this paper's listings are checked by reading and by a test that compiles and runs them.
+Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem.
+One is in progress in the repository: a step after the build in continuous integration reparses the listings through the compiler's own front end and fails on a finding, and each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
+Today it checks Rule~3's ban on loops; the rest of Rules~1 and~3 are syntactic and follow, and Rule~2 is the remaining work.
+Until then the listings are checked by reading, by that step, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is \cppinline{std::ranges::fold_left}'s.
 
 \paragraph{Lookup stops at \cppinline{std}.}
@@ -768,7 +771,7 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-A checker for the second rule: a \texttt{clang-tidy} check that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
+A checker, begun in the repository and run in its continuous integration: checks for Rules~1 and~3 are syntactic and under way, and the check for the second rule is the remaining work, a \texttt{clang-tidy} check that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
