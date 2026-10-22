@@ -39,7 +39,7 @@ rule1-no-throw               src/main/modules/dedekind/category/*.cppm  category
 rule1-no-static-locals       src/main/modules/dedekind/category/*.cppm  category  0
 rule1-lvalue-reference-params src/main/modules/dedekind/category/*.cppm  category  0
 rule1-rvalue-reference-params src/main/modules/dedekind/category/*.cppm  category  0
-rule1-forwarding-reference-params src/main/modules/dedekind/category/*.cppm  category  report
+rule1-forwarding-reference-params src/main/modules/dedekind/category/*.cppm  category  0
 rule1-boxed-mutable-pointee   src/main/modules/dedekind/category/*.cppm  category  0
 rule1-boxed-identity          src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-volatile             src/main/modules/dedekind/category/*.cppm  category  0
