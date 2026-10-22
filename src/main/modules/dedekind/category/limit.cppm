@@ -761,19 +761,21 @@ static_assert(IsBoundaryProjection<std::identity, One, One>);
 static_assert(IsBoundaryProjection<std::identity, Zero, Zero>);
 static_assert(IsProjectedTerminalObject<One>);
 static_assert(IsProjectedInitialObject<Zero>);
+namespace detail {
+/** @brief The opt-in @c operator-> drill-down policy: the projector the
+ *  projected-object concepts take, by name rather than as a lambda. */
+struct DrillDown {
+  template <typename Whole>
+  constexpr auto operator()(const Whole& whole) const {
+    return arrow_drill_down(whole);
+  }
+};
+}  // namespace detail
 static_assert(
-    IsProjectedTerminalObject<
-        detail::TerminalEnvelope,
-        decltype([](const detail::TerminalEnvelope& envelope) constexpr -> One {
-          return arrow_drill_down(envelope);
-        })>,
+    IsProjectedTerminalObject<detail::TerminalEnvelope, detail::DrillDown>,
     "Opt-in operator-> drill-down must expose a Terminal object witness.");
 static_assert(
-    IsProjectedInitialObject<
-        detail::InitialEnvelope,
-        decltype([](const detail::InitialEnvelope& envelope) constexpr -> Zero {
-          return arrow_drill_down(envelope);
-        })>,
+    IsProjectedInitialObject<detail::InitialEnvelope, detail::DrillDown>,
     "Opt-in operator-> drill-down must expose an Initial object witness.");
 
 }  // namespace dedekind::category
