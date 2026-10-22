@@ -690,6 +690,26 @@ What is new is the claim that the shipped language already contains the fragment
 \section{Conclusion}
 \label{sec:conclusion}
 
+Three rules on standard \Cpp{23} were stated, and a program that keeps them is a term of a core calculus whose syntax is that \Cpp{}.
+The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to numerals.
+The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
+Every listing in the paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository.
+
+What this costs is stated rather than softened.
+Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
+A fold may run out of fuel, and when it does the type says so.
+Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
+And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
+
+Three things follow as work not done here.
+A checker for the second rule: a tool over the compiler's syntax tree that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
+A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
+And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
+
+The contribution is a map, not code.
+Nothing was added to the language, the compiler or the library; what was added is a boundary, and a demonstration that inside it a mainstream compiler checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
+The posture is available today to anyone with a recent compiler, and the appendix says exactly what they get.
+
 \appendix
 \input{fjlt}
 
