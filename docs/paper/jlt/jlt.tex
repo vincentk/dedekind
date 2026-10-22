@@ -21,7 +21,7 @@
 \begin{abstract}
 Parametric polymorphism, type classes, structural recursion and algebraic laws are usually associated with languages built for them: Haskell, OCaml, Agda.
 We show that they are available in standard \Cpp{23}, with a stock compiler and no extensions.
-The vehicle is a fragment of the language we call the \emph{Juliet Posture} ($\mathbf{Jlt}$), defined by three rules: values are \cppinline{std::semiregular} and functions \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or explicit fuel.
+The vehicle is a fragment of the language we call the \emph{Juliet Posture} ($\mathbf{Jlt}$), defined by three rules: values are \cppinline{std::semiregular} and functions \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or an explicit budget.
 Under these rules a \Cpp{} program translates into System~F: concepts and traits by the dictionary-passing translation of type classes, recursion by the fold encoding of data types, so programs in the fragment are parametric and terminate.
 A side effect is that one program runs at compile time or at runtime, unchanged.
 As a running example, the unit and the laws of a monoid are stated once, as \cppinline{constexpr} functions of the operation, and read twice: by concepts at compile time, by ordinary calls at runtime.
@@ -52,7 +52,7 @@ The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipli
 It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
-Recursion only folds, over a range whose length is fixed before the fold starts.
+Recursion only folds, over finite data or over an explicit budget.
 Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; and what System~F guarantees, termination and parametricity, the program inherits.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Section~\ref{sec:translation:adequacy} says which.
 
@@ -118,7 +118,7 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers arriving from Python who want a systems language without giving up the vocabulary they reason in; and for readers of programming languages who want to know what a shipped language already contains.
 Section~\ref{sec:posture} states the rules.
 Section~\ref{sec:translation} shows the translation on a monoid, states the rules it uses and argues adequacy.
-Section~\ref{sec:binding} runs the same program at both binding times, with fuel.
+Section~\ref{sec:binding} runs the same program at both binding times, with a budget.
 Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, and Section~\ref{sec:related} where it sits; the calculus, its rules and the proof sketches are the appendix.
 
 \section{The Posture}
@@ -162,7 +162,7 @@ static_assert(times<size_t>(7, 6) == 42);
 \caption{The three rules, one panel each.
 Rule~1: values are \cppinline{std::semiregular}, functions are \cppinline{constexpr} and pure, so \cppinline{square(12)} is a fact the compiler can check.
 Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and compiles for \cppinline{std::string}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
-Rule~3: recursion only folds, over a range whose length is fixed before it starts; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.}
+Rule~3: recursion only folds, over finite data or over an explicit budget; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.}
 \label{lst:posture}
 \end{listing}
 
@@ -183,12 +183,14 @@ A template body is checked at instantiation, against the type actually supplied,
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3: recursion only folds.}
-A Jlt function recurses in one way: \cppinline{std::ranges::fold_left} over a range whose length is fixed before the fold starts, \cppinline{std::views::repeat(x, n)}, \cppinline{std::views::iota(0, n)}, or more generally a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, of which \cppinline{iota} is the instance on \cppinline{size_t}.
-\cppinline{n} is the fuel, and it is a value the caller supplies before the fold starts; \cppinline{times} folds the monoid's operation over \cppinline{n} copies of \cppinline{x}, starting from its unit.
+A Jlt program is finite for one of two reasons, and Rule~3 admits exactly those two.
+Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
+Or it iterates a step over \emph{an explicit budget}: \cppinline{fold_left} over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+\cppinline{times} is the second: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
-What this buys is termination and, with Rule~2, the System~F reading: a fold over \cppinline{repeat(x, n)} is the natural number $n$ iterating the step, and a fold over \cppinline{iota(0, n)} is primitive recursion, which iteration builds (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
-What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of fuel}; Section~\ref{sec:binding} shows the price being paid.
-The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the one loop is inside \cppinline{std::ranges::fold_left}, and every function composes.
+What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
+What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
+The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the loops are inside \cppinline{std::ranges::fold_left} and \cppinline{cata}, and every function composes.
 
 \begin{table}[ht]
 \centering
@@ -199,7 +201,7 @@ rule & buys & costs & enforced \\
 \midrule
 1 values, pure functions & one program, two binding times & no state, no I/O inside & partly \\
 2 behaviour through concepts & the System~F reading & no ad hoc use of a type & no \\
-3 recursion folds & termination & \emph{out of fuel} as an answer & at compile time \\
+3 recursion folds & termination & \emph{out of budget} as an answer & at compile time \\
 \bottomrule
 \end{tabularx}
 \caption{The posture at a glance.}
@@ -418,7 +420,7 @@ FJlt & System~F & \\
 \texttt{template <> constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
 \texttt{template <ᾱ> requires Q̄ constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
-\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & fuel is a natural number, iterated \\
+\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & a budget is a natural number, iterated \\
 \bottomrule
 \end{tabularx}
 \caption{The six rules of the translation that the listings exercise.
@@ -492,11 +494,11 @@ Section~\ref{sec:limits} is the list of places where the first condition is hard
 Every function in this paper has run twice already.
 \cppinline{square(12)}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
-The interesting case is the fold, because fuel can arrive at either time.
+The interesting case is the fold, because a budget can arrive at either time.
 Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
 
 % Verbatim up to formatting in jlt_listings_test.cpp, which also calls
-% first with a fuel it did not have at compile time.
+% first with a budget it did not have at compile time.
 \begin{listing}[htbp]
 \begin{cpp}
 template <typename P>
@@ -514,8 +516,8 @@ constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
 }
 
 template <IsPredicate P>
-constexpr std::optional<size_t> first(size_t fuel) {
-  return found(std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
+constexpr std::optional<size_t> first(size_t budget) {
+  return found(std::ranges::fold_left(std::views::iota(size_t{0}, budget),
                                       std::pair{size_t{0}, false}, advance<P>));
 }
 
@@ -528,22 +530,28 @@ static_assert(!first<Over1000>(30));
 
 static_assert(std::ranges::fold_left(chain_view{size_t{3}, size_t{5}}, size_t{0},
                                      std::plus<size_t>{}) == 12);
+
+using Negation = NegationArrow<Boole>;
+static_assert(cata(LawAlgebra<>{},
+                   Compose<Negation, Negation>{})[ArrowLaw::Monotone] ==
+              Ternary::True);
 \end{cpp}
-\caption{Fuel, and running out of it.
+\caption{A budget, and running out of it.
 \cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
-\cppinline{first} folds it over the first \cppinline{fuel} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
+\cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
-The last line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.}
+The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.
+The last line is Rule~3's other kind, a fold over a term: the library's one engine, \cppinline{cata}, folding the term $\neg \circ \neg$ with the algebra that reads the laws of a function, and finding it monotone, since antitone after antitone is monotone; \cppinline{Negation} is the library's negation arrow on $\mathbb{B}$.}
 \label{lst:fuel}
 \end{listing}
 
-\paragraph{The answer when fuel runs out is an absence.}
-Whether some natural has a given property is, for a general property, not something a fuel can be replaced by a proof of, and a function that searches has to say what it says when the budget ends first.
-In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of fuel answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
+\paragraph{The answer when the budget runs out is an absence.}
+Whether some natural has a given property is, for a general property, not something a budget can be replaced by a proof of, and a function that searches has to say what it says when the budget ends first.
+In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
 That is the whole price of Rule~3, and it is paid in the type rather than in a crash or a hang: a caller that forgets the third case does not compile.
 
-\paragraph{Fuel at compile time is the same fuel.}
-\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(fuel)} with \cppinline{fuel} read from input is the same function, and the test behind the listing calls it so.
+\paragraph{A budget at compile time is the same budget.}
+\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
 What the processor runs is Listing~\ref{lst:asm}: the fold over \cppinline{repeat(x, n)} with \cppinline{plus} is one multiplication, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body.
 The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
@@ -559,18 +567,18 @@ times_rt(size_t x, size_t n):
 Clang 22, \texttt{-std=c++23 -O2}, x86-64, Intel syntax; \cppinline{times_rt} is a non-template wrapper so that the function is emitted at all.}
 \label{lst:asm}
 \end{listing}
-The compiler has a fuel of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
+The compiler has a budget of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
 
 \paragraph{Set recursion in the library.}
 The library behind these listings decides membership and quantifiers over finite ordered carriers, and every one of its recursions is this fold: its normal form of a set on a window is a pipeline over \cppinline{chain_view{lo, hi}}, the interval of the chain between two elements walked by the covering step, and its quantifiers are \cppinline{std::ranges::any_of} and \cppinline{all_of} over the whole chain, \cppinline{chain_view{⊥, ⊤}}, an early exit being a fold with a frozen state as \cppinline{first} shows.
 \cppinline{iota(0, n)} is the same view on \cppinline{size_t}, so the two listings above and the library's set recursion are instances of one production of the grammar.
-What the library also has, and this paper's grammar does not, is structural recursion over \emph{terms}, the fold of a syntax tree; that is the third kind of fold Rule~3 names, and the sequel's.
+Its folds over \emph{terms} are \cppinline{cata}, the other kind Rule~3 names, which the grammar admits as the iterator of a term's inductive type; where the library's set evaluator walks a term by a hand-written structural visitor rather than a \cppinline{cata} call, it is that fold in shape and not yet in spelling.
 
 \paragraph{Why not a generator.}
 \Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}, and it is the natural reflex for a bounded computation that should not allocate.
 It does not fit here, for three reasons that are the three rules.
 A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
-What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the fuel again, under another name.\footnote{The library behind this paper has the \cppinline{constexpr} version of the generator: a \cppinline{Path<T>} is a lazy stream $\mathbb{N} \to T$, \cppinline{iterate(seed, step)} builds one, and \cppinline{.at(n)} reads it at fuel $n$.}
+What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.\footnote{The library behind this paper has the \cppinline{constexpr} version of the generator: a \cppinline{Path<T>} is a lazy stream $\mathbb{N} \to T$, \cppinline{iterate(seed, step)} builds one, and \cppinline{.at(n)} reads it at budget $n$.}
 
 \section{Guarantees}
 \label{sec:guarantees}
@@ -614,7 +622,7 @@ Every FJlt program terminates.
 \end{corollary}
 
 By Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}: every step of the program is at least one step of its image, and the image cannot step forever.
-Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
+The budget in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
 
 \begin{corollary}[Parametricity]
 \label{cor:parametricity}
@@ -655,7 +663,7 @@ lookup stops at \texttt{std} & the deleted primary, Listing~\ref{lst:monoid} & w
 a typed function object promises what its body cannot keep & \texttt{std::plus<T>} on a pair & avoided \\
 facts live in tables, instances in functions & the library behind the listings & open \\
 the library is part of the toolchain & \texttt{std::bind\_front} & worked around \\
-the compiler has its own fuel & constant evaluation & kept in the program's hands \\
+the compiler has its own budget & constant evaluation & kept in the program's hands \\
 undefined behaviour has one binding time & signed carriers & avoided \\
 \bottomrule
 \end{tabularx}
@@ -692,7 +700,7 @@ Closing the gap would mean a resolution mechanism for families that is found by 
 \cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses; the listing that used it now uses a fold instead.
 The listings were built with one compiler against two standard libraries, and that is what "compiles as written" means here.
 
-\paragraph{The compiler has its own fuel.}
+\paragraph{The compiler has its own budget.}
 Constant evaluation is bounded by a step limit the compiler sets, and a program that exhausts it fails to compile.
 Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
 Template instantiation depth is a second such knob; the listings are nowhere near either.
@@ -741,7 +749,7 @@ Every listing in the paper compiles and runs under a stock compiler at both bind
 
 What this costs is stated rather than softened.
 Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
-A fold may run out of fuel, and when it does the type says so.
+A fold may run out of budget, and when it does the type says so.
 Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 

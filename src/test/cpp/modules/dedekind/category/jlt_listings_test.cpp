@@ -195,7 +195,7 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 
-// Section 4, two binding times: fuel, and running out of it.
+// Section 4, two binding times: budget, and running out of it.
 template <typename P>
 concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
   { p(n) } -> std::same_as<bool>;
@@ -211,8 +211,8 @@ constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
 }
 
 template <IsPredicate P>
-constexpr std::optional<size_t> first(size_t fuel) {
-  return found(std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
+constexpr std::optional<size_t> first(size_t budget) {
+  return found(std::ranges::fold_left(std::views::iota(size_t{0}, budget),
                                       std::pair{size_t{0}, false}, advance<P>));
 }
 
@@ -228,6 +228,20 @@ static_assert(!first<Over1000>(30));
 using dedekind::category::chain_view;
 static_assert(std::ranges::fold_left(chain_view{size_t{3}, size_t{5}},
                                      size_t{0}, std::plus<size_t>{}) == 12);
+
+// Rule 3's other kind: a fold over a term, the library's one engine folding
+// the term not-after-not with the algebra that reads a function's laws.
+using dedekind::category::ArrowLaw;
+using dedekind::category::Boole;
+using dedekind::category::cata;
+using dedekind::category::Compose;
+using dedekind::category::LawAlgebra;
+using dedekind::category::NegationArrow;
+using dedekind::category::Ternary;
+using Negation = NegationArrow<Boole>;
+static_assert(cata(LawAlgebra<>{},
+                   Compose<Negation, Negation>{})[ArrowLaw::Monotone] ==
+              Ternary::True);
 
 }  // namespace jlt_listing
 
@@ -268,6 +282,14 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::times<size_t>(7, twelve) == 84);
   }
 
+  SECTION("Section 4: a fold over a term, at runtime") {
+    L::Compose<L::Negation, L::Negation> twice_not{};
+    CHECK(L::cata(L::LawAlgebra<>{}, twice_not)[L::ArrowLaw::Monotone] ==
+          L::Ternary::True);
+    CHECK(L::cata(L::LawAlgebra<>{}, twice_not)[L::ArrowLaw::Antitone] ==
+          L::Ternary::Unknown);
+  }
+
   SECTION("Section 4: a fold over an interval of a chain, at runtime") {
     size_t lo = 3, hi = 5;
     CHECK(std::ranges::fold_left(L::chain_view{lo, hi}, size_t{0},
@@ -277,11 +299,11 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   }
 
   SECTION(
-      "Section 4: the same fold, with a fuel it did not have at compile "
+      "Section 4: the same fold, with a budget it did not have at compile "
       "time") {
-    for (size_t fuel : {size_t{30}, size_t{32}, size_t{33}, size_t{40}}) {
-      const std::optional<size_t> found = L::first<L::Over1000>(fuel);
-      CHECK(found.has_value() == (fuel >= 33));
+    for (size_t budget : {size_t{30}, size_t{32}, size_t{33}, size_t{40}}) {
+      const std::optional<size_t> found = L::first<L::Over1000>(budget);
+      CHECK(found.has_value() == (budget >= 33));
       if (found) CHECK(*found == 32);
     }
   }
