@@ -170,6 +170,7 @@ Rule~3: recursion only folds, over finite data or over an explicit budget; \cppi
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.
 Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
+That a value and a reference to it are interchangeable because nothing can change either is referential transparency in the small, the first thing the rule buys, before any theorem.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
