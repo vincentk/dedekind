@@ -31,8 +31,8 @@ struct Compose {
   F f;
   G g;
   template <typename X>
-    requires std::invocable<const F&, X> &&
-             std::invocable<const G&, std::invoke_result_t<const F&, X>>
+    requires std::invocable<const F&, X&> &&
+             std::invocable<const G&, std::invoke_result_t<const F&, X&>>
   constexpr auto operator()(X x) const {
     return g(f(x));
   }
@@ -99,7 +99,7 @@ constexpr bool unit<bool>(std::logical_or<bool>) {
 
 static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
-static_assert(!IsMonoid<bool, std::plus<bool>>);
+static_assert(!IsMonoid<bool, std::plus<>>);
 
 // Listing 1, bottom: size_t.
 template <>

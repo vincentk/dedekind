@@ -75,8 +75,8 @@ struct Compose {
   F f;
   G g;
   template <typename X>
-    requires std::invocable<const F&, X> &&
-             std::invocable<const G&, std::invoke_result_t<const F&, X>>
+    requires std::invocable<const F&, X&> &&
+             std::invocable<const G&, std::invoke_result_t<const F&, X&>>
   constexpr auto operator()(X x) const { return g(f(x)); }
 };
 
@@ -250,7 +250,7 @@ template <> constexpr bool unit<bool>(std::logical_or<bool>) { return false; }
 
 static_assert( IsMonoid<bool, std::logical_and<bool>>);
 static_assert( IsMonoid<bool, std::logical_or<bool>>);
-static_assert(!IsMonoid<bool, std::plus<bool>>);
+static_assert(!IsMonoid<bool, std::plus<>>);
 \end{cpp}
 \begin{cpp}
 template <> constexpr size_t unit<size_t>(std::plus<size_t>) { return 0; }
@@ -277,7 +277,7 @@ twice [u64] [plus] plus_u64 21
 \end{minted}
 \caption{The monoid shape, populated.
 Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
-Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under \cppinline{+}, which yields an \cppinline{int}.
+Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}; the typed \cppinline{std::plus<bool>} would declare a \cppinline{bool} result and fail only for want of a unit.
 Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them.
 Bottom: the same in System~F.
 The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
@@ -379,7 +379,7 @@ The last line is a fact about the listing, not about multiplication: nobody cert
 \end{listing}
 
 Two kinds of requirement went into these verdicts.
-Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{true + true} is not a \cppinline{bool}.
+Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{std::plus<>} on two \cppinline{bool}s yields an \cppinline{int} and not a \cppinline{bool}.
 Declared ones a specialisation records: the units, and now the laws.
 Both are requirements of the same shape, and both become fields of the same record; a law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
 
@@ -464,7 +464,7 @@ Table~\ref{tab:adequacy} lists what \Cpp{} has and FJlt does not, and how each i
 bodies checked at instantiation & bodies are typed against the constraint & Rule~2, by reading \\
 overloading & one function per name, plus its specialisations & the grammar \\
 argument-dependent lookup & instances are found by the trait's name & the grammar, and Section~\ref{sec:limits} \\
-implicit conversions & result types are exact & \texttt{std::same\_as} \\
+implicit conversions & only where a requirement declares one, and the body then sees the declared type & the grammar, and Rule~2 for the body \\
 references, moves & values are copied; \texttt{const T} and \texttt{const T\&} are one value & erased: an optimisation, not a meaning \\
 state, pointers, exceptions & functions are pure & Rule~1, and constant evaluation \\
 unbounded loops, general recursion & recursion folds & Rule~3, by reading \\
@@ -475,8 +475,9 @@ The two rows marked \emph{by reading} are the whole gap: the compiler accepts pr
 \label{tab:adequacy}
 \end{table}
 
-Five of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
-The two that remain are Rule~2 and Rule~3, and they are posture.
+Four of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
+Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
+The two rows that remain are Rule~2 and Rule~3, and they are posture.
 A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did; a loop whose bound changes as it runs compiles anyway.
 Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
 Rule~3 is likewise checkable for the loop forms the grammar admits.
@@ -551,7 +552,7 @@ The last line is Rule~3's other kind, a fold over a term: the library's one engi
 \paragraph{The answer when the budget runs out is an absence.}
 Whether some natural has a given property is, for a general property, not something a budget can be replaced by a proof of, and a function that searches has to say what it says when the budget ends first.
 In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
-That is the whole price of Rule~3, and it is paid in the type rather than in a crash or a hang: a caller that forgets the third case does not compile.
+That is the whole price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
 
 \paragraph{A budget at compile time is the same budget.}
 \cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.

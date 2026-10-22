@@ -981,11 +981,13 @@ static_assert(Compose<Identity<int>, Identity<int>>{}(42) == 42,
 
 // 1. If T is associative under Op, Identity<T> is associative.
 template <typename T, typename Op>
-inline constexpr bool is_associative_v<Identity<T>, Op> = associative<T>(Op{});
+inline constexpr bool is_associative_v<Identity<T>, Op> =
+    is_associative_v<T, Op>;
 
 // 2. If T is commutative under Op, Identity<T> is commutative.
 template <typename T, typename Op>
-inline constexpr bool is_commutative_v<Identity<T>, Op> = commutative<T>(Op{});
+inline constexpr bool is_commutative_v<Identity<T>, Op> =
+    is_commutative_v<T, Op>;
 
 /**
  * @section morphism__Lifting_2

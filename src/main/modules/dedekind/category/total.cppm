@@ -299,7 +299,7 @@ export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
           is_periodic_v<T, std::remove_cvref_t<Op>> ||     // A: wraps
-          idempotent<T>(std::remove_cvref_t<Op>{}) ||      // B: stable
+          is_idempotent_v<T, std::remove_cvref_t<Op>> ||   // B: stable
           is_saturating_v<T, std::remove_cvref_t<Op>> ||   // C: escalates
           is_exact_total_v<T, std::remove_cvref_t<Op>> ||  // D: exact
           is_total_by_construction_v<T, std::remove_cvref_t<Op>>  // E: built
