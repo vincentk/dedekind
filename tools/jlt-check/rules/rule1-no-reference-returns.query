@@ -1,0 +1,7 @@
+# Rule 1: a function returns a value, never a reference.  const T and
+# const T& are one value only while no reference into an argument escapes;
+# the translation into System F erases references and cannot see a dangling
+# one.  Exempt: the standard iterator protocol (a nested iterator or
+# sentinel), which Rule 3's folds run on.  Blind spot: decltype(auto) in a
+# template pattern is undeduced and not seen.
+match functionDecl(returns(referenceType()), unless(anyOf(isImplicit(), isDefaulted(), isDeleted(), cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))), cxxMethodDecl(ofClass(cxxRecordDecl(matchesName("(iterator|sentinel)$")))))), isExpansionInMainFile(), hasAncestor(scope))
