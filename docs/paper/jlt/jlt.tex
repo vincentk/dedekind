@@ -180,6 +180,7 @@ One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a
 It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself, and what a large value shared by many closures needs.
 Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so the enclosing type compares what the boxes hold, and \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
 The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only.
+The calculus of Appendix~\ref{app:fjlt} has it as a type with two terms, build and read, translated as a unary product; it has no term that asks which box, which is the second condition stated as grammar.
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
