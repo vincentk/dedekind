@@ -30,7 +30,12 @@ template <typename F, typename G>
 struct Compose {
   F f;
   G g;
-  constexpr auto operator()(auto x) const { return g(f(x)); }
+  template <typename X>
+    requires std::invocable<F, X> &&
+             std::invocable<G, std::invoke_result_t<F, X>>
+  constexpr auto operator()(X x) const {
+    return g(f(x));
+  }
 };
 
 template <typename F>
@@ -192,11 +197,16 @@ static_assert(times<size_t>(7, 6) == 42);
 
 // Section 4, two binding times: fuel, and running out of it.
 template <typename P>
+concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
+  { p(n) } -> std::same_as<bool>;
+};
+
+template <IsPredicate P>
 constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
   return s.second ? s : std::pair{i, P{}(i)};
 }
 
-template <typename P>
+template <IsPredicate P>
 constexpr std::optional<size_t> first(size_t fuel) {
   std::pair<size_t, bool> s =
       std::ranges::fold_left(std::views::iota(size_t{0}, fuel),

@@ -53,7 +53,7 @@ It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
 Recursion only folds, over a range whose length is fixed before the fold starts.
-Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; and what System~F guarantees, termination and parametricity, the program inherits.
+Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; what System~F guarantees of the image, parametricity above all, the program inherits, and termination it has by construction.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Section~\ref{sec:translation:adequacy} says which.
 
 There is a reason to care about the checked part beyond taste.
@@ -74,7 +74,10 @@ template <typename F, typename G>
 struct Compose {
   F f;
   G g;
-  constexpr auto operator()(auto x) const { return g(f(x)); }
+  template <typename X>
+    requires std::invocable<F, X> &&
+             std::invocable<G, std::invoke_result_t<F, X>>
+  constexpr auto operator()(X x) const { return g(f(x)); }
 };
 
 template <typename F> constexpr bool involutive(F) { return false; }
@@ -97,7 +100,7 @@ static_assert(!involutive(std::negate<int>{}));
 \caption{Declared, entailed, inferred.
 \cppinline{involutive} is declared at three standard function objects; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
 Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
-\cppinline{Compose} is the one type the listing defines, a former of functions.}
+\cppinline{Compose} is the one type the listing defines, a former of functions; its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, which Rule~2 requires of it.}
 \label{lst:intro}
 \end{listing}
 
@@ -497,11 +500,16 @@ Listing~\ref{lst:fuel} searches the naturals for the first one with a property, 
 \begin{listing}[htbp]
 \begin{cpp}
 template <typename P>
+concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
+  { p(n) } -> std::same_as<bool>;
+};
+
+template <IsPredicate P>
 constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
   return s.second ? s : std::pair{i, P{}(i)};
 }
 
-template <typename P>
+template <IsPredicate P>
 constexpr std::optional<size_t> first(size_t fuel) {
   std::pair<size_t, bool> s =
       std::ranges::fold_left(std::views::iota(size_t{0}, fuel),
@@ -517,7 +525,7 @@ static_assert(first<Over1000>(40) == 32);
 static_assert(!first<Over1000>(30));
 \end{cpp}
 \caption{Fuel, and running out of it.
-\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, as the operations of Section~\ref{sec:translation} are.
+\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
 \cppinline{first} folds it over the first \cppinline{fuel} naturals and reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".}
 \label{lst:fuel}
@@ -576,7 +584,7 @@ Each \cppinline{requires} clause has become a record parameter, and at each call
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e$ evaluates to $v$ in FJlt, then $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$ in System~F, and for closed terms of base type the converse holds.
+If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket$ and $\llbracket e' \rrbracket$ reduce to a common term in System~F, and values translate to values; for closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
@@ -594,7 +602,8 @@ It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with
 Every FJlt program terminates.
 \end{corollary}
 
-By Theorem~\ref{thm:simulation} and strong normalisation of System~F~\cite{girard1989proofs}.
+Proved directly: declarations are ordered so that no body calls a later one, and the only recursion is a fold over fuel fixed before it starts, so every reduction sequence is finite.
+Strong normalisation of System~F~\cite{girard1989proofs} says the same of the translation's image, and Theorem~\ref{thm:simulation} makes the two agree.
 Fuel in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
 
 \begin{corollary}[Parametricity]
@@ -611,8 +620,8 @@ It is also why an instance with a context (Section~\ref{sec:translation:contexts
 A well-typed closed FJlt term of base type evaluates to a value.
 \end{corollary}
 
-This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it comes last, because it is inherited: the term's image is well-typed (Theorem~\ref{thm:preservation}) and so reduces to a normal form, which at a base type is a constant, and the converse half of Theorem~\ref{thm:simulation} carries that constant back.
-Featherweight Java has to prove progress and preservation over its own rules; a translation imports them.
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it comes last, because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+Featherweight Java proves progress and preservation over its own rules too; what the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the one the System~F image computes.
 
 All six are claims about FJlt.
 What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
