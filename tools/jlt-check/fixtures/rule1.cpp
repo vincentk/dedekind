@@ -12,7 +12,7 @@ struct Counter {
   }
 };
 
-inline std::size_t bump(std::size_t& x) {  // constexpr 2, const-reference-params 1
+inline std::size_t bump(std::size_t& x) {  // constexpr 2, lvalue-reference 1
   return ++x;
 }
 
@@ -21,12 +21,21 @@ constexpr std::size_t checked(std::size_t x) {
   return x;
 }
 
-constexpr std::size_t sink(std::size_t&& x) {  // const-reference-params 2
+constexpr std::size_t sink(std::size_t&& x) {  // rvalue-reference 1
   return x;
 }
 
+template <typename T>
+constexpr std::size_t forward_one(T&& x) {  // forwarding-reference 1
+  return sizeof(x);
+}
+
+constexpr std::size_t forward_auto(auto&& x) {  // forwarding-reference 2
+  return sizeof(x);
+}
+
 using Ref = std::size_t&;
-constexpr std::size_t via(Ref x) {  // const-reference-params 3
+constexpr std::size_t via(Ref x) {  // lvalue-reference 2
   return x;
 }
 
@@ -44,6 +53,7 @@ struct StaticCall {
   static constexpr std::size_t operator()(std::size_t x) { return x; }
 };
 constexpr std::size_t read(const std::size_t& x) { return x; }
+constexpr std::size_t read_temp(const std::size_t&& x) { return x; }
 constexpr std::size_t table(std::size_t i) {
   constexpr static std::size_t t[2] = {1, 2};
   return t[i];

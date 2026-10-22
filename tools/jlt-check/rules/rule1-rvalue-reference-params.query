@@ -1,0 +1,4 @@
+# Rule 1: values are passed by value or by const reference.  An rvalue
+# reference to a concrete non-const type is a move sink.  Forwarding
+# references are counted by their own rule.
+match parmVarDecl(hasType(hasCanonicalType(rValueReferenceType())), hasType(hasCanonicalType(references(qualType(unless(anyOf(isConstQualified(), templateTypeParmType())))))), hasDeclContext(functionDecl(unless(cxxMethodDecl(ofClass(cxxRecordDecl(isLambda())))))), isExpansionInMainFile(), hasAncestor(scope))
