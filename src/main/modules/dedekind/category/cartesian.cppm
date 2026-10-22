@@ -451,9 +451,9 @@ static_assert(IsExponential<std::move_only_function<bool(int)>, int, bool>,
 // This captures the 'essence' without the 'lineage'.  (Named @c bounded_pred,
 // not @c closure, so the canonical name is free for the @c closure operator in
 // @c :functor --- "closure of X under Y".)
-auto bounded_pred = [limit = 42](int x) { return x < limit; };
+constexpr auto bounded_pred = [limit = 42](int x) { return x < limit; };
 static_assert(
-    IsExponential<decltype(bounded_pred), int, bool>,
+    IsExponential<std::remove_cvref_t<decltype(bounded_pred)>, int, bool>,
     "Structural: A lambda is discovered as an Exponential by its scent.");
 
 // 4. The "Honest Rejection": Mismatched Signature

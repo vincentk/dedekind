@@ -664,10 +664,10 @@ constexpr auto endo(F f) {
 }
 
 // 3. Verify "Lambdas" (Functional Auto-Discovery)
-auto logic_gate = arrow([](int x) -> bool { return x > 0; });
+constexpr auto logic_gate = arrow([](int x) -> bool { return x > 0; });
 
 static_assert(
-    IsArrow<decltype(logic_gate)>,
+    IsArrow<std::remove_cvref_t<decltype(logic_gate)>>,
     "Inference Error: Lambda was not automatically discovered as an Arrow.");
 
 // 4. Verify "The Universal Bridge" (Primitives as Identity Arrows)
