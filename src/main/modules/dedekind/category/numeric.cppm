@@ -60,6 +60,9 @@ namespace detail {
 #define DEDEKIND_BRIDGE_NOINLINE
 #endif
 
+// FIXME(#1061): checked_add_signed duplicates partial's SafeAddTransform
+// (the Kleisli arrow the maybe-monad witness reads); consolidate when the
+// partition order allows.
 template <std::signed_integral T>
 constexpr std::optional<T> checked_add_signed(T a, T b) {
 #if defined(__GNUC__) || defined(__clang__)
