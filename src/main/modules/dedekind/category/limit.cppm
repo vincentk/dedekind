@@ -764,14 +764,16 @@ static_assert(IsProjectedInitialObject<Zero>);
 static_assert(
     IsProjectedTerminalObject<
         detail::TerminalEnvelope,
-        decltype([](const detail::TerminalEnvelope& envelope) constexpr
-                     -> const One& { return arrow_drill_down(envelope); })>,
+        decltype([](const detail::TerminalEnvelope& envelope) constexpr -> One {
+          return arrow_drill_down(envelope);
+        })>,
     "Opt-in operator-> drill-down must expose a Terminal object witness.");
 static_assert(
     IsProjectedInitialObject<
         detail::InitialEnvelope,
-        decltype([](const detail::InitialEnvelope& envelope) constexpr
-                     -> const Zero& { return arrow_drill_down(envelope); })>,
+        decltype([](const detail::InitialEnvelope& envelope) constexpr -> Zero {
+          return arrow_drill_down(envelope);
+        })>,
     "Opt-in operator-> drill-down must expose an Initial object witness.");
 
 }  // namespace dedekind::category
