@@ -744,6 +744,25 @@ The contribution is a map, not code.
 Nothing was added to the language, the compiler or the library; what was added is a boundary, and a demonstration that inside it a mainstream compiler checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
 The posture is available today to anyone with a recent compiler, and the appendix says exactly what they get.
 
+\section*{Use of Agentic Systems and AI-Assistance Disclosure}
+
+The writing of this paper, the formal appendix and the code it reports on relied substantively on AI assistance, and per the ‹Programming› journal's policy on AI tools~\cite{programming_journal_ai_policy} the tools, the tasks and the places are disclosed here; the contribution is recorded as assistance, not authorship.
+The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement.
+
+\emph{Tools.}
+Anthropic's Claude (the Opus and Fable models, invoked through the Claude Code CLI) was the primary assistant.
+Google's Gemini was used for second-opinion critique of the draft as a whole.
+GitHub Copilot's pull-request reviewer was invoked on every pull request, and its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
+
+\emph{Tasks.}
+Draft generation of prose, listings, tables and figures; the statement and proofs of the appendix, drafted by the assistant from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source before use; and the drafting of responses in review threads.
+
+\emph{Where.}
+Throughout: every section, listing, table and figure, and the appendix.
+No part of the manuscript was written without assistance, and no part was accepted without the author's reading.
+
+The public repository at \url{https://github.com/vincentk/dedekind} holds the complete record at commit granularity: commit messages, pull-request review threads and CI build logs.
+
 \appendix
 \input{fjlt}
 
