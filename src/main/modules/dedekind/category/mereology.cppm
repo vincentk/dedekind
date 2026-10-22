@@ -1084,10 +1084,10 @@ static_assert(Parthood<int>,
               "Parthood concept must hold for the canonical integer witness.");
 static_assert(
     requires(const int* p) {
-      { arrow_drill_down(p) } -> std::same_as<const int&>;
+      { arrow_drill_down(p) } -> std::same_as<int>;
     },
-    "Pointer drill-down overload must return a const reference to the "
-    "pointed-to value.");
+    "Pointer drill-down overload returns the pointed-to value, not a "
+    "reference into it (Jlt Rule 1, #1061).");
 static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,
