@@ -75,8 +75,8 @@ struct Compose {
   F f;
   G g;
   template <typename X>
-    requires std::invocable<F, X> &&
-             std::invocable<G, std::invoke_result_t<F, X>>
+    requires std::invocable<const F&, X> &&
+             std::invocable<const G&, std::invoke_result_t<const F&, X>>
   constexpr auto operator()(X x) const { return g(f(x)); }
 };
 
@@ -100,7 +100,7 @@ static_assert(!involutive(std::negate<int>{}));
 \caption{Declared, entailed, inferred.
 \cppinline{involutive} is declared at three standard function objects; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
 Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
-\cppinline{Compose} is the one type the listing defines, a former of functions; its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, which Rule~2 requires of it.}
+\cppinline{Compose} is the one type the listing defines, a former of functions; its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, which Rule~2 requires of it, and asks it of \cppinline{const F&}, since a function argument is a value that calling does not change.}
 \label{lst:intro}
 \end{listing}
 
@@ -171,6 +171,7 @@ Every type a Jlt program passes around is \cppinline{std::semiregular}: default 
 Every function is \cppinline{constexpr} and depends on its arguments alone.
 Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
 That a value and a reference to it are interchangeable because nothing can change either is referential transparency in the small, the first thing the rule buys, before any theorem.
+A function passed as an argument is a value like any other, \cppinline{const}, and its call operator is \cppinline{const}: calling it observes, it does not change; \cppinline{constexpr} then adds the other binding time, since a \cppinline{const} call on a \cppinline{const} value is a constant expression when its arguments are.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.

@@ -31,8 +31,8 @@ struct Compose {
   F f;
   G g;
   template <typename X>
-    requires std::invocable<F, X> &&
-             std::invocable<G, std::invoke_result_t<F, X>>
+    requires std::invocable<const F&, X> &&
+             std::invocable<const G&, std::invoke_result_t<const F&, X>>
   constexpr auto operator()(X x) const {
     return g(f(x));
   }
