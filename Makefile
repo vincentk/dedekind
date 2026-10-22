@@ -8,6 +8,7 @@ VENV_DIR      := .venv
 NOTEBOOKS_DIR := docs/python/notebooks
 LLVM_ROOT    ?= /usr/local/opt/llvm
 CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
+CLANG_QUERY ?= $(LLVM_ROOT)/bin/clang-query
 CMAKE_EXTRA_ARGS ?=
 
 # GNU make provides built-in defaults (CXX=c++, CC=cc). Override only those
@@ -37,6 +38,7 @@ endif
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
+.PHONY: jlt-check
 .PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
@@ -172,6 +174,11 @@ format:
 
 format-check:
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) --dry-run --Werror
+
+# The Jlt checker (#1060): a post-processing step over the build's compilation
+# database; the gate is tools/jlt-check/scope.
+jlt-check:
+	python3 tools/jlt-check/jlt_check.py $(CLANG_QUERY) $(BUILD_DIR)
 
 install-hooks:
 	git config core.hooksPath .githooks

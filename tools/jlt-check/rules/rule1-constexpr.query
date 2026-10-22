@@ -1,0 +1,3 @@
+# Rule 1: functions are constexpr (or consteval).  Deleted and defaulted
+# functions are exempt; lambdas are not a rule of the paper.
+match functionDecl(isDefinition(), unless(anyOf(isConstexpr(), isConsteval(), isDeleted(), isDefaulted(), isImplicit(), cxxMethodDecl(ofClass(cxxRecordDecl(isLambda()))))), isExpansionInMainFile(), hasAncestor(scope))

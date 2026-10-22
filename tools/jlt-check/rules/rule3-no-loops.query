@@ -1,0 +1,3 @@
+# Rule 3: recursion only folds.  No loop statement; a fold is
+# std::ranges::fold_left over a finite range, or cata over a term.
+match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), isExpansionInMainFile(), hasAncestor(scope))
