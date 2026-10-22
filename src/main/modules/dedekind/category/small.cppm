@@ -300,16 +300,16 @@ concept IsSmallCategory = IsLocallySmallCategory<Cat> && requires {
 // via the arrow shape.
 export template <typename T, IsArrow G>
   requires std::same_as<T, Dom<G>>
-constexpr auto operator>>(Identity<T>, G&& g) {
-  return std::forward<G>(g);
+constexpr auto operator>>(Identity<T>, G g) {
+  return std::move(g);
 }
 
 // Law: f >> id_B = f.  Same picking-policy reasoning: Cod<F> in
 // IsArrow-strict contexts.
 export template <IsArrow F, typename T>
   requires std::same_as<Cod<F>, T>
-constexpr auto operator>>(F&& f, Identity<T>) {
-  return std::forward<F>(f);
+constexpr auto operator>>(F f, Identity<T>) {
+  return std::move(f);
 }
 
 // Law: id_T >> id_T = id_T

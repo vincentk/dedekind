@@ -222,8 +222,8 @@ constexpr auto in(const typename S::Domain& x, const S& s) {
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Domain> &&
            std::same_as<Cod<E>, typename S::Domain>
-constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
-  return s(std::forward<E>(embedding)(x));
+constexpr auto in_via(const Dom<E>& x, E embedding, const S& s) {
+  return s(std::move(embedding)(x));
 }
 
 /**
@@ -239,8 +239,8 @@ constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
 export template <IsArrow F, IsArrow G>
   requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
            std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
-constexpr auto compose_embedding(F&& f, G&& g) {
-  return std::forward<F>(f) >> std::forward<G>(g);
+constexpr auto compose_embedding(F f, G g) {
+  return std::move(f) >> std::move(g);
 }
 
 /** @section concrete__Witnesses

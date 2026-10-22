@@ -336,7 +336,7 @@ struct Projection {
   template <typename P>
     requires(!std::is_lvalue_reference_v<P>) &&
             requires(const P& p) { component(p, At<K>{}); }
-  constexpr auto operator()(P&& p) const {
+  constexpr auto operator()(P p) const {
     return auto(component(p, At<K>{}));
   }
 };
@@ -589,12 +589,12 @@ static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
  */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
-constexpr auto mediate_product(F&& f, G&& g) {
+constexpr auto mediate_product(F f, G g) {
   using X = Dom<F>;
   using A = Cod<F>;
   using B = Cod<G>;
 
-  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+  return arrow([f = std::move(f), g = std::move(g)](const X& x) {
     return std::pair<A, B>(f(x), g(x));
   });
 }

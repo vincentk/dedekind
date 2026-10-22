@@ -106,8 +106,8 @@ export template <typename F>
            requires(const std::remove_cvref_t<F>& cf, const Cod<F>& y) {
              inverse(cf)(y);
            }
-constexpr auto retract(F&& f) {
-  return IsoRetract<std::remove_cvref_t<F>>{std::forward<F>(f)};
+constexpr auto retract(F f) {
+  return IsoRetract<std::remove_cvref_t<F>>{std::move(f)};
 }
 
 /**

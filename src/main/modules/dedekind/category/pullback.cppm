@@ -166,10 +166,10 @@ constexpr auto make_χ(F f, G g) {
  * @return A `Subobject<Π, χ>` representing P = X ×_Z Y.
  */
 export template <typename L = Boole, typename Π, typename F_Raw, typename G_Raw>
-constexpr auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
+constexpr auto pullback(F_Raw f_raw, G_Raw g_raw) {
   // 1. Lift raw callables into formal Morphisms using your skeletal factory.
-  auto f = arrow(std::forward<F_Raw>(f_raw));
-  auto g = arrow(std::forward<G_Raw>(g_raw));
+  auto f = arrow(std::move(f_raw));
+  auto g = arrow(std::move(g_raw));
 
   // 2. Construct the characteristic morphism χ using the formal Arrows.
   auto χ = make_χ<L, Π>(f, g);

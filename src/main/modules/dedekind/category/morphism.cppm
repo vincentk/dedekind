@@ -630,37 +630,37 @@ static_assert(
 export template <typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           requires(F f) { typename signature_extractor<F>::type; }
-constexpr auto arrow(F&& f) {
+constexpr auto arrow(F f) {
   using D = domain_t<F>;
   using C = codomain_t<F>;
-  return Morphism<D, C, std::decay_t<F>>(std::forward<F>(f));
+  return Morphism<D, C, std::decay_t<F>>(std::move(f));
 }
 
 // 1. Explicit Arrow: arrow<A, B>(f)
 export template <typename A, typename B, typename F>
-constexpr auto arrow(F&& f) {
-  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+constexpr auto arrow(F f) {
+  return Morphism<A, B, std::decay_t<F>>(std::move(f));
 }
 
 // 2. Passthrough for things that are already Arrows (Idempotent factory)
 template <IsArrow F>
-constexpr auto arrow(F&& f) {
-  return std::forward<F>(f);
+constexpr auto arrow(F f) {
+  return std::move(f);
 }
 
 // 3. Semi-Automatic: Explicit Domain, Inferred Codomain
 // This is what classify<A>(f) needs to function.
 export template <typename A, typename F>
   requires(!IsArrow<F> && std::invocable<std::decay_t<F>, const A&>)
-constexpr auto arrow(F&& f) {
+constexpr auto arrow(F f) {
   using B = std::invoke_result_t<std::decay_t<F>, const A&>;
-  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+  return Morphism<A, B, std::decay_t<F>>(std::move(f));
 }
 
 // 2. Explicit Endomorphism: endo<A>(f)
 export template <typename A, typename F>
-constexpr auto endo(F&& f) {
-  return arrow<A, A>(std::forward<F>(f));
+constexpr auto endo(F f) {
+  return arrow<A, A>(std::move(f));
 }
 
 // 3. Verify "Lambdas" (Functional Auto-Discovery)
@@ -971,14 +971,13 @@ export template <typename F, typename G>
   requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain>
-constexpr auto operator>>(F&& f, G&& g) {
+constexpr auto operator>>(F f, G g) {
   // Composition is the reified @c Compose<F,G> arrow, NOT a lambda-wrapped
   // @c arrow<A,C>: keeping the leg types @c F,G in the result's TYPE is what
   // lets the variance logic program pattern-match @c
   // is_monotone_v<Compose<...>> on the operands (a captured lambda erases
   // them), and de-lambdas the composite (#844 / #908).
-  return Compose<std::decay_t<F>, std::decay_t<G>>{std::forward<F>(f),
-                                                   std::forward<G>(g)};
+  return Compose<std::decay_t<F>, std::decay_t<G>>{std::move(f), std::move(g)};
 }
 
 /**
@@ -1001,9 +1000,9 @@ export template <typename F, typename G>
   requires IsSpokeArrow<std::decay_t<F>> && (!IsArrow<std::decay_t<G>>) &&
            std::invocable<std::decay_t<G>&,
                           const typename std::decay_t<F>::Codomain&>
-constexpr auto operator>>(F&& f, G&& g) {
+constexpr auto operator>>(F f, G g) {
   using B = typename std::decay_t<F>::Codomain;
-  return std::forward<F>(f) >> arrow<B>(std::forward<G>(g));
+  return std::move(f) >> arrow<B>(std::move(g));
 }
 
 /** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
@@ -1134,9 +1133,8 @@ static_assert(IsIsomorphism<TaggedNegate>,
  */
 export template <typename T, typename Arrow>
   requires IsArrow<Arrow> && std::convertible_to<T, typename Arrow::Domain>
-constexpr auto operator>>(T&& value, const Arrow& f) ->
-    typename Arrow::Codomain {
-  return f(std::forward<T>(value));
+constexpr auto operator>>(T value, const Arrow& f) -> typename Arrow::Codomain {
+  return f(std::move(value));
 }
 
 /**

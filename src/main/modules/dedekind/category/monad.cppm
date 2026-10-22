@@ -55,8 +55,8 @@ namespace dedekind::category {
 export template <typename HubTag, typename A>
   requires IsDefaultHubTag<HubTag> &&
            requires(HubTag tag, A&& v) { η(tag, std::forward<A>(v)); }
-constexpr auto pure(HubTag tag, A&& value) {
-  return η(tag, std::forward<A>(value));
+constexpr auto pure(HubTag tag, A value) {
+  return η(tag, std::move(value));
 }
 
 /** @brief Value-level alias for μ (mu) with explicit hub tag dispatch. */
@@ -185,9 +185,9 @@ struct μ_tag {};
 // raw object label directly. In the single-species setting that label is the
 // canonical witness for the identity spoke at the same object.
 export template <typename T, typename η_t>
-constexpr auto operator>>(T&& val, η_tag<η_t>) {
+constexpr auto operator>>(T val, η_tag<η_t>) {
   // η_t{}(val) produces the arrow, we then apply it to the value
-  return η_t{}(val)(std::forward<T>(val));
+  return η_t{}(val)(std::move(val));
 }
 
 // 2. Join: T<T<X>> >> μ_tag<T, μ_t>
@@ -198,12 +198,12 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
 export template <typename NestedContext, typename T, typename μ_t>
   requires IsShapedFunctor<T> &&
            std::convertible_to<NestedContext, typename T::Σ_cat::Arrow::Domain>
-constexpr auto operator>>(NestedContext&& nested, μ_tag<T, μ_t>) {
+constexpr auto operator>>(NestedContext nested, μ_tag<T, μ_t>) {
   using Domain = typename T::Σ_cat::Arrow::Domain;
   // Select the component using the correct object witness (the domain label),
   // not the nested context value itself.
   auto mu_x = μ_t{}(static_cast<Domain>(nested));
-  return mu_x(std::forward<NestedContext>(nested));
+  return mu_x(std::move(nested));
 }
 
 }  // namespace dedekind::category

@@ -449,8 +449,8 @@ static_assert(!IsSet<SetOverNonRegular>,
 export template <typename A, typename Pred>
   requires IsSpecies<A> && std::invocable<std::decay_t<Pred>, const A&> &&
            IsΩ<std::invoke_result_t<std::decay_t<Pred>, const A&>>
-constexpr auto ambient_set(Pred&& predicate) {
-  return classify<A>(std::forward<Pred>(predicate));
+constexpr auto ambient_set(Pred predicate) {
+  return classify<A>(std::move(predicate));
 }
 
 // ---------------------------------------------------------------------------
@@ -518,9 +518,9 @@ constexpr auto ambient_set(std::set<T, Compare, Alloc> s)
 export template <std::ranges::forward_range R>
   requires IsSpecies<std::ranges::range_value_t<R>> &&
            (!requires(R& r, std::ranges::range_value_t<R> x) { r.contains(x); })
-constexpr auto ambient_set(R&& r) {
+constexpr auto ambient_set(R r) {
   using T = std::ranges::range_value_t<R>;
-  return ambient_set<T>([r = std::forward<R>(r)](const T& x) -> bool {
+  return ambient_set<T>([r = std::move(r)](const T& x) -> bool {
     return std::ranges::find(r, x) != std::ranges::end(r);
   });
 }

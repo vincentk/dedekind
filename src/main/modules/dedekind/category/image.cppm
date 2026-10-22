@@ -347,9 +347,9 @@ struct ImageChi<F> {
  */
 export template <typename F>
   requires IsArrow<F> && std::constructible_from<std::remove_cvref_t<F>, F&&>
-constexpr auto image_of(F&& f) {
+constexpr auto image_of(F f) {
   using FT = std::remove_cvref_t<F>;
-  return Subobject<Cod<FT>, ImageChi<FT>>{ImageChi<FT>{std::forward<F>(f)}};
+  return Subobject<Cod<FT>, ImageChi<FT>>{ImageChi<FT>{std::move(f)}};
 }
 
 // Witness: image_of(Identity<int>) is an IsSubobject of int — the trivial

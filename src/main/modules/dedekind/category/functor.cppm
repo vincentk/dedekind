@@ -128,8 +128,8 @@ namespace dedekind::category {
  */
 template <typename F, typename A>
   requires requires(const F& f, A&& a) { f.φ(std::forward<A>(a)); }
-constexpr auto map_arrow(const F& f, A&& a) {
-  return f.φ(std::forward<A>(a));
+constexpr auto map_arrow(const F& f, A a) {
+  return f.φ(std::move(a));
 }
 
 /**
@@ -302,9 +302,9 @@ struct morphic_engine {
   Spoke ma;
 
   template <typename Func>
-  constexpr auto operator()(Func&& f) const {
+  constexpr auto operator()(Func f) const {
     // 1. Ensure we have an Arrow (lifts lambdas if necessary)
-    auto lifted_arrow = h.φ(arrow(std::forward<Func>(f)));
+    auto lifted_arrow = h.φ(arrow(std::move(f)));
 
     /**
      * 2. The Crucial Step:
@@ -412,8 +412,8 @@ struct functor_applicator {
   Hub h;
 
   template <typename Spoke>
-  constexpr auto operator()(Spoke&& ma) const {
-    return morphic_engine<Hub, std::decay_t<Spoke>>{h, std::forward<Spoke>(ma)};
+  constexpr auto operator()(Spoke ma) const {
+    return morphic_engine<Hub, std::decay_t<Spoke>>{h, std::move(ma)};
   }
 };
 
@@ -434,9 +434,9 @@ struct context final {
   Spoke value;  // The "Matter"
 
   template <typename Func>
-  constexpr auto operator>>(Func&& f) const {
+  constexpr auto operator>>(Func f) const {
     // We use the specific instance of the hub, preserving its state
-    return fmap(hub)(value)(std::forward<Func>(f));
+    return fmap(hub)(value)(std::move(f));
   }
 };
 
@@ -445,9 +445,9 @@ struct context final {
  * Creates a @ref context that pairs a functor hub with its data spoke.
  */
 export template <typename Hub, typename Spoke>
-constexpr auto immerse(Hub&& h, Spoke&& s) {
-  return context<std::decay_t<Hub>, std::decay_t<Spoke>>{
-      std::forward<Hub>(h), std::forward<Spoke>(s)};
+constexpr auto immerse(Hub h, Spoke s) {
+  return context<std::decay_t<Hub>, std::decay_t<Spoke>>{std::move(h),
+                                                         std::move(s)};
 }
 
 /**
@@ -460,8 +460,8 @@ constexpr auto immerse(Hub&& h, Spoke&& s) {
 export template <typename Hub, typename Arrow>
   requires IsShapedFunctor<Hub> && IsSpokeArrow<std::remove_cvref_t<Arrow>>
 [[nodiscard]]
-constexpr auto operator>>(Hub const& hub, Arrow&& f) {
-  return hub.φ(std::forward<Arrow>(f));
+constexpr auto operator>>(Hub const& hub, Arrow f) {
+  return hub.φ(std::move(f));
 }
 
 /**
@@ -494,9 +494,9 @@ struct composite_functor {
    */
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>>
-  constexpr auto φ(A&& f) const {
+  constexpr auto φ(A f) const {
     // First lift through F, then through G.
-    return second.φ(first.φ(std::forward<A>(f)));
+    return second.φ(first.φ(std::move(f)));
   }
 
   /** @brief Object Mapping: (G . F)(c) = G(F(c)) */
@@ -626,7 +626,7 @@ struct f_coalgebra {
 export template <typename Functor, typename Structure>
   requires IsEndofunctor<std::remove_cvref_t<Functor>> &&
            IsArrow<std::remove_cvref_t<Structure>>
-constexpr auto make_f_algebra(Functor&& functor, Structure&& structure) {
+constexpr auto make_f_algebra(Functor functor, Structure structure) {
   using algebra_functor = std::remove_cvref_t<Functor>;
   using algebra_structure = std::remove_cvref_t<Structure>;
   using carrier = typename algebra_structure::Codomain;
@@ -634,7 +634,7 @@ constexpr auto make_f_algebra(Functor&& functor, Structure&& structure) {
   static_assert(IsFAlgebra<carrier, algebra_structure, algebra_functor>);
 
   return f_algebra<carrier, algebra_functor, algebra_structure>{
-      std::forward<Functor>(functor), std::forward<Structure>(structure)};
+      std::move(functor), std::move(structure)};
 }
 
 /**
@@ -643,7 +643,7 @@ constexpr auto make_f_algebra(Functor&& functor, Structure&& structure) {
 export template <typename Functor, typename Structure>
   requires IsEndofunctor<std::remove_cvref_t<Functor>> &&
            IsArrow<std::remove_cvref_t<Structure>>
-constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
+constexpr auto make_f_coalgebra(Functor functor, Structure structure) {
   using coalgebra_functor = std::remove_cvref_t<Functor>;
   using coalgebra_structure = std::remove_cvref_t<Structure>;
   using carrier = typename coalgebra_structure::Domain;
@@ -651,7 +651,7 @@ constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
   static_assert(IsFCoalgebra<carrier, coalgebra_structure, coalgebra_functor>);
 
   return f_coalgebra<carrier, coalgebra_functor, coalgebra_structure>{
-      std::forward<Functor>(functor), std::forward<Structure>(structure)};
+      std::move(functor), std::move(structure)};
 }
 
 // IsAdjunction (the typed 4-parameter unit/counit witness),
@@ -829,10 +829,9 @@ using Maybe = std::optional<T>;
  * If ma has a value, applies f and wraps the result.
  */
 export template <typename A, typename F>
-constexpr auto φ(Maybe<A> const& ma, F&& f)
-    -> Maybe<std::invoke_result_t<F, A>> {
+constexpr auto φ(Maybe<A> const& ma, F f) -> Maybe<std::invoke_result_t<F, A>> {
   if (ma) {
-    return std::make_optional(std::invoke(std::forward<F>(f), *ma));
+    return std::make_optional(std::invoke(std::move(f), *ma));
   }
   return std::nullopt;
 }
@@ -842,10 +841,10 @@ constexpr auto φ(Maybe<A> const& ma, F&& f)
  * Applies @c f to the single element, returning a 1-tuple of the result.
  */
 export template <typename A, typename F>
-constexpr auto φ(std::tuple<A> const& ta, F&& f)
+constexpr auto φ(std::tuple<A> const& ta, F f)
     -> std::tuple<std::invoke_result_t<F, A>> {
   return std::tuple<std::invoke_result_t<F, A>>{
-      std::invoke(std::forward<F>(f), std::get<0>(ta))};
+      std::invoke(std::move(f), std::get<0>(ta))};
 }
 
 /**
@@ -857,7 +856,7 @@ constexpr auto φ(std::tuple<A> const& ta, F&& f)
  * shape and returns id<invoke_result_t<F, A>>().
  */
 template <typename A, typename F>
-constexpr auto φ(Identity<A> const& id, F&& f)
+constexpr auto φ(Identity<A> const& id, F f)
     -> Identity<std::invoke_result_t<F, A>> {
   (void)id;
   (void)f;
