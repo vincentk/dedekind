@@ -48,6 +48,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` (except `iterate`'s one loop) |
 | `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value; recursion over a type's structure (`cata`) passes |
+| `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
 `operator()`.  The standard iterator protocol (a nested `iterator` or
