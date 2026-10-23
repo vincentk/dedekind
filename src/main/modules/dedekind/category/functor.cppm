@@ -674,14 +674,14 @@ constexpr auto make_f_coalgebra(Functor functor, Structure structure) {
  * A fixed point certifies itself: the result @c r is one exactly when
  * `equal(step(r), r)`, so a caller that needs to know whether the budget
  * ran out checks that, in one step. *
- * It is @c fix (@c :morphism), the budgeted fixed point, which stops at
+ * It is @c iterate (@c :morphism), the n-fold composite, which stops at
  * the first fixed point it reaches.
  */
 export template <typename T, typename Step, typename Equal = std::equal_to<>>
   requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
 constexpr T fixed_point(T seed, Step step, Equal equal = {},
                         std::size_t max_iterations = 1024) {
-  return fix(step, seed, max_iterations, equal);
+  return iterate(step, seed, max_iterations, equal);
 }
 
 /** @brief Alias emphasizing order-theoretic reading of the fixed point. */

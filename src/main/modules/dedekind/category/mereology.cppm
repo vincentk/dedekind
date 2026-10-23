@@ -259,7 +259,7 @@ struct ChainWalk {
   constexpr bool operator==(const ChainWalk&) const = default;
 };
 /** @brief One step of the walk: the next value, or the walk itself once it
- *  has ended, which makes an ended walk the fixed point @c fix stops at. */
+ *  has ended, which makes an ended walk the fixed point @c iterate stops at. */
 template <typename T>
 struct ChainStep {
   T hi;
@@ -276,8 +276,8 @@ struct ChainStep {
  *  chain ends (at @c hi, or at a fixpoint of the step), so it stops there. */
 template <typename T>
 constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi) {
-  return fix(ChainStep<T>{hi}, ChainWalk<T>{lo, 0, false, false},
-             chain_walk_budget + 1);
+  return iterate(ChainStep<T>{hi}, ChainWalk<T>{lo, 0, false, false},
+                 chain_walk_budget + 1);
 }
 /** @brief A law of @c Arity points, at every tuple of points from @c lo to
  *  @c hi: the one walk every law below reads. */
@@ -288,16 +288,17 @@ constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
   if constexpr (sizeof...(Fixed) == Arity) {
     return law(rel, fixed...);
   } else {
-    // The walk's values, one per step of fix: the state stops changing at the
-    // first counterexample or at the end of the walk, and fix stops there.
-    // The length is computed once by holds_on, not re-walked at every arity.
+    // The walk's values, one per step of iterate: the state stops changing at
+    // the first counterexample or at the end of the walk, and iterate stops
+    // there. The length is computed once by holds_on, not re-walked at every
+    // arity.
     struct At {
       T a;
       std::size_t left;
       bool holds;
       constexpr bool operator==(const At&) const = default;
     };
-    return fix(
+    return iterate(
                [&](const At& at) {
                  if (!at.holds || at.left == 0) return at;
                  return At{successor(at.a), at.left - 1,

@@ -1,4 +1,4 @@
 # Rule 3: recursion only folds.  No loop statement; a fold is a standard
-# fold over a finite range, cata over a term, or fix over a budget.  Exempt:
-# fix itself, whose one loop is its tail call eliminated (Rule 1's footnote).
-match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), unless(hasAncestor(functionDecl(hasName("::dedekind::category::fix")))), isExpansionInMainFile(), hasAncestor(scope))
+# fold over a finite range, cata over a term, or iterate over a budget.  Exempt:
+# iterate itself, whose one loop is its tail call eliminated (Rule 1's footnote).
+match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), unless(hasAncestor(functionDecl(hasName("::dedekind::category::iterate")))), isExpansionInMainFile(), hasAncestor(scope))
