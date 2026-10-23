@@ -897,7 +897,7 @@ concept SameCarrier = !std::same_as<carrier_of_t<A>, void> &&
  *  Fires only when both operands share a carrier (mixed-carrier ⟹ inactive).
  *  @tparam Ord the lattice order. */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto meet_bounded_law(const RA& a, const RB& b) {
   if constexpr (!SameCarrier<RA, RB>) {
     return law_inactive{};  // mixed carrier ⟹ fail closed
@@ -917,7 +917,7 @@ constexpr auto meet_bounded_law(const RA& a, const RB& b) {
 /** @brief The join dual: @c ⊤∨X=⊤ (annihilator), @c ⊥∨X=X (unit).
  *  Likewise fires only when both operands share a carrier. */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto join_bounded_law(const RA& a, const RB& b) {
   if constexpr (!SameCarrier<RA, RB>) {
     return law_inactive{};  // mixed carrier ⟹ fail closed
@@ -982,7 +982,7 @@ concept IsIdempotentLeaf = idempotent_leaf_v<T>;
  *  opaque leaves.  It is gated on @c idempotent_leaf_v, so a runtime-stateful
  *  leaf (two same-type-but-distinct instances) is not collapsed. */
 export template <typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto idempotent_law(const RA& a, const RB&) {
   if constexpr (std::same_as<RA, RB> && IsIdempotentLeaf<RA>) {
     return a;
@@ -1015,7 +1015,7 @@ inline constexpr bool is_meet_containing_v<Elem, Meet<A, B>> =
  *  same recursive fail-closed invariant as @c carrier_of / the boundary laws;
  *  the all-opaque (unknown-carrier) case still fires. */
 export template <typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto meet_structural_absorption_law(const RA& a, const RB& b) {
   if constexpr (has_mixed_carrier_v<Meet<RA, RB>>) {
     return law_inactive{};  // mixed carrier ⟹ fail closed
@@ -1031,7 +1031,7 @@ constexpr auto meet_structural_absorption_law(const RA& a, const RB& b) {
 /** @brief The join dual: @c a∨(a∧b)=a.  Likewise fails closed on mixed
  * carriers. */
 export template <typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto join_structural_absorption_law(const RA& a, const RB& b) {
   if constexpr (has_mixed_carrier_v<Join<RA, RB>>) {
     return law_inactive{};  // mixed carrier ⟹ fail closed
@@ -1099,7 +1099,7 @@ consteval bool order_leq() {
  *  @c meet_structural_absorption_law.  Here only comparable operands collapse.
  */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto meet_glb_law(const RA& a, const RB& b) {
   if constexpr (order_leq<RA, RB, Ord>()) {
     return a;
@@ -1114,7 +1114,7 @@ constexpr auto meet_glb_law(const RA& a, const RB& b) {
  *  larger), @c RA≤RB ⟹ RA∨RB=RB.  (Structural absorption @c a∨(a∧b)=a is the
  *  separate @c join_structural_absorption_law.) */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto join_lub_law(const RA& a, const RB& b) {
   if constexpr (order_leq<RA, RB, Ord>()) {
     return b;
@@ -1152,7 +1152,8 @@ inline constexpr bool is_distributive_lattice_for_v =
 // Distribute a meet over a join node: X ∧ (P ∨ Q) = (X ∧ P) ∨ (X ∧ Q), built
 // from the values.
 template <typename X, typename P, typename Q>
-  requires std::copyable<X> && std::copyable<P> && std::copyable<Q>
+  requires std::copy_constructible<X> && std::copy_constructible<P> &&
+           std::copy_constructible<Q>
 constexpr auto distribute_meet_over(const X& x, const Join<P, Q>& j) {
   return Join<Meet<X, P>, Meet<X, Q>>{Meet<X, P>{x, j.lhs},
                                       Meet<X, Q>{x, j.rhs}};
@@ -1166,7 +1167,7 @@ constexpr auto distribute_meet_over(const X& x, const Join<P, Q>& j) {
  *  under @c Ord; a chain is gated but pre-empted by the glb collapse, so this
  *  fires only on a genuine non-chain distributive lattice. */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto meet_distributivity_law(const RA& a, const RB& b) {
   if constexpr (!(SameCarrier<RA, RB> &&
                   is_distributive_lattice_for_v<carrier_of_t<RA>, Ord>)) {
@@ -1217,17 +1218,17 @@ inline constexpr bool is_de_morgan_negation_for_v<bool, canonical_order> = true;
 // Meet / Join); a bare ¬leaf is already negation-normal and is left to the
 // caller.
 template <typename B>
-  requires std::copyable<B>
+  requires std::copy_constructible<B>
 constexpr B de_morgan_of(const Not<B>& n) {
   return n.base;  // ¬¬B → B (involution)
 }
 template <typename P, typename Q>
-  requires std::copyable<P> && std::copyable<Q>
+  requires std::copy_constructible<P> && std::copy_constructible<Q>
 constexpr auto de_morgan_of(const Meet<P, Q>& m) {
   return Join<Not<P>, Not<Q>>{Not<P>{m.lhs}, Not<Q>{m.rhs}};  // ¬(P∧Q) → ¬P∨¬Q
 }
 template <typename P, typename Q>
-  requires std::copyable<P> && std::copyable<Q>
+  requires std::copy_constructible<P> && std::copy_constructible<Q>
 constexpr auto de_morgan_of(const Join<P, Q>& j) {
   return Meet<Not<P>, Not<Q>>{Not<P>{j.lhs}, Not<Q>{j.rhs}};  // ¬(P∨Q) → ¬P∧¬Q
 }
@@ -1240,7 +1241,7 @@ constexpr auto de_morgan_of(const Join<P, Q>& j) {
  * driver re-reduces the pushed-down result (termination: @c ¬ strictly
  * descends). */
 export template <typename Ord, typename RA>
-  requires std::copyable<RA>
+  requires std::copy_constructible<RA>
 constexpr auto de_morgan_law(const RA& a) {
   if constexpr (!is_de_morgan_negation_for_v<carrier_of_t<RA>, Ord>) {
     return law_inactive{};
@@ -1281,7 +1282,7 @@ inline constexpr bool is_complement_pair_v =
  *  order (for sets, that is @c Ø / @c 𝔸 once the sets layer registers them).
  *  Gated on the carrier being complemented under @c Ord; else inactive. */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto meet_complement_law(const RA&, const RB&) {
   // @c IsIdempotent gate: @c a∧¬a=⊥ is a type-only match, so it is sound only
   // when the leaves are value-determined; a runtime-stateful pair like
@@ -1298,7 +1299,7 @@ constexpr auto meet_complement_law(const RA&, const RB&) {
 
 /** @brief The join dual: @c a∨¬a→⊤ (excluded middle). */
 export template <typename Ord, typename RA, typename RB>
-  requires std::copyable<RA> && std::copyable<RB>
+  requires std::copy_constructible<RA> && std::copy_constructible<RB>
 constexpr auto join_complement_law(const RA&, const RB&) {
   // @c IsIdempotent gate (see @c meet_complement_law): @c a∨¬a=⊤ collapses
   // soundly only on value-determined leaves.
