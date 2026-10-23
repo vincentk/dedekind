@@ -1424,7 +1424,11 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
  *  endomorphisms, on which @f$(\mathbb{N}, +)@f$ acts; @f$n \mapsto f^n(x)@f$
  *  is the arrow out of the natural numbers object that its universal property
  *  gives for @c x and @c f (@c nno_iterate in @c :nno is that face); and it is
- *  the catamorphism of the algebra @f$[x, f]@f$ of @f$1 + X@f$ at @c n.  The
+ *  the catamorphism of the algebra @f$[x, f]@f$ of @f$1 + X@f$ at @c n.  Its
+ *  intent is a fixed point: from @f$x = \bot@f$ it is the n-th Kleene
+ *  approximation of the least fixed point, PCF's @c fix with a budget
+ *  (@c fix names the intent, @c iterate the computation); from another seed it
+ *  finds a fixed point reachable from it, not necessarily the least.  The
  *  early exit at a fixed point changes no value, since a fixed point absorbs
  *  (@f$f(y) = y@f$ gives @f$f^m(y) = y@f$): it is an operational shortcut,
  *  taken when @c equal applies to @c X, and a fixed point certifies itself.
