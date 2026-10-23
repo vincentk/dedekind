@@ -85,8 +85,10 @@ static_assert(
 // #892: the reducer's meet lifted into IsSet.  Meet<A,B> INHERITS the
 // lattice meet's algebra and adds the Set-specific subobject surface, so it IS
 // a set that carries its two underlying sets (A, B are IsSet).  π_1 / π_2
-// recover them BY REFERENCE: a bona fide IsSet each, no sub-structure copied
-// (Pierce).  ι is the identity inclusion (homogeneous by default).
+// recover them AS VALUES: a bona fide IsSet each (Pierce).  A projection
+// returns no reference into its argument (Jlt Rule 1, #1061); a factor large
+// enough for its copy to matter is held as a boxed value instead.  ι is the
+// identity inclusion (homogeneous by default).
 using MeetLift = Meet<A_set, B_set>;
 constexpr MeetLift meet_lift{a_set, b_set};
 static_assert(
@@ -100,8 +102,8 @@ static_assert(
     "π_1(meet) is a bona fide IsSet (the underlying set A), not a bare "
     "predicate: the node carries references to its factors.");
 static_assert(
-    std::is_reference_v<decltype(π_1(meet_lift))>,
-    "π_1 returns the operand BY REFERENCE: no copy of the sub-structure.");
+    !std::is_reference_v<decltype(π_1(meet_lift))>,
+    "π_1 returns the factor as a value: no reference into the meet escapes.");
 static_assert(π_1(meet_lift)(4) && !π_1(meet_lift)(3),
               "π_1(meet) recovers A = IsEven and evaluates as that set.");
 static_assert(IsArrowProduct<MeetLift, A_set, B_set>,

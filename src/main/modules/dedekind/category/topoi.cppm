@@ -63,7 +63,7 @@ template <typename OmegaTarget, typename L, typename Constant>
            requires(const std::remove_cvref_t<Constant>& c) {
              { lift_logic<L>(c) } -> std::same_as<OmegaTarget>;
            }
-constexpr auto lift_classifier_constant(Constant&& value) {
+constexpr auto lift_classifier_constant(Constant value) {
   using C = std::remove_cvref_t<Constant>;
   if constexpr (std::same_as<C, OmegaTarget>) {
     return value;
@@ -492,11 +492,9 @@ struct Subobject {
    *         so @c Set and @c Subobject expose a uniform predicate
    *         surface.
    *
-   *  @note Return type is @c decltype(auto) so cv/ref qualifiers from
-   *  @c χ(a) are preserved (#715 review): if a future @c Chi returns
-   *  a reference or non-trivially-copyable Ω, the forwarder doesn't
-   *  silently copy. */
-  constexpr decltype(auto) operator()(const A& a) const { return χ(a); }
+   *  @note Returns a value, never a reference into the classifier (Jlt
+   *  Rule 1, #1061): a large truth value is a boxed value, not a reference. */
+  constexpr auto operator()(const A& a) const { return χ(a); }
 
   /**
    * @section topoi__Pullback_Projections
@@ -542,8 +540,8 @@ export template <typename A, typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           std::invocable<std::decay_t<F>, const A&> &&
           IsΩ<std::invoke_result_t<std::decay_t<F>, const A&>>
-constexpr auto classify(F&& f) {
-  auto rule = arrow<A>(std::forward<F>(f));
+constexpr auto classify(F f) {
+  auto rule = arrow<A>(std::move(f));
   return Subobject<A, decltype(rule)>{std::move(rule)};
 }
 
@@ -558,10 +556,10 @@ export template <typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           requires { typename signature_extractor<std::decay_t<F>>::type; } &&
           IsΩ<codomain_t<std::decay_t<F>>>
-constexpr auto classify(F&& f) {
+constexpr auto classify(F f) {
   using Fn = std::decay_t<F>;
   using A = domain_t<Fn>;
-  auto rule = arrow<A>(std::forward<F>(f));
+  auto rule = arrow<A>(std::move(f));
   return Subobject<A, decltype(rule)>{std::move(rule)};
 }
 
@@ -570,8 +568,8 @@ constexpr auto classify(F&& f) {
  */
 export template <typename A, IsArrow F>
   requires IsPredicate<F> && std::same_as<Dom<F>, A>
-constexpr auto classify(F&& f) {
-  return Subobject<A, std::remove_cvref_t<F>>{std::forward<F>(f)};
+constexpr auto classify(F f) {
+  return Subobject<A, std::remove_cvref_t<F>>{std::move(f)};
 }
 
 /**
@@ -668,16 +666,16 @@ concept IsPredicatePair =
  *  @c IsPredicate; plain @c Ω-valued arrows get a plain arrow as before. */
 export template <typename P, typename Q>
   requires IsPredicatePair<P, Q>
-constexpr auto operator&&(P&& p, Q&& q) {
+constexpr auto operator&&(P p, Q q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
   if constexpr (IsSpeciesTaggedArrow<P> && IsSpeciesTaggedArrow<Q>) {
-    return Meet<std::decay_t<P>, std::decay_t<Q>>{std::forward<P>(p),
-                                                  std::forward<Q>(q)};
+    return Meet<std::decay_t<P>, std::decay_t<Q>>{std::move(p), std::move(q)};
   } else {
-    return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
-                           const A& x) { return L::AND(p(x), q(x)); });
+    return arrow<A, Ω>([p = std::move(p), q = std::move(q)](const A& x) {
+      return L::AND(p(x), q(x));
+    });
   }
 }
 
@@ -686,15 +684,14 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-constexpr auto operator&&(C&& constant, P&& p) {
+constexpr auto operator&&(C constant, P p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
-  const Ω lifted = lift_classifier_constant<Ω, L>(std::forward<C>(constant));
-  return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
-    return L::AND(lifted, p(x));
-  });
+  const Ω lifted = lift_classifier_constant<Ω, L>(std::move(constant));
+  return arrow<A, Ω>(
+      [lifted, p = std::move(p)](const A& x) { return L::AND(lifted, p(x)); });
 }
 
 /** @brief Conjunction of a predicate with a constant logical value. */
@@ -702,8 +699,8 @@ export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-constexpr auto operator&&(P&& p, C&& constant) {
-  return std::forward<C>(constant) && std::forward<P>(p);
+constexpr auto operator&&(P p, C constant) {
+  return std::move(constant) && std::move(p);
 }
 
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B.
@@ -711,16 +708,16 @@ constexpr auto operator&&(P&& p, C&& constant) {
  */
 export template <typename P, typename Q>
   requires IsPredicatePair<P, Q>
-constexpr auto operator||(P&& p, Q&& q) {
+constexpr auto operator||(P p, Q q) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
   if constexpr (IsSpeciesTaggedArrow<P> && IsSpeciesTaggedArrow<Q>) {
-    return Join<std::decay_t<P>, std::decay_t<Q>>{std::forward<P>(p),
-                                                  std::forward<Q>(q)};
+    return Join<std::decay_t<P>, std::decay_t<Q>>{std::move(p), std::move(q)};
   } else {
-    return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
-                           const A& x) { return L::OR(p(x), q(x)); });
+    return arrow<A, Ω>([p = std::move(p), q = std::move(q)](const A& x) {
+      return L::OR(p(x), q(x));
+    });
   }
 }
 
@@ -729,15 +726,14 @@ export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-constexpr auto operator||(C&& constant, P&& p) {
+constexpr auto operator||(C constant, P p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   using Ω = Cod<P>;
 
-  const Ω lifted = lift_classifier_constant<Ω, L>(std::forward<C>(constant));
-  return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
-    return L::OR(lifted, p(x));
-  });
+  const Ω lifted = lift_classifier_constant<Ω, L>(std::move(constant));
+  return arrow<A, Ω>(
+      [lifted, p = std::move(p)](const A& x) { return L::OR(lifted, p(x)); });
 }
 
 /** @brief Disjunction of a predicate with a constant logical value. */
@@ -745,23 +741,22 @@ export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) && requires(C c) {
     lift_classifier_constant<Cod<P>, predicate_logic_t<P>>(c);
   }
-constexpr auto operator||(P&& p, C&& constant) {
-  return std::forward<C>(constant) || std::forward<P>(p);
+constexpr auto operator||(P p, C constant) {
+  return std::move(constant) || std::move(p);
 }
 
 /** @brief Logical Negation (Complement): Synthesizes a rule for ¬A.
  *  @note Textbook term: pseudocomplement/complement depending on Ω.
  */
 export template <IsPredicate P>
-constexpr auto operator!(P&& p) {
+constexpr auto operator!(P p) {
   using L = predicate_logic_t<P>;
   using A = Dom<P>;
   if constexpr (IsSpeciesTaggedArrow<P>) {
-    return Not<std::decay_t<P>>{std::forward<P>(p)};  // carries the species
+    return Not<std::decay_t<P>>{std::move(p)};  // carries the species
   } else {
     // Return a formal Morphism A -> Ω
-    return arrow<A>(
-        [p = std::forward<P>(p)](const A& x) { return L::RFL(p(x)); });
+    return arrow<A>([p = std::move(p)](const A& x) { return L::RFL(p(x)); });
   }
 }
 
@@ -781,8 +776,8 @@ export template <typename A, typename P, typename Q>
                    std::invoke_result_t<const std::decay_t<P>&, const A&>>,
                std::remove_cvref_t<
                    std::invoke_result_t<const std::decay_t<Q>&, const A&>>>
-constexpr auto predicate_and(P&& p, Q&& q) {
-  return classify<A>(std::forward<P>(p)).χ && classify<A>(std::forward<Q>(q)).χ;
+constexpr auto predicate_and(P p, Q q) {
+  return classify<A>(std::move(p)).χ && classify<A>(std::move(q)).χ;
 }
 
 /** @brief Disjunction bridge for plain callable predicates over domain A. */
@@ -796,8 +791,8 @@ export template <typename A, typename P, typename Q>
                    std::invoke_result_t<const std::decay_t<P>&, const A&>>,
                std::remove_cvref_t<
                    std::invoke_result_t<const std::decay_t<Q>&, const A&>>>
-constexpr auto predicate_or(P&& p, Q&& q) {
-  return classify<A>(std::forward<P>(p)).χ || classify<A>(std::forward<Q>(q)).χ;
+constexpr auto predicate_or(P p, Q q) {
+  return classify<A>(std::move(p)).χ || classify<A>(std::move(q)).χ;
 }
 
 /** @brief Negation bridge for plain callable predicates over domain A. */
@@ -805,8 +800,8 @@ export template <typename A, typename P>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
            IsΩ<std::remove_cvref_t<
                std::invoke_result_t<const std::decay_t<P>&, const A&>>>
-constexpr auto predicate_not(P&& p) {
-  return !classify<A>(std::forward<P>(p)).χ;
+constexpr auto predicate_not(P p) {
+  return !classify<A>(std::move(p)).χ;
 }
 
 /**

@@ -10,6 +10,15 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+/** @brief The opt-in operator-> drill-down, by name: returns the projected
+ *  product as a value (Jlt Rule 1, #1061). */
+struct DrillDownProjector {
+  template <typename Whole>
+  constexpr auto operator()(const Whole& whole) const {
+    return arrow_drill_down(whole);
+  }
+};
+
 namespace {
 // #881: the Op parameter of IsProduct / IsCoproduct is the (co)data-constructor
 // FACTORY, per the Haskell correspondence.  MakePair is the pairing constructor
@@ -200,12 +209,8 @@ TEST_CASE("Cartesian: Product Projection Semantics",
       }
     };
 
-    STATIC_CHECK(IsProjectedProduct<
-                 ProductEnvelope, int, bool,
-                 decltype([](const ProductEnvelope& envelope) constexpr
-                              -> const std::pair<int, bool>& {
-                   return arrow_drill_down(envelope);
-                 })>);
+    STATIC_CHECK(
+        IsProjectedProduct<ProductEnvelope, int, bool, DrillDownProjector>);
   }
 
   SECTION("π_1 / π_2 / mediate_product exercised at runtime") {

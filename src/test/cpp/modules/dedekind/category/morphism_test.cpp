@@ -6,6 +6,52 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+// Negative witnesses moved out of the module (#1061): each type here breaks
+// Rule 1 on purpose, to prove that a concept rejects it.  A witness of a
+// rejection is a test, so it lives in the tests, where the Jlt checker's gate
+// does not judge it.
+
+// Regression (#822): a Morphism wrapping a MUTABLE-ONLY callable is NOT an
+// arrow.  A morphism is pure (Juliet Posture §2); the const-invocability
+// constraint on operator() above makes IsArrow reject it at the type boundary,
+// rather than admitting it and hard-erroring only when the body is called.
+namespace morphism_const_invocability_witness {
+struct MutableOnlyRule {
+  int state = 0;
+  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
+};
+struct PureRule {
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(!IsArrow<Morphism<int, int, MutableOnlyRule>>,
+              "a Morphism over a mutable-only callable is not a (pure) arrow.");
+static_assert(IsArrow<Morphism<int, int, PureRule>>,
+              "a Morphism over a const-invocable callable is an arrow.");
+
+// DIRECT witness for the IsArrow probe itself (#822), NOT routed through
+// Morphism's operator() constraint: a raw arrow-shaped type (Domain/Codomain +
+// a NON-CONST operator()) must be !IsArrow.  This is the assertion that would
+// FAIL if the probe were reverted to a mutable `f` — the Morphism assertions
+// above would not, since Morphism::operator() rejects the mutable rule on its
+// own.  So this pins the concept's const-invocability directly.
+struct MutableOnlyArrow {
+  using Domain = int;
+  using Codomain = int;
+  int state = 0;
+  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
+};
+static_assert(!IsArrow<MutableOnlyArrow>,
+              "an arrow-shaped type with only a non-const operator() is not an "
+              "arrow (IsArrow requires const-invocability).");
+struct PureArrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(IsArrow<PureArrow>,
+              "an arrow-shaped type with a const operator() is an arrow.");
+}  // namespace morphism_const_invocability_witness
+
 TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
   SECTION("Identity Morphism (id)") {
     auto identity = id<int>();

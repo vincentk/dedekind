@@ -235,13 +235,12 @@ struct adjunction_witness {
 export template <typename Left, typename Right, typename Unit, typename Counit>
   requires IsAdjunction<std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
                         std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>
-constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
-                               Counit&& counit) {
+constexpr auto make_adjunction(Left left, Right right, Unit unit,
+                               Counit counit) {
   return adjunction_witness<
       std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
       std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>{
-      std::forward<Left>(left), std::forward<Right>(right),
-      std::forward<Unit>(unit), std::forward<Counit>(counit)};
+      std::move(left), std::move(right), std::move(unit), std::move(counit)};
 }
 
 // ===========================================================================

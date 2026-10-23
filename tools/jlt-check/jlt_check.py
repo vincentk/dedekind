@@ -23,6 +23,10 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 COUNT = re.compile(r"^(\d+) match(?:es)?\.", re.M)
 BINDS = re.compile(r'^(\S+:\d+:\d+): note: "root" binds here', re.M)
+# The checker judges the code as written, not CI's coverage build: there the
+# coverage bridges compile without constexpr on purpose, so their macro is
+# undone for the parse (the prebuilt modules are unaffected).
+UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
 
 
 def read_scope():
@@ -67,7 +71,7 @@ def run(query, build, path, namespace, rules):
     if path.startswith("tools/jlt-check/fixtures/"):
         args = [str(ROOT / path), "--", "-std=c++23", "-xc++"]
     else:
-        args = ["-p", str(build), str(ROOT / path)]
+        args = ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
     p = subprocess.run([query] + [a for s in script for a in ("-c", s)] + args,
                        capture_output=True, text=True)
     out = p.stdout + p.stderr

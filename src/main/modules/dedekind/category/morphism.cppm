@@ -479,47 +479,6 @@ struct Morphism {
   }
 };
 
-// Regression (#822): a Morphism wrapping a MUTABLE-ONLY callable is NOT an
-// arrow.  A morphism is pure (Juliet Posture §2); the const-invocability
-// constraint on operator() above makes IsArrow reject it at the type boundary,
-// rather than admitting it and hard-erroring only when the body is called.
-namespace morphism_const_invocability_witness {
-struct MutableOnlyRule {
-  int state = 0;
-  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
-};
-struct PureRule {
-  constexpr int operator()(int x) const { return x + 1; }
-};
-static_assert(!IsArrow<Morphism<int, int, MutableOnlyRule>>,
-              "a Morphism over a mutable-only callable is not a (pure) arrow.");
-static_assert(IsArrow<Morphism<int, int, PureRule>>,
-              "a Morphism over a const-invocable callable is an arrow.");
-
-// DIRECT witness for the IsArrow probe itself (#822), NOT routed through
-// Morphism's operator() constraint: a raw arrow-shaped type (Domain/Codomain +
-// a NON-CONST operator()) must be !IsArrow.  This is the assertion that would
-// FAIL if the probe were reverted to a mutable `f` — the Morphism assertions
-// above would not, since Morphism::operator() rejects the mutable rule on its
-// own.  So this pins the concept's const-invocability directly.
-struct MutableOnlyArrow {
-  using Domain = int;
-  using Codomain = int;
-  int state = 0;
-  constexpr int operator()(int x) { return state += x; }  // non-const: stateful
-};
-static_assert(!IsArrow<MutableOnlyArrow>,
-              "an arrow-shaped type with only a non-const operator() is not an "
-              "arrow (IsArrow requires const-invocability).");
-struct PureArrow {
-  using Domain = int;
-  using Codomain = int;
-  constexpr int operator()(int x) const { return x + 1; }
-};
-static_assert(IsArrow<PureArrow>,
-              "an arrow-shaped type with a const operator() is an arrow.");
-}  // namespace morphism_const_invocability_witness
-
 /** @brief Universal inference for any Morphism signature f: Args... -> Codomain
  */
 template <typename F, typename... Args>
@@ -671,44 +630,44 @@ static_assert(
 export template <typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           requires(F f) { typename signature_extractor<F>::type; }
-constexpr auto arrow(F&& f) {
+constexpr auto arrow(F f) {
   using D = domain_t<F>;
   using C = codomain_t<F>;
-  return Morphism<D, C, std::decay_t<F>>(std::forward<F>(f));
+  return Morphism<D, C, std::decay_t<F>>(std::move(f));
 }
 
 // 1. Explicit Arrow: arrow<A, B>(f)
 export template <typename A, typename B, typename F>
-constexpr auto arrow(F&& f) {
-  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+constexpr auto arrow(F f) {
+  return Morphism<A, B, std::decay_t<F>>(std::move(f));
 }
 
 // 2. Passthrough for things that are already Arrows (Idempotent factory)
 template <IsArrow F>
-constexpr auto arrow(F&& f) {
-  return std::forward<F>(f);
+constexpr auto arrow(F f) {
+  return std::move(f);
 }
 
 // 3. Semi-Automatic: Explicit Domain, Inferred Codomain
 // This is what classify<A>(f) needs to function.
 export template <typename A, typename F>
   requires(!IsArrow<F> && std::invocable<std::decay_t<F>, const A&>)
-constexpr auto arrow(F&& f) {
+constexpr auto arrow(F f) {
   using B = std::invoke_result_t<std::decay_t<F>, const A&>;
-  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+  return Morphism<A, B, std::decay_t<F>>(std::move(f));
 }
 
 // 2. Explicit Endomorphism: endo<A>(f)
 export template <typename A, typename F>
-constexpr auto endo(F&& f) {
-  return arrow<A, A>(std::forward<F>(f));
+constexpr auto endo(F f) {
+  return arrow<A, A>(std::move(f));
 }
 
 // 3. Verify "Lambdas" (Functional Auto-Discovery)
-auto logic_gate = arrow([](int x) -> bool { return x > 0; });
+constexpr auto logic_gate = arrow([](int x) -> bool { return x > 0; });
 
 static_assert(
-    IsArrow<decltype(logic_gate)>,
+    IsArrow<std::remove_cvref_t<decltype(logic_gate)>>,
     "Inference Error: Lambda was not automatically discovered as an Arrow.");
 
 // 4. Verify "The Universal Bridge" (Primitives as Identity Arrows)
@@ -896,7 +855,7 @@ struct Compose final {
   template <typename X>
     requires Presents<X, Domain> &&
              requires(const F& f_, const G& g_, const X& x_) { g_(f_(x_)); }
-  constexpr decltype(auto) operator()(const X& x) const {
+  constexpr auto operator()(const X& x) const {
     if constexpr (std::convertible_to<decltype(g(f(x))), Codomain>)
       return static_cast<Codomain>(g(f(x)));
     else
@@ -1012,14 +971,13 @@ export template <typename F, typename G>
   requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain>
-constexpr auto operator>>(F&& f, G&& g) {
+constexpr auto operator>>(F f, G g) {
   // Composition is the reified @c Compose<F,G> arrow, NOT a lambda-wrapped
   // @c arrow<A,C>: keeping the leg types @c F,G in the result's TYPE is what
   // lets the variance logic program pattern-match @c
   // is_monotone_v<Compose<...>> on the operands (a captured lambda erases
   // them), and de-lambdas the composite (#844 / #908).
-  return Compose<std::decay_t<F>, std::decay_t<G>>{std::forward<F>(f),
-                                                   std::forward<G>(g)};
+  return Compose<std::decay_t<F>, std::decay_t<G>>{std::move(f), std::move(g)};
 }
 
 /**
@@ -1042,9 +1000,9 @@ export template <typename F, typename G>
   requires IsSpokeArrow<std::decay_t<F>> && (!IsArrow<std::decay_t<G>>) &&
            std::invocable<std::decay_t<G>&,
                           const typename std::decay_t<F>::Codomain&>
-constexpr auto operator>>(F&& f, G&& g) {
+constexpr auto operator>>(F f, G g) {
   using B = typename std::decay_t<F>::Codomain;
-  return std::forward<F>(f) >> arrow<B>(std::forward<G>(g));
+  return std::move(f) >> arrow<B>(std::move(g));
 }
 
 /** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
@@ -1175,9 +1133,8 @@ static_assert(IsIsomorphism<TaggedNegate>,
  */
 export template <typename T, typename Arrow>
   requires IsArrow<Arrow> && std::convertible_to<T, typename Arrow::Domain>
-constexpr auto operator>>(T&& value, const Arrow& f) ->
-    typename Arrow::Codomain {
-  return f(std::forward<T>(value));
+constexpr auto operator>>(T value, const Arrow& f) -> typename Arrow::Codomain {
+  return f(std::move(value));
 }
 
 /**

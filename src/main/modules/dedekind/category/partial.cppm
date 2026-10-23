@@ -25,6 +25,7 @@ module;
 #include <concepts>
 #include <limits>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.category:partial;
@@ -83,8 +84,10 @@ struct Partial {
   T value;
   Ternary status;  // Use 'status' consistently
 
-  constexpr const T& operator*() const noexcept { return value; }
-  constexpr T& operator*() noexcept { return value; }
+  constexpr T operator*() const
+      noexcept(std::is_nothrow_copy_constructible_v<T>) {
+    return value;
+  }
 
   constexpr bool operator==(const Partial& other) const {
     return (status == Ternary::True && other.status == Ternary::True)
@@ -101,8 +104,10 @@ struct TernaryResult {
   Ternary status;
   T value;
 
-  constexpr const T& operator*() const noexcept { return value; }
-  constexpr T& operator*() noexcept { return value; }
+  constexpr T operator*() const
+      noexcept(std::is_nothrow_copy_constructible_v<T>) {
+    return value;
+  }
 };
 
 // 1. Classical

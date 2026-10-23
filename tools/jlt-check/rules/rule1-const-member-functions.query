@@ -1,0 +1,5 @@
+# Rule 1: values do not change.  Every member function is const (or
+# static): a non-const one changes its object.  Exempt: constructors,
+# destructors, defaulted and deleted members, lambdas, and the standard
+# iterator protocol (a class named exactly iterator, const_iterator or sentinel).
+match cxxMethodDecl(unless(anyOf(isConst(), isStaticStorageClass(), cxxConstructorDecl(), cxxDestructorDecl(), isImplicit(), isDefaulted(), isDeleted(), ofClass(cxxRecordDecl(isLambda())), ofClass(cxxRecordDecl(matchesName("::(const_)?iterator$|::sentinel$"))))), isExpansionInMainFile(), hasAncestor(scope))

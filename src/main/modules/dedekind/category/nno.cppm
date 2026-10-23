@@ -126,6 +126,7 @@
  */
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>     // std::int8_t (the K₃ step)
@@ -506,11 +507,10 @@ export template <typename A, typename G>
   requires std::invocable<G&, A const&> &&
            std::convertible_to<std::invoke_result_t<G&, A const&>, A>
 constexpr A nno_iterate(A a0, G g, std::size_t n) {
-  A current = a0;
-  for (std::size_t i = 0; i < n; ++i) {
-    current = std::invoke(g, current);
-  }
-  return current;
+  // n applications of g: a fold over n indices, each ignored (Rule 3).
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, n), std::move(a0),
+      [&g](A current, std::size_t) { return A(std::invoke(g, current)); });
 }
 
 }  // namespace dedekind::category

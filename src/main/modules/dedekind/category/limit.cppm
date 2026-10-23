@@ -307,19 +307,19 @@ concept TupleLike = requires { std::tuple_size<P>::value; };
  *  @param p the point. */
 export template <typename P, std::size_t K>
   requires TupleLike<P> && (K >= 1) && (K <= std::tuple_size_v<P>)
-constexpr const auto& component(const P& p, At<K>) {
+constexpr auto component(const P& p, At<K>) {
   return std::get<K - 1>(p);
 }
 /** @brief The components of a pair-like product that is not tuple-like.
  *  @param p the point. */
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.first; }
-constexpr const auto& component(const P& p, At<1>) {
+constexpr auto component(const P& p, At<1>) {
   return p.first;
 }
 export template <typename P>
   requires(!TupleLike<P>) && requires(const P& p) { p.second; }
-constexpr const auto& component(const P& p, At<2>) {
+constexpr auto component(const P& p, At<2>) {
   return p.second;
 }
 
@@ -327,16 +327,11 @@ constexpr const auto& component(const P& p, At<2>) {
  *  @tparam K the slot, from 1. */
 export template <std::size_t K>
 struct Projection {
+  /** @brief The component, as a value: one overload for lvalues and
+   *  temporaries alike, and no reference into a product that may die. */
   template <typename P>
     requires requires(const P& p) { component(p, At<K>{}); }
-  constexpr decltype(auto) operator()(const P& p) const {
-    return component(p, At<K>{});
-  }
-  /** @brief A temporary's component, by value (no reference into it). */
-  template <typename P>
-    requires(!std::is_lvalue_reference_v<P>) &&
-            requires(const P& p) { component(p, At<K>{}); }
-  constexpr auto operator()(P&& p) const {
+  constexpr auto operator()(const P& p) const {
     return auto(component(p, At<K>{}));
   }
 };
@@ -367,9 +362,7 @@ struct ProjectionAt {
   using Domain = P;
   using Codomain =
       std::remove_cvref_t<decltype(Projection<K>{}(std::declval<const P&>()))>;
-  constexpr decltype(auto) operator()(const P& p) const {
-    return Projection<K>{}(p);
-  }
+  constexpr auto operator()(const P& p) const { return Projection<K>{}(p); }
 };
 template <std::size_t K, typename P>
 struct projection_arrow {
@@ -589,12 +582,12 @@ static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
  */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
-constexpr auto mediate_product(F&& f, G&& g) {
+constexpr auto mediate_product(F f, G g) {
   using X = Dom<F>;
   using A = Cod<F>;
   using B = Cod<G>;
 
-  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+  return arrow([f = std::move(f), g = std::move(g)](const X& x) {
     return std::pair<A, B>(f(x), g(x));
   });
 }
@@ -768,17 +761,21 @@ static_assert(IsBoundaryProjection<std::identity, One, One>);
 static_assert(IsBoundaryProjection<std::identity, Zero, Zero>);
 static_assert(IsProjectedTerminalObject<One>);
 static_assert(IsProjectedInitialObject<Zero>);
+namespace detail {
+/** @brief The opt-in @c operator-> drill-down policy: the projector the
+ *  projected-object concepts take, by name rather than as a lambda. */
+struct DrillDown {
+  template <typename Whole>
+  constexpr auto operator()(const Whole& whole) const {
+    return arrow_drill_down(whole);
+  }
+};
+}  // namespace detail
 static_assert(
-    IsProjectedTerminalObject<
-        detail::TerminalEnvelope,
-        decltype([](const detail::TerminalEnvelope& envelope) constexpr
-                     -> const One& { return arrow_drill_down(envelope); })>,
+    IsProjectedTerminalObject<detail::TerminalEnvelope, detail::DrillDown>,
     "Opt-in operator-> drill-down must expose a Terminal object witness.");
 static_assert(
-    IsProjectedInitialObject<
-        detail::InitialEnvelope,
-        decltype([](const detail::InitialEnvelope& envelope) constexpr
-                     -> const Zero& { return arrow_drill_down(envelope); })>,
+    IsProjectedInitialObject<detail::InitialEnvelope, detail::DrillDown>,
     "Opt-in operator-> drill-down must expose an Initial object witness.");
 
 }  // namespace dedekind::category

@@ -330,7 +330,7 @@ concept HasCarrier =
     requires(const Algebra& a) {
       {
         dedekind::category::arrow_drill_down(a)
-      } -> std::same_as<const Carrier&>;
+      } -> std::same_as<Carrier>;  // the carrier, as a value (Jlt Rule 1)
     };
 
 namespace _has_carrier_witness {

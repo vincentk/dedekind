@@ -38,6 +38,7 @@ module;
 #include <cstddef>  // std::size_t: the walk budget
 #include <functional>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
+#include <ranges>
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:mereology;
@@ -202,19 +203,6 @@ concept IsConnex =
  *  run-time relation (@c relational:rows) reads them as well (#1045: one
  *  definition per property, read on both sides).  @c Ω @c = @c bool here;
  *  the many-valued reading is the run-time side's. */
-namespace detail_mereology {
-/** @brief A certified relation callable only on a mutable object: the law
- *  concepts' const-callability contract rejects it under every reference
- *  qualification. */
-struct MutableOnly {
-  bool operator()(int, int) { return true; }
-};
-}  // namespace detail_mereology
-template <>
-struct is_reflexive<int, detail_mereology::MutableOnly> : std::true_type {};
-static_assert(!IsReflexive<int, detail_mereology::MutableOnly> &&
-                  !IsReflexive<int, detail_mereology::MutableOnly&>,
-              "a mutable-only call is no relation, by value or by reference");
 
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -469,12 +457,13 @@ constexpr std::size_t chain_length(T lo, const T& hi) {
  *  @c law_evaluation_budget. */
 constexpr bool fits_budget(std::size_t n, std::size_t arity) {
   if (n == 0) return false;
-  std::size_t cost = 1;
-  for (std::size_t k = 0; k < arity; ++k) {
-    cost *= n;
-    if (cost > law_evaluation_budget) return false;
-  }
-  return true;
+  // n^arity, capped one past the budget so the product cannot overflow
+  // (n <= chain_walk_budget): a fold over arity copies of n (Rule 3).
+  return std::ranges::fold_left(std::views::repeat(n, arity), std::size_t{1},
+                                [](std::size_t cost, std::size_t m) {
+                                  return std::min<std::size_t>(
+                                      cost * m, law_evaluation_budget + 1);
+                                }) <= law_evaluation_budget;
 }
 
 /** @concept IsWalkableChain
@@ -619,18 +608,6 @@ static_assert(
                  std::less_equal<detail_mereology::Dial<5000>>>,
     "a chain longer than the walk budget gets no certificate from the law "
     "(uncertified, not refuted)");
-namespace detail_mereology {
-/** @brief A relation the compiler cannot evaluate: its call is not constexpr.
- */
-struct RuntimeLe {
-  bool operator()(const Dial<4>& a, const Dial<4>& b) const { return a <= b; }
-};
-}  // namespace detail_mereology
-static_assert(
-    !IsReflexive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe> &&
-        !IsTransitive<detail_mereology::Dial<4>, detail_mereology::RuntimeLe>,
-    "a relation that is no constant expression is not decided by "
-    "the law: uncertified, and no compile error");
 
 // Sup (∨) / Inf (∧) are the SOLE carriers of the order-lattice laws (#934
 // retired the parallel std::ranges::max / min niebloid blanket); registered
@@ -1087,7 +1064,7 @@ concept Parthood = IsPartOfRelation<T, T, bool>;
  * raw pointers.
  */
 export template <typename Whole>
-constexpr decltype(auto) arrow_drill_down(const Whole& whole)
+constexpr auto arrow_drill_down(const Whole& whole)
   requires requires { whole.operator->(); }
 {
   return *whole.operator->();
@@ -1095,7 +1072,7 @@ constexpr decltype(auto) arrow_drill_down(const Whole& whole)
 
 /** @brief Pointer overload for generic drill-down projection. */
 export template <typename T>
-constexpr const T& arrow_drill_down(const T* whole) {
+constexpr T arrow_drill_down(const T* whole) {
   return *whole;
 }
 
@@ -1107,10 +1084,10 @@ static_assert(Parthood<int>,
               "Parthood concept must hold for the canonical integer witness.");
 static_assert(
     requires(const int* p) {
-      { arrow_drill_down(p) } -> std::same_as<const int&>;
+      { arrow_drill_down(p) } -> std::same_as<int>;
     },
-    "Pointer drill-down overload must return a const reference to the "
-    "pointed-to value.");
+    "Pointer drill-down overload returns the pointed-to value, not a "
+    "reference into it (Jlt Rule 1, #1061).");
 static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,

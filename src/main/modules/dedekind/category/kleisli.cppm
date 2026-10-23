@@ -102,9 +102,9 @@ inline constexpr bool is_maybe_v = is_maybe<U>::value;
 export template <typename T, typename Func>
   requires _kleisli_detail::is_maybe_v<
       std::remove_cvref_t<std::invoke_result_t<Func, T>>>
-constexpr auto operator>>=(const Maybe<T>& m, Func&& f) {
+constexpr auto operator>>=(const Maybe<T>& m, Func f) {
   using Result = std::invoke_result_t<Func, T>;
-  return m.has_value() ? std::forward<Func>(f)(*m) : Result{std::nullopt};
+  return m.has_value() ? std::move(f)(*m) : Result{std::nullopt};
 }
 
 /**
@@ -160,15 +160,15 @@ inline constexpr bool is_tuple1_v = is_tuple1<U>::value;
 export template <typename T, typename Func>
   requires _kleisli_detail::is_tuple1_v<
       std::remove_cvref_t<std::invoke_result_t<Func, T>>>
-constexpr auto operator>>=(const std::tuple<T>& t, Func&& f) {
-  return std::forward<Func>(f)(std::get<0>(t));
+constexpr auto operator>>=(const std::tuple<T>& t, Func f) {
+  return std::move(f)(std::get<0>(t));
 }
 
 // Extend: std::tuple<T> <<= (std::tuple<T> -> U) -> std::tuple<U>.
 export template <typename T, typename Func>
-constexpr auto operator<<=(const std::tuple<T>& t, Func&& f) {
+constexpr auto operator<<=(const std::tuple<T>& t, Func f) {
   using U = std::invoke_result_t<Func, std::tuple<T>>;
-  return std::tuple<U>{std::forward<Func>(f)(t)};
+  return std::tuple<U>{std::move(f)(t)};
 }
 
 export template <typename T>
@@ -225,8 +225,8 @@ concept IsFrobenius =
  */
 export template <typename MA, typename F>
   requires requires(MA const& ma, F&& f) { μ(φ(ma, std::forward<F>(f))); }
-constexpr auto κ(MA const& ma, F&& f) {
-  return μ(φ(ma, std::forward<F>(f)));
+constexpr auto κ(MA const& ma, F f) {
+  return μ(φ(ma, std::move(f)));
 }
 
 /**
@@ -249,8 +249,8 @@ constexpr auto κ(MA const& ma, F&& f) {
  */
 export template <typename WA, typename F>
   requires requires(WA const& wa, F&& f) { φ(δ(wa), std::forward<F>(f)); }
-constexpr auto σ(WA const& wa, F&& f) {
-  return φ(δ(wa), std::forward<F>(f));
+constexpr auto σ(WA const& wa, F f) {
+  return φ(δ(wa), std::move(f));
 }
 
 /**
@@ -259,8 +259,8 @@ constexpr auto σ(WA const& wa, F&& f) {
  */
 export template <typename MA, typename F>
   requires requires(MA const& ma, F&& f) { κ(ma, std::forward<F>(f)); }
-constexpr auto bind(MA const& ma, F&& f) {
-  return κ(ma, std::forward<F>(f));
+constexpr auto bind(MA const& ma, F f) {
+  return κ(ma, std::move(f));
 }
 
 /**
@@ -269,8 +269,8 @@ constexpr auto bind(MA const& ma, F&& f) {
  */
 export template <typename WA, typename F>
   requires requires(WA const& wa, F&& f) { σ(wa, std::forward<F>(f)); }
-constexpr auto extend(WA const& wa, F&& f) {
-  return σ(wa, std::forward<F>(f));
+constexpr auto extend(WA const& wa, F f) {
+  return σ(wa, std::move(f));
 }
 
 /**
@@ -282,8 +282,8 @@ export template <typename HubTag, typename MA, typename F>
            requires(HubTag tag, MA const& ma, F&& f) {
              join(tag, φ(ma, std::forward<F>(f)));
            }
-constexpr auto bind(HubTag tag, MA const& ma, F&& f) {
-  return join(tag, φ(ma, std::forward<F>(f)));
+constexpr auto bind(HubTag tag, MA const& ma, F f) {
+  return join(tag, φ(ma, std::move(f)));
 }
 
 /**
@@ -295,8 +295,8 @@ export template <typename HubTag, typename WA, typename F>
            requires(HubTag tag, WA const& wa, F&& f) {
              φ(duplicate(tag, wa), std::forward<F>(f));
            }
-constexpr auto extend(HubTag tag, WA const& wa, F&& f) {
-  return φ(duplicate(tag, wa), std::forward<F>(f));
+constexpr auto extend(HubTag tag, WA const& wa, F f) {
+  return φ(duplicate(tag, wa), std::move(f));
 }
 
 /** @section kleisli__Kleisli_Bind_Operators */
@@ -310,8 +310,8 @@ export template <typename MA, typename F>
   requires requires(MA const& ma, F&& f) {
     { κ(ma, std::forward<F>(f)) };
   }
-constexpr auto operator>>=(MA const& ma, F&& f) {
-  return κ(ma, std::forward<F>(f));
+constexpr auto operator>>=(MA const& ma, F f) {
+  return κ(ma, std::move(f));
 }
 
 /**
@@ -326,8 +326,8 @@ export template <typename MA, typename F>
     { φ(ma, std::forward<F>(f)) };
     { μ(φ(ma, std::forward<F>(f))) };
   }
-constexpr auto operator>>(MA const& ma, F&& f) {
-  return κ(ma, std::forward<F>(f));
+constexpr auto operator>>(MA const& ma, F f) {
+  return κ(ma, std::move(f));
 }
 
 /**
@@ -339,8 +339,8 @@ export template <typename WA, typename F>
   requires requires(WA const& wa, F&& f) {
     { σ(wa, std::forward<F>(f)) };
   }
-constexpr auto operator<<=(WA const& wa, F&& f) {
-  return σ(wa, std::forward<F>(f));
+constexpr auto operator<<=(WA const& wa, F f) {
+  return σ(wa, std::move(f));
 }
 
 /**
@@ -356,8 +356,8 @@ export template <typename WA, typename F>
             { δ(wa) };
             { φ(δ(wa), std::forward<F>(f)) };
           }
-constexpr auto operator<<(WA const& wa, F&& f) {
-  return σ(wa, std::forward<F>(f));
+constexpr auto operator<<(WA const& wa, F f) {
+  return σ(wa, std::move(f));
 }
 
 // ---------------------------------------------------------------------------

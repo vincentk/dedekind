@@ -91,15 +91,15 @@ concept IsDefaultHubTag =
  */
 // η (Unit): a -> Maybe a
 template <typename A>
-constexpr Maybe<std::decay_t<A>> η(A&& value) {
-  return std::make_optional(std::forward<A>(value));
+constexpr Maybe<std::decay_t<A>> η(A value) {
+  return std::make_optional(std::move(value));
 }
 
 // Tagged defaults for Maybe hub.
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr Maybe<std::decay_t<A>> η(maybe_hub_tag, A&& value) {
-  return std::make_optional(std::forward<A>(value));
+constexpr Maybe<std::decay_t<A>> η(maybe_hub_tag, A value) {
+  return std::make_optional(std::move(value));
 }
 
 /**
@@ -139,8 +139,8 @@ constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
 // η: a → std::tuple<a>
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A&& value) {
-  return std::tuple<std::decay_t<A>>{std::forward<A>(value)};
+constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A value) {
+  return std::tuple<std::decay_t<A>>{std::move(value)};
 }
 
 // μ: std::tuple<std::tuple<A>> → std::tuple<A>
@@ -192,7 +192,7 @@ constexpr std::tuple<std::tuple<A>> δ(tuple_hub_tag, std::tuple<A> const& ta) {
 
 // Monadic
 template <typename A>
-constexpr Identity<std::decay_t<A>> η(A&& value) {
+constexpr Identity<std::decay_t<A>> η(A value) {
   (void)value;
   return id<std::decay_t<A>>();
 }
@@ -200,7 +200,7 @@ constexpr Identity<std::decay_t<A>> η(A&& value) {
 // Tagged defaults for Identity hub.
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr Identity<std::decay_t<A>> η(identity_hub_tag, A&& value) {
+constexpr Identity<std::decay_t<A>> η(identity_hub_tag, A value) {
   (void)value;
   return id<std::decay_t<A>>();
 }

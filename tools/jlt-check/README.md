@@ -38,19 +38,33 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-rvalue-reference-params` | a parameter by rvalue reference to a non-`const` type that is not forwarding (a concrete type, or a class template's parameter): a sink |
 | `rule1-forwarding-reference-params` | a parameter `T&&` with `T` a type parameter of the function template, or `auto&&` |
 | `rule1-no-volatile` | any object, reference or pointer to `volatile`: never a value |
+| `rule1-no-reference-returns` | a function returning a reference (including `const auto&`) |
+| `rule1-const-member-functions` | a non-`static` member function that is not `const` |
+| `rule1-no-mutable-globals` | a namespace-scope or static data member variable that is neither `const` nor `constexpr` |
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
-`operator()`.  **The boxed value:** `std::shared_ptr<const T>` is a Jlt value
+`operator()`.  The standard iterator protocol (a nested `iterator` or
+`sentinel`) is exempt from the reference-return and const-member rules: the
+folds of Rule 3 run on it.  **The boxed value:** `std::shared_ptr<const T>` is a Jlt value
 (semiregular, immutable, cheap to copy; the heap cell a recursive structure
 needs) so long as nothing observes which box it is; it exists at run time
 only, since `shared_ptr` is not `constexpr` in C++23.
 
+**Local mutation** is allowed: a function may change its own locals,
+because nothing it changes outlives the call.  The rules above close the
+channels a mutation could leak through (parameters, results, the object,
+static locals, globals, volatile, boxes); the escaping reference capture is
+the one still open.
+
 **Known blind spots** (plugin work): a `mutable` member has no matcher; a
 `make_shared` whose argument depends on a template parameter is unresolved in
-the template pattern; Rule 3's proper-subterm check on self-calls.
+the template pattern; a `decltype(auto)` return in a template pattern is
+undeduced; a lambda that captures by reference and escapes its function
+(indistinguishable in syntax from a visitor called on the spot: needs
+dataflow); Rule 3's proper-subterm check on self-calls.
 
 ## Plan
 

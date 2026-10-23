@@ -174,24 +174,24 @@ concept IsArrowExponential = IsExponential<E, A, B> && IsArrow<E> &&
  * @details 1. Fully Automatic: Inferred from lambda signature
  */
 export template <typename F>
-constexpr auto exponential(F&& f) {
-  return arrow(std::forward<F>(f));
+constexpr auto exponential(F f) {
+  return arrow(std::move(f));
 }
 
 /**
  * @details 2. Semi-Automatic: Explicit Domain A, Inferred Codomain B
  */
 export template <typename A, typename F>
-constexpr auto exponential(F&& f) {
-  return arrow<A>(std::forward<F>(f));
+constexpr auto exponential(F f) {
+  return arrow<A>(std::move(f));
 }
 
 /**
  * @details 3. Fully Explicit: Explicit A and B
  */
 export template <typename A, typename B, typename F>
-constexpr auto exponential(F&& f) {
-  return arrow<A, B>(std::forward<F>(f));
+constexpr auto exponential(F f) {
+  return arrow<A, B>(std::move(f));
 }
 
 /**
@@ -206,7 +206,7 @@ using Exponential =
  * @brief Currying: (X × A → B) ⟹ (X → B^A)
  */
 export template <IsArrowFromProduct F>
-constexpr auto curry(F&& f) {
+constexpr auto curry(F f) {
   using X = typename Dom<F>::first_type;
   using A = typename Dom<F>::second_type;
 
@@ -216,11 +216,11 @@ constexpr auto curry(F&& f) {
   // shares it and none can change it.
   using G = std::decay_t<F>;
   if constexpr (std::copy_constructible<G>) {
-    return arrow([g = G(std::forward<F>(f))](const X& x) {
+    return arrow([g = G(std::move(f))](const X& x) {
       return exponential([g, x](const A& a) { return g({x, a}); });
     });
   } else {
-    auto box = std::make_shared<const G>(std::forward<F>(f));
+    auto box = std::make_shared<const G>(std::move(f));
     return arrow([box](const X& x) {
       return exponential([box, x](const A& a) { return (*box)({x, a}); });
     });
@@ -234,14 +234,14 @@ constexpr auto curry(F&& f) {
  */
 export template <IsArrow F>
   requires IsArrow<Cod<F>>
-constexpr auto uncurry(F&& f) {
+constexpr auto uncurry(F f) {
   using X = Dom<F>;
   using Exp = Cod<F>;
   using A = Dom<Exp>;
   // using B = Cod<Exp>;
 
   // Use explicit types in the lambda so signature_extractor works
-  return arrow([f = std::forward<F>(f)](const std::pair<X, A>& p) {
+  return arrow([f = std::move(f)](const std::pair<X, A>& p) {
     return f(p.first)(p.second);
   });
 }
@@ -308,12 +308,12 @@ concept IsCoproduct =
  * unambiguously select the first alternative.
  */
 export template <typename A, typename B>
-constexpr auto ι_1(A&& value) {
+constexpr auto ι_1(A value) {
   using Var = std::variant<A, B>;
   if constexpr (std::same_as<A, B>) {
-    return Var(std::in_place_index<0>, std::forward<A>(value));
+    return Var(std::in_place_index<0>, std::move(value));
   } else {
-    return Var(std::forward<A>(value));
+    return Var(std::move(value));
   }
 }
 
@@ -324,12 +324,12 @@ constexpr auto ι_1(A&& value) {
  * unambiguously select the second alternative.
  */
 export template <typename A, typename B>
-constexpr auto ι_2(B&& value) {
+constexpr auto ι_2(B value) {
   using Var = std::variant<A, B>;
   if constexpr (std::same_as<A, B>) {
-    return Var(std::in_place_index<1>, std::forward<B>(value));
+    return Var(std::in_place_index<1>, std::move(value));
   } else {
-    return Var(std::forward<B>(value));
+    return Var(std::move(value));
   }
 }
 
@@ -394,28 +394,27 @@ static_assert(
  */
 export template <IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, Cod<G>>  // Must map to the same Target X
-constexpr auto mediate_coproduct(F&& f, G&& g) {
+constexpr auto mediate_coproduct(F f, G g) {
   using A = Dom<F>;
   using B = Dom<G>;
   using X = Cod<F>;
   using Var = std::variant<A, B>;
 
-  return arrow<Var, X>(
-      [f = std::forward<F>(f), g = std::forward<G>(g)](const Var& v) -> X {
-        if constexpr (std::same_as<A, B>) {
-          return v.index() == 0 ? f(std::get<0>(v)) : g(std::get<1>(v));
-        } else {
-          return std::visit(
-              [&](auto&& val) -> X {
-                using T = std::decay_t<decltype(val)>;
-                if constexpr (std::same_as<T, A>)
-                  return f(val);
-                else
-                  return g(val);
-              },
-              v);
-        }
-      });
+  return arrow<Var, X>([f = std::move(f), g = std::move(g)](const Var& v) -> X {
+    if constexpr (std::same_as<A, B>) {
+      return v.index() == 0 ? f(std::get<0>(v)) : g(std::get<1>(v));
+    } else {
+      return std::visit(
+          [&](auto&& val) -> X {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::same_as<T, A>)
+              return f(val);
+            else
+              return g(val);
+          },
+          v);
+    }
+  });
 }
 
 /**
@@ -429,8 +428,10 @@ constexpr auto mediate_coproduct(F&& f, G&& g) {
  */
 export template <typename F, typename A>
   requires IsExponential<F, A, std::invoke_result_t<F, A>>
-constexpr auto eval(F&& f, A&& a) -> decltype(auto) {
-  return std::invoke(std::forward<F>(f), std::forward<A>(a));
+constexpr auto eval(F f, A a) {
+  // By value in and out: a decltype(auto) result could be a reference into
+  // an argument that dies when eval returns.
+  return std::invoke(std::move(f), std::move(a));
 }
 
 /** @section cartesian__Structural_Exponential_Verification */
@@ -450,9 +451,9 @@ static_assert(IsExponential<std::move_only_function<bool(int)>, int, bool>,
 // This captures the 'essence' without the 'lineage'.  (Named @c bounded_pred,
 // not @c closure, so the canonical name is free for the @c closure operator in
 // @c :functor --- "closure of X under Y".)
-auto bounded_pred = [limit = 42](int x) { return x < limit; };
+constexpr auto bounded_pred = [limit = 42](int x) { return x < limit; };
 static_assert(
-    IsExponential<decltype(bounded_pred), int, bool>,
+    IsExponential<std::remove_cvref_t<decltype(bounded_pred)>, int, bool>,
     "Structural: A lambda is discovered as an Exponential by its scent.");
 
 // 4. The "Honest Rejection": Mismatched Signature
