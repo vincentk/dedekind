@@ -731,7 +731,9 @@ constexpr std::optional<std::size_t> first_where(const Path<T>& path,
                                                  Pred&& pred,
                                                  std::size_t budget) {
   // The first<P> pattern: iterate a search state (the index, whether it
-  // holds) that stops changing once found, within budget + 1 tests.
+  // holds) that stops changing once found.  Index 0 is tested up front and
+  // each of the budget steps tests the next index, so 0 ... budget are tested
+  // without an overflowing count.
   struct Search {
     std::size_t i;
     bool found;
@@ -740,10 +742,9 @@ constexpr std::optional<std::size_t> first_where(const Path<T>& path,
   const Search s = dedekind::category::iterate(
       [&path, &pred](const Search& at) {
         if (at.found) return at;
-        return std::invoke(pred, path.at(at.i)) ? Search{at.i, true}
-                                                : Search{at.i + 1, false};
+        return Search{at.i + 1, std::invoke(pred, path.at(at.i + 1))};
       },
-      Search{0, false}, budget + 1);
+      Search{0, std::invoke(pred, path.at(0))}, budget);
   return s.found ? std::optional<std::size_t>{s.i} : std::nullopt;
 }
 

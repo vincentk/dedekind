@@ -46,7 +46,11 @@ namespace dedekind::sequences {
 export template <typename Range, typename Acc, typename Op>
 constexpr Acc fold(const Range& xs, Acc acc, Op op) {
   // The standard left fold (Rule 3), the accumulator moved through each step.
-  return Acc(std::ranges::fold_left(xs, std::move(acc), op));
+  // Every step assigns into and returns Acc, as the loop did; the standard
+  // fold alone would carry the step's own result type.
+  return std::ranges::fold_left(
+      xs, std::move(acc),
+      [&op](Acc a, const auto& x) -> Acc { return op(std::move(a), x); });
 }
 
 }  // namespace dedekind::sequences

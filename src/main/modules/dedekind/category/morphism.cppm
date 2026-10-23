@@ -1443,7 +1443,9 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
  *  @param equal the equality. */
 export template <typename X, typename F, typename Equal = std::equal_to<>>
   requires std::regular_invocable<const F&, const X&> &&
-           std::convertible_to<std::invoke_result_t<const F&, const X&>, X>
+           std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
+           (std::predicate<const Equal&, const X&, const X&> ||
+            std::same_as<Equal, std::equal_to<>>)
 constexpr X iterate(const F& f, const X& x0, std::size_t n,
                     const Equal& equal = {}) {
   X x = x0;                              // the call's argument

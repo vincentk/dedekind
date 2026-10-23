@@ -504,8 +504,9 @@ static_assert(Out<Ternary>{}(In<Ternary>{}(std::optional<Ternary>{
  *         @c n times.
  */
 export template <typename A, typename G>
-  requires std::invocable<G&, A const&> &&
-           std::convertible_to<std::invoke_result_t<G&, A const&>, A>
+  requires std::regular_invocable<const G&, const A&> &&
+           std::convertible_to<std::invoke_result_t<const G&, const A&>, A> &&
+           std::copyable<A>
 constexpr A nno_iterate(A a0, G g, std::size_t n) {
   // The NNO's face of iterate (:morphism): n applications of g to a0.
   return iterate(g, a0, n);

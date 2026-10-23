@@ -678,7 +678,8 @@ constexpr auto make_f_coalgebra(Functor functor, Structure structure) {
  * the first fixed point it reaches.
  */
 export template <typename T, typename Step, typename Equal = std::equal_to<>>
-  requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
+  requires IsIterativeEndomorphism<T, Step> &&
+           std::predicate<const Equal&, const T&, const T&>
 constexpr T fixed_point(T seed, Step step, Equal equal = {},
                         std::size_t max_iterations = 1024) {
   return iterate(step, seed, max_iterations, equal);
@@ -686,7 +687,8 @@ constexpr T fixed_point(T seed, Step step, Equal equal = {},
 
 /** @brief Alias emphasizing order-theoretic reading of the fixed point. */
 export template <typename T, typename Step, typename Equal = std::equal_to<>>
-  requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
+  requires IsIterativeEndomorphism<T, Step> &&
+           std::predicate<const Equal&, const T&, const T&>
 constexpr T least_fixpoint(T seed, Step step, Equal equal = {},
                            std::size_t max_iterations = 1024) {
   return fixed_point(seed, step, equal, max_iterations);
@@ -715,7 +717,7 @@ constexpr T least_fixpoint(T seed, Step step, Equal equal = {},
  */
 export template <typename T, typename Expand, typename Join,
                  typename Equal = std::equal_to<>>
-  requires std::predicate<Equal, T, T>
+  requires std::predicate<const Equal&, const T&, const T&>
 constexpr T closure(const T& x, Expand expand, Join join, Equal equal = {},
                     std::size_t max_iterations = 1024) {
   return least_fixpoint(

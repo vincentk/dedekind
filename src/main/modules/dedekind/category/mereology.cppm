@@ -37,6 +37,7 @@ module;
 #include <concepts>
 #include <cstddef>  // std::size_t: the walk budget
 #include <functional>
+#include <limits>
 #include <optional>  // negative witness: std::optional<double> (NaN-containing order)
 #include <ranges>
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
@@ -275,9 +276,12 @@ struct ChainStep {
  *  within @c chain_walk_budget: the fixed point of one step, reached where the
  *  chain ends (at @c hi, or at a fixpoint of the step), so it stops there. */
 template <typename T>
-constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi) {
-  return iterate(ChainStep<T>{hi}, ChainWalk<T>{lo, 0, false, false},
-                 chain_walk_budget + 1);
+constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi,
+                                  std::size_t budget = chain_walk_budget) {
+  // One more step than values, to see the ended walk stand still.
+  const std::size_t steps =
+      budget == std::numeric_limits<std::size_t>::max() ? budget : budget + 1;
+  return iterate(ChainStep<T>{hi}, ChainWalk<T>{lo, 0, false, false}, steps);
 }
 /** @brief A law of @c Arity points, at every tuple of points from @c lo to
  *  @c hi: the one walk every law below reads. */
@@ -301,9 +305,13 @@ constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
     return iterate(
                [=](const At& at) {  // by value: the step escapes no reference
                  if (!at.holds || at.left == 0) return at;
-                 return At{successor(at.a), at.left - 1,
-                           holds_on_walk<Arity>(law, rel, lo, length, fixed...,
-                                                at.a)};
+                 // The law at this point first; advance only if it holds and
+                 // another point remains (no successor past the last one).
+                 if (!holds_on_walk<Arity>(law, rel, lo, length, fixed...,
+                                           at.a))
+                   return At{at.a, at.left - 1, false};
+                 if (at.left == 1) return At{at.a, 0, true};
+                 return At{successor(at.a), at.left - 1, true};
                },
                At{lo, length, true}, length + 1)
         .holds;
@@ -311,7 +319,11 @@ constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
 }
 template <std::size_t Arity, typename Law, typename Rel, typename T>
 constexpr bool holds_on(Law law, const Rel& rel, const T& lo, const T& hi) {
-  return holds_on_walk<Arity>(law, rel, lo, walk_chain(lo, hi).length);
+  // The whole chain: the exported *_on laws are run-time APIs too, and only
+  // the compile-time decisions are gated to chains within the walk budget.
+  return holds_on_walk<Arity>(
+      law, rel, lo,
+      walk_chain(lo, hi, std::numeric_limits<std::size_t>::max()).length);
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
