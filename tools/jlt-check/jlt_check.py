@@ -147,8 +147,8 @@ def main():
     per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
     for (f, ns), entries in sorted(groups.items()):
         query_rules = [r for r, _ in entries if tool_check(r) is None]
-        counts, where, out = (run(query, build, f, ns, query_rules)
-                              if query_rules else ({}, {}, ""))
+        # Always through run(): its namespace probe guards tool-only groups too.
+        counts, where, out = run(query, build, f, ns, query_rules)
         for r, _ in entries:  # the tool's checks, one run each
             chk = tool_check(r)
             if chk is None or counts is None:

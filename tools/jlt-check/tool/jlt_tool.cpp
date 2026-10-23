@@ -47,9 +47,16 @@ bool inScope(const clang::Decl* d) {
   return false;
 }
 
-/// A function the check judges: defined in the main file, inside the scope.
-bool judged(const clang::FunctionDecl* f, const clang::SourceManager& sm) {
-  return f && f->hasBody() && sm.isInMainFile(f->getLocation()) && inScope(f);
+/// The defining redeclaration of `f`, if any: the call graph names a function
+/// by its canonical declaration, which may be a prototype in a header, and the
+/// check judges and reports the definition.
+const clang::FunctionDecl* definitionOf(const clang::FunctionDecl* f) {
+  return f ? f->getDefinition() : nullptr;
+}
+
+/// Whether a definition is judged: in the main file, inside the scope.
+bool judged(const clang::FunctionDecl* def, const clang::SourceManager& sm) {
+  return def && sm.isInMainFile(def->getLocation()) && inScope(def);
 }
 
 /// Strongly connected components of the call graph (Tarjan); each component
@@ -92,9 +99,9 @@ class MutualRecursion : public clang::ASTConsumer {
           }
           if (component.size() < 2) return;  // a self-call is another rule's
           for (const clang::CallGraphNode* w : component)
-            if (const auto* f =
-                    llvm::dyn_cast_or_null<clang::FunctionDecl>(w->getDecl()))
-              if (judged(f, sm)) findings.insert(f);
+            if (const clang::FunctionDecl* def = definitionOf(
+                    llvm::dyn_cast_or_null<clang::FunctionDecl>(w->getDecl())))
+              if (judged(def, sm)) findings.insert(def);
         };
 
     for (const auto& entry : graph)
