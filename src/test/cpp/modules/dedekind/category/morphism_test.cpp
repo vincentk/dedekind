@@ -1,10 +1,40 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 
 import dedekind.category;
 
 using namespace dedekind::category;
+
+// fix is its recursive definition with the one tail call eliminated (#1061).
+// The definition, verbatim, for budgets within the constexpr depth limit; the
+// library's loop must agree with it on every case: a fixed point reached
+// early, a budget spent before one is, and the empty budget.
+namespace fix_witness {
+template <typename X, typename F>
+constexpr X fix_by_recursion(const F& f, const X& x, std::size_t n) {
+  if (n == 0) return x;
+  const X x1 = f(x);
+  return x1 == x ? x1 : fix_by_recursion(f, x1, n - 1);
+}
+struct Halve {
+  constexpr std::size_t operator()(std::size_t x) const { return x / 2; }
+};
+struct Step {
+  constexpr std::size_t operator()(std::size_t x) const { return x + 1; }
+};
+static_assert(fix(Halve{}, std::size_t{1000}, 64) ==
+                  fix_by_recursion(Halve{}, std::size_t{1000}, 64) &&
+              fix(Halve{}, std::size_t{1000}, 64) == 0);  // reached early
+static_assert(fix(Step{}, std::size_t{0}, 10) ==
+                  fix_by_recursion(Step{}, std::size_t{0}, 10) &&
+              fix(Step{}, std::size_t{0}, 10) == 10);  // budget spent
+static_assert(fix(Step{}, std::size_t{7}, 0) == 7 &&
+              fix_by_recursion(Step{}, std::size_t{7}, 0) == 7);  // n = 0
+static_assert(fix(Halve{}, std::size_t{1000}, 3) ==
+              fix_by_recursion(Halve{}, std::size_t{1000}, 3));  // cut short
+}  // namespace fix_witness
 
 // Negative witnesses moved out of the module (#1061): each type here breaks
 // Rule 1 on purpose, to prove that a concept rejects it.  A witness of a

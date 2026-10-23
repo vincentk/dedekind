@@ -49,7 +49,8 @@ module;
 #include <cstddef>  // std::size_t: the slot of a projection
 #include <functional>
 #include <optional>
-#include <type_traits>  // std::integral_constant: the slot as a type
+#include <type_traits>
+#include <utility>  // std::move, std::as_const: fix's rebinding  // std::integral_constant: the slot as a type
 
 export module dedekind.category:morphism;
 
@@ -1412,5 +1413,37 @@ concept HasArrowComposeOperators =
 static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
               "Identity<int> must support @c >> arrow composition with "
               "itself; this is the canonical fish-operator witness.");
+
+/** @section morphism__Budgeted_Fixed_Point
+ *  The one bounded iteration of Jlt (Rule 3): the fixed point of an
+ *  endomorphism @c f from @c x₀, within a budget of @c n applications.
+ *  @f[ \mathrm{fix}(f, x, n) = \begin{cases} x & n = 0 \\ x_1 & x_1 = x
+ *  \\ \mathrm{fix}(f, x_1, n - 1) & \text{otherwise} \end{cases}
+ *  \qquad x_1 = f(x) @f]
+ *  Implemented by eliminating its one tail call, so it is equivalent to the
+ *  recursion without relying on tail-call optimisation, which the standard
+ *  does not guarantee and constant evaluation does not perform: the loop's
+ *  @c (x, k) are the arguments of the next call, each iteration is one
+ *  unfolding, and the mutation is local (Rule 1's footnote).  The loop is the
+ *  one Rule 3 exempts.  A fixed point certifies itself: the result @c r is one
+ *  exactly when @c equal(f(r), r).
+ *  @tparam X the carrier.  @tparam F the endomorphism.  @tparam Equal the
+ *  equality the fixed point is taken under.
+ *  @param f the step.  @param x0 the seed.  @param n the budget.
+ *  @param equal the equality. */
+export template <typename X, typename F, typename Equal = std::equal_to<>>
+  requires std::regular_invocable<const F&, const X&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
+           std::predicate<const Equal&, const X&, const X&>
+constexpr X fix(const F& f, const X& x0, std::size_t n,
+                const Equal& equal = {}) {
+  X x = x0;                              // the call's argument
+  for (std::size_t k = n; k > 0; --k) {  // at most n applications of f
+    X x1 = std::invoke(f, std::as_const(x));
+    if (std::invoke(equal, x1, x)) return x1;  // a fixed point: stop
+    x = std::move(x1);  // the tail call fix(f, x1, k - 1)
+  }
+  return x;  // the budget is spent: fix(f, x, 0) = x
+}
 
 }  // namespace dedekind::category

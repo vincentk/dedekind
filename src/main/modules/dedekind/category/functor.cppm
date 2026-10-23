@@ -674,28 +674,14 @@ constexpr auto make_f_coalgebra(Functor functor, Structure structure) {
  * A fixed point certifies itself: the result @c r is one exactly when
  * `equal(step(r), r)`, so a caller that needs to know whether the budget
  * ran out checks that, in one step. *
- * FIXME(#1061): the fold visits every index of the budget, the state frozen
- * once converged; a short-circuiting fold (a right fold whose rest is passed
- * lazily, as a continuation) would end on convergence, at the cost of one
- * frame per step against the constexpr depth limit.  A library primitive,
- * not yet written.
+ * It is @c fix (@c :morphism), the budgeted fixed point, which stops at
+ * the first fixed point it reaches.
  */
 export template <typename T, typename Step, typename Equal = std::equal_to<>>
   requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
 constexpr T fixed_point(T seed, Step step, Equal equal = {},
                         std::size_t max_iterations = 1024) {
-  // A fold over the budget whose state (the iterate, whether it is fixed)
-  // freezes once a fixed point is found (Rule 3).
-  return std::ranges::fold_left(
-             std::views::iota(std::size_t{0}, max_iterations),
-             std::pair<T, bool>{std::move(seed), false},
-             [&step, &equal](std::pair<T, bool> state, std::size_t) {
-               if (state.second) return state;
-               T next = std::invoke(step, state.first);
-               const bool fixed = std::invoke(equal, next, state.first);
-               return std::pair<T, bool>{std::move(next), fixed};
-             })
-      .first;
+  return fix(step, seed, max_iterations, equal);
 }
 
 /** @brief Alias emphasizing order-theoretic reading of the fixed point. */
