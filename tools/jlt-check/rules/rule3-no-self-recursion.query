@@ -1,0 +1,10 @@
+# Rule 3: recursion only folds.  A function that calls itself at the same
+# instantiation recurses on a value, which nothing the compiler sees bounds.
+# Recursion over a type's structure passes by construction: cata on a
+# composite calls cata on its parts, each a different specialisation, and
+# the compiler's instantiation limit bounds the rest.  Instantiations are
+# where a template's self-calls resolve, hence the traversal.  Blind spots:
+# mutual recursion (needs a call graph), and a template never instantiated
+# in the file being checked.
+set traversal AsIs
+match callExpr(hasAncestor(functionDecl(isDefinition()).bind("self")), callee(functionDecl(equalsBoundNode("self"))), isExpansionInMainFile(), hasAncestor(scope))
