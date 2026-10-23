@@ -271,6 +271,19 @@ void gather(const clang::Expr* e, Vocabulary& v) {
   e = e->IgnoreParenImpCasts();
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
     gatherConcept(cs->getNamedConcept(), v);
+    // Its written arguments name operations too: Fires<decltype(law(a, b))>.
+    if (const auto* written = cs->getTemplateArgsAsWritten())
+      for (const clang::TemplateArgumentLoc& arg : written->arguments()) {
+        const clang::TemplateArgument& a = arg.getArgument();
+        NameCollector nc;
+        if (a.getKind() == clang::TemplateArgument::Type) {
+          if (const auto* dt = a.getAsType()->getAs<clang::DecltypeType>())
+            nc.TraverseStmt(dt->getUnderlyingExpr());
+        } else if (a.getKind() == clang::TemplateArgument::Expression) {
+          nc.TraverseStmt(a.getAsExpr());
+        }
+        v.names.insert(nc.names.begin(), nc.names.end());
+      }
     return;
   }
   if (const auto* r = llvm::dyn_cast<clang::RequiresExpr>(e)) {
@@ -427,36 +440,6 @@ bool exemptCall(const clang::CallExpr* call) {
   return true;
 }
 
-/// The inline constraints of a body: a concept test or a requires-expression
-/// in it (an `if constexpr (requires { alg.steer(t); })`, a
-/// `Fires<decltype(law(a, b))>`) is a local constraint, and names its
-/// operations for that body.  Rule 2 is "through its concepts"; a concept
-/// tested inline is one of them.
-class InlineConstraints : public clang::RecursiveASTVisitor<InlineConstraints> {
- public:
-  Vocabulary* v = nullptr;
-  bool VisitConceptSpecializationExpr(clang::ConceptSpecializationExpr* e) {
-    gatherConcept(e->getNamedConcept(), *v);
-    if (const auto* written = e->getTemplateArgsAsWritten())
-      for (const clang::TemplateArgumentLoc& arg : written->arguments()) {
-        const clang::TemplateArgument& a = arg.getArgument();
-        NameCollector nc;
-        if (a.getKind() == clang::TemplateArgument::Type) {
-          if (const auto* dt = a.getAsType()->getAs<clang::DecltypeType>())
-            nc.TraverseStmt(dt->getUnderlyingExpr());
-        } else if (a.getKind() == clang::TemplateArgument::Expression) {
-          nc.TraverseStmt(a.getAsExpr());
-        }
-        v->names.insert(nc.names.begin(), nc.names.end());
-      }
-    return true;
-  }
-  bool VisitRequiresExpr(clang::RequiresExpr* e) {
-    gather(e, *v);
-    return true;
-  }
-};
-
 /// The operations of a body, with their locations.
 class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
  public:
@@ -563,10 +546,10 @@ class Definition : public clang::ASTConsumer {
 
   void judge(const clang::FunctionTemplateDecl* ft,
              const clang::SourceManager& sm) {
-    Vocabulary v = vocabularyOf(ft);
-    InlineConstraints inl;
-    inl.v = &v;
-    inl.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    // The declared constraints only: a requires-expression or concept test
+    // inside the body is not one (by decision), so a body that probes an
+    // operation instead of requiring it is a finding.
+    const Vocabulary v = vocabularyOf(ft);
     if (v.opaque) return;  // a constraint this check cannot read: silence
     BodyOperations body;
     body.TraverseStmt(ft->getTemplatedDecl()->getBody());

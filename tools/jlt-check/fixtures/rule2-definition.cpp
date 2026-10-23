@@ -140,9 +140,21 @@ template <typename A>
 constexpr Inactive some_law(const A&) { return {}; }
 
 template <typename T>
-constexpr auto probed(T t) {  // fine: the body's own requires-expression and
-  if constexpr (requires { t.steer(); }) {  // concept test name steer and
-    return t.steer();                        // some_law: inline constraints
+constexpr auto probed(T t) {  // definition 6-9: an inline requires-expression
+  if constexpr (requires { t.steer(); }) {  // or concept test is NOT a
+    return t.steer();                        // constraint; the body probes
+  } else if constexpr (Fires<decltype(some_law(t))>) {  // steer and some_law
+    return some_law(t);                      // instead of requiring them
+  } else {
+    return t;
+  }
+}
+
+template <typename T>
+  requires requires(T t) { t.steer(); } || Fires<decltype(some_law(std::declval<T>()))>
+constexpr auto declared(T t) {  // fine: the same body under declared constraints
+  if constexpr (requires { t.steer(); }) {
+    return t.steer();
   } else if constexpr (Fires<decltype(some_law(t))>) {
     return some_law(t);
   } else {
@@ -151,7 +163,7 @@ constexpr auto probed(T t) {  // fine: the body's own requires-expression and
 }
 
 template <typename T>
-constexpr int unprobed(T t) {  // definition 6: no probe, no constraint
+constexpr int unprobed(T t) {  // definition 10: no probe, no constraint
   return t.steer();
 }
 
