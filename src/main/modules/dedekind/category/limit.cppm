@@ -766,6 +766,7 @@ namespace detail {
  *  projected-object concepts take, by name rather than as a lambda. */
 struct DrillDown {
   template <typename Whole>
+    requires requires(const Whole& w) { arrow_drill_down(w); }
   constexpr auto operator()(const Whole& whole) const {
     return arrow_drill_down(whole);
   }

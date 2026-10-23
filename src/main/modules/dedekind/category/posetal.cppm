@@ -595,6 +595,7 @@ struct Profile {
   /** @brief The profile whose answer at each law is @c f(law): the one loop
    *  every engine runs, law by law.  @param f the answer per law. */
   template <typename F>
+    requires std::invocable<const F&, E>
   static constexpr Profile tabulate(const F& f) {
     return [&f]<std::size_t... I>(std::index_sequence<I...>) {
       return Profile{std::array<Ternary, N>{f(static_cast<E>(I))...}};
@@ -837,6 +838,8 @@ struct ProductLeq {
    *  @param y the right pair @c (b,d).
    *  @return @c a≤b @c && @c c≤d, the componentwise product-order verdict. */
   template <typename A, typename B>
+    requires std::predicate<LeqA, const A&, const A&> &&
+             std::predicate<LeqB, const B&, const B&>
   constexpr bool operator()(const std::pair<A, B>& x,
                             const std::pair<A, B>& y) const {
     return LeqA{}(x.first, y.first) && LeqB{}(x.second, y.second);

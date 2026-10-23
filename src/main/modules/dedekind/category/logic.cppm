@@ -1061,7 +1061,7 @@ struct SubobjectClassifier {
 
   /** @brief NaN Truth-Hole Check for IEEE 754 */
   template <typename Op>
-    requires std::floating_point<T>
+    requires std::floating_point<T> && std::predicate<const Op&, T, T>
   static constexpr Omega evaluate_relational(T a, T b, Op rel) {
     if (std::isnan(a) || std::isnan(b)) {
       return L::Unknown;  // Singularity detected

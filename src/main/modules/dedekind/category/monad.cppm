@@ -185,6 +185,7 @@ struct μ_tag {};
 // raw object label directly. In the single-species setting that label is the
 // canonical witness for the identity spoke at the same object.
 export template <typename T, typename η_t>
+  requires requires(const T& v) { η_t{}(v)(v); }
 constexpr auto operator>>(T val, η_tag<η_t>) {
   // η_t{}(val) produces the arrow, we then apply it to the value
   return η_t{}(val)(std::move(val));
