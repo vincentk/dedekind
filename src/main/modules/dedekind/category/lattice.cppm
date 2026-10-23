@@ -1226,6 +1226,7 @@ constexpr auto de_morgan_of(const Meet<P, Q>& m) {
   return Join<Not<P>, Not<Q>>{Not<P>{m.lhs}, Not<Q>{m.rhs}};  // ¬(P∧Q) → ¬P∨¬Q
 }
 template <typename P, typename Q>
+  requires std::copyable<P> && std::copyable<Q>
 constexpr auto de_morgan_of(const Join<P, Q>& j) {
   return Meet<Not<P>, Not<Q>>{Not<P>{j.lhs}, Not<Q>{j.rhs}};  // ¬(P∨Q) → ¬P∧¬Q
 }

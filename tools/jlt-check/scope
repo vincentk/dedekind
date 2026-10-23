@@ -53,7 +53,7 @@ rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_
 rule3-no-loops               src/main/modules/dedekind/category/*.cppm  category  0
 rule3-no-self-recursion      src/main/modules/dedekind/category/*.cppm  category  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category  0
-rule2-definition             src/main/modules/dedekind/category/*.cppm  category  report
+rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule1-constexpr              src/main/modules/dedekind/category/*.cppm  category  0
 rule1-const-call-operator    src/main/modules/dedekind/category/*.cppm  category  0
