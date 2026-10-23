@@ -1,3 +1,6 @@
-# Rule 3: recursion only folds.  No loop statement; a fold is
-# std::ranges::fold_left over a finite range, or cata over a term.
-match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), isExpansionInMainFile(), hasAncestor(scope))
+# Rule 3: recursion only folds.  No loop statement; a fold is a standard
+# fold over a finite range, cata over a term, or iterate over a budget.  Exempt:
+# iterate itself, whose one loop is its tail call eliminated (Rule 1's footnote).
+# Matched by its plain name inside category: in a module interface the
+# qualified name does not match ::dedekind::category::iterate.
+match stmt(anyOf(forStmt(), cxxForRangeStmt(), whileStmt(), doStmt()), unless(hasAncestor(functionDecl(hasName("iterate"), hasAncestor(namespaceDecl(hasName("category")))))), isExpansionInMainFile(), hasAncestor(scope))

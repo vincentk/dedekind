@@ -49,7 +49,8 @@ module;
 #include <cstddef>  // std::size_t: the slot of a projection
 #include <functional>
 #include <optional>
-#include <type_traits>  // std::integral_constant: the slot as a type
+#include <type_traits>
+#include <utility>  // std::move, std::as_const: iterate's rebinding  // std::integral_constant: the slot as a type
 
 export module dedekind.category:morphism;
 
@@ -1412,5 +1413,50 @@ concept HasArrowComposeOperators =
 static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
               "Identity<int> must support @c >> arrow composition with "
               "itself; this is the canonical fish-operator witness.");
+
+/** @section morphism__Iterate
+ *  The n-fold composite of an endomorphism, applied: @f$f^n(x)@f$, the one
+ *  bounded iteration of Jlt (Rule 3).
+ *  @f[ \mathrm{iterate}(f, x, n) = \begin{cases} x & n = 0 \\ x_1 & x_1 = x
+ *  \\ \mathrm{iterate}(f, x_1, n - 1) & \text{otherwise} \end{cases}
+ *  \qquad x_1 = f(x) @f]
+ *  Its readings: @f$f^n@f$ is the power of @c f in the monoid of
+ *  endomorphisms, on which @f$(\mathbb{N}, +)@f$ acts; @f$n \mapsto f^n(x)@f$
+ *  is the arrow out of the natural numbers object that its universal property
+ *  gives for @c x and @c f (@c nno_iterate in @c :nno is that face); and it is
+ *  the catamorphism of the algebra @f$[x, f]@f$ of @f$1 + X@f$ at @c n.  Its
+ *  intent is a fixed point: from @f$x = \bot@f$ it is the n-th Kleene
+ *  approximation of the least fixed point, PCF's @c fix with a budget
+ *  (@c fix names the intent, @c iterate the computation); from another seed it
+ *  finds a fixed point reachable from it, not necessarily the least.  The
+ *  early exit at a fixed point changes no value, since a fixed point absorbs
+ *  (@f$f(y) = y@f$ gives @f$f^m(y) = y@f$): it is an operational shortcut,
+ *  taken when @c equal applies to @c X, and a fixed point certifies itself.
+ *  Implemented by eliminating the definition's one tail call, so it equals the
+ *  recursion without tail-call optimisation, which the standard does not
+ *  guarantee and constant evaluation does not perform: the loop's @c (x, k)
+ *  are the arguments of the next call, each iteration one unfolding, and the
+ *  mutation is local (Rule 1's footnote).  The loop is the one Rule 3 exempts.
+ *  @tparam X the carrier.  @tparam F the endomorphism.  @tparam Equal the
+ *  equality of the early exit.
+ *  @param f the endomorphism.  @param x0 the point.  @param n the power.
+ *  @param equal the equality. */
+export template <typename X, typename F, typename Equal = std::equal_to<>>
+  requires std::regular_invocable<const F&, const X&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
+           (std::predicate<const Equal&, const X&, const X&> ||
+            std::same_as<Equal, std::equal_to<>>)
+constexpr X iterate(const F& f, const X& x0, std::size_t n,
+                    const Equal& equal = {}) {
+  X x = x0;                              // the call's argument
+  for (std::size_t k = n; k > 0; --k) {  // at most n applications of f
+    X x1 = std::invoke(f, std::as_const(x));
+    if constexpr (std::predicate<const Equal&, const X&, const X&>) {
+      if (std::invoke(equal, x1, x)) return x1;  // a fixed point: stop
+    }
+    x = std::move(x1);  // the tail call iterate(f, x1, k - 1)
+  }
+  return x;  // the power is spent: iterate(f, x, 0) = x
+}
 
 }  // namespace dedekind::category
