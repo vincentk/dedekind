@@ -133,6 +133,28 @@ struct Counter {
   }                                           // invocable grants ()
 };
 
+struct Inactive {};
+template <typename R>
+concept Fires = !std::same_as<R, Inactive>;
+template <typename A>
+constexpr Inactive some_law(const A&) { return {}; }
+
+template <typename T>
+constexpr auto probed(T t) {  // fine: the body's own requires-expression and
+  if constexpr (requires { t.steer(); }) {  // concept test name steer and
+    return t.steer();                        // some_law: inline constraints
+  } else if constexpr (Fires<decltype(some_law(t))>) {
+    return some_law(t);
+  } else {
+    return t;
+  }
+}
+
+template <typename T>
+constexpr int unprobed(T t) {  // definition 6: no probe, no constraint
+  return t.steer();
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
