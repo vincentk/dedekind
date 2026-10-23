@@ -293,8 +293,13 @@ constexpr auto legs(const Compose<F, G>& c) {
 export template <typename T>
 concept IsTermNode = requires(const T& t) { legs(t); };
 
+/** @brief An algebra that steers the fold at @c T (Mendler style): it recurses
+ *  into the legs it chooses by @c cata itself, instead of the strict fold. */
 export template <typename β, typename T>
-  requires IsTermNode<T> || std::invocable<const β&, const T&>
+concept Steers = requires(const β& a, const T& t) { a.steer(t); };
+
+export template <typename β, typename T>
+  requires Steers<β, T> || IsTermNode<T> || std::invocable<const β&, const T&>
 constexpr auto cata(const β& alg, const T& t);
 
 namespace detail_f_algebra {
@@ -307,7 +312,11 @@ struct component_orders<ProductLeq<LA, LB>> {
   using second = LB;
 };
 template <typename β, typename T, std::size_t... I>
-  requires IsTermNode<T>
+  requires IsTermNode<T> &&
+           std::invocable<
+               const β&, const T&,
+               decltype(cata(std::declval<const β&>(),
+                             std::get<I>(legs(std::declval<const T&>()))))...>
 constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
   const auto ls = legs(t);
   return alg(t, cata(alg, std::get<I>(ls))...);
@@ -352,9 +361,9 @@ constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
  * @return the term's image under the algebra.
  */
 export template <typename β, typename T>
-  requires IsTermNode<T> || std::invocable<const β&, const T&>
+  requires Steers<β, T> || IsTermNode<T> || std::invocable<const β&, const T&>
 constexpr auto cata(const β& alg, const T& t) {
-  if constexpr (requires { alg.steer(t); }) {
+  if constexpr (Steers<β, T>) {
     return alg.steer(t);
   } else if constexpr (IsTermNode<T>) {
     return detail_f_algebra::fold_legs(
