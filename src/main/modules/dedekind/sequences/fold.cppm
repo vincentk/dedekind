@@ -17,7 +17,8 @@
  */
 module;
 
-#include <utility>  // std::move: the accumulator is threaded, not copied
+#include <algorithm>  // std::ranges::fold_left
+#include <utility>    // std::move: the accumulator is threaded, not copied
 
 export module dedekind.sequences:fold;
 
@@ -44,8 +45,8 @@ namespace dedekind::sequences {
  */
 export template <typename Range, typename Acc, typename Op>
 constexpr Acc fold(const Range& xs, Acc acc, Op op) {
-  for (const auto& x : xs) acc = op(std::move(acc), x);
-  return acc;
+  // The standard left fold (Rule 3), the accumulator moved through each step.
+  return Acc(std::ranges::fold_left(xs, std::move(acc), op));
 }
 
 }  // namespace dedekind::sequences

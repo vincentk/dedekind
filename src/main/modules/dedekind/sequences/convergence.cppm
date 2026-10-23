@@ -499,11 +499,9 @@ struct OrbitSequence : Path<T> {
       if constexpr (order > 0) {
         n %= order;
       }
-      T acc = gen;
-      for (std::size_t i = 0; i < n; ++i) {
-        acc = op(acc, gen);
-      }
-      return acc;
+      // gen^(n+1): n steps of x ↦ op(x, gen) from gen, category::iterate.
+      return dedekind::category::iterate(
+          [op, gen](const T& acc) { return op(acc, gen); }, gen, n);
     };
   }
 };

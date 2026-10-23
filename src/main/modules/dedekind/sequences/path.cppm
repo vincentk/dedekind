@@ -569,10 +569,9 @@ export template <typename T, typename Step>
            std::same_as<
                std::invoke_result_t<const std::decay_t<Step>&, const T&>, T>
 constexpr auto iterate(T seed, Step&& step) {
+  // The value at n is stepⁿ(seed): category::iterate, the n-fold composite.
   return Path<T>{[seed, f = std::forward<Step>(step)](std::size_t n) {
-    T value = seed;
-    for (std::size_t i = 0; i < n; ++i) value = std::invoke(f, value);
-    return value;
+    return dedekind::category::iterate(f, seed, n);
   }};
 }
 
@@ -731,10 +730,21 @@ export template <typename T, typename Pred>
 constexpr std::optional<std::size_t> first_where(const Path<T>& path,
                                                  Pred&& pred,
                                                  std::size_t budget) {
-  for (std::size_t i = 0; i <= budget; ++i) {
-    if (std::invoke(pred, path.at(i))) return i;
-  }
-  return std::nullopt;
+  // The first<P> pattern: iterate a search state (the index, whether it
+  // holds) that stops changing once found, within budget + 1 tests.
+  struct Search {
+    std::size_t i;
+    bool found;
+    constexpr bool operator==(const Search&) const = default;
+  };
+  const Search s = dedekind::category::iterate(
+      [&path, &pred](const Search& at) {
+        if (at.found) return at;
+        return std::invoke(pred, path.at(at.i)) ? Search{at.i, true}
+                                                : Search{at.i + 1, false};
+      },
+      Search{0, false}, budget + 1);
+  return s.found ? std::optional<std::size_t>{s.i} : std::nullopt;
 }
 
 export template <typename T, typename Pred>
