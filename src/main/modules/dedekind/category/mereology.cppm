@@ -242,24 +242,66 @@ constexpr bool connex_at(const Rel& rel, const T& a, const T& b) {
  *  compiler decides a certificate with them and the program a run-time
  *  relation with the same functions.  Precondition: @c hi is reached from
  *  @c lo by the step (the rules below check it before calling). */
+/** @brief The walk budget of a discrete bounded chain: a chain is decided
+ *  only when its top is reached from its bottom within this many steps (a
+ *  machine word is a discrete bounded chain too, but 2⁶⁴ steps is no
+ *  compile-time decision). */
+inline constexpr std::size_t chain_walk_budget = 1024;
+/** @brief Where a walk from @c lo ends: the last value reached and how many
+ *  values it took.  @c reached_hi says whether it stopped at @c hi (rather
+ *  than at a saturating top short of it, or at the end of the budget). */
 template <typename T>
-constexpr bool chain_end(const T& a, const T& hi) {
-  return a == hi || successor(a) == a;
+struct ChainWalk {
+  T last;
+  std::size_t length;
+  bool ended;
+  bool reached_hi;
+};
+/** @brief The walk from @c lo towards @c hi by the carrier's @c successor,
+ *  within @c chain_walk_budget: a fold over the budget whose state freezes
+ *  where the chain ends (at @c hi, or at a fixpoint of the step). */
+template <typename T>
+constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi) {
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, chain_walk_budget),
+      ChainWalk<T>{lo, 0, false, false}, [&hi](ChainWalk<T> w, std::size_t) {
+        if (w.ended) return w;
+        if (w.last == hi) return ChainWalk<T>{w.last, w.length + 1, true, true};
+        const T next = successor(w.last);
+        if (next == w.last)
+          return ChainWalk<T>{w.last, w.length + 1, true, false};
+        return ChainWalk<T>{next, w.length + 1, false, false};
+      });
 }
 /** @brief A law of @c Arity points, at every tuple of points from @c lo to
  *  @c hi: the one walk every law below reads. */
 template <std::size_t Arity, typename Law, typename Rel, typename T,
           typename... Fixed>
-constexpr bool holds_on(Law law, const Rel& rel, const T& lo, const T& hi,
-                        const Fixed&... fixed) {
+constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
+                             std::size_t length, const Fixed&... fixed) {
   if constexpr (sizeof...(Fixed) == Arity) {
     return law(rel, fixed...);
   } else {
-    for (T a = lo;; a = successor(a)) {
-      if (!holds_on<Arity>(law, rel, lo, hi, fixed..., a)) return false;
-      if (chain_end(a, hi)) return true;
-    }
+    // A fold over the walk's values, carrying the current one; the length is
+    // computed once by holds_on, not re-walked at every arity (Rule 3).
+    struct At {
+      T a;
+      bool holds;
+    };
+    return std::ranges::fold_left(
+               std::views::iota(std::size_t{0}, length), At{lo, true},
+               [&](At at, std::size_t) {
+                 const bool here =
+                     at.holds &&
+                     holds_on_walk<Arity>(law, rel, lo, length, fixed..., at.a);
+                 return At{successor(at.a), here};
+               })
+        .holds;
   }
+}
+template <std::size_t Arity, typename Law, typename Rel, typename T>
+constexpr bool holds_on(Law law, const Rel& rel, const T& lo, const T& hi) {
+  return holds_on_walk<Arity>(law, rel, lo, walk_chain(lo, hi).length);
 }
 export template <typename Rel, typename T>
   requires requires(const Rel& r, const T& x) {
@@ -430,11 +472,6 @@ export struct Inf {
   }
 };
 
-/** @brief The walk budget of a discrete bounded chain: a chain is decided
- *  only when its top is reached from its bottom within this many steps (a
- *  machine word is a discrete bounded chain too, but 2⁶⁴ steps is no
- *  compile-time decision). */
-inline constexpr std::size_t chain_walk_budget = 1024;
 /** @brief The evaluation budget of a law: a law of @c k variables on a chain
  *  of @c n values costs @c nᵏ evaluations, and is decided only within this
  *  (reflexivity on a long chain, transitivity only on a short one). */
@@ -444,14 +481,9 @@ inline constexpr std::size_t law_evaluation_budget = std::size_t{1} << 16;
  *  @c successor; 0 when @c hi is not reached within @c chain_walk_budget (the
  *  top, a fixpoint of the step, short of @c hi). */
 template <typename T>
-constexpr std::size_t chain_length(T lo, const T& hi) {
-  for (std::size_t n = 1; n <= chain_walk_budget; ++n) {
-    if (lo == hi) return n;
-    const T next = successor(lo);
-    if (next == lo) return 0;
-    lo = next;
-  }
-  return 0;
+constexpr std::size_t chain_length(const T& lo, const T& hi) {
+  const ChainWalk<T> w = walk_chain(lo, hi);
+  return w.reached_hi ? w.length : 0;
 }
 /** @brief Whether a law of @c arity variables on a chain of @c n values fits
  *  @c law_evaluation_budget. */
