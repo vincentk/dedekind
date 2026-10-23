@@ -1,0 +1,10 @@
+# Rule 2: a type varies behaviour only through its concepts and traits.  A
+# function template with a type parameter that has no type constraint, and
+# no requires clause on the template or the function, offers its body no
+# vocabulary for that parameter.  A proxy for Rule 2, not Rule 2 itself: a
+# parameter the body never uses needs no constraint (a dispatch primary such
+# as Listing 1's involutive(F)).  Constraints appear as direct child
+# expressions (of the parameter, the template, or the function) only with
+# implicit nodes, hence the traversal.  Exempt: deleted primaries, lambdas.
+set traversal AsIs
+match functionTemplateDecl(has(templateTypeParmDecl(unless(has(expr())))), unless(has(expr())), unless(has(functionDecl(has(expr())))), unless(has(functionDecl(isDeleted()))), unless(hasParent(cxxRecordDecl(isLambda()))), isExpansionInMainFile(), hasAncestor(scope))

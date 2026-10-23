@@ -46,7 +46,9 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-no-escaping-reference-captures` | a lambda that captures by reference and escapes: inside a `return`, not under a call into `std`, not called on the spot (an approximation) |
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
-| `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
+| `rule3-no-loops` | a `for`, range-`for`, `while` or `do` (except `iterate`'s one loop) |
+| `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value; recursion over a type's structure (`cata`) passes |
+| `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
 `operator()`.  The standard iterator protocol (a nested `iterator` or
@@ -67,8 +69,9 @@ the last by an approximation of escape).
 the template pattern; a `decltype(auto)` return in a template pattern is
 undeduced; a lambda with a reference capture that escapes other than by a
 return (stored into a member or global), and a returned one that a non-std
-function calls at once (both need dataflow); Rule 3's proper-subterm check
-on self-calls.
+function calls at once (both need dataflow); mutual recursion (needs a call
+graph); a template never instantiated in the file being checked; a function
+naming itself inside a requires-expression (reported, though not recursion).
 
 ## Plan
 
