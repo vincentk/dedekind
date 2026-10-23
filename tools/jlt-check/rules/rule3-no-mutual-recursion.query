@@ -1,0 +1,6 @@
+# Rule 3: recursion only folds.  Functions on a call cycle of length two or
+# more recurse through each other, which the compiler does not bound and a
+# matcher cannot see: the tool builds the call graph and reports every
+# function of the scope on such a cycle.  A function calling itself is
+# rule3-no-self-recursion's.
+tool mutual-recursion

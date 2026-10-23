@@ -34,7 +34,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 23
-        sudo apt-get install -y clang-23 ninja-build clang-format-23 llvm-23 clang-tools-23
+        sudo apt-get install -y clang-23 ninja-build clang-format-23 llvm-23 clang-tools-23 libclang-23-dev libclang-cpp23-dev
 
     # Create the .venv up front and prepend it to GITHUB_PATH so every
     # subsequent step uses the same virtualenv as a local dev box does.
@@ -58,7 +58,10 @@ jobs:
       run: make integration-test CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Jlt Check (post-processing over the compilation database)
-      run: make jlt-check CLANG_QUERY=clang-query-23
+      run: >-
+        make jlt-check CLANG_QUERY=clang-query-23
+        JLT_TOOL_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=clang++-23 -DCMAKE_C_COMPILER=clang-23
+        -DClang_DIR=/usr/lib/llvm-23/lib/cmake/clang -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm"
 
     - name: Validate Checked-In LLVM IR Fixture
       run: make ir-fixture-check CXX=clang++-23

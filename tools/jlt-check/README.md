@@ -26,6 +26,18 @@ the prebuilt module files must exist.
 
 Run it with `make jlt-check` after `make compile`.
 
+## The tool
+
+`tool/` is `jlt-tool`, a small LibTooling binary for the checks that need code
+rather than a pattern.  `make jlt-tool` builds it against the LLVM that built
+the tree (`JLT_TOOL_CMAKE_ARGS` names its CMake package dirs; CI installs
+`libclang-23-dev` and `libclang-cpp23-dev` for them), and `make jlt-check`
+runs it beside the clang-query rules on the same compilation database.  A
+rule file names one of its checks with `tool <check>` instead of match lines;
+the tool prints one finding per line as `path:line:col`, and the driver counts
+them like any other rule.  Checks so far: `mutual-recursion` (functions of the
+scope on a call cycle of length two or more, through clang's call graph).
+
 ## Rules
 
 Each rule is one file under `rules/`, named for the rule of the paper it checks.
@@ -48,6 +60,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` (except `iterate`'s one loop) |
 | `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value; recursion over a type's structure (`cata`) passes |
+| `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
@@ -69,8 +82,7 @@ the last by an approximation of escape).
 the template pattern; a `decltype(auto)` return in a template pattern is
 undeduced; a lambda with a reference capture that escapes other than by a
 return (stored into a member or global), and a returned one that a non-std
-function calls at once (both need dataflow); mutual recursion (needs a call
-graph); a template never instantiated in the file being checked; a function
+function calls at once (both need dataflow); a template never instantiated in the file being checked; a function
 naming itself inside a requires-expression (reported, though not recursion).
 
 ## Plan
