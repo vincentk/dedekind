@@ -294,6 +294,7 @@ export template <typename T>
 concept IsTermNode = requires(const T& t) { legs(t); };
 
 export template <typename β, typename T>
+  requires IsTermNode<T> || std::invocable<const β&, const T&>
 constexpr auto cata(const β& alg, const T& t);
 
 namespace detail_f_algebra {
@@ -306,6 +307,7 @@ struct component_orders<ProductLeq<LA, LB>> {
   using second = LB;
 };
 template <typename β, typename T, std::size_t... I>
+  requires IsTermNode<T>
 constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
   const auto ls = legs(t);
   return alg(t, cata(alg, std::get<I>(ls))...);
@@ -350,6 +352,7 @@ constexpr auto fold_legs(const β& alg, const T& t, std::index_sequence<I...>) {
  * @return the term's image under the algebra.
  */
 export template <typename β, typename T>
+  requires IsTermNode<T> || std::invocable<const β&, const T&>
 constexpr auto cata(const β& alg, const T& t) {
   if constexpr (requires { alg.steer(t); }) {
     return alg.steer(t);
@@ -375,6 +378,7 @@ export struct BetaReduction {
     return atom;
   }
   template <typename N, typename... R>
+    requires requires(const N& n, const R&... r) { reduce_β(n, r...); }
   constexpr auto operator()(const N& node, const R&... reduced) const {
     return reduce_β(node, reduced...);
   }
