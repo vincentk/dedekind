@@ -6,7 +6,7 @@
 
 # Negative controls.
 rule3-no-loops               tools/jlt-check/fixtures/rule3-loops.cpp  jlt_listing  4
-rule3-no-self-recursion      tools/jlt-check/fixtures/rule3-recursion.cpp  jlt_listing  2
+rule3-no-self-recursion      tools/jlt-check/fixtures/rule3-recursion.cpp  jlt_listing  4
 rule2-constrained-templates  tools/jlt-check/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule1-constexpr              tools/jlt-check/fixtures/rule1.cpp        jlt_listing  3
 rule1-const-call-operator    tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1

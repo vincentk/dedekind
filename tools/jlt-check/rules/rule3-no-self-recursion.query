@@ -6,5 +6,12 @@
 # where a template's self-calls resolve, hence the traversal.  Blind spots:
 # mutual recursion (needs a call graph), and a template never instantiated
 # in the file being checked.
+# The function is identified by its body, which every redeclaration shares,
+# so an out-of-line member definition is the same function as its in-class
+# declaration.  Constructors recurse by construction expressions, matched
+# apart.  Calls in unevaluated operands (sizeof, decltype, noexcept) are not
+# recursion; a self-reference inside a requires-expression is (clang-query
+# has no matcher for one) a known false positive.
 set traversal AsIs
-match callExpr(hasAncestor(functionDecl(isDefinition()).bind("self")), callee(functionDecl(equalsBoundNode("self"))), isExpansionInMainFile(), hasAncestor(scope))
+match callExpr(hasAncestor(functionDecl(hasBody(compoundStmt().bind("body")))), callee(functionDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))
+match cxxConstructExpr(hasAncestor(cxxConstructorDecl(hasBody(compoundStmt().bind("body")))), hasDeclaration(cxxConstructorDecl(hasBody(compoundStmt(equalsBoundNode("body"))))), unless(hasAncestor(unaryExprOrTypeTraitExpr())), unless(hasAncestor(cxxNoexceptExpr())), unless(hasAncestor(typeLoc(loc(decltypeType())))), isExpansionInMainFile(), hasAncestor(scope))

@@ -1,6 +1,8 @@
 // Negative control for rules/rule3-no-self-recursion.query: recursion on a
 // value is a finding; recursion over a type's structure is a fold and passes.
 // Standalone.
+#include <cstddef>
+
 namespace jlt_listing {
 
 constexpr int count_down(int n) {  // self-recursion 1: on a value
@@ -32,6 +34,37 @@ constexpr int count() {  // fine: count<T, Ts...> calls count<Ts...>
     return 1 + count<Ts...>();
 }
 static_assert(count<int, char, bool>() == 3);
+
+struct Counter {
+  constexpr int down(int n) const;
+};
+constexpr int Counter::down(int n) const {  // self-recursion 3: out of line
+  return n == 0 ? 0 : down(n - 1);
+}
+
+struct Unfold {
+  constexpr Unfold(int n) {  // self-recursion 4: a constructor
+    if (n > 0) {
+      Unfold next(n - 1);
+    }
+  }
+};
+
+struct Delegate {
+  constexpr Delegate() : Delegate(0) {}  // fine: a different constructor
+  constexpr Delegate(int) {}
+};
+
+constexpr std::size_t width(int n) {  // fine: sizeof does not evaluate
+  return sizeof(width(n));
+}
+constexpr int typed(int n) {  // fine: decltype does not evaluate
+  decltype(typed(n)) r = n;
+  return r;
+}
+constexpr bool safe(int n) {  // fine: noexcept does not evaluate
+  return noexcept(safe(n));
+}
 
 }  // namespace jlt_listing
 

@@ -70,7 +70,8 @@ the template pattern; a `decltype(auto)` return in a template pattern is
 undeduced; a lambda with a reference capture that escapes other than by a
 return (stored into a member or global), and a returned one that a non-std
 function calls at once (both need dataflow); mutual recursion (needs a call
-graph); a template never instantiated in the file being checked.
+graph); a template never instantiated in the file being checked; a function
+naming itself inside a requires-expression (reported, though not recursion).
 
 ## Plan
 
