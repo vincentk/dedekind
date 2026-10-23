@@ -119,6 +119,20 @@ constexpr T through(T x) {  // fine: a call on a call's result, not on x
   return twice<T, Op>(x);
 }
 
+template <typename A, typename B>
+constexpr int apply_box(Box<A, B> box, A a) {  // fine: a call on the box's
+  return box.b(a);                              // member, the box's vocabulary
+}
+
+template <std::integral N>
+struct Counter {
+  template <typename F>
+    requires std::invocable<const F&, N>
+  constexpr N apply(const F& f, N n) const {  // fine: the class's integral
+    return f(n) + n * 2;                      // grants * and +, the member's
+  }                                           // invocable grants ()
+};
+
 }  // namespace jlt_listing
 
 template <typename T>

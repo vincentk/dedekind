@@ -313,7 +313,9 @@ void gather(const clang::Expr* e, Vocabulary& v) {
                     : llvm::StringRef();
   } else if (llvm::isa<clang::SubstNonTypeTemplateParmExpr>(e) ||
              llvm::isa<clang::CXXBoolLiteralExpr>(e) ||
-             llvm::isa<clang::IntegerLiteral>(e)) {
+             llvm::isa<clang::IntegerLiteral>(e) ||
+             llvm::isa<clang::SizeOfPackExpr>(e) ||
+             llvm::isa<clang::UnaryExprOrTypeTraitExpr>(e)) {
     return;  // a literal or a substituted value: nothing to name
   } else if (llvm::isa<clang::CXXFoldExpr>(e) ||
              llvm::isa<clang::ParenListExpr>(e)) {
@@ -331,8 +333,29 @@ void gather(const clang::Expr* e, Vocabulary& v) {
 
 /// The constraints of a function template: type constraints on its
 /// parameters, the requires clause on the parameter list, the trailing one.
+void gatherParameters(const clang::TemplateParameterList* params,
+                      Vocabulary& v) {
+  if (!params) return;
+  for (const clang::NamedDecl* p : *params)
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        gather(tc->getImmediatelyDeclaredConstraint(), v);
+  gather(params->getRequiresClause(), v);
+}
+
 Vocabulary vocabularyOf(const clang::FunctionTemplateDecl* ft) {
   Vocabulary v;
+  // A member template's vocabulary includes its enclosing class templates'
+  // constraints: their parameters are in scope in its body.
+  for (const clang::DeclContext* c = ft->getDeclContext(); c;
+       c = c->getParent()) {
+    if (const auto* ps =
+            llvm::dyn_cast<clang::ClassTemplatePartialSpecializationDecl>(c))
+      gatherParameters(ps->getTemplateParameters(), v);
+    else if (const auto* rd = llvm::dyn_cast<clang::CXXRecordDecl>(c))
+      if (const clang::ClassTemplateDecl* ct = rd->getDescribedClassTemplate())
+        gatherParameters(ct->getTemplateParameters(), v);
+  }
   for (const clang::NamedDecl* p : *ft->getTemplateParameters())
     if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
       if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
@@ -457,6 +480,9 @@ class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
       ops.push_back({"()", e->getExprLoc(), false});
       return true;
     }
+    if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+      if (llvm::isa<clang::VarDecl>(d->getDecl()))
+        return true;  // a call on a value of some other type: its vocabulary
     llvm::SmallVector<const clang::Expr*, 4> args(e->arguments().begin(),
                                                   e->arguments().end());
     if (!anyParameterTyped(args) || exemptCall(e)) return true;
