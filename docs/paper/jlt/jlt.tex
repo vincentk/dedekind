@@ -196,7 +196,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 \paragraph{Rule 3: recursion only folds.}
 A Jlt program is finite for one of two reasons, and Rule~3 admits exactly those two.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
-Or it iterates a step over \emph{an explicit budget}: \cppinline{fold_left} over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+Or it iterates a step over \emph{an explicit budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
 \cppinline{times} is the second: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
@@ -696,7 +696,7 @@ Today it checks Rule~3's ban on loops and the syntactic parts of Rule~1: functio
 It gates the listings at zero on every rule, gates the library's \texttt{category} module where the module is already clean, and reports the rest of that module's counts without failing on them.
 The rest of Rules~1 and~3 needs code rather than a pattern and follows, and Rule~2 is the remaining work.
 Until then the listings are checked by reading, by that step, and by a test that compiles and runs them.
-Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is \cppinline{std::ranges::fold_left}'s.
+Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
