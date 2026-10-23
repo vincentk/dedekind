@@ -1217,6 +1217,7 @@ inline constexpr bool is_de_morgan_negation_for_v<bool, canonical_order> = true;
 // Meet / Join); a bare ¬leaf is already negation-normal and is left to the
 // caller.
 template <typename B>
+  requires std::copyable<B>
 constexpr B de_morgan_of(const Not<B>& n) {
   return n.base;  // ¬¬B → B (involution)
 }
