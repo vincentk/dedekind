@@ -2,6 +2,8 @@
 // closure that carries a reference out of its function.  Each planted case
 // inside jlt_listing is labelled; local uses and the harness outside must not
 // count.  Standalone.
+#include <cstddef>
+#include <utility>
 #include <variant>
 
 namespace jlt_listing {
@@ -25,6 +27,13 @@ constexpr int visited(const std::variant<int, long>& v, int k) {
 
 constexpr int called_now(int k) {
   return [&] { return k; }();  // fine: invoked at once
+}
+
+template <typename F, std::size_t N>
+constexpr int sum_each(const F& f) {
+  return [&f]<std::size_t... I>(std::index_sequence<I...>) {
+    return (f(I) + ... + 0);
+  }(std::make_index_sequence<N>{});  // fine: invoked at once, in a template
 }
 
 }  // namespace jlt_listing

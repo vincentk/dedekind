@@ -3,8 +3,9 @@
 # the call.  A by-reference capture leaves a reference-typed field in the
 # closure class, visible only with implicit nodes, hence the traversal.
 # Escape is approximated: inside a return, not under a call into std (a
-# visitor, an algorithm), and not called on the spot.  It misses a lambda
+# visitor, an algorithm), and not called on the spot (also as a dependent call
+# inside a template).  It misses a lambda
 # stored into a member or global outside a return, and would flag a returned
 # lambda that a non-std function calls at once.
 set traversal AsIs
-match lambdaExpr(has(cxxRecordDecl(isLambda(), has(fieldDecl(hasType(referenceType()))))), hasAncestor(returnStmt()), unless(hasAncestor(callExpr(callee(functionDecl(matchesName("^::std::")))))), unless(hasAncestor(cxxOperatorCallExpr(hasOverloadedOperatorName("()"), hasArgument(0, ignoringImplicit(lambdaExpr()))))), isExpansionInMainFile(), hasAncestor(scope))
+match lambdaExpr(has(cxxRecordDecl(isLambda(), has(fieldDecl(hasType(referenceType()))))), hasAncestor(returnStmt()), unless(hasAncestor(callExpr(callee(functionDecl(matchesName("^::std::")))))), unless(hasAncestor(cxxOperatorCallExpr(hasOverloadedOperatorName("()"), hasArgument(0, ignoringImplicit(lambdaExpr()))))), unless(hasAncestor(callExpr(callee(expr(ignoringParenImpCasts(lambdaExpr())))))), isExpansionInMainFile(), hasAncestor(scope))
