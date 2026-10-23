@@ -9,7 +9,11 @@ never failed.  A fixture (under tools/jlt-check/fixtures) is standalone and is
 parsed with explicit flags; every other file through the build's compilation
 database.
 
-Usage: jlt_check.py [CLANG_QUERY] [BUILD_DIR]
+A rule file may instead name a check of jlt-tool (``tool <check>``), the
+checks that need code rather than a pattern; the tool prints one finding per
+line as ``path:line:col``.
+
+Usage: jlt_check.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL]
 """
 
 import collections
@@ -46,6 +50,28 @@ def read_scope():
 
 
 DEFAULT_TRAVERSAL = "set traversal IgnoreUnlessSpelledInSource"
+
+
+def tool_check(rule):
+    """The jlt-tool check a rule names, or None for a clang-query rule."""
+    for l in (HERE / "rules" / f"{rule}.query").read_text().splitlines():
+        if l.startswith("tool "):
+            return l.split(None, 1)[1].strip()
+    return None
+
+
+def run_tool(tool, build, path, namespace, check):
+    """One check of jlt-tool on one file: (count, locations) or an error."""
+    args = [str(tool), f"--check={check}", f"--scope={namespace}"]
+    if path.startswith("tools/jlt-check/fixtures/"):
+        args += [str(ROOT / path), "--", "-std=c++23", "-xc++"]
+    else:
+        args += ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
+    p = subprocess.run(args, capture_output=True, text=True)
+    if p.returncode != 0:
+        return None, None, p.stdout + p.stderr
+    locs = [l for l in p.stdout.splitlines() if l.strip()]
+    return len(locs), locs, p.stdout + p.stderr
 
 
 def matchers(rule):
@@ -107,6 +133,7 @@ def run(query, build, path, namespace, rules):
 def main():
     query = sys.argv[1] if len(sys.argv) > 1 else "clang-query"
     build = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else ROOT / "build")
+    tool = pathlib.Path(sys.argv[3] if len(sys.argv) > 3 else build / "jlt-tool" / "jlt-tool")
     lines = list(read_scope())
     if any(not f.startswith("tools/") for _, f, _, _ in lines) and \
             not (build / "compile_commands.json").exists():
@@ -119,8 +146,20 @@ def main():
     failures = 0
     per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
     for (f, ns), entries in sorted(groups.items()):
-        rules = [r for r, _ in entries]
-        counts, where, out = run(query, build, f, ns, rules)
+        query_rules = [r for r, _ in entries if tool_check(r) is None]
+        counts, where, out = (run(query, build, f, ns, query_rules)
+                              if query_rules else ({}, {}, ""))
+        for r, _ in entries:  # the tool's checks, one run each
+            chk = tool_check(r)
+            if chk is None or counts is None:
+                continue
+            n, locs, tout = run_tool(tool, build, f, ns, chk)
+            if n is None:
+                counts = None
+                out = f"jlt-tool --check={chk}: " + tout
+                break
+            counts[r] = n
+            where[r] = locs
         if counts is None:
             print(f"jlt-check: {f}: does not parse, a matcher did not run, or the scope is absent", file=sys.stderr)
             print("\n".join(out.splitlines()[:30]), file=sys.stderr)
