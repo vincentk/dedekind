@@ -719,7 +719,7 @@ export template <typename T, typename Expand, typename Join,
 constexpr T closure(const T& x, Expand expand, Join join, Equal equal = {},
                     std::size_t max_iterations = 1024) {
   return least_fixpoint(
-      x, [&x, expand, join](const T& s) -> T { return join(x, expand(s)); },
+      x, [x, expand, join](const T& s) -> T { return join(x, expand(s)); },
       equal, max_iterations);
 }
 

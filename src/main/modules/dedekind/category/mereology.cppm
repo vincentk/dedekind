@@ -299,7 +299,7 @@ constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
       constexpr bool operator==(const At&) const = default;
     };
     return iterate(
-               [&](const At& at) {
+               [=](const At& at) {  // by value: the step escapes no reference
                  if (!at.holds || at.left == 0) return at;
                  return At{successor(at.a), at.left - 1,
                            holds_on_walk<Arity>(law, rel, lo, length, fixed...,
