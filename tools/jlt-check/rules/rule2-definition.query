@@ -1,0 +1,7 @@
+# Rule 2, at the level of names (jlt-tool): a function template's body may
+# use, on a value whose type depends on a template parameter, only an operation
+# some requirement of its constraints names, the constraints followed through
+# their concepts.  A mechanical sanity check, not a proof: silent where it
+# cannot read a constraint.  What it does not see is listed at the check in
+# tool/jlt_tool.cpp.
+tool definition

@@ -36,7 +36,10 @@ runs it beside the clang-query rules on the same compilation database.  A
 rule file names one of its checks with `tool <check>` instead of match lines;
 the tool prints one finding per line as `path:line:col`, and the driver counts
 them like any other rule.  Checks so far: `mutual-recursion` (functions of the
-scope on a call cycle of length two or more, through clang's call graph).
+scope on a call cycle of length two or more, through clang's call graph) and
+`definition` (Rule 2 at the level of names; what it does not see: class
+templates' ordinary members, lambdas, operations reached through a
+non-dependent helper, arity and types of a named operation).
 
 ## Rules
 
@@ -62,6 +65,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule3-no-self-recursion` | a function calling itself at the same instantiation: recursion on a value; recursion over a type's structure (`cata`) passes |
 | `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
+| `rule2-definition` | the tool's `definition` check, Rule 2 at the level of names: an operation on a value of dependent type that no requirement of the constraints names (constraints followed through the library's concepts; standard concepts and traits from a hand-made list). Silent where it cannot read a constraint. Reported until triaged |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
 `operator()`.  The standard iterator protocol (a nested `iterator` or
