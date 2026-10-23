@@ -333,6 +333,10 @@ concept IsDagger = IsInvolution<Dagger, T>;
  *  (@c Op a monoid on the single object @c T); a general @f$f:A\to B@f$
  * isometry is the multi-object case, left to the arrow surface. */
 export template <typename Dagger, typename Op, typename T>
+  requires std::equality_comparable<T> && requires(const T& g) {
+    Op{}(Dagger{}(g), g);
+    unit<T>(Op{});
+  }
 constexpr bool is_isometry(const T& f) {
   return Op{}(Dagger{}(f), f) == unit<T>(Op{});
 }
@@ -340,6 +344,10 @@ constexpr bool is_isometry(const T& f) {
 /** @brief The coisometry law: @f$f \circ f^\dagger = \mathrm{id}@f$ --- the
  *  dagger is a @b right inverse. */
 export template <typename Dagger, typename Op, typename T>
+  requires std::equality_comparable<T> && requires(const T& g) {
+    Op{}(g, Dagger{}(g));
+    unit<T>(Op{});
+  }
 constexpr bool is_coisometry(const T& f) {
   return Op{}(f, Dagger{}(f)) == unit<T>(Op{});
 }

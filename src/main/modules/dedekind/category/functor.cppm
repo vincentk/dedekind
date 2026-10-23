@@ -302,6 +302,7 @@ struct morphic_engine {
   Spoke ma;
 
   template <typename Func>
+    requires requires(const Hub& hub, Func g) { hub.φ(arrow(std::move(g))); }
   constexpr auto operator()(Func f) const {
     // 1. Ensure we have an Arrow (lifts lambdas if necessary)
     auto lifted_arrow = h.φ(arrow(std::move(f)));

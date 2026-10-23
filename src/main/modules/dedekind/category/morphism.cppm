@@ -1442,7 +1442,7 @@ static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
  *  @param f the endomorphism.  @param x0 the point.  @param n the power.
  *  @param equal the equality. */
 export template <typename X, typename F, typename Equal = std::equal_to<>>
-  requires std::regular_invocable<const F&, const X&> &&
+  requires std::copyable<X> && std::regular_invocable<const F&, const X&> &&
            std::convertible_to<std::invoke_result_t<const F&, const X&>, X> &&
            (std::predicate<const Equal&, const X&, const X&> ||
             std::same_as<Equal, std::equal_to<>>)

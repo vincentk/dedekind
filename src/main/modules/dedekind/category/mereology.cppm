@@ -276,6 +276,10 @@ struct ChainStep {
  *  within @c chain_walk_budget: the fixed point of one step, reached where the
  *  chain ends (at @c hi, or at a fixpoint of the step), so it stops there. */
 template <typename T>
+  requires requires(const T& t) {
+    { successor(t) } -> std::convertible_to<T>;
+    { t == t } -> std::convertible_to<bool>;
+  }
 constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi,
                                   std::size_t budget = chain_walk_budget) {
   // One more step than values, to see the ended walk stand still.
@@ -287,6 +291,8 @@ constexpr ChainWalk<T> walk_chain(const T& lo, const T& hi,
  *  @c hi: the one walk every law below reads. */
 template <std::size_t Arity, typename Law, typename Rel, typename T,
           typename... Fixed>
+  requires(sizeof...(Fixed) != Arity) ||
+          std::predicate<const Law&, const Rel&, const Fixed&...>
 constexpr bool holds_on_walk(Law law, const Rel& rel, const T& lo,
                              std::size_t length, const Fixed&... fixed) {
   if constexpr (sizeof...(Fixed) == Arity) {

@@ -8,6 +8,7 @@
 rule3-no-loops               tools/jlt-check/fixtures/rule3-loops.cpp  jlt_listing  4
 rule3-no-self-recursion      tools/jlt-check/fixtures/rule3-recursion.cpp  jlt_listing  4
 rule3-no-mutual-recursion    tools/jlt-check/fixtures/rule3-mutual.cpp  jlt_listing  5
+rule2-definition             tools/jlt-check/fixtures/rule2-definition.cpp  jlt_listing  10
 rule2-constrained-templates  tools/jlt-check/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule1-constexpr              tools/jlt-check/fixtures/rule1.cpp        jlt_listing  3
 rule1-const-call-operator    tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
@@ -28,6 +29,9 @@ rule1-boxed-identity          tools/jlt-check/fixtures/boxed.cpp  jlt_listing  5
 rule3-no-loops               src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule3-no-self-recursion      src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
+# The listings' one Rule 2 finding is Listing 2's twice_loose, the paper's
+# deliberate breach of the rule: the check confirms the paper's claim.
+rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  1
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule1-constexpr              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-const-call-operator    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -49,6 +53,7 @@ rule1-no-escaping-reference-captures src/test/cpp/modules/dedekind/category/jlt_
 rule3-no-loops               src/main/modules/dedekind/category/*.cppm  category  0
 rule3-no-self-recursion      src/main/modules/dedekind/category/*.cppm  category  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category  0
+rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule1-constexpr              src/main/modules/dedekind/category/*.cppm  category  0
 rule1-const-call-operator    src/main/modules/dedekind/category/*.cppm  category  0
