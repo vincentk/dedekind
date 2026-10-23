@@ -11,6 +11,8 @@ the prebuilt module files must exist.
 
 - `rules/<rule>.query`: one `clang-query` matcher per check, named for the rule
   of the paper it checks.  A match is a finding.
+- A rule file may name its own traversal (`set traversal AsIs`) when it needs
+  implicit nodes; the driver restores the default after it.
 - `scope`: one line per `<rule> <file-glob> <namespace> <expected|report>`.
   The rule matches beneath the namespace; a number is a gate, `report` is
   counted and printed, never failed.  Growing the checker is adding a rule file
@@ -41,6 +43,7 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule1-no-reference-returns` | a function returning a reference (including `const auto&`) |
 | `rule1-const-member-functions` | a non-`static` member function that is not `const` |
 | `rule1-no-mutable-globals` | a namespace-scope or static data member variable that is neither `const` nor `constexpr` |
+| `rule1-no-escaping-reference-captures` | a lambda that captures by reference and escapes: inside a `return`, not under a call into `std`, not called on the spot (an approximation) |
 | `rule1-boxed-mutable-pointee` | a `make_shared<T>` call or `shared_ptr<T>` member (in a template too) with `T` not `const` |
 | `rule1-boxed-identity` | `get()`, `use_count()`, `owner_before()`, or `==` between two `shared_ptr`s |
 | `rule3-no-loops` | a `for`, range-`for`, `while` or `do` |
@@ -56,15 +59,16 @@ only, since `shared_ptr` is not `constexpr` in C++23.
 **Local mutation** is allowed: a function may change its own locals,
 because nothing it changes outlives the call.  The rules above close the
 channels a mutation could leak through (parameters, results, the object,
-static locals, globals, volatile, boxes); the escaping reference capture is
-the one still open.
+static locals, globals, volatile, boxes, and escaping reference captures,
+the last by an approximation of escape).
 
 **Known blind spots** (plugin work): a `mutable` member has no matcher; a
 `make_shared` whose argument depends on a template parameter is unresolved in
 the template pattern; a `decltype(auto)` return in a template pattern is
-undeduced; a lambda that captures by reference and escapes its function
-(indistinguishable in syntax from a visitor called on the spot: needs
-dataflow); Rule 3's proper-subterm check on self-calls.
+undeduced; a lambda with a reference capture that escapes other than by a
+return (stored into a member or global), and a returned one that a non-std
+function calls at once (both need dataflow); Rule 3's proper-subterm check
+on self-calls.
 
 ## Plan
 

@@ -1,0 +1,10 @@
+# Rule 1: no state outlives a call.  A lambda that captures by reference and
+# escapes its function carries a reference to a local or a parameter out of
+# the call.  A by-reference capture leaves a reference-typed field in the
+# closure class, visible only with implicit nodes, hence the traversal.
+# Escape is approximated: inside a return, not under a call into std (a
+# visitor, an algorithm), and not called on the spot.  It misses a lambda
+# stored into a member or global outside a return, and would flag a returned
+# lambda that a non-std function calls at once.
+set traversal AsIs
+match lambdaExpr(has(cxxRecordDecl(isLambda(), has(fieldDecl(hasType(referenceType()))))), hasAncestor(returnStmt()), unless(hasAncestor(callExpr(callee(functionDecl(matchesName("^::std::")))))), unless(hasAncestor(cxxOperatorCallExpr(hasOverloadedOperatorName("()"), hasArgument(0, ignoringImplicit(lambdaExpr()))))), isExpansionInMainFile(), hasAncestor(scope))

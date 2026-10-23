@@ -45,29 +45,40 @@ def read_scope():
             yield rule, pathlib.Path(f).relative_to(ROOT).as_posix(), namespace, expected
 
 
+DEFAULT_TRAVERSAL = "set traversal IgnoreUnlessSpelledInSource"
+
+
 def matchers(rule):
     """The rule's match lines; its findings are the sum of their counts (a
-    rule may need one per kind of syntax node, e.g. a call and a member)."""
-    lines = [l for l in (HERE / "rules" / f"{rule}.query").read_text().splitlines()
-             if l.startswith("match ")]
+    rule may need one per kind of syntax node, e.g. a call and a member).  A
+    rule may name its own traversal with a `set traversal` line (one that
+    needs implicit nodes, such as a closure's fields); it is restored after."""
+    text = (HERE / "rules" / f"{rule}.query").read_text().splitlines()
+    lines = [l for l in text if l.startswith("match ")]
     if not lines:
         sys.exit(f"jlt-check: rules/{rule}.query: want at least one match line")
-    return lines
+    own = [l for l in text if l.startswith("set traversal ")]
+    return lines, own[0] if own else None
 
 
 def run(query, build, path, namespace, rules):
     """Parse one file once; return (counts per rule, locations per rule) or an error."""
     script = ["set output diag",
-              "set traversal IgnoreUnlessSpelledInSource",
+              DEFAULT_TRAVERSAL,
               f'let scope namespaceDecl(hasName("{namespace}"))']
     # The probe runs first: a scope that names no namespace in this file
     # would make every rule count zero, so its absence is a failure.
     script.append("match namespaceDecl(hasName(\"%s\"), isExpansionInMainFile())" % namespace)
     owner = []  # the rule each match line belongs to, in script order
     for r in rules:
-        for m in matchers(r):
+        ms, traversal = matchers(r)
+        if traversal:
+            script.append(traversal)
+        for m in ms:
             script.append(m)
             owner.append(r)
+        if traversal:
+            script.append(DEFAULT_TRAVERSAL)
     if path.startswith("tools/jlt-check/fixtures/"):
         args = [str(ROOT / path), "--", "-std=c++23", "-xc++"]
     else:
