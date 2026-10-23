@@ -83,6 +83,42 @@ constexpr int adhoc(T t) {  // definition 4: bar is not named, foo is
   return t.bar();
 }
 
+template <typename F>
+constexpr int applied(F f, int x) {  // definition 5: f is called, '()' unnamed
+  return f(x);
+}
+
+template <typename F>
+constexpr bool involutive(F) {  // a law predicate: a trait in function spelling
+  return false;
+}
+template <typename F>
+constexpr bool bijective(F f) {  // fine: a call to a bool-returning constexpr
+  return involutive(f);        // template is a trait read, which Rule 2 names
+}
+
+constexpr int reading(std::pair<int, int> p) { return p.first; }
+template <typename T>
+constexpr int concrete(T x) {  // fine: a non-template function on a concrete
+  return reading(std::pair{0, 0}) + 0 * sizeof(x);  // argument, not on x
+}
+
+template <typename A, typename B>
+struct Box {
+  A a;
+  B b;
+};
+template <typename A, typename B>
+constexpr A unbox(Box<A, B> box) {  // fine: a member of a library aggregate
+  return box.a;
+}
+
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T through(T x) {  // fine: a call on a call's result, not on x
+  return twice<T, Op>(x);
+}
+
 }  // namespace jlt_listing
 
 template <typename T>

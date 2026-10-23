@@ -169,7 +169,9 @@ class NameCollector : public clang::RecursiveASTVisitor<NameCollector> {
     if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
       names.insert(u->getName().getAsString());
     else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
-      names.insert(d->getNameInfo().getAsString());
+      names.insert(llvm::isa<clang::VarDecl>(d->getDecl())
+                       ? std::string("()")  // a call on a value
+                       : d->getNameInfo().getAsString());
     else if (const auto* m =
                  llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee))
       names.insert(m->getMember().getAsString());
@@ -340,44 +342,68 @@ Vocabulary vocabularyOf(const clang::FunctionTemplateDecl* ft) {
   return v;
 }
 
-/// Calls that are not vocabulary of the value: standard utilities that move
-/// or forward it, and the library's own constrained templates, whose
-/// constraints are checked at their definition (the obligation transfers).
+/// Whether a value's type is a template parameter itself (through references
+/// and cv): the value whose vocabulary Rule 2 restricts.  A value of some
+/// other dependent type, a library aggregate or a call's result, carries that
+/// type's vocabulary, not the parameter's.
+bool isParameterTyped(const clang::Expr* e) {
+  if (!e) return false;
+  clang::QualType t = e->getType();
+  if (t.isNull()) return false;
+  t = t.getNonReferenceType().getUnqualifiedType();
+  return t->isTemplateTypeParmType() ||
+         llvm::isa<clang::SubstTemplateTypeParmType>(t.getTypePtr());
+}
+
+bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
+  return std::any_of(es.begin(), es.end(), isParameterTyped);
+}
+
+/// Whether a template is constrained: a type constraint on a parameter, a
+/// requires clause, or a trailing one.
+bool constrained(const clang::FunctionTemplateDecl* ft) {
+  if (ft->getTemplateParameters()->getRequiresClause() ||
+      ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr)
+    return true;
+  for (const clang::NamedDecl* p : *ft->getTemplateParameters())
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (tp->hasTypeConstraint()) return true;
+  return false;
+}
+
+/// Calls that are not vocabulary of the value: a standard function (move,
+/// forward, make_optional, ...); a non-template function, whose parameter
+/// types are concrete; the library's own constrained templates, whose
+/// constraints are checked at their definition (the obligation transfers);
+/// and a constexpr template returning bool, a trait in function spelling
+/// (involutive(f), holds_on<2>(law, rel, lo, hi)), which Rule 2 names beside
+/// the concepts.  That last one is a heuristic: a bool-returning function
+/// that works on the value escapes it.
 bool exemptCall(const clang::CallExpr* call) {
   const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
-  static const std::set<std::string> utilities = {
-      "move", "forward", "as_const", "declval",     "invoke",
-      "get",  "apply",   "visit",    "static_cast", "exchange"};
+  llvm::SmallVector<const clang::NamedDecl*, 4> cands;
   if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee)) {
-    if (utilities.count(u->getName().getAsString())) return true;
-    for (const clang::NamedDecl* cand : u->decls()) {
-      const auto* ft = llvm::dyn_cast<clang::FunctionTemplateDecl>(cand);
-      if (!ft) continue;
-      if (ft->getTemplateParameters()->getRequiresClause() ||
-          ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr)
-        return true;
-      for (const clang::NamedDecl* p : *ft->getTemplateParameters())
-        if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
-          if (tp->hasTypeConstraint()) return true;
-    }
+    for (const clang::NamedDecl* d : u->decls()) cands.push_back(d);
+  } else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee)) {
+    cands.push_back(d->getDecl());
+  } else {
+    return false;
   }
-  return false;
+  if (cands.empty()) return false;  // found by ADL alone: judged by name
+  for (const clang::NamedDecl* cand : cands) {
+    if (inStd(cand)) continue;
+    if (const auto* ft = llvm::dyn_cast<clang::FunctionTemplateDecl>(cand)) {
+      if (constrained(ft)) continue;
+      const clang::FunctionDecl* f = ft->getTemplatedDecl();
+      if (f->isConstexpr() && f->getReturnType()->isBooleanType()) continue;
+      return false;  // an unconstrained template: judged by name
+    }
+    if (llvm::isa<clang::FunctionDecl>(cand)) continue;  // concrete parameters
+    return false;
+  }
+  return true;
 }
 
-/// Whether a member access reads a standard aggregate (pair, tuple, optional,
-/// variant, array): its members are the aggregate's vocabulary, not the
-/// parameter's.
-bool stdAggregateBase(const clang::Expr* base) {
-  const clang::Type* t = base->getType().getTypePtrOrNull();
-  if (!t) return false;
-  if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
-    if (const clang::TemplateDecl* td =
-            ts->getTemplateName().getAsTemplateDecl())
-      return inStd(td);
-  return false;
-}
-
-/// The operations of a body, with their locations.
 class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
  public:
   struct Op {
@@ -389,46 +415,59 @@ class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
   std::set<const clang::Expr*> asCallee;
 
   // Control operators act on results, not on the value: &&, ||, !, the comma.
+  // Only an operation with an operand of parameter type is the parameter's
+  // vocabulary.  Control operators (&&, ||, !, the comma) act on results.
   bool VisitBinaryOperator(clang::BinaryOperator* e) {
-    if (e->isTypeDependent() && !e->isLogicalOp() && !e->isCommaOp())
+    if (e->isLogicalOp() || e->isCommaOp()) return true;
+    if (anyParameterTyped({e->getLHS(), e->getRHS()}))
       ops.push_back({clang::BinaryOperator::getOpcodeStr(e->getOpcode()).str(),
                      e->getOperatorLoc(), true});
     return true;
   }
   bool VisitUnaryOperator(clang::UnaryOperator* e) {
-    if (e->isTypeDependent() && e->getOpcode() != clang::UO_LNot)
+    if (e->getOpcode() != clang::UO_LNot && isParameterTyped(e->getSubExpr()))
       ops.push_back({clang::UnaryOperator::getOpcodeStr(e->getOpcode()).str(),
                      e->getOperatorLoc(), true});
     return true;
   }
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr* e) {
-    if (e->isTypeDependent())
+    llvm::SmallVector<const clang::Expr*, 2> args(e->arguments().begin(),
+                                                  e->arguments().end());
+    if (anyParameterTyped(args))
       ops.push_back({clang::getOperatorSpelling(e->getOperator()),
                      e->getOperatorLoc(), true});
     return true;
   }
   bool VisitArraySubscriptExpr(clang::ArraySubscriptExpr* e) {
-    if (e->isTypeDependent()) ops.push_back({"[]", e->getRBracketLoc(), true});
+    if (isParameterTyped(e->getBase()))
+      ops.push_back({"[]", e->getRBracketLoc(), true});
     return true;
   }
   bool VisitCallExpr(clang::CallExpr* e) {
     if (llvm::isa<clang::CXXOperatorCallExpr>(e)) return true;  // above
-    if (!e->isTypeDependent() || exemptCall(e)) return true;
     const clang::Expr* callee = e->getCallee()->IgnoreParenImpCasts();
-    if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee)) {
-      ops.push_back({u->getName().getAsString(), u->getNameLoc(), false});
-    } else if (const auto* m =
-                   llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee)) {
+    if (const auto* m =
+            llvm::dyn_cast<clang::CXXDependentScopeMemberExpr>(callee)) {
       asCallee.insert(m);
-      if (!stdAggregateBase(m->getBase()))
+      if (isParameterTyped(m->getBase()))
         ops.push_back({m->getMember().getAsString(), m->getMemberLoc(), false});
-    } else if (!llvm::isa<clang::DeclRefExpr>(callee)) {
-      ops.push_back({"()", e->getExprLoc(), false});  // a value called
+      return true;
     }
+    if (isParameterTyped(callee)) {  // a value of parameter type, called
+      ops.push_back({"()", e->getExprLoc(), false});
+      return true;
+    }
+    llvm::SmallVector<const clang::Expr*, 4> args(e->arguments().begin(),
+                                                  e->arguments().end());
+    if (!anyParameterTyped(args) || exemptCall(e)) return true;
+    if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+      ops.push_back({u->getName().getAsString(), u->getNameLoc(), false});
+    else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+      ops.push_back({d->getNameInfo().getAsString(), d->getLocation(), false});
     return true;
   }
   bool VisitCXXDependentScopeMemberExpr(clang::CXXDependentScopeMemberExpr* e) {
-    if (!asCallee.count(e) && !stdAggregateBase(e->getBase()))
+    if (!asCallee.count(e) && isParameterTyped(e->getBase()))
       ops.push_back({e->getMember().getAsString(), e->getMemberLoc(), false});
     return true;
   }
