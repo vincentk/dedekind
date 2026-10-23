@@ -167,6 +167,22 @@ constexpr int unprobed(T t) {  // definition 10: no probe, no constraint
   return t.steer();
 }
 
+template <std::regular T>
+constexpr bool same(T a, T b) {  // fine: regular grants == (and =)
+  return a == b;
+}
+
+template <typename... Ts>
+  requires(std::equality_comparable<Ts> && ...)
+constexpr bool all_self_equal(Ts... xs) {  // fine: a fold over the pack grants ==
+  return ((xs == xs) && ...);
+}
+
+template <typename T>
+constexpr auto doubler(T) {  // fine: the lambda is its own function, with its
+  return []<std::integral U>(U x) { return x + x; };  // own constraint
+}
+
 }  // namespace jlt_listing
 
 template <typename T>

@@ -222,6 +222,7 @@ Permits permitsOfStd(llvm::StringRef name) {
   if (name == "semiregular" || name == "regular" || name == "copyable" ||
       name == "movable" || name == "assignable_from")
     p.names = {"="};  // a value may be assigned to (Rule 1: a local)
+  if (name == "regular") p.names = {"=", "==", "!="};  // and compared
   if (name.ends_with("range") || name == "view")
     p.names = {"begin", "end", "size", "empty"};
   return p;
@@ -330,9 +331,12 @@ void gather(const clang::Expr* e, Vocabulary& v) {
              llvm::isa<clang::SizeOfPackExpr>(e) ||
              llvm::isa<clang::UnaryExprOrTypeTraitExpr>(e)) {
     return;  // a literal or a substituted value: nothing to name
-  } else if (llvm::isa<clang::CXXFoldExpr>(e) ||
-             llvm::isa<clang::ParenListExpr>(e)) {
-    return;  // folds over packs: beyond the name level, stay silent
+  } else if (const auto* fold = llvm::dyn_cast<clang::CXXFoldExpr>(e)) {
+    gather(fold->getPattern(), v);  // (C<Ts> && ...): the pattern's grant
+    return;
+  } else if (llvm::isa<clang::ParenListExpr>(e)) {
+    v.opaque = true;  // a shape this check does not read: silence
+    return;
   } else {
     v.opaque = true;  // a constraint of a shape this check does not read
     return;
@@ -450,6 +454,10 @@ class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
   };
   std::vector<Op> ops;
   std::set<const clang::Expr*> asCallee;
+
+  // A lambda in the body is its own function (exempt, by the documented
+  // choice): its operations are not the enclosing template's.
+  bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
 
   // Control operators act on results, not on the value: &&, ||, !, the comma.
   // Only an operation with an operand of parameter type is the parameter's
