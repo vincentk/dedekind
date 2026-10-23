@@ -2,6 +2,7 @@
 // closure that carries a reference out of its function.  Each planted case
 // inside jlt_listing is labelled; local uses and the harness outside must not
 // count.  Standalone.
+#include <algorithm>
 #include <cstddef>
 #include <utility>
 #include <variant>
@@ -34,6 +35,14 @@ constexpr int sum_each(const F& f) {
   return [&f]<std::size_t... I>(std::index_sequence<I...>) {
     return (f(I) + ... + 0);
   }(std::make_index_sequence<N>{});  // fine: invoked at once, in a template
+}
+
+inline auto paired(const int& x) {  // escaping-capture 3: std::make_pair
+  return std::make_pair([&x] { return x; }, 0);  // stores the closure
+}
+
+constexpr bool all_small(const int (&xs)[3], int k) {
+  return std::ranges::all_of(xs, [&](int v) { return v < k; });  // fine: an algorithm
 }
 
 }  // namespace jlt_listing

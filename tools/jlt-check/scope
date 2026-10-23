@@ -18,7 +18,7 @@ rule1-no-volatile             tools/jlt-check/fixtures/volatile.cpp  jlt_listing
 rule1-no-reference-returns    tools/jlt-check/fixtures/members.cpp  jlt_listing  5
 rule1-const-member-functions  tools/jlt-check/fixtures/members.cpp  jlt_listing  3
 rule1-no-mutable-globals      tools/jlt-check/fixtures/globals.cpp  jlt_listing  3
-rule1-no-escaping-reference-captures tools/jlt-check/fixtures/captures.cpp  jlt_listing  2
+rule1-no-escaping-reference-captures tools/jlt-check/fixtures/captures.cpp  jlt_listing  3
 rule1-boxed-identity          tools/jlt-check/fixtures/boxed.cpp  jlt_listing  5
 
 # The paper's listings: gated.
