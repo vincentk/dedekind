@@ -67,6 +67,7 @@ The first is where \Cpp{} is.
 The systems that machine learning runs on and the software that embedded devices run are, to a large extent, \Cpp{}, and a growing number of the people who write them arrive from Python with a functional vocabulary and no idea how much of it the language already supports.
 The second is what \Cpp{} shipped and what it did not.
 \Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges; the posture uses nothing else.
+The last of these is the youngest: the fold algorithms over ranges entered the standard in 2022, and the library this paper builds with completed them in its release 23~\cite{libcxx2026status}, which is one reason the fragment is described now and not earlier.
 Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}; what they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints and nothing else.
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
@@ -204,6 +205,7 @@ One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a
 It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself, and what a large value shared by many closures needs.
 Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so the enclosing type compares what the boxes hold, and \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
 The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only.
+\Cpp{26} adopts a \cppinline{constexpr} \cppinline{std::shared_ptr}~\cite{keir2025constexprsharedptr}, so a term built at compile time will fold there too; what stands is that an allocation made during constant evaluation cannot outlive it, so a box is a value within one binding time and never a bridge between two.
 The calculus of Appendix~\ref{app:fjlt} has it as a type with two terms, build and read, translated as a unary product; it has no term that asks which box, which is the second condition stated as grammar.
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
