@@ -680,8 +680,10 @@ For Rule~2 it checks at the level of names: a function template's body may use, 
 What it finds is a breach, and on the library every finding was one: in the \texttt{category} module it found bodies using what no constraint declared, in the fold engine, the lattice laws and nine smaller templates, and each fix was a constraint stating what the body already did.
 What it passes is not thereby in the fragment: the Rule~2 check reads names, not arities or types, it grants a few things by heuristic, a \cppinline{constexpr} template returning \cppinline{bool} being read as a trait, it does not see a class template's ordinary members, and it is silent on constraints it cannot read.
 Definition checking proper, over types and arities and the whole constraint language, is the distance between this tool and the \Cpp{0x} design, and it is a fair amount of work that this paper does not promise.
+Reading, meanwhile, is no longer the author's alone: an agentic reviewer reads a pull request against the three rules as a referee would, with the rules and this section as its brief, and the repository runs one on every pull request.
+It reaches what the tool does not, types and arities behind the names, whether a constraint names an operation at the types the body uses it at, and the members of class templates, and it is neither sound nor complete, so its findings are read and its silence is no certificate; between the tool's soundness and the reader's reach, \emph{by reading} in Table~\ref{tab:adequacy} names a check with two instruments, not a hope.
 Today the listings and the library's \texttt{category} module are held at zero on all three rules to the extent the check reaches, with one expected finding, Listing~\ref{lst:posture}'s \cppinline{twice_loose}, the breach the paper plants.
-So the listings are checked by the tool, by reading, and by a test that compiles and runs them.
+So the listings are checked by the tool, by reading, human and machine, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
