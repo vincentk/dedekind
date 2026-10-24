@@ -29,9 +29,9 @@
 
 \begin{abstract}
 Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
-Much of the software that machine learning runs on, and most of what embedded devices run, is written in \Cpp{}, and \Cpp{23} has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+\Cpp{} is a mainstream multi-paradigm language in which functional programming is one style among many, it runs much of machine learning and most embedded devices, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 What concepts dropped on the way into the standard, after a decade of proposals, was the check of a template's definition against its constraints: a constrained function may still use any operation its type argument happens to have.
-The language contains the material for a typed functional fragment and does not enforce its boundary.
+The language contains a typed functional fragment and does not enforce its boundary.
 
 The question this paper answers is what discipline draws that boundary, and what a program inside it is, with the language, the compiler and the standard library as they ship.
 The translation of type classes by dictionary passing is known, and so is a calculus for the concepts that were proposed; this paper applies both to the concepts that exist.
@@ -44,7 +44,7 @@ We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23}
 The translation preserves types, preserves evaluation and is a function of the program, so programs in the fragment terminate, are parametric and evaluate to values.
 A consequence is that laws are values: the unit and the laws of a monoid are stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
 
-The compiler enforces some of the rules and not others, and we say which, where the correspondence is a translation rather than an isomorphism, and what the fragment gives up.
+The translation is total on the fragment and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
 The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at both binding times by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, in which no dictionary survives.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
 \end{abstract}
