@@ -197,20 +197,21 @@ Bottom: what \cppinline{times<size_t>(x, n)} compiles to, \cppinline{x * n}, wit
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 At runtime the checker of Section~\ref{sec:limits} holds the same body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, static locals, globals, \cppinline{volatile}, boxes, and closures that capture by reference and escape, the last by a syntactic approximation of escape.}
+
 Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
 Two consequences keep the identification exact: a function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed, and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object; the grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
 A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
-One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a boxed value.
-It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself, and what a large value shared by many closures needs.
-Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so the enclosing type compares what the boxes hold, and \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a boxed value.
+It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself.
+Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
 The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only.
-\Cpp{26} adopts a \cppinline{constexpr} \cppinline{std::shared_ptr}~\cite{keir2025constexprsharedptr}, so a term built at compile time will fold there too; what stands is that an allocation made during constant evaluation cannot outlive it, so a box is a value within one binding time and never a bridge between two.
+\Cpp{26} adopts a \cppinline{constexpr} \cppinline{std::shared_ptr}~\cite{keir2025constexprsharedptr}, so a term built at compile time will fold there too; what stands is that an allocation made during constant evaluation cannot outlive it, so a box is a value within one binding time and never a bridge between two.}
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
+
 \cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included; that concatenation happens to be a monoid is luck, not a declaration.
 \cppinline{twice} keeps it: every operation in the body is one that \cppinline{IsMonoid<T, Op>} names.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
@@ -221,6 +222,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 A Jlt program is finite for one of two reasons, and Rule~3 admits exactly those two.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
 Or it iterates a step over \emph{an explicit budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+
 \cppinline{times} is the second: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
@@ -249,6 +251,12 @@ One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compi
 % Establishes: what a reader must believe about the System F reading, by one
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
 % is the warranty; a reader who stops here knows the claims and their cost.
+
+This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt, the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar, into System~F with records and the iterators of inductive types.
+A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator; Appendix~\ref{app:fjlt:translation} defines the map in full, and Table~\ref{tab:rules} states the six rules of it that this paper's listings exercise.
+The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
+It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
+The rest of this section shows the map on one shape, a monoid, and on the two things the listings add to it, laws and instances with contexts.
 
 \subsection{One shape, two monoids}
 \label{sec:translation:example}
@@ -451,7 +459,7 @@ A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinl
 \label{tab:rules}
 \end{table}
 
-\subsection{From \Cpp{} to the calculus}
+\subsection{From \Cpp{} to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
 The theorems are about FJlt.
