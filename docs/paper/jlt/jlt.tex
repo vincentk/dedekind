@@ -28,14 +28,25 @@
 \maketitle
 
 \begin{abstract}
-Parametric polymorphism, type classes, structural recursion and algebraic laws are usually associated with languages built for them: Haskell, OCaml, Agda.
-We show that they are available in standard \Cpp{23}, with a stock compiler and no extensions.
-The vehicle is a fragment of the language we call the \emph{Juliet Posture} ($\mathbf{Jlt}$), defined by three rules: values are \cppinline{std::semiregular} and functions \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or an explicit budget.
-Under these rules a \Cpp{} program translates into System~F: concepts and traits by the dictionary-passing translation of type classes, recursion by the fold encoding of data types, so programs in the fragment are parametric and terminate.
-A side effect is that one program runs at compile time or at runtime, unchanged.
-As a running example, the unit and the laws of a monoid are stated once, as \cppinline{constexpr} functions of the operation, and read twice: by concepts at compile time, by ordinary calls at runtime.
-The two readers are the two halves of the dictionary-passing translation, side by side.
-The rules are a discipline the compiler does not enforce; we state where the correspondence holds, where it is a translation rather than an isomorphism, and what the fragment gives up.
+Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
+Much of the software that machine learning runs on, and most of what embedded devices run, is written in \Cpp{}, and \Cpp{20} added concepts, which look like type classes.
+What it dropped on the way, after a decade of proposals, was the check of a template's definition against its constraints: a constrained function may still use any operation its type argument happens to have.
+The language contains the material for a typed functional fragment and does not enforce its boundary.
+
+The question this paper answers is what discipline draws that boundary, and what a program inside it is, with the language, the compiler and the standard library as they ship.
+The translation of type classes by dictionary passing is known, and so is a calculus for the concepts that were proposed; this paper applies both to the concepts that exist.
+
+The discipline is three rules, which we call the Juliet Posture.
+Values are copyable data and functions are pure and evaluable at compile time.
+Generic code varies with a type only through that type's concepts and traits.
+Recursion only folds, over a term, a finite carrier or an explicit budget.
+We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23} as written, and translate it into System~F: concepts become record types, trait specialisations records and constraints parameters, and folds become the iterators of inductive types.
+The translation preserves types, preserves evaluation and is a function of the program, so programs in the fragment terminate, are parametric and evaluate to values.
+A consequence is that laws are values: the unit and the laws of a monoid are stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
+
+The compiler enforces some of the rules and not others, and we say which, where the correspondence is a translation rather than an isomorphism, and what the fragment gives up.
+The evidence is the proofs in the appendix; the listings, which compile and run under a stock compiler at both binding times by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, in which no dictionary survives.
+What is gained is a mainstream compiler that checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
 \end{abstract}
 
 
