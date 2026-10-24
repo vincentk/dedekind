@@ -146,7 +146,7 @@ Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the transl
 
 Jlt is not a dialect and not a library.
 It is standard \Cpp{23} under three rules, and a program follows the rules or it does not; the compiler enforces some of them and we say which.
-Each rule has a listing of a few lines, verbatim up to formatting in the test that holds this paper's listings.
+Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting and to repetitions a comment elides.
 
 
 \paragraph{Rule 1: values and pure functions.}
@@ -370,7 +370,7 @@ The second row has no counterpart in a nominal type-class system: concepts are s
 \label{sec:translation:semiring}
 
 A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
-Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction, registers the three further monoids on \cppinline{size_t} it needs, and finds three semirings.
+Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction and finds three semirings, and two distributive lattices among them.
 
 % Verbatim in jlt_listings_test.cpp (as Listing 1).
 \begin{listing}[htbp]
@@ -388,41 +388,27 @@ concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
 \end{cpp}
 \begin{cpp}
 template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
-template <> constexpr size_t unit<size_t>(std::bit_or<size_t>) { return 0; }
-template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) { return SIZE_MAX; }
-template <> constexpr bool associative<size_t>(std::multiplies<size_t>) { return true; }
-template <> constexpr bool associative<size_t>(std::bit_or<size_t>) { return true; }
-template <> constexpr bool associative<size_t>(std::bit_and<size_t>) { return true; }
-
-template <>
-constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
-template <>
-constexpr bool commutative<size_t>(std::bit_or<size_t>) { return true; }
-template <>
-constexpr bool commutative<bool>(std::logical_or<bool>) { return true; }
+template <> constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
 template <>
 constexpr bool distributive<size_t>(std::multiplies<size_t>, std::plus<size_t>) {
   return true;
 }
-template <>
-constexpr bool distributive<size_t>(std::bit_and<size_t>, std::bit_or<size_t>) {
-  return true;
-}
-template <>
-constexpr bool distributive<bool>(std::logical_and<bool>,
-                                  std::logical_or<bool>) {
-  return true;
-}
+// ... and so on for the other operations: the test holds every certificate.
 
 static_assert( IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
 static_assert( IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert( IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
+
+static_assert( IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert( IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
+static_assert(!IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
 \end{cpp}
-\caption{Laws as functions of the operation, and the semiring shape as a conjunction.
+\caption{Laws as functions of the operation, and shapes as conjunctions.
 Top: two laws, declared and deleted, and the two shapes that require them.
-Bottom: the three further monoids on \cppinline{size_t} the semirings need, six certificates, and three semirings: $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$.
-The last line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.}
+Bottom: one certificate of each kind, the rest elided; three semirings, $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$; and a shape the listing leaves to the test, \cppinline{IsDistributiveLattice}, \cppinline{IsSemiring} conjoined with two more laws declared the same way, idempotence and absorption, which the bit vectors and $\mathbb{B}$ have and $(\mathbb{Z}/2^{64}, +, \cdot)$ does not.
+The fourth line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.
+The last is refused for a law that is false, \cppinline{+} is not idempotent, and for one that is merely undeclared, \cppinline{*} commutative, and the shape does not tell the two apart: \cppinline{false} means \emph{not known}, as in Listing~\ref{lst:intro}.}
 \label{lst:semiring}
 \end{listing}
 
