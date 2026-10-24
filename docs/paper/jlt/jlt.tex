@@ -151,7 +151,6 @@ Listing~\ref{lst:posture} shows each rule once.
 % Verbatim up to formatting in category/jlt_listings_test.cpp (Rule 2 reuses
 % Listing 1's shape).
 \begin{listing}[htbp]
-\setminted{fontsize=\footnotesize}
 \begin{cpp}
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
@@ -193,7 +192,7 @@ Every function is \cppinline{constexpr} and depends on its arguments alone.\foot
 At runtime the checker of Section~\ref{sec:limits} holds the same body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, static locals, globals, \cppinline{volatile}, boxes, and closures that capture by reference and escape, the last by a syntactic approximation of escape.}
 Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
 Two consequences keep the identification exact: a function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed, and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object; the grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
-A function passed as an argument is a value like any other, \cppinline{const}, and its call operator is \cppinline{const}: calling it observes, it does not change; \cppinline{constexpr} then adds the other binding time, since a \cppinline{const} call on a \cppinline{const} value is a constant expression when its arguments are.
+A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
@@ -208,7 +207,6 @@ Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it ca
 \cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included; that concatenation happens to be a monoid is luck, not a declaration.
 \cppinline{twice} keeps it: every operation in the body is one that \cppinline{IsMonoid<T, Op>} names.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
-The compiler does not enforce this rule at all.
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted and so would be a version of \cppinline{twice} that used \cppinline{+} behind its \cppinline{requires} clause.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
@@ -217,7 +215,6 @@ A Jlt program is finite for one of two reasons, and Rule~3 admits exactly those 
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
 Or it iterates a step over \emph{an explicit budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
 \cppinline{times} is the second: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit.
-What is ruled out is the loop whose bound is computed as it goes, and the function that calls itself on an argument it cannot show to be smaller.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
 The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the loops are inside \cppinline{std::ranges::fold_left} and \cppinline{cata}, and every function composes.
@@ -256,7 +253,6 @@ Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cp
 % Verbatim in src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp,
 % which also checks that the tree's unit<T>(Op{}) and laws agree.
 \begin{listing}[htbp]
-\setminted{fontsize=\footnotesize}
 \begin{cpp}
 template <typename T, typename Op> constexpr T unit(Op) = delete;
 
@@ -563,7 +559,7 @@ The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{
 \end{listing}
 
 \paragraph{The answer when the budget runs out is an absence.}
-Whether some natural has a given property is, for a general property, not something a budget can be replaced by a proof of, and a function that searches has to say what it says when the budget ends first.
+For a general property no budget can be replaced by a proof, so a function that searches has to say what it says when the budget ends first.
 In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
 That is the whole price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
 
@@ -594,10 +590,10 @@ The last two lines of Listing~\ref{lst:fuel} are one such fold: \cppinline{cata}
 Where the library's set evaluator walks a term by a hand-written structural visitor rather than a \cppinline{cata} call, it is that fold in shape and not yet in spelling.
 
 \paragraph{Why not a generator.}
-\Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}, and it is the natural reflex for a bounded computation that should not allocate.
+\Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
 It does not fit here, for three reasons that are the three rules.
 A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
-What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.\footnote{The library behind this paper has the \cppinline{constexpr} version of the generator: a \cppinline{Path<T>} is a lazy stream $\mathbb{N} \to T$, \cppinline{iterate(seed, step)} builds one, and \cppinline{.at(n)} reads it at budget $n$.}
+What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
 
 \section{Guarantees}
 \label{sec:guarantees}
@@ -719,8 +715,7 @@ It is the body-versus-signature gap of Rule~2 one level down, in the standard li
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it; a function template cannot be partially specialised, and an overload in its place runs into the lookup wall above.
-So the library is FJlt at its reads and not at its registrations, and the adequacy argument covers the listings, not the library.
-Closing the gap would mean a resolution mechanism for families that is found by name, which \Cpp{} does not have; the honest statement is that FJlt's instance resolution is a subset of what the library needs.
+So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
 
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
@@ -730,7 +725,6 @@ The listings were built with one compiler against two standard libraries, and th
 \paragraph{The compiler has its own budget.}
 Constant evaluation is bounded by a step limit the compiler sets, and a program that exhausts it fails to compile.
 Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
-The two kinds of fold meet the compiler differently, which is an idiosyncrasy of \Cpp{} but exactly the boundary this section is drawing.
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
 Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
@@ -778,7 +772,6 @@ Not the translation nor the calculus-with-concepts, but the claim that the shipp
 Three rules on standard \Cpp{23} were stated, and a program that keeps them is a term of a core calculus whose syntax is that \Cpp{}.
 The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to iteration.
 The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
-Every listing in the paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository.
 
 What this costs is stated rather than softened.
 Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound; a tool in the repository catches some breaches of them and certifies no program.
@@ -787,7 +780,7 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-Completing the checker: the one in the repository is sound in its findings and incomplete in its reach, holding the listings and the library's core at zero on the three rules at the level of names; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the checker: the one in the repository is sound in its findings and incomplete in its reach; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
