@@ -81,10 +81,15 @@ concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { unit<T>(Op{}) } -> std::same_as<T>;
 };
 
-template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op>
+template <typename T>
+concept IsMonoidPlus =
+    IsMonoid<T, std::plus<T>> && requires(const T a, const T b) {
+      { a + b } -> std::same_as<T>;
+    };
+
+template <IsMonoidPlus T>
 constexpr T twice(T x) {
-  return Op{}(x, x);
+  return x + x;
 }
 
 // Listing 1, middle: bool.
@@ -125,7 +130,6 @@ static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
 static_assert(twice<size_t>(21) == 42);
-static_assert(twice<size_t, std::multiplies<size_t>>(21) == 441);
 // Listing 3's caption: size_t wraps by definition, Z/2^64, so SIZE_MAX twice
 // is a constant and the same constant the processor computes.
 static_assert(twice<size_t>(SIZE_MAX) == SIZE_MAX - 1);
