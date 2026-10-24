@@ -71,6 +71,7 @@ Concepts, constraints on template parameters that are checked at each use, arriv
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
 The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of deliberately restricting oneself to the part of \Cpp{23} that reads as System~F.
+The name is structural typing's: a type is known by what it does and not by what it is called, which is how a concept admits a type, and how the fragment admits a carrier.
 It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
