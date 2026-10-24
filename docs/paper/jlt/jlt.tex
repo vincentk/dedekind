@@ -770,6 +770,8 @@ A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cann
 \paragraph{Type classes.}
 Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}: a class is a record type, an instance a record, a constraint a parameter, and a constrained call passes the record the compiler resolved.
 Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the one row without a counterpart there, structural satisfaction, is the difference Bernardy et al.~\cite{bernardy2010generic} place at the centre of their comparison of concepts and type classes.
+Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
+FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head; Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types do not fit, is in Section~\ref{sec:limits}.
 
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
