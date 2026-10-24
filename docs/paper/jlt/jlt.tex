@@ -67,10 +67,10 @@ The systems that machine learning runs on and the software that embedded devices
 The second is what \Cpp{} shipped and what it did not.
 \Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges; the posture uses nothing else.
 The last of these is the youngest: the fold algorithms over ranges entered the standard in 2022, and the library this paper builds with completed them in its release 23~\cite{libcxx2026status}, which is one reason the fragment is described now and not earlier.
-Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}; what they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints and nothing else.
+Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}; what they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints.
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
-The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of deliberately restricting oneself to the part of \Cpp{23} that reads as System~F.
+The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of restricting oneself to the part of \Cpp{23} that reads as System~F.
 The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}, which is how a concept admits a type, and how the fragment admits a carrier.
 It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
@@ -88,7 +88,7 @@ A discipline that makes a mainstream compiler into a checker of this modest sort
 Listing~\ref{lst:intro} shows the kind of thing the posture buys, in a dozen lines.
 A law of a function is a value, declared at the leaves (\cppinline{!} on \cppinline{bool}, \cppinline{~} and unary \cppinline{-} on \cppinline{size_t} are involutions, and the standard library already has them as function objects), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
 The compiler reads the chain at compile time in the \cppinline{static_assert}s, and the same functions answer at runtime.
-The last two lines are the honest answers: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined; \cppinline{false} here means \emph{not known}, not \emph{no}.
+The last two lines say what is not known: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined; \cppinline{false} here means \emph{not known}, not \emph{no}.
 
 % Verbatim up to formatting in jlt_listings_test.cpp (namespace intro).
 \begin{listing}[htbp]
@@ -123,7 +123,8 @@ static_assert(!involutive(std::negate<int>{}));
 \caption{Declared, entailed, inferred.
 \cppinline{involutive} is declared at three standard function objects; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
 Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
-\cppinline{Compose} is the one type the listing defines, a former of functions; its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, which Rule~2 requires of it, and asks it of \cppinline{const F&}, since a function argument is a value that calling does not change.}
+\cppinline{Compose} is the one type the listing defines, a former of functions.
+Its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, as Rule~2 requires, and asks it of \cppinline{const F&}: a function argument is a value, and calling does not change it.}
 \label{lst:intro}
 \end{listing}
 
@@ -135,7 +136,8 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules; it states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository reads names, its findings are read before they are acted on, its silence certifies nothing, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker.
+The one in the repository reads names, its findings are read before they are acted on and its silence certifies nothing; Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
