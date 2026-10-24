@@ -179,9 +179,12 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
 
-constexpr size_t square(size_t x) { return x * x; }
+template <std::semiregular T>
+constexpr T id(const T& x) {
+  return x;
+}
 
-static_assert(square(12) == 144);
+static_assert(id(size_t{12}) == 12);
 
 template <typename T>
 constexpr T twice_loose(T x) {
@@ -283,7 +286,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("Section 2: the rules' functions, called at runtime") {
     size_t twelve = 12;
-    CHECK(L::square(twelve) == 144);
+    CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
   }
 
