@@ -167,14 +167,14 @@ static_assert(id(size_t{42}) == 42);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.32\linewidth}
-\begin{minted}{gas}
-id_rt():
-    mov eax, 42
-    ret
+\begin{minted}{llvm}
+define i64 @id_rt() {
+  ret i64 42
+}
 \end{minted}
 \end{minipage}
 \caption{Rule~1: the identity arrow, and what a call of it compiles to.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant (Clang 23, \texttt{-std=c++23 -O2}, x86-64, Intel syntax).}
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-std=c++23 -O2}, attributes stripped.}
 \label{lst:rule1}
 \end{listing}
 
