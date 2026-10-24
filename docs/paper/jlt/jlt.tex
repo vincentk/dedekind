@@ -689,18 +689,20 @@ The paragraphs below name practical limitations encountered while stress-testing
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
 Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
-Rule~3 it checks mechanically, for every body the compiler instantiates and up to the blind spots its rule files document, and Rule~1's syntactic part with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
+Rule~3 it checks mechanically, for every body the compiler instantiates and up to the blind spots its rule files document: no loop but the library's iteration primitive and no function on a call cycle, so recursion runs over a term's type or not at all.
+Rule~1's syntactic part it checks with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference.
 Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
-The tool checks it at the level of names, a body may use on a value of parameter type only what a declared constraint names, and a finding of that check is a breach or a gap in the tool's reading of the standard's concepts, read before it is acted on, while its silence certifies nothing: it reads names, not arities or types, and definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
+The tool checks it at the level of names: a body may use on a value of parameter type only what a declared constraint names.
+A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on; its silence certifies nothing, since it reads names, not arities or types.
+Definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
 The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
 The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
-Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
 So \cppinline{unit(std::plus<size_t>)} declared after the concept is never found; Listing~\ref{lst:rule2} declares a deleted primary, which is found by name and specialised, and puts its one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it.
 The same wall makes an operator on \cppinline{std::pair} of standard carriers unreachable from inside \cppinline{std::plus}: a pair of monoids is a monoid, but not through \cppinline{std::plus<std::pair<A, B>>}, which is why the former of two operations must be a type of ours.
-This is the one place the translation's "instance resolution" and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name, and nothing else.
+This is where the translation's "instance resolution" and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
 \paragraph{A typed function object promises what its body cannot keep.}
 \cppinline{std::plus<T>} declares its result type as \cppinline{T}, so a shape that asks \cppinline|{ Op{}(a, b) } -> std::same_as<T>| is satisfied for any \cppinline{T}, including one with no \cppinline{+}; the failure comes later, inside \cppinline{<functional>}, when something evaluates the call.
@@ -723,16 +725,16 @@ Constant evaluation is bounded by a step limit the compiler sets, and a program 
 Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
-Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
+Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
 
 \paragraph{Why not a generator.}
 \Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
 It does not fit here, for three reasons that are the three rules.
 A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
-What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
+What a generator is good for, a stream consumed lazily at runtime, is what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
-This is the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
+This is the only way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
 \section{Related Work}
@@ -781,9 +783,11 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-Completing the checker: the one in the repository works at the level of names, its findings read before they are acted on and its silence no certificate; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the checker: the one in the repository works at the level of names, its findings read before they are acted on and its silence no certificate.
+Definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
-And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
+And algebra, which is where the posture goes next.
+The listings here state laws and declare them; over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, over structures with normal forms the normal form does the deciding, and the same three rules reach that far without change.
 
 Nothing was added to the language, the compiler or the library; what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
 
