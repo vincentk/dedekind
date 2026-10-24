@@ -1,0 +1,45 @@
+% Preamble of the Jlt paper under the journal's class (programming.cls v8.1,
+% vendored unchanged from github.com/programming-journal/programming).
+% The class already loads babel, fontspec, amsmath (fleqn), graphicx,
+% hyperref, cleveref, xcolor, booktabs, tabularx, rotating, caption and
+% listings, and sets the type area; this file adds only what the paper uses
+% beyond that.  The shared ../preamble.tex stays with paper.tex.
+\usepackage{newunicodechar}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+
+\newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{β}{\ensuremath{\beta}}
+\newunicodechar{μ}{\ensuremath{\mu}}
+\newunicodechar{π}{\ensuremath{\pi}}
+\newunicodechar{τ}{\ensuremath{\tau}}
+\newunicodechar{χ}{\ensuremath{\chi}}
+
+% Code listings: minted (Pygments), UTF-8 native; needs -shell-escape.
+\usepackage{minted}
+\usepackage{csquotes}  % after minted/fvextra: load-order warning
+\setminted{
+  fontsize=\small,
+  breaklines=true,
+  breakanywhere=true,
+  frame=single,
+  framesep=2mm,
+  autogobble,
+}
+\usemintedstyle{friendly}
+\newminted[cpp]{cpp}{}
+\newmintinline[cppinline]{cpp}{}
+
+\newcommand{\Cpp}[1]{C\kern-.05em\raise.3ex\hbox{\footnotesize ++}#1}
+
+% Semantic brackets for the translation, without stmaryrd.
+\providecommand{\llbracket}{[\![}
+\providecommand{\rrbracket}{]\!]}
+
+\usepackage[backend=biber]{biblatex}

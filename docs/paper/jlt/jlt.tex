@@ -1,19 +1,28 @@
 % !TEX TS-program = lualatex
-\documentclass[11pt, a4paper]{article}
+\documentclass[english,submission]{programming}
 
-% The shared preamble and bibliography live one directory up.
 % Build from this directory: lualatex -shell-escape -halt-on-error jlt.tex
-\input{../preamble}
+\input{preamble-jlt}
 \addbibresource{../references.bib}
 \graphicspath{{../figures/}}
 
-% Semantic brackets for the translation, without stmaryrd.
-\providecommand{\llbracket}{[\![}
-\providecommand{\rrbracket}{]\!]}
+\paperdetails{
+  perspective=theoretical,
+  area={Programming languages, Type systems, Generic programming},
+}
 
-\title{The Juliet Posture: Structurally Typed Functional Programming in Standard \Cpp{23}}
+\title{The Juliet Posture}
+\subtitle{Structurally Typed Functional Programming in Standard \Cpp{23}}
+\titlerunning{The Juliet Posture}
 \author{Vincent Kr\"autler}
-\date{\today}
+\affiliation{FIXME(author): affiliation}% and \authorinfo{...}, as the template shows
+
+\keywords{C++ concepts, dictionary passing, System F, parametricity, structural recursion}
+
+\ccsdesc[500]{Software and its engineering~Polymorphism}
+\ccsdesc[500]{Theory of computation~Type theory}
+\ccsdesc[300]{Software and its engineering~Functional languages}
+\ccsdesc[300]{Software and its engineering~Formal language definitions}
 
 \begin{document}
 \maketitle
@@ -28,6 +37,7 @@ As a running example, the unit and the laws of a monoid are stated once, as \cpp
 The two readers are the two halves of the dictionary-passing translation, side by side.
 The rules are a discipline the compiler does not enforce; we state where the correspondence holds, where it is a translation rather than an isomorphism, and what the fragment gives up.
 \end{abstract}
+
 
 % Section skeleton (#981).  Each section names what it must establish; prose
 % follows once the calculus (appendix) is drafted.
