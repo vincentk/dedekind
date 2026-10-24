@@ -3,29 +3,29 @@ message: "If you use this software, please cite it using the metadata below."
 type: software
 title: "dedekind"
 abstract: >
-  A C++23 research library for Axiomatic Systems Programming: embedding mathematical
-  structure directly into compile-time interfaces through modules, concepts, and
-  constrained species traits. Across all layers a single design rule applies —
-  intensional first, realize at explicit boundaries — so that categorical and
-  mereological invariants are reified as type-level contracts audited by the
-  compiler and validated by the CI pipeline.
+  A C++23 library in which mathematical structure is stated as concepts and
+  laws are constexpr values of the operations they are about, read by the
+  compiler at compile time and by ordinary calls at run time.  The code keeps
+  to three rules, the Juliet Posture: values are copyable data and functions
+  are pure and constexpr; generic code varies with a type only through that
+  type's concepts and traits; recursion only folds, over a term, a finite
+  carrier or an explicit budget.  A checker in tools/jlt-check holds the core
+  of the library to the rules in continuous integration.  Sets are arrows into
+  a truth object, and membership and quantifiers over finite ordered carriers
+  are decided by folds.
 authors:
-  - name: "The dedekind Authors"
-    website: "https://github.com/vincentk/dedekind"
+  - family-names: "Kräutler"
+    given-names: "Vincent"
 repository-code: "https://github.com/vincentk/dedekind"
 license: Apache-2.0
-version: "1.0.0"
-date-released: "2026-04-19"
 keywords:
   - C++23
-  - python
-  - intensional programming
+  - concepts
+  - type classes
+  - System F
+  - parametricity
+  - structural recursion
   - compile-time programming
   - category theory
-  - type theory
-  - axiomatic systems programming
-  - abstract algebra
-  - exact real arithmetic
-  - sparse linear algebra
-  - GraphBLAS
-  - numpy
+  - lattices
+  - intensional sets
