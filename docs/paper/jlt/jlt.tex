@@ -142,12 +142,17 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
 Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus is the appendix.
 
-\section{The Posture}
+\section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
 Jlt is not a dialect and not a library.
 It is standard \Cpp{23} under three rules, and a program follows the rules or it does not. The compiler enforces some of them and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting and to repetitions a comment elides.
+
+Two names are kept apart in what follows.
+Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three rules.
+Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
+Every FJlt program is a Jlt program by construction; that every Jlt program is an FJlt program is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program.
 
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
@@ -305,7 +310,7 @@ Section~\ref{sec:limits} says how.}
 
 One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them (Section~\ref{sec:limits}), and the appendix makes the subset precise.
 
-\section{Translation from Featherweight Jlt to System~F}
+\section{From Featherweight Jlt to System~F}
 \label{sec:translation}
 % Establishes: what a reader must believe about the System F reading, by one
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
@@ -536,7 +541,7 @@ The two translations, dictionary passing and monomorphisation, are studied side 
 So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
 Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
-\section{Two Binding Times}
+\section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
 Every function in this paper has run twice already.
