@@ -76,10 +76,13 @@ template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 
 template <typename T, typename Op>
+constexpr bool associative(Op) = delete;
+
+template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
   { unit<T>(Op{}) } -> std::same_as<T>;
-};
+} && associative<T>(Op{});
 
 template <typename T>
 concept IsMonoidPlus =
@@ -102,6 +105,15 @@ constexpr bool unit<bool>(std::logical_or<bool>) {
   return false;
 }
 
+template <>
+constexpr bool associative<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool associative<bool>(std::logical_or<bool>) {
+  return true;
+}
+
 static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
@@ -122,6 +134,22 @@ constexpr size_t unit<size_t>(std::bit_or<size_t>) {
 template <>
 constexpr size_t unit<size_t>(std::bit_and<size_t>) {
   return SIZE_MAX;
+}
+template <>
+constexpr bool associative<size_t>(std::plus<size_t>) {
+  return true;
+}
+template <>
+constexpr bool associative<size_t>(std::multiplies<size_t>) {
+  return true;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_or<size_t>) {
+  return true;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_and<size_t>) {
+  return true;
 }
 
 static_assert(IsMonoid<size_t, std::plus<size_t>>);
