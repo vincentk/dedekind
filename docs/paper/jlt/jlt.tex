@@ -71,6 +71,7 @@ Concepts, constraints on template parameters that are checked at each use, arriv
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
 The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of deliberately restricting oneself to the part of \Cpp{23} that reads as System~F.
+The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}, which is how a concept admits a type, and how the fragment admits a carrier.
 It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
@@ -444,6 +445,7 @@ The last is refused for a law that is false, \cppinline{+} is not idempotent, an
 Two kinds of requirement went into these verdicts.
 Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{std::plus<>} on two \cppinline{bool}s yields an \cppinline{int} and not a \cppinline{bool}.
 Declared ones a specialisation records: the units and associativity, and now two more laws.
+\Cpp{}'s own words for the two are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not; a law is what modelling asks beyond satisfying, and the fragment makes it a declared field.
 Both are requirements of the same shape, and both become fields of the same record; a law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
 
 One thing the listing does not do, and cannot.
@@ -628,6 +630,7 @@ If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
+It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, Leibniz's law, that equal arguments give equal results, holds by substitution, and no \cppinline{==} is asked of a value; a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which is why the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
