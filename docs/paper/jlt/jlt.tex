@@ -471,8 +471,7 @@ The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring sh
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
 
-One rule remains.
-An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one.
+An instance may itself require instances, which is the one rule the listings have not used: the unit of a pair is the pair of units, provided both components have one.
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
 Under translation it is a function from the components' records to the composite's:
 \begin{minted}{text}
@@ -529,8 +528,7 @@ Whether a body obeys Rule~2 is decidable by inspection of the body against its \
 The repository has one, described in Section~\ref{sec:limits}, that reads a body against its constraints at the level of names: what it finds is a breach, and what it passes is not thereby in the fragment, so this paper's listings are checked by it and by reading.
 Rule~3 it checks the same way, for loops and for recursion that is not over a term.
 
-One more thing the walk has to say, because \Cpp{} does not pass dictionaries.
-The translation is a model of what a constrained call means, not of what the compiler emits.
+\Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
 Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
 Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
@@ -623,8 +621,7 @@ The concept \cppinline{IsMonotone} on the same term agrees, as it must: the conc
 % adequacy argument (C++ -> FJlt) is Section~\ref{sec:translation:adequacy}
 % and is not a theorem.
 
-Write $P$ for an FJlt program and $\llbracket P \rrbracket$ for its translation into System~F.
-One word on what the theorems rest on.
+The theorems rest on FJlt alone.
 Their proofs (Appendix~\ref{app:fjlt:theorems}) are inductions over the grammar, the typing and the translation of FJlt, and never mention the three rules.
 The rules are not the hypotheses of the theorems; they are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:translation:adequacy}.
 
