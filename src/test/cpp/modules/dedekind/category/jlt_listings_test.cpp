@@ -184,7 +184,7 @@ constexpr T id(const T& x) {
   return x;
 }
 
-static_assert(id(size_t{12}) == 12);
+static_assert(id(size_t{42}) == 42);
 
 template <typename T>
 constexpr T twice_loose(T x) {
