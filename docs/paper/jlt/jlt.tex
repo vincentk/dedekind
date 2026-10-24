@@ -179,10 +179,17 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 \end{cpp}
-\caption{The three rules, one panel each.
+\begin{minted}{gas}
+times_rt(size_t x, size_t n):
+        mov     rax, rdi
+        imul    rax, rsi
+        ret
+\end{minted}
+\caption{The three rules, one panel each, and what the third compiles to.
 Rule~1: values are \cppinline{std::semiregular}, functions are \cppinline{constexpr} and pure, so \cppinline{square(12)} is a fact the compiler can check.
 Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and so compiles for every type with a \cppinline{+}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
-Rule~3: recursion only folds, over finite data or over an explicit budget; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.}
+Rule~3: recursion only folds, over finite data or over an explicit budget; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.
+Bottom: what \cppinline{times<size_t>(x, n)} compiles to, \cppinline{x * n}, with Clang 22 at \texttt{-std=c++23 -O2} for x86-64 in Intel syntax; \cppinline{times_rt} is a non-template wrapper so that the function is emitted at all, and Section~\ref{sec:binding} reads the panel.}
 \label{lst:posture}
 \end{listing}
 
@@ -460,25 +467,25 @@ And the standard library pieces the grammar admits, \cppinline{std::pair}, the f
 
 \emph{A \Cpp{} program that follows the three rules is an FJlt program.}
 This direction is not a theorem, because the compiler does not check it, and the point of Rule~2 is exactly the part it does not check.
-Table~\ref{tab:adequacy} lists what \Cpp{} has and FJlt does not, and how each is kept out.
+Table~\ref{tab:adequacy} lists what \Cpp{} has, what keeps it out, and what FJlt has instead.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.75\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.5\hsize}X>{\hsize=.75\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-\Cpp{} has & FJlt does not, because & kept out by \\
+\Cpp{} has & kept out by & FJlt has instead \\
 \midrule
-bodies checked at instantiation & bodies are typed against the constraint & Rule~2, by reading and by the checker \\
-overloading & one function per name, plus its specialisations & the grammar \\
-argument-dependent lookup & instances are found by the trait's name & the grammar, and Section~\ref{sec:limits} \\
-implicit conversions & only where a requirement declares one, and the body then sees the declared type & the grammar, and Rule~2 for the body \\
-references, moves & values are copied; \texttt{const T} and \texttt{const T\&} are one value, and no reference is returned & erased: an optimisation, not a meaning \\
-state, pointers, exceptions & functions are pure & Rule~1, and constant evaluation \\
-unbounded loops, general recursion & recursion folds & Rule~3, by reading and by the checker \\
+bodies checked at instantiation & Rule~2 (Section~\ref{sec:posture}), by reading and by the checker (Section~\ref{sec:limits}) & bodies typed against the constraint \\
+overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
+argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
+implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
+references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
+unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
 \bottomrule
 \end{tabularx}
-\caption{What the adequacy argument has to keep out of a Jlt program, and what keeps it out.
+\caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
 The two rows marked \emph{by reading} are the whole gap: the compiler accepts programs that break them, and the checker of Section~\ref{sec:limits} finds some of those programs and certifies none.}
 \label{tab:adequacy}
 \end{table}
@@ -566,20 +573,9 @@ That is the whole price of Rule~3, and it is paid in the type rather than in a c
 \paragraph{A budget at compile time is the same budget.}
 \cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
-What the processor runs is Listing~\ref{lst:asm}: the fold over \cppinline{repeat(x, n)} with \cppinline{plus} is one multiplication, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body.
+What the processor runs is the last panel of Listing~\ref{lst:posture}: the fold over \cppinline{repeat(x, n)} with \cppinline{plus} is one multiplication, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body.
 The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
 
-\begin{listing}[htbp]
-\begin{minted}{gas}
-times_rt(size_t x, size_t n):
-        mov     rax, rdi
-        imul    rax, rsi
-        ret
-\end{minted}
-\caption{What \cppinline{times<size_t>(x, n)} compiles to: \cppinline{x * n}.
-Clang 22, \texttt{-std=c++23 -O2}, x86-64, Intel syntax; \cppinline{times_rt} is a non-template wrapper so that the function is emitted at all.}
-\label{lst:asm}
-\end{listing}
 The compiler has a budget of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
 
 \paragraph{Set recursion in the library.}
