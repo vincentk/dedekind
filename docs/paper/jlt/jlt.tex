@@ -153,7 +153,7 @@ Each rule has a listing of a few lines, verbatim in the test that holds this pap
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-At runtime the checker of Section~\ref{sec:limits} holds the same body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, static locals, globals, \cppinline{volatile}, boxes, and closures that capture by reference and escape, the last by a syntactic approximation of escape.}
+At runtime the checker of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.66\linewidth}
@@ -175,14 +175,17 @@ define i64 @id_rt() {
 \end{minted}
 \end{minipage}
 \caption{Rule~1: the identity arrow, and what a call of it compiles to.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-std=c++23 -O2}, attributes stripped.}
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks.
+Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-O2}, attributes stripped.}
 \label{lst:rule1}
 \end{listing}
 
 Listing~\ref{lst:rule1} is the rule in one function.
 \cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value, nothing can change the value through it, so what comes back is what was passed, and a parameter written \cppinline{const T} or \cppinline{const T&} is one and the same parameter, the second an optimisation the translation erases.
-An object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
-Two consequences keep the identification exact: a function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed, and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object; the grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
+An object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule written on the type.
+Two consequences keep the identification exact.
+A function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed; and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object.
+The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
 A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned; Section~\ref{sec:binding} makes a program out of that.
@@ -252,13 +255,13 @@ Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the e
 \end{listing}
 
 The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and that string concatenation is a monoid is luck, not a declaration.
-\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the whole difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
+\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3: recursion only folds.}
-A Jlt program is finite for one of two reasons, and Rule~3 admits exactly those two.
+A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
 Or it iterates a step over \emph{an explicit budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
 
@@ -280,7 +283,8 @@ static_assert(times<size_t>(7, 6) == 42);
 Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit; what the processor runs of it is one multiplication, with the fold, the unit and the record gone, and Section~\ref{sec:binding} says why.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
-The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the loops are inside \cppinline{std::ranges::fold_left} and \cppinline{cata}, and every function composes.
+The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop.
+This paper contains none: its loops are inside \cppinline{fold_left} and \cppinline{cata}, and every function composes.
 
 \begin{table}[ht]
 \centering
