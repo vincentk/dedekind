@@ -134,7 +134,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules; it states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository is sound in its findings and incomplete in its reach, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository reads names, its findings are read before they are acted on, its silence certifies nothing, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
@@ -364,14 +364,15 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 \end{cpp}
 \begin{minted}{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  assoc : Bool }
+PlusDict T       =  MonoidDict T plus × { add : T → T → T }
 and_bool  =  { unit = true,  op = λa. λb. a ∧ b,  assoc = true }
-plus_u    =  Λ T. λ u : Unsigned T.  { unit = 0,  op = λa. λb. a + b,  assoc = true }
-twice     =  Λ T. λ d : MonoidDict T plus. λ x : T.  d.op x x
-twice [u64] (plus_u [u64] unsigned_u64) 21
+plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  assoc = true }
+twice     =  Λ T. λ d : PlusDict T. λ x : T.  d.add x x
+twice [u64] (plus_u [u64] unsigned_u64, { add = unsigned_u64.add }) 21
 \end{minted}
 \caption{The shape of Listing~\ref{lst:rule2}, populated and read.
 Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, each with its unit and its associativity declared, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
-Bottom: the same in System~F; the shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T} to a record, and \cppinline{twice} a function of the record.}
+Bottom: the same in System~F; the shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T}, a record holding the carrier's zero and addition, to a record, and \cppinline{twice} a function of the record of \cppinline{IsMonoidPlus}, the monoid record beside a field for \cppinline{+}; that the field and \texttt{op} denote one operation is the standard's definition of \cppinline{plus}, which the translation carries as two fields and does not prove.}
 \label{lst:monoid}
 \end{listing}
 
@@ -672,9 +673,9 @@ The paragraphs below name practical limitations encountered while stress-testing
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
 Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
-Rule~3 it checks outright, and Rule~1's syntactic part with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
+Rule~3 it checks mechanically, for every body the compiler instantiates and up to the blind spots its rule files document, and Rule~1's syntactic part with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
 Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
-The tool checks it at the level of names, a body may use on a value of parameter type only what a declared constraint names, and that check is sound in its findings and incomplete in its reach: it reads names, not arities or types, and definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
+The tool checks it at the level of names, a body may use on a value of parameter type only what a declared constraint names, and a finding of that check is a breach or a gap in the tool's reading of the standard's concepts, read before it is acted on, while its silence certifies nothing: it reads names, not arities or types, and definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
 The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
 The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
@@ -764,7 +765,7 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-Completing the checker: the one in the repository is sound in its findings and incomplete in its reach; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the checker: the one in the repository works at the level of names, its findings read before they are acted on and its silence no certificate; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
