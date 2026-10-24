@@ -152,7 +152,7 @@ Each rule has a listing of a few lines, verbatim in the test that holds this pap
 Two names are kept apart in what follows.
 Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three rules.
 Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
-Every FJlt program is a Jlt program by construction; that every Jlt program is an FJlt program is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program.
+Every FJlt program is a Jlt program by construction; that a Jlt program is an FJlt program when it is written in the calculus's grammar is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program, and Section~\ref{sec:limits} says what keeps the rules and is still outside the grammar.
 
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
@@ -638,8 +638,8 @@ Two places need a word.
 Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently. At runtime it can, and that is the reason the listings' carriers are unsigned and \cppinline{int} appears in this paper only as a counter-example.
 And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
 
-\emph{Every Jlt program is an FJlt program.}
-This direction is not a theorem, because the compiler does not check two of the rules, and because \Cpp{} has what FJlt does not.
+\emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
+This direction is not a theorem, because the compiler does not check two of the rules, and it is conditional on the grammar, because \Cpp{} has what FJlt does not and a Jlt program may use it.
 Table~\ref{tab:adequacy} lists what \Cpp{} has, what keeps it out, and what FJlt has instead.
 
 \begin{table}[ht]
