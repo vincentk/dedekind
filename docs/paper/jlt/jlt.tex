@@ -600,20 +600,20 @@ The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{
 \paragraph{The answer when the budget runs out is an absence.}
 For a general property no budget can be replaced by a proof, so a function that searches has to say what it says when the budget ends first.
 In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
-That is the whole price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
+That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
 
 \paragraph{A budget at compile time is the same budget.}
 \cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
-What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body; Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
+What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
+The search is a loop of 84 instructions, unrolled by four and without a branch in its body; Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
 The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
-
-The compiler has a budget of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
 
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
 \cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step, of which \cppinline{iota(0, n)} is the instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.
-\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; the concept \cppinline{IsMonotone} on the same term agrees, as it must, since the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
+\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone.
+The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
 
 \section{Guarantees}
 \label{sec:guarantees}
@@ -642,7 +642,8 @@ If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
-It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, Leibniz's law, that equal arguments give equal results, holds by substitution, and no \cppinline{==} is asked of a value; a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which is why the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
+It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, and Leibniz's law, that equal arguments give equal results, holds by substitution.
+No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which is why the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
@@ -650,7 +651,7 @@ The translation is a function of the program: two resolutions of the same constr
 \end{theorem}
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
-It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with one meaning in the whole program, and therefore something a law can be stated about.
+It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with one meaning in a program, and therefore something a law can be stated about.
 
 \begin{corollary}[Termination]
 \label{cor:termination}
