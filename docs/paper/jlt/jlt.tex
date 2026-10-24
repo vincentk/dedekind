@@ -326,13 +326,15 @@ FJlt & System~F & in \\
 \texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & Listing~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{Six rules of the translation, those the listings exercise; the whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}.
+\caption{Six translation rules exercised by code listings.
 (i) A concept is a record type, one field per requirement.
 (ii) A trait is only its instances.
 (iii) An instance is a field of the record at $\overline{\tau}$.
 (iv) A constraint is a parameter.
-(v) A call supplies the resolved records $\overline{d}$, which the compiler finds; a read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter.
-(vi) A budget is a natural number, iterated.}
+(v) A call supplies the resolved records $\overline{d}$, which the compiler finds; inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
+(vi) A budget is a natural number, iterated.
+The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}
+}
 \label{tab:rules}
 \end{table}
 
