@@ -29,8 +29,8 @@
 
 \begin{abstract}
 Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
-Much of the software that machine learning runs on, and most of what embedded devices run, is written in \Cpp{}, and \Cpp{20} added concepts, which look like type classes.
-What it dropped on the way, after a decade of proposals, was the check of a template's definition against its constraints: a constrained function may still use any operation its type argument happens to have.
+Much of the software that machine learning runs on, and most of what embedded devices run, is written in \Cpp{}, and three recent revisions of its standard supplied the material: compile-time evaluation of ordinary functions, widened with every revision since \Cpp{11} until, in \Cpp{20}, most of the standard library runs at compile time; concepts, in \Cpp{20}, which look like type classes; and folds over ranges, in \Cpp{23}.
+What concepts dropped on the way, after a decade of proposals, was the check of a template's definition against its constraints: a constrained function may still use any operation its type argument happens to have.
 The language contains the material for a typed functional fragment and does not enforce its boundary.
 
 The question this paper answers is what discipline draws that boundary, and what a program inside it is, with the language, the compiler and the standard library as they ship.
