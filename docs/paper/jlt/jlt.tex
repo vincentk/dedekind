@@ -140,7 +140,7 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus is the appendix.
+Sections~\ref{sec:posture} and~\ref{sec:translation} state the rules and show the translation on a monoid, Section~\ref{sec:binding} runs one program at both binding times, Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:translation:adequacy} argues that the guarantees reach a Jlt program, Section~\ref{sec:limits} says what that leaves open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
