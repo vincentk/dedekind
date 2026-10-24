@@ -132,9 +132,9 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F; three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
 \item An adequacy argument from \Cpp{} to the calculus that states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, which is what compliance means here.
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a finished checker, which Section~\ref{sec:limits} argues is a tool rather than a research problem, and which is work in progress in the repository.
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository is sound in its findings and incomplete in its reach, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers arriving from Python who want a systems language without giving up the vocabulary they reason in; and for readers of programming languages who want to know what a shipped language already contains.
@@ -494,17 +494,17 @@ Table~\ref{tab:adequacy} lists what \Cpp{} has and FJlt does not, and how each i
 \toprule
 \Cpp{} has & FJlt does not, because & kept out by \\
 \midrule
-bodies checked at instantiation & bodies are typed against the constraint & Rule~2, by reading \\
+bodies checked at instantiation & bodies are typed against the constraint & Rule~2, by reading and by the checker \\
 overloading & one function per name, plus its specialisations & the grammar \\
 argument-dependent lookup & instances are found by the trait's name & the grammar, and Section~\ref{sec:limits} \\
 implicit conversions & only where a requirement declares one, and the body then sees the declared type & the grammar, and Rule~2 for the body \\
 references, moves & values are copied; \texttt{const T} and \texttt{const T\&} are one value, and no reference is returned & erased: an optimisation, not a meaning \\
 state, pointers, exceptions & functions are pure & Rule~1, and constant evaluation \\
-unbounded loops, general recursion & recursion folds & Rule~3, by reading \\
+unbounded loops, general recursion & recursion folds & Rule~3, by reading and by the checker \\
 \bottomrule
 \end{tabularx}
 \caption{What the adequacy argument has to keep out of a Jlt program, and what keeps it out.
-The two rows marked \emph{by reading} are the whole gap: the compiler accepts programs that break them.}
+The two rows marked \emph{by reading} are the whole gap: the compiler accepts programs that break them, and the checker of Section~\ref{sec:limits} finds some of those programs and certifies none.}
 \label{tab:adequacy}
 \end{table}
 
@@ -512,8 +512,9 @@ Four of the seven rows are closed by the grammar or by constant evaluation: a pr
 Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
 A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did; a loop whose bound changes as it runs compiles anyway.
-Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool could close the gap; we have not written one, and this paper's listings are checked by reading.
-Rule~3 is likewise checkable for the loop forms the grammar admits.
+Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool can narrow the gap.
+The repository has one, described in Section~\ref{sec:limits}, that reads a body against its constraints at the level of names: what it finds is a breach, and what it passes is not thereby in the fragment, so this paper's listings are checked by it and by reading.
+Rule~3 it checks the same way, for loops and for recursion that is not over a term.
 
 One more thing the walk has to say, because \Cpp{} does not pass dictionaries.
 The translation is a model of what a constrained call means, not of what the compiler emits.
@@ -695,8 +696,8 @@ Table~\ref{tab:seams} lists them; the paragraphs say what each one costs and wha
 \toprule
 seam & where it showed & status \\
 \midrule
-bodies are not checked against constraints & \texttt{twice\_loose}, Listing~\ref{lst:posture} & by reading; a tool could \\
-loops are not checked for a bound & Rule~3 & by reading; the paper has none \\
+bodies are not checked against constraints & \texttt{twice\_loose}, Listing~\ref{lst:posture} & checked, at the level of names \\
+loops are not checked for a bound & Rule~3 & checked; the paper has none \\
 lookup stops at \texttt{std} & the deleted primary, Listing~\ref{lst:monoid} & worked around \\
 a typed function object promises what its body cannot keep & \texttt{std::plus<T>} on a pair & avoided \\
 facts live in tables, instances in functions & the library behind the listings & open \\
@@ -713,15 +714,16 @@ undefined behaviour has one binding time & signed carriers & avoided \\
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
 A template body is checked against the type it is instantiated at, not against its \cppinline{requires} clause, so \cppinline{twice_loose} compiles; a loop is not checked for a bound, so \cppinline{while (true)} compiles.
 Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem.
-One is in progress in the repository: a step after the build in continuous integration reparses the listings through the compiler's own front end and fails on a finding, and each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
-Today it checks Rule~3's ban on loops and on a function calling itself at the same instantiation, which lets recursion over a term's structure through by construction, and the syntactic parts of Rule~1: functions are \cppinline{constexpr}, call operators \cppinline{const}, no \cppinline{throw}, no static state and no \cppinline{volatile}, parameters neither by non-\cppinline{const} reference nor by forwarding reference, results never by reference, member functions \cppinline{const}, no mutable global, and boxed values with a \cppinline{const} pointee whose identity nothing observes.
-It gates the listings at zero on every rule, gates the library's \texttt{category} module where the module is already clean, and reports the rest of that module's counts without failing on them.
-Rule~3's recursion is checked by a small tool on the compiler's libraries: no function calls itself at the same instantiation, and none lies on a call cycle, so recursion runs over a term's type or not at all.
-Rule~2 is checked by the same tool at the level of names: a function template's body may use, on a value of parameter type, only an operation that some declared constraint names, the constraints followed through the library's concepts; a test of a concept inside the body is not a constraint.
-It is a mechanical check, not definition checking proper: it reads names, not arities or types, it grants a few things by heuristic, a \cppinline{constexpr} template returning \cppinline{bool} being read as a trait, and it does not see a class template's ordinary members.
-On the library's \texttt{category} module it found one kind of fault, bodies using what no constraint declared, in the fold engine, the lattice laws and nine smaller templates; each fix was a constraint stating what the body already did, and the module is now held at zero on all three rules to the extent the checker reaches.
-The one finding it keeps is Listing~\ref{lst:posture}'s \cppinline{twice_loose}, the breach the paper plants, which the listings' gate expects.
-Until then the listings are checked by reading, by that step, and by a test that compiles and runs them.
+The repository has one, and it is a mechanical check, not a proof of membership.
+It is a step after the build in continuous integration that reparses the listings and the library through the compiler's own front end and fails on a finding; each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
+For Rule~1 it checks what is syntactic: functions are \cppinline{constexpr}, call operators and member functions \cppinline{const}, no \cppinline{throw}, no static state and no \cppinline{volatile}, parameters neither by non-\cppinline{const} reference nor by forwarding reference, results never by reference, no mutable global, and boxed values with a \cppinline{const} pointee whose identity nothing observes.
+For Rule~3 it checks that no loop occurs but the one inside the library's iteration primitive, that no function calls itself at the same instantiation, and that none lies on a call cycle, so recursion runs over a term's type or not at all.
+For Rule~2 it checks at the level of names: a function template's body may use, on a value of parameter type, only an operation that some declared constraint names, the constraints followed through the library's concepts; a test of a concept inside the body is not a constraint.
+What it finds is a breach, and on the library every finding was one: in the \texttt{category} module it found bodies using what no constraint declared, in the fold engine, the lattice laws and nine smaller templates, and each fix was a constraint stating what the body already did.
+What it passes is not thereby in the fragment: the Rule~2 check reads names, not arities or types, it grants a few things by heuristic, a \cppinline{constexpr} template returning \cppinline{bool} being read as a trait, it does not see a class template's ordinary members, and it is silent on constraints it cannot read.
+Definition checking proper, over types and arities and the whole constraint language, is the distance between this tool and the \Cpp{0x} design, and it is a fair amount of work that this paper does not promise.
+Today the listings and the library's \texttt{category} module are held at zero on all three rules to the extent the check reaches, with one expected finding, Listing~\ref{lst:posture}'s \cppinline{twice_loose}, the breach the paper plants.
+So the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
@@ -800,13 +802,13 @@ The translation preserves types and evaluation and is a function of the program 
 Every listing in the paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository.
 
 What this costs is stated rather than softened.
-Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
+Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound; a tool in the repository catches some breaches of them and certifies no program.
 A fold may run out of budget, and when it does the type says so.
 Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-A checker, begun in the repository and run in its continuous integration: checks for Rules~1 and~3 are syntactic and under way, and the check for the second rule is the remaining work, a \texttt{clang-tidy} check that reads each constrained body and rejects any operation on a constrained type that the constraints do not name, so that membership in the fragment becomes a verdict instead of a reading.
+Completing the checker: the one in the repository is sound in its findings and incomplete in its reach, holding the listings and the library's core at zero on the three rules at the level of names; definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
