@@ -320,7 +320,9 @@ The omitted rules are the textbook cases for pairs, sums and conditionals.
 
 \begin{lemma}[Dictionaries agree with resolution]
 \label{lem:resolve}
-If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then $\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket$, in which every call has been resolved; hence for any terms $\overline{e}$,
+If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then
+\[ \llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket, \]
+in which every call has been resolved; hence for any terms $\overline{e}$,
 \[ (\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r)\,\overline{\llbracket e \rrbracket} \longrightarrow^{+} \llbracket e_r[\overline{\sigma}/\overline{\alpha}][\overline{e}/\overline{a}] \rrbracket, \]
 in two steps, a projection and a $\beta$-reduction.
 \end{lemma}

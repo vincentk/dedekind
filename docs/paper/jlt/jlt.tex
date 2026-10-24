@@ -737,7 +737,7 @@ CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a mac
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, which is why FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{The target.}
-Strong normalisation of System~F is Girard's~\cite{girard1989proofs}, parametricity Reynolds'~\cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}; the appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
+Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}; the appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
 
 \paragraph{What is new here.}
 Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.
