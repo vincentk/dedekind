@@ -306,10 +306,10 @@ One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compi
 % is the warranty; a reader who stops here knows the claims and their cost.
 
 This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt, the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar, into System~F with records and the iterators of inductive types.
-A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator; Appendix~\ref{app:fjlt:translation} defines the map in full, and Table~\ref{tab:rules} states the six rules of it that this paper's listings exercise.
+A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator; Appendix~\ref{app:fjlt:translation} defines the map in full.
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
-Everything the listings do is covered by the six rules of Table~\ref{tab:rules}, the rest of the translation being bookkeeping; read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
+Everything the listings do is covered by six of its rules, which Table~\ref{tab:rules} states, the rest being bookkeeping; read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
 
 \begin{table}[ht]
 \centering
