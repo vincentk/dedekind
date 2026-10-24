@@ -65,9 +65,9 @@ Two things make \Cpp{} the right place to make it now.
 The first is where \Cpp{} is.
 The systems that machine learning runs on and the software that embedded devices run are, to a large extent, \Cpp{}, and a growing number of the people who write them arrive from Python with a functional vocabulary and no idea how much of it the language already supports.
 The second is what \Cpp{} shipped and what it did not.
-\Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges; the posture uses nothing else.
+\Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges. The posture uses nothing else.
 The last of these is the youngest: the fold algorithms over ranges entered the standard in 2022, and the library this paper builds with completed them in its release 23~\cite{libcxx2026status}, which is one reason the fragment is described now and not earlier.
-Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}; what they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints.
+Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}. What they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints.
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
 The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of restricting oneself to the part of \Cpp{23} that reads as System~F.
@@ -88,7 +88,7 @@ A discipline that makes a mainstream compiler into a checker of this modest sort
 Listing~\ref{lst:intro} shows the kind of thing the posture buys, in a dozen lines.
 A law of a function is a value, declared at the leaves (\cppinline{!} on \cppinline{bool}, \cppinline{~} and unary \cppinline{-} on \cppinline{size_t} are involutions, and the standard library already has them as function objects), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
 The compiler reads the chain at compile time in the \cppinline{static_assert}s, and the same functions answer at runtime.
-The last two lines say what is not known: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined; \cppinline{false} here means \emph{not known}, not \emph{no}.
+The last two lines say what is not known: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined. \cppinline{false} here means \emph{not known}, not \emph{no}.
 
 % Verbatim up to formatting in jlt_listings_test.cpp (namespace intro).
 \begin{listing}[htbp]
@@ -121,9 +121,9 @@ static_assert(
 static_assert(!involutive(std::negate<int>{}));
 \end{cpp}
 \caption{Declared, entailed, inferred.
-\cppinline{involutive} is declared at three standard function objects; \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
+\cppinline{involutive} is declared at three standard function objects. \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
 Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
-\cppinline{Compose} is the one type the listing defines, a former of functions.
+\cppinline{Compose} is the only type the listing defines, a former of functions.
 Its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, as Rule~2 requires, and asks it of \cppinline{const F&}: a function argument is a value, and calling does not change it.}
 \label{lst:intro}
 \end{listing}
@@ -132,22 +132,22 @@ Its call operator names what it needs of \cppinline{F} and \cppinline{G} with th
 The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
-\item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F; three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
-\item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules; it states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
+\item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
+\item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules. It states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker.
-The one in the repository reads names, its findings are read before they are acted on and its silence certifies nothing; Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
+The one in the repository reads names, its findings are read before they are acted on and its silence certifies nothing. Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times; Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus with its proof sketches is the appendix.
+Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus with its proof sketches is the appendix.
 
 \section{The Posture}
 \label{sec:posture}
 
 Jlt is not a dialect and not a library.
-It is standard \Cpp{23} under three rules, and a program follows the rules or it does not; the compiler enforces some of them and we say which.
+It is standard \Cpp{23} under three rules, and a program follows the rules or it does not. The compiler enforces some of them and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting and to repetitions a comment elides.
 
 \paragraph{Rule 1: values and pure functions.}
@@ -175,22 +175,22 @@ define i64 @id_rt() {
 \end{minted}
 \end{minipage}
 \caption{Rule~1: the identity arrow, and what a call of it compiles to.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks.
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value. \cppinline{id(42)} is a fact the compiler checks.
 Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-O2}, attributes stripped.}
 \label{lst:rule1}
 \end{listing}
 
 Listing~\ref{lst:rule1} is the rule in one function.
 \cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value, nothing can change the value through it, so what comes back is what was passed, and a parameter written \cppinline{const T} or \cppinline{const T&} is one and the same parameter, the second an optimisation the translation erases.
-An object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule written on the type.
+An object a function could change would be state, which the rule excludes. The shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule written on the type.
 Two consequences keep the identification exact.
 A function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed; and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
 A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
-The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned; Section~\ref{sec:binding} makes a program out of that.
+The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned. Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
-They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is; in practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
+They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
@@ -257,7 +257,7 @@ Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the e
 The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and that string concatenation is a monoid is luck, not a declaration.
 \cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
-A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
+A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint. \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3: recursion only folds.}
@@ -280,10 +280,10 @@ static_assert(times<size_t>(7, 6) == 42);
 \label{lst:rule3}
 \end{listing}
 
-Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit; what the processor runs of it is one multiplication, with the fold, the unit and the record gone, and Section~\ref{sec:binding} says why.
-What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
-What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
-The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop.
+Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit. What the processor runs of it is one multiplication, with the fold, the unit and the record gone, and Section~\ref{sec:binding} says why.
+What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}). Data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
+What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}. Section~\ref{sec:binding} shows the price being paid.
+The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit. At runtime a \cppinline{while (true)} compiles like any other loop.
 This paper contains none: its loops are inside \cppinline{fold_left} and \cppinline{cata}, and every function composes.
 
 \begin{table}[ht]
@@ -304,7 +304,7 @@ Section~\ref{sec:limits} says how.}
 \label{tab:posture}
 \end{table}
 
-One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}; the rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them to the extent the checker of Section~\ref{sec:limits} reaches, and the appendix makes the subset precise.
+One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them to the extent the checker of Section~\ref{sec:limits} reaches, and the appendix makes the subset precise.
 
 \section{Translation from Featherweight Jlt to System~F}
 \label{sec:translation}
@@ -313,7 +313,7 @@ One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compi
 % is the warranty; a reader who stops here knows the claims and their cost.
 
 This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt, the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar, into System~F with records and the iterators of inductive types.
-A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator; Appendix~\ref{app:fjlt:translation} defines the map in full.
+A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator. Appendix~\ref{app:fjlt:translation} defines the map in full.
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
 Everything the listings do is covered by six of its rules, which Table~\ref{tab:rules} states, the rest being bookkeeping.
@@ -339,7 +339,7 @@ FJlt & System~F & in \\
 (ii) A trait is only its instances.
 (iii) An instance is a field of the record at $\overline{\tau}$.
 (iv) A constraint is a parameter.
-(v) A call supplies the resolved records $\overline{d}$, which the compiler finds; inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
+(v) A call supplies the resolved records $\overline{d}$, which the compiler finds. Inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
 (vi) A budget is a natural number, iterated.
 The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}.}
 \label{tab:rules}
@@ -348,10 +348,10 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \subsection{One shape, two monoids}
 \label{sec:translation:example}
 
-Listing~\ref{lst:rule2} stated the monoid shape; Listing~\ref{lst:monoid} populates it at \cppinline{bool} and reads the whole as a System~F program.
+Listing~\ref{lst:rule2} stated the monoid shape. Listing~\ref{lst:monoid} populates it at \cppinline{bool} and reads both as a System~F program.
 The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
 A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
-That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}; the record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
+That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
 A unit is a choice: the compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact once, as a specialisation of \cppinline{unit}, which is an instance declaration in a type-class system, and the one-definition rule makes sure there is one.
 The primary is declared and deleted so that its specialisations are found by its name, since an overload beside the concept is found only when it precedes it (Section~\ref{sec:limits}).
@@ -380,7 +380,7 @@ twice [u64] (plus_u [u64] unsigned_u64, { add = unsigned_u64.add }) 21
 \end{minted}
 \caption{The shape of Listing~\ref{lst:rule2}, populated and read.
 Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, each with its unit and its associativity declared, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
-Bottom: the same in System~F; the shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T}, a record holding the carrier's zero and addition, to a record, and \cppinline{twice} a function of the record of \cppinline{IsMonoidPlus}, the monoid record beside a field for \cppinline{+}.
+Bottom: the same in System~F. The shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T}, a record holding the carrier's zero and addition, to a record, and \cppinline{twice} a function of the record of \cppinline{IsMonoidPlus}, the monoid record beside a field for \cppinline{+}.
 That the field and \texttt{op} denote one operation is the standard's definition of \cppinline{plus}, which the translation carries as two fields and does not prove.}
 \label{lst:monoid}
 \end{listing}
@@ -454,7 +454,7 @@ The last is refused for a law that is false, \cppinline{+} is not idempotent, an
 Two kinds of requirement went into these verdicts.
 Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{std::plus<>} on two \cppinline{bool}s yields an \cppinline{int} and not a \cppinline{bool}.
 Declared ones a specialisation records: the units and associativity, and now two more laws.
-\Cpp{}'s own words for the two are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not; a law is what modelling asks beyond satisfying, and the fragment makes it a declared field.
+\Cpp{}'s own words for the two are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not. A law is what modelling asks beyond satisfying, and the fragment makes it a declared field.
 Both are requirements of the same shape, and both become fields of the same record.
 A law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
 
@@ -462,11 +462,11 @@ One thing the listing does not do, and cannot.
 A concept checks signatures.
 It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
 It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
-\cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the fourth \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
+\cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides. It is a fact someone states, like the unit, and the fourth \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
 The same declaration is the only refusal available for a carrier that passes the shape by type and breaks the law by value: \cppinline{double} is a monoid under \cppinline{+} as far as a signature can see, IEEE arithmetic being total, but \cppinline{+} is not associative and \cppinline{NaN + 0 == NaN} is false, so the unit law fails at NaN.
 Nobody certifies it, and the shape with laws does not have it.
 Section~\ref{sec:limits} says what this leaves to the author.
-The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should; the one-element carrier witnesses it.
+The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should. The one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
@@ -493,7 +493,7 @@ This direction is by construction.
 The grammar of Figure~\ref{fig:fjlt-syntax} is a subset of the \Cpp{} grammar, written in \Cpp{}'s own spelling, and FJlt's evaluation is \Cpp{}'s constant evaluation restricted to that subset.
 The argument is a walk over the productions: a concept is a concept, an explicit specialisation is one, a call with explicit type arguments is one, and in each case the \Cpp{} standard's rule for the construct is the FJlt rule.
 Two places in that walk need a word.
-Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently; at runtime it can, which is why the listings' carriers are unsigned, and why \cppinline{int} appears in this paper only as a counter-example.
+Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently. At runtime it can, and that is the reason the listings' carriers are unsigned and \cppinline{int} appears in this paper only as a counter-example.
 And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
 
 \emph{A \Cpp{} program that follows the three rules is an FJlt program.}
@@ -524,7 +524,7 @@ The two rows marked \emph{by reading} are the gap: the compiler accepts programs
 Four of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
 Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
-A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did; a loop whose bound changes as it runs compiles anyway.
+A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did. A loop whose bound changes as it runs compiles anyway.
 Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool can narrow the gap.
 The repository has one, described in Section~\ref{sec:limits}, that reads a body against its constraints at the level of names: what it finds is a breach, and what it passes is not thereby in the fragment, so this paper's listings are checked by it and by reading.
 Rule~3 it checks the same way, for loops and for recursion that is not over a term.
@@ -535,7 +535,7 @@ What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as 
 Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
 Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
 What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
-The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first is the one that carries the theorems.
+The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first carries the theorems.
 
 So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
 Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
@@ -589,25 +589,25 @@ static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
 static_assert(IsMonotone<Compose<Negation, Negation>>);
 \end{cpp}
 \caption{A budget, and running out of it.
-\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
+\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has. The property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
 \cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
-The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
+The second \cppinline{static_assert} is not "no square exceeds 1000". It is "none among the first 30".
 The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t}.
-The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$; the paragraph on folds over finite data reads them.}
+The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$. The paragraph on folds over finite data reads them.}
 \label{lst:fuel}
 \end{listing}
 
 \paragraph{The answer when the budget runs out is an absence.}
 For a general property no budget can be replaced by a proof, so a function that searches has to say what it says when the budget ends first.
-In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either; a predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
+In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either. A predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
 That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
 
 \paragraph{A budget at compile time is the same budget.}
-\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
+\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it. \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
 What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
-The search is a loop of 84 instructions, unrolled by four and without a branch in its body; Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
-The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
+The search is a loop of 84 instructions, unrolled by four and without a branch in its body. Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
+The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be. The discipline costs nothing at runtime.
 
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
@@ -638,12 +638,12 @@ Each \cppinline{requires} clause has become a record parameter, and at each call
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values; for closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
+If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values. For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
-What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
+What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes. Section~\ref{sec:binding} is this theorem run twice.
 It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, and Leibniz's law, that equal arguments give equal results, holds by substitution.
-No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which is why the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
+No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, so the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
@@ -659,7 +659,7 @@ Every FJlt program terminates.
 \end{corollary}
 
 By Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}: every step of the program is at least one step of its image, and the image cannot step forever.
-The budget in Rule~3 is therefore not a guard against non-termination; it is how a bound is said.
+The budget in Rule~3 is therefore not a guard against non-termination. It is how a bound is said.
 
 \begin{corollary}[Parametricity]
 \label{cor:parametricity}
@@ -675,8 +675,8 @@ It is also why an instance with a context (Section~\ref{sec:translation:contexts
 A well-typed closed FJlt term of base type evaluates to a value.
 \end{corollary}
 
-This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first; it comes last because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
-Featherweight Java proves progress and preservation over its own rules too; what the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the one the System~F image computes.
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first. It comes last because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+Featherweight Java proves progress and preservation over its own rules too. What the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the value the System~F image computes.
 
 All six are claims about FJlt.
 What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
@@ -684,7 +684,7 @@ What they say about a \Cpp{} program is mediated by the adequacy argument of Sec
 \section{Known Limitations}
 \label{sec:limits}
 
-The paragraphs below name practical limitations encountered while stress-testing Jlt; Table~\ref{tab:posture} says which instrument holds each rule at build time, and the first paragraph says how.
+The paragraphs below name practical limitations encountered while stress-testing Jlt. Table~\ref{tab:posture} says which instrument holds each rule at build time, and the first paragraph says how.
 
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
@@ -693,31 +693,31 @@ Rule~3 it checks mechanically, for every body the compiler instantiates and up t
 Rule~1's syntactic part it checks with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference.
 Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
 The tool checks it at the level of names: a body may use on a value of parameter type only what a declared constraint names.
-A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on; its silence certifies nothing, since it reads names, not arities or types.
+A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on. Its silence certifies nothing, since it reads names, not arities or types.
 Definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
 The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
 The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
-So \cppinline{unit(std::plus<size_t>)} declared after the concept is never found; Listing~\ref{lst:rule2} declares a deleted primary, which is found by name and specialised, and puts its one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it.
-The same wall makes an operator on \cppinline{std::pair} of standard carriers unreachable from inside \cppinline{std::plus}: a pair of monoids is a monoid, but not through \cppinline{std::plus<std::pair<A, B>>}, which is why the former of two operations must be a type of ours.
+So \cppinline{unit(std::plus<size_t>)} declared after the concept is never found. Listing~\ref{lst:rule2} declares a deleted primary, which is found by name and specialised, and puts its one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it.
+The same wall makes an operator on \cppinline{std::pair} of standard carriers unreachable from inside \cppinline{std::plus}: a pair of monoids is a monoid, but not through \cppinline{std::plus<std::pair<A, B>>}, so the former of two operations must be a type of ours.
 This is where the translation's "instance resolution" and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
 \paragraph{A typed function object promises what its body cannot keep.}
-\cppinline{std::plus<T>} declares its result type as \cppinline{T}, so a shape that asks \cppinline|{ Op{}(a, b) } -> std::same_as<T>| is satisfied for any \cppinline{T}, including one with no \cppinline{+}; the failure comes later, inside \cppinline{<functional>}, when something evaluates the call.
-The transparent \cppinline{std::plus<>} is honest, since its result type is \cppinline{decltype(t + u)} and the shape sees the failure.
+\cppinline{std::plus<T>} declares its result type as \cppinline{T}, so a shape that asks \cppinline|{ Op{}(a, b) } -> std::same_as<T>| is satisfied for any \cppinline{T}, including one with no \cppinline{+}. The failure comes later, inside \cppinline{<functional>}, when something evaluates the call.
+The transparent \cppinline{std::plus<>} does not: its result type is \cppinline{decltype(t + u)}, and the shape sees the failure.
 It is the body-versus-signature gap of Rule~2 one level down, in the standard library, and the listings avoid it by never asking a typed function object about a carrier it was not written for.
 
 \paragraph{Facts live in tables, instances in functions.}
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
-The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it; a function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
+The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
 So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
 
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
-\cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses; the listing that used it now uses a fold instead.
+\cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses. The listing that used it now uses a fold instead.
 The listings were built with one compiler against two standard libraries, and that is what "compiles as written" means here.
 
 \paragraph{The compiler has its own budget.}
@@ -725,7 +725,7 @@ Constant evaluation is bounded by a step limit the compiler sets, and a program 
 Rule~3 is what keeps that limit out of the picture: every fold's length is in the program's hands, so the program, not the compiler, decides what is too long, and the limit is a knob to raise rather than a wall to hit.
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
-Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
+Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term, and a budget that is a value rather than a type meets no counter at all, so the library's set recursion runs unchanged at runtime.
 
 \paragraph{Why not a generator.}
 \Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
@@ -733,7 +733,7 @@ It does not fit here, for three reasons that are the three rules.
 A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
 What a generator is good for, a stream consumed lazily at runtime, is what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
 \paragraph{Undefined behaviour has one binding time.}
-Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
+Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile. At runtime the same program does whatever the hardware does.
 This is the only way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
@@ -742,29 +742,29 @@ A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cann
 
 \paragraph{Type classes.}
 Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}: a class is a record type, an instance a record, a constraint a parameter, and a constrained call passes the record the compiler resolved.
-Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the one row without a counterpart there, structural satisfaction, is the difference Bernardy et al.~\cite{bernardy2010generic} place at the centre of their comparison of concepts and type classes.
+Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the row without a counterpart there, structural satisfaction, is the difference Bernardy et al.~\cite{bernardy2010generic} place at the centre of their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
-FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head; Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types do not fit, is in Section~\ref{sec:limits}.
+FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head. Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types do not fit, is in Section~\ref{sec:limits}.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, with the missing bound named in the message~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the checker of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
-It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies against their constraints; those concepts were removed in 2009~\cite{stroustrup2009remove}, and the feature that shipped in \Cpp{20} checks uses and not definitions, which is the gap Rule~2 names.
-$F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs and FJlt's function-specialisation instances do not provide (Section~\ref{sec:limits}); FJlt is the smaller calculus, and the price of being a subset of a shipped language.
-Garcia et al.~\cite{garcia2007extended} compare eight languages' support for generic programming against a fixed design; the rows of their table that \Cpp{} lacked at the time, multi-type concepts and retroactive modelling, are the rows Listing~\ref{lst:monoid} exercises with \cppinline{IsMonoid<T, Op>} and specialisations on types one does not own.
+It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies against their constraints. Those concepts were removed in 2009~\cite{stroustrup2009remove}, and the feature that shipped in \Cpp{20} checks uses and not definitions, which is the gap Rule~2 names.
+$F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs and FJlt's function-specialisation instances do not provide (Section~\ref{sec:limits}). FJlt is the smaller calculus, and the price of being a subset of a shipped language.
+Garcia et al.~\cite{garcia2007extended} compare eight languages' support for generic programming against a fixed design. The rows of their table that \Cpp{} lacked at the time, multi-type concepts and retroactive modelling, are the rows Listing~\ref{lst:monoid} exercises with \cppinline{IsMonoid<T, Op>} and specialisations on types one does not own.
 
 \paragraph{Featherweight calculi.}
 Featherweight Java~\cite{igarashi2001featherweight} set the pattern: a core calculus small enough to prove things about, with a syntax that is a subset of the host language's.
 Its theorems are proved directly, progress and preservation over its own rules, because type soundness of a language with subtyping has no simpler calculus to inherit from.
-Featherweight Go~\cite{griesemer2020featherweight} follows the pattern for structural subtyping and monomorphisation, and \emph{Generic Go to Go}~\cite{ellis2022generic} proves a dictionary-passing translation correct by a bisimulation; that is the genre Section~\ref{sec:guarantees} is in, preservation and simulation of a translation, with soundness, termination and parametricity inherited from the target rather than proved from scratch.
+Featherweight Go~\cite{griesemer2020featherweight} follows the pattern for structural subtyping and monomorphisation, and \emph{Generic Go to Go}~\cite{ellis2022generic} proves a dictionary-passing translation correct by a bisimulation. That is the genre Section~\ref{sec:guarantees} is in, preservation and simulation of a translation, with soundness, termination and parametricity inherited from the target rather than proved from scratch.
 
 \paragraph{Formal semantics of \Cpp{}.}
 CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a machine-checked type safety proof for multiple inheritance; Ramananandro, Dos Reis and Leroy~\cite{ramananandro2011layout,ramananandro2012construction} mechanise object layout, construction and destruction in Coq.
-These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, which is why FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
+These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{The target.}
-Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}; the appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
+Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}. The appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
 
 \paragraph{What is new here.}
 Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.
@@ -777,23 +777,23 @@ The calculus translates into System~F by dictionary passing: concepts to record 
 The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 
 What this costs is stated rather than softened.
-Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound; a tool in the repository catches some breaches of them and certifies no program.
+Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound. A tool in the repository catches some breaches of them and certifies no program.
 A fold may run out of budget, and when it does the type says so.
 Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
 And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
 
 Three things follow as work not done here.
-Completing the checker: the one in the repository works at the level of names, its findings read before they are acted on and its silence no certificate.
-Definition checking proper, over types and arities and the whole constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the checker: the checker in the repository works at the level of names, its findings read before they are acted on and its silence no certificate.
+Definition checking proper, over types and arities and the full constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next.
 The listings here state laws and declare them; over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, over structures with normal forms the normal form does the deciding, and the same three rules reach that far without change.
 
-Nothing was added to the language, the compiler or the library; what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
+Nothing was added to the language, the compiler or the library. What was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
 
 \section*{Use of Agentic Systems and AI-Assistance Disclosure}
 
-The writing of this paper, the formal appendix and the code it reports on relied substantively on AI assistance, and the tools, the tasks and the places are disclosed here, as the journal's policy on AI tools asks; the contribution is recorded as assistance, not authorship.
+The writing of this paper, the formal appendix and the code it reports on relied substantively on AI assistance, and the tools, the tasks and the places are disclosed here, as the journal's policy on AI tools asks. The contribution is recorded as assistance, not authorship.
 The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement.
 
 \emph{Tools.}
@@ -805,7 +805,7 @@ GitHub Copilot's pull-request reviewer was invoked on every pull request, and it
 Draft generation of prose, listings, tables and figures; the statement and proofs of the appendix, drafted by the assistant from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source before use; and the drafting of responses in review threads.
 
 \emph{Where.}
-Throughout: every section, listing, table and figure, and the appendix; no part was written without assistance, and none was accepted without the author's reading.
+Throughout: every section, listing, table and figure, and the appendix. No part was written without assistance, and none was accepted without the author's reading.
 The repository~\cite{Krautler_dedekind_2026} holds the complete record: commit messages, review threads and build logs.
 
 \appendix
