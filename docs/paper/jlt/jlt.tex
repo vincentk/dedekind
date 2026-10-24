@@ -188,7 +188,7 @@ The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a boxed value.
 It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself.
 Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
-The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only.
+The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only; a term whose nodes are types, Listing~\ref{lst:fuel}'s \cppinline{Compose<Negation, Negation>}, needs no box and folds at both binding times, and only a term built at run time, with legs it cannot know statically, has boxed legs and folds where it was built.
 \Cpp{26} adopts a \cppinline{constexpr} \cppinline{std::shared_ptr}~\cite{keir2025constexprsharedptr}, so a term built at compile time will fold there too; what stands is that an allocation made during constant evaluation cannot outlive it, so a box is a value within one binding time and never a bridge between two.}
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
