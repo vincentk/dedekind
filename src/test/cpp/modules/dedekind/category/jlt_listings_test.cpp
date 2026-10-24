@@ -76,16 +76,46 @@ template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 
 template <typename T, typename Op>
+constexpr bool associative(Op) = delete;
+
+// Listing 3, left: an instance for a family, before the shape (Section 6).
+template <std::unsigned_integral T>
+constexpr T unit(std::plus<T>) {
+  return 0;
+}
+template <std::unsigned_integral T>
+constexpr bool associative(std::plus<T>) {
+  return true;
+}
+
+template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
   { unit<T>(Op{}) } -> std::same_as<T>;
-};
+} && associative<T>(Op{});
 
-template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T twice(T x) {
-  return Op{}(x, x);
+template <typename T>
+concept IsMonoidPlus =
+    IsMonoid<T, std::plus<T>> && requires(const T a, const T b) {
+      { a + b } -> std::same_as<T>;
+    };
+
+// Listing 3, right: std::string, and twice at size_t and at std::string.
+template <>
+constexpr std::string unit<std::string>(std::plus<std::string>) {
+  return {};
 }
+template <>
+constexpr bool associative<std::string>(std::plus<std::string>) {
+  return true;
+}
+
+template <IsMonoidPlus T>
+constexpr T twice(T x) {
+  return x + x;
+}
+
+static_assert(twice(std::string{"ab"}) == "abab");
 
 // Listing 1, middle: bool.
 template <>
@@ -97,15 +127,20 @@ constexpr bool unit<bool>(std::logical_or<bool>) {
   return false;
 }
 
+template <>
+constexpr bool associative<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool associative<bool>(std::logical_or<bool>) {
+  return true;
+}
+
 static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
 
 // Listing 1, bottom: size_t.
-template <>
-constexpr size_t unit<size_t>(std::plus<size_t>) {
-  return 0;
-}
 template <>
 constexpr size_t unit<size_t>(std::multiplies<size_t>) {
   return 1;
@@ -118,6 +153,18 @@ template <>
 constexpr size_t unit<size_t>(std::bit_and<size_t>) {
   return SIZE_MAX;
 }
+template <>
+constexpr bool associative<size_t>(std::multiplies<size_t>) {
+  return true;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_or<size_t>) {
+  return true;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_and<size_t>) {
+  return true;
+}
 
 static_assert(IsMonoid<size_t, std::plus<size_t>>);
 static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
@@ -125,7 +172,6 @@ static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
 static_assert(twice<size_t>(21) == 42);
-static_assert(twice<size_t, std::multiplies<size_t>>(21) == 441);
 // Listing 3's caption: size_t wraps by definition, Z/2^64, so SIZE_MAX twice
 // is a constant and the same constant the processor computes.
 static_assert(twice<size_t>(SIZE_MAX) == SIZE_MAX - 1);
@@ -175,13 +221,78 @@ static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
+// Listing 6, implied: a bounded distributive lattice is a semiring whose two
+// operations are commutative and idempotent and absorb each other.
+template <typename T, typename Op>
+constexpr bool idempotent(Op) = delete;
+template <typename T, typename Join, typename Meet>
+constexpr bool absorptive(Join, Meet) = delete;
+
+template <typename T, typename Join, typename Meet>
+concept IsDistributiveLattice =
+    IsSemiring<T, Join, Meet> && IsCommutativeMonoid<T, Meet> &&
+    idempotent<T>(Join{}) && idempotent<T>(Meet{}) &&
+    absorptive<T>(Join{}, Meet{}) && distributive<T>(Join{}, Meet{});
+
+template <>
+constexpr bool commutative<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool commutative<size_t>(std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<bool>(std::logical_or<bool>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<size_t>(std::bit_or<size_t>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<size_t>(std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool absorptive<bool>(std::logical_or<bool>, std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool absorptive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive<bool>(std::logical_or<bool>,
+                                  std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool distributive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
+  return true;
+}
+
+static_assert(
+    IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(
+    IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
+static_assert(
+    !IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+
 // Section 2, the posture: one panel per rule.
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
 
-constexpr size_t square(size_t x) { return x * x; }
+template <std::semiregular T>
+constexpr T id(const T& x) {
+  return x;
+}
 
-static_assert(square(12) == 144);
+static_assert(id(size_t{42}) == 42);
 
 template <typename T>
 constexpr T twice_loose(T x) {
@@ -279,11 +390,13 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::unit<size_t>(plus) == 0);
     CHECK(L::unit<size_t>(bit_and) == SIZE_MAX);
     CHECK(L::twice<size_t>(21) == 42);
+    CHECK(L::twice(std::string{"ab"}) == "abab");
+    CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 
   SECTION("Section 2: the rules' functions, called at runtime") {
     size_t twelve = 12;
-    CHECK(L::square(twelve) == 144);
+    CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
   }
 
