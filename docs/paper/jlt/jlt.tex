@@ -629,6 +629,7 @@ If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes; Section~\ref{sec:binding} is this theorem run twice.
+It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, Leibniz's law, that equal arguments give equal results, holds by substitution, and no \cppinline{==} is asked of a value; a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which is why the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
