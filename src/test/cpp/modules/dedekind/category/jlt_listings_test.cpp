@@ -390,6 +390,8 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::unit<size_t>(plus) == 0);
     CHECK(L::unit<size_t>(bit_and) == SIZE_MAX);
     CHECK(L::twice<size_t>(21) == 42);
+    CHECK(L::twice(std::string{"ab"}) == "abab");
+    CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 
   SECTION("Section 2: the rules' functions, called at runtime") {
