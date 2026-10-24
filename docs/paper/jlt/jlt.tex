@@ -185,13 +185,8 @@ Two consequences keep the identification exact: a function returns a value, neve
 A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned; Section~\ref{sec:binding} makes a program out of that.
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a boxed value.
-It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself.
-Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
-A box points into a heap, and there are two: the one the running program has, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
-Whatever is allocated in the compiler's heap is gone when that evaluation ends, so what crosses from compile time to runtime is a plain value and never a pointer: a boxed term can be built and folded at compile time and its result kept as a constant, but the term itself cannot be.
-In \Cpp{23} a box cannot be built at compile time at all, since \cppinline{std::shared_ptr} is not \cppinline{constexpr}, so a boxed value exists at runtime only; \Cpp{26} lifts that~\cite{keir2025constexprsharedptr}, and the rule about pointers stands.
-A term whose nodes are types, Listing~\ref{lst:fuel}'s \cppinline{Compose<Negation, Negation>}, needs no box and folds at both binding times; only a term built at run time, with legs it cannot know statically, has boxed legs.}
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
+They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is; in practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
