@@ -155,6 +155,7 @@ Every function is \cppinline{constexpr} and depends on its arguments alone.\foot
 At runtime the checker of Section~\ref{sec:limits} holds the same body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, static locals, globals, \cppinline{volatile}, boxes, and closures that capture by reference and escape, the last by a syntactic approximation of escape.}
 
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.66\linewidth}
 \begin{cpp}
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
@@ -164,13 +165,16 @@ constexpr T id(const T& x) { return x; }
 
 static_assert(id(size_t{42}) == 42);
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\linewidth}
 \begin{minted}{gas}
 id_rt():
-        mov     eax, 42
-        ret
+    mov eax, 42
+    ret
 \end{minted}
+\end{minipage}
 \caption{Rule~1: the identity arrow, and what a call of it compiles to.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and below, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant (Clang 23, \texttt{-std=c++23 -O2}, x86-64, Intel syntax).}
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant (Clang 23, \texttt{-std=c++23 -O2}, x86-64, Intel syntax).}
 \label{lst:rule1}
 \end{listing}
 
