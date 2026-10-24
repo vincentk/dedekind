@@ -470,7 +470,7 @@ The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring sh
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
 
-An instance may itself require instances, which is the one rule the listings have not used: the unit of a pair is the pair of units, provided both components have one.
+An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one, and Listing~\ref{lst:rule2}'s instance for the unsigned integrals is the simplest case, one context on one carrier.
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
 Under translation it is a function from the components' records to the composite's:
 \begin{minted}{text}
