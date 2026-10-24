@@ -132,7 +132,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F; three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
-\item An adequacy argument from \Cpp{} to the calculus that states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
+\item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules; it states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository is sound in its findings and incomplete in its reach, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
@@ -663,28 +663,8 @@ What they say about a \Cpp{} program is mediated by the adequacy argument of Sec
 \label{sec:limits}
 
 Everything in this section was met while writing the listings, and each item is a place where "standard \Cpp{23} under three rules" is thinner than the sentence sounds.
-Table~\ref{tab:seams} lists them; the paragraphs say what each one costs and what, if anything, closes it.
+The paragraphs below name each, what it costs and what, if anything, closes it.
 
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}XXl@{}}
-\toprule
-seam & where it showed & status \\
-\midrule
-bodies are not checked against constraints & \texttt{twice\_loose}, Listing~\ref{lst:posture} & checked, at the level of names \\
-loops are not checked for a bound & Rule~3 & checked; the paper has none \\
-lookup stops at \texttt{std} & the deleted primary, Listing~\ref{lst:monoid} & worked around \\
-a typed function object promises what its body cannot keep & \texttt{std::plus<T>} on a pair & avoided \\
-facts live in tables, instances in functions & the library behind the listings & open \\
-the library is part of the toolchain & \texttt{std::bind\_front} & worked around \\
-the compiler has its own budget & constant evaluation & kept in the program's hands \\
-undefined behaviour has one binding time & signed carriers & avoided \\
-\bottomrule
-\end{tabularx}
-\caption{What the listings ran into, and where each item stands.}
-\label{tab:seams}
-\end{table}
 
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and both are decidable by inspection, so a checker is a tool rather than a research problem.
@@ -800,10 +780,8 @@ GitHub Copilot's pull-request reviewer was invoked on every pull request, and it
 Draft generation of prose, listings, tables and figures; the statement and proofs of the appendix, drafted by the assistant from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source before use; and the drafting of responses in review threads.
 
 \emph{Where.}
-Throughout: every section, listing, table and figure, and the appendix.
-No part of the manuscript was written without assistance, and no part was accepted without the author's reading.
-
-The public repository at \url{https://github.com/vincentk/dedekind} holds the complete record at commit granularity: commit messages, pull-request review threads and CI build logs.
+Throughout: every section, listing, table and figure, and the appendix; no part was written without assistance, and none was accepted without the author's reading.
+The repository~\cite{Krautler_dedekind_2026} holds the complete record: commit messages, review threads and build logs.
 
 \appendix
 \input{fjlt}
