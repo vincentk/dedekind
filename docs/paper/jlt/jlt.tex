@@ -724,11 +724,6 @@ A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
 Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term, and a budget that is a value rather than a type meets no counter at all, so the library's set recursion runs unchanged at runtime.
 
-\paragraph{Why not a generator.}
-\Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
-It does not fit here, for three reasons that are the three rules.
-A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
-What a generator is good for, a stream consumed lazily at runtime, is what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile. At runtime the same program does whatever the hardware does.
 This is the only way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
