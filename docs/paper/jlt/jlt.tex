@@ -433,15 +433,15 @@ Read the table with Listing~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is 
 
 \begin{table}[ht]
 \centering
-\footnotesize
-\begin{tabularx}{\linewidth}{@{}lXX@{}}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
 FJlt & System~F & \\
 \midrule
 \texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & a record type, one field per requirement \\
 \texttt{constexpr τ f(τ̄) = delete} & nothing & a trait is only its instances \\
-\texttt{template <> constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
-\texttt{template <ᾱ> requires Q̄ constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
+\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
+\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
 \texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & a budget is a natural number, iterated \\
 \bottomrule
