@@ -138,11 +138,8 @@ The contribution is a map from a known discipline onto existing mainstream funct
 Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: the one in the repository is sound in its findings and incomplete in its reach, Section~\ref{sec:limits} says what it reads and what it misses, and definition checking proper remains work.
 
 \paragraph{Audience and plan.}
-The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers arriving from Python who want a systems language without giving up the vocabulary they reason in; and for readers of programming languages who want to know what a shipped language already contains.
-Section~\ref{sec:posture} states the rules.
-Section~\ref{sec:translation} shows the translation on a monoid, states the rules it uses and argues adequacy.
-Section~\ref{sec:binding} runs the same program at both binding times, with a budget.
-Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, and Section~\ref{sec:related} where it sits; the calculus, its rules and the proof sketches are the appendix.
+The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
+Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times; Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus with its proof sketches is the appendix.
 
 \section{The Posture}
 \label{sec:posture}
@@ -154,6 +151,7 @@ Listing~\ref{lst:posture} shows each rule once.
 % Verbatim up to formatting in category/jlt_listings_test.cpp (Rule 2 reuses
 % Listing 1's shape).
 \begin{listing}[htbp]
+\setminted{fontsize=\footnotesize}
 \begin{cpp}
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
@@ -185,7 +183,6 @@ static_assert(times<size_t>(7, 6) == 42);
 \caption{The three rules, one panel each.
 Rule~1: values are \cppinline{std::semiregular}, functions are \cppinline{constexpr} and pure, so \cppinline{square(12)} is a fact the compiler can check.
 Rule~2: \cppinline{twice_loose} varies with \cppinline{T} through an operation no concept named, and so compiles for every type with a \cppinline{+}; \cppinline{twice} names its shape (\cppinline{IsMonoid}, Listing~\ref{lst:monoid}) and is the only one of the two Jlt admits.
-The string is not the breach, the body is: strings are a monoid under \cppinline{+}, and \cppinline{twice} admits them the moment someone registers their unit, the empty string.
 Rule~3: recursion only folds, over finite data or over an explicit budget; \cppinline{times} folds over \cppinline{n} copies of \cppinline{x}, and this paper contains no loop.}
 \label{lst:posture}
 \end{listing}
@@ -196,7 +193,6 @@ Every function is \cppinline{constexpr} and depends on its arguments alone.\foot
 At runtime the checker of Section~\ref{sec:limits} holds the same body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, static locals, globals, \cppinline{volatile}, boxes, and closures that capture by reference and escape, the last by a syntactic approximation of escape.}
 Values are therefore \cppinline{const}: a parameter is \cppinline{const T} or \cppinline{const T&}, which denote the same value, the second being an optimisation the translation erases, and an object a function could change would be state, which the rule excludes; the shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule's honesty on the type.
 Two consequences keep the identification exact: a function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed, and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object; the grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
-That a value and a reference to it are interchangeable because nothing can change either is referential transparency in the small, the first thing the rule buys, before any theorem.
 A function passed as an argument is a value like any other, \cppinline{const}, and its call operator is \cppinline{const}: calling it observes, it does not change; \cppinline{constexpr} then adds the other binding time, since a \cppinline{const} call on a \cppinline{const} value is a constant expression when its arguments are.
 What this buys is that a call is a value, with no time attached to it.
 The compiler evaluates \cppinline{square(12)} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
@@ -206,7 +202,6 @@ It is semiregular, its pointee cannot change, and a copy costs a reference count
 Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so the enclosing type compares what the boxes hold, and \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
 The price is a binding time: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a boxed value exists at runtime only.
 \Cpp{26} adopts a \cppinline{constexpr} \cppinline{std::shared_ptr}~\cite{keir2025constexprsharedptr}, so a term built at compile time will fold there too; what stands is that an allocation made during constant evaluation cannot outlive it, so a box is a value within one binding time and never a bridge between two.
-The calculus of Appendix~\ref{app:fjlt} has it as a type with two terms, build and read, translated as a unary product; it has no term that asks which box, which is the second condition stated as grammar.
 
 \paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
@@ -243,9 +238,7 @@ rule & buys & costs & enforced \\
 \label{tab:posture}
 \end{table}
 
-Two remarks on scope.
-The rules are checked at the level of this paper's listings, each of which compiles as written, not at the level of a library; Section~\ref{sec:limits} says what else in the surrounding code the rules do not reach.
-And the rules are a subset by discipline, not by tooling: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}, and the appendix makes the subset precise.
+One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}; the rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them to the extent the checker of Section~\ref{sec:limits} reaches, and the appendix makes the subset precise.
 
 \section{The Translation}
 \label{sec:translation}
@@ -263,6 +256,7 @@ Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cp
 % Verbatim in src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp,
 % which also checks that the tree's unit<T>(Op{}) and laws agree.
 \begin{listing}[htbp]
+\setminted{fontsize=\footnotesize}
 \begin{cpp}
 template <typename T, typename Op> constexpr T unit(Op) = delete;
 
@@ -271,10 +265,6 @@ concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
   { unit<T>(Op{}) } -> std::same_as<T>;
 };
-
-template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T twice(T x) { return Op{}(x, x); }
 \end{cpp}
 \begin{cpp}
 template <> constexpr bool unit<bool>(std::logical_and<bool>) { return true; }
@@ -288,16 +278,13 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 template <> constexpr size_t unit<size_t>(std::plus<size_t>) { return 0; }
 template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
 template <> constexpr size_t unit<size_t>(std::bit_or<size_t>) { return 0; }
-template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) {
-  return SIZE_MAX;
-}
+template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) { return SIZE_MAX; }
 
 static_assert(IsMonoid<size_t, std::plus<size_t>>);
 static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-static_assert(twice<size_t>(21) == 42);
 static_assert(twice<size_t, std::multiplies<size_t>>(21) == 441);
 \end{cpp}
 \begin{minted}{text}
@@ -308,12 +295,9 @@ twice     =  Λ T. Λ Op. λ d : MonoidDict T Op. λ x : T.  d.op x x
 twice [u64] [plus] plus_u64 21
 \end{minted}
 \caption{The monoid shape, populated.
-Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}; a function over the shape.
+Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}.
 Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
-Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and \cppinline{twice} at two of them; \cppinline{size_t} wraps by definition, so it is a monoid, $\mathbb{Z}/2^{64}$, and \cppinline{twice<size_t>(SIZE_MAX)} is \cppinline{SIZE_MAX - 1} at both binding times.
-Two carriers are absent from this paper and the shape would pass both.
-\cppinline{int} is closed by type and not by value: signed overflow is undefined, constant evaluation rejects \cppinline{twice<int>(INT_MAX)} and the processor would wrap it, so the two binding times of Section~\ref{sec:binding} would disagree.
-\cppinline{double} is closed by type and by value, IEEE being total, and the laws fail: \cppinline{+} is not associative, and \cppinline{NaN + 0 == NaN} is false, so the unit law fails at NaN; this is the case only a declared law can refuse, which Section~\ref{sec:translation:semiring} is for.
+Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and Listing~\ref{lst:posture}'s \cppinline{twice} at the second; \cppinline{size_t} wraps by definition, so it is a monoid, $\mathbb{Z}/2^{64}$, and \cppinline{twice<size_t>(SIZE_MAX)} is \cppinline{SIZE_MAX - 1} at both binding times.
 Bottom: the same in System~F.
 The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
 The operation is part of the index, so one carrier has several monoids, and nobody wrote a struct for any of them.}
@@ -330,10 +314,7 @@ Two of them deserve a sentence each.
 And a unit is a choice.
 The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a specialisation of \cppinline{unit}.
 An instance declaration in a type-class system is the same act; here it is a specialisation, and the one-definition rule makes sure there is one.
-The primary is declared and deleted rather than left out, for a reason worth a footnote.\footnote{A plain overload \cppinline{unit(std::plus<size_t>)} beside the concept is never found: inside the concept, \cppinline{unit<T>(Op{})} is looked up by argument-dependent lookup in the namespace of \cppinline{Op}, which is \cppinline{std}, not ours.
-The deleted primary is found by name, and its specialisations with it.
-A call to the primary itself is a substitution failure, so an operation nobody registered is rejected, not silently accepted.
-Section~\ref{sec:limits} lists this wall.}
+The primary is declared and deleted rather than left out: a plain overload beside the concept is never found, since lookup inside the concept goes to \cppinline{Op}'s namespace, \cppinline{std}, and the deleted primary is found by name, its specialisations with it, while a call to the primary itself is a substitution failure (Section~\ref{sec:limits}).
 \cppinline{unit} is a value-level function, so the fact is also visible at runtime, where \cppinline{unit<size_t>(op)} is an ordinary call; Section~\ref{sec:binding} uses this.
 
 \begin{table}[ht]
@@ -423,6 +404,7 @@ A concept checks signatures.
 It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
 It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
 \cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides; it is a fact someone states, like the unit, and the last \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
+The same declaration is the only refusal available for a carrier that passes the shape by type and breaks the law by value: \cppinline{double} is a monoid under \cppinline{+} as far as a signature can see, IEEE arithmetic being total, but \cppinline{+} is not associative and \cppinline{NaN + 0 == NaN} is false, so the unit law fails at NaN; nobody certifies it, and the shape with laws does not have it.
 Section~\ref{sec:limits} says what this leaves to the author.
 The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should; the one-element carrier witnesses it.
 
@@ -465,11 +447,6 @@ FJlt & System~F & \\
 A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter, which is the second half of the fifth row.}
 \label{tab:rules}
 \end{table}
-
-\subsection{What the translation guarantees}
-\label{sec:translation:theorems}
-
-Three theorems and three corollaries, stated in Section~\ref{sec:guarantees} once the running example has shown what they are good for, and proved in sketch in Appendix~\ref{app:fjlt:theorems}: the translation preserves types, it preserves evaluation, and it is a function of the program (coherence); consequently every Jlt program terminates, every generic Jlt function is parametric, and well-typed programs evaluate to values.
 
 \subsection{From \Cpp{} to the calculus}
 \label{sec:translation:adequacy}
@@ -581,8 +558,7 @@ static_assert(IsMonotone<Compose<Negation, Negation>>);
 \cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
 The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.
-The last two lines are Rule~3's other kind, a fold over a term: the library's one engine, \cppinline{cata}, folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and the predicate \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; \cppinline{Negation} is the library's negation arrow on $\mathbb{B}$.
-The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate \cppinline{monotone<F>(Op\{\})} read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.}
+The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$; the paragraph on set recursion below reads them.}
 \label{lst:fuel}
 \end{listing}
 
@@ -613,7 +589,9 @@ The compiler has a budget of its own, a limit on the steps a constant evaluation
 \paragraph{Set recursion in the library.}
 The library behind these listings decides membership and quantifiers over finite ordered carriers, and every one of its recursions is this fold: its normal form of a set on a window is a pipeline over \cppinline{chain_view{lo, hi}}, the interval of the chain between two elements walked by the covering step, and its quantifiers are \cppinline{std::ranges::any_of} and \cppinline{all_of} over the whole chain, \cppinline{chain_view{⊥, ⊤}}, an early exit being a fold with a frozen state as \cppinline{first} shows.
 \cppinline{iota(0, n)} is the same view on \cppinline{size_t}, so the two listings above and the library's set recursion are instances of one production of the grammar.
-Its folds over \emph{terms} are \cppinline{cata}, the other kind Rule~3 names, which the grammar admits as the iterator of a term's inductive type; where the library's set evaluator walks a term by a hand-written structural visitor rather than a \cppinline{cata} call, it is that fold in shape and not yet in spelling.
+Its folds over \emph{terms} are \cppinline{cata}, the other kind Rule~3 names, which the grammar admits as the iterator of a term's inductive type.
+The last two lines of Listing~\ref{lst:fuel} are one such fold: \cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; the concept \cppinline{IsMonotone} on the same term agrees, as it must, since the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
+Where the library's set evaluator walks a term by a hand-written structural visitor rather than a \cppinline{cata} call, it is that fold in shape and not yet in spelling.
 
 \paragraph{Why not a generator.}
 \Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}, and it is the natural reflex for a bounded computation that should not allocate.
@@ -713,9 +691,7 @@ undefined behaviour has one binding time & signed carriers & avoided \\
 \end{table}
 
 \paragraph{The two rules the compiler does not check.}
-Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
-A template body is checked against the type it is instantiated at, not against its \cppinline{requires} clause, so \cppinline{twice_loose} compiles; a loop is not checked for a bound, so \cppinline{while (true)} compiles.
-Both are decidable by inspection, and the first is the definition checking that the \Cpp{0x} concepts design included and \Cpp{20} dropped, so a checker is a tool rather than a research problem.
+Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and both are decidable by inspection, so a checker is a tool rather than a research problem.
 The repository has one, and it is a mechanical check, not a proof of membership.
 It is a step after the build in continuous integration that reparses the listings and the library through the compiler's own front end and fails on a finding; each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
 For Rule~1 it checks what is syntactic: functions are \cppinline{constexpr}, call operators and member functions \cppinline{const}, no \cppinline{throw}, no static state and no \cppinline{volatile}, parameters neither by non-\cppinline{const} reference nor by forwarding reference, results never by reference, no mutable global, and boxed values with a \cppinline{const} pointee whose identity nothing observes.
@@ -757,9 +733,7 @@ Rule~3 is what keeps that limit out of the picture: every fold's length is in th
 The two kinds of fold meet the compiler differently, which is an idiosyncrasy of \Cpp{} but exactly the boundary this section is drawing.
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
-Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either.
-That the budget is a \emph{value} is a choice, the programmer's and not the language's, and this is where it pays: a bound that lives in data is available at both binding times, so a fold over it is a loop in the library and meets no limit of the compiler's, whereas a bound that lives in a type exists only at compile time, under the compiler's counter.
-The library's folds over chains make that choice, and it is why its set recursion runs unchanged at runtime.
+Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
 
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
@@ -796,8 +770,7 @@ These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity a
 Strong normalisation of System~F is Girard's~\cite{girard1989proofs}, parametricity Reynolds'~\cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's~\cite{bohm1985automatic}; the appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
 
 \paragraph{What is new here.}
-Not the translation, which is Wadler and Blott's, nor the calculus-with-concepts, which is $F^G$'s.
-What is new is the claim that the shipped language already contains the fragment: three rules on standard \Cpp{23}, a core calculus whose syntax is that \Cpp{} and whose listings compile and run under a stock compiler at both binding times, an adequacy argument that says where the compiler stops checking and the author starts, and a list of the seams met on the way.
+Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -818,9 +791,7 @@ Completing the checker: the one in the repository is sound in its findings and i
 A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next: the listings here state laws and declare them, but over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, and over structures with normal forms the normal form does the deciding; the same three rules reach that far without change.
 
-The contribution is a map, not code.
-Nothing was added to the language, the compiler or the library; what was added is a boundary, and a demonstration that inside it a mainstream compiler checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
-The posture is available today to anyone with a recent compiler, and the appendix says exactly what they get.
+Nothing was added to the language, the compiler or the library; what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
 
 \section*{Use of Agentic Systems and AI-Assistance Disclosure}
 
