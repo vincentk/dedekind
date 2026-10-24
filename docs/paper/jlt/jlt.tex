@@ -140,7 +140,7 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} and~\ref{sec:translation} state the rules and show the translation on a monoid, Section~\ref{sec:binding} runs one program at both binding times, Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:translation:adequacy} argues that the guarantees reach a Jlt program, Section~\ref{sec:limits} says what that leaves open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
+Sections~\ref{sec:posture} and~\ref{sec:translation} state the rules and show the translation on a monoid, Section~\ref{sec:binding} runs one program at both binding times, Section~\ref{sec:guarantees} brings back along the translation what System~F guarantees, Section~\ref{sec:translation:adequacy} argues that the guarantees reach a Jlt program, Section~\ref{sec:limits} says what that leaves open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
@@ -561,7 +561,7 @@ The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
 \cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone.
 The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
 
-\section{Guarantees}
+\section{From System~F Back to Featherweight Jlt}
 \label{sec:guarantees}
 % The three theorems about the translation of Section~\ref{sec:translation}
 % and Appendix~\ref{app:fjlt}, stated after the exhibits so that each can
