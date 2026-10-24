@@ -133,14 +133,14 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
-\item An adequacy argument from \Cpp{} to the calculus, an argument and not a theorem, since the theorems are about the calculus and the compiler does not check two of the rules. It states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
+\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker, Section~\ref{sec:limits} saying what the repository's reads and what it misses.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus with its proof sketches is the appendix.
+Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus is the appendix.
 
 \section{The Posture}
 \label{sec:posture}
@@ -303,7 +303,7 @@ Section~\ref{sec:limits} says how.}
 \label{tab:posture}
 \end{table}
 
-One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them to the extent the checker of Section~\ref{sec:limits} reaches, and the appendix makes the subset precise.
+One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them (Section~\ref{sec:limits}), and the appendix makes the subset precise.
 
 \section{Translation from Featherweight Jlt to System~F}
 \label{sec:translation}
@@ -515,7 +515,7 @@ unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by read
 \bottomrule
 \end{tabularx}
 \caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
-The two rows marked \emph{by reading} are the gap: the compiler accepts programs that break them, and the checker of Section~\ref{sec:limits} finds some of those programs and certifies none.}
+The two rows marked \emph{by reading} are the gap: the compiler accepts programs that break them, and Section~\ref{sec:limits} says what the checker finds of them.}
 \label{tab:adequacy}
 \end{table}
 
@@ -524,8 +524,7 @@ Conversions are half closed: the grammar admits one only where a requirement dec
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
 A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did. A loop whose bound changes as it runs compiles anyway.
 Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool can narrow the gap.
-The repository has one, described in Section~\ref{sec:limits}, that reads a body against its constraints at the level of names: what it finds is a breach, and what it passes is not thereby in the fragment, so this paper's listings are checked by it and by reading.
-Rule~3 it checks the same way, for loops and for recursion that is not over a term.
+The repository has one, Section~\ref{sec:limits} says what it reads, and this paper's listings are checked by it and by reading.
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
@@ -675,7 +674,7 @@ This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweig
 Featherweight Java proves progress and preservation over its own rules too. What the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the value the System~F image computes.
 
 All six are claims about FJlt.
-What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
+What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, and the next section says where it is thin.
 
 \section{Known Limitations}
 \label{sec:limits}
@@ -691,7 +690,7 @@ Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
 The tool checks it at the level of names: a body may use on a value of parameter type only what a declared constraint names.
 A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on. Its silence certifies nothing, since it reads names, not arities or types.
 Definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
-The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
+The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not.
 The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 
 \paragraph{Lookup stops at \cppinline{std}.}
@@ -768,15 +767,14 @@ The calculus translates into System~F by dictionary passing: concepts to record 
 The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 
 What this costs is stated rather than softened.
-Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound. A tool in the repository catches some breaches of them and certifies no program.
+Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound. A tool in the repository narrows the gap (Section~\ref{sec:limits}).
 A fold may run out of budget, and when it does the type says so.
 Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
-And "standard \Cpp{23}" names a compiler and a library together, so the claim holds for a pair of implementations.
+And "standard \Cpp{23}" names a compiler and a library together (Section~\ref{sec:limits}).
 
 Three things follow as work not done here.
-Completing the checker: the checker in the repository works at the level of names, its findings read before they are acted on and its silence no certificate.
-Definition checking proper, over types and arities and the full constraint language, is the remaining distance, and until it is covered, if it ever is, membership in the fragment is a reading the tool narrows, not a verdict it gives.
-A mechanisation of the proof sketches, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
+Completing the checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
+A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next.
 The listings here state laws and declare them; over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, over structures with normal forms the normal form does the deciding, and the same three rules reach that far without change.
 
