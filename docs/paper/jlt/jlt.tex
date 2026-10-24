@@ -299,7 +299,7 @@ rule & buys & costs & enforced \\
 
 One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}; the rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them to the extent the checker of Section~\ref{sec:limits} reaches, and the appendix makes the subset precise.
 
-\section{The Translation}
+\section{Translation from Featherweight Jlt to System~F}
 \label{sec:translation}
 % Establishes: what a reader must believe about the System F reading, by one
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
@@ -309,6 +309,27 @@ This section is about one map, the translation $\llbracket \cdot \rrbracket$ fro
 A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator; Appendix~\ref{app:fjlt:translation} defines the map in full, and Table~\ref{tab:rules} states the six rules of it that this paper's listings exercise.
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
+Everything the listings do is covered by the six rules of Table~\ref{tab:rules}, the rest of the translation being bookkeeping; read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+FJlt & System~F & \\
+\midrule
+\texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & a record type, one field per requirement \\
+\texttt{constexpr τ f(τ̄) = delete} & nothing & a trait is only its instances \\
+\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
+\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
+\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
+\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & a budget is a natural number, iterated \\
+\bottomrule
+\end{tabularx}
+\caption{The six rules of the translation that the listings exercise.
+A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter, which is the second half of the fifth row.}
+\label{tab:rules}
+\end{table}
 
 \subsection{One shape, two monoids}
 \label{sec:translation:example}
@@ -439,32 +460,6 @@ pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
 \end{minted}
 The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}; GHC calls them the Paterson conditions.
 The FJlt syntax enforces them by construction, since a context can only mention the type arguments of the operation being specialised.}
-
-\subsection{The rules the argument uses}
-\label{sec:translation:rules}
-
-Everything the listings did is covered by six rules of the translation, and Table~\ref{tab:rules} states them; the rest of the translation is bookkeeping and sits in Appendix~\ref{app:fjlt:translation}.
-Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
-\toprule
-FJlt & System~F & \\
-\midrule
-\texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & a record type, one field per requirement \\
-\texttt{constexpr τ f(τ̄) = delete} & nothing & a trait is only its instances \\
-\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
-\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
-\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
-\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & a budget is a natural number, iterated \\
-\bottomrule
-\end{tabularx}
-\caption{The six rules of the translation that the listings exercise.
-A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter, which is the second half of the fifth row.}
-\label{tab:rules}
-\end{table}
 
 \subsection{From \Cpp{} to Featherweight Jlt}
 \label{sec:translation:adequacy}
