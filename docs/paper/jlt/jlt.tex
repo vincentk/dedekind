@@ -680,19 +680,13 @@ The paragraphs below name each, what it costs and what, if anything, closes it.
 
 
 \paragraph{The two rules the compiler does not check.}
-Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and both are decidable by inspection, so a checker is a tool rather than a research problem.
-The repository has one, and it is a mechanical check, not a proof of membership.
-It is a step after the build in continuous integration that reparses the listings and the library through the compiler's own front end and fails on a finding; each of its rules is paired with a file of known violations it must find, so that a pass is not vacuous.
-For Rule~1 it checks what is syntactic: functions are \cppinline{constexpr}, call operators and member functions \cppinline{const}, no \cppinline{throw}, no static state and no \cppinline{volatile}, parameters neither by non-\cppinline{const} reference nor by forwarding reference, results never by reference, no mutable global, and boxed values with a \cppinline{const} pointee whose identity nothing observes.
-For Rule~3 it checks that no loop occurs but the one inside the library's iteration primitive, that no function calls itself at the same instantiation, and that none lies on a call cycle, so recursion runs over a term's type or not at all.
-For Rule~2 it checks at the level of names: a function template's body may use, on a value of parameter type, only an operation that some declared constraint names, the constraints followed through the library's concepts; a test of a concept inside the body is not a constraint.
-What it finds is a breach, and on the library every finding was one: in the \texttt{category} module it found bodies using what no constraint declared, in the fold engine, the lattice laws and nine smaller templates, and each fix was a constraint stating what the body already did.
-What it passes is not thereby in the fragment: the Rule~2 check reads names, not arities or types, it grants a few things by heuristic, a \cppinline{constexpr} template returning \cppinline{bool} being read as a trait, it does not see a class template's ordinary members, and it is silent on constraints it cannot read.
-Definition checking proper, over types and arities and the whole constraint language, is the distance between this tool and the \Cpp{0x} design, and it is a fair amount of work that this paper does not promise.
-Reading, meanwhile, is no longer the author's alone: an agentic reviewer reads a pull request against the three rules as a referee would, with the rules and this section as its brief, and the repository runs one on every pull request.
-It reaches what the tool does not, types and arities behind the names, whether a constraint names an operation at the types the body uses it at, and the members of class templates, and it is neither sound nor complete, so its findings are read and its silence is no certificate; between the tool's soundness and the reader's reach, \emph{by reading} in Table~\ref{tab:adequacy} names a check with two instruments, not a hope.
-Today the listings and the library's \texttt{category} module are held at zero on all three rules to the extent the check reaches, with one expected finding, the test's \cppinline{twice_loose} of Section~\ref{sec:posture}, the breach the paper plants.
-So the listings are checked by the tool, by reading, human and machine, and by a test that compiles and runs them.
+Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
+Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
+Rule~1's syntactic part and Rule~3 it checks outright: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
+Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
+The tool checks it at the level of names, a body may use on a value of parameter type only what a declared constraint names, and that check is sound in its findings and incomplete in its reach: it reads names, not arities or types, and definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
+The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
+The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
