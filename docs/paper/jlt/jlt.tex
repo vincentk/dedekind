@@ -192,12 +192,20 @@ They are values in the sense of this section on two conditions, that the pointee
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.51\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
+
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
+
+template <std::unsigned_integral T>
+constexpr T unit(std::plus<T>) { return 0; }
+template <std::unsigned_integral T>
+constexpr bool associative(std::plus<T>) {
+  return true;
+}
 
 template <typename T, typename Op>
 concept IsMonoid =
@@ -215,33 +223,37 @@ concept IsMonoidPlus =
     };
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.47\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
-template <typename T>
-constexpr T twice_loose(T x) {
-  return x + x;
+template <>
+constexpr std::string unit<std::string>(
+    std::plus<std::string>) {
+  return {};
+}
+template <>
+constexpr bool associative<std::string>(
+    std::plus<std::string>) {
+  return true;
 }
 
 template <IsMonoidPlus T>
-constexpr T twice(T x) {
-  return x + x;
-}
+constexpr T twice(T x) { return x + x; }
 
-static_assert(
-    twice_loose(std::string{"ab"}) == "abab");
 static_assert(twice<size_t>(21) == 42);
+static_assert(
+    twice(std::string{"ab"}) == "abab");
 \end{cpp}
 \end{minipage}
-\caption{Rule~2: a shape, a breach and a keep.
-Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; Listing~\ref{lst:monoid} populates both; \cppinline{IsMonoidPlus} is the same shape with \cppinline{Op} fixed to \cppinline{std::plus<T>}, naming the operator the standard defines \cppinline{plus} by, \cppinline{a + b}.
-Right: two bodies, one text, \cppinline{x + x}; \cppinline{twice_loose} uses a \cppinline{+} no constraint names and compiles for every type with one, \cppinline{twice} names the shape, and only the second is Jlt.}
+\caption{Rule~2: a shape, its instances, and a function of it.
+Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; before the shape, an instance for every unsigned integral under \cppinline{+}, a constrained overload, which has to precede the shape to be found (Section~\ref{sec:limits}); \cppinline{IsMonoidPlus} is the shape with \cppinline{Op} fixed to \cppinline{std::plus<T>}, naming the operator the standard defines \cppinline{plus} by, \cppinline{a + b}.
+Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{twice}, whose body is \cppinline{x + x}, at \cppinline{size_t} and at \cppinline{std::string}.}
 \label{lst:rule2}
 \end{listing}
 
-In Listing~\ref{lst:rule2}, \cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included; that concatenation happens to be a monoid is luck, not a declaration.
-\cppinline{twice} keeps it with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, and the whole difference between the two functions is the clause.
+The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and that string concatenation is a monoid is luck, not a declaration.
+\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the whole difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
-A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted and so would be a version of \cppinline{twice} that used \cppinline{+} behind its \cppinline{requires} clause.
+A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3: recursion only folds.}
@@ -301,9 +313,13 @@ It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps 
 \subsection{One shape, two monoids}
 \label{sec:translation:example}
 
-Here is the whole translation in one shape.
-A monoid is a carrier with an associative operation and a unit for it.
-Listing~\ref{lst:rule2} stated that shape once, as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}; Listing~\ref{lst:monoid} populates it: \cppinline{bool} has it twice, \cppinline{size_t} four times.
+Listing~\ref{lst:rule2} stated the monoid shape; Listing~\ref{lst:monoid} populates it at \cppinline{bool} and reads the whole as a System~F program.
+The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
+A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
+That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}; the record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
+\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
+A unit is a choice: the compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact once, as a specialisation of \cppinline{unit}, which is an instance declaration in a type-class system, and the one-definition rule makes sure there is one; the primary is declared and deleted so that its specialisations are found by its name, since an overload beside the concept is found only when it precedes it (Section~\ref{sec:limits}).
+A law is stated the same way, as \cppinline{associative} is, and Listing~\ref{lst:rule2}'s instance for every unsigned integral is an instance with a context, the function from records to a record of Section~\ref{sec:translation:contexts}.
 
 % Verbatim in src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp,
 % which also checks that the tree's unit<T>(Op{}) and laws agree.
@@ -318,48 +334,18 @@ static_assert( IsMonoid<bool, std::logical_and<bool>>);
 static_assert( IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
 \end{cpp}
-\begin{cpp}
-template <> constexpr size_t unit<size_t>(std::plus<size_t>) { return 0; }
-template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
-template <> constexpr size_t unit<size_t>(std::bit_or<size_t>) { return 0; }
-template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) { return SIZE_MAX; }
-template <> constexpr bool associative<size_t>(std::plus<size_t>) { return true; }
-template <> constexpr bool associative<size_t>(std::multiplies<size_t>) { return true; }
-template <> constexpr bool associative<size_t>(std::bit_or<size_t>) { return true; }
-template <> constexpr bool associative<size_t>(std::bit_and<size_t>) { return true; }
-
-static_assert(IsMonoid<size_t, std::plus<size_t>>);
-static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
-static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
-static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
-\end{cpp}
 \begin{minted}{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  assoc : Bool }
 and_bool  =  { unit = true,  op = λa. λb. a ∧ b,  assoc = true }
-plus_u64  =  { unit = 0,     op = λa. λb. a + b,  assoc = true }
+plus_u    =  Λ T. λ u : Unsigned T.  { unit = 0,  op = λa. λb. a + b,  assoc = true }
 twice     =  Λ T. λ d : MonoidDict T plus. λ x : T.  d.op x x
-twice [u64] plus_u64 21
+twice [u64] (plus_u [u64] unsigned_u64) 21
 \end{minted}
-\caption{The monoid shape of Listing~\ref{lst:rule2}, populated.
-Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, each certified associative by a declaration, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
-Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and Listing~\ref{lst:rule2}'s \cppinline{twice} at the first; \cppinline{size_t} wraps by definition, so it is a monoid, $\mathbb{Z}/2^{64}$, and \cppinline{twice<size_t>(SIZE_MAX)} is \cppinline{SIZE_MAX - 1} at both binding times.
-Bottom: the same in System~F.
-The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
-The operation is part of the index, so one carrier has several monoids, and nobody wrote a struct for any of them.}
+\caption{The shape of Listing~\ref{lst:rule2}, populated and read.
+Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, each with its unit and its associativity declared, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
+Bottom: the same in System~F; the shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T} to a record, and \cppinline{twice} a function of the record.}
 \label{lst:monoid}
 \end{listing}
-
-The bottom panel reads the shape and its instances as a System~F program.
-The concept is a record type, one field per requirement.
-A \cppinline{requires} clause on a function is one more parameter, the record.
-A call passes the record, and the compiler finds the record to pass.
-That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}; the record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
-\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
-And a unit is a choice.
-The compiler can see that \cppinline{size_t} has a \cppinline{+}, but not which element is neutral for it, so someone states the fact, once, as a specialisation of \cppinline{unit}.
-An instance declaration in a type-class system is the same act; here it is a specialisation, and the one-definition rule makes sure there is one.
-The primary is declared and deleted rather than left out: a plain overload beside the concept is never found, since lookup inside the concept goes to \cppinline{Op}'s namespace, \cppinline{std}, and the deleted primary is found by name, its specialisations with it, while a call to the primary itself is a substitution failure (Section~\ref{sec:limits}).
-\cppinline{unit} is a value-level function, so the fact is also visible at runtime, where \cppinline{unit<size_t>(op)} is an ordinary call; Section~\ref{sec:binding} uses this.
 
 \begin{table}[ht]
 \centering
@@ -380,16 +366,11 @@ The second row has no counterpart in a nominal type-class system: concepts are s
 \label{tab:dictionary}
 \end{table}
 
-The operation being part of the index is a small thing with a payoff.
-A class indexed by the carrier alone gives one carrier one monoid, and the second monoid needs a wrapper type.\footnote{\texttt{Sum} and \texttt{Product} in Haskell's base library.}
-Here \cppinline{IsMonoid<T, Op>} is a relation between a carrier and an operation, and the six \cppinline{static_assert}s of Listing~\ref{lst:monoid} are six of its witnesses at two carriers.
-The defaulted \cppinline{Op} picks the additive reading when a caller does not care.
-
 \subsection{Shapes compose by conjunction}
 \label{sec:translation:semiring}
 
 A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
-Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction and finds three semirings among the monoids we have.
+Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction, registers the three further monoids on \cppinline{size_t} it needs, and finds three semirings.
 
 % Verbatim in jlt_listings_test.cpp (as Listing 1).
 \begin{listing}[htbp]
@@ -406,6 +387,13 @@ concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
                      distributive<T>(Mul{}, Add{});
 \end{cpp}
 \begin{cpp}
+template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
+template <> constexpr size_t unit<size_t>(std::bit_or<size_t>) { return 0; }
+template <> constexpr size_t unit<size_t>(std::bit_and<size_t>) { return SIZE_MAX; }
+template <> constexpr bool associative<size_t>(std::multiplies<size_t>) { return true; }
+template <> constexpr bool associative<size_t>(std::bit_or<size_t>) { return true; }
+template <> constexpr bool associative<size_t>(std::bit_and<size_t>) { return true; }
+
 template <>
 constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
 template <>
@@ -433,7 +421,7 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 \end{cpp}
 \caption{Laws as functions of the operation, and the semiring shape as a conjunction.
 Top: two laws, declared and deleted, and the two shapes that require them.
-Bottom: six certificates, and three semirings: $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$.
+Bottom: the three further monoids on \cppinline{size_t} the semirings need, six certificates, and three semirings: $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$.
 The last line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.}
 \label{lst:semiring}
 \end{listing}
@@ -470,7 +458,7 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 \label{sec:translation:rules}
 
 Everything the listings did is covered by six rules of the translation, and Table~\ref{tab:rules} states them; the rest of the translation is bookkeeping and sits in Appendix~\ref{app:fjlt:translation}.
-Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<size_t>(std::plus<size_t>)} the third, \cppinline{twice} the fourth and its \cppinline{static_assert}s the fifth.
+Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
 
 \begin{table}[ht]
 \centering
@@ -690,7 +678,7 @@ It is also why an instance with a context (Section~\ref{sec:translation:contexts
 A well-typed closed FJlt term of base type evaluates to a value.
 \end{corollary}
 
-This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it comes last, because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first; it comes last because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
 Featherweight Java proves progress and preservation over its own rules too; what the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the one the System~F image computes.
 
 All six are claims about FJlt.
@@ -715,13 +703,13 @@ What it passes is not thereby in the fragment: the Rule~2 check reads names, not
 Definition checking proper, over types and arities and the whole constraint language, is the distance between this tool and the \Cpp{0x} design, and it is a fair amount of work that this paper does not promise.
 Reading, meanwhile, is no longer the author's alone: an agentic reviewer reads a pull request against the three rules as a referee would, with the rules and this section as its brief, and the repository runs one on every pull request.
 It reaches what the tool does not, types and arities behind the names, whether a constraint names an operation at the types the body uses it at, and the members of class templates, and it is neither sound nor complete, so its findings are read and its silence is no certificate; between the tool's soundness and the reader's reach, \emph{by reading} in Table~\ref{tab:adequacy} names a check with two instruments, not a hope.
-Today the listings and the library's \texttt{category} module are held at zero on all three rules to the extent the check reaches, with one expected finding, Listing~\ref{lst:rule2}'s \cppinline{twice_loose}, the breach the paper plants.
+Today the listings and the library's \texttt{category} module are held at zero on all three rules to the extent the check reaches, with one expected finding, the test's \cppinline{twice_loose} of Section~\ref{sec:posture}, the breach the paper plants.
 So the listings are checked by the tool, by reading, human and machine, and by a test that compiles and runs them.
 Rule~3 the paper keeps trivially, by having no loop at all: the one it needs is inside a standard fold.
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
-So \cppinline{unit(std::plus<size_t>)} declared beside the concept is never found, and Listing~\ref{lst:monoid} declares a deleted primary instead, which is found by name and specialised.
+So \cppinline{unit(std::plus<size_t>)} declared after the concept is never found; Listing~\ref{lst:rule2} declares a deleted primary, which is found by name and specialised, and puts its one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it.
 The same wall makes an operator on \cppinline{std::pair} of standard carriers unreachable from inside \cppinline{std::plus}: a pair of monoids is a monoid, but not through \cppinline{std::plus<std::pair<A, B>>}, which is why the former of two operations must be a type of ours.
 This is the one place the translation's "instance resolution" and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name, and nothing else.
 
@@ -733,7 +721,7 @@ It is the body-versus-signature gap of Rule~2 one level down, in the standard li
 \paragraph{Facts live in tables, instances in functions.}
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
-The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it; a function template cannot be partially specialised, and an overload in its place runs into the lookup wall above.
+The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it; a function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
 So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
 
 \paragraph{The library is part of the toolchain.}
