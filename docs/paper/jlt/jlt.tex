@@ -162,10 +162,15 @@ static_assert(std::semiregular<std::pair<size_t, bool>>);
 template <std::semiregular T>
 constexpr T id(const T& x) { return x; }
 
-static_assert(id(size_t{12}) == 12);
+static_assert(id(size_t{42}) == 42);
 \end{cpp}
-\caption{Rule~1: the identity arrow.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(12)} is a fact the compiler checks.}
+\begin{minted}{gas}
+id_rt():
+        mov     eax, 42
+        ret
+\end{minted}
+\caption{Rule~1: the identity arrow, and what a call of it compiles to.
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{id(42)} is a fact the compiler checks, and below, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant (Clang 23, \texttt{-std=c++23 -O2}, x86-64, Intel syntax).}
 \label{lst:rule1}
 \end{listing}
 
@@ -175,7 +180,7 @@ An object a function could change would be state, which the rule excludes; the s
 Two consequences keep the identification exact: a function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed, and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object; the grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
 A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
 What this buys is that a call is a value, with no time attached to it.
-The compiler evaluates \cppinline{id(size_t{12})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged; Section~\ref{sec:binding} makes a program out of that.
+The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned; Section~\ref{sec:binding} makes a program out of that.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{One heap cell is a value under the rule: \cppinline{std::shared_ptr<const T>}, a boxed value.
 It is semiregular, its pointee cannot change, and a copy costs a reference count, which is what a recursive structure needs, since a term whose legs are terms cannot hold itself.
 Two conditions keep it a value: the pointee is \cppinline{const}, and nothing asks which box it is, so \cppinline{get}, \cppinline{use_count} and \cppinline{==} between boxes stay unused.
@@ -223,18 +228,12 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 \end{cpp}
-\begin{minted}{gas}
-times_rt(size_t x, size_t n):
-        mov     rax, rdi
-        imul    rax, rsi
-        ret
-\end{minted}
-\caption{Rule~3: a fold over a budget, and what it compiles to.
-\cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x} from the unit; below, \cppinline{times<size_t>(x, n)} is \cppinline{x * n} (Clang 22, \texttt{-std=c++23 -O2}, x86-64, Intel syntax; \cppinline{times_rt} is a non-template wrapper so that the function is emitted at all).}
+\caption{Rule~3: a fold over a budget.
+\cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x}, starting from the unit.}
 \label{lst:rule3}
 \end{listing}
 
-Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit, and the panel below it is what the processor runs, one multiplication, with the fold, the unit and the record gone; Section~\ref{sec:binding} says why.
+Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit; what the processor runs of it is one multiplication, with the fold, the unit and the record gone, and Section~\ref{sec:binding} says why.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}); data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
 What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}; Section~\ref{sec:binding} shows the price being paid.
 The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit; at runtime a \cppinline{while (true)} compiles like any other loop, which is why this paper contains none: the loops are inside \cppinline{std::ranges::fold_left} and \cppinline{cata}, and every function composes.
@@ -531,7 +530,7 @@ Section~\ref{sec:limits} is the list of places where the first condition is hard
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id(size_t{12})}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
+\cppinline{id(size_t{42})}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
 The interesting case is the fold, because a budget can arrive at either time.
 Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
@@ -592,7 +591,7 @@ That is the whole price of Rule~3, and it is paid in the type rather than in a c
 \paragraph{A budget at compile time is the same budget.}
 \cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it; \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
-What the processor runs is the panel of Listing~\ref{lst:rule3}: the fold over \cppinline{repeat(x, n)} with \cppinline{plus} is one multiplication, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body; Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
+What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}, and the search is a loop of 84 instructions, unrolled by four and without a branch in its body; Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
 The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be; the discipline costs nothing at runtime.
 
 The compiler has a budget of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
