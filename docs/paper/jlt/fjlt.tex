@@ -393,3 +393,59 @@ By Theorem~\ref{thm:preservation}, a generic FJlt function translates to a close
 The dependencies run one way: preservation and the two lemmas on dictionaries; progress; forward simulation; termination from forward simulation and the target's strong normalisation; soundness from progress and termination; the converse of simulation from soundness; coherence and parametricity on their own.
 What the proofs do not do: they induct over the rules of Figures~\ref{fig:fjlt-typing} and~\ref{fig:fjlt-eval} as given, which omit the generic cases, and they take \cppinline{fold_left} over \cppinline{repeat} and \cppinline{iota} as primitives with the evaluation rule of Figure~\ref{fig:fjlt-eval}, trusting the standard library for it as Section~\ref{sec:translation:adequacy} says.
 Their mechanisation is future work.
+
+\subsection{The compiler's own functional language}
+\label{app:fjlt:ssa}
+
+Section~\ref{sec:translation:adequacy} said that instantiation is partial evaluation of the translated term at a static type.
+What that evaluation leaves is a closed first-order term over the base types: the type abstractions are gone with their arguments, the record parameters are gone with the records the compiler resolved, every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
+The compiler then lowers that term to its intermediate representation, and the representation is in static single assignment form~\cite{cytron1991ssa}: every variable is assigned exactly once, and where two paths of control join, a $\phi$-node names the value that arrives along each.
+
+SSA is a functional language.
+Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel put the correspondence as a slogan~\cite{appel1998ssa}: a basic block is a local function, its $\phi$-nodes are that function's parameters, a branch is a tail call that passes the arguments, and dominance is lexical scope.
+So a Jlt function is translated twice into a functional language, by this appendix into System~F with records and iterators, and by the compiler into first-order functions with tail calls, with instantiation between the two; Rules~1 and~3 are what makes the source already look like the second.
+
+Listing~\ref{lst:ssa} is the search of Listing~\ref{lst:fuel}, \cppinline{first<Over1000>} behind a non-template wrapper, as the compiler leaves it before it unrolls the loop.
+The fold over \cppinline{iota(0, budget)} with \cppinline{advance} is one loop, and its header has three $\phi$-nodes: the two components of the state, the candidate and whether it has been found, and the position in the range.
+Those are the iterator's state in Figure~\ref{fig:fjlt-translation}, the pair $(\llbracket i \rrbracket, \llbracket a \rrbracket)$ of \textsc{iota}'s translation with $\llbracket a \rrbracket$ itself a pair, and the count $\llbracket j \rrbracket \mathbin{\dot{-}} \llbracket i \rrbracket$ is the comparison that ends the loop.
+The exit block's two $\phi$-nodes are the fold's result, which \cppinline{found} reads out into the optional.
+Nothing else survives: not \cppinline{IsPredicate}, not the record its constraint became, not the range object, not the pair; the predicate is the multiplication and the comparison in the loop body, and the budget is the register the wrapper was called with.
+
+\begin{listing}[htbp]
+\begin{minted}{llvm}
+define { i64, i8 } @first_rt(i64 %0) {
+  %2 = icmp ult i64 %0, 2
+  br i1 %2, label %15, label %3
+
+3:                                                ; loop header
+  %4 = phi i8 [ %12, %3 ], [ 0, %1 ]
+  %5 = phi i64 [ %10, %3 ], [ 0, %1 ]
+  %6 = phi i64 [ %13, %3 ], [ 1, %1 ]
+  %7 = trunc i8 %4 to i1
+  %8 = mul i64 %6, %6
+  %9 = icmp ugt i64 %8, 1000
+  %10 = select i1 %7, i64 %5, i64 %6
+  %11 = zext i1 %9 to i8
+  %12 = or i8 %4, %11
+  %13 = add i64 %6, 1
+  %14 = icmp eq i64 %13, %0
+  br i1 %14, label %15, label %3
+
+15:                                               ; exit
+  %16 = phi i64 [ 0, %1 ], [ %10, %3 ]
+  %17 = phi i8 [ 0, %1 ], [ %12, %3 ]
+  %18 = trunc i8 %17 to i1
+  %19 = select i1 %18, i64 %16, i64 0
+  %20 = insertvalue { i64, i8 } poison, i64 %19, 0
+  %21 = insertvalue { i64, i8 } %20, i8 %17, 1
+  ret { i64, i8 } %21
+}
+\end{minted}
+\caption{\cppinline{first<Over1000>(budget)} in LLVM IR, Clang 23 at \texttt{-std=c++23 -O2} with unrolling and vectorisation off, attributes and metadata stripped; Appendix~\ref{app:fjlt:ssa} reads it.}
+\label{lst:ssa}
+\end{listing}
+
+What this adds to the adequacy argument is a reason, not a theorem.
+Theorem~\ref{thm:simulation} relates FJlt's evaluation to the System~F image; the compiler relates the same program to SSA; and since both targets are functional languages with the loop's state as an explicit parameter, the sentence of Section~\ref{sec:binding}, that the discipline costs nothing at runtime, has a structural ground: the compiler makes a local function of every loop and a parameter of every accumulator in any case, and a Jlt fold names that parameter in the source instead of leaving the compiler to recover it from assignments.
+It is not a theorem because the compiler is not one of the hypotheses: the lowering is trusted, as every \Cpp{} program trusts it, and the reading of SSA as the simply typed iterator terms is Appel's, which this paper uses and does not prove.
+One seam shows here too: SSA's values are the scalars in registers, and a value that lives in memory, a boxed value in particular, is read and written through a pointer that no $\phi$-node carries, which is the same line between a value and a cell that Rule~1 draws.
