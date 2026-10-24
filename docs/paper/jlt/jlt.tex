@@ -314,20 +314,25 @@ Everything the listings do is covered by six of its rules, which Table~\ref{tab:
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.36\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
 \toprule
-FJlt & System~F & \\
+FJlt & System~F & in \\
 \midrule
-\texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & a record type, one field per requirement \\
-\texttt{constexpr τ f(τ̄) = delete} & nothing & a trait is only its instances \\
-\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & a field of the record at $\overline{\tau}$ \\
-\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & the constraint is a parameter \\
-\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$, $\overline{d}$ the resolved records & the compiler supplies the argument \\
-\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & a budget is a natural number, iterated \\
+\texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & Listing~\ref{lst:rule2} \\
+\texttt{constexpr τ f(τ̄) = delete} & nothing & Listing~\ref{lst:rule2} \\
+\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listings~\ref{lst:rule2}, \ref{lst:monoid} \\
+\texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
+\texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & Listing~\ref{lst:rule2} \\
+\texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & Listing~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{The six rules of the translation that the listings exercise.
-A read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter, which is the second half of the fifth row.}
+\caption{The six rules of the translation that the listings exercise, Figure~\ref{fig:fjlt-translation} restricted to them.
+(i) A concept is a record type, one field per requirement.
+(ii) A trait is only its instances.
+(iii) An instance is a field of the record at $\overline{\tau}$.
+(iv) A constraint is a parameter.
+(v) A call supplies the resolved records $\overline{d}$, which the compiler finds; a read of a trait inside a constrained body, \cppinline{f<α>(…)} with \cppinline{C<α>} assumed, is the projection $q.f$ of the record parameter.
+(vi) A budget is a natural number, iterated.}
 \label{tab:rules}
 \end{table}
 
