@@ -284,16 +284,16 @@ The compiler enforces the rule only at compile time, where an evaluation that do
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}lXXl@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & buys & costs & enforced \\
+rule & buys & costs & the compiler checks & the checker checks \\
 \midrule
-1 values, pure functions & one program, two binding times & no state, no I/O inside & partly \\
-2 behaviour through concepts & the System~F reading & no ad hoc use of a type & no \\
-3 recursion folds & termination & \emph{out of budget} as an answer & at compile time \\
+1 values, pure functions & one program, two binding times & no state, no I/O inside & in part, at compile time & the syntax, outright \\
+2 behaviour through concepts & the System~F reading & no ad hoc use of a type & nothing & names; the rest is reading \\
+3 recursion folds & termination & \emph{out of budget} as an answer & at compile time only & loops and recursion, outright \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance.}
+\caption{The posture at a glance: what each rule buys and costs, and who holds it; the checker is the repository's tool of Section~\ref{sec:limits}, and what neither instrument reaches is read.}
 \label{tab:posture}
 \end{table}
 
@@ -680,9 +680,9 @@ The paragraphs below name each, what it costs and what, if anything, closes it.
 
 
 \paragraph{The two rules the compiler does not check.}
-Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture.
+Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
 Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
-Rule~1's syntactic part and Rule~3 it checks outright: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
+Rule~3 it checks outright, and Rule~1's syntactic part with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference, no loop but the library's iteration primitive, no function on a call cycle, so recursion runs over a term's type or not at all.
 Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
 The tool checks it at the level of names, a body may use on a value of parameter type only what a declared constraint names, and that check is sound in its findings and incomplete in its reach: it reads names, not arities or types, and definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
 The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not and certifying nothing.
