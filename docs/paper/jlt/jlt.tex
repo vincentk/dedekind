@@ -445,6 +445,7 @@ The last is refused for a law that is false, \cppinline{+} is not idempotent, an
 Two kinds of requirement went into these verdicts.
 Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{std::plus<>} on two \cppinline{bool}s yields an \cppinline{int} and not a \cppinline{bool}.
 Declared ones a specialisation records: the units and associativity, and now two more laws.
+\Cpp{}'s own words for the two are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not; a law is what modelling asks beyond satisfying, and the fragment makes it a declared field.
 Both are requirements of the same shape, and both become fields of the same record; a law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
 
 One thing the listing does not do, and cannot.
