@@ -61,8 +61,9 @@ findings that are breaches over a list of style remarks.
 
 ## Reading the paper's own words
 
-The checker is "sound in its findings and incomplete in its reach"; so is this
-review, in the other direction: it reaches what the checker cannot, and its
-silence is not a certificate. Say which rule, what breaches it, and the one-line
+The checker's findings are read before they are acted on (a finding can be a
+gap in its reading of a standard concept, not a breach), and its silence is not
+a certificate; this review is the other instrument: it reaches what the checker
+cannot, and its silence is not a certificate either. Say which rule, what breaches it, and the one-line
 fix. When you are unsure whether a constraint names an operation at the right
 types, ask in the thread rather than asserting.
