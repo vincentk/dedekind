@@ -49,7 +49,6 @@ The evidence is the proof sketches in the appendix; the listings, which compile 
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
 \end{abstract}
 
-
 % Section skeleton (#981).  Each section names what it must establish; prose
 % follows once the calculus (appendix) is drafted.
 
@@ -147,7 +146,6 @@ Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the transl
 Jlt is not a dialect and not a library.
 It is standard \Cpp{23} under three rules, and a program follows the rules or it does not; the compiler enforces some of them and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting and to repetitions a comment elides.
-
 
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
@@ -284,16 +282,18 @@ The compiler enforces the rule only at compile time, where an evaluation that do
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}lXX@{}}
 \toprule
-rule & buys & costs & the compiler checks & the checker checks \\
+rule & buys & costs \\
 \midrule
-1 values, pure functions & one program, two binding times & no state, no I/O inside & in part, at compile time & the syntax, outright \\
-2 behaviour through concepts & the System~F reading & no ad hoc use of a type & nothing & names; the rest is reading \\
-3 recursion folds & termination & \emph{out of budget} as an answer & at compile time only & loops and recursion, outright \\
+1 values, pure functions & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 behaviour through concepts & the System~F reading & no ad hoc use of a type \\
+3 recursion folds & termination & \emph{out of budget} as an answer \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance: what each rule buys and costs, and who holds it; the checker is the repository's tool of Section~\ref{sec:limits}, and what neither instrument reaches is read.}
+\caption{The posture at a glance.
+At build time, Rule~1 is held by the compiler in part and by the repository's tool for its syntax; Rule~2 by the tool at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the tool for loops and recursion.
+Section~\ref{sec:limits} says how.}
 \label{tab:posture}
 \end{table}
 
@@ -577,8 +577,8 @@ static_assert(IsMonotone<Compose<Negation, Negation>>);
 \cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has; the property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
 \cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
 The second \cppinline{static_assert} is not "no square exceeds 1000"; it is "none among the first 30".
-The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t} and what the library's own set recursion folds over.
-The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$; the paragraph on set recursion below reads them.}
+The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t}.
+The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$; the paragraph on folds over finite data reads them.}
 \label{lst:fuel}
 \end{listing}
 
@@ -595,18 +595,10 @@ The records of Section~\ref{sec:translation} and the ranges of this section are 
 
 The compiler has a budget of its own, a limit on the steps a constant evaluation may take, and Rule~3 keeps a program from ever meeting it by accident, since every loop's length is in the program's hands.
 
-\paragraph{Set recursion in the library.}
-The library behind these listings decides membership and quantifiers over finite ordered carriers, and every one of its recursions is this fold: its normal form of a set on a window is a pipeline over \cppinline{chain_view{lo, hi}}, the interval of the chain between two elements walked by the covering step, and its quantifiers are \cppinline{std::ranges::any_of} and \cppinline{all_of} over the whole chain, \cppinline{chain_view{⊥, ⊤}}, an early exit being a fold with a frozen state as \cppinline{first} shows.
-\cppinline{iota(0, n)} is the same view on \cppinline{size_t}, so the two listings above and the library's set recursion are instances of one production of the grammar.
-Its folds over \emph{terms} are \cppinline{cata}, the other kind Rule~3 names, which the grammar admits as the iterator of a term's inductive type.
-The last two lines of Listing~\ref{lst:fuel} are one such fold: \cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; the concept \cppinline{IsMonotone} on the same term agrees, as it must, since the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
-Where the library's set evaluator walks a term by a hand-written structural visitor rather than a \cppinline{cata} call, it is that fold in shape and not yet in spelling.
-
-\paragraph{Why not a generator.}
-\Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
-It does not fit here, for three reasons that are the three rules.
-A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
-What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
+\paragraph{Folds over finite data.}
+The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
+\cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step, of which \cppinline{iota(0, n)} is the instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.
+\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone; the concept \cppinline{IsMonotone} on the same term agrees, as it must, since the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
 
 \section{Guarantees}
 \label{sec:guarantees}
@@ -672,12 +664,10 @@ Featherweight Java proves progress and preservation over its own rules too; what
 All six are claims about FJlt.
 What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, which is an argument and not a theorem, and the next section says where it is thin.
 
-\section{Limits and Seams}
+\section{Known Limitations}
 \label{sec:limits}
 
-Everything in this section was met while writing the listings, and each item is a place where "standard \Cpp{23} under three rules" is thinner than the sentence sounds.
-The paragraphs below name each, what it costs and what, if anything, closes it.
-
+The paragraphs below name practical limitations encountered while stress-testing Jlt; Table~\ref{tab:posture} says which instrument holds each rule at build time, and the first paragraph says how.
 
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
@@ -718,6 +708,11 @@ A fold over a budget has no recursion and meets no depth limit.
 A fold over a term is recursion on the term's depth: for a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, it is template instantiation one level per nesting, bounded by \texttt{-ftemplate-depth}; for a term that is a value, evaluated at compile time, it is a recursive \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
 Both counters count the depth of a piece of finite data fixed before compilation, which is what Rule~3 makes of a term; the listings are nowhere near either, and a budget that is a value rather than a type meets no counter at all, which is why the library's set recursion runs unchanged at runtime.
 
+\paragraph{Why not a generator.}
+\Cpp{23} has a second way to iterate without committing to a container, \cppinline{std::generator} with \cppinline{co_yield}.
+It does not fit here, for three reasons that are the three rules.
+A coroutine cannot be \cppinline{constexpr}, so it has one binding time; its frame is mutable state; and it is an unfold, a producer of a stream that something else must stop, where Rule~3 wants the stopping in the program.
+What a generator is good for, a stream consumed lazily at runtime, is exactly what the rule forbids unless something bounds the consumption, and in the standard library that something is \cppinline{std::views::take(n)}: the budget again, under another name.
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile; at runtime the same program does whatever the hardware does.
 This is the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the listings close it by using unsigned carriers, whose arithmetic is total.
