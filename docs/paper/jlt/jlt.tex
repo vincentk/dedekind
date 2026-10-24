@@ -193,6 +193,15 @@ Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it ca
 
 \begin{listing}[htbp]
 \begin{cpp}
+template <typename T, typename Op> constexpr T unit(Op) = delete;
+
+template <typename T, typename Op>
+concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+  { unit<T>(Op{}) } -> std::same_as<T>;
+};
+\end{cpp}
+\begin{cpp}
 template <typename T>
 constexpr T twice_loose(T x) { return x + x; }
 
@@ -203,13 +212,14 @@ constexpr T twice(T x) { return Op{}(x, x); }
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 static_assert(twice<size_t>(21) == 42);
 \end{cpp}
-\caption{Rule~2: a breach and a keep.
-\cppinline{twice_loose} uses a \cppinline{+} that no constraint names and compiles for every type with one; \cppinline{twice} names its shape, \cppinline{IsMonoid} of Listing~\ref{lst:monoid}, and is the one Jlt admits.}
+\caption{Rule~2: a shape, a breach and a keep.
+Top: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, and one it reads from \cppinline{unit}, a trait declared and deleted, which Listing~\ref{lst:monoid} populates.
+Bottom: \cppinline{twice_loose} uses a \cppinline{+} that no constraint names and compiles for every type with one; \cppinline{twice} names the shape and is the one Jlt admits.}
 \label{lst:rule2}
 \end{listing}
 
 In Listing~\ref{lst:rule2}, \cppinline{twice_loose} breaks the rule: its body uses \cppinline{+}, which no constraint mentions, and so it means whatever \cppinline{+} means at each type, string concatenation included; that concatenation happens to be a monoid is luck, not a declaration.
-\cppinline{twice} keeps it: every operation in the body is one that \cppinline{IsMonoid<T, Op>} names.
+\cppinline{twice} keeps it: the one operation in its body, \cppinline{Op{}(x, x)}, is the first requirement of \cppinline{IsMonoid<T, Op>}, read at \cppinline{a, b := x}.
 What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint; \cppinline{twice_loose} is accepted and so would be a version of \cppinline{twice} that used \cppinline{+} behind its \cppinline{requires} clause.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
@@ -274,20 +284,11 @@ The rest of this section shows the map on one shape, a monoid, and on the two th
 
 Here is the whole translation in one shape.
 A monoid is a carrier with an associative operation and a unit for it.
-Listing~\ref{lst:monoid} states that shape once, as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}, and then populates it: \cppinline{bool} has it twice, \cppinline{size_t} four times.
+Listing~\ref{lst:rule2} stated that shape once, as a concept over a carrier \cppinline{T} and an operation \cppinline{Op}; Listing~\ref{lst:monoid} populates it: \cppinline{bool} has it twice, \cppinline{size_t} four times.
 
 % Verbatim in src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp,
 % which also checks that the tree's unit<T>(Op{}) and laws agree.
 \begin{listing}[htbp]
-\begin{cpp}
-template <typename T, typename Op> constexpr T unit(Op) = delete;
-
-template <typename T, typename Op>
-concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
-  { Op{}(a, b) } -> std::same_as<T>;
-  { unit<T>(Op{}) } -> std::same_as<T>;
-};
-\end{cpp}
 \begin{cpp}
 template <> constexpr bool unit<bool>(std::logical_and<bool>) { return true; }
 template <> constexpr bool unit<bool>(std::logical_or<bool>) { return false; }
@@ -316,9 +317,8 @@ plus_u64  =  { unit = 0,     op = λa. λb. a + b }
 twice     =  Λ T. Λ Op. λ d : MonoidDict T Op. λ x : T.  d.op x x
 twice [u64] [plus] plus_u64 21
 \end{minted}
-\caption{The monoid shape, populated.
-Top: \cppinline{unit}, a function of the operation at a carrier, declared and deleted; the shape, with one requirement the compiler reads off the carrier and one it reads from \cppinline{unit}.
-Middle: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
+\caption{The monoid shape of Listing~\ref{lst:rule2}, populated.
+Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
 Then \cppinline{size_t} under $+$, $\cdot$, $|$ and $\&$, and Listing~\ref{lst:rule2}'s \cppinline{twice} at the second; \cppinline{size_t} wraps by definition, so it is a monoid, $\mathbb{Z}/2^{64}$, and \cppinline{twice<size_t>(SIZE_MAX)} is \cppinline{SIZE_MAX - 1} at both binding times.
 Bottom: the same in System~F.
 The shape is a record type, each specialisation of \cppinline{unit} is a record, of which two are shown, and the function takes the record as a parameter.
@@ -326,7 +326,7 @@ The operation is part of the index, so one carrier has several monoids, and nobo
 \label{lst:monoid}
 \end{listing}
 
-The bottom panel reads the other three as a System~F program.
+The bottom panel reads the shape and its instances as a System~F program.
 The concept is a record type, one field per requirement.
 A \cppinline{requires} clause on a function is one more parameter, the record.
 A call passes the record, and the compiler finds the record to pass.
@@ -448,7 +448,7 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 \label{sec:translation:rules}
 
 Everything the listings did is covered by six rules of the translation, and Table~\ref{tab:rules} states them; the rest of the translation is bookkeeping and sits in Appendix~\ref{app:fjlt:translation}.
-Read the table with Listing~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<size_t>(std::plus<size_t>)} the third, \cppinline{twice} the fourth and its \cppinline{static_assert}s the fifth.
+Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<size_t>(std::plus<size_t>)} the third, \cppinline{twice} the fourth and its \cppinline{static_assert}s the fifth.
 
 \begin{table}[ht]
 \centering
