@@ -139,7 +139,7 @@ In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that
 \textsc{(T-Fold)}\quad \dfrac{\Delta; \Gamma \vdash r : \texttt{range<}\tau\texttt{>} \qquad \Delta; \Gamma \vdash a : \sigma \qquad \Delta; \Gamma \vdash f : \sigma \times \tau \to \sigma}{\Delta; \Gamma \vdash \texttt{fold\_left(}r\texttt{, }a\texttt{, }f\texttt{)} : \sigma}
 \\[12pt]
 \textsc{(T-Cata)}\quad \dfrac{\Delta; \Gamma \vdash t : \mu F \qquad \Delta; \Gamma \vdash \mathit{alg} : \mu F \times \sigma^{k} \to \sigma \text{ at each node of arity } k}{\Delta; \Gamma \vdash \texttt{cata(}\mathit{alg}\texttt{, }t\texttt{)} : \sigma}
-\qquad
+\\[12pt]
 \dfrac{\Delta; \Gamma \vdash x : \tau \qquad \Delta; \Gamma \vdash n : \texttt{size\_t}}{\Delta; \Gamma \vdash \texttt{repeat(}x\texttt{, }n\texttt{)} : \texttt{range<}\tau\texttt{>}}
 \qquad
 \dfrac{\Delta; \Gamma \vdash i, j : \texttt{size\_t} \qquad i \le j}{\Delta; \Gamma \vdash \texttt{iota(}i\texttt{, }j\texttt{)} : \texttt{range<size\_t>}}
@@ -174,7 +174,8 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \footnotesize
 \[
 \begin{array}{ll}
-\textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \quad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration with parameters } \overline{x} \text{ and body } e \\[3pt]
+\textsc{(S-Call)} & f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)} \longrightarrow e[\overline{\sigma}/\overline{\alpha}][\overline{v}/\overline{x}] \\
+ & \qquad \text{where } f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration with parameters } \overline{x} \text{ and body } e \\[3pt]
 \textsc{(S-Op)} & O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)} \longrightarrow e[\overline{v_y}/\overline{y}][\overline{v}/\overline{x}] \quad \text{for a declared operation with body } e \\[3pt]
 \textsc{(S-Std)} & O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{c}\texttt{)} \longrightarrow c \quad \text{for a standard function object, } c \text{ the value the standard assigns} \\[3pt]
 \textsc{(S-Prim)} & c_1 \oplus c_2 \longrightarrow c \quad \text{the base type's operation, total by the choice of } \oplus \\[3pt]
@@ -183,7 +184,8 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \textsc{(S-Unbox)} & \texttt{*make\_shared<const }\tau\texttt{>(}v\texttt{)} \longrightarrow v \\[3pt]
 \textsc{(S-Fold)} & \texttt{fold\_left(repeat(}v\texttt{, }k{+}1\texttt{), }a\texttt{, }f\texttt{)} \longrightarrow \texttt{fold\_left(repeat(}v\texttt{, }k\texttt{), }f\texttt{(}a\texttt{, }v\texttt{), }f\texttt{)} \\
  & \texttt{fold\_left(repeat(}v\texttt{, 0), }a\texttt{, }f\texttt{)} \longrightarrow a \\[3pt]
-\textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \quad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[3pt]
+\textsc{(S-Cata)} & \texttt{cata(}v_{\mathit{alg}}\texttt{, }n\texttt{)} \longrightarrow v_{\mathit{alg}}\texttt{(}n\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_1\texttt{), }\ldots\texttt{, cata(}v_{\mathit{alg}}\texttt{, }l_k\texttt{))} \\
+ & \qquad \text{for a node } n \text{ with legs } l_1 \ldots l_k \\[3pt]
 \textsc{(S-Ctx)} & E[e] \longrightarrow E[e'] \quad \text{if } e \longrightarrow e' \\
 \end{array}
 \]
@@ -218,7 +220,7 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \begin{figure}[htbp]
 \scriptsize
 \[
-\begin{array}{l@{\quad}l}
+\resizebox{\linewidth}{!}{$\begin{array}{l@{\quad}l}
 \multicolumn{2}{l}{\textit{types}} \\
 \llbracket \alpha \rrbracket = \alpha \qquad \llbracket b \rrbracket = b & \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \overline{\llbracket \tau_y \rrbracket} \times (\forall\overline{\beta}.\,\overline{\llbracket Q \rrbracket} \to \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket) & \text{a function object: its fields and its call function} \\
@@ -267,7 +269,7 @@ O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the sta
 \llbracket e_1 \texttt{ ? } e_2 \texttt{ : } e_3 \rrbracket = \mathbf{if}\ \llbracket e_1 \rrbracket\ \mathbf{then}\ \llbracket e_2 \rrbracket\ \mathbf{else}\ \llbracket e_3 \rrbracket & \text{case on } \mathit{Bool} \\
 \llbracket \texttt{std::optional\{}e\texttt{\}} \rrbracket = \mathrm{inr}\,\llbracket e \rrbracket \qquad \llbracket \texttt{std::nullopt} \rrbracket = \mathrm{inl}\,() & \\
 \llbracket \texttt{std::make\_shared<const }\tau\texttt{>(}e\texttt{)} \rrbracket = ((), \llbracket e \rrbracket) \qquad \llbracket \texttt{*}e \rrbracket = \pi_2\,\llbracket e \rrbracket & \text{nothing observes which box} \\
-\end{array}
+\end{array}$}
 \]
 \normalsize
 \caption{The translation.
@@ -318,7 +320,9 @@ The omitted rules are the textbook cases for pairs, sums and conditionals.
 
 \begin{lemma}[Dictionaries agree with resolution]
 \label{lem:resolve}
-If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then $\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket$, in which every call has been resolved; hence for any terms $\overline{e}$, $(\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r)\,\overline{\llbracket e \rrbracket} \longrightarrow^{+} \llbracket e_r[\overline{\sigma}/\overline{\alpha}][\overline{e}/\overline{a}] \rrbracket$, in two steps, a projection and a $\beta$-reduction.
+If $\Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>}$ with $\overline{\sigma}$ concrete and $\texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>}$ is a requirement of $C$ with parameters $\overline{a}$, then $\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r = \lambda\overline{a}.\,\llbracket e_r[\overline{\sigma}/\overline{\alpha}] \rrbracket$, in which every call has been resolved; hence for any terms $\overline{e}$,
+\[ (\llbracket \Delta \Vdash C\texttt{<}\overline{\sigma}\texttt{>} \rrbracket.r)\,\overline{\llbracket e \rrbracket} \longrightarrow^{+} \llbracket e_r[\overline{\sigma}/\overline{\alpha}][\overline{e}/\overline{a}] \rrbracket, \]
+in two steps, a projection and a $\beta$-reduction.
 \end{lemma}
 
 \begin{proof}
