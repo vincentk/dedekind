@@ -221,6 +221,68 @@ static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
+// Listing 6, implied: a bounded distributive lattice is a semiring whose two
+// operations are commutative and idempotent and absorb each other.
+template <typename T, typename Op>
+constexpr bool idempotent(Op) = delete;
+template <typename T, typename Join, typename Meet>
+constexpr bool absorptive(Join, Meet) = delete;
+
+template <typename T, typename Join, typename Meet>
+concept IsDistributiveLattice =
+    IsSemiring<T, Join, Meet> && IsCommutativeMonoid<T, Meet> &&
+    idempotent<T>(Join{}) && idempotent<T>(Meet{}) &&
+    absorptive<T>(Join{}, Meet{}) && distributive<T>(Join{}, Meet{});
+
+template <>
+constexpr bool commutative<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool commutative<size_t>(std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<bool>(std::logical_or<bool>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<bool>(std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<size_t>(std::bit_or<size_t>) {
+  return true;
+}
+template <>
+constexpr bool idempotent<size_t>(std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool absorptive<bool>(std::logical_or<bool>, std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool absorptive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive<bool>(std::logical_or<bool>,
+                                  std::logical_and<bool>) {
+  return true;
+}
+template <>
+constexpr bool distributive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
+  return true;
+}
+
+static_assert(
+    IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(
+    IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
+static_assert(
+    !IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+
 // Section 2, the posture: one panel per rule.
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
