@@ -78,6 +78,16 @@ constexpr T unit(Op) = delete;
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
 
+// Listing 3, left: an instance for a family, before the shape (Section 6).
+template <std::unsigned_integral T>
+constexpr T unit(std::plus<T>) {
+  return 0;
+}
+template <std::unsigned_integral T>
+constexpr bool associative(std::plus<T>) {
+  return true;
+}
+
 template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
@@ -90,10 +100,22 @@ concept IsMonoidPlus =
       { a + b } -> std::same_as<T>;
     };
 
+// Listing 3, right: std::string, and twice at size_t and at std::string.
+template <>
+constexpr std::string unit<std::string>(std::plus<std::string>) {
+  return {};
+}
+template <>
+constexpr bool associative<std::string>(std::plus<std::string>) {
+  return true;
+}
+
 template <IsMonoidPlus T>
 constexpr T twice(T x) {
   return x + x;
 }
+
+static_assert(twice(std::string{"ab"}) == "abab");
 
 // Listing 1, middle: bool.
 template <>
@@ -120,10 +142,6 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 
 // Listing 1, bottom: size_t.
 template <>
-constexpr size_t unit<size_t>(std::plus<size_t>) {
-  return 0;
-}
-template <>
 constexpr size_t unit<size_t>(std::multiplies<size_t>) {
   return 1;
 }
@@ -134,10 +152,6 @@ constexpr size_t unit<size_t>(std::bit_or<size_t>) {
 template <>
 constexpr size_t unit<size_t>(std::bit_and<size_t>) {
   return SIZE_MAX;
-}
-template <>
-constexpr bool associative<size_t>(std::plus<size_t>) {
-  return true;
 }
 template <>
 constexpr bool associative<size_t>(std::multiplies<size_t>) {
