@@ -41,10 +41,10 @@ Values are copyable data and functions are pure and evaluable at compile time.
 Generic code varies with a type only through that type's concepts and traits.
 Recursion only folds, over a term, a finite carrier or an explicit budget.
 We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23} as written, and translate it into System~F: concepts become record types, trait specialisations records and constraints parameters, and folds become the iterators of inductive types.
-The translation preserves types, preserves evaluation and is a function of the program, so programs in the fragment terminate, are parametric and evaluate to values.
+The translation preserves types, preserves evaluation and is a function of the program, so a program of the calculus terminates, is parametric and evaluates to a value.
 A consequence is that laws are values: the unit and the laws of a monoid are stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
 
-The translation is total on the fragment and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
+The translation is total on the calculus and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
 The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at both binding times by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, in which no dictionary survives.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
 \end{abstract}
@@ -140,14 +140,19 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} to~\ref{sec:binding} state the rules, show the translation on a monoid and argue adequacy, and run one program at both binding times. Section~\ref{sec:guarantees} states what the translation guarantees, Section~\ref{sec:limits} what it does not, Section~\ref{sec:related} where it sits, and the calculus is the appendix.
+Sections~\ref{sec:posture} and~\ref{sec:translation} state the rules and show the translation on a monoid, Section~\ref{sec:binding} runs one program at both binding times, Section~\ref{sec:guarantees} brings back along the translation what System~F guarantees, Section~\ref{sec:translation:adequacy} argues that the guarantees reach a Jlt program, Section~\ref{sec:limits} says what that leaves open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
-\section{The Posture}
+\section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
 Jlt is not a dialect and not a library.
 It is standard \Cpp{23} under three rules, and a program follows the rules or it does not. The compiler enforces some of them and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting and to repetitions a comment elides.
+
+Two names are kept apart in what follows.
+Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three rules.
+Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
+Every FJlt program is a Jlt program by construction; that a Jlt program is an FJlt program when it is written in the calculus's grammar is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program, and Section~\ref{sec:limits} says what keeps the rules and is still outside the grammar.
 
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
@@ -305,7 +310,7 @@ Section~\ref{sec:limits} says how.}
 
 One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them (Section~\ref{sec:limits}), and the appendix makes the subset precise.
 
-\section{Translation from Featherweight Jlt to System~F}
+\section{From Featherweight Jlt to System~F}
 \label{sec:translation}
 % Establishes: what a reader must believe about the System F reading, by one
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
@@ -480,68 +485,13 @@ pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
 The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}; GHC calls them the Paterson conditions.
 The FJlt syntax enforces them by construction, since a context can only mention the type arguments of the operation being specialised.}
 
-\subsection{From \Cpp{} to Featherweight Jlt}
-\label{sec:translation:adequacy}
-
-The theorems are about FJlt.
-For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
-
-\emph{Every FJlt program is a \Cpp{23} program, with the same meaning.}
-This direction is by construction.
-The grammar of Figure~\ref{fig:fjlt-syntax} is a subset of the \Cpp{} grammar, written in \Cpp{}'s own spelling, and FJlt's evaluation is \Cpp{}'s constant evaluation restricted to that subset.
-The argument is a walk over the productions: a concept is a concept, an explicit specialisation is one, a call with explicit type arguments is one, and in each case the \Cpp{} standard's rule for the construct is the FJlt rule.
-Two places in that walk need a word.
-Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently. At runtime it can, and that is the reason the listings' carriers are unsigned and \cppinline{int} appears in this paper only as a counter-example.
-And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
-
-\emph{A \Cpp{} program that follows the three rules is an FJlt program.}
-This direction is not a theorem, because the compiler does not check it, and Rule~2 is the part it does not check.
-Table~\ref{tab:adequacy} lists what \Cpp{} has, what keeps it out, and what FJlt has instead.
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
-\toprule
-\Cpp{} has & kept out by & FJlt has instead \\
-\midrule
-bodies checked at instantiation & Rule~2 (Section~\ref{sec:posture}), by reading and by the checker (Section~\ref{sec:limits}) & bodies typed against the constraint \\
-overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
-argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
-implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
-references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
-state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
-unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
-\bottomrule
-\end{tabularx}
-\caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
-The two rows marked \emph{by reading} are the gap: the compiler accepts programs that break them, and Section~\ref{sec:limits} says what the checker finds of them.}
-\label{tab:adequacy}
-\end{table}
-
-Four of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
-Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
-The two rows that remain are Rule~2 and Rule~3, and they are posture.
-A template body that uses an operation its constraints do not name compiles anyway, as \cppinline{twice_loose} did. A loop whose bound changes as it runs compiles anyway.
-Whether a body obeys Rule~2 is decidable by inspection of the body against its \cppinline{requires} clause, which is the definition checking that the \Cpp{0x} concepts design included~\cite{gregor2006concepts} and the shipped feature does not~\cite{stroustrup2009remove}, so a tool can narrow the gap.
-The repository has one, Section~\ref{sec:limits} says what it reads, and this paper's listings are checked by it and by reading.
-
-\Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
-What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
-Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
-Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
-What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
-The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first carries the theorems.
-
-So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
-Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
-
-\section{Two Binding Times}
+\section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
 Every function in this paper has run twice already.
 \cppinline{id(size_t{42})}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
+Both are partial evaluation at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
 The interesting case is the fold, because a budget can arrive at either time.
 Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
 
@@ -611,7 +561,7 @@ The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
 \cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone.
 The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
 
-\section{Guarantees}
+\section{From System~F Back to Featherweight Jlt}
 \label{sec:guarantees}
 % The three theorems about the translation of Section~\ref{sec:translation}
 % and Appendix~\ref{app:fjlt}, stated after the exhibits so that each can
@@ -637,7 +587,7 @@ If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow
 \end{theorem}
 
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes. Section~\ref{sec:binding} is this theorem run twice.
-It is also the fragment's notion of equality: two closed terms of a carrier are equal when they evaluate to the same value, and Leibniz's law, that equal arguments give equal results, holds by substitution.
+It is also the notion of equality here: two closed terms of a carrier are equal when they evaluate to the same value, and Leibniz's law, that equal arguments give equal results, holds by substitution.
 No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, so the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
 
 \begin{theorem}[Coherence]
@@ -674,7 +624,59 @@ This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweig
 Featherweight Java proves progress and preservation over its own rules too. What the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the value the System~F image computes.
 
 All six are claims about FJlt.
-What they say about a \Cpp{} program is mediated by the adequacy argument of Section~\ref{sec:translation:adequacy}, and the next section says where it is thin.
+What they say about a Jlt program is the adequacy argument of the next section, and Section~\ref{sec:limits} says where it is thin.
+
+\section{From Jlt to Featherweight Jlt}
+\label{sec:translation:adequacy}
+
+The theorems are about FJlt.
+For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
+
+\emph{Every FJlt program is a Jlt program, with the same meaning.}
+This direction is by construction, and Appendix~\ref{app:fjlt:syntax} states it: the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, and for each construct the standard's rule is the FJlt rule.
+Two places need a word.
+Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently. At runtime it can, and that is the reason the listings' carriers are unsigned and \cppinline{int} appears in this paper only as a counter-example.
+And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
+
+\emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
+This direction is not a theorem, because the compiler does not check two of the rules, and it is conditional on the grammar, because \Cpp{} has what FJlt does not and a Jlt program may use it.
+Table~\ref{tab:adequacy} lists what \Cpp{} has, what keeps it out, and what FJlt has instead.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
+\toprule
+\Cpp{} has & kept out by & FJlt has instead \\
+\midrule
+bodies checked at instantiation & Rule~2 (Section~\ref{sec:posture}), by reading and by the checker (Section~\ref{sec:limits}) & bodies typed against the constraint \\
+overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
+argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
+implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
+references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
+unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
+\bottomrule
+\end{tabularx}
+\caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
+The two rows marked \emph{by reading} are the gap: the compiler accepts programs that break them, and Section~\ref{sec:limits} says what the checker finds of them.}
+\label{tab:adequacy}
+\end{table}
+
+Four of the seven rows are closed by the grammar or by constant evaluation: a program that uses them is not accepted, or not accepted at compile time.
+Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
+The two rows that remain are Rule~2 and Rule~3, and they are posture.
+Section~\ref{sec:limits} says what the repository's checker and a reader make of those two rows.
+
+\Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
+What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
+Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
+What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
+The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first carries the theorems.
+
+So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
+Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
 \section{Known Limitations}
 \label{sec:limits}
@@ -762,9 +764,9 @@ Not the translation nor the calculus-with-concepts, but the claim that the shipp
 \section{Conclusion}
 \label{sec:conclusion}
 
-Three rules on standard \Cpp{23} were stated, and a program that keeps them is a term of a core calculus whose syntax is that \Cpp{}.
+Three rules on standard \Cpp{23} were stated, and a program that keeps them is, up to the gaps Section~\ref{sec:translation:adequacy} names, a term of a core calculus whose syntax is that \Cpp{}.
 The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to iteration.
-The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program in the fragment terminates, is parametric, and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
+The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program of the calculus terminates, is parametric and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 
 What this costs is stated rather than softened.
 Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound. A tool in the repository narrows the gap (Section~\ref{sec:limits}).
