@@ -27,8 +27,8 @@
 
 % Core Thesis:
 This paper describes a symbolic-algebra library in a mainstream systems programming language: standard \Cpp{23} (the category $\mathbf{Cpp}$), capable of using compile-time evaluation in part or in full as a form of static program analysis, verification and optimization.
-The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr}, \cppinline{std::regular}) and b) structurally typed by default (syntactic type constraint satisfaction and template specialization via \cppinline{concept}).
-This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$): just like in dynamic duck typing, a type is known by its structure, not its name.
+The initial step is a deliberate restriction to a fragment of \Cpp{23} which is both a) referentially transparent ($\mathbf{Per}$, via \cppinline{const}, \cppinline{constexpr}, \cppinline{std::semiregular}) and b) structurally typed by default (syntactic type constraint satisfaction and template specialization via \cppinline{concept}).
+This fragment is named the \emph{Juliet Posture} ($\mathbf{Jlt} = \mathbf{Per} \cap \mathbf{Cpp}$)~\cite{krautler2026jlt}: just like in dynamic duck typing, a type is known by its structure, not its name.
 The resulting code has a deliberate, sweet and flowery smell: $\mathbf{Jlt}$ admits a System~F reading of the \Cpp{23} type system.
 On this foundation an embedded, lazy domain-specific language is built which supports
 \begin{enumerate}
@@ -213,36 +213,12 @@ Section~\ref{sec:discussion} sets out the limitations and follow-up.
 \label{sec:jlt_posture}
 % ============================================================
 
-To build verifiable mathematical structures inside a mainstream toolchain, we must first isolate a pure, deterministic subset of the host language.
-Standard \Cpp{23} contains features that permit arbitrary runtime side effects, non-termination, and undefined behavior.
-All of these are properties that defeat static verification.
-The \emph{Juliet Posture} ($\mathbf{Jlt}$) is therefore defined as a disciplined fragment of standard \Cpp{23} which is characterized by constraints that force standard code to behave like an ideal type system:
-
-\begin{enumerate}
-    \item \textbf{Equational Extensionality:} We restrict acceptable objects to types satisfying the \Cpp{} standard concept \texttt{std::regular}, for two reasons.
-    Values must possess a stable identity, ensuring that $a = b \implies f(a) = f(b)$ (which \texttt{std::equality\_comparable} alone would already secure); and \texttt{std::regular}'s transparent value semantics let computation stay type-blind, the zero-cost image of System~F type erasure (Appendix~\ref{app:jlt-systemf}).
-    \item \textbf{Pure, Terminating Arrows:} Morphisms are restricted to \texttt{constexpr} lambda expressions.
-    Mutable captures and \texttt{reinterpret\_cast} are ruled out, thus enforcing effect-free evaluation and bounded template instantiation depth.
-    \item \textbf{Cartesian Closure:} Products are mapped to \texttt{std::pair} with structured bindings, and exponentials to first-class lambdas that package arrows as values.
-    Currying is achieved naturally via argument capture.
-\end{enumerate}
-
-This subset is realized through a particular philosophy of \emph{static structural typing}.
-As established in classic type system taxonomy~\cite{pierce2002tapl, cardelli1996typesystems}, type identification typically follows three traditions:
-\emph{nominal typing}, where lineage is checked by declared names or inheritance;
-\emph{duck typing}, where behavior is verified by call-site probing at runtime; and
-\emph{static structural typing}, where invariants are checked at compile time via explicit constraints.
-Appendix~\ref{app:jlt-systemf} develops this discipline as a System~F $\leftrightarrow$ Bourbaki structuralist bridge~\cite{bourbaki1968theoryofsets, marquis2022structuralist}.
-
-$\mathbf{Jlt}$ embraces the third school, leveraging language features like \texttt{concept}, \texttt{constexpr}, and non-type template parameters (NTTPs).
-The posture does not forbid template partial ordering or constraint subsumption.
-Instead, it harnesses the compiler's overload resolution mechanism as a mechanical proof selection engine.
-When multiple constrained overloads compete at a call site, the compiler naturally routes execution to the most structurally refined match.
-The naming followed the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}, 
-
-The structural discipline enforces that while behavior-branching based on nominal lineage is rejected, algebraic specialization via partial ordering is embraced, provided all matching paths satisfy strict \emph{semantic equivalence}.
-The choice of path is then treated purely as a translation-time optimization detail.
-In practice, this posture materialises across progressive feature tiers: i) basic \texttt{constexpr} branching; ii) concept-constrained templates and structural subsumption; and iii) utilization of developer trait axioms for manual certification.
+The Juliet Posture ($\mathbf{Jlt}$) is defined in a companion paper~\cite{krautler2026jlt}; this section recalls what the present paper uses of it.
+$\mathbf{Jlt}$ is standard \Cpp{23} under three rules: values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure; generic code varies with a type only through that type's concepts and traits; and recursion only folds, over a term, a finite carrier or an explicit budget.
+A program that keeps the rules translates into System~F by dictionary passing, concepts to record types, instances to records, constraints to parameters, and inherits termination and parametricity from the target; the same program runs at compile time and at runtime, unchanged.
+Equality in $\mathbf{Jlt}$ is observational, two closed terms of a carrier being equal when they evaluate to the same value, so no \cppinline{operator==} is asked of a value; where this paper decides the equality of sets, it asks the carrier for it separately (§\ref{sec:ddk_ordered}).
+A carrier enters $\mathbf{Jlt}$ by a structural criterion, semiregularity, total \cppinline{constexpr} operations and an image in the calculus's target, not by name: a type is known by what it does.
+Appendix~\ref{app:jlt-systemf} develops the same discipline as a System~F $\leftrightarrow$ Bourbaki structuralist bridge~\cite{bourbaki1968theoryofsets, marquis2022structuralist}.
 
 \paragraph{The Syntactic vs. Semantic Split}
 \label{sec:syntactic_semantic_split}
@@ -1746,7 +1722,7 @@ The family of law-carrying specialisations, however, has no obvious ceiling shor
 \section{System F, Structuralism, and $\mathbf{Jlt}$}
 \label{app:jlt-systemf}
 
-§\ref{sec:jlt_posture} reports the System-F reading as a side effect of the Juliet Posture rather than a design goal: the disciplined subset chosen for alignment with $\mathbf{Alg}(\Sigma)$ and clean integration with \cppinline{std::regular} carriers turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, and the same fragment lines up with Bourbaki structuralism~\cite{marquis2022structuralist}.
+§\ref{sec:jlt_posture} reports the System-F reading as a side effect of the Juliet Posture rather than a design goal: the disciplined subset chosen for alignment with $\mathbf{Alg}(\Sigma)$ and clean integration with \cppinline{std::semiregular} carriers turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, and the same fragment lines up with Bourbaki structuralism~\cite{marquis2022structuralist}.
 The triangulation was not engineered for; it fell out gratis on the disciplined fragment, which is why it is worth recording.
 This appendix records the artefact: a row-by-row mapping across the three vocabularies (Table~\ref{tab:structuralist-bridge}), and the admissibility rules an engineer must follow for that mapping to hold (Table~\ref{tab:admissibility-rules}).
 
@@ -1765,7 +1741,7 @@ This appendix records the artefact: a row-by-row mapping across the three vocabu
 \textbf{Constrained templates}: \cppinline{template<Scent T>} reads as universal quantification over the species defined by the concept \emph{Scent}. &
 \textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
 \textbf{Type erasure} (computation is type-blind) &
-\textbf{Zero-cost abstraction}: \cppinline{std::regular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
+\textbf{Zero-cost abstraction}: \cppinline{std::semiregular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
 \textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
 \textbf{Strong normalisation} (termination)  &
 \textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions bounds \emph{type-level} expansion to a decidable cone (and collapses logically empty constructions to zero machine instructions).  It is weaker than strong normalisation: over-deep instantiation errors out rather than normalising. &
