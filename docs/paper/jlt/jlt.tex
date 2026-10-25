@@ -247,13 +247,6 @@ concept IsMonoid =
       { Op{}(a, b) } -> std::same_as<T>;
       { unit<T>(Op{}) } -> std::same_as<T>;
     } && associative<T>(Op{});
-
-template <typename T>
-concept IsMonoidPlus =
-    IsMonoid<T, std::plus<T>> &&
-    requires(const T a, const T b) {
-      { a + b } -> std::same_as<T>;
-    };
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -269,24 +262,32 @@ constexpr bool associative<std::string>(
   return true;
 }
 
-template <IsMonoidPlus T>
-constexpr T twice(T x) { return x + x; }
+template <typename T, std::size_t N>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T concat(
+    const std::array<T, N>& words) {
+  return std::ranges::fold_left(words,
+      unit<T>(std::plus<T>{}),
+      std::plus<T>{});
+}
 
-static_assert(twice<size_t>(21) == 42);
-static_assert(
-    twice(std::string{"ab"}) == "abab");
+static_assert(concat(
+    std::array<size_t, 3>{1, 2, 3}) == 6);
+static_assert(concat(
+    std::array<std::string, 3>{
+        "ab", "c", "d"}) == "abcd");
 \end{cpp}
 \end{minipage}
 \caption{Rule~2: a shape, its instances, and a function of it.
-Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; before the shape, an instance for every unsigned integral under \cppinline{+}, a constrained overload, which has to precede the shape to be found (Section~\ref{sec:limits}); \cppinline{IsMonoidPlus} is the shape with \cppinline{Op} fixed to \cppinline{std::plus<T>}, naming the operator the standard defines \cppinline{plus} by, \cppinline{a + b}.
-Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{twice}, whose body is \cppinline{x + x}, at \cppinline{size_t} and at \cppinline{std::string}.}
+Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; before the shape, an instance for every unsigned integral under \cppinline{+}, a constrained overload, which has to precede the shape to be found (Section~\ref{sec:limits}).
+Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{concat}, a fold of a finite sequence from the unit by the operation, at \cppinline{size_t} and at \cppinline{std::string}.}
 \label{lst:rule2}
 \end{listing}
 
-The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and nothing it declares says what that is: strings are a monoid under concatenation, but \cppinline{twice_loose} would compile just as readily at \cppinline{double}, whose \cppinline{+} is not associative.
-\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings, a monoid in fact, pass it once the program says so by registering their unit, the empty string, as the right panel does.
-What this buys is the System~F reading of Section~\ref{sec:translation}.
-A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint. \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
+What a registration enables is \cppinline{concat}: once \cppinline{std::string} is declared a monoid under \cppinline{+}, with the empty string its unit, any finite sequence of words folds to one, and the same function sums numbers.
+The fold needs all three parts of the shape, the operation to combine, the unit to start from, and associativity, which makes the result independent of how the sequence is bracketed.
+What this buys is the System~F reading of Section~\ref{sec:translation}: \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
+A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, not at definition, against the constraint, so a body that uses an operation its constraint does not name is accepted; the test keeps one such body as a planted finding for the checker.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
 \paragraph{Rule 3, Descent: recursion only folds.}
@@ -347,7 +348,7 @@ A concept becomes a record type, an instance a record, a constraint a parameter 
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
 Everything the listings do is covered by six of its rules, which Table~\ref{tab:rules} states, the rest being bookkeeping.
-Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{twice} the fourth and \cppinline{twice}'s \cppinline{static_assert}s the fifth.
+Read the table with Listings~\ref{lst:rule2} and~\ref{lst:monoid} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<bool>(std::logical_and<bool>)} the third, the instance for the unsigned integrals and \cppinline{concat} the fourth and \cppinline{concat}'s \cppinline{static_assert}s the fifth.
 
 \begin{table}[ht]
 \centering
@@ -402,16 +403,14 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 \end{cpp}
 \begin{minted}{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  assoc : Bool }
-PlusDict T       =  MonoidDict T plus × { add : T → T → T }
 and_bool  =  { unit = true,  op = λa. λb. a ∧ b,  assoc = true }
 plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  assoc = true }
-twice     =  Λ T. λ d : PlusDict T. λ x : T.  d.add x x
-twice [u64] (plus_u [u64] unsigned_u64, { add = unsigned_u64.add }) 21
+concat    =  Λ T. λ d : MonoidDict T plus. λ ws.  fold d.op d.unit ws
+concat [u64] (plus_u [u64] unsigned_u64) [1, 2, 3]
 \end{minted}
 \caption{The shape of Listing~\ref{lst:rule2}, populated and read.
 Top: \cppinline{bool} is a monoid under $\land$ and $\lor$, each with its unit and its associativity declared, and not under the transparent \cppinline{std::plus<>}, whose \cppinline{true + true} is an \cppinline{int}: the shape reads the refusal off the type.
-Bottom: the same in System~F. The shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T}, a record holding the carrier's zero and addition, to a record, and \cppinline{twice} a function of the record of \cppinline{IsMonoidPlus}, the monoid record beside a field for \cppinline{+}.
-That the field and \texttt{op} denote one operation is the standard's definition of \cppinline{plus}, which the translation carries as two fields and does not prove.}
+Bottom: the same in System~F. The shape is a record type, a registration a record, the instance for the unsigned integrals a function from the evidence for \texttt{Unsigned T}, a record holding the carrier's zero and addition, to a record, and \cppinline{concat} a function of the monoid's record, folding with its \texttt{op} from its \texttt{unit}.}
 \label{lst:monoid}
 \end{listing}
 
@@ -515,7 +514,7 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id(size_t{42})}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
+\cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
 Both are partial evaluation at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
 There is no magic in this.
@@ -642,7 +641,7 @@ A generic FJlt function satisfies the free theorem of its System~F type.
 \end{corollary}
 
 By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynolds1983types}.
-\cppinline{twice} at a monoid can only combine its argument with itself by \cppinline{op}.
+\cppinline{concat} at a monoid can only combine the words by \texttt{op}, starting from \texttt{unit}, which is the free theorem of a fold.
 It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records: the composite cannot do anything the components' records do not provide.
 
 \begin{corollary}[Type soundness]
@@ -707,7 +706,7 @@ A branch on a constraint is two generic functions whose heads both match, which 
 We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
-What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
+What the compiler does is instantiate: \cppinline{concat<size_t, 3>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
 Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
 Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
 What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
@@ -731,7 +730,7 @@ The tool checks it at the level of names: a body may use on a value of parameter
 A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on. Its silence certifies nothing, since it reads names, not arities or types.
 Definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
 The rest is reading, and reading too is in the pipeline: an agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, reaching what the tool does not.
-The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the \cppinline{twice_loose} of Section~\ref{sec:posture}; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
+The listings and the library's core are held at zero on all three rules to the extent the two instruments reach, with one planted finding, the test's \cppinline{twice_loose}, which adds a value to itself under no constraint; so the listings are checked by the tool, by reading, and by a test that compiles and runs them.
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
