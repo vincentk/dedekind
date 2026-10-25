@@ -1,5 +1,23 @@
 cmake_minimum_required(VERSION 3.28)
-project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
+
+# The version is the latest release tag, v0.<YYYYMMDD>.<n>+<hash> (see
+# .github/workflows/release.yml): its numeric part is the project version,
+# and the whole of `git describe` names the build.  Outside a checkout with
+# release tags, as in a shallow CI clone, it is 0.0.0.
+set(DEDEKIND_VERSION "0.0.0")
+set(DEDEKIND_VERSION_FULL "0.0.0")
+execute_process(
+  COMMAND git describe --tags --match "v0.*" --abbrev=7
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_VARIABLE _dedekind_describe
+  RESULT_VARIABLE _dedekind_describe_result
+  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(_dedekind_describe_result EQUAL 0 AND _dedekind_describe MATCHES "^v([0-9]+\\.[0-9]+\\.[0-9]+)")
+  set(DEDEKIND_VERSION "${CMAKE_MATCH_1}")
+  set(DEDEKIND_VERSION_FULL "${_dedekind_describe}")
+endif()
+
+project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 
 # --- Toolchain/Platform Adjustments ---
 if(APPLE)
@@ -406,8 +424,8 @@ if (DOXYGEN_FOUND)
     # Ensure the "Level" sections show up in the hierarchy
     set(DOXYGEN_TOC_INCLUDE_HEADINGS 3)
 
-    # Automatically pulls "1.0.0" from the project() call above
-    set(DOXYGEN_PROJECT_NUMBER ${PROJECT_VERSION})
+    # The full `git describe` of the latest release tag, see the top of this file.
+    set(DOXYGEN_PROJECT_NUMBER ${DEDEKIND_VERSION_FULL})
     
     # Optional: Add a project brief (like a Maven description)
     set(DOXYGEN_PROJECT_BRIEF "A structuralist C++23 Module Library")
