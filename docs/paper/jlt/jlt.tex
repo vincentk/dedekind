@@ -76,8 +76,8 @@ It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
 Recursion only folds, over finite data or over an explicit budget.
-Under these rules a program translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters; and what System~F guarantees, termination and parametricity, the program inherits.
-"Posture" is the honest word: the compiler enforces some of the rules and not others, and Section~\ref{sec:translation:adequacy} says which.
+Under these rules a program written in the grammar of a small calculus translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters, and inherits what System~F guarantees, termination and parametricity.
+"Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
 
 There is a reason to care about the checked part beyond taste.
 The last few years have shown what a formal system with a checker is worth once machines write in it: proofs in Lean~\cite{demoura2021lean} found by learned search are accepted because the checker, not the author, says so~\cite{hubert2025olympiad}.
@@ -121,7 +121,7 @@ static_assert(
 static_assert(!involutive(std::negate<int>{}));
 \end{cpp}
 \caption{Declared, entailed, inferred.
-\cppinline{involutive} is declared at three standard function objects. \cppinline{bijective} is entailed from it for any function; and for a composite it is inferred from the parts.
+\cppinline{involutive} is declared at three standard function objects, \cppinline{bijective} is entailed from it for any function, and for a composite it is inferred from the parts.
 Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
 \cppinline{Compose} is the only type the listing defines, a former of functions.
 Its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, as Rule~2 requires, and asks it of \cppinline{const F&}: a function argument is a value, and calling does not change it.}
@@ -136,7 +136,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, which together is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker, Section~\ref{sec:limits} saying what the repository's reads and what it misses.
+Not contributed: the translation, which is Wadler and Blott's; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: Section~\ref{sec:limits} says what the repository's checker reads and what it misses.
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
