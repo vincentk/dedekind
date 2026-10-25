@@ -86,8 +86,9 @@ It has three rules, each named for what it conserves.
 \emph{Substitution}: values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 \emph{Abstraction}: generic code varies with a type only through that type's concepts and traits.
 \emph{Descent}: recursion is structural, on a type the compiler unfolds or on a natural number that counts down.
-Under these rules a program written in the grammar of a small calculus translates into System~F by dictionary passing: concepts become record types, trait specialisations records, constraints parameters.
+Under these rules a program written in the grammar of a small calculus, Featherweight Jlt, translates into System~F by dictionary passing: concepts become record types, trait specialisations records, constraints parameters.
 It inherits what System~F guarantees: termination, parametricity and a value.
+The calculus is the \emph{kernel} of Jlt, and what a Jlt program writes beyond its grammar is \emph{sugar}, each form named with its desugaring into the kernel in Appendix~\ref{app:fjlt:closure}, without a proof: the word is Landin's~\cite{landin1964mechanical}, the arrangement the Haskell Report's~\cite{marlow2010haskell}, and the claims of this paper are about the kernel.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
 
 There is a reason to care about the checked part beyond taste: a check is worth something whenever the author is not the one trusted, a machine writing the code, or a code base audited against a policy.
@@ -170,13 +171,6 @@ Jlt is not a dialect and not a library.
 It is standard \Cpp{23} under three rules, and a program follows the rules or it does not. The compiler enforces some of them and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings, up to formatting, qualification and repetitions a comment elides.
 
-Two names are kept apart in what follows.
-Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three rules.
-Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
-Every FJlt program is a Jlt program by construction; that a Jlt program is an FJlt program when it is written in the calculus's grammar is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program, and Section~\ref{sec:limits} says what keeps the rules and is still outside the grammar.
-Two words for that division: FJlt is the \emph{kernel} of Jlt, and what a Jlt program writes beyond the kernel's grammar is \emph{sugar}, each form named with its desugaring into the kernel in Appendix~\ref{app:fjlt:closure}, without a proof.
-The word is Landin's~\cite{landin1964mechanical}, a construction eliminable by translation into the kernel, and the arrangement is the Haskell Report's, which gives the language as a kernel and the translations into it~\cite{marlow2010haskell}.
-The claims of this paper are about the kernel.
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
