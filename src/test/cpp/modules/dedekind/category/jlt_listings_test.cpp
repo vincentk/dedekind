@@ -259,6 +259,10 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 
+// Listing 3, right: the same fold at run time, a hundred copies; its LLVM IR
+// at -O2 is one multiplication (the paper's panel).
+size_t times_100(size_t x) { return times<size_t>(x, 100); }
+
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
 concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
@@ -335,6 +339,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
+    CHECK(L::times_100(twelve) == 1200);
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
