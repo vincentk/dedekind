@@ -84,48 +84,7 @@ The last few years have shown what a formal system with a checker is worth once 
 But under the posture its compiler does check something of the same kind: a \cppinline{static_assert} on a \cppinline{constexpr} function is a claim the compiler verifies, a concept is a claim about a type the compiler decides, and the same program runs unchanged at runtime, so what was checked once is what executes.
 A discipline that makes a mainstream compiler into a checker of this modest sort is worth stating precisely, and that is what the calculus in the appendix is for.
 
-Listing~\ref{lst:intro} shows the kind of thing the posture buys, in a dozen lines.
-A law of a function is a value, declared at the leaves (\cppinline{!} on \cppinline{bool}, \cppinline{~} and unary \cppinline{-} on \cppinline{size_t} are involutions, and the standard library already has them as function objects), entailed by a law about laws (an involution is its own inverse, so a bijection), and inferred along a former (bijections compose).
-The compiler reads the chain at compile time in the \cppinline{static_assert}s, and the same functions answer at runtime.
-The last two lines say what is not known: the composite is not known to be an involution, and \cppinline{-} on \cppinline{int} is not certified one, since \cppinline{-INT_MIN} is undefined. \cppinline{false} here means \emph{not known}, not \emph{no}.
-
-% Verbatim up to formatting in jlt_listings_test.cpp (namespace intro).
-\begin{listing}[htbp]
-\begin{cpp}
-template <typename F, typename G>
-struct Compose {
-  F f;
-  G g;
-  template <typename X>
-    requires std::invocable<const F&, X&> &&
-             std::invocable<const G&, std::invoke_result_t<const F&, X&>>
-  constexpr auto operator()(X x) const { return g(f(x)); }
-};
-
-template <typename F> constexpr bool involutive(F) { return false; }
-template <> constexpr bool involutive(std::logical_not<bool>) { return true; }
-template <> constexpr bool involutive(std::bit_not<size_t>) { return true; }
-template <> constexpr bool involutive(std::negate<size_t>) { return true; }
-
-template <typename F> constexpr bool bijective(F f) { return involutive(f); }
-template <typename F, typename G>
-constexpr bool bijective(Compose<F, G> c) {
-  return bijective(c.f) && bijective(c.g);
-}
-
-static_assert(
-    bijective(Compose{std::bit_not<size_t>{}, std::negate<size_t>{}}));
-static_assert(
-    !involutive(Compose{std::logical_not<bool>{}, std::logical_not<bool>{}}));
-static_assert(!involutive(std::negate<int>{}));
-\end{cpp}
-\caption{Declared, entailed, inferred.
-\cppinline{involutive} is declared at three standard function objects, \cppinline{bijective} is entailed from it for any function, and for a composite it is inferred from the parts.
-Both are functions of the function's value, so the concept reader and the runtime reader are the same reader.
-\cppinline{Compose} is the only type the listing defines, a former of functions.
-Its call operator names what it needs of \cppinline{F} and \cppinline{G} with the standard concept \cppinline{std::invocable}, as Rule~2 requires, and asks it of \cppinline{const F&}: a function argument is a value, and calling does not change it.}
-\label{lst:intro}
-\end{listing}
+What the posture is for, in a library written in it, is code that reads as combinators and runs as the compiler's pre-computation of them: pretty because the combinators are pre-structured, fast because the compiler can reason about them and evaluate at build time what does not depend on run-time input; Section~\ref{sec:binding} shows the mechanism on one function.
 
 \paragraph{Contributions.}
 The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
@@ -413,7 +372,7 @@ The second row has no counterpart in a nominal type-class system: concepts are s
 A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
 Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction and finds three semirings, and two distributive lattices among them.
 
-% Verbatim in jlt_listings_test.cpp (as Listing 1).
+% Verbatim in jlt_listings_test.cpp.
 \begin{listing}[htbp]
 \begin{cpp}
 template <typename T, typename Op> constexpr bool commutative(Op) = delete;
@@ -450,7 +409,7 @@ Top: two laws, declared and deleted, and the two shapes that require them.
 Bottom: one certificate of each kind, the rest elided; three semirings, $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$; and a shape the listing leaves to the test, \cppinline{IsDistributiveLattice}: \cppinline{IsSemiring} conjoined with two more laws declared the same way, idempotence and absorption.
 The bit vectors and $\mathbb{B}$ have it; $(\mathbb{Z}/2^{64}, +, \cdot)$ does not.
 The fourth line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.
-The last is refused for a law that is false, \cppinline{+} is not idempotent, and for one that is merely undeclared, \cppinline{*} commutative, and the shape does not tell the two apart: \cppinline{false} means \emph{not known}, as in Listing~\ref{lst:intro}.}
+The last is refused for a law that is false, \cppinline{+} is not idempotent, and for one that is merely undeclared, \cppinline{*} commutative, and the shape does not tell the two apart: \cppinline{false} means \emph{not known}, not \emph{no}.}
 \label{lst:semiring}
 \end{listing}
 
