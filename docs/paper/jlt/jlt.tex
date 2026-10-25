@@ -279,14 +279,14 @@ static_assert(concat<string>("ab"s, "c"s, "d"s)
 \caption{Rule~2: a shape, its instances, and a function of it.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: Monoids permit generic concatenation of finite element sequences.
+Right: monoids permit generic concatenation of finite element sequences.
 Concatenations over (\cppinline{string, +, ""}), (\cppinline{size_t, +, 0}), (\cppinline{size_t, *, 1}).
 Some certifications omitted for brevity.
 }
 \label{lst:rule2}
 \end{listing}
 
-Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its normal form reduction, \cppinline{concat}.
+Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its fold, \cppinline{concat}, Haskell's \texttt{mconcat}.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
 \hyperref[def:rule2]{Rule~2} exists because a \Cpp{} compiler checks a template's body during instantiation at the call site only.
 No such checks against the constraint are performed at the template's definition.
