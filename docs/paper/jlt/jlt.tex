@@ -93,7 +93,7 @@ There is a reason to care about the checked part beyond taste: a check is worth 
 The last few years have shown what a formal system with a checker is worth once machines write in it: proofs in Lean~\cite{demoura2021lean} found by learned search are accepted because the checker, not the author, says so~\cite{hubert2025olympiad}.
 \Cpp{} is not a theorem prover.
 But under the posture its compiler does check something of the same kind: a \cppinline{static_assert} on a \cppinline{constexpr} function is a claim the compiler verifies, a concept is a claim about a type the compiler decides, and the same program runs unchanged at runtime, so what was checked once is what executes.
-What the compiler checks is membership in the fragment, and the guarantees follow from membership: correct by construction in Dijkstra's sense~\cite{dijkstra1976discipline}, for a modest notion of correct.
+What the compiler checks is part of membership in the fragment, Table~\ref{tab:posture} says which part and what stays with the author, and the guarantees follow from membership once the author's part is met: correct by construction in Dijkstra's sense~\cite{dijkstra1976discipline}, for a modest notion of correct.
 A discipline that makes a mainstream compiler into a checker of this modest sort is worth stating precisely, and that is what the calculus in the appendix is for.
 
 What the posture is for, in a library written in it, is code that reads as combinators and runs as the compiler's pre-computation of them: pretty because the structure lives in the combinators, fast because the compiler can reason about them and evaluate at build time what does not depend on run-time input.
@@ -104,7 +104,7 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 \begin{minipage}[t]{0.47\linewidth}
 \centering
 \begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
-\text{FJlt} \arrow[r, hook, "\text{grammar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
+\text{FJlt} \arrow[r, hook, "\text{sugar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
   \& \text{Jlt} \arrow[r, hook, "\text{rules}"]
   \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
@@ -120,7 +120,7 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 \begin{minipage}[t]{0.47\linewidth}
 \centering
 \begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
-\text{Jlt} \arrow[rr, hook, "\text{rules}"] \arrow[d, "\mathit{elab}"']
+\text{Jlt} \arrow[rr, hook, "\text{rules}"] \arrow[d, "\mathit{desugar}"']
   \&
   \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
@@ -137,10 +137,10 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 (b) under the conjecture
 \end{minipage}
 \caption{The arrows of the paper.
-Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt the part of Jlt written in the calculus's grammar (Section~\ref{sec:translation:adequacy}).
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is total on \Cpp{23} (Section~\ref{sec:binding}), so an FJlt program has two readings.
+Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar; what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
 They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds and an elaboration $\mathit{elab}$, total on Jlt, replaces the hook (Appendix~\ref{app:fjlt:closure}), so $\llbracket\cdot\rrbracket \circ \mathit{elab}$ is total on Jlt and the two readings are readings of every Jlt program.}
+In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: the desugaring is total on Jlt and replaces the hook, so $\llbracket\cdot\rrbracket \circ \mathit{desugar}$ is total on Jlt and the two readings are readings of every Jlt program.}
 \label{fig:arrows}
 \end{figure}
 
@@ -148,8 +148,8 @@ In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds and an el
 The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
 \begin{enumerate}
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
-\item Featherweight Jlt, a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
-\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}).
+\item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
+\item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, and that pair is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: Section~\ref{sec:limits} says what the repository's checker reads and what it misses.
@@ -158,7 +158,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 \paragraph{How to read this paper.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
 The sections follow the arrows of Figure~\ref{fig:arrows}(a), one each.
-Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:translation:adequacy} is the left hook, which Jlt programs are Featherweight Jlt programs.
+Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs.
 The bottom edge is where the two readings meet.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
@@ -173,6 +173,8 @@ Two names are kept apart in what follows.
 Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three rules.
 Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
 Every FJlt program is a Jlt program by construction; that a Jlt program is an FJlt program when it is written in the calculus's grammar is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program, and Section~\ref{sec:limits} says what keeps the rules and is still outside the grammar.
+Two words for that division: FJlt is the \emph{kernel} of Jlt, and what a Jlt program writes beyond the kernel's grammar is \emph{sugar}, each form named with its desugaring into the kernel in Appendix~\ref{app:fjlt:closure}, without a proof.
+The claims of this paper are about the kernel.
 
 \paragraph{Rule 1: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
@@ -693,11 +695,11 @@ Four of the eight rows are closed by the grammar or by constant evaluation: a pr
 Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
 Section~\ref{sec:limits} says what the repository's checker and a reader make of those two rows.
-The last row is where the grammar is narrower than the library: its programs branch on a trait or a concept, fold over parameter packs, pass lambdas and case on sums.
+The last row is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, fold over parameter packs, pass lambdas and case on sums.
 Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
-Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct, a branch on a law is \texttt{?:}, a pack is one declaration per arity, a family instance is an instance with a context, a member function is a generic function, an alias is substitution, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
+Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a pack is one declaration per arity, a family instance is an instance with a context, a member function is a generic function, an alias is substitution, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
 Two do.
-Sums have the former, \cppinline{optional<T>} is $1 + T$, and lack the case form, one rule per figure, with the library's \cppinline{IsCoproduct} as the condition and \cppinline{std::variant} as an instance.
+Sums have the former, \cppinline{optional<T>} is $1 + T$, and lack the case form, one rule per figure, with the library's \cppinline{IsCoproduct} as the injection half of the condition and \cppinline{std::variant} as an instance.
 A branch on a constraint is two generic functions whose heads both match, which the no-overlap condition forbids, and needs resolution by specificity, one well-formedness condition that the compiler decides and one case in Theorem~\ref{thm:coherence}.
 We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
