@@ -101,21 +101,46 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 
 \begin{figure}[tb]
 \centering
-\begin{tikzcd}[column sep=4.5em, row sep=3em]
+\begin{minipage}[t]{0.47\linewidth}
+\centering
+\begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
 \text{FJlt} \arrow[r, hook, "\text{grammar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
-  & \text{Jlt} \arrow[r, hook, "\text{rules}"]
-  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+  \& \text{Jlt} \arrow[r, hook, "\text{rules}"]
+  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
-  &
-  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
+  \&
+  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
 \text{value} \arrow[rr, equal]
-  &
-  & \text{value}
+  \&
+  \& \text{value}
 \end{tikzcd}
+
+(a) as argued
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\centering
+\begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
+\text{Jlt} \arrow[rr, hook, "\text{rules}"] \arrow[d, "\mathit{elab}"']
+  \&
+  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
+  \&
+  \& \text{LLVM IR} \arrow[dd, "\text{run}"] \\
+\text{System~F} \arrow[d, "\text{eval}"']
+  \&
+  \& \\
+\text{value} \arrow[rr, equal]
+  \&
+  \& \text{value}
+\end{tikzcd}
+
+(b) under the conjecture
+\end{minipage}
 \caption{The arrows of the paper.
 Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt the part of Jlt written in the calculus's grammar (Section~\ref{sec:translation:adequacy}).
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is total on \Cpp{23} (Section~\ref{sec:binding}), so an FJlt program has two readings.
-They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).}
+They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
+In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds and an elaboration $\mathit{elab}$, total on Jlt, replaces the hook (Appendix~\ref{app:fjlt:closure}), so $\llbracket\cdot\rrbracket \circ \mathit{elab}$ is total on Jlt and the two readings are readings of every Jlt program.}
 \label{fig:arrows}
 \end{figure}
 
@@ -132,7 +157,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 
 \paragraph{How to read this paper.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
+The sections follow the arrows of Figure~\ref{fig:arrows}(a), one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:translation:adequacy} is the left hook, which Jlt programs are Featherweight Jlt programs.
 The bottom edge is where the two readings meet.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
@@ -669,11 +694,12 @@ Conversions are half closed: the grammar admits one only where a requirement dec
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
 Section~\ref{sec:limits} says what the repository's checker and a reader make of those two rows.
 The last row is where the grammar is narrower than the library: its programs branch on a trait or a concept, fold over parameter packs, pass lambdas and case on sums.
-We conjecture that each elaborates into FJlt with its meaning kept: a branch on a law as \texttt{?:}, a branch on a concept as specialisation, resolved as instances are, a pack as one instance per arity used, a lambda as an operation struct.
-Sums are the narrowest gap: the grammar has the former, \cppinline{optional<T>} is $1 + T$, and its introductions, and lacks the case form, so a program can build an optional and not look inside it.
-A sum would enter as a range does, by conditions, two injections and a case; \cppinline{std::variant} is one instance, and the library's \cppinline{IsCoproduct} is that condition written down.
-The one point that is not sugar is resolution between two generic functions whose heads both match, which the library's family instances need and FJlt's no-overlap condition forbids.
-The elaboration is not written, and until it is the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
+Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
+Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct, a branch on a law is \texttt{?:}, a pack is one declaration per arity, a family instance is an instance with a context, a member function is a generic function, an alias is substitution, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
+Two do.
+Sums have the former, \cppinline{optional<T>} is $1 + T$, and lack the case form, one rule per figure, with the library's \cppinline{IsCoproduct} as the condition and \cppinline{std::variant} as an instance.
+A branch on a constraint is two generic functions whose heads both match, which the no-overlap condition forbids, and needs resolution by specificity, one well-formedness condition that the compiler decides and one case in Theorem~\ref{thm:coherence}.
+We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate: \cppinline{twice<size_t>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{twice} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
@@ -718,6 +744,7 @@ FJlt's instance is a specialisation of a function template, and the listings are
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
 So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
+Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, in the grammar, and what remains is a default beside families, which is resolution by specificity.
 
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.

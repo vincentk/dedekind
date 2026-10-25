@@ -454,3 +454,101 @@ One seam shows here too: SSA's values are the scalars in registers, and a value 
 The same line is an optimisation when it falls on the right side.
 Of the types of Figure~\ref{fig:fjlt-syntax}, the box and \cppinline{std::string} allocate; a value of any other type lives in a register or on the stack, and the top of the stack is the part of memory that is in cache almost always, so a function of such values has next to no cache to miss, and the two exhibits, both over scalars, have no load and no store at all.
 That is an observation about the exhibits and a tendency with a reason for the rest, not a guarantee: a boxed value is on the heap by definition, a string's characters too, a large value is passed through the stack, and the register allocator, not the rule, has the last word; what the rule does is remove every reason to keep state anywhere but in the frame of the function that owns it, which is the identification of \cppinline{const T} with \cppinline{const T&} of Section~\ref{sec:posture} read by the machine.
+
+\subsection{Closure under the host's constructions}
+\label{app:fjlt:closure}
+Given terms of FJlt, under which condition is their composition under a construction of \Cpp{} again a term of FJlt?
+That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
+Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
+The condition is always on how the term is built and never on inspecting it afterwards, which is what lets a closure, an object whose type has no name, be a term of the calculus.
+Table~\ref{tab:closure} is the summary, with a column for what the calculus lacks today to state each lemma, since that column is what decides the scope of the calculus.
+The statements come with the reason each holds, and none of them is used by the theorems of Appendix~\ref{app:fjlt:theorems}.
+Where a count is given it is measured on the library's \texttt{category} module, 35 files.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.75\hsize\raggedright\arraybackslash}X>{\hsize=1.25\hsize\raggedright\arraybackslash}X>{\hsize=.9\hsize\raggedright\arraybackslash}X>{\hsize=1.1\hsize\raggedright\arraybackslash}X@{}}
+\toprule
+construction & FJlt, provided & image & the calculus lacks \\
+\midrule
+lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & nothing \\
+\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & nothing \\
+\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch without it & two generic functions, the more constrained preferred & resolution by specificity: one well-formedness condition, one case in Theorem~\ref{thm:coherence} \\
+parameter pack & each arity the program uses an FJlt declaration & one declaration per arity & nothing for a program; a statement over all arities \\
+sum & branches FJlt on the summands & the copairing & the case form: one rule per figure \\
+variable or class template & each member of the family an FJlt instance & instance with a context & nothing for one family; a default beside families is specificity again \\
+const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & nothing \\
+alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & nothing \\
+overloading & distinct carriers, or disjoint constraints & specialisations of one trait, or generic functions & nothing under no-overlap, specificity beyond it \\
+\bottomrule
+\end{tabularx}
+\caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
+Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column.
+The fourth column is what the calculus lacks to state the lemma: nothing, the case form for sums, or resolution by specificity, which one row needs and two more lean on.}
+\label{tab:closure}
+\end{table}
+
+\paragraph{Lambdas.}
+A lambda \cppinline{[c...](const τ x...) { return e; }} whose captures are FJlt values taken by copy and whose body is an FJlt term under those captures and parameters is the operation struct with the captures as fields and \cppinline{e} as the body of its call operator.
+A generic lambda written with a template head and a \cppinline{requires} clause is the operation with a generic call operator.
+The reason is the standard's own definition of the closure type: a class with the copied captures as members and a \cppinline{const} call operator, which is the operation production of Figure~\ref{fig:fjlt-syntax} to the letter.
+Capture by reference is excluded by Rule~1 before this lemma is reached.
+A closure type has no name, so a lambda is never a carrier and never the head of an instance, and nothing in the lemma asks to look inside it once built.
+The library has 47.
+
+\paragraph{\texttt{if constexpr} on a value.}
+A body \cppinline{if constexpr (p) return A; else return B;} with \cppinline{p} a closed \cppinline{bool} term, a law or a trait read, and \cppinline{A}, \cppinline{B} FJlt terms of one type under the same context, is the term \cppinline{p ? A : B}.
+The condition is stronger than \Cpp{} asks, since \Cpp{} does not instantiate the discarded branch and FJlt types both, and the compiler decides it: the rewritten body compiles or it does not.
+Constant evaluation of the two spellings agrees because both evaluate \cppinline{p} first and then one branch.
+36 of the library's 81 \cppinline{if constexpr} are of this form.
+
+\paragraph{\texttt{if constexpr} on a constraint.}
+A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}$ alone, is the pair of generic functions with heads $\overline{Q}, C\texttt{<T>}$ and $\overline{Q}$, the first chosen wherever $C\texttt{<T>}$ is entailed.
+When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X}, the first function is an explicit specialisation at \cppinline{X} and resolution already prefers it, so nothing is missing.
+In the general case the two heads both match at an instantiation where $C\texttt{<T>}$ holds, which the no-overlap condition of Appendix~\ref{app:fjlt:typing} forbids.
+What the calculus lacks is resolution by specificity: the condition becomes that at every instantiation the matching generic functions have a unique most specific member, resolution picks it, and the sketch of Theorem~\ref{thm:coherence} gains the case that the record is unique because the most specific match is.
+\Cpp{} decides the new condition as it decides the old one, since an ambiguous partial ordering of constraints is ill-formed.
+This is not done, and three rows of Table~\ref{tab:closure} wait on it.
+45 of the library's 81 \cppinline{if constexpr} test a constraint, and 7 of those test a \cppinline{requires} expression written in the body, which Rule~2 does not count as a declared constraint, so each of the 7 is either rewritten to a named shape, which puts it here, or is outside the posture.
+
+\paragraph{Parameter packs.}
+A declaration over a pack \cppinline{typename... Ts} whose instantiation at each arity the program uses is an FJlt declaration, a fold expression at arity $n$ being the nested term, is the family of those declarations, one per arity.
+A closed program uses finitely many arities, so the family is finite and each member is covered by the theorems.
+What is not covered is a statement about all arities at once, since FJlt has no type-level lists, and parametricity therefore holds of each arity and not of the pack.
+The library has 13.
+
+\paragraph{Sums.}
+The grammar has the former, \cppinline{optional<T>} is $1 + T$, and its introductions, and lacks the case form, so a program can build an optional and not look inside it.
+Given FJlt terms \cppinline{f} and \cppinline{g} on the two summands, their copairing is an FJlt term once the calculus has \texttt{case}: a family $\mathcal{S}$ of sums defined by conditions as $\mathcal{R}$ is, two injections and a case, a typing rule, two evaluation rules, a translation row to the target's case, and a canonical-forms case in Lemma~\ref{lem:progress}.
+\cppinline{has_value}, \cppinline{value_or} and \cppinline{*} on an optional are \texttt{case} on $1 + T$, and \cppinline{std::visit(O{}, v)} is \texttt{case} whose branches are one generic call operator entailed at each summand.
+The library's \cppinline{IsCoproduct} is the condition on $\mathcal{S}$ written down, with \cppinline{std::variant} as its instance.
+
+\paragraph{Variable and class templates.}
+A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
+A partial specialisation over a family, every \cppinline{Rational<I>} under \cppinline{+}, is an instance with a context, in the grammar.
+Nothing is missing for one family; a primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, and waits on specificity.
+The host adds a wall the calculus does not have: a constrained function overload is found only when it precedes the shape (Section~\ref{sec:limits}), so the FJlt spelling is not writable in the library's module layout, while the library's spelling is FJlt by this lemma.
+The library has 225 registrations.
+
+\paragraph{Member functions.}
+A \cppinline{const} member function \cppinline{τ m(τ x...) const { return e; }} of an operation is the generic function \cppinline{m(O self, τ x...)} whose body reads the fields of \cppinline{self} where the member read \cppinline{this}.
+A static member function is a generic function.
+A struct with fields and no call operator is a product, nested pairs.
+Rule~1 supplies the \cppinline{const}, and the body is FJlt by hypothesis, so nothing is missing.
+The library has 12.
+
+\paragraph{Abbreviations.}
+An alias template is substitution.
+\cppinline{std::tuple} of FJlt types is nested pairs.
+\cppinline{std::array<T, n>} is a product of $n$ copies and also a member of $\mathcal{R}$, with length $n$, a head and a tail, so a fold over it is already in the grammar.
+
+\paragraph{Overloading.}
+Overloads of one name at distinct concrete carriers are explicit specialisations of one trait.
+Constrained overloads are generic functions, in the grammar as long as their heads never both match, and specificity beyond that, which is the same lack as above.
+
+\paragraph{What the table says.}
+Seven rows need nothing from the calculus, the closure lemma being the standard's own account of the construction, two of them (families, overloading) as long as no two generic heads match.
+One row, sums, needs one rule per figure.
+One row, a branch on a constraint, needs resolution by specificity, a change of one well-formedness condition and one case in a proof, and it is the same lack the two provisos name.
+With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
