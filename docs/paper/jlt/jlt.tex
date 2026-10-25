@@ -656,7 +656,7 @@ implicit conversions & the grammar, and Rule~2 for the body & a conversion only 
 references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
 unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
-branches on a trait or a concept, parameter packs, lambdas, \cppinline{std::variant} & the grammar; an elaboration is conjectured below & \texttt{?:} on a law, dispatch by resolution, one instance per arity, an operation struct, a sum \\
+branches on a trait or a concept, parameter packs, lambdas, sums & the grammar; an elaboration is conjectured below & \texttt{?:} on a law, specialisation, one instance per arity, an operation struct, the former it has for \texttt{optional} with the case form it lacks \\
 \bottomrule
 \end{tabularx}
 \caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
@@ -668,8 +668,10 @@ Four of the eight rows are closed by the grammar or by constant evaluation: a pr
 Conversions are half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 The two rows that remain are Rule~2 and Rule~3, and they are posture.
 Section~\ref{sec:limits} says what the repository's checker and a reader make of those two rows.
-The last row is where the grammar is narrower than the library: its programs branch on a trait or a concept, fold over parameter packs, pass lambdas and hold sums.
-We conjecture that each elaborates into FJlt with its meaning kept, a branch on a law as \texttt{?:}, a branch on a concept as dispatch through instance resolution, a pack as one instance per arity used, a lambda as an operation struct, \cppinline{std::variant} as a sum former beside \cppinline{std::pair}.
+The last row is where the grammar is narrower than the library: its programs branch on a trait or a concept, fold over parameter packs, pass lambdas and case on sums.
+We conjecture that each elaborates into FJlt with its meaning kept: a branch on a law as \texttt{?:}, a branch on a concept as specialisation, resolved as instances are, a pack as one instance per arity used, a lambda as an operation struct.
+Sums are the narrowest gap: the grammar has the former, \cppinline{optional<T>} is $1 + T$, and its introductions, and lacks the case form, so a program can build an optional and not look inside it.
+A sum would enter as a range does, by conditions, two injections and a case; \cppinline{std::variant} is one instance, and the library's \cppinline{IsCoproduct} is that condition written down.
 The one point that is not sugar is resolution between two generic functions whose heads both match, which the library's family instances need and FJlt's no-overlap condition forbids.
 The elaboration is not written, and until it is the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
