@@ -336,7 +336,7 @@ constexpr auto converse(const R& r) {
  *  @c IsSet whose Domain is a product @f$A \times B@f$. */
 export template <typename S>
 consteval bool is_relation(const S&) {
-  if constexpr (requires { typename S::Domain; })
+  if constexpr (HasDomain<S>)
     return dedekind::category::IsLSet<S> && IsPairLike<typename S::Domain>;
   else
     return false;  // no Domain: not a set, hence not a relation (total query)

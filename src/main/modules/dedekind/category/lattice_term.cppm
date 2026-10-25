@@ -168,6 +168,16 @@ concept Fires = !std::same_as<std::remove_cvref_t<R>, law_inactive>;
  *  semantic lattice order (boundedness, glb, distributivity).  @tparam Combine
  *  the carrier's domain meet / join of two leaves, @c meet_value / @c
  *  join_value, each present only where the carrier combines that pair. */
+/** @brief The injected leaf-combine has a domain meet (join) for this pair
+ *  of leaves: @c C::meet_value(a, b) (@c join_value) is formed.
+ *  @tparam C the combine.  @tparam A, B the leaves. */
+template <typename C, typename A, typename B>
+concept CombinesMeet =
+    requires(const A& a, const B& b) { C::meet_value(a, b); };
+template <typename C, typename A, typename B>
+concept CombinesJoin =
+    requires(const A& a, const B& b) { C::join_value(a, b); };
+
 export template <typename Less, typename Ord = canonical_order,
                  typename Combine = no_leaf_combine>
 struct Reduce {
@@ -192,7 +202,7 @@ struct Reduce {
       return cata(*this, meet_distributivity_law<Ord>(a, b));
     } else if constexpr (Fires<decltype(meet_glb_law<Ord>(a, b))>) {
       return meet_glb_law<Ord>(a, b);
-    } else if constexpr (requires { Combine::meet_value(a, b); }) {
+    } else if constexpr (CombinesMeet<Combine, RA, RB>) {
       // The order-incomparable residual: the carrier's own domain meet on the
       // two leaves' data (two halfspaces whose pivots decide empty / point /
       // interval), folded again.
@@ -218,7 +228,7 @@ struct Reduce {
       return join_structural_absorption_law(a, b);  // a ∨ (a ∧ b) = a
     } else if constexpr (Fires<decltype(join_lub_law<Ord>(a, b))>) {
       return join_lub_law<Ord>(a, b);
-    } else if constexpr (requires { Combine::join_value(a, b); }) {
+    } else if constexpr (CombinesJoin<Combine, RA, RB>) {
       return cata(*this, Combine::join_value(a, b));
     } else if constexpr (lattice_definitely_less<Less, RB, RA>()) {
       return Join<RB, RA>{b, a};

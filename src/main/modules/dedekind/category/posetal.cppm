@@ -729,6 +729,12 @@ export constexpr ArrowLaws arrow_node(ArrowNode n, const ArrowLaws& a,
       ArrowLaws::tabulate(ArrowNodeAt{n, saturated(a), saturated(b)}));
 }
 
+/** @brief A type that names its domain: @c Dom<F> is formed.  The guard
+ *  under which @c IsInvolution<F> may be asked at all.
+ *  @tparam F the candidate arrow. */
+export template <typename F>
+concept HasDomain = requires { typename std::remove_cvref_t<F>::Domain; };
+
 /** @brief The profile of a typed arrow, its variances under @c Op.  Read off
  *  the concepts (an iso, hence an involution, is already monic and epic).
  *  @tparam F the arrow.  @tparam Op the order. */
@@ -739,7 +745,7 @@ constexpr ArrowLaws declared_arrow_laws() {
   if constexpr (IsEpicArrow<F>) p = p.with(ArrowLaw::Surjective);
   if constexpr (IsMonotone<F, Op>) p = p.with(ArrowLaw::Monotone);
   if constexpr (IsAntiMonotone<F, Op>) p = p.with(ArrowLaw::Antitone);
-  if constexpr (requires { typename F::Domain; })
+  if constexpr (HasDomain<F>)
     if constexpr (IsInvolution<F>) p = p.with(ArrowLaw::Involutive);
   return p;
 }

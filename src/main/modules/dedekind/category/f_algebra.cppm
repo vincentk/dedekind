@@ -311,6 +311,9 @@ struct component_orders<ProductLeq<LA, LB>> {
   using first = LA;
   using second = LB;
 };
+/** @brief @c Op is a product order with component orders to descend into. */
+template <typename Op>
+concept HasComponentOrders = requires { typename component_orders<Op>::first; };
 template <typename β, typename T, std::size_t... I>
   requires IsTermNode<T> &&
            std::invocable<
@@ -424,9 +427,7 @@ struct LawAlgebra {
       const Pairing<Compose<A, F>, Compose<B, G>>& t) const {
     // A product's variance is about the componentwise order: each factor
     // under its own component order; under any other order, no variance.
-    if constexpr (requires {
-                    typename detail_f_algebra::component_orders<Op>::first;
-                  }) {
+    if constexpr (detail_f_algebra::HasComponentOrders<Op>) {
       using O = detail_f_algebra::component_orders<Op>;
       return arrow_node(ArrowNode::Product,
                         cata(LawAlgebra<typename O::first>{}, t.f.g),
