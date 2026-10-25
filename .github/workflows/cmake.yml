@@ -245,7 +245,7 @@ jobs:
   # release.yml keeps the manual, forced release.
   release:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build-and-deploy
+    needs: [build-and-deploy, python-dist, docs-and-pages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
