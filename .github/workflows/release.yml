@@ -32,7 +32,7 @@ env:
 jobs:
   release:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
@@ -42,8 +42,21 @@ jobs:
         ref: ${{ github.event.workflow_run.head_sha || github.sha }}
         fetch-depth: 0
 
+    - name: Resume a tag whose release is missing
+      id: resume
+      env:
+        GH_TOKEN: ${{ github.token }}
+        COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+      run: |
+        tag=$(git tag --points-at "$COMMIT" | grep '^v0\.' | head -1 || true)
+        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
+          gh release create "$tag" --verify-tag --title "$tag" --generate-notes
+          echo "resumed=1" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Next version
       id: version
+      if: steps.resume.outputs.resumed != '1'
       env:
         COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
         FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
@@ -54,7 +67,7 @@ jobs:
         echo "Next version: $v"
 
     - name: Tag and release
-      if: steps.version.outputs.version != 'skip'
+      if: steps.resume.outputs.resumed != '1' && steps.version.outputs.version != 'skip'
       env:
         GH_TOKEN: ${{ github.token }}
         VERSION: ${{ steps.version.outputs.version }}
