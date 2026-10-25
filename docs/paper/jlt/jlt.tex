@@ -295,6 +295,7 @@ A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
 What the rule conserves is a natural number that decreases at every step, the length of a range or the depth of a term, and a count-down over the naturals ends: that is Floyd's argument for termination~\cite{floyd1967assigning}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
 Or it iterates a step over \emph{a time budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, n)}, which together make a hylomorphism.
 
 \begin{listing}[htbp]
 \begin{cpp}
@@ -320,13 +321,13 @@ This paper contains none: its loops are inside \cppinline{fold_left} and \cppinl
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}lXX@{}}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & buys & costs \\
+rule & archetype & buys & costs \\
 \midrule
-1 Substitution & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & the System~F reading & no ad hoc use of a type \\
-3 Descent & termination & \emph{out of budget} as an answer \\
+1 Substitution & \cppinline{id}, the identity arrow & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 Abstraction & \cppinline{concat}, a fold of finite data & the System~F reading & no ad hoc use of a type \\
+3 Descent & \cppinline{times}, a fold of a bounded unfold & termination & \emph{out of budget} as an answer \\
 \bottomrule
 \end{tabularx}
 \caption{The posture at a glance, each rule named for what it conserves.
@@ -335,7 +336,6 @@ Section~\ref{sec:limits} says how.}
 \label{tab:posture}
 \end{table}
 
-One remark on scope: a Jlt program is a \Cpp{23} program, built by a stock compiler with no flags beyond \texttt{-std=c++23}. The rules are held by this paper's listings, each of which compiles as written, and by the core of the library behind them (Section~\ref{sec:limits}), and the appendix makes the subset precise.
 
 \section{From Featherweight Jlt to System~F}
 \label{sec:translation}
