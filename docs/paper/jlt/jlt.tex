@@ -30,23 +30,22 @@
 \begin{abstract}
 Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
 \Cpp{} is a mainstream multi-paradigm language in which functional programming is one style among many, it runs much of machine learning and most embedded devices, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-What concepts dropped on the way into the standard, after a decade of proposals, was the check of a template's definition against its constraints: a constrained function may still use any operation its type argument happens to have.
-The language contains a typed functional fragment and does not enforce its boundary.
+It does not, however, hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-The question this paper answers is what discipline draws that boundary, and what a program inside it is, with the language, the compiler and the standard library as they ship.
-The translation of type classes by dictionary passing is known, and so is a calculus for the concepts that were proposed; this paper applies both to the concepts that exist.
+The question this paper answers is what discipline draws a typed functional fragment out of the language as it ships, and what a program inside it is.
+The translation of type classes by dictionary passing is known, and so is a calculus for an earlier design of concepts; this paper applies both to the concepts that exist.
 
 The discipline is three rules, which we call the Juliet Posture.
 Values are copyable data and functions are pure and evaluable at compile time.
 Generic code varies with a type only through that type's concepts and traits.
-Recursion only folds, over a term, a finite carrier or an explicit budget.
-We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23} as written, and translate it into System~F: concepts become record types, trait specialisations records and constraints parameters, and folds become the iterators of inductive types.
+Recursion only folds, over finite data or over a time budget.
+We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23} as written, and translate it into System~F, the polymorphic lambda calculus that Haskell's type classes translate into: concepts become record types, trait specialisations records and constraints parameters, and folds become the iterators of inductive types.
 The translation preserves types, preserves evaluation and is a function of the program, so a program of the calculus terminates, is parametric and evaluates to a value.
-A consequence is that laws are values: the unit and the laws of a monoid are stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
+Algebraic laws, the associativity and the unit of a monoid, are then values of the program: stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
 
 The translation is total on the calculus and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
-The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at both binding times by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, in which no dictionary survives.
-What is gained is a mainstream compiler that checks claims of a modest but real kind, at the binding time where checking is cheap, about programs that then run unchanged.
+The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at compile time and at run time by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, without the scaffolding.
+What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
@@ -62,20 +61,19 @@ A class of types with operations and laws, Haskell's type classes, lets generic 
 The case is usually made in a language built around it, and that is where this paper departs: it makes the case in standard \Cpp{23}, with a stock compiler and no extensions.
 
 Two things make \Cpp{} the right place to make it now.
-The first is where \Cpp{} is.
-The systems that machine learning runs on and the software that embedded devices run are, to a large extent, \Cpp{}, and a growing number of the people who write them arrive from Python with a functional vocabulary and no idea how much of it the language already supports.
-The second is what \Cpp{} shipped and what it did not.
-\Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges. The posture uses nothing else.
-The last of these is the youngest: the fold algorithms over ranges entered the standard in 2022, and the library this paper builds with completed them in its release 23~\cite{libcxx2026status}, which is one reason the fragment is described now and not earlier.
-Concepts, constraints on template parameters that are checked at each use, arrived in \Cpp{20} after a decade of proposals~\cite{gregor2006concepts,dosreis2006specifying}. What they dropped along the way~\cite{stroustrup2009remove} was checking the \emph{definition} of a template against its constraints, which is the half that would make a constrained function a function of its constraints.
+The first is where \Cpp{} is: much of machine learning and most embedded devices run on it, and a growing number of the people who write it arrive from Python with a functional vocabulary and less sense of how much of it the language already supports.
+The second is that the standard keeps evolving~\cite{gregor2006concepts,dosreis2006specifying,stroustrup2009remove}, and this paper draws the boundary in the most recent one: \Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges, and the posture uses nothing else.
+One decision in that evolution matters here.
+Concepts as proposed for \Cpp{0x} checked a template's definition against its constraints; concepts as standardised in \Cpp{20} check its uses, so a constrained body may use operations its constraints do not name, and that is the gap Rule~2 fills.
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
 The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of restricting oneself to the part of \Cpp{23} that reads as System~F.
-The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}, which is how a concept admits a type, and how the fragment admits a carrier.
+The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}.
+That is how a concept admits a type, and how the fragment admits a carrier.
 It has three rules.
 Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 Generic code varies with a type only through that type's concepts and traits.
-Recursion only folds, over finite data or over an explicit budget.
+Recursion only folds, over finite data or over a time budget.
 Under these rules a program written in the grammar of a small calculus translates into System~F by dictionary passing, concepts becoming record types, trait specialisations records, constraints parameters, and inherits what System~F guarantees, termination and parametricity.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
 
@@ -140,7 +138,7 @@ Not contributed: the translation, which is Wadler and Blott's; the calculus-with
 
 \paragraph{Audience and plan.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-Sections~\ref{sec:posture} and~\ref{sec:translation} state the rules and show the translation on a monoid, Section~\ref{sec:binding} runs one program at both binding times, Section~\ref{sec:guarantees} brings back along the translation what System~F guarantees, Section~\ref{sec:translation:adequacy} argues that the guarantees reach a Jlt program, Section~\ref{sec:limits} says what that leaves open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
+The sections follow the arrows: from \Cpp{} to Jlt (Section~\ref{sec:posture}), from Featherweight Jlt to System~F (Section~\ref{sec:translation}) and back (Section~\ref{sec:guarantees}), from Jlt to Featherweight Jlt (Section~\ref{sec:translation:adequacy}), with one program run at both binding times between them (Section~\ref{sec:binding}); Section~\ref{sec:limits} says what is left open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
@@ -267,7 +265,7 @@ This is the rule the fragment is named for, and it is a posture: the programmer 
 \paragraph{Rule 3: recursion only folds.}
 A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
-Or it iterates a step over \emph{an explicit budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+Or it iterates a step over \emph{a time budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
 
 \begin{listing}[htbp]
 \begin{cpp}
@@ -716,6 +714,7 @@ So the library is FJlt at its reads and not at its registrations, the adequacy a
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
 \cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses. The listing that used it now uses a fold instead.
 The listings were built with one compiler against two standard libraries, and that is what "compiles as written" means here.
+The youngest piece the posture uses is the fold algorithms over ranges, which entered the standard in 2022 and which the library this paper builds with completed in its release 23~\cite{libcxx2026status}.
 
 \paragraph{The compiler has its own budget.}
 Constant evaluation is bounded by a step limit the compiler sets, and a program that exhausts it fails to compile.
