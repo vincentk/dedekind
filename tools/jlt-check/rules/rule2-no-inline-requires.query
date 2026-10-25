@@ -1,0 +1,8 @@
+# Rule 2: generic code varies with a type only through declared concepts and
+# traits.  An `if constexpr` whose condition contains a requires-expression
+# tests a constraint the body did not declare, so the branch varies with the
+# type through an anonymous shape no requires clause names (#1068: an inline
+# requires or concept test in a body is not a constraint).  The fix is a
+# named shape, which the definition check then reads.  A requires-expression
+# has no clang-query matcher, hence the tool.
+tool inline-requires

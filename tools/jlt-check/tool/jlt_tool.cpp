@@ -19,6 +19,15 @@
 //                     what it is sure no requirement names, and stays silent
 //                     where it cannot tell.  What it does not see is listed
 //                     at the check.
+//   inline-requires   Rule 2: an `if constexpr` whose condition contains a
+//                     requires-expression tests a constraint the body did not
+//                     declare, which Rule 2 does not count (#1068); the fix is
+//                     a named shape, which the definition check then reads.
+//   inheritance       Jlt has no subtyping: a class with a base that is not
+//                     an empty class, or with a virtual function, is a
+//                     finding.  An empty base (`: std::true_type`,
+//                     `: is_x<Y>`) is a registration spelled by inheritance,
+//                     read as the fact it states.
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -29,10 +38,12 @@
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/ASTTypeTraits.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprConcepts.h"
+#include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Analysis/CallGraph.h"
 #include "clang/Basic/OperatorKinds.h"
@@ -574,12 +585,118 @@ class Definition : public clang::ASTConsumer {
   }
 };
 
+// ---------------------------------------------------------------------------
+// inline-requires: a constraint is declared, not tested in a body
+// ---------------------------------------------------------------------------
+
+/// Whether `e` contains a requires-expression, through operators and parens.
+bool containsRequires(const clang::Expr* e) {
+  if (!e) return false;
+  if (llvm::isa<clang::RequiresExpr>(e->IgnoreParenImpCasts())) return true;
+  for (const clang::Stmt* c : e->children())
+    if (const auto* ce = llvm::dyn_cast_or_null<clang::Expr>(c))
+      if (containsRequires(ce)) return true;
+  return false;
+}
+
+/// The function whose body holds `s`, through the parent chain.
+const clang::FunctionDecl* enclosingFunction(const clang::Stmt* s,
+                                             clang::ASTContext& ctx) {
+  clang::DynTypedNodeList parents = ctx.getParents(*s);
+  while (!parents.empty()) {
+    const clang::DynTypedNode& n = parents[0];
+    if (const auto* f = n.get<clang::FunctionDecl>()) return f;
+    parents = ctx.getParents(n);
+  }
+  return nullptr;
+}
+
+/// `if constexpr (requires { ... })` in a judged function: Rule 2 counts only
+/// declared constraints, and a requires-expression in a body is a test of one
+/// the body did not declare.  Every such `if` is a finding, at its `if`.
+class InlineRequires : public clang::ASTConsumer,
+                       public clang::RecursiveASTVisitor<InlineRequires> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    this->ctx = &ctx;
+    TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool VisitIfStmt(clang::IfStmt* s) {
+    if (!containsRequires(s->getCond())) return true;
+    const clang::FunctionDecl* f = enclosingFunction(s, *ctx);
+    if (!judged(f, ctx->getSourceManager())) return true;
+    const clang::SourceManager& sm = ctx->getSourceManager();
+    const clang::SourceLocation loc = sm.getExpansionLoc(s->getIfLoc());
+    llvm::outs() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
+                 << ':' << sm.getExpansionColumnNumber(loc)
+                 << ": a requires-expression tested in a body is not a "
+                    "declared constraint\n";
+    return true;
+  }
+
+ private:
+  clang::ASTContext* ctx = nullptr;
+};
+
+// ---------------------------------------------------------------------------
+// inheritance: no subtyping
+// ---------------------------------------------------------------------------
+
+/// Whether a base type is an empty class without virtual functions.  A
+/// dependent base (`: is_x<T>` in a partial specialisation) is judged by the
+/// definition of its template's primary, the one declaration there is to read.
+bool emptyBase(clang::QualType t) {
+  const clang::CXXRecordDecl* r = t->getAsCXXRecordDecl();
+  if (!r) {
+    const auto* ts = t->getAs<clang::TemplateSpecializationType>();
+    const auto* ct = ts ? llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
+                              ts->getTemplateName().getAsTemplateDecl())
+                        : nullptr;
+    r = ct ? ct->getTemplatedDecl() : nullptr;
+  }
+  if (!r) return false;
+  const clang::CXXRecordDecl* def = r->getDefinition();
+  return def && def->isEmpty() && !def->isPolymorphic();
+}
+
+/// A judged class with a base that is not an empty class, or with a virtual
+/// function, is a finding, at the class.
+class Inheritance : public clang::ASTConsumer,
+                    public clang::RecursiveASTVisitor<Inheritance> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool VisitCXXRecordDecl(clang::CXXRecordDecl* r) {
+    if (!r->isThisDeclarationADefinition() || r->isLambda()) return true;
+    if (!sm->isInMainFile(r->getLocation()) || !inScope(r)) return true;
+    bool finding = r->isPolymorphic();
+    for (const clang::CXXBaseSpecifier& b : r->bases())
+      if (!emptyBase(b.getType())) finding = true;
+    if (!finding) return true;
+    const clang::SourceLocation loc = sm->getExpansionLoc(r->getLocation());
+    llvm::outs() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
+                 << ':' << sm->getExpansionColumnNumber(loc)
+                 << ": a base that is not an empty class, or a virtual "
+                    "function: subtyping\n";
+    return true;
+  }
+
+ private:
+  const clang::SourceManager* sm = nullptr;
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance&, llvm::StringRef) override {
     if (check == "mutual-recursion") return std::make_unique<MutualRecursion>();
     if (check == "definition") return std::make_unique<Definition>();
+    if (check == "inline-requires") return std::make_unique<InlineRequires>();
+    if (check == "inheritance") return std::make_unique<Inheritance>();
     llvm::errs() << "jlt-tool: unknown check " << check << '\n';
     return nullptr;
   }

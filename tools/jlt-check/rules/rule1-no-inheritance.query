@@ -1,0 +1,7 @@
+# Jlt has no subtyping: the grammar has no base clause and no derived-to-base
+# conversion, and a value is known by its concepts, not by a class it derives
+# from.  A class with a base that is not an empty class, or with a virtual
+# function, is a finding.  An empty base is a registration spelled by
+# inheritance (`struct is_x<T> : std::true_type`), read as the fact it
+# states; a dependent base is judged by its template's primary definition.
+tool inheritance

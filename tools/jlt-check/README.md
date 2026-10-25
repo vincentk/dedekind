@@ -40,7 +40,9 @@ scope on a call cycle of length two or more, through clang's call graph) and
 `definition` (Rule 2 at the level of names; what it does not see: class
 templates' ordinary members, lambdas, operations reached through a
 non-dependent helper, arity and types of a named operation; what it grants by
-heuristic: a bool-returning constexpr template as a trait read).
+heuristic: a bool-returning constexpr template as a trait read), `inline-requires` (an `if constexpr` whose condition contains a
+requires-expression) and `inheritance` (a base that is not an empty class, or
+a virtual function; a dependent base judged by its template's primary).
 
 ## Rules
 
@@ -67,6 +69,8 @@ Each rule is one file under `rules/`, named for the rule of the paper it checks.
 | `rule3-no-mutual-recursion` | functions on a call cycle of length two or more (the tool's `mutual-recursion` check) |
 | `rule2-constrained-templates` | a function template with an unconstrained type parameter and no `requires` clause: a **proxy** for Rule 2, reported only (a parameter the body never uses needs no constraint) |
 | `rule2-definition` | the tool's `definition` check, Rule 2 at the level of names: an operation on a value of parameter type that no *declared* constraint names (the type constraints, the `requires` clauses, the enclosing class templates', followed through the library's concepts; standard concepts and traits from a hand-made list; a concept's written arguments count). Not vocabulary of the value: standard functions, non-template functions, the library's constrained templates, `constexpr` templates returning `bool` (traits in function spelling), the control operators. An inline `requires` or concept test in the body is **not** a constraint. Silent where it cannot read a constraint |
+| `rule2-no-inline-requires` | the tool's `inline-requires` check: an `if constexpr` whose condition contains a requires-expression, a constraint tested in the body instead of declared (#1068); the fix is a named shape |
+| `rule1-no-inheritance` | the tool's `inheritance` check: no subtyping. A class with a base that is not an empty class, or with a virtual function; an empty base (`: std::true_type`, `: is_x<Y>`) is a registration spelled by inheritance |
 
 Exempt throughout: deleted and defaulted functions, lambdas, and a static
 `operator()`.  The standard iterator protocol (a nested `iterator` or
