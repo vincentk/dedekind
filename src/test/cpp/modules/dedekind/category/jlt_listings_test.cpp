@@ -47,13 +47,7 @@ concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { unit<T>(Op{}) } -> std::same_as<T>;
 } && associative<T>(Op{});
 
-template <typename T>
-concept IsMonoidPlus =
-    IsMonoid<T, std::plus<T>> && requires(const T a, const T b) {
-      { a + b } -> std::same_as<T>;
-    };
-
-// Listing 3, right: std::string, and twice at size_t and at std::string.
+// Listing 3, right: std::string, and concat at size_t and at std::string.
 template <>
 constexpr std::string unit<std::string>(std::plus<std::string>) {
   return {};
@@ -63,12 +57,14 @@ constexpr bool associative<std::string>(std::plus<std::string>) {
   return true;
 }
 
-template <IsMonoidPlus T>
-constexpr T twice(T x) {
-  return x + x;
+template <typename T, std::size_t N>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T concat(const std::array<T, N>& words) {
+  return std::ranges::fold_left(words, unit<T>(std::plus<T>{}), std::plus<T>{});
 }
 
-static_assert(twice(std::string{"ab"}) == "abab");
+static_assert(concat(std::array<size_t, 3>{1, 2, 3}) == 6);
+static_assert(concat(std::array<std::string, 3>{"ab", "c", "d"}) == "abcd");
 
 // Listing 1, middle: bool.
 template <>
@@ -123,11 +119,6 @@ static_assert(IsMonoid<size_t, std::plus<size_t>>);
 static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
-
-static_assert(twice<size_t>(21) == 42);
-// Listing 3's caption: size_t wraps by definition, Z/2^64, so SIZE_MAX twice
-// is a constant and the same constant the processor computes.
-static_assert(twice<size_t>(SIZE_MAX) == SIZE_MAX - 1);
 
 // Listing 2: laws as functions of the operation; the semiring shape.
 template <typename T, typename Op>
@@ -325,8 +316,8 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     std::bit_and<size_t> bit_and;
     CHECK(L::unit<size_t>(plus) == 0);
     CHECK(L::unit<size_t>(bit_and) == SIZE_MAX);
-    CHECK(L::twice<size_t>(21) == 42);
-    CHECK(L::twice(std::string{"ab"}) == "abab");
+    CHECK(L::concat(std::array<size_t, 3>{20, 21, 1}) == 42);
+    CHECK(L::concat(std::array<std::string, 2>{"ab", "cd"}) == "abcd");
     CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 
