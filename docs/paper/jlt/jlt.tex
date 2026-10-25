@@ -223,8 +223,9 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
-Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
-What the rule conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T} and to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
+Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
+That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
+Haskell's type checker holds the premise and a \Cpp{} compiler does not, which is the only reason it is a rule here.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
@@ -287,7 +288,7 @@ Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the e
 
 The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and that string concatenation is a monoid is luck, not a declaration.
 \cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
-What this buys is Section~\ref{sec:translation}: a function that only uses what its constraints name is a function of a record of those operations, and that is a System~F term.
+What this buys is the System~F reading of Section~\ref{sec:translation}.
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint. \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
