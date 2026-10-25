@@ -29,24 +29,29 @@
 
 \begin{abstract}
 Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
-\Cpp{} is a mainstream multi-paradigm language in which functional programming is one style among many, it runs much of machine learning and most embedded devices, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+By contrast, \Cpp{23} is a mainstream multi-paradigm language in which functional programming is one style among many.
+It runs much of machine learning and most embedded devices, holds zero-overhead abstraction as a design principle, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not, however, hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-The question this paper answers is what discipline draws a typed functional fragment out of the language as it ships, and what a program inside it is.
-The translation of type classes by dictionary passing is known, and so is a calculus for an earlier design of concepts; this paper applies both to the concepts that exist.
+This paper characterizes a fragment of \Cpp{23} as it ships, an embedded language whose programs are ordinary \Cpp{23} programs, which translates into System~F and compiles into conventional executables.
+The fragment is type-class-style code subject to three rules, which we call the Juliet Posture (Jlt):
+i) values are copyable data and functions are pure and evaluable at compile time;
+ii) generic code varies with a type only through that type's concepts and traits;
+iii) recursion is bounded: it only folds, over finite data or over a time budget.
 
-The discipline is three rules, which we call the Juliet Posture.
-Values are copyable data and functions are pure and evaluable at compile time.
-Generic code varies with a type only through that type's concepts and traits.
-Recursion only folds, over finite data or over a time budget.
-We give a core calculus, Featherweight Jlt, whose syntax is a subset of \Cpp{23} as written, and translate it into System~F, the polymorphic lambda calculus that Haskell's type classes translate into: concepts become record types, trait specialisations records and constraints parameters, and folds become the iterators of inductive types.
+A core calculus, Featherweight Jlt, is presented.
+Its syntax is a subset of Jlt as written, and it translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
+Concepts are turned into record types, trait specialisations into records, constraints into parameters, and folds become the iterators of inductive types.
 The translation preserves types, preserves evaluation and is a function of the program, so a program of the calculus terminates, is parametric and evaluates to a value.
-Algebraic laws, the associativity and the unit of a monoid, are then values of the program: stated once, read by concepts at compile time and by ordinary calls at run time, and the two readers are the two halves of the translation.
+Algebraic invariants such as the associativity and the unit of a monoid are then values of the program.
+They are stated once and read either by concepts at compile time or by function calls at run time.
+Evidence that the calculus holds real programs and that the translation is total on it: a) proof sketches in the appendix; b) the listings, which compile and run under a stock compiler at both binding times, by a test in the public repository; c) a library whose core is held to the rules by a mechanical checker; d) the compiled output, without the scaffolding.
 
-The translation is total on the calculus and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
-The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at compile time and at run time by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, without the scaffolding.
+What the System~F image has, termination, parametricity and a value, the Jlt program inherits: by theorem for the calculus and by an adequacy argument for the executable.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
-For the programmer who wants a functional style in a multi-paradigm language, the rules simplify the trade and pay it both ways: the guarantees of the style, checked at compile time, and the performance of the host, at run time.
+Jlt simplifies the trade between a functional style and a mainstream systems language in both directions.
+The correctness guarantees of the style are checked at compile time.
+The performance and the ecosystem of the host language remain available at run time.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
