@@ -37,7 +37,7 @@ This paper characterizes a fragment of \Cpp{23} as it ships, an embedded languag
 The fragment is type-class-style code subject to three rules, which we call the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
-iii) recursion is bounded: it only folds, over finite data or over a time budget.
+iii) recursion is structural, on a type or on a natural number that counts down.
 
 A core calculus, Featherweight Jlt, the kernel of Jlt, is presented.
 Its syntax is a subset of Jlt as written, and it translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
@@ -85,7 +85,7 @@ That is how a concept admits a type, and how the fragment admits a carrier.
 It has three rules, each named for what it conserves.
 \emph{Substitution}: values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
 \emph{Abstraction}: generic code varies with a type only through that type's concepts and traits.
-\emph{Descent}: recursion only folds, over finite data or over a time budget.
+\emph{Descent}: recursion is structural, on a type the compiler unfolds or on a natural number that counts down.
 Under these rules a program written in the grammar of a small calculus translates into System~F by dictionary passing: concepts become record types, trait specialisations records, constraints parameters.
 It inherits what System~F guarantees: termination, parametricity and a value.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
@@ -292,12 +292,12 @@ Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the m
 \hyperref[def:rule2]{Rule~2} exists because a \Cpp{} compiler checks a template's body during instantiation at the call site only.
 No such checks against the constraint are performed at the template's definition.
 
-\paragraph{Rule 3, Descent: recursion only folds.}
+\paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
-A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
-What the rule conserves is a natural number that decreases at every step, the length of a range or the depth of a term, and a count-down over the naturals ends: that is Floyd's argument for termination~\cite{floyd1967assigning}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
-Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
-Or it iterates a step over \emph{a time budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
+A Jlt program recurses on a structure, and the structure lives in one of two places.
+What the rule conserves is the inductive argument, which loses one constructor at every step, so the recursion ends: that is structural induction~\cite{burstall1969proving}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
+Either the structure lives in a \emph{type}, a typed term, an array of known length, a parameter pack, and the compiler unfolds the recursion, each call a different specialisation.
+Or it lives in a \emph{value}, a natural number that counts down at run time: the length of an interval, or a \emph{budget}, a number the caller supplies before the fold starts, for a computation that has no inductive argument of its own.
 In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, n)}, which together make a hylomorphism.
 
 \begin{listing}[htbp]
@@ -317,7 +317,8 @@ static_assert(times<size_t>(7, 6) == 42);
 
 Listing~\ref{lst:rule3}'s \cppinline{times} is the second kind: the monoid's operation folded over \cppinline{n} copies of \cppinline{x}, starting from its unit. What the processor runs of it is one multiplication, with the fold, the unit and the record gone, and Section~\ref{sec:binding} says why.
 What this buys is termination and, with Rule~2, the System~F reading: both kinds are catamorphisms, of the term's inductive type in the first case and of a finite prefix of $\mathbb{N}$ in the second, and a fold over an interval is the second read on the interval's length (Appendix~\ref{app:fjlt:translation}). Data as their own folds is the reading of B\"ohm and Berarducci~\cite{bohm1985automatic}.
-What it costs is that some programs cannot say \emph{yes} or \emph{no} and must say \emph{out of budget}. Section~\ref{sec:binding} shows the price being paid.
+What it costs is decidability: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates must leave some computations out or admit that it cannot answer, and a budget takes the second way, keeping the computation and adding a third answer, \emph{out of budget}, beside \emph{yes} and \emph{no}, Kleene's third value~\cite{kleene1952metamathematics}.
+Section~\ref{sec:binding} shows the price being paid.
 The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit. At runtime a \cppinline{while (true)} compiles like any other loop.
 This paper contains none: its loops are inside \cppinline{fold_left} and \cppinline{cata}, and every function composes.
 
@@ -330,7 +331,7 @@ rule & archetype & buys & costs \\
 \midrule
 1 Substitution & \cppinline{id}, the identity arrow & one program, two binding times & no state beyond a call's own locals, no I/O \\
 2 Abstraction & \cppinline{concat}, a fold of finite data & the System~F reading & no ad hoc use of a type \\
-3 Descent & \cppinline{times}, a fold of a bounded unfold & termination & \emph{out of budget} as an answer \\
+3 Descent & \cppinline{times}, a fold of a bounded unfold & termination & a third answer, \emph{out of budget} \\
 \bottomrule
 \end{tabularx}
 \caption{The posture at a glance, each rule named for what it conserves.
