@@ -491,6 +491,8 @@ Every function in this paper has run twice already.
 \cppinline{id(size_t{42})}, \cppinline{twice<size_t>(21)} and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
 Both are partial evaluation at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
+There is no magic in this.
+A program has two moments at which work can be done, build time and run time, and work moves between them: what is pre-computed at the first is not computed at the second, and an abstraction whose cost is paid entirely at the first costs nothing at the second.
 The interesting case is the fold, because a budget can arrive at either time.
 Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
 
@@ -552,7 +554,7 @@ That is the price of Rule~3, and it is paid in the type rather than in a crash o
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
 What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
 The search is a loop of 84 instructions, unrolled by four and without a branch in its body. Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
-The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be. The discipline costs nothing at runtime, which is the zero-overhead principle~\cite{stroustrup2005abstraction} met by partial evaluation, the records' cost paid at build time.
+The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be. The discipline costs nothing at runtime, which is the zero-overhead principle~\cite{stroustrup2005abstraction} met by pre-computation: the records' cost is paid at build time, where it is paid once.
 
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
