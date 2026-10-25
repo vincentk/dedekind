@@ -104,9 +104,10 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 \centering
 \begin{minipage}[t]{0.47\linewidth}
 \centering
-\begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
-\text{FJlt} \arrow[r, hook, "\text{sugar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
-  \& \text{Jlt} \arrow[r, hook, "\text{rules}"]
+\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
+  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \\[-0.8em]
+\text{FJlt} \arrow[ur, hook, "{+}\,\text{sugar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
+  \&
   \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
   \&
@@ -120,16 +121,14 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 \end{minipage}\hfill
 \begin{minipage}[t]{0.47\linewidth}
 \centering
-\begin{tikzcd}[column sep=2.6em, row sep=2.2em, ampersand replacement=\&]
-\text{Jlt} \arrow[rr, hook, "\text{rules}"] \arrow[d, "\mathit{desugar}"']
-  \&
-  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
+  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, "{-}\,\text{sugar}"'] \\[-0.8em]
 \text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
   \&
-  \& \text{LLVM IR} \arrow[dd, "\text{run}"] \\
+  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
   \&
-  \& \\
+  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
 \text{value} \arrow[rr, equal]
   \&
   \& \text{value}
@@ -140,8 +139,9 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 \caption{The arrows of the paper.
 Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar; what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
+Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
 They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: the desugaring is total on Jlt and replaces the hook, so $\llbracket\cdot\rrbracket \circ \mathit{desugar}$ is total on Jlt and the two readings are readings of every Jlt program.}
+In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: the desugaring $\mathit{desugar}$, the arrow labelled with what it removes, is total on Jlt and replaces the hook, so $\llbracket\cdot\rrbracket \circ \mathit{desugar}$ is total on Jlt and the two readings are readings of every Jlt program.}
 \label{fig:arrows}
 \end{figure}
 
