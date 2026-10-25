@@ -225,66 +225,64 @@ That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with co
 Haskell's type checker holds the premise and a \Cpp{} compiler does not, which is the only reason it is a rule here.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
+using namespace std;
+
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
-
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
 
-template <std::unsigned_integral T>
-constexpr T unit(std::plus<T>) { return 0; }
-template <std::unsigned_integral T>
-constexpr bool associative(std::plus<T>) {
+template <unsigned_integral T>
+constexpr T unit(plus<T>) { return 0; }
+template <unsigned_integral T>
+constexpr bool associative(plus<T>) {
   return true;
 }
 
 template <typename T, typename Op>
 concept IsMonoid =
-    std::semiregular<T> &&
+    semiregular<T> &&
     requires(const T a, const T b) {
-      { Op{}(a, b) } -> std::same_as<T>;
-      { unit<T>(Op{}) } -> std::same_as<T>;
+      { Op{}(a, b) } -> same_as<T>;
+      { unit<T>(Op{}) } -> same_as<T>;
     } && associative<T>(Op{});
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.5\linewidth}
 \begin{cpp}
-template <>
-constexpr std::string unit<std::string>(
-    std::plus<std::string>) {
-  return {};
-}
-template <>
-constexpr bool associative<std::string>(
-    std::plus<std::string>) {
+template <> constexpr string
+unit<string>(plus<string>) { return {}; }
+template <> constexpr bool
+associative<string>(plus<string>) {
   return true;
 }
+// ... and size_t under *, unit 1, likewise.
 
-template <typename T, std::size_t N>
-  requires IsMonoid<T, std::plus<T>>
-constexpr T concat(
-    const std::array<T, N>& words) {
-  return std::ranges::fold_left(words,
-      unit<T>(std::plus<T>{}),
-      std::plus<T>{});
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(same_as<T> auto... ws) {
+  return ranges::fold_left(
+      array<T, sizeof...(ws)>{ws...},
+      unit<T>(Op{}), Op{});
 }
 
-static_assert(concat(
-    std::array<size_t, 3>{1, 2, 3}) == 6);
-static_assert(concat(
-    std::array<std::string, 3>{
-        "ab", "c", "d"}) == "abcd");
+static_assert(concat<size_t>(1uz, 2uz, 3uz)
+              == 6);
+static_assert(concat<size_t,
+    multiplies<size_t>>(2uz, 3uz, 7uz) == 42);
+static_assert(concat<string>("ab"s, "c"s, "d"s)
+              == "abcd");
 \end{cpp}
 \end{minipage}
 \caption{Rule~2: a shape, its instances, and a function of it.
 Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; before the shape, an instance for every unsigned integral under \cppinline{+}, a constrained overload, which has to precede the shape to be found (Section~\ref{sec:limits}).
-Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{concat}, a fold of a finite sequence from the unit by the operation, at \cppinline{size_t} and at \cppinline{std::string}.}
+Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{size_t} under \cppinline{*}, one its unit, registered the same way and elided; and \cppinline{concat}, a fold of its arguments from the unit by the operation, at \cppinline{size_t} under both and at \cppinline{std::string}.}
 \label{lst:rule2}
 \end{listing}
 
-What a registration enables is \cppinline{concat}: once \cppinline{std::string} is declared a monoid under \cppinline{+}, with the empty string its unit, any finite sequence of words folds to one, and the same function sums numbers.
+What a registration enables is \cppinline{concat}: once \cppinline{std::string} is declared a monoid under \cppinline{+}, with the empty string its unit, any finite sequence of words folds to one, and the same function sums numbers and multiplies them.
 The fold needs all three parts of the shape, the operation to combine, the unit to start from, and associativity, which makes the result independent of how the sequence is bracketed.
 What this buys is the System~F reading of Section~\ref{sec:translation}: \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, not at definition, against the constraint, so a body that uses an operation its constraint does not name is accepted; the test keeps one such body as a planted finding for the checker.
@@ -454,7 +452,6 @@ concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
                      distributive<T>(Mul{}, Add{});
 \end{cpp}
 \begin{cpp}
-template <> constexpr size_t unit<size_t>(std::multiplies<size_t>) { return 1; }
 template <> constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
 template <>
 constexpr bool distributive<size_t>(std::multiplies<size_t>, std::plus<size_t>) {
@@ -473,7 +470,7 @@ static_assert(!IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<
 \end{cpp}
 \caption{Laws as functions of the operation, and shapes as conjunctions.
 Top: two laws, declared and deleted, and the two shapes that require them.
-Bottom: one certificate of each kind, the rest elided; three semirings, $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$; and a shape the listing leaves to the test, \cppinline{IsDistributiveLattice}: \cppinline{IsSemiring} conjoined with two more laws declared the same way, idempotence and absorption.
+Bottom: one certificate of each law, the rest elided; three semirings, $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$; and a shape the listing leaves to the test, \cppinline{IsDistributiveLattice}: \cppinline{IsSemiring} conjoined with two more laws declared the same way, idempotence and absorption.
 The bit vectors and $\mathbb{B}$ have it; $(\mathbb{Z}/2^{64}, +, \cdot)$ does not.
 The fourth line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.
 The last is refused for a law that is false, \cppinline{+} is not idempotent, and for one that is merely undeclared, \cppinline{*} commutative, and the shape does not tell the two apart: \cppinline{false} means \emph{not known}, not \emph{no}.}
@@ -706,7 +703,7 @@ A branch on a constraint is two generic functions whose heads both match, which 
 We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
-What the compiler does is instantiate: \cppinline{concat<size_t, 3>} is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
+What the compiler does is instantiate: \cppinline{concat<size_t>} at three arguments is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
 Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
 Section~\ref{sec:binding} shows the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
 What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
