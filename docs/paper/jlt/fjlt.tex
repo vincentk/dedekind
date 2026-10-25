@@ -548,7 +548,8 @@ Constrained overloads are generic functions, in the grammar as long as their hea
 
 \paragraph{Inheritance.}
 Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
-What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, 45 of them in the module and every base an empty class: the family row spelled by inheritance, read as the fact it states.
+What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, 44 of them in the module and every base an empty class: the family row spelled by inheritance, read as the fact it states.
+The one class that inherited state, a wrapper around \cppinline{Morphism}, had no users and is gone.
 
 \paragraph{What the table says.}
 Seven rows need nothing from the calculus, the closure lemma being the standard's own account of the construction, two of them (families, overloading) as long as no two generic heads match.

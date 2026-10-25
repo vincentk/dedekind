@@ -29,6 +29,8 @@ template <typename T>
 struct Wrap {};
 template <typename T>
 struct is_x<Wrap<T>> : is_x<T> {};  // fine: a dependent empty base
+template <typename T>
+struct is_y : std::bool_constant<sizeof(T) == 1> {};  // fine: through an alias
 
 }  // namespace jlt_listing
 

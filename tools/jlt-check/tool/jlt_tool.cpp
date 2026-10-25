@@ -645,15 +645,23 @@ class InlineRequires : public clang::ASTConsumer,
 
 /// Whether a base type is an empty class without virtual functions.  A
 /// dependent base (`: is_x<T>` in a partial specialisation) is judged by the
-/// definition of its template's primary, the one declaration there is to read.
+/// definition of its template's primary, the one declaration there is to read;
+/// an alias template (`: std::bool_constant<T::v>`) is read through to the
+/// type it names first.
 bool emptyBase(clang::QualType t) {
   const clang::CXXRecordDecl* r = t->getAsCXXRecordDecl();
-  if (!r) {
+  for (int depth = 0; !r && depth < 8; ++depth) {
     const auto* ts = t->getAs<clang::TemplateSpecializationType>();
-    const auto* ct = ts ? llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(
-                              ts->getTemplateName().getAsTemplateDecl())
-                        : nullptr;
+    if (!ts) break;
+    const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
+    if (const auto* at = llvm::dyn_cast_or_null<clang::TypeAliasTemplateDecl>(td)) {
+      t = at->getTemplatedDecl()->getUnderlyingType();
+      r = t->getAsCXXRecordDecl();
+      continue;
+    }
+    const auto* ct = llvm::dyn_cast_or_null<clang::ClassTemplateDecl>(td);
     r = ct ? ct->getTemplatedDecl() : nullptr;
+    break;
   }
   if (!r) return false;
   const clang::CXXRecordDecl* def = r->getDefinition();
