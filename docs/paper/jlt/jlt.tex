@@ -82,10 +82,10 @@ The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipli
 It is an embedded language in Hudak's sense~\cite{hudak1996building}: its programs are ordinary \Cpp{23} programs, type-checked and compiled by the host, and its domain is no narrower than typed functional programming.
 The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}.
 That is how a concept admits a type, and how the fragment admits a carrier.
-It has three rules.
-Values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
-Generic code varies with a type only through that type's concepts and traits.
-Recursion only folds, over finite data or over a time budget.
+It has three rules, each named for what it conserves.
+\emph{Substitution}: values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
+\emph{Abstraction}: generic code varies with a type only through that type's concepts and traits.
+\emph{Descent}: recursion only folds, over finite data or over a time budget.
 Under these rules a program written in the grammar of a small calculus translates into System~F by dictionary passing: concepts become record types, trait specialisations records, constraints parameters.
 It inherits what System~F guarantees: termination, parametricity and a value.
 "Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
@@ -175,10 +175,13 @@ Jlt is the posture, and a Jlt program is a \Cpp{} program that keeps the three r
 Featherweight Jlt, FJlt, is the calculus of Appendix~\ref{app:fjlt}, a grammar with typing, evaluation and a translation into System~F, and the theorems of Section~\ref{sec:guarantees} are about FJlt alone.
 Every FJlt program is a Jlt program by construction; that a Jlt program is an FJlt program when it is written in the calculus's grammar is the adequacy argument of Section~\ref{sec:translation:adequacy}, which is what lets the theorems reach a \Cpp{} program, and Section~\ref{sec:limits} says what keeps the rules and is still outside the grammar.
 Two words for that division: FJlt is the \emph{kernel} of Jlt, and what a Jlt program writes beyond the kernel's grammar is \emph{sugar}, each form named with its desugaring into the kernel in Appendix~\ref{app:fjlt:closure}, without a proof.
+The word is Landin's~\cite{landin1964mechanical}, a construction eliminable by translation into the kernel, and the arrangement is the Haskell Report's, which gives the language as a kernel and the translations into it~\cite{marlow2010haskell}.
+Most of the translations are local in Felleisen's sense~\cite{felleisen1991expressive}; two are not, closure conversion and the split of a branch on a constraint into two functions, since both add declarations, which is one reason the sugar is named and its desugaring trusted rather than proved.
 The claims of this paper are about the kernel.
 
-\paragraph{Rule 1: values and pure functions.}
+\paragraph{Rule 1, Substitution: values and pure functions.}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
+What the rule conserves is the value of a term, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 At runtime the checker of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
 
@@ -219,8 +222,9 @@ The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
-\paragraph{Rule 2: a type varies behaviour only through its concepts and traits.}
+\paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts say it can, and nothing else.
+What the rule conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T} and to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.48\linewidth}
@@ -287,8 +291,9 @@ What this buys is Section~\ref{sec:translation}: a function that only uses what 
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint. \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
 
-\paragraph{Rule 3: recursion only folds.}
+\paragraph{Rule 3, Descent: recursion only folds.}
 A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
+What the rule conserves is a measure that decreases at every step, the length of a range or the depth of a term, and its equation is the fold's universal property~\cite{meijer1991functional}: $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
 Or it iterates a step over \emph{a time budget}: a standard fold, such as \cppinline{fold_left}, over \cppinline{std::views::repeat(x, n)}, where \cppinline{n} is a value the caller supplies before the fold starts.
 
@@ -320,12 +325,12 @@ This paper contains none: its loops are inside \cppinline{fold_left} and \cppinl
 \toprule
 rule & buys & costs \\
 \midrule
-1 values, pure functions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 behaviour through concepts & the System~F reading & no ad hoc use of a type \\
-3 recursion folds & termination & \emph{out of budget} as an answer \\
+1 Substitution & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 Abstraction & the System~F reading & no ad hoc use of a type \\
+3 Descent & termination & \emph{out of budget} as an answer \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance.
+\caption{The posture at a glance, each rule named for what it conserves.
 At build time, Rule~1 is held by the compiler in part and by the repository's tool for its syntax; Rule~2 by the tool at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the tool for loops and recursion.
 Section~\ref{sec:limits} says how.}
 \label{tab:posture}
