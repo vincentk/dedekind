@@ -237,3 +237,55 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
+
+  # A release after a green build of main, at most once per 72 hours,
+  # versioned 0.<YYYYMMDD>.<n>+<short hash> (.github/scripts/release-version.sh).
+  # It runs here rather than from a workflow_run event because such events
+  # failed at startup on GitHub's side (nameless "BuildFailed" runs, 2026-10-25).
+  # release.yml keeps the manual, forced release.
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-and-deploy, python-dist, docs-and-pages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    env:
+      MIN_HOURS: "72"
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      with:
+        fetch-depth: 0
+
+    - name: Resume a tag whose release is missing
+      id: resume
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        tag=$(git tag --points-at "$GITHUB_SHA" | grep '^v0\.' | head -1 || true)
+        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
+          gh release create "$tag" --verify-tag --title "$tag" --generate-notes
+          echo "resumed=1" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Next version
+      id: version
+      if: steps.resume.outputs.resumed != '1'
+      run: |
+        v=$(.github/scripts/release-version.sh "$GITHUB_SHA" "$MIN_HOURS" 0)
+        echo "version=$v" >> "$GITHUB_OUTPUT"
+        echo "Next version: $v"
+
+    - name: Tag and release
+      if: steps.resume.outputs.resumed != '1' && steps.version.outputs.version != 'skip'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "Release $VERSION" "$GITHUB_SHA"
+        git push origin "v$VERSION"
+        gh release create "v$VERSION" --verify-tag --title "v$VERSION" --generate-notes

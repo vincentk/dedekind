@@ -1,16 +1,11 @@
 name: Release
 
-# Cuts a release after a green CI run on main, at most once per 72 hours,
-# versioned 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
-# The spacing keeps the list of releases short, for an archive such as Zenodo
-# to be connected later.
-# workflow_dispatch cuts one on demand, e.g. for a paper submission.
+# A release cut by hand, on main, ignoring the 72-hour spacing by default:
+# for a paper submission or a fix that should not wait.  The automatic
+# release after a green build of main is the last job of cmake.yml.
+# Version: 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
 
 on:
-  workflow_run:
-    workflows: ["C++ CI with Cmake"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       force:
@@ -31,22 +26,19 @@ env:
 
 jobs:
   release:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push')
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:
-        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        ref: ${{ github.sha }}
         fetch-depth: 0
 
     - name: Resume a tag whose release is missing
       id: resume
       env:
         GH_TOKEN: ${{ github.token }}
-        COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        COMMIT: ${{ github.sha }}
       run: |
         tag=$(git tag --points-at "$COMMIT" | grep '^v0\.' | head -1 || true)
         if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
@@ -58,8 +50,8 @@ jobs:
       id: version
       if: steps.resume.outputs.resumed != '1'
       env:
-        COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
-        FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
+        COMMIT: ${{ github.sha }}
+        FORCE: ${{ inputs.force && '1' || '0' }}
       run: |
         v=$(.github/scripts/release-version.sh "$COMMIT" "$MIN_HOURS" "$FORCE")
         echo "version=$v" >> "$GITHUB_OUTPUT"
