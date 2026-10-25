@@ -459,6 +459,7 @@ That is an observation about the exhibits and a tendency with a reason for the r
 \subsection{The sugar: closure under the host's constructions}
 \label{app:fjlt:closure}
 FJlt is the kernel of Jlt, and this section names the sugar: each construction of \Cpp{} that a Jlt program writes beyond the kernel's grammar, with its desugaring into the kernel and without a proof.
+Most of the desugarings are local in Felleisen's sense~\cite{felleisen1991expressive}; two are not, closure conversion and the split of a branch on a constraint into two functions, since both add declarations, which is one reason the sugar is named and its desugaring trusted rather than proved.
 The question is one of closure: given terms of FJlt, under which condition is their composition under a construction of \Cpp{} again a term of FJlt?
 That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
 Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
