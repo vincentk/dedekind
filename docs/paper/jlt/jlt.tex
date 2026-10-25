@@ -65,6 +65,7 @@ The first is where \Cpp{} is: much of machine learning and most embedded devices
 The second is that the standard keeps evolving~\cite{gregor2006concepts,dosreis2006specifying,stroustrup2009remove}, and this paper draws the boundary in the most recent one: \Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges, and the posture uses nothing else.
 One decision in that evolution matters here.
 Concepts as proposed for \Cpp{0x} checked a template's definition against its constraints; concepts as standardised in \Cpp{20} check its uses, so a constrained body may use operations its constraints do not name, and that is the gap Rule~2 fills.
+The designers named the problem at the outset, in 2003: crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use~\cite{stroustrup2003concepts}.
 The language therefore contains the material for a typed functional fragment but does not enforce its boundary, and the question this paper answers is what discipline draws the boundary, and what a program inside it is.
 
 The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of restricting oneself to the part of \Cpp{23} that reads as System~F.
@@ -551,7 +552,7 @@ That is the price of Rule~3, and it is paid in the type rather than in a crash o
 Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
 What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
 The search is a loop of 84 instructions, unrolled by four and without a branch in its body. Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
-The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be. The discipline costs nothing at runtime.
+The records of Section~\ref{sec:translation} and the ranges of this section are gone, as Section~\ref{sec:translation:adequacy} said they would be. The discipline costs nothing at runtime, which is the zero-overhead principle~\cite{stroustrup2005abstraction} met by partial evaluation, the records' cost paid at build time.
 
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
@@ -587,6 +588,7 @@ If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow
 What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes. Section~\ref{sec:binding} is this theorem run twice.
 It is also the notion of equality here: two closed terms of a carrier are equal when they evaluate to the same value, and Leibniz's law, that equal arguments give equal results, holds by substitution.
 No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, so the rule asks \cppinline{std::semiregular} and not \cppinline{std::regular}.
+Equational reasoning presupposes a notion of equality, and which notion is a question of its own~\cite{mazur2008equal}; the observational one is this fragment's answer, not a settlement of the question.
 
 \begin{theorem}[Coherence]
 \label{thm:coherence}
