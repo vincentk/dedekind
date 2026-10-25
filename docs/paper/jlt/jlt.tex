@@ -46,6 +46,7 @@ Algebraic laws, the associativity and the unit of a monoid, are then values of t
 The translation is total on the calculus and partial on the language: a \Cpp{} program is a term of the calculus only when it keeps the rules, the compiler enforces some of those rules and not others, and we say which, and what the fragment gives up.
 The evidence is the proof sketches in the appendix; the listings, which compile and run under a stock compiler at compile time and at run time by a test in the public repository; a library whose core is held to the rules by a mechanical checker; and the compiled output, without the scaffolding.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
+For the programmer weighing a functional style in a multi-paradigm language, the rules make the trade explicit: what the style costs, what it buys, and what the compiler will and will not check of it.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
