@@ -180,6 +180,7 @@ Most of the translations are local in Felleisen's sense~\cite{felleisen1991expre
 The claims of this paper are about the kernel.
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
+\phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equals cannot be told apart by any operation, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
@@ -205,7 +206,7 @@ define i64 @id_rt() {
 }
 \end{minted}
 \end{minipage}
-\caption{Rule~1: the identity arrow, and what a call of it compiles to.
+\caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 \cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value. \cppinline{id(42)} is a fact the compiler checks.
 Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-O2}, attributes stripped.}
 \label{lst:rule1}
@@ -220,7 +221,7 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
-\label{def:rule2}
+\phantomsection\label{def:rule2}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
 That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 Haskell's type checker holds the premise and a \Cpp{} compiler does not, which is the only reason it is a rule here.
@@ -276,7 +277,7 @@ static_assert(concat<string>("ab"s, "c"s, "d"s)
               == "abcd");
 \end{cpp}
 \end{minipage}
-\caption{Rule~2: a shape, its instances, and a function of it.
+\caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
 Right: monoids permit generic concatenation of finite element sequences.
@@ -292,6 +293,7 @@ Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the m
 No such checks against the constraint are performed at the template's definition.
 
 \paragraph{Rule 3, Descent: recursion only folds.}
+\phantomsection\label{def:rule3}
 A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
 What the rule conserves is a natural number that decreases at every step, the length of a range or the depth of a term, and a count-down over the naturals ends: that is Floyd's argument for termination~\cite{floyd1967assigning}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
 Either it folds over \emph{finite data}: a term, which is a finite composition of finitely many nodes, folded by \cppinline{cata}, or a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}}, folded by \cppinline{std::ranges::fold_left}, with \cppinline{std::views::iota(0, n)} the interval on \cppinline{size_t}.
@@ -308,7 +310,7 @@ constexpr T times(T x, size_t n) {
 
 static_assert(times<size_t>(7, 6) == 42);
 \end{cpp}
-\caption{Rule~3: a fold over a budget.
+\caption{\hyperref[def:rule3]{Rule~3}: Descent. A fold over a budget.
 \cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x}, starting from the unit.}
 \label{lst:rule3}
 \end{listing}
