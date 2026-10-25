@@ -220,6 +220,7 @@ The compiler enforces the rule in part: a \cppinline{constexpr} function that re
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
+\label{def:rule2}
 Generic code may do with a \cppinline{T} what \cppinline{T}'s concepts and traits say it can, and nothing else.
 That is the premise of Wadler's free theorems~\cite{wadler1989theorems}, with concepts and traits in the place of type classes~\cite{wadler1989adhoc}, and what it conserves is the body's independence from the carrier: \cppinline{f<T>} is one generic term applied to \cppinline{T}'s dictionary, so it respects every relation the dictionary respects (Corollary~\ref{cor:parametricity}).
 Haskell's type checker holds the premise and a \Cpp{} compiler does not, which is the only reason it is a rule here.
@@ -258,7 +259,6 @@ template <> constexpr bool
 associative<string>(plus<string>) {
   return true;
 }
-// ... and size_t under *, unit 1, likewise.
 
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
@@ -277,16 +277,19 @@ static_assert(concat<string>("ab"s, "c"s, "d"s)
 \end{cpp}
 \end{minipage}
 \caption{Rule~2: a shape, its instances, and a function of it.
-Left: the monoid shape, with one requirement the compiler reads off the carrier, \cppinline{Op{}(a, b)}, one it reads from \cppinline{unit}, a trait declared and deleted, and one law, associativity, declared the same way; before the shape, an instance for every unsigned integral under \cppinline{+}, a constrained overload, which has to precede the shape to be found (Section~\ref{sec:limits}).
-Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the empty string its unit, and \cppinline{size_t} under \cppinline{*}, one its unit, registered the same way and elided; and \cppinline{concat}, a fold of its arguments from the unit by the operation, at \cppinline{size_t} under both and at \cppinline{std::string}.}
+Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
+The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
+Right: Monoids permit generic concatenation of finite element sequences.
+Concatenations over (\cppinline{string, +, ""}), (\cppinline{size_t, +, 0}), (\cppinline{size_t, *, 1}).
+Some certifications omitted for brevity.
+}
 \label{lst:rule2}
 \end{listing}
 
-What a registration enables is \cppinline{concat}: once \cppinline{std::string} is declared a monoid under \cppinline{+}, with the empty string its unit, any finite sequence of words folds to one, and the same function sums numbers and multiplies them.
-The fold needs all three parts of the shape, the operation to combine, the unit to start from, and associativity, which makes the result independent of how the sequence is bracketed.
-What this buys is the System~F reading of Section~\ref{sec:translation}: \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
-A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, not at definition, against the constraint, so a body that uses an operation its constraint does not name is accepted; the test keeps one such body as a planted finding for the checker.
-This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
+Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its normal form reduction, \cppinline{concat}.
+\cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
+\hyperref[def:rule2]{Rule~2} exists because a \Cpp{} compiler checks a template's body during instantiation at the call site only.
+No such checks against the constraint are performed at the template's definition.
 
 \paragraph{Rule 3, Descent: recursion only folds.}
 A Jlt program is finite for one of two reasons, and Rule~3 admits those two.
