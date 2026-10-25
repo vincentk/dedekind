@@ -320,9 +320,11 @@ define i64 @times_100(i64 %x) {
 }
 \end{minted}
 \end{minipage}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent. A fold over a budget.
+\caption{\hyperref[def:rule3]{Rule~3}: Descent.
+Left: a fold over a budget.
 \cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x}, starting from the unit.
-Beside it, the same fold at run time over a hundred copies, \cppinline{size_t times_100(size_t x) { return times<size_t>(x, 100); }}: its LLVM IR under Clang 23 at \texttt{-O2}, attributes stripped and the argument named, is one multiplication.}
+Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised to \cppinline{size_t} and \cppinline{n = 100}, attributes stripped.
+}
 \label{lst:rule3}
 \end{listing}
 
@@ -330,8 +332,7 @@ Listing~\ref{lst:rule3}'s \cppinline{times} folds the monoid's operation over \c
 What this buys is termination and, with Rule~2, the System~F reading: both kinds of structure are catamorphisms, of the term's inductive type and of a finite prefix of $\mathbb{N}$ (Appendix~\ref{app:fjlt:translation}), data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic}.
 Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades decidability for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot answer every question.
 Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
-The compiler enforces the rule only at compile time, where an evaluation that does not finish hits the step limit.
-At run time a \cppinline{while (true)} compiles like any other loop, and this paper contains none: its loops are inside \cppinline{fold_left} and \cppinline{cata}, and every function composes.
+At compile time each kind of structure meets a counter of the compiler's, a type the template instantiation depth and a value the constant-evaluation step limit, both configurable, and exceeding one is a compilation failure (Section~\ref{sec:limits}).
 
 \begin{table}[ht]
 \centering
