@@ -24,53 +24,6 @@ import dedekind.category;
 namespace jlt_listing {
 using std::size_t;
 
-// Section 1: declared, entailed, inferred.
-namespace intro {
-template <typename F, typename G>
-struct Compose {
-  F f;
-  G g;
-  template <typename X>
-    requires std::invocable<const F&, X&> &&
-             std::invocable<const G&, std::invoke_result_t<const F&, X&>>
-  constexpr auto operator()(X x) const {
-    return g(f(x));
-  }
-};
-
-template <typename F>
-constexpr bool involutive(F) {
-  return false;
-}
-template <>
-constexpr bool involutive(std::logical_not<bool>) {
-  return true;
-}
-template <>
-constexpr bool involutive(std::bit_not<size_t>) {
-  return true;
-}
-template <>
-constexpr bool involutive(std::negate<size_t>) {
-  return true;
-}
-
-template <typename F>
-constexpr bool bijective(F f) {
-  return involutive(f);
-}
-template <typename F, typename G>
-constexpr bool bijective(Compose<F, G> c) {
-  return bijective(c.f) && bijective(c.g);
-}
-
-static_assert(bijective(Compose{std::bit_not<size_t>{},
-                                std::negate<size_t>{}}));
-static_assert(!involutive(Compose{std::logical_not<bool>{},
-                                  std::logical_not<bool>{}}));
-static_assert(!involutive(std::negate<int>{}));
-}  // namespace intro
-
 // Listing 1, top: the shape, unpopulated.
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
@@ -366,23 +319,6 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   using std::size_t;
   namespace L = jlt_listing;
   namespace C = dedekind::category;
-
-  SECTION("Section 1: the same laws, read at runtime") {
-    namespace I = jlt_listing::intro;
-    I::Compose<std::bit_not<size_t>, std::negate<size_t>> c{};
-    CHECK(I::bijective(c));
-    CHECK(!I::involutive(c));
-    CHECK(c(size_t{5}) == 6);
-    CHECK(!I::involutive(std::negate<int>{}));
-  }
-
-  SECTION("Section 1: the tree certifies the same involutions") {
-    STATIC_CHECK(C::IsInvolution<std::logical_not<bool>, bool>);
-    STATIC_CHECK(C::IsInvolution<std::bit_not<size_t>, size_t>);
-    STATIC_CHECK(C::IsInvolution<std::negate<size_t>, size_t>);
-    STATIC_CHECK(!C::IsInvolution<std::negate<int>, int>);
-    CHECK(C::Reverse{}(C::Reverse{}(std::string{"posture"})) == "posture");
-  }
 
   SECTION("Listing 1: the same unit, called on a value") {
     std::plus<size_t> plus;
