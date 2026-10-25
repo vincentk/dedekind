@@ -508,7 +508,7 @@ Constant evaluation of the two spellings agrees because both evaluate \cppinline
 
 \paragraph{\texttt{if constexpr} on a constraint.}
 A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}$ alone, is the pair of generic functions with heads $\overline{Q}, C\texttt{<T>}$ and $\overline{Q}$, the first chosen wherever $C\texttt{<T>}$ is entailed.
-When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X}, the first function is an explicit specialisation at \cppinline{X} and resolution already prefers it, so nothing is missing.
+When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X} and resolution already prefers it, so nothing is missing; with other type parameters left free, as in \cppinline{f_algebra}'s branch on \cppinline{Compose<F, G>} against the fallback, it is a family and waits with the general case.
 In the general case the two heads both match at an instantiation where $C\texttt{<T>}$ holds, which the no-overlap condition of Appendix~\ref{app:fjlt:typing} forbids.
 What the calculus lacks is resolution by specificity: the condition becomes that at every instantiation the matching generic functions have a unique most specific member, resolution picks it, and the sketch of Theorem~\ref{thm:coherence} gains the case that the record is unique because the most specific match is.
 \Cpp{} decides the new condition as it decides the old one, since an ambiguous partial ordering of constraints is ill-formed.

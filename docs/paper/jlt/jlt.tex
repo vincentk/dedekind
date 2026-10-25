@@ -39,7 +39,7 @@ i) values are copyable data and functions are pure and evaluable at compile time
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is bounded: it only folds, over finite data or over a time budget.
 
-A core calculus, Featherweight Jlt, is presented.
+A core calculus, Featherweight Jlt, the kernel of Jlt, is presented.
 Its syntax is a subset of Jlt as written, and it translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
 Concepts are turned into record types, trait specialisations into records, constraints into parameters, and folds become the iterators of inductive types.
 The translation preserves types, preserves evaluation and is a function of the program, so a program of the calculus terminates, is parametric and evaluates to a value.
@@ -47,7 +47,8 @@ Algebraic invariants such as the associativity and the unit of a monoid are then
 They are stated once and read either by concepts at compile time or by function calls at run time.
 Evidence that the calculus holds real programs and that the translation is total on it: a) proof sketches in the appendix; b) the listings, which compile and run under a stock compiler at both binding times, by a test in the public repository; c) a library whose core is held to the rules by a mechanical checker; d) the compiled output, without the scaffolding.
 
-What the System~F image has, termination, parametricity and a value, the Jlt program inherits: by theorem for the calculus and by an adequacy argument for the executable.
+What the System~F image has, termination, parametricity and a value, a kernel program inherits: by theorem for the calculus and by an adequacy argument for the executable.
+What Jlt writes beyond the kernel is sugar, named with its desugaring and conjectured to follow.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
 Jlt simplifies the trade between a functional style and a mainstream systems language in both directions.
 The correctness guarantees of the style are checked at compile time.
