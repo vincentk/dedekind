@@ -1,7 +1,8 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
  * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 1 to 4),
- * verbatim up to formatting,
+ * verbatim up to formatting and qualification (a listing may say
+ * `using namespace std`),
  * so that CI holds the paper to the code.  The listings declare their own
  * unit and laws, so they live in their own namespace; the TEST_CASE then
  * checks that the tree's unit<T>(Op{}) and laws agree with every fact the
@@ -23,6 +24,7 @@ import dedekind.category;
 
 namespace jlt_listing {
 using std::size_t;
+using namespace std::string_literals;
 
 // Listing 1, top: the shape, unpopulated.
 template <typename T, typename Op>
@@ -57,14 +59,26 @@ constexpr bool associative<std::string>(std::plus<std::string>) {
   return true;
 }
 
-template <typename T, std::size_t N>
-  requires IsMonoid<T, std::plus<T>>
-constexpr T concat(const std::array<T, N>& words) {
-  return std::ranges::fold_left(words, unit<T>(std::plus<T>{}), std::plus<T>{});
+template <>
+constexpr size_t unit<size_t>(std::multiplies<size_t>) {
+  return 1;
+}
+template <>
+constexpr bool associative<size_t>(std::multiplies<size_t>) {
+  return true;
 }
 
-static_assert(concat(std::array<size_t, 3>{1, 2, 3}) == 6);
-static_assert(concat(std::array<std::string, 3>{"ab", "c", "d"}) == "abcd");
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(std::same_as<T> auto... words) {
+  return std::ranges::fold_left(std::array<T, sizeof...(words)>{words...},
+                                unit<T>(Op{}), Op{});
+}
+
+static_assert(concat<size_t>(1uz, 2uz, 3uz) == 6);
+static_assert(concat<size_t, std::multiplies<size_t>>(2uz, 3uz, 7uz) == 42);
+static_assert(concat<std::string>("ab"s, "c"s, "d"s) == "abcd");
+static_assert(concat<size_t>() == 0);
 
 // Listing 1, middle: bool.
 template <>
@@ -91,20 +105,12 @@ static_assert(!IsMonoid<bool, std::plus<>>);
 
 // Listing 1, bottom: size_t.
 template <>
-constexpr size_t unit<size_t>(std::multiplies<size_t>) {
-  return 1;
-}
-template <>
 constexpr size_t unit<size_t>(std::bit_or<size_t>) {
   return 0;
 }
 template <>
 constexpr size_t unit<size_t>(std::bit_and<size_t>) {
   return SIZE_MAX;
-}
-template <>
-constexpr bool associative<size_t>(std::multiplies<size_t>) {
-  return true;
 }
 template <>
 constexpr bool associative<size_t>(std::bit_or<size_t>) {
@@ -316,8 +322,12 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     std::bit_and<size_t> bit_and;
     CHECK(L::unit<size_t>(plus) == 0);
     CHECK(L::unit<size_t>(bit_and) == SIZE_MAX);
-    CHECK(L::concat(std::array<size_t, 3>{20, 21, 1}) == 42);
-    CHECK(L::concat(std::array<std::string, 2>{"ab", "cd"}) == "abcd");
+    size_t twenty = 20;
+    CHECK(L::concat<size_t>(twenty, size_t{21}, size_t{1}) == 42);
+    CHECK(L::concat<size_t, std::multiplies<size_t>>(size_t{6}, size_t{7}) ==
+          42);
+    CHECK(L::concat<std::string>(std::string{"ab"}, std::string{"cd"}) ==
+          "abcd");
     CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 
