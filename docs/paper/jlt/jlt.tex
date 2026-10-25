@@ -99,6 +99,26 @@ A discipline that makes a mainstream compiler into a checker of this modest sort
 What the posture is for, in a library written in it, is code that reads as combinators and runs as the compiler's pre-computation of them: pretty because the structure lives in the combinators, fast because the compiler can reason about them and evaluate at build time what does not depend on run-time input.
 Section~\ref{sec:binding} shows the mechanism on one function.
 
+\begin{figure}[tb]
+\centering
+\begin{tikzcd}[column sep=4.5em, row sep=3.2em]
+\text{FJlt} \arrow[r, hook, "\text{Section~\ref{sec:translation:adequacy}}"] \arrow[d, "\llbracket\cdot\rrbracket"', "\text{Section~\ref{sec:translation}}"]
+  & \text{Jlt} \arrow[r, hook, "\text{Section~\ref{sec:posture}}"]
+  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}", "\text{Section~\ref{sec:binding}}"'] \\
+\text{System~F} \arrow[d, "\text{evaluation}"', "\text{Section~\ref{sec:guarantees}}"]
+  &
+  & \text{LLVM IR} \arrow[d, "\text{run}", "\text{Appendix~\ref{app:fjlt:ssa}}"'] \\
+\text{value} \arrow[rr, equal, "\text{Theorem~\ref{thm:simulation}, then an argument}"']
+  &
+  & \text{value}
+\end{tikzcd}
+\caption{The arrows of the paper.
+Jlt is the part of \Cpp{23} that keeps the three rules, FJlt the part of Jlt written in the calculus's grammar.
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt and \texttt{clang++} is total on \Cpp{23}, so an FJlt program has two readings.
+They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus, and by an argument (Sections~\ref{sec:translation:adequacy} and~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}) for the program the compiler emits.}
+\label{fig:arrows}
+\end{figure}
+
 \paragraph{Contributions.}
 The contribution is a map from a known discipline onto existing mainstream functionality, not a piece of software.
 \begin{enumerate}
@@ -109,9 +129,13 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: Section~\ref{sec:limits} says what the repository's checker reads and what it misses.
 
-\paragraph{Audience and plan.}
+
+\paragraph{How to read this paper.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
-The sections follow the arrows: from \Cpp{} to Jlt (Section~\ref{sec:posture}), from Featherweight Jlt to System~F (Section~\ref{sec:translation}) and back (Section~\ref{sec:guarantees}), from Jlt to Featherweight Jlt (Section~\ref{sec:translation:adequacy}), with one program run at both binding times between them (Section~\ref{sec:binding}); Section~\ref{sec:limits} says what is left open, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
+The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
+Section~\ref{sec:posture} carves Jlt out of \Cpp{23}, Section~\ref{sec:translation} translates Featherweight Jlt into System~F, Section~\ref{sec:binding} runs one program through \texttt{clang++} at both binding times, Section~\ref{sec:guarantees} reads the theorems back from System~F, and Section~\ref{sec:translation:adequacy} says which Jlt programs are Featherweight Jlt programs.
+The bottom edge is where the two readings meet.
+Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
