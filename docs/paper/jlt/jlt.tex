@@ -286,8 +286,8 @@ Right: \cppinline{std::string} registered as a monoid under \cppinline{+}, the e
 \label{lst:rule2}
 \end{listing}
 
-The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and that string concatenation is a monoid is luck, not a declaration.
-\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings pass it the moment someone registers their unit, the empty string, as the right panel does.
+The breach is Listing~\ref{lst:rule2}'s \cppinline{twice} without its clause, \cppinline{template <typename T> constexpr T twice_loose(T x) { return x + x; }}, kept in the test as a planted finding: its \cppinline{+} means whatever \cppinline{+} means at each type, and nothing it declares says what that is: strings are a monoid under concatenation, but \cppinline{twice_loose} would compile just as readily at \cppinline{double}, whose \cppinline{+} is not associative.
+\cppinline{twice} keeps the rule with the same body: \cppinline{IsMonoidPlus<T>} names \cppinline{a + b}, the unit and the law, so \cppinline{x + x} is a requirement of the constraint read at \cppinline{a, b := x}, the difference between the two functions is the clause, and strings, a monoid in fact, pass it once the program says so by registering their unit, the empty string, as the right panel does.
 What this buys is the System~F reading of Section~\ref{sec:translation}.
 A template body is checked at instantiation, against the type actually supplied, not at definition, against the constraint. \cppinline{twice_loose} is accepted, and so would be a \cppinline{twice} whose clause did not name \cppinline{+}.
 This is the rule the fragment is named for, and it is a posture: the programmer holds it, the compiler does not.
