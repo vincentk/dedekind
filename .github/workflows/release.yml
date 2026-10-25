@@ -2,7 +2,8 @@ name: Release
 
 # Cuts a release after a green CI run on main, at most once per 72 hours,
 # versioned 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
-# Each GitHub Release is archived by Zenodo; the spacing keeps that record short.
+# The spacing keeps the list of releases short, for an archive such as Zenodo
+# to be connected later.
 # workflow_dispatch cuts one on demand, e.g. for a paper submission.
 
 on:
