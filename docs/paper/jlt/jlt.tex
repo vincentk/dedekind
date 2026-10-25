@@ -212,14 +212,10 @@ Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_
 \end{listing}
 
 Listing~\ref{lst:rule1} is the rule in one function.
-\cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value, nothing can change the value through it, so what comes back is what was passed, and a parameter written \cppinline{const T} or \cppinline{const T&} is one and the same parameter, the second an optimisation the translation erases.
-An object a function could change would be state, which the rule excludes. The shapes' requirements say \cppinline{const T a} for that reason, and \cppinline{const}-correctness is the rule written on the type.
-Two consequences keep the identification exact.
-A function returns a value, never a reference, since a reference into an argument could outlive a temporary the caller passed; and every member function is \cppinline{const}, since a non-\cppinline{const} one changes its object.
-The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, so the checker of Section~\ref{sec:limits} enforces on \Cpp{} what the calculus assumes.
-A function passed as an argument is a value like any other, and its \cppinline{const} call operator observes rather than changes.
-What this buys is that a call is a value, with no time attached to it.
-The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and the same function runs at runtime, unchanged, where the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned. Section~\ref{sec:binding} makes a program out of that.
+\cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value and nothing changes it, so \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases.
+Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
+The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the checker of Section~\ref{sec:limits} holds \Cpp{} to the same.
+The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and at run time the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned (Section~\ref{sec:binding}).
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
