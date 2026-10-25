@@ -101,21 +101,21 @@ Section~\ref{sec:binding} shows the mechanism on one function.
 
 \begin{figure}[tb]
 \centering
-\begin{tikzcd}[column sep=4.5em, row sep=3.2em]
-\text{FJlt} \arrow[r, hook, "\text{Section~\ref{sec:translation:adequacy}}"] \arrow[d, "\llbracket\cdot\rrbracket"', "\text{Section~\ref{sec:translation}}"]
-  & \text{Jlt} \arrow[r, hook, "\text{Section~\ref{sec:posture}}"]
-  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}", "\text{Section~\ref{sec:binding}}"'] \\
-\text{System~F} \arrow[d, "\text{evaluation}"', "\text{Section~\ref{sec:guarantees}}"]
+\begin{tikzcd}[column sep=4.5em, row sep=3em]
+\text{FJlt} \arrow[r, hook, "\text{grammar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
+  & \text{Jlt} \arrow[r, hook, "\text{rules}"]
+  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\text{System~F} \arrow[d, "\text{eval}"']
   &
-  & \text{LLVM IR} \arrow[d, "\text{run}", "\text{Appendix~\ref{app:fjlt:ssa}}"'] \\
-\text{value} \arrow[rr, equal, "\text{Theorem~\ref{thm:simulation}, then an argument}"']
+  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
+\text{value} \arrow[rr, equal]
   &
   & \text{value}
 \end{tikzcd}
 \caption{The arrows of the paper.
-Jlt is the part of \Cpp{23} that keeps the three rules, FJlt the part of Jlt written in the calculus's grammar.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt and \texttt{clang++} is total on \Cpp{23}, so an FJlt program has two readings.
-They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus, and by an argument (Sections~\ref{sec:translation:adequacy} and~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}) for the program the compiler emits.}
+Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt the part of Jlt written in the calculus's grammar (Section~\ref{sec:translation:adequacy}).
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is total on \Cpp{23} (Section~\ref{sec:binding}), so an FJlt program has two readings.
+They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).}
 \label{fig:arrows}
 \end{figure}
 
@@ -133,7 +133,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 \paragraph{How to read this paper.}
 The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
-Section~\ref{sec:posture} carves Jlt out of \Cpp{23}, Section~\ref{sec:translation} translates Featherweight Jlt into System~F, Section~\ref{sec:binding} runs one program through \texttt{clang++} at both binding times, Section~\ref{sec:guarantees} reads the theorems back from System~F, and Section~\ref{sec:translation:adequacy} says which Jlt programs are Featherweight Jlt programs.
+Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:translation:adequacy} is the left hook, which Jlt programs are Featherweight Jlt programs.
 The bottom edge is where the two readings meet.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
