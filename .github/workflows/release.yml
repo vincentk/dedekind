@@ -1,0 +1,66 @@
+name: Release
+
+# Cuts a release after a green CI run on main, at most once per 72 hours,
+# versioned 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
+# Each GitHub Release is archived by Zenodo; the spacing keeps that record short.
+# workflow_dispatch cuts one on demand, e.g. for a paper submission.
+
+on:
+  workflow_run:
+    workflows: ["C++ CI with Cmake"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Release even if the last release is under 72 hours old"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  MIN_HOURS: "72"
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      with:
+        ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+        fetch-depth: 0
+
+    - name: Next version
+      id: version
+      env:
+        COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
+      run: |
+        v=$(.github/scripts/release-version.sh "$COMMIT" "$MIN_HOURS" "$FORCE")
+        echo "version=$v" >> "$GITHUB_OUTPUT"
+        echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+        echo "Next version: $v"
+
+    - name: Tag and release
+      if: steps.version.outputs.version != 'skip'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.version.outputs.version }}
+        COMMIT: ${{ steps.version.outputs.commit }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "Release $VERSION" "$COMMIT"
+        git push origin "v$VERSION"
+        gh release create "v$VERSION" --verify-tag --title "v$VERSION" --generate-notes
