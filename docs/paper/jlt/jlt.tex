@@ -42,7 +42,7 @@ Jlt can then be further decomposed into \emph{sugar} and a \emph{kernel}, Feathe
 FJlt translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
 The translation is total on FJlt and preserves types and evaluation, so an FJlt program inherits the System~F image's termination, parametricity and a value; the sugar is named with its desugaring into the kernel, the paper's working hypothesis.
 Along the way it shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
-The evidence is proof sketches in the appendix, listings that compile and run at both binding times by a test in the public repository, a library whose core a mechanical checker holds to the rules, and the compiled output.
+The evidence is proof sketches in the appendix, listings that compile and run at both binding times by a test in the public repository, a library whose core a mechanical linter holds to the rules, and the compiled output.
 
 What is gained is a language embedded in a mainstream compiler that checks formal claims of a modest but real kind, at compile time, where checking is cheap.
 Jlt therefore facilitates the exchange between formal methods and mainstream systems programming:
@@ -122,7 +122,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently. Jlt adopts GHC's rule, and the repository's tool reports a call that breaks it (Appendix~\ref{app:fjlt:typing}, Section~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, and that pair is what compliance means here.
 \end{enumerate}
-Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: Section~\ref{sec:limits} says what the repository's checker reads and what it misses.
+Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and complete definition checking: Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
 
 
 \paragraph{How to read this paper.}
@@ -144,7 +144,7 @@ Each rule has a listing of a few lines, verbatim in the test that holds this pap
 \phantomsection\label{def:rule1}
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
-At runtime the checker of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
+At runtime the linter of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
 What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equals cannot be told apart by any operation, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
@@ -176,7 +176,7 @@ Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_
 Listing~\ref{lst:rule1} is the rule in one function.
 \cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value and nothing changes it, so \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
-The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the checker of Section~\ref{sec:limits} holds \Cpp{} to the same.
+The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
 The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and at run time the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned (Section~\ref{sec:binding}).
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
@@ -653,7 +653,7 @@ The paragraphs below name practical limitations encountered while stress-testing
 
 \paragraph{The two rules the compiler does not check.}
 Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and Table~\ref{tab:posture} says who holds what.
-Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
+Both are decidable by inspection, so a linter is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
 Rule~3 it checks mechanically, for every body the compiler instantiates and up to the blind spots its rule files document: no loop but the library's iteration primitive and no function on a call cycle, so recursion runs over a term's type or not at all.
 Rule~1's syntactic part it checks with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference.
 Rule~2 is harder, and Table~\ref{tab:posture} records who holds it: the tool at the level of names, a reader for the rest.
@@ -715,7 +715,7 @@ Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left c
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head. Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types do not fit, is in Section~\ref{sec:limits}.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, with the missing bound named in the message~\cite{klabnik2023rust,swift2026generics}.
-That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the checker of Section~\ref{sec:limits}, is what recovering it by hand costs.
+That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
@@ -761,7 +761,7 @@ Instances for families of types live in tables and are read through functions, s
 And "standard \Cpp{23}" names a compiler and a library together (Section~\ref{sec:limits}).
 
 Three things follow as work not done here.
-Completing the checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the linter into a checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra beyond declared laws, which needs terms and their composition, and is the subject of further work.
 What the posture gives already is the stacking: shapes conjoin one declared law at a time, and branch (Listing~\ref{lst:ring}), and under translation each is a record holding the record below.
