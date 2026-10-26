@@ -4,6 +4,7 @@
 // is labelled; the rest must stay silent.  Standalone.
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <utility>
 
 namespace jlt_listing {
@@ -66,7 +67,8 @@ constexpr A first_of(std::pair<A, B> p) {  // fine: .first is the pair's
 
 template <typename T, typename Op>
   requires IsMonoid<T, Op>
-constexpr T four(T x) {  // fine: twice is a constrained template (its own check)
+constexpr T four(
+    T x) {  // fine: twice is a constrained template (its own check)
   return twice<T, Op>(twice<T, Op>(x));
 }
 
@@ -94,7 +96,7 @@ constexpr bool involutive(F) {  // a law predicate: a trait in function spelling
 }
 template <typename F>
 constexpr bool bijective(F f) {  // fine: a call to a bool-returning constexpr
-  return involutive(f);        // template is a trait read, which Rule 2 names
+  return involutive(f);          // template is a trait read, which Rule 2 names
 }
 
 constexpr int reading(std::pair<int, int> p) { return p.first; }
@@ -121,7 +123,7 @@ constexpr T through(T x) {  // fine: a call on a call's result, not on x
 
 template <typename A, typename B>
 constexpr int apply_box(Box<A, B> box, A a) {  // fine: a call on the box's
-  return box.b(a);                              // member, the box's vocabulary
+  return box.b(a);                             // member, the box's vocabulary
 }
 
 template <std::integral N>
@@ -130,29 +132,33 @@ struct Counter {
     requires std::invocable<const F&, N>
   constexpr N apply(const F& f, N n) const {  // fine: the class's integral
     return f(n) + n * 2;                      // grants * and +, the member's
-  }                                           // invocable grants ()
+  }  // invocable grants ()
 };
 
 struct Inactive {};
 template <typename R>
 concept Fires = !std::same_as<R, Inactive>;
 template <typename A>
-constexpr Inactive some_law(const A&) { return {}; }
+constexpr Inactive some_law(const A&) {
+  return {};
+}
 
 template <typename T>
 constexpr auto probed(T t) {  // definition 6-9: an inline requires-expression
   if constexpr (requires { t.steer(); }) {  // or concept test is NOT a
-    return t.steer();                        // constraint; the body probes
+    return t.steer();                       // constraint; the body probes
   } else if constexpr (Fires<decltype(some_law(t))>) {  // steer and some_law
-    return some_law(t);                      // instead of requiring them
+    return some_law(t);  // instead of requiring them
   } else {
     return t;
   }
 }
 
 template <typename T>
-  requires requires(T t) { t.steer(); } || Fires<decltype(some_law(std::declval<T>()))>
-constexpr auto declared(T t) {  // fine: the same body under declared constraints
+  requires requires(T t) { t.steer(); } ||
+           Fires<decltype(some_law(std::declval<T>()))>
+constexpr auto declared(
+    T t) {  // fine: the same body under declared constraints
   if constexpr (requires { t.steer(); }) {
     return t.steer();
   } else if constexpr (Fires<decltype(some_law(t))>) {
@@ -174,13 +180,134 @@ constexpr bool same(T a, T b) {  // fine: regular grants == (and =)
 
 template <typename... Ts>
   requires(std::equality_comparable<Ts> && ...)
-constexpr bool all_self_equal(Ts... xs) {  // fine: a fold over the pack grants ==
+constexpr bool all_self_equal(
+    Ts... xs) {  // fine: a fold over the pack grants ==
   return ((xs == xs) && ...);
 }
 
 template <typename T>
 constexpr auto doubler(T) {  // fine: the lambda is its own function, with its
   return []<std::integral U>(U x) { return x + x; };  // own constraint
+}
+
+// A standard function object named by a constraint grants its operator:
+// std::plus<T>::operator() is defined as a + b.
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T twice_plus(T x) {  // fine: + is plus<T>'s operator
+  return x + x;
+}
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T square_plus(T x) {  // planted: plus<T> grants +, not *
+  return x * x;
+}
+
+// A default argument fixes nothing: the constraint is about whatever Op is.
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T twice_default(
+    T x) {  // planted: Op may be anything, + is undeclared
+  return x + x;
+}
+// The then-branch of an if constexpr on a concept is typed under it.
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T scale_branch(T x) {
+  if constexpr (IsMonoid<T, std::multiplies<T>>) {
+    return x * x;  // fine: the branch's concept grants *
+  } else {
+    return x + x;  // fine: the declared constraint grants +
+  }
+}
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T scale_outside(T x) {
+  if constexpr (IsMonoid<T, std::multiplies<T>>) {
+    return x + x;
+  }
+  return x * x;  // planted: outside the branch, * is undeclared
+}
+
+// A conversion into a parameter type is an operation of that type: nothing in
+// a monoid says how a count becomes a T.
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T from_count(T x, std::size_t n) {  // planted: T(n) is undeclared
+  return Op{}(x, T(n));
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T cast_count(std::size_t n) {  // planted: a static_cast is one too
+  return static_cast<T>(n);
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op> && std::constructible_from<T, std::size_t>
+constexpr T from_count_named(T x, std::size_t n) {  // fine: the clause names it
+  return Op{}(x, T(n));
+}
+template <std::unsigned_integral T>
+constexpr T from_count_integral(std::size_t n) {  // fine: integral grants it
+  return T(n);
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T copies(const T x) {  // fine: default construction and copies
+  return Op{}(T{x}, Op{}(T(x), T{}));
+}
+
+// A move of a T is not a conversion: std::move(x) has an unresolved type.
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T moved_back(T x) {  // fine: T(std::move(x)) moves a T
+  return T(std::move(x));
+}
+// A law's arguments name what they write: accepts<T>(T{0}) names the
+// conversion from 0.
+template <typename T>
+constexpr bool accepts(T) {
+  return true;
+}
+template <typename T>
+  requires IsMonoid<T, std::plus<T>> && (accepts<T>(T{0}))
+constexpr T zero_named() {  // fine: the law's argument names the conversion
+  return T{0};
+}
+
+// A parameter a constraint makes T is not a conversion: the check does not
+// read type equality from constraints, so it stays silent.
+template <std::semiregular T, std::same_as<T> U>
+constexpr T copy_same(U x) {  // fine: U is T
+  return T(x);
+}
+// A branch on a concept of decltype(x), x a parameter, or on a concept with a
+// pack, is a branch on types and grants in its then-branch.
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T decltype_branch(T x) {
+  if constexpr (std::integral<decltype(x)>) {
+    return x * x;  // fine: integral grants *
+  }
+  return x;
+}
+template <std::semiregular T>
+constexpr T invocable_branch(T x) {
+  if constexpr (std::invocable<T>) {
+    x();  // fine: invocable grants the call
+  }
+  return x;
+}
+
+// A declared law in function spelling is a fact, not an unreadable
+// constraint: the function under the shape is still judged.
+template <typename T, typename Op>
+constexpr bool associative(Op) = delete;
+template <typename T, typename Op>
+concept IsLawfulMonoid = IsMonoid<T, Op> && associative<T>(Op{});
+template <typename T, typename Op>
+  requires IsLawfulMonoid<T, Op>
+constexpr T lawful_leak(T x) {  // planted: the law names no '+'
+  return x + x;
 }
 
 }  // namespace jlt_listing
