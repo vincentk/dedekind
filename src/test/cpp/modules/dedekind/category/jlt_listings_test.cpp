@@ -264,50 +264,44 @@ static_assert(times<size_t>(7, 6) == 42);
 constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
-// Section 3, left: scale, written with sugar: a branch on a concept, an if
-// statement, a lambda.  The operators are the function objects' that the
-// constraints name.
-template <typename T>
-  requires IsMonoid<T, std::plus<T>>
-constexpr T scale(T x, size_t n) {
-  if constexpr (IsSemiring<T, std::plus<T>, std::multiplies<T>>) {
+// Section 3, left: Listing 3's times with a stronger concept's algorithm, as
+// a branch: at a semiring under +, n copies of x are one multiplication.
+namespace sugar {
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  if constexpr (std::same_as<Op, std::plus<T>> &&
+                IsSemiring<T, std::plus<T>, std::multiplies<T>>) {
     return x * T(n);
   } else {
-    if (n == 0) return unit<T>(std::plus<T>{});
-    auto step = [x](T acc, T) { return acc + x; };
-    return std::ranges::fold_left(std::views::repeat(x, n - 1), x, step);
+    return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                  Op{});
   }
 }
+}  // namespace sugar
 
-// Section 3, right: the same in the kernel: the branch is two overloads, the
-// more constrained preferred; the if is ?:; the lambda is an operation.
+// Section 3, right: the same in the kernel: Listing 3's times unchanged, and
+// a more constrained overload, which resolution prefers where it applies.
 namespace kernel {
-template <typename T>
-  requires IsMonoid<T, std::plus<T>>
-struct Step {
-  T x;
-  constexpr T operator()(T acc, T) const { return acc + x; }
-};
-template <typename T>
-  requires IsMonoid<T, std::plus<T>>
-constexpr T scale(T x, size_t n) {
-  return n == 0 ? unit<T>(std::plus<T>{})
-                : std::ranges::fold_left(std::views::repeat(x, n - 1), x,
-                                         Step<T>{x});
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
 }
-template <typename T>
-  requires IsSemiring<T, std::plus<T>, std::multiplies<T>>
-constexpr T scale(T x, size_t n) {
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
+           IsSemiring<T, std::plus<T>, std::multiplies<T>>
+constexpr T times(T x, size_t n) {
   return x * T(n);
 }
 }  // namespace kernel
 
-static_assert(scale<size_t>(7, 6) == 42);
-static_assert(kernel::scale<size_t>(7, 6) == 42);
-static_assert(scale(std::string{"ab"}, 3) == "ababab");
-static_assert(kernel::scale(std::string{"ab"}, 3) == "ababab");
-static_assert(scale(std::string{"ab"}, 0).empty());
-static_assert(kernel::scale(std::string{"ab"}, 0).empty());
+static_assert(sugar::times<size_t>(7, 6) == 42);
+static_assert(kernel::times<size_t>(7, 6) == 42);
+static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
+static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
+static_assert(sugar::times(std::string{"ab"}, 3) == "ababab");
+static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
 
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
@@ -386,9 +380,10 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
     CHECK(L::times_100(twelve) == 1200);
-    CHECK(L::scale<size_t>(7, twelve) == L::kernel::scale<size_t>(7, twelve));
-    CHECK(L::scale(std::string{"ab"}, twelve) ==
-          L::kernel::scale(std::string{"ab"}, twelve));
+    CHECK(L::sugar::times<size_t>(7, twelve) ==
+          L::kernel::times<size_t>(7, twelve));
+    CHECK(L::sugar::times(std::string{"ab"}, twelve) ==
+          L::kernel::times(std::string{"ab"}, twelve));
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
