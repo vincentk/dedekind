@@ -305,7 +305,7 @@ static_assert(times<size_t>(7, 6) == 42);
 constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
-// Section 3, top: the law the multiplication shortcut needs, and the shape it
+// Section 3: the law the multiplication shortcut needs, and the shape it
 // conjoins.  counts says T(n) is n copies of Mul's unit under Add; the
 // standard defines conversion to an unsigned type modulo 2^w, which is that,
 // so one certificate covers the family.
@@ -321,7 +321,7 @@ concept IsCountingSemiring =
     IsSemiring<T, Add, Mul> && std::constructible_from<T, size_t> &&
     counts<T>(Add{}, Mul{});
 
-// Section 3, left: Listing 3's times with branches on concepts: no copies,
+// Section 3, Listing 4 top: Listing 3's times with branches on concepts: no copies,
 // or copies of the unit where there is equality, are the unit; in a counting
 // semiring under +, n copies of x are one multiplication.
 namespace sugar {
@@ -339,8 +339,8 @@ constexpr T times(T x, size_t n) {
 }
 }  // namespace sugar
 
-// Section 3, right: the family in the kernel: Listing 3's times, and two
-// overloads, each constraint containing the one before, which resolution
+// Section 3: the family in the kernel, whose System F image is Listing 4's
+// bottom: Listing 3's times, and two overloads, each constraint containing the one before, which resolution
 // orders by specificity.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
