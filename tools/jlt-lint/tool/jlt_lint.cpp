@@ -18,7 +18,10 @@
 //                     mechanical sanity check, not a proof: it reports only
 //                     what it is sure no requirement names, and stays silent
 //                     where it cannot tell.  What it does not see is listed
-//                     at the check.
+//                     at the check.  A conversion into a parameter type,
+//                     T(n) or static_cast<T>(n) from a value of another
+//                     type, is an operation of T like any other: the
+//                     constraints must name it.
 //   inline-requires   Rule 2: an `if` (constexpr or not) whose condition
 //                     contains a requires-expression tests a constraint the
 //                     body did not declare, which Rule 2 does not count
@@ -161,6 +164,39 @@ class MutualRecursion : public clang::ASTConsumer {
 // definition: Rule 2 at the level of names
 // ---------------------------------------------------------------------------
 
+/// The arguments of a construction, braces opened: T{} has none, T{x} has x.
+llvm::SmallVector<const clang::Expr*, 2> constructionArgs(
+    const clang::CXXUnresolvedConstructExpr* e) {
+  llvm::SmallVector<const clang::Expr*, 2> out;
+  for (const clang::Expr* a : e->arguments()) {
+    if (const auto* list = llvm::dyn_cast<clang::InitListExpr>(a))
+      out.append(list->inits().begin(), list->inits().end());
+    else
+      out.push_back(a);
+  }
+  return out;
+}
+
+/// Whether `target` is a template parameter type and some argument is a value
+/// of another type: a conversion into the parameter type.  Default
+/// construction (no arguments) and a copy (an argument of the same type) are
+/// what semiregular grants, and are not conversions.
+bool convertsIntoParameter(clang::QualType target,
+                           llvm::ArrayRef<const clang::Expr*> args) {
+  if (target.isNull()) return false;
+  target = target.getNonReferenceType().getUnqualifiedType();
+  if (!target->isTemplateTypeParmType()) return false;
+  const clang::QualType want = target.getCanonicalType();
+  for (const clang::Expr* a : args) {
+    if (!a) continue;
+    clang::QualType t = a->getType();
+    if (t.isNull()) return false;  // cannot tell: silence
+    t = t.getNonReferenceType().getUnqualifiedType().getCanonicalType();
+    if (t != want) return true;
+  }
+  return false;
+}
+
 /// The names an expression uses as operations: operator spellings ("+", "==",
 /// "()", "[]"), called function names, member names.  Collected from the
 /// requirements of the constraints (every operation they mention) and from a
@@ -211,6 +247,16 @@ class NameCollector : public clang::RecursiveASTVisitor<NameCollector> {
     names.insert(e->getMember().getAsString());
     return true;
   }
+  bool VisitCXXUnresolvedConstructExpr(clang::CXXUnresolvedConstructExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), constructionArgs(e)))
+      names.insert("conversion");  // T(x) in a requirement names it
+    return true;
+  }
+  bool VisitCXXStaticCastExpr(clang::CXXStaticCastExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), {e->getSubExpr()}))
+      names.insert("conversion");
+    return true;
+  }
 };
 
 /// What a standard concept or trait permits beyond what its body says: the
@@ -245,6 +291,9 @@ Permits permitsOfStd(llvm::StringRef name) {
       name == "equivalence_relation" || name == "strict_weak_order")
     p.names = {"()"};
   if (name == "swappable" || name == "swappable_with") p.names = {"swap"};
+  if (name == "constructible_from" || name == "convertible_to" ||
+      name == "is_constructible_v" || name == "is_convertible_v")
+    p.names = {"conversion"};
   if (name == "semiregular" || name == "regular" || name == "copyable" ||
       name == "movable" || name == "assignable_from")
     p.names = {"="};  // a value may be assigned to (Rule 1: a local)
@@ -464,6 +513,7 @@ bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
   return std::any_of(es.begin(), es.end(), isParameterTyped);
 }
 
+
 /// Whether a template is constrained: a type constraint on a parameter, a
 /// requires clause, or a trailing one.
 bool constrained(const clang::FunctionTemplateDecl* ft) {
@@ -582,6 +632,18 @@ class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
   bool VisitCXXDependentScopeMemberExpr(clang::CXXDependentScopeMemberExpr* e) {
     if (!asCallee.count(e) && isParameterTyped(e->getBase()))
       ops.push_back({e->getMember().getAsString(), e->getMemberLoc(), false});
+    return true;
+  }
+  // T(n), T{n}: a construction of a parameter type from a value of another
+  // type is a conversion, an operation of T no requirement may leave unnamed.
+  bool VisitCXXUnresolvedConstructExpr(clang::CXXUnresolvedConstructExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), constructionArgs(e)))
+      ops.push_back({"conversion", e->getBeginLoc(), true});
+    return true;
+  }
+  bool VisitCXXStaticCastExpr(clang::CXXStaticCastExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), {e->getSubExpr()}))
+      ops.push_back({"conversion", e->getBeginLoc(), true});
     return true;
   }
 };

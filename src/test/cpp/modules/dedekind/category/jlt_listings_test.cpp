@@ -126,8 +126,7 @@ static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-// Section 3: the semiring shape that Listing 4 uses; laws as functions of the
-// operation.
+// The Conclusion: the shapes stacked; laws as functions of the operation.
 template <typename T, typename Op>
 constexpr bool commutative(Op) = delete;
 template <typename T, typename Mul, typename Add>
@@ -306,39 +305,39 @@ static_assert(times<size_t>(7, 6) == 42);
 constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
-// Section 3, left: Listing 3's times with a stronger concept's algorithm, as
-// a branch: at an unsigned semiring under +, n copies of x are one
-// multiplication.  The semiring's laws make n copies of x equal x times n
-// copies of the unit; the unsigned carrier makes T(n) those n copies.
+// Section 3, left: Listing 3's times with two shortcuts: no copies are the
+// unit, and, where the carrier has equality, so are copies of the unit, with
+// no fold.  The bodies use only what the clauses name: n == 0 compares
+// size_ts, x == unit needs equality_comparable, the unit is IsMonoid's.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  if constexpr (std::same_as<Op, std::plus<T>> &&
-                IsSemiring<T, std::plus<T>, std::multiplies<T>> &&
-                std::unsigned_integral<T>) {
-    return x * T(n);
-  } else {
-    return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
-                                  Op{});
-  }
+  if (n == 0) return unit<T>(Op{});
+  if constexpr (std::equality_comparable<T>)
+    if (x == unit<T>(Op{})) return unit<T>(Op{});
+  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 }  // namespace sugar
 
-// Section 3, right: the same in the kernel: Listing 3's times unchanged, and
-// a more constrained overload, which resolution prefers where it applies.
+// Section 3, right: the same in the kernel: the first shortcut in a
+// conditional, the second in a more constrained overload, which resolution
+// prefers where it applies.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
+  return n == 0 ? unit<T>(Op{})
+                : std::ranges::fold_left(std::views::repeat(x, n),
+                                         unit<T>(Op{}), Op{});
 }
 template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
-           IsSemiring<T, std::plus<T>, std::multiplies<T>> &&
-           std::unsigned_integral<T>
+  requires IsMonoid<T, Op> && std::equality_comparable<T>
 constexpr T times(T x, size_t n) {
-  return x * T(n);
+  return n == 0 || x == unit<T>(Op{})
+             ? unit<T>(Op{})
+             : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                      Op{});
 }
 }  // namespace kernel
 
@@ -348,7 +347,15 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
-// Both agree with Listing 3's times, the fold, at the carrier they shortcut.
+// Both agree with Listing 3's times, the fold, on and off the shortcut.
+static_assert(sugar::times<size_t>(0, 9) == times<size_t>(0, 9));
+static_assert(kernel::times<size_t>(0, 9) == times<size_t>(0, 9));
+static_assert(sugar::times<size_t>(7, 0) == times<size_t>(7, 0));
+static_assert(kernel::times<size_t>(7, 0) == times<size_t>(7, 0));
+static_assert(sugar::times<size_t, std::multiplies<size_t>>(1, 1000) == 1);
+static_assert(kernel::times<size_t, std::multiplies<size_t>>(1, 1000) == 1);
+static_assert(sugar::times(std::string{}, 5).empty());
+static_assert(kernel::times(std::string{}, 5).empty());
 static_assert(sugar::times<size_t>(7, 6) == times<size_t>(7, 6));
 static_assert(kernel::times<size_t>(7, 6) == times<size_t>(7, 6));
 static_assert(sugar::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));

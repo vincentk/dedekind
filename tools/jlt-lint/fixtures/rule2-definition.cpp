@@ -229,6 +229,33 @@ constexpr T scale_outside(T x) {
   return x * x;  // planted: outside the branch, * is undeclared
 }
 
+// A conversion into a parameter type is an operation of that type: nothing in
+// a monoid says how a count becomes a T.
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T from_count(T x, std::size_t n) {  // planted: T(n) is undeclared
+  return Op{}(x, T(n));
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T cast_count(std::size_t n) {  // planted: a static_cast is one too
+  return static_cast<T>(n);
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op> && std::constructible_from<T, std::size_t>
+constexpr T from_count_named(T x, std::size_t n) {  // fine: the clause names it
+  return Op{}(x, T(n));
+}
+template <std::unsigned_integral T>
+constexpr T from_count_integral(std::size_t n) {  // fine: integral grants it
+  return T(n);
+}
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T copies(const T x) {  // fine: default construction and copies
+  return Op{}(T{x}, Op{}(T(x), T{}));
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
