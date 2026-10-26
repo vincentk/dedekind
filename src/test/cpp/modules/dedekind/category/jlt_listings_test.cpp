@@ -343,8 +343,8 @@ constexpr T times(T x, size_t n) {
   else
     return n == 0 || x == unit<T>(Op{})
                ? unit<T>(Op{})
-               : std::ranges::fold_left(std::views::repeat(x, n),
-                                        unit<T>(Op{}), Op{});
+               : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                        Op{});
 }
 }  // namespace sugar
 
