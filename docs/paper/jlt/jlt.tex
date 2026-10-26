@@ -277,7 +277,7 @@ Some certifications omitted for brevity.
 Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its fold, \cppinline{concat}, Haskell's \texttt{mconcat}.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint; Haskell's type checker does, which is the only reason this is a rule here.
-The same body without its clause compiles at \cppinline{double}, whose \cppinline{+} is not associative, and nothing says so.
+A body that uses what its clause does not name, as the test's \cppinline{twice_loose} uses \cppinline{x + x} under no clause, compiles at \cppinline{double}, whose \cppinline{+} is not associative, and nothing says so.
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
@@ -317,7 +317,7 @@ Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised t
 
 What the processor runs of Listing~\ref{lst:rule3}'s fold is the panel's one multiplication (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
-Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades decidability for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot answer every question.
+Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot compute every function, and a bounded search terminates without always deciding the question it was asked.
 Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
 At compile time each kind of structure meets a counter of the compiler's, a type the template instantiation depth and a value the constant-evaluation step limit, both configurable, and exceeding one is a compilation failure (Section~\ref{sec:limits}).
 
@@ -574,7 +574,7 @@ The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{
 
 \paragraph{The answer when the budget runs out is an absence.}
 For a general property no budget can be replaced by a proof, so a function that searches has to say what it says when the budget ends first.
-In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{It is not a third truth value either. A predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}.}
+In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{A predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}: Kleene's three, whose third he introduced for a computation that has not answered~\cite{kleene1952metamathematics}.}
 That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
 
 \paragraph{A budget at compile time is the same budget.}
