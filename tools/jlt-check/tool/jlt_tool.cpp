@@ -1012,7 +1012,15 @@ class Inventory : public clang::ASTConsumer,
     return ok;
   }
   bool VisitStmt(clang::Stmt* st) {
-    if (inside) ++counts[std::string("Stmt:") + st->getStmtClassName()];
+    // The wrappers the compiler adds around what was written are counted
+    // through the written node below them, not as kinds of their own.
+    if (inside &&
+        !llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
+                   clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
+                   clang::ConstantExpr, clang::CXXDefaultArgExpr,
+                   clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
+                   clang::SubstNonTypeTemplateParmExpr>(st))
+      ++counts[std::string("Stmt:") + st->getStmtClassName()];
     return true;
   }
   bool VisitTypeLoc(clang::TypeLoc tl) {
