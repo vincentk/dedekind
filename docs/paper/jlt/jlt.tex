@@ -800,6 +800,11 @@ These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity a
 \paragraph{The target.}
 Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}. The appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
 
+\paragraph{Coding standards and profiles.}
+The documents an audit of \Cpp{} works from are rule catalogues: MISRA \Cpp{}~\cite{misra2023cpp} and the SEI CERT standard~\cite{ballman2016cert} list hundreds of rules, each justified by the defects it prevents, with no statement of what a compliant program computes.
+Jlt is narrower, a pure computational core with no I/O, and so complements them rather than replacing them; where they meet they can differ, as MISRA forbids recursion outright except in constant evaluation and Rule~3 admits structural recursion on the strength of a termination argument.
+The nearest relatives are the safety profiles proposed for \Cpp{26}~\cite{sutter2025profiles}, named subsets the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: Jlt reads as a functional profile, and its three rules state theirs.
+
 \paragraph{What is new here.}
 Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.
 
