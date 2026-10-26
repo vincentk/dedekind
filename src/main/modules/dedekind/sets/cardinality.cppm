@@ -27,6 +27,7 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::fold_left
 #include <array>
 #include <climits>
 #include <cmath>
@@ -35,6 +36,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <ranges>  // std::views::repeat: the doublings as a fold
 #include <stdexcept>
 #include <type_traits>  // std::remove_cvref_t --- IsRingIntegral normalisation
 #include <utility>
@@ -572,6 +574,9 @@ export constexpr CardinalityEffect unit_effect(Cardinality value) {
 
 /** @brief Sequential composition of cardinality effects. */
 export template <typename F>
+  requires std::invocable<F&, const Cardinality&> &&
+           std::convertible_to<std::invoke_result_t<F&, const Cardinality&>,
+                               CardinalityEffect>
 constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect, F f) {
   const CardinalityEffect next = f(effect.value);
   return CardinalityEffect{next.value, add(effect.trace, next.trace)};
@@ -1337,6 +1342,31 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
 //     @c static_cast<F>(magnitude) on the one-word carrier.
 
 namespace detail {
+/** @brief @f$2^{d}@f$ with @c d the digits of @c LT, as an exact @c F: the
+ *  doublings are exact in @c F since @f$2^k@f$ is representable until @c k
+ *  overflows @c F's exponent range (well above any plausible @c LT::digits;
+ *  for @c LT @c = @c uint64_t and @c F @c = @c double this is @f$2^{64}@f$).
+ *  A fold of the doublings (Rule 3); @c std::ldexp would be cleaner but is
+ *  not @c constexpr until C++26.  @tparam F the floating type.  @tparam LT
+ *  the unsigned word. */
+template <std::floating_point F, std::unsigned_integral LT>
+inline constexpr F two_to_the_digits_v = std::ranges::fold_left(
+    std::views::repeat(F{2}, std::numeric_limits<LT>::digits), F{1},
+    std::multiplies<F>{});
+
+/** @brief Whether @c x lies strictly below zero (@c -0.0 does not); and
+ *  whether it is zero of either sign.  The operators on @c F live here, ahead
+ *  of the overloads below, which read @c F through these and the standard
+ *  classification functions only.  @tparam F the floating type. */
+template <std::floating_point F>
+constexpr bool is_negative(F x) noexcept {
+  return x < F{0};
+}
+template <std::floating_point F>
+constexpr bool is_zero(F x) noexcept {
+  return x == F{0};
+}
+
 /** @brief Compare a non-negative integer @c lhs with a finite
  *         floating-point value @c rhs in @b integer @b domain — the
  *         comparison is precision-correct even when @c lhs exceeds @c
@@ -1359,19 +1389,7 @@ template <std::floating_point F, std::unsigned_integral LT>
 constexpr std::partial_ordering compare_unsigned_to_floating(LT lhs,
                                                              F rhs) noexcept {
   if (rhs < F{0}) return std::partial_ordering::greater;
-  // 2^digits<LT> as an exact F (powers of two are representable until
-  // they overflow the F exponent range; for LT = uint64_t and F =
-  // double, this is 2^64 — exact).
-  // 2^digits<LT> via constexpr arithmetic: the doublings are exact in
-  // F since 2^k is representable until k overflows F's exponent range
-  // (well above any plausible LT::digits).  std::ldexp would be cleaner
-  // but isn't constexpr until C++26.
-  constexpr F two_to_lt_bits = []() {
-    F result = F{1};
-    for (int i = 0; i < std::numeric_limits<LT>::digits; ++i) result *= F{2};
-    return result;
-  }();
-  if (rhs >= two_to_lt_bits) return std::partial_ordering::less;
+  if (rhs >= two_to_the_digits_v<F, LT>) return std::partial_ordering::less;
   const F rhs_trunc = std::trunc(rhs);
   const bool rhs_is_integer = (rhs == rhs_trunc);
   const LT rhs_floor = static_cast<LT>(rhs_trunc);
@@ -1391,16 +1409,7 @@ constexpr bool eq_unsigned_to_floating(LT lhs, F rhs) noexcept {
   if (rhs < F{0}) return false;
   const F rhs_trunc = std::trunc(rhs);
   if (rhs != rhs_trunc) return false;
-  // 2^digits<LT> via constexpr arithmetic: the doublings are exact in
-  // F since 2^k is representable until k overflows F's exponent range
-  // (well above any plausible LT::digits).  std::ldexp would be cleaner
-  // but isn't constexpr until C++26.
-  constexpr F two_to_lt_bits = []() {
-    F result = F{1};
-    for (int i = 0; i < std::numeric_limits<LT>::digits; ++i) result *= F{2};
-    return result;
-  }();
-  if (rhs >= two_to_lt_bits) return false;
+  if (rhs >= two_to_the_digits_v<F, LT>) return false;
   return lhs == static_cast<LT>(rhs_trunc);
 }
 }  // namespace detail
@@ -1416,16 +1425,15 @@ constexpr bool eq_unsigned_to_floating(LT lhs, F rhs) noexcept {
 export template <std::floating_point F>
 constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
                                             F rhs) noexcept {
-  if (rhs != rhs) return std::partial_ordering::unordered;
+  if (std::isnan(rhs)) return std::partial_ordering::unordered;
   if (std::holds_alternative<ℵ_0>(lhs)) {
-    if (rhs == std::numeric_limits<F>::infinity())
+    if (std::isinf(rhs) && !std::signbit(rhs))
       return std::partial_ordering::equivalent;
     return std::partial_ordering::greater;
   }
-  if (rhs == -std::numeric_limits<F>::infinity())
-    return std::partial_ordering::greater;
-  if (rhs == std::numeric_limits<F>::infinity())
-    return std::partial_ordering::less;
+  if (std::isinf(rhs))
+    return std::signbit(rhs) ? std::partial_ordering::greater
+                             : std::partial_ordering::less;
   using LT = ExtensionalCardinal<>::word_type;
   return detail::compare_unsigned_to_floating<F, LT>(
       std::get<ExtensionalCardinal<>>(lhs).value, rhs);
@@ -1438,9 +1446,13 @@ constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
  *         (@c eq_unsigned_to_floating compares in integer domain). */
 export template <std::floating_point F>
 constexpr bool operator==(const Cardinality& lhs, F rhs) noexcept {
-  if (rhs != rhs) return false;
+  // rhs is read by the standard classification functions and the detail
+  // helpers, not by the operators: an operator on F here would be resolved
+  // against this file's own overload set, which F's constraint alone does not
+  // decide (Rule 2).
+  if (std::isnan(rhs)) return false;
   if (std::holds_alternative<ℵ_0>(lhs))
-    return rhs == std::numeric_limits<F>::infinity();
+    return std::isinf(rhs) && !std::signbit(rhs);
   using LT = ExtensionalCardinal<>::word_type;
   return detail::eq_unsigned_to_floating<F, LT>(
       std::get<ExtensionalCardinal<>>(lhs).value, rhs);
@@ -1457,22 +1469,22 @@ export template <std::floating_point F>
 constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
                                             F rhs) noexcept {
   using namespace detail;
+  // rhs is read by the standard classification functions (see the
+  // Cardinality == F overload above).
   if (sc_is_naz(lhs)) return std::partial_ordering::unordered;
-  if (rhs != rhs) return std::partial_ordering::unordered;
+  if (std::isnan(rhs)) return std::partial_ordering::unordered;
+  const bool rhs_is_pos_inf = std::isinf(rhs) && !std::signbit(rhs);
+  const bool rhs_is_neg_inf = std::isinf(rhs) && std::signbit(rhs);
   if (sc_is_pos_inf(lhs)) {
-    return rhs == std::numeric_limits<F>::infinity()
-               ? std::partial_ordering::equivalent
-               : std::partial_ordering::greater;
+    return rhs_is_pos_inf ? std::partial_ordering::equivalent
+                          : std::partial_ordering::greater;
   }
   if (sc_is_neg_inf(lhs)) {
-    return rhs == -std::numeric_limits<F>::infinity()
-               ? std::partial_ordering::equivalent
-               : std::partial_ordering::less;
+    return rhs_is_neg_inf ? std::partial_ordering::equivalent
+                          : std::partial_ordering::less;
   }
-  if (rhs == std::numeric_limits<F>::infinity())
-    return std::partial_ordering::less;
-  if (rhs == -std::numeric_limits<F>::infinity())
-    return std::partial_ordering::greater;
+  if (rhs_is_pos_inf) return std::partial_ordering::less;
+  if (rhs_is_neg_inf) return std::partial_ordering::greater;
   // Both finite.  Sign first, then magnitude comparison via the unsigned
   // helper (with order reversed for negative-vs-negative).
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
@@ -1480,7 +1492,7 @@ constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
   const LT magnitude_value = z.magnitude().value;
   const bool z_is_zero = (magnitude_value == 0);
   const bool z_is_neg = z.negative() && !z_is_zero;
-  const bool rhs_is_neg = rhs < F{0};
+  const bool rhs_is_neg = detail::is_negative(rhs);
   if (z_is_neg && !rhs_is_neg) return std::partial_ordering::less;
   if (!z_is_neg && rhs_is_neg) return std::partial_ordering::greater;
   if (!z_is_neg) {
@@ -1506,17 +1518,17 @@ export template <std::floating_point F>
 constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
   using namespace detail;
   if (sc_is_naz(lhs)) return false;
-  if (rhs != rhs) return false;
-  if (sc_is_pos_inf(lhs)) return rhs == std::numeric_limits<F>::infinity();
-  if (sc_is_neg_inf(lhs)) return rhs == -std::numeric_limits<F>::infinity();
+  if (std::isnan(rhs)) return false;
+  if (sc_is_pos_inf(lhs)) return std::isinf(rhs) && !std::signbit(rhs);
+  if (sc_is_neg_inf(lhs)) return std::isinf(rhs) && std::signbit(rhs);
   if (!std::isfinite(rhs)) return false;
   const auto& z = std::get<SignedExtensionalCardinal<>>(lhs);
   using LT = ExtensionalCardinal<>::word_type;
   const LT magnitude_value = z.magnitude().value;
   const bool z_is_zero = (magnitude_value == 0);
-  if (z_is_zero) return rhs == F{0};  // ±0 collapse
+  if (z_is_zero) return detail::is_zero(rhs);  // ±0 collapse
   const bool z_is_neg = z.negative();
-  const bool rhs_is_neg = rhs < F{0};
+  const bool rhs_is_neg = detail::is_negative(rhs);
   if (z_is_neg != rhs_is_neg) return false;
   return eq_unsigned_to_floating<F, LT>(magnitude_value,
                                         rhs_is_neg ? -rhs : rhs);
