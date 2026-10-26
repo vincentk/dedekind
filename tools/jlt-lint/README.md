@@ -1,6 +1,6 @@
-# jlt-check
+# jlt-lint
 
-A checker for the Jlt fragment (#1060): the three rules of the Jlt paper
+A linter for the Jlt fragment (#1060): the three rules of the Jlt paper
 (`docs/paper/jlt/jlt.tex`, Section 2), turned from a reading into a verdict.
 
 It runs **after** the build: it reparses each file in scope through
@@ -15,23 +15,23 @@ the prebuilt module files must exist.
   implicit nodes; the driver restores the default after it.
 - `scope`: one line per `<rule> <file-glob> <namespace> <expected|report>`.
   The rule matches beneath the namespace; a number is a gate, `report` is
-  counted and printed, never failed.  Growing the checker is adding a rule file
+  counted and printed, never failed.  Growing the linter is adding a rule file
   and a line here, and turning `report` into `0` when a file is clean.
 - `fixtures/`: one negative control per rule, standalone (no imports), with
   its expected finding count in `scope`; it proves the matcher fires, so a
   zero on a real file is not vacuous.
-- `jlt_check.py`: parses each file once with all its rules, prints gate
+- `jlt_lint.py`: parses each file once with all its rules, prints gate
   results, reported counts and a coverage table per rule, and fails on a gate
   mismatch, or if a file does not parse or a matcher does not run.
 
-Run it with `make jlt-check` after `make compile`.
+Run it with `make jlt-lint` after `make compile`.
 
 ## The tool
 
-`tool/` is `jlt-tool`, a small LibTooling binary for the checks that need code
-rather than a pattern.  `make jlt-tool` builds it against the LLVM that built
-the tree (`JLT_TOOL_CMAKE_ARGS` names its CMake package dirs; CI installs
-`libclang-23-dev` and `libclang-cpp23-dev` for them), and `make jlt-check`
+`tool/` is `jlt-lint`, a small LibTooling binary for the checks that need code
+rather than a pattern.  `make jlt-lint` builds it against the LLVM that built
+the tree (`JLT_LINT_CMAKE_ARGS` names its CMake package dirs; CI installs
+`libclang-23-dev` and `libclang-cpp23-dev` for them), and `make jlt-lint`
 runs it beside the clang-query rules on the same compilation database.  A
 rule file names one of its checks with `tool <check>` instead of match lines;
 the tool prints one finding per line as `path:line:col`, and the driver counts

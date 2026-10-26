@@ -57,10 +57,10 @@ jobs:
     - name: Build & Run Integration Tests
       run: make integration-test CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
-    - name: Jlt Check (post-processing over the compilation database)
+    - name: Jlt Lint (post-processing over the compilation database)
       run: >-
-        make jlt-check CLANG_QUERY=clang-query-23
-        JLT_TOOL_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=clang++-23 -DCMAKE_C_COMPILER=clang-23
+        make jlt-lint CLANG_QUERY=clang-query-23
+        JLT_LINT_CMAKE_ARGS="-DCMAKE_CXX_COMPILER=clang++-23 -DCMAKE_C_COMPILER=clang-23
         -DClang_DIR=/usr/lib/llvm-23/lib/cmake/clang -DLLVM_DIR=/usr/lib/llvm-23/lib/cmake/llvm"
 
     - name: Validate Checked-In LLVM IR Fixture
