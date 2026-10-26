@@ -620,6 +620,18 @@ What the processor runs is what the compiler leaves after instantiation and cons
 The search is a loop of 84 instructions, unrolled by four and without a branch in its body. Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
 The records of Section~\ref{sec:translation} and the ranges of this section are gone, and the end of this section says why. The discipline costs nothing at runtime, which is the zero-overhead principle~\cite{stroustrup2005abstraction} met by pre-computation: the records' cost is paid at build time, where it is paid once.
 
+
+\paragraph{At compile time, only a law shortens a fold.}
+At runtime the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows; at compile time no optimiser runs, and the evaluator takes the fold one step at a time.
+So the two binding times part on a large budget:
+\begin{cpp}
+static_assert(times<size_t>(3, 100'000'000) == 300'000'000);
+\end{cpp}
+With Listing~\ref{lst:rule3}'s \cppinline{times} alone the assertion is refused, the evaluator reporting that it \emph{hit maximum step limit}.
+With Listing~\ref{lst:desugar}'s overload beside it the same line holds in one step, since resolution picks the semimodule's action, \cppinline{n * x}.
+At runtime the two compile to the same instruction.
+A declared law buys at build time what the optimiser finds at runtime by itself, and a budget meets the compiler's step limit only where no law shortens the fold (Section~\ref{sec:limits}).
+
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
 \cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step, of which \cppinline{iota(0, n)} is the instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.

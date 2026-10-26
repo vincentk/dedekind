@@ -376,6 +376,12 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
+// Section 6: at compile time only the law shortens the fold.  With the
+// semimodule overload a budget of 10^8 is one step; Listing 3's times alone
+// hits the constant evaluator's step limit (quoted in the paper, not held
+// here, since a refused static_assert does not compile).
+static_assert(kernel::times<size_t>(3, 100'000'000) == 300'000'000);
+static_assert(sugar::times<size_t>(3, 100'000'000) == 300'000'000);
 // Both agree with Listing 3's times, the fold, on and off the shortcut.
 static_assert(sugar::times<size_t>(0, 9) == times<size_t>(0, 9));
 static_assert(kernel::times<size_t>(0, 9) == times<size_t>(0, 9));
