@@ -94,8 +94,8 @@ struct Point {
   /** @brief Implicit and converting, so a literal of another type is one
    *  user-defined conversion, the carrier's own. */
   template <std::convertible_to<T> U>
-  constexpr Point(const U& v)  // NOLINT(google-explicit-constructor)
-      : pivot(static_cast<T>(v)) {}
+  constexpr Point(U v)  // NOLINT(google-explicit-constructor)
+      : pivot(static_cast<T>(std::move(v))) {}
 
   /** @brief χ(x) = [x == pivot]. */
   constexpr bool operator()(const T& v) const { return v == pivot; }

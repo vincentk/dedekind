@@ -203,12 +203,30 @@ concept StdSetLikeOf =
     dedekind::sets::StdSetLike<C> && std::same_as<typename C::value_type, T>;
 
 /** @brief The step of the folds below: insert one element into the container
- *  accumulated so far, and hand it on (Rule 3: a fold, not a loop). */
+ *  accumulated so far, and hand it on (Rule 3: a fold, not a loop).  The
+ *  element is taken by value and moved in, so a transformed result is moved,
+ *  not copied (a move-only one included). */
 struct insert_into {
   template <dedekind::sets::StdSetLike C>
-  constexpr C operator()(C acc, const typename C::value_type& x) const {
-    acc.insert(x);
+  constexpr C operator()(C acc, typename C::value_type x) const {
+    acc.insert(std::move(x));
     return acc;
+  }
+};
+
+/** @brief A classifier read as a decided truth value: its answer converted to
+ *  @c bool as @c if would convert it, so a classifier valued in an explicit
+ *  truth type (@c Truth<Boole>) is admitted.  Applied as a const value.
+ *  @tparam Chi the classifier. */
+template <typename Chi>
+struct decided {
+  Chi chi;
+  template <typename X>
+    requires std::invocable<const Chi&, const X&> &&
+             std::constructible_from<bool,
+                                     std::invoke_result_t<const Chi&, const X&>>
+  constexpr bool operator()(const X& x) const {
+    return static_cast<bool>(std::invoke(chi, x));
   }
 };
 
@@ -349,11 +367,15 @@ static_assert(
 export template <typename U, typename Chi>
   requires std::ranges::input_range<const U> &&
            std::totally_ordered<std::ranges::range_value_t<const U>> &&
-           std::predicate<const Chi&, std::ranges::range_reference_t<const U>>
+           std::invocable<const Chi&,
+                          std::ranges::range_reference_t<const U>> &&
+           std::constructible_from<
+               bool, std::invoke_result_t<
+                         const Chi&, std::ranges::range_reference_t<const U>>>
 constexpr auto ext(const U& universe, Chi chi) {
-  return std::ranges::fold_left(std::views::filter(universe, chi),
-                                std::set<std::ranges::range_value_t<const U>>{},
-                                detail::insert_into{});
+  return std::ranges::fold_left(
+      std::views::filter(universe, detail::decided<Chi>{std::move(chi)}),
+      std::set<std::ranges::range_value_t<const U>>{}, detail::insert_into{});
 }
 
 // ---------------------------------------------------------------------------
@@ -377,7 +399,8 @@ constexpr auto ext(const U& universe, Chi chi) {
 // `std::views::transform` / `std::views::filter`, which invoke it with
 // `std::invoke` (so pointer-to-member callables work).  The image's
 // transform is applied as an lvalue (`std::invocable<F&, const T&>`); the
-// filter's predicate as a const lvalue, as `std::views::filter` requires.
+// filter's predicate as a const lvalue, through `std::cref`, since the view
+// itself would call it through a non-const reference.
 // The folds take the source by const reference, so an rvalue source binds
 // to the same overload.
 //
@@ -424,7 +447,7 @@ export template <typename T, typename Hash, typename Equal, typename Alloc,
                  typename P>
   requires std::predicate<const P&, const T&>
 constexpr auto filter(P p, const std::unordered_set<T, Hash, Equal, Alloc>& s) {
-  return std::ranges::fold_left(std::views::filter(s, p),
+  return std::ranges::fold_left(std::views::filter(s, std::cref(p)),
                                 std::unordered_set<T, Hash, Equal, Alloc>{},
                                 detail::insert_into{});
 }
@@ -433,7 +456,7 @@ constexpr auto filter(P p, const std::unordered_set<T, Hash, Equal, Alloc>& s) {
 export template <typename T, typename Compare, typename Alloc, typename P>
   requires std::predicate<const P&, const T&>
 constexpr auto filter(P p, const std::set<T, Compare, Alloc>& s) {
-  return std::ranges::fold_left(std::views::filter(s, p),
+  return std::ranges::fold_left(std::views::filter(s, std::cref(p)),
                                 std::set<T, Compare, Alloc>{},
                                 detail::insert_into{});
 }
