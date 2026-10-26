@@ -688,7 +688,7 @@ implicit conversions & the grammar, and Rule~2 for the body & a conversion only 
 references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
 state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
 unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
-branches on a trait or a concept, lambdas, inheritance, sums & the grammar; an elaboration is conjectured below & \texttt{?:} on a law, specialisation, an operation struct, a registration, the former it has for \texttt{optional} with the case form it lacks \\
+branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional & the grammar; the sugar, named below & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum \\
 \bottomrule
 \end{tabularx}
 \caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
