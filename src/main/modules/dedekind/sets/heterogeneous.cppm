@@ -439,8 +439,9 @@ struct SumMembership {
   B b;
   using logic_species =
       join_logic_t<typename A::logic_species, typename B::logic_species>;
-  template <typename V>
-  constexpr typename logic_species::Ω operator()(const V& v) const {
+  /** @brief χ at a value of the sum, the coproduct of the carriers. */
+  constexpr typename logic_species::Ω operator()(
+      const std::variant<typename A::Domain, typename B::Domain>& v) const {
     using L = logic_species;
     if (v.index() == 0)
       return dedekind::category::lift_logic<L>(a(std::get<0>(v)));
