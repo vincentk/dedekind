@@ -274,6 +274,30 @@ constexpr T zero_named() {  // fine: the law's argument names the conversion
   return T{0};
 }
 
+// A parameter a constraint makes T is not a conversion: the check does not
+// read type equality from constraints, so it stays silent.
+template <std::semiregular T, std::same_as<T> U>
+constexpr T copy_same(U x) {  // fine: U is T
+  return T(x);
+}
+// A branch on a concept of decltype(x), x a parameter, or on a concept with a
+// pack, is a branch on types and grants in its then-branch.
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T decltype_branch(T x) {
+  if constexpr (std::integral<decltype(x)>) {
+    return x * x;  // fine: integral grants *
+  }
+  return x;
+}
+template <std::semiregular T>
+constexpr T invocable_branch(T x) {
+  if constexpr (std::invocable<T>) {
+    x();  // fine: invocable grants the call
+  }
+  return x;
+}
+
 // A declared law in function spelling is a fact, not an unreadable
 // constraint: the function under the shape is still judged.
 template <typename T, typename Op>

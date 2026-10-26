@@ -193,9 +193,10 @@ bool convertsIntoParameter(clang::QualType target,
     if (t.isNull()) return false;  // cannot tell: silence
     t = t.getNonReferenceType().getUnqualifiedType().getCanonicalType();
     if (t == want) continue;
-    // An unresolved dependent type, std::move(x) of a T x, may well be T:
-    // cannot tell, so silence.  Another parameter type is a conversion.
-    if (t->isDependentType() && !t->isTemplateTypeParmType()) return false;
+    // A dependent type may well be T: std::move(x) of a T x, or a parameter
+    // U that a constraint makes T (std::same_as<T> U), which this check does
+    // not read.  Cannot tell, so silence.
+    if (t->isDependentType()) return false;
     return true;
   }
   return false;
@@ -759,15 +760,26 @@ class Definition : public clang::ASTConsumer {
                  typeConstraint(b->getLHS()) && typeConstraint(b->getRHS());
         const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
         if (!cs) return false;
-        for (const clang::TemplateArgument& a : cs->getTemplateArguments()) {
-          if (a.getKind() != clang::TemplateArgument::Type) return false;
-          if (a.getAsType()->getAs<clang::DecltypeType>()) return false;
-        }
+        for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+          if (!typeArgument(a)) return false;
         if (const auto* w = cs->getTemplateArgsAsWritten())
           for (const clang::TemplateArgumentLoc& al : w->arguments())
-            if (al.getArgument().getKind() == clang::TemplateArgument::Type &&
-                al.getArgument().getAsType()->getAs<clang::DecltypeType>())
-              return false;
+            if (!typeArgument(al.getArgument())) return false;
+        return true;
+      }
+      // A type, a pack of types (std::invocable<T> has an empty one), or the
+      // decltype of a plain variable, decltype(x) for a parameter x, which is
+      // its type.  The decltype of any other expression probes an operation.
+      static bool typeArgument(const clang::TemplateArgument& a) {
+        if (a.getKind() == clang::TemplateArgument::Pack) {
+          for (const clang::TemplateArgument& e : a.pack_elements())
+            if (!typeArgument(e)) return false;
+          return true;
+        }
+        if (a.getKind() != clang::TemplateArgument::Type) return false;
+        if (const auto* dt = a.getAsType()->getAs<clang::DecltypeType>())
+          return llvm::isa<clang::DeclRefExpr>(
+              dt->getUnderlyingExpr()->IgnoreParenImpCasts());
         return true;
       }
     } ifs{branches};
