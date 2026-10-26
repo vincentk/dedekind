@@ -411,8 +411,10 @@ struct ValueIs {
 }  // namespace detail_runs
 /** @brief Steps with no step repeating the value before it, as a view: runs of
  *  one value kept by their first step, and a first step at the start value
- *  dropped.  @param r the steps.  @param first the value before them. */
-export template <std::ranges::viewable_range R, typename Ω>
+ *  dropped.  A view, taken by value as Rule 1 asks; a container or an array
+ *  is passed as @c std::views::all of it.  @param r the steps.  @param first
+ *  the value before them. */
+export template <std::ranges::view R, typename Ω>
 constexpr auto distinct_steps(R r, Ω first) {
   using namespace detail_runs;
   return std::views::drop_while(
