@@ -125,7 +125,7 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 \text{System~F} \arrow[d, "\text{eval}"']
   \&
   \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rr, equal]
+\text{value} \arrow[rr, equal, dashed]
   \&
   \& \text{value}
 \end{tikzcd}
@@ -137,7 +137,7 @@ Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
 They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: the desugaring $\mathit{desugar}$, the arrow labelled with what it removes, is total on Jlt and replaces the hook, so $\llbracket\cdot\rrbracket \circ \mathit{desugar}$ is total on Jlt and the two readings are readings of every Jlt program.}
+In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: $\mathit{desugar}$, labelled with what it removes, is total on Jlt and replaces the hook, and the dashed edge is the conjecture's claim that the diagram commutes for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
 \end{figure}
 
