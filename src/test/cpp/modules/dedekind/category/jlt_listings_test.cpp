@@ -305,31 +305,48 @@ static_assert(times<size_t>(7, 6) == 42);
 constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
-// Section 3, left: Listing 3's times with two shortcuts: no copies are the
-// unit, and, where the carrier has equality, so are copies of the unit, with
-// no fold.  The bodies use only what the clauses name: n == 0 compares
-// size_ts, x == unit needs equality_comparable, the unit is IsMonoid's.
+// Section 3, top: the law the multiplication shortcut needs, and the shape it
+// conjoins.  counts says T(n) is n copies of Mul's unit under Add; the
+// standard defines conversion to an unsigned type modulo 2^w, which is that,
+// so one certificate covers the family.
+template <typename T, typename Add, typename Mul>
+constexpr bool counts(Add, Mul) = delete;
+template <std::unsigned_integral T>
+constexpr bool counts(std::plus<T>, std::multiplies<T>) {
+  return true;
+}
+
+template <typename T, typename Add, typename Mul>
+concept IsCountingSemiring = IsSemiring<T, Add, Mul> &&
+                             std::constructible_from<T, size_t> &&
+                             counts<T>(Add{}, Mul{});
+
+// Section 3, left: Listing 3's times with branches on concepts: no copies,
+// or copies of the unit where there is equality, are the unit; in a counting
+// semiring under +, n copies of x are one multiplication.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if (n == 0) return unit<T>(Op{});
-  if constexpr (std::equality_comparable<T>)
+  if constexpr (std::equality_comparable<T>) {
     if (x == unit<T>(Op{})) return unit<T>(Op{});
+    if constexpr (std::same_as<Op, std::plus<T>> &&
+                  IsCountingSemiring<T, std::plus<T>, std::multiplies<T>>)
+      return x * T(n);
+  }
   return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 }  // namespace sugar
 
-// Section 3, right: the same in the kernel: the first shortcut in a
-// conditional, the second in a more constrained overload, which resolution
-// prefers where it applies.
+// Section 3, right: the family in the kernel: Listing 3's times, and two
+// overloads, each constraint containing the one before, which resolution
+// orders by specificity.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return n == 0 ? unit<T>(Op{})
-                : std::ranges::fold_left(std::views::repeat(x, n),
-                                         unit<T>(Op{}), Op{});
+  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::equality_comparable<T>
@@ -338,6 +355,13 @@ constexpr T times(T x, size_t n) {
              ? unit<T>(Op{})
              : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
                                       Op{});
+}
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && std::equality_comparable<T> &&
+           std::same_as<Op, std::plus<T>> &&
+           IsCountingSemiring<T, std::plus<T>, std::multiplies<T>>
+constexpr T times(T x, size_t n) {
+  return n == 0 || x == unit<T>(Op{}) ? unit<T>(Op{}) : x * T(n);
 }
 }  // namespace kernel
 

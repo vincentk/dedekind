@@ -355,6 +355,29 @@ struct Vocabulary {
 
 void gather(const clang::Expr* e, Vocabulary& v);
 
+/// Whether a call in a constraint is a law in function spelling: every
+/// candidate a constexpr function template returning bool, as
+/// associative<T>(Op{}) and distributive<T>(Mul{}, Add{}) are.
+bool isLawCall(const clang::CallExpr* call) {
+  const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+  llvm::SmallVector<const clang::NamedDecl*, 4> cands;
+  if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+    cands.append(u->decls().begin(), u->decls().end());
+  else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+    cands.push_back(d->getDecl());
+  if (cands.empty()) return false;
+  for (const clang::NamedDecl* c : cands) {
+    const clang::FunctionDecl* f = nullptr;
+    if (const auto* ft = llvm::dyn_cast<clang::FunctionTemplateDecl>(c))
+      f = ft->getTemplatedDecl();
+    else
+      f = llvm::dyn_cast<clang::FunctionDecl>(c);
+    if (!f || !f->isConstexpr() || !f->getReturnType()->isBooleanType())
+      return false;
+  }
+  return true;
+}
+
 void gatherConcept(const clang::ConceptDecl* c, Vocabulary& v) {
   if (!c || !v.seen.insert(c).second) return;
   if (inStd(c)) {
@@ -450,6 +473,12 @@ void gather(const clang::Expr* e, Vocabulary& v) {
     return;
   } else if (llvm::isa<clang::ParenListExpr>(e)) {
     v.opaque = true;  // a shape this check does not read: silence
+    return;
+  } else if (const auto* call = llvm::dyn_cast<clang::CallExpr>(e)) {
+    // A law in function spelling, associative<T>(Op{}): a declared fact about
+    // the operation.  It names no operation of the value, and reading it as
+    // opaque would silence the check on every function under the shape.
+    if (!isLawCall(call)) v.opaque = true;
     return;
   } else {
     v.opaque = true;  // a constraint of a shape this check does not read

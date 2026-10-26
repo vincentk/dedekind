@@ -321,6 +321,16 @@ It summarises which construction of Jlt becomes which term of the kernel, and le
 Desugaring here means rewriting a program written with conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept, into one that uses only the kernel's constructions and computes the same value, the way the \Cpp{} standard itself defines a lambda as a class with a call operator; the rewriting is not run by a tool but stated, construction by construction, as a condition and the kernel term it yields (Table~\ref{tab:closure}), and the repository's tool measures that the table names every construction the library writes.
 
 \begin{listing}[htbp]
+\begin{cpp}
+template <typename T, typename Add, typename Mul>
+constexpr bool counts(Add, Mul) = delete;
+template <unsigned_integral T>
+constexpr bool counts(plus<T>, multiplies<T>) { return true; }
+
+template <typename T, typename Add, typename Mul>
+concept IsCountingSemiring = IsSemiring<T, Add, Mul> &&
+    constructible_from<T, size_t> && counts<T>(Add{}, Mul{});
+\end{cpp}
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
 template <typename T,
@@ -328,9 +338,14 @@ template <typename T,
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if (n == 0) return unit<T>(Op{});
-  if constexpr (equality_comparable<T>)
+  if constexpr (equality_comparable<T>) {
     if (x == unit<T>(Op{}))
       return unit<T>(Op{});
+    if constexpr (same_as<Op, plus<T>> &&
+        IsCountingSemiring<T, plus<T>,
+                           multiplies<T>>)
+      return x * T(n);
+  }
   return ranges::fold_left(
       views::repeat(x, n), unit<T>(Op{}), Op{});
 }
@@ -338,14 +353,7 @@ constexpr T times(T x, size_t n) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.51\linewidth}
 \begin{cpp}
-template <typename T,
-          typename Op = plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T times(T x, size_t n) {
-  return n == 0 ? unit<T>(Op{})
-    : ranges::fold_left(
-        views::repeat(x, n), unit<T>(Op{}), Op{});
-}
+// Listing 3's times, and:
 template <typename T,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
@@ -356,17 +364,31 @@ constexpr T times(T x, size_t n) {
     : ranges::fold_left(
         views::repeat(x, n), unit<T>(Op{}), Op{});
 }
+template <typename T,
+          typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+        && equality_comparable<T>
+        && same_as<Op, plus<T>>
+        && IsCountingSemiring<T, plus<T>,
+                              multiplies<T>>
+constexpr T times(T x, size_t n) {
+  return n == 0 || x == unit<T>(Op{})
+    ? unit<T>(Op{}) : x * T(n);
+}
 \end{cpp}
 \end{minipage}
 \caption{Desugaring.
-Left: Listing~\ref{lst:rule3}'s \cppinline{times} with two shortcuts: no copies are the unit, and, where the carrier has equality, so are copies of the unit, with no fold.
-Right: the same in the kernel: the first shortcut in a conditional, and the second in an overload with the stronger constraint, which resolution prefers where it holds.
+Top: the law a faster \cppinline{times} needs, that \cppinline{T(n)} is \cppinline{n} copies of the multiplicative unit, declared and certified for the unsigned carriers, whose conversion the standard defines modulo $2^w$; and the shape that conjoins it.
+Left: Listing~\ref{lst:rule3}'s \cppinline{times} with branches on concepts: no copies, or, where there is equality, copies of the unit, are the unit; in a counting semiring under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one multiplication.
+Right: the same in the kernel, a family of three generic functions, each constraint containing the one before, which resolution orders by specificity.
 The test holds both and checks that they agree.}
 \label{lst:desugar}
 \end{listing}
 
-Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes two generic functions, and the stronger concept buys a shortcut, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
-The shortcuts keep Rule~2, since the bodies use only what the clauses name: \cppinline{n == 0} compares two \cppinline{size_t}s and needs no clause, \cppinline{x == unit<T>(Op{})} needs \cppinline{equality_comparable}, and the answer is the unit from \cppinline{IsMonoid}, whose unit law makes any number of copies of the unit the unit.
+Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes a family of generic functions, and each stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
+The bodies keep Rule~2, using only what the clauses name: \cppinline{n == 0} compares two \cppinline{size_t}s, \cppinline{x == unit<T>(Op{})} is \cppinline{equality_comparable}'s, \cppinline{*} is \cppinline{multiplies}', and \cppinline{T(n)} is \cppinline{constructible_from}'s.
+The laws make the answers right: the unit law makes any number of copies of the unit the unit, and distributivity makes \cppinline{n} copies of \cppinline{x} equal to \cppinline{x} times \cppinline{n} copies of the unit, which \cppinline{counts} says \cppinline{T(n)} is.
+Without \cppinline{counts} the last overload would be wrong for a semiring whose conversion does not count: in $\mathbb{F}_2$, \cppinline{bool(2)} is \cppinline{true}, but $1 \oplus 1 = 0$.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 

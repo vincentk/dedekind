@@ -256,6 +256,18 @@ constexpr T copies(const T x) {  // fine: default construction and copies
   return Op{}(T{x}, Op{}(T(x), T{}));
 }
 
+// A declared law in function spelling is a fact, not an unreadable
+// constraint: the function under the shape is still judged.
+template <typename T, typename Op>
+constexpr bool associative(Op) = delete;
+template <typename T, typename Op>
+concept IsLawfulMonoid = IsMonoid<T, Op> && associative<T>(Op{});
+template <typename T, typename Op>
+  requires IsLawfulMonoid<T, Op>
+constexpr T lawful_leak(T x) {  // planted: the law names no '+'
+  return x + x;
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
