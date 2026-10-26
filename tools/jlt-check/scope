@@ -37,7 +37,7 @@ rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings
 rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  1
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
-rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
+rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-no-inheritance         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-constexpr              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-const-call-operator    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -62,7 +62,7 @@ rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category
 rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule2-no-inline-requires     src/main/modules/dedekind/category/*.cppm  category  0
-rule2-decided-resolution     src/main/modules/dedekind/category/*.cppm  category  report
+rule2-decided-resolution     src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-inheritance         src/main/modules/dedekind/category/*.cppm  category  0
 rule1-constexpr              src/main/modules/dedekind/category/*.cppm  category  0
 rule1-const-call-operator    src/main/modules/dedekind/category/*.cppm  category  0
