@@ -317,9 +317,9 @@ constexpr bool counts(std::plus<T>, std::multiplies<T>) {
 }
 
 template <typename T, typename Add, typename Mul>
-concept IsCountingSemiring = IsSemiring<T, Add, Mul> &&
-                             std::constructible_from<T, size_t> &&
-                             counts<T>(Add{}, Mul{});
+concept IsCountingSemiring =
+    IsSemiring<T, Add, Mul> && std::constructible_from<T, size_t> &&
+    counts<T>(Add{}, Mul{});
 
 // Section 3, left: Listing 3's times with branches on concepts: no copies,
 // or copies of the unit where there is equality, are the unit; in a counting
