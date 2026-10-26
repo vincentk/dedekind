@@ -508,6 +508,7 @@ variable or class template & each member of the family an FJlt instance & instan
 const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
 constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
 explicit conversion & a total conversion between carriers of $\Sigma$ & a declared operation & a reader \\
+an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+} & that object's call & the tool \\
 operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
 non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
 \texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\

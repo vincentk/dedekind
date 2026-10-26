@@ -265,15 +265,16 @@ constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
 // Section 3, left: scale, written with sugar: a branch on a concept, an if
-// statement, a lambda.
+// statement, a lambda.  The operators are the function objects' that the
+// constraints name.
 template <typename T>
   requires IsMonoid<T, std::plus<T>>
 constexpr T scale(T x, size_t n) {
   if constexpr (IsSemiring<T, std::plus<T>, std::multiplies<T>>) {
-    return std::multiplies<T>{}(x, T(n));
+    return x * T(n);
   } else {
     if (n == 0) return unit<T>(std::plus<T>{});
-    auto step = [x](T acc, T) { return std::plus<T>{}(acc, x); };
+    auto step = [x](T acc, T) { return acc + x; };
     return std::ranges::fold_left(std::views::repeat(x, n - 1), x, step);
   }
 }
@@ -282,9 +283,10 @@ constexpr T scale(T x, size_t n) {
 // more constrained preferred; the if is ?:; the lambda is an operation.
 namespace kernel {
 template <typename T>
+  requires IsMonoid<T, std::plus<T>>
 struct Step {
   T x;
-  constexpr T operator()(T acc, T) const { return std::plus<T>{}(acc, x); }
+  constexpr T operator()(T acc, T) const { return acc + x; }
 };
 template <typename T>
   requires IsMonoid<T, std::plus<T>>
@@ -296,7 +298,7 @@ constexpr T scale(T x, size_t n) {
 template <typename T>
   requires IsSemiring<T, std::plus<T>, std::multiplies<T>>
 constexpr T scale(T x, size_t n) {
-  return std::multiplies<T>{}(x, T(n));
+  return x * T(n);
 }
 }  // namespace kernel
 

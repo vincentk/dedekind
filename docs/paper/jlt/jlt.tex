@@ -328,11 +328,11 @@ template <typename T>
 constexpr T scale(T x, size_t n) {
   if constexpr (
       IsSemiring<T, plus<T>, multiplies<T>>) {
-    return multiplies<T>{}(x, T(n));
+    return x * T(n);
   } else {
     if (n == 0) return unit<T>(plus<T>{});
     auto step = [x](T acc, T) {
-      return plus<T>{}(acc, x);
+      return acc + x;
     };
     return ranges::fold_left(
         views::repeat(x, n - 1), x, step);
@@ -343,10 +343,11 @@ constexpr T scale(T x, size_t n) {
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 template <typename T>
+  requires IsMonoid<T, plus<T>>
 struct Step {
   T x;
   constexpr T operator()(T acc, T) const {
-    return plus<T>{}(acc, x);
+    return acc + x;
   }
 };
 template <typename T>
@@ -359,7 +360,7 @@ constexpr T scale(T x, size_t n) {
 template <typename T>
   requires IsSemiring<T, plus<T>, multiplies<T>>
 constexpr T scale(T x, size_t n) {
-  return multiplies<T>{}(x, T(n));
+  return x * T(n);
 }
 \end{cpp}
 \end{minipage}
@@ -371,7 +372,7 @@ The test holds both and checks that they agree at \cppinline{size_t}, a semiring
 \end{listing}
 
 Listing~\ref{lst:desugar} shows one function both ways.
-Each kind of sugar is replaced by the kernel term of its row in Table~\ref{tab:closure}, and nothing else changes: the operations the body uses, \cppinline{plus<T>} and \cppinline{multiplies<T>}, are the ones its constraints name, and the two versions compute the same value at every type.
+Each kind of sugar is replaced by the kernel term of its row in Table~\ref{tab:closure}, and nothing else changes: the operators the body uses, \cppinline{+} and \cppinline{*}, are declared by the constraints that name \cppinline{plus<T>} and \cppinline{multiplies<T>}, whose call operators the standard defines by them, and the two versions compute the same value at every type.
 The branch on a concept is also where the choice of algorithm happens.
 At a semiring the more constrained generic function is chosen and multiplies once; at a monoid that is only a monoid the fold runs.
 That is the selection the standard library makes when \cppinline{std::advance} jumps for a random-access iterator and walks for the others, and in the kernel it is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the choice is decided by the declared constraints at each instantiation.
