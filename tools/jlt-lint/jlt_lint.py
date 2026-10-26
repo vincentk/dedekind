@@ -11,13 +11,19 @@ database.
 
 A rule file may instead name a check of jlt-lint (``tool <check>``), the
 checks that need code rather than a pattern; the tool prints one finding per
-line as ``path:line:col``.
+line as ``path:line:col``.  All of a file's checks run in one jlt-lint
+process, over one parse, each check's findings in its own section.
+
+Files are linted in parallel, ``NCPU`` at a time (default: the number of
+cores); the report is printed in file order, as if they had run one by one.
 
 Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL]
 """
 
 import collections
+import concurrent.futures
 import glob
+import os
 import pathlib
 import re
 import subprocess
@@ -60,18 +66,38 @@ def tool_check(rule):
     return None
 
 
-def run_tool(tool, build, path, namespace, check):
-    """One check of jlt-lint on one file: (count, locations) or an error."""
-    args = [str(tool), f"--check={check}", f"--scope={namespace}"]
+def run_tool(tool, build, path, namespace, checks):
+    """The checks of jlt-lint on one file, over one parse: locations per
+    check, or None and the output on an error."""
+    args = [str(tool), f"--check={','.join(checks)}", f"--scope={namespace}"]
     if path.startswith("tools/jlt-lint/fixtures/"):
         args += [str(ROOT / path), "--", "-std=c++23", "-xc++"]
     else:
         args += ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
     p = subprocess.run(args, capture_output=True, text=True)
     if p.returncode != 0:
-        return None, None, p.stdout + p.stderr
-    locs = [l for l in p.stdout.splitlines() if l.strip()]
-    return len(locs), locs, p.stdout + p.stderr
+        return None, p.stdout + p.stderr
+    lines = [l for l in p.stdout.splitlines() if l.strip()]
+    if len(checks) == 1:  # one check prints no section header
+        return {checks[0]: lines}, p.stdout + p.stderr
+    found = {c: [] for c in checks}
+    seen = []
+    section = None
+    for l in lines:
+        if l.startswith("== "):
+            section = l[3:].strip()
+            if section not in found or section in seen:
+                return None, p.stdout + p.stderr
+            seen.append(section)
+        elif section is None:
+            return None, p.stdout + p.stderr
+        else:
+            found[section].append(l)
+    # Every check must have reported, even with no findings: a missing
+    # section is a check that did not run, not a zero.
+    if sorted(seen) != sorted(checks):
+        return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
+    return found, p.stdout + p.stderr
 
 
 def matchers(rule):
@@ -143,23 +169,33 @@ def main():
     for rule, f, ns, expected in lines:
         groups[(f, ns)].append((rule, expected))
 
-    failures = 0
-    per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
-    for (f, ns), entries in sorted(groups.items()):
+    def lint(group):
+        """One file: its clang-query rules in one parse, its jlt-lint checks
+        in another; (counts, locations, output) per rule, counts None on an
+        error."""
+        (f, ns), entries = group
         query_rules = [r for r, _ in entries if tool_check(r) is None]
         # Always through run(): its namespace probe guards tool-only groups too.
         counts, where, out = run(query, build, f, ns, query_rules)
-        for r, _ in entries:  # the tool's checks, one run each
-            chk = tool_check(r)
-            if chk is None or counts is None:
-                continue
-            n, locs, tout = run_tool(tool, build, f, ns, chk)
-            if n is None:
-                counts = None
-                out = f"jlt-lint --check={chk}: " + tout
-                break
-            counts[r] = n
-            where[r] = locs
+        tool_rules = [r for r, _ in entries if tool_check(r) is not None]
+        if counts is None or not tool_rules:
+            return counts, where, out
+        found, tout = run_tool(tool, build, f, ns, [tool_check(r) for r in tool_rules])
+        if found is None:
+            return None, None, "jlt-lint: " + tout
+        for r in tool_rules:
+            where[r] = found[tool_check(r)]
+            counts[r] = len(where[r])
+        return counts, where, out
+
+    workers = int(os.environ.get("NCPU") or os.cpu_count() or 1)
+    ordered = sorted(groups.items())
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(lint, ordered))
+
+    failures = 0
+    per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
+    for ((f, ns), entries), (counts, where, out) in zip(ordered, results):
         if counts is None:
             print(f"jlt-lint: {f}: does not parse, a matcher did not run, or the scope is absent", file=sys.stderr)
             print("\n".join(out.splitlines()[:30]), file=sys.stderr)

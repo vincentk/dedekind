@@ -1,9 +1,11 @@
 // jlt-lint: the Jlt linter's checks that need code rather than a pattern.
 //
-//   jlt-lint --check=<name> --scope=<namespace> <file> [-p <build>] [--
-//   <flags>]
+//   jlt-lint --check=<name>[,<name>...] --scope=<namespace> <file>
+//            [-p <build>] [-- <flags>]
 //
 // Prints one finding per line as "path:line:col"; the driver counts them.
+// Several checks share one parse: each check's findings then follow a line
+// "== <check>", in the order named.
 // Checks:
 //   mutual-recursion  functions of the scope namespace, defined in the file,
 //                     that lie on a call cycle of length >= 2 (a function
@@ -68,6 +70,7 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
+#include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
@@ -81,6 +84,11 @@ llvm::cl::opt<std::string> check("check", llvm::cl::desc("the check to run"),
 llvm::cl::opt<std::string> scope("scope",
                                  llvm::cl::desc("the namespace judged"),
                                  llvm::cl::Required, llvm::cl::cat(category));
+
+/// Where a check prints: stdout, or its section's buffer when several checks
+/// share one parse.
+llvm::raw_ostream* current = &llvm::outs();
+llvm::raw_ostream& out() { return *current; }
 
 /// Whether `d` sits inside a namespace named `scope`, at any depth.
 bool inScope(const clang::Decl* d) {
@@ -153,7 +161,7 @@ class MutualRecursion : public clang::ASTConsumer {
 
     for (const clang::FunctionDecl* f : findings) {
       const clang::SourceLocation loc = sm.getExpansionLoc(f->getLocation());
-      llvm::outs() << sm.getFilename(loc) << ':'
+      out() << sm.getFilename(loc) << ':'
                    << sm.getExpansionLineNumber(loc) << ':'
                    << sm.getExpansionColumnNumber(loc) << '\n';
     }
@@ -796,7 +804,7 @@ class Definition : public clang::ASTConsumer {
       if (op.builtin && v.everything) continue;
       if (grantedInBranch(op)) continue;
       const clang::SourceLocation loc = sm.getExpansionLoc(op.loc);
-      llvm::outs() << sm.getFilename(loc) << ':'
+      out() << sm.getFilename(loc) << ':'
                    << sm.getExpansionLineNumber(loc) << ':'
                    << sm.getExpansionColumnNumber(loc) << ": '" << op.name
                    << "' is not named by the constraints of "
@@ -849,7 +857,7 @@ class InlineRequires : public clang::ASTConsumer,
     if (!judged(f, ctx->getSourceManager())) return true;
     const clang::SourceManager& sm = ctx->getSourceManager();
     const clang::SourceLocation loc = sm.getExpansionLoc(s->getIfLoc());
-    llvm::outs() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
+    out() << sm.getFilename(loc) << ':' << sm.getExpansionLineNumber(loc)
                  << ':' << sm.getExpansionColumnNumber(loc)
                  << ": a requires-expression tested in a body is not a "
                     "declared constraint\n";
@@ -908,7 +916,7 @@ class Inheritance : public clang::ASTConsumer,
       if (!emptyBase(b.getType())) finding = true;
     if (!finding) return true;
     const clang::SourceLocation loc = sm->getExpansionLoc(r->getLocation());
-    llvm::outs() << sm->getFilename(loc) << ':'
+    out() << sm->getFilename(loc) << ':'
                  << sm->getExpansionLineNumber(loc) << ':'
                  << sm->getExpansionColumnNumber(loc)
                  << ": a base that is not an empty class, or a virtual "
@@ -1171,7 +1179,7 @@ class UndecidedResolution : public clang::ASTConsumer {
       }
       if (undecided.empty()) continue;
       const clang::SourceLocation loc = sm->getExpansionLoc(u->getNameLoc());
-      llvm::outs() << sm->getFilename(loc) << ':'
+      out() << sm->getFilename(loc) << ':'
                    << sm->getExpansionLineNumber(loc) << ':'
                    << sm->getExpansionColumnNumber(loc) << ": the call to '"
                    << name << "' resolves by '" << undecided
@@ -1199,7 +1207,7 @@ class Inventory : public clang::ASTConsumer,
     sm = &ctx.getSourceManager();
     TraverseDecl(ctx.getTranslationUnitDecl());
     for (const auto& [kind, n] : counts)
-      llvm::outs() << kind << ' ' << n << '\n';
+      out() << kind << ' ' << n << '\n';
   }
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool shouldVisitImplicitCode() const { return false; }
@@ -1244,19 +1252,54 @@ class Inventory : public clang::ASTConsumer,
   std::map<std::string, unsigned> counts;
 };
 
+/// One check by name, or null for an unknown name.
+std::unique_ptr<clang::ASTConsumer> checkNamed(llvm::StringRef name) {
+  if (name == "mutual-recursion") return std::make_unique<MutualRecursion>();
+  if (name == "definition") return std::make_unique<Definition>();
+  if (name == "inline-requires") return std::make_unique<InlineRequires>();
+  if (name == "inheritance") return std::make_unique<Inheritance>();
+  if (name == "inventory") return std::make_unique<Inventory>();
+  if (name == "undecided-resolution")
+    return std::make_unique<UndecidedResolution>();
+  llvm::errs() << "jlt-lint: unknown check " << name << '\n';
+  return nullptr;
+}
+
+/// A check whose findings go to its own section, after a "== <check>" line:
+/// several checks then read one parse, and the driver splits the output.
+class Section : public clang::ASTConsumer {
+ public:
+  Section(std::string n, std::unique_ptr<clang::ASTConsumer> c)
+      : name(std::move(n)), inner(std::move(c)) {}
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    std::string buffer;
+    llvm::raw_string_ostream os(buffer);
+    current = &os;
+    inner->HandleTranslationUnit(ctx);
+    current = &llvm::outs();
+    os.flush();
+    llvm::outs() << "== " << name << '\n' << buffer;
+  }
+
+ private:
+  std::string name;
+  std::unique_ptr<clang::ASTConsumer> inner;
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
       clang::CompilerInstance&, llvm::StringRef) override {
-    if (check == "mutual-recursion") return std::make_unique<MutualRecursion>();
-    if (check == "definition") return std::make_unique<Definition>();
-    if (check == "inline-requires") return std::make_unique<InlineRequires>();
-    if (check == "inheritance") return std::make_unique<Inheritance>();
-    if (check == "inventory") return std::make_unique<Inventory>();
-    if (check == "undecided-resolution")
-      return std::make_unique<UndecidedResolution>();
-    llvm::errs() << "jlt-lint: unknown check " << check << '\n';
-    return nullptr;
+    llvm::SmallVector<llvm::StringRef, 8> names;
+    llvm::StringRef(check).split(names, ',', -1, false);
+    if (names.size() == 1) return checkNamed(names.front());
+    std::vector<std::unique_ptr<clang::ASTConsumer>> sections;
+    for (llvm::StringRef name : names) {
+      auto c = checkNamed(name);
+      if (!c) return nullptr;
+      sections.push_back(std::make_unique<Section>(name.str(), std::move(c)));
+    }
+    return std::make_unique<clang::MultiplexConsumer>(std::move(sections));
   }
 };
 
