@@ -728,7 +728,7 @@ struct InSlot {
   template <typename P>
     requires std::invocable<const S&,
                             decltype(Projection<I>{}(std::declval<const P&>()))>
-  constexpr bool operator()(const P& p) const {
+  constexpr bool operator()(const P & p) const {
     return static_cast<bool>(set(Projection<I>{}(p)));
   }
 };
