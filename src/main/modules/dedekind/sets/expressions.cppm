@@ -1014,9 +1014,10 @@ struct SymbolicImagePredicate {
  *  decidable-specialisation path (layer 2).
  */
 export template <dedekind::category::IsArrow F, IsSetObject S>
-  requires std::same_as<dedekind::category::Dom<F>, typename S::Domain>
-constexpr auto image(const F&, const S&) {
-  using U = dedekind::category::Cod<F>;
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain>
+constexpr auto image(F&&, const S&) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return Comprehension<𝔸<U, dedekind::category::Kleene>,
                        SymbolicImagePredicate<U>>{SymbolicImagePredicate<U>{}};
 }
@@ -1087,9 +1088,10 @@ struct ComposedIsoImagePredicate {
  *  #661) over follow-up slices.
  */
 export template <dedekind::category::IsIsomorphism F, IsSetObject S>
-  requires std::same_as<dedekind::category::Dom<F>, typename S::Domain>
-constexpr auto image(const F& f, const S& s) {
-  using U = dedekind::category::Cod<F>;
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain>
+constexpr auto image(F&& f, const S& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   using L = typename S::logic_species;
   // Unqualified call so ADL routes to the inverse overload for f's
   // type (e.g.\ Identity<T>, TaggedNegate) in dedekind::category.
@@ -1097,7 +1099,7 @@ constexpr auto image(const F& f, const S& s) {
   // edit in :morphism, see commit history); the unqualified shape is
   // what the IsIsomorphism concept itself uses, and matches the
   // codebase's ADL-hook style for partial categorical primitives.
-  auto f_inv = inverse(f);
+  auto f_inv = inverse(std::forward<F>(f));
   using FInv = std::remove_cvref_t<decltype(f_inv)>;
   using NewPredicate = ComposedIsoImagePredicate<S, FInv>;
   return Comprehension<𝔸<U, L>, NewPredicate>{
@@ -1112,10 +1114,10 @@ constexpr auto image(const F& f, const S& s) {
  */
 export template <typename T, typename L, typename C,
                  dedekind::category::IsIsomorphism F>
-  requires(std::same_as<dedekind::category::Dom<F>, T> &&
-           !dedekind::category::IsTerminalMorphism<F>)
-constexpr auto image(const F&, const 𝔸<T, L, C>&) {
-  using U = dedekind::category::Cod<F>;
+  requires(std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+           !dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>>)
+constexpr auto image(F&&, const 𝔸<T, L, C>&) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   return 𝔸<U, L, C>{};  // iso |U| = |T|, so the cardinality carries
 }
 // The terminal case (@c id<One>, which is BOTH an iso and the unique One→One
@@ -1202,15 +1204,16 @@ struct ComposedRetractImagePredicate {
  *  ambiguous between the two overloads; with it, iso always wins.
  */
 export template <dedekind::category::IsRetractableArrow F, IsSetObject S>
-  requires std::same_as<dedekind::category::Dom<F>, typename S::Domain> &&
-           (!dedekind::category::IsIsomorphism<F>)
-constexpr auto image(const F& f, const S& s) {
-  using U = dedekind::category::Cod<F>;
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                        typename S::Domain> &&
+           (!dedekind::category::IsIsomorphism<std::remove_cvref_t<F>>)
+constexpr auto image(F&& f, const S& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
   using L = typename S::logic_species;
   // Unqualified call so ADL routes to the retract overload registered
   // for f's type in the appropriate namespace.  The IsRetractableArrow
   // concept guarantees the call is well-formed.
-  auto retract_fn = retract(f);
+  auto retract_fn = retract(std::forward<F>(f));
   using RetractFn = std::remove_cvref_t<decltype(retract_fn)>;
   using NewPredicate = ComposedRetractImagePredicate<S, RetractFn, L>;
   return Comprehension<𝔸<U, L>, NewPredicate>{
@@ -1309,15 +1312,17 @@ concept IsLogicalTerm = IsArrow<std::remove_cvref_t<P>> || requires {
  *  @tparam P1 the left term.  @tparam P2 the right term. */
 export template <IsLogicalTerm P1, IsLogicalTerm P2>
   requires(!IsPredicatePair<P1, P2>)
-constexpr auto operator&&(P1 p1, P2 p2) {
+constexpr auto operator&&(P1&& p1, P2&& p2) {
   if constexpr (IsRelPredicate<P1> && IsRelPredicate<P2>) {
     // Two relational predicates conjoin pointwise and stay relational, so the
     // result binds at a former like each of them does.
-    return RelAnd<P1, P2>{std::move(p1), std::move(p2)};
+    return RelAnd<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                      std::forward<P2>(p2)};
   } else if constexpr (HasStructuredAnd<P1, P2>) {
-    return structured_and(p1, p2);
+    return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return Meet<P1, P2>{std::move(p1), std::move(p2)};
+    return Meet<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                    std::forward<P2>(p2)};
   }
 }
 
@@ -1330,13 +1335,15 @@ static_assert(!IsLogicalTerm<bool> && !IsLogicalTerm<int>,
  *  @tparam P1 the left term.  @tparam P2 the right term. */
 export template <IsLogicalTerm P1, IsLogicalTerm P2>
   requires(!IsPredicatePair<P1, P2>)
-constexpr auto operator||(P1 p1, P2 p2) {
+constexpr auto operator||(P1&& p1, P2&& p2) {
   if constexpr (IsRelPredicate<P1> && IsRelPredicate<P2>) {
-    return RelOr<P1, P2>{std::move(p1), std::move(p2)};
+    return RelOr<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                     std::forward<P2>(p2)};
   } else if constexpr (HasStructuredOr<P1, P2>) {
-    return structured_or(p1, p2);
+    return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
   } else {
-    return Join<P1, P2>{std::move(p1), std::move(p2)};
+    return Join<std::decay_t<P1>, std::decay_t<P2>>{std::forward<P1>(p1),
+                                                    std::forward<P2>(p2)};
   }
 }
 

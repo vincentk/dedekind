@@ -388,10 +388,11 @@ constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
  * this slice lands the entry-point breadcrumbs in their current form.
  */
 export template <IsOckhamAlgebra L, IsCardinality C, IsArrow F>
-constexpr auto image(const F& f,
-                     const Comprehension<𝔸<Dom<F>, L, C>, Point<Dom<F>>>& s) {
-  using U = Cod<F>;
-  return 𝔸<U, L>{} & Point<U>{f(s.predicate.pivot)};
+constexpr auto image(
+    F&& f, const Comprehension<𝔸<Dom<std::remove_cvref_t<F>>, L, C>,
+                               Point<Dom<std::remove_cvref_t<F>>>>& s) {
+  using U = Cod<std::remove_cvref_t<F>>;
+  return 𝔸<U, L>{} & Point<U>{std::forward<F>(f)(s.predicate.pivot)};
 }
 
 /** @section singleton__Image_Terminal_Morphism (#661)
@@ -416,14 +417,14 @@ constexpr auto image(const F& f,
 export template <IsOckhamAlgebra L, typename T, IsCardinality C, typename F>
   requires IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(const F&, const 𝔸<T, L, C>&) {
+constexpr auto image(F&&, const 𝔸<T, L, C>&) {
   return singleton<L>(One{});
 }
 
 export template <typename L, typename T, typename F>
   requires dedekind::category::IsTerminalMorphism<std::remove_cvref_t<F>> &&
            std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
-constexpr auto image(const F&, const Ø<T, L>&) {
+constexpr auto image(F&&, const Ø<T, L>&) {
   return Ø<dedekind::category::One, L>{};
 }
 
