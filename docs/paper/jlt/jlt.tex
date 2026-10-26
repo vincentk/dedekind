@@ -41,6 +41,7 @@ iii) recursion is structural, on a type or on a natural number that counts down.
 Jlt can then be further decomposed into \emph{sugar} and a \emph{kernel}, Featherweight Jlt (FJlt).
 FJlt translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
 The translation is total on FJlt and preserves types and evaluation, so an FJlt program inherits the System~F image's termination, parametricity and a value; the sugar is named with its desugaring into the kernel, the paper's working hypothesis.
+Along the way it shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
 The evidence is proof sketches in the appendix, listings that compile and run at both binding times by a test in the public repository, a library whose core a mechanical checker holds to the rules, and the compiled output.
 What is gained is a language embedded in a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap.
 
