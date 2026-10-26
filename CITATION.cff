@@ -16,7 +16,7 @@ abstract: >
   and symbolic algebra over the canonical sets (Ddk). Algebraic laws are
   stated as types and as constexpr values, so the compiler checks them and
   reduces expressions at build time, leaving what cannot fold as a
-  specialised run-time residual. A checker in tools/jlt-check holds the core
+  specialised run-time residual. A linter in tools/jlt-lint holds the core
   of the library to the three rules in continuous integration.
 authors:
   - family-names: "Kräutler"

@@ -40,7 +40,7 @@ static_assert(iterate(Halve{}, std::size_t{1000}, 3) ==
 
 // Negative witnesses moved out of the module (#1061): each type here breaks
 // Rule 1 on purpose, to prove that a concept rejects it.  A witness of a
-// rejection is a test, so it lives in the tests, where the Jlt checker's gate
+// rejection is a test, so it lives in the tests, where the Jlt linter's gate
 // does not judge it.
 
 // Regression (#822): a Morphism wrapping a MUTABLE-ONLY callable is NOT an
