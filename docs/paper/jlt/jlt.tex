@@ -48,7 +48,7 @@ They are stated once and read either by concepts at compile time or by function 
 Evidence that the calculus holds real programs and that the translation is total on it: a) proof sketches in the appendix; b) the listings, which compile and run under a stock compiler at both binding times, by a test in the public repository; c) a library whose core is held to the rules by a mechanical checker; d) the compiled output, without the scaffolding.
 
 What the System~F image has, termination, parametricity and a value, a kernel program inherits: by theorem for the calculus and by an adequacy argument for the executable.
-What Jlt writes beyond the kernel is sugar, named with its desugaring and conjectured to follow.
+What Jlt writes beyond the kernel is sugar, named with its desugaring: the paper's working hypothesis.
 What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
 Jlt simplifies the trade between a functional style and a mainstream systems language in both directions.
 The correctness guarantees of the style are checked at compile time.
@@ -130,14 +130,14 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
   \& \text{value}
 \end{tikzcd}
 
-(b) under the conjecture
+(b) under the working hypothesis
 \end{minipage}
 \caption{The arrows of the paper.
 Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar; what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
 They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: $\mathit{desugar}$, labelled with what it removes, is total on Jlt and replaces the hook, and the dashed edge is the conjecture's claim that the diagram commutes for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+In (b), the working hypothesis of Section~\ref{sec:translation:adequacy} holds: $\mathit{desugar}$, labelled with what it removes, is total on Jlt and replaces the hook, and the dashed edge is its claim that the diagram commutes for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
 \end{figure}
 
@@ -388,7 +388,8 @@ Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which c
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
 A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
 Sums have their case form (Appendix~\ref{app:fjlt:syntax}), with the library's \cppinline{IsCoproduct} as the injection half of its condition and \cppinline{std::variant} as an instance.
-What remains a conjecture is that the table is complete, that the library writes no construction it leaves out, and until that is measured the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
+The table is complete for the library's \texttt{category} module and the listings by measurement (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, and it is the paper's working hypothesis.
+The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
 \label{sec:translation}
@@ -749,7 +750,7 @@ It is the body-versus-signature gap of Rule~2 one level down, in the standard li
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
-So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
+So the library writes its registrations in a form the listings do not, which Appendix~\ref{app:fjlt:closure} desugars into the kernel's.
 Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
 
 \paragraph{The library is part of the toolchain.}
