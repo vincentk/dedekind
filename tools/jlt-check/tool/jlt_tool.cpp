@@ -42,6 +42,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -715,52 +716,109 @@ class Inheritance : public clang::ASTConsumer,
 // enclosing constraints
 // ---------------------------------------------------------------------------
 
-/// The concepts a constraint expression mentions, through &&, || and !, and,
-/// when `follow`, through the bodies of the library's own concepts.
-void conceptsOf(const clang::Expr* e, std::set<std::string>& out, bool follow,
-                std::set<const clang::ConceptDecl*>& seen) {
-  if (!e) return;
-  e = e->IgnoreParenImpCasts();
-  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
-    const clang::ConceptDecl* c = cs->getNamedConcept();
-    out.insert(c->getName().str());
-    if (follow && !inStd(c) && seen.insert(c).second)
-      conceptsOf(c->getConstraintExpr(), out, follow, seen);
-    return;
-  }
-  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
-    conceptsOf(b->getLHS(), out, follow, seen);
-    conceptsOf(b->getRHS(), out, follow, seen);
-    return;
-  }
-  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
-    conceptsOf(u->getSubExpr(), out, follow, seen);
+/// A template type parameter, by depth and index: the identity an atom's
+/// argument is compared by.
+using Param = std::pair<unsigned, unsigned>;
+std::optional<Param> paramOf(clang::QualType t) {
+  if (t.isNull()) return std::nullopt;
+  t = t.getNonReferenceType().getUnqualifiedType();
+  if (const auto* p = t->getAs<clang::TemplateTypeParmType>())
+    return Param{p->getDepth(), p->getIndex()};
+  return std::nullopt;
 }
 
-/// The concepts a template's own constraints mention: type constraints on
-/// its parameters, its requires clause, its trailing requires clause.
-std::set<std::string> constraintConcepts(const clang::FunctionTemplateDecl* ft,
-                                         bool follow) {
-  std::set<std::string> out;
-  std::set<const clang::ConceptDecl*> seen;
-  const clang::TemplateParameterList* ps = ft->getTemplateParameters();
+/// An atom of a constraint: a concept applied, first argument a template
+/// type parameter, with its polarity.
+struct Atom {
+  std::string concept_;
+  Param arg;
+  bool positive;
+};
+
+/// The atoms a constraint guarantees: the conjuncts of its top-level &&, a
+/// negation of a concept-id as a negative atom; a disjunction guarantees
+/// nothing.  When `follow`, the library's concepts are read through, their
+/// parameters substituted by the arguments they are applied to.
+void guaranteed(const clang::Expr* e, bool positive, std::vector<Atom>& out,
+                bool follow, const std::map<Param, Param>& subst,
+                int depth = 0) {
+  if (!e || depth > 16) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    if (positive && b->getOpcode() == clang::BO_LAnd) {
+      guaranteed(b->getLHS(), true, out, follow, subst, depth + 1);
+      guaranteed(b->getRHS(), true, out, follow, subst, depth + 1);
+    }
+    return;  // ||, or && under a negation: no single atom is guaranteed
+  }
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e)) {
+    if (u->getOpcode() == clang::UO_LNot) {
+      const clang::Expr* sub = u->getSubExpr()->IgnoreParenImpCasts();
+      if (llvm::isa<clang::ConceptSpecializationExpr>(sub))
+        guaranteed(sub, !positive, out, false, subst, depth + 1);
+    }
+    return;
+  }
+  const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+  if (!cs || cs->getTemplateArguments().empty()) return;
+  const clang::TemplateArgument& a0 = cs->getTemplateArguments()[0];
+  if (a0.getKind() != clang::TemplateArgument::Type) return;
+  std::optional<Param> arg = paramOf(a0.getAsType());
+  if (!arg) return;
+  if (auto it = subst.find(*arg); it != subst.end()) arg = it->second;
+  const clang::ConceptDecl* c = cs->getNamedConcept();
+  out.push_back({c->getName().str(), *arg, positive});
+  if (!follow || !positive || inStd(c)) return;
+  // Read the concept's body, its parameters replaced by the arguments.
+  std::map<Param, Param> inner;
+  const clang::TemplateParameterList* ps = c->getTemplateParameters();
+  const auto args = cs->getTemplateArguments();
+  for (unsigned k = 0; k < ps->size() && k < args.size(); ++k)
+    if (const auto* tp =
+            llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
+      if (args[k].getKind() == clang::TemplateArgument::Type)
+        if (std::optional<Param> to = paramOf(args[k].getAsType())) {
+          if (auto it = subst.find(*to); it != subst.end()) to = it->second;
+          inner[{tp->getDepth(), tp->getIndex()}] = *to;
+        }
+  guaranteed(c->getConstraintExpr(), true, out, follow, inner, depth + 1);
+}
+
+/// The atoms a template's own constraints guarantee.
+std::vector<Atom> atomsOf(const clang::TemplateParameterList* ps,
+                          const clang::Expr* trailing, bool follow) {
+  std::vector<Atom> out;
+  const std::map<Param, Param> none;
+  if (!ps) return out;
   for (const clang::NamedDecl* p : *ps)
     if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
       if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
-        conceptsOf(tc->getImmediatelyDeclaredConstraint(), out, follow, seen);
-  conceptsOf(ps->getRequiresClause(), out, follow, seen);
-  conceptsOf(ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr,
-             out, follow, seen);
+        guaranteed(tc->getImmediatelyDeclaredConstraint(), true, out, follow,
+                   none);
+  guaranteed(ps->getRequiresClause(), true, out, follow, none);
+  guaranteed(trailing, true, out, follow, none);
   return out;
+}
+
+/// Whether a candidate can take `n` arguments: its parameters without
+/// defaults at most n, and at least n unless it ends in a pack.
+bool viableArity(const clang::FunctionDecl* f, unsigned n) {
+  unsigned required = f->getMinRequiredArguments();
+  bool pack = f->getNumParams() > 0 &&
+              f->getParamDecl(f->getNumParams() - 1)->isParameterPack();
+  return required <= n && (pack || n <= f->getNumParams());
 }
 
 /// The check: in every judged function template, a call at a value of
 /// parameter type to an overload set of two or more of the library's function
-/// templates, not named by the enclosing constraints, whose candidates differ
-/// in a concept the enclosing constraints (followed through the library's
-/// concepts, enclosing class templates included) do not mention.  Not seen:
+/// templates that can take the call's arguments, not named by the enclosing
+/// constraints, whose candidates differ in an atom (a concept on the argument
+/// the call passes, with its polarity) that the enclosing constraints do not
+/// guarantee or refute, read through the library's concepts with their
+/// arguments substituted and through enclosing class templates.  Not seen:
 /// trait reads through class and variable templates, whose specialisations
-/// differ by pattern rather than by concept; calls reached through a helper.
+/// differ by pattern rather than by concept; candidates that differ by head
+/// alone; calls reached through a helper.
 class UndecidedResolution : public clang::ASTConsumer {
  public:
   void HandleTranslationUnit(clang::ASTContext& ctx) override {
@@ -798,21 +856,24 @@ class UndecidedResolution : public clang::ASTConsumer {
   void judge(const clang::FunctionTemplateDecl* ft) {
     const Vocabulary v = vocabularyOf(ft);
     if (v.opaque) return;  // a constraint this check cannot read: silence
-    std::set<std::string> decided = constraintConcepts(ft, true);
+    std::vector<Atom> decided = atomsOf(
+        ft->getTemplateParameters(),
+        ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr,
+        true);
     for (const clang::DeclContext* c = ft->getDeclContext(); c;
          c = c->getParent())
       if (const auto* rd = llvm::dyn_cast<clang::CXXRecordDecl>(c))
         if (const clang::ClassTemplateDecl* ct =
                 rd->getDescribedClassTemplate()) {
-          std::set<const clang::ConceptDecl*> seen;
-          const clang::TemplateParameterList* ps = ct->getTemplateParameters();
-          for (const clang::NamedDecl* p : *ps)
-            if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
-              if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
-                conceptsOf(tc->getImmediatelyDeclaredConstraint(), decided,
-                           true, seen);
-          conceptsOf(ps->getRequiresClause(), decided, true, seen);
+          std::vector<Atom> more =
+              atomsOf(ct->getTemplateParameters(), nullptr, true);
+          decided.insert(decided.end(), more.begin(), more.end());
         }
+    auto isDecided = [&](const std::string& c, Param p) {
+      for (const Atom& a : decided)
+        if (a.concept_ == c && a.arg == p) return true;
+      return false;
+    };
     Calls body;
     body.TraverseStmt(ft->getTemplatedDecl()->getBody());
     for (const clang::CallExpr* call : body.calls) {
@@ -824,28 +885,45 @@ class UndecidedResolution : public clang::ASTConsumer {
       if (!anyParameterTyped(args)) continue;
       const std::string name = u->getName().getAsString();
       if (v.names.count(name)) continue;  // named: read through the dictionary
-      std::vector<std::set<std::string>> atoms;
+      // Each viable candidate's atoms, re-expressed on the enclosing
+      // template's parameters through the arguments the call passes.
+      std::vector<std::map<std::pair<std::string, Param>, bool>> cands;
       for (const clang::NamedDecl* d : u->decls()) {
         const auto* cand = llvm::dyn_cast<clang::FunctionTemplateDecl>(d);
-        if (!cand || inStd(cand) || cand->getTemplatedDecl()->isDeleted())
-          continue;
-        atoms.push_back(constraintConcepts(cand, false));
+        if (!cand || inStd(cand)) continue;
+        const clang::FunctionDecl* cf = cand->getTemplatedDecl();
+        if (cf->isDeleted() || !viableArity(cf, args.size())) continue;
+        std::map<Param, Param> toCaller;
+        for (unsigned k = 0; k < cf->getNumParams() && k < args.size(); ++k)
+          if (std::optional<Param> from =
+                  paramOf(cf->getParamDecl(k)->getType()))
+            if (std::optional<Param> to = paramOf(args[k]->getType()))
+              toCaller[*from] = *to;
+        std::map<std::pair<std::string, Param>, bool> m;
+        for (const Atom& a :
+             atomsOf(cand->getTemplateParameters(),
+                     cf->getTrailingRequiresClause().ConstraintExpr, false))
+          if (auto it = toCaller.find(a.arg); it != toCaller.end())
+            m[{a.concept_, it->second}] = a.positive;
+        cands.push_back(m);
       }
-      if (atoms.size() < 2) continue;
-      std::set<std::string> all, common = atoms.front();
-      for (const auto& a : atoms) {
-        all.insert(a.begin(), a.end());
-        std::set<std::string> keep;
-        for (const std::string& c : common)
-          if (a.count(c)) keep.insert(c);
-        common = keep;
-      }
+      if (cands.size() < 2) continue;
+      std::set<std::pair<std::string, Param>> keys;
+      for (const auto& m : cands)
+        for (const auto& kv : m) keys.insert(kv.first);
       std::string undecided;
-      for (const std::string& c : all)
-        if (!common.count(c) && !decided.count(c)) {
-          undecided = c;
+      for (const auto& key : keys) {
+        // The atom's state per candidate: required, refuted, or absent.
+        std::set<int> states;
+        for (const auto& m : cands) {
+          auto it = m.find(key);
+          states.insert(it == m.end() ? 0 : (it->second ? 1 : -1));
+        }
+        if (states.size() > 1 && !isDecided(key.first, key.second)) {
+          undecided = key.first;
           break;
         }
+      }
       if (undecided.empty()) continue;
       const clang::SourceLocation loc = sm->getExpansionLoc(u->getNameLoc());
       llvm::outs() << sm->getFilename(loc) << ':'

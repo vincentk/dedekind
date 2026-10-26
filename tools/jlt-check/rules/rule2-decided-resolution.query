@@ -6,5 +6,8 @@
 # translation into System F (which resolves at the type variable) and the
 # compiler (which resolves at the instantiation) disagree.  Decide it in the
 # clause, by requiring the concept or by splitting on it.  A call the
-# constraints name is read through the dictionary and is not judged.
+# constraints name is read through the dictionary and is not judged; a
+# candidate of the wrong arity is not a candidate; polarity and the argument
+# count, so Q<T> && C<T> against Q<T> && !C<T> separates, and C<U> decides
+# nothing about T.
 tool undecided-resolution
