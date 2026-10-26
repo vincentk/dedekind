@@ -503,6 +503,7 @@ lambda & captures by copy of FJlt values, FJlt body & operation struct, captures
 sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
 enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
 local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the tool \\
+local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the tool for escape, a reader for the rest \\
 variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
 const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
 constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
@@ -590,6 +591,7 @@ The one class that inherited state, a wrapper around \cppinline{Morphism}, had n
 
 \paragraph{What the table says.}
 Every row needs nothing from the calculus, the closure lemma being the standard's own account of the construction, once resolution is by specificity under GHC's rule and sums have their case form.
-The table is complete by measurement, not by argument: the repository's tool lists every kind of syntax node the \texttt{category} module and the listings use, 103 kinds, and each is the kernel's, a row of the table, or the compiler's own implicit structure.
+The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
+A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
 One construction the measurement found had no image in System~F, a template taking a class template as an argument, a type constructor of higher kind; the library used it once, for convenience, and no longer does.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.

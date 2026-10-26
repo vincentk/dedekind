@@ -360,7 +360,7 @@ Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which c
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
 A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
 Sums have their case form (Appendix~\ref{app:fjlt:syntax}), with the library's \cppinline{IsCoproduct} as the injection half of its condition and \cppinline{std::variant} as an instance.
-The table is complete for the library's \texttt{category} module and the listings by measurement (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, and it is the paper's working hypothesis.
+The table is complete for the library's \texttt{category} module and the listings by measurement, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, and it is the paper's working hypothesis.
 The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
