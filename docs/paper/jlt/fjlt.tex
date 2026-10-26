@@ -101,11 +101,11 @@ $\vdash D$ says a declaration is well formed, and a program is well formed when 
 Figure~\ref{fig:fjlt-typing} gives the rules that carry weight; the ones for constants, pairs, optionals, boxes, conditionals and the arithmetic of base types are the obvious ones and are omitted.
 
 \paragraph{Resolution.}
-A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$: the explicit specialisation at $\overline{\tau}$ if there is one, otherwise the generic function whose head matches $\overline{\tau}$ and whose context is entailed, recursively.
+A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$ in two steps, as \Cpp{} resolves an overloaded template: first the most specific of the generic functions whose head matches $\overline{\tau}$ and whose context is entailed, the deleted primary among them, then, if that is the primary, its explicit specialisation at $\overline{\tau}$ if there is one.
 The deleted primary never resolves, which is how an operation nobody registered fails a shape.
 Well-formedness requires resolution to be a function, in two cases.
-At concrete types, no two specialisations share a head, and among the generic functions whose head matches and whose context is entailed there is a unique most specific one, by head and then by context, as \Cpp{} orders constrained templates; resolution picks it, and \Cpp{} rejects the program where there is none.
-At a type variable, in a body with context $\Delta$, a call resolves only when $\Delta$ decides it: every constraint that separates two candidates is entailed by $\Delta$ or its negation is, so that every instantiation of the body resolves the call to the same declaration.
+At concrete types, no two specialisations share a head, and among the generic functions whose head matches and whose context is entailed there is a unique most specific one, by head and then by context, as \Cpp{} orders constrained templates; \Cpp{} rejects the program where there is none.
+At a type variable, in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body: every candidate whose head unifies with the call's types and that would be more specific than the chosen one is excluded by a constraint $\Delta$ decides, entailing it or its negation.
 That is GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which refuses to commit to an instance the types do not yet decide; \Cpp{} does not hold it, and a call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's tool reports where it can see one (Section~\ref{sec:limits}).
 Well-formedness also requires every context to mention only proper parts of the head's type arguments, so that resolution terminates~\cite{sulzmann2007understanding}.
 It also orders the declarations: the body of an instance, a generic function or an operation may call only declarations that precede it, and a trait call in a body may resolve only to a declaration that precedes the body, with one exception: a generic function may call itself at type arguments that are proper subterms of its own, so that its instantiations are ordered by the size of their type arguments and no instantiation calls itself.
@@ -138,7 +138,7 @@ In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that
 \\[12pt]
 \textsc{(E-Op)}\quad \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
 \qquad
-\textsc{(E-Not)}\quad \dfrac{\overline{\tau} \text{ concrete} \qquad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Not)}\quad \dfrac{\overline{\tau} \text{ concrete} \qquad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
 \textsc{(T-Var)}\quad \dfrac{x : \tau \in \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \qquad
@@ -393,7 +393,7 @@ Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c
 
 \begin{proof}[Proof of Theorem~\ref{thm:coherence}, coherence]
 Resolution is a function by well-formedness: at concrete types one specialisation at a head and a unique most specific generic function among the entailed candidates, and at a type variable only a call its context decides, so that the declaration a body's call resolves to is the same at every instantiation of the body and the dictionary built at the type variable is the one built after substitution; contexts are well-founded, so the recursion through contexts terminates with one answer.
-\textsc{E-Not} applies only at concrete types, where entailment is decided, so it adds no choice.
+\textsc{E-Not} applies only at concrete types, where entailment is decided, and only to a negation not already assumed, as \textsc{E-Shape} applies only to a shape not in $\Delta$, so it adds no choice.
 The entailment rules are syntax-directed, exactly one rule per constraint: \textsc{E-Assume} for a constraint in $\Delta$, \textsc{E-Shape} for a shape not in $\Delta$, by its side condition, \textsc{E-Op} for an operation, and \textsc{E-Law} or \textsc{E-Law-Assumed} for a law, which build the same $\mathit{true}$; so two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on that shape they build the same dictionary: the same variable, the same record of fields by the induction hypothesis, the same $\mathit{true}$, the same $\lambda\overline{x}.\,\llbracket e \rrbracket$ in which every trait call resolved the same way.
 \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed} are deterministic as well, taking the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, so the translation of a body is a function of the body.
 Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, the records in \textsc{T-Call} are determined by the program, and the translation is a function of it.
