@@ -352,8 +352,7 @@ static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
 static_assert(sugar::times<size_t>(7, 6) == times<size_t>(7, 6));
 static_assert(kernel::times<size_t>(7, 6) == times<size_t>(7, 6));
 static_assert(sugar::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));
-static_assert(kernel::times<size_t>(SIZE_MAX, 3) ==
-              times<size_t>(SIZE_MAX, 3));
+static_assert(kernel::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));
 
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
