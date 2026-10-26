@@ -321,70 +321,54 @@ It summarises which construction of Jlt becomes which term of the kernel, and le
 Desugaring here means rewriting a program written with conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept, into one that uses only the kernel's constructions and computes the same value, the way the \Cpp{} standard itself defines a lambda as a class with a call operator; the rewriting is not run by a tool but stated, construction by construction, as a condition and the kernel term it yields (Table~\ref{tab:closure}), and the repository's tool measures that the table names every construction the library writes.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-template <typename T>
-  requires IsMonoid<T, plus<T>>
-constexpr T scale(T x, size_t n) {
-  if constexpr (
-      IsSemiring<T, plus<T>, multiplies<T>>) {
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  if constexpr (same_as<Op, plus<T>> &&
+      IsSemiring<T, plus<T>, multiplies<T>>)
     return x * T(n);
-  } else {
-    if (n == 0) return unit<T>(plus<T>{});
-    auto step = [x](T acc, T) {
-      return acc + x;
-    };
+  else
     return ranges::fold_left(
-        views::repeat(x, n - 1), x, step);
-  }
+        views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
+\begin{minipage}[t]{0.51\linewidth}
 \begin{cpp}
-template <typename T>
-  requires IsMonoid<T, plus<T>>
-struct Step {
-  T x;
-  constexpr T operator()(T acc, T) const {
-    return acc + x;
-  }
-};
-template <typename T>
-  requires IsMonoid<T, plus<T>>
-constexpr T scale(T x, size_t n) {
-  return n == 0 ? unit<T>(plus<T>{})
-      : ranges::fold_left(
-            views::repeat(x, n - 1), x, Step<T>{x});
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  return ranges::fold_left(
+      views::repeat(x, n), unit<T>(Op{}), Op{});
 }
-template <typename T>
-  requires IsSemiring<T, plus<T>, multiplies<T>>
-constexpr T scale(T x, size_t n) {
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op> && same_as<Op, plus<T>>
+        && IsSemiring<T, plus<T>, multiplies<T>>
+constexpr T times(T x, size_t n) {
   return x * T(n);
 }
 \end{cpp}
 \end{minipage}
 \caption{Desugaring.
-Left: \cppinline{scale}, \cppinline{n} copies of \cppinline{x} under \cppinline{+}, written with three kinds of sugar: a branch on a concept, an \cppinline{if} statement and a lambda.
-Right: the same in the kernel: the branch is two generic functions, the more constrained preferred; the \cppinline{if} is \cppinline{?:}; the lambda is an operation with its capture as a field.
-The test holds both and checks that they agree at \cppinline{size_t}, a semiring, and at \cppinline{std::string}, a monoid only.}
+Left: Listing~\ref{lst:rule3}'s \cppinline{times} with a branch on a concept: at a semiring under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one multiplication.
+Right: the same in the kernel: Listing~\ref{lst:rule3}'s \cppinline{times} unchanged, and an overload with the stronger constraint, which resolution prefers where it holds.
+The test holds both and checks that they agree.}
 \label{lst:desugar}
 \end{listing}
 
-Listing~\ref{lst:desugar} shows one function both ways.
-Each kind of sugar is replaced by the kernel term of its row in Table~\ref{tab:closure}, and nothing else changes: the operators the body uses, \cppinline{+} and \cppinline{*}, are declared by the constraints that name \cppinline{plus<T>} and \cppinline{multiplies<T>}, whose call operators the standard defines by them, and the two versions compute the same value at every type.
-The branch on a concept is also where the choice of algorithm happens.
-At a semiring the more constrained generic function is chosen and multiplies once; at a monoid that is only a monoid the fold runs.
-That is the selection the standard library makes when \cppinline{std::advance} jumps for a random-access iterator and walks for the others, and in the kernel it is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the choice is decided by the declared constraints at each instantiation.
+Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes two generic functions, and the stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
+In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
+The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 
 The theorems of Section~\ref{sec:guarantees} are about FJlt.
 For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
 
 \emph{Every FJlt program is a Jlt program, with the same meaning.}
 This direction is by construction, and Appendix~\ref{app:fjlt:syntax} states it: the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, and for each construct the standard's rule is the FJlt rule.
-Two places need a word.
-Constant evaluation refuses undefined behaviour, signed overflow included, so an FJlt program evaluated at compile time cannot go wrong silently. At runtime it can, and that is the reason the listings' carriers are unsigned and \cppinline{int} appears in this paper only as a counter-example.
-And the standard library pieces the grammar admits, \cppinline{std::pair}, the function objects and the concepts, are taken with their standard meaning, so the argument depends on the library being correct in the same way every \Cpp{} program does.
+Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently; at run time it can, which is why the listings' carriers are unsigned.
+The standard library pieces the grammar admits are taken with their standard meaning, as every \Cpp{} program takes them.
 
 \emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
 This direction is not a theorem, because the compiler does not check two of the rules, and it is conditional on the grammar, because \Cpp{} has what FJlt does not and a Jlt program may use it.
@@ -412,12 +396,8 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax.
 Row~3, conversions, is half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 Row~4 is erased by the translation, an optimisation and not a meaning.
-Row~5 is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, pass lambdas, register facts by inheritance and case on sums.
-Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
-Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
-A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
-Sums have their case form (Appendix~\ref{app:fjlt:syntax}), with the library's \cppinline{IsCoproduct} as the injection half of its condition and \cppinline{std::variant} as an instance.
-The table is complete for the library's \texttt{category} module and the listings by measurement, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, and it is the paper's working hypothesis.
+Row~5 is the sugar: each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}, with the condition under which it desugars and the kernel term it becomes, and no row needs anything the calculus lacks.
+The table is complete for the \texttt{category} module and the listings by measurement, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, the paper's working hypothesis.
 The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
