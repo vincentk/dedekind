@@ -328,7 +328,7 @@ template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op> && same_as<Op, plus<T>> &&
            IsSemimodule<T, size_t>
 constexpr T times(T x, size_t n) {
-  return multiplies<>{}(n, x);
+  return n * x;
 }
 \end{cpp}
 \begin{minted}[fontsize=\footnotesize]{text}
@@ -354,7 +354,7 @@ The test holds the family and its sugar, the specialisation as a branch on the c
 Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes a family of generic functions, and the stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
 The branch one would write inside Listing~\ref{lst:rule3}'s \cppinline{times}, \cppinline{if constexpr} on \cppinline{IsSemimodule}, is the listing's overload, and its constraint contains Listing~\ref{lst:rule3}'s.
 The listing shows the family translated at once, since in System~F, which has no overloading, each function is a plain function of its constraints' records, and a call is the function its resolution picks.
-The bodies keep Rule~2, using only what the clauses name: \cppinline{x == unit<T>(Op{})} is \cppinline{IsMonoid}'s, which asks \cppinline{regular<T>}, and the action \cppinline|multiplies<>{}(n, x)| is \cppinline{IsSemimodule}'s.
+The bodies keep Rule~2, using only what the clauses name: \cppinline{x == unit<T>(Op{})} is \cppinline{IsMonoid}'s, which asks \cppinline{regular<T>}, and the action \cppinline{n * x} is \cppinline{IsSemimodule}'s, whose action \cppinline{multiplies<>} the standard defines by \cppinline{*}.
 The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
 The laws make the answers right: the unit law makes any number of copies of the unit the unit, and the semimodule's, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{n}.
 Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$, so the certificate is true for the unsigned carriers, which wrap at a power of two dividing it, and for none that does not wrap, such as \cppinline{std::string}.

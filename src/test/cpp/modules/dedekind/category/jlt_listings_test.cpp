@@ -341,7 +341,7 @@ template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if constexpr (std::same_as<Op, std::plus<T>> && IsSemimodule<T, size_t>)
-    return std::multiplies<>{}(n, x);
+    return n * x;
   else
     return n == 0 || x == unit<T>(Op{})
                ? unit<T>(Op{})
@@ -366,7 +366,7 @@ template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
            IsSemimodule<T, size_t>
 constexpr T times(T x, size_t n) {
-  return std::multiplies<>{}(n, x);
+  return n * x;
 }
 }  // namespace kernel
 
