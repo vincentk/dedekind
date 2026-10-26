@@ -316,6 +316,10 @@ Section~\ref{sec:limits} says how.}
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
+Section~\ref{sec:posture} defined Jlt by its rules and Section~\ref{sec:translation} defines its kernel, Featherweight Jlt, by a grammar; this section is the arrow between them, the $-$sugar of Figure~\ref{fig:arrows}.
+It summarises which construction of Jlt becomes which term of the kernel, and leaves the lemma for each to Appendix~\ref{app:fjlt:closure}.
+Desugaring here means rewriting a program written with conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept, into one that uses only the kernel's constructions and computes the same value, the way the \Cpp{} standard itself defines a lambda as a class with a call operator; the rewriting is not run by a tool but stated, construction by construction, as a condition and the kernel term it yields (Table~\ref{tab:closure}), and the repository's tool measures that the table names every construction the library writes.
+
 The theorems of Section~\ref{sec:guarantees} are about FJlt.
 For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
 
