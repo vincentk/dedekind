@@ -541,9 +541,9 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("The tree's semimodule accepts the listings' at size_t") {
     STATIC_CHECK(C::IsSemimodule<size_t, size_t>);
-    STATIC_CHECK(C::IsSemimodule<size_t, size_t, std::plus<size_t>,
-                                 std::plus<size_t>, std::multiplies<size_t>,
-                                 std::multiplies<>>);
+    STATIC_CHECK(
+        C::IsSemimodule<size_t, size_t, std::plus<size_t>, std::plus<size_t>,
+                        std::multiplies<size_t>, std::multiplies<>>);
   }
 
   SECTION("The tree's shapes accept the listings' rings") {

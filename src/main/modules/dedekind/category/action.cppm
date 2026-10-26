@@ -202,9 +202,9 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename AddS = std::plus<S>,
                  typename MultS = std::multiplies<S>,
                  typename Act = std::multiplies<>>
-concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
-                       IsSemiring<S, AddS, MultS> && IsAction<S, M, Act> &&
-                       is_linear_action_v<M, S, AddM, AddS, Act>;
+concept IsSemimodule =
+    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
+    IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, Act>;
 
 static_assert(IsSemimodule<unsigned int, unsigned int>,
               "unsigned int is a semimodule over itself: Z/2^32.");
