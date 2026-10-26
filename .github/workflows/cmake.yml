@@ -24,6 +24,14 @@ jobs:
       with:
         submodules: recursive
 
+    # The runner belongs to this job: give the build, ctest and the linter
+    # every core (the Makefile's JOBS default leaves two free for a
+    # developer's machine).
+    - name: Use every core
+      run: |
+        echo "JOBS=$(nproc)" >> "$GITHUB_ENV"
+        echo "NCPU=$(nproc)" >> "$GITHUB_ENV"
+
     - name: Set up Python
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
       with:
