@@ -173,6 +173,42 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
  * @brief Formal verification of the second law: f(s * x) = s * f(x).
  * @details Links the mapping f to an external scalar influence S.
  */
+/**
+ * @brief The semimodule laws of an action @c Act : S x M -> M, declared:
+ *        1 m = m, 0 m = 0, (s + t) m = s m + t m, (s t) m = s (t m) and
+ *        s (m + n) = s m + s n.  For scalars of type @c size_t, the integers
+ *        modulo 2^64, the laws make n m the n-fold sum of m for every n.
+ *        FIXME(#959): defaults to the signature check @c IsLinearAction, which
+ *        asserts no law; a declared @c false default needs a certificate at
+ *        every carrier the matrix columns and vector spaces reach.
+ */
+export template <typename M, typename S, typename AddM, typename AddS,
+                 typename Act>
+inline constexpr bool is_linear_action_v = IsLinearAction<S, M, Act, AddS>;
+
+/**
+ * @concept IsSemimodule
+ * @brief A commutative monoid @c M on which the semiring @c S acts linearly.
+ * @tparam M The module carrier.
+ * @tparam S The scalar carrier.
+ * @tparam AddM Additive law on M.
+ * @tparam AddS Additive law on S.
+ * @tparam MultS Multiplicative law on S.
+ * @tparam Act The action S x M -> M.
+ * @details The laws are the trait @c is_linear_action_v; @c dedekind.algebra
+ *          builds its modules and vector spaces on this shape.
+ */
+export template <typename M, typename S, typename AddM = std::plus<M>,
+                 typename AddS = std::plus<S>,
+                 typename MultS = std::multiplies<S>,
+                 typename Act = std::multiplies<>>
+concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
+                       IsSemiring<S, AddS, MultS> && IsAction<S, M, Act> &&
+                       is_linear_action_v<M, S, AddM, AddS, Act>;
+
+static_assert(IsSemimodule<unsigned int, unsigned int>,
+              "unsigned int is a semimodule over itself: Z/2^32.");
+
 export template <typename F, typename M, typename S,
                  typename Act = std::multiplies<>>
 concept IsLinearMorphism =
