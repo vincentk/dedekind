@@ -320,6 +320,62 @@ Section~\ref{sec:posture} defined Jlt by its rules and Section~\ref{sec:translat
 It summarises which construction of Jlt becomes which term of the kernel, and leaves the lemma for each to Appendix~\ref{app:fjlt:closure}.
 Desugaring here means rewriting a program written with conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept, into one that uses only the kernel's constructions and computes the same value, the way the \Cpp{} standard itself defines a lambda as a class with a call operator; the rewriting is not run by a tool but stated, construction by construction, as a condition and the kernel term it yields (Table~\ref{tab:closure}), and the repository's tool measures that the table names every construction the library writes.
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+template <typename T>
+  requires IsMonoid<T, plus<T>>
+constexpr T scale(T x, size_t n) {
+  if constexpr (
+      IsSemiring<T, plus<T>, multiplies<T>>) {
+    return multiplies<T>{}(x, T(n));
+  } else {
+    if (n == 0) return unit<T>(plus<T>{});
+    auto step = [x](T acc, T) {
+      return plus<T>{}(acc, x);
+    };
+    return ranges::fold_left(
+        views::repeat(x, n - 1), x, step);
+  }
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+template <typename T>
+struct Step {
+  T x;
+  constexpr T operator()(T acc, T) const {
+    return plus<T>{}(acc, x);
+  }
+};
+template <typename T>
+  requires IsMonoid<T, plus<T>>
+constexpr T scale(T x, size_t n) {
+  return n == 0 ? unit<T>(plus<T>{})
+      : ranges::fold_left(
+            views::repeat(x, n - 1), x, Step<T>{x});
+}
+template <typename T>
+  requires IsSemiring<T, plus<T>, multiplies<T>>
+constexpr T scale(T x, size_t n) {
+  return multiplies<T>{}(x, T(n));
+}
+\end{cpp}
+\end{minipage}
+\caption{Desugaring.
+Left: \cppinline{scale}, \cppinline{n} copies of \cppinline{x} under \cppinline{+}, written with three kinds of sugar: a branch on a concept, an \cppinline{if} statement and a lambda.
+Right: the same in the kernel: the branch is two generic functions, the more constrained preferred; the \cppinline{if} is \cppinline{?:}; the lambda is an operation with its capture as a field.
+The test holds both and checks that they agree at \cppinline{size_t}, a semiring, and at \cppinline{std::string}, a monoid only.}
+\label{lst:desugar}
+\end{listing}
+
+Listing~\ref{lst:desugar} shows one function both ways.
+Each kind of sugar is replaced by the kernel term of its row in Table~\ref{tab:closure}, and nothing else changes: the operations the body uses, \cppinline{plus<T>} and \cppinline{multiplies<T>}, are the ones its constraints name, and the two versions compute the same value at every type.
+The branch on a concept is also where the choice of algorithm happens.
+At a semiring the more constrained generic function is chosen and multiplies once; at a monoid that is only a monoid the fold runs.
+That is the selection the standard library makes when \cppinline{std::advance} jumps for a random-access iterator and walks for the others, and in the kernel it is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the choice is decided by the declared constraints at each instantiation.
+
 The theorems of Section~\ref{sec:guarantees} are about FJlt.
 For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
 
