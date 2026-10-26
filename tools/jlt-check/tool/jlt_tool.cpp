@@ -254,6 +254,38 @@ Permits permitsOfStd(llvm::StringRef name) {
   return p;
 }
 
+/// The operator a standard function object is defined by, in <functional>:
+/// std::plus<T>::operator()(a, b) returns a + b, and so on.  A constraint that
+/// names the function object has declared its operator.  Empty for any other
+/// type.
+llvm::StringRef operatorOfStdFunctionObject(clang::QualType t) {
+  static const std::map<std::string, std::string> ops = {
+      {"plus", "+"},         {"minus", "-"},         {"multiplies", "*"},
+      {"divides", "/"},      {"modulus", "%"},       {"negate", "-"},
+      {"equal_to", "=="},    {"not_equal_to", "!="}, {"less", "<"},
+      {"greater", ">"},      {"less_equal", "<="},   {"greater_equal", ">="},
+      {"logical_and", "&&"}, {"logical_or", "||"},   {"logical_not", "!"},
+      {"bit_and", "&"},      {"bit_or", "|"},        {"bit_xor", "^"},
+      {"bit_not", "~"}};
+  const clang::CXXRecordDecl* r =
+      t.isNull() ? nullptr : t->getAsCXXRecordDecl();
+  if (!r) {
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const auto* td = ts->getTemplateName().getAsTemplateDecl())
+        if (const auto* rd = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(
+                td->getTemplatedDecl()))
+          r = rd;
+  }
+  if (!r) return {};
+  bool std_ = false;
+  for (const clang::DeclContext* c = r->getDeclContext(); c; c = c->getParent())
+    if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
+      if (ns->isStdNamespace()) std_ = true;
+  if (!std_) return {};
+  auto it = ops.find(r->getName().str());
+  return it == ops.end() ? llvm::StringRef() : llvm::StringRef(it->second);
+}
+
 /// Whether a declaration lives in namespace std (any depth).
 bool inStd(const clang::Decl* d) {
   for (const clang::DeclContext* c = d->getDeclContext(); c; c = c->getParent())
@@ -298,6 +330,13 @@ void gather(const clang::Expr* e, Vocabulary& v) {
   e = e->IgnoreParenImpCasts();
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
     gatherConcept(cs->getNamedConcept(), v);
+    // An argument that is a standard function object grants its operator:
+    // IsMonoid<T, std::plus<T>> declares +.
+    for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+      if (a.getKind() == clang::TemplateArgument::Type) {
+        llvm::StringRef op = operatorOfStdFunctionObject(a.getAsType());
+        if (!op.empty()) v.names.insert(op.str());
+      }
     // Its written arguments name operations too: Fires<decltype(law(a, b))>.
     if (const auto* written = cs->getTemplateArgsAsWritten())
       for (const clang::TemplateArgumentLoc& arg : written->arguments()) {
@@ -587,9 +626,60 @@ class Definition : public clang::ASTConsumer {
     if (v.opaque) return;  // a constraint this check cannot read: silence
     BodyOperations body;
     body.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    // The then-branch of an if constexpr on a concept is typed under that
+    // concept (the instance chain of Appendix A.7): its grants hold there.
+    struct Branch {
+      clang::SourceRange range;
+      Vocabulary v;
+    };
+    std::vector<Branch> branches;
+    struct Ifs : clang::RecursiveASTVisitor<Ifs> {
+      std::vector<Branch>& out;
+      explicit Ifs(std::vector<Branch>& o) : out(o) {}
+      bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
+      bool VisitIfStmt(clang::IfStmt* st) {
+        if (!st->isConstexpr() || !st->getThen()) return true;
+        Branch b{st->getThen()->getSourceRange(), {}};
+        if (!typeConstraint(st->getCond())) return true;
+        gather(st->getCond(), b.v);
+        if (!b.v.opaque) out.push_back(std::move(b));
+        return true;
+      }
+      // A condition that constrains types: concept-ids joined by &&, each
+      // applied to types, none the decltype of an operation.  A
+      // requires-expression or a concept on decltype(op(x)) probes an
+      // operation instead, and is not a constraint (#1068).
+      static bool typeConstraint(const clang::Expr* e) {
+        e = e->IgnoreParenImpCasts();
+        if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+          return b->getOpcode() == clang::BO_LAnd &&
+                 typeConstraint(b->getLHS()) && typeConstraint(b->getRHS());
+        const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+        if (!cs) return false;
+        for (const clang::TemplateArgument& a : cs->getTemplateArguments()) {
+          if (a.getKind() != clang::TemplateArgument::Type) return false;
+          if (a.getAsType()->getAs<clang::DecltypeType>()) return false;
+        }
+        if (const auto* w = cs->getTemplateArgsAsWritten())
+          for (const clang::TemplateArgumentLoc& al : w->arguments())
+            if (al.getArgument().getKind() == clang::TemplateArgument::Type &&
+                al.getArgument().getAsType()->getAs<clang::DecltypeType>())
+              return false;
+        return true;
+      }
+    } ifs{branches};
+    ifs.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    auto grantedInBranch = [&](const BodyOperations::Op& op) {
+      for (const Branch& b : branches)
+        if (sm.isPointWithin(op.loc, b.range.getBegin(), b.range.getEnd()) &&
+            (b.v.names.count(op.name) || (op.builtin && b.v.everything)))
+          return true;
+      return false;
+    };
     for (const BodyOperations::Op& op : body.ops) {
       if (v.names.count(op.name)) continue;
       if (op.builtin && v.everything) continue;
+      if (grantedInBranch(op)) continue;
       const clang::SourceLocation loc = sm.getExpansionLoc(op.loc);
       llvm::outs() << sm.getFilename(loc) << ':'
                    << sm.getExpansionLineNumber(loc) << ':'
