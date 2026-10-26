@@ -1,6 +1,6 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
- * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 1 to 4),
+ * The listings of the Jlt paper (docs/paper/jlt/jlt.tex),
  * verbatim up to formatting and qualification (a listing may say
  * `using namespace std`),
  * so that CI holds the paper to the code.  The listings declare their own
@@ -44,7 +44,7 @@ constexpr bool associative(std::plus<T>) {
 }
 
 template <typename T, typename Op>
-concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
+concept IsMonoid = std::regular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
   { unit<T>(Op{}) } -> std::same_as<T>;
 } && associative<T>(Op{});
@@ -126,7 +126,7 @@ static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-// Listing 2: laws as functions of the operation; the semiring shape.
+// The Conclusion: the shapes stacked; laws as functions of the operation.
 template <typename T, typename Op>
 constexpr bool commutative(Op) = delete;
 template <typename T, typename Mul, typename Add>
@@ -171,8 +171,9 @@ static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// Listing 6, implied: a bounded distributive lattice is a semiring whose two
-// operations are commutative and idempotent and absorb each other.
+// The Conclusion's listing, implied: a bounded distributive lattice is a
+// semiring whose two operations are commutative and idempotent and absorb each
+// other.
 template <typename T, typename Op>
 constexpr bool idempotent(Op) = delete;
 template <typename T, typename Join, typename Meet>
@@ -233,6 +234,46 @@ static_assert(
 static_assert(
     !IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
 
+// The Conclusion: rings, by one more conjunct.
+template <typename T, typename Op>
+constexpr bool invertible(Op) = delete;
+
+template <typename T, typename Op>
+concept IsGroup = IsMonoid<T, Op> && invertible<T>(Op{});
+
+template <typename T, typename Add, typename Mul>
+concept IsRing = IsSemiring<T, Add, Mul> && IsGroup<T, Add>;
+
+template <>
+constexpr size_t unit<size_t>(std::bit_xor<size_t>) {
+  return 0;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool commutative<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive<size_t>(std::bit_and<size_t>,
+                                    std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool invertible<size_t>(std::plus<size_t>) {
+  return true;
+}
+template <>
+constexpr bool invertible<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+
+static_assert(IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+static_assert(IsRing<size_t, std::bit_xor<size_t>, std::bit_and<size_t>>);
+static_assert(!IsRing<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
+
 // Section 2, the posture: one panel per rule.
 static_assert(std::semiregular<size_t>);
 static_assert(std::semiregular<std::pair<size_t, bool>>);
@@ -254,15 +295,106 @@ static_assert(twice_loose(std::string{"ab"}) == "abab");
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
+  return n == 0 || x == unit<T>(Op{})
+             ? unit<T>(Op{})
+             : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                      Op{});
 }
 
 static_assert(times<size_t>(7, 6) == 42);
 
-// Listing 3, right: the same fold at run time, a hundred copies; its LLVM IR
-// at -O2 is one multiplication (the paper's panel).
-constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
-static_assert(times_100(7) == 700);
+// Listing 3, right: the same fold with a budget known only at run time; its
+// LLVM IR at -O2 is one multiplication (the paper's panel).
+constexpr size_t times_n(size_t x, size_t n) { return times<size_t>(x, n); }
+static_assert(times_n(7, 100) == 700);
+
+// Section 3: the semimodule over size_t, the library's shape with its laws
+// declared.  Scalars of type size_t are the integers modulo 2^64, so the
+// certificate holds for the unsigned carriers, which wrap at a power of two
+// dividing it.  For n below 2^64 the laws make n . x the n copies of x.
+template <typename M, typename S, typename AddM, typename AddS, typename MultS,
+          typename Act>
+constexpr bool linear(AddM, AddS, MultS, Act) = delete;
+template <std::unsigned_integral M, std::same_as<size_t> S>
+constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>,
+                      std::multiplies<>) {
+  return true;
+}
+
+// The library's interface (dedekind.category:action), its laws declared.
+template <typename M, typename S, typename AddM = std::plus<M>,
+          typename AddS = std::plus<S>, typename MultS = std::multiplies<S>,
+          typename Act = std::multiplies<>>
+concept IsSemimodule =
+    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
+    requires(const S s, const M m) {
+      { Act{}(s, m) } -> std::same_as<M>;
+    } && linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
+
+static_assert(IsSemimodule<size_t, size_t>);
+static_assert(!IsSemimodule<std::string, size_t>);
+
+// Section 3, the sugar: Listing 3's times with a branch on a concept: in a
+// semimodule over size_t under +, n copies of x are one action of n on x.
+namespace sugar {
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  if constexpr (std::same_as<Op, std::plus<T>> && IsSemimodule<T, size_t>)
+    return n * x;
+  else
+    return n == 0 || x == unit<T>(Op{})
+               ? unit<T>(Op{})
+               : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                        Op{});
+}
+}  // namespace sugar
+
+// Section 3, Listing 4: the family in the kernel: Listing 3's times, and the
+// semimodule overload (Listing 4 top), whose constraint contains Listing 3's;
+// Listing 4's bottom is its System F image.
+namespace kernel {
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T times(T x, size_t n) {
+  return n == 0 || x == unit<T>(Op{})
+             ? unit<T>(Op{})
+             : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                      Op{});
+}
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
+           IsSemimodule<T, size_t>
+constexpr T times(T x, size_t n) {
+  return n * x;
+}
+}  // namespace kernel
+
+static_assert(sugar::times<size_t>(7, 6) == 42);
+static_assert(kernel::times<size_t>(7, 6) == 42);
+static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
+static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
+static_assert(sugar::times(std::string{"ab"}, 3) == "ababab");
+static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
+// Section 6: at compile time only the law shortens the fold.  With the
+// semimodule overload a budget of 10^8 is one step; Listing 3's times alone
+// hits the constant evaluator's step limit (quoted in the paper, not held
+// here, since a refused static_assert does not compile).
+static_assert(kernel::times<size_t>(3, 100'000'000) == 300'000'000);
+static_assert(sugar::times<size_t>(3, 100'000'000) == 300'000'000);
+// Both agree with Listing 3's times, the fold, on and off the shortcut.
+static_assert(sugar::times<size_t>(0, 9) == times<size_t>(0, 9));
+static_assert(kernel::times<size_t>(0, 9) == times<size_t>(0, 9));
+static_assert(sugar::times<size_t>(7, 0) == times<size_t>(7, 0));
+static_assert(kernel::times<size_t>(7, 0) == times<size_t>(7, 0));
+static_assert(sugar::times<size_t, std::multiplies<size_t>>(1, 1000) == 1);
+static_assert(kernel::times<size_t, std::multiplies<size_t>>(1, 1000) == 1);
+static_assert(sugar::times(std::string{}, 5).empty());
+static_assert(kernel::times(std::string{}, 5).empty());
+static_assert(sugar::times<size_t>(7, 6) == times<size_t>(7, 6));
+static_assert(kernel::times<size_t>(7, 6) == times<size_t>(7, 6));
+static_assert(sugar::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));
+static_assert(kernel::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));
 
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
@@ -340,7 +472,11 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
-    CHECK(L::times_100(twelve) == 1200);
+    CHECK(L::times_n(twelve, 100) == 1200);
+    CHECK(L::sugar::times<size_t>(7, twelve) ==
+          L::kernel::times<size_t>(7, twelve));
+    CHECK(L::sugar::times(std::string{"ab"}, twelve) ==
+          L::kernel::times(std::string{"ab"}, twelve));
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
@@ -401,5 +537,17 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         C::IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
     STATIC_CHECK(
         C::IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
+  }
+
+  SECTION("The tree's semimodule accepts the listings' at size_t") {
+    STATIC_CHECK(C::IsSemimodule<size_t, size_t>);
+    STATIC_CHECK(
+        C::IsSemimodule<size_t, size_t, std::plus<size_t>, std::plus<size_t>,
+                        std::multiplies<size_t>, std::multiplies<>>);
+  }
+
+  SECTION("The tree's shapes accept the listings' rings") {
+    STATIC_CHECK(C::IsAbelianGroup<size_t, std::plus<size_t>>);
+    STATIC_CHECK(C::IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
   }
 }

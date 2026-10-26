@@ -70,22 +70,11 @@ concept IsFloatingScalar = std::floating_point<S>;
 
 /**
  * @concept IsSemimodule
- * @brief A commutative additive monoid participating in a Linear Action.
- * @tparam M The module carrier.
- * @tparam S The scalar carrier.
- * @tparam AddM Additive law on M (defaults to `std::plus<M>`).
- * @tparam AddS Additive law on S (defaults to `std::plus<S>`).
- * @tparam MultS Multiplicative law on S (defaults to `std::multiplies<S>`).
- * @tparam Act External action witness S x M -> M
- * (defaults to `std::multiplies<>`).
+ * @brief A commutative additive monoid participating in a Linear Action:
+ *        @c dedekind::category::IsSemimodule, whose laws are the trait
+ *        @c is_linear_action_v there.
  */
-export template <typename M, typename S, typename AddM = std::plus<M>,
-                 typename AddS = std::plus<S>,
-                 typename MultS = std::multiplies<S>,
-                 typename Act = std::multiplies<>>
-concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
-                       dedekind::category::IsSemiring<S, AddS, MultS> &&
-                       IsLinearAction<S, M, Act, AddS>;
+export using dedekind::category::IsSemimodule;
 
 /**
  * @concept IsModule

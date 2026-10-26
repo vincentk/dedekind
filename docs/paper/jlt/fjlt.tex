@@ -508,6 +508,7 @@ variable or class template & each member of the family an FJlt instance & instan
 const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
 constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
 explicit conversion & a total conversion between carriers of $\Sigma$ & a declared operation & a reader \\
+an operator on a constrained type & a constraint names the standard function object the standard defines by it, \texttt{plus<T>} for \texttt{+}, and the operator has type \texttt{T} there (\texttt{true + true} is the \texttt{int} 2) & that object's call & the tool for the name, a reader for the type \\
 operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
 non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
 \texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\
@@ -564,7 +565,7 @@ The library's \cppinline{IsCoproduct} writes down the injection half of the cond
 \paragraph{Variable and class templates.}
 A variable template \cppinline{v<T...> = e} is the nullary function template \cppinline{v<T...>() { return e; }}, and a class template with a static constant member is the same, since constant evaluation of the three agrees.
 A partial specialisation over a family, every \cppinline{Rational<I>} under \cppinline{+}, is an instance with a context, in the grammar.
-Nothing is missing for one family; a primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, and waits on specificity.
+Nothing is missing for one family; a primary that answers \cppinline{false} beside families that answer \cppinline{true} is two generic functions whose heads both match, which resolution by specificity orders.
 The host adds a wall the calculus does not have: a constrained function overload is found only when it precedes the shape (Section~\ref{sec:limits}), so the FJlt spelling is not writable in the library's module layout, while the library's spelling is FJlt by this lemma.
 The library has 225 registrations.
 
@@ -582,7 +583,7 @@ An alias template is substitution.
 
 \paragraph{Overloading.}
 Overloads of one name at distinct concrete carriers are explicit specialisations of one trait.
-Constrained overloads are generic functions, in the grammar as long as their heads never both match, and specificity beyond that, which is the same lack as above.
+Constrained overloads are generic functions, and where their heads both match, resolution by specificity orders them, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
 
 \paragraph{Inheritance.}
 Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
