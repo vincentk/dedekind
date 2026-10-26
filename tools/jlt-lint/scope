@@ -182,28 +182,46 @@ rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/si*.cppm  se
 rule1-no-escaping-reference-captures src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
 rule1-no-escaping-reference-captures src/main/modules/dedekind/relational/rows.cppm  relational  report
 
-# order under the rules (#1085, measurement): every rule and the inventory reported,
-# none gated.  The primary interface order.cppm holds no namespace.
+# order under the rules (#1085): gated like category, every rule at 0 except
+# rule2-constrained-templates and the inventory, reported.  halfspace.cppm and
+# runs.cppm hold the run-time layer (std::map run lists, heap term trees, the
+# throwing order fragment, the hand-written views), left for a decision (#1094):
+# their remaining findings are gated at today's counts, a ratchet that only
+# goes down.  The primary interface order.cppm holds no namespace.
 inventory                    src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-boxed-identity         src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-boxed-mutable-pointee  src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-const-call-operator    src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-const-member-functions src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-constexpr              src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-forwarding-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-lvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-escaping-reference-captures src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-inheritance         src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-mutable-globals     src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-reference-returns   src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-static-locals       src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-throw               src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-no-volatile            src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule1-rvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  report
+rule1-boxed-identity         src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-const-call-operator    src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-const-member-functions src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule1-const-member-functions src/main/modules/dedekind/order/halfspace.cppm  order  0
+rule1-const-member-functions src/main/modules/dedekind/order/runs.cppm  order  4
+rule1-constexpr              src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule1-constexpr              src/main/modules/dedekind/order/halfspace.cppm  order  3
+rule1-constexpr              src/main/modules/dedekind/order/runs.cppm  order  20
+rule1-forwarding-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-lvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-no-escaping-reference-captures src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-no-inheritance         src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-no-mutable-globals     src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-no-reference-returns   src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule1-no-reference-returns   src/main/modules/dedekind/order/halfspace.cppm  order  1
+rule1-no-reference-returns   src/main/modules/dedekind/order/runs.cppm  order  1
+rule1-no-static-locals       src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-no-throw               src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule1-no-throw               src/main/modules/dedekind/order/halfspace.cppm  order  3
+rule1-no-throw               src/main/modules/dedekind/order/runs.cppm  order  0
+rule1-no-volatile            src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule1-rvalue-reference-params src/main/modules/dedekind/order/[!o]*.cppm  order  0
 rule2-constrained-templates  src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule2-decided-resolution     src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule2-definition             src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule2-no-inline-requires     src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule3-no-loops               src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule3-no-mutual-recursion    src/main/modules/dedekind/order/[!o]*.cppm  order  report
-rule3-no-self-recursion      src/main/modules/dedekind/order/[!o]*.cppm  order  report
+rule2-decided-resolution     src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule2-decided-resolution     src/main/modules/dedekind/order/halfspace.cppm  order  1
+rule2-decided-resolution     src/main/modules/dedekind/order/runs.cppm  order  1
+rule2-definition             src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule2-definition             src/main/modules/dedekind/order/halfspace.cppm  order  0
+rule2-definition             src/main/modules/dedekind/order/runs.cppm  order  2
+rule2-no-inline-requires     src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule3-no-loops               src/main/modules/dedekind/order/[!hor]*.cppm  order  0
+rule3-no-loops               src/main/modules/dedekind/order/halfspace.cppm  order  0
+rule3-no-loops               src/main/modules/dedekind/order/runs.cppm  order  6
+rule3-no-mutual-recursion    src/main/modules/dedekind/order/[!o]*.cppm  order  0
+rule3-no-self-recursion      src/main/modules/dedekind/order/[!o]*.cppm  order  0
