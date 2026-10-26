@@ -39,12 +39,12 @@ jobs:
     # Create the .venv up front and prepend it to GITHUB_PATH so every
     # subsequent step uses the same virtualenv as a local dev box does.
     # Local dev: ./.venv created by the developer; CI: ./.venv created
-    # here.  Both have dedekind editable-installed (via `make
-    # integration-test`'s `pip install -e .`) and pytest+pytest-cov from
-    # the [project.optional-dependencies] test extras.  Coverage paths
-    # then resolve uniformly against `*/site-packages/dedekind` and the
-    # `[tool.coverage.paths]` mapping in pyproject.toml rewrites them
-    # back to `python/dedekind/` for the grep gate / Codecov.
+    # here.  The notebooks and the Python tests import the package that
+    # `make test` built and staged in build/python (PYTHONPATH), so the
+    # library is compiled once; the `[tool.coverage.paths]` mapping in
+    # pyproject.toml rewrites build/python/dedekind back to
+    # `python/dedekind/` for the grep gate / Codecov.  The wheel job on
+    # main checks that the package installs.
     - name: Set up .venv (parity with local dev)
       run: |
         python -m venv .venv
