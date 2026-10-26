@@ -261,7 +261,8 @@ static_assert(times<size_t>(7, 6) == 42);
 
 // Listing 3, right: the same fold at run time, a hundred copies; its LLVM IR
 // at -O2 is one multiplication (the paper's panel).
-size_t times_100(size_t x) { return times<size_t>(x, 100); }
+constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
+static_assert(times_100(7) == 700);
 
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
