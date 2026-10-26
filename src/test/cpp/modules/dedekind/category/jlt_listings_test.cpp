@@ -172,8 +172,9 @@ static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// The Conclusion's listing, implied: a bounded distributive lattice is a semiring whose two
-// operations are commutative and idempotent and absorb each other.
+// The Conclusion's listing, implied: a bounded distributive lattice is a
+// semiring whose two operations are commutative and idempotent and absorb each
+// other.
 template <typename T, typename Op>
 constexpr bool idempotent(Op) = delete;
 template <typename T, typename Join, typename Meet>
@@ -489,7 +490,6 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("The tree's shapes accept the listings' rings") {
     STATIC_CHECK(C::IsAbelianGroup<size_t, std::plus<size_t>>);
-    STATIC_CHECK(
-        C::IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+    STATIC_CHECK(C::IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
   }
 }
