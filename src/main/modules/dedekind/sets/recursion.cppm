@@ -79,13 +79,25 @@ struct descent<BinOp<std::minus<>, Projection<I>, Const<K>>> : std::true_type {
 };
 template <typename T>
 inline constexpr bool is_descent_v = descent<T>::value;
+/** @brief A descent with its legs: the slot @c a and the constant @c b.
+ *  @tparam T the term. */
+template <typename T>
+concept IsDescent = is_descent_v<T> && requires(const T& t) {
+  t.a;
+  t.b;
+};
+/** @brief A term with a value at the points @c X: @c term_value(t, x) is
+ *  formed.  @tparam T the term.  @tparam X the point type. */
+template <typename T, typename X>
+concept HasTermValueAt = requires(const T& t, const X& x) { term_value(t, x); };
 
 /** @brief A @c χ argument's value at a point: the term's value, or @c nullopt
  *  for a descent below the carrier's bottom (no point of the universe, so the
  *  pulled-back membership is @c false there).  @tparam X the point type. */
 template <typename T, typename X>
+  requires HasTermValueAt<T, X>
 constexpr std::optional<value_at_t<X, T>> self_arg(const T& t, const X& x) {
-  if constexpr (is_descent_v<T>) {
+  if constexpr (IsDescent<T>) {
     using V = value_at_t<X, T>;
     if (term_value(t.a, x) < carrier_cast<V>(t.b.value)) return std::nullopt;
   }
@@ -100,7 +112,7 @@ export template <typename T, typename R>
 struct Env {
   const T& point;
   const R* rec;
-  constexpr operator const T&() const { return point; }
+  constexpr operator T() const { return point; }
 };
 /** @brief A projection read at an @c Env is read at its point. */
 export template <IsRingIntegral auto I, typename T, typename R>
@@ -149,14 +161,14 @@ export struct ChiTag {
   }
 
  private:
-  template <typename... Terms>
+  template <IsTerm... Terms>
   static constexpr Self<Terms...> make(Terms... ts) {
     (check_descent(ts), ...);
     return Self<Terms...>{std::tuple<Terms...>{std::move(ts)...}};
   }
-  template <typename T>
+  template <IsTerm T>
   static constexpr void check_descent(const T& t) {
-    if constexpr (is_descent_v<std::remove_cvref_t<T>>) {
+    if constexpr (IsDescent<T>) {
       if (!(t.b.value > decltype(t.b.value){}))
         throw std::invalid_argument("a descent by 0 descends on nothing");
     }
@@ -228,6 +240,14 @@ export template <typename Node, typename T>
 inline constexpr bool self_descends_v =
     some_measure<Node, T>(std::make_index_sequence<arity_v<T>>{});
 
+/** @brief A constant term, with its value.  @tparam T the term. */
+template <typename T>
+concept IsConstTerm = is_const_v<T> && requires(const T& t) { t.value; };
+/** @brief A term that binds at the points @c X: @c bind_check<X>(t) is formed.
+ *  @tparam T the term.  @tparam X the point type. */
+template <typename T, typename X>
+concept BindsAt = requires(const T& t) { bind_check<X>(t); };
+
 /** @brief The binding of the arguments of every @c χ in a body at the points
  *  @c X: each a term bound there, a constant cast into its coordinate's
  *  carrier.  The body's own binding treats a @c χ as a leaf, so its arguments
@@ -249,13 +269,15 @@ struct BindArgs {
   }
 
  private:
-  template <typename S, std::size_t... Js>
-  static constexpr void bind_all(const S& s, std::index_sequence<Js...>) {
+  template <typename... Ts, std::size_t... Js>
+  static constexpr void bind_all(const Self<Ts...>& s,
+                                 std::index_sequence<Js...>) {
     (bind_one<Js>(std::get<Js>(s.terms)), ...);
   }
   template <std::size_t J, typename T>
+    requires BindsAt<T, X>
   static constexpr void bind_one(const T& t) {
-    if constexpr (is_const_v<T>)
+    if constexpr (IsConstTerm<T>)
       (void)carrier_cast<value_at_t<X, Projection<slot_at<X, J>>>>(t.value);
     else
       bind_check<X>(t);
