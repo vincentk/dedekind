@@ -1801,9 +1801,17 @@ struct Term {
       return s == variable ? with : proj(s);
     }
   };
-  /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; defined
-   *  after @c Pred.  @param q the predicate.  @param a,b the branches. */
-  static constexpr Term cond(Pred<K> q, Term a, Term b);
+  /** @brief McCarthy's conditional: @c a where @c q holds, else @c b; its
+   *  body is instantiated where it is used, after @c Pred is complete.
+   *  @param q the predicate.  @param a,b the branches. */
+  static constexpr Term cond(Pred<K> q, Term a, Term b) {
+    Term t;
+    t.kind = Kind::Cond;
+    t.p = std::make_shared<const Pred<K>>(std::move(q));
+    t.a = std::make_shared<const Term>(std::move(a));
+    t.b = std::make_shared<const Term>(std::move(b));
+    return t;
+  }
   /** @brief @c x @c op @c y.  @throws std::domain_error on a division by the
    *  constant 0. */
   static constexpr Term bin(Arith op, Term x, Term y) {
@@ -2000,16 +2008,6 @@ constexpr bool has_quantifier(const Pred<K>& p) {
       return true;
   }
   return false;
-}
-
-template <typename K>
-constexpr Term<K> Term<K>::cond(Pred<K> q, Term a, Term b) {
-  Term t;
-  t.kind = Kind::Cond;
-  t.p = std::make_shared<const Pred<K>>(std::move(q));
-  t.a = std::make_shared<const Term>(std::move(a));
-  t.b = std::make_shared<const Term>(std::move(b));
-  return t;
 }
 
 template <typename P, typename K>
