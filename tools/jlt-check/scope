@@ -78,3 +78,15 @@ rule1-no-reference-returns    src/main/modules/dedekind/category/*.cppm  categor
 rule1-const-member-functions  src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-mutable-globals      src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/category/*.cppm  category  0
+
+# The inventory (#1079): the syntax each scope uses, by AST node kind, to diff
+# against the kernel's grammar.  Not a rule, so reported, never gated.  The
+# primary module interfaces sets.cppm and relational.cppm hold no namespace
+# and are globbed around.
+inventory                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
+inventory                    src/main/modules/dedekind/category/*.cppm  category  report
+inventory                    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
+inventory                    src/main/modules/dedekind/sets/si*.cppm  sets  report
+inventory                    src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
+inventory                    src/main/modules/dedekind/relational/rows.cppm  relational  report
+
