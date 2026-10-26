@@ -622,7 +622,8 @@ The records of Section~\ref{sec:translation} and the ranges of this section are 
 
 
 \paragraph{At compile time, only a law shortens a fold.}
-At runtime the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows; at compile time no optimiser runs, and the evaluator takes the fold one step at a time.
+At runtime the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows.
+In constant evaluation no optimiser runs: the front end interprets the fold one step at a time, and the optimiser, which finds the multiplication, works later and only on the code emitted for run time.
 So the two binding times part on a large budget:
 \begin{cpp}
 static_assert(times<size_t>(3, 100'000'000) == 300'000'000);
