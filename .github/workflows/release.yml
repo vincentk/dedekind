@@ -1,6 +1,6 @@
 name: Release
 
-# A release cut by hand, on main, ignoring the 72-hour spacing by default:
+# A release cut by hand, on main, ignoring the 48-hour spacing by default:
 # for a paper submission or a fix that should not wait.  The automatic
 # release after a green build of main is the last job of cmake.yml.
 # Version: 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Release even if the last release is under 72 hours old"
+        description: "Release even if the last release is under 48 hours old"
         type: boolean
         default: true
 
@@ -22,7 +22,7 @@ concurrency:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  MIN_HOURS: "72"
+  MIN_HOURS: "48"
 
 jobs:
   release:
