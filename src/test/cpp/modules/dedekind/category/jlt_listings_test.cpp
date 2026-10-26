@@ -319,15 +319,14 @@ constexpr bool linear(std::plus<M>, std::multiplies<>) {
 }
 
 template <typename M, typename S, typename AddM, typename Act>
-concept IsSemimodule =
-    IsCommutativeMonoid<M, AddM> &&
-    IsSemiring<S, std::plus<S>, std::multiplies<S>> &&
-    requires(const S s, const M m) {
-      { Act{}(s, m) } -> std::same_as<M>;
-    } && linear<M, S>(AddM{}, Act{});
+concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
+                       IsSemiring<S, std::plus<S>, std::multiplies<S>> &&
+                       requires(const S s, const M m) {
+                         { Act{}(s, m) } -> std::same_as<M>;
+                       } && linear<M, S>(AddM{}, Act{});
 
-static_assert(IsSemimodule<size_t, size_t, std::plus<size_t>,
-                           std::multiplies<>>);
+static_assert(
+    IsSemimodule<size_t, size_t, std::plus<size_t>, std::multiplies<>>);
 static_assert(!IsSemimodule<std::string, size_t, std::plus<std::string>,
                             std::multiplies<>>);
 
