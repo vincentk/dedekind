@@ -79,13 +79,22 @@ struct descent<BinOp<std::minus<>, Projection<I>, Const<K>>> : std::true_type {
 };
 template <typename T>
 inline constexpr bool is_descent_v = descent<T>::value;
-/** @brief A descent with its legs: the slot @c a and the constant @c b.
- *  @tparam T the term. */
-template <typename T>
-concept IsDescent = is_descent_v<T> && requires(const T& t) {
-  t.a;
-  t.b;
-};
+/** @brief The legs of a descent @f$\pi_i - c@f$: the slot it steps on and
+ *  the step @c c.  Read through these on the descent's own shape, so a body
+ *  generic in the term names no member of it (Rule 2).  @tparam K the step's
+ *  type.  @param t the descent. */
+template <IsRingIntegral auto I, typename K>
+  requires std::copyable<K>
+constexpr Projection<I> descent_slot(
+    const BinOp<std::minus<>, Projection<I>, Const<K>>& t) {
+  return t.a;
+}
+template <IsRingIntegral auto I, typename K>
+  requires std::copyable<K>
+constexpr K descent_step(
+    const BinOp<std::minus<>, Projection<I>, Const<K>>& t) {
+  return t.b.value;
+}
 /** @brief A term with a value at the points @c X: @c term_value(t, x) is
  *  formed.  @tparam T the term.  @tparam X the point type. */
 template <typename T, typename X>
@@ -97,9 +106,10 @@ concept HasTermValueAt = requires(const T& t, const X& x) { term_value(t, x); };
 template <typename T, typename X>
   requires HasTermValueAt<T, X>
 constexpr std::optional<value_at_t<X, T>> self_arg(const T& t, const X& x) {
-  if constexpr (IsDescent<T>) {
+  if constexpr (is_descent_v<T>) {
     using V = value_at_t<X, T>;
-    if (term_value(t.a, x) < carrier_cast<V>(t.b.value)) return std::nullopt;
+    if (term_value(descent_slot(t), x) < carrier_cast<V>(descent_step(t)))
+      return std::nullopt;
   }
   return term_value(t, x);
 }
@@ -168,8 +178,9 @@ export struct ChiTag {
   }
   template <IsTerm T>
   static constexpr void check_descent(const T& t) {
-    if constexpr (IsDescent<T>) {
-      if (!(t.b.value > decltype(t.b.value){}))
+    if constexpr (is_descent_v<T>) {
+      const auto step = descent_step(t);
+      if (!(step > decltype(step){}))
         throw std::invalid_argument("a descent by 0 descends on nothing");
     }
   }
@@ -240,9 +251,13 @@ export template <typename Node, typename T>
 inline constexpr bool self_descends_v =
     some_measure<Node, T>(std::make_index_sequence<arity_v<T>>{});
 
-/** @brief A constant term, with its value.  @tparam T the term. */
-template <typename T>
-concept IsConstTerm = is_const_v<T> && requires(const T& t) { t.value; };
+/** @brief The value of a constant term, read on its own shape.  @tparam K
+ *  the constant's type.  @param c the constant. */
+template <typename K>
+  requires std::copyable<K>
+constexpr K constant_value(const Const<K>& c) {
+  return c.value;
+}
 /** @brief A term that binds at the points @c X: @c bind_check<X>(t) is formed.
  *  @tparam T the term.  @tparam X the point type. */
 template <typename T, typename X>
@@ -277,8 +292,9 @@ struct BindArgs {
   template <std::size_t J, typename T>
     requires BindsAt<T, X>
   static constexpr void bind_one(const T& t) {
-    if constexpr (IsConstTerm<T>)
-      (void)carrier_cast<value_at_t<X, Projection<slot_at<X, J>>>>(t.value);
+    if constexpr (is_const_v<T>)
+      (void)carrier_cast<value_at_t<X, Projection<slot_at<X, J>>>>(
+          constant_value(t));
     else
       bind_check<X>(t);
   }
