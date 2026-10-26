@@ -147,13 +147,14 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item The posture: three rules on standard \Cpp{23}, each with what the compiler checks of it and what it leaves to the author (Section~\ref{sec:posture}).
 \item Featherweight Jlt, the kernel: a core calculus whose syntax is a subset of \Cpp{23} as written, with typing, evaluation and a translation into System~F. Three theorems about the translation and three corollaries, with proof sketches (Section~\ref{sec:guarantees}, Appendix~\ref{app:fjlt}).
 \item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
+\item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently. Jlt adopts GHC's rule, and the repository's tool reports a call that breaks it (Appendix~\ref{app:fjlt:typing}, Section~\ref{sec:limits}).
 \item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, and that pair is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and a complete checker: Section~\ref{sec:limits} says what the repository's checker reads and what it misses.
 
 
 \paragraph{How to read this paper.}
-The paper is written for \Cpp{} programmers first, with System~F as the warranty; for researchers who want the performance and portability of \Cpp{} without being software engineers, and who will take a guard rail; and for readers of programming languages who want to know what a shipped language already contains.
+The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule they can apply to their overloads; for those who audit or certify \Cpp{} against a policy, who need to know what a tool does and does not check; for readers of programming languages in the line of concepts and type classes, who want to know what the concepts \Cpp{} shipped still support; and for researchers who arrive from Python with a functional vocabulary and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}(a), one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs.
 The bottom edge is where the two readings meet.
@@ -282,7 +283,7 @@ A body that uses what its clause does not name, as the test's \cppinline{twice_l
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
 A Jlt program recurses on a structure, and the structure lives in one of two places.
-What the rule conserves is the inductive argument, which loses one constructor at every step, so the recursion ends: that is structural induction~\cite{burstall1969proving}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.
+What the rule conserves is the inductive argument, which loses one constructor at every step, so the recursion ends: that is structural induction~\cite{burstall1969proving}, and a language all of whose programs end by it is Turner's total functional programming~\cite{turner2004total}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only. For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Either the structure lives in a \emph{type}, a typed term, an array of known length, a parameter pack, and the compiler unfolds the recursion, each call a different specialisation.
 Or it lives in a \emph{value}, a natural number that counts down, at either binding time: the length of an interval, or a \emph{budget}, a number the caller supplies before the fold starts, for a computation that has no inductive argument of its own.
 In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, n)}, which together make a hylomorphism.
@@ -518,7 +519,7 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 Every function in this paper has run twice already.
 \cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
-Both are partial evaluation at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
+Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
 There is no magic in this.
 A program has two moments at which work can be done, build time and run time, and work moves between them: what is pre-computed at the first is not computed at the second, and an abstraction whose cost is paid entirely at the first costs nothing at the second.
 The interesting case is the fold, because a budget can arrive at either time.
@@ -702,10 +703,10 @@ Section~\ref{sec:limits} says what the repository's checker and a reader make of
 The last row is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, pass lambdas, register facts by inheritance and case on sums.
 Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
-Two do.
+One does not.
 Sums have the former, \cppinline{optional<T>} is $1 + T$, and lack the case form, one rule per figure, with the library's \cppinline{IsCoproduct} as the injection half of the condition and \cppinline{std::variant} as an instance.
-A branch on a constraint is two generic functions whose heads both match, which the no-overlap condition forbids, and needs resolution by specificity, one well-formedness condition that the compiler decides and one case in Theorem~\ref{thm:coherence}.
-We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
+A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
+We conjecture the sums close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate: \cppinline{concat<size_t>} at three arguments is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
@@ -750,7 +751,7 @@ FJlt's instance is a specialisation of a function template, and the listings are
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
 So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
-Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, in the grammar, and what remains is a default beside families, which is resolution by specificity.
+Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
 
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
@@ -798,6 +799,15 @@ These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity a
 
 \paragraph{The target.}
 Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}. The appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
+
+\paragraph{Functional programming in \Cpp{}, and the other direction.}
+Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory written in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
+The opposite route to the same end verifies a program in a proof assistant and extracts C from it, as Low* does from F*~\cite{protzenko2017verified}; Jlt keeps the programmer in \Cpp{} and puts the proof in the translation.
+
+\paragraph{Coding standards and profiles.}
+The documents an audit of \Cpp{} works from are rule catalogues: MISRA \Cpp{}~\cite{misra2023cpp} and the SEI CERT standard~\cite{ballman2016cert} list hundreds of rules, each justified by the defects it prevents, with no statement of what a compliant program computes.
+Jlt is narrower, a pure computational core with no I/O, and so complements them rather than replacing them; where they meet they can differ, as MISRA forbids recursion outright except in constant evaluation and Rule~3 admits structural recursion on the strength of a termination argument.
+The nearest relatives are the safety profiles proposed for \Cpp{26}~\cite{sutter2025profiles}, named subsets the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: Jlt reads as a functional profile, and its three rules state theirs.
 
 \paragraph{What is new here.}
 Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.

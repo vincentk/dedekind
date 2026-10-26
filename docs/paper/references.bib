@@ -254,7 +254,7 @@
 
 @book{cukic2018functional,
   title={Functional Programming in C++},
-  author={\v{C}uki\'{e}, Ivan},
+  author={\v{C}uki\'{c}, Ivan},
   year={2018},
   publisher={Manning Publications},
   isbn={9781617293818}
@@ -1321,12 +1321,12 @@
   publisher = {ACM}
 }
 
-@inproceedings{chagnon2016hana,
-  title     = {Boost.{Hana}: Your Metaprogramming Nightmare},
-  author    = {Chagnon, Louis-Dionne},
-  booktitle = {CppCon 2015},
-  year      = {2015},
-  note      = {\url{https://github.com/boostorg/hana}}
+@misc{chagnon2016hana,
+  title  = {{Boost.Hana}: a modern metaprogramming library},
+  author = {Dionne, Louis},
+  year   = {2016},
+  note   = {Part of Boost since 1.61},
+  url    = {https://github.com/boostorg/hana}
 }
 
 @misc{pdimov2017mp11,
@@ -1944,4 +1944,73 @@
   pages   = {230--265},
   year    = {1937},
   doi     = {10.1112/plms/s2-42.1.230}
+}
+
+@inproceedings{morris2010instance,
+  author    = {Morris, J. Garrett and Jones, Mark P.},
+  title     = {Instance Chains: Type Class Programming without Overlapping Instances},
+  booktitle = {Proceedings of the 15th ACM SIGPLAN International Conference on Functional Programming (ICFP)},
+  pages     = {375--386},
+  year      = {2010},
+  doi       = {10.1145/1863543.1863596}
+}
+
+@manual{ghc2024overlapping,
+  title        = {{GHC} User's Guide: Overlapping Instances},
+  organization = {The GHC Team},
+  year         = {2024},
+  url          = {https://downloads.haskell.org/ghc/latest/docs/users_guide/exts/instances.html#overlapping-instances}
+}
+
+@manual{misra2023cpp,
+  title        = {{MISRA C++:2023}: Guidelines for the Use of {C++17} in Critical Systems},
+  organization = {The MISRA Consortium},
+  year         = {2023}
+}
+
+@book{ballman2016cert,
+  author    = {Ballman, Aaron},
+  title     = {{SEI CERT C++} Coding Standard: Rules for Developing Safe, Reliable, and Secure Systems in {C++}},
+  publisher = {Software Engineering Institute, Carnegie Mellon University},
+  year      = {2016}
+}
+
+@techreport{sutter2025profiles,
+  author      = {Sutter, Herb},
+  title       = {Core Safety Profiles for {C++26}},
+  number      = {P3081R2},
+  institution = {ISO/IEC JTC1/SC22/WG21},
+  year        = {2025},
+  url         = {https://isocpp.org/files/papers/P3081R2.pdf}
+}
+
+@techreport{muller2025principled,
+  author      = {M{\"u}ller, Jonathan},
+  title       = {A Principled Approach to Safety Profiles},
+  number      = {P3649R0},
+  institution = {ISO/IEC JTC1/SC22/WG21},
+  year        = {2025},
+  url         = {https://open-std.org/JTC1/SC22/WG21/docs/papers/2025/p3649r0.html}
+}
+
+@article{turner2004total,
+  author  = {Turner, David A.},
+  title   = {Total Functional Programming},
+  journal = {Journal of Universal Computer Science},
+  volume  = {10},
+  number  = {7},
+  pages   = {751--768},
+  year    = {2004},
+  doi     = {10.3217/jucs-010-07-0751}
+}
+
+@article{protzenko2017verified,
+  author  = {Protzenko, Jonathan and Zinzindohou{\'e}, Jean-Karim and Rastogi, Aseem and Ramananandro, Tahina and Wang, Peng and Zanella-B{\'e}guelin, Santiago and Delignat-Lavaud, Antoine and Hri{\c{t}}cu, C{\u{a}}t{\u{a}}lin and Bhargavan, Karthikeyan and Fournet, C{\'e}dric and Swamy, Nikhil},
+  title   = {Verified Low-Level Programming Embedded in {F*}},
+  journal = {Proceedings of the ACM on Programming Languages},
+  volume  = {1},
+  number  = {ICFP},
+  pages   = {17:1--17:29},
+  year    = {2017},
+  doi     = {10.1145/3110261}
 }

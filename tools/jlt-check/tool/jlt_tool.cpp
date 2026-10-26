@@ -24,6 +24,15 @@
 //                     body did not declare, which Rule 2 does not count
 //                     (#1068); the fix is a named shape, which the definition
 //                     check then reads.
+//   undecided-resolution
+//                     Rule 2, GHC's rule for overlapping instances: in a
+//                     function template, a call at a value of parameter type
+//                     to an overload set whose candidates are separated by a
+//                     concept the enclosing constraints do not mention (nor
+//                     negate) resolves differently at different
+//                     instantiations, a dependence on a constraint the
+//                     template did not declare.  A call its constraints name
+//                     is read through the dictionary and is not judged.
 //   inheritance       Jlt has no subtyping: a class with a base that is not
 //                     an empty class, or with a virtual function, is a
 //                     finding.  An empty base (`: std::true_type`,
@@ -33,6 +42,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -701,6 +711,270 @@ class Inheritance : public clang::ASTConsumer,
   const clang::SourceManager* sm = nullptr;
 };
 
+// ---------------------------------------------------------------------------
+// undecided-resolution: GHC's rule, a call at a type variable decided by the
+// enclosing constraints
+// ---------------------------------------------------------------------------
+
+/// A template type parameter, by depth and index: the identity an atom's
+/// argument is compared by.
+using Param = std::pair<unsigned, unsigned>;
+std::optional<Param> paramOf(clang::QualType t) {
+  if (t.isNull()) return std::nullopt;
+  t = t.getNonReferenceType().getUnqualifiedType();
+  if (const auto* p = t->getAs<clang::TemplateTypeParmType>())
+    return Param{p->getDepth(), p->getIndex()};
+  return std::nullopt;
+}
+
+/// A rendered argument: a template type parameter as "p<depth>:<index>"
+/// (after substitution), any other type by its spelling.
+using Subst = std::map<Param, std::string>;
+std::string renderParam(Param p) {
+  return "p" + std::to_string(p.first) + ":" + std::to_string(p.second);
+}
+std::string renderArg(clang::QualType t, const Subst& subst) {
+  if (std::optional<Param> p = paramOf(t)) {
+    if (auto it = subst.find(*p); it != subst.end()) return it->second;
+    return renderParam(*p);
+  }
+  return t.getNonReferenceType().getUnqualifiedType().getAsString();
+}
+
+/// An atom of a constraint: a concept applied to its arguments, rendered,
+/// with its polarity.
+struct Atom {
+  std::string concept_;
+  std::vector<std::string> args;
+  bool positive;
+  bool sameFact(const Atom& o) const {
+    return concept_ == o.concept_ && args == o.args;
+  }
+};
+
+/// The atoms a constraint guarantees: the conjuncts of its top-level &&, a
+/// negation of a concept-id as a negative atom; a disjunction guarantees
+/// nothing.  When `follow`, the library's concepts are read through, their
+/// parameters substituted by the arguments they are applied to.
+void guaranteed(const clang::Expr* e, bool positive, std::vector<Atom>& out,
+                bool follow, const Subst& subst, int depth = 0) {
+  if (!e || depth > 16) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    if (positive && b->getOpcode() == clang::BO_LAnd) {
+      guaranteed(b->getLHS(), true, out, follow, subst, depth + 1);
+      guaranteed(b->getRHS(), true, out, follow, subst, depth + 1);
+    }
+    return;  // ||, or && under a negation: no single atom is guaranteed
+  }
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e)) {
+    if (u->getOpcode() == clang::UO_LNot) {
+      const clang::Expr* sub = u->getSubExpr()->IgnoreParenImpCasts();
+      if (llvm::isa<clang::ConceptSpecializationExpr>(sub))
+        guaranteed(sub, !positive, out, false, subst, depth + 1);
+    }
+    return;
+  }
+  const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+  if (!cs) return;
+  Atom atom{cs->getNamedConcept()->getName().str(), {}, positive};
+  for (const clang::TemplateArgument& a : cs->getTemplateArguments()) {
+    if (a.getKind() != clang::TemplateArgument::Type) return;  // not read
+    atom.args.push_back(renderArg(a.getAsType(), subst));
+  }
+  out.push_back(atom);
+  const clang::ConceptDecl* c = cs->getNamedConcept();
+  if (!follow || !positive || inStd(c)) return;
+  // Read the concept's body, its parameters replaced by the arguments.
+  Subst inner;
+  const clang::TemplateParameterList* ps = c->getTemplateParameters();
+  for (unsigned k = 0; k < ps->size() && k < atom.args.size(); ++k)
+    if (const auto* tp =
+            llvm::dyn_cast<clang::TemplateTypeParmDecl>(ps->getParam(k)))
+      inner[{tp->getDepth(), tp->getIndex()}] = atom.args[k];
+  guaranteed(c->getConstraintExpr(), true, out, follow, inner, depth + 1);
+}
+
+/// The atoms a template's own constraints guarantee.
+std::vector<Atom> atomsOf(const clang::TemplateParameterList* ps,
+                          const clang::Expr* trailing, bool follow,
+                          const Subst& subst = {}) {
+  std::vector<Atom> out;
+  if (!ps) return out;
+  for (const clang::NamedDecl* p : *ps)
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        guaranteed(tc->getImmediatelyDeclaredConstraint(), true, out, follow,
+                   subst);
+  guaranteed(ps->getRequiresClause(), true, out, follow, subst);
+  guaranteed(trailing, true, out, follow, subst);
+  return out;
+}
+
+/// Whether a candidate can take `n` arguments: its parameters without
+/// defaults at most n, and at least n unless it ends in a pack.
+bool viableArity(const clang::FunctionDecl* f, unsigned n) {
+  unsigned required = f->getMinRequiredArguments();
+  bool pack = f->getNumParams() > 0 &&
+              f->getParamDecl(f->getNumParams() - 1)->isParameterPack();
+  return required <= n && (pack || n <= f->getNumParams());
+}
+
+/// The check: in every judged function template, a call at a value of
+/// parameter type to an overload set of two or more of the library's function
+/// templates that can take the call's arguments, not named by the enclosing
+/// constraints, whose candidates differ in an atom (a concept on the argument
+/// the call passes, with its polarity) that the enclosing constraints do not
+/// guarantee or refute, read through the library's concepts with their
+/// arguments substituted and through enclosing class templates.  Not seen:
+/// trait reads through class and variable templates, whose specialisations
+/// differ by pattern rather than by concept; candidates that differ by head
+/// alone; calls reached through a helper.
+class UndecidedResolution : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    Finder finder{*this};
+    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+
+  struct Calls : clang::RecursiveASTVisitor<Calls> {
+    std::vector<const clang::CallExpr*> calls;
+    bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
+    bool VisitCallExpr(clang::CallExpr* e) {
+      calls.push_back(e);
+      return true;
+    }
+  };
+
+  struct Finder : clang::RecursiveASTVisitor<Finder> {
+    UndecidedResolution& owner;
+    explicit Finder(UndecidedResolution& o) : owner(o) {}
+    bool shouldVisitTemplateInstantiations() const { return false; }
+    bool VisitFunctionTemplateDecl(clang::FunctionTemplateDecl* ft) {
+      const clang::FunctionDecl* f = ft->getTemplatedDecl();
+      if (!f || !f->doesThisDeclarationHaveABody() || f->isDeleted())
+        return true;
+      if (const auto* m = llvm::dyn_cast<clang::CXXMethodDecl>(f))
+        if (m->getParent()->isLambda()) return true;
+      if (!owner.sm->isInMainFile(ft->getLocation()) || !inScope(ft))
+        return true;
+      owner.judge(ft);
+      return true;
+    }
+  };
+
+  void judge(const clang::FunctionTemplateDecl* ft) {
+    const Vocabulary v = vocabularyOf(ft);
+    if (v.opaque) return;  // a constraint this check cannot read: silence
+    std::vector<Atom> decided = atomsOf(
+        ft->getTemplateParameters(),
+        ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr,
+        true);
+    for (const clang::DeclContext* c = ft->getDeclContext(); c;
+         c = c->getParent()) {
+      const clang::TemplateParameterList* ps = nullptr;
+      if (const auto* spec =
+              llvm::dyn_cast<clang::ClassTemplatePartialSpecializationDecl>(c))
+        ps = spec->getTemplateParameters();
+      else if (const auto* rd = llvm::dyn_cast<clang::CXXRecordDecl>(c))
+        if (const clang::ClassTemplateDecl* ct =
+                rd->getDescribedClassTemplate())
+          ps = ct->getTemplateParameters();
+      if (!ps) continue;
+      std::vector<Atom> more = atomsOf(ps, nullptr, true);
+      decided.insert(decided.end(), more.begin(), more.end());
+    }
+    // A fact the enclosing constraints fix: +1 guaranteed, -1 refuted.
+    auto known = [&](const Atom& a) -> int {
+      for (const Atom& d : decided)
+        if (d.sameFact(a)) return d.positive ? 1 : -1;
+      return 0;
+    };
+    Calls body;
+    body.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    for (const clang::CallExpr* call : body.calls) {
+      const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(
+          call->getCallee()->IgnoreParenImpCasts());
+      if (!u) continue;
+      llvm::SmallVector<const clang::Expr*, 4> args(call->arguments().begin(),
+                                                    call->arguments().end());
+      if (!anyParameterTyped(args)) continue;
+      const std::string name = u->getName().getAsString();
+      if (v.names.count(name)) continue;  // named: read through the dictionary
+      // Each viable candidate's atoms, re-expressed on the enclosing
+      // template's parameters through the arguments the call passes; a
+      // candidate the enclosing facts contradict can never be chosen.
+      std::vector<std::vector<Atom>> cands;
+      for (const clang::NamedDecl* d : u->decls()) {
+        const auto* cand = llvm::dyn_cast<clang::FunctionTemplateDecl>(d);
+        if (!cand || inStd(cand)) continue;
+        const clang::FunctionDecl* cf = cand->getTemplatedDecl();
+        if (cf->isDeleted() || !viableArity(cf, args.size())) continue;
+        Subst toCaller;
+        std::set<std::string> callerArgs;
+        for (unsigned k = 0; k < cf->getNumParams() && k < args.size(); ++k)
+          if (std::optional<Param> from =
+                  paramOf(cf->getParamDecl(k)->getType())) {
+            toCaller[*from] = renderArg(args[k]->getType(), {});
+            callerArgs.insert(toCaller[*from]);
+          }
+        std::vector<Atom> atoms;
+        bool bound = true, contradicted = false;
+        for (const Atom& a :
+             atomsOf(cand->getTemplateParameters(),
+                     cf->getTrailingRequiresClause().ConstraintExpr, false,
+                     toCaller)) {
+          for (const std::string& arg : a.args)
+            if (arg.rfind("p", 0) == 0 && arg.find(':') != std::string::npos &&
+                !callerArgs.count(arg))
+              bound = false;  // a candidate parameter the call does not bind
+          const int k = known(a);
+          if ((k == 1 && !a.positive) || (k == -1 && a.positive))
+            contradicted = true;
+          atoms.push_back(a);
+        }
+        if (contradicted || !bound) continue;
+        cands.push_back(atoms);
+      }
+      if (cands.size() < 2) continue;
+      std::vector<Atom> keys;
+      for (const auto& as : cands)
+        for (const Atom& a : as) {
+          bool seen = false;
+          for (const Atom& k : keys) seen |= k.sameFact(a);
+          if (!seen) keys.push_back(a);
+        }
+      std::string undecided;
+      for (const Atom& key : keys) {
+        // The atom's state per candidate: required, refuted, or absent.
+        std::set<int> states;
+        for (const auto& as : cands) {
+          int st = 0;
+          for (const Atom& a : as)
+            if (a.sameFact(key)) st = a.positive ? 1 : -1;
+          states.insert(st);
+        }
+        if (states.size() > 1 && known(key) == 0) {
+          undecided = key.concept_;
+          break;
+        }
+      }
+      if (undecided.empty()) continue;
+      const clang::SourceLocation loc = sm->getExpansionLoc(u->getNameLoc());
+      llvm::outs() << sm->getFilename(loc) << ':'
+                   << sm->getExpansionLineNumber(loc) << ':'
+                   << sm->getExpansionColumnNumber(loc) << ": the call to '"
+                   << name << "' resolves by '" << undecided
+                   << "', which the constraints of " << ft->getNameAsString()
+                   << " do not decide\n";
+    }
+  }
+
+ private:
+  const clang::SourceManager* sm = nullptr;
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
@@ -709,6 +983,8 @@ class Action : public clang::ASTFrontendAction {
     if (check == "definition") return std::make_unique<Definition>();
     if (check == "inline-requires") return std::make_unique<InlineRequires>();
     if (check == "inheritance") return std::make_unique<Inheritance>();
+    if (check == "undecided-resolution")
+      return std::make_unique<UndecidedResolution>();
     llvm::errs() << "jlt-tool: unknown check " << check << '\n';
     return nullptr;
   }

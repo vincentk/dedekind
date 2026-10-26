@@ -35,6 +35,7 @@ Metavariables: $\alpha, \beta$ range over type variables, $b$ over the carriers 
 \paragraph{Reading the grammar.}
 A program is a sequence of declarations and a closed term.
 A shape is a concept; its requirements are nested shapes, laws (closed \cppinline{bool} terms) and operations with their result types, exact (\cppinline{std::same_as}) or up to conversion (\cppinline{std::convertible_to}).
+A constraint may be negated, \cppinline{!C<T>}, as a \cppinline{requires} clause can write it; a negation carries no evidence, and at concrete types it holds where $C$ does not (\textsc{E-Not}).
 A trait is a function template declared and deleted, indexed by a carrier and a value of the operation; an instance is an explicit specialisation of it at a carrier; an instance with a context is a generic function whose \cppinline{requires} clause is the context.
 A generic function is a \cppinline{constexpr} function template with a \cppinline{requires} clause and a single \cppinline{return}; \cppinline{auto} in a listing names the type the body has, and a parameter written \cppinline{const τ} or \cppinline{const τ&} is the parameter $\tau\; x$ of the grammar, since a value is immutable and a reference to one denotes it.
 The standard function objects and the operations a program declares (a struct with fields and a call operator, itself generic where the listing writes \cppinline{auto}; a former such as \cppinline{Compose} is one) are the only function objects; a term applies one by constructing it, with its fields, and reads a field with \cppinline{.}; the call operator is \cppinline{const}, so applying a function object observes it, as Rule~1 requires of a value.
@@ -72,7 +73,7 @@ D &::=& \texttt{template <typename }\overline{\alpha}\texttt{> concept } C \text
 R &::=& Q & \text{nested shape} \\
   & | & e & \text{law} \\
   & | & \texttt{requires (}\overline{\texttt{const }\tau\; x}\texttt{) \{ } \overline{\texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>;}} \texttt{ \}} & \text{operations} \\[3pt]
-Q &::=& C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
+Q &::=& C\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} & \text{constraint} \\[3pt]
 \tau &::=& \alpha \;\mid\; b \;\mid\; O\texttt{<}\overline{\tau}\texttt{>} \;\mid\; \texttt{pair<}\tau\texttt{, }\tau\texttt{>} \;\mid\; \texttt{optional<}\tau\texttt{>} & \text{type} \\
   & \mid & \texttt{shared\_ptr<const }\tau\texttt{>} & \text{boxed value} \\[3pt]
 e &::=& x \;\mid\; c \;\mid\; f \;\mid\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{e}\texttt{)} \;\mid\; f\texttt{(}\overline{e}\texttt{)} \;\mid\; O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e}\texttt{\}} \;\mid\; e\texttt{(}\overline{e}\texttt{)} \;\mid\; e\texttt{.}y & \text{term} \\
@@ -100,9 +101,13 @@ $\vdash D$ says a declaration is well formed, and a program is well formed when 
 Figure~\ref{fig:fjlt-typing} gives the rules that carry weight; the ones for constants, pairs, optionals, boxes, conditionals and the arithmetic of base types are the obvious ones and are omitted.
 
 \paragraph{Resolution.}
-A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$: the explicit specialisation at $\overline{\tau}$ if there is one, otherwise the generic function whose head matches $\overline{\tau}$ and whose context is entailed, recursively.
+A trait call $f\texttt{<}\overline{\tau}\texttt{>}$ at concrete types \emph{resolves} to a declaration of $f$ in two steps, as \Cpp{} resolves an overloaded template: first the most specific of the generic functions whose head matches $\overline{\tau}$ and whose context is entailed, the deleted primary among them, then, if that is the primary, its explicit specialisation at $\overline{\tau}$ if there is one.
 The deleted primary never resolves, which is how an operation nobody registered fails a shape.
-Well-formedness requires resolution to be a partial function: no two specialisations at one head, and no two generic functions whose heads both match an instantiation (the no-overlap condition); and it requires every context to mention only proper parts of the head's type arguments, so that resolution terminates~\cite{sulzmann2007understanding}.
+Well-formedness requires resolution to be a function, in two cases.
+At concrete types, no two specialisations share a head, and among the generic functions whose head matches and whose context is entailed there is a unique most specific one, by head and then by context, as \Cpp{} orders constrained templates; \Cpp{} rejects the program where there is none.
+At a type variable, in a body with context $\Delta$, a call resolves only when its choice survives every instantiation of the body: every candidate whose head unifies with the call's types and that would be more specific than the chosen one is excluded by a constraint $\Delta$ decides, entailing it or its negation.
+That is GHC's rule for overlapping instances~\cite{ghc2024overlapping}, which refuses to commit to an instance the types do not yet decide; \Cpp{} does not hold it, and a call it would refuse is a body that varies with a type through a constraint it did not declare, a breach of Rule~2, which the repository's tool reports where it can see one (Section~\ref{sec:limits}).
+Well-formedness also requires every context to mention only proper parts of the head's type arguments, so that resolution terminates~\cite{sulzmann2007understanding}.
 It also orders the declarations: the body of an instance, a generic function or an operation may call only declarations that precede it, and a trait call in a body may resolve only to a declaration that precedes the body, with one exception: a generic function may call itself at type arguments that are proper subterms of its own, so that its instantiations are ordered by the size of their type arguments and no instantiation calls itself.
 So no instantiation calls itself, directly or through others, the translation needs no recursive binding, and the only recursion in a program is that of the two folds.
 The exception is what admits the library's \cppinline{cata} over typed terms, whose recursion is on the type of the term and not on a value.
@@ -132,12 +137,14 @@ In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that
 \textsc{(E-Shape)}\quad \dfrac{\texttt{concept } C \texttt{ = } \overline{R} \qquad C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \text{ for each } i}{\Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
 \textsc{(E-Op)}\quad \dfrac{\Delta; \overline{x : \tau_x} \vdash e : \tau' \qquad \tau' \mathrel{S} \tau}{\Delta \Vdash \texttt{requires (}\overline{\texttt{const }\tau_x\; x}\texttt{) \{ \{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>; \}}}
+\qquad
+\textsc{(E-Not)}\quad \dfrac{\overline{\tau} \text{ concrete} \qquad \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \notin \Delta \qquad \Delta \not\Vdash C\texttt{<}\overline{\tau}\texttt{>}}{\Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>}}
 \\[12pt]
 \textsc{(T-Var)}\quad \dfrac{x : \tau \in \Gamma}{\Delta; \Gamma \vdash x : \tau}
 \qquad
 \textsc{(T-Op)}\quad \dfrac{O\texttt{<}\overline{\tau}\texttt{>} : \overline{\sigma} \to \sigma \text{ (the standard's signature)} \qquad \Delta; \Gamma \vdash \overline{e : \sigma}}{\Delta; \Gamma \vdash O\texttt{<}\overline{\tau}\texttt{>\{\}(}\overline{e}\texttt{)} : \sigma}
 \\[12pt]
-\textsc{(T-Call)}\quad \dfrac{f : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
+\textsc{(T-Call)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to } f_i : \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \overline{\tau_x} \to \tau \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta; \Gamma \vdash \overline{e : \tau_x[\overline{\sigma}/\overline{\alpha}]}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau[\overline{\sigma}/\overline{\alpha}]}
 \\[12pt]
 \textsc{(T-Trait)}\quad \dfrac{f\texttt{<}\overline{\sigma}\texttt{>} \text{ resolves to a declaration of type } \overline{\tau_x} \to \tau \qquad \Delta; \Gamma \vdash \overline{e : \tau_x}}{\Delta; \Gamma \vdash f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} : \tau}
 \\[12pt]
@@ -235,12 +242,14 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 \multicolumn{2}{l}{\textit{constraints, as record types}} \\
 \llbracket C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i : \llbracket R_i \rrbracket[\overline{\tau}/\overline{\alpha}]}\,\} \text{ where } \texttt{concept } C \texttt{ = } \overline{R} & \text{one field per requirement} \\
 \llbracket Q \rrbracket \text{ for a nested shape } Q & \text{its record type} \\
+\llbracket \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = 1 & \text{a negation carries no evidence} \\
 \llbracket e \rrbracket = \mathit{Bool} \text{ for a law } e & \\
 \llbracket \texttt{\{ }e\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \overline{\llbracket \tau_x \rrbracket} \to \llbracket \tau \rrbracket & \text{an operation on parameters } \overline{x : \tau_x} \\[6pt]
 \multicolumn{2}{l}{\textit{dictionaries, from entailment derivations}} \\
 \llbracket \Delta \Vdash Q \rrbracket = q \text{ if } Q \in \Delta \text{ with record variable } q & \text{\textsc{E-Assume}} \\
 \llbracket \Delta \Vdash C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = \{\,\overline{r_i = \llbracket \Delta \Vdash R_i[\overline{\tau}/\overline{\alpha}] \rrbracket}\,\} & \text{\textsc{E-Shape}} \\
 \llbracket \Delta \Vdash e \rrbracket = \mathit{true} & \text{\textsc{E-Law}, \textsc{E-Law-Assumed}} \\
+\llbracket \Delta \Vdash \texttt{!}C\texttt{<}\overline{\tau}\texttt{>} \rrbracket = () & \text{\textsc{E-Not}} \\
 \llbracket \Delta \Vdash \texttt{\{ }e_r\texttt{ \} -> }S\texttt{<}\tau\texttt{>} \rrbracket = \lambda\overline{a}.\,\llbracket e_r \rrbracket & \text{\textsc{E-Op}, over the requirement's parameters} \\[6pt]
 \multicolumn{2}{l}{\textit{declarations}} \\
 \texttt{template <> constexpr } \tau\; f\texttt{<}\overline{\tau}\texttt{>(}\overline{x}\texttt{) ... } e \;\mapsto\; f_{\overline{\tau}} = \lambda\overline{x}.\,\llbracket e \rrbracket & \text{an instance} \\
@@ -250,7 +259,7 @@ Its one non-local ingredient is the \emph{dictionary} of an entailment: $\llbrac
 O \text{ standard} \;\mapsto\; O_{\mathrm{call}} = \lambda().\,o & \text{the standard's function } o \text{ as a constant} \\
 \texttt{concept}, \texttt{= delete} \;\mapsto\; \text{nothing} & \\[6pt]
 \multicolumn{2}{l}{\textit{terms}} \\
-\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}} \\
+\llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_i\,\overline{\llbracket \sigma \rrbracket}\,\overline{\llbracket \Delta \Vdash Q[\overline{\sigma}/\overline{\alpha}] \rrbracket}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Call}, $f_i$ the declaration it resolves to} \\
 \llbracket f\texttt{<}\overline{\sigma}\texttt{>(}\overline{e}\texttt{)} \rrbracket = f_{\overline{\sigma}}\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Trait}, resolved to a specialisation} \\
 \llbracket e_r[\overline{e}/\overline{a}] \rrbracket = q_C.\pi.r\,\overline{\llbracket e \rrbracket} & \text{\textsc{T-Req-Assumed}, } \pi \text{ the path through nested shapes} \\
 \llbracket O\texttt{<}\overline{\tau}\texttt{>\{}\overline{e_y}\texttt{\}} \rrbracket = (\overline{\llbracket e_y \rrbracket},\; O_{\mathrm{call}}\,\overline{\llbracket e_y \rrbracket}) & \text{construction} \\
@@ -383,9 +392,11 @@ Conversely, if $\llbracket e \rrbracket \longrightarrow^{*} c$ for a constant $c
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:coherence}, coherence]
-Resolution is a partial function by well-formedness: at most one specialisation at a head, no two generic heads matching one instantiation, and contexts well-founded, so the recursion through contexts terminates with one answer.
+Resolution is a function by well-formedness: at concrete types one specialisation at a head and a unique most specific generic function among the entailed candidates, and at a type variable only a call its context decides, so that the declaration a body's call resolves to is the same at every instantiation of the body and the dictionary built at the type variable is the one built after substitution; contexts are well-founded, so the recursion through contexts terminates with one answer.
+\textsc{E-Not} applies only at concrete types, where entailment is decided, and only to a negation not already assumed, as \textsc{E-Shape} applies only to a shape not in $\Delta$, so it adds no choice.
 The entailment rules are syntax-directed, exactly one rule per constraint: \textsc{E-Assume} for a constraint in $\Delta$, \textsc{E-Shape} for a shape not in $\Delta$, by its side condition, \textsc{E-Op} for an operation, and \textsc{E-Law} or \textsc{E-Law-Assumed} for a law, which build the same $\mathit{true}$; so two derivations of $\Delta \Vdash Q$ have the same shape, and by induction on that shape they build the same dictionary: the same variable, the same record of fields by the induction hypothesis, the same $\mathit{true}$, the same $\lambda\overline{x}.\,\llbracket e \rrbracket$ in which every trait call resolved the same way.
 \textsc{T-Req-Assumed} and \textsc{E-Law-Assumed} are deterministic as well, taking the leftmost assumed shape and its first matching requirement in declaration order, nested shapes included, so the translation of a body is a function of the body.
+\textsc{T-Call} names the declaration resolution selects, so a call has one derivation even where several generic functions of one name have entailed contexts.
 Hence $\llbracket \Delta \Vdash Q \rrbracket$ depends only on $\Delta$ and $Q$, the records in \textsc{T-Call} are determined by the program, and the translation is a function of it.
 \end{proof}
 
@@ -477,18 +488,19 @@ construction & FJlt, provided & image & the calculus lacks & the condition held 
 \midrule
 lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & nothing & the tool for the captures, a reader for the image \\
 \texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & nothing & a reader, by the rewrite \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch without it & two generic functions, the more constrained preferred & resolution by specificity: one well-formedness condition, one case in Theorem~\ref{thm:coherence} & the kernel, once it has it \\
+\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & nothing & the compiler at concrete types, a reader at a type variable \\
 sum & branches FJlt on the summands & the copairing & the case form: one rule per figure & the kernel, a reader for the guard \\
-variable or class template & each member of the family an FJlt instance & instance with a context & nothing for one family; a default beside families is specificity again & the compiler, by lookup \\
+variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & nothing & the compiler, by lookup \\
 const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & nothing & the tool \\
 alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & nothing & the compiler \\
-overloading & distinct carriers, or disjoint constraints & specialisations of one trait, or generic functions & nothing under no-overlap, specificity beyond it & the compiler, by ambiguity \\
+overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & nothing & the compiler, by ambiguity \\
+a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & nothing & a reader \\
 inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & nothing & the tool \\
 \bottomrule
 \end{tabularx}
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
 Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column.
-The fourth column is what the calculus lacks to state the lemma: nothing, the case form for sums, or resolution by specificity, which one row needs and two more lean on; the fifth is who holds the condition, as Table~\ref{tab:posture} says of the rules.}
+The fourth column is what the calculus lacks to state the lemma, nothing except the case form for sums; the fifth is who holds the condition, as Table~\ref{tab:posture} says of the rules.}
 \label{tab:closure}
 \end{table}
 
@@ -509,13 +521,18 @@ Constant evaluation of the two spellings agrees because both evaluate \cppinline
 36 of the library's 81 \cppinline{if constexpr} test a value, a syntactic count; whether the two branches share a type is decided per site by the rewrite, and a site whose branches differ in type, \cppinline{lattice_term}'s \cppinline{Meet<RA, RB>} against \cppinline{Meet<RB, RA>}, is not this row but a branch on types in a value's clothing, and waits with the next.
 
 \paragraph{\texttt{if constexpr} on a constraint.}
-A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}$ alone, is the pair of generic functions with heads $\overline{Q}, C\texttt{<T>}$ and $\overline{Q}$, the first chosen wherever $C\texttt{<T>}$ is entailed.
-When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X} and resolution already prefers it, so nothing is missing; with other type parameters left free, as in \cppinline{f_algebra}'s branch on \cppinline{Compose<F, G>} against the fallback, it is a family and waits with the general case.
-In the general case the two heads both match at an instantiation where $C\texttt{<T>}$ holds, which the no-overlap condition of Appendix~\ref{app:fjlt:typing} forbids.
-What the calculus lacks is resolution by specificity: the condition becomes that at every instantiation the matching generic functions have a unique most specific member, resolution picks it, and the sketch of Theorem~\ref{thm:coherence} gains the case that the record is unique because the most specific match is.
-\Cpp{} decides the new condition as it decides the old one, since an ambiguous partial ordering of constraints is ill-formed.
-This is not done, and three rows of Table~\ref{tab:closure} wait on it.
+A body \cppinline{if constexpr (C<T>) return A; else return B;} in a generic function with head $\overline{Q}$, where \cppinline{A} is an FJlt term under $\overline{Q}, C\texttt{<T>}$ and \cppinline{B} one under $\overline{Q}, \texttt{!}C\texttt{<T>}$, is the pair of generic functions with those two heads.
+The pair is an instance chain in the sense of Morris and Jones~\cite{morris2010instance}, an explicit alternation decided by one constraint, and resolution by specificity (Appendix~\ref{app:fjlt:typing}) picks its branch: at a concrete type the compiler decides $C\texttt{<T>}$, and at a type variable the call resolves only where the enclosing context decides it.
+A call it cannot decide is the next row's.
+When the test is \cppinline{std::same_as<T, X>} at a concrete \cppinline{X} and \cppinline{T} is the whole head, the first function is an explicit specialisation at \cppinline{X}.
 45 of the library's 81 \cppinline{if constexpr} test a constraint; 7 of those tested a \cppinline{requires} expression written in the body, which Rule~2 does not count as a declared constraint, and are now named shapes, with the tool's \texttt{inline-requires} check holding the module at zero.
+
+\paragraph{A call its clause does not decide.}
+A generic function whose body calls a chain at its own type variable, without a clause that entails the chain's constraint or its negation, varies with the type through a constraint it did not declare.
+\Cpp{} accepts it and resolves the call at each instantiation; the kernel refuses it, by GHC's rule.
+Its desugaring is constraint inference: the call's resolution becomes a parameter of the enclosing function, which each caller supplies after resolving it at a concrete type, where resolution is a function, so the kernel term agrees with what \Cpp{} instantiates.
+The price is in the free theorem, which now ranges over that parameter.
+Written by hand, the same thing is to decide the constraint in the clause, by requiring it or by splitting on it.
 
 \paragraph{Sums.}
 The grammar has the former, \cppinline{optional<T>} is $1 + T$, and its introductions, and lacks the case form, so a program can build an optional and not look inside it.
@@ -553,7 +570,6 @@ What the library writes with a base clause is a registration, \cppinline{struct 
 The one class that inherited state, a wrapper around \cppinline{Morphism}, had no users and is gone.
 
 \paragraph{What the table says.}
-Seven rows need nothing from the calculus, the closure lemma being the standard's own account of the construction, two of them (families, overloading) as long as no two generic heads match.
-One row, sums, needs one rule per figure.
-One row, a branch on a constraint, needs resolution by specificity, a change of one well-formedness condition and one case in a proof, and it is the same lack the two provisos name.
+Every row but one needs nothing from the calculus, the closure lemma being the standard's own account of the construction, once resolution is by specificity and GHC's rule.
+The exception is sums, which need the case form, one rule per figure.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
