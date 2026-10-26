@@ -266,29 +266,30 @@ In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return ranges::fold_left(
-      views::repeat(x, n), unit<T>(Op{}), Op{});
+  return n == 0 ? unit<T>(Op{})
+    : ranges::fold_left(
+        views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 static_assert(times<size_t>(7, 6) == 42);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.38\linewidth}
 \begin{minted}{llvm}
-define i64 @times_100(i64 %x) {
-  %r = mul i64 %x, 100
+define i64 @times_n(i64 %x, i64 %n) {
+  %r = mul i64 %n, %x
   ret i64 %r
 }
 \end{minted}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent.
 Left: a fold over a budget.
-\cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x}, starting from the unit.
-Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised to \cppinline{size_t} and \cppinline{n = 100}, attributes stripped.
+\cppinline{times} folds the operation over \cppinline{n} copies of \cppinline{x}, starting from the unit; no copies are the unit, without a fold.
+Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised to \cppinline{size_t}, with \cppinline{n} known only at run time, attributes stripped.
 }
 \label{lst:rule3}
 \end{listing}
 
-What the processor runs of Listing~\ref{lst:rule3}'s fold is the panel's one multiplication (Section~\ref{sec:binding}).
+What the processor runs of Listing~\ref{lst:rule3}'s fold is the panel's one multiplication, though the budget is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot compute every function, and a bounded search terminates without always deciding the question it was asked.
 Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
@@ -327,10 +328,10 @@ template <typename T, typename Op = plus<T>>
 constexpr T times(T x, size_t n) {
   if (n == 0) return unit<T>(Op{});
   if constexpr (equality_comparable<T>) {
-    if (x == unit<T>(Op{})) return unit<T>(Op{});
     if constexpr (same_as<Op, plus<T>> &&
-                  IsCountingSemiring<T, plus<T>, multiplies<T>>)
-      return x * T(n);
+                  IsSemimodule<T, size_t, plus<T>, multiplies<>>)
+      return multiplies<>{}(n, x);
+    if (x == unit<T>(Op{})) return unit<T>(Op{});
   }
   return ranges::fold_left(views::repeat(x, n), unit<T>(Op{}), Op{});
 }
@@ -338,18 +339,18 @@ constexpr T times(T x, size_t n) {
 \begin{minted}[fontsize=\footnotesize]{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  assoc : Bool }
 EqDict T         =  { eq : T → T → Bool }
-CountDict T      =  { mul : T → T → T,  count : Nat → T,  counts : Bool, … }
+ModuleDict T S   =  { act : S → T → T,  linear : Bool, … }
 plus_str  =  { unit = "",  op = λa. λb. a ++ b,  assoc = true }
 plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  assoc = true }
-times₁  =  Λ T Op. λ m : MonoidDict T Op. λ x n.  iter n (λ s. m.op s x) m.unit
+times₁  =  Λ T Op. λ m : MonoidDict T Op. λ x n.  if n = 0 then m.unit else iter n (λ s. m.op s x) m.unit
 times₂  =  Λ T Op. λ m e x n.  if n = 0 or e.eq x m.unit then m.unit else times₁ [T Op] m x n
-times₃  =  Λ T. λ m e s x n.  if n = 0 or e.eq x m.unit then m.unit else s.mul x (s.count n)
-times [u64] 7 6        =  times₃ [u64] (plus_u [u64] unsigned_u64) eq_u64 count_u64 7 6
+times₃  =  Λ T. λ m e s x n.  s.act n x
+times [u64] 7 6        =  times₃ [u64] (plus_u [u64] unsigned_u64) eq_u64 module_u64 7 6
 times [string] "ab" 3  =  times₂ [string plus] plus_str eq_str "ab" 3
 \end{minted}
 \caption{Desugaring, then translating.
-Top: Listing~\ref{lst:rule3}'s \cppinline{times} with branches on concepts: no copies are the unit; where there is equality, so are copies of the unit; and in a counting semiring under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one multiplication.
-\cppinline{IsCountingSemiring} conjoins \cppinline{IsSemiring}, \cppinline{constructible_from<T, size_t>} and a declared law, \cppinline{counts}, that \cppinline{T(n)} is \cppinline{n} copies of the multiplicative unit, certified for the unsigned carriers, whose conversion the standard defines modulo $2^w$.
+Top: Listing~\ref{lst:rule3}'s \cppinline{times} with branches on concepts: where there is equality, copies of the unit are the unit; and where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
+\cppinline{IsSemimodule<T, size_t, plus<T>, multiplies<>>} is the library's shape, written with its laws declared: \cppinline{T} a commutative monoid, \cppinline{size_t} a semiring, \cppinline{multiplies<>\{\}(n, x)} a \cppinline{T}, and the semimodule laws a certificate, given for the unsigned carriers.
 Bottom: the same under the translation of Section~\ref{sec:translation}.
 Three record types; Listing~\ref{lst:rule2}'s registration for \cppinline{std::string}, a record, and its instance for the unsigned integrals, a function from the evidence for \texttt{Unsigned T} to a record; the kernel's family, one generic function per line, taking the records \texttt{m}, \texttt{e} and \texttt{s} of its constraints; and two calls, each the function its resolution picks.
 The test holds the sugar and the kernel's three overloads, and checks that they agree.}
@@ -357,12 +358,12 @@ The test holds the sugar and the kernel's three overloads, and checks that they 
 \end{listing}
 
 Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes a family of generic functions, and each stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
-The kernel's family is three overloads of \cppinline{times}: Listing~\ref{lst:rule3}'s, one more under \cppinline{equality_comparable<T>}, and one more again under \cppinline{IsCountingSemiring}, each constraint containing the one before.
+The kernel's family is three overloads of \cppinline{times}: Listing~\ref{lst:rule3}'s, one more under \cppinline{equality_comparable<T>}, and one more again under \cppinline{IsSemimodule}, each constraint containing the one before.
 The listing shows them translated at once, since in System~F, which has no overloading, each is a plain function of one more record, and a call is the function its resolution picks.
-The bodies keep Rule~2, using only what the clauses name: \cppinline{n == 0} compares two \cppinline{size_t}s, \cppinline{x == unit<T>(Op{})} is \cppinline{equality_comparable}'s, \cppinline{*} is \cppinline{multiplies}', and \cppinline{T(n)} is \cppinline{constructible_from}'s.
-The translation shows it: \cppinline{T(n)} becomes \texttt{s.count n}, a field of a record, because a constraint named it.
-The laws make the answers right: the unit law makes any number of copies of the unit the unit, and distributivity makes \cppinline{n} copies of \cppinline{x} equal to \cppinline{x} times \cppinline{n} copies of the unit, which \cppinline{counts} says \cppinline{T(n)} is.
-Without \cppinline{counts} the last overload would be wrong for a semiring whose conversion does not count: in $\mathbb{F}_2$, \cppinline{bool(2)} is \cppinline{true}, but $1 \oplus 1 = 0$.
+The bodies keep Rule~2, using only what the clauses name: \cppinline{n == 0} compares two \cppinline{size_t}s, \cppinline{x == unit<T>(Op{})} is \cppinline{equality_comparable}'s, and the action \cppinline{multiplies<>\{\}(n, x)} is \cppinline{IsSemimodule}'s.
+The translation shows it: the action becomes \texttt{s.act n x}, a field of a record, because a constraint named it.
+The laws make the answers right: the unit law makes any number of copies of the unit the unit, and the semimodule's, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{n}.
+Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$, so the certificate is true for the unsigned carriers, which wrap at a power of two dividing it, and for none that does not wrap, such as \cppinline{std::string}.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 

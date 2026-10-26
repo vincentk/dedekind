@@ -295,58 +295,70 @@ static_assert(twice_loose(std::string{"ab"}) == "abab");
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
+  return n == 0 ? unit<T>(Op{})
+                : std::ranges::fold_left(std::views::repeat(x, n),
+                                         unit<T>(Op{}), Op{});
 }
 
 static_assert(times<size_t>(7, 6) == 42);
 
-// Listing 3, right: the same fold at run time, a hundred copies; its LLVM IR
-// at -O2 is one multiplication (the paper's panel).
-constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
-static_assert(times_100(7) == 700);
+// Listing 3, right: the same fold with a budget known only at run time; its
+// LLVM IR at -O2 is one multiplication (the paper's panel).
+constexpr size_t times_n(size_t x, size_t n) { return times<size_t>(x, n); }
+static_assert(times_n(7, 100) == 700);
 
-// Section 3: the law the multiplication shortcut needs, and the shape it
-// conjoins.  counts says T(n) is n copies of Mul's unit under Add; the
-// standard defines conversion to an unsigned type modulo 2^w, which is that,
-// so one certificate covers the family.
-template <typename T, typename Add, typename Mul>
-constexpr bool counts(Add, Mul) = delete;
-template <std::unsigned_integral T>
-constexpr bool counts(std::plus<T>, std::multiplies<T>) {
+// Section 3: the semimodule over size_t, the library's shape with its laws
+// declared.  Scalars of type size_t are the integers modulo 2^64, so the
+// certificate holds for the unsigned carriers, which wrap at a power of two
+// dividing it.  For n below 2^64 the laws make n . x the n copies of x.
+template <typename M, typename S, typename AddM, typename Act>
+constexpr bool linear(AddM, Act) = delete;
+template <std::unsigned_integral M, std::same_as<size_t> S>
+constexpr bool linear(std::plus<M>, std::multiplies<>) {
   return true;
 }
 
-template <typename T, typename Add, typename Mul>
-concept IsCountingSemiring =
-    IsSemiring<T, Add, Mul> && std::constructible_from<T, size_t> &&
-    counts<T>(Add{}, Mul{});
+template <typename M, typename S, typename AddM, typename Act>
+concept IsSemimodule =
+    IsCommutativeMonoid<M, AddM> &&
+    IsSemiring<S, std::plus<S>, std::multiplies<S>> &&
+    requires(const S s, const M m) {
+      { Act{}(s, m) } -> std::same_as<M>;
+    } && linear<M, S>(AddM{}, Act{});
 
-// Section 3, Listing 4 top: Listing 3's times with branches on concepts: no
-// copies, or copies of the unit where there is equality, are the unit; in a
-// counting semiring under +, n copies of x are one multiplication.
+static_assert(IsSemimodule<size_t, size_t, std::plus<size_t>,
+                           std::multiplies<>>);
+static_assert(!IsSemimodule<std::string, size_t, std::plus<std::string>,
+                            std::multiplies<>>);
+
+// Section 3, Listing 4 top: Listing 3's times with branches on concepts:
+// where there is equality, copies of the unit are the unit; in a semimodule
+// over size_t under +, n copies of x are one action of n on x.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if (n == 0) return unit<T>(Op{});
   if constexpr (std::equality_comparable<T>) {
-    if (x == unit<T>(Op{})) return unit<T>(Op{});
     if constexpr (std::same_as<Op, std::plus<T>> &&
-                  IsCountingSemiring<T, std::plus<T>, std::multiplies<T>>)
-      return x * T(n);
+                  IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>)
+      return std::multiplies<>{}(n, x);
+    if (x == unit<T>(Op{})) return unit<T>(Op{});
   }
   return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
 }
 }  // namespace sugar
 
 // Section 3: the family in the kernel, whose System F image is Listing 4's
-// bottom: Listing 3's times, and two overloads, each constraint containing the
-// one before, which resolution orders by specificity.
+// bottom: Listing 3's times, and two overloads, each constraint containing
+// the one before, which resolution orders by specificity.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
+  return n == 0 ? unit<T>(Op{})
+                : std::ranges::fold_left(std::views::repeat(x, n),
+                                         unit<T>(Op{}), Op{});
 }
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::equality_comparable<T>
@@ -359,9 +371,9 @@ constexpr T times(T x, size_t n) {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::equality_comparable<T> &&
            std::same_as<Op, std::plus<T>> &&
-           IsCountingSemiring<T, std::plus<T>, std::multiplies<T>>
+           IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>
 constexpr T times(T x, size_t n) {
-  return n == 0 || x == unit<T>(Op{}) ? unit<T>(Op{}) : x * T(n);
+  return std::multiplies<>{}(n, x);
 }
 }  // namespace kernel
 
@@ -461,7 +473,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
-    CHECK(L::times_100(twelve) == 1200);
+    CHECK(L::times_n(twelve, 100) == 1200);
     CHECK(L::sugar::times<size_t>(7, twelve) ==
           L::kernel::times<size_t>(7, twelve));
     CHECK(L::sugar::times(std::string{"ab"}, twelve) ==
