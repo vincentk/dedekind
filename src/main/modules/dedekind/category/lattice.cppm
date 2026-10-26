@@ -418,6 +418,14 @@ static_assert(LatticeTop<bool, std::less_equal<bool>>::value == true,
  *  This is the seam toward "the AST is the set" (#892): the set operators now
  *  return these nodes, and the predicate-nested collapse representation they
  *  replaced (the retired @c AndPredicate / @c OrPredicate) has been removed. */
+
+/** @brief A predicate that names its logic: @c A::logic_species is formed,
+ *  the species whose @c AND / @c OR / @c RFL a node evaluates through.
+ *  @tparam A the predicate. */
+export template <typename A>
+concept HasLogicSpecies =
+    requires { typename std::remove_cvref_t<A>::logic_species; };
+
 export template <typename A, typename B>
 struct Meet {  // A ∧ B
   A lhs;
@@ -441,7 +449,7 @@ struct Meet {  // A ∧ B
       r(x...);
     }
   constexpr auto operator()(const X&... x) const {
-    if constexpr (requires { typename A::logic_species; }) {
+    if constexpr (HasLogicSpecies<A>) {
       return A::logic_species::AND(π_1(*this)(x...), π_2(*this)(x...));
     } else {
       return π_1(*this)(x...) && π_2(*this)(x...);
@@ -462,7 +470,7 @@ struct Join {  // A ∨ B
       r(x...);
     }
   constexpr auto operator()(const X&... x) const {
-    if constexpr (requires { typename A::logic_species; }) {
+    if constexpr (HasLogicSpecies<A>) {
       return A::logic_species::OR(π_1(*this)(x...), π_2(*this)(x...));
     } else {
       return π_1(*this)(x...) || π_2(*this)(x...);
@@ -475,7 +483,7 @@ struct Join {  // A ∨ B
  *  type that is not a truth object on its own (@c Chain<int>'s @c int). */
 export template <typename P>
 concept IsSpeciesTaggedArrow =
-    requires { typename std::remove_cvref_t<P>::logic_species; } &&
+    HasLogicSpecies<P> &&
     IsOckhamAlgebra<typename std::remove_cvref_t<P>::logic_species> &&
     std::same_as<Cod<P>, typename std::remove_cvref_t<P>::logic_species::Ω> &&
     requires(const std::remove_cvref_t<P>& p, const Dom<P>& x) {
@@ -595,7 +603,7 @@ struct Not {  // ¬A (complement)
   template <typename... X>
     requires requires(const A& b, const X&... x) { b(x...); }
   constexpr auto operator()(const X&... x) const {
-    if constexpr (requires { typename A::logic_species; }) {
+    if constexpr (HasLogicSpecies<A>) {
       return A::logic_species::RFL(base(x...));
     } else {
       return !base(x...);

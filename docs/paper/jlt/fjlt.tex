@@ -26,6 +26,7 @@ A carrier is in $\Sigma$ on three conditions: it is \cppinline{std::semiregular}
 The compiler decides semiregularity and that an operation is \cppinline{constexpr}; totality is a reading, since neither a \cppinline{constexpr} declaration nor a successful evaluation shows an operation defined on every input, and it is what Lemma~\ref{lem:progress} needs and what keeps \cppinline{int}'s overflow and division out; the image is a definition.
 A type enters $\Sigma$ by meeting the conditions, not by being named here, which is the structural admission the fragment is named for; the carriers this paper's listings use are \cppinline{bool}, \cppinline{size_t}, \cppinline{std::string}, with concatenation and the comparisons as its operations, allocation failure aside, and the finite enumerations a program or the library declares, such as \cppinline{Ternary} and \cppinline{ArrowLaw}, each a finite sum of units with equality.
 Figure~\ref{fig:fjlt-syntax} gives the grammar in the style of Featherweight Java: $\overline{\alpha}$ abbreviates a sequence $\alpha_1, \ldots, \alpha_n$, a construct written over a sequence is repeated for each element, and the separators the host language wants (commas, \cppinline{&&}, semicolons) are implied.
+The overbar is also how a parameter pack reads: a variadic declaration is the family of its arities, each a declaration of the grammar, and a fold expression at arity $n$ is the nested term; what the overbar does not give is a statement about all arities at once.
 Every FJlt program is a Jlt program, a \Cpp{23} program that keeps the three rules, with the same meaning. The converse, for a Jlt program written in this grammar, is the adequacy argument of Section~\ref{sec:translation:adequacy}.
 The listings of Section~\ref{sec:translation} are FJlt programs, with \cppinline{static_assert(e)} read as the claim that the closed term $e$ evaluates to \cppinline{true}.
 
@@ -458,6 +459,7 @@ That is an observation about the exhibits and a tendency with a reason for the r
 \subsection{The sugar: closure under the host's constructions}
 \label{app:fjlt:closure}
 FJlt is the kernel of Jlt, and this section names the sugar: each construction of \Cpp{} that a Jlt program writes beyond the kernel's grammar, with its desugaring into the kernel and without a proof.
+Most of the desugarings are local in Felleisen's sense~\cite{felleisen1991expressive}; two are not, closure conversion and the split of a branch on a constraint into two functions, since both add declarations, which is one reason the sugar is named and its desugaring trusted rather than proved.
 The question is one of closure: given terms of FJlt, under which condition is their composition under a construction of \Cpp{} again a term of FJlt?
 That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
 Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
@@ -468,25 +470,25 @@ Where a count is given it is measured on the library's \texttt{category} module,
 
 \begin{table}[ht]
 \centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.75\hsize\raggedright\arraybackslash}X>{\hsize=1.25\hsize\raggedright\arraybackslash}X>{\hsize=.9\hsize\raggedright\arraybackslash}X>{\hsize=1.1\hsize\raggedright\arraybackslash}X@{}}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.7\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.95\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the calculus lacks \\
+construction & FJlt, provided & image & the calculus lacks & the condition held by \\
 \midrule
-lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & nothing \\
-\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & nothing \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch without it & two generic functions, the more constrained preferred & resolution by specificity: one well-formedness condition, one case in Theorem~\ref{thm:coherence} \\
-parameter pack & each arity the program uses an FJlt declaration & one declaration per arity & nothing for a program; a statement over all arities \\
-sum & branches FJlt on the summands & the copairing & the case form: one rule per figure \\
-variable or class template & each member of the family an FJlt instance & instance with a context & nothing for one family; a default beside families is specificity again \\
-const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & nothing \\
-alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & nothing \\
-overloading & distinct carriers, or disjoint constraints & specialisations of one trait, or generic functions & nothing under no-overlap, specificity beyond it \\
+lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & nothing & the tool for the captures, a reader for the image \\
+\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & nothing & a reader, by the rewrite \\
+\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch without it & two generic functions, the more constrained preferred & resolution by specificity: one well-formedness condition, one case in Theorem~\ref{thm:coherence} & the kernel, once it has it \\
+sum & branches FJlt on the summands & the copairing & the case form: one rule per figure & the kernel, a reader for the guard \\
+variable or class template & each member of the family an FJlt instance & instance with a context & nothing for one family; a default beside families is specificity again & the compiler, by lookup \\
+const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & nothing & the tool \\
+alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & nothing & the compiler \\
+overloading & distinct carriers, or disjoint constraints & specialisations of one trait, or generic functions & nothing under no-overlap, specificity beyond it & the compiler, by ambiguity \\
+inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & nothing & the tool \\
 \bottomrule
 \end{tabularx}
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
 Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column.
-The fourth column is what the calculus lacks to state the lemma: nothing, the case form for sums, or resolution by specificity, which one row needs and two more lean on.}
+The fourth column is what the calculus lacks to state the lemma: nothing, the case form for sums, or resolution by specificity, which one row needs and two more lean on; the fifth is who holds the condition, as Table~\ref{tab:posture} says of the rules.}
 \label{tab:closure}
 \end{table}
 
@@ -513,13 +515,7 @@ In the general case the two heads both match at an instantiation where $C\texttt
 What the calculus lacks is resolution by specificity: the condition becomes that at every instantiation the matching generic functions have a unique most specific member, resolution picks it, and the sketch of Theorem~\ref{thm:coherence} gains the case that the record is unique because the most specific match is.
 \Cpp{} decides the new condition as it decides the old one, since an ambiguous partial ordering of constraints is ill-formed.
 This is not done, and three rows of Table~\ref{tab:closure} wait on it.
-45 of the library's 81 \cppinline{if constexpr} test a constraint, and 7 of those test a \cppinline{requires} expression written in the body, which Rule~2 does not count as a declared constraint, so each of the 7 is either rewritten to a named shape, which puts it here, or is outside the posture.
-
-\paragraph{Parameter packs.}
-A declaration over a pack \cppinline{typename... Ts} whose instantiation at each arity the program uses is an FJlt declaration, a fold expression at arity $n$ being the nested term, is the family of those declarations, one per arity.
-A closed program uses finitely many arities, so the family is finite and each member is covered by the theorems.
-What is not covered is a statement about all arities at once, since FJlt has no type-level lists, and parametricity therefore holds of each arity and not of the pack.
-The library has 13.
+45 of the library's 81 \cppinline{if constexpr} test a constraint; 7 of those tested a \cppinline{requires} expression written in the body, which Rule~2 does not count as a declared constraint, and are now named shapes, with the tool's \texttt{inline-requires} check holding the module at zero.
 
 \paragraph{Sums.}
 The grammar has the former, \cppinline{optional<T>} is $1 + T$, and its introductions, and lacks the case form, so a program can build an optional and not look inside it.
@@ -550,6 +546,11 @@ An alias template is substitution.
 \paragraph{Overloading.}
 Overloads of one name at distinct concrete carriers are explicit specialisations of one trait.
 Constrained overloads are generic functions, in the grammar as long as their heads never both match, and specificity beyond that, which is the same lack as above.
+
+\paragraph{Inheritance.}
+Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
+What the library writes with a base clause is a registration, \cppinline{struct is_involutive<X> : std::true_type}, 44 of them in the module and every base an empty class: the family row spelled by inheritance, read as the fact it states.
+The one class that inherited state, a wrapper around \cppinline{Morphism}, had no users and is gone.
 
 \paragraph{What the table says.}
 Seven rows need nothing from the calculus, the closure lemma being the standard's own account of the construction, two of them (families, overloading) as long as no two generic heads match.

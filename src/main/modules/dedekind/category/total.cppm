@@ -397,25 +397,6 @@ concept IsTotalArrow =
     IsArrow<F> && std::same_as<typename GetLogic<domain_t<F>>::type::Ω, bool>;
 
 /**
- * @struct TotalMorphism
- * @brief A concrete wrapper asserting that a Morphism A → B is total.
- * @details Extends `Morphism<A, B, Func>` with a compile-time assertion that
- * the underlying function satisfies `IsTotalArrow`. This makes totality an
- * explicit, type-level guarantee rather than a convention.
- *
- * @tparam A    The Domain species (must be a total species, e.g. unsigned int).
- * @tparam B    The Codomain species.
- * @tparam Func The callable implementing the mapping.
- */
-export template <IsSpecies A, IsSpecies B, typename Func>
-struct TotalMorphism : Morphism<A, B, Func> {
-  // Fix: IsTotalArrow now only takes the function type
-  static_assert(
-      IsTotalArrow<Morphism<A, B, Func>>,
-      "Totality Error: The provided function is not total over the domain.");
-};
-
-/**
  * @concept IsPointed
  * @brief A type @c T has a chosen identity element under operation @c Op.
  * @details Replaces the missing `HasIdentity` for Level 0.1.  The identity
