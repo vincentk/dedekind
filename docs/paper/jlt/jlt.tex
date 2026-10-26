@@ -323,7 +323,8 @@ Desugaring here means rewriting a program written with conveniences the kernel l
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.47\linewidth}
 \begin{cpp}
-template <typename T, typename Op = plus<T>>
+template <typename T,
+          typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if constexpr (same_as<Op, plus<T>> &&
@@ -337,15 +338,19 @@ constexpr T times(T x, size_t n) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.51\linewidth}
 \begin{cpp}
-template <typename T, typename Op = plus<T>>
+template <typename T,
+          typename Op = plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   return ranges::fold_left(
       views::repeat(x, n), unit<T>(Op{}), Op{});
 }
-template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op> && same_as<Op, plus<T>>
-        && IsSemiring<T, plus<T>, multiplies<T>>
+template <typename T,
+          typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+        && same_as<Op, plus<T>>
+        && IsSemiring<T, plus<T>,
+                      multiplies<T>>
 constexpr T times(T x, size_t n) {
   return x * T(n);
 }
