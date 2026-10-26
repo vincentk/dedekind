@@ -33,26 +33,20 @@ By contrast, \Cpp{23} is a mainstream multi-paradigm language in which functiona
 It runs much of machine learning and most embedded devices, holds zero-overhead abstraction as a design principle, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not, however, hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-This paper characterizes a fragment of \Cpp{23} as it ships, an embedded language whose programs are ordinary \Cpp{23} programs, which translates into System~F and compiles into conventional executables.
+This paper characterises a fragment of \Cpp{23} as it ships (no language modifications or compiler extensions), an embedded language whose programs are ordinary \Cpp{23} programs, which a stock compiler translates into conventional executables.
 The fragment is type-class-style code subject to three rules, which we call the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, on a type or on a natural number that counts down.
+Jlt can then be further decomposed into \emph{sugar} and a \emph{kernel}, Featherweight Jlt (FJlt).
+FJlt translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
+The translation is total on FJlt and preserves types and evaluation, so an FJlt program inherits the System~F image's termination, parametricity and a value; the sugar is named with its desugaring into the kernel, the paper's working hypothesis.
+Along the way it shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
+The evidence is proof sketches in the appendix, listings that compile and run at both binding times by a test in the public repository, a library whose core a mechanical checker holds to the rules, and the compiled output.
 
-A core calculus, Featherweight Jlt, the kernel of Jlt, is presented.
-Its syntax is a subset of Jlt as written, and it translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
-Concepts are turned into record types, trait specialisations into records, constraints into parameters, and folds become the iterators of inductive types.
-The translation preserves types, preserves evaluation and is a function of the program, so a program of the calculus terminates, is parametric and evaluates to a value.
-Algebraic invariants such as the associativity and the unit of a monoid are then values of the program.
-They are stated once and read either by concepts at compile time or by function calls at run time.
-Evidence that the calculus holds real programs and that the translation is total on it: a) proof sketches in the appendix; b) the listings, which compile and run under a stock compiler at both binding times, by a test in the public repository; c) a library whose core is held to the rules by a mechanical checker; d) the compiled output, without the scaffolding.
-
-What the System~F image has, termination, parametricity and a value, a kernel program inherits: by theorem for the calculus and by an adequacy argument for the executable.
-What Jlt writes beyond the kernel is sugar, named with its desugaring and conjectured to follow.
-What is gained is a mainstream compiler that checks claims of a modest but real kind, at compile time, where checking is cheap, about programs that then run unchanged.
-Jlt simplifies the trade between a functional style and a mainstream systems language in both directions.
-The correctness guarantees of the style are checked at compile time.
-The performance and the ecosystem of the host language remain available at run time.
+What is gained is a language embedded in a mainstream compiler that checks formal claims of a modest but real kind, at compile time, where checking is cheap.
+Jlt therefore facilitates the exchange between formal methods and mainstream systems programming:
+a formal fragment is embedded in the host language, its correctness guarantees are checked during the build, and they complement the host language's performance and ecosystem.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
@@ -98,46 +92,24 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 
 \begin{figure}[tb]
 \centering
-\begin{minipage}[t]{0.47\linewidth}
-\centering
-\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
-  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \\[-0.8em]
-\text{FJlt} \arrow[ur, hook, "{+}\,\text{sugar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
-  \&
-  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\begin{tikzcd}[column sep=2.4em, row sep=2.2em]
+  & \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"'] \\[-0.8em]
+\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, "\llbracket\cdot\rrbracket"']
+  &
+  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
-  \&
-  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
+  &
+  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
 \text{value} \arrow[rr, equal]
-  \&
-  \& \text{value}
+  &
+  & \text{value}
 \end{tikzcd}
-
-(a) as argued
-\end{minipage}\hfill
-\begin{minipage}[t]{0.47\linewidth}
-\centering
-\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
-  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, "{-}\,\text{sugar}"'] \\[-0.8em]
-\text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
-  \&
-  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
-\text{System~F} \arrow[d, "\text{eval}"']
-  \&
-  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rr, equal, dashed]
-  \&
-  \& \text{value}
-\end{tikzcd}
-
-(b) under the conjecture
-\end{minipage}
 \caption{The arrows of the paper.
-Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar; what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
+Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar, and what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the conjecture of Section~\ref{sec:translation:adequacy} holds: $\mathit{desugar}$, labelled with what it removes, is total on Jlt and replaces the hook, and the dashed edge is the conjecture's claim that the diagram commutes for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
+Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
+The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
 \end{figure}
 
@@ -155,7 +127,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 
 \paragraph{How to read this paper.}
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule they can apply to their overloads; for those who audit or certify \Cpp{} against a policy, who need to know what a tool does and does not check; for readers of programming languages in the line of concepts and type classes, who want to know what the concepts \Cpp{} shipped still support; and for researchers who arrive from Python with a functional vocabulary and want the performance of \Cpp{} with a guard rail.
-The sections follow the arrows of Figure~\ref{fig:arrows}(a), one each.
+The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
 The bottom edge is where the two readings meet.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
@@ -388,7 +360,8 @@ Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which c
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
 A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
 Sums have their case form (Appendix~\ref{app:fjlt:syntax}), with the library's \cppinline{IsCoproduct} as the injection half of its condition and \cppinline{std::variant} as an instance.
-What remains a conjecture is that the table is complete, that the library writes no construction it leaves out, and until that is measured the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
+The table is complete for the library's \texttt{category} module and the listings by measurement, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, and it is the paper's working hypothesis.
+The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
 \label{sec:translation}
@@ -749,7 +722,7 @@ It is the body-versus-signature gap of Rule~2 one level down, in the standard li
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
-So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
+So the library writes its registrations in a form the listings do not, which Appendix~\ref{app:fjlt:closure} desugars into the kernel's.
 Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
 
 \paragraph{The library is part of the toolchain.}

@@ -33,6 +33,10 @@
 //                     instantiations, a dependence on a constraint the
 //                     template did not declare.  A call its constraints name
 //                     is read through the dictionary and is not judged.
+//   inventory         not a rule: the syntax a scope uses, one line per AST
+//                     node kind (declarations, statements and expressions,
+//                     type forms as written) with its count, for diffing
+//                     against the kernel's grammar (#1079).
 //   inheritance       Jlt has no subtyping: a class with a base that is not
 //                     an empty class, or with a virtual function, is a
 //                     finding.  An empty base (`: std::true_type`,
@@ -975,6 +979,66 @@ class UndecidedResolution : public clang::ASTConsumer {
   const clang::SourceManager* sm = nullptr;
 };
 
+// ---------------------------------------------------------------------------
+// inventory: the syntax a scope uses
+// ---------------------------------------------------------------------------
+
+/// Every declaration, statement or expression, and type form as written,
+/// inside a declaration of the scope in the main file, counted by kind.
+/// Template instantiations and implicit code are not the program as written
+/// and are not counted.
+class Inventory : public clang::ASTConsumer,
+                  public clang::RecursiveASTVisitor<Inventory> {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    TraverseDecl(ctx.getTranslationUnitDecl());
+    for (const auto& [kind, n] : counts)
+      llvm::outs() << kind << ' ' << n << '\n';
+  }
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool shouldVisitImplicitCode() const { return false; }
+  bool TraverseDecl(clang::Decl* d) {
+    if (!d) return true;
+    const bool was = inside;
+    if (!inside && !llvm::isa<clang::TranslationUnitDecl>(d) &&
+        sm->isInMainFile(sm->getExpansionLoc(d->getLocation())) &&
+        (inScope(d) || isScopeNamespace(d)))
+      inside = true;
+    if (inside && !isScopeNamespace(d) && !d->isImplicit())
+      ++counts[std::string("Decl:") + d->getDeclKindName()];
+    const bool ok = clang::RecursiveASTVisitor<Inventory>::TraverseDecl(d);
+    inside = was;
+    return ok;
+  }
+  bool VisitStmt(clang::Stmt* st) {
+    // The wrappers the compiler adds around what was written are counted
+    // through the written node below them, not as kinds of their own.
+    if (inside &&
+        !llvm::isa<clang::ImplicitCastExpr, clang::MaterializeTemporaryExpr,
+                   clang::ExprWithCleanups, clang::CXXBindTemporaryExpr,
+                   clang::ConstantExpr, clang::CXXDefaultArgExpr,
+                   clang::CXXDefaultInitExpr, clang::OpaqueValueExpr,
+                   clang::SubstNonTypeTemplateParmExpr>(st))
+      ++counts[std::string("Stmt:") + st->getStmtClassName()];
+    return true;
+  }
+  bool VisitTypeLoc(clang::TypeLoc tl) {
+    if (inside && !tl.isNull())
+      ++counts[std::string("Type:") + tl.getType()->getTypeClassName()];
+    return true;
+  }
+
+ private:
+  static bool isScopeNamespace(const clang::Decl* d) {
+    const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(d);
+    return ns && ns->getName() == scope;
+  }
+  const clang::SourceManager* sm = nullptr;
+  bool inside = false;
+  std::map<std::string, unsigned> counts;
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
@@ -983,6 +1047,7 @@ class Action : public clang::ASTFrontendAction {
     if (check == "definition") return std::make_unique<Definition>();
     if (check == "inline-requires") return std::make_unique<InlineRequires>();
     if (check == "inheritance") return std::make_unique<Inheritance>();
+    if (check == "inventory") return std::make_unique<Inventory>();
     if (check == "undecided-resolution")
       return std::make_unique<UndecidedResolution>();
     llvm::errs() << "jlt-tool: unknown check " << check << '\n';

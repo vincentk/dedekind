@@ -1,0 +1,8 @@
+# Not a rule: the syntax a scope uses, one line per AST node kind with its
+# count (declarations, statements and expressions, type forms as written;
+# template instantiations, implicit code and the compiler's wrappers around
+# a written expression, such as implicit conversions, left out).  Reported, never
+# gated: its output is diffed by hand against the kernel's grammar (Figure 2
+# of the paper) and the sugar Appendix A.7 names, to find a construction the
+# table leaves out (#1079).  A "finding" here is a kind, not a defect.
+tool inventory

@@ -7,6 +7,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -29,6 +30,19 @@ TEST_CASE(
   CHECK((π != 3)(4u));
   CHECK(slots_v<decltype(π_1 * 3 + 1)> == 0b10u);
   CHECK((𝔸<unsigned>{} & (π == 4))(4u));
+}
+
+TEST_CASE(
+    "sets:terms: arithmetic stays in a narrow carrier, operation by operation",
+    "[sets][terms][carrier]") {
+  // Each operation converts back to the carrier, as the typed functor does:
+  // on std::uint8_t, 200 + 200 is 144 and 144 * 2 is 32; promoted to int they
+  // would be 400 and 800, and the comparisons below would fail.
+  using P8 = std::pair<std::uint8_t, std::uint8_t>;
+  CHECK(((π_1 + π_1) * 2 == π_2)(P8{200, 32}));
+  CHECK_FALSE(((π_1 + π_1) * 2 == π_2)(P8{200, 0}));
+  CHECK((π_1 + 100 == π_2)(P8{200, 44}));
+  CHECK((π_1 * π_1 == π_2)(P8{16, 0}));
 }
 
 TEST_CASE("sets:terms: a division by the constant 0 is refused when built",

@@ -492,25 +492,36 @@ Where a count is given it is measured on the library's \texttt{category} module,
 \begin{table}[ht]
 \centering
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\hsize=.7\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.95\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-construction & FJlt, provided & image & the calculus lacks & the condition held by \\
+construction & FJlt, provided & image & the condition held by \\
 \midrule
-lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & nothing & the tool for the captures, a reader for the image \\
-\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & nothing & a reader, by the rewrite \\
-\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & nothing & the compiler at concrete types, a reader at a type variable \\
-sum & branches FJlt on the summands & the case form & nothing & the kernel, a reader for a guard \\
-variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & nothing & the compiler, by lookup \\
-const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & nothing & the tool \\
-alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & nothing & the compiler \\
-overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & nothing & the compiler, by ambiguity \\
-a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & nothing & a reader \\
-inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & nothing & the tool \\
+lambda & captures by copy of FJlt values, FJlt body & operation struct, captures as fields & the tool for the captures, a reader for the image \\
+\texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & a reader, by the rewrite \\
+\texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the tool at a type variable \\
+\texttt{if} and \texttt{else} on a value & both branches return FJlt terms of one type & \texttt{p ? A : B} & a reader \\
+sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
+enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
+local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the tool \\
+local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the tool for escape, a reader for the rest \\
+variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
+const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
+constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
+explicit conversion & a total conversion between carriers of $\Sigma$ & a declared operation & a reader \\
+operator overloading, user-defined literal & FJlt body & a named function call & the compiler \\
+non-type template parameter & the value a constant of a carrier & a type per value, as \texttt{integral\_constant} spells it & the compiler \\
+\texttt{auto}, \texttt{decltype}, argument deduction & nothing & the type the compiler deduces & the compiler \\
+alias, \texttt{tuple}, \texttt{array} & the parts FJlt & substitution, nested pairs, a range of $\mathcal{R}$ & the compiler \\
+overloading & distinct carriers, or constraints ordered by specificity & specialisations of one trait, or generic functions & the compiler, by ambiguity \\
+a call its clause does not decide & the caller instantiates at a concrete type & constraint inference: the call's resolution a parameter the caller supplies & the tool reports it \\
+inheritance & every base an empty class, no virtual function & a registration, read as the fact it states & the tool \\
+\texttt{friend}, access specifier & a friend an FJlt function & a free function; nothing & the compiler \\
 \bottomrule
 \end{tabularx}
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
-Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column.
-The fourth column is what the calculus lacks to state the lemma, nothing in any row; the fifth is who holds the condition, as Table~\ref{tab:posture} says of the rules.}
+Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
+The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar.}
 \label{tab:closure}
 \end{table}
 
@@ -580,4 +591,7 @@ The one class that inherited state, a wrapper around \cppinline{Morphism}, had n
 
 \paragraph{What the table says.}
 Every row needs nothing from the calculus, the closure lemma being the standard's own account of the construction, once resolution is by specificity under GHC's rule and sums have their case form.
+The table is complete by measurement, not by argument, at the resolution of a syntax node's kind: the repository's tool lists every kind the \texttt{category} module and the listings write, leaving out the compiler's implicit wrappers, and each is the kernel's or a row of the table.
+A kind does not tell every use apart: a binary operator is arithmetic or an assignment, and the assignments are the row of local state, which Rule~1's footnote admits and which reading, not counting, finds.
+One construction the measurement found had no image in System~F, a template taking a class template as an argument, a type constructor of higher kind; the library used it once, for convenience, and no longer does.
 With the table closed, the second direction of Section~\ref{sec:translation:adequacy} reads: a Jlt program built from the grammar by these constructions under their conditions is an FJlt program.
