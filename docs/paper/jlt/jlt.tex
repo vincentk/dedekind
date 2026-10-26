@@ -328,7 +328,8 @@ template <typename T,
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if constexpr (same_as<Op, plus<T>> &&
-      IsSemiring<T, plus<T>, multiplies<T>>)
+      IsSemiring<T, plus<T>, multiplies<T>> &&
+      unsigned_integral<T>)
     return x * T(n);
   else
     return ranges::fold_left(
@@ -351,13 +352,14 @@ template <typename T,
         && same_as<Op, plus<T>>
         && IsSemiring<T, plus<T>,
                       multiplies<T>>
+        && unsigned_integral<T>
 constexpr T times(T x, size_t n) {
   return x * T(n);
 }
 \end{cpp}
 \end{minipage}
 \caption{Desugaring.
-Left: Listing~\ref{lst:rule3}'s \cppinline{times} with a branch on a concept: at a semiring under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one multiplication.
+Left: Listing~\ref{lst:rule3}'s \cppinline{times} with a branch on a concept: at an unsigned semiring under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one multiplication.
 Right: the same in the kernel: Listing~\ref{lst:rule3}'s \cppinline{times} unchanged, and an overload with the stronger constraint, which resolution prefers where it holds.
 The test holds both and checks that they agree.}
 \label{lst:desugar}
@@ -365,6 +367,7 @@ The test holds both and checks that they agree.}
 
 Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes two generic functions, and the stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
 \cppinline{IsSemiring} is written as Listing~\ref{lst:rule2} writes \cppinline{IsMonoid}: a monoid under each operation, and two more laws declared as functions of the operations, \cppinline{+} commutative and \cppinline{*} distributive over it.
+Each conjunct pays for one step of the rewrite: the semiring's laws make \cppinline{n} copies of \cppinline{x} equal to \cppinline{x} times \cppinline{n} copies of the unit, and an unsigned carrier makes \cppinline{T(n)} those \cppinline{n} copies.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 
@@ -387,7 +390,7 @@ Table~\ref{tab:adequacy} lists what a Jlt program may write that the kernel's gr
 \toprule
 & Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-1 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
+1 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}), except by constraints & generic functions of one name ordered by their constraints, plus their specialisations \\
 2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
 3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
 4 & references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
@@ -399,7 +402,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax.
+Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax, except for overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
 Row~3, conversions, is half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
 Row~4 is erased by the translation, an optimisation and not a meaning.
 Row~5 is the sugar: each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}, with the condition under which it desugars and the kernel term it becomes, and no row needs anything the calculus lacks.

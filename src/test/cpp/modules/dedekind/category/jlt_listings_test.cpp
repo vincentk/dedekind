@@ -307,13 +307,16 @@ constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
 // Section 3, left: Listing 3's times with a stronger concept's algorithm, as
-// a branch: at a semiring under +, n copies of x are one multiplication.
+// a branch: at an unsigned semiring under +, n copies of x are one
+// multiplication.  The semiring's laws make n copies of x equal x times n
+// copies of the unit; the unsigned carrier makes T(n) those n copies.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if constexpr (std::same_as<Op, std::plus<T>> &&
-                IsSemiring<T, std::plus<T>, std::multiplies<T>>) {
+                IsSemiring<T, std::plus<T>, std::multiplies<T>> &&
+                std::unsigned_integral<T>) {
     return x * T(n);
   } else {
     return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
@@ -332,7 +335,8 @@ constexpr T times(T x, size_t n) {
 }
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
-           IsSemiring<T, std::plus<T>, std::multiplies<T>>
+           IsSemiring<T, std::plus<T>, std::multiplies<T>> &&
+           std::unsigned_integral<T>
 constexpr T times(T x, size_t n) {
   return x * T(n);
 }
@@ -344,6 +348,12 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3) == "ababab");
+// Both agree with Listing 3's times, the fold, at the carrier they shortcut.
+static_assert(sugar::times<size_t>(7, 6) == times<size_t>(7, 6));
+static_assert(kernel::times<size_t>(7, 6) == times<size_t>(7, 6));
+static_assert(sugar::times<size_t>(SIZE_MAX, 3) == times<size_t>(SIZE_MAX, 3));
+static_assert(kernel::times<size_t>(SIZE_MAX, 3) ==
+              times<size_t>(SIZE_MAX, 3));
 
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
