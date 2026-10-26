@@ -59,6 +59,8 @@
  */
 module;
 
+#include <algorithm>  // fold_left: Rule 3's one loop
+#include <array>      // the flags of a fold over a pack
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -66,6 +68,7 @@ module;
 #include <limits>  // the slot bits of a column mask
 #include <memory>
 #include <optional>  // a column's defining term, if any
+#include <ranges>    // views::iota: the folds' index ranges
 #include <type_traits>
 #include <utility>  // std::pair: a point of a relation, dom × cod
 #include <variant>
@@ -81,40 +84,109 @@ namespace dedekind::relational {
 
 /** @brief The sorts of a row, one per column. */
 export using Columns = std::vector<std::size_t>;
+
+namespace detail_rows {
+/** @brief @c a then @c b: the concatenation of two lists.  @param a the
+ *  front.  @param b the back. */
+constexpr Columns joined(Columns a, const Columns& b) {
+  a.insert(a.end(), b.begin(), b.end());
+  return a;
+}
+/** @brief The step of a ∧ over a row's cells: the next cell has the next
+ *  column's sort.  The fold's state is the verdict so far and the column
+ *  reached. */
+struct SortsSoFar {
+  bool all;
+  std::size_t at;
+};
+template <typename... Cs>
+struct CellOfSort {
+  Columns cols;
+  constexpr SortsSoFar operator()(SortsSoFar s,
+                                  const std::variant<Cs...>& c) const {
+    return {s.all && c.index() == cols[s.at], s.at + 1};
+  }
+};
+}  // namespace detail_rows
+
 /** @brief The row @c r has the columns @c cols: one cell per column, each of
- *  the column's sort.  @tparam R the row.  @param r a row.  @param cols the
- *  sorts. */
-template <typename R>
-bool of_columns(const R& r, const Columns& cols) {
-  if (r.cells.size() != cols.size()) return false;
-  for (std::size_t i = 0; i < cols.size(); ++i)
-    if (r.cells[i].index() != cols[i]) return false;
-  return true;
+ *  the column's sort, a fold over the cells.  @tparam Cs the carriers.
+ *  @param r a row.  @param cols the sorts. */
+template <typename... Cs>
+constexpr bool of_columns(const dedekind::sets::Row<Cs...>& r, Columns cols) {
+  return r.cells.size() == cols.size() &&
+         std::ranges::fold_left(r.cells, detail_rows::SortsSoFar{true, 0},
+                                detail_rows::CellOfSort<Cs...>{std::move(cols)})
+             .all;
 }
 
 export struct Object;
-inline bool same_object(const Object& a, const Object& b);
 /** @brief A factor of an object: a carrier (a leaf, its sort the column's), or
  *  the sum @f$X + Y@f$ of two objects (#1039).  A sum lays out a tag column
  *  (𝔹: which summand), then the left summand's columns, then the right's; a
- *  row reads only the active side, so every column keeps one carrier. */
+ *  row reads only the active side, so every column keeps one carrier.
+ *
+ *  A factor is built by @c leaf or by @c sum, which write down with it its
+ *  @c layout (its columns) and its @c shape (the prefix code of its tree):
+ *  the reading a tree would otherwise recurse for, recorded when the tree is
+ *  built from parts that already carry theirs (Rule 3: no recursion on a
+ *  value).  Two factors are equal when their shapes are. */
 export struct Factor {
   enum class Kind { Leaf, Sum };
   Kind kind{Kind::Leaf};
   std::size_t sort{};  // a leaf's carrier; a sum's tag column (𝔹)
   std::shared_ptr<const Object> left, right;  // a sum's summands
+  /** @brief Its columns: a leaf's sort; a sum's tag, then its left
+   *  summand's columns, then its right's. */
+  Columns layout;
+  /** @brief Its tree as a prefix code, self-delimiting: a leaf @c 0 @c s; a
+   *  sum @c 1 @c tag, then each summand as the number of its factors
+   *  followed by their codes. */
+  std::vector<std::size_t> shape;
   /** @brief The leaf of a carrier.  @param c its sort. */
-  static Factor leaf(std::size_t c) {
+  static constexpr Factor leaf(std::size_t c) {
     Factor f;
     f.sort = c;
+    f.layout = {c};
+    f.shape = {0, c};
     return f;
   }
-  friend bool operator==(const Factor& a, const Factor& b) {
-    if (a.kind != b.kind || a.sort != b.sort) return false;
-    return a.kind == Kind::Leaf ||
-           (same_object(*a.left, *b.left) && same_object(*a.right, *b.right));
+  /** @brief The same tree: the same prefix code. */
+  friend constexpr bool operator==(const Factor& a, const Factor& b) {
+    return a.shape == b.shape;
   }
 };
+
+namespace detail_rows {
+/** @brief The step of a fold building the factors of a product of carriers:
+ *  one leaf more. */
+struct AppendLeaf {
+  constexpr std::vector<Factor> operator()(std::vector<Factor> fs,
+                                           std::size_t c) const {
+    fs.push_back(Factor::leaf(c));
+    return fs;
+  }
+};
+/** @brief The leaves of these carriers, one each.  @param sorts the
+ *  carriers. */
+template <std::ranges::input_range Sorts>
+constexpr std::vector<Factor> leaves(const Sorts& sorts) {
+  return std::ranges::fold_left(sorts, std::vector<Factor>{}, AppendLeaf{});
+}
+/** @brief The steps of the folds reading an object off its factors: their
+ *  columns side by side, and their codes after their number. */
+struct AppendLayout {
+  constexpr Columns operator()(Columns out, const Factor& f) const {
+    return joined(std::move(out), f.layout);
+  }
+};
+struct AppendShape {
+  constexpr std::vector<std::size_t> operator()(std::vector<std::size_t> out,
+                                                const Factor& f) const {
+    return joined(std::move(out), f.shape);
+  }
+};
+}  // namespace detail_rows
 
 /** @brief An object: a product of factors in @b normal @b form, a list.  The
  *  product is associative with unit @c 1 (the empty list), so
@@ -126,47 +198,48 @@ export struct Object {
   std::vector<Factor> factors;
   Object() = default;
   /** @brief The product of these carriers, one leaf each. */
-  Object(std::initializer_list<std::size_t> sorts) {
-    for (const std::size_t c : sorts) factors.push_back(Factor::leaf(c));
-  }
-  explicit Object(const Columns& sorts) {
-    for (const std::size_t c : sorts) factors.push_back(Factor::leaf(c));
-  }
-  friend bool operator==(const Object&, const Object&) = default;
+  constexpr Object(std::initializer_list<std::size_t> sorts)
+      : factors(detail_rows::leaves(sorts)) {}
+  constexpr explicit Object(const Columns& sorts)
+      : factors(detail_rows::leaves(sorts)) {}
+  friend constexpr bool operator==(const Object&, const Object&) = default;
 };
 
-inline bool same_object(const Object& a, const Object& b) { return a == b; }
-/** @brief The columns of an object: per factor, a leaf's sort; a sum's tag,
- *  then its left summand's columns, then its right's. */
-inline void append_columns(const Object& o, Columns& out) {
-  for (const Factor& f : o.factors) {
-    out.push_back(f.sort);
-    if (f.kind == Factor::Kind::Sum) {
-      append_columns(*f.left, out);
-      append_columns(*f.right, out);
-    }
-  }
+/** @brief The columns of an object: its factors' layouts side by side, per
+ *  factor a leaf's sort, or a sum's tag, then its left summand's columns,
+ *  then its right's. */
+export constexpr Columns columns(const Object& o) {
+  return std::ranges::fold_left(o.factors, Columns{},
+                                detail_rows::AppendLayout{});
 }
-export inline Columns columns(const Object& o) {
-  Columns out;
-  append_columns(o, out);
-  return out;
+namespace detail_rows {
+/** @brief The prefix code of an object: the number of its factors, then
+ *  their codes. */
+constexpr std::vector<std::size_t> shape(const Object& o) {
+  return std::ranges::fold_left(
+      o.factors, std::vector<std::size_t>{o.factors.size()}, AppendShape{});
 }
+}  // namespace detail_rows
 /** @brief The object @f$X + Y@f$: one sum factor, its tag column of sort
  *  @c tag (the 𝔹 carrier's).  @param x, y the summands. */
-export inline Object sum(const Object& x, const Object& y, std::size_t tag) {
+export constexpr Object sum(const Object& x, const Object& y, std::size_t tag) {
   Factor f;
   f.kind = Factor::Kind::Sum;
   f.sort = tag;
   f.left = std::make_shared<const Object>(x);
   f.right = std::make_shared<const Object>(y);
+  f.layout =
+      detail_rows::joined(detail_rows::joined({tag}, columns(x)), columns(y));
+  f.shape =
+      detail_rows::joined(detail_rows::joined({1, tag}, detail_rows::shape(x)),
+                          detail_rows::shape(y));
   Object out;
   out.factors.push_back(std::move(f));
   return out;
 }
 /** @brief The product @f$A \times B@f$: the factors side by side (the normal
  *  form of an associative product). */
-export inline Object operator*(const Object& a, const Object& b) {
+export constexpr Object operator*(const Object& a, const Object& b) {
   Object out = a;
   out.factors.insert(out.factors.end(), b.factors.begin(), b.factors.end());
   return out;
@@ -189,11 +262,15 @@ struct RelExpr {
   std::shared_ptr<const RelExpr> a, b;            // the legs
   std::uint64_t budget = std::uint64_t{1} << 16;  // verdict's search
 
-  unsigned arity() const { return static_cast<unsigned>(columns().size()); }
+  constexpr unsigned arity() const {
+    return static_cast<unsigned>(columns().size());
+  }
   /** @brief The columns: @c dom's then @c cod's. */
-  Columns columns() const { return relational::columns(dom * cod); }
+  constexpr Columns columns() const { return relational::columns(dom * cod); }
   /** @brief A row of the columns: the points' representative. */
-  Point rep() const { return dedekind::sets::row_of_sorts<Cs...>(columns()); }
+  constexpr Point rep() const {
+    return dedekind::sets::row_of_sorts<Cs...>(columns());
+  }
 
   // ── A RelExpr IS a relation (relational::IsRelation) ──
   /** @brief A point of the relation: a row of the domain and a row of the
@@ -206,10 +283,10 @@ struct RelExpr {
   struct Member {
     Domain value;
   };
-  Domain ι(const Member& m) const { return m.value; }
+  constexpr Domain ι(const Member& m) const { return m.value; }
   /** @brief χ: the verdict at the joined row of the point; a point not of
    *  the shape @c dom @c × @c cod is none of the relation's. */
-  Codomain operator()(const Domain& p) const {
+  constexpr Codomain operator()(const Domain& p) const {
     if (!of_columns(p.first, relational::columns(dom)) ||
         !of_columns(p.second, relational::columns(cod)))
       return dedekind::category::Ternary::False;
@@ -220,14 +297,14 @@ struct RelExpr {
   }
 
   /** @brief The universe @f$A \times B@f$: the full relation. */
-  static RelExpr universe(Object dom, Object cod) {
+  static constexpr RelExpr universe(Object dom, Object cod) {
     RelExpr r;
     r.dom = std::move(dom);
     r.cod = std::move(cod);
     return r;
   }
-  static RelExpr unary(Kind k, RelExpr x, Object dom, Object cod,
-                       P p = P::top()) {
+  static constexpr RelExpr unary(Kind k, RelExpr x, Object dom, Object cod,
+                                 P p = P::top()) {
     RelExpr r;
     r.kind = k;
     r.dom = std::move(dom);
@@ -237,7 +314,8 @@ struct RelExpr {
     r.a = std::make_shared<const RelExpr>(std::move(x));
     return r;
   }
-  static RelExpr binary(Kind k, RelExpr x, RelExpr y, Object dom, Object cod) {
+  static constexpr RelExpr binary(Kind k, RelExpr x, RelExpr y, Object dom,
+                                  Object cod) {
     RelExpr r;
     r.kind = k;
     r.dom = std::move(dom);
@@ -256,8 +334,8 @@ struct RelExpr {
  *  column's sort now.  @throws not_admitted for a slot past the columns, or an
  *  operator not admitted. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& r,
-                            const dedekind::sets::Pred<K>& p) {
+constexpr RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& r,
+                                      const dedekind::sets::Pred<K>& p) {
   using R = RelExpr<K, Cs...>;
   if (!dedekind::sets::only_arguments(dedekind::sets::slots(p), r.arity() + 1))
     throw dedekind::sets::not_admitted(
@@ -272,8 +350,8 @@ RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>&,
 /** @brief @c R @c & @c S and @c R @c | @c S between the same objects: the
  *  lattice's nodes.  @throws not_admitted otherwise. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& a,
-                            const RelExpr<K, Cs...>& b) {
+constexpr RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& a,
+                                      const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
   if (a.dom != b.dom || a.cod != b.cod)
     throw dedekind::sets::not_admitted(
@@ -281,8 +359,8 @@ RelExpr<K, Cs...> operator&(const RelExpr<K, Cs...>& a,
   return R::binary(R::Kind::Meet, a, b, a.dom, a.cod);
 }
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& a,
-                            const RelExpr<K, Cs...>& b) {
+constexpr RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& a,
+                                      const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
   if (a.dom != b.dom || a.cod != b.cod)
     throw dedekind::sets::not_admitted(
@@ -291,7 +369,7 @@ RelExpr<K, Cs...> operator|(const RelExpr<K, Cs...>& a,
 }
 /** @brief @c ~R: the complement. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator~(const RelExpr<K, Cs...>& a) {
+constexpr RelExpr<K, Cs...> operator~(const RelExpr<K, Cs...>& a) {
   using R = RelExpr<K, Cs...>;
   return R::unary(R::Kind::Not, a, a.dom, a.cod);
 }
@@ -300,7 +378,7 @@ RelExpr<K, Cs...> operator~(const RelExpr<K, Cs...>& a) {
 
 /** @brief @c R°: the converse, @f$B \rightsquigarrow A@f$, the dagger. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> converse(const RelExpr<K, Cs...>& a) {
+constexpr RelExpr<K, Cs...> converse(const RelExpr<K, Cs...>& a) {
   using R = RelExpr<K, Cs...>;
   return R::unary(R::Kind::Converse, a, a.cod, a.dom);
 }
@@ -308,8 +386,8 @@ RelExpr<K, Cs...> converse(const RelExpr<K, Cs...>& a) {
  *  \rightsquigarrow B \times D@f$.  Two universes make the product
  *  universe (the universe over a product is the product of the universes). */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator*(const RelExpr<K, Cs...>& a,
-                            const RelExpr<K, Cs...>& b) {
+constexpr RelExpr<K, Cs...> operator*(const RelExpr<K, Cs...>& a,
+                                      const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
   Object dom = a.dom * b.dom;
   Object cod = a.cod * b.cod;
@@ -322,8 +400,8 @@ RelExpr<K, Cs...> operator*(const RelExpr<K, Cs...>& a,
  *  C@f$, the ∃ over the whole middle object @f$B@f$.  @throws not_admitted
  *  where @c R's codomain is not @c S's domain. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> operator>>(const RelExpr<K, Cs...>& a,
-                             const RelExpr<K, Cs...>& b) {
+constexpr RelExpr<K, Cs...> operator>>(const RelExpr<K, Cs...>& a,
+                                       const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
   if (a.cod != b.dom)
     throw dedekind::sets::not_admitted("R >> S: R's codomain is S's domain");
@@ -336,7 +414,7 @@ RelExpr<K, Cs...> operator>>(const RelExpr<K, Cs...>& a,
  *  @c * and @c converse see where the factors sit.  Whole factors move: a
  *  sum's columns stay together. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> table(const RelExpr<K, Cs...>& r) {
+constexpr RelExpr<K, Cs...> table(const RelExpr<K, Cs...>& r) {
   RelExpr<K, Cs...> out = r;
   out.cod = r.dom * r.cod;
   out.dom = Object{};
@@ -347,7 +425,7 @@ RelExpr<K, Cs...> table(const RelExpr<K, Cs...>& r) {
  *  \times A_n@f$ as @f$A_1 \times \dots \times A_{n-1} \rightsquigarrow
  *  A_n@f$.  The same compact-closed iso as @c table, the other way. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> arrow(const RelExpr<K, Cs...>& r) {
+constexpr RelExpr<K, Cs...> arrow(const RelExpr<K, Cs...>& r) {
   const Object all = r.dom * r.cod;
   if (all.factors.empty())
     throw dedekind::sets::not_admitted("arrow(R): R has no factor");
@@ -360,13 +438,19 @@ RelExpr<K, Cs...> arrow(const RelExpr<K, Cs...>& r) {
 // ── The sum of two tables (#1039) ───────────────────────────────────────────
 
 namespace detail_rows {
-/** @brief A carrier's value @c c as a constant of the grammar: the constant
- *  type's own hook beside it where it has one (@c carrier_constant, found by
- *  argument-dependent lookup), else @c K(c).  A sum's tag and the defaults of
- *  its inactive side are written with it. */
+/** @brief The constant type @c K has its own hook for a carrier's value
+ *  @c c: @c carrier_constant, found by argument-dependent lookup. */
 template <typename K, typename C>
-K as_constant(const C& c) {
-  if constexpr (requires { carrier_constant(std::type_identity<K>{}, c); })
+concept HasCarrierConstant =
+    requires(const C& c) { carrier_constant(std::type_identity<K>{}, c); };
+/** @brief A carrier's value @c c as a constant of the grammar: the constant
+ *  type's own hook beside it where it has one (@c HasCarrierConstant), else
+ *  @c K(c).  A sum's tag and the defaults of its inactive side are written
+ *  with it. */
+template <typename K, typename C>
+  requires HasCarrierConstant<K, C> || std::constructible_from<K, const C&>
+constexpr K as_constant(const C& c) {
+  if constexpr (HasCarrierConstant<K, C>)
     return carrier_constant(std::type_identity<K>{}, c);
   else
     return K(c);
@@ -375,25 +459,34 @@ K as_constant(const C& c) {
 template <typename K>
 struct AsConstant {
   template <typename C>
-  K operator()(const C& c) const {
+  constexpr K operator()(const C& c) const {
     return as_constant<K>(c);
   }
 };
 /** @brief The default of the sort @c sort as a constant: the representative a
  *  sum's inactive side holds. */
 template <typename K, typename... Cs>
-K default_constant(std::size_t sort) {
+constexpr K default_constant(std::size_t sort) {
   return std::visit(AsConstant<K>{},
                     dedekind::sets::row_of_sorts<Cs...>({sort}).cells.front());
 }
+/** @brief The step of a fold for the first index whose flag is set: the
+ *  answer so far, or @c N while there is none. */
+template <std::size_t N>
+struct FirstSet {
+  std::array<bool, N> flags;
+  constexpr std::size_t operator()(std::size_t first, std::size_t i) const {
+    return first != N ? first : flags[i] ? i : N;
+  }
+};
 /** @brief The sort of the 𝔹 carrier among the columns' carriers: a sum's tag.
  */
 template <typename... Cs>
 constexpr std::size_t tag_sort() {
-  constexpr bool is_bool[] = {std::same_as<Cs, bool>...};
-  for (std::size_t i = 0; i < sizeof...(Cs); ++i)
-    if (is_bool[i]) return i;
-  return sizeof...(Cs);
+  constexpr std::size_t n = sizeof...(Cs);
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, n), n,
+      FirstSet<n>{std::array<bool, n>{std::same_as<Cs, bool>...}});
 }
 }  // namespace detail_rows
 
@@ -402,7 +495,8 @@ constexpr std::size_t tag_sort() {
  *  @throws not_admitted for a relation with a domain (a sum of arrows is
  *  not taken yet). */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> sum(const RelExpr<K, Cs...>& a, const RelExpr<K, Cs...>& b) {
+constexpr RelExpr<K, Cs...> sum(const RelExpr<K, Cs...>& a,
+                                const RelExpr<K, Cs...>& b) {
   using R = RelExpr<K, Cs...>;
   static_assert(detail_rows::tag_sort<Cs...>() < sizeof...(Cs),
                 "a sum's tag is a 𝔹 column: bool among the carriers");
@@ -415,28 +509,43 @@ RelExpr<K, Cs...> sum(const RelExpr<K, Cs...>& a, const RelExpr<K, Cs...>& b) {
 // ── The named relations: η and the Frobenius spiders ────────────────────────
 
 namespace detail_rows {
+/** @brief @c p @c ∧ @c q, ⊤ the unit of ∧ (the one identity the readings
+ *  apply). */
+template <typename K>
+constexpr dedekind::sets::Pred<K> conjoined(const dedekind::sets::Pred<K>& p,
+                                            const dedekind::sets::Pred<K>& q) {
+  using Pr = dedekind::sets::Pred<K>;
+  if (p.kind == Pr::Kind::Top) return q;
+  if (q.kind == Pr::Kind::Top) return p;
+  return Pr::conj(p, q);
+}
+/** @brief The step of the fold for @c identified: one equation more. */
+template <typename K>
+struct Identify {
+  unsigned from, to;
+  constexpr dedekind::sets::Pred<K> operator()(dedekind::sets::Pred<K> out,
+                                               unsigned i) const {
+    using T = dedekind::sets::Term<K>;
+    return conjoined(
+        out, dedekind::sets::Pred<K>::cmp(dedekind::sets::Rel::Eq,
+                                          T::proj(from + i), T::proj(to + i)));
+  }
+};
 /** @brief @c ∧_i π_{from + i} == π_{to + i} over @c n columns: the equations
  *  identifying two copies of an object. */
 template <typename K>
-dedekind::sets::Pred<K> identified(
+constexpr dedekind::sets::Pred<K> identified(
     unsigned n, unsigned from, unsigned to,
     dedekind::sets::Pred<K> onto = dedekind::sets::Pred<K>::top()) {
-  using P = dedekind::sets::Pred<K>;
-  using T = dedekind::sets::Term<K>;
-  P out = std::move(onto);
-  for (unsigned i = 1; i <= n; ++i) {
-    const P eq =
-        P::cmp(dedekind::sets::Rel::Eq, T::proj(from + i), T::proj(to + i));
-    out = out.kind == P::Kind::Top ? eq : P::conj(out, eq);
-  }
-  return out;
+  return std::ranges::fold_left(std::views::iota(1u, n + 1), std::move(onto),
+                                Identify<K>{from, to});
 }
 }  // namespace detail_rows
 
 /** @brief @c η: the identity @f$\Delta_A = \{(x, x)\}@f$, the unit of
  *  @c >>.  @param obj the object. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> diag(const Object& obj) {
+constexpr RelExpr<K, Cs...> diag(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(columns(obj).size());
   return (R::universe(obj, obj) & detail_rows::identified<K>(n, 0, n));
@@ -444,7 +553,7 @@ RelExpr<K, Cs...> diag(const Object& obj) {
 /** @brief @c Copy: @f$A \rightsquigarrow A \times A@f$, @f$x \mapsto (x,
  *  x)@f$, the comonoid of the Frobenius structure.  @param obj the object. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> copy(const Object& obj) {
+constexpr RelExpr<K, Cs...> copy(const Object& obj) {
   using R = RelExpr<K, Cs...>;
   const unsigned n = static_cast<unsigned>(columns(obj).size());
   return (R::universe(obj, obj * obj) &
@@ -454,57 +563,77 @@ RelExpr<K, Cs...> copy(const Object& obj) {
 /** @brief @c Merge: @f$A \times A \rightsquigarrow A@f$, the converse of
  *  @c copy.  @param obj the object. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> merge(const Object& obj) {
+constexpr RelExpr<K, Cs...> merge(const Object& obj) {
   return converse(copy<K, Cs...>(obj));
 }
+namespace detail_rows {
+/** @brief The step of the fold checking a projection's columns: each in
+ *  @c 1 … @c n and none twice.  @c seen has @c n + 1 slots. */
+struct Kept {
+  std::vector<bool> seen;
+  bool distinct;
+};
+struct Keep {
+  constexpr Kept operator()(Kept k, unsigned c) const {
+    if (c == 0 || c >= k.seen.size() || k.seen[c]) return {k.seen, false};
+    k.seen[c] = true;
+    return k;
+  }
+};
+/** @brief The step of the fold building a projection: the next kept
+ *  column's sort, and its equation @c π_{n + j} == @c π_c. */
+template <typename K>
+struct Projected {
+  Columns cod;
+  dedekind::sets::Pred<K> eqs;
+};
+template <typename K>
+struct Project {
+  Columns cols;  // the object's
+  constexpr Projected<K> operator()(Projected<K> p, unsigned c) const {
+    using T = dedekind::sets::Term<K>;
+    const auto n = static_cast<unsigned>(cols.size());
+    const auto j = static_cast<unsigned>(p.cod.size());
+    p.cod.push_back(cols[c - 1]);
+    p.eqs = conjoined(
+        p.eqs, dedekind::sets::Pred<K>::cmp(dedekind::sets::Rel::Eq,
+                                            T::proj(n + j + 1), T::proj(c)));
+    return p;
+  }
+};
+}  // namespace detail_rows
+
 /** @brief The structural projection @f$\pi : A \rightsquigarrow A[keep]@f$,
  *  the columns @c keep (1-based) of the object in that order.  @throws
  *  not_admitted on a repeated or absent column. */
 export template <typename K, typename... Cs>
-RelExpr<K, Cs...> proj(const Object& obj, const std::vector<unsigned>& keep) {
+constexpr RelExpr<K, Cs...> proj(const Object& obj,
+                                 const std::vector<unsigned>& keep) {
   using R = RelExpr<K, Cs...>;
   using P = typename R::P;
-  using T = typename R::T;
   const Columns cols = columns(obj);
-  const unsigned n = static_cast<unsigned>(cols.size());
-  std::vector<bool> seen(n + 1, false);
-  Columns cod;
-  P eqs = P::top();
-  for (std::size_t j = 0; j < keep.size(); ++j) {
-    const unsigned c = keep[j];
-    if (c == 0 || c > n || seen[c])
-      throw dedekind::sets::not_admitted(
-          "proj(A, c, …): distinct columns 1 … n");
-    seen[c] = true;
-    cod.push_back(cols[c - 1]);
-    const P eq = P::cmp(dedekind::sets::Rel::Eq,
-                        T::proj(n + static_cast<unsigned>(j) + 1), T::proj(c));
-    eqs = eqs.kind == P::Kind::Top ? eq : P::conj(eqs, eq);
-  }
-  return (R::universe(obj, Object(cod)) & eqs);
+  if (!std::ranges::fold_left(
+           keep,
+           detail_rows::Kept{std::vector<bool>(cols.size() + 1, false), true},
+           detail_rows::Keep{})
+           .distinct)
+    throw dedekind::sets::not_admitted("proj(A, c, …): distinct columns 1 … n");
+  const detail_rows::Projected<K> p =
+      std::ranges::fold_left(keep, detail_rows::Projected<K>{{}, P::top()},
+                             detail_rows::Project<K>{cols});
+  return (R::universe(obj, Object(p.cod)) & p.eqs);
 }
 
 // ── The predicate: a reading of the term ────────────────────────────────────
 
 namespace detail_rows {
-/** @brief A comprehension over a universe reads as its predicate (⊤ is the unit
- * of ∧: the one identity the reading applies); over anything else, the
- *  conjunction. */
-template <typename K>
-dedekind::sets::Pred<K> conjoined(const dedekind::sets::Pred<K>& base,
-                                  const dedekind::sets::Pred<K>& p) {
-  using Pr = dedekind::sets::Pred<K>;
-  if (base.kind == Pr::Kind::Top) return p;
-  if (p.kind == Pr::Kind::Top) return base;
-  return Pr::conj(base, p);
-}
 /** @brief A slot map by three ranges: the domain's columns, the codomain's,
  *  and the slots past the arity (a factor's own bound slots). */
 template <typename K>
 struct Ranges {
   unsigned dom, arity;
   int on_dom, on_cod, on_bound;  // the shift of each range
-  dedekind::sets::Term<K> operator()(unsigned s) const {
+  constexpr dedekind::sets::Term<K> operator()(unsigned s) const {
     const int shift = s == 0       ? on_dom + 1
                       : s <= dom   ? on_dom
                       : s <= arity ? on_cod
@@ -515,25 +644,35 @@ struct Ranges {
 };
 /** @brief @c π_slot == @c b: a sum's tag picks its side, ⊥ the left. */
 template <typename K>
-dedekind::sets::Pred<K> tag_is(unsigned slot, bool b) {
+constexpr dedekind::sets::Pred<K> tag_is(unsigned slot, bool b) {
   return dedekind::sets::Pred<K>::cmp(
       dedekind::sets::Rel::Eq, dedekind::sets::Term<K>::proj(slot),
       dedekind::sets::Term<K>::constant(as_constant<K>(b)));
 }
+/** @brief The step of the fold for @c at_defaults: the column @c i at its
+ *  sort's default. */
+template <typename K, typename... Cs>
+struct AtDefault {
+  Columns cols;
+  unsigned first;
+  constexpr dedekind::sets::Pred<K> operator()(dedekind::sets::Pred<K> out,
+                                               std::size_t i) const {
+    using T = dedekind::sets::Term<K>;
+    return conjoined(out,
+                     dedekind::sets::Pred<K>::cmp(
+                         dedekind::sets::Rel::Eq,
+                         T::proj(first + static_cast<unsigned>(i) + 1),
+                         T::constant(default_constant<K, Cs...>(cols[i]))));
+  }
+};
 /** @brief The columns of @c o from the slot @c first + 1 on at their defaults:
  *  the inactive side of a sum. */
 template <typename K, typename... Cs>
-dedekind::sets::Pred<K> at_defaults(const Object& o, unsigned first) {
-  using Pr = dedekind::sets::Pred<K>;
-  using T = dedekind::sets::Term<K>;
+constexpr dedekind::sets::Pred<K> at_defaults(const Object& o, unsigned first) {
   const Columns cols = columns(o);
-  Pr out = Pr::top();
-  for (std::size_t i = 0; i < cols.size(); ++i)
-    out = conjoined(out,
-                    Pr::cmp(dedekind::sets::Rel::Eq,
-                            T::proj(first + static_cast<unsigned>(i) + 1),
-                            T::constant(default_constant<K, Cs...>(cols[i]))));
-  return out;
+  return std::ranges::fold_left(std::views::iota(std::size_t{0}, cols.size()),
+                                dedekind::sets::Pred<K>::top(),
+                                AtDefault<K, Cs...>{cols, first});
 }
 /** @brief The columns of @c o from the slot @c first + 1 on encode a point of
  *  it: at each sum, the tag picks a side and the other holds its defaults,
@@ -541,15 +680,21 @@ dedekind::sets::Pred<K> at_defaults(const Object& o, unsigned first) {
  *  leaves is a point; a row of a sum is one only so (a quantifier or a
  *  complement over the columns must not range over the others). */
 template <typename K, typename... Cs>
-dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
-  using Pr = dedekind::sets::Pred<K>;
-  Pr out = Pr::top();
-  unsigned at = first;
-  for (const Factor& f : o.factors) {
-    if (f.kind == Factor::Kind::Leaf) {
-      ++at;
-      continue;
-    }
+constexpr dedekind::sets::Pred<K> encodes(const Object& o, unsigned first);
+/** @brief The step of the fold for @c encodes: the predicate so far and the
+ *  slot reached; a leaf moves one slot on, a sum asks that its tag pick a
+ *  side and moves past its columns. */
+template <typename K>
+struct Encoded {
+  dedekind::sets::Pred<K> out;
+  unsigned at;
+};
+template <typename K, typename... Cs>
+struct EncodeFactor {
+  constexpr Encoded<K> operator()(Encoded<K> e, const Factor& f) const {
+    using Pr = dedekind::sets::Pred<K>;
+    const unsigned at = e.at;
+    if (f.kind == Factor::Kind::Leaf) return {std::move(e.out), at + 1};
     const unsigned nl = static_cast<unsigned>(columns(*f.left).size());
     const unsigned nr = static_cast<unsigned>(columns(*f.right).size());
     const Pr left = conjoined(
@@ -559,11 +704,33 @@ dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
         conjoined(conjoined(tag_is<K>(at + 1, true),
                             encodes<K, Cs...>(*f.right, at + 1 + nl)),
                   at_defaults<K, Cs...>(*f.left, at + 1));
-    out = conjoined(out, Pr::disj(left, right));
-    at += 1 + nl + nr;
+    return {conjoined(e.out, Pr::disj(left, right)), at + 1 + nl + nr};
   }
-  return out;
+};
+template <typename K, typename... Cs>
+constexpr dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
+  return std::ranges::fold_left(
+             o.factors, Encoded<K>{dedekind::sets::Pred<K>::top(), first},
+             EncodeFactor<K, Cs...>{})
+      .out;
 }
+}  // namespace detail_rows
+
+namespace detail_rows {
+/** @brief The step of the fold binding a composite's middle: the @c i-th
+ *  from the innermost, @c ∃π_{n + j} over the middle column @c j = @c m − @c i,
+ *  so the outermost binds the first. */
+template <typename K>
+struct BindMiddle {
+  Columns middle;
+  unsigned n;
+  constexpr dedekind::sets::Pred<K> operator()(dedekind::sets::Pred<K> body,
+                                               unsigned i) const {
+    const auto j = static_cast<unsigned>(middle.size()) - i;
+    return dedekind::sets::Pred<K>::exists(middle[j - 1], n + j,
+                                           std::move(body));
+  }
+};
 }  // namespace detail_rows
 
 /** @brief The predicate of a relation on the columns of its domain then its
@@ -577,7 +744,7 @@ dedekind::sets::Pred<K> encodes(const Object& o, unsigned first) {
  *  quantifier binds the next slot past the columns, so a leg's own bound
  *  slots are renumbered with its columns and never captured. */
 export template <typename K, typename... Cs>
-dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
+constexpr dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
   using R = RelExpr<K, Cs...>;
   using P = dedekind::sets::Pred<K>;
   using Map = detail_rows::Ranges<K>;
@@ -653,11 +820,11 @@ dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
               static_cast<int>(d(x))});
       // The ∃ ranges over the middle's points: over a sum, the rows that
       // encode one (a row that encodes none would invent a witness).
-      P body = detail_rows::conjoined(detail_rows::encodes<K, Cs...>(x.cod, n),
-                                      detail_rows::conjoined(pa, pb));
-      for (unsigned j = m; j >= 1; --j)
-        body = P::exists(columns(x.cod)[j - 1], n + j, body);
-      return body;
+      return std::ranges::fold_left(
+          std::views::iota(0u, m),
+          detail_rows::conjoined(detail_rows::encodes<K, Cs...>(x.cod, n),
+                                 detail_rows::conjoined(pa, pb)),
+          detail_rows::BindMiddle<K>{columns(x.cod), n});
     }
   }
   return P::top();
@@ -666,7 +833,7 @@ dedekind::sets::Pred<K> predicate_of(const RelExpr<K, Cs...>& r) {
  *  quantifier an atom defines eliminated first (the fusion law), the rest
  *  searched within the relation's budget.  The one χ: Python binds this. */
 export template <typename K, typename... Cs>
-dedekind::category::Ternary verdict(
+constexpr dedekind::category::Ternary verdict(
     const RelExpr<K, Cs...>& r, const typename RelExpr<K, Cs...>::Point& row) {
   using Point = typename RelExpr<K, Cs...>::Point;
   return dedekind::sets::verdict(
@@ -681,10 +848,16 @@ namespace detail_rows {
 constexpr unsigned slot_bit(unsigned s) {
   return s < std::numeric_limits<unsigned>::digits ? 1u << s : ~0u;
 }
+/** @brief The step of the fold for @c column_mask: one slot's bit more. */
+struct WithSlot {
+  constexpr unsigned operator()(unsigned m, unsigned s) const {
+    return m | slot_bit(s);
+  }
+};
+/** @brief The mask of the slots @c [lo, hi). */
 constexpr unsigned column_mask(unsigned lo, unsigned hi) {
-  unsigned m = 0;
-  for (unsigned s = lo; s < hi; ++s) m |= slot_bit(s);
-  return m;
+  return std::ranges::fold_left(std::views::iota(lo, hi < lo ? lo : hi), 0u,
+                                WithSlot{});
 }
 /** @brief The columns @c [lo, hi) as defined by @c p: per column the term of
  *  a conjunct defining it over the columns of @c others alone, landing in the
@@ -695,27 +868,43 @@ struct Defined {
   std::vector<dedekind::sets::Term<K>> terms;
   bool only;
 };
-template <typename P, typename K>
-std::optional<Defined<K>> defined_columns(const dedekind::sets::Pred<K>& p,
-                                          unsigned lo, unsigned hi,
-                                          unsigned others, const Columns& cols,
-                                          const P& rep) {
-  using Q = dedekind::sets::Pred<K>;
-  Defined<K> out{{}, false};
-  Q rest = p;
-  for (unsigned s = lo; s < hi; ++s) {
-    const auto d = dedekind::sets::defining_term(rest, s);
+/** @brief The step of the fold for @c defined_columns: the terms so far, the
+ *  predicate left, and whether every column so far was defined. */
+template <typename K>
+struct Defining {
+  std::vector<dedekind::sets::Term<K>> terms;
+  dedekind::sets::Pred<K> rest;
+  bool defined;
+};
+template <typename K, typename... Cs>
+struct DefineColumn {
+  unsigned others;
+  Columns cols;
+  dedekind::sets::Row<Cs...> rep;
+  constexpr Defining<K> operator()(Defining<K> a, unsigned s) const {
+    using Point = dedekind::sets::Row<Cs...>;
+    if (!a.defined) return a;
+    const auto d = dedekind::sets::defining_term(a.rest, s);
     if (!d || (dedekind::sets::slots(d->term) & ~others) != 0u)
-      return std::nullopt;
-    const std::size_t sort = dedekind::sets::sort_of<P>(d->term, rep);
+      return {{}, a.rest, false};
+    const std::size_t sort = dedekind::sets::sort_of<Point>(d->term, rep);
     if (sort != dedekind::sets::no_sort &&
-        !dedekind::sets::sort_embeds<P>(sort, cols[s - 1]))
-      return std::nullopt;
-    out.terms.push_back(d->term);
-    rest = d->rest;
+        !dedekind::sets::sort_embeds<Point>(sort, cols[s - 1]))
+      return {{}, a.rest, false};
+    a.terms.push_back(d->term);
+    a.rest = d->rest;
+    return a;
   }
-  out.only = rest.kind == Q::Kind::Top;
-  return out;
+};
+template <typename K, typename... Cs>
+constexpr std::optional<Defined<K>> defined_columns(
+    const dedekind::sets::Pred<K>& p, unsigned lo, unsigned hi, unsigned others,
+    const Columns& cols, const dedekind::sets::Row<Cs...>& rep) {
+  const Defining<K> d = std::ranges::fold_left(
+      std::views::iota(lo, hi < lo ? lo : hi), Defining<K>{{}, p, true},
+      DefineColumn<K, Cs...>{others, cols, rep});
+  if (!d.defined) return std::nullopt;
+  return Defined<K>{d.terms, d.rest.kind == dedekind::sets::Pred<K>::Kind::Top};
 }
 /** @brief The laws a comprehension certifies by the shape of its predicate:
  *  every codomain column defined by a term over the domain columns is
@@ -726,11 +915,12 @@ std::optional<Defined<K>> defined_columns(const dedekind::sets::Pred<K>& p,
  *  and injective; its converse @c merge univalent, injective and surjective.
  *  @param p the predicate on the columns.  @param nd the domain's columns.
  *  @param cols the sorts of all the columns.  @param rep a row of them. */
-template <typename P, typename K>
-Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
-                    const Columns& cols, const P& rep) {
+template <typename K, typename... Cs>
+constexpr Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
+                              const Columns& cols,
+                              const dedekind::sets::Row<Cs...>& rep) {
   const unsigned n = static_cast<unsigned>(cols.size());
-  Laws::Profile l;
+  Laws l;
   if (const auto c = defined_columns(p, nd + 1, n + 1, column_mask(1, nd + 1),
                                      cols, rep)) {
     l = l.with(Law::Univalent);
@@ -741,16 +931,16 @@ Laws predicate_laws(const dedekind::sets::Pred<K>& p, unsigned nd,
     l = l.with(Law::Injective);
     if (d->only) l = l.with(Law::Surjective);
   }
-  return Laws{l};
+  return l;
 }
 /** @brief The laws of @c r read at the split @c nd (its first @c nd columns
- *  the domain): a leaf by its shape, a node by the engine (@c Laws::node,
+ *  the domain): a leaf by its shape, a node by the engine (@c node_laws,
  *  @c :dyadic) on its legs' laws.  The split belongs to the node being read:
  *  a lattice node's legs share its columns; an operation's facts hold at its
  *  own boundary, so @c ; @c ⊗ @c + and @c ° read their legs at their own
  *  splits, and a root re-split by @c arrow or @c table is read by its shape. */
 template <typename K, typename... Cs>
-Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
+constexpr Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   using R = RelExpr<K, Cs...>;
   const auto own = [](const R& x) {
     return static_cast<unsigned>(columns(x.dom).size());
@@ -787,19 +977,18 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
   switch (r.kind) {
     case Node::Universe:
       // The full relation on inhabited carriers: total and surjective.
-      return Laws::from(true, false, false, true);
+      return laws_from(true, false, false, true);
     case Node::Comprehension:
       // {x ∈ U | p}: the universe adds nothing but its encoding; R & p is a
       // meet.
       return r.a->kind == Node::Universe
                  ? by_shape()
-                 : Laws::node(Node::Meet, laws_at(*r.a, nd),
-                              shape(r.predicate));
+                 : node_laws(Node::Meet, laws_at(*r.a, nd), shape(r.predicate));
     case Node::Meet:
     case Node::Join:
-      return Laws::node(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
+      return node_laws(r.kind, laws_at(*r.a, nd), laws_at(*r.b, nd));
     case Node::Not:
-      return Laws::node(r.kind, laws_at(*r.a, nd));
+      return node_laws(r.kind, laws_at(*r.a, nd));
     case Node::Converse:
     case Node::Tensor:
     case Node::Compose:
@@ -807,9 +996,9 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
       // The facts hold at the operation's own boundary only.
       if (nd != own(r) || !at_own_boundary()) return by_shape();
       if (r.kind == Node::Converse)
-        return Laws::node(r.kind, laws_at(*r.a, own(*r.a)));
-      return Laws::node(r.kind, laws_at(*r.a, own(*r.a)),
-                        laws_at(*r.b, own(*r.b)));
+        return node_laws(r.kind, laws_at(*r.a, own(*r.a)));
+      return node_laws(r.kind, laws_at(*r.a, own(*r.a)),
+                       laws_at(*r.b, own(*r.b)));
   }
   return Laws{};
 }
@@ -822,7 +1011,7 @@ Laws laws_at(const RelExpr<K, Cs...>& r, unsigned nd) {
  *  law, @c Unknown where none does; the normal form may still decide the
  *  inclusion (@c algebra, @c canonical).  @param r the relation. */
 export template <typename K, typename... Cs>
-Laws laws(const RelExpr<K, Cs...>& r) {
+constexpr Laws laws(const RelExpr<K, Cs...>& r) {
   return detail_rows::laws_at(r, static_cast<unsigned>(columns(r.dom).size()));
 }
 
@@ -839,7 +1028,7 @@ export template <typename Re, Law W>
 struct LawSet {
   using Domain = Re;
   using Codomain = dedekind::category::Ternary;
-  Codomain operator()(const Re& r) const { return laws(r)[W]; }
+  constexpr Codomain operator()(const Re& r) const { return laws(r)[W]; }
 };
 export template <typename Re>
 using Total = LawSet<Re, Law::Total>;
@@ -857,7 +1046,7 @@ using Surjective = LawSet<Re, Law::Surjective>;
  *  @c ap(R, x) evaluates.  @param r the relation.  @param p its predicate,
  *  pinned or with its quantifiers eliminated. */
 export template <typename K, typename... Cs>
-std::optional<std::vector<dedekind::sets::Term<K>>> function_terms(
+constexpr std::optional<std::vector<dedekind::sets::Term<K>>> function_terms(
     const RelExpr<K, Cs...>& r, const dedekind::sets::Pred<K>& p) {
   const unsigned nd = static_cast<unsigned>(columns(r.dom).size());
   const auto c = detail_rows::defined_columns(
