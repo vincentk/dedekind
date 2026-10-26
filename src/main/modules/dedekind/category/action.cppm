@@ -183,7 +183,7 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
  *        every carrier the matrix columns and vector spaces reach.
  */
 export template <typename M, typename S, typename AddM, typename AddS,
-                 typename Act>
+                 typename MultS, typename Act>
 inline constexpr bool is_linear_action_v = IsLinearAction<S, M, Act, AddS>;
 
 /**
@@ -204,7 +204,7 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename Act = std::multiplies<>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, Act>;
+    IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
 
 static_assert(IsSemimodule<unsigned int, unsigned int>,
               "unsigned int is a semimodule over itself: Z/2^32.");

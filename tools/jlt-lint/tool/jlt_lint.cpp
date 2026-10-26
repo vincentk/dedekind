@@ -192,7 +192,11 @@ bool convertsIntoParameter(clang::QualType target,
     clang::QualType t = a->getType();
     if (t.isNull()) return false;  // cannot tell: silence
     t = t.getNonReferenceType().getUnqualifiedType().getCanonicalType();
-    if (t != want) return true;
+    if (t == want) continue;
+    // An unresolved dependent type, std::move(x) of a T x, may well be T:
+    // cannot tell, so silence.  Another parameter type is a conversion.
+    if (t->isDependentType() && !t->isTemplateTypeParmType()) return false;
+    return true;
   }
   return false;
 }
@@ -478,7 +482,15 @@ void gather(const clang::Expr* e, Vocabulary& v) {
     // A law in function spelling, associative<T>(Op{}): a declared fact about
     // the operation.  It names no operation of the value, and reading it as
     // opaque would silence the check on every function under the shape.
-    if (!isLawCall(call)) v.opaque = true;
+    if (!isLawCall(call)) {
+      v.opaque = true;
+      return;
+    }
+    // The law names no operation, but its arguments may: accepts<T>(T{0}).
+    NameCollector nc;
+    for (const clang::Expr* a : call->arguments())
+      nc.TraverseStmt(const_cast<clang::Expr*>(a));
+    v.names.insert(nc.names.begin(), nc.names.end());
     return;
   } else {
     v.opaque = true;  // a constraint of a shape this check does not read

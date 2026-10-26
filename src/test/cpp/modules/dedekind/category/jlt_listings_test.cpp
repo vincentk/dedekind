@@ -312,24 +312,27 @@ static_assert(times_n(7, 100) == 700);
 // declared.  Scalars of type size_t are the integers modulo 2^64, so the
 // certificate holds for the unsigned carriers, which wrap at a power of two
 // dividing it.  For n below 2^64 the laws make n . x the n copies of x.
-template <typename M, typename S, typename AddM, typename Act>
-constexpr bool linear(AddM, Act) = delete;
+template <typename M, typename S, typename AddM, typename AddS,
+          typename MultS, typename Act>
+constexpr bool linear(AddM, AddS, MultS, Act) = delete;
 template <std::unsigned_integral M, std::same_as<size_t> S>
-constexpr bool linear(std::plus<M>, std::multiplies<>) {
+constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>,
+                      std::multiplies<>) {
   return true;
 }
 
-template <typename M, typename S, typename AddM, typename Act>
+// The library's interface (dedekind.category:action), its laws declared.
+template <typename M, typename S, typename AddM = std::plus<M>,
+          typename AddS = std::plus<S>, typename MultS = std::multiplies<S>,
+          typename Act = std::multiplies<>>
 concept IsSemimodule = IsCommutativeMonoid<M, AddM> &&
-                       IsSemiring<S, std::plus<S>, std::multiplies<S>> &&
+                       IsSemiring<S, AddS, MultS> &&
                        requires(const S s, const M m) {
                          { Act{}(s, m) } -> std::same_as<M>;
-                       } && linear<M, S>(AddM{}, Act{});
+                       } && linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
 
-static_assert(
-    IsSemimodule<size_t, size_t, std::plus<size_t>, std::multiplies<>>);
-static_assert(!IsSemimodule<std::string, size_t, std::plus<std::string>,
-                            std::multiplies<>>);
+static_assert(IsSemimodule<size_t, size_t>);
+static_assert(!IsSemimodule<std::string, size_t>);
 
 // Section 3, the sugar: Listing 3's times with a branch on a concept: in a
 // semimodule over size_t under +, n copies of x are one action of n on x.
@@ -338,7 +341,7 @@ template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
   if constexpr (std::same_as<Op, std::plus<T>> &&
-                IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>)
+                IsSemimodule<T, size_t>)
     return std::multiplies<>{}(n, x);
   else
     return n == 0 || x == unit<T>(Op{})
@@ -362,7 +365,7 @@ constexpr T times(T x, size_t n) {
 }
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
-           IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>
+           IsSemimodule<T, size_t>
 constexpr T times(T x, size_t n) {
   return std::multiplies<>{}(n, x);
 }

@@ -256,6 +256,24 @@ constexpr T copies(const T x) {  // fine: default construction and copies
   return Op{}(T{x}, Op{}(T(x), T{}));
 }
 
+// A move of a T is not a conversion: std::move(x) has an unresolved type.
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T moved_back(T x) {  // fine: T(std::move(x)) moves a T
+  return T(std::move(x));
+}
+// A law's arguments name what they write: accepts<T>(T{0}) names the
+// conversion from 0.
+template <typename T>
+constexpr bool accepts(T) {
+  return true;
+}
+template <typename T>
+  requires IsMonoid<T, std::plus<T>> && (accepts<T>(T{0}))
+constexpr T zero_named() {  // fine: the law's argument names the conversion
+  return T{0};
+}
+
 // A declared law in function spelling is a fact, not an unreadable
 // constraint: the function under the shape is still judged.
 template <typename T, typename Op>

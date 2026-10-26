@@ -326,7 +326,7 @@ Desugaring here means rewriting a program written with conveniences the kernel l
 \begin{cpp}
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op> && same_as<Op, plus<T>> &&
-           IsSemimodule<T, size_t, plus<T>, multiplies<>>
+           IsSemimodule<T, size_t>
 constexpr T times(T x, size_t n) {
   return multiplies<>{}(n, x);
 }
@@ -343,7 +343,8 @@ times [string] "ab" 3  =  times₁ [string plus] plus_str "ab" 3
 \end{minted}
 \caption{A specialisation, then the family translated.
 Top: where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-\cppinline{IsSemimodule<T, size_t, plus<T>, multiplies<>>} is the library's shape: \cppinline{T} a commutative monoid, \cppinline{size_t} a semiring, \cppinline|multiplies<>{}(n, x)| a \cppinline{T}, and the semimodule laws a certificate, given for the unsigned carriers.
+\cppinline{IsSemimodule<T, size_t>} is the library's shape, its defaults \cppinline{+} on \cppinline{T}, \cppinline{+} and \cppinline{*} on \cppinline{size_t}, and the action \cppinline|multiplies<>{}(n, x)|: \cppinline{T} a commutative monoid, \cppinline{size_t} a semiring, the action a \cppinline{T}, and the semimodule laws a certificate, given for the unsigned carriers.
+The test declares the laws; the library still reads them off the signature, a gap it records.
 Bottom: the family, Listing~\ref{lst:rule3}'s \cppinline{times} and this one, under the translation of Section~\ref{sec:translation}.
 Two record types; Listing~\ref{lst:rule2}'s registration for \cppinline{std::string}, a record, and its instance for the unsigned integrals, a function from the evidence for \texttt{Unsigned T} to a record; the two generic functions, one per line, taking the records of their constraints, \texttt{m} a \texttt{MonoidDict} and \texttt{s} a \texttt{ModuleDict}; and two calls, each the function its resolution picks.
 The test holds the family and its sugar, the specialisation as a branch on the concept inside Listing~\ref{lst:rule3}'s body, and checks that they agree.}
