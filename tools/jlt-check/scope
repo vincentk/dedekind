@@ -11,6 +11,7 @@ rule3-no-mutual-recursion    tools/jlt-check/fixtures/rule3-mutual.cpp  jlt_list
 rule2-definition             tools/jlt-check/fixtures/rule2-definition.cpp  jlt_listing  10
 rule2-constrained-templates  tools/jlt-check/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-check/fixtures/rule2-inline-requires.cpp  jlt_listing  4
+rule2-decided-resolution     tools/jlt-check/fixtures/rule2-decided-resolution.cpp  jlt_listing  2
 rule1-no-inheritance         tools/jlt-check/fixtures/rule1-inheritance.cpp  jlt_listing  3
 rule1-constexpr              tools/jlt-check/fixtures/rule1.cpp        jlt_listing  3
 rule1-const-call-operator    tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1
@@ -36,6 +37,7 @@ rule3-no-mutual-recursion    src/test/cpp/modules/dedekind/category/jlt_listings
 rule2-definition             src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  1
 rule2-constrained-templates  src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule2-no-inline-requires     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
+rule2-decided-resolution     src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
 rule1-no-inheritance         src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-constexpr              src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
 rule1-const-call-operator    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  0
@@ -60,6 +62,7 @@ rule3-no-mutual-recursion    src/main/modules/dedekind/category/*.cppm  category
 rule2-definition             src/main/modules/dedekind/category/*.cppm  category  0
 rule2-constrained-templates  src/main/modules/dedekind/category/*.cppm  category  report
 rule2-no-inline-requires     src/main/modules/dedekind/category/*.cppm  category  0
+rule2-decided-resolution     src/main/modules/dedekind/category/*.cppm  category  report
 rule1-no-inheritance         src/main/modules/dedekind/category/*.cppm  category  0
 rule1-constexpr              src/main/modules/dedekind/category/*.cppm  category  0
 rule1-const-call-operator    src/main/modules/dedekind/category/*.cppm  category  0

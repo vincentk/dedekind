@@ -1,0 +1,10 @@
+# Rule 2, GHC's rule for overlapping instances: a call at a value of
+# parameter type to an overload set whose candidates are separated by a
+# concept resolves, at each instantiation, by whether that concept holds; if
+# the enclosing template's constraints neither require nor negate it, the
+# body varies with the type through a constraint it did not declare, and the
+# translation into System F (which resolves at the type variable) and the
+# compiler (which resolves at the instantiation) disagree.  Decide it in the
+# clause, by requiring the concept or by splitting on it.  A call the
+# constraints name is read through the dictionary and is not judged.
+tool undecided-resolution

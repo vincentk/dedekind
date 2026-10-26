@@ -24,6 +24,15 @@
 //                     body did not declare, which Rule 2 does not count
 //                     (#1068); the fix is a named shape, which the definition
 //                     check then reads.
+//   undecided-resolution
+//                     Rule 2, GHC's rule for overlapping instances: in a
+//                     function template, a call at a value of parameter type
+//                     to an overload set whose candidates are separated by a
+//                     concept the enclosing constraints do not mention (nor
+//                     negate) resolves differently at different
+//                     instantiations, a dependence on a constraint the
+//                     template did not declare.  A call its constraints name
+//                     is read through the dictionary and is not judged.
 //   inheritance       Jlt has no subtyping: a class with a base that is not
 //                     an empty class, or with a virtual function, is a
 //                     finding.  An empty base (`: std::true_type`,
@@ -701,6 +710,157 @@ class Inheritance : public clang::ASTConsumer,
   const clang::SourceManager* sm = nullptr;
 };
 
+// ---------------------------------------------------------------------------
+// undecided-resolution: GHC's rule, a call at a type variable decided by the
+// enclosing constraints
+// ---------------------------------------------------------------------------
+
+/// The concepts a constraint expression mentions, through &&, || and !, and,
+/// when `follow`, through the bodies of the library's own concepts.
+void conceptsOf(const clang::Expr* e, std::set<std::string>& out, bool follow,
+                std::set<const clang::ConceptDecl*>& seen) {
+  if (!e) return;
+  e = e->IgnoreParenImpCasts();
+  if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
+    const clang::ConceptDecl* c = cs->getNamedConcept();
+    out.insert(c->getName().str());
+    if (follow && !inStd(c) && seen.insert(c).second)
+      conceptsOf(c->getConstraintExpr(), out, follow, seen);
+    return;
+  }
+  if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e)) {
+    conceptsOf(b->getLHS(), out, follow, seen);
+    conceptsOf(b->getRHS(), out, follow, seen);
+    return;
+  }
+  if (const auto* u = llvm::dyn_cast<clang::UnaryOperator>(e))
+    conceptsOf(u->getSubExpr(), out, follow, seen);
+}
+
+/// The concepts a template's own constraints mention: type constraints on
+/// its parameters, its requires clause, its trailing requires clause.
+std::set<std::string> constraintConcepts(const clang::FunctionTemplateDecl* ft,
+                                         bool follow) {
+  std::set<std::string> out;
+  std::set<const clang::ConceptDecl*> seen;
+  const clang::TemplateParameterList* ps = ft->getTemplateParameters();
+  for (const clang::NamedDecl* p : *ps)
+    if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+      if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+        conceptsOf(tc->getImmediatelyDeclaredConstraint(), out, follow, seen);
+  conceptsOf(ps->getRequiresClause(), out, follow, seen);
+  conceptsOf(ft->getTemplatedDecl()->getTrailingRequiresClause().ConstraintExpr,
+             out, follow, seen);
+  return out;
+}
+
+/// The check: in every judged function template, a call at a value of
+/// parameter type to an overload set of two or more of the library's function
+/// templates, not named by the enclosing constraints, whose candidates differ
+/// in a concept the enclosing constraints (followed through the library's
+/// concepts, enclosing class templates included) do not mention.  Not seen:
+/// trait reads through class and variable templates, whose specialisations
+/// differ by pattern rather than by concept; calls reached through a helper.
+class UndecidedResolution : public clang::ASTConsumer {
+ public:
+  void HandleTranslationUnit(clang::ASTContext& ctx) override {
+    sm = &ctx.getSourceManager();
+    Finder finder{*this};
+    finder.TraverseDecl(ctx.getTranslationUnitDecl());
+  }
+
+  struct Calls : clang::RecursiveASTVisitor<Calls> {
+    std::vector<const clang::CallExpr*> calls;
+    bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
+    bool VisitCallExpr(clang::CallExpr* e) {
+      calls.push_back(e);
+      return true;
+    }
+  };
+
+  struct Finder : clang::RecursiveASTVisitor<Finder> {
+    UndecidedResolution& owner;
+    explicit Finder(UndecidedResolution& o) : owner(o) {}
+    bool shouldVisitTemplateInstantiations() const { return false; }
+    bool VisitFunctionTemplateDecl(clang::FunctionTemplateDecl* ft) {
+      const clang::FunctionDecl* f = ft->getTemplatedDecl();
+      if (!f || !f->doesThisDeclarationHaveABody() || f->isDeleted())
+        return true;
+      if (const auto* m = llvm::dyn_cast<clang::CXXMethodDecl>(f))
+        if (m->getParent()->isLambda()) return true;
+      if (!owner.sm->isInMainFile(ft->getLocation()) || !inScope(ft))
+        return true;
+      owner.judge(ft);
+      return true;
+    }
+  };
+
+  void judge(const clang::FunctionTemplateDecl* ft) {
+    const Vocabulary v = vocabularyOf(ft);
+    if (v.opaque) return;  // a constraint this check cannot read: silence
+    std::set<std::string> decided = constraintConcepts(ft, true);
+    for (const clang::DeclContext* c = ft->getDeclContext(); c;
+         c = c->getParent())
+      if (const auto* rd = llvm::dyn_cast<clang::CXXRecordDecl>(c))
+        if (const clang::ClassTemplateDecl* ct =
+                rd->getDescribedClassTemplate()) {
+          std::set<const clang::ConceptDecl*> seen;
+          const clang::TemplateParameterList* ps = ct->getTemplateParameters();
+          for (const clang::NamedDecl* p : *ps)
+            if (const auto* tp = llvm::dyn_cast<clang::TemplateTypeParmDecl>(p))
+              if (const clang::TypeConstraint* tc = tp->getTypeConstraint())
+                conceptsOf(tc->getImmediatelyDeclaredConstraint(), decided,
+                           true, seen);
+          conceptsOf(ps->getRequiresClause(), decided, true, seen);
+        }
+    Calls body;
+    body.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    for (const clang::CallExpr* call : body.calls) {
+      const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(
+          call->getCallee()->IgnoreParenImpCasts());
+      if (!u) continue;
+      llvm::SmallVector<const clang::Expr*, 4> args(call->arguments().begin(),
+                                                    call->arguments().end());
+      if (!anyParameterTyped(args)) continue;
+      const std::string name = u->getName().getAsString();
+      if (v.names.count(name)) continue;  // named: read through the dictionary
+      std::vector<std::set<std::string>> atoms;
+      for (const clang::NamedDecl* d : u->decls()) {
+        const auto* cand = llvm::dyn_cast<clang::FunctionTemplateDecl>(d);
+        if (!cand || inStd(cand) || cand->getTemplatedDecl()->isDeleted())
+          continue;
+        atoms.push_back(constraintConcepts(cand, false));
+      }
+      if (atoms.size() < 2) continue;
+      std::set<std::string> all, common = atoms.front();
+      for (const auto& a : atoms) {
+        all.insert(a.begin(), a.end());
+        std::set<std::string> keep;
+        for (const std::string& c : common)
+          if (a.count(c)) keep.insert(c);
+        common = keep;
+      }
+      std::string undecided;
+      for (const std::string& c : all)
+        if (!common.count(c) && !decided.count(c)) {
+          undecided = c;
+          break;
+        }
+      if (undecided.empty()) continue;
+      const clang::SourceLocation loc = sm->getExpansionLoc(u->getNameLoc());
+      llvm::outs() << sm->getFilename(loc) << ':'
+                   << sm->getExpansionLineNumber(loc) << ':'
+                   << sm->getExpansionColumnNumber(loc) << ": the call to '"
+                   << name << "' resolves by '" << undecided
+                   << "', which the constraints of " << ft->getNameAsString()
+                   << " do not decide\n";
+    }
+  }
+
+ private:
+  const clang::SourceManager* sm = nullptr;
+};
+
 class Action : public clang::ASTFrontendAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(
@@ -709,6 +869,8 @@ class Action : public clang::ASTFrontendAction {
     if (check == "definition") return std::make_unique<Definition>();
     if (check == "inline-requires") return std::make_unique<InlineRequires>();
     if (check == "inheritance") return std::make_unique<Inheritance>();
+    if (check == "undecided-resolution")
+      return std::make_unique<UndecidedResolution>();
     llvm::errs() << "jlt-tool: unknown check " << check << '\n';
     return nullptr;
   }
