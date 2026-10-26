@@ -11,7 +11,7 @@ rule3-no-mutual-recursion    tools/jlt-check/fixtures/rule3-mutual.cpp  jlt_list
 rule2-definition             tools/jlt-check/fixtures/rule2-definition.cpp  jlt_listing  10
 rule2-constrained-templates  tools/jlt-check/fixtures/rule2-constraints.cpp  jlt_listing  2
 rule2-no-inline-requires     tools/jlt-check/fixtures/rule2-inline-requires.cpp  jlt_listing  4
-rule2-decided-resolution     tools/jlt-check/fixtures/rule2-decided-resolution.cpp  jlt_listing  5
+rule2-decided-resolution     tools/jlt-check/fixtures/rule2-decided-resolution.cpp  jlt_listing  6
 rule1-no-inheritance         tools/jlt-check/fixtures/rule1-inheritance.cpp  jlt_listing  3
 rule1-constexpr              tools/jlt-check/fixtures/rule1.cpp        jlt_listing  3
 rule1-const-call-operator    tools/jlt-check/fixtures/rule1.cpp        jlt_listing  1

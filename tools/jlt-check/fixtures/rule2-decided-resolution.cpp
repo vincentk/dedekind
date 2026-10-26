@@ -121,6 +121,60 @@ constexpr int nested(T x) {
   return g(x);  // fine: QC<T> guarantees C<T>
 }
 
+// A binary concept: the caller's fact must be about the same arguments.
+template <typename T, typename U>
+concept EqualSize = sizeof(T) == sizeof(U);
+template <typename T, typename U>
+  requires Q<T>
+constexpr int e(T, U) {
+  return 0;
+}
+template <typename T, typename U>
+  requires Q<T> && EqualSize<T, U>
+constexpr int e(T, U) {
+  return 1;
+}
+template <typename T, typename U>
+  requires Q<T> && EqualSize<T, U>
+constexpr int same_pair(T x, U y) {
+  return e(x, y);  // fine: EqualSize<T, U> required
+}
+template <typename T, typename U>
+  requires Q<T> && EqualSize<T, T>
+constexpr int other_pair(T x, U y) {
+  return e(x, y);  // finding 6: EqualSize<T, T> is not EqualSize<T, U>
+}
+
+// A class template's constrained partial specialisation decides for its
+// members.
+template <typename T>
+struct W {};
+template <typename T>
+  requires Q<T> && C<T>
+struct W<T> {
+  template <typename V>
+  static constexpr int m(T x, V) {
+    return g(x);  // fine: the specialisation guarantees C<T>
+  }
+};
+
+// A candidate the caller's facts contradict is no candidate.
+template <typename T>
+  requires Q<T>
+constexpr int c3(T) {
+  return 0;
+}
+template <typename T>
+  requires Q<T> && C<T> && D<T>
+constexpr int c3(T) {
+  return 1;
+}
+template <typename T>
+  requires Q<T> && (!C<T>)
+constexpr int contradicted(T x) {
+  return c3(x);  // fine: !C<T> rules out the second c3, D is moot
+}
+
 }  // namespace jlt_listing
 
 template <typename T>
