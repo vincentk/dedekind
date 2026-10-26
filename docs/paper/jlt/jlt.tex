@@ -702,10 +702,10 @@ Section~\ref{sec:limits} says what the repository's checker and a reader make of
 The last row is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, pass lambdas, register facts by inheritance and case on sums.
 Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
-Two do.
+One does not.
 Sums have the former, \cppinline{optional<T>} is $1 + T$, and lack the case form, one rule per figure, with the library's \cppinline{IsCoproduct} as the injection half of the condition and \cppinline{std::variant} as an instance.
-A branch on a constraint is two generic functions whose heads both match, which the no-overlap condition forbids, and needs resolution by specificity, one well-formedness condition that the compiler decides and one case in Theorem~\ref{thm:coherence}.
-We conjecture both close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
+A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
+We conjecture the sums close, and until they do the adequacy argument covers the listings and not the library (Section~\ref{sec:limits}).
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate: \cppinline{concat<size_t>} at three arguments is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
@@ -750,7 +750,7 @@ FJlt's instance is a specialisation of a function template, and the listings are
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
 The reason is partial specialisation: "every \cppinline{Rational<I>} is a monoid under \cppinline{+}" is one declaration for a family, and only class and variable templates admit it. A function template cannot be partially specialised, and a constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
 So the library is FJlt at its reads and not at its registrations, the adequacy argument covers the listings, not the library, and FJlt's instance resolution is a subset of what the library needs.
-Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, in the grammar, and what remains is a default beside families, which is resolution by specificity.
+Appendix~\ref{app:fjlt:closure} narrows this: a registration over one family is an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
 
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
