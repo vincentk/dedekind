@@ -1,8 +1,8 @@
 // Negative control for rules/rule2-no-inline-requires.query (the tool's
 // inline-requires check): an `if constexpr` whose condition contains a
-// requires-expression is a finding, also as an `else if` and under an
-// operator; a branch on a named concept, a requires clause and a plain `if`
-// are not.  Standalone.
+// requires-expression is a finding, also as an `else if`, under an operator
+// and in an ordinary `if`; a branch on a named concept, a requires clause and
+// a plain `if` on a value are not.  Standalone.
 namespace jlt_listing {
 
 template <typename T>
@@ -16,14 +16,22 @@ constexpr int a(const T& t) {
 
 template <typename T>
 constexpr int b(const T& t) {
-  if constexpr (HasDomain<T>) return 1;                 // fine: a named shape
-  else if constexpr (requires { typename T::Codomain; }) return 2;  // finding 2
+  if constexpr (HasDomain<T>)
+    return 1;  // fine: a named shape
+  else if constexpr (requires { typename T::Codomain; })
+    return 2;  // finding 2
   return 0;
 }
 
 template <typename T>
 constexpr int c(const T& t) {
   if constexpr (HasDomain<T> && requires { t.first; }) return 1;  // finding 3
+  return 0;
+}
+
+template <typename T>
+constexpr int e(const T& t) {
+  if (requires { t.size(); }) return 1;  // finding 4: an ordinary if
   return 0;
 }
 
@@ -38,6 +46,7 @@ constexpr int d(const T& t) {
 
 template <typename T>
 constexpr int outside(const T& t) {
-  if constexpr (requires { t.size(); }) return 1;  // outside the scope: not counted
+  if constexpr (requires { t.size(); })
+    return 1;  // outside the scope: not counted
   return 0;
 }

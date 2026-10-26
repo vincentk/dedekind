@@ -19,10 +19,11 @@
 //                     what it is sure no requirement names, and stays silent
 //                     where it cannot tell.  What it does not see is listed
 //                     at the check.
-//   inline-requires   Rule 2: an `if constexpr` whose condition contains a
-//                     requires-expression tests a constraint the body did not
-//                     declare, which Rule 2 does not count (#1068); the fix is
-//                     a named shape, which the definition check then reads.
+//   inline-requires   Rule 2: an `if` (constexpr or not) whose condition
+//                     contains a requires-expression tests a constraint the
+//                     body did not declare, which Rule 2 does not count
+//                     (#1068); the fix is a named shape, which the definition
+//                     check then reads.
 //   inheritance       Jlt has no subtyping: a class with a base that is not
 //                     an empty class, or with a virtual function, is a
 //                     finding.  An empty base (`: std::true_type`,
@@ -611,7 +612,8 @@ const clang::FunctionDecl* enclosingFunction(const clang::Stmt* s,
   return nullptr;
 }
 
-/// `if constexpr (requires { ... })` in a judged function: Rule 2 counts only
+/// `if (requires { ... })`, constexpr or not, in a judged function: Rule 2
+/// counts only
 /// declared constraints, and a requires-expression in a body is a test of one
 /// the body did not declare.  Every such `if` is a finding, at its `if`.
 class InlineRequires : public clang::ASTConsumer,
@@ -654,7 +656,8 @@ bool emptyBase(clang::QualType t) {
     const auto* ts = t->getAs<clang::TemplateSpecializationType>();
     if (!ts) break;
     const clang::TemplateDecl* td = ts->getTemplateName().getAsTemplateDecl();
-    if (const auto* at = llvm::dyn_cast_or_null<clang::TypeAliasTemplateDecl>(td)) {
+    if (const auto* at =
+            llvm::dyn_cast_or_null<clang::TypeAliasTemplateDecl>(td)) {
       t = at->getTemplatedDecl()->getUnderlyingType();
       r = t->getAsCXXRecordDecl();
       continue;
@@ -686,8 +689,9 @@ class Inheritance : public clang::ASTConsumer,
       if (!emptyBase(b.getType())) finding = true;
     if (!finding) return true;
     const clang::SourceLocation loc = sm->getExpansionLoc(r->getLocation());
-    llvm::outs() << sm->getFilename(loc) << ':' << sm->getExpansionLineNumber(loc)
-                 << ':' << sm->getExpansionColumnNumber(loc)
+    llvm::outs() << sm->getFilename(loc) << ':'
+                 << sm->getExpansionLineNumber(loc) << ':'
+                 << sm->getExpansionColumnNumber(loc)
                  << ": a base that is not an empty class, or a virtual "
                     "function: subtyping\n";
     return true;
