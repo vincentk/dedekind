@@ -264,6 +264,49 @@ static_assert(times<size_t>(7, 6) == 42);
 constexpr size_t times_100(size_t x) { return times<size_t>(x, 100); }
 static_assert(times_100(7) == 700);
 
+// Section 3, left: scale, written with sugar: a branch on a concept, an if
+// statement, a lambda.
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T scale(T x, size_t n) {
+  if constexpr (IsSemiring<T, std::plus<T>, std::multiplies<T>>) {
+    return std::multiplies<T>{}(x, T(n));
+  } else {
+    if (n == 0) return unit<T>(std::plus<T>{});
+    auto step = [x](T acc, T) { return std::plus<T>{}(acc, x); };
+    return std::ranges::fold_left(std::views::repeat(x, n - 1), x, step);
+  }
+}
+
+// Section 3, right: the same in the kernel: the branch is two overloads, the
+// more constrained preferred; the if is ?:; the lambda is an operation.
+namespace kernel {
+template <typename T>
+struct Step {
+  T x;
+  constexpr T operator()(T acc, T) const { return std::plus<T>{}(acc, x); }
+};
+template <typename T>
+  requires IsMonoid<T, std::plus<T>>
+constexpr T scale(T x, size_t n) {
+  return n == 0 ? unit<T>(std::plus<T>{})
+                : std::ranges::fold_left(std::views::repeat(x, n - 1), x,
+                                         Step<T>{x});
+}
+template <typename T>
+  requires IsSemiring<T, std::plus<T>, std::multiplies<T>>
+constexpr T scale(T x, size_t n) {
+  return std::multiplies<T>{}(x, T(n));
+}
+}  // namespace kernel
+
+static_assert(scale<size_t>(7, 6) == 42);
+static_assert(kernel::scale<size_t>(7, 6) == 42);
+static_assert(scale(std::string{"ab"}, 3) == "ababab");
+static_assert(kernel::scale(std::string{"ab"}, 3) == "ababab");
+static_assert(scale(std::string{"ab"}, 0).empty());
+static_assert(kernel::scale(std::string{"ab"}, 0).empty());
+
 // Section 4, two binding times: budget, and running out of it.
 template <typename P>
 concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
@@ -341,6 +384,9 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
     CHECK(L::times_100(twelve) == 1200);
+    CHECK(L::scale<size_t>(7, twelve) == L::kernel::scale<size_t>(7, twelve));
+    CHECK(L::scale(std::string{"ab"}, twelve) ==
+          L::kernel::scale(std::string{"ab"}, twelve));
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
