@@ -78,17 +78,15 @@ test-compile: compile
 test: test-compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
 
-# The notebooks run against the package `make test` already built and staged
-# in $(BUILD_DIR)/python (the extensions next to the pure-Python modules),
-# not a second build of the library through pip; the wheel job on main checks
-# that the package installs.
 integration-test: test
 	python -m pip install --upgrade pip jupyter
-	@ls $(BUILD_DIR)/python/dedekind/_jlt*.so $(BUILD_DIR)/python/dedekind/_pst*.so >/dev/null 2>&1 || \
-		{ echo "ERROR: no staged dedekind package in $(BUILD_DIR)/python; configure with DEDEKIND_BUILD_PYTHON_BINDINGS=ON"; exit 2; }
+	rm -rf $(BUILD_DIR)/python-editable
+	CC="$(CC)" CXX="$(CXX)" \
+	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
+	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-editable" \
+	python -m pip install -e . --no-deps
 	mkdir -p $(BUILD_DIR)/python-notebooks
-	@export PYTHONPATH="$(abspath $(BUILD_DIR))/python$${PYTHONPATH:+:$$PYTHONPATH}"; \
-	NOTEBOOK_DIR="docs/python/notebooks"; \
+	@NOTEBOOK_DIR="docs/python/notebooks"; \
 	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \
 	REPORT="$(BUILD_DIR)/python-notebooks/integration-summary.txt"; \
 	: > "$$REPORT"; \
