@@ -297,16 +297,16 @@ At compile time each kind of structure meets a counter of the compiler's, a type
 \begin{table}[ht]
 \centering
 \small
-\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-rule & archetype & buys & costs \\
+rule & archetype & keeps out of \Cpp{} & buys & costs \\
 \midrule
-1 Substitution & \cppinline{id}, the identity arrow & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \cppinline{concat}, a fold over structure in a type & the System~F reading & no ad hoc use of a type \\
-3 Descent & \cppinline{times}, a fold over structure in a value & termination & a third answer, \emph{out of budget} \\
+1 Substitution & \cppinline{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 Abstraction & \cppinline{concat}, a fold over structure in a type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
+3 Descent & \cppinline{times}, a fold over structure in a value & unbounded loops, general recursion & termination & a third answer, \emph{out of budget} \\
 \bottomrule
 \end{tabularx}
-\caption{The posture at a glance, each rule named for what it conserves.
+\caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
 At build time, Rule~1 is held by the compiler in part and by the repository's tool for its syntax; Rule~2 by the tool at the level of names and by an auditing reader for the rest; Rule~3 by the compiler at compile time and by the tool for loops and recursion.
 Section~\ref{sec:limits} says how.}
 \label{tab:posture}
@@ -388,35 +388,31 @@ And the standard library pieces the grammar admits, \cppinline{std::pair}, the f
 
 \emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
 This direction is not a theorem, because the compiler does not check two of the rules, and it is conditional on the grammar, because \Cpp{} has what FJlt does not and a Jlt program may use it.
-Table~\ref{tab:adequacy} lists what \Cpp{} has, what keeps it out, and what FJlt has instead.
+Table~\ref{tab:adequacy} lists what a Jlt program may write that the kernel's grammar does not have, and what the kernel has instead.
 
 \begin{table}[ht]
 \centering
 \small
 \begin{tabularx}{\linewidth}{@{}r@{\hspace{0.6em}}>{\hsize=.8\hsize\raggedright\hyphenpenalty=10000\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=1.05\hsize\raggedright\arraybackslash}X@{}}
 \toprule
-& \Cpp{} has & kept out by & FJlt has instead \\
+& Jlt may write & kept out of the kernel by & the kernel has instead \\
 \midrule
-1 & bodies checked at instantiation & Rule~2 (Section~\ref{sec:posture}), by reading and by the checker (Section~\ref{sec:limits}) & bodies typed against the constraint \\
-2 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
-3 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
-4 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
-5 & references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
-6 & state, pointers, exceptions & Rule~1 (Section~\ref{sec:posture}), and constant evaluation (Section~\ref{sec:binding}) & pure functions \\
-7 & unbounded loops, general recursion & Rule~3 (Section~\ref{sec:posture}), by reading and by the checker & recursion folds \\
-8 & branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional & the grammar; the sugar, named below & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum \\
+1 & overloading & the grammar (Appendix~\ref{app:fjlt:syntax}) & one function per name, plus its specialisations \\
+2 & argument-dependent lookup & the grammar, and the lookup wall (Section~\ref{sec:limits}) & instances found by the trait's name \\
+3 & implicit conversions & the grammar, and Rule~2 for the body & a conversion only where a requirement declares one, and the body then sees the declared type \\
+4 & references, moves & erased by the translation (Appendix~\ref{app:fjlt:translation}): an optimisation, not a meaning & values copied; \texttt{const T} and \texttt{const T\&} one value; no reference returned \\
+5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Table~\ref{tab:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
-\caption{The adequacy argument as a relation: what \Cpp{} has (left), what keeps it out of a Jlt program (middle), and what FJlt has instead (right).
-Rows~1 and~7, marked \emph{by reading}, are the gap: the compiler accepts programs that break them, and Section~\ref{sec:limits} says what the checker finds of them.}
+\caption{The filtration from Jlt to its kernel FJlt: what a Jlt program may write that the kernel's grammar does not have (left), what keeps it out of the kernel (middle), and what the kernel has instead (right).
+The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~2, 3, 5 and~6 are closed by the grammar, by constant evaluation or by the translation: a program that uses them is not accepted, or not accepted at compile time.
-Row~4, conversions, is half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
-Rows~1 and~7, Rule~2 and Rule~3, remain, and they are posture.
-Section~\ref{sec:limits} says what the repository's checker and a reader make of those two rows.
-Row~8 is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, pass lambdas, register facts by inheritance and case on sums.
+Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax.
+Row~3, conversions, is half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
+Row~4 is erased by the translation, an optimisation and not a meaning.
+Row~5 is the sugar, what the library writes beyond the kernel's grammar: its programs branch on a trait or a concept, pass lambdas, register facts by inheritance and case on sums.
 Appendix~\ref{app:fjlt:closure} treats each as a closure question, under which condition a term built by the construction from FJlt terms is again an FJlt term, and Table~\ref{tab:closure} is the answer.
 Seven constructions need nothing from the calculus: a lambda over FJlt values is an operation struct and is judged through it, a branch on a law is \texttt{?:}, a base clause is a registration read as the fact it states, a member function is a generic function, an alias is substitution, a family instance is an instance with a context, and overloads are specialisations or generic functions, the last two as long as no two generic heads match.
 A branch on a constraint is an instance chain~\cite{morris2010instance}, resolved by specificity under GHC's rule~\cite{ghc2024overlapping}: a call at a type variable resolves only where its context decides the constraint, and a call that does not is constraint inference, the sugar that passes the resolution down from the caller.
@@ -761,7 +757,7 @@ Section~\ref{sec:translation:adequacy} said it: Rules~2 and~3 are posture, and T
 Both are decidable by inspection, so a checker is a tool rather than a research problem, and the repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
 Rule~3 it checks mechanically, for every body the compiler instantiates and up to the blind spots its rule files document: no loop but the library's iteration primitive and no function on a call cycle, so recursion runs over a term's type or not at all.
 Rule~1's syntactic part it checks with it, for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference.
-Rule~2 is harder, which Table~\ref{tab:adequacy} records as \emph{by reading}.
+Rule~2 is harder, and Table~\ref{tab:posture} records who holds it: the tool at the level of names, a reader for the rest.
 The tool checks it at the level of names: a body may use on a value of parameter type only what a declared constraint names.
 A finding of that check is a breach or a gap in the tool's reading of the standard's concepts, and is read before it is acted on. Its silence certifies nothing, since it reads names, not arities or types.
 Definition checking proper, the half the \Cpp{0x} design had~\cite{gregor2006concepts}, is work this paper does not promise.
