@@ -19,11 +19,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
-    # The Python layer (an editable build of the extension, about 9 minutes,
-    # then the notebooks and the Python coverage) runs on pushes to main
-    # only; a PR runs the C++ build, its tests and the linter.
-    env:
-      ON_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:
@@ -59,8 +54,8 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-23
 
-    - name: Build & Run Tests (and the Python integration tests on main)
-      run: make ${{ env.ON_MAIN == 'true' && 'integration-test' || 'test' }} CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+    - name: Build & Run Integration Tests
+      run: make integration-test CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Jlt Lint (post-processing over the compilation database)
       run: >-
@@ -87,7 +82,6 @@ jobs:
       run: make coverage CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Collect Python Coverage
-      if: env.ON_MAIN == 'true'
       run: |
         make python-coverage
         grep -q "python/dedekind/" build/python-coverage.xml
@@ -95,7 +89,7 @@ jobs:
     - name: Upload to Codecov
       uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac  # v5.5.5
       with:
-        files: ${{ env.ON_MAIN == 'true' && 'build/coverage.info,build/python-coverage.xml' || 'build/coverage.info' }}
+        files: build/coverage.info,build/python-coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
@@ -105,7 +99,7 @@ jobs:
     # critical-path step (coverage, Codecov upload) fails. Placed at the tail
     # so the critical path reads top-to-bottom without diagnostic noise.
     - name: Upload Notebook Integration Artifacts
-      if: ${{ always() && env.ON_MAIN == 'true' }}
+      if: ${{ always() }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
       with:
         name: python-notebooks
