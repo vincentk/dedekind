@@ -64,42 +64,35 @@ The performance and the ecosystem of the host language remain available at run t
 The case for functional programming has been made the same way for decades, and it is a good case.
 A function that depends on its arguments alone can be replaced by its value: programs can be read as equations, rewritten by them, and reasoned about by them~\cite{hughes1989why}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone says a great deal about what it does~\cite{wadler1989theorems}.
-A class of types with operations and laws, Haskell's type classes, lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
-The case is usually made in a language built around it, and that is where this paper departs: it makes the case in standard \Cpp{23}, with a stock compiler and no extensions.
+A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
+The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}, and the worth of a checker when the author is not the one trusted had a recent highlight: machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} were accepted because the checker, not the author, said so.
 
-Two things make \Cpp{} the right place to make it now.
-The first is where \Cpp{} is: much of machine learning and most embedded devices run on it, and a growing number of the people who write it arrive from Python with a functional vocabulary and less sense of how much of it the language already supports.
-The second is that the standard keeps evolving, and this paper draws the boundary in the most recent one.
-\Cpp{23}, as a stock compiler implements it, evaluates ordinary functions and most of its standard library at compile time, constrains templates with concepts, and folds over ranges.
-The posture uses nothing else.
-One decision in that evolution matters here.
-Concepts as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}; concepts as standardised in \Cpp{20} check its uses~\cite{stroustrup2009remove}, so a constrained body may use operations its constraints do not name, and that is the gap Rule~2 fills.
+The case is usually made in a language built around it, and that is where this paper departs: it makes the case in a strongly typed mainstream systems programming language with a stock compiler and no extensions.
+While such languages are not theorem provers, their compilers perform checks of the same kind: a compile-time check is a claim the compiler verifies.
+An executable is already a formal object: a machine runs it with no interpretation, so every claim about it is a claim about something formal, whether or not it does what its author meant.
+What daily practice lacks is a way to make such claims and have them checked without leaving the language, and that is what a discipline supplies: a tool combined with a way of working, a set of rules.
+This paper documents such a discipline: a fragment of a mainstream systems language, characterised so that some of what a functional language guarantees is recovered at tractable cost, inside the mainstream ecosystem.
+
+Two things make \Cpp{} a good place to attempt such an embedding now.
+The first is \Cpp{}'s mainstream systems programming status: much of machine learning and most embedded devices run on it.
+The second is that the standard is large and keeps evolving: a fragment is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient.
+The fragment is the \emph{Juliet Posture}, or Jlt: a subset of \Cpp{23} that reads as System~F.
+It is an embedded language in Hudak's sense~\cite{hudak1996building}: its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang 23 here (Section~\ref{sec:limits}), and its domain is System~F's, typed functional programming.
+The name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
+Figure~\ref{fig:arrows} sketches the arrows between these pieces.
+
+\Cpp{23} provides most of the necessary ingredients: it can evaluate ordinary functions and most of its standard library at compile time, constrain templates with concepts, and fold over ranges.
+One decision in its evolution deserves to be highlighted:
+\cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
+However, \cppinline{concept}s as standardised in \Cpp{20} only check its uses when the template is instantiated~\cite{stroustrup2009remove}.
+As a result, a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
-The language therefore contains the material for a typed functional fragment but does not enforce its boundary.
-The question this paper answers is what discipline draws the boundary, and what a program inside it is.
+\Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
+Two boundaries partition the result.
+The outer one is drawn by the three rules: Jlt is \Cpp{23} within them, and a posture because the compiler enforces some of the rules and not others, Table~\ref{tab:posture} saying which.
+The inner one is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which $\llbracket\cdot\rrbracket$ is defined, and it inherits from System~F termination, parametricity and a value.
+Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
 
-The answer is a fragment we call the \emph{Juliet Posture}, or Jlt: the discipline of restricting oneself to the part of \Cpp{23} that reads as System~F.
-It is an embedded language in Hudak's sense~\cite{hudak1996building}: its programs are ordinary \Cpp{23} programs, type-checked and compiled by the host, and its domain is no narrower than typed functional programming.
-The name is structural typing's~\cite{pierce2002tapl,cardelli1996typesystems}: a type is known by what it does and not by what it is called, a rose by any other name~\cite{shakespeare1597romeo}.
-That is how a concept admits a type, and how the fragment admits a carrier.
-It has three rules, each named for what it conserves.
-\emph{Substitution}: values are \cppinline{std::semiregular} and functions are \cppinline{constexpr} and pure.
-\emph{Abstraction}: generic code varies with a type only through that type's concepts and traits.
-\emph{Descent}: recursion is structural, on a type the compiler unfolds or on a natural number that counts down.
-Under these rules a program written in the grammar of a small calculus, Featherweight Jlt, translates into System~F by dictionary passing: concepts become record types, trait specialisations records, constraints parameters.
-It inherits what System~F guarantees: termination, parametricity and a value.
-The calculus is the \emph{kernel} of Jlt, and what a Jlt program writes beyond its grammar is \emph{sugar}, each form named with its desugaring into the kernel in Appendix~\ref{app:fjlt:closure}, without a proof: the word is Landin's~\cite{landin1964mechanical}, the arrangement the Haskell Report's~\cite{marlow2010haskell}, and the claims of this paper are about the kernel.
-"Posture" is the honest word: the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
-
-There is a reason to care about the checked part beyond taste: a check is worth something whenever the author is not the one trusted, a machine writing the code, or a code base audited against a policy.
-The last few years have shown what a formal system with a checker is worth once machines write in it: proofs in Lean~\cite{demoura2021lean} found by learned search are accepted because the checker, not the author, says so~\cite{hubert2025olympiad}.
-\Cpp{} is not a theorem prover.
-But under the posture its compiler does check something of the same kind: a \cppinline{static_assert} on a \cppinline{constexpr} function is a claim the compiler verifies, a concept is a claim about a type the compiler decides, and the same program runs unchanged at runtime, so what was checked once is what executes.
-What the compiler checks is part of membership in the fragment, Table~\ref{tab:posture} says which part and what stays with the author, and the guarantees follow from membership once the author's part is met: correct by construction in Dijkstra's sense~\cite{dijkstra1976discipline}, for a modest notion of correct.
-A discipline that makes a mainstream compiler into a checker of this modest sort is worth stating precisely, and that is what the calculus in the appendix is for.
-
-What the posture is for, in a library written in it, is code that reads as combinators and runs as the compiler's pre-computation of them: pretty because the structure lives in the combinators, fast because the compiler can reason about them and evaluate at build time what does not depend on run-time input.
-Section~\ref{sec:binding} shows the mechanism on one function.
 
 \begin{figure}[tb]
 \centering
