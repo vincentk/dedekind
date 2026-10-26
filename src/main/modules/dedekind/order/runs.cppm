@@ -220,17 +220,25 @@ constexpr Bound<V> upper_at(const Position<V>& p) {
   return {p.at,
           p.side == Side::Above ? Strictness::NonStrict : Strictness::Strict};
 }
+/** @brief Whether the carrier registers its lattice bottom (top) under
+ *  @c <= as a value, as the machine words do.  @tparam V the carrier. */
+template <typename V>
+concept HasLatticeBottomValue =
+    requires { LatticeBottom<V, std::less_equal<V>>::value; };
+template <typename V>
+concept HasLatticeTopValue =
+    requires { LatticeTop<V, std::less_equal<V>>::value; };
 /** @brief The carrier's least element, where it has one as a value: a
  *  registered lattice bottom (the machine words), ℕ's 0 and ℤ's −ℵ₀, a truth
  *  chain's ⊥.  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> least() {
-  if constexpr (requires { LatticeBottom<V, std::less_equal<V>>::value; })
+  if constexpr (HasLatticeBottomValue<V>)
     return LatticeBottom<V, std::less_equal<V>>::value;
   else if constexpr (std::same_as<V, Cardinality>)
     return V{};
   else if constexpr (std::same_as<V, SignedCardinality>)
-    return V{NegativeInfinity{}};
+    return SignedCardinality{NegativeInfinity{}};
   else if constexpr (IsPst<V>)
     return unit<V>(Sup{});
   else
@@ -240,12 +248,12 @@ constexpr std::optional<V> least() {
  *  @ref least (ℵ₀ on ℕ).  @tparam V the carrier. */
 template <typename V>
 constexpr std::optional<V> greatest() {
-  if constexpr (requires { LatticeTop<V, std::less_equal<V>>::value; })
+  if constexpr (HasLatticeTopValue<V>)
     return LatticeTop<V, std::less_equal<V>>::value;
   else if constexpr (std::same_as<V, Cardinality>)
-    return V{ℵ_0{}};
+    return Cardinality{ℵ_0{}};
   else if constexpr (std::same_as<V, SignedCardinality>)
-    return V{PositiveInfinity{}};
+    return SignedCardinality{PositiveInfinity{}};
   else if constexpr (IsPst<V>)
     return unit<V>(Inf{});
   else
@@ -373,6 +381,7 @@ template <typename F, typename L2>
 struct MapValue {
   F f;
   template <typename V, typename L>
+    requires std::invocable<const F&, typename L::Ω>
   constexpr Step<V, L2> operator()(const Step<V, L>& s) const {
     return {s.at, f(s.value)};
   }
@@ -380,22 +389,22 @@ struct MapValue {
 /** @brief Two steps with one value; the first step of a chunk; a step at a
  *  given value: the parts of dropping repeats. */
 struct SameValue {
-  template <typename S>
-  constexpr bool operator()(const S& a, const S& b) const {
+  template <typename V, typename L>
+  constexpr bool operator()(const Step<V, L>& a, const Step<V, L>& b) const {
     return a.value == b.value;
   }
 };
 struct Front {
-  template <typename R>
-  constexpr auto operator()(R&& chunk) const {
+  template <std::ranges::forward_range R>
+  constexpr auto operator()(const R& chunk) const {
     return *std::ranges::begin(chunk);
   }
 };
-template <typename Ω>
+template <std::equality_comparable Ω>
 struct ValueIs {
   Ω value;
-  template <typename S>
-  constexpr bool operator()(const S& s) const {
+  template <typename V, typename L>
+  constexpr bool operator()(const Step<V, L>& s) const {
     return s.value == value;
   }
 };
@@ -404,11 +413,11 @@ struct ValueIs {
  *  one value kept by their first step, and a first step at the start value
  *  dropped.  @param r the steps.  @param first the value before them. */
 export template <std::ranges::viewable_range R, typename Ω>
-constexpr auto distinct_steps(R&& r, Ω first) {
+constexpr auto distinct_steps(R r, Ω first) {
   using namespace detail_runs;
   return std::views::drop_while(
-      std::views::transform(
-          std::views::chunk_by(std::forward<R>(r), SameValue{}), Front{}),
+      std::views::transform(std::views::chunk_by(std::move(r), SameValue{}),
+                            Front{}),
       ValueIs<Ω>{first});
 }
 
@@ -586,14 +595,9 @@ export using dedekind::category::chain_view;
 
 namespace detail_chain_view_witness {
 consteval bool walks(auto view, auto... expected) {
-  std::array<std::common_type_t<decltype(expected)...>, sizeof...(expected)>
-      want{expected...};
-  std::size_t i = 0;
-  for (const auto x : view) {
-    if (i >= want.size() || x != want[i]) return false;
-    ++i;
-  }
-  return i == want.size();
+  return std::ranges::equal(
+      view, std::array<std::common_type_t<decltype(expected)...>,
+                       sizeof...(expected)>{expected...});
 }
 static_assert(walks(chain_view{Ternary::False, Ternary::True}, Ternary::False,
                     Ternary::Unknown, Ternary::True),
@@ -640,34 +644,74 @@ struct IdentitySteps {
 /** @name Queries: one traversal of a source
  *  @{ */
 /** @brief χ(x): the value of the last step at or before @c x. */
+namespace detail_runs {
+/** @brief A step at or before @c x: its position is not past @c x. */
+template <IsTotallyOrdered V>
+struct NotPast {
+  V x;
+  template <typename L>
+  constexpr bool operator()(const Step<V, L>& st) const {
+    return st.at.side == Side::Below ? !(x < st.at.at) : st.at.at < x;
+  }
+};
+/** @brief The value of the later step: a fold that keeps the last one. */
+struct LastValue {
+  template <typename V, typename L>
+  constexpr typename L::Ω operator()(const typename L::Ω&,
+                                     const Step<V, L>& st) const {
+    return st.value;
+  }
+};
+}  // namespace detail_runs
 export template <IsStepSource S>
 constexpr auto value_at(const S& s, const typename S::Domain& x) {
-  auto v = s.first();
-  for (const auto& st : s.steps()) {
-    if (st.at.side == Side::Below ? x < st.at.at : !(st.at.at < x)) break;
-    v = st.value;
-  }
-  return v;
+  return std::ranges::fold_left(
+      std::views::take_while(s.steps(),
+                             detail_runs::NotPast<typename S::Domain>{x}),
+      s.first(), detail_runs::LastValue{});
 }
 namespace detail_runs {
 /** @brief The species' fold of the values over the carrier's own pieces: a
  *  step before every element sets the first value, one after every element
  *  ends the fold.  @tparam Op the fold. */
+template <typename Op, typename L>
+  requires std::invocable<const Op&, typename L::Ω, typename L::Ω>
+struct FoldPieces {
+  /** @brief The value of the piece being read, and the fold of the pieces
+   *  before it, none before the first piece inside the carrier. */
+  struct State {
+    typename L::Ω cur;
+    std::optional<typename L::Ω> acc;
+  };
+  Op op;
+  /** @brief A step below every element sets the first piece's value; any
+   *  other ends a piece, folding its value in. */
+  template <typename V>
+  constexpr State operator()(const State& s, const Step<V, L>& st) const {
+    if (detail_position::before_all(st.at)) return {st.value, s.acc};
+    return {st.value, s.acc ? op(*s.acc, s.cur) : s.cur};
+  }
+  constexpr typename L::Ω close(const State& s) const {
+    return s.acc ? op(*s.acc, s.cur) : s.cur;
+  }
+};
+/** @brief A step inside or below the carrier: the fold ends at the first one
+ *  above every element. */
+struct NotAfterAll {
+  template <typename V, typename L>
+  constexpr bool operator()(const Step<V, L>& st) const {
+    return !detail_position::after_all(st.at);
+  }
+};
 template <typename Op, IsStepSource S>
+  requires std::invocable<const Op&, typename S::logic_species::Ω,
+                          typename S::logic_species::Ω>
 constexpr auto fold_over_carrier(const S& s, Op op) {
   using L = typename S::logic_species;
-  auto cur = s.first();
-  std::optional<typename L::Ω> acc;
-  for (const auto& st : s.steps()) {
-    if (detail_position::before_all(st.at)) {
-      cur = st.value;
-      continue;
-    }
-    if (detail_position::after_all(st.at)) break;
-    acc = acc ? op(*acc, cur) : cur;
-    cur = st.value;
-  }
-  return acc ? op(*acc, cur) : cur;
+  const FoldPieces<Op, L> f{op};
+  return f.close(std::ranges::fold_left(
+      std::views::take_while(s.steps(), NotAfterAll{}),
+      typename FoldPieces<Op, L>::State{s.first(), std::nullopt}, f));
 }
 }  // namespace detail_runs
 /** @brief @f$\bigwedge_x \chi(x)@f$ and @f$\bigvee_x \chi(x)@f$ in the species

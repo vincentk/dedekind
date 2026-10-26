@@ -648,6 +648,8 @@ struct ProductRestrict {
   // @c ProductRestrict, tracked as a follow-up (not reachable by construction
   // today, since restrictions are decidable comparisons).
   template <typename Pair>
+    requires std::invocable<const P&, const Pair&> &&
+             std::invocable<const RP&, const Pair&>
   constexpr bool operator()(const Pair& p) const {
     return static_cast<bool>(product(p)) && rp(p);
   }
@@ -724,6 +726,8 @@ struct InSlot {
   using is_rel_predicate = void;
   S set;
   template <typename P>
+    requires std::invocable<const S&,
+                            decltype(Projection<I>{}(std::declval<const P&>()))>
   constexpr bool operator()(const P& p) const {
     return static_cast<bool>(set(Projection<I>{}(p)));
   }
@@ -792,16 +796,20 @@ constexpr S axis_factor(const InSlot<Slot, S>& c) {
  *  (@c π_1<=5 @c && @c π_1<=3) meet to the tighter one rather than dropping
  * either.
  */
+namespace detail_axis {
+/** @brief A factor that does not constrain its axis: the universal boundary.
+ *  @tparam T the factor. */
+template <typename T>
+concept IsUniversalBoundary = requires { typename T::is_universal_boundary; };
+}  // namespace detail_axis
 export template <IsRingIntegral auto I, typename TI, typename L, typename A,
                  typename B>
 constexpr auto axis_factor(const dedekind::relational::RelAnd<A, B>& r) {
   auto fa = axis_factor<I, TI, L>(r.a);
   auto fb = axis_factor<I, TI, L>(r.b);
-  if constexpr (requires { typename decltype(fa)::is_universal_boundary; }) {
+  if constexpr (detail_axis::IsUniversalBoundary<decltype(fa)>) {
     return fb;  // a does not constrain axis I; the factor is b's
-  } else if constexpr (requires {
-                         typename decltype(fb)::is_universal_boundary;
-                       }) {
+  } else if constexpr (detail_axis::IsUniversalBoundary<decltype(fb)>) {
     return fa;  // b does not constrain axis I; the factor is a's
   } else {
     // BOTH constrain axis I: the set-level meet of the recovered factors (a
@@ -1117,8 +1125,8 @@ export template <typename T, typename K1, typename K2, typename L, typename C,
 constexpr auto operator>>(
     const Comprehension<𝔸<std::pair<T, T>, L, C>, Translation<K1>>& a,
     const Comprehension<𝔸<std::pair<T, T>, L, CU>, Translation<K2>>& b) {
-  const T shift = carrier_cast<T>(a.predicate.a.b.value) +
-                  carrier_cast<T>(b.predicate.a.b.value);
+  const T shift = std::plus<T>{}(carrier_cast<T>(a.predicate.a.b.value),
+                                 carrier_cast<T>(b.predicate.a.b.value));
   return 𝔸<std::pair<T, T>, L>{} & (π_1 + shift == π_2);
 }
 
@@ -1130,18 +1138,42 @@ constexpr auto operator>>(
  *  @f$a < b \iff (a, b) \in \Gamma_S^{+}@f$ --- the one relation whose star is
  *  point-free here, because the chain's own @c < decides it. */
 namespace detail_cover_witness {
+/** @brief A walk along the cover: where it is, and whether it met @c b. */
+struct Walk {
+  int x;
+  bool reached;
+};
+/** @brief One successor step of a walk that looks for @c b. */
+struct StepToward {
+  int b;
+  constexpr Walk operator()(Walk w, int) const {
+    const int next = Successor<int>{}(w.x);
+    return {next, w.reached || next == b};
+  }
+};
+/** @brief Whether @c b is reached from @c a in 1 to @c k − 1 cover steps. */
+constexpr bool reaches(int a, int b, int k) {
+  return std::ranges::fold_left(std::views::iota(1, k), Walk{a, false},
+                                StepToward{b})
+      .reached;
+}
+/** @brief For a fixed @c a, every @c b agrees: @c a < @c b iff reached. */
+struct AgreesFrom {
+  int a, k;
+  constexpr bool operator()(bool ok, int b) const {
+    return ok && (a < b) == reaches(a, b, k);
+  }
+};
+/** @brief Every @c a in the window agrees with every @c b. */
+struct AgreesOn {
+  int k;
+  constexpr bool operator()(bool ok, int a) const {
+    return ok && std::ranges::fold_left(std::views::iota(0, k), true,
+                                        AgreesFrom{a, k});
+  }
+};
 consteval bool order_is_cover_star(int k) {
-  for (int a = 0; a < k; ++a)
-    for (int b = 0; b < k; ++b) {
-      bool reached = false;
-      int x = a;
-      for (int n = 1; n < k; ++n) {
-        x = Successor<int>{}(x);
-        reached = reached || x == b;
-      }
-      if ((a < b) != reached) return false;
-    }
-  return true;
+  return std::ranges::fold_left(std::views::iota(0, k), true, AgreesOn{k});
 }
 }  // namespace detail_cover_witness
 static_assert(
