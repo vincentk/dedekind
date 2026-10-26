@@ -134,10 +134,10 @@ export template <dedekind::sets::IsSetObject S, typename Pred>
                dedekind::category::lift_logic<typename S::logic_species>(v)
              } -> std::same_as<typename S::logic_species::Ω>;
            }
-constexpr auto select(const S& s, Pred&& pred) {
+constexpr auto select(const S& s, Pred pred) {
   using T = typename S::Domain;
   using L = typename S::logic_species;
-  auto lifted = [p = std::forward<Pred>(pred)](const T& v) -> typename L::Ω {
+  auto lifted = [p = std::move(pred)](const T& v) -> typename L::Ω {
     return dedekind::category::lift_logic<L>(std::invoke(p, v));
   };
   auto combined = [base = s, f = std::move(lifted)](const T& v) ->
