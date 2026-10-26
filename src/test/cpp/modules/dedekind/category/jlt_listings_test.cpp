@@ -1,6 +1,6 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
- * The listings of the Jlt paper (docs/paper/jlt/jlt.tex, Sections 1 to 4),
+ * The listings of the Jlt paper (docs/paper/jlt/jlt.tex),
  * verbatim up to formatting and qualification (a listing may say
  * `using namespace std`),
  * so that CI holds the paper to the code.  The listings declare their own
@@ -126,7 +126,8 @@ static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-// Listing 2: laws as functions of the operation; the semiring shape.
+// Section 3: the semiring shape that Listing 4 uses; laws as functions of the
+// operation.
 template <typename T, typename Op>
 constexpr bool commutative(Op) = delete;
 template <typename T, typename Mul, typename Add>
@@ -171,7 +172,7 @@ static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// Listing 6, implied: a bounded distributive lattice is a semiring whose two
+// The Conclusion's listing, implied: a bounded distributive lattice is a semiring whose two
 // operations are commutative and idempotent and absorb each other.
 template <typename T, typename Op>
 constexpr bool idempotent(Op) = delete;
@@ -232,6 +233,46 @@ static_assert(
     IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(
     !IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+
+// The Conclusion: rings, by one more conjunct.
+template <typename T, typename Op>
+constexpr bool invertible(Op) = delete;
+
+template <typename T, typename Op>
+concept IsGroup = IsMonoid<T, Op> && invertible<T>(Op{});
+
+template <typename T, typename Add, typename Mul>
+concept IsRing = IsSemiring<T, Add, Mul> && IsGroup<T, Add>;
+
+template <>
+constexpr size_t unit<size_t>(std::bit_xor<size_t>) {
+  return 0;
+}
+template <>
+constexpr bool associative<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool commutative<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool distributive<size_t>(std::bit_and<size_t>,
+                                    std::bit_xor<size_t>) {
+  return true;
+}
+template <>
+constexpr bool invertible<size_t>(std::plus<size_t>) {
+  return true;
+}
+template <>
+constexpr bool invertible<size_t>(std::bit_xor<size_t>) {
+  return true;
+}
+
+static_assert(IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
+static_assert(IsRing<size_t, std::bit_xor<size_t>, std::bit_and<size_t>>);
+static_assert(!IsRing<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 
 // Section 2, the posture: one panel per rule.
 static_assert(std::semiregular<size_t>);
@@ -444,5 +485,11 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         C::IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
     STATIC_CHECK(
         C::IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
+  }
+
+  SECTION("The tree's shapes accept the listings' rings") {
+    STATIC_CHECK(C::IsAbelianGroup<size_t, std::plus<size_t>>);
+    STATIC_CHECK(
+        C::IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
   }
 }

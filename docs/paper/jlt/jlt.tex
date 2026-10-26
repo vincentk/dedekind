@@ -364,6 +364,7 @@ The test holds both and checks that they agree.}
 \end{listing}
 
 Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes two generic functions, and the stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
+\cppinline{IsSemiring} is written as Listing~\ref{lst:rule2} writes \cppinline{IsMonoid}: a monoid under each operation, and two more laws declared as functions of the operations, \cppinline{+} commutative and \cppinline{*} distributive over it.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 
@@ -446,6 +447,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 
 Listing~\ref{lst:monoid} reads the shape of Listing~\ref{lst:rule2} as a System~F program.
 The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
+A shape built from shapes, as \cppinline{IsSemiring} is built from two monoids, is a record holding their records, which is how a superclass is passed.
 A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
 That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
@@ -483,69 +485,6 @@ constrained overload & instance with a context & function from records to a reco
 The second row has no counterpart in a nominal type-class system: concepts are structural, so a type that has the operation satisfies the shape without a declaration.}
 \label{tab:dictionary}
 \end{table}
-
-\subsection{Shapes compose by conjunction}
-\label{sec:translation:semiring}
-
-A semiring is two monoids on one carrier, with laws tying them together: addition commutes, multiplication distributes over it.
-Listing~\ref{lst:semiring} states the laws the same way Listing~\ref{lst:rule2} stated the unit and associativity, as functions of the operation, and then states the shape as a conjunction and finds three semirings, and two distributive lattices among them.
-
-% Verbatim in jlt_listings_test.cpp.
-\begin{listing}[htbp]
-\begin{cpp}
-template <typename T, typename Op> constexpr bool commutative(Op) = delete;
-template <typename T, typename Mul, typename Add>
-constexpr bool distributive(Mul, Add) = delete;
-
-template <typename T, typename Op>
-concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
-
-template <typename T, typename Add, typename Mul>
-concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
-                     distributive<T>(Mul{}, Add{});
-\end{cpp}
-\begin{cpp}
-template <> constexpr bool commutative<size_t>(std::plus<size_t>) { return true; }
-template <>
-constexpr bool distributive<size_t>(std::multiplies<size_t>, std::plus<size_t>) {
-  return true;
-}
-// ... and so on for the other operations: the test holds every certificate.
-
-static_assert( IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
-static_assert( IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
-static_assert( IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
-static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
-
-static_assert( IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
-static_assert( IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
-static_assert(!IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
-\end{cpp}
-\caption{Laws as functions of the operation, and shapes as conjunctions.
-Top: two laws, declared and deleted, and the two shapes that require them.
-Bottom: one certificate of each law, the rest elided; three semirings, $(\mathbb{Z}/2^{64}, +, \cdot)$, the bit vectors $(\mathbb{B}^{64}, |, \&)$ and $(\mathbb{B}, \lor, \land)$; and a shape the listing leaves to the test, \cppinline{IsDistributiveLattice}: \cppinline{IsSemiring} conjoined with two more laws declared the same way, idempotence and absorption.
-The bit vectors and $\mathbb{B}$ have it; $(\mathbb{Z}/2^{64}, +, \cdot)$ does not.
-The fourth line is a fact about the listing, not about multiplication: nobody certified it commutative, so the shape does not know it.
-The last is refused for a law that is false, \cppinline{+} is not idempotent, and for one that is merely undeclared, \cppinline{*} commutative, and the shape does not tell the two apart: \cppinline{false} means \emph{not known}, not \emph{no}.}
-\label{lst:semiring}
-\end{listing}
-
-Two kinds of requirement went into these verdicts.
-Structural ones the compiler reads off the type: that \cppinline{a + b} is a \cppinline{size_t}, or that \cppinline{std::plus<>} on two \cppinline{bool}s yields an \cppinline{int} and not a \cppinline{bool}.
-Declared ones a specialisation records: the units and associativity, and now two more laws.
-\Cpp{}'s own words for the two are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not. A law is what modelling asks beyond satisfying, and the fragment makes it a declared field.
-Both are requirements of the same shape, and both become fields of the same record.
-A law is a field of type \texttt{Bool}, and the conjunction is a product, \texttt{SemiringDict T Add Mul = MonoidDict T Add × MonoidDict T Mul × Bool × \ldots}, so a conjunct that is itself a shape becomes a field holding a record, which is how a superclass is passed.
-
-One thing the listing does not do, and cannot.
-A concept checks signatures.
-It sees that \cppinline{Add} and \cppinline{Mul} exist on \cppinline{T} with the right types, and that a unit is declared for each.
-It cannot see that \cppinline{Mul} distributes over \cppinline{Add}, and nothing in the listing checks the certificate against the operation.
-\cppinline{distributive<T>(Mul{}, Add{})} is not a fact the compiler decides. It is a fact someone states, like the unit, and the fourth \cppinline{static_assert} shows the price: a true law nobody stated is a law the shape does not have.
-The same declaration is the only refusal available for a carrier that passes the shape by type and breaks the law by value: \cppinline{double} is a monoid under \cppinline{+} as far as a signature can see, IEEE arithmetic being total, but \cppinline{+} is not associative and \cppinline{NaN + 0 == NaN} is false, so the unit law fails at NaN.
-Nobody certifies it, and the shape with laws does not have it.
-Section~\ref{sec:limits} says what this leaves to the author.
-The shape permits \cppinline{unit<T>(Add{}) == unit<T>(Mul{})}, as a semiring should. The one-element carrier witnesses it.
 
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
@@ -743,6 +682,13 @@ This is where the translation's "instance resolution" and \Cpp{}'s name lookup p
 The transparent \cppinline{std::plus<>} does not: its result type is \cppinline{decltype(t + u)}, and the shape sees the failure.
 It is the body-versus-signature gap of Rule~2 one level down, in the standard library, and the listings avoid it by never asking a typed function object about a carrier it was not written for.
 
+\paragraph{A shape knows the laws someone declared.}
+\Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not.
+A law is what modelling asks beyond satisfying, and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
+So \cppinline{false} means \emph{not known}, not \emph{no}: \cppinline{*} on \cppinline{size_t} is commutative, nobody in the listings certifies it, and \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
+The same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value: \cppinline{double} under \cppinline{+} has the signature of a monoid, IEEE arithmetic being total, but \cppinline{+} is not associative and the unit law fails at NaN.
+Nobody certifies it, and the shape with laws does not have it.
+
 \paragraph{Facts live in tables, instances in functions.}
 FJlt's instance is a specialisation of a function template, and the listings are written that way.
 The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
@@ -826,6 +772,29 @@ Three things follow as work not done here.
 Completing the checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra, which is where the posture goes next.
+The shapes stack by conjunction, and they branch (Listing~\ref{lst:ring}): one declared law more makes a semiring a ring, two more make it a distributive lattice, and under translation each is a record holding the record below.
+% Verbatim in jlt_listings_test.cpp.
+\begin{listing}[htbp]
+\begin{cpp}
+template <typename T, typename Op> constexpr bool invertible(Op) = delete;
+
+template <typename T, typename Op>
+concept IsGroup = IsMonoid<T, Op> && invertible<T>(Op{});
+
+template <typename T, typename Add, typename Mul>
+concept IsRing = IsSemiring<T, Add, Mul> && IsGroup<T, Add>;
+
+static_assert( IsRing<size_t, plus<size_t>, multiplies<size_t>>);
+static_assert( IsRing<size_t, bit_xor<size_t>, bit_and<size_t>>);
+static_assert(!IsRing<size_t, bit_or<size_t>, bit_and<size_t>>);
+static_assert( IsDistributiveLattice<size_t, bit_or<size_t>, bit_and<size_t>>);
+\end{cpp}
+\caption{Rings, by one more conjunct.
+\cppinline{IsDistributiveLattice} is \cppinline{IsSemiring} conjoined with idempotence and absorption, declared the same way; the test holds it and every certificate.
+$(\mathbb{Z}/2^{64}, +, \cdot)$ is a ring.
+The bit vectors are a ring under exclusive or and a distributive lattice under inclusive or, both with \cppinline{&}: Stone's correspondence between Boolean rings and Boolean algebras, met by two pairs of operations on one carrier.}
+\label{lst:ring}
+\end{listing}
 The listings here state laws and declare them; over finite ordered carriers equality of functions is decidable and a law can be decided rather than declared, over structures with normal forms the normal form does the deciding, and the same three rules reach that far without change.
 
 Nothing was added to the language, the compiler or the library. What was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
