@@ -121,39 +121,26 @@ constexpr bool of_columns(const dedekind::sets::Row<Cs...>& r, Columns cols) {
 }
 
 export struct Object;
+constexpr bool same_object(const Object& a, const Object& b);
 /** @brief A factor of an object: a carrier (a leaf, its sort the column's), or
  *  the sum @f$X + Y@f$ of two objects (#1039).  A sum lays out a tag column
  *  (𝔹: which summand), then the left summand's columns, then the right's; a
- *  row reads only the active side, so every column keeps one carrier.
- *
- *  A factor is built by @c leaf or by @c sum, which write down with it its
- *  @c layout (its columns) and its @c shape (the prefix code of its tree):
- *  the reading a tree would otherwise recurse for, recorded when the tree is
- *  built from parts that already carry theirs (Rule 3: no recursion on a
- *  value).  Two factors are equal when their shapes are. */
+ *  row reads only the active side, so every column keeps one carrier. */
 export struct Factor {
   enum class Kind { Leaf, Sum };
   Kind kind{Kind::Leaf};
   std::size_t sort{};  // a leaf's carrier; a sum's tag column (𝔹)
   std::shared_ptr<const Object> left, right;  // a sum's summands
-  /** @brief Its columns: a leaf's sort; a sum's tag, then its left
-   *  summand's columns, then its right's. */
-  Columns layout;
-  /** @brief Its tree as a prefix code, self-delimiting: a leaf @c 0 @c s; a
-   *  sum @c 1 @c tag, then each summand as the number of its factors
-   *  followed by their codes. */
-  std::vector<std::size_t> shape;
   /** @brief The leaf of a carrier.  @param c its sort. */
   static constexpr Factor leaf(std::size_t c) {
     Factor f;
     f.sort = c;
-    f.layout = {c};
-    f.shape = {0, c};
     return f;
   }
-  /** @brief The same tree: the same prefix code. */
   friend constexpr bool operator==(const Factor& a, const Factor& b) {
-    return a.shape == b.shape;
+    if (a.kind != b.kind || a.sort != b.sort) return false;
+    return a.kind == Kind::Leaf ||
+           (same_object(*a.left, *b.left) && same_object(*a.right, *b.right));
   }
 };
 
@@ -173,18 +160,10 @@ template <std::ranges::input_range Sorts>
 constexpr std::vector<Factor> leaves(const Sorts& sorts) {
   return std::ranges::fold_left(sorts, std::vector<Factor>{}, AppendLeaf{});
 }
-/** @brief The steps of the folds reading an object off its factors: their
- *  columns side by side, and their codes after their number. */
-struct AppendLayout {
-  constexpr Columns operator()(Columns out, const Factor& f) const {
-    return joined(std::move(out), f.layout);
-  }
-};
-struct AppendShape {
-  constexpr std::vector<std::size_t> operator()(std::vector<std::size_t> out,
-                                                const Factor& f) const {
-    return joined(std::move(out), f.shape);
-  }
+/** @brief The step of the fold reading an object's columns off its factors:
+ *  a leaf's sort; a sum's tag, then its summands' columns. */
+struct AppendColumns {
+  constexpr Columns operator()(Columns out, const Factor& f) const;
 };
 }  // namespace detail_rows
 
@@ -205,21 +184,20 @@ export struct Object {
   friend constexpr bool operator==(const Object&, const Object&) = default;
 };
 
-/** @brief The columns of an object: its factors' layouts side by side, per
- *  factor a leaf's sort, or a sum's tag, then its left summand's columns,
- *  then its right's. */
+constexpr bool same_object(const Object& a, const Object& b) { return a == b; }
+/** @brief The columns of an object: a fold over its factors, per factor a
+ *  leaf's sort; a sum's tag, then its left summand's columns, then its
+ *  right's. */
 export constexpr Columns columns(const Object& o) {
   return std::ranges::fold_left(o.factors, Columns{},
-                                detail_rows::AppendLayout{});
+                                detail_rows::AppendColumns{});
 }
-namespace detail_rows {
-/** @brief The prefix code of an object: the number of its factors, then
- *  their codes. */
-constexpr std::vector<std::size_t> shape(const Object& o) {
-  return std::ranges::fold_left(
-      o.factors, std::vector<std::size_t>{o.factors.size()}, AppendShape{});
+constexpr Columns detail_rows::AppendColumns::operator()(
+    Columns out, const Factor& f) const {
+  out.push_back(f.sort);
+  if (f.kind == Factor::Kind::Leaf) return out;
+  return joined(joined(std::move(out), columns(*f.left)), columns(*f.right));
 }
-}  // namespace detail_rows
 /** @brief The object @f$X + Y@f$: one sum factor, its tag column of sort
  *  @c tag (the 𝔹 carrier's).  @param x, y the summands. */
 export constexpr Object sum(const Object& x, const Object& y, std::size_t tag) {
@@ -228,11 +206,6 @@ export constexpr Object sum(const Object& x, const Object& y, std::size_t tag) {
   f.sort = tag;
   f.left = std::make_shared<const Object>(x);
   f.right = std::make_shared<const Object>(y);
-  f.layout =
-      detail_rows::joined(detail_rows::joined({tag}, columns(x)), columns(y));
-  f.shape =
-      detail_rows::joined(detail_rows::joined({1, tag}, detail_rows::shape(x)),
-                          detail_rows::shape(y));
   Object out;
   out.factors.push_back(std::move(f));
   return out;

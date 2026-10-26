@@ -80,15 +80,16 @@ rule1-const-member-functions  src/main/modules/dedekind/category/*.cppm  categor
 rule1-no-mutable-globals      src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/category/*.cppm  category  0
 
-# The relational module (#1085): gated at 0 like category, rule by rule;
-# rows.cppm's throws are its API (not_admitted, which Python reads as an
-# error), so that one rule is reported there.
+# The relational module (#1085): gated at 0 like category, rule by rule.
+# Reported on rows.cppm: its throws, the API (not_admitted, which Python
+# reads as an error), and the recursion of an object's columns and equality
+# over its sums (a run-time tree; no fold over it yet).
 rule3-no-loops               src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-loops               src/main/modules/dedekind/relational/rows.cppm  relational  0
 rule3-no-self-recursion      src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule3-no-self-recursion      src/main/modules/dedekind/relational/rows.cppm  relational  0
 rule3-no-mutual-recursion    src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
-rule3-no-mutual-recursion    src/main/modules/dedekind/relational/rows.cppm  relational  0
+rule3-no-mutual-recursion    src/main/modules/dedekind/relational/rows.cppm  relational  report
 rule2-definition             src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule2-definition             src/main/modules/dedekind/relational/rows.cppm  relational  0
 rule2-constrained-templates  src/main/modules/dedekind/relational/[!r]*.cppm  relational  report

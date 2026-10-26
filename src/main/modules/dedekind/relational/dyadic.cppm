@@ -271,7 +271,12 @@ constexpr auto fibre(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
  * function's own species, not its base's tag.
  */
 export template <typename T1, typename T2, typename L, typename P>
-  requires std::equality_comparable<T2>
+  requires requires(const T2& y) {
+    {
+      y == y
+    } -> dedekind::category::LiftableInto<
+        typename SetFunction<T1, T2, L, P>::logic_species>;
+  }
 constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
                                    const T1& x, const T2& y1, const T2& y2) {
   using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
