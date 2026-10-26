@@ -44,7 +44,7 @@ constexpr bool associative(std::plus<T>) {
 }
 
 template <typename T, typename Op>
-concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
+concept IsMonoid = std::regular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
   { unit<T>(Op{}) } -> std::same_as<T>;
 } && associative<T>(Op{});
@@ -295,9 +295,10 @@ static_assert(twice_loose(std::string{"ab"}) == "abab");
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  return n == 0 ? unit<T>(Op{})
-                : std::ranges::fold_left(std::views::repeat(x, n),
-                                         unit<T>(Op{}), Op{});
+  return n == 0 || x == unit<T>(Op{})
+             ? unit<T>(Op{})
+             : std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}),
+                                      Op{});
 }
 
 static_assert(times<size_t>(7, 6) == 42);
@@ -330,37 +331,29 @@ static_assert(
 static_assert(!IsSemimodule<std::string, size_t, std::plus<std::string>,
                             std::multiplies<>>);
 
-// Section 3, Listing 4 top: Listing 3's times with branches on concepts:
-// where there is equality, copies of the unit are the unit; in a semimodule
-// over size_t under +, n copies of x are one action of n on x.
+// Section 3, the sugar: Listing 3's times with a branch on a concept: in a
+// semimodule over size_t under +, n copies of x are one action of n on x.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  if (n == 0) return unit<T>(Op{});
-  if constexpr (std::equality_comparable<T>) {
-    if constexpr (std::same_as<Op, std::plus<T>> &&
-                  IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>)
-      return std::multiplies<>{}(n, x);
-    if (x == unit<T>(Op{})) return unit<T>(Op{});
-  }
-  return std::ranges::fold_left(std::views::repeat(x, n), unit<T>(Op{}), Op{});
+  if constexpr (std::same_as<Op, std::plus<T>> &&
+                IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>)
+    return std::multiplies<>{}(n, x);
+  else
+    return n == 0 || x == unit<T>(Op{})
+               ? unit<T>(Op{})
+               : std::ranges::fold_left(std::views::repeat(x, n),
+                                        unit<T>(Op{}), Op{});
 }
 }  // namespace sugar
 
-// Section 3: the family in the kernel, whose System F image is Listing 4's
-// bottom: Listing 3's times, and two overloads, each constraint containing
-// the one before, which resolution orders by specificity.
+// Section 3, Listing 4: the family in the kernel: Listing 3's times, and the
+// semimodule overload (Listing 4 top), whose constraint contains Listing 3's;
+// Listing 4's bottom is its System F image.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
-constexpr T times(T x, size_t n) {
-  return n == 0 ? unit<T>(Op{})
-                : std::ranges::fold_left(std::views::repeat(x, n),
-                                         unit<T>(Op{}), Op{});
-}
-template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && std::equality_comparable<T>
 constexpr T times(T x, size_t n) {
   return n == 0 || x == unit<T>(Op{})
              ? unit<T>(Op{})
@@ -368,8 +361,7 @@ constexpr T times(T x, size_t n) {
                                       Op{});
 }
 template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && std::equality_comparable<T> &&
-           std::same_as<Op, std::plus<T>> &&
+  requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
            IsSemimodule<T, size_t, std::plus<T>, std::multiplies<>>
 constexpr T times(T x, size_t n) {
   return std::multiplies<>{}(n, x);
