@@ -18,7 +18,10 @@
 //                     mechanical sanity check, not a proof: it reports only
 //                     what it is sure no requirement names, and stays silent
 //                     where it cannot tell.  What it does not see is listed
-//                     at the check.
+//                     at the check.  A conversion into a parameter type,
+//                     T(n) or static_cast<T>(n) from a value of another
+//                     type, is an operation of T like any other: the
+//                     constraints must name it.
 //   inline-requires   Rule 2: an `if` (constexpr or not) whose condition
 //                     contains a requires-expression tests a constraint the
 //                     body did not declare, which Rule 2 does not count
@@ -161,6 +164,44 @@ class MutualRecursion : public clang::ASTConsumer {
 // definition: Rule 2 at the level of names
 // ---------------------------------------------------------------------------
 
+/// The arguments of a construction, braces opened: T{} has none, T{x} has x.
+llvm::SmallVector<const clang::Expr*, 2> constructionArgs(
+    const clang::CXXUnresolvedConstructExpr* e) {
+  llvm::SmallVector<const clang::Expr*, 2> out;
+  for (const clang::Expr* a : e->arguments()) {
+    if (const auto* list = llvm::dyn_cast<clang::InitListExpr>(a))
+      out.append(list->inits().begin(), list->inits().end());
+    else
+      out.push_back(a);
+  }
+  return out;
+}
+
+/// Whether `target` is a template parameter type and some argument is a value
+/// of another type: a conversion into the parameter type.  Default
+/// construction (no arguments) and a copy (an argument of the same type) are
+/// what semiregular grants, and are not conversions.
+bool convertsIntoParameter(clang::QualType target,
+                           llvm::ArrayRef<const clang::Expr*> args) {
+  if (target.isNull()) return false;
+  target = target.getNonReferenceType().getUnqualifiedType();
+  if (!target->isTemplateTypeParmType()) return false;
+  const clang::QualType want = target.getCanonicalType();
+  for (const clang::Expr* a : args) {
+    if (!a) continue;
+    clang::QualType t = a->getType();
+    if (t.isNull()) return false;  // cannot tell: silence
+    t = t.getNonReferenceType().getUnqualifiedType().getCanonicalType();
+    if (t == want) continue;
+    // A dependent type may well be T: std::move(x) of a T x, or a parameter
+    // U that a constraint makes T (std::same_as<T> U), which this check does
+    // not read.  Cannot tell, so silence.
+    if (t->isDependentType()) return false;
+    return true;
+  }
+  return false;
+}
+
 /// The names an expression uses as operations: operator spellings ("+", "==",
 /// "()", "[]"), called function names, member names.  Collected from the
 /// requirements of the constraints (every operation they mention) and from a
@@ -211,6 +252,16 @@ class NameCollector : public clang::RecursiveASTVisitor<NameCollector> {
     names.insert(e->getMember().getAsString());
     return true;
   }
+  bool VisitCXXUnresolvedConstructExpr(clang::CXXUnresolvedConstructExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), constructionArgs(e)))
+      names.insert("conversion");  // T(x) in a requirement names it
+    return true;
+  }
+  bool VisitCXXStaticCastExpr(clang::CXXStaticCastExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), {e->getSubExpr()}))
+      names.insert("conversion");
+    return true;
+  }
 };
 
 /// What a standard concept or trait permits beyond what its body says: the
@@ -245,6 +296,9 @@ Permits permitsOfStd(llvm::StringRef name) {
       name == "equivalence_relation" || name == "strict_weak_order")
     p.names = {"()"};
   if (name == "swappable" || name == "swappable_with") p.names = {"swap"};
+  if (name == "constructible_from" || name == "convertible_to" ||
+      name == "is_constructible_v" || name == "is_convertible_v")
+    p.names = {"conversion"};
   if (name == "semiregular" || name == "regular" || name == "copyable" ||
       name == "movable" || name == "assignable_from")
     p.names = {"="};  // a value may be assigned to (Rule 1: a local)
@@ -252,6 +306,38 @@ Permits permitsOfStd(llvm::StringRef name) {
   if (name.ends_with("range") || name == "view")
     p.names = {"begin", "end", "size", "empty"};
   return p;
+}
+
+/// The operator a standard function object is defined by, in <functional>:
+/// std::plus<T>::operator()(a, b) returns a + b, and so on.  A constraint that
+/// names the function object has declared its operator.  Empty for any other
+/// type.
+llvm::StringRef operatorOfStdFunctionObject(clang::QualType t) {
+  static const std::map<std::string, std::string> ops = {
+      {"plus", "+"},         {"minus", "-"},         {"multiplies", "*"},
+      {"divides", "/"},      {"modulus", "%"},       {"negate", "-"},
+      {"equal_to", "=="},    {"not_equal_to", "!="}, {"less", "<"},
+      {"greater", ">"},      {"less_equal", "<="},   {"greater_equal", ">="},
+      {"logical_and", "&&"}, {"logical_or", "||"},   {"logical_not", "!"},
+      {"bit_and", "&"},      {"bit_or", "|"},        {"bit_xor", "^"},
+      {"bit_not", "~"}};
+  const clang::CXXRecordDecl* r =
+      t.isNull() ? nullptr : t->getAsCXXRecordDecl();
+  if (!r) {
+    if (const auto* ts = t->getAs<clang::TemplateSpecializationType>())
+      if (const auto* td = ts->getTemplateName().getAsTemplateDecl())
+        if (const auto* rd = llvm::dyn_cast_or_null<clang::CXXRecordDecl>(
+                td->getTemplatedDecl()))
+          r = rd;
+  }
+  if (!r) return {};
+  bool std_ = false;
+  for (const clang::DeclContext* c = r->getDeclContext(); c; c = c->getParent())
+    if (const auto* ns = llvm::dyn_cast<clang::NamespaceDecl>(c))
+      if (ns->isStdNamespace()) std_ = true;
+  if (!std_) return {};
+  auto it = ops.find(r->getName().str());
+  return it == ops.end() ? llvm::StringRef() : llvm::StringRef(it->second);
 }
 
 /// Whether a declaration lives in namespace std (any depth).
@@ -273,6 +359,29 @@ struct Vocabulary {
 };
 
 void gather(const clang::Expr* e, Vocabulary& v);
+
+/// Whether a call in a constraint is a law in function spelling: every
+/// candidate a constexpr function template returning bool, as
+/// associative<T>(Op{}) and distributive<T>(Mul{}, Add{}) are.
+bool isLawCall(const clang::CallExpr* call) {
+  const clang::Expr* callee = call->getCallee()->IgnoreParenImpCasts();
+  llvm::SmallVector<const clang::NamedDecl*, 4> cands;
+  if (const auto* u = llvm::dyn_cast<clang::UnresolvedLookupExpr>(callee))
+    cands.append(u->decls().begin(), u->decls().end());
+  else if (const auto* d = llvm::dyn_cast<clang::DeclRefExpr>(callee))
+    cands.push_back(d->getDecl());
+  if (cands.empty()) return false;
+  for (const clang::NamedDecl* c : cands) {
+    const clang::FunctionDecl* f = nullptr;
+    if (const auto* ft = llvm::dyn_cast<clang::FunctionTemplateDecl>(c))
+      f = ft->getTemplatedDecl();
+    else
+      f = llvm::dyn_cast<clang::FunctionDecl>(c);
+    if (!f || !f->isConstexpr() || !f->getReturnType()->isBooleanType())
+      return false;
+  }
+  return true;
+}
 
 void gatherConcept(const clang::ConceptDecl* c, Vocabulary& v) {
   if (!c || !v.seen.insert(c).second) return;
@@ -298,6 +407,13 @@ void gather(const clang::Expr* e, Vocabulary& v) {
   e = e->IgnoreParenImpCasts();
   if (const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e)) {
     gatherConcept(cs->getNamedConcept(), v);
+    // An argument that is a standard function object grants its operator:
+    // IsMonoid<T, std::plus<T>> declares +.
+    for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+      if (a.getKind() == clang::TemplateArgument::Type) {
+        llvm::StringRef op = operatorOfStdFunctionObject(a.getAsType());
+        if (!op.empty()) v.names.insert(op.str());
+      }
     // Its written arguments name operations too: Fires<decltype(law(a, b))>.
     if (const auto* written = cs->getTemplateArgsAsWritten())
       for (const clang::TemplateArgumentLoc& arg : written->arguments()) {
@@ -363,6 +479,20 @@ void gather(const clang::Expr* e, Vocabulary& v) {
   } else if (llvm::isa<clang::ParenListExpr>(e)) {
     v.opaque = true;  // a shape this check does not read: silence
     return;
+  } else if (const auto* call = llvm::dyn_cast<clang::CallExpr>(e)) {
+    // A law in function spelling, associative<T>(Op{}): a declared fact about
+    // the operation.  It names no operation of the value, and reading it as
+    // opaque would silence the check on every function under the shape.
+    if (!isLawCall(call)) {
+      v.opaque = true;
+      return;
+    }
+    // The law names no operation, but its arguments may: accepts<T>(T{0}).
+    NameCollector nc;
+    for (const clang::Expr* a : call->arguments())
+      nc.TraverseStmt(const_cast<clang::Expr*>(a));
+    v.names.insert(nc.names.begin(), nc.names.end());
+    return;
   } else {
     v.opaque = true;  // a constraint of a shape this check does not read
     return;
@@ -424,6 +554,7 @@ bool isParameterTyped(const clang::Expr* e) {
 bool anyParameterTyped(llvm::ArrayRef<const clang::Expr*> es) {
   return std::any_of(es.begin(), es.end(), isParameterTyped);
 }
+
 
 /// Whether a template is constrained: a type constraint on a parameter, a
 /// requires clause, or a trailing one.
@@ -545,6 +676,18 @@ class BodyOperations : public clang::RecursiveASTVisitor<BodyOperations> {
       ops.push_back({e->getMember().getAsString(), e->getMemberLoc(), false});
     return true;
   }
+  // T(n), T{n}: a construction of a parameter type from a value of another
+  // type is a conversion, an operation of T no requirement may leave unnamed.
+  bool VisitCXXUnresolvedConstructExpr(clang::CXXUnresolvedConstructExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), constructionArgs(e)))
+      ops.push_back({"conversion", e->getBeginLoc(), true});
+    return true;
+  }
+  bool VisitCXXStaticCastExpr(clang::CXXStaticCastExpr* e) {
+    if (convertsIntoParameter(e->getTypeAsWritten(), {e->getSubExpr()}))
+      ops.push_back({"conversion", e->getBeginLoc(), true});
+    return true;
+  }
 };
 
 /// The check: every function template of the scope, defined in the file.
@@ -587,9 +730,71 @@ class Definition : public clang::ASTConsumer {
     if (v.opaque) return;  // a constraint this check cannot read: silence
     BodyOperations body;
     body.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    // The then-branch of an if constexpr on a concept is typed under that
+    // concept (the instance chain of Appendix A.7): its grants hold there.
+    struct Branch {
+      clang::SourceRange range;
+      Vocabulary v;
+    };
+    std::vector<Branch> branches;
+    struct Ifs : clang::RecursiveASTVisitor<Ifs> {
+      std::vector<Branch>& out;
+      explicit Ifs(std::vector<Branch>& o) : out(o) {}
+      bool TraverseLambdaExpr(clang::LambdaExpr*) { return true; }
+      bool VisitIfStmt(clang::IfStmt* st) {
+        if (!st->isConstexpr() || !st->getThen()) return true;
+        Branch b{st->getThen()->getSourceRange(), {}};
+        if (!typeConstraint(st->getCond())) return true;
+        gather(st->getCond(), b.v);
+        if (!b.v.opaque) out.push_back(std::move(b));
+        return true;
+      }
+      // A condition that constrains types: concept-ids joined by &&, each
+      // applied to types, none the decltype of an operation.  A
+      // requires-expression or a concept on decltype(op(x)) probes an
+      // operation instead, and is not a constraint (#1068).
+      static bool typeConstraint(const clang::Expr* e) {
+        e = e->IgnoreParenImpCasts();
+        if (const auto* b = llvm::dyn_cast<clang::BinaryOperator>(e))
+          return b->getOpcode() == clang::BO_LAnd &&
+                 typeConstraint(b->getLHS()) && typeConstraint(b->getRHS());
+        const auto* cs = llvm::dyn_cast<clang::ConceptSpecializationExpr>(e);
+        if (!cs) return false;
+        for (const clang::TemplateArgument& a : cs->getTemplateArguments())
+          if (!typeArgument(a)) return false;
+        if (const auto* w = cs->getTemplateArgsAsWritten())
+          for (const clang::TemplateArgumentLoc& al : w->arguments())
+            if (!typeArgument(al.getArgument())) return false;
+        return true;
+      }
+      // A type, a pack of types (std::invocable<T> has an empty one), or the
+      // decltype of a plain variable, decltype(x) for a parameter x, which is
+      // its type.  The decltype of any other expression probes an operation.
+      static bool typeArgument(const clang::TemplateArgument& a) {
+        if (a.getKind() == clang::TemplateArgument::Pack) {
+          for (const clang::TemplateArgument& e : a.pack_elements())
+            if (!typeArgument(e)) return false;
+          return true;
+        }
+        if (a.getKind() != clang::TemplateArgument::Type) return false;
+        if (const auto* dt = a.getAsType()->getAs<clang::DecltypeType>())
+          return llvm::isa<clang::DeclRefExpr>(
+              dt->getUnderlyingExpr()->IgnoreParenImpCasts());
+        return true;
+      }
+    } ifs{branches};
+    ifs.TraverseStmt(ft->getTemplatedDecl()->getBody());
+    auto grantedInBranch = [&](const BodyOperations::Op& op) {
+      for (const Branch& b : branches)
+        if (sm.isPointWithin(op.loc, b.range.getBegin(), b.range.getEnd()) &&
+            (b.v.names.count(op.name) || (op.builtin && b.v.everything)))
+          return true;
+      return false;
+    };
     for (const BodyOperations::Op& op : body.ops) {
       if (v.names.count(op.name)) continue;
       if (op.builtin && v.everything) continue;
+      if (grantedInBranch(op)) continue;
       const clang::SourceLocation loc = sm.getExpansionLoc(op.loc);
       llvm::outs() << sm.getFilename(loc) << ':'
                    << sm.getExpansionLineNumber(loc) << ':'
