@@ -162,12 +162,17 @@ using comprehension_logic_t =
  *  declares one, else the base's.
  *  @tparam Predicate the datum.
  *  @tparam Base the base set. */
+/** @brief A predicate or set that declares its cardinality: @c
+ *  T::cardinality_type is formed.  @tparam T the candidate. */
+template <typename T>
+concept HasCardinalityType = requires { typename T::cardinality_type; };
+
 template <typename Predicate, IsSetObject Base>
 struct datum_cardinality {
   using type = typename Base::cardinality_type;
 };
 template <typename Predicate, IsSetObject Base>
-  requires requires { typename Predicate::cardinality_type; }
+  requires HasCardinalityType<Predicate>
 struct datum_cardinality<Predicate, Base> {
   using type = typename Predicate::cardinality_type;
 };
@@ -454,7 +459,7 @@ constexpr auto elevate_meet(Reduced reduced) {
   using Result = std::decay_t<Reduced>;
   if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
     return Ø<T, L>{};
-  } else if constexpr (requires { typename Result::cardinality_type; }) {
+  } else if constexpr (HasCardinalityType<Result>) {
     // Nested (not &&-chained): a Result without cardinality_type must not
     // instantiate the inner probe.
     if constexpr (std::same_as<typename Result::cardinality_type, Finite>) {
@@ -535,7 +540,7 @@ constexpr auto universe(const Comprehension<Base, Predicate>&) {
 // applies and the predicate P is its χ datum --- the very object `operator&`
 // hands to `structured_and`, so the leg names what the reducer already reads.
 export template <typename T, IsOckhamAlgebra L, typename P, IsCardinality C>
-constexpr const P& classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
+constexpr P classifier(const Comprehension<𝔸<T, L, C>, P>& s) {
   return s.predicate;
 }
 

@@ -568,19 +568,11 @@ constexpr auto symmetric(const R& r) {
 // or (where a valid identifier glyph exists) their blackboard symbol.  converse
 // has no glyph (@c † is not an identifier), so it takes @c conv / @c dagger;
 // @c diag also answers to @c Δ.
-export constexpr auto conv(auto&& r) {
-  return converse(std::forward<decltype(r)>(r));
-}
-export constexpr auto dagger(auto&& r) {
-  return converse(std::forward<decltype(r)>(r));
-}
-export constexpr auto refl(auto&& r) {
-  return reflexive(std::forward<decltype(r)>(r));
-}
-export constexpr auto sym(auto&& r) {
-  return symmetric(std::forward<decltype(r)>(r));
-}
-export constexpr auto Δ(auto&& s) { return diag(std::forward<decltype(s)>(s)); }
+export constexpr auto conv(const auto& r) { return converse(r); }
+export constexpr auto dagger(const auto& r) { return converse(r); }
+export constexpr auto refl(const auto& r) { return reflexive(r); }
+export constexpr auto sym(const auto& r) { return symmetric(r); }
+export constexpr auto Δ(const auto& s) { return diag(s); }
 
 // ── Self-contained base witnesses (no order DSL) ────────────────────────────
 // The rich witnesses (≤∘≤=≤ transitivity, reflexive(<), symmetric(<)) live in

@@ -572,8 +572,7 @@ export constexpr CardinalityEffect unit_effect(Cardinality value) {
 
 /** @brief Sequential composition of cardinality effects. */
 export template <typename F>
-constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect,
-                                        F&& f) {
+constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect, F f) {
   const CardinalityEffect next = f(effect.value);
   return CardinalityEffect{next.value, add(effect.trace, next.trace)};
 }

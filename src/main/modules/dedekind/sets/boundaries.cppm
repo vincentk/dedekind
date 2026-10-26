@@ -440,7 +440,7 @@ constexpr auto universe(const S&) {
 /** @brief Default classifier leg: the set @b is its predicate (Definition
  *  Lwv, "the predicate χ_S is the set"). */
 export template <IsLSet S>
-constexpr const S& classifier(const S& s) {
+constexpr S classifier(const S& s) {
   return s;
 }
 
@@ -1032,14 +1032,17 @@ static_assert(IsSet<𝔸<bool>> && IsFiniteLSet<𝔸<bool>>,
  *          neither side exposes `upper_bound()`, the function returns the
  *          maximal finite sentinel.
  */
+/** @brief A set with an explicit finite bound: @c upper_bound() is formed and
+ *  converts to @c std::size_t.  @tparam S the set. */
+export template <typename S>
+concept HasUpperBound = requires(const S& s) {
+  { s.upper_bound() } -> std::convertible_to<std::size_t>;
+};
+
 export template <typename S1, typename S2>
 constexpr std::size_t bound_meet(const S1& lhs, const S2& rhs) {
-  constexpr bool lhs_has_upper_bound = requires {
-    { lhs.upper_bound() } -> std::convertible_to<std::size_t>;
-  };
-  constexpr bool rhs_has_upper_bound = requires {
-    { rhs.upper_bound() } -> std::convertible_to<std::size_t>;
-  };
+  constexpr bool lhs_has_upper_bound = HasUpperBound<S1>;
+  constexpr bool rhs_has_upper_bound = HasUpperBound<S2>;
 
   if constexpr (lhs_has_upper_bound && rhs_has_upper_bound) {
     return std::min(static_cast<std::size_t>(lhs.upper_bound()),
@@ -1061,10 +1064,7 @@ constexpr std::size_t bound_meet(const S1& lhs, const S2& rhs) {
  */
 export template <typename S1, typename S2>
 constexpr std::size_t bound_join(const S1& lhs, const S2& rhs) {
-  if constexpr (requires {
-                  { lhs.upper_bound() } -> std::convertible_to<std::size_t>;
-                  { rhs.upper_bound() } -> std::convertible_to<std::size_t>;
-                }) {
+  if constexpr (HasUpperBound<S1> && HasUpperBound<S2>) {
     const std::size_t a = static_cast<std::size_t>(lhs.upper_bound());
     const std::size_t b = static_cast<std::size_t>(rhs.upper_bound());
     const std::size_t max_v = std::numeric_limits<std::size_t>::max();
