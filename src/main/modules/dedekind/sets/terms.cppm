@@ -547,16 +547,20 @@ constexpr V into(const R& x) {
   else
     return static_cast<V>(x);
 }
-/** @brief The operator @c Op typed at the carrier @c C, the key totality is
- *  registered under: @c std::plus<> at @c C is @c std::plus<C>. */
+/** @brief The transparent operator @c Op applied at the carrier @c C, as the
+ *  typed @c std::plus<C> would apply it: an arithmetic result is converted
+ *  back to @c C, so a narrow carrier wraps instead of promoting, and a
+ *  comparison keeps its @c bool.  No type constructor is taken as an
+ *  argument.  @tparam Op the transparent operator.  @tparam C the carrier. */
 template <typename Op, typename C>
-struct at_carrier {
-  using type = Op;
-};
-template <template <typename> class F, typename C>
-struct at_carrier<F<void>, C> {
-  using type = F<C>;
-};
+  requires requires { typename Op::is_transparent; }
+constexpr auto apply_at(const C& a, const C& b) {
+  using R = decltype(Op{}(a, b));
+  if constexpr (std::same_as<R, bool>)
+    return Op{}(a, b);
+  else
+    return static_cast<C>(Op{}(a, b));
+}
 
 // ── The rules: admission by ADL, each beside its certificate ────────────────
 
@@ -1161,7 +1165,7 @@ struct Value {
                   "the operator has no rule on the carrier: not total there, "
                   "a division by a term, or its module is not imported (order "
                   "for // and %, algebra for a field's /)");
-    return typename at_carrier<Op, C>::type{}(into<C, A>(x), into<C, B>(y));
+    return apply_at<Op, C>(into<C, A>(x), into<C, B>(y));
   }
   template <typename F, typename A, typename X>
   constexpr auto operator()(const Ap<F, A>& t, const X& x) const {
