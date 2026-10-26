@@ -20,9 +20,13 @@ the prebuilt module files must exist.
 - `fixtures/`: one negative control per rule, standalone (no imports), with
   its expected finding count in `scope`; it proves the matcher fires, so a
   zero on a real file is not vacuous.
-- `jlt_lint.py`: parses each file once with all its rules, prints gate
+- `jlt_lint.py`: parses each file twice, once by `clang-query` with all its
+  matcher rules and once by the tool with all its checks
+  (`--check=a,b,...`, each check's findings in its own section), prints gate
   results, reported counts and a coverage table per rule, and fails on a gate
-  mismatch, or if a file does not parse or a matcher does not run.
+  mismatch, or if a file does not parse or a matcher does not run.  Files run
+  in parallel, `NCPU` at a time (default: the number of cores); the report is
+  in file order.
 
 Run it with `make jlt-lint` after `make compile`.
 
