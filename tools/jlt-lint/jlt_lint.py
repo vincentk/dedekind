@@ -81,16 +81,22 @@ def run_tool(tool, build, path, namespace, checks):
     if len(checks) == 1:  # one check prints no section header
         return {checks[0]: lines}, p.stdout + p.stderr
     found = {c: [] for c in checks}
+    seen = []
     section = None
     for l in lines:
         if l.startswith("== "):
             section = l[3:].strip()
-            if section not in found:
+            if section not in found or section in seen:
                 return None, p.stdout + p.stderr
+            seen.append(section)
         elif section is None:
             return None, p.stdout + p.stderr
         else:
             found[section].append(l)
+    # Every check must have reported, even with no findings: a missing
+    # section is a check that did not run, not a zero.
+    if sorted(seen) != sorted(checks):
+        return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
     return found, p.stdout + p.stderr
 
 
