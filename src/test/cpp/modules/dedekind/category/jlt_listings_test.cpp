@@ -321,9 +321,9 @@ concept IsCountingSemiring =
     IsSemiring<T, Add, Mul> && std::constructible_from<T, size_t> &&
     counts<T>(Add{}, Mul{});
 
-// Section 3, Listing 4 top: Listing 3's times with branches on concepts: no copies,
-// or copies of the unit where there is equality, are the unit; in a counting
-// semiring under +, n copies of x are one multiplication.
+// Section 3, Listing 4 top: Listing 3's times with branches on concepts: no
+// copies, or copies of the unit where there is equality, are the unit; in a
+// counting semiring under +, n copies of x are one multiplication.
 namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
@@ -340,8 +340,8 @@ constexpr T times(T x, size_t n) {
 }  // namespace sugar
 
 // Section 3: the family in the kernel, whose System F image is Listing 4's
-// bottom: Listing 3's times, and two overloads, each constraint containing the one before, which resolution
-// orders by specificity.
+// bottom: Listing 3's times, and two overloads, each constraint containing the
+// one before, which resolution orders by specificity.
 namespace kernel {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
