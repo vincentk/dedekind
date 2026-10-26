@@ -6,7 +6,7 @@ using namespace dedekind::category;
 
 // Negative witnesses moved out of the module (#1061): each type here breaks
 // Rule 1 on purpose, to prove that a concept rejects it.  A witness of a
-// rejection is a test, so it lives in the tests, where the Jlt checker's gate
+// rejection is a test, so it lives in the tests, where the Jlt linter's gate
 // does not judge it.
 
 namespace cartesian_bicategory_witness {

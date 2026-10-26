@@ -1,6 +1,6 @@
-// jlt-tool: the Jlt checker's checks that need code rather than a pattern.
+// jlt-lint: the Jlt linter's checks that need code rather than a pattern.
 //
-//   jlt-tool --check=<name> --scope=<namespace> <file> [-p <build>] [--
+//   jlt-lint --check=<name> --scope=<namespace> <file> [-p <build>] [--
 //   <flags>]
 //
 // Prints one finding per line as "path:line:col"; the driver counts them.
@@ -72,7 +72,7 @@
 
 namespace {
 
-llvm::cl::OptionCategory category("jlt-tool options");
+llvm::cl::OptionCategory category("jlt-lint options");
 llvm::cl::opt<std::string> check("check", llvm::cl::desc("the check to run"),
                                  llvm::cl::Required, llvm::cl::cat(category));
 llvm::cl::opt<std::string> scope("scope",
@@ -1140,7 +1140,7 @@ class Action : public clang::ASTFrontendAction {
     if (check == "inventory") return std::make_unique<Inventory>();
     if (check == "undecided-resolution")
       return std::make_unique<UndecidedResolution>();
-    llvm::errs() << "jlt-tool: unknown check " << check << '\n';
+    llvm::errs() << "jlt-lint: unknown check " << check << '\n';
     return nullptr;
   }
 };

@@ -9,8 +9,8 @@ NOTEBOOKS_DIR := docs/python/notebooks
 LLVM_ROOT    ?= /usr/local/opt/llvm
 CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
 CLANG_QUERY ?= $(LLVM_ROOT)/bin/clang-query
-# Where jlt-tool finds the LLVM that built the tree (its CMake package dirs).
-JLT_TOOL_CMAKE_ARGS ?= -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) \
+# Where jlt-lint finds the LLVM that built the tree (its CMake package dirs).
+JLT_LINT_CMAKE_ARGS ?= -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_C_COMPILER=$(CC) \
   -DClang_DIR=$(LLVM_ROOT)/lib/cmake/clang -DLLVM_DIR=$(LLVM_ROOT)/lib/cmake/llvm
 CMAKE_EXTRA_ARGS ?=
 
@@ -41,7 +41,7 @@ endif
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
-.PHONY: jlt-check jlt-tool
+.PHONY: jlt-lint jlt-lint-tool
 .PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
@@ -178,16 +178,16 @@ format:
 format-check:
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) --dry-run --Werror
 
-# The Jlt checker (#1060): a post-processing step over the build's compilation
-# database; the gate is tools/jlt-check/scope.
-jlt-check: jlt-tool
-	python3 tools/jlt-check/jlt_check.py $(CLANG_QUERY) $(BUILD_DIR) $(BUILD_DIR)/jlt-tool/jlt-tool
+# The Jlt linter (#1060): a post-processing step over the build's compilation
+# database; the gate is tools/jlt-lint/scope.
+jlt-lint: jlt-lint-tool
+	python3 tools/jlt-lint/jlt_lint.py $(CLANG_QUERY) $(BUILD_DIR) $(BUILD_DIR)/jlt-lint/jlt-lint
 
-# The checker's own binary (tools/jlt-check/tool): the checks that need code
+# The linter's own binary (tools/jlt-lint/tool): the checks that need code
 # rather than a pattern, built against the LLVM that built the tree.
-jlt-tool:
-	cmake -S tools/jlt-check/tool -B $(BUILD_DIR)/jlt-tool -G Ninja $(JLT_TOOL_CMAKE_ARGS)
-	cmake --build $(BUILD_DIR)/jlt-tool
+jlt-lint-tool:
+	cmake -S tools/jlt-lint/tool -B $(BUILD_DIR)/jlt-lint -G Ninja $(JLT_LINT_CMAKE_ARGS)
+	cmake --build $(BUILD_DIR)/jlt-lint
 
 install-hooks:
 	git config core.hooksPath .githooks

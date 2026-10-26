@@ -1,4 +1,4 @@
-// Negative control for rules/rule2-definition.query (jlt-tool's definition
+// Negative control for rules/rule2-definition.query (jlt-lint's definition
 // check, Rule 2 at the level of names): a constrained body may use only
 // operations some requirement names.  Each planted finding inside jlt_listing
 // is labelled; the rest must stay silent.  Standalone.

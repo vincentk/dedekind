@@ -1,9 +1,9 @@
-# Rule 2, at the level of names (jlt-tool): a function template's body may
+# Rule 2, at the level of names (jlt-lint): a function template's body may
 # use, on a value whose type depends on a template parameter, only an operation
 # some requirement of its constraints names, the constraints followed through
 # their concepts; the DECLARED constraints only, a requires-expression or
 # concept test inside the body is not one (by decision: the rule set stays
 # simple and the code names what it uses).  A sanity check, not a proof: silent where it
 # cannot read a constraint.  What it does not see is listed at the check in
-# tool/jlt_tool.cpp.
+# tool/jlt_lint.cpp.
 tool definition
