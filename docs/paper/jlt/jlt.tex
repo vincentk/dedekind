@@ -46,7 +46,7 @@ The evidence is proof sketches in the appendix, listings that compile and run at
 
 What is gained is a language embedded in a mainstream compiler that checks formal claims of a modest but real kind, at compile time, where checking is cheap.
 Jlt therefore facilitates the trade between a formal functional style and a mainstream systems language in both directions:
-The correctness guarantees of the style are checked at compile time while performance and the ecosystem of the host language remain available at both compile-time and run time.
+The correctness guarantees of the style are checked at compile time while performance and the ecosystem of the host language remain available at both compile time and run time.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
@@ -92,46 +92,24 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 
 \begin{figure}[tb]
 \centering
-\begin{minipage}[t]{0.47\linewidth}
-\centering
-\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
-  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \\[-0.8em]
-\text{FJlt} \arrow[ur, hook, "{+}\,\text{sugar}"] \arrow[d, "\llbracket\cdot\rrbracket"']
-  \&
-  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
+\begin{tikzcd}[column sep=2.4em, row sep=2.2em]
+  & \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"'] \\[-0.8em]
+\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, "\llbracket\cdot\rrbracket"']
+  &
+  & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
 \text{System~F} \arrow[d, "\text{eval}"']
-  \&
-  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
+  &
+  & \text{LLVM IR} \arrow[d, "\text{run}"] \\
 \text{value} \arrow[rr, equal]
-  \&
-  \& \text{value}
+  &
+  & \text{value}
 \end{tikzcd}
-
-(a) as argued
-\end{minipage}\hfill
-\begin{minipage}[t]{0.47\linewidth}
-\centering
-\begin{tikzcd}[column sep=1.6em, row sep=2.2em, ampersand replacement=\&]
-  \& \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, "{-}\,\text{sugar}"'] \\[-0.8em]
-\text{FJlt} \arrow[d, "\llbracket\cdot\rrbracket"']
-  \&
-  \& \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
-\text{System~F} \arrow[d, "\text{eval}"']
-  \&
-  \& \text{LLVM IR} \arrow[d, "\text{run}"] \\
-\text{value} \arrow[rr, equal, dashed]
-  \&
-  \& \text{value}
-\end{tikzcd}
-
-(b) under the working hypothesis
-\end{minipage}
 \caption{The arrows of the paper.
-Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar; what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}), so a kernel program has two readings.
+Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar, and what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-They agree on the value: by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}), and by an argument for the program the compiler emits (Sections~\ref{sec:binding} and~\ref{sec:translation:adequacy}, Appendix~\ref{app:fjlt:ssa}).
-In (b), the working hypothesis of Section~\ref{sec:translation:adequacy} holds: $\mathit{desugar}$, labelled with what it removes, is total on Jlt and replaces the hook, and the dashed edge is its claim that the diagram commutes for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
+Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
+The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
 \end{figure}
 
@@ -149,7 +127,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 
 \paragraph{How to read this paper.}
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule they can apply to their overloads; for those who audit or certify \Cpp{} against a policy, who need to know what a tool does and does not check; for readers of programming languages in the line of concepts and type classes, who want to know what the concepts \Cpp{} shipped still support; and for researchers who arrive from Python with a functional vocabulary and want the performance of \Cpp{} with a guard rail.
-The sections follow the arrows of Figure~\ref{fig:arrows}(a), one each.
+The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
 The bottom edge is where the two readings meet.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
