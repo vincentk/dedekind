@@ -367,6 +367,29 @@ constexpr bool times_or(bool x, bool n) {
 static_assert(times_u8(200, 3) == 88);
 static_assert(times_or(true, true) && !times_or(false, true));
 static_assert(kernel::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
+// Every carrier the listings use, times every count: the overload and the
+// sugar agree with Listing 3's fold, whether a certificate lets them act or
+// they fold.  size_t and uint8_t act on size_t counts; bool under || acts on
+// bool counts; every other pair, and string throughout, folds.
+template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
+  requires IsMonoid<T, Op>
+constexpr bool agrees(T x, N n) {
+  return kernel::times<T, Op>(x, n) == times<T, Op>(x, n) &&
+         sugar::times<T, Op>(x, n) == times<T, Op>(x, n);
+}
+constexpr char char_three = static_cast<char>(char_min + 3);
+static_assert(agrees<size_t>(7, 6uz) && agrees<size_t>(7, true) &&
+              agrees<size_t>(7, char_three));
+static_assert(agrees<std::uint8_t>(200, 3uz) &&
+              agrees<std::uint8_t>(200, true) &&
+              agrees<std::uint8_t>(200, char_three));
+static_assert(agrees<bool, std::logical_or<bool>>(true, 3uz) &&
+              agrees<bool, std::logical_or<bool>>(true, true) &&
+              agrees<bool, std::logical_or<bool>>(false, true) &&
+              agrees<bool, std::logical_or<bool>>(true, char_three));
+static_assert(agrees("ab"s, 3uz) && agrees("ab"s, true) &&
+              agrees("ab"s, char_three));
+
 // Section 6: at compile time only the law shortens the fold.  With the
 // semimodule overload a budget of 10^8 is one step; Listing 3's times alone
 // hits the constant evaluator's step limit (quoted in the paper, not held
