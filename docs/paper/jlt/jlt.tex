@@ -911,10 +911,15 @@ The writing of this paper, the formal appendix and the code it reports on relied
 The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement.
 Every mistake that remains is the author's.
 
-\emph{Tools.}
-Anthropic's Claude (the Opus and Fable models, invoked through the Claude Code CLI) was the primary assistant, and also read the draft cold, in sessions without the writing session's context.
-Google's Gemini was used for second-opinion critique of the draft as a whole and for a reading of the appendix's proof sketches.
-GitHub Copilot's pull-request reviewer was invoked on every pull request, and its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
+\emph{Tools, in the order they arrived, and how each was gated.}
+Google's Gemini, on its free tier, is where the project began, about a year before this paper: it answered quick questions of the research kind and proofread, and later read the appendix's proof sketches.
+Its reviews needed heavy discounting and gave a few serendipitous finds; each was summarised and fed back to Claude together with the author's opinion of it.
+GitHub Copilot's pull-request reviewer came next and was used for pull-request review only, in the deepest mode available at the time, with the documentation and the draft paper as context; its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
+Anthropic's Claude, the Opus and Fable models through the Claude Code CLI, came last and did most of the work, including cold reads of the draft in sessions without the writing session's context.
+The aim with it was largely autonomous work organised into issues, then pull requests, then slices and commits, in an environment made deliberately constrained and antagonistic: strong type checking, substantial test coverage, formatters, Doxygen and the linter of Section~\ref{sec:limits}.
+Every pull request was gated by review, usually one by the author and several by Copilot, and merged by hand; on occasion the author edited out of band to force an alignment.
+The bibliography was used to attune the context and as a source of authority.
+Builds were offloaded to continuous integration deliberately, to keep them reproducible, visible, authoritative and on the record.
 
 \emph{Modes.}
 The assistants were used in two ways: in agreement, to help structure a hypothesis, and in opposition, asked to refute or weaken one.
