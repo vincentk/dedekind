@@ -73,9 +73,7 @@ What daily practice lacks is a way to make such claims and have them checked wit
 Performance is why one comes to such a language in the first place, and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and Section~\ref{sec:binding} shows it pre-computing what the rules make computable.
 What the rules address is the other cost, the language's size.
 
-Two things make \Cpp{} a good place to attempt such an embedding now.
-The first is where \Cpp{} is: much of machine learning and most embedded devices run on it, and a growing number of the people who write it arrive from Python with a functional vocabulary.
-The second is that the standard is large and keeps evolving: a fragment is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient.
+A fragment of \Cpp{} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient.
 The fragment is the \emph{Juliet Posture}, or Jlt: a subset of \Cpp{23} whose kernel reads as System~F.
 It is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
 Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}), and its kernel's terms are System~F terms, by the translation of Section~\ref{sec:translation}.
@@ -279,7 +277,8 @@ What the rule conserves is the inductive argument, which loses one constructor a
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Either the structure lives in a \emph{type}, a typed term, an array of known length, a parameter pack, and the compiler unfolds the recursion, each call a different specialisation.
 Or it lives in a \emph{value}, a natural number that counts down, at either binding time: the length of an interval, or a \emph{budget}, a number the caller supplies before the fold starts, for a computation that has no inductive argument of its own.
-In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, ordinal(n))}, which together make a hylomorphism.
+In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is a catamorphism, the fold of a list, and Listing~\ref{lst:rule3}'s \cppinline{times} a catamorphism of the bounded unfold \cppinline{repeat(x, ordinal(n))}, which together make a hylomorphism.
+In both, the structure that decreases is a value, a list's length or a budget, and a fold over a type is the library's \cppinline{cata} over \cppinline{Compose<F, G>} (Section~\ref{sec:limits}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.55\linewidth}
@@ -694,7 +693,7 @@ The law changes what the compile time can do, and nothing the run time does.}
 who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
 a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the budget alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
-undefined behaviour & refused: the expression is not a constant, and the program does not compile & not diagnosed: whatever the hardware does \\
+undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as the fold become one \texttt{mul} \\
 a \texttt{consteval} function & evaluated, at every call & not callable: no call survives to run time \\
@@ -713,13 +712,13 @@ So at compile time only a declared law shortens a fold, chosen by resolution, as
 
 \paragraph{No difference is another value.}
 The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
-Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen (Section~\ref{sec:limits}).
+Undefined behaviour runs the other way: constant evaluation refuses it, and at run time nothing is guaranteed (Section~\ref{sec:limits}).
 
 \paragraph{The same laws license parallelism.}
 Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
 \cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
 Its parallel policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
-So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par}, and its threads stay inside it.
+So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid} and for a forward range, which the parallel policies require, calling \cppinline{std::reduce} with \cppinline{std::execution::par}, and its threads stay inside it.
 The laws say when the split is correct, not when it pays: a thread costs more than a step of a fold, only enough work repays it, and that is the run time's to measure.
 The shortcut is a run-time one: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
 And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
@@ -784,20 +783,18 @@ Nobody certifies it, and the shape with laws does not have it.
 
 \paragraph{Undefined behaviour has one binding time.}
 Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile (Table~\ref{tab:binding}).
-At runtime the same program does whatever the hardware does.
+At run time the standard requires no diagnostic and guarantees nothing, and the optimiser may assume the overflow never happens and rewrite the computation accordingly.
 This is the only way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt.
 The listings close it by using unsigned carriers, whose arithmetic is total.
-A signed integer is still a chain under \cppinline{<}, with \cppinline{min} and \cppinline{max} a bounded lattice, but under \cppinline{+} or \cppinline{*} it is no monoid, since overflow is undefined, so no certificate makes it a count's semiring.
+A signed integer whose own arithmetic can overflow, such as \cppinline{int}, is still a chain under \cppinline{<}, with \cppinline{min} and \cppinline{max} a bounded lattice, but under \cppinline{+} or \cppinline{*} it is no monoid, since overflow is undefined, so no certificate makes it a count's semiring.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
 \paragraph{The compiler has its own limits.}
 Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
-They are the compiler's to set, and a program that exceeds one does not compile.
 Rule~3 keeps them predictable, because every fold's length is in the program: a budget, or the depth of a term.
 A fold over a budget has no recursion and meets no depth limit.
 A fold over a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, is one instantiation per nesting, bounded by \texttt{-ftemplate-depth}.
 A fold over a term that is a value, evaluated at compile time, is one \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
-Raising a limit is a flag, not a change to the program.
 
 \subsection{Limits of this presentation}
 
@@ -894,9 +891,8 @@ Certifying that a run-time shortcut agrees with the fold it replaces, which a br
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
-Nothing was added to the language, the compiler or the library.
-What was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged.
-So the posture needs nothing installed beyond a compiler and nothing at run time beyond what the program already links: it is available wherever a \Cpp{23} compiler is, and its potential users are the people who already write \Cpp{23}, among a community of some 4.5 million \Cpp{} developers in 2020~\cite{stroustrup2020thriving}.
+Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged.
+The posture needs nothing installed beyond a compiler and nothing at run time beyond what the program links, so its potential users are the people who already write \Cpp{23}, among some 4.5 million \Cpp{} developers in 2020~\cite{stroustrup2020thriving}.
 
 \section*{Use of Agentic Systems and AI-Assistance Disclosure}
 
