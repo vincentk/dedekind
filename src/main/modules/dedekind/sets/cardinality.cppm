@@ -448,47 +448,31 @@ export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
                      std::get<ExtensionalCardinal<>>(finite_cardinality(1))};
 }
 
-/** @brief @c ++n / @c n++: C++'s spelling of the arrow @c
- * Successor<Cardinality> in place, saturating at ℵ₀; @c --n / @c n-- the monus
- * step.  The ℕ proxy is thereby incrementable in the spirit of @c
- * std::incrementable; the standard concept also wants a difference type, which
- * the saturating carrier has no honest value for and does not declare.
- *  @param n the element to step, in place.  @return the stepped element
- *  (prefix) or the element before the step (postfix). */
-export constexpr Cardinality& operator++(Cardinality& n) noexcept {
-  n = successor(n);
-  return n;
+/** @brief @c ++n / @c --n: the successor and the predecessor of the ℕ proxy,
+ *  by value, saturating at ℵ₀ and stepping down by monus.  A by-value operator
+ *  keeps Rule 1: @c ++n is a new value and @c n is unchanged, so the operators
+ *  are the posture's spelling of @c Successor and @c Predecessor.  There is no
+ *  postfix form: by value, @c n++ would be @c n itself.  The standard's
+ *  incrementable concepts ask @c ++i for an @c I& and do not admit these, nor
+ *  does the carrier declare the difference type they want (#1002).
+ *  @param n the element.  @return its successor (predecessor). */
+export constexpr Cardinality operator++(Cardinality n) noexcept {
+  return successor(n);
 }
-export constexpr Cardinality operator++(Cardinality& n, int) noexcept {
-  const Cardinality before = n;
-  n = successor(n);
-  return before;
+export constexpr Cardinality operator--(Cardinality n) noexcept {
+  return predecessor(n);
 }
-export constexpr Cardinality& operator--(Cardinality& n) noexcept {
-  n = predecessor(n);
-  return n;
-}
-export constexpr Cardinality operator--(Cardinality& n, int) noexcept {
-  const Cardinality before = n;
-  n = predecessor(n);
-  return before;
-}
-static_assert(
-    [] {
-      Cardinality n = finite_cardinality(2);
-      ++n;
-      n++;
-      --n;
-      return n == finite_cardinality(3);
-    }(),
-    "++ / -- step the ℕ proxy in place.");
-static_assert(
-    [] {
-      Cardinality a{ℵ_0{}};
-      ++a;
-      return a == Cardinality{ℵ_0{}};
-    }(),
-    "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
+static_assert(++finite_cardinality(2) == finite_cardinality(3) &&
+                  --finite_cardinality(3) == finite_cardinality(2) &&
+                  --finite_cardinality(0) == finite_cardinality(0),
+              "++ / -- are the successor and the predecessor (monus at 0).");
+static_assert(++Cardinality{ℵ_0{}} == Cardinality{ℵ_0{}},
+              "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
+namespace detail_cardinality_step_witness {
+constexpr Cardinality two = finite_cardinality(2);
+static_assert(++two == finite_cardinality(3) && two == finite_cardinality(2),
+              "by value: ++n is the successor, n is unchanged, even a constant.");
+}  // namespace detail_cardinality_step_witness
 
 /** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
 export constexpr Cardinality operator*(const Cardinality& lhs,
