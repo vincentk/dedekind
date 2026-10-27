@@ -708,7 +708,7 @@ a type's depth & at most 1024 nested instantiations (\texttt{-ftemplate-depth}) 
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & not diagnosed: whatever the hardware does \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as the fold become one \texttt{mul} \\
-telling them apart & \texttt{if consteval} takes its first branch & it takes the other, and FJlt has neither \\
+telling them apart & \texttt{if consteval} takes its first branch & it takes the other, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
 \caption{Where the two binding times differ, for Clang~23 with its default limits.
@@ -729,7 +729,7 @@ Every row of Table~\ref{tab:binding} but the last is a place where one binding t
 None makes the two compute different values for one call: where constant evaluation gives a value, it is the value the run time gives.
 The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen, which is why the listings' carriers are unsigned (Section~\ref{sec:limits}).
-The last row is the one way a program can tell the two binding times apart, and FJlt's grammar does not have it.
+The last row is the one way a program can tell the two binding times apart, and it desugars to its compile-time branch where the branches agree.
 
 \paragraph{The same laws license parallelism.}
 \cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative.
@@ -738,6 +738,13 @@ Its parallel execution policies further ask that the operation introduce no data
 So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par_unseq}, and the threads it uses stay inside it, as local as Rule~1's local state.
 It is a shortcut at run time only: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
 And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
+
+\paragraph{A branch on the binding time desugars to its compile-time branch.}
+\cppinline{if consteval} is the one construct by which a program can observe its binding time, and FJlt need not have it.
+\cppinline{if consteval \{ A \} else \{ B \}} desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).
+For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
+So the law that licenses the shortcut also proves that the branches agree.
+For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate.
@@ -902,8 +909,9 @@ A fold may run out of budget, and when it does the type says so.
 Instances for families of types live in tables and are read through functions, so the library behind the listings is Jlt at its reads and not at its registrations.
 And "standard \Cpp{23}" names a compiler and a library together (Section~\ref{sec:limits}).
 
-Three things follow as work not done here.
+Four things follow as work not done here.
 Completing the linter into a checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Certifying that a run-time shortcut agrees with the fold it replaces, which a branch on the binding time leaves to a declared law or to a reader: when a fold over lists can be partitioned and its parts combined is what the third homomorphism theorem characterises~\cite{gibbons1996third}, and a shape could declare it.
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra beyond declared laws, which needs terms and their composition, and is the subject of further work.
 
