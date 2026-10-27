@@ -351,26 +351,25 @@ concept IsSemimodule =
     linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
 
 template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op> && same_as<Op, plus<T>> &&
-           IsSemimodule<T, size_t>
+  requires IsSemimodule<T, size_t, Op>
 constexpr T times(T x, size_t n) {
   return n * x;
 }
 \end{cpp}
 \begin{minted}[fontsize=\footnotesize]{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  eq : T → T → Bool,  assoc : Bool }
-ModuleDict T S   =  { act : S → T → T,  linear : Bool, … }
+ModuleDict T S Op  =  { monoid : MonoidDict T Op,  act : S → T → T,  linear : Bool, … }
 plus_str  =  { unit = "",  op = λa. λb. a ++ b,  eq = string_eq,  assoc = true }
 plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  eq = u.eq,  assoc = true }
 times₁  =  Λ T Op. λ m x n.  if n = 0 or m.eq x m.unit then m.unit else iter n (λ s. m.op s x) m.unit
-times₂  =  Λ T. λ m s x n.  s.act n x
-times [u64] 7 6        =  times₂ [u64] (plus_u [u64] unsigned_u64) module_u64 7 6
+times₂  =  Λ T Op. λ s x n.  s.act n x
+times [u64] 7 6        =  times₂ [u64 plus] module_u64 7 6
 times [string] "ab" 3  =  times₁ [string plus] plus_str "ab" 3
 \end{minted}
 \caption{A specialisation, then the family translated.
 Top: the shapes, each one more declared law, the laws functions of the operations as in Listing~\ref{lst:rule2}.
 A semiring is two monoids, the first commutative, tied by distributivity, and a semimodule is a commutative monoid on which a semiring acts linearly.
-Below them, the specialisation: where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}, a certificate given for the unsigned carriers.
+Below them, the specialisation: where the carrier under \cppinline{Op} is a semimodule over \cppinline{size_t}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}, a certificate given for the unsigned carriers.
 Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and two calls, each the function its resolution picks.
 The test holds the family and its sugar, and checks that they agree.}
 \label{lst:desugar}

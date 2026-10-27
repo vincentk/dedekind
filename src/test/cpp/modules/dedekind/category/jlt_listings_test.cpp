@@ -231,6 +231,9 @@ concept IsSemimodule =
 
 static_assert(IsSemimodule<size_t, size_t>);
 static_assert(!IsSemimodule<std::string, size_t>);
+// Under * the carrier is no semimodule over size_t: the certificate is for +,
+// so the overload drops out and a power stays a fold.
+static_assert(!IsSemimodule<size_t, size_t, std::multiplies<size_t>>);
 
 // Section 3, the sugar: Listing 3's times with a branch on a concept: in a
 // semimodule over size_t under +, n copies of x are one action of n on x.
@@ -238,7 +241,7 @@ namespace sugar {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T times(T x, size_t n) {
-  if constexpr (std::same_as<Op, std::plus<T>> && IsSemimodule<T, size_t>)
+  if constexpr (IsSemimodule<T, size_t, Op>)
     return n * x;
   else
     return n == 0 || x == unit<T>(Op{})
@@ -261,8 +264,7 @@ constexpr T times(T x, size_t n) {
                                       Op{});
 }
 template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && std::same_as<Op, std::plus<T>> &&
-           IsSemimodule<T, size_t>
+  requires IsSemimodule<T, size_t, Op>
 constexpr T times(T x, size_t n) {
   return n * x;
 }
