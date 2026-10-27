@@ -54,7 +54,7 @@ The claim is one of existence: \Cpp{23} already contains an embedding of a fragm
 \section{Introduction}
 \label{sec:intro}
 
-The case for functional programming has been made the same way for decades, and it is a good case.
+The case for functional programming has been made the same way for decades, and it is a good case; even a compiler's own intermediate form, static single assignment, is a functional language~\cite{appel1998ssa}.
 A function that depends on its arguments alone can be replaced by its value: programs can be read as equations, rewritten by them, and reasoned about by them~\cite{hughes1989why}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone says a great deal about what it does~\cite{wadler1989theorems}.
 A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
@@ -711,18 +711,10 @@ For the parallel \cppinline{concat} the condition is the free monoid's universal
 So the law that licenses the shortcut also proves that the branches agree.
 For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
-\Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
-What the compiler does is instantiate.
-\cppinline{concat<size_t>} at an array of three is compiled as a separate function, with \cppinline{size_t} substituted and every trait call resolved.
-In the model that is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$, with its type and record arguments applied and $\beta$-reduced before the program runs.
-Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term.
-That is Theorem~\ref{thm:simulation}, read at the binding time where the records are constants, and nothing of a record survives to runtime.
-Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form.
-That is a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
-What the model is for is the term \emph{before} that evaluation.
-Parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation, because each one is an application of that term.
-For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct and compare it with monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved correct.
-\Cpp{} only ever does the second, and the first carries the theorems.
+\Cpp{} passes no dictionaries but instantiates, so the translation models what a constrained call means, not what the compiler emits.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs, so the two agree on every closed term: Theorem~\ref{thm:simulation} at the binding time where the records are constants, nothing of a record surviving to run time, and parametricity, a property of the term before that evaluation, holds of every instantiation as an application of it.
+Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's static single assignment form, with the fold's state as the parameters of a loop.
+For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
 
 \section{Known Limitations}
 \label{sec:limits}
