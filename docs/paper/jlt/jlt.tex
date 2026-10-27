@@ -731,6 +731,14 @@ The limits count the evaluator's work and are the compiler's to set: raised, the
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen, which is why the listings' carriers are unsigned (Section~\ref{sec:limits}).
 The last row is the one way a program can tell the two binding times apart, and FJlt's grammar does not have it.
 
+\paragraph{The same laws license parallelism.}
+\cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative.
+Those are laws the shapes declare: associativity is \cppinline{IsMonoid}'s, and commutativity \cppinline{IsCommutativeMonoid}'s.
+Its parallel execution policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
+So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par_unseq}, and the threads it uses stay inside it, as local as Rule~1's local state.
+It is a shortcut at run time only: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
+And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
+
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate.
 \cppinline{concat<size_t>} at an array of three is compiled as a separate function, with \cppinline{size_t} substituted and every trait call resolved.
