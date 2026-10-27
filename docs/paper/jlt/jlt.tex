@@ -611,111 +611,83 @@ Every function in this paper has run twice already.
 The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
 Theorem~\ref{thm:simulation} says the two evaluations agree.
+That is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
 For a \cppinline{static_assert}, whose arguments are constants, the rest is nothing.
-For \cppinline{first<Over1000>(budget)} it is the loop over a budget the compiler does not know.
-There is no magic in this.
-A program has two moments at which work can be done, build time and run time, and work moves between them.
-What is pre-computed at the first is not computed at the second.
-An abstraction whose cost is paid entirely at build time costs nothing at run time.
-The interesting case is the fold, because a budget can arrive at either time.
-Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
+For \cppinline{times<size_t>(x, n)} with \cppinline{x} and \cppinline{n} read at run time, the rest is the fold.
+The presumption holds where both evaluations finish and neither meets undefined behaviour.
+Table~\ref{tab:binding} lists where the two binding times part, and Listing~\ref{lst:binding} shows the parting that matters most for a fold.
 
-% Verbatim up to formatting in jlt_listings_test.cpp, which also calls
-% first with a budget it did not have at compile time.
+% The compile-time lines are in jlt_listings_test.cpp, except the refused
+% one, which the test cannot hold; times_n is Listing 3's panel.
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.55\linewidth}
 \begin{cpp}
-template <typename P>
-concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
-  { p(n) } -> std::same_as<bool>;
-};
+// six copies: six steps of the fold
+static_assert(times<size_t>(7, 6) == 42);
 
-template <IsPredicate P>
-constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
-  return s.second ? s : std::pair{i, P{}(i)};
-}
-
-constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
-  return s.second ? std::optional{s.first} : std::nullopt;
-}
-
-template <IsPredicate P>
-constexpr std::optional<size_t> first(size_t budget) {
-  return found(std::ranges::fold_left(std::views::iota(size_t{0}, budget),
-                                      std::pair{size_t{0}, false}, advance<P>));
-}
-
-struct Over1000 {
-  constexpr bool operator()(size_t n) const { return n * n > 1000; }
-};
-
-static_assert(first<Over1000>(40) == 32);
-static_assert(!first<Over1000>(30));
-
-static_assert(std::ranges::fold_left(chain_view{size_t{3}, size_t{5}}, size_t{0},
-                                     std::plus<size_t>{}) == 12);
-
-using Negation = NegationArrow<Boole>;
-static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
-              Ternary::True);
-static_assert(IsMonotone<Compose<Negation, Negation>>);
+// a budget of 10^8: refused with Listing 3's
+// times alone (hit maximum step limit), one
+// step with Listing 4's overload beside it
+static_assert(times<size_t>(3, 100'000'000) ==
+              300'000'000);
 \end{cpp}
-\caption{A budget, and running out of it.
-\cppinline{advance} is one step on a state, the candidate and whether it has the property, frozen once it has.
-The property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
-\cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
-The second \cppinline{static_assert} is not "no square exceeds 1000".
-It is "none among the first 30".
-The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t}.
-The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$.
-The paragraph on folds over finite data reads them.}
-\label{lst:fuel}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.42\linewidth}
+\begin{minted}{llvm}
+; times<size_t>(x, n), x and n at run
+; time: with Listing 3 alone, and with
+; Listing 4's overload beside it
+define i64 @times_n(i64 %x, i64 %n) {
+  %r = mul i64 %n, %x
+  ret i64 %r
+}
+\end{minted}
+\end{minipage}
+\caption{The same calls at both binding times.
+Left, at compile time: six copies of \cppinline{7} are six steps of Listing~\ref{lst:rule3}'s fold.
+A budget of $10^8$ is refused with that \cppinline{times} alone, and holds in one step with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks.
+Right, at run time: under either, the call compiles to one multiplication, Clang~23 at \texttt{-O2}.
+The law changes what the compile time can do, and nothing the run time does.}
+\label{lst:binding}
 \end{listing}
 
-\paragraph{The answer when the budget runs out is an absence.}
-For a general property, no budget can be replaced by a proof.
-So a function that searches has to say what it says when the budget ends first.
-In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{A predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}: Kleene's three, whose third he introduced for a computation that has not answered~\cite{kleene1952metamathematics}.}
-That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang.
-Exhaustion is explicit in the result, and a caller has to check for it.
-What cannot happen is that the budget's end passes unseen as a value of the result type.
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& at compile time, in constant evaluation & at run time \\
+\midrule
+who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
+a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the budget alone \\
+a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
+a type's depth & at most 1024 nested instantiations (\texttt{-ftemplate-depth}) & none, since instantiation is over \\
+undefined behaviour & refused: the expression is not a constant, and the program does not compile & not diagnosed: whatever the hardware does \\
+an allocation & freed before the evaluation ends, or refused & may outlive the call \\
+a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as the fold become one \texttt{mul} \\
+telling them apart & \texttt{if consteval} takes its first branch & it takes the other, and FJlt has neither \\
+\bottomrule
+\end{tabularx}
+\caption{Where the two binding times differ, for Clang~23 with its default limits.
+Each limit counts the evaluator's work, and can be raised.
+Every row but the last is a refusal on one side, never a different value: where both evaluations finish without undefined behaviour, they agree (Theorem~\ref{thm:simulation}).}
+\label{tab:binding}
+\end{table}
 
-\paragraph{A budget at compile time is the same budget.}
-\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it.
-\cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
-Nothing about the fold changes between the two.
-At compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and in both cases the range it folds is a lazy \cppinline{iota}.
-What the processor runs is what the compiler leaves after instantiation and constant folding.
-\cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, and \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
-The search is a loop of 84 instructions, unrolled by four and without a branch in its body.
-Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
-The records of Section~\ref{sec:translation} and the ranges of this section are gone, and the end of this section says why.
-The discipline costs nothing at runtime: it is the zero-overhead principle~\cite{stroustrup2005abstraction}, met by pre-computation.
-The records' cost is paid at build time, where it is paid once.
-
-
-\paragraph{At compile time, only a law shortens a fold.}
-At runtime the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows.
+\paragraph{The two evaluators are different programs.}
+At run time the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows.
 In constant evaluation no optimiser runs: the front end interprets the fold one step at a time.
 The optimiser, which finds the multiplication, works later, and only on the code emitted for run time.
-So the two binding times part on a large budget:
-\begin{cpp}
-static_assert(times<size_t>(3, 100'000'000) == 300'000'000);
-\end{cpp}
-With Listing~\ref{lst:rule3}'s \cppinline{times} alone the assertion is refused, the evaluator reporting that it \emph{hit maximum step limit}.
-With Listing~\ref{lst:desugar}'s overload beside it the same line holds in one step, since resolution picks the semimodule's action, \cppinline{n * x}.
-At runtime the two compile to the same instruction.
-A declared law buys at build time what the optimiser finds at runtime by itself.
-A budget meets the compiler's step limit only where no law shortens the fold (Section~\ref{sec:limits}).
+So at compile time only a declared law shortens a fold, and resolution is what chooses it, as for Listing~\ref{lst:desugar}'s overload.
+A declared law buys at build time what the optimiser finds at run time by itself.
 
-\paragraph{Folds over finite data.}
-The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
-\cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step.
-\cppinline{iota(0, n)} is its instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.
-\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function.
-\cppinline{monotone} reads one law off the result, in $K_3$, and finds it \cppinline{True}, since antitone after antitone is monotone.
-The concept \cppinline{IsMonotone} on the same term agrees, as it must.
-The concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
+\paragraph{Every difference is a refusal, not another value.}
+Every row of Table~\ref{tab:binding} but the last is a place where one binding time stops and the other goes on.
+None makes the two compute different values for one call: where constant evaluation gives a value, it is the value the run time gives.
+The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
+Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen, which is why the listings' carriers are unsigned (Section~\ref{sec:limits}).
+The last row is the one way a program can tell the two binding times apart, and FJlt's grammar does not have it.
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
 What the compiler does is instantiate.

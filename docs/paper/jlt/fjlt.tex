@@ -429,6 +429,47 @@ SSA is a functional language.
 Kelsey showed it to correspond to continuation-passing style~\cite{kelsey1995correspondence}, and Appel put the correspondence as a slogan~\cite{appel1998ssa}: a basic block is a local function, its $\phi$-nodes are that function's parameters, a branch is a tail call that passes the arguments, and dominance is lexical scope.
 So a Jlt function is translated twice into a functional language, by this appendix into System~F with records and iterators, and by the compiler into first-order functions with tail calls, with instantiation between the two; Rules~1 and~3 are what makes the source already look like the second.
 
+% Verbatim up to formatting in jlt_listings_test.cpp, which also calls
+% first with a budget it did not have at compile time.
+\begin{listing}[htbp]
+\begin{cpp}
+template <typename P>
+concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
+  { p(n) } -> std::same_as<bool>;
+};
+
+template <IsPredicate P>
+constexpr std::pair<size_t, bool> advance(std::pair<size_t, bool> s, size_t i) {
+  return s.second ? s : std::pair{i, P{}(i)};
+}
+
+constexpr std::optional<size_t> found(std::pair<size_t, bool> s) {
+  return s.second ? std::optional{s.first} : std::nullopt;
+}
+
+template <IsPredicate P>
+constexpr std::optional<size_t> first(size_t budget) {
+  return found(std::ranges::fold_left(std::views::iota(size_t{0}, budget),
+                                      std::pair{size_t{0}, false}, advance<P>));
+}
+
+struct Over1000 {
+  constexpr bool operator()(size_t n) const { return n * n > 1000; }
+};
+
+static_assert(first<Over1000>(40) == 32);
+static_assert(!first<Over1000>(30));
+
+\end{cpp}
+\caption{A search under a budget, and running out of it.
+\cppinline{advance} is one step on a state, the candidate and whether it has the property, frozen once it has.
+The property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, and Rule~2 is why the shape is there.
+\cppinline{first} folds it over the first \cppinline{budget} naturals, and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
+The second \cppinline{static_assert} is not "no square exceeds 1000".
+It is "none among the first 30".}
+\label{lst:fuel}
+\end{listing}
+
 Listing~\ref{lst:ssa} is the search of Listing~\ref{lst:fuel}, \cppinline{first<Over1000>} behind a non-template wrapper, as the compiler leaves it before it unrolls the loop.
 The fold over \cppinline{iota(0, budget)} with \cppinline{advance} is one loop, and its header has three $\phi$-nodes: the two components of the state, the candidate and whether it has been found, and the position in the range.
 Those are the iterator's state in Figure~\ref{fig:fjlt-translation}, the pair $(\llbracket r \rrbracket, \llbracket a \rrbracket)$ with $\llbracket a \rrbracket$ itself a pair, and the count $|r|$, here $\llbracket j \rrbracket - \llbracket i \rrbracket$, is the comparison that ends the loop.
