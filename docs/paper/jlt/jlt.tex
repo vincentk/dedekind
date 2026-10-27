@@ -766,18 +766,10 @@ A fold over a term that is a value, evaluated at compile time, is one \cppinline
 
 \subsection{Limits of this presentation}
 
-\paragraph{The linter reads names.}
-Rules~2 and~3 are decidable, so a checker for them is engineering rather than a research problem.
-The repository has one, run after the build in its continuous-integration pipeline on the compiler's own front end.
-It checks Rule~3 for every body the compiler instantiates, up to the blind spots its rule files document: no loop but the library's iteration primitive, and no function on a call cycle.
-It checks Rule~1's syntactic part for the functions the compiler never evaluates: \cppinline{constexpr} and \cppinline{const} where the rule wants them, no state, no result by reference.
-It checks Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-A finding is a breach, or a gap in the linter's reading of the standard's concepts, and is read before it is acted on.
-Its silence certifies nothing, since it reads names, not arities or types.
-Definition checking proper is work this paper does not promise.
-An agentic reviewer reads every pull request against the three rules, with Section~\ref{sec:posture} as its brief, and reaches what the linter does not.
-The listings and the library's core are held at zero on all three rules, to the extent the two instruments reach.
-The one planted finding is the test's \cppinline{twice_loose}, which adds a value to itself under no constraint.
+\paragraph{The linter is sound and incomplete.}
+The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
+A finding is a breach or a gap in its reading of the standard's concepts; its silence certifies nothing, since it reads names and not types, and definition checking proper is not promised here.
+Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach, the one planted finding being the test's \cppinline{twice_loose}.
 
 \paragraph{The adequacy argument covers part of the library.}
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
