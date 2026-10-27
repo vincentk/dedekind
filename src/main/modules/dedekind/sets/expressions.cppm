@@ -1047,6 +1047,9 @@ struct ComposedIsoImagePredicate {
   FInv f_inverse;
 
   template <typename U>
+    requires std::invocable<const FInv&, const U&> &&
+             std::invocable<const SourceSet&,
+                            std::invoke_result_t<const FInv&, const U&>>
   constexpr auto operator()(const U& y) const {
     return source(f_inverse(y));
   }
@@ -1143,6 +1146,10 @@ struct ComposedRetractImagePredicate {
   RetractFn retract_fn;
 
   template <typename U>
+    requires std::invocable<const RetractFn&, const U&> &&
+             std::invocable<const SourceSet&,
+                            typename std::invoke_result_t<const RetractFn&,
+                                                          const U&>::value_type>
   constexpr typename L::Ω operator()(const U& y) const {
     auto mx = retract_fn(y);
     if (mx.has_value()) {
