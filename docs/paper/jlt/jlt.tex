@@ -116,7 +116,7 @@ Figure~\ref{fig:arrows} sketches the arrows between these pieces.
 \caption{The arrows of the paper.
 The inclusions of FJlt in Jlt and of Jlt in \Cpp{23} are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
-Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language: for every $t$ in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$, by Theorem~\ref{thm:simulation}.
+Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language: for every closed $t$ of base type in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$, by Theorem~\ref{thm:simulation} inside the calculus and the argument of Section~\ref{sec:binding} for the program the compiler emits.
 \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
 Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
 The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
@@ -709,7 +709,7 @@ Undefined behaviour runs the other way: constant evaluation refuses it, and at r
 
 \paragraph{The same laws license parallelism.}
 Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
-\cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
+\cppinline{std::reduce} may regroup and reorder the operands it folds, so its result is determined only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
 Its parallel policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
 So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid} and for a forward range, which the parallel policies require, calling \cppinline{std::reduce} with \cppinline{std::execution::par}, and its threads stay inside it.
 The laws say when the split is correct, not when it pays: a thread costs more than a step of a fold, only enough work repays it, and that is the run time's to measure.
