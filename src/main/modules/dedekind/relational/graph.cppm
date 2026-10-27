@@ -419,6 +419,7 @@ namespace detail_hyperdoctrine {
 /** @brief @f$\exists c \in C.\ R(\ldots c \ldots)@f$ over a finite chain:
  *  the join of the substitutions at every value, from @c c upward. */
 template <std::size_t K, typename C, C c, typename T, typename R>
+  requires std::equality_comparable<C> && dedekind::sets::IsSetObject<R>
 constexpr auto shannon(const R& r) {
   // Qualified: category::preimage (the Compose form) is reachable by ADL too.
   const auto here = dedekind::relational::preimage(Fixed<K, C, c, T>{}, r);
@@ -786,6 +787,8 @@ struct AgreesAt {
   const G& g;
   const A& a;
   template <typename B>
+    requires std::invocable<const R&, std::pair<A, B>> &&
+             std::invocable<const G&, std::pair<A, B>>
   constexpr bool operator()(const B& b) const {
     return static_cast<bool>(r(std::pair{a, b})) ==
            static_cast<bool>(g(std::pair{a, b}));

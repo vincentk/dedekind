@@ -227,6 +227,7 @@ struct FibrePredicate {
   friend constexpr bool operator==(const FibrePredicate&,
                                    const FibrePredicate&) = default;
   template <typename T2>
+    requires std::invocable<const Rel&, std::pair<T1, T2>>
   constexpr auto operator()(const T2& b) const {
     return relation(std::pair<T1, T2>{point, b});
   }
@@ -237,6 +238,8 @@ struct FibrePredicate {
  *  transpose @f$\Lambda R : A \to \mathcal{P}(B)@f$ read as a first-class
  *  subobject. */
 export template <typename T1, typename T2, typename L, typename P, typename C>
+  requires std::invocable<const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>&,
+                          std::pair<T1, T2>>
 constexpr auto fibre(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
                      const T1& x) {
   using Fib = FibrePredicate<Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>, T1>;
@@ -268,6 +271,12 @@ constexpr auto fibre(const Comprehension<𝔸<std::pair<T1, T2>, L, C>, P>& r,
  * function's own species, not its base's tag.
  */
 export template <typename T1, typename T2, typename L, typename P>
+  requires requires(const T2& y) {
+    {
+      y == y
+    } -> dedekind::category::LiftableInto<
+        typename SetFunction<T1, T2, L, P>::logic_species>;
+  }
 constexpr auto is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
                                    const T1& x, const T2& y1, const T2& y2) {
   using Lf = typename SetFunction<T1, T2, L, P>::logic_species;
@@ -291,6 +300,23 @@ export using dedekind::sets::RelOr;
 // and @c * (closure) is @c FIXME(#786).
 
 // ── converse and the bracket-free relation query ───────────────────────────
+/** @brief Pair-like carrier: both coordinates present --- the shape every
+ *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
+ */
+export template <typename D>
+concept IsPairLike = requires(const D& d) {
+  typename D::first_type;
+  typename D::second_type;
+  d.first;
+  d.second;
+};
+
+/** @brief The pair @c (b, a) of a pair @c (a, b): the shape the converse
+ *  reads its operand at. */
+template <typename Pair>
+using swapped_t =
+    std::pair<typename Pair::second_type, typename Pair::first_type>;
+
 /** @brief The swapped predicate for @c converse: @f$R^\smile(b,a) = R(a,b)@f$.
  */
 export template <typename P>
@@ -298,18 +324,10 @@ struct SwapPred {
   using is_rel_predicate = void;
   P p;
   template <typename Pair>
+    requires IsPairLike<Pair> && std::invocable<const P&, swapped_t<Pair>>
   constexpr auto operator()(const Pair& pr) const {
     return p(std::pair{pr.second, pr.first});
   }
-};
-
-/** @brief Pair-like carrier: both coordinates present --- the shape every
- *  relation (@c converse, @c reflexive, @c symmetric, @c is_relation) assumes.
- */
-export template <typename D>
-concept IsPairLike = requires {
-  typename D::first_type;
-  typename D::second_type;
 };
 
 /** @brief @c converse(R) --- the transpose @f$R^\smile \subseteq B \times A@f$
@@ -351,6 +369,10 @@ struct ComposePred {
   PR r;
   PS s;
   template <typename Pair>
+    requires IsPairLike<Pair> && std::constructible_from<B, bool> &&
+             std::invocable<const PR&,
+                            std::pair<typename Pair::first_type, B>> &&
+             std::invocable<const PS&, std::pair<B, typename Pair::second_type>>
   constexpr bool operator()(const Pair& ac) const {
     return (r(std::pair{ac.first, B{false}}) &&
             s(std::pair{B{false}, ac.second})) ||
@@ -473,6 +495,9 @@ struct PairwisePred {
   using is_rel_predicate = void;
   Op op;
   template <typename Pair>
+    requires IsPairLike<Pair> &&
+             std::invocable<const Op&, const typename Pair::first_type&,
+                            const typename Pair::second_type&>
   constexpr auto operator()(const Pair& p) const {
     return op(p.first, p.second);
   }
@@ -491,6 +516,7 @@ constexpr auto relation_of(Op op) {
  *  carrier @c A --- @c {π_1==π_2} --- the reflexive-closure unit and the @c 1
  * of the relation algebra. */
 export template <typename A, typename L = dedekind::category::Boole>
+  requires std::equality_comparable<A>
 constexpr auto diag() {
   return Comprehension<𝔸<std::pair<A, A>, L>, DiagPred<A>>{DiagPred<A>{}};
 }
@@ -507,6 +533,7 @@ struct CoreflexivePred {
    *  @c S keeps @c Unknown and @c False (a @c bool cast would read
    *  @c Ternary::False, @c -1, as true). */
   template <typename A>
+    requires std::invocable<const S&, const A&>
   constexpr auto operator()(const std::pair<A, A>& p) const {
     using L = typename S::logic_species;
     return L::AND(dedekind::category::lift_logic<L>(p.first == p.second),
@@ -727,42 +754,36 @@ export constexpr dedekind::category::Ternary infer(
   return Ternary::Unknown;
 }
 
-/** @brief The laws an arrow is certified: one answer in K₃ per law.  A
- *  @c constexpr value, so the engine is read by the compiler on a typed
- *  relation (the traits of @c :cartesian, below) and by the program over a
- *  @c RelExpr (@c relational:rows, @c laws): one engine, two readers. */
+/** @brief The laws an arrow is certified: one answer in K₃ per law, a
+ *  profile (@c category::Profile) over the four.  A @c constexpr value, so
+ *  the engine is read by the compiler on a typed relation (the traits of
+ *  @c :cartesian, below) and by the program over a @c RelExpr
+ *  (@c relational:rows, @c laws): one engine, two readers. */
+export using Laws = dedekind::category::Profile<Law, 4>;
 /** @brief The engine at one node and one law, as a function of the law; the
  *  converse reads its operand at the dagger law. */
 struct NodeAt {
   Node n;
-  dedekind::category::Profile<Law, 4> a, b;
+  Laws a, b;
   constexpr dedekind::category::Ternary operator()(Law w) const {
     return infer(w, n, n == Node::Converse ? a[dagger(w)] : a[w], b[w]);
   }
 };
-export struct Laws : dedekind::category::Profile<Law, 4> {
-  using Profile = dedekind::category::Profile<Law, 4>;
-  /** @brief Declared answers, read off four witnesses. */
-  static constexpr Laws from(bool total, bool univalent, bool injective,
-                             bool surjective) {
-    Profile p;
-    if (total) p = p.with(Law::Total);
-    if (univalent) p = p.with(Law::Univalent);
-    if (injective) p = p.with(Law::Injective);
-    if (surjective) p = p.with(Law::Surjective);
-    return Laws{p};
-  }
-  /** @brief The engine at a node, law by law: the legs' answers in, the
-   *  node's out; @c ° reads its operand at the dagger law. */
-  static constexpr Laws node(Node n, const Laws& a) {
-    return node(n, a, Laws{});
-  }
-  static constexpr Laws node(Node n, const Laws& a, const Laws& b) {
-    Laws out;
-    static_cast<Profile&>(out) = Profile::tabulate(NodeAt{n, a, b});
-    return out;
-  }
-};
+/** @brief Declared answers, read off four witnesses. */
+export constexpr Laws laws_from(bool total, bool univalent, bool injective,
+                                bool surjective) {
+  Laws p;
+  if (total) p = p.with(Law::Total);
+  if (univalent) p = p.with(Law::Univalent);
+  if (injective) p = p.with(Law::Injective);
+  if (surjective) p = p.with(Law::Surjective);
+  return p;
+}
+/** @brief The engine at a node, law by law: the legs' answers in, the
+ *  node's out; @c ° reads its operand at the dagger law. */
+export constexpr Laws node_laws(Node n, const Laws& a, const Laws& b = {}) {
+  return Laws::tabulate(NodeAt{n, a, b});
+}
 namespace detail_laws_witness {
 using dedekind::category::Ternary;
 static_assert(infer(Law::Total, Node::Compose, Ternary::True, Ternary::True) ==
@@ -782,10 +803,10 @@ static_assert(infer(Law::Univalent, Node::Sum, Ternary::True, Ternary::True) ==
               "the sum of two tables has both their rows above the one input");
 static_assert(dagger(dagger(Law::Injective)) == Law::Injective,
               "° is an involution on the laws");
-static_assert(Laws::node(Node::Converse,
-                         Laws::node(Node::Converse,
-                                    Laws::from(true, true, false, false))) ==
-                  Laws::from(true, true, false, false),
+static_assert(node_laws(Node::Converse,
+                        node_laws(Node::Converse,
+                                  laws_from(true, true, false, false))) ==
+                  laws_from(true, true, false, false),
               "°° is the identity on an arrow's laws");
 }  // namespace detail_laws_witness
 
@@ -794,10 +815,10 @@ static_assert(Laws::node(Node::Converse,
  *  (the readers in the @c category namespace below). */
 export template <typename R>
 inline constexpr Laws laws_of_v =
-    Laws::from(dedekind::category::is_left_total_v<R>,
-               dedekind::category::is_right_unique_v<R>,
-               dedekind::category::is_left_unique_v<R>,
-               dedekind::category::is_right_total_v<R>);
+    laws_from(dedekind::category::is_left_total_v<R>,
+              dedekind::category::is_right_unique_v<R>,
+              dedekind::category::is_left_unique_v<R>,
+              dedekind::category::is_right_total_v<R>);
 
 }  // namespace dedekind::relational
 
@@ -834,7 +855,7 @@ inline constexpr bool is_right_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, A>, L, C>,
                                   dedekind::relational::DiagPred<A>>> = true;
 
-// NODES: each trait reads the engine (relational::infer, through Laws::node)
+// NODES: each trait reads the engine (relational::infer, through node_laws)
 // on the operands' laws, as the run-time fold over a RelExpr does.  The
 // relative product R;S (the retained intermediate @c B reconstructs the factor
 // relations), the converse (the swapped predicate's carrier reconstructs its
@@ -844,7 +865,7 @@ template <typename A, typename C, typename L, typename PR, typename PS,
 inline constexpr bool is_left_total_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Compose,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -856,7 +877,7 @@ template <typename A, typename C, typename L, typename PR, typename PS,
 inline constexpr bool is_right_unique_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Compose,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -868,7 +889,7 @@ template <typename A, typename C, typename L, typename PR, typename PS,
 inline constexpr bool is_left_unique_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Compose,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -880,7 +901,7 @@ template <typename A, typename C, typename L, typename PR, typename PS,
 inline constexpr bool is_right_total_v<dedekind::sets::Comprehension<
     dedekind::sets::𝔸<std::pair<A, C>, L, Card>,
     dedekind::relational::ComposePred<PR, PS, B>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Compose,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -891,7 +912,7 @@ template <typename B, typename A, typename L, typename Card, typename P>
 inline constexpr bool is_left_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
                                   dedekind::relational::SwapPred<P>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Converse,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
@@ -900,7 +921,7 @@ template <typename B, typename A, typename L, typename Card, typename P>
 inline constexpr bool is_right_unique_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
                                   dedekind::relational::SwapPred<P>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Converse,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
@@ -909,7 +930,7 @@ template <typename B, typename A, typename L, typename Card, typename P>
 inline constexpr bool is_left_unique_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
                                   dedekind::relational::SwapPred<P>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Converse,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
@@ -918,7 +939,7 @@ template <typename B, typename A, typename L, typename Card, typename P>
 inline constexpr bool is_right_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<B, A>, L, Card>,
                                   dedekind::relational::SwapPred<P>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Converse,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, P>>)
@@ -928,7 +949,7 @@ template <typename A, typename B, typename L, typename Card, typename PR,
 inline constexpr bool is_left_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
                                   dedekind::sets::RelAnd<PR, PS>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Meet,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -940,7 +961,7 @@ template <typename A, typename B, typename L, typename Card, typename PR,
 inline constexpr bool is_right_unique_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
                                   dedekind::sets::RelAnd<PR, PS>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Meet,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -952,7 +973,7 @@ template <typename A, typename B, typename L, typename Card, typename PR,
 inline constexpr bool is_left_unique_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
                                   dedekind::sets::RelAnd<PR, PS>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Meet,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -964,7 +985,7 @@ template <typename A, typename B, typename L, typename Card, typename PR,
 inline constexpr bool is_right_total_v<
     dedekind::sets::Comprehension<dedekind::sets::𝔸<std::pair<A, B>, L, Card>,
                                   dedekind::sets::RelAnd<PR, PS>>> =
-    dedekind::relational::Laws::node(
+    dedekind::relational::node_laws(
         dedekind::relational::Node::Meet,
         dedekind::relational::laws_of_v<dedekind::sets::Comprehension<
             dedekind::sets::𝔸<std::pair<A, B>, L, Card>, PR>>,
@@ -986,7 +1007,7 @@ static_assert(
         decltype(dedekind::relational::diag<bool>() >>
                  dedekind::relational::converse(
                      dedekind::relational::diag<bool>()))> ==
-        dedekind::relational::Laws::from(true, true, true, true),
+        dedekind::relational::laws_from(true, true, true, true),
     "Δ ; Δ° is an isomorphism: the four sets are closed under composition");
 static_assert(
     is_right_unique_v<decltype(dedekind::relational::diag<bool>() &
