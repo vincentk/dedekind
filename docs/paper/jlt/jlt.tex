@@ -62,20 +62,31 @@ For the declared laws Birkhoff's theorem makes the reasoning complete: an equati
 A class with laws is an equational theory and its instances the models, a variety, and a stronger class has fewer instances, so the constraints describe the structure and the structure licenses the optimisation.
 The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
 
-The case is usually made in a language built around it, and that is where this paper departs: it makes the case in a strongly typed mainstream systems programming language with a stock compiler and no extensions.
-While such languages are not theorem provers, their compilers perform checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} accepted because the checker, not the author, said so.
+The case is usually made in a language built around it, and this paper makes it in a mainstream systems language instead, \Cpp{23}.
+Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
+A fragment of it is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+Performance is why one comes to such a language in the first place, and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and Section~\ref{sec:binding} shows it pre-computing what the rules make computable.
+What the rules address is the other cost, the language's size.
+And the rules a compiler does not check are cheaper to hold than a decade ago: a language model of code~\cite{chen2021evaluating} reads every change against them, which is not a proof but a read, and often a good one (Section~\ref{sec:limits}).
+
+\Cpp{} is not a theorem prover, but its compiler performs checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} accepted because the checker, not the author, said so.
 The search that found those proofs is a black box, and a language model's account of its own reasoning need not be the reasoning it did: a chain of thought can leave out what drove the answer~\cite{turpin2023unfaithful}, and circuit tracing finds computations that the model's own explanation misdescribes~\cite{lindsey2025biology}.
 What makes the output usable is that it is no black box: it is an artefact a small checker verifies, the interpretable model Rudin asks for in place of an explained black box~\cite{rudin2019stop}.
 Tao's registry of Lean-verified mathematics is arranged that way: a short statement a human reads, checked against a proof of any length, which, found by a machine, may be correct and still inefficient or unreadable~\cite{tao2026palomar}.
-A program is such an artefact too, and the rules a compiler does not check are cheaper to hold than a decade ago: a language model of code~\cite{chen2021evaluating} reads every change against them, which is not a proof but a read, and often a good one (Section~\ref{sec:limits}).
-An executable is already a formal object: a machine runs it with no interpretation, so every claim about it is a claim about something formal, whether or not it does what its author meant.
-What daily practice lacks is a way to make such claims and have them checked without leaving the language, and this paper documents a discipline that supplies one: a fragment of a mainstream systems language, characterised so that some of what a functional language guarantees is recovered at the cost of three rules, inside the mainstream ecosystem.
-Performance is why one comes to such a language in the first place, and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and Section~\ref{sec:binding} shows it pre-computing what the rules make computable.
-What the rules address is the other cost, the language's size.
+A program is such an artefact too: a machine runs an executable with no interpretation, so every claim about it is a claim about something formal, whether or not it does what its author meant.
+For generic code \Cpp{} lacks one check.
+\cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}, but as standardised in \Cpp{20} they check only its uses, when the template is instantiated~\cite{stroustrup2009remove}, so a template's body may use operations its constraints do not name.
+The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
+\Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
 
-A fragment of \Cpp{} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient.
-The fragment is the \emph{Juliet Posture}, or Jlt: a subset of \Cpp{23} whose kernel reads as System~F.
-It is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
+The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, both drawn here.
+The outer one is drawn by the three rules: Jlt is \Cpp{23} within them.
+We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
+The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
+The inner one is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which $\llbracket\cdot\rrbracket$ is defined, and it inherits from System~F termination, parametricity and a value.
+Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
+
+Jlt is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
 Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}), and its kernel's terms are System~F terms, by the translation of Section~\ref{sec:translation}.
 Being a strict subset of \Cpp{23}, it is not a language this paper designs but a fragment it characterises, and an embedding it describes, as an archaeologist uncovers a city rather than as an architect builds a house.
 The claim is one of existence, shown by construction: \Cpp{23} contains an embedding of a fragment of System~F, and the listings exhibit it.
@@ -83,19 +94,6 @@ It is not a claim that Jlt is unique or canonical, although another fragment dra
 As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
 The name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 Figure~\ref{fig:arrows} sketches the arrows between these pieces.
-
-The ingredients are compile-time evaluation of ordinary functions and most of the standard library, concepts, and folds over ranges, and one decision in their evolution matters here:
-\cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
-However, \cppinline{concept}s as standardised in \Cpp{20} only check its uses when the template is instantiated~\cite{stroustrup2009remove}.
-As a result, a template's body may use operations its constraints do not name.
-The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
-\Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
-The fragment has two, and this paper draws both.
-The outer one is drawn by the three rules: Jlt is \Cpp{23} within them.
-We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
-The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
-The inner one is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which $\llbracket\cdot\rrbracket$ is defined, and it inherits from System~F termination, parametricity and a value.
-Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
 
 
 \begin{figure}[tb]
@@ -130,7 +128,7 @@ The contribution is a map from a known discipline onto existing mainstream funct
 \item An adequacy argument from \Cpp{} to the calculus, which states its gaps rather than writing around them (Sections~\ref{sec:translation:adequacy} and~\ref{sec:limits}), and the sugar, named with its desugaring (Appendix~\ref{app:fjlt:closure}).
 \item An observation about \Cpp{20} concepts: with overlapping constrained overloads, a generic function's behaviour can depend on a constraint it never declared, which is GHC's incoherent instance resolution, by default and silently.
 Jlt adopts GHC's rule, and the repository's tool reports a call that breaks it (Appendix~\ref{app:fjlt:typing}, Section~\ref{sec:limits}).
-\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mechanical check in the same repository, and that pair is what compliance means here.
+\item The exhibits: every listing in this paper compiles and runs under a stock compiler at both binding times, by a test in the accompanying repository~\cite{Krautler_dedekind_2026}, and is held to the three rules by a mandatory review against them and by a mechanical linter in the same repository: that is what compliance means here.
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and complete definition checking: Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
 
