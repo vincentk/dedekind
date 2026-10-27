@@ -318,9 +318,15 @@ Section~\ref{sec:limits} says how.}
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
-Section~\ref{sec:posture} defined Jlt by its rules and Section~\ref{sec:translation} defines its kernel, Featherweight Jlt, by a grammar; this section is the arrow between them, the $-$sugar of Figure~\ref{fig:arrows}.
+Section~\ref{sec:posture} defined Jlt by its rules, and Section~\ref{sec:translation} defines its kernel, Featherweight Jlt, by a grammar.
+This section is the arrow between them, the $-$sugar of Figure~\ref{fig:arrows}.
 It summarises which construction of Jlt becomes which term of the kernel, and leaves the lemma for each to Appendix~\ref{app:fjlt:closure}.
-Desugaring here means rewriting a program written with conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept, into one that uses only the kernel's constructions and computes the same value, the way the \Cpp{} standard itself defines a lambda as a class with a call operator; the rewriting is not run by a tool but stated, construction by construction, as a condition and the kernel term it yields (Table~\ref{tab:closure}), and the repository's tool measures that the table names every construction the library writes.
+Desugaring here means rewriting a program into one that uses only the kernel's constructions and computes the same value.
+What it removes are the conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept.
+The \Cpp{} standard does the same when it defines a lambda as a class with a call operator.
+No tool runs the rewriting.
+Table~\ref{tab:closure} states it construction by construction: a condition, and the kernel term it yields.
+The repository's linter measures that the table names every construction the library writes.
 
 \begin{listing}[!t]
 \begin{cpp}
@@ -343,34 +349,49 @@ times [string] "ab" 3  =  times₁ [string plus] plus_str "ab" 3
 \end{minted}
 \caption{A specialisation, then the family translated.
 Top: where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-\cppinline{IsSemimodule<T, size_t>} is the library's shape, its defaults \cppinline{+} on \cppinline{T}, \cppinline{+} and \cppinline{*} on \cppinline{size_t}, and the action \cppinline|multiplies<>{}(n, x)|: \cppinline{T} a commutative monoid, \cppinline{size_t} a semiring, the action a \cppinline{T}, and the semimodule laws a certificate, given for the unsigned carriers.
+\cppinline{IsSemimodule<T, size_t>} is the library's shape, with its defaults: \cppinline{+} on \cppinline{T}, \cppinline{+} and \cppinline{*} on \cppinline{size_t}, and the action \cppinline|multiplies<>{}(n, x)|.
+It asks \cppinline{T} to be a commutative monoid, \cppinline{size_t} a semiring and the action a \cppinline{T}, and its laws are a certificate, given for the unsigned carriers.
 The test declares the laws; the library still reads them off the signature, a gap it records.
 Bottom: the family, Listing~\ref{lst:rule3}'s \cppinline{times} and this one, under the translation of Section~\ref{sec:translation}.
-Two record types; Listing~\ref{lst:rule2}'s registration for \cppinline{std::string}, a record, and its instance for the unsigned integrals, a function from the evidence for \texttt{Unsigned T} to a record; the two generic functions, one per line, taking the records of their constraints, \texttt{m} a \texttt{MonoidDict} and \texttt{s} a \texttt{ModuleDict}; and two calls, each the function its resolution picks.
+It holds two record types, and Listing~\ref{lst:rule2}'s registration for \cppinline{std::string}, a record, and its instance for the unsigned integrals, a function from the evidence for \texttt{Unsigned T} to a record.
+Then come the two generic functions, one per line, taking the records of their constraints, \texttt{m} a \texttt{MonoidDict} and \texttt{s} a \texttt{ModuleDict}, and two calls, each the function its resolution picks.
 The test holds the family and its sugar, the specialisation as a branch on the concept inside Listing~\ref{lst:rule3}'s body, and checks that they agree.}
 \label{lst:desugar}
 \end{listing}
 
-Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes a family of generic functions, and the stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
-The branch one would write inside Listing~\ref{lst:rule3}'s \cppinline{times}, \cppinline{if constexpr} on \cppinline{IsSemimodule}, is the listing's overload, and its constraint contains Listing~\ref{lst:rule3}'s.
-The listing shows the family translated at once, since in System~F, which has no overloading, each function is a plain function of its constraints' records, and a call is the function its resolution picks.
-The bodies keep Rule~2, using only what the clauses name: \cppinline{x == unit<T>(Op{})} is \cppinline{IsMonoid}'s, which asks \cppinline{regular<T>}, and the action \cppinline{n * x} is \cppinline{IsSemimodule}'s, whose action \cppinline{multiplies<>} the standard defines by \cppinline{*}.
+Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a concept becomes a family of generic functions.
+The stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
+Written as a branch inside Listing~\ref{lst:rule3}'s \cppinline{times}, the specialisation is an \cppinline{if constexpr} on \cppinline{IsSemimodule}.
+Desugared, it is the listing's overload, whose constraint contains Listing~\ref{lst:rule3}'s.
+The listing shows the family already translated.
+System~F has no overloading, so each function becomes a plain function of its constraints' records, and each call becomes the function its resolution picks.
+The bodies keep Rule~2: they use only what the clauses name.
+\cppinline{x == unit<T>(Op{})} is named by \cppinline{IsMonoid}, which asks \cppinline{regular<T>}.
+The action \cppinline{n * x} is named by \cppinline{IsSemimodule}, whose action \cppinline{multiplies<>} the standard defines by \cppinline{*}.
 The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
-The laws make the answers right: the unit law makes any number of copies of the unit the unit, and the semimodule's, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{n}.
-Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$, so the certificate is true for the unsigned carriers, which wrap at a power of two dividing it, and for none that does not wrap, such as \cppinline{std::string}.
-In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent because the declared constraints decide it at each instantiation.
+The laws make the answers right.
+The unit law makes any number of copies of the unit the unit.
+The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{n}.
+Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$.
+So the certificate is true for the unsigned carriers, which wrap at a power of two dividing $2^{64}$, and for no carrier that does not wrap, such as \cppinline{std::string}.
+In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}).
+Theorem~\ref{thm:coherence} keeps it coherent, because the declared constraints decide it at each instantiation.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 
 The theorems of Section~\ref{sec:guarantees} are about FJlt.
 For them to say anything about a \Cpp{} program, two things have to hold, and they hold in different ways.
 
 \emph{Every FJlt program is a Jlt program, with the same meaning.}
-This direction is by construction, and Appendix~\ref{app:fjlt:syntax} states it: the grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, FJlt's evaluation is constant evaluation restricted to it, and for each construct the standard's rule is the FJlt rule.
-Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently; at run time it can, which is why the listings' carriers are unsigned.
+This direction holds by construction, as Appendix~\ref{app:fjlt:syntax} states.
+The grammar of Figure~\ref{fig:fjlt-syntax} is \Cpp{} syntax, and FJlt's evaluation is constant evaluation restricted to it.
+For each construct, the standard's rule is the FJlt rule.
+Constant evaluation refuses undefined behaviour, so at compile time an FJlt program cannot go wrong silently.
+At run time it can, which is why the listings' carriers are unsigned.
 The standard library pieces the grammar admits are taken with their standard meaning, as every \Cpp{} program takes them.
 
 \emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
-This direction is not a theorem, because the compiler does not check two of the rules, and it is conditional on the grammar, because \Cpp{} has what FJlt does not and a Jlt program may use it.
+This direction is not a theorem, because the compiler does not check two of the rules.
+It is also conditional on the grammar, because \Cpp{} has constructions FJlt lacks, and a Jlt program may use them.
 Table~\ref{tab:adequacy} lists what a Jlt program may write that the kernel's grammar does not have, and what the kernel has instead.
 
 \begin{table}[ht]
@@ -392,11 +413,16 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax, except for overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
-Row~3, conversions, is half closed: the grammar admits one only where a requirement declares it, and that the body then uses the result at the declared type rather than at its own is Rule~2 again.
+Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax.
+The exception is overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
+Row~3, conversions, is half closed: the grammar admits a conversion only where a requirement declares it.
+That the body then uses the result at the declared type, not at its own, is Rule~2 again.
 Row~4 is erased by the translation, an optimisation and not a meaning.
-Row~5 is the sugar: each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}, with the condition under which it desugars and the kernel term it becomes, and no row needs anything the calculus lacks.
-The table is complete for the \texttt{category} module and the listings by measurement, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}); that each desugaring keeps the meaning is named and not proved, the paper's working hypothesis.
+Row~5 is the sugar.
+Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}: the condition under which it desugars, and the kernel term it becomes.
+No row needs anything the calculus lacks.
+By measurement, the table is complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
 The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
@@ -405,12 +431,18 @@ The library's other modules hold code outside the posture, and the adequacy argu
 % example and the rules it uses.  The full calculus (Appendix~\ref{app:fjlt})
 % is the warranty; a reader who stops here knows the claims and their cost.
 
-This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt, the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar, into System~F with records and the iterators of inductive types.
-A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator. Appendix~\ref{app:fjlt:translation} defines the map in full.
+This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt into System~F with records and the iterators of inductive types.
+Featherweight Jlt is the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar.
+A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator.
+Appendix~\ref{app:fjlt:translation} defines the map in full.
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
-It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules, and Section~\ref{sec:translation:adequacy} is the argument for when it does.
-Everything the listings do is covered by six of its rules, which Table~\ref{tab:rules} states, the rest being bookkeeping.
-Read the table with Listings~\ref{lst:rule2} and~\ref{lst:desugar} beside it: \cppinline{IsMonoid} is the first row, \cppinline{unit<std::string>(std::plus<std::string>)} the third, the instance for the unsigned integrals and the two \cppinline{times} the fourth, the two resolved calls the fifth, and the fold of \texttt{times₁} the sixth.
+It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules.
+Section~\ref{sec:translation:adequacy} is the argument for when it does.
+Six of its rules cover everything the listings do, and Table~\ref{tab:rules} states them.
+The rest is bookkeeping.
+Read the table with Listings~\ref{lst:rule2} and~\ref{lst:desugar} beside it.
+\cppinline{IsMonoid} is the first row, and \cppinline{unit<std::string>(std::plus<std::string>)} the third.
+The instance for the unsigned integrals and the two \cppinline{times} are the fourth, the two resolved calls the fifth, and the fold of \texttt{times₁} the sixth.
 
 \begin{table}[ht]
 \centering
@@ -438,13 +470,17 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \label{tab:rules}
 \end{table}
 
-The lower panel of Listing~\ref{lst:desugar} is such a System~F program, the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy} read through the translation.
+The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
 The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
-A shape built from shapes, as Listing~\ref{lst:ring}'s \cppinline{IsSemiring} is built from two monoids, is a record holding their records, which is how a superclass is passed.
+A shape built from shapes is a record holding their records, as Listing~\ref{lst:ring}'s \cppinline{IsSemiring} holds the records of two monoids.
+That is how a superclass is passed.
 A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
-That is dictionary passing, the translation of type classes into System~F,\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.} and Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
-\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
-A registration, such as Listing~\ref{lst:rule2}'s unit for \cppinline{std::string}, is a record, and its instance for every unsigned integral is an instance with a context, a function from records to a record (Section~\ref{sec:translation:contexts}).
+That is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.}
+Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
+\cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}.
+So under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
+A registration, such as Listing~\ref{lst:rule2}'s unit for \cppinline{std::string}, is a record.
+The listing's instance for every unsigned integral is an instance with a context, a function from records to a record (Section~\ref{sec:translation:contexts}).
 
 \begin{table}[ht]
 \centering
@@ -468,14 +504,16 @@ The second row has no counterpart in a nominal type-class system: concepts are s
 \subsection{Instances with contexts}
 \label{sec:translation:contexts}
 
-An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one, and Listing~\ref{lst:rule2}'s instance for the unsigned integrals is the simplest case, one context on one carrier.
+An instance may itself require instances: the unit of a pair is the pair of units, provided both components have one.
+Listing~\ref{lst:rule2}'s instance for the unsigned integrals is the simplest case, one context on one carrier.
 In \Cpp{} that is a generic function with a \cppinline{requires} clause, and the clause is the context.
 Under translation it is a function from the components' records to the composite's:
 \begin{minted}{text}
 pair_unit  =  Λ A. Λ B. λ da : MonoidDict A OpA. λ db : MonoidDict B OpB.
                 (da.unit, db.unit)
 \end{minted}
-The compiler applies such functions outside in, as often as the composite nests, and the recursion ends because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}; GHC calls them the Paterson conditions.
+The compiler applies such functions outside in, as often as the composite nests.
+The recursion ends, because a context can only mention proper parts of the type it is for.\footnote{The termination conditions on instance contexts are studied by Sulzmann et al.~\cite{sulzmann2007understanding}. GHC calls them the Paterson conditions.
 The FJlt syntax enforces them by construction, since a context can only mention the type arguments of the operation being specialised.}
 
 \section{From System~F Back to Featherweight Jlt}
@@ -488,7 +526,8 @@ The FJlt syntax enforces them by construction, since a context can only mention 
 
 The theorems rest on FJlt alone.
 Their proofs (Appendix~\ref{app:fjlt:theorems}) are inductions over the grammar, the typing and the translation of FJlt, and never mention the three rules.
-The rules are not the hypotheses of the theorems; they are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:translation:adequacy}.
+The rules are not the hypotheses of the theorems.
+They are what makes a \Cpp{} program a term of the calculus the theorems are about, and that step is the argument of Section~\ref{sec:translation:adequacy}.
 
 \begin{theorem}[Type preservation]
 \label{thm:preservation}
@@ -496,17 +535,25 @@ If $\Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Gamma \rrbracket \vdash \
 \end{theorem}
 
 A well-formed FJlt program translates to a well-typed term.
-Each \cppinline{requires} clause has become a record parameter, and at each call the instance the compiler resolved supplies a record of the type that parameter demands.
+Each \cppinline{requires} clause has become a record parameter.
+At each call, the instance the compiler resolved supplies a record of the type that parameter demands.
 
 \begin{theorem}[Simulation]
 \label{thm:simulation}
-If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values. For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
+If $e \longrightarrow e'$ in FJlt, then $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e' \rrbracket$ in System~F, and values translate to values.
+For closed terms of base type, $e$ evaluates to $v$ if and only if $\llbracket e \rrbracket$ reduces to $\llbracket v \rrbracket$.
 \end{theorem}
 
-What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes. Section~\ref{sec:binding} is this theorem run twice.
-It is also the notion of equality here, and a notion has to be chosen, since equational reasoning presupposes one and which one is a question of its own~\cite{mazur2008equal}: two closed terms of a carrier are equal when they evaluate to the same value, equality by behaviour and not by identity, and Leibniz's law of Rule~1 holds by substitution.
+What a \cppinline{static_assert} sees is what the translation computes, and, by Rule~1, what the runtime computes.
+Section~\ref{sec:binding} is this theorem run twice.
+The theorem also fixes the notion of equality here.
+A notion has to be chosen, since equational reasoning presupposes one, and which one is a question of its own~\cite{mazur2008equal}.
+Two closed terms of a carrier are equal when they evaluate to the same value: equality by behaviour, not by identity.
+Leibniz's law of Rule~1 then holds by substitution.
 That choice is what lets Rule~1 ask \cppinline{std::semiregular} and not \cppinline{std::regular}.
-No \cppinline{==} is asked of a value: a carrier's \cppinline{==} is one more operation of its signature where it exists, and a function object, a value under Rule~1, has none, which equality by behaviour accommodates and equality by \cppinline{==} would not.
+No \cppinline{==} is asked of a value.
+A carrier's \cppinline{==} is one more operation of its signature, where a shape asks for it, as \cppinline{IsMonoid} does.
+A function object is a value under Rule~1 and has no \cppinline{==}: equality by behaviour accommodates it, and equality by \cppinline{==} would not.
 It is this fragment's answer to the question, not a settlement of it.
 
 \begin{theorem}[Coherence]
@@ -522,8 +569,10 @@ It is what makes "the unit of \cppinline{+} at \cppinline{size_t}" a phrase with
 Every FJlt program terminates.
 \end{corollary}
 
-By Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}: every step of the program is at least one step of its image, and the image cannot step forever.
-The budget in Rule~3 is therefore not a guard against non-termination. It is how a bound is said.
+It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}.
+Every step of the program is at least one step of its image, and the image cannot step forever.
+The budget in Rule~3 is therefore not a guard against non-termination.
+It is how a bound is said.
 
 \begin{corollary}[Parametricity]
 \label{cor:parametricity}
@@ -532,31 +581,43 @@ A generic FJlt function satisfies the free theorem of its System~F type.
 
 By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynolds1983types}.
 \cppinline{concat} at a monoid can only combine the words by \texttt{op}, starting from \texttt{unit}, which is the free theorem of a fold.
-It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records: the composite cannot do anything the components' records do not provide.
+It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records.
+The composite cannot do anything the components' records do not provide.
 
 \begin{corollary}[Type soundness]
 \label{cor:soundness}
 A well-typed closed FJlt term of base type evaluates to a value.
 \end{corollary}
 
-This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first. It comes last because it is cheap once the rest is in place: a closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
-Featherweight Java proves progress and preservation over its own rules too. What the translation adds is the second half of Theorem~\ref{thm:simulation}, that the value reached is the value the System~F image computes.
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first.
+It comes last because it is cheap once the rest is in place.
+A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+Featherweight Java proves progress and preservation over its own rules too.
+What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
 All six are claims about FJlt.
 What they say about a Jlt program is the adequacy argument of Section~\ref{sec:translation:adequacy}, and Section~\ref{sec:limits} says where it is thin.
 
-So the theorems transfer to a \Cpp{} program on two conditions: that it is written in the subset, which the compiler checks, and that its generic bodies and loops keep to the two rules the compiler does not, which the author checks.
+So the theorems transfer to a \Cpp{} program on two conditions.
+It is written in the subset, which the compiler checks.
+Its generic bodies and loops keep to the two rules the compiler does not check, which the author checks.
 Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
 \section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}, and the test behind the listings calls the same functions at runtime on values it did not have at compile time.
-Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own, and Theorem~\ref{thm:simulation} says the two evaluations agree.
-Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest, which is nothing for a \cppinline{static_assert}, whose arguments are constants, and for \cppinline{first<Over1000>(budget)} everything but the loop over the budget it does not know.
+\cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}.
+The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
+Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
+Theorem~\ref{thm:simulation} says the two evaluations agree.
+Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
+For a \cppinline{static_assert}, whose arguments are constants, the rest is nothing.
+For \cppinline{first<Over1000>(budget)} it is the loop over a budget the compiler does not know.
 There is no magic in this.
-A program has two moments at which work can be done, build time and run time, and work moves between them: what is pre-computed at the first is not computed at the second, and an abstraction whose cost is paid entirely at the first costs nothing at the second.
+A program has two moments at which work can be done, build time and run time, and work moves between them.
+What is pre-computed at the first is not computed at the second.
+An abstraction whose cost is paid entirely at build time costs nothing at run time.
 The interesting case is the fold, because a budget can arrive at either time.
 Listing~\ref{lst:fuel} searches the naturals for the first one with a property, under a budget it may run out of.
 
@@ -600,30 +661,43 @@ static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
 static_assert(IsMonotone<Compose<Negation, Negation>>);
 \end{cpp}
 \caption{A budget, and running out of it.
-\cppinline{advance} is one step on a state (the candidate, whether it has the property), frozen once it has. The property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
+\cppinline{advance} is one step on a state, the candidate and whether it has the property, frozen once it has.
+The property is a type, \cppinline{Over1000}, with a shape, \cppinline{IsPredicate}, as the operations of Section~\ref{sec:translation} are, and Rule~2 is why the shape is there.
 \cppinline{first} folds it over the first \cppinline{budget} naturals and \cppinline{found} reads the state out: the candidate if one was found, \cppinline{std::nullopt} if the budget ended first.
-The second \cppinline{static_assert} is not "no square exceeds 1000". It is "none among the first 30".
+The second \cppinline{static_assert} is not "no square exceeds 1000".
+It is "none among the first 30".
 The next line folds over a contiguous interval of a finite chain, \cppinline{chain_view{lo, hi}} from the library, which is what \cppinline{iota(0, n)} is on \cppinline{size_t}.
-The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$. The paragraph on folds over finite data reads them.}
+The last two lines are Rule~3's other kind, a fold over a term, with \cppinline{Negation} the library's negation arrow on $\mathbb{B}$.
+The paragraph on folds over finite data reads them.}
 \label{lst:fuel}
 \end{listing}
 
 \paragraph{The answer when the budget runs out is an absence.}
-For a general property no budget can be replaced by a proof, so a function that searches has to say what it says when the budget ends first.
+For a general property, no budget can be replaced by a proof.
+So a function that searches has to say what it says when the budget ends first.
 In Jlt the type says it: \cppinline{std::optional<size_t>}, with \cppinline{std::nullopt} for \emph{the budget ended}, which is neither \emph{yes} nor \emph{no}.\footnote{A predicate that can run out of budget answers in \cppinline{optional<bool>}, three values that mean \emph{no}, \emph{yes}, and \emph{not within the budget}: Kleene's three, whose third he introduced for a computation that has not answered~\cite{kleene1952metamathematics}.}
-That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang: exhaustion is explicit in the result, a caller has to check for it, and what cannot happen is that the budget's end passes unseen as a value of the result type.
+That is the price of Rule~3, and it is paid in the type rather than in a crash or a hang.
+Exhaustion is explicit in the result, and a caller has to check for it.
+What cannot happen is that the budget's end passes unseen as a value of the result type.
 
 \paragraph{A budget at compile time is the same budget.}
-\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it. \cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
-Nothing about the fold changes between the two: at compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and the range it folds is a lazy \cppinline{iota} in both cases.
-What the processor runs is what the compiler leaves after instantiation and constant folding: \cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
-The search is a loop of 84 instructions, unrolled by four and without a branch in its body. Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
-The records of Section~\ref{sec:translation} and the ranges of this section are gone, and the end of this section says why. The discipline costs nothing at runtime, which is the zero-overhead principle~\cite{stroustrup2005abstraction} met by pre-computation: the records' cost is paid at build time, where it is paid once.
+\cppinline{first<Over1000>(40)} is a constant, so the compiler evaluates it.
+\cppinline{first<Over1000>(budget)} with \cppinline{budget} read from input is the same function, and the test behind the listing calls it so.
+Nothing about the fold changes between the two.
+At compile time the compiler runs \cppinline{fold_left}, at runtime the processor does, and in both cases the range it folds is a lazy \cppinline{iota}.
+What the processor runs is what the compiler leaves after instantiation and constant folding.
+\cppinline{id(size_t{42})} is the constant, as the panel of Listing~\ref{lst:rule1} shows, and \cppinline{times<size_t>(x, n)} with \cppinline{plus} is one multiplication, \cppinline{x * n}.
+The search is a loop of 84 instructions, unrolled by four and without a branch in its body.
+Appendix~\ref{app:fjlt:ssa} shows the loop before unrolling, with the fold's state as its $\phi$-nodes.
+The records of Section~\ref{sec:translation} and the ranges of this section are gone, and the end of this section says why.
+The discipline costs nothing at runtime: it is the zero-overhead principle~\cite{stroustrup2005abstraction}, met by pre-computation.
+The records' cost is paid at build time, where it is paid once.
 
 
 \paragraph{At compile time, only a law shortens a fold.}
 At runtime the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows.
-In constant evaluation no optimiser runs: the front end interprets the fold one step at a time, and the optimiser, which finds the multiplication, works later and only on the code emitted for run time.
+In constant evaluation no optimiser runs: the front end interprets the fold one step at a time.
+The optimiser, which finds the multiplication, works later, and only on the code emitted for run time.
 So the two binding times part on a large budget:
 \begin{cpp}
 static_assert(times<size_t>(3, 100'000'000) == 300'000'000);
@@ -631,20 +705,31 @@ static_assert(times<size_t>(3, 100'000'000) == 300'000'000);
 With Listing~\ref{lst:rule3}'s \cppinline{times} alone the assertion is refused, the evaluator reporting that it \emph{hit maximum step limit}.
 With Listing~\ref{lst:desugar}'s overload beside it the same line holds in one step, since resolution picks the semimodule's action, \cppinline{n * x}.
 At runtime the two compile to the same instruction.
-A declared law buys at build time what the optimiser finds at runtime by itself, and a budget meets the compiler's step limit only where no law shortens the fold (Section~\ref{sec:limits}).
+A declared law buys at build time what the optimiser finds at runtime by itself.
+A budget meets the compiler's step limit only where no law shortens the fold (Section~\ref{sec:limits}).
 
 \paragraph{Folds over finite data.}
 The last three lines of Listing~\ref{lst:fuel} are Rule~3's first kind.
-\cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step, of which \cppinline{iota(0, n)} is the instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.
-\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function, and \cppinline{monotone} reads one law off the result, in $K_3$, finding it \cppinline{True} since antitone after antitone is monotone.
-The concept \cppinline{IsMonotone} on the same term agrees, as it must: the concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
+\cppinline{chain_view{lo, hi}} is the contiguous interval of a finite chain, walked by its covering step.
+\cppinline{iota(0, n)} is its instance on \cppinline{size_t}, so the two folds above it and this one are one production of the grammar.
+\cppinline{cata} folds the term $\neg \circ \neg$ with the algebra that computes the laws of a function.
+\cppinline{monotone} reads one law off the result, in $K_3$, and finds it \cppinline{True}, since antitone after antitone is monotone.
+The concept \cppinline{IsMonotone} on the same term agrees, as it must.
+The concept and the predicate read one registration, which the library defines on \cppinline{Compose} by the same algebra the fold runs.
 
 \Cpp{} does not pass dictionaries, so the translation is a model of what a constrained call means, not of what the compiler emits.
-What the compiler does is instantiate: \cppinline{concat<size_t>} at three arguments is compiled as a separate function with \cppinline{size_t} substituted and every trait call resolved, which in the model is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs.
-Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term (that is Theorem~\ref{thm:simulation} read at the binding time where the records are constants), and nothing of a record survives to runtime.
-The listings show the instruction the compiler is left with, and Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form, a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
-What the model is for is the term \emph{before} that evaluation: parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation because each one is an application of that term.
-The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree; \Cpp{} only ever does the second, and the first carries the theorems.
+What the compiler does is instantiate.
+\cppinline{concat<size_t>} at three arguments is compiled as a separate function, with \cppinline{size_t} substituted and every trait call resolved.
+In the model that is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$, with its type and record arguments applied and $\beta$-reduced before the program runs.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term.
+That is Theorem~\ref{thm:simulation}, read at the binding time where the records are constants, and nothing of a record survives to runtime.
+The listings show the instruction the compiler is left with.
+Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form.
+That is a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
+What the model is for is the term \emph{before} that evaluation.
+Parametricity is a property of $\Lambda\alpha.\,\lambda d.\,\ldots$, and it holds of every instantiation, because each one is an application of that term.
+The two translations, dictionary passing and monomorphisation, are studied side by side for Go by Ellis et al.~\cite{ellis2022generic}, who prove them to agree.
+\Cpp{} only ever does the second, and the first carries the theorems.
 
 \section{Known Limitations}
 \label{sec:limits}
