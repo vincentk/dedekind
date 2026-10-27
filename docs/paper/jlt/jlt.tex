@@ -67,9 +67,12 @@ The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976di
 
 The case is usually made in a language built around it, and that is where this paper departs: it makes the case in a strongly typed mainstream systems programming language with a stock compiler and no extensions.
 While such languages are not theorem provers, their compilers perform checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} accepted because the checker, not the author, said so.
+The search that found those proofs is a black box, and a language model's account of its own reasoning need not be the reasoning it did: a chain of thought can leave out what drove the answer~\cite{turpin2023unfaithful}, and circuit tracing finds computations that the model's own explanation misdescribes~\cite{lindsey2025biology}.
+What makes the output usable is that it is no black box: it is an artefact a small checker verifies, the interpretable model Rudin asks for in place of an explained black box~\cite{rudin2019stop}.
+Tao's registry of Lean-verified mathematics is arranged that way: a short statement a human reads, checked against a proof of any length, which, found by a machine, may be correct and still inefficient or unreadable~\cite{tao2026palomar}.
+A program is such an artefact too, and the rules a compiler does not check are cheaper to hold than a decade ago: a language model of code~\cite{chen2021evaluating} reads every change against them, which is not a proof but a read, and often a good one (Section~\ref{sec:limits}).
 An executable is already a formal object: a machine runs it with no interpretation, so every claim about it is a claim about something formal, whether or not it does what its author meant.
-What daily practice lacks is a way to make such claims and have them checked without leaving the language, and that is what a discipline supplies: a tool combined with a way of working, a set of rules.
-This paper documents such a discipline: a fragment of a mainstream systems language, characterised so that some of what a functional language guarantees is recovered at the cost of three rules, inside the mainstream ecosystem.
+What daily practice lacks is a way to make such claims and have them checked without leaving the language, and this paper documents a discipline that supplies one: a fragment of a mainstream systems language, characterised so that some of what a functional language guarantees is recovered at the cost of three rules, inside the mainstream ecosystem.
 Performance is why one comes to such a language in the first place, and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and Section~\ref{sec:binding} shows it pre-computing what the rules make computable.
 What the rules address is the other cost, the language's size.
 
@@ -326,7 +329,6 @@ What the processor runs of Listing~\ref{lst:rule3}'s fold is the panel's one mul
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot compute every function, and a bounded search terminates without always deciding the question it was asked.
 Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
-At compile time each kind of structure meets a counter of the compiler's, a type the template instantiation depth and a value the constant-evaluation step limit, both configurable, and exceeding one is a compilation failure (Section~\ref{sec:limits}).
 
 \begin{table}[ht]
 \centering
@@ -479,8 +481,6 @@ The library's other modules hold code outside the posture, and the adequacy argu
 % is the warranty; a reader who stops here knows the claims and their cost.
 
 This section is about one map, the translation $\llbracket \cdot \rrbracket$ from Featherweight Jlt into System~F with records and the iterators of inductive types.
-Featherweight Jlt is the subset of \Cpp{23} that Appendix~\ref{app:fjlt:syntax} writes down as a grammar.
-A concept becomes a record type, an instance a record, a constraint a parameter and a fold an iterator.
 Appendix~\ref{app:fjlt:translation} defines the map in full.
 The map is total on FJlt: every FJlt program has an image, and Section~\ref{sec:guarantees} says what the image guarantees.
 It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps the three rules.
@@ -636,10 +636,6 @@ Featherweight Java proves progress and preservation over its own rules too.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
 
-So the theorems transfer to a \Cpp{} program on two conditions.
-It is written in the subset, which the compiler checks.
-Its generic bodies and loops keep to the two rules the compiler does not check, which the author checks.
-Section~\ref{sec:limits} is the list of places where the first condition is harder to meet than it looks.
 
 \section{Partial Evaluation at Build Time}
 \label{sec:binding}
@@ -755,8 +751,6 @@ For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing transl
 \section{Known Limitations}
 \label{sec:limits}
 
-Some of the limits below are the language's: they stay whatever work is put in.
-The others are this paper's, and further work could lift them.
 Table~\ref{tab:posture} says which instrument holds each rule at build time.
 
 \subsection{Limits of principle}
@@ -831,14 +825,9 @@ What remains there is a run-time layer kept for the Python bindings: heap-alloca
 Bringing it into the posture is a redesign, not a fix, and is not done here.
 
 \paragraph{Facts live in tables, instances in functions.}
-FJlt's instance is a specialisation of a function template, and the listings are written that way.
-The library behind them stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}.
-It reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
-The reason is partial specialisation: ``every \cppinline{Rational<I>} is a monoid under \cppinline{+}'' is one declaration for a family, and only class and variable templates admit it.
-A function template cannot be partially specialised.
-A constrained overload in its place is found only when it precedes the shape, as Listing~\ref{lst:rule2}'s is, while the library's registrations come after its shapes, in other modules.
-So the library writes its registrations in a form the listings do not, which Appendix~\ref{app:fjlt:closure} desugars into the kernel's.
-There, a registration over one family is an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
+The library behind the listings stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
+The reason is partial specialisation: ``every \cppinline{Rational<I>} is a monoid under \cppinline{+}'' is one declaration for a family, which no function template can make, and a constrained overload in its place is found only before the shape, as Listing~\ref{lst:rule2}'s is, while the library registers after its shapes, in other modules.
+Appendix~\ref{app:fjlt:closure} desugars such a registration into an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
 
 \paragraph{The library is part of the toolchain.}
 ``Standard \Cpp{23}'' names a language and a library, and the claim holds for a pair of implementations, not for the standard.
@@ -890,9 +879,6 @@ The documents an audit of \Cpp{} works from are rule catalogues: MISRA \Cpp{}~\c
 Jlt is narrower, a pure computational core with no I/O, and so complements them rather than replacing them; where they meet they can differ, as MISRA forbids recursion except in constant evaluation and Rule~3 admits structural recursion on the strength of a termination argument.
 The nearest relatives are the safety profiles proposed for \Cpp{26}~\cite{sutter2025profiles}, named subsets the compiler would enforce, and the criticism that a profile should come with the invariant it upholds~\cite{muller2025principled}: Jlt reads as a functional profile, and its three rules state theirs.
 
-\paragraph{What is new here.}
-Not the translation nor the calculus-with-concepts, but the claim that the shipped language already contains the fragment, with a calculus whose syntax is that \Cpp{}, listings that run under a stock compiler at both binding times, and an adequacy argument that says where the compiler stops checking and the author starts.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -902,13 +888,11 @@ The translation preserves types and evaluation and is a function of the program 
 
 What this costs is stated rather than softened.
 Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
-A tool in the repository narrows the gap (Section~\ref{sec:limits}).
+A tool in the repository narrows the gap, and an agentic reviewer reads for the rest, which makes holding the two rules cheaper than it was a decade ago (Section~\ref{sec:limits}).
 A fold may run out of budget, and when it does the type says so.
-Instances for families of types live in tables and are read through functions, so the library's registrations are sugar, which the appendix desugars, not kernel terms as written.
-And ``standard \Cpp{23}'' names a compiler and a library together (Section~\ref{sec:limits}).
 
 Four things follow as work not done here.
-Completing the linter into a checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the linter into a checker, with definition checking over types, arities and the full constraint language, as the \Cpp{0x} design had it: until then, membership in the fragment is a reading the tool narrows, not a verdict it gives.
 Certifying that a run-time shortcut agrees with the fold it replaces, which a branch on the binding time leaves to a declared law or to a reader: when a fold over lists can be partitioned and its parts combined is what the third homomorphism theorem characterises~\cite{gibbons1996third}, and a shape could declare it.
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And laws that are computed with rather than only declared, which needs terms and their composition.
