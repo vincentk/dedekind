@@ -526,11 +526,11 @@ The question is one of closure: given terms of FJlt, under which condition is th
 That is the question Section~\ref{sec:translation:adequacy} leaves open for the constructions the grammar does not name, and this section answers it one construction at a time.
 Each answer is a closure statement: the construction, the condition, and the FJlt term it builds.
 The condition is always on how the term is built and never on inspecting it afterwards, which is what lets a closure, an object whose type has no name, be a term of the calculus.
-Table~\ref{tab:closure} is the summary, with a column for what the calculus lacks today to state each lemma, since that column is what decides the scope of the calculus.
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are the summary, with a column for what the calculus lacks today to state each lemma, since that column is what decides the scope of the calculus.
 The statements come with the reason each holds, and none of them is used by the theorems of Appendix~\ref{app:fjlt:theorems}.
 Where a count is given it is measured on the library's \texttt{category} module, 35 files.
 
-\begin{table}[ht]
+\begin{table}[tbp]
 \centering
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
@@ -546,6 +546,22 @@ sum & branches FJlt on the summands & the case form & the kernel, a reader for a
 enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
 local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the tool \\
 local state that does not escape & assignments only to locals, by-value parameters, elements of a local array, or a builtin's out-parameter that is a local; nothing written observable after the call & the state threaded as values, one binding per assignment, as \texttt{runST} encapsulates it & the tool for escape, a reader for the rest \\
+\bottomrule
+\end{tabularx}
+\caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
+Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
+The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Section~\ref{sec:binding}).}
+\label{tab:closure}
+\end{table}
+
+\begin{table}[tbp]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\hsize=.8\hsize\raggedright\arraybackslash}X>{\hsize=1.2\hsize\raggedright\arraybackslash}X>{\hsize=1.15\hsize\raggedright\arraybackslash}X>{\hsize=.85\hsize\raggedright\arraybackslash}X@{}}
+\toprule
+construction & FJlt, provided & image & the condition held by \\
+\midrule
 variable or class template & each member of the family an FJlt instance & instance with a context, a default beside families resolved by specificity & the compiler, by lookup \\
 const member function & \texttt{const}, FJlt body & generic function with the object as first parameter & the tool \\
 constructor, conversion operator, default argument, designated initialiser & \texttt{constexpr}, FJlt body & a function returning the struct; a declared conversion; an overload with the argument supplied; the fields in order & the tool for \texttt{constexpr}, a reader \\
@@ -561,11 +577,8 @@ inheritance & every base an empty class, no virtual function & a registration, r
 \texttt{friend}, access specifier & a friend an FJlt function & a free function; nothing & the compiler \\
 \bottomrule
 \end{tabularx}
-\caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
-Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
-The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
-The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Section~\ref{sec:binding}).}
-\label{tab:closure}
+\caption{Closure of FJlt, continued: the declarations, types and resolution that the library writes, read as Table~\ref{tab:closure}.}
+\label{tab:closure:decl}
 \end{table}
 
 \paragraph{Lambdas.}

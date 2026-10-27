@@ -14,10 +14,10 @@
 \title{The Juliet Posture}
 \subtitle{Structurally Typed Functional Programming in Standard \Cpp{23}}
 \titlerunning{The Juliet Posture}
-\author{Vincent Kr\"autler}
+\author{Vincent Kr\"autler}[https://orcid.org/0009-0006-7317-3502]
 \affiliation{Unaffiliated}
-\authorinfo{holds a PhD in computational biophysics and is an engineer based in Europe.
-Contact: \email{vincent.kraeutler@alum.ethz.ch}.}
+\authorinfo{holds a PhD in computational biophysics from ETH Z\"urich, Switzerland, and works on software that has to be fast.
+Contact him at \email{vincent.kraeutler@alum.ethz.ch}.}
 
 \keywords{C++ concepts, type classes, System F, parametricity, structural recursion}
 
@@ -355,7 +355,7 @@ Desugaring here means rewriting a program into one that uses only the kernel's c
 What it removes are the conveniences the kernel lacks, such as a lambda, an \cppinline{if} statement or a branch on a concept.
 The \Cpp{} standard does the same when it defines a lambda as a class with a call operator.
 No tool runs the rewriting.
-Table~\ref{tab:closure} states it construction by construction: a condition, and the kernel term it yields.
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} state it construction by construction: a condition, and the kernel term it yields.
 The repository's linter measures that the table names every construction the library writes.
 
 \begin{listing}[htbp]
@@ -464,7 +464,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \end{table}
 
 Rows~1 and~2 are closed by the grammar, except for overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
-Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}: the condition under which it desugars, and the kernel term it becomes.
+Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure} or~\ref{tab:closure:decl}: the condition under which it desugars, and the kernel term it becomes.
 No row needs anything the calculus lacks.
 By measurement, the table is complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
 That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
@@ -804,7 +804,7 @@ The listings and the library's core are held at zero on all three rules, to the 
 The one planted finding is the test's \cppinline{twice_loose}, which adds a value to itself under no constraint.
 
 \paragraph{The adequacy argument covers part of the library.}
-Table~\ref{tab:closure} is measured complete for the \texttt{category} module and the listings only.
+Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
 The modules \texttt{order}, \texttt{sets} and \texttt{relational} are held by the same linter.
 A file is gated at zero under a rule once it is clean, and the rest is gated at today's count, a ratchet that only goes down.
 What remains there is a run-time layer kept for the Python bindings: heap-allocated term trees, run lists stored in a \cppinline{std::map}, and errors reported by throwing.
