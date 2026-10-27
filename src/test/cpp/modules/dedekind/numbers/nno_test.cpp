@@ -162,11 +162,13 @@ TEST_CASE("category:nno — the cover is partial at ⊤ and ++ saturates there",
   CHECK_FALSE(cover(Cardinality{ℵ_0{}}).has_value());
   CHECK(cover(Ternary::Unknown) == Ternary::True);
   CHECK_FALSE(cover(Ternary::True).has_value());
+  // ++ is the successor, by value: it returns the next element and leaves its
+  // operand alone, so stepping five times is using the result five times.
   Cardinality n = finite_cardinality(0);
-  for (int i = 0; i < 5; ++i) ++n;
+  for (int i = 0; i < 5; ++i) n = ++n;
   CHECK(n == finite_cardinality(5));
-  Cardinality top{ℵ_0{}};
-  ++top;
+  const Cardinality top{ℵ_0{}};
+  CHECK(++top == Cardinality{ℵ_0{}});
   CHECK(top == Cardinality{ℵ_0{}});
 }
 

@@ -244,26 +244,27 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   using dedekind::relational::Law;
   using dedekind::relational::Laws;
   using dedekind::relational::laws;
+  using dedekind::relational::laws_from;
   using dedekind::sets::𝔸;
-  const auto all = Laws::from(true, true, true, true);
+  const auto all = laws_from(true, true, true, true);
   // Leaves, by their shape: Δ is an isomorphism; a graph a map; the universe
   // total and surjective; copy a map and injective, merge its converse.
   CHECK(laws(diag<int, unsigned, bool>(W)) == all);
-  CHECK(laws(succ) == Laws::from(true, true, false, false));
-  CHECK(laws(words) == Laws::from(true, false, false, true));
+  CHECK(laws(succ) == laws_from(true, true, false, false));
+  CHECK(laws(words) == laws_from(true, false, false, true));
   CHECK(laws(dedekind::relational::copy<int, unsigned, bool>(W)) ==
-        Laws::from(true, true, true, false));
+        laws_from(true, true, true, false));
   CHECK(laws(merge<int, unsigned, bool>(W)) ==
-        Laws::from(false, true, true, true));
+        laws_from(false, true, true, true));
   // Nodes, by the engine on the declared facts: closure under ;, the dagger's
   // action under °, the down-sets under &, nothing under ~.
-  CHECK(laws(succ >> succ) == Laws::from(true, true, false, false));
-  CHECK(laws(converse(succ)) == Laws::from(false, false, true, true));
+  CHECK(laws(succ >> succ) == laws_from(true, true, false, false));
+  CHECK(laws(converse(succ)) == laws_from(false, false, true, true));
   CHECK(laws(converse(converse(succ))) == laws(succ));
   // square is {(a, c) | c² = a}: a is a function of c, so it is injective
   // and surjective; the meet keeps univalence from succ, injectivity from it.
-  CHECK(laws(square) == Laws::from(false, false, true, true));
-  CHECK(laws(square & succ) == Laws::from(false, true, true, false));
+  CHECK(laws(square) == laws_from(false, false, true, true));
+  CHECK(laws(square & succ) == laws_from(false, true, true, false));
   CHECK(laws(~succ) == Laws{});
   CHECK(laws(diag<int, unsigned, bool>(W) >>
              converse(diag<int, unsigned, bool>(W))) == all);
@@ -273,9 +274,9 @@ TEST_CASE("relational:rows: the laws of an arrow, inferred over the term",
   // by that shape alone (one input), and its converse univalent.
   CHECK(laws(table(diag<int, unsigned, bool>(W) >>
                    diag<int, unsigned, bool>(W))) ==
-        Laws::from(false, false, true, false));
-  CHECK(laws(table(succ)) == Laws::from(false, false, true, false));
-  CHECK(laws(converse(table(succ))) == Laws::from(false, true, false, false));
+        laws_from(false, false, true, false));
+  CHECK(laws(table(succ)) == laws_from(false, false, true, false));
+  CHECK(laws(converse(table(succ))) == laws_from(false, true, false, false));
   // The sets: 𝔸<Re> & Total<Re>{} is the set of total relations, a map the
   // meet of two such sets, χ in K₃.
   using dedekind::relational::Total;
