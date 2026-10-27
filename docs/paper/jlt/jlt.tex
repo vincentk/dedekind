@@ -64,13 +64,14 @@ For the declared laws Birkhoff's theorem makes the reasoning complete: an equati
 A class with laws is an equational theory and its instances the models, a variety, and a stronger class has fewer instances, so the constraints describe the structure and the structure licenses the optimisation.
 The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
 
-The case is usually made in a language built around it. This paper makes it in a mainstream systems language instead, \Cpp{23}.
+The case is usually made in a language built around it.
+This paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
 Listing~\ref{lst:desugar} is a case: a declared law gives resolution a shortcut that the code without it lacks.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 What the posture addresses is the other cost, the language's size.
-Alignment with the posture is easier check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against them.
+Alignment with the posture is easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against its rules.
 And while this is not a hard proof but only a read, it is often a thorough read (Section~\ref{sec:limits}).
 
 \Cpp{} is not a theorem prover, but its compiler performs checks of the same kind: a compile-time check is a claim the compiler verifies, and the worth of such a checker when the author is not the one trusted had a recent highlight, machine-generated proofs~\cite{hubert2025olympiad} in Lean~\cite{demoura2021lean} accepted because the checker, not the author, said so.
@@ -93,7 +94,7 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 Jlt is thus an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
 Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 in this case (Section~\ref{sec:limits}).
 Being a strict subset of \Cpp{23}, it is not a language this paper designs and develops as an architect might develop a house.
-Instead it characterises a fragment of a pre-existing ecosystem, as a traveller might discover city.
+Instead it characterises a fragment of a pre-existing ecosystem, as a traveller might discover a city.
 The claim here is one of existence: \Cpp{23} contains an embedding of a sizeable fragment of System~F, and the listings exhibit it.
 No claim is made that Jlt is unique or canonical, although it seems likely that another fragment drawn to the same ends would look much like it.
 As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
@@ -123,29 +124,6 @@ Its composite with the two inclusions is a partial map from System~F, the embedd
 Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
 The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
-\end{figure}
-
-\begin{figure}[tb]
-\centering
-\begin{tikzcd}[column sep=2.2em, row sep=2.6em]
-  \llap{\small counts $X$, ordered:\quad} n \arrow[r, "s"] \arrow[d, "f"']
-  & s\,n \arrow[r, "s"] \arrow[d, "f"]
-  & \cdots \arrow[r, "s"]
-  & 1 \arrow[r, "s"] \arrow[d, "f"]
-  & 0 \arrow[loop right, "s"] \arrow[d, dashed, "\text{delimits}"] \\
-  \llap{\small values $M$, a monoid:\quad} f\,n \arrow[r, phantom, "\oplus"]
-  & f(s\,n) \arrow[r, phantom, "\oplus"]
-  & \cdots \arrow[r, phantom, "\oplus"]
-  & f\,1 \arrow[r, phantom, "\oplus"]
-  & e
-\end{tikzcd}
-\caption{Where each structure lives.
-Top: the counts, with the order their step gives them, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}: the step descends, $s\,x \le x$, and its first fixed point, the unit $0$, delimits the chain, with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches it is Archimedes' axiom~\cite{heath1897archimedes}.
-Down: an arrow $f$ from the counts to the values.
-With the counts offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
-Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing $e$; in the bootstrap $M = X$, as in Peano.
-Laws of $f$ license shortcuts: $f$ constant, monotone and antitone, and a semimodule make the fold $n \cdot x$, one multiplication; $f$ monotone into a join semilattice makes the fold of a nonempty chain $f\,n$.}
-\label{fig:structures}
 \end{figure}
 
 \paragraph{Contributions.}
@@ -296,6 +274,29 @@ What the rule conserves is that inductive argument: structural induction~\cite{b
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 The structure lives in a \emph{type}, a typed term, an array of known length, a parameter pack, which the compiler unfolds, each call a specialisation, as the library's \cppinline{cata} over \cppinline{Compose<F, G>} does (Section~\ref{sec:limits}); or in a \emph{value}, the chain of Figure~\ref{fig:structures}, at either binding time.
 Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ Listing~\ref{lst:rule2}'s \cppinline{concat} is a catamorphism, \cppinline{chain(n, Out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+
+\begin{figure}[tb]
+\centering
+\begin{tikzcd}[column sep=2.2em, row sep=2.6em]
+  \llap{\small counts $X$, ordered:\quad} n \arrow[r, "s"] \arrow[d, "f"']
+  & s\,n \arrow[r, "s"] \arrow[d, "f"]
+  & \cdots \arrow[r, "s"]
+  & 1 \arrow[r, "s"] \arrow[d, "f"]
+  & 0 \arrow[loop right, "s"] \arrow[d, dashed, "\text{delimits}"] \\
+  \llap{\small values $M$, a monoid:\quad} f\,n \arrow[r, phantom, "\oplus"]
+  & f(s\,n) \arrow[r, phantom, "\oplus"]
+  & \cdots \arrow[r, phantom, "\oplus"]
+  & f\,1 \arrow[r, phantom, "\oplus"]
+  & e
+\end{tikzcd}
+\caption{Where each structure lives.
+Top: the counts, with the order their step gives them, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}: the step descends, $s\,x \le x$, and its first fixed point, the unit $0$, delimits the chain, with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches it is Archimedes' axiom~\cite{heath1897archimedes}.
+Down: an arrow $f$ from the counts to the values.
+With the counts offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
+Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing $e$; in the bootstrap $M = X$, as in Peano.
+Laws of $f$ license shortcuts: $f$ constant, monotone and antitone, and a semimodule make the fold $n \cdot x$, one multiplication; $f$ monotone into a join semilattice makes the fold of a nonempty chain $f\,n$.}
+\label{fig:structures}
+\end{figure}
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.58\linewidth}
