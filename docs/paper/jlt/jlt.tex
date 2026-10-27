@@ -728,15 +728,11 @@ Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts
 So Rules~2 and~3 are posture: they are held outside the compiler, and no tool turns them into the compiler's verdict.
 
 \paragraph{Lookup stops at \cppinline{std}.}
-A free function on a type you do not own is found by argument-dependent lookup in that type's namespace, and for \cppinline{std::plus<size_t>} that is \cppinline{std}.
-So \cppinline{unit(std::plus<size_t>)} declared after the concept is never found.
-Listing~\ref{lst:rule2} declares a deleted primary, which is found by name and specialised.
-It puts its one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it.
-The same wall makes a pair of monoids a monoid only through an operation type of ours, not \cppinline{std::plus<std::pair<A, B>>}.
-This is where the translation's ``instance resolution'' and \Cpp{}'s name lookup pull apart.
-FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
+An instance is a function found by name, and a call on a standard type looks for it, by argument-dependent lookup, in \cppinline{std}, where an instance of ours is not: a registration such as \cppinline{unit(std::plus<size_t>)} declared after the shape is never found.
+The listings therefore declare a deleted primary, found by name and then specialised, and put their one constrained overload, the instance for the unsigned integrals, before the shape, where ordinary lookup sees it; a pair of monoids is a monoid only through an operation type of ours, not \cppinline{std::plus<std::pair<A, B>>}.
+This is where the translation's instance resolution and \Cpp{}'s name lookup pull apart, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
-\paragraph{\cppinline{std::plus<T>} promises what its body cannot keep.}
+\paragraph{\texttt{std::plus<T>} promises what its body cannot keep.}
 \cppinline{std::plus<T>} declares its call as \cppinline{T operator()(const T&, const T&)}, so a requirement such as \cppinline|{ Op{}(a, b) } -> same_as<T>| is met by signature for every \cppinline{T}, even one with no \cppinline{+}; its body, \cppinline{a + b}, fails only when instantiated, inside \cppinline{<functional>}, where the linter does not read.
 The transparent \cppinline{std::plus<>} declares its result as \cppinline{decltype(a + b)}, so a \cppinline{T} with no \cppinline{+} fails the requirement itself: the typed form is the standard library's own gap between signature and body, Rule~2 one level down.
 The listings use the typed form and never ask it about a carrier it was not written for.
