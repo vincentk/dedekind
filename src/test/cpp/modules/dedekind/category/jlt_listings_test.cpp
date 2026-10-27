@@ -126,7 +126,8 @@ static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-// The Conclusion: the shapes stacked; laws as functions of the operation.
+// Listing 4, top: the semiring the semimodule's scalars form, and the
+// commutative monoid both build on; laws as functions of the operation.
 template <typename T, typename Op>
 constexpr bool commutative(Op) = delete;
 template <typename T, typename Mul, typename Add>
@@ -170,109 +171,6 @@ static_assert(IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
 static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
-
-// The Conclusion's listing, implied: a bounded distributive lattice is a
-// semiring whose two operations are commutative and idempotent and absorb each
-// other.
-template <typename T, typename Op>
-constexpr bool idempotent(Op) = delete;
-template <typename T, typename Join, typename Meet>
-constexpr bool absorptive(Join, Meet) = delete;
-
-template <typename T, typename Join, typename Meet>
-concept IsDistributiveLattice =
-    IsSemiring<T, Join, Meet> && IsCommutativeMonoid<T, Meet> &&
-    idempotent<T>(Join{}) && idempotent<T>(Meet{}) &&
-    absorptive<T>(Join{}, Meet{}) && distributive<T>(Join{}, Meet{});
-
-template <>
-constexpr bool commutative<bool>(std::logical_and<bool>) {
-  return true;
-}
-template <>
-constexpr bool commutative<size_t>(std::bit_and<size_t>) {
-  return true;
-}
-template <>
-constexpr bool idempotent<bool>(std::logical_or<bool>) {
-  return true;
-}
-template <>
-constexpr bool idempotent<bool>(std::logical_and<bool>) {
-  return true;
-}
-template <>
-constexpr bool idempotent<size_t>(std::bit_or<size_t>) {
-  return true;
-}
-template <>
-constexpr bool idempotent<size_t>(std::bit_and<size_t>) {
-  return true;
-}
-template <>
-constexpr bool absorptive<bool>(std::logical_or<bool>, std::logical_and<bool>) {
-  return true;
-}
-template <>
-constexpr bool absorptive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
-  return true;
-}
-template <>
-constexpr bool distributive<bool>(std::logical_or<bool>,
-                                  std::logical_and<bool>) {
-  return true;
-}
-template <>
-constexpr bool distributive<size_t>(std::bit_or<size_t>, std::bit_and<size_t>) {
-  return true;
-}
-
-static_assert(
-    IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
-static_assert(
-    IsDistributiveLattice<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
-static_assert(
-    !IsDistributiveLattice<size_t, std::plus<size_t>, std::multiplies<size_t>>);
-
-// The Conclusion: rings, by one more conjunct.
-template <typename T, typename Op>
-constexpr bool invertible(Op) = delete;
-
-template <typename T, typename Op>
-concept IsGroup = IsMonoid<T, Op> && invertible<T>(Op{});
-
-template <typename T, typename Add, typename Mul>
-concept IsRing = IsSemiring<T, Add, Mul> && IsGroup<T, Add>;
-
-template <>
-constexpr size_t unit<size_t>(std::bit_xor<size_t>) {
-  return 0;
-}
-template <>
-constexpr bool associative<size_t>(std::bit_xor<size_t>) {
-  return true;
-}
-template <>
-constexpr bool commutative<size_t>(std::bit_xor<size_t>) {
-  return true;
-}
-template <>
-constexpr bool distributive<size_t>(std::bit_and<size_t>,
-                                    std::bit_xor<size_t>) {
-  return true;
-}
-template <>
-constexpr bool invertible<size_t>(std::plus<size_t>) {
-  return true;
-}
-template <>
-constexpr bool invertible<size_t>(std::bit_xor<size_t>) {
-  return true;
-}
-
-static_assert(IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
-static_assert(IsRing<size_t, std::bit_xor<size_t>, std::bit_and<size_t>>);
-static_assert(!IsRing<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 
 // Section 2, the posture: one panel per rule.
 static_assert(std::semiregular<size_t>);
@@ -544,10 +442,5 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     STATIC_CHECK(
         C::IsSemimodule<size_t, size_t, std::plus<size_t>, std::plus<size_t>,
                         std::multiplies<size_t>, std::multiplies<>>);
-  }
-
-  SECTION("The tree's shapes accept the listings' rings") {
-    STATIC_CHECK(C::IsAbelianGroup<size_t, std::plus<size_t>>);
-    STATIC_CHECK(C::IsRing<size_t, std::plus<size_t>, std::multiplies<size_t>>);
   }
 }

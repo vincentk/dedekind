@@ -328,8 +328,28 @@ No tool runs the rewriting.
 Table~\ref{tab:closure} states it construction by construction: a condition, and the kernel term it yields.
 The repository's linter measures that the table names every construction the library writes.
 
-\begin{listing}[!t]
+\begin{listing}[p]
 \begin{cpp}
+template <typename T, typename Op> constexpr bool commutative(Op) = delete;
+template <typename T, typename Mul, typename Add>
+constexpr bool distributive(Mul, Add) = delete;
+template <typename M, typename S, typename AddM, typename AddS, typename MultS,
+          typename Act>
+constexpr bool linear(AddM, AddS, MultS, Act) = delete;
+
+template <typename T, typename Op>
+concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
+template <typename T, typename Add, typename Mul>
+concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
+                     distributive<T>(Mul{}, Add{});
+template <typename M, typename S, typename AddM = plus<M>,
+          typename AddS = plus<S>, typename MultS = multiplies<S>,
+          typename Act = multiplies<>>
+concept IsSemimodule =
+    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
+    requires(const S s, const M m) { { Act{}(s, m) } -> same_as<M>; } &&
+    linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
+
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op> && same_as<Op, plus<T>> &&
            IsSemimodule<T, size_t>
@@ -348,14 +368,11 @@ times [u64] 7 6        =  times₂ [u64] (plus_u [u64] unsigned_u64) module_u64 
 times [string] "ab" 3  =  times₁ [string plus] plus_str "ab" 3
 \end{minted}
 \caption{A specialisation, then the family translated.
-Top: where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-\cppinline{IsSemimodule<T, size_t>} is the library's shape, with its defaults: \cppinline{+} on \cppinline{T}, \cppinline{+} and \cppinline{*} on \cppinline{size_t}, and the action \cppinline|multiplies<>{}(n, x)|.
-It asks \cppinline{T} to be a commutative monoid, \cppinline{size_t} a semiring and the action a \cppinline{T}, and its laws are a certificate, given for the unsigned carriers.
-The test declares the laws; the library still reads them off the signature, a gap it records.
-Bottom: the family, Listing~\ref{lst:rule3}'s \cppinline{times} and this one, under the translation of Section~\ref{sec:translation}.
-It holds two record types, and Listing~\ref{lst:rule2}'s registration for \cppinline{std::string}, a record, and its instance for the unsigned integrals, a function from the evidence for \texttt{Unsigned T} to a record.
-Then come the two generic functions, one per line, taking the records of their constraints, \texttt{m} a \texttt{MonoidDict} and \texttt{s} a \texttt{ModuleDict}, and two calls, each the function its resolution picks.
-The test holds the family and its sugar, the specialisation as a branch on the concept inside Listing~\ref{lst:rule3}'s body, and checks that they agree.}
+Top: the shapes, each one more declared law, the laws functions of the operations as in Listing~\ref{lst:rule2}.
+A semiring is two monoids, the first commutative, tied by distributivity, and a semimodule is a commutative monoid on which a semiring acts linearly.
+Below them, the specialisation: where the carrier is a semimodule over \cppinline{size_t} under \cppinline{+}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}, a certificate given for the unsigned carriers.
+Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and two calls, each the function its resolution picks.
+The test holds the family and its sugar, and checks that they agree.}
 \label{lst:desugar}
 \end{listing}
 
@@ -363,6 +380,7 @@ Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a 
 The stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
 Written as a branch inside Listing~\ref{lst:rule3}'s \cppinline{times}, the specialisation is an \cppinline{if constexpr} on \cppinline{IsSemimodule}.
 Desugared, it is the listing's overload, whose constraint contains Listing~\ref{lst:rule3}'s.
+The listing states the shapes the overload needs as conjunctions, one declared law at a time: a semiring is two monoids tied by distributivity, and a semimodule over it is a commutative monoid on which it acts linearly.
 The listing shows the family already translated.
 System~F has no overloading, so each function becomes a plain function of its constraints' records, and each call becomes the function its resolution picks.
 The bodies keep Rule~2: they use only what the clauses name.
@@ -472,7 +490,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 
 The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
 The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
-A shape built from shapes is a record holding their records, as Listing~\ref{lst:ring}'s \cppinline{IsSemiring} holds the records of two monoids.
+A shape built from shapes is a record holding their records, as Listing~\ref{lst:desugar}'s \cppinline{IsSemiring} holds the records of two monoids.
 That is how a superclass is passed.
 A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
 That is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.}
@@ -821,39 +839,6 @@ Three things follow as work not done here.
 Completing the linter into a checker: definition checking proper, over types and arities and the full constraint language, is the distance between the repository's tool (Section~\ref{sec:limits}) and the \Cpp{0x} design, and until it is covered membership in the fragment is a reading the tool narrows, not a verdict it gives.
 A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
 And algebra beyond declared laws, which needs terms and their composition, and is the subject of further work.
-What the posture gives already is the stacking: shapes conjoin one declared law at a time, and branch (Listing~\ref{lst:ring}), and under translation each is a record holding the record below.
-% Verbatim in jlt_listings_test.cpp.
-\begin{listing}[htbp]
-\begin{cpp}
-template <typename T, typename Op> constexpr bool commutative(Op) = delete;
-template <typename T, typename Mul, typename Add>
-constexpr bool distributive(Mul, Add) = delete;
-template <typename T, typename Op> constexpr bool invertible(Op) = delete;
-
-template <typename T, typename Op>
-concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
-
-template <typename T, typename Add, typename Mul>
-concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
-                     distributive<T>(Mul{}, Add{});
-
-template <typename T, typename Op>
-concept IsGroup = IsMonoid<T, Op> && invertible<T>(Op{});
-
-template <typename T, typename Add, typename Mul>
-concept IsRing = IsSemiring<T, Add, Mul> && IsGroup<T, Add>;
-
-static_assert( IsRing<size_t, plus<size_t>, multiplies<size_t>>);
-static_assert( IsRing<size_t, bit_xor<size_t>, bit_and<size_t>>);
-static_assert(!IsRing<size_t, bit_or<size_t>, bit_and<size_t>>);
-static_assert( IsDistributiveLattice<size_t, bit_or<size_t>, bit_and<size_t>>);
-\end{cpp}
-\caption{The shapes stacked, one declared law at a time: a commutative monoid, a semiring, a group, a ring.
-\cppinline{IsDistributiveLattice} is \cppinline{IsSemiring} conjoined with idempotence and absorption, declared the same way; the test holds it and every certificate.
-$(\mathbb{Z}/2^{64}, +, \cdot)$ is a ring.
-The bit vectors are a ring under exclusive or and a distributive lattice under inclusive or, both with \cppinline{&}: Stone's correspondence between Boolean rings and Boolean algebras, met by two pairs of operations on one carrier.}
-\label{lst:ring}
-\end{listing}
 
 Nothing was added to the language, the compiler or the library. What was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, and the posture is available today to anyone with a recent compiler.
 
