@@ -191,22 +191,22 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: a finite prefix of the naturals, a chain with its rank, the order
-// embedding onto an initial segment of size_t.
+// Listing 3: a finite prefix of the naturals, a chain with its ordinal, the
+// order embedding onto an initial segment of size_t.
 template <typename N>
-constexpr size_t rank(N) = delete;
+constexpr size_t ordinal(N) = delete;
 template <>
-constexpr size_t rank<size_t>(size_t n) {
+constexpr size_t ordinal<size_t>(size_t n) {
   return n;
 }
 template <>
-constexpr size_t rank<bool>(bool b) {
+constexpr size_t ordinal<bool>(bool b) {
   return b ? 1 : 0;
 }
 
 template <typename N>
 concept IsFinitePrefix = std::totally_ordered<N> && requires(const N n) {
-  { rank(n) } -> std::same_as<size_t>;
+  { ordinal(n) } -> std::same_as<size_t>;
 };
 
 // times: concat of the constant list, n copies of x, for a count n of any
@@ -214,18 +214,18 @@ concept IsFinitePrefix = std::totally_ordered<N> && requires(const N n) {
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  return rank(n) == 0 || x == unit<T>(Op{})
+  return ordinal(n) == 0 || x == unit<T>(Op{})
              ? unit<T>(Op{})
-             : concat<T, Op>(std::views::repeat(x, rank(n)));
+             : concat<T, Op>(std::views::repeat(x, ordinal(n)));
 }
 
 static_assert(times<size_t>(7, 6uz) == 42);
 
-// char counts too: its rank is its distance from the least char, an order
+// char counts too: its ordinal is its distance from the least char, an order
 // embedding whether char is signed or not.  No semiring is registered for it,
 // so times folds.
 template <>
-constexpr size_t rank<char>(char c) {
+constexpr size_t ordinal<char>(char c) {
   return static_cast<size_t>(c - std::numeric_limits<char>::min());
 }
 constexpr char char_min = std::numeric_limits<char>::min();
@@ -253,6 +253,8 @@ constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>,
 
 // How a prefix counts: its semiring, and how a count acts.  size_t counts
 // modulo 2^64; bool counts as the Boolean semiring, n copies are "n and x".
+// A specialisation also declares that each count n is the sum of ordinal(n)
+// ones of its semiring, the premise by which the action is the fold.
 template <IsFinitePrefix N>
 struct counting;
 template <>
@@ -302,12 +304,14 @@ namespace sugar {
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  if constexpr (IsSemimodule<T, N, Op>)
+  // A requires-expression, so that a count with no counting semiring, such
+  // as char, makes the test false and not the instantiation ill-formed.
+  if constexpr (requires { requires IsSemimodule<T, N, Op>; })
     return typename counting<N>::act{}(n, x);
   else
-    return rank(n) == 0 || x == unit<T>(Op{})
+    return ordinal(n) == 0 || x == unit<T>(Op{})
                ? unit<T>(Op{})
-               : concat<T, Op>(std::views::repeat(x, rank(n)));
+               : concat<T, Op>(std::views::repeat(x, ordinal(n)));
 }
 }  // namespace sugar
 
@@ -318,9 +322,9 @@ namespace kernel {
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  return rank(n) == 0 || x == unit<T>(Op{})
+  return ordinal(n) == 0 || x == unit<T>(Op{})
              ? unit<T>(Op{})
-             : concat<T, Op>(std::views::repeat(x, rank(n)));
+             : concat<T, Op>(std::views::repeat(x, ordinal(n)));
 }
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
@@ -335,6 +339,8 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3uz) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3uz) == "ababab");
+static_assert(sugar::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
+static_assert(kernel::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
 // Section 6: at compile time only the law shortens the fold.  With the
 // semimodule overload a budget of 10^8 is one step; Listing 3's times alone
 // hits the constant evaluator's step limit (quoted in the paper, not held

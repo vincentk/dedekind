@@ -261,29 +261,29 @@ A Jlt program recurses on a structure, and the structure lives in one of two pla
 What the rule conserves is the inductive argument, which loses one constructor at every step, so the recursion ends: that is structural induction~\cite{burstall1969proving}, and a language all of whose programs end by it is Turner's total functional programming~\cite{turner2004total}, and the fold's universal property is its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only. For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Either the structure lives in a \emph{type}, a typed term, an array of known length, a parameter pack, and the compiler unfolds the recursion, each call a different specialisation.
 Or it lives in a \emph{value}, a natural number that counts down, at either binding time: the length of an interval, or a \emph{budget}, a number the caller supplies before the fold starts, for a computation that has no inductive argument of its own.
-In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, rank(n))}, which together make a hylomorphism.
+In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule2}'s \cppinline{concat} is the first kind, a catamorphism, and Listing~\ref{lst:rule3}'s \cppinline{times} the second, a catamorphism of the bounded unfold \cppinline{repeat(x, ordinal(n))}, which together make a hylomorphism.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.55\linewidth}
 \begin{cpp}
 template <typename N>
-constexpr size_t rank(N) = delete;
+constexpr size_t ordinal(N) = delete;
 template <> constexpr size_t
-rank<size_t>(size_t n) { return n; }
+ordinal<size_t>(size_t n) { return n; }
 
 template <typename N>
 concept IsFinitePrefix = totally_ordered<N> &&
     requires(const N n) {
-      { rank(n) } -> same_as<size_t>;
+      { ordinal(n) } -> same_as<size_t>;
     };
 
 template <typename T, typename Op = plus<T>,
           IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  return rank(n) == 0 || x == unit<T>(Op{})
+  return ordinal(n) == 0 || x == unit<T>(Op{})
     ? unit<T>(Op{})
-    : concat<T, Op>(views::repeat(x, rank(n)));
+    : concat<T, Op>(views::repeat(x, ordinal(n)));
 }
 static_assert(times<size_t>(7, 6uz) == 42);
 \end{cpp}
@@ -298,8 +298,8 @@ define i64 @times_n(i64 %x, i64 %n) {
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent.
 Left: a fold over a budget.
-\cppinline{times} is \cppinline{concat} of the constant list, \cppinline{n} copies of \cppinline{x}, for a count \cppinline{n} of any finite prefix of the naturals: a chain with its \cppinline{rank}, the order embedding onto an initial segment of \cppinline{size_t}.
-\cppinline{size_t} is its own rank, and the test registers \cppinline{bool} and \cppinline{char} too.
+\cppinline{times} is \cppinline{concat} of the constant list, \cppinline{n} copies of \cppinline{x}, for a count \cppinline{n} of any finite prefix of the naturals: a chain with its \cppinline{ordinal}, the order embedding onto an initial segment of \cppinline{size_t}.
+\cppinline{size_t} is its own ordinal, and the test registers \cppinline{bool} and \cppinline{char} too.
 No copies, and copies of the unit, are the unit, without a fold, by the unit law.
 Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised to \cppinline{size_t}, with \cppinline{n} known only at run time, attributes stripped.
 }
@@ -376,12 +376,12 @@ constexpr T times(T x, N n) {
 \end{cpp}
 \begin{minted}[fontsize=\footnotesize]{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  eq : T → T → Bool,  assoc : Bool }
-PrefixDict N     =  { rank : N → Nat, … }
+PrefixDict N     =  { ordinal : N → Nat, … }
 ModuleDict T S Op  =  { monoid : MonoidDict T Op,  act : S → T → T,  linear : Bool, … }
 plus_str  =  { unit = "",  op = λa. λb. a ++ b,  eq = string_eq,  assoc = true }
 plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  eq = u.eq,  assoc = true }
-times₁  =  Λ T Op N. λ m p x n.  if p.rank n = 0 or m.eq x m.unit then m.unit
-                                  else iter (p.rank n) (λ s. m.op s x) m.unit
+times₁  =  Λ T Op N. λ m p x n.  if p.ordinal n = 0 or m.eq x m.unit then m.unit
+                                  else iter (p.ordinal n) (λ s. m.op s x) m.unit
 times₂  =  Λ T Op N. λ s x n.  s.act n x
 times [u64] 7 6           =  times₂ [u64 plus u64] module_u64 7 6
 times [bool or] true true =  times₂ [bool or bool] module_bool true true
@@ -410,7 +410,8 @@ The action, \cppinline{counting<N>::act}, is named by \cppinline{IsSemimodule}, 
 The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
 The laws make the answers right.
 The unit law makes any number of copies of the unit the unit.
-The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{n}.
+The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{ordinal(n)}.
+The induction needs one more premise, which \cppinline{counting<N>} declares: each count is the sum of \cppinline{ordinal(n)} ones of its semiring.
 Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$.
 So the certificate is true for the unsigned carriers, which wrap at a power of two dividing $2^{64}$, and for no carrier that does not wrap, such as \cppinline{std::string}.
 Counts of type \cppinline{bool} are the Boolean semiring, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n && x}.
@@ -705,12 +706,11 @@ The law changes what the compile time can do, and nothing the run time does.}
 who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
 a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the budget alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
-a type's depth & at most 1024 nested instantiations (\texttt{-ftemplate-depth}) & none, since instantiation is over \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & not diagnosed: whatever the hardware does \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as the fold become one \texttt{mul} \\
 a \texttt{consteval} function & evaluated, at every call & not callable: no call survives to run time \\
-telling them apart & \texttt{if consteval} takes its first branch & it takes the other, and FJlt desugars it to the first where both agree \\
+telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
 \caption{Where the two binding times differ, for Clang~23 with its default limits.
@@ -731,7 +731,7 @@ Every row of Table~\ref{tab:binding} but the last is a place where one binding t
 None makes the two compute different values for one call: where constant evaluation gives a value, it is the value the run time gives.
 The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen, which is why the listings' carriers are unsigned (Section~\ref{sec:limits}).
-The last row is the one way a program can tell the two binding times apart, and it desugars to its compile-time branch where the branches agree.
+The last row is how a program can tell the two binding times apart, and it desugars to its compile-time branch where the branches agree.
 
 \paragraph{The same laws license parallelism.}
 Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
@@ -743,7 +743,7 @@ The shortcut is a run-time one: the overloads that take a policy are not \cppinl
 And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
 
 \paragraph{A branch on the binding time desugars to its compile-time branch.}
-\cppinline{if consteval} is the one construct by which a program can observe its binding time, and FJlt need not have it.
+\cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
 \cppinline{if consteval \{ A \} else \{ B \}} desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
 For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
 So the law that licenses the shortcut also proves that the branches agree.
@@ -810,7 +810,7 @@ The listings close it by using unsigned carriers, whose arithmetic is total.
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
 \paragraph{The compiler has its own limits.}
-Table~\ref{tab:binding} lists them: steps, call depth and instantiation depth.
+Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
 They are the compiler's to set, and a program that exceeds one does not compile.
 Rule~3 keeps them predictable, because every fold's length is in the program: a budget, or the depth of a term.
 A fold over a budget has no recursion and meets no depth limit.

@@ -541,7 +541,7 @@ lambda & captures by copy of FJlt values, FJlt body & operation struct, captures
 \texttt{if constexpr} on a value & condition a closed \texttt{bool} term, both branches FJlt of one type under the same constraints & \texttt{p ? A : B} & a reader, by the rewrite \\
 \texttt{if constexpr} on a constraint & then-branch FJlt under the constraint, else-branch under its negation & an instance chain, the more constrained generic function preferred & the compiler at concrete types, the tool at a type variable \\
 \texttt{if} and \texttt{else} on a value & both branches return FJlt terms of one type & \texttt{p ? A : B} & a reader \\
-\texttt{if consteval} & both branches compute the same value on every input & the compile-time branch & the declared law that licenses the other branch, or a reader \\
+\texttt{if consteval}, or an \texttt{if} on \texttt{is\_constant\_evaluated()} & both branches compute the same value on every input & the compile-time branch & the declared law that licenses the other branch, or a reader \\
 sum & branches FJlt on the summands & the case form & the kernel, a reader for a guard \\
 enumeration, \texttt{switch} & every enumerator handled, each case an FJlt term of one type & a finite sum of units and its nested case & the compiler, by its switch warning \\
 local constant, structured binding & the initialiser FJlt, the name bound once & a $\beta$-redex; a binding as \texttt{.first}, \texttt{.second} & the tool \\
