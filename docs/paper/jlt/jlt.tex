@@ -736,9 +736,10 @@ The same wall makes a pair of monoids a monoid only through an operation type of
 This is where the translation's ``instance resolution'' and \Cpp{}'s name lookup pull apart.
 FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
-\paragraph{A typed function object promises what its body cannot keep.}
-\cppinline{std::plus<T>} declares its result type as \cppinline{T}, so a shape that asks \cppinline|{ Op{}(a, b) } -> std::same_as<T>| is satisfied for any \cppinline{T}, even one with no \cppinline{+}, and the failure comes later, inside \cppinline{<functional>}; the transparent \cppinline{std::plus<>}, whose result type is \cppinline{decltype(t + u)}, has no such gap.
-It is the body-versus-signature gap of Rule~2 one level down, and the listings avoid it by never asking a typed function object about a carrier it was not written for.
+\paragraph{\cppinline{std::plus<T>} promises what its body cannot keep.}
+\cppinline{std::plus<T>} declares its call as \cppinline{T operator()(const T&, const T&)}, so a requirement such as \cppinline|{ Op{}(a, b) } -> same_as<T>| is met by signature for every \cppinline{T}, even one with no \cppinline{+}; its body, \cppinline{a + b}, fails only when instantiated, inside \cppinline{<functional>}, where the linter does not read.
+The transparent \cppinline{std::plus<>} declares its result as \cppinline{decltype(a + b)}, so a \cppinline{T} with no \cppinline{+} fails the requirement itself: the typed form is the standard library's own gap between signature and body, Rule~2 one level down.
+The listings use the typed form and never ask it about a carrier it was not written for.
 
 \paragraph{A shape knows the laws someone declared.}
 \Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics for that reason~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
