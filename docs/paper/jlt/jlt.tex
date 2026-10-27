@@ -351,7 +351,7 @@ The optimiser sees through the chain, up to the cases.
 What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's one multiplication, though the count is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question.
-Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a \emph{budget} was exhausted: a counter out of band, beside the structure's own count, that can stop a computation before its chain reaches the delimiter, and whose exhaustion is never a value.
+Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a \emph{budget} was exhausted (Section~\ref{sec:binding}).
 
 \begin{table}[ht]
 \centering
@@ -683,7 +683,7 @@ telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()
 \bottomrule
 \end{tabularx}
 \caption{Where the two binding times differ, for Clang~23 with its default limits.
-Each limit is a budget in Rule~3's sense, an out-of-band counter on the evaluator's work, and can be raised; running out of one is a refusal, as running out of a search's budget is Kleene's unknown.
+Each limit counts the evaluator's work, and can be raised.
 Apart from the last row, no difference is a different value: where both evaluations finish without undefined behaviour, they agree (Theorem~\ref{thm:simulation}).}
 \label{tab:binding}
 \end{table}
@@ -692,7 +692,8 @@ Apart from the last row, no difference is a different value: where both evaluati
 In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s multiplication sees only the code emitted for run time.
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:desugar}'s overload: it buys at build time what the optimiser finds at run time by itself.
 
-The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
+The limits are budgets: counters out of band, beside the structure's own count, that can stop a computation before its chain reaches the delimiter, and whose exhaustion is never a value, a refusal here and Kleene's unknown for the budget a search is given in the kernel (Rule~3).
+They are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time nothing is guaranteed (Section~\ref{sec:limits}).
 
 \paragraph{The same laws license parallelism.}
@@ -758,7 +759,7 @@ A signed integer whose own arithmetic can overflow, such as \cppinline{int}, is 
 A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
 
 \paragraph{The compiler has its own limits.}
-Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both; all three are budgets, counters out of band.
+Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
 Rule~3 keeps them predictable, because every fold's length is in the program: a count, or the depth of a term.
 A fold over a count has no recursion and meets no depth limit.
 A fold over a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, is one instantiation per nesting, bounded by \texttt{-ftemplate-depth}.
