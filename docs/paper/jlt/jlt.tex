@@ -73,7 +73,9 @@ Two things make \Cpp{} a good place to attempt such an embedding now.
 The first is where \Cpp{} is: much of machine learning and most embedded devices run on it, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 The second is that the standard is large and keeps evolving: a fragment is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient.
 The fragment is the \emph{Juliet Posture}, or Jlt: a subset of \Cpp{23} whose kernel reads as System~F.
-It is an embedded language in Hudak's sense~\cite{hudak1996building}: its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang 23 here (Section~\ref{sec:limits}), and its domain is System~F's, typed functional programming.
+It is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
+Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}), and its kernel's terms are System~F terms, by the translation of Section~\ref{sec:translation}.
+Being a strict subset of \Cpp{23}, it is not a language this paper designs but a fragment it characterises, and an embedding it describes, as an archaeologist uncovers a city rather than as an architect builds a house.
 The name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 Figure~\ref{fig:arrows} sketches the arrows between these pieces.
 
@@ -85,7 +87,9 @@ As a result, a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary.
 The fragment has two, and this paper draws both.
-The outer one is drawn by the three rules: Jlt is \Cpp{23} within them, and a posture because the compiler enforces some of the rules and not others, and Table~\ref{tab:posture} says which.
+The outer one is drawn by the three rules: Jlt is \Cpp{23} within them.
+We call it a posture because it asks only for a style of programming: every ingredient is in the ISO standard~\cite{cpp23standard}, implemented by toolchains in wide use, and what Jlt adds is the programmer's discipline.
+The compiler holds some of the rules and the programmer the rest, and a linter helps but is not required (Table~\ref{tab:posture}).
 The inner one is drawn by the translation: the \emph{kernel}, Featherweight Jlt (FJlt), is the part of Jlt on which $\llbracket\cdot\rrbracket$ is defined, and it inherits from System~F termination, parametricity and a value.
 Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
 
@@ -94,10 +98,10 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 \centering
 \begin{tikzcd}[column sep=2.4em, row sep=2.2em]
   & \text{Jlt} \arrow[dr, hook, "{-}\,\text{rules}"] \arrow[dl, dashed, bend right=25, "{-}\,\text{sugar}"'] \\[-0.8em]
-\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, "\llbracket\cdot\rrbracket"']
+\text{FJlt} \arrow[ur, hook, bend right=25, "{+}\,\text{sugar}"'] \arrow[d, bend right=25, "\llbracket\cdot\rrbracket"']
   &
   & \text{\Cpp{23}} \arrow[d, "\texttt{clang++}"] \\
-\text{System~F} \arrow[d, "\text{eval}"']
+\text{System~F} \arrow[u, hook, bend right=25, "\text{embed}"'] \arrow[d, "\text{eval}"']
   &
   & \text{LLVM IR} \arrow[d, "\text{run}"] \\
 \text{value} \arrow[rr, equal]
@@ -107,7 +111,8 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 \caption{The arrows of the paper.
 Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar, and what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}) and \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it: composed with the inclusions, it is the embedding that makes Jlt an embedded language, and it is not onto, since input and output, global mutable state and threads are outside Jlt.
+\texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
 Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
 The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequacy}: $\mathit{desugar}$ is total on Jlt and a retraction of the inclusion, $\mathit{desugar} \circ \mathit{incl} = \mathit{id}$ exactly, by construction, and $\mathit{incl} \circ \mathit{desugar} = \mathit{id}$ up to the value a program computes, so that the bottom edge holds for every Jlt program $p$, $\mathit{eval}\,\llbracket \mathit{desugar}\,p \rrbracket = \mathit{run}\,(\texttt{clang++}\,p)$.}
 \label{fig:arrows}
