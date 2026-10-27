@@ -43,6 +43,20 @@ static_assert(std::ranges::fold_left(chain(size_t{3}, Out<size_t>{}) |
                                              7}),
                                      size_t{0}, std::plus<>{}) == 21);
 
+// A coalgebra whose element is not its state: the parity of each count on
+// the way down.  The iterator compares states, so the element need not.
+struct Parity {
+  constexpr std::optional<std::pair<bool, size_t>> operator()(
+      const size_t& n) const {
+    if (n == 0) return std::nullopt;
+    return std::pair<bool, size_t>{n % 2 == 1, n - 1};
+  }
+};
+static_assert(std::ranges::distance(unfold(size_t{4}, Parity{})) == 4);
+constexpr size_t count_true(size_t a, bool b) { return a + (b ? 1 : 0); }
+static_assert(std::ranges::fold_left(unfold(size_t{5}, Parity{}), size_t{0},
+                                     count_true) == 3);
+
 std::vector<size_t> collect(auto&& view) {
   std::vector<size_t> out;
   for (size_t x : view) out.push_back(x);

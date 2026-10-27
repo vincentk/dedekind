@@ -333,7 +333,8 @@ constexpr std::optional<N> cover(const N& n) {
  *
  *  A forward view, O(1) state: the element, the next state, and whether the
  *  walk is live.  The coalgebra is a value (Rule 1: semiregular), and two
- *  positions of one walk compare by element and state.
+ *  positions of one walk compare by state, so the element need not be
+ *  comparable.
  *  @tparam S the state.  @tparam Coalg the coalgebra, @c S to
  *  @c optional<pair<A, S>>. */
 export template <std::regular S, std::semiregular Coalg>
@@ -374,10 +375,11 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
       ++*this;
       return before;
     }
-    /** @return whether two positions of one walk coincide. */
+    /** @return whether two positions of one walk coincide: the same next
+     *  state, so, the coalgebra being a function, the same element, which
+     *  need not be comparable. */
     friend constexpr bool operator==(const iterator& a, const iterator& b) {
-      return a.live_ == b.live_ &&
-             (!a.live_ || (a.current_ == b.current_ && a.next_ == b.next_));
+      return a.live_ == b.live_ && (!a.live_ || a.next_ == b.next_);
     }
     /** @return whether the walk has ended. */
     friend constexpr bool operator==(const iterator& it,
@@ -387,7 +389,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
 
    private:
     constexpr void unfold_one(const S& state) {
-      if (const Yield y = step_(state); y.has_value()) {
+      if (const Yield y = std::invoke(step_, state); y.has_value()) {
         current_ = y->first;
         next_ = y->second;
         live_ = true;
@@ -435,7 +437,7 @@ struct StepCoalgebra {
   Step step{};
   /** @param x a state.  @return @c (x, step(x)), or nothing at a delimiter. */
   constexpr std::optional<std::pair<X, X>> operator()(const X& x) const {
-    if (const std::optional<X> next = step(x); next.has_value())
+    if (const std::optional<X> next = std::invoke(step, x); next.has_value())
       return std::pair<X, X>{x, *next};
     return std::nullopt;
   }

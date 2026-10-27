@@ -507,16 +507,6 @@ concept IsOrderAntiIsomorphism = IsBijectiveArrow<F> && IsAntiMonotone<F, Op>;
 // Op(x, y) ⇒ Op(id(x), id(y)) holds trivially.
 template <typename T, typename Op>
 inline constexpr bool is_monotone_v<Identity<T>, Op> = true;
-// A constant arrow is monotone and antitone under every order: Op(x, y)
-// implies Op(c, c), reflexivity.  The converse holds on a connected domain
-// (a chain): x ≤ y gives f x ≤ f y ≤ f x, so f x = f y by antisymmetry.
-template <typename X, typename Y, typename Op>
-inline constexpr bool is_monotone_v<Constant<X, Y>, Op> = true;
-template <typename X, typename Y, typename Op>
-inline constexpr bool is_antimonotone_v<Constant<X, Y>, Op> = true;
-static_assert(IsMonotone<Constant<int, bool>> &&
-                  IsAntiMonotone<Constant<int, bool>>,
-              "a constant arrow is monotone and antitone under any order");
 
 // Identity arrows are therefore order-isomorphisms (they are bijective
 // via the @c :morphism registration AND monotone via the above).
@@ -718,18 +708,17 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
   return Ternary::Unknown;
 }
 /** @brief Entailment, a closure operator on profiles: an involution is its
- *  own inverse, so a bijection; a constant arrow is monotone and antitone
- *  under every order.  The converse of the second, monotone and antitone
- *  entail constant, holds on a connected domain only (a chain), and a profile
- *  is read under an arbitrary order, so the engine does not apply it: under
- *  the discrete order every arrow is both.  The engine applies the
- *  entailments to values; a typed arrow already has them through the iso hook
- *  (@c :involution) and the registrations of @c Constant above. */
+ *  own inverse, so a bijection.  Nothing is entailed about a constant arrow's
+ *  variance here: it is monotone and antitone under a reflexive order and
+ *  neither under a strict one, and a profile is read under an arbitrary
+ *  order; the typed reader has the fact where the order is in reach
+ *  (@c :total).  Nor the converse, monotone and antitone entailing constant,
+ *  which holds on a connected domain only.  The engine applies the
+ *  entailment to values; a typed arrow already has it through the iso hook
+ *  (@c :involution). */
 export constexpr ArrowLaws saturated(ArrowLaws p) {
   if (p[ArrowLaw::Involutive] == Ternary::True)
     p = p.with(ArrowLaw::Injective).with(ArrowLaw::Surjective);
-  if (p[ArrowLaw::Constant] == Ternary::True)
-    p = p.with(ArrowLaw::Monotone).with(ArrowLaw::Antitone);
   return p;
 }
 /** @brief The laws that do not depend on an order: a profile read under an
@@ -827,20 +816,17 @@ static_assert(saturated(ArrowLaws{}.with(
               "entailment: an involution is a bijection");
 static_assert(
     saturated(ArrowLaws{}.with(ArrowLaw::Constant))[ArrowLaw::Monotone] ==
-            Ternary::True &&
-        saturated(ArrowLaws{}.with(ArrowLaw::Constant))[ArrowLaw::Antitone] ==
-            Ternary::True,
-    "entailment: a constant arrow is monotone and antitone");
-static_assert(saturated(ArrowLaws{}
-                            .with(ArrowLaw::Monotone)
-                            .with(ArrowLaw::Antitone))[ArrowLaw::Constant] ==
-                  Ternary::Unknown,
-              "no entailment the other way: under the discrete order every "
-              "arrow is monotone and antitone, and a profile's order is any");
-static_assert(IsConstantArrow<Compose<Identity<int>, Constant<int, int>>> &&
-                  IsConstantArrow<Compose<Constant<int, int>, Identity<int>>> &&
-                  !IsConstantArrow<Compose<Identity<int>, Identity<int>>>,
-              "g ∘ f is constant as soon as either leg is, by the engine");
+            Ternary::Unknown &&
+        saturated(ArrowLaws{}
+                      .with(ArrowLaw::Monotone)
+                      .with(ArrowLaw::Antitone))[ArrowLaw::Constant] ==
+            Ternary::Unknown,
+    "no entailment between constant and the variances at the value level: a "
+    "profile's order is any, strict or discrete");
+static_assert(arrow_node(ArrowNode::Compose,
+                         ArrowLaws{}.with(ArrowLaw::Constant),
+                         ArrowLaws{})[ArrowLaw::Constant] == Ternary::True,
+              "g ∘ f is constant as soon as either leg is");
 static_assert(
     arrow_node(ArrowNode::Sum, ArrowLaws{}.with(ArrowLaw::Antitone),
                ArrowLaws{}.with(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==

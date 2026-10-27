@@ -816,25 +816,9 @@ struct Identity final {
    */
 };
 
-/**
- * @brief The constant arrow @f$X \to Y@f$ at @c value: it factors through the
- *        terminal object, @f$y \circ\, !@f$, so it is the one kind of arrow
- *        that needs no order to be stated (Lawvere and Rosebrugh
- *        @cite lawvere2003sets).  Under any order it is monotone and antitone,
- *        registered in @c :posetal; on a connected domain, a chain, the
- *        converse holds too, which is how the Jlt paper's Figure 2 reads
- *        it (#981).  The vertical arrow of that figure where the fold is
- *        @c n copies of one value.
- * @tparam X the domain.  @tparam Y the codomain, a value type.
- */
-export template <typename X, std::semiregular Y = X>
-struct Constant final {
-  using Domain = X;
-  using Codomain = Y;
-  Y value{};
-  /** @return @c value, whatever the argument. */
-  constexpr Y operator()(const X&) const { return value; }
-  constexpr bool operator==(const Constant&) const = default;
+/** @return @c value, whatever the argument. */
+constexpr Y operator()(const X&) const { return value; }
+constexpr bool operator==(const Constant&) const = default;
 };
 
 /** @brief The Identity Factory: Returns the neutral arrow for Species A. */
@@ -1171,12 +1155,11 @@ constexpr auto operator>>(T value, const Arrow& f) -> typename Arrow::Codomain {
 export template <typename E>
 inline constexpr bool is_monic_arrow_v = false;
 
-/** @brief The constancy of an arrow: declared for @c Constant, read off
- *  composition by the law engine (@c :posetal).  @tparam E the arrow. */
+/** @brief The constancy of an arrow: declared for @c ConstantMorphism
+ *  (@c :discrete), read off composition by the law engine (@c :posetal).
+ *  @tparam E the arrow. */
 export template <typename E>
 inline constexpr bool is_constant_arrow_v = false;
-template <typename X, typename Y>
-inline constexpr bool is_constant_arrow_v<Constant<X, Y>> = true;
 /** @concept IsConstantArrow
  *  @brief An arrow known to be constant: every argument to one value. */
 export template <typename F>

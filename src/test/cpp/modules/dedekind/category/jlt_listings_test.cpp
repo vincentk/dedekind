@@ -223,12 +223,13 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: Figure 2 in code.  Out is the library's destructor of a count,
-// nothing at zero and else the predecessor; chain(n, Out) is Dedekind's chain
-// of n, {n, ..., 1}, the zero delimiting; an arrow f takes each count to a
-// value; concat folds the image.  times names the case f constant.  chain,
-// chain_t, Out and Constant are the library's (dedekind.category:nno,
-// :morphism), used as they are.
+// Listing 3: Figure 2 in code.  A count is an unsigned integral, so that its
+// chain descends to zero (int would run below it, K3 never reach it); Out is
+// the library's destructor, nothing at zero and else the predecessor;
+// chain(n, Out) is Dedekind's chain of n, {n, ..., 1}, the zero delimiting; an
+// arrow f takes each count to a value; concat folds the image.  times names the
+// case f constant.  chain, chain_t, Out and Constant are the library's
+// (dedekind.category:nno, :morphism), used as they are.
 using dedekind::category::chain;
 using dedekind::category::chain_t;
 using dedekind::category::Constant;
@@ -236,14 +237,15 @@ using dedekind::category::Identity;
 using dedekind::category::Out;
 
 template <typename N>
-concept IsCount = std::regular<N> && requires(const N n) {
+concept IsCount = std::unsigned_integral<N> && requires(const N n) {
   { Out<N>{}(n) } -> std::same_as<std::optional<N>>;
   { chain(n, Out<N>{}) } -> std::same_as<chain_t<N, Out<N>>>;
 };
-// An arrow from the counts to the values, its result up to conversion.
+// An arrow from the counts to the values, its result exactly T: the fold's
+// operation is certified on (T, T) and sees nothing else.
 template <typename F, typename N, typename T>
 concept IsArrowTo = requires(const F f, const N n) {
-  { f(n) } -> std::convertible_to<T>;
+  { f(n) } -> std::same_as<T>;
 };
 
 template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
@@ -254,6 +256,11 @@ constexpr T concat(chain_t<N, Step> ns, F f) {
                                 Op{});
 }
 
+// times is sugar: its clause decides neither IsSemimodule nor its negation,
+// so the kernel's rule for a call a clause does not decide applies, and the
+// caller, at a concrete type, supplies the resolved concat (the paper's
+// Table 7).  The linter judges such a call only at a value of parameter
+// type, which these arguments are not: a blind spot the paper names.
 template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
