@@ -21,6 +21,7 @@ abstract: >
 authors:
   - family-names: "Kräutler"
     given-names: "Vincent"
+doi: 10.5281/zenodo.23697076
 repository-code: "https://github.com/vincentk/dedekind"
 license: Apache-2.0
 keywords:
