@@ -750,12 +750,8 @@ The same declaration is the only refusal available for a carrier that passes a s
 Nobody certifies it, and the shape with laws does not have it.
 
 \paragraph{Undefined behaviour has one binding time.}
-Constant evaluation refuses undefined behaviour, so a listing that overflows a signed integer does not compile (Table~\ref{tab:binding}).
-At run time the standard requires no diagnostic and guarantees nothing, and the optimiser may assume the overflow never happens and rewrite the computation accordingly.
-This is the only way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt.
-The listings close it by using unsigned carriers, whose arithmetic is total.
-A signed integer whose own arithmetic can overflow, such as \cppinline{int}, is still a chain under \cppinline{<}, with \cppinline{min} and \cppinline{max} a bounded lattice, but under \cppinline{+} or \cppinline{*} it is no monoid, since overflow is undefined, so no certificate makes it a count's semiring.
-A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, which is a fact about the program that no rule checks.
+Constant evaluation refuses it and run time does not (Table~\ref{tab:binding}), the one way the two evaluations of Theorem~\ref{thm:simulation} can disagree in \Cpp{} where they cannot in FJlt, and the reason the listings' carriers are unsigned.
+A signed integer such as \cppinline{int} is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined; a Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact about the program that no rule checks.
 
 \paragraph{The compiler has its own limits.}
 Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
