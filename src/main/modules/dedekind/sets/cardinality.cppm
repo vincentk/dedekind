@@ -449,12 +449,28 @@ export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
 }
 
 /** @brief @c ++n / @c --n: the successor and the predecessor of the ℕ proxy,
- *  by value, saturating at ℵ₀ and stepping down by monus.  A by-value operator
- *  keeps Rule 1: @c ++n is a new value and @c n is unchanged, so the operators
- *  are the posture's spelling of @c Successor and @c Predecessor.  There is no
- *  postfix form: by value, @c n++ would be @c n itself.  The standard's
- *  incrementable concepts ask @c ++i for an @c I& and do not admit these, nor
- *  does the carrier declare the difference type they want (#1002).
+ *  by value, saturating at ℵ₀ and stepping down by monus (#1002).
+ *
+ *  @details Why by value, and why only on types of our own.
+ *  - A user-defined operator need not mutate.  Taken by value, @c ++n returns
+ *    a new value and leaves @c n alone, so it keeps Rule 1 (no reference
+ *    parameter, no reference returned, no state) and is the posture's spelling
+ *    of @c Successor; it applies to a constant too.  There is no postfix form:
+ *    by value, @c n++ would be @c n itself.
+ *  - The built-in @c ++ mutates.  On a @c const built-in it does not compile
+ *    ("cannot assign to variable with const-qualified type"), so @c const
+ *    already makes the compiler hold Rule 1 at the operator.
+ *  - It cannot be replaced: an overloaded operator must have a parameter of
+ *    class or enumeration type, so no @c operator++ may be declared for
+ *    @c size_t, @c const or not.  Its successor is @c n @c + @c 1, or
+ *    @c successor(n).
+ *  - The standard's incrementable concepts ask @c ++i for an @c I&, so they
+ *    do not admit the by-value form, and @c std::views::iota does not walk
+ *    such a type; @c chain_view walks by @c successor and @c cover instead.
+ *  - For counts with a by-value @c ++, a type of our own is the route: a
+ *    struct around the word, or the smallest strong typedef the language has,
+ *    @c enum @c class @c Nat @c : @c size_t @c {}, whose values are the word's
+ *    and which @c std::to_underlying converts back.
  *  @param n the element.  @return its successor (predecessor). */
 export constexpr Cardinality operator++(Cardinality n) noexcept {
   return successor(n);
