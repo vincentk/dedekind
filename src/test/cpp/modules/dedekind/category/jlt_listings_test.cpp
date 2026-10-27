@@ -238,13 +238,17 @@ using dedekind::category::Out;
 template <typename N>
 concept IsCount = std::regular<N> && requires(const N n) {
   { Out<N>{}(n) } -> std::same_as<std::optional<N>>;
+  { chain(n, Out<N>{}) } -> std::same_as<chain_t<N, Out<N>>>;
+};
+// An arrow from the counts to the values, its result up to conversion.
+template <typename F, typename N, typename T>
+concept IsArrowTo = requires(const F f, const N n) {
+  { f(n) } -> std::convertible_to<T>;
 };
 
 template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
           typename F>
-  requires IsMonoid<T, Op> && requires(const F f, const N n) {
-    { f(n) } -> std::convertible_to<T>;
-  }
+  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
 constexpr T concat(chain_t<N, Step> ns, F f) {
   return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
                                 Op{});
@@ -328,13 +332,11 @@ static_assert(!IsSemimodule<bool, size_t>);
 namespace sugar {
 template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
           typename F>
-  requires IsMonoid<T, Op> && requires(const F f, const N n) {
-    { f(n) } -> std::convertible_to<T>;
-  }
+  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
 constexpr T concat(chain_t<N, Step> ns, F f) {
   if constexpr (std::same_as<Step, Out<N>> && std::same_as<F, Constant<N, T>> &&
                 IsSemimodule<T, N, Op>)
-    return static_cast<T>(ns.seed() * f.value);
+    return static_cast<T>(ns.seed() * f(ns.seed()));
   else
     return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
                                   Op{});
@@ -353,17 +355,15 @@ constexpr T times(T x, N n) {
 namespace kernel {
 template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
           typename F>
-  requires IsMonoid<T, Op> && requires(const F f, const N n) {
-    { f(n) } -> std::convertible_to<T>;
-  }
+  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
 constexpr T concat(chain_t<N, Step> ns, F f) {
   return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
                                 Op{});
 }
 template <typename T, typename Op = std::plus<T>, IsCount N>
-  requires IsSemimodule<T, N, Op>
+  requires IsSemimodule<T, N, Op> && IsArrowTo<Constant<N, T>, N, T>
 constexpr T concat(chain_t<N, Out<N>> ns, Constant<N, T> f) {
-  return static_cast<T>(ns.seed() * f.value);
+  return static_cast<T>(ns.seed() * f(ns.seed()));
 }
 template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>

@@ -479,18 +479,28 @@ struct Below {
  *  of @c lo by @c cover, ending after @c hi, or at a saturating top short of
  *  it.  @c std::views::iota cannot do this (@c Ternary has no @c ++,
  *  @c Cardinality no @c difference_type), so @c sequences::to_iota_view is
- *  this view's integral face.  An instance of @c unfold_view, over the state
- *  @f$1 + C@f$ (#981): no arithmetic of its own on the bounds.
+ *  this view's integral face.  Holds an @c unfold_view over the state
+ *  @f$1 + C@f$ (#981): no arithmetic of its own on the bounds, and no base
+ *  class, since the posture has no subtyping.
  *  @tparam C the chain, with the covering step. */
 export template <HasNNOStep C>
   requires std::totally_ordered<C>
-class chain_view : public unfold_view<std::optional<C>, Below<C>> {
+class chain_view : public std::ranges::view_interface<chain_view<C>> {
+  using Walk = unfold_view<std::optional<C>, Below<C>>;
+
  public:
+  using iterator = typename Walk::iterator;
   constexpr chain_view() = default;
   /** @param lo the window's bottom.  @param hi its top (inclusive). */
   constexpr chain_view(C lo, C hi)
-      : unfold_view<std::optional<C>, Below<C>>(std::optional<C>{lo},
-                                                Below<C>{hi}) {}
+      : walk_(std::optional<C>{lo}, Below<C>{hi}) {}
+  /** @return the walk, starting at @c lo. */
+  constexpr iterator begin() const { return walk_.begin(); }
+  /** @return the sentinel the walk compares equal to once it has ended. */
+  constexpr std::default_sentinel_t end() const { return {}; }
+
+ private:
+  Walk walk_{};  // held, not inherited: the posture has no subtyping
 };
 
 /** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
