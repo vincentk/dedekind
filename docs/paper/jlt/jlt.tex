@@ -744,7 +744,7 @@ And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\r
 
 \paragraph{A branch on the binding time desugars to its compile-time branch.}
 \cppinline{if consteval} is the one construct by which a program can observe its binding time, and FJlt need not have it.
-\cppinline{if consteval \{ A \} else \{ B \}} desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).
+\cppinline{if consteval \{ A \} else \{ B \}} desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
 For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
 So the law that licenses the shortcut also proves that the branches agree.
 For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
