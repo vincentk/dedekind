@@ -66,7 +66,7 @@ concept IsSuccessor = IsPartialMagma<T, std::plus<T>> &&
  * FIXME: misnamed.  "Every element reached by the successor" is Peano's and
  * Dedekind's generation of the naturals from one element and a step; the
  * Archimedean property is another axiom, that for x, y > 0 some n has
- * n x > y (Archimedes, The Works, ed. Heath 1897).  Rename to the property
+ * n x > y @cite heath1897archimedes.  Rename to the property
  * it states, and reconcile its algebraic IsSuccessor (x + 1) with the NNO step
  * of dedekind.category (successor, HasNNOStep), which every shipped carrier
  * provides and IsSuccessor's carriers withhold.

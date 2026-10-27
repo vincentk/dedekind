@@ -507,6 +507,16 @@ concept IsOrderAntiIsomorphism = IsBijectiveArrow<F> && IsAntiMonotone<F, Op>;
 // Op(x, y) ⇒ Op(id(x), id(y)) holds trivially.
 template <typename T, typename Op>
 inline constexpr bool is_monotone_v<Identity<T>, Op> = true;
+// A constant arrow is monotone and antitone under every order: Op(x, y)
+// implies Op(c, c), reflexivity.  The converse holds on a connected domain
+// (a chain): x ≤ y gives f x ≤ f y ≤ f x, so f x = f y by antisymmetry.
+template <typename X, typename Y, typename Op>
+inline constexpr bool is_monotone_v<Constant<X, Y>, Op> = true;
+template <typename X, typename Y, typename Op>
+inline constexpr bool is_antimonotone_v<Constant<X, Y>, Op> = true;
+static_assert(IsMonotone<Constant<int, bool>> &&
+                  IsAntiMonotone<Constant<int, bool>>,
+              "a constant arrow is monotone and antitone under any order");
 
 // Identity arrows are therefore order-isomorphisms (they are bijective
 // via the @c :morphism registration AND monotone via the above).
@@ -611,7 +621,8 @@ static_assert(Ternary{} == Ternary::Unknown,
 
 /** @section posetal__The_Laws_Of_A_Function
  *  A law of a function (injective, surjective, monotone, antitone,
- *  involutive) is a class of arrows; an arrow's @b profile (@c Profile,
+ *  involutive, constant) is a class of arrows; an arrow's @b profile (@c
+ * Profile,
  *  @c :logic) is the laws it is known to have.  The profiles are a finite
  *  algebra over the formers of arrows (∘, ×, +, ⟨,⟩, [,]): per law a
  *  homomorphism into (Σ, ∧) where the law is closed under the former, the
@@ -630,11 +641,13 @@ export enum class ArrowLaw : unsigned {
   Surjective,
   Monotone,
   Antitone,
-  Involutive
+  Involutive,
+  Constant  // every argument to one value: monotone and antitone, under any
+            // order, and on a chain exactly that (the Jlt paper's Figure 2)
 };
-export inline constexpr std::array<ArrowLaw, 5> every_arrow_law{
+export inline constexpr std::array<ArrowLaw, 6> every_arrow_law{
     ArrowLaw::Injective, ArrowLaw::Surjective, ArrowLaw::Monotone,
-    ArrowLaw::Antitone, ArrowLaw::Involutive};
+    ArrowLaw::Antitone,  ArrowLaw::Involutive, ArrowLaw::Constant};
 /** @brief The formers of arrows: g ∘ f, f × g, f + g, ⟨f, g⟩, [f, g]. */
 export enum class ArrowNode { Compose, Product, Sum, Pairing, Copairing };
 /** @brief The profile of a function. */
@@ -648,7 +661,9 @@ export constexpr Ternary monotone(ArrowLaws p) { return p[ArrowLaw::Monotone]; }
  *  their laws combined by the chain's own @c Inf (both legs) and @c Sup
  *  (either leg).  The facts, each a theorem about functions:
  *  - @b closure: injective and surjective functions are closed under ∘, ×,
- *    +; involutive ones under × and +; monotone ones under × (the
+ *    +; involutive ones under × and +; constant ones under × and ⟨,⟩, and
+ *    g ∘ f is constant as soon as either leg is, while f + g never is (it
+ *    lands in two summands); monotone ones under × (the
  *    componentwise order) and + (@c std::variant's order, by summand first);
  *    antitone ones under × only (a sum's order keeps inl < inr, it does not
  *    reverse it);
@@ -682,16 +697,19 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
                        Inf{}(a[L::Antitone], b[L::Monotone]));
         case L::Involutive:
           return Ternary::Unknown;
+        case L::Constant:  // g ∘ f is constant as soon as either leg is
+          return Sup{}(a[w], b[w]);
       }
       break;
     case ArrowNode::Product:
       return Inf{}(a[w], b[w]);
-    case ArrowNode::Sum:
-      if (w == L::Antitone) return Ternary::Unknown;
+    case ArrowNode::Sum:  // f + g lands in two summands: never constant
+      if (w == L::Antitone || w == L::Constant) return Ternary::Unknown;
       return Inf{}(a[w], b[w]);
     case ArrowNode::Pairing:
       if (w == L::Injective) return Sup{}(a[w], b[w]);
-      if (w == L::Monotone || w == L::Antitone) return Inf{}(a[w], b[w]);
+      if (w == L::Monotone || w == L::Antitone || w == L::Constant)
+        return Inf{}(a[w], b[w]);
       return Ternary::Unknown;
     case ArrowNode::Copairing:
       if (w == L::Surjective) return Sup{}(a[w], b[w]);
@@ -700,12 +718,18 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
   return Ternary::Unknown;
 }
 /** @brief Entailment, a closure operator on profiles: an involution is its
- *  own inverse, so a bijection.  The engine applies it to values; a typed
- *  arrow already has it through the iso hook (@c :involution, an involution
- *  is self-inverse, so monic and epic). */
+ *  own inverse, so a bijection; a constant arrow is monotone and antitone
+ *  under every order.  The converse of the second, monotone and antitone
+ *  entail constant, holds on a connected domain only (a chain), and a profile
+ *  is read under an arbitrary order, so the engine does not apply it: under
+ *  the discrete order every arrow is both.  The engine applies the
+ *  entailments to values; a typed arrow already has them through the iso hook
+ *  (@c :involution) and the registrations of @c Constant above. */
 export constexpr ArrowLaws saturated(ArrowLaws p) {
   if (p[ArrowLaw::Involutive] == Ternary::True)
     p = p.with(ArrowLaw::Injective).with(ArrowLaw::Surjective);
+  if (p[ArrowLaw::Constant] == Ternary::True)
+    p = p.with(ArrowLaw::Monotone).with(ArrowLaw::Antitone);
   return p;
 }
 /** @brief The laws that do not depend on an order: a profile read under an
@@ -745,6 +769,7 @@ constexpr ArrowLaws declared_arrow_laws() {
   if constexpr (IsEpicArrow<F>) p = p.with(ArrowLaw::Surjective);
   if constexpr (IsMonotone<F, Op>) p = p.with(ArrowLaw::Monotone);
   if constexpr (IsAntiMonotone<F, Op>) p = p.with(ArrowLaw::Antitone);
+  if constexpr (IsConstantArrow<F>) p = p.with(ArrowLaw::Constant);
   if constexpr (HasDomain<F>)
     if constexpr (IsInvolution<F>) p = p.with(ArrowLaw::Involutive);
   return p;
@@ -770,6 +795,10 @@ template <typename F, typename G, typename Op>
 inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> =
     arrow_node(ArrowNode::Compose, arrow_laws_v<F, Op>,
                arrow_laws_v<G, Op>)[ArrowLaw::Antitone] == Ternary::True;
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_constant_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Constant] == Ternary::True;
 
 namespace detail_arrow_laws_witness {
 static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
@@ -796,6 +825,22 @@ static_assert(
 static_assert(saturated(ArrowLaws{}.with(
                   ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
               "entailment: an involution is a bijection");
+static_assert(
+    saturated(ArrowLaws{}.with(ArrowLaw::Constant))[ArrowLaw::Monotone] ==
+            Ternary::True &&
+        saturated(ArrowLaws{}.with(ArrowLaw::Constant))[ArrowLaw::Antitone] ==
+            Ternary::True,
+    "entailment: a constant arrow is monotone and antitone");
+static_assert(saturated(ArrowLaws{}
+                            .with(ArrowLaw::Monotone)
+                            .with(ArrowLaw::Antitone))[ArrowLaw::Constant] ==
+                  Ternary::Unknown,
+              "no entailment the other way: under the discrete order every "
+              "arrow is monotone and antitone, and a profile's order is any");
+static_assert(IsConstantArrow<Compose<Identity<int>, Constant<int, int>>> &&
+                  IsConstantArrow<Compose<Constant<int, int>, Identity<int>>> &&
+                  !IsConstantArrow<Compose<Identity<int>, Identity<int>>>,
+              "g ∘ f is constant as soon as either leg is, by the engine");
 static_assert(
     arrow_node(ArrowNode::Sum, ArrowLaws{}.with(ArrowLaw::Antitone),
                ArrowLaws{}.with(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
