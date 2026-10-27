@@ -78,7 +78,7 @@ For generic code \Cpp{} lacks one check.
 \cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}, but as standardised in \Cpp{20} they check only its uses, when the template is instantiated~\cite{stroustrup2009remove}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
-The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a shape serves every instantiation, and a checked statement serves every reader.
+The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a specialisation it licenses pays on every call, and a checked statement serves every reader.
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, both drawn here.
 The outer one is drawn by the three rules: Jlt is \Cpp{23} within them.
