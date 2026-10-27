@@ -36,6 +36,7 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::fold_left: the folds of Rule 3
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -201,6 +202,34 @@ template <typename C, typename T>
 concept StdSetLikeOf =
     dedekind::sets::StdSetLike<C> && std::same_as<typename C::value_type, T>;
 
+/** @brief The step of the folds below: insert one element into the container
+ *  accumulated so far, and hand it on (Rule 3: a fold, not a loop).  The
+ *  element is taken by value and moved in, so a transformed result is moved,
+ *  not copied (a move-only one included). */
+struct insert_into {
+  template <dedekind::sets::StdSetLike C>
+  constexpr C operator()(C acc, typename C::value_type x) const {
+    acc.insert(std::move(x));
+    return acc;
+  }
+};
+
+/** @brief A classifier read as a decided truth value: its answer converted to
+ *  @c bool as @c if would convert it, so a classifier valued in an explicit
+ *  truth type (@c Truth<Boole>) is admitted.  Applied as a const value.
+ *  @tparam Chi the classifier. */
+template <typename Chi>
+struct decided {
+  Chi chi;
+  template <typename X>
+    requires std::invocable<const Chi&, const X&> &&
+             std::constructible_from<bool,
+                                     std::invoke_result_t<const Chi&, const X&>>
+  constexpr bool operator()(const X& x) const {
+    return static_cast<bool>(std::invoke(chi, x));
+  }
+};
+
 }  // namespace detail
 
 export template <typename StdSetLike, typename T, typename L, typename Hash,
@@ -210,8 +239,7 @@ constexpr auto to_std(
     const dedekind::sets::ExtensionalSet<T, L, Hash, Equal>& source)
     -> StdSetLike {
   StdSetLike out;
-  for (const auto& value : source) out.insert(value);
-  return out;
+  return std::ranges::fold_left(source, std::move(out), detail::insert_into{});
 }
 
 export template <typename StdSetLike, typename ExtSet>
@@ -239,9 +267,8 @@ export template <typename T, typename Alloc>
            std::regular<T>
 constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
     -> dedekind::sets::ExtensionalSet<T> {
-  dedekind::sets::ExtensionalSet<T> out;
-  for (const auto& value : source) out.elements.insert(value);
-  return out;
+  return dedekind::sets::ExtensionalSet<T>{std::ranges::fold_left(
+      source, std::unordered_set<T>{}, detail::insert_into{})};
 }
 
 export template <typename T, typename Alloc>
@@ -272,9 +299,9 @@ export template <typename T, typename Hash, typename Equal, typename Alloc>
 constexpr auto from_std(const std::unordered_set<T, Hash, Equal, Alloc>& source)
     -> dedekind::sets::ExtensionalSet<T, dedekind::category::Boole, Hash,
                                       Equal> {
-  dedekind::sets::ExtensionalSet<T, dedekind::category::Boole, Hash, Equal> out;
-  for (const auto& value : source) out.elements.insert(value);
-  return out;
+  return dedekind::sets::ExtensionalSet<T, dedekind::category::Boole, Hash,
+                                        Equal>{std::ranges::fold_left(
+      source, std::unordered_set<T, Hash, Equal>{}, detail::insert_into{})};
 }
 
 export template <typename StdSetLike>
@@ -337,25 +364,29 @@ static_assert(
  * totally ordered; a regular-but-unordered carrier is rejected at the
  * constraint rather than hard-erroring in the body.
  */
-export template <std::ranges::input_range U, typename Chi>
-  requires std::totally_ordered<
-      std::ranges::range_value_t<std::remove_cvref_t<U>>>
-auto ext(U&& universe, Chi chi) {
-  std::set<std::ranges::range_value_t<std::remove_cvref_t<U>>> out;
-  for (auto&& x : universe)
-    if (chi(x)) out.insert(x);
-  return out;
+export template <typename U, typename Chi>
+  requires std::ranges::input_range<const U> &&
+           std::totally_ordered<std::ranges::range_value_t<const U>> &&
+           std::invocable<const Chi&,
+                          std::ranges::range_reference_t<const U>> &&
+           std::constructible_from<
+               bool, std::invoke_result_t<
+                         const Chi&, std::ranges::range_reference_t<const U>>>
+constexpr auto ext(const U& universe, Chi chi) {
+  return std::ranges::fold_left(
+      std::views::filter(universe, detail::decided<Chi>{std::move(chi)}),
+      std::set<std::ranges::range_value_t<const U>>{}, detail::insert_into{});
 }
 
 // ---------------------------------------------------------------------------
 // image / filter on std-container carriers — concrete realisations of
 // transform-and-restrict on the canonical extensional carrier (#602).
 //
-// These are operationally trivial helpers: image(f, S) iterates and
-// inserts; filter(p, S) iterates and conditionally inserts.  They live
-// here, not in @c category:etcs, because they are imperative loops over
-// std containers — the categorical / "pure" framework in @c category:
-// stays free of for-loops and @c std::* iteration.  In ETCS-flavoured
+// These are operationally trivial helpers: image(f, S) folds the transformed
+// elements into a new container; filter(p, S) folds the accepted ones.  They
+// live here, not in @c category:etcs, because they are folds over std
+// containers — the categorical / "pure" framework in @c category: stays free
+// of @c std::* iteration.  In ETCS-flavoured
 // terminology these helpers are the cardinality-extensional case of the
 // abstract operations (image as kernel-pair coequalizer, filter as
 // pullback-of-the-subobject-classifier); the categorical primitives
@@ -364,12 +395,14 @@ auto ext(U&& universe, Chi chi) {
 // callers that already hold std containers.
 // ---------------------------------------------------------------------------
 
-// Callable-shape note: `std::invocable<F&, const T&>` (lvalue F invocation
-// via `std::invoke`) is the correct constraint here.  Bare
-// `std::invocable<const T&>` checks rvalue-only invocation, which excludes
-// pointer-to-member callables and `operator() &&`-only callables.  All
-// loop bodies use `std::invoke(f, x)` / `std::invoke(p, x)` for the same
-// reason.
+// Callable-shape note: the callable is taken by value and applied through
+// `std::views::transform` / `std::views::filter`, which invoke it with
+// `std::invoke` (so pointer-to-member callables work).  The image's
+// transform is applied as an lvalue (`std::invocable<F&, const T&>`); the
+// filter's predicate as a const lvalue, through `std::cref`, since the view
+// itself would call it through a non-const reference.
+// The folds take the source by const reference, so an rvalue source binds
+// to the same overload.
 //
 // Container-policy note: the overloads preserve Hash/Equal/Alloc (for
 // unordered_set) and Compare/Alloc (for set) when the codomain type
@@ -379,125 +412,53 @@ auto ext(U&& universe, Chi chi) {
 // comparison policies are no longer applicable to U and the output
 // falls back to the default Hash / Compare / Alloc on U.
 
-/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue. */
+/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>).  An rvalue
+ *  source binds here too: the image is a new container either way. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
                  typename F>
   requires std::invocable<F&, const T&>
-constexpr auto image(F&& f,
-                     const std::unordered_set<T, Hash, Equal, Alloc>& s) {
+constexpr auto image(F f, const std::unordered_set<T, Hash, Equal, Alloc>& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  if constexpr (std::same_as<U, T>) {
-    std::unordered_set<U, Hash, Equal, Alloc> out;
-    out.reserve(s.size());
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  } else {
-    std::unordered_set<U> out;
-    out.reserve(s.size());
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  }
+  using Out = std::conditional_t<std::same_as<U, T>,
+                                 std::unordered_set<U, Hash, Equal, Alloc>,
+                                 std::unordered_set<U>>;
+  return std::ranges::fold_left(std::views::transform(s, f), Out{},
+                                detail::insert_into{});
 }
 
-/** @brief image(f, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
-export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 typename F>
-  requires std::invocable<F&, const T&>
-constexpr auto image(F&& f, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
-  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  if constexpr (std::same_as<U, T>) {
-    std::unordered_set<U, Hash, Equal, Alloc> out;
-    out.reserve(s.size());
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  } else {
-    std::unordered_set<U> out;
-    out.reserve(s.size());
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  }
-}
-
-/** @brief image(f, std::set<T, Compare, Alloc>) — lvalue. */
+/** @brief image(f, std::set<T, Compare, Alloc>). */
 export template <typename T, typename Compare, typename Alloc, typename F>
   requires std::invocable<F&, const T&>
-constexpr auto image(F&& f, const std::set<T, Compare, Alloc>& s) {
+constexpr auto image(F f, const std::set<T, Compare, Alloc>& s) {
   using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  if constexpr (std::same_as<U, T>) {
-    std::set<U, Compare, Alloc> out;
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  } else {
-    std::set<U> out;
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  }
+  using Out = std::conditional_t<std::same_as<U, T>,
+                                 std::set<U, Compare, Alloc>, std::set<U>>;
+  return std::ranges::fold_left(std::views::transform(s, f), Out{},
+                                detail::insert_into{});
 }
 
-/** @brief image(f, std::set<T, Compare, Alloc>) — rvalue. */
-export template <typename T, typename Compare, typename Alloc, typename F>
-  requires std::invocable<F&, const T&>
-constexpr auto image(F&& f, std::set<T, Compare, Alloc>&& s) {
-  using U = std::remove_cvref_t<std::invoke_result_t<F&, const T&>>;
-  if constexpr (std::same_as<U, T>) {
-    std::set<U, Compare, Alloc> out;
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  } else {
-    std::set<U> out;
-    for (const auto& x : s) out.insert(std::invoke(f, x));
-    return out;
-  }
-}
-
-/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — lvalue.
+/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>).
  *
  *  @details Filter is always endomorphic on the element type, so the
- *  source's Hash/Equal/Alloc are preserved unconditionally. */
+ *  source's Hash/Equal/Alloc are preserved unconditionally.  The predicate is
+ *  applied as a const value (Rule 1): a predicate that must mutate itself to
+ *  answer is refused at the constraint. */
 export template <typename T, typename Hash, typename Equal, typename Alloc,
                  typename P>
-  requires std::predicate<P&, const T&>
-constexpr auto filter(P&& p,
-                      const std::unordered_set<T, Hash, Equal, Alloc>& s) {
-  std::unordered_set<T, Hash, Equal, Alloc> out;
-  for (const auto& x : s) {
-    if (std::invoke(p, x)) out.insert(x);
-  }
-  return out;
+  requires std::predicate<const P&, const T&>
+constexpr auto filter(P p, const std::unordered_set<T, Hash, Equal, Alloc>& s) {
+  return std::ranges::fold_left(std::views::filter(s, std::cref(p)),
+                                std::unordered_set<T, Hash, Equal, Alloc>{},
+                                detail::insert_into{});
 }
 
-/** @brief filter(p, std::unordered_set<T, Hash, Equal, Alloc>) — rvalue. */
-export template <typename T, typename Hash, typename Equal, typename Alloc,
-                 typename P>
-  requires std::predicate<P&, const T&>
-constexpr auto filter(P&& p, std::unordered_set<T, Hash, Equal, Alloc>&& s) {
-  std::unordered_set<T, Hash, Equal, Alloc> out;
-  for (const auto& x : s) {
-    if (std::invoke(p, x)) out.insert(x);
-  }
-  return out;
-}
-
-/** @brief filter(p, std::set<T, Compare, Alloc>) — lvalue. */
+/** @brief filter(p, std::set<T, Compare, Alloc>). */
 export template <typename T, typename Compare, typename Alloc, typename P>
-  requires std::predicate<P&, const T&>
-constexpr auto filter(P&& p, const std::set<T, Compare, Alloc>& s) {
-  std::set<T, Compare, Alloc> out;
-  for (const auto& x : s) {
-    if (std::invoke(p, x)) out.insert(x);
-  }
-  return out;
-}
-
-/** @brief filter(p, std::set<T, Compare, Alloc>) — rvalue. */
-export template <typename T, typename Compare, typename Alloc, typename P>
-  requires std::predicate<P&, const T&>
-constexpr auto filter(P&& p, std::set<T, Compare, Alloc>&& s) {
-  std::set<T, Compare, Alloc> out;
-  for (const auto& x : s) {
-    if (std::invoke(p, x)) out.insert(x);
-  }
-  return out;
+  requires std::predicate<const P&, const T&>
+constexpr auto filter(P p, const std::set<T, Compare, Alloc>& s) {
+  return std::ranges::fold_left(std::views::filter(s, std::cref(p)),
+                                std::set<T, Compare, Alloc>{},
+                                detail::insert_into{});
 }
 
 // Type-shape breadcrumbs (no static_assert on values, since std::* can't

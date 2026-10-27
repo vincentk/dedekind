@@ -246,7 +246,7 @@ jobs:
       id: deployment
       uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
-  # A release after a green build of main, at most once per 72 hours,
+  # A release after a green build of main, at most once per 48 hours,
   # versioned 0.<YYYYMMDD>.<n>+<short hash> (.github/scripts/release-version.sh).
   # It runs here rather than from a workflow_run event because such events
   # failed at startup on GitHub's side (nameless "BuildFailed" runs, 2026-10-25).
@@ -261,7 +261,7 @@ jobs:
       group: release
       cancel-in-progress: false
     env:
-      MIN_HOURS: "72"
+      MIN_HOURS: "48"
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:

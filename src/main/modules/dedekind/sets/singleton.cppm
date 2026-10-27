@@ -75,6 +75,14 @@ using namespace dedekind::category;
  *  this).  On a chain the cut subsumes it, @c x == p ⟺ x ≥ p ∧ x ≤ p.  The
  *  pivot is a value; the set is @c Finite whatever the species.
  *  @tparam T the carrier, equality-comparable. */
+/** @brief A cross-type equality: @c x @c == @c v is formed for a @c U and a
+ *  @c T and reads as a truth value.  @tparam U the foreign value's type.
+ *  @tparam T the carrier. */
+export template <typename U, typename T>
+concept ComparesEqualTo = requires(const U& x, const T& v) {
+  { x == v } -> std::convertible_to<bool>;
+};
+
 export template <std::equality_comparable T>
 struct Point {
   using Domain = T;
@@ -86,22 +94,21 @@ struct Point {
   /** @brief Implicit and converting, so a literal of another type is one
    *  user-defined conversion, the carrier's own. */
   template <std::convertible_to<T> U>
-  constexpr Point(U&& v)  // NOLINT(google-explicit-constructor)
-      : pivot(static_cast<T>(std::forward<U>(v))) {}
+  constexpr Point(U v)  // NOLINT(google-explicit-constructor)
+      : pivot(static_cast<T>(std::move(v))) {}
 
   /** @brief χ(x) = [x == pivot]. */
   constexpr bool operator()(const T& v) const { return v == pivot; }
   /** @brief The foreign carriers this datum admits: any @c U with a cross-type
    *  @c == against @c T.  Read by the comprehension's heterogeneous χ. */
   template <typename U>
-  static constexpr bool admits = !std::same_as<std::remove_cvref_t<U>, T> &&
-                                 requires(const U& x, const T& v) {
-                                   { x == v } -> std::convertible_to<bool>;
-                                 };
+  static constexpr bool admits =
+      !std::same_as<std::remove_cvref_t<U>, T> && ComparesEqualTo<U, T>;
   /** @brief Membership of a foreign value, compared unnarrowed:
-   *  @c Point<int>{1}(1.5) is @c false. */
+   *  @c Point<int>{1}(1.5) is @c false.  The constraint is @c admits spelled
+   *  out, so it names the comparison it uses (Rule 2). */
   template <typename U>
-    requires admits<U>
+    requires(!std::same_as<std::remove_cvref_t<U>, T>) && ComparesEqualTo<U, T>
   constexpr bool operator()(const U& x) const {
     return x == pivot;
   }
@@ -262,9 +269,8 @@ static_assert(
  *  @tparam L the species.
  *  @tparam T the pivot's type (decayed into the carrier). */
 export template <IsOckhamAlgebra L = Boole, typename T>
-constexpr auto singleton(T&& value) {
-  return 𝔸<std::decay_t<T>, L>{} &
-         Point<std::decay_t<T>>{std::forward<T>(value)};
+constexpr auto singleton(T value) {
+  return 𝔸<T, L>{} & Point<T>{std::move(value)};
 }
 
 /** @brief @c η --- the idiomatic spelling of @c singleton: the power-set
@@ -278,8 +284,8 @@ constexpr auto singleton(T&& value) {
  *  @c order:powerset (#830) --- three distinct reifications of the power
  * object, all sharing this unit.  @tparam T the pivot's type. */
 export template <typename T>
-constexpr auto η(T&& value) {
-  return singleton(std::forward<T>(value));
+constexpr auto η(T value) {
+  return singleton(std::move(value));
 }
 
 /** @brief @c ι --- the singleton read as an @b inclusion (a @b mono), the other
@@ -300,8 +306,8 @@ constexpr auto η(T&& value) {
  *  (@c :morphism).  Reifying/certifying the unit arrow is a separate step.
  *  @tparam T the pivot's type. */
 export template <typename T>
-constexpr auto ι(T&& value) {
-  return singleton(std::forward<T>(value));
+constexpr auto ι(T value) {
+  return singleton(std::move(value));
 }
 
 // @c η is exactly @c singleton (the unit), only more idiomatic at call sites.
@@ -321,15 +327,16 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the Kleisli arrow @c T → a set. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-                 std::invocable<const T&> Func>
+                 typename Func>
+  requires std::invocable<const Func&, const T&>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
-                           Func&& f) {
+                           const Func& f) {
   /**
    * @details Kleisli Bind for points:
    * 1. Sample the pivot (The Pull).
    * 2. Apply the Kleisli Arrow f: T -> Singleton<U, L>.
    */
-  return std::forward<Func>(f)(s.predicate.pivot);
+  return f(s.predicate.pivot);
 }
 
 /** @section singleton__Singleton_CoKleisli_Triple */
@@ -338,14 +345,16 @@ constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
 /** @brief Co-Kleisli extend on a point, @c {x} <<= f = {f({x})}.
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the co-Kleisli arrow, a point @c → a value. */
-export template <
-    std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-    std::invocable<const Comprehension<𝔸<T, L, C>, Point<T>>&> Func>
+export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
+                 typename Func>
+  requires std::invocable<const Func&,
+                          const Comprehension<𝔸<T, L, C>, Point<T>>&>
 constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
-                           Func&& f) {
-  using U = std::invoke_result_t<Func, Comprehension<𝔸<T, L, C>, Point<T>>>;
+                           const Func& f) {
+  using U = std::invoke_result_t<const Func&,
+                                 const Comprehension<𝔸<T, L, C>, Point<T>>&>;
   // Co-Kleisli Extend: apply contextual logic and re-wrap.
-  return 𝔸<U, L>{} & Point<U>{std::forward<Func>(f)(s)};
+  return 𝔸<U, L>{} & Point<U>{f(s)};
 }
 
 /**
