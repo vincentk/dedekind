@@ -466,12 +466,14 @@ static_assert(++finite_cardinality(2) == finite_cardinality(3) &&
                   --finite_cardinality(3) == finite_cardinality(2) &&
                   --finite_cardinality(0) == finite_cardinality(0),
               "++ / -- are the successor and the predecessor (monus at 0).");
-static_assert(++Cardinality{ℵ_0{}} == Cardinality{ℵ_0{}},
-              "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
+static_assert(
+    ++Cardinality{ℵ_0{}} == Cardinality{ℵ_0{}},
+    "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
 namespace detail_cardinality_step_witness {
 constexpr Cardinality two = finite_cardinality(2);
-static_assert(++two == finite_cardinality(3) && two == finite_cardinality(2),
-              "by value: ++n is the successor, n is unchanged, even a constant.");
+static_assert(
+    ++two == finite_cardinality(3) && two == finite_cardinality(2),
+    "by value: ++n is the successor, n is unchanged, even a constant.");
 }  // namespace detail_cardinality_step_witness
 
 /** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
