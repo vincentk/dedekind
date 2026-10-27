@@ -75,8 +75,8 @@ constexpr T concat(R words) {
 }
 
 static_assert(concat<size_t>(std::array{1uz, 2uz, 3uz}) == 6);
-static_assert(concat<size_t, std::multiplies<size_t>>(std::array{2uz, 3uz, 7uz}) ==
-              42);
+static_assert(concat<size_t, std::multiplies<size_t>>(std::array{2uz, 3uz,
+                                                                 7uz}) == 42);
 static_assert(concat<std::string>(std::array{"ab"s, "c"s, "d"s}) == "abcd");
 static_assert(concat<size_t>(std::array<size_t, 0>{}) == 0);
 
@@ -339,15 +339,18 @@ static_assert(sugar::times(std::string{}, 5uz).empty());
 static_assert(kernel::times(std::string{}, 5uz).empty());
 static_assert(sugar::times<size_t>(7, 6uz) == times<size_t>(7, 6uz));
 static_assert(kernel::times<size_t>(7, 6uz) == times<size_t>(7, 6uz));
-static_assert(sugar::times<size_t>(SIZE_MAX, 3uz) == times<size_t>(SIZE_MAX, 3uz));
-static_assert(kernel::times<size_t>(SIZE_MAX, 3uz) == times<size_t>(SIZE_MAX, 3uz));
+static_assert(sugar::times<size_t>(SIZE_MAX, 3uz) ==
+              times<size_t>(SIZE_MAX, 3uz));
+static_assert(kernel::times<size_t>(SIZE_MAX, 3uz) ==
+              times<size_t>(SIZE_MAX, 3uz));
 // Counted in bool, the Boolean semiring acts: one step.  Counted in size_t,
 // the same monoid folds.
 static_assert(kernel::times<bool, std::logical_or<bool>>(true, true));
 static_assert(!kernel::times<bool, std::logical_or<bool>>(true, false));
 static_assert(!kernel::times<bool, std::logical_or<bool>>(false, true));
 static_assert(kernel::times<bool, std::logical_or<bool>>(true, 5uz));
-static_assert(!kernel::times<bool, std::logical_or<bool>>(false, 100'000'000uz));
+static_assert(!kernel::times<bool, std::logical_or<bool>>(false,
+                                                          100'000'000uz));
 static_assert(sugar::times<bool, std::logical_or<bool>>(true, true));
 
 // Section 4, two binding times: budget, and running out of it.
