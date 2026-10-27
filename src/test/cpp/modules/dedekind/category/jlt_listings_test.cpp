@@ -223,57 +223,61 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: a finite prefix of the naturals, a chain with its ordinal, the
-// order embedding onto an initial segment of size_t.
-template <typename N>
-constexpr size_t ordinal(N) = delete;
-template <>
-constexpr size_t ordinal<size_t>(size_t n) {
-  return n;
-}
-template <>
-constexpr size_t ordinal<bool>(bool b) {
-  return b ? 1 : 0;
-}
+// Listing 3: Figure 2 in code.  Out is the library's destructor of a count,
+// nothing at zero and else the predecessor; chain(n, Out) is Dedekind's chain
+// of n, {n, ..., 1}, the zero delimiting; an arrow f takes each count to a
+// value; concat folds the image.  times names the case f constant.  chain,
+// chain_t, Out and Constant are the library's (dedekind.category:nno,
+// :morphism), used as they are.
+using dedekind::category::chain;
+using dedekind::category::chain_t;
+using dedekind::category::Constant;
+using dedekind::category::Identity;
+using dedekind::category::Out;
 
 template <typename N>
-concept IsFinitePrefix = std::totally_ordered<N> && requires(const N n) {
-  { ordinal(n) } -> std::same_as<size_t>;
+concept IsCount = std::regular<N> && requires(const N n) {
+  { Out<N>{}(n) } -> std::same_as<std::optional<N>>;
 };
 
-// times: concat of the constant list, n copies of x, for a count n of any
-// finite prefix.
-template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
+template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
+          typename F>
+  requires IsMonoid<T, Op> && requires(const F f, const N n) {
+    { f(n) } -> std::convertible_to<T>;
+  }
+constexpr T concat(chain_t<N, Step> ns, F f) {
+  return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
+                                Op{});
+}
+
+template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  return ordinal(n) == 0 || x == unit<T>(Op{})
-             ? unit<T>(Op{})
-             : concat<T, Op>(std::views::repeat(x, ordinal(n)));
+  return concat<T, Op>(chain(n, Out<N>{}), Constant<N, T>{x});
 }
 
 static_assert(times<size_t>(7, 6uz) == 42);
+static_assert(times<size_t>(7, 0uz) == 0);
+static_assert(times<std::string>("ab"s, 3uz) == "ababab");
+static_assert(times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
+// A non-constant arrow: the chain's own values folded, Gauss's sum.
+static_assert(concat<size_t>(chain(4uz, Out<size_t>{}), Identity<size_t>{}) ==
+              10);
+// bool counts: the chain of true is {true}, of false nothing.
+static_assert(times<bool, std::logical_or<bool>>(true, true));
+static_assert(!times<bool, std::logical_or<bool>>(true, false));
 
-// char counts too: its ordinal is its distance from the least char, an order
-// embedding whether char is signed or not.  No semiring is registered for it,
-// so times folds.
-template <>
-constexpr size_t ordinal<char>(char c) {
-  return static_cast<size_t>(c - std::numeric_limits<char>::min());
-}
-constexpr char char_min = std::numeric_limits<char>::min();
-static_assert(times<std::string>("ha"s, static_cast<char>(char_min + 3)) ==
-              "hahaha");
-static_assert(times<size_t>(7, char_min) == 0);
-
-// Listing 3, right: the same fold with a budget known only at run time; its
-// LLVM IR at -O2 is one multiplication (the paper's panel).
+// Listing 3, right: the fold with the count known only at run time.  Its LLVM
+// IR at -O2 (the paper's panel) is a case split on 0 and 1 and then one
+// multiplication: the optimiser sees through the chain, up to the cases.
 constexpr size_t times_n(size_t x, size_t n) { return times<size_t>(x, n); }
 static_assert(times_n(7, 100) == 700);
 
 // Section 3: the semimodule, the library's shape with its laws declared and
 // its action n * x.  A certificate vouches for the laws and for the premise
-// that each count n is the sum of ordinal(n) ones of its semiring, which the
-// language's arithmetic makes true of size_t and bool.  Scalars of type
+// that each count n is the sum of as many ones of its semiring as its chain
+// has elements, which the language's arithmetic makes true of size_t and
+// bool.  Scalars of type
 // size_t are the integers modulo 2^64, so the certificate holds for the
 // unsigned carriers, which wrap at a power of two dividing it.
 template <typename M, typename S, typename AddM, typename AddS, typename MultS>
@@ -318,36 +322,53 @@ static_assert(!IsSemimodule<bool, size_t, std::logical_or<bool>>);
 // size_t's counts under + either.
 static_assert(!IsSemimodule<bool, size_t>);
 
-// Section 3, the sugar: Listing 3's times with a branch on a concept: in a
-// semimodule over size_t under +, n copies of x are one action of n on x.
+// Section 3, the sugar: Listing 3's concat with a branch: where the arrow is
+// constant and the carrier a semimodule over the counts, the fold is one
+// action.
 namespace sugar {
-template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
+template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
+          typename F>
+  requires IsMonoid<T, Op> && requires(const F f, const N n) {
+    { f(n) } -> std::convertible_to<T>;
+  }
+constexpr T concat(chain_t<N, Step> ns, F f) {
+  if constexpr (std::same_as<Step, Out<N>> && std::same_as<F, Constant<N, T>> &&
+                IsSemimodule<T, N, Op>)
+    return static_cast<T>(ns.seed() * f.value);
+  else
+    return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
+                                  Op{});
+}
+template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  if constexpr (IsSemimodule<T, N, Op>)
-    return static_cast<T>(n * x);
-  else
-    return ordinal(n) == 0 || x == unit<T>(Op{})
-               ? unit<T>(Op{})
-               : concat<T, Op>(std::views::repeat(x, ordinal(n)));
+  return concat<T, Op>(chain(n, Out<N>{}), Constant<N, T>{x});
 }
 }  // namespace sugar
 
-// Section 3, Listing 4: the family in the kernel: Listing 3's times, and the
-// semimodule overload (Listing 4 top), whose constraint contains Listing 3's;
-// Listing 4's bottom is its System F image.
+// Section 3, Listing 4: the family in the kernel: Listing 3's concat, and the
+// overload on the arrow's type and the law (Listing 4 top), which resolution
+// picks by specificity where the law is certified; Listing 4's bottom is its
+// System F image.
 namespace kernel {
-template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
+template <typename T, typename Op = std::plus<T>, IsCount N, typename Step,
+          typename F>
+  requires IsMonoid<T, Op> && requires(const F f, const N n) {
+    { f(n) } -> std::convertible_to<T>;
+  }
+constexpr T concat(chain_t<N, Step> ns, F f) {
+  return std::ranges::fold_left(std::views::transform(ns, f), unit<T>(Op{}),
+                                Op{});
+}
+template <typename T, typename Op = std::plus<T>, IsCount N>
+  requires IsSemimodule<T, N, Op>
+constexpr T concat(chain_t<N, Out<N>> ns, Constant<N, T> f) {
+  return static_cast<T>(ns.seed() * f.value);
+}
+template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  return ordinal(n) == 0 || x == unit<T>(Op{})
-             ? unit<T>(Op{})
-             : concat<T, Op>(std::views::repeat(x, ordinal(n)));
-}
-template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
-  requires IsSemimodule<T, N, Op>
-constexpr T times(T x, N n) {
-  return static_cast<T>(n * x);
+  return concat<T, Op>(chain(n, Out<N>{}), Constant<N, T>{x});
 }
 }  // namespace kernel
 
@@ -357,51 +378,37 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3uz) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3uz) == "ababab");
-static_assert(sugar::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
-// Listing 4, top: the action across two types, the language's conversions
-// doing the rest; its LLVM IR at -O2 (the paper's panel) is a truncation and
-// one multiplication, and in bool one and.
-static_assert(kernel::times<std::uint8_t>(200, 3uz) == 88);
-static_assert(kernel::times<bool, std::logical_or<bool>>(true, true));
-constexpr std::uint8_t times_u8(std::uint8_t x, size_t n) {
-  return kernel::times<std::uint8_t>(x, n);
+// Listing 4, right: with the overload beside it, the IR at -O2 is one
+// multiplication and no case split.
+constexpr size_t times_m(size_t x, size_t n) {
+  return kernel::times<size_t>(x, n);
 }
-constexpr bool times_or(bool x, bool n) {
-  return kernel::times<bool, std::logical_or<bool>>(x, n);
-}
-static_assert(times_u8(200, 3) == 88);
-static_assert(times_or(true, true) && !times_or(false, true));
-static_assert(kernel::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
+static_assert(times_m(7, 100) == 700);
 // Every carrier the listings use, times every count: the overload and the
 // sugar agree with Listing 3's fold, whether a certificate lets them act or
 // they fold.  size_t and uint8_t act on size_t counts; bool under || acts on
 // bool counts; every other pair, and string throughout, folds.
-template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
+template <typename T, typename Op = std::plus<T>, IsCount N>
   requires IsMonoid<T, Op>
 constexpr bool agrees(T x, N n) {
   return kernel::times<T, Op>(x, n) == times<T, Op>(x, n) &&
          sugar::times<T, Op>(x, n) == times<T, Op>(x, n);
 }
-constexpr char char_three = static_cast<char>(char_min + 3);
-static_assert(agrees<size_t>(7, 6uz) && agrees<size_t>(7, true) &&
-              agrees<size_t>(7, char_three));
+static_assert(agrees<size_t>(7, 6uz) && agrees<size_t>(7, true));
 static_assert(agrees<std::uint8_t>(200, 3uz) &&
-              agrees<std::uint8_t>(200, true) &&
-              agrees<std::uint8_t>(200, char_three));
+              agrees<std::uint8_t>(200, true));
 static_assert(agrees<bool, std::logical_or<bool>>(true, 3uz) &&
               agrees<bool, std::logical_or<bool>>(true, true) &&
-              agrees<bool, std::logical_or<bool>>(false, true) &&
-              agrees<bool, std::logical_or<bool>>(true, char_three));
-static_assert(agrees("ab"s, 3uz) && agrees("ab"s, true) &&
-              agrees("ab"s, char_three));
+              agrees<bool, std::logical_or<bool>>(false, true));
+static_assert(agrees("ab"s, 3uz) && agrees("ab"s, true));
 
 // Section 6: at compile time only the law shortens the fold.  With the
-// semimodule overload a budget of 10^8 is one step; Listing 3's times alone
-// hits the constant evaluator's step limit (quoted in the paper, not held
-// here, since a refused static_assert does not compile).
+// overload a budget of 10^8 is one step; Listing 3's concat alone hits the
+// constant evaluator's step limit (quoted in the paper, not held here, since
+// a refused static_assert does not compile).
 static_assert(kernel::times<size_t>(3, 100'000'000uz) == 300'000'000);
 static_assert(sugar::times<size_t>(3, 100'000'000uz) == 300'000'000);
-// Both agree with Listing 3's times, the fold, on and off the shortcut.
+// Both agree with Listing 3's fold, on and off the shortcut.
 static_assert(sugar::times<size_t>(0, 9uz) == times<size_t>(0, 9uz));
 static_assert(kernel::times<size_t>(0, 9uz) == times<size_t>(0, 9uz));
 static_assert(sugar::times<size_t>(7, 0uz) == times<size_t>(7, 0uz));
@@ -410,8 +417,6 @@ static_assert(sugar::times<size_t, std::multiplies<size_t>>(1, 1000uz) == 1);
 static_assert(kernel::times<size_t, std::multiplies<size_t>>(1, 1000uz) == 1);
 static_assert(sugar::times(std::string{}, 5uz).empty());
 static_assert(kernel::times(std::string{}, 5uz).empty());
-static_assert(sugar::times<size_t>(7, 6uz) == times<size_t>(7, 6uz));
-static_assert(kernel::times<size_t>(7, 6uz) == times<size_t>(7, 6uz));
 static_assert(sugar::times<size_t>(SIZE_MAX, 3uz) ==
               times<size_t>(SIZE_MAX, 3uz));
 static_assert(kernel::times<size_t>(SIZE_MAX, 3uz) ==
@@ -422,8 +427,7 @@ static_assert(kernel::times<bool, std::logical_or<bool>>(true, true));
 static_assert(!kernel::times<bool, std::logical_or<bool>>(true, false));
 static_assert(!kernel::times<bool, std::logical_or<bool>>(false, true));
 static_assert(kernel::times<bool, std::logical_or<bool>>(true, 5uz));
-static_assert(!kernel::times<bool, std::logical_or<bool>>(false,
-                                                          100'000'000uz));
+static_assert(!kernel::times<bool, std::logical_or<bool>>(false, 1000uz));
 static_assert(sugar::times<bool, std::logical_or<bool>>(true, true));
 
 // Appendix, the search listing: a budget, and running out of it.
@@ -503,13 +507,14 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
     CHECK(L::times_n(twelve, 100) == 1200);
-    std::uint8_t two_hundred = 200;
+    CHECK(L::times_m(twelve, 100) == 1200);
     bool yes = true;
     bool no = false;
-    CHECK(L::times_u8(two_hundred, 3) == 88);
-    CHECK(L::times_or(yes, yes));
-    CHECK(!L::times_or(yes, no));
-    CHECK(!L::times_or(no, yes));
+    CHECK(L::kernel::times<bool, std::logical_or<bool>>(yes, yes));
+    CHECK(!L::kernel::times<bool, std::logical_or<bool>>(yes, no));
+    CHECK(!L::kernel::times<bool, std::logical_or<bool>>(no, yes));
+    CHECK(std::ranges::fold_left(L::chain(twelve, L::Out<size_t>{}), size_t{0},
+                                 std::plus<>{}) == 78);
     CHECK(L::sugar::times<size_t>(7, twelve) ==
           L::kernel::times<size_t>(7, twelve));
     CHECK(L::sugar::times(std::string{"ab"}, twelve) ==

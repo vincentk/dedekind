@@ -5,6 +5,7 @@
  * bounded chain as an instance of unfold; and the constant arrow, the figure's
  * vertical arrow where the fold is n copies of one value.
  */
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <functional>
