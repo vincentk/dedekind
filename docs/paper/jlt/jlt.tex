@@ -80,6 +80,8 @@ The fragment is the \emph{Juliet Posture}, or Jlt: a subset of \Cpp{23} whose ke
 It is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
 Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}), and its kernel's terms are System~F terms, by the translation of Section~\ref{sec:translation}.
 Being a strict subset of \Cpp{23}, it is not a language this paper designs but a fragment it characterises, and an embedding it describes, as an archaeologist uncovers a city rather than as an architect builds a house.
+The claim is one of existence, shown by construction: \Cpp{23} contains an embedding of a fragment of System~F, and the listings exhibit it.
+It is not a claim that Jlt is unique or canonical, although another fragment drawn to the same ends would, we expect, look much like it.
 As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
 The name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 Figure~\ref{fig:arrows} sketches the arrows between these pieces.
