@@ -357,7 +357,7 @@ template <typename T, typename Op = plus<T>,
           IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
 constexpr T times(T x, N n) {
-  return n * x;
+  return static_cast<T>(n * x);
 }
 static_assert(times<uint8_t>(200, 3uz) == 88);
 static_assert(times<bool, logical_or<bool>>(
@@ -394,7 +394,7 @@ times [string] "ab" 3     =  times₁ [string plus u64] plus_str prefix_u64 "ab"
 \caption{A specialisation, then the family translated.
 Top left: Listing~\ref{lst:rule3}'s \cppinline{times} specialised where the carrier under \cppinline{Op} is a semimodule over the counts \cppinline{N}, a commutative monoid on which the counts' semiring acts linearly, so that \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
 Each shape on the way is one more declared law, and the test holds them: \cppinline{IsCommutativeMonoid}, \cppinline{IsSemiring}, \cppinline{IsSemimodule}.
-The action is \cppinline{*} across two types, the count's and the carrier's, and for the primitive types the language's conversions do the rest: \cppinline{n * x} is computed in the wider type and converted back, which the shape declares as \cppinline{convertible_to<M>}.
+The action is \cppinline{*} across two types, the count's and the carrier's, and for the primitive types the language's implicit promotion does the rest: \cppinline{n * x} is computed in the wider type, and the body converts it back explicitly, the conversion the shape declares as \cppinline{convertible_to<M>}.
 So 3 copies of 200 wrap to 88 modulo $2^8$, and \cppinline{true * true}, an \cppinline{int}, converts back to \cppinline{true}.
 Top right: the LLVM IR at \texttt{-O2}, attributes stripped: the conversion is a truncation and one multiplication, and in \cppinline{bool} one \texttt{and}.
 Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and three calls, each the function its resolution picks.}

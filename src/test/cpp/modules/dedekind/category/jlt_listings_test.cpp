@@ -320,7 +320,7 @@ template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
   if constexpr (IsSemimodule<T, N, Op>)
-    return n * x;
+    return static_cast<T>(n * x);
   else
     return ordinal(n) == 0 || x == unit<T>(Op{})
                ? unit<T>(Op{})
@@ -342,7 +342,7 @@ constexpr T times(T x, N n) {
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
 constexpr T times(T x, N n) {
-  return n * x;
+  return static_cast<T>(n * x);
 }
 }  // namespace kernel
 
