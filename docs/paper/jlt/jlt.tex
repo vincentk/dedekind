@@ -907,29 +907,22 @@ The posture needs nothing installed beyond a compiler and nothing at run time be
 
 \section*{Use of Agentic Systems and AI-Assistance Disclosure}
 
-The writing of this paper, the formal appendix and the code it reports on relied substantively on AI assistance, and the tools, the tasks and the places are disclosed here, as the journal's policy on AI tools asks. The contribution is recorded as assistance, not authorship.
-The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement.
-Every mistake that remains is the author's.
+This paper, its appendix and the code it reports on relied substantively on AI assistance, disclosed here as the journal's policy asks: assistance, not authorship.
+The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness and editorial judgement; every mistake that remains is the author's.
 
-\emph{Tools, in the order they arrived, and how each was gated.}
-Google's Gemini, on its free tier, is where the project began, about a year before this paper: it answered quick questions of the research kind and proofread, and later read the appendix's proof sketches.
-Its reviews needed heavy discounting and gave a few serendipitous finds; each was summarised and fed back to Claude together with the author's opinion of it.
-GitHub Copilot's pull-request reviewer came next and was used for pull-request review only, in the deepest mode available at the time, with the documentation and the draft paper as context; its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
-Anthropic's Claude, the Opus and Fable models through the Claude Code CLI, came last and did most of the work, including cold reads of the draft in sessions without the writing session's context.
-The aim with it was largely autonomous work organised into issues, then pull requests, then slices and commits, in an environment made deliberately constrained and antagonistic: strong type checking, substantial test coverage, formatters, Doxygen and the linter of Section~\ref{sec:limits}.
-Every pull request was gated by review, usually one by the author and several by Copilot, and merged by hand; on occasion the author edited out of band to force an alignment.
-The bibliography was used to attune the context and as a source of authority.
-Builds were offloaded to continuous integration deliberately, to keep them reproducible, visible, authoritative and on the record.
+\emph{Tools, and how each was gated.}
+Anthropic's Claude, the Opus and Fable models through the Claude Code CLI, did most of the work, including cold reads of the draft in sessions without the writing session's context.
+It worked largely autonomously, in issues, pull requests, slices and commits, in an environment made deliberately constrained and antagonistic: strong type checking, substantial test coverage, formatters, Doxygen and the linter of Section~\ref{sec:limits}; every pull request was gated by review, usually one by the author and several by Copilot, and merged by hand.
+GitHub Copilot's reviewer was used for pull-request review only, in the deepest mode available, with the draft paper as context; its findings on the metatheory of Appendix~\ref{app:fjlt} led to the declaration order, the restriction to total primitives, the small-step evaluation and the present order of the proofs.
+Google's Gemini answered quick questions of the research kind, proofread, and read the appendix's proof sketches; its reviews needed heavy discounting, gave a few serendipitous finds, and were fed back to Claude with the author's opinion of them.
+The bibliography was used to attune the context and as a source of authority, and builds were offloaded to continuous integration to keep them reproducible, visible and on the record.
 
 \emph{Modes.}
-The assistants were used in two ways: in agreement, to help structure a hypothesis, and in opposition, asked to refute or weaken one.
-The cold reads, the review threads and the second opinions were of the second kind, and the author decided what survived them.
+The assistants were used in agreement, to help structure a hypothesis, and in opposition, asked to refute or weaken one; the cold reads, the review threads and the second opinions were of the second kind, and the author decided what survived them.
 
-\emph{Tasks.}
-Draft generation of prose, listings, tables and figures; the statement and proofs of the appendix, drafted by the assistant from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source before use; and the drafting of responses in review threads.
-
-\emph{Where.}
-Throughout: every section, listing, table and figure, and the appendix. No part was written without assistance, and none was accepted without the author's reading.
+\emph{Tasks and places.}
+Draft generation of prose, listings, tables and figures; the appendix's statements and proofs, drafted from the design decisions recorded in discussion and revised by the author; the test that holds the listings; verification of every citation against its source; and responses in review threads.
+Every section and the appendix: no part was written without assistance, and none accepted without the author's reading.
 The repository~\cite{Krautler_dedekind_2026} holds the complete record: commit messages, review threads and build logs.
 
 \appendix
