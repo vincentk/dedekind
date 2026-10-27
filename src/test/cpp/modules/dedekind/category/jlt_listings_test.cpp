@@ -146,6 +146,10 @@ constexpr bool commutative<size_t>(std::plus<size_t>) {
   return true;
 }
 template <>
+constexpr bool commutative<std::uint8_t>(std::plus<std::uint8_t>) {
+  return true;
+}
+template <>
 constexpr bool commutative<size_t>(std::bit_or<size_t>) {
   return true;
 }
@@ -349,6 +353,19 @@ static_assert(kernel::times<size_t, std::multiplies<size_t>>(2, 5uz) == 32);
 static_assert(sugar::times(std::string{"ab"}, 3uz) == "ababab");
 static_assert(kernel::times(std::string{"ab"}, 3uz) == "ababab");
 static_assert(sugar::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
+// Listing 4, top: the action across two types, the language's conversions
+// doing the rest; its LLVM IR at -O2 (the paper's panel) is a truncation and
+// one multiplication, and in bool one and.
+static_assert(kernel::times<std::uint8_t>(200, 3uz) == 88);
+static_assert(kernel::times<bool, std::logical_or<bool>>(true, true));
+constexpr std::uint8_t times_u8(std::uint8_t x, size_t n) {
+  return kernel::times<std::uint8_t>(x, n);
+}
+constexpr bool times_or(bool x, bool n) {
+  return kernel::times<bool, std::logical_or<bool>>(x, n);
+}
+static_assert(times_u8(200, 3) == 88);
+static_assert(times_or(true, true) && !times_or(false, true));
 static_assert(kernel::times<size_t>(7, static_cast<char>(char_min + 3)) == 21);
 // Section 6: at compile time only the law shortens the fold.  With the
 // semimodule overload a budget of 10^8 is one step; Listing 3's times alone

@@ -276,8 +276,6 @@ In the terms of Meijer et al.~\cite{meijer1991functional}, Listing~\ref{lst:rule
 \begin{cpp}
 template <typename N>
 constexpr size_t ordinal(N) = delete;
-template <> constexpr size_t
-ordinal<size_t>(size_t n) { return n; }
 
 template <typename N>
 concept IsFinitePrefix = totally_ordered<N> &&
@@ -352,32 +350,34 @@ No tool runs the rewriting.
 Table~\ref{tab:closure} states it construction by construction: a condition, and the kernel term it yields.
 The repository's linter measures that the table names every construction the library writes.
 
-\begin{listing}[p]
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.55\linewidth}
 \begin{cpp}
-template <typename T, typename Op> constexpr bool commutative(Op) = delete;
-template <typename T, typename Mul, typename Add>
-constexpr bool distributive(Mul, Add) = delete;
-template <typename M, typename S, typename AddM, typename AddS, typename MultS>
-constexpr bool linear(AddM, AddS, MultS) = delete;
-
-template <typename T, typename Op>
-concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
-template <typename T, typename Add, typename Mul>
-concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
-                     distributive<T>(Mul{}, Add{});
-template <typename M, typename S, typename AddM = plus<M>,
-          typename AddS = plus<S>, typename MultS = multiplies<S>>
-concept IsSemimodule =
-    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    requires(const S s, const M m) { { s * m } -> convertible_to<M>; } &&
-    linear<M, S>(AddM{}, AddS{}, MultS{});
-
-template <typename T, typename Op = plus<T>, IsFinitePrefix N>
+template <typename T, typename Op = plus<T>,
+          IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
 constexpr T times(T x, N n) {
   return n * x;
 }
+static_assert(times<uint8_t>(200, 3uz) == 88);
+static_assert(times<bool, logical_or<bool>>(
+    true, true));
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.43\linewidth}
+\begin{minted}{llvm}
+define i8 @times_u8(i8 %x, i64 %n) {
+  %t = trunc i64 %n to i8
+  %r = mul i8 %x, %t
+  ret i8 %r
+}
+define i1 @times_or(i1 %x, i1 %n) {
+  %r = and i1 %x, %n
+  ret i1 %r
+}
+\end{minted}
+\end{minipage}
+
 \begin{minted}[fontsize=\footnotesize]{text}
 MonoidDict T Op  =  { unit : T,  op : T → T → T,  eq : T → T → Bool,  assoc : Bool }
 PrefixDict N     =  { ordinal : N → Nat, … }
@@ -387,18 +387,17 @@ plus_u    =  Λ T. λ u : Unsigned T.  { unit = u.zero,  op = u.add,  eq = u.eq,
 times₁  =  Λ T Op N. λ m p x n.  if p.ordinal n = 0 or m.eq x m.unit then m.unit
                                   else iter (p.ordinal n) (λ s. m.op s x) m.unit
 times₂  =  Λ T Op N. λ s x n.  s.act n x
-times [u64] 7 6           =  times₂ [u64 plus u64] module_u64 7 6
+times [u8] 200 3          =  times₂ [u8 plus u64] module_u8 200 3
 times [bool or] true true =  times₂ [bool or bool] module_bool true true
 times [string] "ab" 3     =  times₁ [string plus u64] plus_str prefix_u64 "ab" 3
 \end{minted}
 \caption{A specialisation, then the family translated.
-Top: the shapes, each one more declared law, the laws functions of the operations as in Listing~\ref{lst:rule2}.
-A semiring is two monoids, the first commutative, tied by distributivity, and a semimodule is a commutative monoid on which a semiring acts linearly.
-Below them, the specialisation: where the carrier under \cppinline{Op} is a semimodule over the counts \cppinline{N}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-The counts add, multiply and act by the language's arithmetic.
-The action's result is declared up to conversion, \cppinline{convertible_to<M>}, because \cppinline{true * true} is an \cppinline{int}.
-Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and three calls, each the function its resolution picks, one of them counted in \cppinline{bool}.
-The test holds the family and its sugar, and checks that they agree.}
+Top left: Listing~\ref{lst:rule3}'s \cppinline{times} specialised where the carrier under \cppinline{Op} is a semimodule over the counts \cppinline{N}, a commutative monoid on which the counts' semiring acts linearly, so that \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
+Each shape on the way is one more declared law, and the test holds them: \cppinline{IsCommutativeMonoid}, \cppinline{IsSemiring}, \cppinline{IsSemimodule}.
+The action is \cppinline{*} across two types, the count's and the carrier's, and for the primitive types the language's conversions do the rest: \cppinline{n * x} is computed in the wider type and converted back, which the shape declares as \cppinline{convertible_to<M>}.
+So 3 copies of 200 wrap to 88 modulo $2^8$, and \cppinline{true * true}, an \cppinline{int}, converts back to \cppinline{true}.
+Top right: the LLVM IR at \texttt{-O2}, attributes stripped: the conversion is a truncation and one multiplication, and in \cppinline{bool} one \texttt{and}.
+Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and three calls, each the function its resolution picks.}
 \label{lst:desugar}
 \end{listing}
 
@@ -489,7 +488,7 @@ FJlt & System~F & in \\
 \midrule
 \texttt{concept C = R̄} & $\mathit{Dict}_C\,\overline{\alpha} = \{\,\overline{r : \llbracket R \rrbracket}\,\}$ & Listing~\ref{lst:rule2} \\
 \texttt{constexpr τ f(τ̄) = delete} & nothing & Listing~\ref{lst:rule2} \\
-\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listings~\ref{lst:rule2}, \ref{lst:desugar} \\
+\texttt{template <>}\newline\texttt{constexpr τ f<τ̄>(x̄) \{ e \}} & $\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
 \texttt{template <ᾱ> requires Q̄}\newline\texttt{constexpr τ f(x̄) \{ e \}} & $\Lambda\overline{\alpha}.\,\lambda\overline{q : \mathit{Dict}_Q}.\,\lambda\overline{x}.\,\llbracket e \rrbracket$ & Listing~\ref{lst:rule2} \\
 \texttt{f<τ̄>(ē)} & $\llbracket f \rrbracket\,\overline{\llbracket \tau \rrbracket}\,\overline{d}\,\overline{\llbracket e \rrbracket}$ & Listing~\ref{lst:rule2} \\
 \texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & Listing~\ref{lst:rule3} \\
@@ -507,7 +506,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \end{table}
 
 The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
-A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as Listing~\ref{lst:desugar}'s \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
+A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
 The whole is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.}
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}.
