@@ -351,7 +351,7 @@ The optimiser sees through the chain, up to the cases.
 What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's one multiplication, though the count is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question.
-Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
+Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a \emph{budget}, the count a search is given, was exhausted.
 
 \begin{table}[ht]
 \centering
@@ -597,7 +597,7 @@ Every FJlt program terminates.
 
 It follows from Theorem~\ref{thm:simulation} and strong normalisation of the target~\cite{girard1989proofs}.
 Every step of the program is at least one step of its image, and the image cannot step forever.
-The budget in Rule~3 is therefore not a guard against non-termination.
+The count in Rule~3 is therefore not a guard against non-termination.
 It is how a bound is said.
 
 \begin{corollary}[Parametricity]
@@ -659,7 +659,7 @@ define i64 @times_m(i64 %x, i64 %n) {
 \end{minipage}
 \caption{The same calls at both binding times.
 Left, at compile time: six copies of \cppinline{7} are six steps of Listing~\ref{lst:rule3}'s fold.
-A budget of $10^8$ is refused with that \cppinline{times} alone, and holds in one step with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks.
+A count of $10^8$ is refused with that \cppinline{times} alone, and holds in one step with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks.
 Right, at run time, Clang~23 at \texttt{-O2}: with Listing~\ref{lst:desugar}'s overload beside it the call is one multiplication; with Listing~\ref{lst:rule3} alone the optimiser finds it too, after a case split on 0 and 1.
 The law changes what the compile time can do, and little at run time.}
 \label{lst:binding}
@@ -673,7 +673,7 @@ The law changes what the compile time can do, and little at run time.}
 & at compile time, in constant evaluation & at run time \\
 \midrule
 who evaluates & the front end's interpreter, one step at a time & the processor, after the optimiser \\
-a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the budget alone \\
+a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
@@ -759,8 +759,8 @@ A Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cann
 
 \paragraph{The compiler has its own limits.}
 Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
-Rule~3 keeps them predictable, because every fold's length is in the program: a budget, or the depth of a term.
-A fold over a budget has no recursion and meets no depth limit.
+Rule~3 keeps them predictable, because every fold's length is in the program: a count, or the depth of a term.
+A fold over a count has no recursion and meets no depth limit.
 A fold over a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, is one instantiation per nesting, bounded by \texttt{-ftemplate-depth}.
 A fold over a term that is a value, evaluated at compile time, is one \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
 

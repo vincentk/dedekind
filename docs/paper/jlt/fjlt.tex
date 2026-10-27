@@ -362,7 +362,7 @@ Otherwise the term is a value, or a redex of one of the following shapes, each o
 A call $f\texttt{<}\overline{\sigma}\texttt{>(}\overline{v}\texttt{)}$ typed by \textsc{T-Call} or \textsc{T-Trait}: the premise says the call resolves (for \textsc{T-Call}, the constraints are entailed, so resolution finds the generic function or, through its context, a specialisation), and the body it resolves to precedes the call by the declaration order, so \textsc{S-Call} applies; \textsc{T-Req-Assumed} cannot occur in a closed term, since $\Delta$ is empty.
 An application $O\texttt{<}\overline{\tau}\texttt{>\{}\overline{v_y}\texttt{\}(}\overline{v}\texttt{)}$: \textsc{S-Op} for a declared operation, \textsc{S-Std} for a standard one, whose operations are total by the choice of $O$.
 A primitive $c_1 \oplus c_2$: \textsc{S-Prim}, total by the choice of $\oplus$.
-A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose a budget is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
+A conditional on a constant of type \cppinline{bool}, a case on a value of a sum, which by \textsc{T-Case} and canonical forms is an injection, a projection of a pair or of a constructed object, an unbox of a box, a fold whose count is a constant, and a \cppinline{cata} on a node: \textsc{S-If}, \textsc{S-Case}, \textsc{S-Proj}, \textsc{S-Unbox}, \textsc{S-Fold}, \textsc{S-Cata}, with \textsc{S-Fold}'s two cases covering every constant and \textsc{S-Cata} covering every node, leaves included.
 Preservation along a step, that $e \longrightarrow e'$ keeps the type, is the usual substitution argument and is used below without further comment.
 \end{proof}
 
@@ -387,7 +387,7 @@ the constants $\mathit{next}$ and $\mathit{head}$ computing the range's operatio
 
 \begin{proof}[Proof of Corollary~\ref{cor:termination}, termination]
 An infinite reduction $e \longrightarrow e_1 \longrightarrow \cdots$ would give, by Lemma~\ref{lem:forward}, an infinite reduction $\llbracket e \rrbracket \longrightarrow^{+} \llbracket e_1 \rrbracket \longrightarrow^{+} \cdots$ in the target, which is strongly normalising~\cite{girard1989proofs}.
-The budget enters as a natural number iterated by a primitive of the target, not as a recursion scheme the type system would have to admit.
+The count enters as a natural number iterated by a primitive of the target, not as a recursion scheme the type system would have to admit.
 \end{proof}
 
 \begin{proof}[Proof of Corollary~\ref{cor:soundness}, type soundness]
