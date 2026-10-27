@@ -348,7 +348,7 @@ Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised t
 \end{listing}
 
 What the processor runs of Listing~\ref{lst:rule3}'s fold is the panel's one multiplication, though the budget is known only at run time (Section~\ref{sec:binding}).
-What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
+What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic}, the row of Figure~\ref{fig:structures} folded (Appendix~\ref{app:fjlt:translation}).
 Like System~F, which is strongly normalising and so cannot express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination: the programs that halt are not a decidable set~\cite{turing1936computable}, so a language whose every program terminates cannot compute every function, and a bounded search terminates without always deciding the question it was asked.
 Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a budget was exhausted.
 
@@ -525,7 +525,7 @@ FJlt & System~F & in \\
 \texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & Listing~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{Six translation rules exercised by code listings: a concept is a record type, a trait only its instances, an instance a field at $\overline{\tau}$, a constraint a parameter, a call supplies the resolved records $\overline{d}$, and a budget is iterated.
+\caption{Six translation rules exercised by code listings: a concept is a record type, a trait only its instances, an instance a field at $\overline{\tau}$, a constraint a parameter, a call supplies the resolved records $\overline{d}$, and a budget is iterated, the row of Figure~\ref{fig:structures}.
 Inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
 The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}.}
 \label{tab:rules}

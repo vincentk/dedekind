@@ -174,6 +174,10 @@ namespace dedekind::category {
  * @tparam N The carrier object.
  * @tparam Z A nullary callable @c Z : 1 → N (the zero element).
  * @tparam S A unary callable @c S : N → N (the successor).
+ *
+ * @see R. Dedekind, Was sind und was sollen die Zahlen? (Vieweg, 1888): the
+ *      naturals as the chain of one element under a map into itself;
+ *      G. Peano, Arithmetices principia (1889), the same as axioms.
  */
 export template <typename N, typename Z, typename S>
 concept IsNNO = requires(Z z, S s, N n) {
@@ -286,7 +290,9 @@ struct Predecessor {
   }
 };
 
-/** @brief The cover @f$S^{+} : N \to 1 + N@f$: the successor read partially,
+/** @brief The cover @f$S^{+} : N \to 1 + N@f$ (y covers x: x < y, nothing
+ *  between; B. A. Davey and H. A. Priestley, Introduction to Lattices and
+ *  Order, 2nd ed., Cambridge, 2002, ch. 1): the successor read partially,
  *  @c nullopt at a fixpoint of @c S, which on a saturating bounded chain is its
  *  top (ℵ₀ on @c Cardinality, @c True on K₃), and at a machine word's greatest
  *  value, where @c S has no value (signed) or wraps (unsigned: the ring ℤ/2^w
@@ -308,6 +314,8 @@ constexpr std::optional<N> cover(const N& n) {
   return s;
 }
 /** @section nno__Chain_View
+ *  The orbit of one element under the step is Dedekind's chain (Kette) of it
+ *  (Was sind und was sollen die Zahlen?, 1888).
  *  The bounded chain @c [lo, hi] as a range for @b any carrier with the
  *  covering step --- @c bool, @f$K_3@f$, the integrals, ℕ's proxy: the unfold
  *  of @c lo by @c cover, ending after @c hi.  @c std::views::iota cannot do
