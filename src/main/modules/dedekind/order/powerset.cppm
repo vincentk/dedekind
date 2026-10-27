@@ -84,13 +84,15 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
   // from SetExpr (the ETCS subobject surface), exactly as Halfspace / Singleton
   // / Interval / Ray fold onto it --- so a Sub value is itself a
   // first-class IsSubobject / IsSet (pinned below), not a bespoke half-surface.
-  // State is PRIVATE and canonicalised at construction (normalize()), so no
+  // State is PRIVATE and canonicalised at construction (canonical()), so no
   // caller can fabricate a non-canonical Sub that breaks == / <= / χ.
 
   constexpr Sub() = default;  // 𝔸
 
   // --- the to_sub coercions (and, structurally, the 𝔓 gate) ---
-  constexpr Sub(const dedekind::sets::Ø<C, L>&) : empty_(true) { normalize(); }
+  // Ø in its one canonical form: dead bound fields, both sides strict.
+  constexpr Sub(const dedekind::sets::Ø<C, L>&)
+      : lo_unbounded_(false), hi_unbounded_(false), empty_(true) {}
   template <typename Card>
   constexpr Sub(const dedekind::sets::𝔸<C, L, Card>&) {}  // 𝔸
   // The singleton's carrier must BE @c C (like the Halfspace / Interval
@@ -104,22 +106,7 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
         hi_unbounded_(false),
         lo_strict_(Strictness::NonStrict),
         hi_strict_(Strictness::NonStrict) {}
-  constexpr Sub(const Interval<C, L>& iv) : empty_(!iv.span()) {
-    if (iv.span()) {
-      const auto& [lo, hi] = *iv.span();
-      if (lo) {
-        lo_ = lo->at;
-        lo_unbounded_ = false;
-        lo_strict_ = lo->strictness;
-      }
-      if (hi) {
-        hi_ = hi->at;
-        hi_unbounded_ = false;
-        hi_strict_ = hi->strictness;
-      }
-    }
-    normalize();
-  }
+  constexpr Sub(const Interval<C, L>& iv) : Sub(canonical(raw(iv))) {}
 
   /** @brief χ: is @c x in this interval? */
   constexpr typename L::Ω operator()(const C& x) const {
@@ -189,28 +176,43 @@ struct Sub : dedekind::sets::SetExpr<Sub<C, L>, C, L> {
    *  FIXME(#838): a strict bound AT the carrier extremum overflows the
    *  @c +1/@c -1; that boundary-pivot corner is #838's carrier-native / clamped
    *  effective-bound story (never produced by @c structured_and / the DSL). */
-  constexpr void normalize() {
+  static constexpr Sub canonical(Sub s) {
     if constexpr (IsRingIntegral<C>) {
-      if (!empty_) {
-        if (!lo_unbounded_ && lo_strict_ == Strictness::Strict) {
-          lo_ = static_cast<C>(lo_ + C{1});
-          lo_strict_ = Strictness::NonStrict;
+      if (!s.empty_) {
+        if (!s.lo_unbounded_ && s.lo_strict_ == Strictness::Strict) {
+          s.lo_ = static_cast<C>(s.lo_ + C{1});
+          s.lo_strict_ = Strictness::NonStrict;
         }
-        if (!hi_unbounded_ && hi_strict_ == Strictness::Strict) {
-          hi_ = static_cast<C>(hi_ - C{1});
-          hi_strict_ = Strictness::NonStrict;
+        if (!s.hi_unbounded_ && s.hi_strict_ == Strictness::Strict) {
+          s.hi_ = static_cast<C>(s.hi_ - C{1});
+          s.hi_strict_ = Strictness::NonStrict;
         }
-        if (!lo_unbounded_ && !hi_unbounded_ && lo_ > hi_) empty_ = true;
+        if (!s.lo_unbounded_ && !s.hi_unbounded_ && s.lo_ > s.hi_)
+          s.empty_ = true;
       }
     }
-    if (empty_) {  // one canonical ∅ (dead bound fields), every carrier
-      lo_ = C{};
-      hi_ = C{};
-      lo_unbounded_ = false;
-      hi_unbounded_ = false;
-      lo_strict_ = Strictness::Strict;
-      hi_strict_ = Strictness::Strict;
+    if (s.empty_) return Sub(dedekind::sets::Ø<C, L>{});  // the one ∅
+    return s;
+  }
+  /** @brief An interval's sides as they stand, before @c canonical. */
+  static constexpr Sub raw(const Interval<C, L>& iv) {
+    Sub s;
+    const auto span = iv.span();
+    s.empty_ = !span;
+    if (span) {
+      const auto& [lo, hi] = *span;
+      if (lo) {
+        s.lo_ = lo->at;
+        s.lo_unbounded_ = false;
+        s.lo_strict_ = lo->strictness;
+      }
+      if (hi) {
+        s.hi_ = hi->at;
+        s.hi_unbounded_ = false;
+        s.hi_strict_ = hi->strictness;
+      }
     }
+    return s;
   }
 };
 
