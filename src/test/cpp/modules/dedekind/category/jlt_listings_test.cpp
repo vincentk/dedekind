@@ -1,8 +1,9 @@
 /** @file test/cpp/modules/dedekind/category/jlt_listings_test.cpp
  *
  * The listings of the Jlt paper (docs/paper/jlt/jlt.tex),
- * verbatim up to formatting and qualification (a listing may say
- * `using namespace std`),
+ * verbatim up to formatting, qualification (a listing may say
+ * `using namespace std`), repetitions a comment elides and definitions a
+ * listing omits, which live here,
  * so that CI holds the paper to the code.  The listings declare their own
  * unit and laws, so they live in their own namespace; the TEST_CASE then
  * checks that the tree's unit<T>(Op{}) and laws agree with every fact the
@@ -27,14 +28,14 @@ namespace jlt_listing {
 using std::size_t;
 using namespace std::string_literals;
 
-// Listing 1, top: the shape, unpopulated.
+// Listing 2, left: the shape, unpopulated.
 template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
 
-// Listing 3, left: an instance for a family, before the shape (Section 6).
+// Listing 2, left: an instance for a family, before the shape (Section 7).
 template <std::unsigned_integral T>
 constexpr T unit(std::plus<T>) {
   return 0;
@@ -50,7 +51,7 @@ concept IsMonoid = std::regular<T> && requires(const T a, const T b) {
   { unit<T>(Op{}) } -> std::same_as<T>;
 } && associative<T>(Op{});
 
-// Listing 3, right: std::string, and concat at size_t and at std::string.
+// Listing 2, right: std::string, and concat at size_t and at std::string.
 template <>
 constexpr std::string unit<std::string>(std::plus<std::string>) {
   return {};
@@ -71,8 +72,8 @@ constexpr bool associative<size_t>(std::multiplies<size_t>) {
 
 template <typename T, typename Op = std::plus<T>, std::ranges::input_range R>
   requires IsMonoid<T, Op> && std::same_as<std::ranges::range_value_t<R>, T>
-constexpr T concat(R words) {
-  return std::ranges::fold_left(std::move(words), unit<T>(Op{}), Op{});
+constexpr T concat(R ws) {
+  return std::ranges::fold_left(std::move(ws), unit<T>(Op{}), Op{});
 }
 
 static_assert(concat<size_t>(std::array{1uz, 2uz, 3uz}) == 6);
@@ -81,7 +82,7 @@ static_assert(concat<size_t, std::multiplies<size_t>>(std::array{2uz, 3uz,
 static_assert(concat<std::string>(std::array{"ab"s, "c"s, "d"s}) == "abcd");
 static_assert(concat<size_t>(std::array<size_t, 0>{}) == 0);
 
-// Listing 1, middle: bool.
+// Certificates the listings use and do not print: bool.
 template <>
 constexpr bool unit<bool>(std::logical_and<bool>) {
   return true;
@@ -104,7 +105,7 @@ static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
 
-// Listing 1, bottom: size_t.
+// Certificates the listings use and do not print: size_t.
 template <>
 constexpr size_t unit<size_t>(std::bit_or<size_t>) {
   return 0;
@@ -127,7 +128,8 @@ static_assert(IsMonoid<size_t, std::multiplies<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_or<size_t>>);
 static_assert(IsMonoid<size_t, std::bit_and<size_t>>);
 
-// Listing 4, top: the semiring the semimodule's scalars form, and the
+// Listing 4's shapes, which the paper does not print: the semiring the
+// semimodule's scalars form, and the
 // commutative monoid both build on; laws as functions of the operation.
 template <typename T, typename Op>
 constexpr bool commutative(Op) = delete;
@@ -179,15 +181,7 @@ static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
 // converted back, so or, and multiplies<bool> is and.  These are the
 // operations a bool count brings to the semimodule.
 template <>
-constexpr bool unit<bool>(std::plus<bool>) {
-  return false;
-}
-template <>
 constexpr bool unit<bool>(std::multiplies<bool>) {
-  return true;
-}
-template <>
-constexpr bool associative<bool>(std::plus<bool>) {
   return true;
 }
 template <>
@@ -279,6 +273,7 @@ static_assert(times_n(7, 100) == 700);
 template <typename M, typename S, typename AddM, typename AddS, typename MultS>
 constexpr bool linear(AddM, AddS, MultS) = delete;
 template <std::unsigned_integral M, std::same_as<size_t> S>
+  requires(!std::same_as<M, bool>)
 constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>) {
   return true;
 }
@@ -312,6 +307,9 @@ static_assert(!IsSemimodule<size_t, size_t, std::multiplies<size_t>>);
 // wrap to none while the copies are true.
 static_assert(IsSemimodule<bool, bool, std::logical_or<bool>>);
 static_assert(!IsSemimodule<bool, size_t, std::logical_or<bool>>);
+// bool is an unsigned integral, but its + saturates: no semimodule over
+// size_t's counts under + either.
+static_assert(!IsSemimodule<bool, size_t>);
 
 // Section 3, the sugar: Listing 3's times with a branch on a concept: in a
 // semimodule over size_t under +, n copies of x are one action of n on x.
@@ -421,7 +419,7 @@ static_assert(!kernel::times<bool, std::logical_or<bool>>(false,
                                                           100'000'000uz));
 static_assert(sugar::times<bool, std::logical_or<bool>>(true, true));
 
-// Section 4, two binding times: budget, and running out of it.
+// Appendix, the search listing: a budget, and running out of it.
 template <typename P>
 concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
   { p(n) } -> std::same_as<bool>;
