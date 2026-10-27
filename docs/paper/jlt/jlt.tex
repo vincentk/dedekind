@@ -783,7 +783,8 @@ It is the body-versus-signature gap of Rule~2 one level down, in the standard li
 The listings avoid it by never asking a typed function object about a carrier it was not written for.
 
 \paragraph{A shape knows the laws someone declared.}
-\Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not.
+\Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{[res.on.requirements]}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics for that reason~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
+That split is between what the compiler decides and what it leaves to the programmer, and it does not coincide with the split of programming-language theory between static and dynamic semantics~\cite{pierce2002tapl}, whose static semantics, type checking, falls on the syntactic side here.}
 A law is what modelling asks beyond satisfying, and the posture makes it a declared certificate, a specialisation the compiler finds but does not check against the operation.
 So \cppinline{false} means \emph{not known}, not \emph{no}: \cppinline{*} on \cppinline{size_t} is commutative, nobody in the listings certifies it, and \cppinline{IsCommutativeMonoid<size_t, multiplies<size_t>>} is refused.
 The same declaration is the only refusal available for a carrier that passes a shape by signature and breaks its law by value.
