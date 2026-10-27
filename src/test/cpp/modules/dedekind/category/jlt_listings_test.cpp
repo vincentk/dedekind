@@ -301,12 +301,16 @@ static_assert(!IsSemimodule<bool, size_t, std::logical_or<bool>>);
 // Section 3, the sugar: Listing 3's times with a branch on a concept: in a
 // semimodule over size_t under +, n copies of x are one action of n on x.
 namespace sugar {
+// The branch's test, behind a concept of its own: its body is normalised, so
+// a count with no counting semiring, such as char, leaves it unsatisfied,
+// where IsSemimodule's defaults named in the branch would be ill-formed.
+template <typename T, typename N, typename Op>
+concept IsSemimoduleOver = IsSemimodule<T, N, Op>;
+
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  // A requires-expression, so that a count with no counting semiring, such
-  // as char, makes the test false and not the instantiation ill-formed.
-  if constexpr (requires { requires IsSemimodule<T, N, Op>; })
+  if constexpr (IsSemimoduleOver<T, N, Op>)
     return typename counting<N>::act{}(n, x);
   else
     return ordinal(n) == 0 || x == unit<T>(Op{})
