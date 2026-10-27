@@ -184,11 +184,9 @@ Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_
 \label{lst:rule1}
 \end{listing}
 
-Listing~\ref{lst:rule1} is the rule in one function.
-\cppinline{id} takes a \cppinline{const T&} and returns a \cppinline{T}: the reference denotes the value and nothing changes it, so \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases.
+In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
-The compiler evaluates \cppinline{id(size_t{42})} in a \cppinline{static_assert}, and at run time the panel of Listing~\ref{lst:rule1} is all that is left of the call: the value, returned (Section~\ref{sec:binding}).
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{Boxed values on the heap such as \cppinline{std::shared_ptr<const T>} require special treatment, as there are two heaps with non-overlapping life cycles: the one the running program has at runtime, and the one the compiler simulates while it evaluates a \cppinline{constexpr} function during compilation.
 They are values in the sense of this section on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is. In practice, support for evaluating them at compile time is absent in \Cpp{23} and arrives with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
 
@@ -254,7 +252,6 @@ static_assert(concat<string>(
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
 Right: \cppinline{concat}, the fold that evaluates a list in a monoid, lists being the free monoid.
-Concatenations over (\cppinline{string, +, ""}), (\cppinline{size_t, +, 0}), (\cppinline{size_t, *, 1}).
 Some certifications omitted for brevity.
 }
 \label{lst:rule2}
@@ -400,7 +397,7 @@ times [string] "ab" 3     =  times₁ [string plus u64] plus_str prefix_u64 "ab"
 Top: the shapes, each one more declared law, the laws functions of the operations as in Listing~\ref{lst:rule2}.
 A semiring is two monoids, the first commutative, tied by distributivity, and a semimodule is a commutative monoid on which a semiring acts linearly.
 Below them, the specialisation: where the carrier under \cppinline{Op} is a semimodule over the counts \cppinline{N}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-The counts add, multiply and act by the language's arithmetic: \cppinline{size_t} modulo $2^{64}$, and \cppinline{bool} as the Boolean semiring, since \cppinline{true + true} converts back to \cppinline{true}.
+The counts add, multiply and act by the language's arithmetic.
 The action's result is declared up to conversion, \cppinline{convertible_to<M>}, because \cppinline{true * true} is an \cppinline{int}.
 Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and three calls, each the function its resolution picks, one of them counted in \cppinline{bool}.
 The test holds the family and its sugar, and checks that they agree.}
@@ -411,22 +408,16 @@ Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a 
 The stronger concept buys a faster algorithm, as \cppinline{std::advance} jumps for a random-access iterator and walks for the others.
 Written as a branch inside Listing~\ref{lst:rule3}'s \cppinline{times}, the specialisation is an \cppinline{if constexpr} on \cppinline{IsSemimodule}.
 Desugared, it is the listing's overload, whose constraint contains Listing~\ref{lst:rule3}'s.
-The listing states the shapes the overload needs as conjunctions, one declared law at a time: a semiring is two monoids tied by distributivity, and a semimodule over it is a commutative monoid on which it acts linearly.
-The listing shows the family already translated.
-System~F has no overloading, so each function becomes a plain function of its constraints' records, and each call becomes the function its resolution picks.
-The bodies keep Rule~2: they use only what the clauses name.
-\cppinline{x == unit<T>(Op{})} is named by \cppinline{IsMonoid}, which asks \cppinline{regular<T>}.
-The action, \cppinline{n * x}, is named by \cppinline{IsSemimodule} up to conversion, since \cppinline{true * true} is an \cppinline{int} (Section~\ref{sec:posture}).
+System~F has no overloading, so in the translated family each function is a plain function of its constraints' records, and each call is the function its resolution picks.
+The bodies keep Rule~2, and the translation makes it visible: equality and the action become \texttt{m.eq} and \texttt{s.act}, fields of records, because a constraint named them, the action up to conversion (Section~\ref{sec:posture}).
 For another carrier, such as a matrix, the programmer supplies \cppinline{operator*} and its certificate.
-The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
 The laws make the answers right.
 The free theorem and the laws do different work: the first says that \cppinline{times} can only build copies of \cppinline{x} with \cppinline{Op}, the second which of those constructions are equal.
-The unit law makes any number of copies of the unit the unit.
 The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{ordinal(n)}.
 In Birkhoff's terms the listings descend through varieties: lists are the free monoid, a semimodule over the counts is a smaller variety, and the counts are a homomorphic image of the naturals, the initial semiring, with \cppinline{ordinal} a section of the quotient, which is the premise a certificate vouches for, and which the language's arithmetic makes true of \cppinline{size_t} and \cppinline{bool}.\footnote{Only the algebraic shapes are varieties: \cppinline{totally_ordered} is not equational, since a product of chains is not a chain.}
 Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$.
 So the certificate is true for the unsigned carriers, which wrap at a power of two dividing $2^{64}$, and for no carrier that does not wrap, such as \cppinline{std::string}.
-Counts of type \cppinline{bool} are the Boolean semiring, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n * x}, which is \cppinline{n && x}.
+Counts of type \cppinline{bool} are the Boolean semiring, since \cppinline{true + true} converts back to \cppinline{true}, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n * x}, which is \cppinline{n && x}.
 Counted in \cppinline{size_t}, the same monoid is no semimodule, since $2^{63} + 2^{63}$ copies wrap to none while the copies are \cppinline{true}, and \cppinline{times} folds.
 The count type decides the algebra, and the type checker holds it to the certificates.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}).
@@ -468,12 +459,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~1 and~2 are closed by the grammar: a program that uses them is not in the kernel's syntax.
-The exception is overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
-Row~3, conversions, is half closed: the grammar admits a conversion only where a requirement declares it.
-That the body then uses the result at the declared type, not at its own, is Rule~2 again.
-Row~4 is erased by the translation, an optimisation and not a meaning.
-Row~5 is the sugar.
+Rows~1 and~2 are closed by the grammar, except for overloads that differ by their constraints alone, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s \cppinline{times}.
 Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure}: the condition under which it desugars, and the kernel term it becomes.
 No row needs anything the calculus lacks.
 By measurement, the table is complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
@@ -495,9 +481,6 @@ It is partial on \Cpp{}: a \Cpp{} program is an FJlt program only when it keeps 
 Section~\ref{sec:translation:adequacy} is the argument for when it does.
 Six of its rules cover everything the listings do, and Table~\ref{tab:rules} states them.
 The rest is bookkeeping.
-Read the table with Listings~\ref{lst:rule2} and~\ref{lst:desugar} beside it.
-\cppinline{IsMonoid} is the first row, and \cppinline{unit<std::string>(std::plus<std::string>)} the third.
-The instance for the unsigned integrals and the two \cppinline{times} are the fourth, the two resolved calls the fifth, and the fold of \texttt{times₁} the sixth.
 
 \begin{table}[ht]
 \centering
@@ -526,16 +509,11 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \end{table}
 
 The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
-The concept is a record type, one field per requirement, a law a field of type \texttt{Bool}.
-A shape built from shapes is a record holding their records, as Listing~\ref{lst:desugar}'s \cppinline{IsSemiring} holds the records of two monoids.
-That is how a superclass is passed.
-A \cppinline{requires} clause on a function is one more parameter, the record, and a call passes the record the compiler resolved.
-That is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.}
+A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as Listing~\ref{lst:desugar}'s \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
+The whole is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}. The record is their dictionary.}
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}.
 So under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
-A registration, such as Listing~\ref{lst:rule2}'s unit for \cppinline{std::string}, is a record.
-The listing's instance for every unsigned integral is an instance with a context, a function from records to a record (Section~\ref{sec:translation:contexts}).
 
 \begin{table}[ht]
 \centering
@@ -589,7 +567,6 @@ They are what makes a \Cpp{} program a term of the calculus the theorems are abo
 If $\Gamma \vdash e : \tau$ in FJlt, then $\llbracket \Gamma \rrbracket \vdash \llbracket e \rrbracket : \llbracket \tau \rrbracket$ in System~F.
 \end{theorem}
 
-A well-formed FJlt program translates to a well-typed term.
 Each \cppinline{requires} clause has become a record parameter.
 At each call, the instance the compiler resolved supplies a record of the type that parameter demands.
 
@@ -650,8 +627,6 @@ A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:pr
 Featherweight Java proves progress and preservation over its own rules too.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
-All six are claims about FJlt.
-What they say about a Jlt program is the adequacy argument of Section~\ref{sec:translation:adequacy}, and Section~\ref{sec:limits} says where it is thin.
 
 So the theorems transfer to a \Cpp{} program on two conditions.
 It is written in the subset, which the compiler checks.
@@ -732,18 +707,12 @@ Every row but the last is a refusal on one side, never a different value: where 
 \end{table}
 
 \paragraph{The two evaluators are different programs.}
-At run time the optimiser turns Listing~\ref{lst:rule3}'s fold into one multiplication, as its panel shows.
-In constant evaluation no optimiser runs: the front end interprets the fold one step at a time.
-The optimiser, which finds the multiplication, works later, and only on the code emitted for run time.
-So at compile time only a declared law shortens a fold, and resolution is what chooses it, as for Listing~\ref{lst:desugar}'s overload.
-A declared law buys at build time what the optimiser finds at run time by itself.
+In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s multiplication sees only the code emitted for run time.
+So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:desugar}'s overload: it buys at build time what the optimiser finds at run time by itself.
 
 \paragraph{Every difference is a refusal, not another value.}
-Every row of Table~\ref{tab:binding} but the last is a place where one binding time stops and the other goes on.
-None makes the two compute different values for one call: where constant evaluation gives a value, it is the value the run time gives.
 The limits count the evaluator's work and are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time it passes unseen, which is why the listings' carriers are unsigned (Section~\ref{sec:limits}).
-The last row is how a program can tell the two binding times apart, and it desugars to its compile-time branch where the branches agree.
 
 \paragraph{The same laws license parallelism.}
 Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
