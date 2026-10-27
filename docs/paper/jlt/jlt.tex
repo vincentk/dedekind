@@ -119,7 +119,7 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
 \end{tikzcd}
 \caption{The arrows of the paper.
 The inclusions of FJlt in Jlt and of Jlt in \Cpp{23} are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
-The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it.
+The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it~\cite{nlab:retract}.
 Its composite with the two inclusions is a partial map from System~F, the embedding that makes Jlt an embedded language: for every $t$ in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$, by Theorem~\ref{thm:simulation}.
 \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
 Solid arrows are established: for a kernel program the two readings agree on the value, by Theorem~\ref{thm:simulation} inside the calculus (Section~\ref{sec:guarantees}) and by an argument for the program the compiler emits (Section~\ref{sec:binding}, Appendix~\ref{app:fjlt:ssa}).
@@ -261,7 +261,7 @@ static_assert(concat<string>(
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: \cppinline{concat}, the fold that evaluates a list in a monoid, lists being the free monoid, and \cppinline{sized_range} keeps the list finite, as Rule~3 asks.
+Right: \cppinline{concat}, the fold that evaluates a list in a monoid, lists being the free monoid~\cite{nlab:free_monoid}, and \cppinline{sized_range} keeps the list finite, as Rule~3 asks.
 Some certifications omitted for brevity.
 }
 \label{lst:rule2}
