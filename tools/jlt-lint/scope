@@ -194,12 +194,12 @@ rule1-no-throw               src/main/modules/dedekind/sets/terms.cppm  sets  38
 rule1-lvalue-reference-params src/main/modules/dedekind/sets/[!cst]*.cppm  sets  0
 rule1-lvalue-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-lvalue-reference-params src/main/modules/dedekind/sets/computability.cppm  sets  0
-rule1-lvalue-reference-params src/main/modules/dedekind/sets/cardinality.cppm  sets  4
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule1-lvalue-reference-params src/main/modules/dedekind/sets/terms.cppm  sets  3
 rule1-no-reference-returns   src/main/modules/dedekind/sets/[!cs]*.cppm  sets  0
 rule1-no-reference-returns   src/main/modules/dedekind/sets/si*.cppm  sets  0
 rule1-no-reference-returns   src/main/modules/dedekind/sets/computability.cppm  sets  0
-rule1-no-reference-returns   src/main/modules/dedekind/sets/cardinality.cppm  sets  2
+rule1-no-reference-returns   src/main/modules/dedekind/sets/cardinality.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/[!es]*.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/extensional.cppm  sets  0
 rule1-forwarding-reference-params src/main/modules/dedekind/sets/expressions.cppm  sets  8

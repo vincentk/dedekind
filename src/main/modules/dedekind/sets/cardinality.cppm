@@ -448,47 +448,49 @@ export constexpr Cardinality predecessor(const Cardinality& n) noexcept {
                      std::get<ExtensionalCardinal<>>(finite_cardinality(1))};
 }
 
-/** @brief @c ++n / @c n++: C++'s spelling of the arrow @c
- * Successor<Cardinality> in place, saturating at ℵ₀; @c --n / @c n-- the monus
- * step.  The ℕ proxy is thereby incrementable in the spirit of @c
- * std::incrementable; the standard concept also wants a difference type, which
- * the saturating carrier has no honest value for and does not declare.
- *  @param n the element to step, in place.  @return the stepped element
- *  (prefix) or the element before the step (postfix). */
-export constexpr Cardinality& operator++(Cardinality& n) noexcept {
-  n = successor(n);
-  return n;
+/** @brief @c ++n / @c --n: the successor and the predecessor of the ℕ proxy,
+ *  by value, saturating at ℵ₀ and stepping down by monus (#1002).
+ *
+ *  @details Why by value, and why only on types of our own.
+ *  - A user-defined operator need not mutate.  Taken by value, @c ++n returns
+ *    a new value and leaves @c n alone, so it keeps Rule 1 (no reference
+ *    parameter, no reference returned, no state) and is the posture's spelling
+ *    of @c Successor; it applies to a constant too.  There is no postfix form:
+ *    by value, @c n++ would be @c n itself.
+ *  - The built-in @c ++ mutates.  On a @c const built-in it does not compile
+ *    ("cannot assign to variable with const-qualified type"), so @c const
+ *    already makes the compiler hold Rule 1 at the operator.
+ *  - It cannot be replaced: an overloaded operator must have a parameter of
+ *    class or enumeration type, so no @c operator++ may be declared for
+ *    @c size_t, @c const or not.  Its successor is @c n @c + @c 1, or
+ *    @c successor(n).
+ *  - The standard's incrementable concepts ask @c ++i for an @c I&, so they
+ *    do not admit the by-value form, and @c std::views::iota does not walk
+ *    such a type; @c chain_view walks by @c successor and @c cover instead.
+ *  - For counts with a by-value @c ++, a type of our own is the route: a
+ *    struct around the word, or the smallest strong typedef the language has,
+ *    @c enum @c class @c Nat @c : @c size_t @c {}, whose values are the word's
+ *    and which @c std::to_underlying converts back.
+ *  @param n the element.  @return its successor (predecessor). */
+export constexpr Cardinality operator++(Cardinality n) noexcept {
+  return successor(n);
 }
-export constexpr Cardinality operator++(Cardinality& n, int) noexcept {
-  const Cardinality before = n;
-  n = successor(n);
-  return before;
+export constexpr Cardinality operator--(Cardinality n) noexcept {
+  return predecessor(n);
 }
-export constexpr Cardinality& operator--(Cardinality& n) noexcept {
-  n = predecessor(n);
-  return n;
-}
-export constexpr Cardinality operator--(Cardinality& n, int) noexcept {
-  const Cardinality before = n;
-  n = predecessor(n);
-  return before;
-}
+static_assert(++finite_cardinality(2) == finite_cardinality(3) &&
+                  --finite_cardinality(3) == finite_cardinality(2) &&
+                  --finite_cardinality(0) == finite_cardinality(0),
+              "++ / -- are the successor and the predecessor (monus at 0).");
 static_assert(
-    [] {
-      Cardinality n = finite_cardinality(2);
-      ++n;
-      n++;
-      --n;
-      return n == finite_cardinality(3);
-    }(),
-    "++ / -- step the ℕ proxy in place.");
-static_assert(
-    [] {
-      Cardinality a{ℵ_0{}};
-      ++a;
-      return a == Cardinality{ℵ_0{}};
-    }(),
+    ++Cardinality{ℵ_0{}} == Cardinality{ℵ_0{}},
     "++ saturates at ℵ₀, the memory boundary the carrier is honest about.");
+namespace detail_cardinality_step_witness {
+constexpr Cardinality two = finite_cardinality(2);
+static_assert(
+    ++two == finite_cardinality(3) && two == finite_cardinality(2),
+    "by value: ++n is the successor, n is unchanged, even a constant.");
+}  // namespace detail_cardinality_step_witness
 
 /** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
 export constexpr Cardinality operator*(const Cardinality& lhs,
