@@ -350,8 +350,7 @@ The optimiser sees through the chain, up to the cases.
 
 What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's one multiplication, though the count is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
-Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question.
-Jlt pays with a third answer in the kernel, Kleene's \emph{unknown}~\cite{kleene1952metamathematics}, which says that a \emph{budget} was exhausted (Section~\ref{sec:binding}).
+Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).
 
 \begin{table}[ht]
 \centering
@@ -692,7 +691,7 @@ Apart from the last row, no difference is a different value: where both evaluati
 In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s multiplication sees only the code emitted for run time.
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:desugar}'s overload: it buys at build time what the optimiser finds at run time by itself.
 
-The limits are budgets: counters out of band, beside the structure's own count, that can stop a computation before its chain reaches the delimiter, and whose exhaustion is never a value, a refusal here and Kleene's unknown for the budget a search is given in the kernel (Rule~3).
+Not every algorithm converges, so Jlt allows a \emph{budget}, a counter out of band beside the structure's own count, with a maximum number of steps, just as the compiler does; the compiler's budgets apply at compile time only, Jlt's at both binding times, and the exhaustion of either is never a value, a refusal from the compiler and an absent answer from the fold (Appendix~\ref{app:fjlt:ssa}).
 They are the compiler's to set: raised, the refused assertion of Listing~\ref{lst:binding} compiles and holds.
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time nothing is guaranteed (Section~\ref{sec:limits}).
 
@@ -849,7 +848,6 @@ The calculus translates into System~F by dictionary passing, and the translation
 
 Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
 A tool in the repository narrows the gap, and an agentic reviewer reads for the rest, which makes holding the two rules cheaper than it was a decade ago (Section~\ref{sec:limits}).
-A fold may run out of budget, and when it does the type says so.
 
 Four things follow as work not done here.
 Completing the linter into a checker, with definition checking over types, arities and the full constraint language, as the \Cpp{0x} design had it: until then, membership in the fragment is a reading the tool narrows, not a verdict it gives.
