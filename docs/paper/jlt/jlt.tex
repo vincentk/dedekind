@@ -509,8 +509,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 
 The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
-The whole is dictionary passing, the translation of type classes into System~F.\footnote{Wadler and Blott~\cite{wadler1989adhoc}.
-The record is their dictionary.}
+The whole is dictionary passing, the translation of type classes into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
 
