@@ -816,11 +816,6 @@ struct Identity final {
    */
 };
 
-/** @return @c value, whatever the argument. */
-constexpr Y operator()(const X&) const { return value; }
-constexpr bool operator==(const Constant&) const = default;
-};
-
 /** @brief The Identity Factory: Returns the neutral arrow for Species A. */
 export template <typename A>
 constexpr auto id() {
