@@ -65,7 +65,8 @@ The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976di
 The case is usually made in a language built around it, and this paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 A fragment of it is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
-Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction}, and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point, and Section~\ref{sec:binding} shows it pre-computing what the rules make computable.
+Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
+Listing~\ref{lst:desugar} is a case: a declared law gives resolution a shortcut that the code without it lacks.} and the rules do not touch it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 What the rules address is the other cost, the language's size.
 And the rules a compiler does not check are cheaper to hold than a decade ago: a language model of code~\cite{chen2021evaluating} reads every change against them, which is not a proof but a read, and often a good one (Section~\ref{sec:limits}).
 
@@ -78,6 +79,7 @@ For generic code \Cpp{} lacks one check.
 \cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}, but as standardised in \Cpp{20} they check only its uses, when the template is instantiated~\cite{stroustrup2009remove}, so a template's body may use operations its constraints do not name.
 The designers named the problem at the outset, in 2003: ``crucial aspects of the programmer's understanding of a template cannot be expressed directly in the code for compilers and other tools to use''~\cite{stroustrup2003concepts}.
 \Cpp{23} therefore contains the material for a typed functional fragment but does not enforce its boundary, and this paper documents a discipline that does, recovering some of what a functional language guarantees at the cost of three rules.
+The cost is paid once, in how a program is written, and what it buys is paid back at every use: a law holds in every model of it, a shape serves every instantiation, and a checked statement serves every reader.
 
 The fragment is the \emph{Juliet Posture}, or Jlt, and it has two boundaries, both drawn here.
 The outer one is drawn by the three rules: Jlt is \Cpp{23} within them.
@@ -87,7 +89,7 @@ The inner one is drawn by the translation: the \emph{kernel}, Featherweight Jlt 
 Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical}, which this paper names and characterises without proof (Appendix~\ref{app:fjlt:closure}), the arrangement being the Haskell Report's, a kernel and the translations into it~\cite{marlow2010haskell}.
 
 Jlt is an embedded domain-specific language in Hudak's sense~\cite{hudak1996building}, whose domain is System~F and whose host is \Cpp{23}.
-Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}), and its kernel's terms are System~F terms, by the translation of Section~\ref{sec:translation}.
+Its programs are ordinary \Cpp{23} programs, type-checked and compiled by an unmodified toolchain, Clang~23 here (Section~\ref{sec:limits}).
 Being a strict subset of \Cpp{23}, it is not a language this paper designs but a fragment it characterises, and an embedding it describes, as an archaeologist uncovers a city rather than as an architect builds a house.
 The claim is one of existence, shown by construction: \Cpp{23} contains an embedding of a fragment of System~F, and the listings exhibit it.
 It is not a claim that Jlt is unique or canonical, although another fragment drawn to the same ends would, we expect, look much like it.
@@ -137,7 +139,6 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule they can apply to their overloads; for those who audit or certify \Cpp{} against a policy, who need to know what a tool does and does not check; for readers of programming languages in the line of concepts and type classes, who want to know what the concepts \Cpp{} shipped still support; and for researchers who arrive from Python with a functional vocabulary and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
-The bottom edge is where the two readings meet.
 The listings follow one example through the paper: \cppinline{concat}, the fold that evaluates a list in a monoid, and \cppinline{times}, its constant list, which a declared law turns into one action, and whose count may be any finite prefix of the naturals.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
@@ -497,14 +498,8 @@ FJlt & System~F & in \\
 \texttt{fold\_left(repeat(x, n), a, f)} & $\mathit{iter}\,n\,(\lambda s.\,\llbracket f \rrbracket\,s\,\llbracket x \rrbracket)\,\llbracket a \rrbracket$ & Listing~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{Six translation rules exercised by code listings.
-(i) A concept is a record type, one field per requirement.
-(ii) A trait is only its instances.
-(iii) An instance is a field of the record at $\overline{\tau}$.
-(iv) A constraint is a parameter.
-(v) A call supplies the resolved records $\overline{d}$, which the compiler finds.
+\caption{Six translation rules exercised by code listings: a concept is a record type, a trait only its instances, an instance a field at $\overline{\tau}$, a constraint a parameter, a call supplies the resolved records $\overline{d}$, and a budget is iterated.
 Inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
-(vi) A budget is a natural number, iterated.
 The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}.}
 \label{tab:rules}
 \end{table}
@@ -626,7 +621,6 @@ A well-typed closed FJlt term of base type evaluates to a value.
 This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first.
 It comes last because it is cheap once the rest is in place.
 A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
-Featherweight Java proves progress and preservation over its own rules too.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
 
@@ -734,7 +728,6 @@ What the compiler does is instantiate.
 In the model that is the term $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$, with its type and record arguments applied and $\beta$-reduced before the program runs.
 Instantiation is partial evaluation of the dictionary-passing term at a static type, so the two agree on every closed term.
 That is Theorem~\ref{thm:simulation}, read at the binding time where the records are constants, and nothing of a record survives to runtime.
-The listings show the instruction the compiler is left with.
 Appendix~\ref{app:fjlt:ssa} follows the term one step further, into the compiler's own intermediate representation, static single assignment form.
 That is a functional language too, as Appel put it~\cite{appel1998ssa}, with the fold's state as the parameters of a loop.
 What the model is for is the term \emph{before} that evaluation.
