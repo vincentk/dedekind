@@ -270,6 +270,11 @@ export template <typename D>
 concept IsPairing = dedekind::category::IsProduct<D, leg_1_t<D>, leg_2_t<D>> &&
                     std::constructible_from<D, leg_1_t<D>, leg_2_t<D>>;
 
+/** @brief A set with a set complement: @c ~s is formed (the reducer's @c Not
+ *  node, or a type's own closed-form complement).  @tparam S the set. */
+export template <typename S>
+concept HasSetComplement = requires(const S& s) { ~s; };
+
 /**
  * @struct 𝔸
  * @brief The universal set over the carrier @c T: the terminal object ⊤ of
@@ -405,7 +410,7 @@ struct 𝔸 final {
    *  exactly one of the two iff it is not in @c S).  @c ~ is the SET
    *  complement (a set object, found by ADL at instantiation); @c ! would be
    *  the predicate complement, an arrow. */
-  template <typename S>
+  template <HasSetComplement S>
   constexpr auto operator^(const S& s) const {
     return ~s;
   }
@@ -1041,15 +1046,12 @@ concept HasUpperBound = requires(const S& s) {
 
 export template <typename S1, typename S2>
 constexpr std::size_t bound_meet(const S1& lhs, const S2& rhs) {
-  constexpr bool lhs_has_upper_bound = HasUpperBound<S1>;
-  constexpr bool rhs_has_upper_bound = HasUpperBound<S2>;
-
-  if constexpr (lhs_has_upper_bound && rhs_has_upper_bound) {
+  if constexpr (HasUpperBound<S1> && HasUpperBound<S2>) {
     return std::min(static_cast<std::size_t>(lhs.upper_bound()),
                     static_cast<std::size_t>(rhs.upper_bound()));
-  } else if constexpr (lhs_has_upper_bound) {
+  } else if constexpr (HasUpperBound<S1>) {
     return static_cast<std::size_t>(lhs.upper_bound());
-  } else if constexpr (rhs_has_upper_bound) {
+  } else if constexpr (HasUpperBound<S2>) {
     return static_cast<std::size_t>(rhs.upper_bound());
   } else {
     return std::numeric_limits<std::size_t>::max();

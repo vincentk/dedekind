@@ -80,6 +80,15 @@ rule1-const-member-functions  src/main/modules/dedekind/category/*.cppm  categor
 rule1-no-mutable-globals      src/main/modules/dedekind/category/*.cppm  category  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/category/*.cppm  category  0
 
+# The inventory (#1079): the syntax each scope uses, by AST node kind, to diff
+# against the kernel's grammar.  Not a rule, so reported, never gated.  The
+# primary module interfaces sets.cppm and relational.cppm hold no namespace
+# and are globbed around.
+inventory                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
+inventory                    src/main/modules/dedekind/category/*.cppm  category  report
+inventory                    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
+inventory                    src/main/modules/dedekind/sets/si*.cppm  sets  report
+
 # The relational module (#1085): gated at 0 like category, rule by rule.
 # On rows.cppm, two rules are gated at today's counts, a ratchet that only
 # goes down: its throws, the API (not_admitted, which Python reads as an
@@ -129,64 +138,77 @@ rule1-no-mutable-globals     src/main/modules/dedekind/relational/[!r]*.cppm  re
 rule1-no-mutable-globals     src/main/modules/dedekind/relational/rows.cppm  relational  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/relational/[!r]*.cppm  relational  0
 rule1-no-escaping-reference-captures src/main/modules/dedekind/relational/rows.cppm  relational  0
-
-# The inventory (#1079): the syntax each scope uses, by AST node kind, to diff
-# against the kernel's grammar.  Not a rule, so reported, never gated.  The
-# primary module interfaces sets.cppm and relational.cppm hold no namespace
-# and are globbed around.
-inventory                    src/test/cpp/modules/dedekind/category/jlt_listings_test.cpp  jlt_listing  report
-inventory                    src/main/modules/dedekind/category/*.cppm  category  report
-inventory                    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-inventory                    src/main/modules/dedekind/sets/si*.cppm  sets  report
 inventory                    src/main/modules/dedekind/relational/[!r]*.cppm  relational  report
 inventory                    src/main/modules/dedekind/relational/rows.cppm  relational  report
 
-# sets under the rules (#1079 measurement; the fixes are their own issue):
-# every rule reported, none gated yet.
-rule3-no-loops               src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule3-no-loops               src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule3-no-self-recursion      src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule3-no-self-recursion      src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule3-no-mutual-recursion    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule3-no-mutual-recursion    src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule2-definition             src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule2-definition             src/main/modules/dedekind/sets/si*.cppm  sets  report
+# sets under the rules (#1085): a file is gated at 0 under a rule once it is
+# clean; what is left is gated at today's counts, a ratchet that only goes
+# down, and is the owner's to decide (terms.cppm's
+# run-time terms, the inductive sets' recursion, the incrementable ℕ proxy, the
+# forwarding arrows of image and the term connectives).  The primary
+# interface sets.cppm holds no namespace and is globbed around.
+rule1-constexpr              src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-constexpr              src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-rvalue-reference-params src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-rvalue-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-const-member-functions src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-const-member-functions src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-const-call-operator    src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-const-call-operator    src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-static-locals       src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-no-static-locals       src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-boxed-mutable-pointee  src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-boxed-identity         src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-boxed-identity         src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-volatile            src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-no-volatile            src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-mutable-globals     src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-no-mutable-globals     src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/[!s]*.cppm  sets  0
+rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule2-definition             src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule2-definition             src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule2-definition             src/main/modules/dedekind/sets/terms.cppm  sets  116
+rule2-decided-resolution     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule2-decided-resolution     src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule2-decided-resolution     src/main/modules/dedekind/sets/terms.cppm  sets  27
+rule2-no-inline-requires     src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule2-no-inline-requires     src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule2-no-inline-requires     src/main/modules/dedekind/sets/terms.cppm  sets  17
+rule1-no-inheritance         src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule1-no-inheritance         src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-inheritance         src/main/modules/dedekind/sets/terms.cppm  sets  1
+rule3-no-loops               src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule3-no-loops               src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule3-no-loops               src/main/modules/dedekind/sets/terms.cppm  sets  9
+rule3-no-self-recursion      src/main/modules/dedekind/sets/[!st]*.cppm  sets  0
+rule3-no-self-recursion      src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule3-no-self-recursion      src/main/modules/dedekind/sets/terms.cppm  sets  3
+rule1-no-throw               src/main/modules/dedekind/sets/[!crst]*.cppm  sets  0
+rule1-no-throw               src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-throw               src/main/modules/dedekind/sets/computability.cppm  sets  0
+rule1-no-throw               src/main/modules/dedekind/sets/cardinality.cppm  sets  1
+rule1-no-throw               src/main/modules/dedekind/sets/recursion.cppm  sets  1
+rule1-no-throw               src/main/modules/dedekind/sets/terms.cppm  sets  38
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/[!cst]*.cppm  sets  0
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/computability.cppm  sets  0
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/cardinality.cppm  sets  4
+rule1-lvalue-reference-params src/main/modules/dedekind/sets/terms.cppm  sets  3
+rule1-no-reference-returns   src/main/modules/dedekind/sets/[!cs]*.cppm  sets  0
+rule1-no-reference-returns   src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule1-no-reference-returns   src/main/modules/dedekind/sets/computability.cppm  sets  0
+rule1-no-reference-returns   src/main/modules/dedekind/sets/cardinality.cppm  sets  2
+rule1-forwarding-reference-params src/main/modules/dedekind/sets/[!es]*.cppm  sets  0
+rule1-forwarding-reference-params src/main/modules/dedekind/sets/extensional.cppm  sets  0
+rule1-forwarding-reference-params src/main/modules/dedekind/sets/expressions.cppm  sets  8
+rule1-forwarding-reference-params src/main/modules/dedekind/sets/singleton.cppm  sets  3
+rule3-no-mutual-recursion    src/main/modules/dedekind/sets/[!rs]*.cppm  sets  0
+rule3-no-mutual-recursion    src/main/modules/dedekind/sets/si*.cppm  sets  0
+rule3-no-mutual-recursion    src/main/modules/dedekind/sets/recursion.cppm  sets  9
 rule2-constrained-templates  src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
 rule2-constrained-templates  src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule2-no-inline-requires     src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule2-no-inline-requires     src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule2-decided-resolution     src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule2-decided-resolution     src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-inheritance         src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-inheritance         src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-constexpr              src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-constexpr              src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-const-call-operator    src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-const-call-operator    src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-throw               src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-throw               src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-static-locals       src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-static-locals       src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-lvalue-reference-params src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-lvalue-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-rvalue-reference-params src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-rvalue-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-forwarding-reference-params src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-forwarding-reference-params src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-boxed-mutable-pointee  src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-boxed-mutable-pointee  src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-boxed-identity         src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-boxed-identity         src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-volatile            src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-volatile            src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-reference-returns   src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-reference-returns   src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-const-member-functions src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-const-member-functions src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-mutable-globals     src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-mutable-globals     src/main/modules/dedekind/sets/si*.cppm  sets  report
-rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/[!s]*.cppm  sets  report
-rule1-no-escaping-reference-captures src/main/modules/dedekind/sets/si*.cppm  sets  report
 
 # order under the rules (#1085, measurement): every rule and the inventory reported,
 # none gated.  The primary interface order.cppm holds no namespace.
