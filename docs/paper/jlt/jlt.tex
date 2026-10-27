@@ -59,6 +59,9 @@ The case for functional programming has been made the same way for decades, and 
 A function that depends on its arguments alone can be replaced by its value: programs can be read as equations, rewritten by them, and reasoned about by them~\cite{hughes1989why}.
 A function that is polymorphic in a type cannot inspect that type, so its type alone says a great deal about what it does~\cite{wadler1989theorems}.
 A class of types with operations and laws lets generic code be written once against the operations and reasoned about by the laws~\cite{wadler1989adhoc}.
+The two are one mechanism with two sources of equations: a free theorem is proved from the type alone, for every term, and a law is declared of an instance.
+Either becomes a rewrite by substitution of equals, the one rule equational logic needs, by Birkhoff's completeness theorem~\cite{birkhoff1935structure,burris1981universalalgebra}.
+A class with laws is an equational theory and its instances a variety, and a stronger class is a smaller variety, so the constraints describe the structure and the structure licenses the optimisation.
 The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976discipline}.
 
 The case is usually made in a language built around it, and that is where this paper departs: it makes the case in a strongly typed mainstream systems programming language with a stock compiler and no extensions.
@@ -416,9 +419,10 @@ The bodies keep Rule~2: they use only what the clauses name.
 The action, \cppinline{counting<N>::act}, is named by \cppinline{IsSemimodule}, which takes its scalars' operations from \cppinline{counting<N>}.
 The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
 The laws make the answers right.
+The free theorem and the laws do different work: the first says that \cppinline{times} can only build copies of \cppinline{x} with \cppinline{Op}, the second which of those constructions are equal.
 The unit law makes any number of copies of the unit the unit.
 The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{ordinal(n)}.
-The induction needs one more premise, which \cppinline{counting<N>} declares: each count is the sum of \cppinline{ordinal(n)} ones of its semiring.
+In Birkhoff's terms the listings descend through varieties: lists are the free monoid, a semimodule over the counts is a smaller variety, and the counts are a homomorphic image of the naturals, the initial semiring, with \cppinline{ordinal} a section of the quotient, which is the premise \cppinline{counting<N>} declares.\footnote{Only the algebraic shapes are varieties: \cppinline{totally_ordered} is not equational, since a product of chains is not a chain.}
 Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$.
 So the certificate is true for the unsigned carriers, which wrap at a power of two dividing $2^{64}$, and for no carrier that does not wrap, such as \cppinline{std::string}.
 Counts of type \cppinline{bool} are the Boolean semiring, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n && x}.
