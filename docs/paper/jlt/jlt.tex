@@ -262,6 +262,9 @@ Some certifications omitted for brevity.
 
 Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its fold, \cppinline{concat}, Haskell's \texttt{mconcat}.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
+A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, as \cppinline{IsMonoid} does, or up to conversion, \cppinline{convertible_to<T>}.
+The second is the language's own, and the library needs it about as often as the first: an operation on small integers returns an \cppinline{int}, so \cppinline{true * true} is an \cppinline{int} and not a \cppinline{bool}.
+It keeps Rule~2, because the body may use the result only at the declared type, so the conversion is part of the operation the constraint names (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint; Haskell's type checker does, which is the only reason this is a rule here.
 A body that uses what its clause does not name, as the test's \cppinline{twice_loose} uses \cppinline{x + x} under no clause, compiles at \cppinline{double}, whose \cppinline{+} is not associative, and nothing says so.
 
@@ -359,29 +362,25 @@ The repository's linter measures that the table names every construction the lib
 template <typename T, typename Op> constexpr bool commutative(Op) = delete;
 template <typename T, typename Mul, typename Add>
 constexpr bool distributive(Mul, Add) = delete;
-template <typename M, typename S, typename AddM, typename AddS, typename MultS,
-          typename Act>
-constexpr bool linear(AddM, AddS, MultS, Act) = delete;
+template <typename M, typename S, typename AddM, typename AddS, typename MultS>
+constexpr bool linear(AddM, AddS, MultS) = delete;
 
 template <typename T, typename Op>
 concept IsCommutativeMonoid = IsMonoid<T, Op> && commutative<T>(Op{});
 template <typename T, typename Add, typename Mul>
 concept IsSemiring = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mul> &&
                      distributive<T>(Mul{}, Add{});
-template <IsFinitePrefix N> struct counting;  // how N counts: +, x, and acting
 template <typename M, typename S, typename AddM = plus<M>,
-          typename AddS = typename counting<S>::add,
-          typename MultS = typename counting<S>::mul,
-          typename Act = typename counting<S>::act>
+          typename AddS = plus<S>, typename MultS = multiplies<S>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    requires(const S s, const M m) { { Act{}(s, m) } -> same_as<M>; } &&
-    linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
+    requires(const S s, const M m) { { s * m } -> convertible_to<M>; } &&
+    linear<M, S>(AddM{}, AddS{}, MultS{});
 
 template <typename T, typename Op = plus<T>, IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
 constexpr T times(T x, N n) {
-  return typename counting<N>::act{}(n, x);
+  return n * x;
 }
 \end{cpp}
 \begin{minted}[fontsize=\footnotesize]{text}
@@ -401,7 +400,8 @@ times [string] "ab" 3     =  times₁ [string plus u64] plus_str prefix_u64 "ab"
 Top: the shapes, each one more declared law, the laws functions of the operations as in Listing~\ref{lst:rule2}.
 A semiring is two monoids, the first commutative, tied by distributivity, and a semimodule is a commutative monoid on which a semiring acts linearly.
 Below them, the specialisation: where the carrier under \cppinline{Op} is a semimodule over the counts \cppinline{N}, \cppinline{n} copies of \cppinline{x} are one action of \cppinline{n} on \cppinline{x}.
-\cppinline{counting<N>} names how the counts add, multiply and act: \cppinline{size_t} modulo $2^{64}$, by \cppinline{*}, and \cppinline{bool} as the Boolean semiring, by \cppinline{&&}.
+The counts add, multiply and act by the language's arithmetic: \cppinline{size_t} modulo $2^{64}$, and \cppinline{bool} as the Boolean semiring, since \cppinline{true + true} converts back to \cppinline{true}.
+The action's result is declared up to conversion, \cppinline{convertible_to<M>}, because \cppinline{true * true} is an \cppinline{int}.
 Bottom: Listing~\ref{lst:rule3}'s \cppinline{times} and this one under the translation of Section~\ref{sec:translation}, with the records they take and three calls, each the function its resolution picks, one of them counted in \cppinline{bool}.
 The test holds the family and its sugar, and checks that they agree.}
 \label{lst:desugar}
@@ -416,16 +416,17 @@ The listing shows the family already translated.
 System~F has no overloading, so each function becomes a plain function of its constraints' records, and each call becomes the function its resolution picks.
 The bodies keep Rule~2: they use only what the clauses name.
 \cppinline{x == unit<T>(Op{})} is named by \cppinline{IsMonoid}, which asks \cppinline{regular<T>}.
-The action, \cppinline{counting<N>::act}, is named by \cppinline{IsSemimodule}, which takes its scalars' operations from \cppinline{counting<N>}.
+The action, \cppinline{n * x}, is named by \cppinline{IsSemimodule} up to conversion, since \cppinline{true * true} is an \cppinline{int} (Section~\ref{sec:posture}).
+For another carrier, such as a matrix, the programmer supplies \cppinline{operator*} and its certificate.
 The translation shows it: equality becomes \texttt{m.eq}, and the action \texttt{s.act n x}, fields of records, because a constraint named them.
 The laws make the answers right.
 The free theorem and the laws do different work: the first says that \cppinline{times} can only build copies of \cppinline{x} with \cppinline{Op}, the second which of those constructions are equal.
 The unit law makes any number of copies of the unit the unit.
 The semimodule's laws, $1 \cdot x = x$ and $(n + m) \cdot x = n \cdot x + m \cdot x$, make $n \cdot x$ the \cppinline{n} copies of \cppinline{x}, by induction on \cppinline{ordinal(n)}.
-In Birkhoff's terms the listings descend through varieties: lists are the free monoid, a semimodule over the counts is a smaller variety, and the counts are a homomorphic image of the naturals, the initial semiring, with \cppinline{ordinal} a section of the quotient, which is the premise \cppinline{counting<N>} declares.\footnote{Only the algebraic shapes are varieties: \cppinline{totally_ordered} is not equational, since a product of chains is not a chain.}
+In Birkhoff's terms the listings descend through varieties: lists are the free monoid, a semimodule over the counts is a smaller variety, and the counts are a homomorphic image of the naturals, the initial semiring, with \cppinline{ordinal} a section of the quotient, which is the premise a certificate vouches for, and which the language's arithmetic makes true of \cppinline{size_t} and \cppinline{bool}.\footnote{Only the algebraic shapes are varieties: \cppinline{totally_ordered} is not equational, since a product of chains is not a chain.}
 Scalars of type \cppinline{size_t} are the integers modulo $2^{64}$.
 So the certificate is true for the unsigned carriers, which wrap at a power of two dividing $2^{64}$, and for no carrier that does not wrap, such as \cppinline{std::string}.
-Counts of type \cppinline{bool} are the Boolean semiring, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n && x}.
+Counts of type \cppinline{bool} are the Boolean semiring, and \cppinline{bool} under \cppinline{||} is a semimodule over it: \cppinline{n} copies of \cppinline{x} are \cppinline{n * x}, which is \cppinline{n && x}.
 Counted in \cppinline{size_t}, the same monoid is no semimodule, since $2^{63} + 2^{63}$ copies wrap to none while the copies are \cppinline{true}, and \cppinline{times} folds.
 The count type decides the algebra, and the type checker holds it to the certificates.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}).

@@ -171,6 +171,34 @@ constexpr bool distributive<bool>(std::logical_and<bool>,
 static_assert(IsSemiring<size_t, std::plus<size_t>, std::multiplies<size_t>>);
 static_assert(IsSemiring<size_t, std::bit_or<size_t>, std::bit_and<size_t>>);
 static_assert(IsSemiring<bool, std::logical_or<bool>, std::logical_and<bool>>);
+// bool's own arithmetic is the Boolean semiring: plus<bool> is true + true = 2,
+// converted back, so or, and multiplies<bool> is and.  These are the
+// operations a bool count brings to the semimodule.
+template <>
+constexpr bool unit<bool>(std::plus<bool>) {
+  return false;
+}
+template <>
+constexpr bool unit<bool>(std::multiplies<bool>) {
+  return true;
+}
+template <>
+constexpr bool associative<bool>(std::plus<bool>) {
+  return true;
+}
+template <>
+constexpr bool associative<bool>(std::multiplies<bool>) {
+  return true;
+}
+template <>
+constexpr bool commutative<bool>(std::plus<bool>) {
+  return true;
+}
+template <>
+constexpr bool distributive<bool>(std::multiplies<bool>, std::plus<bool>) {
+  return true;
+}
+static_assert(IsSemiring<bool, std::plus<bool>, std::multiplies<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
 // Section 2, the posture: one panel per rule.
@@ -238,54 +266,37 @@ static_assert(times<size_t>(7, char_min) == 0);
 constexpr size_t times_n(size_t x, size_t n) { return times<size_t>(x, n); }
 static_assert(times_n(7, 100) == 700);
 
-// Section 3: the semimodule over size_t, the library's shape with its laws
-// declared.  Scalars of type size_t are the integers modulo 2^64, so the
-// certificate holds for the unsigned carriers, which wrap at a power of two
-// dividing it.  For n below 2^64 the laws make n . x the n copies of x.
-template <typename M, typename S, typename AddM, typename AddS, typename MultS,
-          typename Act>
-constexpr bool linear(AddM, AddS, MultS, Act) = delete;
+// Section 3: the semimodule, the library's shape with its laws declared and
+// its action n * x.  A certificate vouches for the laws and for the premise
+// that each count n is the sum of ordinal(n) ones of its semiring, which the
+// language's arithmetic makes true of size_t and bool.  Scalars of type
+// size_t are the integers modulo 2^64, so the certificate holds for the
+// unsigned carriers, which wrap at a power of two dividing it.
+template <typename M, typename S, typename AddM, typename AddS, typename MultS>
+constexpr bool linear(AddM, AddS, MultS) = delete;
 template <std::unsigned_integral M, std::same_as<size_t> S>
-constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>,
-                      std::multiplies<>) {
+constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>) {
   return true;
 }
 
-// How a prefix counts: its semiring, and how a count acts.  size_t counts
-// modulo 2^64; bool counts as the Boolean semiring, n copies are "n and x".
-// A specialisation also declares that each count n is the sum of ordinal(n)
-// ones of its semiring, the premise by which the action is the fold.
-template <IsFinitePrefix N>
-struct counting;
+// bool under || over the Boolean semiring: n copies of x are n * x, which is
+// n and x.
 template <>
-struct counting<size_t> {
-  using add = std::plus<size_t>;
-  using mul = std::multiplies<size_t>;
-  using act = std::multiplies<>;
-};
-template <>
-struct counting<bool> {
-  using add = std::logical_or<bool>;
-  using mul = std::logical_and<bool>;
-  using act = std::logical_and<>;
-};
-template <>
-constexpr bool linear<bool, bool>(std::logical_or<bool>, std::logical_or<bool>,
-                                  std::logical_and<bool>, std::logical_and<>) {
+constexpr bool linear<bool, bool>(std::logical_or<bool>, std::plus<bool>,
+                                  std::multiplies<bool>) {
   return true;
 }
 
-// The library's interface (dedekind.category:action), its laws declared; the
-// scalars' operations are the counts'.
+// The library's interface (dedekind.category:action), its laws declared and
+// its action the library's default, *; the action's result is up to
+// conversion, since true * true is an int.
 template <typename M, typename S, typename AddM = std::plus<M>,
-          typename AddS = typename counting<S>::add,
-          typename MultS = typename counting<S>::mul,
-          typename Act = typename counting<S>::act>
+          typename AddS = std::plus<S>, typename MultS = std::multiplies<S>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
     requires(const S s, const M m) {
-      { Act{}(s, m) } -> std::same_as<M>;
-    } && linear<M, S>(AddM{}, AddS{}, MultS{}, Act{});
+      { s * m } -> std::convertible_to<M>;
+    } && linear<M, S>(AddM{}, AddS{}, MultS{});
 
 static_assert(IsSemimodule<size_t, size_t>);
 static_assert(!IsSemimodule<std::string, size_t>);
@@ -301,17 +312,11 @@ static_assert(!IsSemimodule<bool, size_t, std::logical_or<bool>>);
 // Section 3, the sugar: Listing 3's times with a branch on a concept: in a
 // semimodule over size_t under +, n copies of x are one action of n on x.
 namespace sugar {
-// The branch's test, behind a concept of its own: its body is normalised, so
-// a count with no counting semiring, such as char, leaves it unsatisfied,
-// where IsSemimodule's defaults named in the branch would be ill-formed.
-template <typename T, typename N, typename Op>
-concept IsSemimoduleOver = IsSemimodule<T, N, Op>;
-
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsMonoid<T, Op>
 constexpr T times(T x, N n) {
-  if constexpr (IsSemimoduleOver<T, N, Op>)
-    return typename counting<N>::act{}(n, x);
+  if constexpr (IsSemimodule<T, N, Op>)
+    return n * x;
   else
     return ordinal(n) == 0 || x == unit<T>(Op{})
                ? unit<T>(Op{})
@@ -333,7 +338,7 @@ constexpr T times(T x, N n) {
 template <typename T, typename Op = std::plus<T>, IsFinitePrefix N>
   requires IsSemimodule<T, N, Op>
 constexpr T times(T x, N n) {
-  return typename counting<N>::act{}(n, x);
+  return n * x;
 }
 }  // namespace kernel
 
