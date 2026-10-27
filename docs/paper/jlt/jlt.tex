@@ -139,9 +139,10 @@ The dashed arrow is the working hypothesis of Section~\ref{sec:translation:adequ
 \end{tikzcd}
 \caption{Where each structure lives.
 Top: the counts, with their order, and a step that descends, $s\,x \le x$.
-Finiteness lives in the descent: the first fixed point of $s$, the unit $0$, delimits the row, with no bound taken from an infinite $\mathbb{N}$.
+Finiteness lives in the descent: the first fixed point of $s$, the unit $0$, delimits the row, with no bound taken from an infinite $\mathbb{N}$, and for a step of fixed size that it is reached is Archimedes' axiom, that enough steps exceed any magnitude~\cite{heath1897archimedes}.
 Down: an arrow $f$ from the counts to the values.
-With the counts offsets and $f$ a load from memory, this is an array, but here $f$ is an arrow whose laws the compiler can use, and the row of values need never be stored.
+With the counts offsets and $f$ a load from memory, this is an array: the offsets are an arithmetic progression whose common difference $d$ is the size of the element type, so the address of element $n$ is $a + n \cdot d$, one multiplication, and summing such a progression has the closed form told of the young Gauss~\cite{hayes2006gauss}.
+Here $f$ is an arrow whose laws the compiler can use, and the row of values need never be stored.
 Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing the unit $e$.
 In the bootstrap $M = X$, one set, as in Peano's axioms.
 Laws of $f$ license shortcuts: where $f$ is constant, monotone and antitone, a semimodule makes the fold $n \cdot x$, one multiplication; where $f$ is monotone into a semilattice, the fold is $f\,n$.}
