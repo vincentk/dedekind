@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -220,6 +221,18 @@ constexpr T times(T x, N n) {
 
 static_assert(times<size_t>(7, 6uz) == 42);
 
+// char counts too: its rank is its distance from the least char, an order
+// embedding whether char is signed or not.  No semiring is registered for it,
+// so times folds.
+template <>
+constexpr size_t rank<char>(char c) {
+  return static_cast<size_t>(c - std::numeric_limits<char>::min());
+}
+constexpr char char_min = std::numeric_limits<char>::min();
+static_assert(times<std::string>("ha"s, static_cast<char>(char_min + 3)) ==
+              "hahaha");
+static_assert(times<size_t>(7, char_min) == 0);
+
 // Listing 3, right: the same fold with a budget known only at run time; its
 // LLVM IR at -O2 is one multiplication (the paper's panel).
 constexpr size_t times_n(size_t x, size_t n) { return times<size_t>(x, n); }
@@ -398,15 +411,6 @@ using dedekind::category::LawAlgebra;
 using dedekind::category::monotone;
 using dedekind::category::NegationArrow;
 using dedekind::category::Ternary;
-// Kleene's three values as counts: a chain F < U < T, ranked 0, 1, 2, with no
-// semiring registered, so times folds.
-template <>
-constexpr size_t rank<Ternary>(Ternary k) {
-  return k == Ternary::False ? 0 : k == Ternary::Unknown ? 1 : 2;
-}
-static_assert(times<size_t>(7, Ternary::True) == 14 &&
-              times<size_t>(7, Ternary::Unknown) == 7 &&
-              times<size_t>(7, Ternary::False) == 0);
 using Negation = NegationArrow<Boole>;
 static_assert(monotone(cata(LawAlgebra<>{}, Compose<Negation, Negation>{})) ==
               Ternary::True);

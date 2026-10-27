@@ -299,7 +299,7 @@ define i64 @times_n(i64 %x, i64 %n) {
 \caption{\hyperref[def:rule3]{Rule~3}: Descent.
 Left: a fold over a budget.
 \cppinline{times} is \cppinline{concat} of the constant list, \cppinline{n} copies of \cppinline{x}, for a count \cppinline{n} of any finite prefix of the naturals: a chain with its \cppinline{rank}, the order embedding onto an initial segment of \cppinline{size_t}.
-\cppinline{size_t} is its own rank, and the test registers \cppinline{bool} and Kleene's three values too.
+\cppinline{size_t} is its own rank, and the test registers \cppinline{bool} and \cppinline{char} too.
 No copies, and copies of the unit, are the unit, without a fold, by the unit law.
 Right: the LLVM IR Clang 23 emits at \texttt{-O2} for the function specialised to \cppinline{size_t}, with \cppinline{n} known only at run time, attributes stripped.
 }
