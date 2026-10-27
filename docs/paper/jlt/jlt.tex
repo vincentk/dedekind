@@ -29,24 +29,21 @@
 
 \begin{abstract}
 Parametric polymorphism, type classes and structural recursion are the tools with which a functional programmer says what a program does and has a type checker hold it to that.
-By contrast, \Cpp{23} is a mainstream multi-paradigm language in which functional programming is one style among many.
-It runs much of machine learning and most embedded devices, holds zero-overhead abstraction as a design principle, and its current standard has the material: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
+\Cpp{23}, which runs much of machine learning and most embedded devices, has the material for them: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 It does not, however, hold a generic function to its declared constraints: the body may use any operation its type argument happens to have.
 
-This paper characterises a fragment of \Cpp{23} as it ships (no language modifications or compiler extensions), an embedded language whose programs are ordinary \Cpp{23} programs, which a stock compiler translates into conventional executables.
-The fragment is type-class-style code subject to three rules, which we call the Juliet Posture (Jlt):
+This paper characterises a fragment of \Cpp{23} as it ships, with no language modification, compiler extension or tool to install: an embedded language whose domain is System~F and whose programs are ordinary \Cpp{23} programs.
+The fragment is type-class-style code under three rules, which we call the Juliet Posture (Jlt):
 i) values are copyable data and functions are pure and evaluable at compile time;
 ii) generic code varies with a type only through that type's concepts and traits;
 iii) recursion is structural, on a type or on a natural number that counts down.
-Jlt can then be further decomposed into \emph{sugar} and a \emph{kernel}, Featherweight Jlt (FJlt).
-FJlt translates into System~F, the polymorphic lambda calculus that Haskell's type classes translate into.
-The translation is total on FJlt and preserves types and evaluation, so an FJlt program inherits the System~F image's termination, parametricity and a value; the sugar is named with its desugaring into the kernel, the paper's working hypothesis.
-Along the way it shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
-The evidence is proof sketches in the appendix, listings that compile and run at both binding times by a test in the public repository, a library whose core a mechanical linter holds to the rules, and the compiled output.
+Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, as Haskell's type classes do, and the translation is total and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
+What Jlt writes beyond the kernel is sugar, named with its desugaring, and that the desugaring keeps meaning is the paper's working hypothesis.
+A constraint that names a declared law licenses a specialisation, so a fold over a semimodule takes one step even at compile time, where no optimiser runs.
+Along the way the paper shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
+The evidence is proof sketches, listings that compile and run at both binding times under a test in the public repository, their compiled output, and a library whose core a linter checks against the rules.
 
-What is gained is a language embedded in a mainstream compiler that checks formal claims of a modest but real kind, at compile time, where checking is cheap.
-Jlt therefore facilitates the exchange between formal methods and mainstream systems programming:
-a formal fragment is embedded in the host language, its correctness guarantees are checked during the build, and they complement the host language's performance and ecosystem.
+The claim is one of existence: \Cpp{23} already contains an embedding of a fragment of System~F, held by the compiler where the standard checks and by the programmer's discipline elsewhere, and available today wherever a stock \Cpp{23} compiler is.
 \end{abstract}
 
 % Section skeleton (#981).  Each section names what it must establish; prose
