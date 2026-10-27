@@ -84,8 +84,7 @@ As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009fin
 The name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 Figure~\ref{fig:arrows} sketches the arrows between these pieces.
 
-\Cpp{23} provides most of the necessary ingredients: it can evaluate ordinary functions and most of its standard library at compile time, constrain templates with concepts, and fold over ranges.
-One decision in its evolution deserves to be highlighted:
+The ingredients are compile-time evaluation of ordinary functions and most of the standard library, concepts, and folds over ranges, and one decision in their evolution matters here:
 \cppinline{concept}s as proposed for \Cpp{0x} checked a template's definition against its constraints~\cite{gregor2006concepts,dosreis2006specifying}.
 However, \cppinline{concept}s as standardised in \Cpp{20} only check its uses when the template is instantiated~\cite{stroustrup2009remove}.
 As a result, a template's body may use operations its constraints do not name.
@@ -114,7 +113,6 @@ Between the two lies \emph{sugar}, in Landin's word~\cite{landin1964mechanical},
   & \text{value}
 \end{tikzcd}
 \caption{The arrows of the paper.
-Jlt is the part of \Cpp{23} that keeps the three rules (Section~\ref{sec:posture}), FJlt its kernel, the part written in the calculus's grammar, and what Jlt writes beyond the kernel is sugar, named with its desugaring in Appendix~\ref{app:fjlt:closure}.
 Both inclusions are proper, and each is labelled with what it adds: Jlt is the kernel and the sugar, \Cpp{23} is Jlt without the rules.
 The translation $\llbracket\cdot\rrbracket$ is total on FJlt (Section~\ref{sec:translation}), and $\mathit{embed}$, defined on its image, a non-empty part of System~F, is a section of it, so its composites with the inclusions are partial maps, and the embedding that makes Jlt an embedded language: for every $t$ in the image, $\mathit{eval}\,t = \mathit{run}\,(\texttt{clang++}\,(\mathit{embed}\,t))$, by Theorem~\ref{thm:simulation}.
 \texttt{clang++} is defined on every \Cpp{23} program within the implementation's limits (Sections~\ref{sec:binding} and~\ref{sec:limits}).
@@ -754,8 +752,7 @@ Table~\ref{tab:posture} says which instrument holds each rule at build time.
 \subsection{Limits of principle}
 
 \paragraph{The compiler does not check a template's body against its constraints.}
-\Cpp{} checks a body at instantiation, against the type supplied, not at definition, against the constraint.
-Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up.
+Definition checking was the half of the \Cpp{0x} design~\cite{gregor2006concepts} that \Cpp{20} did not take up (Section~\ref{sec:intro}).
 So Rules~2 and~3 are posture: they are held outside the compiler, and no tool turns them into the compiler's verdict.
 
 \paragraph{Lookup stops at \cppinline{std}.}
@@ -835,7 +832,6 @@ There, a registration over one family is an instance with a context, and a defau
 \paragraph{The library is part of the toolchain.}
 "Standard \Cpp{23}" names a language and a library, and the claim holds for a pair of implementations, not for the standard.
 \cppinline{std::bind_front} is standard, and the version in one widely used library does not compile under the compiler this paper uses.
-The listing that used it now uses a fold instead.
 The listings were built with one compiler against two standard libraries, and that is what "compiles as written" means here.
 The youngest piece the posture uses is the fold algorithms over ranges, which entered the standard in 2022 and which the library this paper builds with completed in its release 23~\cite{libcxx2026status}.
 An enumeration is not among the listings' counts: \Cpp{23} cannot list an enumeration's enumerators, so its chain would have to be declared enumerator by enumerator, and the static reflection of \Cpp{26} would compute it.
@@ -844,7 +840,7 @@ An enumeration is not among the listings' counts: \Cpp{23} cannot list an enumer
 \label{sec:related}
 
 \paragraph{Type classes.}
-Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}: a class is a record type, an instance a record, a constraint a parameter, and a constrained call passes the record the compiler resolved.
+Dictionary passing is Wadler and Blott's~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left column, and the row without a counterpart there, structural satisfaction, is the difference Bernardy et al.~\cite{bernardy2010generic} place at the centre of their comparison of concepts and type classes.
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head. Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types do not fit, is in Section~\ref{sec:limits}.
@@ -853,7 +849,7 @@ That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, 
 
 \paragraph{Concepts, and the calculus next door.}
 The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\cite{siek2005essential,siek2004formalization}: System~F with concepts and models, translated into System~F by dictionary passing, with the translation proved sound in Isabelle.
-It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies against their constraints. Those concepts were removed in 2009~\cite{stroustrup2009remove}, and the feature that shipped in \Cpp{20} checks uses and not definitions, which is the gap Rule~2 names.
+It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
 $F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs and FJlt's function-specialisation instances do not provide (Section~\ref{sec:limits}). FJlt is the smaller calculus, and the price of being a subset of a shipped language.
 Garcia et al.~\cite{garcia2007extended} compare eight languages' support for generic programming against a fixed design. The rows of their table that \Cpp{} lacked at the time, multi-type concepts and retroactive modelling, are the rows Listing~\ref{lst:rule2} exercises with \cppinline{IsMonoid<T, Op>} and specialisations on types one does not own.
 
@@ -885,7 +881,7 @@ Not the translation nor the calculus-with-concepts, but the claim that the shipp
 \label{sec:conclusion}
 
 Three rules on standard \Cpp{23} were stated, and a program that keeps them is, up to the gaps Section~\ref{sec:translation:adequacy} names, a term of a core calculus whose syntax is that \Cpp{}.
-The calculus translates into System~F by dictionary passing: concepts to record types, specialisations to records, constraints to parameters, folds to iteration.
+The calculus translates into System~F by dictionary passing.
 The translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program of the calculus terminates, is parametric and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 
 What this costs is stated rather than softened.
