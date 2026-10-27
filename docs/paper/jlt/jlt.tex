@@ -652,6 +652,7 @@ Every function in this paper has run twice already.
 \cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and \cppinline{unit<size_t>(std::plus<size_t>{})} were each checked in a \cppinline{static_assert}.
 The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
+A \cppinline{consteval} function, an immediate function, is the opposite case: it is evaluated only at compile time, so it has exactly one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.
 Theorem~\ref{thm:simulation} says the two evaluations agree.
 That is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
@@ -708,6 +709,7 @@ a type's depth & at most 1024 nested instantiations (\texttt{-ftemplate-depth}) 
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & not diagnosed: whatever the hardware does \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as the fold become one \texttt{mul} \\
+a \texttt{consteval} function & evaluated, at every call & not callable: no call survives to run time \\
 telling them apart & \texttt{if consteval} takes its first branch & it takes the other, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
@@ -732,11 +734,12 @@ Undefined behaviour runs the other way: constant evaluation refuses it, and at r
 The last row is the one way a program can tell the two binding times apart, and it desugars to its compile-time branch where the branches agree.
 
 \paragraph{The same laws license parallelism.}
-\cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative.
-Those are laws the shapes declare: associativity is \cppinline{IsMonoid}'s, and commutativity \cppinline{IsCommutativeMonoid}'s.
-Its parallel execution policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
-So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par_unseq}, and the threads it uses stay inside it, as local as Rule~1's local state.
-It is a shortcut at run time only: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
+Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
+\cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
+Its parallel policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
+So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par_unseq}, and its threads stay inside it.
+The laws say when the split is correct, not when it pays: a thread costs more than a step of a fold, only enough work repays it, and that is the run time's to measure.
+The shortcut is a run-time one: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
 And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
 
 \paragraph{A branch on the binding time desugars to its compile-time branch.}
