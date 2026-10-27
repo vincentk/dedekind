@@ -239,6 +239,7 @@ associative<string>(plus<string>) {
 template <typename T, typename Op = plus<T>,
           ranges::input_range R>
   requires IsMonoid<T, Op> &&
+           ranges::sized_range<R> &&
            same_as<ranges::range_value_t<R>, T>
 constexpr T concat(R ws) {
   return ranges::fold_left(
@@ -257,7 +258,7 @@ static_assert(concat<string>(
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: \cppinline{concat}, the fold that evaluates a list in a monoid, lists being the free monoid.
+Right: \cppinline{concat}, the fold that evaluates a list in a monoid, lists being the free monoid, and \cppinline{sized_range} keeps the list finite, as Rule~3 asks.
 Some certifications omitted for brevity.
 }
 \label{lst:rule2}
@@ -725,7 +726,7 @@ Undefined behaviour runs the other way: constant evaluation refuses it, and at r
 Parallelism can be modelled from the hardware, by what threads can do, or from the algebra, by which problems can be split at all, and this paper takes the second.
 \cppinline{std::reduce} may regroup and reorder the operands it folds, and the standard specifies its result only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
 Its parallel policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
-So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par_unseq}, and its threads stay inside it.
+So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid}, calling \cppinline{std::reduce} with \cppinline{std::execution::par}, and its threads stay inside it.
 The laws say when the split is correct, not when it pays: a thread costs more than a step of a fold, only enough work repays it, and that is the run time's to measure.
 The shortcut is a run-time one: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
 And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.

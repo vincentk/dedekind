@@ -71,7 +71,8 @@ constexpr bool associative<size_t>(std::multiplies<size_t>) {
 }
 
 template <typename T, typename Op = std::plus<T>, std::ranges::input_range R>
-  requires IsMonoid<T, Op> && std::same_as<std::ranges::range_value_t<R>, T>
+  requires IsMonoid<T, Op> && std::ranges::sized_range<R> &&
+           std::same_as<std::ranges::range_value_t<R>, T>
 constexpr T concat(R ws) {
   return std::ranges::fold_left(std::move(ws), unit<T>(Op{}), Op{});
 }
@@ -81,6 +82,11 @@ static_assert(concat<size_t, std::multiplies<size_t>>(std::array{2uz, 3uz,
                                                                  7uz}) == 42);
 static_assert(concat<std::string>(std::array{"ab"s, "c"s, "d"s}) == "abcd");
 static_assert(concat<size_t>(std::array<size_t, 0>{}) == 0);
+// A fold descends on a finite list (Rule 3): an unbounded one is refused.
+template <typename R>
+concept HasConcat = requires(R r) { concat<size_t>(r); };
+static_assert(HasConcat<decltype(std::views::repeat(1uz, 3uz))>);
+static_assert(!HasConcat<decltype(std::views::repeat(1uz))>);
 
 // Certificates the listings use and do not print: bool.
 template <>
@@ -286,9 +292,10 @@ constexpr bool linear<bool, bool>(std::logical_or<bool>, std::plus<bool>,
   return true;
 }
 
-// The library's interface (dedekind.category:action), its laws declared and
-// its action the library's default, *; the action's result is up to
-// conversion, since true * true is an int.
+// The library's shape (dedekind.category:action), its laws declared and its
+// action the library's default, *, relaxed here: the action's result is up to
+// conversion, since true * true is an int, where the library's IsAction still
+// asks for M exactly (#1099).
 template <typename M, typename S, typename AddM = std::plus<M>,
           typename AddS = std::plus<S>, typename MultS = std::multiplies<S>>
 concept IsSemimodule =
@@ -496,6 +503,13 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id(twelve) == 12);
     CHECK(L::times<size_t>(7, twelve) == 84);
     CHECK(L::times_n(twelve, 100) == 1200);
+    std::uint8_t two_hundred = 200;
+    bool yes = true;
+    bool no = false;
+    CHECK(L::times_u8(two_hundred, 3) == 88);
+    CHECK(L::times_or(yes, yes));
+    CHECK(!L::times_or(yes, no));
+    CHECK(!L::times_or(no, yes));
     CHECK(L::sugar::times<size_t>(7, twelve) ==
           L::kernel::times<size_t>(7, twelve));
     CHECK(L::sugar::times(std::string{"ab"}, twelve) ==
