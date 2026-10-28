@@ -464,6 +464,12 @@ struct Morphism {
   Func transform;
 
   constexpr explicit Morphism(Func f) : transform(std::move(f)) {}
+  /** @brief Default-constructible when the callable is, so that an arrow
+   *  wrapping an empty function object (@c endo<T>(std::negate<T>{})) is
+   *  semiregular, which a chain's coalgebra must be (@c :nno). */
+  constexpr Morphism()
+    requires std::default_initializable<Func>
+  = default;
 
   // We provide the call operator, but NOT the composition (f ∘ g).
   // Constrained on CONST-invocability of the stored callable: the body invokes
