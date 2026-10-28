@@ -371,7 +371,8 @@ struct Until {                        // N → 1 + N
     return end(n) ? nullopt : optional{step(n)};
   }
 };
-template <ranges::input_range R,      // the free monoid's fold
+// the free monoid's fold:
+template <ranges::input_range R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
