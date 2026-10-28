@@ -256,19 +256,24 @@ using dedekind::category::NegationArrow;
 using dedekind::category::operator>>;
 constexpr auto negation = NegationArrow<Boole>{};
 
-static_assert(std::semiregular<std::pair<size_t, bool>> &&
-              std::regular<size_t>);
-static_assert(id<size_t>()(42uz) == 42);
-static_assert((constant<size_t>(7uz) >> id<size_t>())(42uz) == 7);
-static_assert(IsInvolution<decltype(negation)> && IsInvolution<decltype(neg)>);
-static_assert(IsIsomorphism<decltype(flip >> neg)> &&
-              !IsInvolution<decltype(flip >> neg)>);
-static_assert((flip >> neg)(3uz) == 4);  // −(~x) = x + 1
-static_assert(IsMonotone<decltype(id<bool>())> &&
-              IsAntiMonotone<decltype(negation)> &&
-              IsAntiMonotone<decltype(id<bool>() >> negation)> &&
-              IsMonotone<decltype(negation >> negation)> &&
-              IsConstantArrow<Constant<size_t>>);
+// The facts, one assertion: the identity and constant laws; id >> neg has
+// neg's signature and value, the unit law; two involutions compose to an
+// isomorphism and no involution; the variances, those of the composites
+// derived by the engine in :posetal.
+static_assert(
+    std::semiregular<std::pair<size_t, bool>> && std::regular<size_t> &&
+    id<size_t>()(42uz) == 42 &&
+    (constant<size_t>(7uz) >> id<size_t>())(42uz) == 7 &&
+    std::same_as<Dom<decltype(id<size_t>() >> neg)>, Dom<decltype(neg)>> &&
+    std::same_as<Cod<decltype(id<size_t>() >> neg)>, Cod<decltype(neg)>> &&
+    (id<size_t>() >> neg)(3uz) == neg(3uz) &&
+    IsInvolution<decltype(negation)> && IsInvolution<decltype(neg)> &&
+    IsIsomorphism<decltype(flip >> neg)> &&
+    !IsInvolution<decltype(flip >> neg)> && (flip >> neg)(3uz) == 4 &&
+    IsMonotone<decltype(id<bool>())> && IsAntiMonotone<decltype(negation)> &&
+    IsAntiMonotone<decltype(id<bool>() >> negation)> &&
+    IsMonotone<decltype(negation >> negation)> &&
+    IsConstantArrow<Constant<size_t>>);
 
 template <typename T>
 constexpr T twice_loose(T x) {
