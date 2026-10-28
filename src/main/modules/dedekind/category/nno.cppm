@@ -575,7 +575,8 @@ static_assert(
     std::ranges::fold_left(ns, 0u, std::plus<unsigned>{}) == 6 &&
         std::ranges::fold_left(ns >> Successor<unsigned>{}, 0u,
                                std::plus<unsigned>{}) == 9 &&
-        std::same_as<decltype(ns >> Identity<unsigned>{}), decltype(ns)> &&
+        std::same_as<decltype(ns >> Identity<unsigned>{}),
+                     decltype(auto(ns))> &&
         std::ranges::fold_left(0u >> chain(until(IsZero{},
                                                  Predecessor<unsigned>{})),
                                0u, std::plus<unsigned>{}) == 0,
