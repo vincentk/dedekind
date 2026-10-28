@@ -248,41 +248,47 @@ using dedekind::category::Identity;
 using dedekind::category::IsAntiMonotone;
 using dedekind::category::IsArrow;
 using dedekind::category::IsConstantArrow;
+using dedekind::category::IsEpicArrow;
 using dedekind::category::IsInvolution;
 using dedekind::category::IsIsomorphism;
+using dedekind::category::IsMonicArrow;
 using dedekind::category::IsMonotone;
 using dedekind::category::NegationArrow;
+using dedekind::category::Pairing;
+using dedekind::category::Π;
 using dedekind::category::operator>>;
-constexpr auto negation = NegationArrow<Boole>{};  // ¬: the 2-chain reflected
-constexpr auto flip =
-    NegationArrow<Chain<size_t>>{};  // ~: size_t's chain reflected
-constexpr auto neg = endo<size_t>(std::negate<size_t>{});  // −: no reflection
+constexpr auto negation = NegationArrow<Boole>{};      // ¬ on the 2-chain
+constexpr auto flip = NegationArrow<Chain<size_t>>{};  // ~ on size_t's chain
+constexpr auto neg = endo<size_t>(std::negate<size_t>{});  // −, no reflection
+constexpr auto plus_one = flip >> neg;                     // −(~x) = x + 1
+constexpr auto twice = negation >> negation;               // ¬¬
+constexpr auto first = Π<1, std::pair<bool, size_t>>{};    // a projection
+constexpr auto section = Pairing{id<bool>(), constant<bool>(0uz)};  // ⟨1, 0⟩
 
-// The facts, one assertion: the constant and unit laws; id >> neg has neg's
-// signature; a reflection is an involution and antitone, unary minus an
-// involution and not, 0 being its fixed point; two involutions compose to an
-// isomorphism and no involution; the composites' variances, derived by the
-// engine in :posetal.
+// The facts, one assertion: the constant law; the unit law decided at the
+// type, id >> neg being neg itself by resolution; a reflection is an
+// involution and antitone, unary minus an involution and not, 0 being its
+// fixed point; two involutions compose to an isomorphism and no involution;
+// the composites' variances, derived by the engine in :posetal.
 static_assert(
     std::regular<size_t> &&
     (constant<size_t>(7uz) >> id<size_t>())(42uz) == 7 &&
-    std::same_as<Dom<decltype(id<size_t>() >> neg)>, Dom<decltype(neg)>> &&
-    std::same_as<Cod<decltype(id<size_t>() >> neg)>, Cod<decltype(neg)>> &&
+    std::same_as<decltype(id<size_t>() >> neg), decltype(auto(neg))> &&
     IsInvolution<decltype(flip)> && IsAntiMonotone<decltype(flip)> &&
     IsInvolution<decltype(neg)> && !IsAntiMonotone<decltype(neg)> &&
-    IsIsomorphism<decltype(flip >> neg)> &&
-    !IsInvolution<decltype(flip >> neg)> &&
-    IsAntiMonotone<decltype(id<bool>() >> negation)> &&
-    IsMonotone<decltype(negation >> negation)>);
+    IsIsomorphism<decltype(plus_one)> && !IsInvolution<decltype(plus_one)> &&
+    plus_one(3uz) == 4 && IsMonotone<decltype(twice)> &&
+    IsAntiMonotone<decltype(twice >> negation)> &&
+    IsEpicArrow<decltype(first)> && !IsMonicArrow<decltype(first)> &&
+    IsMonicArrow<decltype(section)> && !IsEpicArrow<decltype(section)> &&
+    (section >> first)(true) && !(section >> first)(false));
 // The facts the listing leaves to the test.
-static_assert(std::semiregular<std::pair<size_t, bool>> &&
-              id<size_t>()(42uz) == 42 &&
-              (id<size_t>() >> neg)(3uz) == neg(3uz) &&
-              IsInvolution<decltype(negation)> &&
-              IsAntiMonotone<decltype(negation)> &&
-              (flip >> neg)(3uz) == 4 &&  // −(~x) = x + 1
-              IsMonotone<decltype(id<bool>())> &&
-              IsConstantArrow<Constant<size_t>>);
+static_assert(
+    std::semiregular<std::pair<size_t, bool>> && id<size_t>()(42uz) == 42 &&
+    std::same_as<decltype(neg >> id<size_t>()), decltype(auto(neg))> &&
+    std::same_as<decltype(id<bool>() >> id<bool>()), Identity<bool>> &&
+    IsInvolution<decltype(negation)> && IsAntiMonotone<decltype(negation)> &&
+    IsMonotone<decltype(id<bool>())> && IsConstantArrow<Constant<size_t>>);
 
 template <typename T>
 constexpr T twice_loose(T x) {

@@ -162,56 +162,60 @@ What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equal
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.46\linewidth}
+\begin{minipage}[t]{0.5\linewidth}
 \begin{cpp}
 template <typename A>
-constexpr auto id() {
-  return Identity<A>{};
-}
-template <typename A, typename B>
-constexpr auto constant(B y) {
-  return Constant<A, B>{y};
-}
-template <IsArrow F, IsArrow G>
-  requires same_as<Cod<F>, Dom<G>>
-constexpr auto operator>>(F f, G g) {
-  return Compose<F, G>{f, g};  // f, then g
-}
+constexpr auto id() { return Identity<A>{}; }
 
-constexpr auto negation =  // ¬ on the 2-chain
+// the unit law, decided at the type:
+template <IsArrow F, IsArrow G>
+  requires same_as<Cod<F>, Dom<G>> &&
+           IsIdentityArrow<F>
+constexpr auto operator>>(F, G g) { return g; }
+
+constexpr auto negation =    // ¬ on the 2-chain
     NegationArrow<Boole>{};
-constexpr auto flip =      // ~ on size_t's chain
+constexpr auto flip =        // ~ on size_t's chain
     NegationArrow<Chain<size_t>>{};
-constexpr auto neg =       // −, no reflection
+constexpr auto neg =         // −, no reflection
     endo<size_t>(negate<size_t>{});
+constexpr auto plus_one = flip >> neg;  // x + 1
+constexpr auto twice = negation >> negation;
+constexpr auto first = Π<1, pair<bool, size_t>>{};
+constexpr auto section =     // ⟨1, 0⟩
+    Pairing{id<bool>(), constant<bool>(0uz)};
 \end{cpp}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.52\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
 static_assert(
     regular<size_t> &&
     (constant<size_t>(7uz) >> id<size_t>())
         (42uz) == 7 &&
-    same_as<Dom<decltype(id<size_t>() >> neg)>,
-            Dom<decltype(neg)>> &&
-    same_as<Cod<decltype(id<size_t>() >> neg)>,
-            Cod<decltype(neg)>> &&
+    same_as<decltype(id<size_t>() >> neg),
+            decltype(auto(neg))> &&
     IsInvolution<decltype(flip)> &&
     IsAntiMonotone<decltype(flip)> &&
     IsInvolution<decltype(neg)> &&
     !IsAntiMonotone<decltype(neg)> &&
-    IsIsomorphism<decltype(flip >> neg)> &&
-    !IsInvolution<decltype(flip >> neg)> &&
+    IsIsomorphism<decltype(plus_one)> &&
+    !IsInvolution<decltype(plus_one)> &&
+    plus_one(3uz) == 4 &&
+    IsMonotone<decltype(twice)> &&
     IsAntiMonotone<
-        decltype(id<bool>() >> negation)> &&
-    IsMonotone<
-        decltype(negation >> negation)>);
+        decltype(twice >> negation)> &&
+    IsEpicArrow<decltype(first)> &&
+    !IsMonicArrow<decltype(first)> &&
+    IsMonicArrow<decltype(section)> &&
+    !IsEpicArrow<decltype(section)> &&
+    (section >> first)(true));
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-Left: the definitions: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{constant<A>(y)} the arrow through a singleton and \cppinline{f >> g} the composite, $f$ then $g$, the tree's; \cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s, and \cppinline{neg} is unary minus made an arrow.
+Left: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{f >> g} the composite, $f$ then $g$, and \cppinline{constant<A>(y)} the arrow through a singleton, all the tree's, whose generic \cppinline{>>} the listing omits and whose unit law it prints: an overload that repeats the generic constraints and adds one, so that resolution picks it when the left leg is the identity and returns the right leg itself, the law decided at the type, as Listing~\ref{lst:desugar} decides a fold.
+\cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s; \cppinline{neg} is unary minus made an arrow; \cppinline{plus_one} and \cppinline{twice} are composites; \cppinline{first} and \cppinline{section} are a projection of the product and its section $\langle 1, 0 \rangle$.
 A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}.
-Right: the facts, one assertion: the constant and unit laws; \cppinline{id >> neg} has \cppinline{neg}'s signature, so it is arrows that compose; a reflection is an involution and antitone, unary minus an involution and not, $0$ being its fixed point; two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution, $-(\sim x) = x + 1$; and the variances of composites, which the tree derives from the legs.}
+Right: the facts, one assertion: the constant law; \cppinline{id >> neg} is \cppinline{neg}, not a composite around it; a reflection is an involution and antitone, unary minus an involution and not, $0$ being its fixed point; two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution, $-(\sim x) = x + 1$; the variances of composites, which the tree derives from the legs; and the projection epic and not monic, its section monic and not epic, with \cppinline{section >> first} the identity, a split epi.}
 \label{lst:rule1}
 \end{listing}
 
