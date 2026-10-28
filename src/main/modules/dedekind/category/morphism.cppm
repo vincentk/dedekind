@@ -1232,8 +1232,9 @@ concept IsConstantArrow =
  */
 export template <typename E>
 concept IsMonicArrow =
-    IsArrow<E> && (is_monic_arrow_v<E> || IsIsomorphism<E> ||
-                   requires { typename E::is_monic_arrow_tag; });
+    IsArrow<E> &&
+    (is_monic_arrow_v<std::remove_cvref_t<E>> || IsIsomorphism<E> ||
+     requires { typename E::is_monic_arrow_tag; });
 
 // Identity arrows are always monic.
 template <typename T>
@@ -1273,7 +1274,8 @@ inline constexpr bool is_epic_arrow_v = false;
  *          the same cross-module-firing reason as @c IsMonicArrow.
  */
 export template <typename E>
-concept IsEpicArrow = IsArrow<E> && (is_epic_arrow_v<E> || IsIsomorphism<E>);
+concept IsEpicArrow =
+    IsArrow<E> && (is_epic_arrow_v<std::remove_cvref_t<E>> || IsIsomorphism<E>);
 
 // Identity arrows are always epic: for every element t in the codomain,
 // id(t) == t, so every element is hit.

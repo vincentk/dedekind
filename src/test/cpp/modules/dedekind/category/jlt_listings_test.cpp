@@ -262,8 +262,8 @@ constexpr auto flip = NegationArrow<Chain<size_t>>{};  // ~ on size_t's chain
 constexpr auto neg = endo<size_t>(std::negate<size_t>{});  // −, no reflection
 constexpr auto plus_one = flip >> neg;                     // −(~x) = x + 1
 constexpr auto twice = negation >> negation;               // ¬¬
-constexpr auto first = Π<1, std::pair<bool, size_t>>{};    // a projection
-constexpr auto section = Pairing{id<bool>(), constant<bool>(0uz)};  // ⟨1, 0⟩
+constexpr auto fst = Π<1, std::pair<bool, size_t>>{};      // a projection
+constexpr auto section = Pairing{id<bool>(), constant<bool>(0uz)};  // (1, 0)
 
 // The facts, one assertion: the constant law; the unit law decided at the
 // type, id >> neg being neg itself by resolution; a reflection is an
@@ -278,10 +278,10 @@ static_assert(
     IsInvolution<decltype(neg)> && !IsAntiMonotone<decltype(neg)> &&
     IsIsomorphism<decltype(plus_one)> && !IsInvolution<decltype(plus_one)> &&
     plus_one(3uz) == 4 && IsMonotone<decltype(twice)> &&
-    IsAntiMonotone<decltype(twice >> negation)> &&
-    IsEpicArrow<decltype(first)> && !IsMonicArrow<decltype(first)> &&
-    IsMonicArrow<decltype(section)> && !IsEpicArrow<decltype(section)> &&
-    (section >> first)(true) && !(section >> first)(false));
+    IsAntiMonotone<decltype(twice >> negation)> && IsEpicArrow<decltype(fst)> &&
+    !IsMonicArrow<decltype(fst)> && IsMonicArrow<decltype(section)> &&
+    !IsEpicArrow<decltype(section)> && (section >> fst)(true) &&
+    !(section >> fst)(false));
 // The facts the listing leaves to the test.
 static_assert(
     std::semiregular<std::pair<size_t, bool>> && id<size_t>()(42uz) == 42 &&
