@@ -454,8 +454,11 @@ struct At {
 template <typename T, typename Op = std::plus<T>, size_t K>
   requires IsCount<size_t> && IsMonoid<T, Op>
 constexpr T concat(chain_t<size_t, out<size_t>> ns, At<T, K> f) {
-  // The chain of n <= K visits the last n elements; longer is out of bounds.
-  return std::ranges::fold_left(f.a | std::views::drop(K - ns.seed()),
+  // The chain of n visits the last n elements, in order; all of them when n
+  // exceeds K, where the lookup itself is out of bounds.
+  return std::ranges::fold_left(f.a | std::views::reverse |
+                                    std::views::take(ns.seed()) |
+                                    std::views::reverse,
                                 unit<T>(Op{}), Op{});
 }
 static_assert(concat<size_t>(chain(4uz, out<size_t>{}),

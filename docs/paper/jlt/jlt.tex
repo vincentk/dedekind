@@ -431,8 +431,8 @@ template <typename T, typename Op = plus<T>,
   requires IsCount<size_t> && IsMonoid<T, Op>
 constexpr T concat(chain_t<size_t, out<size_t>> ns,
                    At<T, K> f) {
-  return ranges::fold_left(
-      f.a | views::drop(K - ns.seed()),
+  return ranges::fold_left(f.a | views::reverse |
+      views::take(ns.seed()) | views::reverse,
       unit<T>(Op{}), Op{});
 }
 static_assert(concat<string>(chain(3uz, out<size_t>{}),
@@ -498,7 +498,7 @@ concat₁ =  Λ T Op N F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
 concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (seed ns − m.unit)))
                    where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
 concat₃ =  Λ T Op.   λ m c ns.    m.op m.unit (seed ns)
-concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (drop (K − seed ns) a)
+concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (reverse (take (seed ns) (reverse a)))
 concat [u64 plus] (chain out 10) id        =  concat₁ [u64 plus u64 id] plus_u64 count_u64 id (chain out 10)
 concat [u64 plus] (chain out 10) (const 7) =  concat₂ [u64 plus u64] plus_u64 count_u64 7 (chain out 10)
 concat [u64 max] (chain out 10) id         =  concat₃ [u64 max] max_u64 count_u64 (chain out 10)
