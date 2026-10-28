@@ -768,7 +768,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   SECTION("Section 2: the rules' functions, called at runtime") {
     size_t twelve = 12;
     CHECK(L::id<size_t>()(twelve) == 12);
-    CHECK(L::sum_n(twelve) == 78);
+    CHECK(L::listing3::sum_n(twelve) == 78);
     CHECK(L::copies_n(7, twelve) == 84);
     CHECK(L::top_n(twelve) == 12);
     CHECK(L::sum_a({1, 2, 3, 4, 5, 6, 7, twelve}) == 40);
