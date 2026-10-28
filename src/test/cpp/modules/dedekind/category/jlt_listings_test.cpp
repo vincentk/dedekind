@@ -70,18 +70,31 @@ constexpr bool associative<size_t>(std::multiplies<size_t>) {
   return true;
 }
 
-// concat, generic in the monoid and specific in the container, a list of
-// three: three applications of Op from the unit, no recursion.
+// concat at the lengths that need no recursion: none, one and two, the unit,
+// the identity and one application of Op.  Each body uses only what the
+// constraint names; the fold proper is Listing 3's.
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(std::array<T, 3> ws) {
-  return Op{}(Op{}(Op{}(unit<T>(Op{}), ws[0]), ws[1]), ws[2]);
+constexpr T concat() {
+  return unit<T>(Op{});
+}
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(T w) {
+  return w;
+}
+template <typename T, typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(T v, T w) {
+  return Op{}(v, w);
 }
 
-static_assert(concat<size_t>(std::array{1uz, 2uz, 3uz}) == 6);
-static_assert(concat<size_t, std::multiplies<size_t>>(std::array{2uz, 3uz,
-                                                                 7uz}) == 42);
-static_assert(concat<std::string>(std::array{"ab"s, "c"s, "d"s}) == "abcd");
+static_assert(concat<size_t>() == 0 && concat<size_t>(42uz) == 42 &&
+              concat<size_t>(40uz, 2uz) == 42 &&
+              concat<size_t, std::multiplies<size_t>>() == 1 &&
+              concat<size_t, std::multiplies<size_t>>(6uz, 7uz) == 42 &&
+              concat<std::string>() == "" &&
+              concat<std::string>("ab"s, "c"s) == "abc");
 
 // Certificates the listings use and do not print: bool.
 template <>
@@ -105,8 +118,8 @@ constexpr bool associative<bool>(std::logical_or<bool>) {
 static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
-static_assert(concat<bool, std::logical_or<bool>>(std::array{false, true,
-                                                             false}));
+static_assert(!concat<bool, std::logical_or<bool>>() &&
+              concat<bool, std::logical_or<bool>>(false, true));
 
 // Certificates the listings use and do not print: size_t.
 template <>
@@ -444,8 +457,8 @@ static_assert(top_n(100) == 100);
 
 // Listing 4, third: the arrow is a lookup into a physical array, Figure 2's
 // array itself, along the chain of its length, so the symbolic array is
-// represented by a block of memory and the fold is Listing 2's concat with K
-// elements for three: the chain goes, the memory is walked.
+// represented by a block of memory and the fold is Listing 2's concat at
+// length K: the chain goes, the memory is walked.
 template <typename T, size_t K>
 struct At {
   std::array<T, K> a;
@@ -628,11 +641,13 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::unit<size_t>(plus) == 0);
     CHECK(L::unit<size_t>(bit_and) == SIZE_MAX);
     size_t twenty = 20;
-    CHECK(L::concat<size_t>(std::array{twenty, size_t{21}, size_t{1}}) == 42);
-    CHECK(L::concat<size_t, std::multiplies<size_t>>(
-              std::array{size_t{6}, size_t{7}, size_t{1}}) == 42);
-    CHECK(L::concat<std::string>(std::array{
-              std::string{"ab"}, std::string{"cd"}, std::string{}}) == "abcd");
+    CHECK(L::concat<size_t>() == 0);
+    CHECK(L::concat<size_t>(twenty) == 20);
+    CHECK(L::concat<size_t>(twenty, size_t{22}) == 42);
+    CHECK(L::concat<size_t, std::multiplies<size_t>>(size_t{6}, size_t{7}) ==
+          42);
+    CHECK(L::concat<std::string>(std::string{"ab"}, std::string{"cd"}) ==
+          "abcd");
     CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 

@@ -227,30 +227,36 @@ concept IsMonoid =
 \begin{cpp}
 template <typename T, typename Op = plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(array<T, 3> ws) {
-  return Op{}(Op{}(Op{}(unit<T>(Op{}), ws[0]),
-                   ws[1]), ws[2]);
-}
+constexpr T concat() { return unit<T>(Op{}); }
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(T w) { return w; }
+template <typename T, typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(T v, T w) { return Op{}(v, w); }
 
-static_assert(concat<size_t>(
-    array{1uz, 2uz, 3uz}) == 6);
-static_assert(concat<size_t, multiplies<size_t>>(
-    array{2uz, 3uz, 7uz}) == 42);
-static_assert(concat<bool, logical_or<bool>>(
-    array{false, true, false}));
-static_assert(concat<string>(
-    array{"ab"s, "c"s, "d"s}) == "abcd");
+static_assert(
+    concat<size_t>() == 0 &&
+    concat<size_t>(42uz) == 42 &&
+    concat<size_t>(40uz, 2uz) == 42 &&
+    concat<size_t, multiplies<size_t>>() == 1 &&
+    concat<size_t, multiplies<size_t>>(6uz, 7uz)
+        == 42 &&
+    !concat<bool, logical_or<bool>>() &&
+    concat<bool, logical_or<bool>>(false, true) &&
+    concat<string>() == "" &&
+    concat<string>("ab"s, "c"s) == "abc");
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: \cppinline{concat}, generic in the monoid and specific in the container, a list of three: three applications of \cppinline{Op} from the unit, with no recursion, called on four monoids whose certificates are in the test.
+Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on four monoids whose certificates are in the test.
 }
 \label{lst:rule2}
 \end{listing}
 
-Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and its fold, \cppinline{concat}, Haskell's \texttt{mconcat}.
+Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and \cppinline{concat}, Haskell's \texttt{mconcat}, at the lengths that need no recursion; the fold proper is Listing~\ref{lst:rule3}'s.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
 A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
@@ -265,7 +271,7 @@ For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathi
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can ultimately be mapped the chain of Figure~\ref{fig:structures} can not contain loops and is guaranteed to terminate.
 Regardless of presentation, it is equivalent to looping over an array in a sense which can be made very precise.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ Listing~\ref{lst:rule2}'s \cppinline{concat} is a catamorphism, \cppinline{chain(n, Out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, Out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
 
 \begin{figure}[tb]
 \centering
@@ -486,7 +492,7 @@ define i64 @sum_a(ptr %a) {
 Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
 A constant arrow, one that factors through a singleton, folds in the same \cppinline{x} at every step: the array is a value and a count, $(x, n)$, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, logarithmically many steps for any monoid, so that $10^8$ copies are 27 steps at compile time where Listing~\ref{lst:rule3}'s fold is refused (Section~\ref{sec:binding}); \cppinline{Bits} and \cppinline{Square}, the coalgebra and the algebra, are in the test and in Listing~\ref{lst:translate}.
 The identity along the chain is monotone, so into a join semilattice, an idempotent commutative monoid such as \cppinline{size_t} under \cppinline{max}, the array is its seed and the fold its top, one step; \cppinline{IsSemilattice} and \cppinline{Max} are in the test, beside the semimodule's one action, $n \cdot x$.
-A lookup into an array of \cppinline{K}, \cppinline{At}, makes the array physical, a block of memory, and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} with \cppinline{K} elements for three.
+A lookup into an array of \cppinline{K}, \cppinline{At}, makes the array physical, a block of memory, and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
 Resolution picks each overload by the arrow's type, decided at the type variable.
 Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument; for the array, one vector load and one reduction.}
 \label{lst:desugar}
@@ -587,7 +593,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \label{tab:rules}
 \end{table}
 
-The lower panel of Listing~\ref{lst:desugar} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
+Listing~\ref{lst:translate} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
 The whole is dictionary passing, the translation of type classes into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
@@ -703,7 +709,7 @@ What the translation adds is the second half of Theorem~\ref{thm:simulation}: th
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id(size_t{42})}, \cppinline{concat} on three numbers and on three words, and the chain of \cppinline{10} summed were each checked in a \cppinline{static_assert}.
+\cppinline{id(size_t{42})}, \cppinline{concat} on two numbers and on two words, and the chain of \cppinline{10} summed were each checked in a \cppinline{static_assert}.
 The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
 A \cppinline{consteval} function, an immediate function, is the opposite case: it is evaluated only at compile time, so it has exactly one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.
