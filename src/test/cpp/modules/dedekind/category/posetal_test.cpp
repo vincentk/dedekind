@@ -148,20 +148,19 @@ TEST_CASE("Posetal: negation is the canonical antitone witness (#908)",
   }
 
   SECTION("Boole: ¬ reverses the two-point chain false <= true") {
-    constexpr NegationArrow<Boole> negation{};
-    STATIC_CHECK(negation(true) == false);
-    STATIC_CHECK(negation(false) == true);
+    constexpr NegationArrow<Boole> neg{};
+    STATIC_CHECK(neg(true) == false);
+    STATIC_CHECK(neg(false) == true);
     // Order-reversal: false <= true, so ¬true <= ¬false (false <= true).
-    STATIC_CHECK(negation(true) <= negation(false));
+    STATIC_CHECK(neg(true) <= neg(false));
   }
 
   SECTION("Kleene: ¬ reflects the K₃ chain False < Unknown < True") {
-    constexpr NegationArrow<Kleene> negation{};
-    STATIC_CHECK(negation(Ternary::True) == Ternary::False);
-    STATIC_CHECK(negation(Ternary::False) == Ternary::True);
-    STATIC_CHECK(negation(Ternary::Unknown) ==
-                 Ternary::Unknown);  // fixed point
+    constexpr NegationArrow<Kleene> neg{};
+    STATIC_CHECK(neg(Ternary::True) == Ternary::False);
+    STATIC_CHECK(neg(Ternary::False) == Ternary::True);
+    STATIC_CHECK(neg(Ternary::Unknown) == Ternary::Unknown);  // fixed point
     // Order-reversal across the chain: False < True, so ¬True <= ¬False.
-    STATIC_CHECK(negation(Ternary::True) <= negation(Ternary::False));
+    STATIC_CHECK(neg(Ternary::True) <= neg(Ternary::False));
   }
 }

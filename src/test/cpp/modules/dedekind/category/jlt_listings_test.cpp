@@ -236,6 +236,7 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 // definitions are the tree's and the facts are checked here; the variances of
 // the composites are derived by the engine in :posetal, not declared.
 using dedekind::category::Boole;
+using dedekind::category::Chain;
 using dedekind::category::Cod;
 using dedekind::category::Compose;
 using dedekind::category::Constant;
@@ -252,28 +253,36 @@ using dedekind::category::IsIsomorphism;
 using dedekind::category::IsMonotone;
 using dedekind::category::NegationArrow;
 using dedekind::category::operator>>;
-constexpr auto negation = NegationArrow<Boole>{};
-constexpr auto neg = endo<size_t>(std::negate<size_t>{});
-constexpr auto flip = endo<size_t>(std::bit_not<size_t>{});
+constexpr auto negation = NegationArrow<Boole>{};  // ¬: the 2-chain reflected
+constexpr auto flip =
+    NegationArrow<Chain<size_t>>{};  // ~: size_t's chain reflected
+constexpr auto neg = endo<size_t>(std::negate<size_t>{});  // −: no reflection
 
-// The facts, one assertion: the identity and constant laws; id >> neg has
-// neg's signature and value, the unit law; two involutions compose to an
-// isomorphism and no involution; the variances, those of the composites
-// derived by the engine in :posetal.
+// The facts, one assertion: the constant and unit laws; id >> neg has neg's
+// signature; a reflection is an involution and antitone, unary minus an
+// involution and not, 0 being its fixed point; two involutions compose to an
+// isomorphism and no involution; the composites' variances, derived by the
+// engine in :posetal.
 static_assert(
-    std::semiregular<std::pair<size_t, bool>> && std::regular<size_t> &&
-    id<size_t>()(42uz) == 42 &&
+    std::regular<size_t> &&
     (constant<size_t>(7uz) >> id<size_t>())(42uz) == 7 &&
     std::same_as<Dom<decltype(id<size_t>() >> neg)>, Dom<decltype(neg)>> &&
     std::same_as<Cod<decltype(id<size_t>() >> neg)>, Cod<decltype(neg)>> &&
-    (id<size_t>() >> neg)(3uz) == neg(3uz) &&
-    IsInvolution<decltype(negation)> && IsInvolution<decltype(neg)> &&
+    IsInvolution<decltype(flip)> && IsAntiMonotone<decltype(flip)> &&
+    IsInvolution<decltype(neg)> && !IsAntiMonotone<decltype(neg)> &&
     IsIsomorphism<decltype(flip >> neg)> &&
-    !IsInvolution<decltype(flip >> neg)> && (flip >> neg)(3uz) == 4 &&
-    IsMonotone<decltype(id<bool>())> && IsAntiMonotone<decltype(negation)> &&
+    !IsInvolution<decltype(flip >> neg)> &&
     IsAntiMonotone<decltype(id<bool>() >> negation)> &&
-    IsMonotone<decltype(negation >> negation)> &&
-    IsConstantArrow<Constant<size_t>>);
+    IsMonotone<decltype(negation >> negation)>);
+// The facts the listing leaves to the test.
+static_assert(std::semiregular<std::pair<size_t, bool>> &&
+              id<size_t>()(42uz) == 42 &&
+              (id<size_t>() >> neg)(3uz) == neg(3uz) &&
+              IsInvolution<decltype(negation)> &&
+              IsAntiMonotone<decltype(negation)> &&
+              (flip >> neg)(3uz) == 4 &&  // −(~x) = x + 1
+              IsMonotone<decltype(id<bool>())> &&
+              IsConstantArrow<Constant<size_t>>);
 
 template <typename T>
 constexpr T twice_loose(T x) {

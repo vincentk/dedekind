@@ -178,53 +178,49 @@ constexpr auto operator>>(F f, G g) {
   return Compose<F, G>{f, g};  // f, then g
 }
 
-constexpr auto negation =
+constexpr auto negation =  // ¬ on the 2-chain
     NegationArrow<Boole>{};
-constexpr auto neg =
+constexpr auto flip =      // ~ on size_t's chain
+    NegationArrow<Chain<size_t>>{};
+constexpr auto neg =       // −, no reflection
     endo<size_t>(negate<size_t>{});
-constexpr auto flip =
-    endo<size_t>(bit_not<size_t>{});
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.52\linewidth}
 \begin{cpp}
 static_assert(
     regular<size_t> &&
-    id<size_t>()(42uz) == 42 &&
     (constant<size_t>(7uz) >> id<size_t>())
         (42uz) == 7 &&
     same_as<Dom<decltype(id<size_t>() >> neg)>,
             Dom<decltype(neg)>> &&
     same_as<Cod<decltype(id<size_t>() >> neg)>,
             Cod<decltype(neg)>> &&
-    (id<size_t>() >> neg)(3uz) == neg(3uz) &&
-    IsInvolution<decltype(negation)> &&
+    IsInvolution<decltype(flip)> &&
+    IsAntiMonotone<decltype(flip)> &&
     IsInvolution<decltype(neg)> &&
+    !IsAntiMonotone<decltype(neg)> &&
     IsIsomorphism<decltype(flip >> neg)> &&
     !IsInvolution<decltype(flip >> neg)> &&
-    (flip >> neg)(3uz) == 4 &&  // −(~x) = x + 1
-    IsMonotone<decltype(id<bool>())> &&
-    IsAntiMonotone<decltype(negation)> &&
     IsAntiMonotone<
         decltype(id<bool>() >> negation)> &&
     IsMonotone<
-        decltype(negation >> negation)> &&
-    IsConstantArrow<Constant<size_t>>);
+        decltype(negation >> negation)>);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-Left: the definitions: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{constant<A>(y)} the arrow through a singleton and \cppinline{f >> g} the composite, $f$ then $g$, the tree's; \cppinline{negation}, \cppinline{neg} and \cppinline{flip} are the involutions $\lnot$, $-$ and $\sim$, the first the tree's arrow and the other two built here from callables the tree certifies.
-A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}, the assertion's first line.
-Right: the facts the compiler checks, one assertion: the identity and constant laws; that \cppinline{id >> neg} has \cppinline{neg}'s domain, codomain and value, the unit law, so it is arrows that compose; that two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution; and the variances, the identity monotone, $\lnot$ antitone on $\mathit{false} < \mathit{true}$, and those of the composites, which the tree derives from the legs rather than declares.}
+Left: the definitions: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{constant<A>(y)} the arrow through a singleton and \cppinline{f >> g} the composite, $f$ then $g$, the tree's; \cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s, and \cppinline{neg} is unary minus made an arrow.
+A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}.
+Right: the facts, one assertion: the constant and unit laws; \cppinline{id >> neg} has \cppinline{neg}'s signature, so it is arrows that compose; a reflection is an involution and antitone, unary minus an involution and not, $0$ being its fixed point; two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution, $-(\sim x) = x + 1$; and the variances of composites, which the tree derives from the legs.}
 \label{lst:rule1}
 \end{listing}
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
-An arrow is a function made a value, and its laws are equations between values, $f(f(x)) = x$ for an involution, $f(x) = f(y)$ for a constant, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, and the listings ask it of every carrier a law is stated on.
-The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are declared certificates the tree reads, \cppinline{IsMonicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsInvolution}, \cppinline{IsMonotone}, and Listing~\ref{lst:desugar} specialises a fold on two of them; the rest is left to the reader.
+An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
+The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are certificates the tree declares or derives, and Listing~\ref{lst:desugar} specialises a fold on two of them.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
-The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{A boxed value on the heap, such as \cppinline{std::shared_ptr<const T>}, is a value in this sense on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is; there are two heaps, the run time's and the one constant evaluation simulates, and evaluating a box at compile time arrives only with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
+The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
 
 \paragraph{Rule 2, Abstraction: a type varies behaviour only through its concepts and traits.}
 \phantomsection\label{def:rule2}

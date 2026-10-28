@@ -130,7 +130,7 @@ TEST_CASE(
   // @c IsMonoid.  The two arrows below are members of End(int).
   const auto inc = endo<int>([](int x) { return x + 1; });
   const auto dbl = endo<int>([](int x) { return x * 2; });
-  const auto minus = endo<int>([](int x) { return -x; });
+  const auto neg = endo<int>([](int x) { return -x; });
   const auto e = id<int>();  // the monoid unit
 
   // The carrier and the unit are arrows; @c >> is closed on End(int).
@@ -148,8 +148,8 @@ TEST_CASE(
   // does not fire on it directly.  The monoid laws are therefore witnessed
   // OPERATIONALLY here --- the type-vs-set-indexed boundary made visible.
   for (int x : {-3, 0, 1, 7}) {
-    // Associativity: (inc >> dbl) >> minus = inc >> (dbl >> minus).
-    CHECK(((inc >> dbl) >> minus)(x) == (inc >> (dbl >> minus))(x));
+    // Associativity: (inc >> dbl) >> neg = inc >> (dbl >> neg).
+    CHECK(((inc >> dbl) >> neg)(x) == (inc >> (dbl >> neg))(x));
     // Left / right unit: id >> f = f = f >> id.
     CHECK((e >> inc)(x) == inc(x));
     CHECK((inc >> e)(x) == inc(x));
