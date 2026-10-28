@@ -278,9 +278,10 @@ static_assert(
     IsInvolution<decltype(neg)> && !IsAntiMonotone<decltype(neg)> &&
     IsIsomorphism<decltype(plus_one)> && !IsInvolution<decltype(plus_one)> &&
     plus_one(3uz) == 4 && IsMonotone<decltype(twice)> &&
-    IsAntiMonotone<decltype(twice >> negation)> && IsEpicArrow<decltype(fst)> &&
-    !IsMonicArrow<decltype(fst)> && IsMonicArrow<decltype(section)> &&
-    !IsEpicArrow<decltype(section)> && (section >> fst)(true) &&
+    IsAntiMonotone<decltype(twice >> negation)> &&
+    IsEpicArrow<decltype(auto(fst))> && !IsMonicArrow<decltype(auto(fst))> &&
+    IsMonicArrow<decltype(auto(section))> &&
+    !IsEpicArrow<decltype(auto(section))> && (section >> fst)(true) &&
     !(section >> fst)(false));
 // The facts the listing leaves to the test.
 static_assert(

@@ -204,16 +204,16 @@ static_assert(
     IsMonotone<decltype(twice)> &&
     IsAntiMonotone<
         decltype(twice >> negation)> &&
-    IsEpicArrow<decltype(fst)> &&
-    !IsMonicArrow<decltype(fst)> &&
-    IsMonicArrow<decltype(section)> &&
-    !IsEpicArrow<decltype(section)> &&
+    IsEpicArrow<decltype(auto(fst))> &&
+    !IsMonicArrow<decltype(auto(fst))> &&
+    IsMonicArrow<decltype(auto(section))> &&
+    !IsEpicArrow<decltype(auto(section))> &&
     (section >> fst)(true));
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
 Left: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{f >> g} the composite, $f$ then $g$, and \cppinline{constant<A>(y)} the arrow through a singleton, all the tree's, whose generic \cppinline{>>} the listing omits and whose unit law it prints: an overload that repeats the generic constraints and adds one, so that resolution picks it when the left leg is the identity and returns the right leg itself, the law decided at the type, as Listing~\ref{lst:desugar} decides a fold.
-\cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s; \cppinline{neg} is unary minus made an arrow; \cppinline{plus_one} and \cppinline{twice} are composites; \cppinline{fst} and \cppinline{section} are a projection of the product and its section $\langle 1, 0 \rangle$.
+\cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s; \cppinline{neg} is unary minus made an arrow; \mbox{\cppinline{plus_one}} and \cppinline{twice} are composites; \cppinline{fst} and \cppinline{section} are a projection of the product and its section $\langle 1, 0 \rangle$.
 A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}.
 Right: the facts, one assertion: the constant law; \cppinline{id >> neg} is \cppinline{neg}, not a composite around it; a reflection is an involution and antitone, unary minus an involution and not, $0$ being its fixed point; two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution, $-(\sim x) = x + 1$; the variances of composites, which the tree derives from the legs; and the projection epic and not monic, its section monic and not epic, with \cppinline{section >> fst} the identity, a split epi.}
 \label{lst:rule1}
