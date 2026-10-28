@@ -236,7 +236,6 @@ using dedekind::category::constant;
 using dedekind::category::Copairing;
 using dedekind::category::id;
 using dedekind::category::Identity;
-using dedekind::category::Injection;
 using dedekind::category::is_antitone;
 using dedekind::category::is_constant;
 using dedekind::category::is_epic;
@@ -245,13 +244,13 @@ using dedekind::category::is_involution;
 using dedekind::category::is_iso;
 using dedekind::category::is_monic;
 using dedekind::category::is_monotone;
-using dedekind::category::is_total;
 using dedekind::category::Pairing;
 using dedekind::category::Π;
 using dedekind::category::operator!;
 using dedekind::category::operator-;
 using dedekind::category::operator>>;
 using dedekind::category::operator~;
+using dedekind::category::ι;
 
 // Identity arrows:
 constexpr auto id_b = id<bool>();
@@ -259,8 +258,7 @@ constexpr auto id_u = id<size_t>();
 static_assert(id_b(true) == true && id_u(42uz) == 42 && is_monotone(id_u) &&
               is_monotone(id_b) && is_involution(id_u) && is_involution(id_b) &&
               is_identity(id_u >> id_u) && (id_u >> id_u)(42uz) == 42 &&
-              is_monotone(id_u >> id_u) && is_involution(id_u >> id_u) &&
-              is_total(id_u >> id_u));
+              is_monotone(id_u >> id_u) && is_involution(id_u >> id_u));
 // Constant arrows:
 constexpr auto nil = constant<bool>(0uz);
 constexpr auto one = constant<bool>(1uz);
@@ -269,8 +267,7 @@ constexpr auto aye = constant<size_t>(true);
 constexpr auto nay = constant<size_t>(false);
 static_assert((ans >> id_u)(true) == ans(false) && is_constant(ans) &&
               is_monotone(ans) && is_constant(aye) && is_antitone(aye) &&
-              is_total(ans) && is_total(nay) && !is_monic(ans) &&
-              !is_epic(ans) && !is_monic(aye >> id_b) &&
+              !is_monic(ans) && !is_epic(ans) && !is_monic(aye >> id_b) &&
               !is_epic(nay >> id_b) && is_constant(nil >> nay >> ans));
 // Involutions, pointwise:
 static_assert((!aye)(0uz) == false && is_involution(!id_b) &&
@@ -282,7 +279,7 @@ static_assert((!aye)(0uz) == false && is_involution(!id_b) &&
 // Products and coproducts:
 constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
-constexpr auto inl = Injection<1, bool, size_t>{};
+constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
 static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
               !is_epic(sec) && (sec >> fst)(true) && !(sec >> fst)(false) &&

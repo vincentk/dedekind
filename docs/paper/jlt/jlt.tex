@@ -176,8 +176,7 @@ is_involution(id_u) && is_involution(id_b) &&
 is_identity(id_u >> id_u) &&
 (id_u >> id_u)(42) == 42 &&
 is_monotone(id_u >> id_u) &&
-is_involution(id_u >> id_u) &&
-is_total(id_u >> id_u));
+is_involution(id_u >> id_u));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
@@ -192,7 +191,6 @@ static_assert(
 (ans >> id_u)(true) == ans(false) &&
 is_constant(ans) && is_monotone(ans) &&
 is_constant(aye) && is_antitone(aye) &&
-is_total(ans) && is_total(nay) &&
 !is_monic(ans) && !is_epic(ans) &&
 !is_monic(aye >> id_b) &&
 !is_epic(nay >> id_b) &&
@@ -224,8 +222,7 @@ is_iso(-id_u >> ~id_u) &&
 // Products and coproducts:
 constexpr auto fst = Π<1, pair<bool, size_t>>{};
 constexpr auto sec = Pairing{id_b, nil};
-constexpr auto inl =
-    Injection<1, bool, size_t>{};
+constexpr auto inl = ι<1, bool, size_t>{};
 constexpr auto ret = Copairing{id_b, nay};
 static_assert(
 is_epic(fst) && !is_monic(fst) &&

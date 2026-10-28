@@ -380,6 +380,11 @@ static_assert(IsMonicArrow<Injection<1, int, int>> &&
                   IsMonicArrow<Injection<2, int, int>> &&
                   Injection<2, int, int>{}(3).index() == 1,
               "the injections of a sum are monic");
+/** @brief The injection by its textbook name, @f$\iota_K@f$ (Pierce), as the
+ *  projection is @c Π.  @tparam K the summand, 1 or 2.  @tparam A, B the
+ *  summands. */
+export template <std::size_t K, typename A, typename B>
+using ι = Injection<K, A, B>;
 static_assert(
     !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,
                  int, Injections<std::unique_ptr<int>, int>> &&
