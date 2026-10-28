@@ -143,7 +143,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
-The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, the fold that evaluates a list in a monoid, then the fold over the chain of a count under an arrow, and three arrows, constant, identity and a lookup into an array, under which the chain is represented by a pair, a seed and a block of memory.
+The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, and three arrows, constant, identity and a lookup into an array, under which the chain is represented by a pair, a seed and a block of memory.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
@@ -251,17 +251,16 @@ static_assert(
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on four monoids whose certificates are in the test.
+Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on four monoids whose certificates are in the test; the calls are the axioms read as programs, a unit per signature, registered on its operation type.
 }
 \label{lst:rule2}
 \end{listing}
 
-Listing~\ref{lst:rule2} illustrates this for a common algebraic structure: the monoid and \cppinline{concat}, Haskell's \texttt{mconcat}, at the lengths that need no recursion; the fold proper is Listing~\ref{lst:rule3}'s.
+Listing~\ref{lst:rule2} illustrates the principle for monoids of different signatures.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
 A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
-A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint; Haskell's type checker does, which is the only reason this is a rule here.
-A body that uses what its clause does not name, as the test's \cppinline{twice_loose} uses \cppinline{x + x} under no clause, compiles at \cppinline{double}, whose \cppinline{+} is not associative, and nothing says so.
+A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
@@ -270,9 +269,9 @@ What the rule conserves is that inductive argument: structural induction~\cite{b
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
-In both cases, an iteration that can ultimately be mapped the chain of Figure~\ref{fig:structures} can not contain loops and is guaranteed to terminate.
-Regardless of presentation, it is equivalent to looping over an array in a sense which can be made very precise.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, Out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
+Regardless of presentation, it is a traversal of the figure's array, symbolic or physical: the chain holds one count and a physical array holds the elements, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
+Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
 
 \begin{figure}[tb]
 \centering
@@ -387,7 +386,7 @@ Like System~F, strongly normalising and so unable to express every computable fu
 rule & archetype & keeps out of \Cpp{} & buys & costs \\
 \midrule
 1 Substitution & \cppinline{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \cppinline{concat}, a fold over structure in a type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
+2 Abstraction & \cppinline{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
 3 Descent & \cppinline{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & a third answer, \emph{out of budget} \\
 \bottomrule
 \end{tabularx}
@@ -718,7 +717,7 @@ Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presum
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest, nothing for a \cppinline{static_assert}, whose arguments are constants, and the fold over the chain of \cppinline{n} with \cppinline{n} read at run time.
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
-The parting that matters for a fold is the step limit: $10^8$ copies of \cppinline{3} are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 steps with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks; at run time both are loops the optimiser handles, as the listings' panels show.
+The parting that matters for a fold is the step limit: $10^8$ copies of \cppinline{3} are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 steps with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks; at run time both are code the optimiser handles, a closed form and a loop, as the listings' panels show.
 
 \begin{table}[htbp]
 \centering
@@ -837,7 +836,7 @@ Appendix~\ref{app:fjlt:closure} desugars such a registration into an instance wi
 \mbox{\cppinline{std::bind_front}} is standard, and the version in one widely used library does not compile under the compiler this paper uses.
 The listings were built with one compiler against two standard libraries, and that is what ``compiles as written'' means here.
 The youngest piece the posture uses is the fold algorithms over ranges, which entered the standard in 2022 and which the library this paper builds with completed in its release 23~\cite{libcxx2026status}.
-An enumeration is not among the listings' counts: \Cpp{23} cannot list an enumeration's enumerators, so its \cppinline{Out} would have to be declared enumerator by enumerator, and the static reflection of \Cpp{26} would compute it.
+An enumeration is not among the listings' counts: \Cpp{23} cannot list an enumeration's enumerators, so its \cppinline{pred} would have to be declared enumerator by enumerator, and the static reflection of \Cpp{26} would compute it.
 
 \section{Related Work}
 \label{sec:related}
