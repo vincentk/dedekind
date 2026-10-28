@@ -232,8 +232,12 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 // their only structure.  The definitions are the tree's and the facts are
 // checked here; a law is asked on the arrow's value (is_monic(f) reads what
 // IsMonicArrow<F> reads), a composite's law derived by the engine in :posetal.
+using dedekind::category::Cod;
+using dedekind::category::Constant;
 using dedekind::category::constant;
 using dedekind::category::Copairing;
+using dedekind::category::Dom;
+using dedekind::category::endo;
 using dedekind::category::id;
 using dedekind::category::Identity;
 using dedekind::category::is_antitone;
@@ -244,6 +248,7 @@ using dedekind::category::is_involution;
 using dedekind::category::is_iso;
 using dedekind::category::is_monic;
 using dedekind::category::is_monotone;
+using dedekind::category::IsArrow;
 using dedekind::category::Pairing;
 using dedekind::category::Π;
 using dedekind::category::operator!;
