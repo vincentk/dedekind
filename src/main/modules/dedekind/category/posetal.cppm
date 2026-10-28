@@ -876,14 +876,16 @@ constexpr bool is_antitone(const F&, Op = {}) {
  *  identity the composite is the involution itself (the unit law,
  *  @c :morphism).  @c !f, for the arrows into a truth object, is in
  *  @c :topoi.  Unsigned only: @c -INT_MIN is not a function on @c int
- *  (@c :involution).  @param f the arrow. */
+ *  (@c :involution); and not @c bool, which C++ counts as unsigned, so a set's
+ *  characteristic arrow keeps the complement of @c :sets.  @param f the arrow.
+ */
 export template <IsArrow F>
-  requires std::unsigned_integral<Cod<F>>
+  requires std::unsigned_integral<Cod<F>> && (!std::same_as<Cod<F>, bool>)
 constexpr auto operator~(const F& f) {
   return f >> NegationArrow<Chain<Cod<F>>>{};
 }
 export template <IsArrow F>
-  requires std::unsigned_integral<Cod<F>>
+  requires std::unsigned_integral<Cod<F>> && (!std::same_as<Cod<F>, bool>)
 constexpr auto operator-(const F& f) {
   return f >> endo<Cod<F>>(std::negate<Cod<F>>{});
 }
