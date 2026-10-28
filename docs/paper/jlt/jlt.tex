@@ -143,7 +143,7 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
-The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, the fold that evaluates a list in a monoid, then the fold over the chain of a count under an arrow, and the constant and the identity arrows, whose folds declared laws shorten.
+The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, the fold that evaluates a list in a monoid, then the fold over the chain of a count under an arrow, and three arrows, constant, identity and a lookup into an array, under which the chain is represented by a pair, a seed and a block of memory.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
@@ -306,21 +306,22 @@ struct out {                   // the chain's terminator
                               : optional<T>{pred(x)};
   }
 };
-template <typename T, typename Op, typename F>
-  requires IsMonoid<T, Op> && IsEndo<F, T>
+template <typename T, typename Op,
+          typename N, typename F>
+  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
 struct Step {                  // the algebra: a, then f(k)
   F f;
-  constexpr T operator()(T a, T k) const {
+  constexpr T operator()(T a, N k) const {
     return Op{}(a, f(k));
   }
 };
 template <typename T, typename Op = plus<T>,
-          typename F>
-  requires IsCount<T, Op> && IsMonoid<T, Op> &&
-           IsEndo<F, T>
-constexpr T concat(chain_t<T, out<T, Op>> ns, F f) {
+          typename N, typename OpN, typename F>
+  requires IsCount<N, OpN> && IsMonoid<T, Op> &&
+           IsArrowTo<F, N, T>
+constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
   return ranges::fold_left(ns, unit<T>(Op{}),
-                           Step<T, Op, F>{f});
+                           Step<T, Op, N, F>{f});
 }
 static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
                              Identity<size_t>{}) == 55);
@@ -357,10 +358,11 @@ exit:
 }
 \end{minted}
 \end{minipage}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} as a left fold.
-A count is an element of the carrier; \cppinline{pred}, a family, steps it down, and \cppinline{out}, the terminator, stops at the monoid's unit, which the chain descends to and does not include.
-\cppinline{chain(n, out)} is the figure's chain, \cppinline{f} its arrow, \cppinline{Step} the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain}, \cppinline{Constant} and \cppinline{Identity} are the library's.
-The test holds \cppinline{IsCount}, \cppinline{IsEndo}, \cppinline{pred} for strings, and the other calls: \cppinline{not} along the chain of \cppinline{true}, \cppinline{negate} along \cppinline{10}, the chain of \cppinline{'z'} summed as a \cppinline{char}.
+\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} as a left fold, the chain a symbolic array.
+A count is an element of a carrier of its own, the chain's; \cppinline{pred}, a family, steps it down, and \cppinline{out}, the terminator, stops at that carrier's unit, which the chain descends to and does not include.
+\cppinline{chain(n, out)} is the figure's chain: a view that holds one count, whose element at index $k$ is \cppinline{f} applied to the count stepped $k$ times, reached in $k$ steps, and whose traversal is the fold.
+\cppinline{f} is the figure's arrow, from the counts \cppinline{N} into the monoid's carrier \cppinline{T}, which coincide when a count is an element of the carrier, as in every call here, and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain}, \cppinline{Constant} and \cppinline{Identity} are the library's.
+The test holds \cppinline{IsCount}, \cppinline{IsArrowTo}, \cppinline{pred} for strings, and the other calls: \cppinline{not} along the chain of \cppinline{true}, \cppinline{negate} along \cppinline{10}, the chain of \cppinline{'z'} summed as a \cppinline{char}.
 Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n} summed, \cppinline{n} known only at run time, attributes stripped and names shortened: the optimiser finds Gauss's closed form, with a case split below 2.
 }
 \label{lst:rule3}
@@ -400,22 +402,15 @@ The repository's linter measures that the table names every construction the lib
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.56\linewidth}
 \begin{cpp}
-template <typename T, typename Op>
-  requires IsMonoid<T, Op>
-struct Square {                // a set bit folds the base in;
-  constexpr pair<T, T>         // the base squares
-  operator()(pair<T, T> s, bool bit) const {
-    return {bit ? Op{}(s.first, s.second) : s.first,
-            Op{}(s.second, s.second)};
-  }
-};
-template <typename T, typename Op = plus<T>>
-  requires IsCount<T, Op> && IsMonoid<T, Op> &&
-           integral<T> && IsEndo<Constant<T>, T>
-constexpr T concat(chain_t<T, out<T, Op>> ns,
-                   Constant<T> f) {
-  const T n = static_cast<T>(ns.seed() - unit<T>(Op{}));
-  return ranges::fold_left(unfold(n, Bits<T>{}),
+template <typename T, typename Op = plus<T>,
+          typename N, typename OpN>
+  requires IsCount<N, OpN> && IsMonoid<T, Op> &&
+    integral<N> && IsArrowTo<Constant<N, T>, N, T>
+constexpr T concat(chain_t<N, out<N, OpN>> ns,
+                   Constant<N, T> f) {
+  const N n = static_cast<N>(
+      ns.seed() - unit<N>(OpN{}));     // the chain's length
+  return ranges::fold_left(unfold(n, Bits<N>{}),
       pair<T, T>{unit<T>(Op{}), f(n)}, Square<T, Op>{}).first;
 }
 template <typename T, typename Op = plus<T>>
@@ -424,12 +419,29 @@ constexpr T concat(chain_t<T, out<T, Op>> ns,
                    Identity<T>) {
   return Op{}(unit<T>(Op{}), ns.seed());  // the top
 }
-static_assert(concat<size_t>(
-    chain(100'000'000uz, out<size_t>{}),
-    Constant<size_t>{3}) == 300'000'000);
+template <typename T, size_t K>
+struct At {                    // a lookup into an array,
+  array<T, K> a;               // in order along the chain
+  constexpr T operator()(size_t k) const {
+    return a[K - k];
+  }
+};
+template <typename T, typename Op = plus<T>,
+          size_t K>
+  requires IsCount<size_t> && IsMonoid<T, Op>
+constexpr T concat(chain_t<size_t, out<size_t>> ns,
+                   At<T, K> f) {
+  return ranges::fold_left(
+      f.a | views::drop(K - ns.seed()),
+      unit<T>(Op{}), Op{});
+}
+static_assert(concat<string>(chain(3uz, out<size_t>{}),
+    Constant<size_t, string>{"ab"s}) == "ababab");
 static_assert(concat<size_t, Max<size_t>>(
     chain(10uz, out<size_t, Max<size_t>>{}),
     Identity<size_t>{}) == 10);
+static_assert(concat<size_t>(chain(4uz, out<size_t>{}),
+    At<size_t, 4>{{1, 2, 3, 4}}) == 10);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.42\linewidth}
@@ -459,34 +471,49 @@ exit:
                [ %a0, %first ], [ %a1, %loop ]
   ret i64 %r
 }
+define i64 @top_n(i64 %n) {
+  ret i64 %n
+}
+define i64 @sum_a(ptr %a) {
+  %v = load <8 x i64>, ptr %a
+  %s = call i64
+    @llvm.vector.reduce.add.v8i64(<8 x i64> %v)
+  ret i64 %s
+}
 \end{minted}
 \end{minipage}
-
-\begin{minted}[fontsize=\footnotesize]{text}
-concat₁ =  Λ T Op F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
-concat₂ =  Λ T Op.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (seed ns − m.unit)))
-                   where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
-concat₃ =  Λ T Op.   λ m c ns.    m.op m.unit (seed ns)
-concat [u64 plus] (chain out 10) id        =  concat₁ [u64 plus id] plus_u64 count_u64 id (chain out 10)
-concat [u64 plus] (chain out 10) (const 7) =  concat₂ [u64 plus] plus_u64 count_u64 7 (chain out 10)
-concat [u64 max] (chain out 10) id         =  concat₃ [u64 max] max_u64 count_u64 (chain out 10)
-\end{minted}
-\caption{Two specialisations, then the family translated.
-Top left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow.
-A constant arrow, one that factors through a singleton, folds in the same \cppinline{x} at every step, so the fold is as many copies of \cppinline{x} as the chain is long, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count, Knuth's evaluation of powers~\cite[\S 4.6.3]{knuth1997art2}, in logarithmically many steps for any monoid, so that $10^8$ copies are 27 steps at compile time where Listing~\ref{lst:rule3}'s fold is refused (Section~\ref{sec:binding}); \cppinline{Bits}, the coalgebra that unfolds a count into its bits, is in the test.
-The identity along the chain is monotone, so into a join semilattice, an idempotent commutative monoid such as \cppinline{size_t} under \cppinline{max}, the fold is the chain's top, one step; \cppinline{IsSemilattice} and \cppinline{Max} are in the test, beside the semimodule's one action, $n \cdot x$.
+\caption{Three specialisations.
+Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
+A constant arrow, one that factors through a singleton, folds in the same \cppinline{x} at every step: the array is a value and a count, $(x, n)$, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, logarithmically many steps for any monoid, so that $10^8$ copies are 27 steps at compile time where Listing~\ref{lst:rule3}'s fold is refused (Section~\ref{sec:binding}); \cppinline{Bits} and \cppinline{Square}, the coalgebra and the algebra, are in the test and in Listing~\ref{lst:translate}.
+The identity along the chain is monotone, so into a join semilattice, an idempotent commutative monoid such as \cppinline{size_t} under \cppinline{max}, the array is its seed and the fold its top, one step; \cppinline{IsSemilattice} and \cppinline{Max} are in the test, beside the semimodule's one action, $n \cdot x$.
+A lookup into an array of \cppinline{K}, \cppinline{At}, makes the array physical, a block of memory, and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} with \cppinline{K} elements for three.
 Resolution picks each overload by the arrow's type, decided at the type variable.
-Top right: the IR at \texttt{-O2} for the copies, a loop over the bits.
-Bottom: the family under the translation of Section~\ref{sec:translation}, \texttt{m} and \texttt{c} the monoid's and the count's records, and three calls, each the function its resolution picks.}
+Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument; for the array, one vector load and one reduction.}
 \label{lst:desugar}
 \end{listing}
 
+\begin{listing}[htbp]
+\begin{minted}[fontsize=\footnotesize]{text}
+concat₁ =  Λ T Op N F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
+concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (seed ns − m.unit)))
+                   where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
+concat₃ =  Λ T Op.   λ m c ns.    m.op m.unit (seed ns)
+concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (drop (K − seed ns) a)
+concat [u64 plus] (chain out 10) id        =  concat₁ [u64 plus u64 id] plus_u64 count_u64 id (chain out 10)
+concat [u64 plus] (chain out 10) (const 7) =  concat₂ [u64 plus u64] plus_u64 count_u64 7 (chain out 10)
+concat [u64 max] (chain out 10) id         =  concat₃ [u64 max] max_u64 count_u64 (chain out 10)
+concat [u64 plus] (chain out 4) (at a)     =  concat₄ [u64 plus 4] plus_u64 count_u64 a (chain out 4)
+\end{minted}
+\caption{Listing~\ref{lst:desugar}'s family under the translation of Section~\ref{sec:translation}: \texttt{m} and \texttt{c} the monoid's and the count's records, each function a plain function of them, and four calls, each the function its resolution picks.}
+\label{lst:translate}
+\end{listing}
+
 Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a type becomes a family of generic functions.
-Written as branches inside Listing~\ref{lst:rule3}'s \cppinline{concat}, the specialisations are an \cppinline{if constexpr} on the arrow being \cppinline{Constant}, and one on its being \cppinline{Identity} under a semilattice.
+Written as branches inside Listing~\ref{lst:rule3}'s \cppinline{concat}, the specialisations are an \cppinline{if constexpr} on the arrow being \cppinline{Constant}, one on its being \cppinline{Identity} under a semilattice, and one on its being a lookup into an array.
 Desugared, they are the listing's overloads: their second parameter is the more specific, so resolution picks them by partial ordering, and a type is decided at the type variable as at the instantiation, which is why no clause is left undecided (Appendix~\ref{app:fjlt:typing}).
-System~F has no overloading, so in the translated family each function is a plain function of its constraints' records, and each call is the function its resolution picks.
+System~F has no overloading, so in the translated family (Listing~\ref{lst:translate}) each function is a plain function of its constraints' records, and each call is the function its resolution picks.
 The bodies keep Rule~2, and the translation makes it visible: the fold's operation and its unit become \texttt{m.op} and \texttt{m.unit}, fields of a record, because a constraint named them.
-The free theorem and the laws do different work: the first says that \cppinline{concat} can only combine the arrow's values with \cppinline{Op} from the unit, the second which of those combinations are equal, associativity letting the copies be regrouped into squares, idempotence letting the chain's values collapse to its top, and the unit law letting the empty chain fold to the unit.
+The free theorem and the laws do different work: the first says that \cppinline{concat} can only combine the arrow's values with \cppinline{Op} from the unit, the second which of those combinations are equal, associativity letting the copies be regrouped into squares, idempotence letting the chain's values collapse to its top, and the unit law letting the empty chain fold to the unit; the array needs no law, since it is the chain's elements already in memory.
 In Birkhoff's terms the monoids are the variety, lists its free algebra, and the chain of a count under a constant arrow the free algebra on one generator, which is why the binary method needs nothing beyond the monoid.
 In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
