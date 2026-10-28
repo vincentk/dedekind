@@ -388,10 +388,10 @@ static_assert(
  *  the theorem that every @c Preimage<F> preserves inclusion is stated once,
  *  not tagged per instance. */
 export template <typename F, typename Op>
-struct is_monotone : std::false_type {};
+struct monotone_trait : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_monotone_v =
-    is_monotone<std::remove_cvref_t<F>, Op>::value;
+    monotone_trait<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsMonotone
@@ -402,17 +402,8 @@ inline constexpr bool is_monotone_v =
  *          Op(F(x), @c F(y)).  Per Mac Lane, this is the canonical
  *          shape of an arrow between posetal categories.
  */
-/** @brief Is @c F declared monotone under @c Op?  Reads the registration
- *  the concept below reads; a predicate on the order's value for orders that
- *  are empty types (the Jlt paper's spelling, #981).  The concept reads the
- *  registration by type, since an order may carry state.
- *  @tparam F the arrow.  @tparam Op the order. */
 export template <typename F, typename Op = std::less_equal<>>
-constexpr bool monotone(Op) {
-  return is_monotone_v<F, Op>;
-}
-export template <typename F, typename Op = std::less_equal<>>
-concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
+concept IsMonotone = IsArrow<F> && is_monotone_v<std::remove_cvref_t<F>, Op>;
 
 /**
  * @brief User-declared anti-monotonicity witness for an arrow type
@@ -424,13 +415,13 @@ concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
  *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
  *          @c IsMonotone (two flips cancel).
  */
-/** @brief The trait behind @c is_antimonotone_v; a struct, as @c is_monotone,
- *  for the family-wide facts stated downstream. */
+/** @brief The trait behind @c is_antimonotone_v; a struct, as @c
+ * monotone_trait, for the family-wide facts stated downstream. */
 export template <typename F, typename Op>
-struct is_antimonotone : std::false_type {};
+struct antimonotone_trait : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_antimonotone_v =
-    is_antimonotone<std::remove_cvref_t<F>, Op>::value;
+    antimonotone_trait<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsAntiMonotone
@@ -438,7 +429,8 @@ inline constexpr bool is_antimonotone_v =
  *        to the ambient order relation @c Op.
  */
 export template <typename F, typename Op = std::less_equal<>>
-concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
+concept IsAntiMonotone =
+    IsArrow<F> && is_antimonotone_v<std::remove_cvref_t<F>, Op>;
 
 /**
  * @concept IsVariant
@@ -611,7 +603,8 @@ static_assert(Ternary{} == Ternary::Unknown,
 
 /** @section posetal__The_Laws_Of_A_Function
  *  A law of a function (injective, surjective, monotone, antitone,
- *  involutive) is a class of arrows; an arrow's @b profile (@c Profile,
+ *  involutive, constant) is a class of arrows; an arrow's @b profile (@c
+ * Profile,
  *  @c :logic) is the laws it is known to have.  The profiles are a finite
  *  algebra over the formers of arrows (∘, ×, +, ⟨,⟩, [,]): per law a
  *  homomorphism into (Σ, ∧) where the law is closed under the former, the
@@ -630,11 +623,13 @@ export enum class ArrowLaw : unsigned {
   Surjective,
   Monotone,
   Antitone,
-  Involutive
+  Involutive,
+  Constant  // every argument to one value: monotone and antitone, under any
+            // order, and on a chain exactly that (the Jlt paper's Figure 2)
 };
-export inline constexpr std::array<ArrowLaw, 5> every_arrow_law{
+export inline constexpr std::array<ArrowLaw, 6> every_arrow_law{
     ArrowLaw::Injective, ArrowLaw::Surjective, ArrowLaw::Monotone,
-    ArrowLaw::Antitone, ArrowLaw::Involutive};
+    ArrowLaw::Antitone,  ArrowLaw::Involutive, ArrowLaw::Constant};
 /** @brief The formers of arrows: g ∘ f, f × g, f + g, ⟨f, g⟩, [f, g]. */
 export enum class ArrowNode { Compose, Product, Sum, Pairing, Copairing };
 /** @brief The profile of a function. */
@@ -648,7 +643,9 @@ export constexpr Ternary monotone(ArrowLaws p) { return p[ArrowLaw::Monotone]; }
  *  their laws combined by the chain's own @c Inf (both legs) and @c Sup
  *  (either leg).  The facts, each a theorem about functions:
  *  - @b closure: injective and surjective functions are closed under ∘, ×,
- *    +; involutive ones under × and +; monotone ones under × (the
+ *    +; involutive ones under × and +; constant ones under × and ⟨,⟩, and
+ *    g ∘ f is constant as soon as either leg is, while f + g never is (it
+ *    lands in two summands); monotone ones under × (the
  *    componentwise order) and + (@c std::variant's order, by summand first);
  *    antitone ones under × only (a sum's order keeps inl < inr, it does not
  *    reverse it);
@@ -682,16 +679,19 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
                        Inf{}(a[L::Antitone], b[L::Monotone]));
         case L::Involutive:
           return Ternary::Unknown;
+        case L::Constant:  // g ∘ f is constant as soon as either leg is
+          return Sup{}(a[w], b[w]);
       }
       break;
     case ArrowNode::Product:
       return Inf{}(a[w], b[w]);
-    case ArrowNode::Sum:
-      if (w == L::Antitone) return Ternary::Unknown;
+    case ArrowNode::Sum:  // f + g lands in two summands: never constant
+      if (w == L::Antitone || w == L::Constant) return Ternary::Unknown;
       return Inf{}(a[w], b[w]);
     case ArrowNode::Pairing:
       if (w == L::Injective) return Sup{}(a[w], b[w]);
-      if (w == L::Monotone || w == L::Antitone) return Inf{}(a[w], b[w]);
+      if (w == L::Monotone || w == L::Antitone || w == L::Constant)
+        return Inf{}(a[w], b[w]);
       return Ternary::Unknown;
     case ArrowNode::Copairing:
       if (w == L::Surjective) return Sup{}(a[w], b[w]);
@@ -700,9 +700,14 @@ export constexpr Ternary infer(ArrowLaw w, ArrowNode n, const ArrowLaws& a,
   return Ternary::Unknown;
 }
 /** @brief Entailment, a closure operator on profiles: an involution is its
- *  own inverse, so a bijection.  The engine applies it to values; a typed
- *  arrow already has it through the iso hook (@c :involution, an involution
- *  is self-inverse, so monic and epic). */
+ *  own inverse, so a bijection.  Nothing is entailed about a constant arrow's
+ *  variance here: it is monotone and antitone under a reflexive order and
+ *  neither under a strict one, and a profile is read under an arbitrary
+ *  order; the typed reader has the fact where the order is in reach
+ *  (@c :total).  Nor the converse, monotone and antitone entailing constant,
+ *  which holds on a connected domain only.  The engine applies the
+ *  entailment to values; a typed arrow already has it through the iso hook
+ *  (@c :involution). */
 export constexpr ArrowLaws saturated(ArrowLaws p) {
   if (p[ArrowLaw::Involutive] == Ternary::True)
     p = p.with(ArrowLaw::Injective).with(ArrowLaw::Surjective);
@@ -745,6 +750,7 @@ constexpr ArrowLaws declared_arrow_laws() {
   if constexpr (IsEpicArrow<F>) p = p.with(ArrowLaw::Surjective);
   if constexpr (IsMonotone<F, Op>) p = p.with(ArrowLaw::Monotone);
   if constexpr (IsAntiMonotone<F, Op>) p = p.with(ArrowLaw::Antitone);
+  if constexpr (IsConstantArrow<F>) p = p.with(ArrowLaw::Constant);
   if constexpr (HasDomain<F>)
     if constexpr (IsInvolution<F>) p = p.with(ArrowLaw::Involutive);
   return p;
@@ -770,6 +776,10 @@ template <typename F, typename G, typename Op>
 inline constexpr bool is_antimonotone_v<Compose<F, G>, Op> =
     arrow_node(ArrowNode::Compose, arrow_laws_v<F, Op>,
                arrow_laws_v<G, Op>)[ArrowLaw::Antitone] == Ternary::True;
+template <IsArrow F, IsArrow G>
+inline constexpr bool is_constant_arrow_v<Compose<F, G>> =
+    arrow_node(ArrowNode::Compose, arrow_laws_v<F>,
+               arrow_laws_v<G>)[ArrowLaw::Constant] == Ternary::True;
 
 namespace detail_arrow_laws_witness {
 static_assert(IsMonicArrow<Compose<Identity<int>, Identity<int>>> &&
@@ -797,6 +807,19 @@ static_assert(saturated(ArrowLaws{}.with(
                   ArrowLaw::Involutive))[ArrowLaw::Surjective] == Ternary::True,
               "entailment: an involution is a bijection");
 static_assert(
+    saturated(ArrowLaws{}.with(ArrowLaw::Constant))[ArrowLaw::Monotone] ==
+            Ternary::Unknown &&
+        saturated(ArrowLaws{}
+                      .with(ArrowLaw::Monotone)
+                      .with(ArrowLaw::Antitone))[ArrowLaw::Constant] ==
+            Ternary::Unknown,
+    "no entailment between constant and the variances at the value level: a "
+    "profile's order is any, strict or discrete");
+static_assert(arrow_node(ArrowNode::Compose,
+                         ArrowLaws{}.with(ArrowLaw::Constant),
+                         ArrowLaws{})[ArrowLaw::Constant] == Ternary::True,
+              "g ∘ f is constant as soon as either leg is");
+static_assert(
     arrow_node(ArrowNode::Sum, ArrowLaws{}.with(ArrowLaw::Antitone),
                ArrowLaws{}.with(ArrowLaw::Antitone))[ArrowLaw::Antitone] ==
             Ternary::Unknown &&
@@ -806,6 +829,76 @@ static_assert(
     "a sum keeps inl < inr, so no antitone; a copairing compares "
     "across summands, so no variance at all");
 }  // namespace detail_arrow_laws_witness
+
+/** @section posetal__Laws_Asked_On_The_Value
+ *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 1):
+ *  each reads, at compile time, the registration its concept reads, so
+ *  @c is_monic(f) is @c IsMonicArrow<F> at the value's type, and a composite's
+ *  law comes through the readers above.  A concept gates a template, a
+ *  predicate states a fact; both read one registration.
+ *  @param f the arrow.  @param op the order a variance is read under. */
+export template <IsArrow F>
+constexpr bool is_identity(const F&) {
+  return IsIdentityArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_constant(const F&) {
+  return IsConstantArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_monic(const F&) {
+  return IsMonicArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_epic(const F&) {
+  return IsEpicArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_iso(const F&) {
+  return IsIsomorphism<F>;
+}
+export template <IsArrow F>
+constexpr bool is_involution(const F&) {
+  return IsInvolution<F>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_monotone(const F&, Op = {}) {
+  return IsMonotone<F, Op>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_antitone(const F&, Op = {}) {
+  return IsAntiMonotone<F, Op>;
+}
+
+/** @brief The involutions of a codomain, pointwise on the arrows into it:
+ *  @c ~f and @c -f are @c f then the reflection of the chain, respectively
+ *  unary minus, @c (-f)(x) @c = @c -f(x) as for functions in analysis; on an
+ *  identity the composite is the involution itself (the unit law,
+ *  @c :morphism).  @c !f, for the arrows into a truth object, is in
+ *  @c :topoi.  Unsigned only: @c -INT_MIN is not a function on @c int
+ *  (@c :involution); and not @c bool, which C++ counts as unsigned, so a set's
+ *  characteristic arrow keeps the complement of @c :sets.  @param f the arrow.
+ */
+export template <IsArrow F>
+  requires std::unsigned_integral<Cod<F>> && (!std::same_as<Cod<F>, bool>)
+constexpr auto operator~(const F& f) {
+  return f >> NegationArrow<Chain<Cod<F>>>{};
+}
+export template <IsArrow F>
+  requires std::unsigned_integral<Cod<F>> && (!std::same_as<Cod<F>, bool>)
+constexpr auto operator-(const F& f) {
+  return f >> endo<Cod<F>>(std::negate<Cod<F>>{});
+}
+
+namespace detail_posetal_value_laws {
+constexpr auto id_u = Identity<std::size_t>{};
+static_assert(is_identity(id_u >> id_u) && is_monotone(id_u) &&
+                  is_involution(~id_u) && is_antitone(~id_u) &&
+                  is_involution(-id_u) && !is_antitone(-id_u) &&
+                  !is_involution(-id_u >> ~id_u) && (-id_u >> ~id_u)(3uz) == 2,
+              "the laws asked on the value read what the concepts read; "
+              "~(-x) = x - 1 is no involution");
+}  // namespace detail_posetal_value_laws
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
               "co∘co=co: identity composed with itself is monotone.");

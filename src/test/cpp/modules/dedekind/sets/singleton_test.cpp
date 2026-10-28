@@ -24,7 +24,7 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 }
 
 TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
-  auto _s = ι<size_t>(42);
+  auto _s = dedekind::sets::ι<size_t>(42);
   STATIC_REQUIRE(IsSet<decltype(_s)>);
   SECTION("Construction") {
     INFO("Successful membership test.");
@@ -75,7 +75,7 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
     // Two DISTINCT atoms: {42} ∪ {7} = {42, 7} — contains both, nothing else.
     // (Regression guard: the old lvalue comprehension-over-*this wrongly gave
     // {42} here; the recoverable OrPredicate is correct for distinct atoms.)
-    const auto _t = ι<size_t>(7);
+    const auto _t = dedekind::sets::ι<size_t>(7);
     REQUIRE((_s | _t)(std::size_t{42}));
     REQUIRE((_s | _t)(std::size_t{7}));
     REQUIRE(!(_s | _t)(std::size_t{4}));
@@ -134,7 +134,7 @@ TEST_CASE("Sets: Comprehension runtime membership (χ coverage)",
   // Runtime companion to the STATIC_REQUIRE witnesses: call the comprehension's
   // characteristic map (operator()) at RUNTIME so its L::AND-and-lift body is
   // exercised, not only compile-time-asserted.
-  auto _s = ι<size_t>(42);
+  auto _s = dedekind::sets::ι<size_t>(42);
   const auto self_meet = _s & _s;     // the reducer's Meet node of two points
   CHECK(self_meet(size_t{42}));       // 42 ∈ {42} ∧ 42 ∈ {42}
   CHECK_FALSE(self_meet(size_t{7}));  // 7 ∉ {42}

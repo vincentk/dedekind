@@ -70,7 +70,9 @@ concept WellFounded = std::unsigned_integral<T>;
 
 /** @brief A descent: @f$\pi_i - c@f$, a slot stepped down by a constant, and
  *  the slot it steps on.  @c c @c > @c 0 is checked when the @c χ node is
- *  built.  @tparam T the term. */
+ *  built.  That the descent ends is Archimedes' axiom, that enough steps of
+ *  @c c exceed any magnitude @cite heath1897archimedes.  @tparam T the
+ *  term. */
 template <typename T>
 struct descent : std::false_type {};
 template <IsRingIntegral auto I, typename K>

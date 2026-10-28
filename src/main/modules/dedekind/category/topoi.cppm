@@ -751,12 +751,12 @@ constexpr auto operator||(P p, C constant) {
 export template <IsPredicate P>
 constexpr auto operator!(P p) {
   using L = predicate_logic_t<P>;
-  using A = Dom<P>;
   if constexpr (IsSpeciesTaggedArrow<P>) {
     return Not<std::decay_t<P>>{std::move(p)};  // carries the species
   } else {
-    // Return a formal Morphism A -> Ω
-    return arrow<A>([p = std::move(p)](const A& x) { return L::RFL(p(x)); });
+    // ¬ ∘ p: the negation arrow post-composed, so the traits read the
+    // composite (constant stays constant); on an identity it is ¬ itself.
+    return std::move(p) >> NegationArrow<L>{};
   }
 }
 

@@ -63,6 +63,13 @@ concept IsSuccessor = IsPartialMagma<T, std::plus<T>> &&
 /**
  * @concept IsArchimedean
  * @brief The scale axiom: Every element can be 'reached' by the Successor.
+ * FIXME: misnamed.  "Every element reached by the successor" is Peano's and
+ * Dedekind's generation of the naturals from one element and a step; the
+ * Archimedean property is another axiom, that for x, y > 0 some n has
+ * n x > y @cite heath1897archimedes.  Rename to the property
+ * it states, and reconcile its algebraic IsSuccessor (x + 1) with the NNO step
+ * of dedekind.category (successor, HasNNOStep), which every shipped carrier
+ * provides and IsSuccessor's carriers withhold.
  */
 export template <typename T>
 concept IsArchimedean = IsPartiallyOrdered<T> && IsSuccessor<T>;

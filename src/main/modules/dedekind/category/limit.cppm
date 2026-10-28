@@ -382,6 +382,17 @@ struct projection_arrow<0, P> {
 export template <std::size_t K, typename P>
 using Π = typename detail_limit::projection_arrow<K, P>::type;
 
+/** @brief A projection of a product is epic: every value of the component is
+ *  attained, the other component being any value of its type, which is
+ *  inhabited (semiregular).  It is not monic, since it forgets the other
+ *  component; the Jlt paper's Listing 1 shows it beside its section. */
+template <std::size_t K, typename P>
+inline constexpr bool is_epic_arrow_v<detail_limit::ProjectionAt<K, P>> = true;
+static_assert(IsEpicArrow<Π<1, std::pair<bool, std::size_t>>> &&
+                  !IsMonicArrow<Π<1, std::pair<bool, std::size_t>>> &&
+                  Π<2, std::pair<bool, std::size_t>>{}({true, 7}) == 7,
+              "a projection is epic and not monic");
+
 static_assert(π_1(std::pair{7, false}) == 7 && !π_2(std::pair{7, false}) &&
                   π_<3>(std::tuple{1, 2, 3}) == 3 && π(5) == 5,
               "π_k reads the k-th component; π is the identity");

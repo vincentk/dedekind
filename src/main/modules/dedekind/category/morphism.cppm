@@ -981,6 +981,48 @@ constexpr auto operator>>(F f, G g) {
   return Compose<std::decay_t<F>, std::decay_t<G>>{std::move(f), std::move(g)};
 }
 
+/** @brief The unit law, decided at the type: an identity on the matching
+ *  object composes to the other leg itself, not to a @c Compose around it.
+ *  The overloads repeat the generic one's constraints and add one, so
+ *  resolution orders them by subsumption (Jlt paper, Listing 1). */
+template <typename T>
+inline constexpr bool is_identity_v = false;
+template <typename A>
+inline constexpr bool is_identity_v<Identity<A>> = true;
+export template <typename T>
+concept IsIdentityArrow = IsArrow<T> && is_identity_v<std::remove_cvref_t<T>>;
+export template <typename F, typename G>
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<typename std::decay_t<F>::Codomain,
+                        typename std::decay_t<G>::Domain> &&
+           IsIdentityArrow<F>
+constexpr auto operator>>(F, G g) {
+  return g;
+}
+export template <typename F, typename G>
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<typename std::decay_t<F>::Codomain,
+                        typename std::decay_t<G>::Domain> &&
+           IsIdentityArrow<G>
+constexpr auto operator>>(F f, G) {
+  return f;
+}
+export template <typename F, typename G>
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<typename std::decay_t<F>::Codomain,
+                        typename std::decay_t<G>::Domain> &&
+           IsIdentityArrow<F> && IsIdentityArrow<G>
+constexpr auto operator>>(F f, G) {
+  return f;
+}
+static_assert(
+    std::same_as<decltype(id<int>() >> endo<int>(std::negate<int>{})),
+                 decltype(endo<int>(std::negate<int>{}))> &&
+        std::same_as<decltype(endo<int>(std::negate<int>{}) >> id<int>()),
+                     decltype(endo<int>(std::negate<int>{}))> &&
+        std::same_as<decltype(id<int>() >> id<int>()), Identity<int>>,
+    "id >> f is f, f >> id is f and id >> id is id, by resolution");
+
 /**
  * @brief @c operator>> with a callable on the RHS — auto-wraps the lambda
  *        as @c arrow<F::Codomain> .
@@ -1149,6 +1191,17 @@ constexpr auto operator>>(T value, const Arrow& f) -> typename Arrow::Codomain {
  */
 export template <typename E>
 inline constexpr bool is_monic_arrow_v = false;
+
+/** @brief The constancy of an arrow: declared for @c ConstantMorphism
+ *  (@c :discrete), read off composition by the law engine (@c :posetal).
+ *  @tparam E the arrow. */
+export template <typename E>
+inline constexpr bool is_constant_arrow_v = false;
+/** @concept IsConstantArrow
+ *  @brief An arrow known to be constant: every argument to one value. */
+export template <typename F>
+concept IsConstantArrow =
+    IsArrow<F> && is_constant_arrow_v<std::remove_cvref_t<F>>;
 
 /**
  * @concept IsMonicArrow

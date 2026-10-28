@@ -725,7 +725,7 @@ namespace dedekind::category {
 /** @brief The complement reverses inclusion: @f$a \subseteq b \Rightarrow
  *  \neg b \subseteq \neg a@f$, for every carrier and logic. */
 template <typename T, typename L>
-struct is_antimonotone<dedekind::sets::Complement<T, L>, std::less_equal<>>
+struct antimonotone_trait<dedekind::sets::Complement<T, L>, std::less_equal<>>
     : std::true_type {};
 /** @brief The complement is its own antitone adjoint, @f$a \subseteq \neg b
  *  \iff b \subseteq \neg a@f$: the De Morgan algebra @f$\mathrm{Sub}(T, L)@f$

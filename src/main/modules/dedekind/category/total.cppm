@@ -466,6 +466,35 @@ static_assert(
     zero<int, int, std::plus<int>>()(123) == 0,
     "Logic Error: Zero mapping failed to return the identity element.");
 
+/** @section total__Constant_Variance
+ *  A constant arrow is monotone and antitone under every @b reflexive order
+ *  on its codomain, @c Op(x, @c y) giving @c Op(c, @c c), and neither under
+ *  a strict one, @c c @c < @c c failing; so the registration asks the
+ *  codomain's reflexivity (@c :mereology).  The converse, that monotone and
+ *  antitone make an arrow constant, holds on a connected domain, a chain,
+ *  and is not applied (#981).  @c zero() returns a constant arrow and has
+ *  these facts with it. */
+template <typename A, typename B, typename Op>
+  requires is_reflexive_v<B, Op>
+inline constexpr bool is_monotone_v<ConstantMorphism<A, B>, Op> = true;
+template <typename A, typename B, typename Op>
+  requires is_reflexive_v<B, Op>
+inline constexpr bool is_antimonotone_v<ConstantMorphism<A, B>, Op> = true;
+static_assert(IsConstantArrow<ConstantMorphism<int, int>> &&
+                  IsMonotone<ConstantMorphism<int, int>> &&
+                  IsAntiMonotone<ConstantMorphism<int, int>>,
+              "a constant arrow is monotone and antitone under <=, reflexive");
+static_assert(!IsMonotone<ConstantMorphism<int, int>, std::less<>> &&
+                  !IsAntiMonotone<ConstantMorphism<int, int>, std::less<>>,
+              "and neither under <, strict: c < c fails");
+static_assert(
+    IsConstantArrow<Compose<Identity<int>, ConstantMorphism<int, int>>> &&
+        IsConstantArrow<Compose<ConstantMorphism<int, int>, Identity<int>>> &&
+        !IsConstantArrow<Compose<Identity<int>, Identity<int>>>,
+    "g ∘ f is constant as soon as either leg is, by the engine");
+static_assert(IsConstantArrow<decltype(zero<int, int>())>,
+              "zero() is a constant arrow");
+
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(zero<int, int>())>,
               "Totality Error: zero() must be total constant over its domain.");

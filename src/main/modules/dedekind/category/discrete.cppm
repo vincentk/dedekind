@@ -65,6 +65,28 @@ struct ConstantMorphism final {
 template <typename A, typename B, typename Op>
 inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
 
+/** @section discrete__Constant_Is_Constant
+ *  Every argument to one value: the arrow factors through the terminal
+ *  object, @f$c \circ\, !@f$, so it is stated with no order on either side
+ *  (Lawvere and Rosebrugh @cite lawvere2003sets).  It is the vertical arrow
+ *  of the Jlt paper's Figure 2 where the fold is @c n copies of one value
+ *  (#981).  Its variances, monotone and antitone under every reflexive order
+ *  on the codomain, are registered in @c :total, where that order is in
+ *  reach. */
+template <typename A, typename B>
+inline constexpr bool is_constant_arrow_v<ConstantMorphism<A, B>> = true;
+/** @brief The constant arrow by its short name, the paper's spelling.
+ *  @tparam X the domain.  @tparam Y the codomain, by default the domain. */
+export template <typename X, typename Y = X>
+using Constant = ConstantMorphism<X, Y>;
+
+/** @brief The constant arrow's factory, beside @c id<A>() and @c endo<A>(f):
+ *  the domain named, the codomain the value's. */
+export template <typename A, typename B>
+constexpr auto constant(B y) {
+  return Constant<A, B>{y};
+}
+
 // NOTE (#637 re-home): the algebra-flavoured @c zero<A, B, Op>() factory
 // (the constant morphism pointing at @c unit<B>(Op{})) plus the @c
 // unit_registry specialisation for

@@ -429,6 +429,8 @@ if (DOXYGEN_FOUND)
     
     # Optional: Add a project brief (like a Maven description)
     set(DOXYGEN_PROJECT_BRIEF "A structuralist C++23 Module Library")
+    # @cite keys in the Doxygen resolve against the papers' bibliography.
+    set(DOXYGEN_CITE_BIB_FILES ${CMAKE_CURRENT_SOURCE_DIR}/docs/paper/references.bib)
     
     # Use the FindDoxygen built-in macro to configure a Doxyfile automatically
     doxygen_add_docs(docs
