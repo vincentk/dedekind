@@ -308,7 +308,10 @@ static_assert(twice_loose(std::string{"ab"}) == "abab");
 // the operation a value, + by default.  The composite is one hylomorphism:
 // nothing between the seed and the fold is built; the chain holds one count,
 // its element at index k the arrow at the count stepped k times.  until,
-// chain, curry and Predecessor are the library's.
+// chain, curry and Predecessor are the library's.  The block has its own
+// namespace, which the listing omits, so that the previous spelling below,
+// whose parameter is also ns, does not shadow the chain.
+namespace listing3 {
 using dedekind::category::chain;
 using dedekind::category::chain_t;
 using dedekind::category::curry;
@@ -365,10 +368,13 @@ constexpr size_t sum_n(size_t n) {
   return concat(n >> chain(until(end, step)));
 }
 static_assert(sum_n(100) == 5050);
+}  // namespace listing3
 
 // Listing 4's machinery: the fold in its previous spelling, a family of
 // terminators out<T, Op> and concat(chain, f) with the arrow beside the
 // chain, kept until Listing 4 is ported to the arrows above.
+using dedekind::category::chain;
+using dedekind::category::chain_t;
 // The step, a family: a count's predecessor, a word's init.
 template <typename T>
 constexpr T pred(T) = delete;
