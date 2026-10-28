@@ -340,7 +340,7 @@ Top: the counts, with the order their step gives them, as in Dedekind's naturals
 Down: an arrow $f$ from the counts to the values.
 With the counts offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
 Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing $e$; in the bootstrap $M = X$, as in Peano.
-Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one multiplication; $f$ monotone, as the identity is, makes the fold of a nonempty chain into a join semilattice its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
+Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one multiplication; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
 
@@ -475,14 +475,14 @@ template <typename T, typename Op = plus<T>,
            integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns,
                    Constant<N, T> f) {
-  const N n = static_cast<N>(
-      ns.seed() - unit<N>(OpN{}));     // the chain's length
+  const N u = unit<N>(OpN{});  // the length: 0 below u
+  const N n = static_cast<N>(max(ns.seed(), u) - u);
   return ranges::fold_left(unfold(n, Bits<N>{}),
       pair<T, T>{unit<T>(Op{}), f(n)}, Square<T, Op>{}).first;
 }
 template <typename T, typename Op = plus<T>, typename OpN>
   requires IsCount<T, OpN> && same_as<Op, OpN> &&
-           IsSemilattice<T, Op>
+           IsOrderJoinSemilattice<T, Op>
 constexpr T concat(chain_t<T, out<T, OpN>> ns,
                    Identity<T>) {
   return Op{}(unit<T>(Op{}), ns.seed());  // the top
@@ -554,10 +554,9 @@ define i64 @sum_a(ptr %a) {
 \end{minipage}
 \caption{Three specialisations.
 Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
-A constant arrow, one that factors through a singleton, folds in the same \cppinline{x} at every step: the array is a value and a count, $(x, n)$, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, logarithmically many steps for any monoid, so that $10^8$ copies are 27 steps at compile time where Listing~\ref{lst:rule3}'s fold is refused (Section~\ref{sec:binding}); \cppinline{Bits} and \cppinline{Square}, the coalgebra and the algebra, are in the test and in Listing~\ref{lst:translate}.
-The identity along the chain is monotone, so into a join semilattice, an idempotent commutative monoid such as \cppinline{size_t} under \cppinline{max}, the array is its seed and the fold its top, one step; \cppinline{IsSemilattice} and \cppinline{Max} are in the test, beside the semimodule's one action, $n \cdot x$.
-A lookup into an array of \cppinline{K}, \cppinline{At}, makes the array physical, a block of memory, and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
-Resolution picks each overload by the arrow's type, decided at the type variable.
+A constant arrow, one that factors through a singleton, makes the array a value and a count, $(x, n)$, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, logarithmically many steps, $10^8$ copies in 27 (Section~\ref{sec:binding}); \cppinline{Bits} and \cppinline{Square} are in the test.
+The identity along the chain is monotone, so into a join semilattice whose join is the chain's own order, \cppinline{size_t} under \cppinline{max}, the array is its seed and the fold its top, one step; \cppinline{IsOrderJoinSemilattice} and \cppinline{Max} are in the test.
+A lookup into an array of \cppinline{K} makes the array physical and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
 Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument; for the array, one vector load and one reduction.}
 \label{lst:desugar}
 \end{listing}
@@ -565,7 +564,7 @@ Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top,
 \begin{listing}[htbp]
 \begin{minted}[fontsize=\footnotesize]{text}
 concat₁ =  Λ T Op N F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
-concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (seed ns − m.unit)))
+concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (max (seed ns) c.unit − c.unit)))
                    where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
 concat₃ =  Λ T Op.   λ m c ns.    m.op m.unit (seed ns)
 concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (reverse (take (seed ns) (reverse a)))

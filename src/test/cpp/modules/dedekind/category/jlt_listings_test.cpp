@@ -427,7 +427,8 @@ struct Square {  // the algebra: a set bit folds the base in; the base squares
 template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
   requires IsCount<N, OpN> && IsMonoid<T, Op> && std::integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
-  const N n = static_cast<N>(ns.seed() - unit<N>(OpN{}));  // the chain's length
+  const N u = unit<N>(OpN{});  // the chain's length: 0 at or below the unit
+  const N n = static_cast<N>(std::max(ns.seed(), u) - u);
   return std::ranges::fold_left(dedekind::category::unfold(n, Bits<N>{}),
                                 std::pair<T, T>{unit<T>(Op{}), f(n)},
                                 Square<T, Op>{})
@@ -444,6 +445,14 @@ static_assert(concat<size_t, std::multiplies<size_t>>(
                   constant<size_t>(2uz)) == 512);
 static_assert(concat<bool, std::logical_or<bool>>(
     chain(true, out<bool, std::logical_or<bool>>{}), constant<bool>(true)));
+// A seed at or below the count's unit is the empty chain, whose fold is the
+// unit: under multiplication the unit is 1, and 0 must not wrap to a length.
+static_assert(concat<size_t, std::multiplies<size_t>>(
+                  chain(0uz, out<size_t, std::multiplies<size_t>>{}),
+                  constant<size_t>(2uz)) == 1 &&
+              concat<size_t, std::multiplies<size_t>>(
+                  chain(1uz, out<size_t, std::multiplies<size_t>>{}),
+                  constant<size_t>(2uz)) == 1);
 // Section 6: at compile time only a law shortens a fold: 10^8 copies are
 // refused with Listing 3 alone (the step limit) and are 27 steps here.
 static_assert(concat<size_t>(chain(100'000'000uz, out<size_t>{}),
@@ -484,11 +493,27 @@ template <typename T, typename Op>
 concept IsSemilattice = IsCommutativeMonoid<T, Op> && idempotent<T>(Op{});
 static_assert(IsSemilattice<size_t, Max<size_t>> &&
               !IsSemilattice<size_t, std::plus<size_t>>);
+// The join is the order's own, a <= b iff Op(a, b) == b, so that a chain
+// descending in T's order is descending in the semilattice's: bitwise or is a
+// semilattice on size_t whose order is not the chain's (2 | 1 = 3).  The
+// tree's name for the certified shape is IsCertifiedOrderJoinSemilattice.
+template <typename T, typename Op>
+constexpr bool join_of_order(Op) = delete;
+template <std::unsigned_integral T>
+constexpr bool join_of_order(Max<T>) {
+  return true;
+}
+template <typename T, typename Op>
+concept IsOrderJoinSemilattice =
+    IsSemilattice<T, Op> && std::totally_ordered<T> && join_of_order<T>(Op{});
+static_assert(IsOrderJoinSemilattice<size_t, Max<size_t>> &&
+              !IsOrderJoinSemilattice<size_t, std::bit_or<size_t>>);
 
 // The fold's Op and the chain's OpN are named apart and required equal, so
 // that a Max chain folded under the default, +, stays the fold.
 template <typename T, typename Op = std::plus<T>, typename OpN>
-  requires IsCount<T, OpN> && std::same_as<Op, OpN> && IsSemilattice<T, Op>
+  requires IsCount<T, OpN> && std::same_as<Op, OpN> &&
+           IsOrderJoinSemilattice<T, Op>
 constexpr T concat(chain_t<T, out<T, OpN>> ns, Identity<T>) {
   return Op{}(unit<T>(Op{}), ns.seed());  // the chain's top
 }
@@ -607,7 +632,8 @@ namespace algebra {
 template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
   requires IsCount<N, OpN> && IsSemimodule<T, N, Op> && std::integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
-  const N n = static_cast<N>(ns.seed() - unit<N>(OpN{}));
+  const N u = unit<N>(OpN{});
+  const N n = static_cast<N>(std::max(ns.seed(), u) - u);
   return static_cast<T>(n * f(n));
 }
 }  // namespace algebra

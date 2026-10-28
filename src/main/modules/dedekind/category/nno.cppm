@@ -331,10 +331,10 @@ constexpr std::optional<N> cover(const N& n) {
  *  | catamorphism, a banana       | @c std::ranges::fold_left, @c cata      |
  *  | hylomorphism, an envelope    | a fold over @c chain: nothing in between |
  *
- *  A forward view, O(1) state: the element, the next state, and whether the
- *  walk is live.  The coalgebra is a value (Rule 1: semiregular), and two
- *  positions of one walk compare by state, so the element need not be
- *  comparable.
+ *  A forward view, O(1) state: the element, its source state, the next state,
+ *  and whether the walk is live.  The coalgebra is a value (Rule 1:
+ * semiregular), and two positions of one walk compare by state, so the element
+ * need not be comparable.
  *  @tparam S the state.  @tparam Coalg the coalgebra, @c S to
  *  @c optional<pair<A, S>>. */
 export template <std::regular S, std::semiregular Coalg>
@@ -375,11 +375,13 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
       ++*this;
       return before;
     }
-    /** @return whether two positions of one walk coincide: the same next
-     *  state, so, the coalgebra being a function, the same element, which
-     *  need not be comparable. */
+    /** @return whether two positions of one walk coincide: the same source
+     *  state, so, the coalgebra being a function, the same element and the
+     *  same next state; the element need not be comparable.  (The next state
+     *  alone would not do: a step that is not injective reaches one state
+     *  from two, whose elements differ.) */
     friend constexpr bool operator==(const iterator& a, const iterator& b) {
-      return a.live_ == b.live_ && (!a.live_ || a.next_ == b.next_);
+      return a.live_ == b.live_ && (!a.live_ || a.state_ == b.state_);
     }
     /** @return whether the walk has ended. */
     friend constexpr bool operator==(const iterator& it,
@@ -390,6 +392,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
    private:
     constexpr void unfold_one(const S& state) {
       if (const Yield y = std::invoke(step_, state); y.has_value()) {
+        state_ = state;
         current_ = y->first;
         next_ = y->second;
         live_ = true;
@@ -398,6 +401,7 @@ class unfold_view : public std::ranges::view_interface<unfold_view<S, Coalg>> {
       }
     }
     value_type current_{};
+    S state_{};  ///< the source of the element: positions compare by it
     S next_{};
     Coalg step_{};
     bool live_ = false;
