@@ -242,7 +242,6 @@ using dedekind::category::Constant;
 using dedekind::category::constant;
 using dedekind::category::Dom;
 using dedekind::category::endo;
-using dedekind::category::flip;
 using dedekind::category::id;
 using dedekind::category::Identity;
 using dedekind::category::IsAntiMonotone;
@@ -251,10 +250,11 @@ using dedekind::category::IsConstantArrow;
 using dedekind::category::IsInvolution;
 using dedekind::category::IsIsomorphism;
 using dedekind::category::IsMonotone;
-using dedekind::category::neg;
 using dedekind::category::NegationArrow;
 using dedekind::category::operator>>;
 constexpr auto negation = NegationArrow<Boole>{};
+constexpr auto neg = endo<size_t>(std::negate<size_t>{});
+constexpr auto flip = endo<size_t>(std::bit_not<size_t>{});
 
 // The facts, one assertion: the identity and constant laws; id >> neg has
 // neg's signature and value, the unit law; two involutions compose to an
