@@ -162,32 +162,31 @@ What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equal
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.66\linewidth}
 \begin{cpp}
-static_assert(std::semiregular<size_t>);
-static_assert(std::semiregular<std::pair<size_t, bool>>);
+using dedekind::category::Identity;    // 1_T: the arrow as a value
+using dedekind::category::Constant;    // the arrow through a singleton
+using dedekind::category::Compose;     // g after f
 
-template <std::semiregular T>
+static_assert(semiregular<pair<size_t, bool>> && regular<size_t>);
+
+template <semiregular T>
 constexpr T id(const T& x) { return x; }
 
 static_assert(id(size_t{42}) == 42);
+static_assert(Identity<size_t>{}(42uz) == 42);
+static_assert(Compose{Constant<size_t>{7}, Identity<size_t>{}}(42uz) == 7);
+static_assert(is_involutive_v<logical_not<bool>, bool>);
+static_assert(IsMonotone<Identity<size_t>> && IsConstantArrow<Constant<size_t>>);
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.32\linewidth}
-\begin{minted}{llvm}
-define i64 @id_rt() {
-  ret i64 42
-}
-\end{minted}
-\end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value.
-\cppinline{id(42)} is a fact the compiler checks.
-Beside it, the same call at runtime, \cppinline{size_t id_rt() { return id(size_t{42}); }}, is the constant: its LLVM IR under Clang 23 at \texttt{-O2}, attributes stripped.}
+\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{Identity<T>{}} is the same arrow as a value, \cppinline{Constant} the arrow through a singleton and \cppinline{Compose} composition, the library's \cppinline{IsArrow}: a domain, a codomain and a \cppinline{const} call.
+A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}: \cppinline{id(42) == 42}, the involution of \cppinline{not} and the variances of the identity and of a constant are facts the compiler checks, the last two certificates the tree declares.}
 \label{lst:rule1}
 \end{listing}
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
+An arrow is a function made a value, and its laws are equations between values, $f(f(x)) = x$ for an involution, $f(x) = f(y)$ for a constant, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, and the listings ask it of every carrier a law is stated on.
+The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are declared certificates the tree reads, \cppinline{IsMonicArrow}, \cppinline{IsIsomorphism}, \cppinline{IsInvolution}, \cppinline{IsMonotone}, and Listing~\ref{lst:desugar} specialises a fold on two of them; the rest is left to the reader.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.\footnote{A boxed value on the heap, such as \cppinline{std::shared_ptr<const T>}, is a value in this sense on two conditions, that the pointee is \cppinline{const} and that nothing asks which box it is; there are two heaps, the run time's and the one constant evaluation simulates, and evaluating a box at compile time arrives only with \Cpp{26}~\cite{keir2025constexprsharedptr}.}
@@ -262,17 +261,6 @@ A requirement names an operation with its result type, exactly, \cppinline{same_
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
-\paragraph{Rule 3, Descent: recursion is structural.}
-\phantomsection\label{def:rule3}
-A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end: the step is deflationary, $s\,x \le x$ in Figure~\ref{fig:structures}, on an order with no infinite descent.
-What the rule conserves is that inductive argument: structural induction~\cite{burstall1969proving}, a language all of whose programs end by it being Turner's total functional programming~\cite{turner2004total}, and the fold's universal property its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only.
-For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
-Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
-The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
-In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
-Regardless of presentation, it is a traversal of the figure's array, symbolic or physical: the chain holds one count and a physical array holds the elements, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
-
 \begin{figure}[tb]
 \centering
 \begin{tikzcd}[column sep=2.2em, row sep=2.6em]
@@ -296,6 +284,18 @@ Properties of $f$ license shortcuts, each representing the chain by less than it
 \label{fig:structures}
 \end{figure}
 
+\paragraph{Rule 3, Descent: recursion is structural.}
+\phantomsection\label{def:rule3}
+A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end: the step is deflationary, $s\,x \le x$ in Figure~\ref{fig:structures}, on an order with no infinite descent.
+What the rule conserves is that inductive argument: structural induction~\cite{burstall1969proving}, a language all of whose programs end by it being Turner's total functional programming~\cite{turner2004total}, and the fold's universal property its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only.
+For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
+Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
+The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
+In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
+Regardless of presentation, it is a traversal of the figure's array, symbolic or physical: the chain holds one count and a physical array holds the elements, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
+Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+
+
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.58\linewidth}
 \begin{cpp}
@@ -313,8 +313,9 @@ struct out {                   // the chain's terminator
   }
 };
 template <typename T, typename Op,
-          typename N, typename F>
-  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
+          typename N, IsArrow F>
+  requires IsMonoid<T, Op> && same_as<Dom<F>, N> &&
+           same_as<Cod<F>, T>
 struct Step {                  // the algebra: a, then f(k)
   F f;
   constexpr T operator()(T a, N k) const {
@@ -322,9 +323,9 @@ struct Step {                  // the algebra: a, then f(k)
   }
 };
 template <typename T, typename Op = plus<T>,
-          typename N, typename OpN, typename F>
+          typename N, typename OpN, IsArrow F>
   requires IsCount<N, OpN> && IsMonoid<T, Op> &&
-           IsArrowTo<F, N, T>
+    same_as<Dom<F>, N> && same_as<Cod<F>, T>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
   return ranges::fold_left(ns, unit<T>(Op{}),
                            Step<T, Op, N, F>{f});
@@ -367,8 +368,8 @@ exit:
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} as a left fold, the chain a symbolic array.
 A count is an element of a carrier of its own, the chain's; \cppinline{pred}, a family, steps it down, and \cppinline{out}, the terminator, stops at that carrier's unit, which the chain descends to and does not include.
 \cppinline{chain(n, out)} is the figure's chain: a view that holds one count, whose element at index $k$ is \cppinline{f} applied to the count stepped $k$ times, reached in $k$ steps, and whose traversal is the fold.
-\cppinline{f} is the figure's arrow, from the counts \cppinline{N} into the monoid's carrier \cppinline{T}, which coincide when a count is an element of the carrier, as in every call here, and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain}, \cppinline{Constant} and \cppinline{Identity} are the library's.
-The test holds \cppinline{IsCount}, \cppinline{IsArrowTo}, \cppinline{pred} for strings, and the other calls: \cppinline{not} along the chain of \cppinline{true}, \cppinline{negate} along \cppinline{10}, the chain of \cppinline{'z'} summed as a \cppinline{char}.
+\cppinline{f} is the figure's arrow, Listing~\ref{lst:rule1}'s \cppinline{IsArrow}, from the counts \cppinline{N} into the carrier \cppinline{T}, which coincide here and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain} is the library's.
+The test holds \cppinline{IsCount}, \cppinline{pred} for strings, and the other calls, among them the chain of \cppinline{'z'} summed as a \cppinline{char}.
 Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n} summed, \cppinline{n} known only at run time, attributes stripped and names shortened: the optimiser finds Gauss's closed form, with a case split below 2.
 }
 \label{lst:rule3}
@@ -411,7 +412,7 @@ The repository's linter measures that the table names every construction the lib
 template <typename T, typename Op = plus<T>,
           typename N, typename OpN>
   requires IsCount<N, OpN> && IsMonoid<T, Op> &&
-    integral<N> && IsArrowTo<Constant<N, T>, N, T>
+           integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns,
                    Constant<N, T> f) {
   const N n = static_cast<N>(
@@ -419,15 +420,18 @@ constexpr T concat(chain_t<N, out<N, OpN>> ns,
   return ranges::fold_left(unfold(n, Bits<N>{}),
       pair<T, T>{unit<T>(Op{}), f(n)}, Square<T, Op>{}).first;
 }
-template <typename T, typename Op = plus<T>>
-  requires IsCount<T, Op> && IsSemilattice<T, Op>
-constexpr T concat(chain_t<T, out<T, Op>> ns,
+template <typename T, typename Op = plus<T>, typename OpN>
+  requires IsCount<T, OpN> && same_as<Op, OpN> &&
+           IsSemilattice<T, Op>
+constexpr T concat(chain_t<T, out<T, OpN>> ns,
                    Identity<T>) {
   return Op{}(unit<T>(Op{}), ns.seed());  // the top
 }
 template <typename T, size_t K>
 struct At {                    // a lookup into an array,
-  array<T, K> a;               // in order along the chain
+  using Domain = size_t;       // in order along the chain
+  using Codomain = T;
+  array<T, K> a;
   constexpr T operator()(size_t k) const {
     return a[K - k];
   }

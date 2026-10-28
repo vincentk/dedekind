@@ -227,9 +227,25 @@ constexpr bool distributive<bool>(std::multiplies<bool>, std::plus<bool>) {
 static_assert(IsSemiring<bool, std::plus<bool>, std::multiplies<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// Section 2, the posture: one panel per rule.
-static_assert(std::semiregular<size_t>);
-static_assert(std::semiregular<std::pair<size_t, bool>>);
+// Listing 1: values and arrows.  A value is semiregular.  An arrow is a
+// function made a value, a struct with a const call operator, a Domain and a
+// Codomain, the library's IsArrow; Identity<T> is 1_T, Constant<X, Y> the
+// arrow through a singleton, Compose composition.  A law of an arrow is an
+// equation, so == states it and the codomain is regular: Leibniz's law made
+// a predicate.  The properties a law singles out, involution, the variances,
+// are certificates the tree declares and Listing 4 specialises on.
+using dedekind::category::Cod;
+using dedekind::category::Compose;
+using dedekind::category::Constant;
+using dedekind::category::Dom;
+using dedekind::category::Identity;
+using dedekind::category::is_involutive_v;
+using dedekind::category::IsArrow;
+using dedekind::category::IsConstantArrow;
+using dedekind::category::IsMonotone;
+
+static_assert(std::semiregular<std::pair<size_t, bool>> &&
+              std::regular<size_t>);
 
 template <std::semiregular T>
 constexpr T id(const T& x) {
@@ -237,6 +253,11 @@ constexpr T id(const T& x) {
 }
 
 static_assert(id(size_t{42}) == 42);
+static_assert(IsArrow<Identity<size_t>> && Identity<size_t>{}(42uz) == 42);
+static_assert(Compose{Constant<size_t>{7}, Identity<size_t>{}}(42uz) == 7);
+static_assert(is_involutive_v<std::logical_not<bool>, bool>);
+static_assert(IsMonotone<Identity<size_t>> &&
+              IsConstantArrow<Constant<size_t>>);
 
 template <typename T>
 constexpr T twice_loose(T x) {
@@ -252,11 +273,9 @@ static_assert(twice_loose(std::string{"ab"}) == "abab");
 // concat folds f under Op from the unit, by the standard's fold_left, the
 // kernel's iterator.  The chain holds one count, its element at index k is f
 // of the count stepped k times, reached in k steps, and its traversal is the
-// fold.  chain, chain_t, Constant and Identity are the library's.
+// fold.  chain and chain_t are the library's, as Listing 1's arrows are.
 using dedekind::category::chain;
 using dedekind::category::chain_t;
-using dedekind::category::Constant;
-using dedekind::category::Identity;
 
 // The step, a family: a count's predecessor, a word's init.
 template <typename T>
@@ -288,14 +307,10 @@ concept IsCount = requires(const T x) {
   { out<T, Op>{}(x) } -> std::same_as<std::optional<T>>;
   { chain(x, out<T, Op>{}) } -> std::same_as<chain_t<T, out<T, Op>>>;
 };
-// An arrow along the chain, from the counts into the carrier.
-template <typename F, typename N, typename T>
-concept IsArrowTo = requires(const F f, const N k) {
-  { f(k) } -> std::same_as<T>;
-};
-// The algebra of the fold: a, then f(k).
-template <typename T, typename Op, typename N, typename F>
-  requires IsMonoid<T, Op> && IsArrowTo<F, N, T>
+// The algebra of the fold: a, then f(k), for an arrow from the counts into
+// the carrier.
+template <typename T, typename Op, typename N, IsArrow F>
+  requires IsMonoid<T, Op> && std::same_as<Dom<F>, N> && std::same_as<Cod<F>, T>
 struct Step {
   F f;
   constexpr T operator()(T a, N k) const { return Op{}(a, f(k)); }
@@ -303,8 +318,9 @@ struct Step {
 // The counts N and the carrier T coincide when a count is an element of the
 // carrier, Figure 2's bootstrap; a physical array parts them.
 template <typename T, typename Op = std::plus<T>, typename N, typename OpN,
-          typename F>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> && IsArrowTo<F, N, T>
+          IsArrow F>
+  requires IsCount<N, OpN> && IsMonoid<T, Op> && std::same_as<Dom<F>, N> &&
+           std::same_as<Cod<F>, T>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
   return std::ranges::fold_left(ns, unit<T>(Op{}), Step<T, Op, N, F>{f});
 }
@@ -315,12 +331,8 @@ static_assert(concat<size_t>(chain(10uz, out<size_t>{}), Identity<size_t>{}) ==
 static_assert(concat<size_t, std::multiplies<size_t>>(
                   chain(10uz, out<size_t, std::multiplies<size_t>>{}),
                   Identity<size_t>{}) == 3628800);
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}), std::negate<>{}) ==
-              static_cast<size_t>(0) - 55);
 static_assert(concat<bool, std::logical_or<bool>>(
     chain(true, out<bool, std::logical_or<bool>>{}), Identity<bool>{}));
-static_assert(!concat<bool, std::logical_or<bool>>(
-    chain(true, out<bool, std::logical_or<bool>>{}), std::logical_not<>{}));
 static_assert(concat<char>(chain('z', out<char>{}), Identity<char>{}) == 'O');
 static_assert(concat<std::string>(chain("z"s, out<std::string>{}),
                                   Identity<std::string>{}) == "z");
@@ -343,7 +355,7 @@ static_assert(sum_n(100) == 5050);
 template <
     typename T, typename Op = std::plus<T>, typename N = T,
     typename OpN = std::conditional_t<std::same_as<N, T>, Op, std::plus<N>>>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> && IsArrowTo<Constant<N, T>, N, T>
+  requires IsCount<N, OpN> && IsMonoid<T, Op>
 constexpr T copies(T x, N n) {
   return std::ranges::fold_left(
       chain(n, out<N, OpN>{}), unit<T>(Op{}),
@@ -372,8 +384,7 @@ struct Square {  // the algebra: a set bit folds the base in; the base squares
   }
 };
 template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> && std::integral<N> &&
-           IsArrowTo<Constant<N, T>, N, T>
+  requires IsCount<N, OpN> && IsMonoid<T, Op> && std::integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
   const N n = static_cast<N>(ns.seed() - unit<N>(OpN{}));  // the chain's length
   return std::ranges::fold_left(dedekind::category::unfold(n, Bits<N>{}),
@@ -434,11 +445,15 @@ concept IsSemilattice = IsCommutativeMonoid<T, Op> && idempotent<T>(Op{});
 static_assert(IsSemilattice<size_t, Max<size_t>> &&
               !IsSemilattice<size_t, std::plus<size_t>>);
 
-template <typename T, typename Op = std::plus<T>>
-  requires IsCount<T, Op> && IsSemilattice<T, Op>
-constexpr T concat(chain_t<T, out<T, Op>> ns, Identity<T>) {
+// The fold's Op and the chain's OpN are named apart and required equal, so
+// that a Max chain folded under the default, +, stays the fold.
+template <typename T, typename Op = std::plus<T>, typename OpN>
+  requires IsCount<T, OpN> && std::same_as<Op, OpN> && IsSemilattice<T, Op>
+constexpr T concat(chain_t<T, out<T, OpN>> ns, Identity<T>) {
   return Op{}(unit<T>(Op{}), ns.seed());  // the chain's top
 }
+static_assert(concat<size_t>(chain(10uz, out<size_t, Max<size_t>>{}),
+                             Identity<size_t>{}) == 55);
 static_assert(concat<size_t, Max<size_t>>(chain(10uz,
                                                 out<size_t, Max<size_t>>{}),
                                           Identity<size_t>{}) == 10);
@@ -461,6 +476,8 @@ static_assert(top_n(100) == 100);
 // length K: the chain goes, the memory is walked.
 template <typename T, size_t K>
 struct At {
+  using Domain = size_t;
+  using Codomain = T;
   std::array<T, K> a;
   constexpr T operator()(size_t k) const { return a[K - k]; }  // in order
 };
@@ -548,8 +565,7 @@ static_assert(!IsSemimodule<bool, size_t>);
 // agree.
 namespace algebra {
 template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
-  requires IsCount<N, OpN> && IsSemimodule<T, N, Op> && std::integral<N> &&
-           IsArrowTo<Constant<N, T>, N, T>
+  requires IsCount<N, OpN> && IsSemimodule<T, N, Op> && std::integral<N>
 constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
   const N n = static_cast<N>(ns.seed() - unit<N>(OpN{}));
   return static_cast<T>(n * f(n));
