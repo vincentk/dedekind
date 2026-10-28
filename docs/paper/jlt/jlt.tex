@@ -292,7 +292,7 @@ Top: the counts, with the order their step gives them, as in Dedekind's naturals
 Down: an arrow $f$ from the counts to the values.
 With the counts offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
 Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing $e$; in the bootstrap $M = X$, as in Peano.
-Properties of $f$ license shortcuts: $f$ constant, monotone and antitone, makes the fold copies of one value, which associativity computes by squaring and a semimodule in one multiplication; $f$ monotone, as the identity is, makes the fold of a nonempty chain into a join semilattice its top, $f\,n$ (Listing~\ref{lst:desugar}).}
+Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one multiplication; $f$ monotone, as the identity is, makes the fold of a nonempty chain into a join semilattice its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
 
@@ -374,7 +374,7 @@ Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n}
 \label{lst:rule3}
 \end{listing}
 
-What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's one multiplication, though the count is known only at run time (Section~\ref{sec:binding}).
+What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's closed form, Gauss's, though the count is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).
 
@@ -743,7 +743,7 @@ Apart from the last row, no difference is a different value: where both evaluati
 \end{table}
 
 \paragraph{The two evaluators are different programs.}
-In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s multiplication sees only the code emitted for run time.
+In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s closed form sees only the code emitted for run time.
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:desugar}'s overload: it buys at build time what the optimiser finds at run time by itself.
 
 Not every algorithm converges, so Jlt allows a \emph{budget}, a counter out of band beside the structure's own count, with a maximum number of steps, just as the compiler does; the compiler's budgets apply at compile time only, Jlt's at both binding times, and the exhaustion of either is never a value, a refusal from the compiler and an absent answer from the fold (Appendix~\ref{app:fjlt:ssa}).
