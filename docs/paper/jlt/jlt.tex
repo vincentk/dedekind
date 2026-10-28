@@ -150,7 +150,7 @@ Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:rel
 \label{sec:posture}
 
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
-Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits; the LLVM IR panels are Clang~23's output at \texttt{-O2} for functions the test defines.
+Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits, or, as in Listing~\ref{lst:rule1}, the tree's definitions a listing prints and the test imports; the LLVM IR panels are Clang~23's output at \texttt{-O2} for functions the test defines.
 
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
@@ -163,24 +163,29 @@ In a programming language the law is referential transparency~\cite{strachey2000
 
 \begin{listing}[htbp]
 \begin{cpp}
-using dedekind::category::Identity;    // 1_T: the arrow as a value
-using dedekind::category::Constant;    // the arrow through a singleton
-using dedekind::category::Compose;     // g after f
+template <typename A> constexpr auto id() { return Identity<A>{}; }
+template <typename A, typename B>
+constexpr auto constant(B y) { return Constant<A, B>{y}; }
+template <IsArrow F, IsArrow G> requires same_as<Cod<F>, Dom<G>>
+constexpr auto operator>>(F f, G g) { return Compose<F, G>{f, g}; }  // f, then g
+constexpr auto negation = NegationArrow<Boole>{};                    // ¬ on bool
+constexpr auto neg = endo<size_t>(negate<size_t>{});                 // −
+constexpr auto flip = endo<size_t>(bit_not<size_t>{});               // ~
 
-static_assert(semiregular<pair<size_t, bool>> && regular<size_t>);
-
-template <semiregular T>
-constexpr T id(const T& x) { return x; }
-
-static_assert(id(size_t{42}) == 42);
-static_assert(Identity<size_t>{}(42uz) == 42);
-static_assert(Compose{Constant<size_t>{7}, Identity<size_t>{}}(42uz) == 7);
-static_assert(is_involutive_v<logical_not<bool>, bool>);
-static_assert(IsMonotone<Identity<size_t>> && IsConstantArrow<Constant<size_t>>);
+static_assert(regular<size_t>);                        // == states the laws
+static_assert(id<size_t>()(42uz) == 42);
+static_assert((constant<size_t>(7uz) >> id<size_t>())(42uz) == 7);
+static_assert(IsInvolution<decltype(negation)> && IsInvolution<decltype(neg)>);
+static_assert(IsIsomorphism<decltype(flip >> neg)> && !IsInvolution<decltype(flip >> neg)>);
+static_assert((flip >> neg)(3uz) == 4);                // −(~x) = x + 1
+static_assert(IsMonotone<decltype(id<bool>())> && IsAntiMonotone<decltype(negation)> &&
+              IsAntiMonotone<decltype(id<bool>() >> negation)> &&
+              IsMonotone<decltype(negation >> negation)> && IsConstantArrow<Constant<size_t>>);
 \end{cpp}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-\cppinline{T} is a value, \cppinline{const T&} denotes it, and it comes back by value; \cppinline{Identity<T>{}} is the same arrow as a value, \cppinline{Constant} the arrow through a singleton and \cppinline{Compose} composition, the library's \cppinline{IsArrow}: a domain, a codomain and a \cppinline{const} call.
-A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}: \cppinline{id(42) == 42}, the involution of \cppinline{not} and the variances of the identity and of a constant are facts the compiler checks, the last two certificates the tree declares.}
+The definitions are the tree's: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{constant<A>(y)} the arrow through a singleton, \cppinline{f >> g} the composite, $f$ then $g$, and \cppinline{negation}, \cppinline{neg}, \cppinline{flip} the involutions $\lnot$, $-$ and $\sim$.
+A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}.
+The facts the compiler checks: the identity and constant laws; that two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution; and the variances, the identity monotone, $\lnot$ antitone on $\mathit{false} < \mathit{true}$, and those of the composites, which the tree derives from the legs rather than declares.}
 \label{lst:rule1}
 \end{listing}
 
@@ -333,7 +338,7 @@ constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
 static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
                              Identity<size_t>{}) == 55);
 static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             Constant<size_t>{7}) == 70);
+                             constant<size_t>(7uz)) == 70);
 static_assert(concat<string>(
     chain("abc"s, out<string>{}),
     Identity<string>{}) == "abcaba");
@@ -446,7 +451,7 @@ constexpr T concat(chain_t<size_t, out<size_t>> ns,
       unit<T>(Op{}), Op{});
 }
 static_assert(concat<string>(chain(3uz, out<size_t>{}),
-    Constant<size_t, string>{"ab"s}) == "ababab");
+    constant<size_t>("ab"s)) == "ababab");
 static_assert(concat<size_t, Max<size_t>>(
     chain(10uz, out<size_t, Max<size_t>>{}),
     Identity<size_t>{}) == 10);
@@ -713,7 +718,7 @@ What the translation adds is the second half of Theorem~\ref{thm:simulation}: th
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id(size_t{42})}, \cppinline{concat} on two numbers and on two words, and the chain of \cppinline{10} summed were each checked in a \cppinline{static_assert}.
+\cppinline{id<size_t>()(42)}, \cppinline{concat} on two numbers and on two words, and the chain of \cppinline{10} summed were each checked in a \cppinline{static_assert}.
 The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
 A \cppinline{consteval} function, an immediate function, is the opposite case: it is evaluated only at compile time, so it has exactly one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.

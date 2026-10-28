@@ -159,7 +159,7 @@ using on_t =
 export template <typename F, typename T = Dom<F>>
 concept IsInvolution = IsEndomorphism<detail_involution::on_t<F, T>> &&
                        std::same_as<Dom<detail_involution::on_t<F, T>>, T> &&
-                       is_involutive_v<F, T>;
+                       is_involutive_v<std::remove_cvref_t<F>, T>;
 
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution
@@ -202,6 +202,17 @@ static_assert(IsInvolution<std::logical_not<bool>, bool> &&
               !IsEndomorphism<std::logical_not<bool>> &&
               IsEndomorphism<decltype(endo<bool>(std::logical_not<bool>{}))> &&
               IsInvolution<decltype(endo<bool>(std::logical_not<bool>{}))>);
+
+/** @brief The involutions the Jlt paper's Listing 1 names: unary minus and
+ *  the complement on @c size_t, each certified above.  Composed, −(~x) = x + 1
+ *  is an isomorphism, by (g∘f)⁻¹ = f⁻¹∘g⁻¹, and no involution: applied twice
+ *  it is x + 2. */
+export constexpr auto neg = endo<std::size_t>(std::negate<std::size_t>{});
+export constexpr auto flip = endo<std::size_t>(std::bit_not<std::size_t>{});
+static_assert(IsInvolution<decltype(neg)> && IsInvolution<decltype(flip)> &&
+              IsIsomorphism<decltype(flip >> neg)> &&
+              !IsInvolution<decltype(flip >> neg)> && (flip >> neg)(3uz) == 4 &&
+              (flip >> neg)((flip >> neg)(3uz)) == 5);
 
 namespace detail_involution {
 constexpr auto not_bool = endo<bool>(std::logical_not<bool>{});

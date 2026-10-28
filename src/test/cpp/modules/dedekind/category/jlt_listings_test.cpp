@@ -229,35 +229,45 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
 // Listing 1: values and arrows.  A value is semiregular.  An arrow is a
 // function made a value, a struct with a const call operator, a Domain and a
-// Codomain, the library's IsArrow; Identity<T> is 1_T, Constant<X, Y> the
-// arrow through a singleton, Compose composition.  A law of an arrow is an
-// equation, so == states it and the codomain is regular: Leibniz's law made
-// a predicate.  The properties a law singles out, involution, the variances,
-// are certificates the tree declares and Listing 4 specialises on.
+// Codomain, the library's IsArrow: id<A>() is 1_A, constant<A>(y) the arrow
+// through a singleton, f >> g the composite, f then g, and negation, neg and
+// flip the involutions ¬, − and ~.  A law of an arrow is an equation, so ==
+// states it and the codomain is regular: Leibniz's law made a predicate.  The
+// definitions are the tree's and the facts are checked here; the variances of
+// the composites are derived by the engine in :posetal, not declared.
+using dedekind::category::Boole;
 using dedekind::category::Cod;
 using dedekind::category::Compose;
 using dedekind::category::Constant;
+using dedekind::category::constant;
 using dedekind::category::Dom;
 using dedekind::category::endo;
+using dedekind::category::flip;
+using dedekind::category::id;
 using dedekind::category::Identity;
-using dedekind::category::is_involutive_v;
+using dedekind::category::IsAntiMonotone;
 using dedekind::category::IsArrow;
 using dedekind::category::IsConstantArrow;
+using dedekind::category::IsInvolution;
+using dedekind::category::IsIsomorphism;
 using dedekind::category::IsMonotone;
+using dedekind::category::neg;
+using dedekind::category::NegationArrow;
+using dedekind::category::operator>>;
+constexpr auto negation = NegationArrow<Boole>{};
 
 static_assert(std::semiregular<std::pair<size_t, bool>> &&
               std::regular<size_t>);
-
-template <std::semiregular T>
-constexpr T id(const T& x) {
-  return x;
-}
-
-static_assert(id(size_t{42}) == 42);
-static_assert(IsArrow<Identity<size_t>> && Identity<size_t>{}(42uz) == 42);
-static_assert(Compose{Constant<size_t>{7}, Identity<size_t>{}}(42uz) == 7);
-static_assert(is_involutive_v<std::logical_not<bool>, bool>);
-static_assert(IsMonotone<Identity<size_t>> &&
+static_assert(id<size_t>()(42uz) == 42);
+static_assert((constant<size_t>(7uz) >> id<size_t>())(42uz) == 7);
+static_assert(IsInvolution<decltype(negation)> && IsInvolution<decltype(neg)>);
+static_assert(IsIsomorphism<decltype(flip >> neg)> &&
+              !IsInvolution<decltype(flip >> neg)>);
+static_assert((flip >> neg)(3uz) == 4);  // −(~x) = x + 1
+static_assert(IsMonotone<decltype(id<bool>())> &&
+              IsAntiMonotone<decltype(negation)> &&
+              IsAntiMonotone<decltype(id<bool>() >> negation)> &&
+              IsMonotone<decltype(negation >> negation)> &&
               IsConstantArrow<Constant<size_t>>);
 
 template <typename T>
@@ -349,7 +359,7 @@ static_assert(concat<std::string>(chain("z"s, out<std::string>{}),
 static_assert(concat<std::string>(chain("abc"s, out<std::string>{}),
                                   Identity<std::string>{}) == "abcaba");
 static_assert(concat<std::string>(chain("abc"s, out<std::string>{}),
-                                  Constant<std::string>{"x"s}) == "xxx");
+                                  constant<std::string>("x"s)) == "xxx");
 static_assert(concat<size_t>(chain(0uz, out<size_t>{}), Identity<size_t>{}) ==
               0);
 
@@ -404,23 +414,22 @@ constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
 }
 // The counts and the carrier part: three copies of a word, by squaring.
 static_assert(concat<std::string>(chain(3uz, out<size_t>{}),
-                                  Constant<size_t, std::string>{"ab"s}) ==
-              "ababab");
+                                  constant<size_t>("ab"s)) == "ababab");
 
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}), Constant<size_t>{7}) ==
-              70);
+static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
+                             constant<size_t>(7uz)) == 70);
 static_assert(concat<size_t, std::multiplies<size_t>>(
                   chain(10uz, out<size_t, std::multiplies<size_t>>{}),
-                  Constant<size_t>{2}) == 512);
+                  constant<size_t>(2uz)) == 512);
 static_assert(concat<bool, std::logical_or<bool>>(
-    chain(true, out<bool, std::logical_or<bool>>{}), Constant<bool>{true}));
+    chain(true, out<bool, std::logical_or<bool>>{}), constant<bool>(true)));
 // Section 6: at compile time only a law shortens a fold: 10^8 copies are
 // refused with Listing 3 alone (the step limit) and are 27 steps here.
 static_assert(concat<size_t>(chain(100'000'000uz, out<size_t>{}),
-                             Constant<size_t>{3}) == 300'000'000);
+                             constant<size_t>(3uz)) == 300'000'000);
 // Listing 4, right: the copies with the count known only at run time.
 constexpr size_t copies_n(size_t x, size_t n) {
-  return concat<size_t>(chain(n, out<size_t>{}), Constant<size_t>{x});
+  return concat<size_t>(chain(n, out<size_t>{}), constant<size_t>(x));
 }
 static_assert(copies_n(7, 100) == 700);
 
@@ -679,7 +688,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
 
   SECTION("Section 2: the rules' functions, called at runtime") {
     size_t twelve = 12;
-    CHECK(L::id(twelve) == 12);
+    CHECK(L::id<size_t>()(twelve) == 12);
     CHECK(L::sum_n(twelve) == 78);
     CHECK(L::copies_n(7, twelve) == 84);
     CHECK(L::top_n(twelve) == 12);

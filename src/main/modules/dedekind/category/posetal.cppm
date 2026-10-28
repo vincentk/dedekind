@@ -412,7 +412,7 @@ constexpr bool monotone(Op) {
   return is_monotone_v<F, Op>;
 }
 export template <typename F, typename Op = std::less_equal<>>
-concept IsMonotone = IsArrow<F> && is_monotone_v<F, Op>;
+concept IsMonotone = IsArrow<F> && is_monotone_v<std::remove_cvref_t<F>, Op>;
 
 /**
  * @brief User-declared anti-monotonicity witness for an arrow type
@@ -438,7 +438,8 @@ inline constexpr bool is_antimonotone_v =
  *        to the ambient order relation @c Op.
  */
 export template <typename F, typename Op = std::less_equal<>>
-concept IsAntiMonotone = IsArrow<F> && is_antimonotone_v<F, Op>;
+concept IsAntiMonotone =
+    IsArrow<F> && is_antimonotone_v<std::remove_cvref_t<F>, Op>;
 
 /**
  * @concept IsVariant

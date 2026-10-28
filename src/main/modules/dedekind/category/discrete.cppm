@@ -80,6 +80,13 @@ inline constexpr bool is_constant_arrow_v<ConstantMorphism<A, B>> = true;
 export template <typename X, typename Y = X>
 using Constant = ConstantMorphism<X, Y>;
 
+/** @brief The constant arrow's factory, beside @c id<A>() and @c endo<A>(f):
+ *  the domain named, the codomain the value's. */
+export template <typename A, typename B>
+constexpr auto constant(B y) {
+  return Constant<A, B>{y};
+}
+
 // NOTE (#637 re-home): the algebra-flavoured @c zero<A, B, Op>() factory
 // (the constant morphism pointing at @c unit<B>(Op{})) plus the @c
 // unit_registry specialisation for
