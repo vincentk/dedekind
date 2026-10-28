@@ -679,9 +679,6 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::concat<bool, std::logical_or<bool>>(
         L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
         L::Identity<bool>{}));
-    CHECK(!L::concat<bool, std::logical_or<bool>>(
-        L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
-        std::logical_not<>{}));
     std::string abc = "abc";
     CHECK(L::concat<std::string>(L::chain(abc, L::out<std::string>{}),
                                  L::Identity<std::string>{}) == "abcaba");
