@@ -462,6 +462,127 @@ export template <std::regular X, std::semiregular Step>
 constexpr chain_t<X, Step> chain(X x, Step step) {
   return unfold(x, StepCoalgebra<X, Step>{step});
 }
+
+/** @section nno__Chain_As_Arrows
+ *  @brief The chain in arrows (the Jlt paper, Listing 3).  Three arrows make
+ *  it: an end, a predicate on the states; a step, an endo; a seed, a point.
+ *  @c until(end, step) is the guard, the partial step @f$N \to 1 + N@f$ a
+ *  cartesian category builds as @f$\langle end, 1\rangle ; dist ; (! +
+ *  step)@f$.  @c chain(out) is the anamorphism as an arrow @f$N \to N^*@f$,
+ *  so a seed composed into it, @c x >> chain(out), is its chain.
+ *  @c ns >> f is the functor's action, @c f mapped over the elements, the
+ *  coalgebra's emitted leg post-composed, @f$(1 + f \times 1) \circ
+ *  out@f$, and @c map @c id is the chain itself, decided at the type.  A fold
+ *  over the composite is a hylomorphism: nothing between the seed and the
+ *  fold is built. */
+export template <IsArrow End, IsArrow Step>
+  requires std::same_as<Dom<End>, Dom<Step>> &&
+           std::same_as<Cod<Step>, Dom<Step>> &&
+           std::convertible_to<Cod<End>, bool>
+struct Until {
+  using Domain = Dom<Step>;
+  using Codomain = std::optional<Domain>;
+  End end;
+  Step step;
+  /** @param n a state.  @return nothing at the end, else the step of @c n. */
+  constexpr Codomain operator()(const Domain& n) const {
+    if (end(n)) return std::nullopt;
+    return std::optional<Domain>{step(n)};
+  }
+  constexpr bool operator==(const Until&) const = default;
+};
+/** @brief The guard.  @param end where the chain stops.  @param step the
+ *  total step.  @return the partial step. */
+export template <IsArrow End, IsArrow Step>
+constexpr Until<End, Step> until(End end, Step step) {
+  return {std::move(end), std::move(step)};
+}
+
+/** @brief The anamorphism of a coalgebra as an arrow from the seeds:
+ *  @c x >> unfold<S>(c) is @c unfold(x, c).  @tparam S the state.
+ *  @tparam Coalg the coalgebra. */
+export template <std::regular S, std::semiregular Coalg>
+  requires requires(const S& s, const Coalg& c) { unfold(s, c); }
+struct Unfold {
+  using Domain = S;
+  using Codomain = unfold_view<S, Coalg>;
+  Coalg coalg;
+  /** @param seed the first state.  @return the walk from it. */
+  constexpr Codomain operator()(const S& seed) const {
+    return unfold(seed, coalg);
+  }
+  constexpr bool operator==(const Unfold&) const = default;
+};
+/** @brief The anamorphism, as an arrow.  @tparam S the state.  @param c the
+ *  coalgebra. */
+export template <std::regular S, std::semiregular Coalg>
+constexpr Unfold<S, Coalg> unfold(Coalg c) {
+  return {std::move(c)};
+}
+/** @brief The chain of a partial step, as an arrow from the seeds:
+ *  @c x >> chain(out) is @c chain(x, out).  @param out the partial step. */
+export template <IsArrow Out>
+  requires std::regular<Dom<Out>> && std::semiregular<Out>
+constexpr Unfold<Dom<Out>, StepCoalgebra<Dom<Out>, Out>> chain(Out out) {
+  return {StepCoalgebra<Dom<Out>, Out>{std::move(out)}};
+}
+
+/** @brief The functor's action on a coalgebra: @c f on the emitted leg.
+ *  @tparam S the state.  @tparam Coalg the coalgebra.  @tparam F the arrow. */
+export template <std::regular S, std::semiregular Coalg, IsArrow F>
+  requires std::regular_invocable<const Coalg&, const S&> &&
+           requires(std::invoke_result_t<const Coalg&, const S&> y) {
+             { y->first } -> std::convertible_to<Dom<F>>;
+             { y->second } -> std::convertible_to<S>;
+           }
+struct Mapped {
+  Coalg coalg;
+  F f;
+  /** @param s a state.  @return @c f of the element, and the next state. */
+  constexpr std::optional<std::pair<Cod<F>, S>> operator()(const S& s) const {
+    if (const auto y = std::invoke(coalg, s); y.has_value())
+      return std::pair<Cod<F>, S>{f(y->first), y->second};
+    return std::nullopt;
+  }
+  constexpr bool operator==(const Mapped&) const = default;
+};
+/** @brief @c ns >> f: @c f mapped over the walk, as a walk.  @param v the
+ *  walk.  @param f the arrow. */
+export template <std::regular S, std::semiregular Coalg, IsArrow F>
+  requires std::same_as<Dom<F>, typename unfold_view<S, Coalg>::element_type>
+constexpr unfold_view<S, Mapped<S, Coalg, F>> operator>>(
+    const unfold_view<S, Coalg>& v, F f) {
+  return unfold(v.seed(), Mapped<S, Coalg, F>{v.coalgebra(), std::move(f)});
+}
+/** @brief The functor's unit law, decided at the type: @c map @c id is the
+ *  walk itself. */
+export template <std::regular S, std::semiregular Coalg, IsArrow F>
+  requires std::same_as<Dom<F>, typename unfold_view<S, Coalg>::element_type> &&
+           IsIdentityArrow<F>
+constexpr unfold_view<S, Coalg> operator>>(const unfold_view<S, Coalg>& v, F) {
+  return v;
+}
+
+namespace detail_chain_arrows {
+struct IsZero {
+  using Domain = unsigned;
+  using Codomain = bool;
+  constexpr bool operator()(unsigned n) const { return n == 0; }
+  constexpr bool operator==(const IsZero&) const = default;
+};
+constexpr auto ns = 3u >> chain(until(IsZero{}, Predecessor<unsigned>{}));
+static_assert(
+    std::ranges::fold_left(ns, 0u, std::plus<unsigned>{}) == 6 &&
+        std::ranges::fold_left(ns >> Successor<unsigned>{}, 0u,
+                               std::plus<unsigned>{}) == 9 &&
+        std::same_as<decltype(ns >> Identity<unsigned>{}), decltype(ns)> &&
+        std::ranges::fold_left(0u >> chain(until(IsZero{},
+                                                 Predecessor<unsigned>{})),
+                               0u, std::plus<unsigned>{}) == 0,
+    "a seed into the chain of a guard is its chain; f mapped over it folds "
+    "to f's values; map id is the chain, by resolution; the end at the seed "
+    "is the empty chain");
+}  // namespace detail_chain_arrows
 /** @brief The coalgebra of the bounded chain @c [lo, hi]: over the state
  *  @f$1 + C@f$, since past @c hi is no element, and the cover of a saturating
  *  top is nothing.  @tparam C the chain. */

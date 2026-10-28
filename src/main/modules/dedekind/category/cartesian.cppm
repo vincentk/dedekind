@@ -246,6 +246,74 @@ constexpr auto uncurry(F f) {
   });
 }
 
+/** @section cartesian__Curry_Of_An_Operation
+ *  @brief A binary operation curried, with named arrows throughout (the Jlt
+ *  paper, Listing 3): @c curry<T>(op) is @f$T \to T^T@f$, its value at @c a
+ *  the operator section @f$b \mapsto op(a, b)@f$, Haskell's @c (a @c +), and
+ *  @c uncurry takes it back to @f$T \times T \to U@f$.  A chain's end and
+ *  step are such sections: @c curry<N>(greater_equal<N>{})(unit) stops at
+ *  the unit, @c curry<N>(plus<N>{})(1) is the successor.
+ *  @tparam T the carrier.  @tparam Op the operation. */
+export template <typename T, typename Op>
+  requires std::regular_invocable<const Op&, const T&, const T&>
+struct Section {
+  using Domain = T;
+  using Codomain =
+      std::remove_cvref_t<std::invoke_result_t<const Op&, const T&, const T&>>;
+  Op op;
+  T a;
+  /** @param b the second argument.  @return @c op(a, b). */
+  constexpr Codomain operator()(const T& b) const { return op(a, b); }
+  constexpr bool operator==(const Section&) const = default;
+};
+/** @brief @f$T \to T^T@f$: the operation, one argument at a time. */
+export template <typename T, typename Op>
+  requires std::regular_invocable<const Op&, const T&, const T&>
+struct Curried {
+  using Domain = T;
+  using Codomain = Section<T, Op>;
+  Op op;
+  /** @param a the first argument.  @return the section at @c a. */
+  constexpr Codomain operator()(const T& a) const { return {op, a}; }
+  constexpr bool operator==(const Curried&) const = default;
+};
+/** @brief The operation curried.  @tparam T the carrier.  @param op the
+ *  operation, a function object and no arrow (an arrow from a product has
+ *  the overload above). */
+export template <typename T, typename Op>
+  requires(!IsArrow<Op>) &&
+          std::regular_invocable<const Op&, const T&, const T&>
+constexpr Curried<T, Op> curry(Op op) {
+  return {std::move(op)};
+}
+/** @brief @f$T \times T \to U@f$: the curried operation, taken back. */
+export template <typename T, typename Op>
+  requires std::regular_invocable<const Op&, const T&, const T&>
+struct Uncurried {
+  using Domain = std::pair<T, T>;
+  using Codomain = typename Section<T, Op>::Codomain;
+  Op op;
+  /** @param p both arguments.  @return @c op(p.first, p.second). */
+  constexpr Codomain operator()(const Domain& p) const {
+    return op(p.first, p.second);
+  }
+  constexpr bool operator==(const Uncurried&) const = default;
+};
+/** @brief The inverse of @c curry<T>.  @param c the curried operation. */
+export template <typename T, typename Op>
+constexpr Uncurried<T, Op> uncurry(Curried<T, Op> c) {
+  return {std::move(c.op)};
+}
+static_assert(
+    curry<unsigned>(std::plus<unsigned>{})(1u)(2u) == 3 &&
+        uncurry(curry<unsigned>(std::plus<unsigned>{}))({1u, 2u}) == 3 &&
+        IsArrow<Curried<unsigned, std::plus<unsigned>>> &&
+        IsArrow<Section<unsigned, std::plus<unsigned>>> &&
+        curry<unsigned>(std::greater_equal<unsigned>{})(0u)(0u) &&
+        !curry<unsigned>(std::greater_equal<unsigned>{})(0u)(1u),
+    "curry<T>(op)(a)(b) = op(a, b), uncurry takes it back, and both are "
+    "arrows with names");
+
 /**
  * @concept IsCoproduct
  * @brief Categorification of `std::variant<A, B>` as the categorical

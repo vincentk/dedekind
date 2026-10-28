@@ -353,50 +353,43 @@ Meijer et al.\ take their recursion operators in CPO, where one list type holds 
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
 Regardless of presentation, it is a traversal of the figure's array, symbolic or physical: the chain holds one count and a physical array holds the elements, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{chain(n, out)} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{n >> chain(until(end, step))} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
 
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.58\linewidth}
 \begin{cpp}
-template <typename T> constexpr T pred(T) = delete;
-template <integral T>
-constexpr T pred(T x) { return static_cast<T>(x - 1); }
-
-template <typename T, typename Op = plus<T>>
-  requires IsMonoid<T, Op> && totally_ordered<T> &&
-    requires(const T x) { { pred(x) } -> same_as<T>; }
-struct out {                   // the chain's terminator
-  constexpr optional<T> operator()(T x) const {
-    return x <= unit<T>(Op{}) ? nullopt
-                              : optional<T>{pred(x)};
+template <IsArrow End, IsArrow Step>  // the guard
+  requires same_as<Dom<End>, Dom<Step>> &&
+           same_as<Cod<Step>, Dom<Step>>
+struct Until {                        // N → 1 + N
+  using Domain = Dom<Step>;
+  using Codomain = optional<Domain>;
+  End end;
+  Step step;
+  constexpr Codomain operator()(Domain n) const {
+    return end(n) ? nullopt : optional{step(n)};
   }
 };
-template <typename T, typename Op,
-          typename N, IsArrow F>
-  requires IsMonoid<T, Op> && same_as<Dom<F>, N> &&
-           same_as<Cod<F>, T>
-struct Step {                  // the algebra: a, then f(k)
-  F f;
-  constexpr T operator()(T a, N k) const {
-    return Op{}(a, f(k));
-  }
-};
-template <typename T, typename Op = plus<T>,
-          typename N, typename OpN, IsArrow F>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> &&
-    same_as<Dom<F>, N> && same_as<Cod<F>, T>
-constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
-  return ranges::fold_left(ns, unit<T>(Op{}),
-                           Step<T, Op, N, F>{f});
+template <ranges::input_range R,      // the free monoid's fold
+          typename T = ranges::range_value_t<R>,
+          typename Op = plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(R ns, Op op = {}) {
+  return ranges::fold_left(ns, unit<T>(op), op);
 }
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             Identity<size_t>{}) == 55);
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             constant<size_t>(7uz)) == 70);
-static_assert(concat<string>(
-    chain("abc"s, out<string>{}),
-    Identity<string>{}) == "abcaba");
+constexpr auto end =                    // 0 ≥ n
+    curry<size_t>(greater_equal<size_t>{})(0uz);
+constexpr auto step = Predecessor<size_t>{};  // n − 1
+constexpr auto ns = 10uz >> chain(until(end, step));
+static_assert(
+    concat(ns) == 55 &&
+    concat(ns, multiplies<size_t>{}) == 3628800 &&
+    concat(ns >> constant<size_t>(7uz)) == 70 &&
+    concat(ns >> -id<size_t>()) + 55 == 0 &&
+    same_as<decltype(ns >> id<size_t>()),
+            decltype(auto(ns))> &&
+    concat("abc"s >> chain(until(blank, Init{}))) == "abcaba");
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.40\linewidth}
@@ -425,11 +418,13 @@ exit:
 }
 \end{minted}
 \end{minipage}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} as a left fold, the chain a symbolic array.
-A count is an element of a carrier of its own, the chain's; \cppinline{pred}, a family, steps it down, and \cppinline{out}, the terminator, stops at that carrier's unit, which the chain descends to and does not include.
-\cppinline{chain(n, out)} is the figure's chain: a view that holds one count, whose element at index $k$ is \cppinline{f} applied to the count stepped $k$ times, reached in $k$ steps, and whose traversal is the fold.
-\cppinline{f} is the figure's arrow, an \cppinline{IsArrow} as Listing~\ref{lst:rule1}'s are, from the counts \cppinline{N} into the carrier \cppinline{T}, which coincide here and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain} is the library's.
-The test holds \cppinline{IsCount}, \cppinline{pred} for strings, and the other calls, among them the chain of \cppinline{'z'} summed as a \cppinline{char}.
+\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in arrows.
+Three arrows make the chain: \cppinline{end}, a predicate on the counts, the curried $\geq$ at the unit; \cppinline{step}, an endomorphism, the predecessor; and the seed, a point, composed into \cppinline{chain(until(end, step))}, the anamorphism $N \to N^*$, the library's.
+\cppinline{until} is the guard, $N \to 1 + N$, which a cartesian category builds as $\langle \mathit{end}, 1 \rangle ; \mathit{dist} ; (\mathord{!} + \mathit{step})$.
+\cppinline{ns >> f} is the functor's action, \cppinline{f} mapped over the chain, and \cppinline{>> id} the chain itself, the unit law by resolution as in Listing~\ref{lst:rule1}.
+\cppinline{concat} is the free monoid's fold, the unique homomorphism out of $N^*$, the standard's \cppinline{fold_left}, which is the kernel's iterator; the carrier is the range's and the operation a value.
+The composite is one hylomorphism: nothing between the seed and the fold is built, the chain holding one count, its element at index $k$ the arrow at the count stepped $k$ times, reached in $k$ steps.
+\cppinline{Init} and \cppinline{blank}, the word's step and end, are in the test with the other calls, among them the chain of \cppinline{'z'} summed as a \cppinline{char}.
 Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n} summed, \cppinline{n} known only at run time, attributes stripped and names shortened: the optimiser finds Gauss's closed form, with a case split below 2.
 }
 \label{lst:rule3}

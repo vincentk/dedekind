@@ -298,17 +298,77 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: Figure 2 as a left fold, the chain a symbolic array.  A count
-// is an element of a carrier of its own, the chain's; its chain descends by
-// pred to that carrier's unit, which delimits and is not an element; an arrow
-// f runs along the chain into the monoid's carrier, which may be another;
-// concat folds f under Op from the unit, by the standard's fold_left, the
-// kernel's iterator.  The chain holds one count, its element at index k is f
-// of the count stepped k times, reached in k steps, and its traversal is the
-// fold.  chain and chain_t are the library's, as Listing 1's arrows are.
+// Listing 3: Figure 2 in arrows, a chain of counts under an arrow, folded.
+// Three arrows make the chain: an end, a predicate on the counts; a step, an
+// endo; and a seed, a point, composed into the anamorphism chain(until(end,
+// step)) : N → N*.  ns >> f is the functor's action, f mapped over the chain,
+// and map id is the chain itself, the unit law by resolution as in Listing 1;
+// concat is the free monoid's fold, the unique homomorphism out of N*, the
+// standard's fold_left, the kernel's iterator; the carrier is the range's and
+// the operation a value, + by default.  The composite is one hylomorphism:
+// nothing between the seed and the fold is built; the chain holds one count,
+// its element at index k the arrow at the count stepped k times.  until,
+// chain, curry and Predecessor are the library's.
 using dedekind::category::chain;
 using dedekind::category::chain_t;
+using dedekind::category::curry;
+using dedekind::category::Predecessor;
+using dedekind::category::until;
 
+template <std::ranges::input_range R,
+          typename T = std::ranges::range_value_t<R>,
+          typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(R ns, Op op = {}) {  // the free monoid's fold
+  return std::ranges::fold_left(ns, unit<T>(op), op);
+}
+constexpr auto end = curry<size_t>(std::greater_equal<size_t>{})(0uz);  // 0 ≥ n
+constexpr auto step = Predecessor<size_t>{};                            // n − 1
+constexpr auto ns = 10uz >> chain(until(end, step));  // 10 … 1
+// The word's chain: its init, down to the empty word.
+struct Init {
+  using Domain = std::string;
+  using Codomain = std::string;
+  constexpr std::string operator()(const std::string& s) const {
+    return s.substr(0, s.size() - 1);
+  }
+  constexpr bool operator==(const Init&) const = default;
+};
+constexpr auto blank =
+    curry<std::string>(std::greater_equal<std::string>{})(std::string{});
+static_assert(concat(ns) == 55 &&
+              concat(ns, std::multiplies<size_t>{}) == 3628800 &&
+              concat(ns >> constant<size_t>(7uz)) == 70 &&
+              concat(ns >> -id<size_t>()) + 55 == 0 &&
+              std::same_as<decltype(ns >> id<size_t>()), decltype(auto(ns))> &&
+              concat("abc"s >> chain(until(blank, Init{}))) == "abcaba");
+// The other calls: a seed at the end is the empty chain; the chain of true
+// under or; the chain of 'z' summed as a char; a word's chain under a
+// constant; a bare std::logical_not<bool> is no IsArrow until endo<bool>
+// names its domain (Listing 1).
+constexpr auto no = curry<bool>(std::greater_equal<bool>{})(false);
+constexpr auto bs = true >> chain(until(no, Predecessor<bool>{}));
+static_assert(concat(0uz >> chain(until(end, step))) == 0 &&
+              concat(bs, std::logical_or<bool>{}) &&
+              !concat(bs >> endo<bool>(std::logical_not<bool>{}),
+                      std::logical_or<bool>{}) &&
+              concat('z' >>
+                     chain(until(curry<char>(std::greater_equal<char>{})('\0'),
+                                 Predecessor<char>{}))) == 'O' &&
+              concat("z"s >> chain(until(blank, Init{}))) == "z" &&
+              concat("abc"s >> chain(until(blank, Init{})) >>
+                     constant<std::string>("x"s)) == "xxx");
+
+// Listing 3, right: the chain summed with the count known only at run time;
+// its LLVM IR at -O2 is the paper's panel.
+constexpr size_t sum_n(size_t n) {
+  return concat(n >> chain(until(end, step)));
+}
+static_assert(sum_n(100) == 5050);
+
+// Listing 4's machinery: the fold in its previous spelling, a family of
+// terminators out<T, Op> and concat(chain, f) with the arrow beside the
+// chain, kept until Listing 4 is ported to the arrows above.
 // The step, a family: a count's predecessor, a word's init.
 template <typename T>
 constexpr T pred(T) = delete;
@@ -356,40 +416,6 @@ template <typename T, typename Op = std::plus<T>, typename N, typename OpN,
 constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
   return std::ranges::fold_left(ns, unit<T>(Op{}), Step<T, Op, N, F>{f});
 }
-
-// The column of the paper's table.
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}), Identity<size_t>{}) ==
-              55);
-static_assert(concat<size_t, std::multiplies<size_t>>(
-                  chain(10uz, out<size_t, std::multiplies<size_t>>{}),
-                  Identity<size_t>{}) == 3628800);
-static_assert(concat<bool, std::logical_or<bool>>(
-    chain(true, out<bool, std::logical_or<bool>>{}), Identity<bool>{}));
-// A bare std::logical_not<bool> is no IsArrow until endo<bool> names its
-// domain (Listing 1); the tree certifies it, and negate on the unsigned
-// carriers, as involutions.
-static_assert(!concat<bool, std::logical_or<bool>>(
-    chain(true, out<bool, std::logical_or<bool>>{}),
-    endo<bool>(std::logical_not<bool>{})));
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             endo<size_t>(std::negate<size_t>{})) ==
-              static_cast<size_t>(0) - 55);
-static_assert(concat<char>(chain('z', out<char>{}), Identity<char>{}) == 'O');
-static_assert(concat<std::string>(chain("z"s, out<std::string>{}),
-                                  Identity<std::string>{}) == "z");
-static_assert(concat<std::string>(chain("abc"s, out<std::string>{}),
-                                  Identity<std::string>{}) == "abcaba");
-static_assert(concat<std::string>(chain("abc"s, out<std::string>{}),
-                                  constant<std::string>("x"s)) == "xxx");
-static_assert(concat<size_t>(chain(0uz, out<size_t>{}), Identity<size_t>{}) ==
-              0);
-
-// Listing 3, right: the chain summed with the count known only at run time;
-// its LLVM IR at -O2 is the paper's panel.
-constexpr size_t sum_n(size_t n) {
-  return concat<size_t>(chain(n, out<size_t>{}), Identity<size_t>{});
-}
-static_assert(sum_n(100) == 5050);
 
 // Listing 3's fold at a constant arrow, spelled out: what Listing 4 and the
 // algebra below are held to.
