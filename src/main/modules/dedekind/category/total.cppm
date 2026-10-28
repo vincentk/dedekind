@@ -278,7 +278,7 @@ concept IsConstructed = requires {
 };
 
 /** @brief Path E to totality: @b by @b construction.  Defined below
- *  @c is_total, which it recurses into on the base.
+ *  @c total_trait, which it recurses into on the base.
  *  @tparam T the carrier.
  *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
@@ -296,7 +296,7 @@ inline constexpr bool is_total_by_construction_v =
  *  @tparam T the carrier.
  *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
-struct is_total
+struct total_trait
     : std::bool_constant<
           is_periodic_v<T, std::remove_cvref_t<Op>> ||     // A: wraps
           is_idempotent_v<T, std::remove_cvref_t<Op>> ||   // B: stable
@@ -305,18 +305,18 @@ struct is_total
           is_total_by_construction_v<T, std::remove_cvref_t<Op>>  // E: built
           > {};
 
-/** @brief Value form of @c is_total.
+/** @brief Value form of @c total_trait.
  *  @tparam T the carrier.
  *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
-inline constexpr bool is_total_v = is_total<T, Op>::value;
+inline constexpr bool is_total_v = total_trait<T, Op>::value;
 
 // Path E, read off the construction: + is computed with the base's +; × with
 // the base's × and, where it multiplies out, the base's + as well.
 template <IsConstructed D>
 struct is_total_by_construction<D, std::plus<D>>
-    : is_total<typename construction_base<D>::type,
-               std::plus<typename construction_base<D>::type>> {};
+    : total_trait<typename construction_base<D>::type,
+                  std::plus<typename construction_base<D>::type>> {};
 
 template <IsConstructed D>
 struct is_total_by_construction<D, std::multiplies<D>>
@@ -376,7 +376,8 @@ inline constexpr bool is_distributive_v<D, std::multiplies<D>, std::plus<D>> =
 
 /**
  * @concept IsTotal
- * @brief The Master Safety Certificate for Level 0: @c is_total, as a concept.
+ * @brief The Master Safety Certificate for Level 0: @c total_trait, as a
+ * concept.
  */
 export template <typename T, typename Op>
 concept IsTotal = is_total_v<T, Op>;
@@ -395,6 +396,14 @@ concept IsTotal = is_total_v<T, Op>;
 export template <typename F>
 concept IsTotalArrow =
     IsArrow<F> && std::same_as<typename GetLogic<domain_t<F>>::type::Ω, bool>;
+
+/** @brief @c IsTotalArrow asked on the value (the Jlt paper's Listing 1, as
+ *  @c is_monic(f) in @c :posetal): a function is total, a relation need not
+ *  be.  @param f the arrow. */
+export template <IsArrow F>
+constexpr bool is_total(const F&) {
+  return IsTotalArrow<F>;
+}
 
 /**
  * @concept IsPointed

@@ -392,7 +392,7 @@ constexpr auto preimage(F f, S s) {
  *  factor is a finite chain (Shannon's expansion, the join of the
  *  substitutions at each value: the typed twin of the run-time
  *  @c ChainValues).  The certificates (monotone, adjoint) are stated once for
- *  the whole family, as specialisations of @c category::is_monotone /
+ *  the whole family, as specialisations of @c category::monotone_trait /
  *  @c is_adjoint on its pattern: theorems, not tags.  Frobenius reciprocity and
  * Beck--Chevalley (#909) are then equations between these arrows, checked
  * below. */
@@ -551,13 +551,13 @@ namespace dedekind::category {
  *  @f$f^{-1}(b) \subseteq a \iff b \subseteq \forall_f a@f$ (Lawvere; in
  *  Set, for every @f$f@f$). */
 template <typename F, typename L>
-struct is_monotone<dedekind::relational::Image<F, L>, std::less_equal<>>
+struct monotone_trait<dedekind::relational::Image<F, L>, std::less_equal<>>
     : std::true_type {};
 template <typename F, typename L>
-struct is_monotone<dedekind::relational::Preimage<F, L>, std::less_equal<>>
+struct monotone_trait<dedekind::relational::Preimage<F, L>, std::less_equal<>>
     : std::true_type {};
 template <typename F, typename L>
-struct is_monotone<dedekind::relational::Dual<F, L>, std::less_equal<>>
+struct monotone_trait<dedekind::relational::Dual<F, L>, std::less_equal<>>
     : std::true_type {};
 template <typename F, typename L>
 struct is_adjoint<dedekind::relational::Image<F, L>,

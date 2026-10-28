@@ -162,66 +162,94 @@ What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equal
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.5\linewidth}
+\begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
+// Identity arrows:
 template <typename A>
 constexpr auto id() { return Identity<A>{}; }
-
-// the unit law, decided at the type:
-template <IsArrow F, IsArrow G>
-  requires same_as<Cod<F>, Dom<G>> &&
-           IsIdentityArrow<F>
-constexpr auto operator>>(F, G g) { return g; }
-
-constexpr auto negation =    // ¬ on the 2-chain
-    NegationArrow<Boole>{};
-constexpr auto flip =        // ~ on size_t's chain
-    NegationArrow<Chain<size_t>>{};
-constexpr auto neg =         // −, no reflection
-    endo<size_t>(negate<size_t>{});
-constexpr auto plus_one = flip >> neg;  // x + 1
-constexpr auto twice = negation >> negation;
-constexpr auto fst = Π<1, pair<bool, size_t>>{};
-constexpr auto section =     // (1, 0)
-    Pairing{id<bool>(), constant<bool>(0uz)};
+constexpr auto id_b = id<bool>();
+constexpr auto id_u = id<size_t>();
+static_assert(
+id_b(true) == true && id_u(42) == 42 &&
+is_monotone(id_u) && is_monotone(id_b) &&
+is_involution(id_u) && is_involution(id_b) &&
+is_identity(id_u >> id_u) &&
+(id_u >> id_u)(42) == 42 &&
+is_monotone(id_u >> id_u) &&
+is_involution(id_u >> id_u) &&
+is_total(id_u >> id_u));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\linewidth}
 \begin{cpp}
+// Constant arrows:
+constexpr auto nil = constant<bool>(0uz);
+constexpr auto one = constant<bool>(1uz);
+constexpr auto ans = constant<bool>(42uz);
+constexpr auto aye = constant<size_t>(true);
+constexpr auto nay = constant<size_t>(false);
 static_assert(
-    regular<size_t> &&
-    (constant<size_t>(7uz) >> id<size_t>())
-        (42uz) == 7 &&
-    same_as<decltype(id<size_t>() >> neg),
-            decltype(auto(neg))> &&
-    IsInvolution<decltype(flip)> &&
-    IsAntiMonotone<decltype(flip)> &&
-    IsInvolution<decltype(neg)> &&
-    !IsAntiMonotone<decltype(neg)> &&
-    IsIsomorphism<decltype(plus_one)> &&
-    !IsInvolution<decltype(plus_one)> &&
-    plus_one(3uz) == 4 &&
-    IsMonotone<decltype(twice)> &&
-    IsAntiMonotone<
-        decltype(twice >> negation)> &&
-    IsEpicArrow<decltype(auto(fst))> &&
-    !IsMonicArrow<decltype(auto(fst))> &&
-    IsMonicArrow<decltype(auto(section))> &&
-    !IsEpicArrow<decltype(auto(section))> &&
-    (section >> fst)(true));
+(ans >> id_u)(true) == ans(false) &&
+is_constant(ans) && is_monotone(ans) &&
+is_constant(aye) && is_antitone(aye) &&
+is_total(ans) && is_total(nay) &&
+!is_monic(ans) && !is_epic(ans) &&
+!is_monic(aye >> id_b) &&
+!is_epic(nay >> id_b) &&
+is_constant(nil >> nay >> ans));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// Involutions, pointwise:
+static_assert(
+(!aye)(0) == false &&
+is_involution(!id_b) &&
+is_constant(!aye) &&
+
+(~nil)(true) + 1 == 0 &&
+is_involution(~id_u) &&
+is_constant(~nil) &&
+
+(-one)(true) == (~nil)(true) &&
+is_involution(-id_u) &&
+is_constant(-nil) &&
+
+is_iso(-id_u >> ~id_u) &&
+!is_involution(-id_u >> ~id_u));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\begin{cpp}
+// Products and coproducts:
+constexpr auto fst = Π<1, pair<bool, size_t>>{};
+constexpr auto sec = Pairing{id_b, nil};
+constexpr auto inl =
+    Injection<1, bool, size_t>{};
+constexpr auto ret = Copairing{id_b, nay};
+static_assert(
+is_epic(fst) && !is_monic(fst) &&
+is_monic(sec) && !is_epic(sec) &&
+(sec >> fst)(true) && !(sec >> fst)(false) &&
+is_monic(inl) && !is_epic(inl) &&
+is_epic(ret) && !is_monic(ret) &&
+(inl >> ret)(true) && !(inl >> ret)(false));
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule1]{Rule~1}: Substitution.
-Left: an arrow is a function made a value, a struct with a domain, a codomain and a \cppinline{const} call (\cppinline{IsArrow}); \cppinline{id<A>()} is $1_A$, \cppinline{f >> g} the composite, $f$ then $g$, and \cppinline{constant<A>(y)} the arrow through a singleton, all the tree's, whose generic \cppinline{>>} the listing omits and whose unit law it prints: an overload that repeats the generic constraints and adds one, so that resolution picks it when the left leg is the identity and returns the right leg itself, the law decided at the type, as Listing~\ref{lst:desugar} decides a fold.
-\cppinline{negation} and \cppinline{flip} are the tree's reflection of a chain, the two-point one and \cppinline{size_t}'s; \cppinline{neg} is unary minus made an arrow; \mbox{\cppinline{plus_one}} and \cppinline{twice} are composites; \cppinline{fst} and \cppinline{section} are a projection of the product and its section $\langle 1, 0 \rangle$.
-A law of an arrow is an equation, so \cppinline{==} states it and the codomain is \cppinline{regular}.
-Right: the facts, one assertion: the constant law; \cppinline{id >> neg} is \cppinline{neg}, not a composite around it; a reflection is an involution and antitone, unary minus an involution and not, $0$ being its fixed point; two involutions compose to an isomorphism, by $(g \circ f)^{-1} = f^{-1} \circ g^{-1}$, and not to an involution, $-(\sim x) = x + 1$; the variances of composites, which the tree derives from the legs; and the projection epic and not monic, its section monic and not epic, with \cppinline{section >> fst} the identity, a split epi.}
+Equals cannot be told apart, so a function is its graph, and functions are the arrows of a category, with composition \cppinline{>>} their only structure.
+Top left: the identities.
+Top right: the points, constant arrows, monotone and antitone at once and neither monic nor epic.
+Bottom left: the involutions, each the C++ operator post-composed, so \cppinline{!f} is $\neg \circ f$; two compose to an isomorphism and to no involution.
+Bottom right: a projection and its section, an injection and its retraction, the arrows that are epic or monic but not both.
+A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} reads what the concept \cppinline{IsMonicArrow} reads, and a composite's law is derived from its legs.}
 \label{lst:rule1}
 \end{listing}
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
 The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are certificates the tree declares or derives, and Listing~\ref{lst:desugar} specialises a fold on two of them.
+A certificate attaches to the arrow, whose type names the carrier and the operation, so it certifies the signature, not a carrier beside an operation~\cite{pierce1991basic}.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
@@ -403,7 +431,7 @@ exit:
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} as a left fold, the chain a symbolic array.
 A count is an element of a carrier of its own, the chain's; \cppinline{pred}, a family, steps it down, and \cppinline{out}, the terminator, stops at that carrier's unit, which the chain descends to and does not include.
 \cppinline{chain(n, out)} is the figure's chain: a view that holds one count, whose element at index $k$ is \cppinline{f} applied to the count stepped $k$ times, reached in $k$ steps, and whose traversal is the fold.
-\cppinline{f} is the figure's arrow, Listing~\ref{lst:rule1}'s \cppinline{IsArrow}, from the counts \cppinline{N} into the carrier \cppinline{T}, which coincide here and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain} is the library's.
+\cppinline{f} is the figure's arrow, an \cppinline{IsArrow} as Listing~\ref{lst:rule1}'s are, from the counts \cppinline{N} into the carrier \cppinline{T}, which coincide here and part at a physical array (Listing~\ref{lst:desugar}); \cppinline{Step} is the fold's algebra, and \cppinline{concat} the left fold, the standard's \cppinline{fold_left}, which is the kernel's iterator; \cppinline{chain} is the library's.
 The test holds \cppinline{IsCount}, \cppinline{pred} for strings, and the other calls, among them the chain of \cppinline{'z'} summed as a \cppinline{char}.
 Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n} summed, \cppinline{n} known only at run time, attributes stripped and names shortened: the optimiser finds Gauss's closed form, with a case split below 2.
 }

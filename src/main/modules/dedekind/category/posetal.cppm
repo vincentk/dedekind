@@ -388,10 +388,10 @@ static_assert(
  *  the theorem that every @c Preimage<F> preserves inclusion is stated once,
  *  not tagged per instance. */
 export template <typename F, typename Op>
-struct is_monotone : std::false_type {};
+struct monotone_trait : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_monotone_v =
-    is_monotone<std::remove_cvref_t<F>, Op>::value;
+    monotone_trait<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsMonotone
@@ -402,15 +402,6 @@ inline constexpr bool is_monotone_v =
  *          Op(F(x), @c F(y)).  Per Mac Lane, this is the canonical
  *          shape of an arrow between posetal categories.
  */
-/** @brief Is @c F declared monotone under @c Op?  Reads the registration
- *  the concept below reads; a predicate on the order's value for orders that
- *  are empty types (the Jlt paper's spelling, #981).  The concept reads the
- *  registration by type, since an order may carry state.
- *  @tparam F the arrow.  @tparam Op the order. */
-export template <typename F, typename Op = std::less_equal<>>
-constexpr bool monotone(Op) {
-  return is_monotone_v<F, Op>;
-}
 export template <typename F, typename Op = std::less_equal<>>
 concept IsMonotone = IsArrow<F> && is_monotone_v<std::remove_cvref_t<F>, Op>;
 
@@ -424,13 +415,13 @@ concept IsMonotone = IsArrow<F> && is_monotone_v<std::remove_cvref_t<F>, Op>;
  *          property): @c IsAntiMonotone @c ∘ @c IsAntiMonotone @c =
  *          @c IsMonotone (two flips cancel).
  */
-/** @brief The trait behind @c is_antimonotone_v; a struct, as @c is_monotone,
- *  for the family-wide facts stated downstream. */
+/** @brief The trait behind @c is_antimonotone_v; a struct, as @c
+ * monotone_trait, for the family-wide facts stated downstream. */
 export template <typename F, typename Op>
-struct is_antimonotone : std::false_type {};
+struct antimonotone_trait : std::false_type {};
 export template <typename F, typename Op = std::less_equal<>>
 inline constexpr bool is_antimonotone_v =
-    is_antimonotone<std::remove_cvref_t<F>, Op>::value;
+    antimonotone_trait<std::remove_cvref_t<F>, Op>::value;
 
 /**
  * @concept IsAntiMonotone
@@ -838,6 +829,74 @@ static_assert(
     "a sum keeps inl < inr, so no antitone; a copairing compares "
     "across summands, so no variance at all");
 }  // namespace detail_arrow_laws_witness
+
+/** @section posetal__Laws_Asked_On_The_Value
+ *  @brief The laws of an arrow asked on its value (the Jlt paper's Listing 1):
+ *  each reads, at compile time, the registration its concept reads, so
+ *  @c is_monic(f) is @c IsMonicArrow<F> at the value's type, and a composite's
+ *  law comes through the readers above.  A concept gates a template, a
+ *  predicate states a fact; both read one registration.
+ *  @param f the arrow.  @param op the order a variance is read under. */
+export template <IsArrow F>
+constexpr bool is_identity(const F&) {
+  return IsIdentityArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_constant(const F&) {
+  return IsConstantArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_monic(const F&) {
+  return IsMonicArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_epic(const F&) {
+  return IsEpicArrow<F>;
+}
+export template <IsArrow F>
+constexpr bool is_iso(const F&) {
+  return IsIsomorphism<F>;
+}
+export template <IsArrow F>
+constexpr bool is_involution(const F&) {
+  return IsInvolution<F>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_monotone(const F&, Op = {}) {
+  return IsMonotone<F, Op>;
+}
+export template <IsArrow F, typename Op = std::less_equal<>>
+constexpr bool is_antitone(const F&, Op = {}) {
+  return IsAntiMonotone<F, Op>;
+}
+
+/** @brief The involutions of a codomain, pointwise on the arrows into it:
+ *  @c ~f and @c -f are @c f then the reflection of the chain, respectively
+ *  unary minus, @c (-f)(x) @c = @c -f(x) as for functions in analysis; on an
+ *  identity the composite is the involution itself (the unit law,
+ *  @c :morphism).  @c !f, for the arrows into a truth object, is in
+ *  @c :topoi.  Unsigned only: @c -INT_MIN is not a function on @c int
+ *  (@c :involution).  @param f the arrow. */
+export template <IsArrow F>
+  requires std::unsigned_integral<Cod<F>>
+constexpr auto operator~(const F& f) {
+  return f >> NegationArrow<Chain<Cod<F>>>{};
+}
+export template <IsArrow F>
+  requires std::unsigned_integral<Cod<F>>
+constexpr auto operator-(const F& f) {
+  return f >> endo<Cod<F>>(std::negate<Cod<F>>{});
+}
+
+namespace detail_posetal_value_laws {
+constexpr auto id_u = Identity<std::size_t>{};
+static_assert(is_identity(id_u >> id_u) && is_monotone(id_u) &&
+                  is_involution(~id_u) && is_antitone(~id_u) &&
+                  is_involution(-id_u) && !is_antitone(-id_u) &&
+                  !is_involution(-id_u >> ~id_u) && (-id_u >> ~id_u)(3uz) == 2,
+              "the laws asked on the value read what the concepts read; "
+              "~(-x) = x - 1 is no involution");
+}  // namespace detail_posetal_value_laws
 
 static_assert(IsMonotone<Compose<Identity<int>, Identity<int>>>,
               "co∘co=co: identity composed with itself is monotone.");

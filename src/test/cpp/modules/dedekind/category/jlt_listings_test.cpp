@@ -227,69 +227,67 @@ constexpr bool distributive<bool>(std::multiplies<bool>, std::plus<bool>) {
 static_assert(IsSemiring<bool, std::plus<bool>, std::multiplies<bool>>);
 static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 
-// Listing 1: values and arrows.  A value is semiregular.  An arrow is a
-// function made a value, a struct with a const call operator, a Domain and a
-// Codomain, the library's IsArrow: id<A>() is 1_A, constant<A>(y) the arrow
-// through a singleton, f >> g the composite, f then g, and negation, neg and
-// flip the involutions ¬, − and ~.  A law of an arrow is an equation, so ==
-// states it and the codomain is regular: Leibniz's law made a predicate.  The
-// definitions are the tree's and the facts are checked here; the variances of
-// the composites are derived by the engine in :posetal, not declared.
-using dedekind::category::Boole;
-using dedekind::category::Chain;
-using dedekind::category::Cod;
-using dedekind::category::Compose;
-using dedekind::category::Constant;
+// Listing 1: values and arrows.  Equals cannot be told apart, so a function
+// is its graph, and functions are the arrows of a category, with composition
+// their only structure.  The definitions are the tree's and the facts are
+// checked here; a law is asked on the arrow's value (is_monic(f) reads what
+// IsMonicArrow<F> reads), a composite's law derived by the engine in :posetal.
 using dedekind::category::constant;
-using dedekind::category::Dom;
-using dedekind::category::endo;
+using dedekind::category::Copairing;
 using dedekind::category::id;
 using dedekind::category::Identity;
-using dedekind::category::IsAntiMonotone;
-using dedekind::category::IsArrow;
-using dedekind::category::IsConstantArrow;
-using dedekind::category::IsEpicArrow;
-using dedekind::category::IsInvolution;
-using dedekind::category::IsIsomorphism;
-using dedekind::category::IsMonicArrow;
-using dedekind::category::IsMonotone;
-using dedekind::category::NegationArrow;
+using dedekind::category::Injection;
+using dedekind::category::is_antitone;
+using dedekind::category::is_constant;
+using dedekind::category::is_epic;
+using dedekind::category::is_identity;
+using dedekind::category::is_involution;
+using dedekind::category::is_iso;
+using dedekind::category::is_monic;
+using dedekind::category::is_monotone;
+using dedekind::category::is_total;
 using dedekind::category::Pairing;
 using dedekind::category::Π;
+using dedekind::category::operator!;
+using dedekind::category::operator-;
 using dedekind::category::operator>>;
-constexpr auto negation = NegationArrow<Boole>{};      // ¬ on the 2-chain
-constexpr auto flip = NegationArrow<Chain<size_t>>{};  // ~ on size_t's chain
-constexpr auto neg = endo<size_t>(std::negate<size_t>{});  // −, no reflection
-constexpr auto plus_one = flip >> neg;                     // −(~x) = x + 1
-constexpr auto twice = negation >> negation;               // ¬¬
-constexpr auto fst = Π<1, std::pair<bool, size_t>>{};      // a projection
-constexpr auto section = Pairing{id<bool>(), constant<bool>(0uz)};  // (1, 0)
+using dedekind::category::operator~;
 
-// The facts, one assertion: the constant law; the unit law decided at the
-// type, id >> neg being neg itself by resolution; a reflection is an
-// involution and antitone, unary minus an involution and not, 0 being its
-// fixed point; two involutions compose to an isomorphism and no involution;
-// the composites' variances, derived by the engine in :posetal.
-static_assert(
-    std::regular<size_t> &&
-    (constant<size_t>(7uz) >> id<size_t>())(42uz) == 7 &&
-    std::same_as<decltype(id<size_t>() >> neg), decltype(auto(neg))> &&
-    IsInvolution<decltype(flip)> && IsAntiMonotone<decltype(flip)> &&
-    IsInvolution<decltype(neg)> && !IsAntiMonotone<decltype(neg)> &&
-    IsIsomorphism<decltype(plus_one)> && !IsInvolution<decltype(plus_one)> &&
-    plus_one(3uz) == 4 && IsMonotone<decltype(twice)> &&
-    IsAntiMonotone<decltype(twice >> negation)> &&
-    IsEpicArrow<decltype(auto(fst))> && !IsMonicArrow<decltype(auto(fst))> &&
-    IsMonicArrow<decltype(auto(section))> &&
-    !IsEpicArrow<decltype(auto(section))> && (section >> fst)(true) &&
-    !(section >> fst)(false));
-// The facts the listing leaves to the test.
-static_assert(
-    std::semiregular<std::pair<size_t, bool>> && id<size_t>()(42uz) == 42 &&
-    std::same_as<decltype(neg >> id<size_t>()), decltype(auto(neg))> &&
-    std::same_as<decltype(id<bool>() >> id<bool>()), Identity<bool>> &&
-    IsInvolution<decltype(negation)> && IsAntiMonotone<decltype(negation)> &&
-    IsMonotone<decltype(id<bool>())> && IsConstantArrow<Constant<size_t>>);
+// Identity arrows:
+constexpr auto id_b = id<bool>();
+constexpr auto id_u = id<size_t>();
+static_assert(id_b(true) == true && id_u(42uz) == 42 && is_monotone(id_u) &&
+              is_monotone(id_b) && is_involution(id_u) && is_involution(id_b) &&
+              is_identity(id_u >> id_u) && (id_u >> id_u)(42uz) == 42 &&
+              is_monotone(id_u >> id_u) && is_involution(id_u >> id_u) &&
+              is_total(id_u >> id_u));
+// Constant arrows:
+constexpr auto nil = constant<bool>(0uz);
+constexpr auto one = constant<bool>(1uz);
+constexpr auto ans = constant<bool>(42uz);
+constexpr auto aye = constant<size_t>(true);
+constexpr auto nay = constant<size_t>(false);
+static_assert((ans >> id_u)(true) == ans(false) && is_constant(ans) &&
+              is_monotone(ans) && is_constant(aye) && is_antitone(aye) &&
+              is_total(ans) && is_total(nay) && !is_monic(ans) &&
+              !is_epic(ans) && !is_monic(aye >> id_b) &&
+              !is_epic(nay >> id_b) && is_constant(nil >> nay >> ans));
+// Involutions, pointwise:
+static_assert((!aye)(0uz) == false && is_involution(!id_b) &&
+              is_constant(!aye) && (~nil)(true) + 1 == 0 &&
+              is_involution(~id_u) && is_constant(~nil) &&
+              (-one)(true) == (~nil)(true) && is_involution(-id_u) &&
+              is_constant(-nil) && is_iso(-id_u >> ~id_u) &&
+              !is_involution(-id_u >> ~id_u));
+// Products and coproducts:
+constexpr auto fst = Π<1, std::pair<bool, size_t>>{};
+constexpr auto sec = Pairing{id_b, nil};  // ⟨1, 0⟩
+constexpr auto inl = Injection<1, bool, size_t>{};
+constexpr auto ret = Copairing{id_b, nay};  // [1, ⊥]
+static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
+              !is_epic(sec) && (sec >> fst)(true) && !(sec >> fst)(false) &&
+              is_monic(inl) && !is_epic(inl) && is_epic(ret) &&
+              !is_monic(ret) && (inl >> ret)(true) && !(inl >> ret)(false));
 
 template <typename T>
 constexpr T twice_loose(T x) {

@@ -659,10 +659,10 @@ namespace dedekind::category {
  *  \subseteq s \iff a \subseteq \iota^{-1}(s)@f$, the image--preimage
  *  adjunction, for every sum; @f$\iota@f$ monic makes the unit the identity. */
 template <std::size_t K, typename UA, typename UB>
-struct is_monotone<dedekind::sets::Inject<K, UA, UB>, std::less_equal<>>
+struct monotone_trait<dedekind::sets::Inject<K, UA, UB>, std::less_equal<>>
     : std::true_type {};
 template <std::size_t K, typename UA, typename UB>
-struct is_monotone<dedekind::sets::Restrict<K, UA, UB>, std::less_equal<>>
+struct monotone_trait<dedekind::sets::Restrict<K, UA, UB>, std::less_equal<>>
     : std::true_type {};
 template <std::size_t K, typename UA, typename UB>
 struct is_adjoint<dedekind::sets::Inject<K, UA, UB>,
