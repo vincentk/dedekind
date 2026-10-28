@@ -421,6 +421,12 @@ static_assert(concat<size_t, Max<size_t>>(chain(0uz,
 // The fold spelled out agrees, and the count below the unit folds to it.
 static_assert(std::ranges::fold_left(chain(10uz, out<size_t, Max<size_t>>{}),
                                      0uz, Max<size_t>{}) == 10);
+// Listing 4, right, second: the top with the count known only at run time.
+constexpr size_t top_n(size_t n) {
+  return concat<size_t, Max<size_t>>(chain(n, out<size_t, Max<size_t>>{}),
+                                     Identity<size_t>{});
+}
+static_assert(top_n(100) == 100);
 
 // The semimodule, the library's shape with its laws declared and
 // its action n * x.  A certificate vouches for the laws and for the premise
@@ -571,9 +577,9 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twenty = 20;
     CHECK(L::concat<size_t>(std::array{twenty, size_t{21}, size_t{1}}) == 42);
     CHECK(L::concat<size_t, std::multiplies<size_t>>(
-              std::array{size_t{6}, size_t{7}}) == 42);
-    CHECK(L::concat<std::string>(
-              std::array{std::string{"ab"}, std::string{"cd"}}) == "abcd");
+              std::array{size_t{6}, size_t{7}, size_t{1}}) == 42);
+    CHECK(L::concat<std::string>(std::array{
+              std::string{"ab"}, std::string{"cd"}, std::string{}}) == "abcd");
     CHECK(L::unit<std::string>(std::plus<std::string>{}).empty());
   }
 
@@ -582,6 +588,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id(twelve) == 12);
     CHECK(L::sum_n(twelve) == 78);
     CHECK(L::copies_n(7, twelve) == 84);
+    CHECK(L::top_n(twelve) == 12);
     CHECK(L::copies<size_t>(7, twelve) == 84);
     bool yes = true;
     CHECK(L::concat<bool, std::logical_or<bool>>(
