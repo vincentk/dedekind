@@ -194,6 +194,15 @@ template <typename F>
   requires(IsArrow<F> && IsInvolution<F>)
 struct is_self_inverse<F> : std::true_type {};
 
+/** @brief An involution is an endomorphism once read on its object: the
+ *  implication holds of the lifted arrow, @c endo<T>(f), and not of a bare
+ *  callable such as @c std::logical_not<bool>, which is a family of arrows,
+ *  one per type, and no @c IsArrow until @c endo names its domain. */
+static_assert(IsInvolution<std::logical_not<bool>, bool> &&
+              !IsEndomorphism<std::logical_not<bool>> &&
+              IsEndomorphism<decltype(endo<bool>(std::logical_not<bool>{}))> &&
+              IsInvolution<decltype(endo<bool>(std::logical_not<bool>{}))>);
+
 namespace detail_involution {
 constexpr auto not_bool = endo<bool>(std::logical_not<bool>{});
 constexpr auto not_not = not_bool >> not_bool;  // an involution twice

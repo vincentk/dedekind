@@ -334,14 +334,14 @@ static_assert(concat<size_t, std::multiplies<size_t>>(
                   Identity<size_t>{}) == 3628800);
 static_assert(concat<bool, std::logical_or<bool>>(
     chain(true, out<bool, std::logical_or<bool>>{}), Identity<bool>{}));
-// A bare std::logical_not<> is a family of arrows, one per type; endo<bool>
-// names the domain (Listing 1's IsArrow), and the tree certifies the
-// involution.
+// A bare std::logical_not<bool> is no IsArrow until endo<bool> names its
+// domain (Listing 1); the tree certifies it, and negate on the unsigned
+// carriers, as involutions.
 static_assert(!concat<bool, std::logical_or<bool>>(
     chain(true, out<bool, std::logical_or<bool>>{}),
-    endo<bool>(std::logical_not<>{})));
+    endo<bool>(std::logical_not<bool>{})));
 static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             endo<size_t>(std::negate<>{})) ==
+                             endo<size_t>(std::negate<size_t>{})) ==
               static_cast<size_t>(0) - 55);
 static_assert(concat<char>(chain('z', out<char>{}), Identity<char>{}) == 'O');
 static_assert(concat<std::string>(chain("z"s, out<std::string>{}),
@@ -691,7 +691,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
         L::Identity<bool>{}));
     CHECK(!L::concat<bool, std::logical_or<bool>>(
         L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
-        L::endo<bool>(std::logical_not<>{})));
+        L::endo<bool>(std::logical_not<bool>{})));
     std::string abc = "abc";
     CHECK(L::concat<std::string>(L::chain(abc, L::out<std::string>{}),
                                  L::Identity<std::string>{}) == "abcaba");
