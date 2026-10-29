@@ -333,7 +333,7 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 
 \begin{figure}[tbp]
 \centering
-\begin{tikzcd}[column sep=1.1em, row sep=1.5em]
+\begin{tikzcd}[column sep=2em, row sep=1.5em]
   \llap{\small cardinality:\quad}
   &[1.6em] & & & & 1 \arrow[rr, "n"]
   & & n \arrow[d, "\mathit{prior}"] \arrow[rr, dashed, "s"]
@@ -345,12 +345,13 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
   & \\
   \llap{\small algebra, $S$:\quad}
-  & f\,0 \arrow[dl]
-  & & f\,1 \arrow[dl]
+  & f\,0 \arrow[d]
+  & & f\,1 \arrow[d]
   & & \cdots
-  & & f(n-1) \arrow[dl]
+  & & f(n-1) \arrow[d]
   & \\
-  \llap{\small fold, $h$:\quad} \bullet
+  \llap{\small fold, $h$:\quad}
+  & \bullet
   & & \bullet \arrow[ll, "h"']
   & & \cdots \arrow[ll, "h"']
   & & \bullet \arrow[ll, "h"']
