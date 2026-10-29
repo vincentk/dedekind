@@ -415,6 +415,17 @@ struct MatMul {
                 a[1][0] * b[0][1] + a[1][1] * b[1][1]}};
   }
 };
+struct MatAdd {
+  constexpr M2 operator()(M2 a, M2 b) const {
+    return M2{V{a[0][0] + b[0][0], a[0][1] + b[0][1]},
+              V{a[1][0] + b[1][0], a[1][1] + b[1][1]}};
+  }
+};
+struct Scale {  // the counts acting on the matrices, entry by entry
+  constexpr M2 operator()(size_t k, M2 a) const {
+    return M2{V{k * a[0][0], k * a[0][1]}, V{k * a[1][0], k * a[1][1]}};
+  }
+};
 }  // namespace listing3
 }  // namespace jlt_listing
 namespace dedekind::category {
@@ -435,10 +446,34 @@ struct acting_monoid<
     std::remove_cvref_t<decltype(jlt_listing::listing3::act)>> {
   using type = jlt_listing::listing3::MatMul;
 };
+template <>
+struct is_associative<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd>
+    : std::true_type {};
+template <>
+struct is_periodic<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd>
+    : std::true_type {};
+template <>
+struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd> {
+  using value_type = jlt_listing::listing3::M2;
+  static constexpr value_type value{};
+};
+template <>  // n copies of A under + are n·A, entry by entry
+struct counting_action<jlt_listing::listing3::M2,
+                       jlt_listing::listing3::MatAdd> {
+  using type = jlt_listing::listing3::Scale;
+};
 }  // namespace dedekind::category
 namespace jlt_listing {
 namespace listing3 {
 using dedekind::category::fold;
+// The third rung: matrix addition, where the counts act by scaling, so n
+// copies of A are n·A in one action, 10^8 of them included.
+constexpr M2 shear{{{1, 2}, {0, 1}}};
+static_assert(dedekind::category::HasCountingAction<M2, MatAdd> &&
+              concat(10uz >> chain<size_t>() >> constant<size_t>(shear),
+                     MatAdd{}) == Scale{}(10uz, shear) &&
+              concat(std::views::repeat(shear, 100'000'000uz), MatAdd{}) ==
+                  Scale{}(100'000'000uz, shear));
 static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
               dedekind::category::IsMonoidAction<decltype(act), M2>);
 

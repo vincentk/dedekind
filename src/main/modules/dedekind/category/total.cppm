@@ -1285,6 +1285,43 @@ constexpr T concat(R r, Op op = {}) {
              detail_concat::Square<T, Op>{n, op})
       .first;
 }
+/** @brief The counts act on @c (T, Op) by repetition: @c Act{}(n, x) is
+ *  @c x folded under @c Op with itself @c n times, a declared law, the
+ *  semimodule's @f$n \cdot x = x + \cdots + x@f$ (@c :action's
+ *  @c IsSemimodule implies it).  Where it is declared, @c n copies cost one
+ *  action, not @f$\log n@f$ squarings.  @tparam T the carrier.  @tparam Op
+ *  the operation. */
+export template <typename T, typename Op>
+struct counting_action {};
+/** @brief The unsigned integers under @c +: @c n copies of @c x are
+ *  @c n * x, modulo the word. */
+template <std::unsigned_integral T>
+  requires(!std::same_as<T, bool>)
+struct counting_action<T, std::plus<T>> {
+  using type = std::multiplies<>;
+};
+/** @brief The counts act on @c (T, Op), declared.  @tparam T the carrier.
+ *  @tparam Op the operation. */
+export template <typename T, typename Op>
+concept HasCountingAction = requires {
+  typename counting_action<T, std::remove_cvref_t<Op>>::type;
+} && requires(std::size_t n, const T& x) {
+  {
+    typename counting_action<T, std::remove_cvref_t<Op>>::type{}(n, x)
+  } -> std::convertible_to<T>;
+};
+/** @brief @c concat on @c n copies of one value where the counts act: one
+ *  action.  The same signature as the binary method and a stronger
+ *  constraint, so resolution prefers it.  @param r the copies.  @param op the
+ *  operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
+constexpr T concat(R r, Op = {}) {
+  using Act = typename counting_action<T, std::remove_cvref_t<Op>>::type;
+  return static_cast<T>(Act{}(copies_count(r), copies_value(r)));
+}
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;
 constexpr std::size_t seven = 7;
@@ -1299,7 +1336,8 @@ static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
                       700'000'000 &&
                   concat(std::views::repeat(seven, std::size_t{0})) == 0,
               "concat folds a range from the unit; on n copies of one value it "
-              "squares, so 10^8 copies are 27 steps, not 10^8");
+              "squares, so 10^8 copies are 27 steps, not 10^8, and where the "
+              "counts act, as on the unsigned integers under +, one step");
 }  // namespace detail_concat_witness
 
 }  // namespace dedekind::category
