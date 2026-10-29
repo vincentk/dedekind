@@ -326,7 +326,7 @@ constexpr std::optional<N> cover(const N& n) {
  *
  *  | Bananas                      | here                                    |
  *  | the initial algebra of 1 + X | @c IsNNO, @c In                         |
- *  | @c out, by Lambek            | @c Out, @c lower_cover                  |
+ *  | @c out, by Lambek            | @c Prior, @c lower_cover                  |
  *  | anamorphism, a lens          | @c unfold; @c chain, Dedekind's         |
  *  | catamorphism, a banana       | @c std::ranges::fold_left, @c cata      |
  *  | hylomorphism, an envelope    | a fold over @c chain: nothing in between |
@@ -431,7 +431,7 @@ constexpr unfold_view<S, Coalg> unfold(S seed, Coalg step) {
 }
 /** @brief The coalgebra of a partial step @f$X \to 1 + X@f$: the element,
  *  and the step as the next state, while the step has a value.  Turns
- *  @c Out, @c lower_cover or @c cover into a lens.  @tparam X the carrier.
+ *  @c Prior, @c lower_cover or @c cover into a lens.  @tparam X the carrier.
  *  @tparam Step the partial step. */
 export template <std::regular X, std::semiregular Step>
   requires std::regular_invocable<const Step&, const X&> &&
@@ -439,10 +439,13 @@ export template <std::regular X, std::semiregular Step>
                         std::optional<X>>
 struct StepCoalgebra {
   Step step{};
-  /** @param x a state.  @return @c (x, step(x)), or nothing at a delimiter. */
+  /** @param x a state.  @return @c (step(x), step(x)), the element the step
+   *  lands on, as element and as next state, or nothing where the step has
+   *  nothing: the chain of @c x is what the step reaches from @c x, and @c x
+   *  itself is not among them (the Jlt paper's Figure 2, after Lambek). */
   constexpr std::optional<std::pair<X, X>> operator()(const X& x) const {
     if (const std::optional<X> next = std::invoke(step, x); next.has_value())
-      return std::pair<X, X>{x, *next};
+      return std::pair<X, X>{*next, *next};
     return std::nullopt;
   }
   constexpr bool operator==(const StepCoalgebra&) const = default;
@@ -450,7 +453,7 @@ struct StepCoalgebra {
 /** @brief Dedekind's chain (Kette) of @c x under a partial step: @c x, then
  *  the step of it, and so on, up to and excluding the element where the
  *  step has nothing (Dedekind @cite dedekind1888zahlen).  With the
- *  destructor @c Out it is @f$Z_n = \{n, \ldots, 1\}@f$ walked down, the
+ *  destructor @c Prior it is @f$Z_n = \{n, \ldots, 1\}@f$ walked down, the
  *  base delimiting: @c n elements, the Jlt paper's Figure 2.
  *  @tparam X the carrier.  @tparam Step the partial step.  @param x the
  *  first element.  @param step the step.  @return the view. */
@@ -521,10 +524,10 @@ constexpr Unfold<S, Coalg> unfold(Coalg c) {
 }
 /** @brief The chain of a partial step, as an arrow from the seeds:
  *  @c x >> chain(out) is @c chain(x, out).  @param out the partial step. */
-export template <IsArrow Out>
-  requires std::regular<Dom<Out>> && std::semiregular<Out>
-constexpr Unfold<Dom<Out>, StepCoalgebra<Dom<Out>, Out>> chain(Out out) {
-  return {StepCoalgebra<Dom<Out>, Out>{std::move(out)}};
+export template <IsArrow Step>
+  requires std::regular<Dom<Step>> && std::semiregular<Step>
+constexpr Unfold<Dom<Step>, StepCoalgebra<Dom<Step>, Step>> chain(Step step) {
+  return {StepCoalgebra<Dom<Step>, Step>{std::move(step)}};
 }
 
 /** @brief The functor's action on a coalgebra: @c f on the emitted leg.
@@ -572,15 +575,16 @@ struct IsZero {
 };
 constexpr auto ns = 3u >> chain(until(IsZero{}, Predecessor<unsigned>{}));
 static_assert(
-    std::ranges::fold_left(ns, 0u, std::plus<unsigned>{}) == 6 &&
+    std::ranges::fold_left(ns, 0u, std::plus<unsigned>{}) == 3 &&
         std::ranges::fold_left(ns >> Successor<unsigned>{}, 0u,
-                               std::plus<unsigned>{}) == 9 &&
+                               std::plus<unsigned>{}) == 6 &&
         std::same_as<decltype(ns >> Identity<unsigned>{}),
                      decltype(auto(ns))> &&
         std::ranges::fold_left(0u >> chain(until(IsZero{},
                                                  Predecessor<unsigned>{})),
                                0u, std::plus<unsigned>{}) == 0,
-    "a seed into the chain of a guard is its chain; f mapped over it folds "
+    "a seed into the chain of a guard is what the guard reaches from it, 2, 1, "
+    "0; f mapped over it folds "
     "to f's values; map id is the chain, by resolution; the end at the seed "
     "is the empty chain");
 }  // namespace detail_chain_arrows
@@ -633,7 +637,7 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
 
 /** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
  *  predecessor read partially, @c nullopt at the least element (a fixpoint of
- *  @c P, or a machine word's least value).  Not the destructor @c Out, which
+ *  @c P, or a machine word's least value).  Not the destructor @c Prior, which
  *  is nothing at @b zero.  @tparam N the carrier.  @param n an element.
  *  @return the element @c n covers, if any. */
 export template <HasNNOStep N>
@@ -664,7 +668,7 @@ struct In {
  *  nothing at zero, else the predecessor.  @tparam N the carrier. */
 export template <HasNNOStep N>
   requires std::equality_comparable<N> && std::default_initializable<N>
-struct Out {
+struct Prior {
   using Domain = N;
   using Codomain = std::optional<N>;
   /** @param n an element.  @return nothing at @c Z, else @c P(n). */
@@ -693,11 +697,11 @@ static_assert(cover(5) == 6 && !cover(std::numeric_limits<int>::max()) &&
                   !lower_cover(std::numeric_limits<int>::min()) &&
                   !lower_cover(Ternary::False) && lower_cover(-5) == -6,
               "the covers of 5 are 6 and 4; a machine word's ends have none.");
-static_assert(In<int>{}(Out<int>{}(5)) == 5,
-              "In ∘ Out = id (every carrier with the step).");
+static_assert(In<int>{}(Prior<int>{}(5)) == 5,
+              "In ∘ Prior = id (every carrier with the step).");
 static_assert(
-    Out<int>{}(In<int>{}(std::optional<int>{-1})) != std::optional<int>{-1},
-    "Out ∘ In ≠ id on ℤ: S(−1) = Z, so [Z, S] is not an iso --- ℤ has "
+    Prior<int>{}(In<int>{}(std::optional<int>{-1})) != std::optional<int>{-1},
+    "Prior ∘ In ≠ id on ℤ: S(−1) = Z, so [Z, S] is not an iso --- ℤ has "
     "the NNO shape but is a group, not the NNO.");
 static_assert(!IsIsomorphism<In<int>> && !IsIsomorphism<Successor<int>>,
               "on ℤ the structure map is not an iso, and the machine step is "
@@ -713,7 +717,7 @@ static_assert(successor(Ternary::False) == Ternary::Unknown &&
               "the K₃ step: ⊥ → U → ⊤, saturating at ⊤.");
 static_assert(!cover(Ternary::True) && cover(Ternary::Unknown) == Ternary::True,
               "the cover is partial at ⊤.");
-static_assert(Out<Ternary>{}(In<Ternary>{}(std::optional<Ternary>{
+static_assert(Prior<Ternary>{}(In<Ternary>{}(std::optional<Ternary>{
                   Ternary::True})) != std::optional<Ternary>{Ternary::True} &&
                   !IsIsomorphism<In<Ternary>> &&
                   !IsIsomorphism<Successor<Ternary>>,

@@ -382,46 +382,43 @@ Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
- // Dedekind's Grundelement
-template <typename T>
-constexpr T origin{};       
- // postulated for characters
-template <>
-constexpr char origin<char> = 'a'; 
-// Dedekind's Kette of x
-template <typename T>
-constexpr auto chain(T x) {  
-  return views::iota(origin<T>, succ(x))
-       | views::reverse;
-}
-// map f. That looks a bit clunky.
-// But I guess it's because we do the type mapping
-// to the std:
-template <ranges::viewable_range R, IsArrow F>
-  requires same_as<Dom<F>,
-                   ranges::range_value_t<R>>
-constexpr auto operator>>(R&& r, F f) {
-  return forward<R>(r) | views::transform(f);
-}
-constexpr auto zs = chain('z');  // z, y, …, a
+// the counts: Lambek's prior from a seed
+constexpr auto ns =                   // 9, …, 0
+    10uz >> chain(Prior<size_t>{});
 static_assert(
-    ranges::forward_range<decltype(zs)> &&
-    ranges::size(zs) == 26 &&
-    zs.front() == 'z' &&
-    zs.back() == origin<char> &&
-    ranges::is_sorted(zs, greater{}) &&
-    ranges::equal(zs >> id<char>(), zs) &&
-    ranges::equal(zs >> constant<char>('x'),
-                  views::repeat('x', 26)));
+    ranges::forward_range<decltype(ns)> &&
+    ranges::distance(ns) == 10 &&
+    ranges::equal(ns, views::iota(0uz, 10uz)
+                      | views::reverse) &&
+    ranges::empty(
+        0uz >> chain(Prior<size_t>{})) &&
+    ranges::equal(ns >> id<size_t>(), ns));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// a monoid with an order: the origin is the unit
-template <typename T>
-  requires IsMonoid<T, plus<T>> && totally_ordered<T>
-constexpr T origin<T> = unit<T>(plus<T>{});
-// the free monoid's fold, Listing 2's concat at a range
+// words: prior the init, nothing at ""
+struct Init {
+  using Domain = string_view;
+  using Codomain = optional<string_view>;
+  constexpr auto operator()(string_view s) const {
+    if (s.empty()) return Codomain{};
+    return Codomain{s.substr(0, s.size() - 1)};
+  }
+};
+constexpr auto ws =                   // ab, a, ""
+    "abc"sv >> chain(Init{});
+static_assert(
+    ranges::forward_range<decltype(ws)> &&
+    ranges::distance(ws) == 3 &&
+    ranges::equal(ws,
+                  array{"ab"sv, "a"sv, ""sv}) &&
+    ranges::empty(""sv >> chain(Init{})));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the fold on a monoid: Listing 2's concat
 template <ranges::input_range R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
@@ -430,22 +427,39 @@ constexpr T concat(R r, Op op = {}) {
   return ranges::fold_left(r, unit<T>(op), op);
 }
 static_assert(
-    origin<size_t> == 0 &&
-    ranges::size(chain(10uz)) == 11 &&
-    concat(chain(10uz)) == 55 &&
-    concat(chain(10uz) >> constant<size_t>(7uz)) == 77 &&
-    concat(zs >> letter) == "zyxwvutsrqponmlkjihgfedcba");
+    concat(ns) == 45 &&
+    concat(ns >> constant<size_t>(7uz)) == 70 &&
+    concat(ws >> Str{}) == "aba");
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the fold on an action, M × S → M
+template <typename M, typename S,
+          typename H>
+concept IsAction = semiregular<M> &&
+    requires(const M m, const S s, const H h) {
+      { h(m, s) } -> same_as<M>;
+    };
+template <ranges::input_range R,
+          typename M, typename H>
+  requires IsAction<M,
+                    ranges::range_value_t<R>, H>
+constexpr M fold(R r, M e, H h) {
+  return ranges::fold_left(r, e, h);
+}
+static_assert(
+    fold(ns >> Even{}, 0uz, Count{}) == 5 &&
+    fold(ns >> Even{}, string{}, Bit{})
+        == "0101010101");
 \end{cpp}
 \end{minipage}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent.
-Left: the chain in the standard's words.
-The alphabet is a chain and not a monoid: a step and a base element, no unit and no operation, and the obvious-looking one, \Cpp{}'s \cppinline{+} on \cppinline{char}, is $\mathbb{Z}/256$, a monoid that is not the letters.
-\cppinline{origin} is Dedekind's Grundelement~\cite{dedekind1888zahlen}, the distinguished element that is no successor, postulated once for the letters; \cppinline{chain(x)} is his Kette of \cppinline{x}, the elements from \cppinline{x} down to it: \cppinline{iota} generates from the origin by \cppinline{succ} up to the bound the step cannot find on its own, and \cppinline{reverse} reads it downward, the one direction with an end for every chain.
-\cppinline{r >> f} is the functor's action, the standard's \cppinline{transform}, with \cppinline{>> id} the chain itself, Listing~\ref{lst:rule1}'s unit law on a range.
-What the standard says of the chain is its concepts: a forward range, sized, with a first and a last element, sorted by the step's own order.
-Right: the specialisation to a monoid with an order, the counts: the origin is the unit, and \cppinline{concat} is the free monoid's fold, Listing~\ref{lst:rule2}'s at a range, by the standard's \cppinline{fold_left}, the kernel's iterator, into whatever monoid the arrow lands in, the letters into their word among them.
-\cppinline{letter}, a letter as a word, is in the test.
-}
+\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
+Top left: the counts, Lambek's $\mathit{prior}$ from a seed, the library's \cppinline{Prior}: the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is a forward range the standard also spells, \cppinline{iota} read backwards.
+Top right: words under their init, a carrier with no origin, no order and no standard spelling: the chain is still a forward range, and nothing else is asked of the words.
+Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, by the standard's \cppinline{fold_left}, the kernel's iterator, into whatever monoid the arrow lands in.
+Bottom right: the fold on an action $M \times S \to M$, heterogeneous, the booleans acting on the counts and on the words; it is a semimodule's fold when the action's laws hold, which the tree certifies and the listing does not ask.
+\cppinline{Str}, \cppinline{Even}, \cppinline{Count} and \cppinline{Bit} are in the test.}
 \label{lst:rule3}
 \end{listing}
 
@@ -498,7 +512,8 @@ template <typename T, typename Op = plus<T>, typename OpN>
            IsOrderJoinSemilattice<T, Op>
 constexpr T concat(chain_t<T, out<T, OpN>> ns,
                    Identity<T>) {
-  return Op{}(unit<T>(Op{}), ns.seed());  // the top
+  return out<T, OpN>{}(ns.seed())
+      .value_or(unit<T>(Op{}));  // the top
 }
 template <typename T, size_t K>
 struct At {                    // a lookup into an array,
@@ -506,7 +521,7 @@ struct At {                    // a lookup into an array,
   using Codomain = T;
   array<T, K> a;
   constexpr T operator()(size_t k) const {
-    return a[K - k];
+    return a[K - 1 - k];
   }
 };
 template <typename T, typename Op = plus<T>,
@@ -522,7 +537,7 @@ static_assert(concat<string>(chain(3uz, out<size_t>{}),
     constant<size_t>("ab"s)) == "ababab");
 static_assert(concat<size_t, Max<size_t>>(
     chain(10uz, out<size_t, Max<size_t>>{}),
-    Identity<size_t>{}) == 10);
+    Identity<size_t>{}) == 9);
 static_assert(concat<size_t>(chain(4uz, out<size_t>{}),
     At<size_t, 4>{{1, 2, 3, 4}}) == 10);
 \end{cpp}
@@ -555,7 +570,8 @@ exit:
   ret i64 %r
 }
 define i64 @top_n(i64 %n) {
-  ret i64 %n
+  %t = call i64 @llvm.usub.sat.i64(i64 %n, i64 1)
+  ret i64 %t
 }
 define i64 @sum_a(ptr %a) {
   %v = load <8 x i64>, ptr %a
@@ -567,10 +583,11 @@ define i64 @sum_a(ptr %a) {
 \end{minipage}
 \caption{Three specialisations.
 Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
-A constant arrow, one that factors through a singleton, makes the array a value and a count, $(x, n)$, and copies compose by squaring, which associativity licenses: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, logarithmically many steps, $10^8$ copies in 27 (Section~\ref{sec:binding}); \cppinline{Bits} and \cppinline{Square} are in the test.
-The identity along the chain is monotone, so into a join semilattice whose join is the chain's own order, \cppinline{size_t} under \cppinline{max}, the array is its seed and the fold its top, one step; \cppinline{IsOrderJoinSemilattice} and \cppinline{Max} are in the test.
+A constant arrow makes the array a value and a count, $(x, n)$, and copies compose by squaring, by associativity: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, $10^8$ copies in 27 steps (Section~\ref{sec:binding}).
+The identity along the chain is monotone, so into a join semilattice whose join is the chain's own order, \cppinline{size_t} under \cppinline{max}, the fold is its top, the seed's $\mathit{prior}$, one step.
 A lookup into an array of \cppinline{K} makes the array physical and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
-Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument; for the array, one vector load and one reduction.}
+Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument less one, saturating at zero; for the array, one vector load and one reduction.
+\cppinline{Bits}, \cppinline{Square}, \cppinline{IsOrderJoinSemilattice} and \cppinline{Max} are in the test.}
 \label{lst:desugar}
 \end{listing}
 
@@ -579,7 +596,7 @@ Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top,
 concat₁ =  Λ T Op N F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
 concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (max (seed ns) c.unit − c.unit)))
                    where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
-concat₃ =  Λ T Op.   λ m c ns.    m.op m.unit (seed ns)
+concat₃ =  Λ T Op.   λ m c ns.    case out (seed ns) of ∗ ↦ m.unit; t ↦ t
 concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (reverse (take (seed ns) (reverse a)))
 concat [u64 plus] (chain out 10) id        =  concat₁ [u64 plus u64 id] plus_u64 count_u64 id (chain out 10)
 concat [u64 plus] (chain out 10) (const 7) =  concat₂ [u64 plus u64] plus_u64 count_u64 7 (chain out 10)

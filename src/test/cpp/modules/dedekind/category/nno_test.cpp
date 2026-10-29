@@ -20,16 +20,17 @@ namespace {
 using namespace dedekind::category;
 using std::size_t;
 
-// Dedekind's Z_n walked down: the chain of n under Out is {n, ..., 1}, the
-// base 0 delimiting and not an element.
-static_assert(std::ranges::fold_left(chain(size_t{4}, Out<size_t>{}), size_t{0},
-                                     std::plus<>{}) == 10);
-static_assert(std::ranges::fold_left(chain(size_t{0}, Out<size_t>{}), size_t{0},
-                                     std::plus<>{}) == 0);
-static_assert(std::ranges::distance(chain(size_t{6}, Out<size_t>{})) == 6);
-// bool counts: the chain of true is {true}, of false nothing.
-static_assert(std::ranges::distance(chain(true, Out<bool>{})) == 1);
-static_assert(std::ranges::distance(chain(false, Out<bool>{})) == 0);
+// The chain of n under Prior is what Prior reaches from n, {n - 1, ..., 0}:
+// n elements, n itself not among them, and nothing below 0 (Figure 2 of the
+// Jlt paper, after Lambek).
+static_assert(std::ranges::fold_left(chain(size_t{4}, Prior<size_t>{}),
+                                     size_t{0}, std::plus<>{}) == 6);
+static_assert(std::ranges::fold_left(chain(size_t{0}, Prior<size_t>{}),
+                                     size_t{0}, std::plus<>{}) == 0);
+static_assert(std::ranges::distance(chain(size_t{6}, Prior<size_t>{})) == 6);
+// bool counts: the chain of true is {false}, of false nothing.
+static_assert(std::ranges::distance(chain(true, Prior<bool>{})) == 1);
+static_assert(std::ranges::distance(chain(false, Prior<bool>{})) == 0);
 // chain_view is unfold over 1 + C: [lo, hi] inclusive, and a saturating top.
 static_assert(std::ranges::fold_left(chain_view{size_t{1}, size_t{4}},
                                      size_t{0}, std::plus<>{}) == 10);
@@ -38,7 +39,7 @@ static_assert(std::ranges::distance(chain_view{size_t{3}, size_t{2}}) == 0);
 // The constant arrow: every count to one value, so the fold is n copies.
 static_assert(IsConstantArrow<Constant<size_t>> &&
               IsMonotone<Constant<size_t>> && IsAntiMonotone<Constant<size_t>>);
-static_assert(std::ranges::fold_left(chain(size_t{3}, Out<size_t>{}) |
+static_assert(std::ranges::fold_left(chain(size_t{3}, Prior<size_t>{}) |
                                          std::views::transform(Constant<size_t>{
                                              7}),
                                      size_t{0}, std::plus<>{}) == 21);
@@ -64,12 +65,14 @@ std::vector<size_t> collect(auto&& view) {
 }
 }  // namespace
 
-TEST_CASE("the chain of a count under Out is Dedekind's Z_n, walked down",
-          "[nno][chain]") {
+TEST_CASE(
+    "the chain of a count under Prior is the counts below it, walked down",
+    "[nno][chain]") {
   size_t n = 5;
-  CHECK(collect(chain(n, Out<size_t>{})) == std::vector<size_t>{5, 4, 3, 2, 1});
-  CHECK(collect(chain(size_t{0}, Out<size_t>{})).empty());
-  CHECK(chain(n, Out<size_t>{}).seed() == 5);
+  CHECK(collect(chain(n, Prior<size_t>{})) ==
+        std::vector<size_t>{4, 3, 2, 1, 0});
+  CHECK(collect(chain(size_t{0}, Prior<size_t>{})).empty());
+  CHECK(chain(n, Prior<size_t>{}).seed() == 5);
 }
 
 TEST_CASE("chain_view is the bounded chain, an unfold over 1 + C",
@@ -84,7 +87,7 @@ TEST_CASE("chain_view is the bounded chain, an unfold over 1 + C",
 
 TEST_CASE("the constant arrow makes the fold n copies", "[nno][constant]") {
   size_t n = 4, x = 7;
-  CHECK(std::ranges::fold_left(chain(n, Out<size_t>{}) |
+  CHECK(std::ranges::fold_left(chain(n, Prior<size_t>{}) |
                                    std::views::transform(Constant<size_t>{x}),
                                size_t{0}, std::plus<>{}) == 28);
   CHECK(Constant<size_t>{x}(n) == 7);

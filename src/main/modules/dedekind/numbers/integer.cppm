@@ -263,7 +263,7 @@ consteval bool converse_is_predecessor_on_sample() {
 }
 consteval bool lambek_fails_at_minus_one() {
   const Z minus_one = finite_signed_cardinality(-1);
-  const auto back = Out<Z>{}(In<Z>{}(std::optional<Z>{minus_one}));
+  const auto back = Prior<Z>{}(In<Z>{}(std::optional<Z>{minus_one}));
   if (!back.has_value()) return true;
   return *back != minus_one;
 }

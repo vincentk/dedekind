@@ -20,6 +20,7 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <utility>
 
 import dedekind.category;
@@ -332,76 +333,94 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: Figure 2 in arrows, a chain of counts under an arrow, folded.
-// Three arrows make the chain: an end, a predicate on the counts; a step, an
-// endo; and a seed, a point, composed into the anamorphism chain(until(end,
-// step)) : N → N*.  ns >> f is the functor's action, f mapped over the chain,
-// and map id is the chain itself, the unit law by resolution as in Listing 1;
-// concat is the free monoid's fold, the unique homomorphism out of N*, the
-// standard's fold_left, the kernel's iterator; the carrier is the range's and
-// the operation a value, + by default.  The composite is one hylomorphism:
-// nothing between the seed and the fold is built; the chain holds one count,
-// its element at index k the arrow at the count stepped k times.  until,
-// chain, curry and Predecessor are the library's.  The block has its own
-// namespace, which the listing omits, so that the previous spelling below,
-// whose parameter is also ns, does not shadow the chain.
+// Listing 3: Figure 2 in code, four panels.  Top left: the counts, Lambek's
+// prior from a seed, the chain a forward range the standard can also spell;
+// top right: words under their init, a carrier with no origin, no order and
+// no standard spelling, the chain still a forward range; bottom left: the
+// fold on a monoid, homogeneous, Listing 2's concat at a range; bottom
+// right: the fold on an action M × S → M, heterogeneous, a semimodule's when
+// the laws hold.  chain and Prior are the library's; Str, Even, Count and Bit
+// are the test's.
 namespace listing3 {
 using dedekind::category::chain;
-using dedekind::category::chain_t;
-using dedekind::category::curry;
-using dedekind::category::Predecessor;
-using dedekind::category::until;
+using dedekind::category::Prior;
+using namespace std::string_view_literals;
 
+// top left: the counts
+constexpr auto ns = 10uz >> chain(Prior<size_t>{});  // 9, …, 0
+static_assert(std::ranges::forward_range<decltype(ns)> &&
+              std::ranges::distance(ns) == 10 &&
+              std::ranges::equal(ns, std::views::iota(0uz, 10uz) |
+                                         std::views::reverse) &&
+              std::ranges::empty(0uz >> chain(Prior<size_t>{})) &&
+              std::ranges::equal(ns >> id<size_t>(), ns));
+
+// top right: words, prior the init, nothing at the empty word
+struct Init {
+  using Domain = std::string_view;
+  using Codomain = std::optional<std::string_view>;
+  constexpr Codomain operator()(std::string_view w) const {
+    if (w.empty()) return std::nullopt;
+    return w.substr(0, w.size() - 1);
+  }
+  constexpr bool operator==(const Init&) const = default;
+};
+constexpr auto ws = "abc"sv >> chain(Init{});  // ab, a, ""
+static_assert(std::ranges::forward_range<decltype(ws)> &&
+              std::ranges::distance(ws) == 3 && ws.front() == "ab" &&
+              std::ranges::equal(ws, std::array{"ab"sv, "a"sv, ""sv}) &&
+              std::ranges::empty(""sv >> chain(Init{})));
+
+// bottom left: the fold on a monoid
 template <std::ranges::input_range R,
           typename T = std::ranges::range_value_t<R>,
           typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(R ns, Op op = {}) {  // the free monoid's fold
-  return std::ranges::fold_left(ns, unit<T>(op), op);
+constexpr T concat(R r, Op op = {}) {
+  return std::ranges::fold_left(r, unit<T>(op), op);
 }
-constexpr auto end = curry<size_t>(std::greater_equal<size_t>{})(0uz);  // 0 ≥ n
-constexpr auto step = Predecessor<size_t>{};                            // n − 1
-constexpr auto ns = 10uz >> chain(until(end, step));  // 10 … 1
-// The word's chain: its init, down to the empty word.
-struct Init {
-  using Domain = std::string;
+struct Str {  // a word as a string
+  using Domain = std::string_view;
   using Codomain = std::string;
-  constexpr std::string operator()(const std::string& s) const {
-    return s.substr(0, s.size() - 1);
+  constexpr std::string operator()(std::string_view w) const {
+    return std::string(w);
   }
-  constexpr bool operator==(const Init&) const = default;
+  constexpr bool operator==(const Str&) const = default;
 };
-constexpr auto blank =
-    curry<std::string>(std::greater_equal<std::string>{})(std::string{});
-static_assert(concat(ns) == 55 &&
-              concat(ns, std::multiplies<size_t>{}) == 3628800 &&
-              concat(ns >> constant<size_t>(7uz)) == 70 &&
-              concat(ns >> -id<size_t>()) + 55 == 0 &&
-              std::same_as<decltype(ns >> id<size_t>()), decltype(auto(ns))> &&
-              concat("abc"s >> chain(until(blank, Init{}))) == "abcaba");
-// The other calls: a seed at the end is the empty chain; the chain of true
-// under or; the chain of 'z' summed as a char; a word's chain under a
-// constant; a bare std::logical_not<bool> is no IsArrow until endo<bool>
-// names its domain (Listing 1).
-constexpr auto no = curry<bool>(std::greater_equal<bool>{})(false);
-constexpr auto bs = true >> chain(until(no, Predecessor<bool>{}));
-static_assert(concat(0uz >> chain(until(end, step))) == 0 &&
-              concat(bs, std::logical_or<bool>{}) &&
-              !concat(bs >> endo<bool>(std::logical_not<bool>{}),
-                      std::logical_or<bool>{}) &&
-              concat('z' >>
-                     chain(until(curry<char>(std::greater_equal<char>{})('\0'),
-                                 Predecessor<char>{}))) == 'O' &&
-              concat("z"s >> chain(until(blank, Init{}))) == "z" &&
-              concat("abc"s >> chain(until(blank, Init{})) >>
-                     constant<std::string>("x"s)) == "xxx");
+static_assert(concat(ns) == 45 && concat(ns >> constant<size_t>(7uz)) == 70 &&
+              concat(ws >> Str{}) == "aba");
 
-// Listing 3, right: the chain summed with the count known only at run time;
-// its LLVM IR at -O2 is the paper's panel.
-constexpr size_t sum_n(size_t n) {
-  return concat(n >> chain(until(end, step)));
+// bottom right: the fold on an action, M × S → M
+template <typename M, typename S, typename H>
+concept IsAction =
+    std::semiregular<M> && requires(const M m, const S s, const H h) {
+      { h(m, s) } -> std::same_as<M>;
+    };
+template <std::ranges::input_range R, typename M, typename H>
+  requires IsAction<M, std::ranges::range_value_t<R>, H>
+constexpr M fold(R r, M e, H h) {
+  return std::ranges::fold_left(r, e, h);
 }
-static_assert(sum_n(100) == 5050);
+struct Even {
+  using Domain = size_t;
+  using Codomain = bool;
+  constexpr bool operator()(size_t k) const { return k % 2 == 0; }
+  constexpr bool operator==(const Even&) const = default;
+};
+struct Count {  // 𝔹 acts on ℕ: a true counts one
+  constexpr size_t operator()(size_t m, bool b) const { return m + b; }
+};
+struct Bit {  // 𝔹 acts on the words: a bit appended
+  constexpr std::string operator()(std::string s, bool b) const {
+    return s + (b ? '1' : '0');
+  }
+};
+static_assert(fold(ns >> Even{}, 0uz, Count{}) == 5 &&
+              fold(ns >> Even{}, std::string{}, Bit{}) == "0101010101");
+
+// The chain summed with the count known only at run time.
+constexpr size_t sum_n(size_t n) { return concat(n >> chain(Prior<size_t>{})); }
+static_assert(sum_n(100) == 4950);
 }  // namespace listing3
 
 // Listing 4's machinery: the fold in its previous spelling, a family of
@@ -581,25 +600,25 @@ template <typename T, typename Op = std::plus<T>, typename OpN>
   requires IsCount<T, OpN> && std::same_as<Op, OpN> &&
            IsOrderJoinSemilattice<T, Op>
 constexpr T concat(chain_t<T, out<T, OpN>> ns, Identity<T>) {
-  return Op{}(unit<T>(Op{}), ns.seed());  // the chain's top
+  return out<T, OpN>{}(ns.seed()).value_or(unit<T>(Op{}));  // the top
 }
 static_assert(concat<size_t>(chain(10uz, out<size_t, Max<size_t>>{}),
-                             Identity<size_t>{}) == 55);
+                             Identity<size_t>{}) == 45);
 static_assert(concat<size_t, Max<size_t>>(chain(10uz,
                                                 out<size_t, Max<size_t>>{}),
-                                          Identity<size_t>{}) == 10);
+                                          Identity<size_t>{}) == 9);
 static_assert(concat<size_t, Max<size_t>>(chain(0uz,
                                                 out<size_t, Max<size_t>>{}),
                                           Identity<size_t>{}) == 0);
 // The fold spelled out agrees, and the count below the unit folds to it.
 static_assert(std::ranges::fold_left(chain(10uz, out<size_t, Max<size_t>>{}),
-                                     0uz, Max<size_t>{}) == 10);
+                                     0uz, Max<size_t>{}) == 9);
 // Listing 4, right, second: the top with the count known only at run time.
 constexpr size_t top_n(size_t n) {
   return concat<size_t, Max<size_t>>(chain(n, out<size_t, Max<size_t>>{}),
                                      Identity<size_t>{});
 }
-static_assert(top_n(100) == 100);
+static_assert(top_n(100) == 99);
 
 // Listing 4, third: the arrow is a lookup into a physical array, Figure 2's
 // array itself, along the chain of its length, so the symbolic array is
@@ -610,7 +629,7 @@ struct At {
   using Domain = size_t;
   using Codomain = T;
   std::array<T, K> a;
-  constexpr T operator()(size_t k) const { return a[K - k]; }  // in order
+  constexpr T operator()(size_t k) const { return a[K - 1 - k]; }  // in order
 };
 template <typename T, typename Op = std::plus<T>, size_t K>
   requires IsCount<size_t> && IsMonoid<T, Op>
@@ -802,21 +821,21 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
   SECTION("Section 2: the rules' functions, called at runtime") {
     size_t twelve = 12;
     CHECK(L::id<size_t>()(twelve) == 12);
-    CHECK(L::listing3::sum_n(twelve) == 78);
+    CHECK(L::listing3::sum_n(twelve) == 66);
     CHECK(L::copies_n(7, twelve) == 84);
-    CHECK(L::top_n(twelve) == 12);
+    CHECK(L::top_n(twelve) == 11);
     CHECK(L::sum_a({1, 2, 3, 4, 5, 6, 7, twelve}) == 40);
     CHECK(L::copies<size_t>(7, twelve) == 84);
     bool yes = true;
-    CHECK(L::concat<bool, std::logical_or<bool>>(
+    CHECK(!L::concat<bool, std::logical_or<bool>>(
         L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
         L::Identity<bool>{}));
-    CHECK(!L::concat<bool, std::logical_or<bool>>(
+    CHECK(L::concat<bool, std::logical_or<bool>>(
         L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
         L::endo<bool>(std::logical_not<bool>{})));
     std::string abc = "abc";
     CHECK(L::concat<std::string>(L::chain(abc, L::out<std::string>{}),
-                                 L::Identity<std::string>{}) == "abcaba");
+                                 L::Identity<std::string>{}) == "aba");
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
