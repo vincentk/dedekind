@@ -383,7 +383,17 @@ static_assert(concat(ns) == 45 &&
               concat(ns >> constant<size_t>(7uz)) == 70 &&
               concat(cs) == 102512);
 
-// bottom right: the fold on an action, M × S → M
+// bottom right: the fold on an action, M × S → M: 2×2 matrices acting on
+// vectors, the chain of 10 under the constant Fibonacci matrix
+using V = std::array<size_t, 2>;
+using M2 = std::array<V, 2>;  // row by row
+constexpr auto act = [](V v, M2 a) {
+  return V{a[0][0] * v[0] + a[0][1] * v[1], a[1][0] * v[0] + a[1][1] * v[1]};
+};
+constexpr M2 fib{{{1, 1}, {1, 0}}};
+static_assert(std::ranges::fold_left(ns >> constant<size_t>(fib), V{1, 0},
+                                     act) == V{89, 55});  // F11, F10
+// The test's other actions: the booleans on the counts and on the words.
 constexpr auto is_even = arrow<size_t>([](size_t k) { return k % 2 == 0; });
 constexpr auto pop_count = [](size_t m, bool b) -> size_t { return m + b; };
 constexpr auto append_bit = [](std::string s, bool b) {

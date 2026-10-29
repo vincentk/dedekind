@@ -431,30 +431,24 @@ static_assert(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the fold on an action, M × S → M
-constexpr auto is_even = arrow<size_t>(
-    [](size_t k) { return k % 2 == 0; });
-constexpr auto pop_count =
-    [](size_t m, bool b) -> size_t { return m + b; };
-constexpr auto append_bit =
-    [](string s, bool b) {
-      return s + (b ? '1' : '0');
-    };
-static_assert(
-    ranges::fold_left(ns >> is_even, 0uz,
-                      pop_count) == 5 &&
-    ranges::fold_left(ns >> is_even, string{},
-                      append_bit) == "0101010101" &&
-    ranges::fold_left(cs >> is_even, 0uz,
-                      pop_count) == 71);
+// the fold on an action: matrices on vectors
+using V = array<size_t, 2>;
+using M = array<V, 2>;              // row by row
+constexpr auto act = [](V v, M a) {
+  return V{a[0][0] * v[0] + a[0][1] * v[1],
+           a[1][0] * v[0] + a[1][1] * v[1]};
+};
+constexpr M fib{{{1, 1}, {1, 0}}};
+static_assert(ranges::fold_left(
+    ns >> constant<size_t>(fib), V{1, 0}, act)
+        == V{89, 55});              // F(11), F(10)
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top left: the counts are a finite chain, a finite total order, which is why the defaults can be inferred: a finite chain has a bottom and a lower cover for every other element, so the type supplies $\mathit{prior}$, and the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is the standard's \cppinline{iota} read backwards.
-Top right: Collatz's step, guarded by \cppinline{until(equals(1uz), ...)}, a deliberate test of the combinators' expressiveness: from $1000$ the walk is known to reach $1$, after $111$ steps and a peak of $9232$, but that it does so from every natural is an open problem~\cite{lagarias1985collatz}, so this chain is finite by fact, checked here, and not by Rule~3, which the step does not obey.
-Both chains are input ranges, which is all the bottom row asks: what ties them to the standard's \cppinline{fold_left}, the kernel's iterator.
-Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, one chain under two operations.
-Bottom right: the fold on an action $M \times S \to M$, heterogeneous, the booleans acting on the counts, \cppinline{pop_count}, and on the words, \cppinline{append_bit}, by \cppinline{fold_left} as it stands; it is a semimodule's fold when the action's laws hold, which the tree certifies and the listing does not ask.}
+Top left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
+Top right: a chaotic path, Collatz's step from $1000$, finite by fact and not by Rule~3: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
+Bottom left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
+Bottom right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.}
 \label{lst:rule3}
 \end{listing}
 
