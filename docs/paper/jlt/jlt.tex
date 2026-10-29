@@ -316,8 +316,9 @@ concat<Arrows<size_t>, compose>(
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
-Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
-The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
+Left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
+Its elements need not be comparable, as equality is not decidable on every carrier, on functions for one, but the unit is identified.
+The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
 Right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
 The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Arrows} under \cppinline{(id, >>)}.
 }
