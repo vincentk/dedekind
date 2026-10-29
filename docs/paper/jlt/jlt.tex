@@ -334,15 +334,16 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep=1.1em, row sep=1.5em]
-  \llap{\small order, $X$:\quad}
-  & \bot = 0 \arrow[loop above, "p"]
+  \llap{\small order, $X$:\quad} \ast
+  &[1.6em] 0 \arrow[l, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
-  & & 1 \arrow[ll, "p"']
+  & & 1 \arrow[ll, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
-  & & \cdots \arrow[ll, "p"']
-  & & n = \top \arrow[ll, "p"']
+  & & \cdots \arrow[ll, "\mathit{prior}"']
+  & & n-1 \arrow[ll, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
-  & \\[1.2em]
+  & & n \arrow[ll, "\mathit{prior}"']
+  &[1.6em] 1 \arrow[l, "n"'] \\[1.2em]
   \llap{\small right fold, $h$:\quad} \bullet
   & & \bullet \arrow[ll, "h"' near start]
   & & \cdots \arrow[ll, "h"' near start]
@@ -352,7 +353,7 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & f\,0 \arrow[ul] \arrow[dr]
   & & f\,1 \arrow[ul] \arrow[dr]
   & & \cdots
-  & & f\,n \arrow[ul] \arrow[dr]
+  & & f(n-1) \arrow[ul] \arrow[dr]
   & \\
   \llap{\small left fold, $g$:\quad} e \arrow[rr, "g"]
   & & \bullet \arrow[rr, "g"]
@@ -376,11 +377,12 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 %}
 \caption{Where each structure lives.
 Top: the order, a chain after Dedekind~\cite{dedekind1888zahlen} and Lambek~\cite{lambek1968fixpoint}.
-Dedekind: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included, and the chain of an element is its forward orbit, which contains the element, here the chain of $n$ under $p$, $n, p\,n, \ldots, 0$.
-It is ordered by reachability, total since any two elements are iterates of $n$, and finite since the walk reaches a fixed point, $p\,0 = 0$; between two elements lie finitely many, so the order is locally finite.
-Lambek: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, its inverse $\mathit{prior} : X \to 1 + X$ nothing at $0$ and $p$ elsewhere; the chain of $\mathit{prior}\,n$ is the $n$ elements below $n$, and the chain of $\mathit{prior}\,0$, nothing, is empty.
-Finite and total, the chain is a bounded lattice, its top the seed and its bottom the fixed point, meet $\min$ and join $\max$, with no operation on its elements.
-What generates it is unary and endomorphic, $p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
+Dedekind: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included, and the chain of an element is its forward orbit, which contains the element.
+Lambek: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down, with nothing, $\ast$, at $0$; the preferred direction is down, since $s$ builds the naturals and never ends, while a walk by $\mathit{prior}$ always does.
+The point $n : 1 \to X$ names the chain's cardinality, not its first element: the chain is Dedekind's chain of $\mathit{prior}\,n$, the $n$ elements below $n$, $n - 1, \ldots, 0$, delimited by $\ast$ outside the carrier, and $0$ gives the empty chain.
+It is ordered by reachability, total since any two elements are iterates of $n - 1$, and finite since the walk ends; between two elements lie finitely many, so the order is locally finite.
+Finite and total, a nonempty chain is a bounded lattice, top $n - 1$ and bottom $0$, meet $\min$ and join $\max$, with no operation on its elements.
+What generates it is unary, $\mathit{prior} : X \to 1 + X$, one argument on one carrier; an algebra begins where an operation takes two.
 Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
 The left fold $g : M \times S \to M$ acts on the right and runs from the left, each $\bullet$ the accumulator from its left and $f\,x$ from above; the right fold $h : S \times M \to M$ acts on the left and runs from the right; the two agree when $S$ is commutative, and a monoid is the case $S = M$ acting on itself.
 Following the arrows from either $e$ retraces the computation.
