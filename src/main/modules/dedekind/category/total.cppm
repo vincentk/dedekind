@@ -1235,9 +1235,9 @@ struct Square {
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
  *  squaring.  @param r the copies.  @param op the operation. */
-export template <IsConstantArrow F, typename Op>
+export template <IsConstantArrow F, typename Op = std::plus<Cod<F>>>
   requires IsMonoid<Cod<F>, Op>
-constexpr Cod<F> concat(ConstantChain<F> r, Op op) {
+constexpr Cod<F> concat(ConstantChain<F> r, Op op = {}) {
   using T = Cod<F>;
   const std::size_t n = r.seed();
   const T x = r.coalgebra().f(n);
