@@ -336,7 +336,8 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \begin{tikzcd}[column sep=1.1em, row sep=1.5em]
   \llap{\small cardinality:\quad}
   &[1.6em] & & & & 1 \arrow[rr, "n"]
-  & & n \arrow[d, "\mathit{prior}"] \\
+  & & n \arrow[d, "\mathit{prior}"] \arrow[rr, dashed, "s"]
+  & & \cdots \arrow[r, dashed, "s"] & \mathbb{N} \\
   \llap{\small order, $X$:\quad} \ast
   & 0 \arrow[l, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
@@ -373,18 +374,12 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 %kann K sehr wohl keine Kette sein. 
 %}
 \caption{Where each structure lives.
-Top: the order, a chain after Dedekind~\cite{dedekind1888zahlen} and Lambek~\cite{lambek1968fixpoint}.
-Dedekind: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included, and the chain of an element is its forward orbit, which contains the element.
-Lambek: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down, with nothing, $\ast$, at $0$; the preferred direction is down, since $s$ builds the naturals and never ends, while a walk by $\mathit{prior}$ always does.
-The point $n : 1 \to X$ names the chain's cardinality, not its first element: the chain is Dedekind's chain of $\mathit{prior}\,n$, the $n$ elements below $n$, $n - 1, \ldots, 0$, delimited by $\ast$ outside the carrier, and $0$ gives the empty chain.
-It is ordered by reachability, total since any two elements are iterates of $n - 1$, and finite since the walk ends; between two elements lie finitely many, so the order is locally finite.
-Finite and total, a nonempty chain is a bounded lattice, top $n - 1$ and bottom $0$, meet $\min$ and join $\max$, with no operation on its elements.
-What generates it is unary, $\mathit{prior} : X \to 1 + X$, one argument on one carrier; an algebra begins where an operation takes two.
-Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
-The fold $h : M \times S \to M$ runs along the walk, from $e$ at the seed's end, each $\bullet$ the accumulator from its right and $f\,x$ from below: a streaming algorithm, one accumulator and no chain stored, where the other order would need the whole chain or a stack of depth $n$; a monoid is the case $S = M$ acting on itself.
-Following the arrows from $e$ retraces the computation.
-With the chain offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
-Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one action; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f(n-1)$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
+Cardinality: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down and always ends, where Peano's $s$~\cite{peano1889arithmetices}, dashed, never does; the point $n$ names the chain's cardinality, and $0$ names the empty chain.
+Order: Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, and the chain of an element its forward orbit, here the $n$ elements below $n$; the carrier needs neither an order nor an origin, since reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Fold: of the two folds of a list~\cite{meijer1991functional,gibbons1996third}, the one along the walk, $h : M \times S \to M$ from $e$ at the seed's end, needs no list: a stream and its iterator~\cite{stepanov2009elements}.
+Algebra: on the codomain of $f$, a semiring $S$ acting on a semimodule $M$, a monoid when $S = M$.
+With $s$ as well, $s >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}: the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
+Properties of $f$ license shortcuts, each representing the chain by less than its traversal (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
 
