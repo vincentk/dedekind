@@ -339,25 +339,22 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & & n \arrow[d, "\mathit{prior}"] \arrow[rr, dashed, "s"]
   & & \cdots \arrow[r, dashed, "s"] & \mathbb{N} \\
   \llap{\small order, $X$:\quad} \ast
-  & 0 \arrow[l, "\mathit{prior}"']
-    \arrow[dd, crossing over, "f" near end]
-  & & 1 \arrow[ll, "\mathit{prior}"']
-    \arrow[dd, crossing over, "f" near end]
+  & 0 \arrow[l, "\mathit{prior}"'] \arrow[d, "f"]
+  & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
   & & \cdots \arrow[ll, "\mathit{prior}"']
-  & & n-1 \arrow[ll, "\mathit{prior}"']
-    \arrow[dd, crossing over, "f" near end]
-  & \\[1.2em]
-  \llap{\small fold, $h$:\quad} \bullet
-  & & \bullet \arrow[ll, "h"' near start]
-  & & \cdots \arrow[ll, "h"' near start]
-  & & \bullet \arrow[ll, "h"' near start]
-  & & e \arrow[ll, "h"' near start] \\
+  & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
+  & \\
   \llap{\small algebra, $S$:\quad}
-  & f\,0 \arrow[ul]
-  & & f\,1 \arrow[ul]
+  & f\,0 \arrow[dl]
+  & & f\,1 \arrow[dl]
   & & \cdots
-  & & f(n-1) \arrow[ul]
-  &
+  & & f(n-1) \arrow[dl]
+  & \\
+  \llap{\small fold, $h$:\quad} \bullet
+  & & \bullet \arrow[ll, "h"']
+  & & \cdots \arrow[ll, "h"']
+  & & \bullet \arrow[ll, "h"']
+  & & e \arrow[ll, "h"']
 \end{tikzcd}
 % Dedekind, Was sind und was sollen die Zahlen?, the source of the caption's opening:
 % http://opera-platonis.de/dedekind/Dedekind_Was_sind_2.pdf
