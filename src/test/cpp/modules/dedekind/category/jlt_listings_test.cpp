@@ -34,6 +34,17 @@ constexpr T unit(Op) = delete;
 
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
+
+// Listing 2, left: an instance for a family, before the shape (Section 7).
+template <std::unsigned_integral T>
+constexpr T unit(std::plus<T>) {
+  return 0;
+}
+template <std::unsigned_integral T>
+constexpr bool associative(std::plus<T>) {
+  return true;
+}
+
 // The one comparison the shape keeps: with the unit, which has one
 // representation; by default the carrier's ==.
 template <typename T, typename Op>
@@ -44,16 +55,6 @@ template <typename T, typename Op>
   requires HasUnit<T, Op> && std::equality_comparable<T>
 constexpr bool is_unit(const T& a, Op op) {
   return a == unit<T>(op);
-}
-
-// Listing 2, left: an instance for a family, before the shape (Section 7).
-template <std::unsigned_integral T>
-constexpr T unit(std::plus<T>) {
-  return 0;
-}
-template <std::unsigned_integral T>
-constexpr bool associative(std::plus<T>) {
-  return true;
 }
 
 template <typename T, typename Op>
