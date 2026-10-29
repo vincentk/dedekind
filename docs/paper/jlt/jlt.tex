@@ -377,7 +377,7 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \caption{Where each structure lives.
 Top: the order, a chain after Dedekind~\cite{dedekind1888zahlen} and Lambek~\cite{lambek1968fixpoint}.
 Dedekind: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included, and the chain of an element is its forward orbit, which contains the element, here the chain of $n$ under $p$, $n, p\,n, \ldots, 0$.
-It is ordered by reachability, total since any two elements are iterates of $n$, and finite since the walk reaches a fixed point, $p\,0 = 0$; between two elements lie finitely many, so the order is locally finite, and that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
+It is ordered by reachability, total since any two elements are iterates of $n$, and finite since the walk reaches a fixed point, $p\,0 = 0$; between two elements lie finitely many, so the order is locally finite.
 Lambek: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, its inverse $\mathit{prior} : X \to 1 + X$ nothing at $0$ and $p$ elsewhere; the chain of $\mathit{prior}\,n$ is the $n$ elements below $n$, and the chain of $\mathit{prior}\,0$, nothing, is empty.
 Finite and total, the chain is a bounded lattice, its top the seed and its bottom the fixed point, meet $\min$ and join $\max$, with no operation on its elements.
 What generates it is unary and endomorphic, $p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
