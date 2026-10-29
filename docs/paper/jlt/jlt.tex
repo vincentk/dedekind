@@ -335,12 +335,12 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \centering
 \begin{tikzcd}[column sep=1.1em, row sep=1.5em]
   \llap{\small order, $X$:\quad}
-  & \bot = 0 \arrow[loop above, "p"] \arrow[rr, bend left=25, "s"]
+  & \bot = 0 \arrow[loop above, "p"]
     \arrow[dd, crossing over, "f" near end]
-  & & 1 \arrow[ll, bend left=25, "p"] \arrow[rr, bend left=25, "s"]
+  & & 1 \arrow[ll, "p"']
     \arrow[dd, crossing over, "f" near end]
-  & & \cdots \arrow[ll, bend left=25, "p"] \arrow[rr, bend left=25, "s"]
-  & & n = \top \arrow[ll, bend left=25, "p"] \arrow[loop above, "s"]
+  & & \cdots \arrow[ll, "p"']
+  & & n = \top \arrow[ll, "p"']
     \arrow[dd, crossing over, "f" near end]
   & \\[1.2em]
   \llap{\small right fold, $h$:\quad} \bullet
@@ -375,13 +375,12 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 %kann K sehr wohl keine Kette sein. 
 %}
 \caption{Where each structure lives.
-Top: the order, after Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included.
-The chain of $x$ is the least such set containing $x$: $x, \varphi x, \varphi^2 x, \ldots$
-It is ordered by reachability, $y \le x$ when $y = \varphi^k x$ for some $k$, and the order is total, since any two elements are iterates of $x$.
-It is finite when the iteration reaches a fixed point, here $p$'s at $0$; between two elements lie finitely many, so the order is locally finite, and that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
-Finite and total, it is a bounded lattice, its top the seed and its bottom the fixed point, meet $\min$ and join $\max$, with no operation on its elements.
-What generates it is unary and endomorphic, $s, p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
-It is traversed both ways, the successor $s$ ascending and the predecessor $p$ descending, and its bottom and top are their fixed points, the origin $0$ for $p$ and the bound $n$ for $s$, so a walk in either direction ends with no bound taken from an infinite $\mathbb{N}$.
+Top: the order, a chain after Dedekind~\cite{dedekind1888zahlen} and Lambek~\cite{lambek1968fixpoint}.
+Dedekind: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included, and the chain of an element is its forward orbit, which contains the element, here the chain of $n$ under $p$, $n, p\,n, \ldots, 0$.
+It is ordered by reachability, total since any two elements are iterates of $n$, and finite since the walk reaches a fixed point, $p\,0 = 0$; between two elements lie finitely many, so the order is locally finite, and that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
+Lambek: the structure map $[0, s] : 1 + X \to X$ of the naturals is an isomorphism, its inverse $\mathit{prior} : X \to 1 + X$ nothing at $0$ and $p$ elsewhere; the chain of $\mathit{prior}\,n$ is the $n$ elements below $n$, and the chain of $\mathit{prior}\,0$, nothing, is empty.
+Finite and total, the chain is a bounded lattice, its top the seed and its bottom the fixed point, meet $\min$ and join $\max$, with no operation on its elements.
+What generates it is unary and endomorphic, $p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
 Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
 The left fold $g : M \times S \to M$ acts on the right and runs from the left, each $\bullet$ the accumulator from its left and $f\,x$ from above; the right fold $h : S \times M \to M$ acts on the left and runs from the right; the two agree when $S$ is commutative, and a monoid is the case $S = M$ acting on itself.
 Following the arrows from either $e$ retraces the computation.
