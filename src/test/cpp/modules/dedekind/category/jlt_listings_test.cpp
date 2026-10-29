@@ -37,7 +37,11 @@ constexpr bool associative(Op) = delete;
 // The one comparison the shape keeps: with the unit, which has one
 // representation; by default the carrier's ==.
 template <typename T, typename Op>
-  requires std::equality_comparable<T>
+concept HasUnit = requires(Op op) {
+  { unit<T>(op) } -> std::same_as<T>;
+};
+template <typename T, typename Op>
+  requires HasUnit<T, Op> && std::equality_comparable<T>
 constexpr bool is_unit(const T& a, Op op) {
   return a == unit<T>(op);
 }

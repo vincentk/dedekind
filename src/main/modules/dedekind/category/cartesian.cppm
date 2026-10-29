@@ -36,9 +36,9 @@ module;
 
 #include <concepts>
 #include <cstddef>  // std::size_t: the summand of an injection
+#include <cstdlib>  // std::abort: the refusal of a composite of composites
 #include <functional>
 #include <memory>
-#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -471,23 +471,27 @@ using ι = Injection<K, A, B>;
  *  - @c Arrows<T, Op>: a @c Morphisms, or the composite of two.  Composition
  *    is restricted to one level, since a composite of composites has no
  *    alternative of fixed size to land in: it is refused, at compile time by
- *    failing the constant evaluation, at run time by a throw.  Within the
- *    restriction it is a monoid with the identity as unit, decidably so:
- *    the unit has one representation, and equality is case by case,
- *    pointers and elements, so the laws can be checked, which an erased
- *    closure would not allow.
- *  Composition normalises: the identity is absorbed and two sections merge,
- *  so that the laws hold on representations, which is what equality reads. */
+ *    failing the constant evaluation, at run time by ending the program. Within
+ * the restriction it is a monoid with the identity as unit, decidably so: the
+ * unit has one representation, and equality is case by case, pointers and
+ * elements, so the laws can be checked, which an erased closure would not
+ * allow. Composition normalises: the identity is absorbed and two sections
+ * merge, so that the laws hold on representations, which is what equality
+ * reads. */
 namespace detail_arrows {
 /** @brief The visitor that applies the active arrow to @c x. */
 template <typename T>
 struct At {
   T x;
-  template <typename F>
+  template <IsArrow F>
   constexpr T operator()(const F& f) const {
     return f(x);
   }
 };
+/** @brief The refusal of a composite of composites: not a constant
+ *  expression, so the compile-time evaluation that reaches it fails, and at
+ *  run time the end of the program, since Rule 1 admits no throw. */
+[[noreturn]] inline void refuse_deep_composite() { std::abort(); }
 }  // namespace detail_arrows
 
 export template <typename T, typename Op = std::plus<T>>
@@ -593,8 +597,7 @@ constexpr Arrows<T, Op> operator>>(const Arrows<T, Op>& f,
   if (fm && gm) return std::get<0>(f.v) >> std::get<0>(g.v);
   if (fm && std::get<0>(f.v) == Morphisms<T, Op>{}) return g;
   if (gm && std::get<0>(g.v) == Morphisms<T, Op>{}) return f;
-  throw std::domain_error(
-      "a composite of composites has no representation in Arrows");
+  detail_arrows::refuse_deep_composite();
 }
 
 namespace detail_arrows_witness {

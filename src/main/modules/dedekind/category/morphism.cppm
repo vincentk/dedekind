@@ -1059,6 +1059,7 @@ export using operations::compose;
  *  @tparam f the arrow, a value determined by its type.  @tparam T the
  *  object. */
 export template <auto f, typename T>
+  requires IsArrow<decltype(f)>
 constexpr T call(T x) {
   return f(x);
 }
