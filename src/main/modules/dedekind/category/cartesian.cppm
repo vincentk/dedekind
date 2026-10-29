@@ -491,7 +491,7 @@ struct At {
 /** @brief The refusal of a composite of composites: not a constant
  *  expression, so the compile-time evaluation that reaches it fails, and at
  *  run time the end of the program, since Rule 1 admits no throw. */
-[[noreturn]] inline void refuse_deep_composite() { std::abort(); }
+[[noreturn]] constexpr void refuse_deep_composite() { std::abort(); }
 }  // namespace detail_arrows
 
 export template <typename T, typename Op = std::plus<T>>
