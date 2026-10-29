@@ -461,9 +461,12 @@ export template <typename A, typename B, typename Func>
 struct Morphism {
   using Domain = A;  // The concept is looking for these exact names
   using Codomain = B;
-  Func transform;
+  [[no_unique_address]] Func transform;
 
   constexpr explicit Morphism(Func f) : transform(std::move(f)) {}
+  /** @brief Two morphisms are equal when their callables are: decidable for
+   *  a function pointer, deleted for a closure (@c :cartesian's @c Arrows). */
+  constexpr bool operator==(const Morphism&) const = default;
   /** @brief Default-constructible when the callable is, so that an arrow
    *  wrapping an empty function object (@c endo<T>(std::negate<T>{})) is
    *  semiregular, which a chain's coalgebra must be (@c :nno). */
@@ -785,6 +788,7 @@ struct Identity final {
    * @return The identical species value.
    */
   constexpr T operator()(const T& x) const noexcept { return x; }
+  constexpr bool operator==(const Identity&) const = default;
 
   /** @brief The identity at a presentation of @c T, where @c T is an object
    *  that names its presentations (@c
@@ -852,8 +856,10 @@ export template <IsArrow F, IsArrow G>
 struct Compose final {
   using Domain = Dom<F>;
   using Codomain = Cod<G>;
-  F f;
-  G g;
+  [[no_unique_address]] F f;
+  [[no_unique_address]] G g;
+  /** @brief Equal when the legs are (@c :cartesian's @c Arrows). */
+  constexpr bool operator==(const Compose&) const = default;
   /** @brief Run the pipeline @c (g∘f)(x) = g(f(x)), at any presentation of
    *  the domain (@c morphism__Objects_And_Their_Presentations): two arrows
    *  between objects presented by many types compose like any other.  Where
@@ -1028,6 +1034,31 @@ static_assert(
                      decltype(endo<int>(std::negate<int>{}))> &&
         std::same_as<decltype(id<int>() >> id<int>()), Identity<int>>,
     "id >> f is f, f >> id is f and id >> id is id, by resolution");
+
+/** @brief Composition as a value, the function object whose call is
+ *  @c f >> g, so that a fold can take it as it takes @c std::plus; the
+ *  operator stays what the partitions overload, and this only names it (the
+ *  standard made the same move for @c + and never for @c >>).  The type is
+ *  @c Composition, for a shape that takes the operation as a type; the value
+ *  @c compose, for a fold that takes it as a value. */
+export struct Composition {
+  template <typename F, typename G>
+    requires requires(F f, G g) { std::move(f) >> std::move(g); }
+  constexpr auto operator()(F f, G g) const {
+    return std::move(f) >> std::move(g);
+  }
+};
+export inline constexpr Composition compose{};
+
+/** @brief A stateless arrow as a function: @c &call<F{}, T> is a pointer
+ *  through which @c F{} is called, so that an empty arrow has a
+ *  representation with one storage class (@c :cartesian's @c Morphisms).
+ *  @tparam f the arrow, a value determined by its type.  @tparam T the
+ *  object. */
+export template <auto f, typename T>
+constexpr T call(T x) {
+  return f(x);
+}
 
 /**
  * @brief @c operator>> with a callable on the RHS — auto-wraps the lambda

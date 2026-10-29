@@ -38,6 +38,7 @@ module;
 #include <cstddef>  // std::size_t: the summand of an injection
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -260,11 +261,13 @@ struct Section {
   using Domain = T;
   using Codomain =
       std::remove_cvref_t<std::invoke_result_t<const Op&, const T&, const T&>>;
-  Op op;
+  [[no_unique_address]] Op op;
   T a;
   /** @param b the second argument.  @return @c op(a, b). */
   constexpr Codomain operator()(const T& b) const { return op(a, b); }
-  constexpr bool operator==(const Section&) const = default;
+  /** @brief Two sections of one operation are equal when their elements
+   *  are: the operation is its type. */
+  constexpr bool operator==(const Section& o) const { return a == o.a; }
 };
 /** @brief @f$T \to T^T@f$: the operation, one argument at a time. */
 export template <typename T, typename Op>
@@ -313,6 +316,161 @@ static_assert(
         !curry<unsigned>(std::greater_equal<unsigned>{})(0u)(1u),
     "curry<T>(op)(a)(b) = op(a, b), uncurry takes it back, and both are "
     "arrows with names");
+
+/** @section cartesian__Arrows_As_Coproducts
+ *  @brief The endomorphisms of @c T that have a storage class, as three
+ *  coproducts, each an arrow by case analysis and a coproduct by
+ *  construction (the Jlt paper, Listing 2).
+ *  - @c Sections<T, Op>: the identity, or a section of the operation.  Closed
+ *    under composition by the rewrites @c id >> s = s and @c s >> s' = s''
+ *    (associativity): a monoid.
+ *  - @c Morphisms<T, Op>: a section, or a morphism over a function pointer,
+ *    which every stateless arrow on @c T becomes through @c call<F{}, T>.
+ *    Two pointers compose to a closure, so this is not closed: it composes
+ *    into @c Arrows.
+ *  - @c Arrows<T, Op>: a @c Morphisms, or the composite of two.  Composition
+ *    is restricted to one level, since a composite of composites has no
+ *    alternative of fixed size to land in: it is refused, at compile time by
+ *    failing the constant evaluation, at run time by a throw.  Within the
+ *    restriction it is a monoid with the identity as unit, decidably so:
+ *    the unit has one representation, and equality is case by case,
+ *    pointers and elements, so the laws can be checked, which an erased
+ *    closure would not allow.
+ *  Composition normalises: the identity is absorbed and two sections merge,
+ *  so that the laws hold on representations, which is what equality reads. */
+namespace detail_arrows {
+/** @brief The visitor that applies the active arrow to @c x. */
+template <typename T>
+struct At {
+  T x;
+  template <typename F>
+  constexpr T operator()(const F& f) const {
+    return f(x);
+  }
+};
+}  // namespace detail_arrows
+
+export template <typename T, typename Op = std::plus<T>>
+  requires std::same_as<typename Section<T, Op>::Codomain, T>
+struct Sections {
+  using Domain = T;
+  using Codomain = T;
+  std::variant<Identity<T>, Section<T, Op>> v;
+  constexpr Sections() = default;  // the identity
+  constexpr Sections(Identity<T> i) : v(i) {}
+  constexpr Sections(Section<T, Op> s) : v(s) {}
+  constexpr T operator()(const T& x) const {
+    return std::visit(detail_arrows::At<T>{x}, v);
+  }
+  constexpr bool operator==(const Sections&) const = default;
+};
+/** @brief @c f >> g on sections: the identity absorbed, two sections one,
+ *  @f$(b \mapsto a \cdot b) ; (c \mapsto a' \cdot c) = (b \mapsto (a' \cdot a)
+ *  \cdot b)@f$ by associativity.  @param f @param g the sections. */
+export template <typename T, typename Op>
+constexpr Sections<T, Op> operator>>(const Sections<T, Op>& f,
+                                     const Sections<T, Op>& g) {
+  if (f.v.index() == 0) return g;
+  if (g.v.index() == 0) return f;
+  const Section<T, Op>& s = std::get<1>(f.v);
+  const Section<T, Op>& r = std::get<1>(g.v);
+  return Section<T, Op>{s.op, s.op(r.a, s.a)};
+}
+
+export template <typename T, typename Op = std::plus<T>>
+struct Morphisms {
+  using Domain = T;
+  using Codomain = T;
+  /** @brief A morphism over a function pointer: one storage class. */
+  using Pointer = Morphism<T, T, T (*)(T)>;
+  std::variant<Sections<T, Op>, Pointer> v;
+  constexpr Morphisms() = default;  // the identity
+  constexpr Morphisms(Sections<T, Op> s) : v(s) {}
+  constexpr Morphisms(Identity<T> i) : v(Sections<T, Op>{i}) {}
+  constexpr Morphisms(Section<T, Op> s) : v(Sections<T, Op>{s}) {}
+  constexpr Morphisms(Pointer p) : v(p) {}
+  /** @brief Any stateless arrow on @c T, by its type: called through
+   *  @c call<F{}, T>. */
+  template <IsArrow F>
+    requires std::same_as<Dom<F>, T> && std::same_as<Cod<F>, T> &&
+             std::is_empty_v<F> && (!std::same_as<F, Identity<T>>)
+  constexpr Morphisms(F) : v(Pointer{&call<F{}, T>}) {}
+  constexpr T operator()(const T& x) const {
+    return std::visit(detail_arrows::At<T>{x}, v);
+  }
+  constexpr bool operator==(const Morphisms&) const = default;
+};
+
+export template <typename T, typename Op = std::plus<T>>
+struct Arrows {
+  using Domain = T;
+  using Codomain = T;
+  using Composite = Compose<Morphisms<T, Op>, Morphisms<T, Op>>;
+  std::variant<Morphisms<T, Op>, Composite> v;
+  constexpr Arrows() = default;  // the identity
+  constexpr Arrows(Morphisms<T, Op> m) : v(m) {}
+  constexpr Arrows(Composite c) : v(c) {}
+  /** @brief Anything a @c Morphisms is made from. */
+  template <typename F>
+    requires std::constructible_from<Morphisms<T, Op>, F> &&
+             (!std::same_as<std::remove_cvref_t<F>, Morphisms<T, Op>>) &&
+             (!std::same_as<std::remove_cvref_t<F>, Composite>) &&
+             (!std::same_as<std::remove_cvref_t<F>, Arrows>)
+  constexpr Arrows(F f) : v(Morphisms<T, Op>(f)) {}
+  constexpr T operator()(const T& x) const {
+    return std::visit(detail_arrows::At<T>{x}, v);
+  }
+  constexpr bool operator==(const Arrows&) const = default;
+};
+/** @brief @c f >> g on morphisms, into @c Arrows: the identity absorbed, two
+ *  sections one, two pointers a composite.  @param f @param g the morphisms. */
+export template <typename T, typename Op>
+constexpr Arrows<T, Op> operator>>(const Morphisms<T, Op>& f,
+                                   const Morphisms<T, Op>& g) {
+  const bool fs = f.v.index() == 0, gs = g.v.index() == 0;
+  if (fs && std::get<0>(f.v).v.index() == 0) return g;
+  if (gs && std::get<0>(g.v).v.index() == 0) return f;
+  if (fs && gs) return Morphisms<T, Op>{std::get<0>(f.v) >> std::get<0>(g.v)};
+  return typename Arrows<T, Op>::Composite{f, g};
+}
+/** @brief @c f >> g on arrows, restricted to one level: two morphisms
+ *  compose as above, the identity is absorbed, and a composite of composites
+ *  is refused.  @param f @param g the arrows. */
+export template <typename T, typename Op>
+constexpr Arrows<T, Op> operator>>(const Arrows<T, Op>& f,
+                                   const Arrows<T, Op>& g) {
+  const bool fm = f.v.index() == 0, gm = g.v.index() == 0;
+  if (fm && gm) return std::get<0>(f.v) >> std::get<0>(g.v);
+  if (fm && std::get<0>(f.v) == Morphisms<T, Op>{}) return g;
+  if (gm && std::get<0>(g.v) == Morphisms<T, Op>{}) return f;
+  throw std::domain_error(
+      "a composite of composites has no representation in Arrows");
+}
+
+namespace detail_arrows_witness {
+struct Inc {
+  using Domain = unsigned;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(unsigned x) const { return x + 1; }
+};
+using A = Arrows<unsigned>;
+using M = Morphisms<unsigned>;
+using S = Sections<unsigned>;
+constexpr auto twice = Section<unsigned, std::plus<unsigned>>{{}, 2u};
+static_assert(
+    IsArrow<S> && IsArrow<M> && IsArrow<A> &&
+        IsCoproduct<S, Identity<unsigned>,
+                    Section<unsigned, std::plus<unsigned>>> &&
+        IsCoproduct<M, S, M::Pointer> && IsCoproduct<A, M, A::Composite> &&
+        A{}(5u) == 5 && A{twice}(5u) == 7 && A{Inc{}}(5u) == 6 &&
+        (A{twice} >> A{twice}) ==
+            A{Section<unsigned, std::plus<unsigned>>{{}, 4u}} &&
+        (A{} >> A{Inc{}}) == A{Inc{}} && (A{Inc{}} >> A{}) == A{Inc{}} &&
+        (A{Inc{}} >> A{twice})(5u) == 8 &&
+        (A{Inc{}} >> A{Inc{}}).v.index() == 1,
+    "three coproducts of arrows: each an arrow; the identity absorbed, two "
+    "sections one, two pointers a composite; equality by representation");
+}  // namespace detail_arrows_witness
 
 /**
  * @concept IsCoproduct

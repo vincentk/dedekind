@@ -265,6 +265,10 @@ template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
+template <typename T, typename Op>
+constexpr bool is_unit(const T& a, Op op) {
+  return a == unit<T>(op);
+}
 
 template <unsigned_integral T>
 constexpr T unit(plus<T>) { return 0; }
@@ -275,10 +279,11 @@ constexpr bool associative(plus<T>) {
 
 template <typename T, typename Op>
 concept IsMonoid =
-    regular<T> &&
+    semiregular<T> &&
     requires(const T a, const T b) {
       { Op{}(a, b) } -> same_as<T>;
       { unit<T>(Op{}) } -> same_as<T>;
+      { is_unit(a, Op{}) } -> same_as<bool>;
     } && associative<T>(Op{});
 \end{cpp}
 \end{minipage}\hfill
@@ -304,13 +309,17 @@ static_assert(
     !concat<bool, logical_or<bool>>() &&
     concat<bool, logical_or<bool>>(false, true) &&
     concat<string>() == "" &&
-    concat<string>("ab"s, "c"s) == "abc");
+    concat<string>("ab"s, "c"s) == "abc" &&
+    concat<Arrows<size_t>, Composition>(
+        ~id_u, -id_u)(3uz) == 4);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
-Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on four monoids whose certificates are in the test; the calls are the axioms read as programs, a unit per signature, registered on its operation type.
+Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on five monoids whose certificates are in the test; the calls are the axioms read as programs, a unit per signature, registered on its operation type.
+The fifth is Listing~\ref{lst:rule1}'s arrows under composition, \mbox{\cppinline{Composition}} the function object whose call is \cppinline{>>}: \cppinline{Arrows<T>} is the tree's coproduct of the identity, the sections of the operation and the morphisms over a function pointer, and of their composites, with the identity as unit, which has one representation, and equality case by case, so that a law can be checked on it; \cppinline{concat(~id_u, -id_u)} is Listing~\ref{lst:rule1}'s $x + 1$, applied at 3.
+The shape asks \cppinline{semiregular}, as Rule~1 does, and one comparison, with the unit: equality is not in a monoid's signature, and the test asks it of the carriers it checks a law on.
 }
 \label{lst:rule2}
 \end{listing}
@@ -357,76 +366,71 @@ Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.
 
 
 \begin{listing}[htbp]
-\begin{minipage}[t]{0.58\linewidth}
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-template <IsArrow End, IsArrow Step>  // the guard
-  requires same_as<Dom<End>, Dom<Step>> &&
-           same_as<Cod<Step>, Dom<Step>>
-struct Until {                        // N → 1 + N
-  using Domain = Dom<Step>;
-  using Codomain = optional<Domain>;
-  End end;
-  Step step;
-  constexpr Codomain operator()(Domain n) const {
-    return end(n) ? nullopt : optional{step(n)};
-  }
-};
-// the free monoid's fold:
+ // Dedekind's Grundelement
+template <typename T>
+constexpr T origin{};       
+ // postulated for characters
+template <>
+constexpr char origin<char> = 'a'; 
+// Dedekind's Kette of x
+template <typename T>
+constexpr auto chain(T x) {  
+  return views::iota(origin<T>, succ(x))
+       | views::reverse;
+}
+// map f. That looks a bit clunky.
+// But I guess it's because we do the type mapping
+// to the std:
+template <ranges::viewable_range R, IsArrow F>
+  requires same_as<Dom<F>,
+                   ranges::range_value_t<R>>
+constexpr auto operator>>(R&& r, F f) {
+  return forward<R>(r) | views::transform(f);
+}
+constexpr auto zs = chain('z');  // z, y, …, a
+static_assert(
+    ranges::forward_range<decltype(zs)> &&
+    ranges::size(zs) == 26 &&
+    zs.front() == 'z' &&
+    zs.back() == origin<char> &&
+    ranges::is_sorted(zs, greater{}) &&
+    ranges::equal(zs >> id<char>(), zs) &&
+    ranges::equal(zs >> constant<char>('x'),
+                  views::repeat('x', 26)));
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// a monoid with an order: the origin is the unit
+template <typename T>
+  requires IsMonoid<T, plus<T>> && totally_ordered<T>
+constexpr T origin<T> = unit<T>(plus<T>{});
+// the free monoid's fold, Listing 2's concat at a range
 template <ranges::input_range R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op>
-constexpr T concat(R ns, Op op = {}) {
-  return ranges::fold_left(ns, unit<T>(op), op);
+constexpr T concat(R r, Op op = {}) {
+  return ranges::fold_left(r, unit<T>(op), op);
 }
-constexpr auto end =                    // 0 ≥ n
-    curry<size_t>(greater_equal<size_t>{})(0uz);
-constexpr auto step = Predecessor<size_t>{};  // n − 1
-constexpr auto ns = 10uz >> chain(until(end, step));
 static_assert(
-    concat(ns) == 55 &&
-    concat(ns, multiplies<size_t>{}) == 3628800 &&
-    concat(ns >> constant<size_t>(7uz)) == 70 &&
-    concat(ns >> -id<size_t>()) + 55 == 0 &&
-    same_as<decltype(ns >> id<size_t>()),
-            decltype(auto(ns))> &&
-    concat("abc"s >> chain(until(blank, Init{}))) == "abcaba");
+    origin<size_t> == 0 &&
+    ranges::size(chain(10uz)) == 11 &&
+    concat(chain(10uz)) == 55 &&
+    concat(chain(10uz) >> constant<size_t>(7uz)) == 77 &&
+    concat(zs >> letter) == "zyxwvutsrqponmlkjihgfedcba");
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.40\linewidth}
-\begin{minted}{llvm}
-define i64 @sum_n(i64 %n) {
-  %lt2 = icmp ult i64 %n, 2
-  br i1 %lt2, label %exit, label %gauss
-gauss:
-  %a = add i64 %n, -2
-  %b = mul i64 %a, %a
-  %c = shl i64 %n, 1
-  %d = add i64 %b, %c
-  %e = zext i64 %a to i65
-  %f = add i64 %n, -3
-  %g = zext i64 %f to i65
-  %h = mul i65 %e, %g
-  %i = lshr i65 %h, 1
-  %j = trunc nuw i65 %i to i64
-  %k = xor i64 %j, -1
-  %s = add i64 %d, %k
-  br label %exit
-exit:
-  %r = phi i64 [ %s, %gauss ],
-               [ %n, %entry ]
-  ret i64 %r
-}
-\end{minted}
 \end{minipage}
-\caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in arrows.
-Three arrows make the chain: \cppinline{end}, a predicate on the counts, the curried $\geq$ at the unit; \cppinline{step}, an endomorphism, the predecessor; and the seed, a point, composed into \cppinline{chain(until(end, step))}, the anamorphism $N \to N^*$, the library's.
-\cppinline{until} is the guard, $N \to 1 + N$, which a cartesian category builds as $\langle \mathit{end}, 1 \rangle ; \mathit{dist} ; (\mathord{!} + \mathit{step})$.
-\cppinline{ns >> f} is the functor's action, \cppinline{f} mapped over the chain, and \cppinline{>> id} the chain itself, the unit law by resolution as in Listing~\ref{lst:rule1}.
-\cppinline{concat} is the free monoid's fold, the unique homomorphism out of $N^*$, the standard's \cppinline{fold_left}, which is the kernel's iterator; the carrier is the range's and the operation a value.
-The composite is one hylomorphism: nothing between the seed and the fold is built, the chain holding one count, its element at index $k$ the arrow at the count stepped $k$ times, reached in $k$ steps.
-\cppinline{Init} and \cppinline{blank}, the word's step and end, are in the test with the other calls, among them the chain of \cppinline{'z'} summed as a \cppinline{char}.
-Right: the LLVM IR Clang~23 emits at \texttt{-O2} for the chain of \cppinline{n} summed, \cppinline{n} known only at run time, attributes stripped and names shortened: the optimiser finds Gauss's closed form, with a case split below 2.
+\caption{\hyperref[def:rule3]{Rule~3}: Descent.
+Left: the chain in the standard's words.
+The alphabet is a chain and not a monoid: a step and a base element, no unit and no operation, and the obvious-looking one, \Cpp{}'s \cppinline{+} on \cppinline{char}, is $\mathbb{Z}/256$, a monoid that is not the letters.
+\cppinline{origin} is Dedekind's Grundelement~\cite{dedekind1888zahlen}, the distinguished element that is no successor, postulated once for the letters; \cppinline{chain(x)} is his Kette of \cppinline{x}, the elements from \cppinline{x} down to it: \cppinline{iota} generates from the origin by \cppinline{succ} up to the bound the step cannot find on its own, and \cppinline{reverse} reads it downward, the one direction with an end for every chain.
+\cppinline{r >> f} is the functor's action, the standard's \cppinline{transform}, with \cppinline{>> id} the chain itself, Listing~\ref{lst:rule1}'s unit law on a range.
+What the standard says of the chain is its concepts: a forward range, sized, with a first and a last element, sorted by the step's own order.
+Right: the specialisation to a monoid with an order, the counts: the origin is the unit, and \cppinline{concat} is the free monoid's fold, Listing~\ref{lst:rule2}'s at a range, by the standard's \cppinline{fold_left}, the kernel's iterator, into whatever monoid the arrow lands in, the letters into their word among them.
+\cppinline{letter}, a letter as a word, is in the test.
 }
 \label{lst:rule3}
 \end{listing}
