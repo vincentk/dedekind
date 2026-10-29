@@ -369,14 +369,14 @@ Properties of $f$ license shortcuts, each representing the chain by less than it
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
-A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end: the step is deflationary, $s\,x \le x$ in Figure~\ref{fig:structures}, on an order with no infinite descent.
+A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end: the step is Figure~\ref{fig:structures}'s $\mathit{prior}$, which steps down and has nothing at the bottom, on an order with no infinite descent.
 What the rule conserves is that inductive argument: structural induction~\cite{burstall1969proving}, a language all of whose programs end by it being Turner's total functional programming~\cite{turner2004total}, and the fold's universal property its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only.
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
-Regardless of presentation, it is a traversal of the figure's array, symbolic or physical: the chain holds one count and a physical array holds the elements, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, \cppinline{n >> chain(until(end, step))} an anamorphism, delimited where the destructor has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+Regardless of presentation, it is a traversal of the figure's chain, held as one count or as the elements of an array, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
+Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, the chain an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
 
 
 \begin{listing}[htbp]
@@ -449,7 +449,6 @@ Right: the specialisation to a monoid with an order, the counts: the origin is t
 \label{lst:rule3}
 \end{listing}
 
-What the processor runs of Listing~\ref{lst:rule3}'s fold is, after the case split, the panel's closed form, Gauss's, though the count is known only at run time (Section~\ref{sec:binding}).
 What the rule buys is termination and, with Rule~2, the System~F reading, data as their own folds after B\"ohm and Berarducci~\cite{bohm1985automatic} (Appendix~\ref{app:fjlt:translation}).
 Like System~F, strongly normalising and so unable to express every computable function~\cite{girard1989proofs}, Rule~3 trades expressiveness for termination, since the halting programs are not a decidable set~\cite{turing1936computable}: a bounded search ends without always deciding its question (Section~\ref{sec:binding}).
 
