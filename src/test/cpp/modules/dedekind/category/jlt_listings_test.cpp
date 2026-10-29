@@ -385,8 +385,8 @@ static_assert(concat(ns) == 45 &&
 // vectors, the chain of 10 under the constant Fibonacci matrix
 using V = std::array<size_t, 2>;
 using M2 = std::array<V, 2>;  // row by row
-constexpr auto act = [](V v, M2 a) {
-  return V{a[0][0] * v[0] + a[0][1] * v[1], a[1][0] * v[0] + a[1][1] * v[1]};
+constexpr auto act = [](V v, M2 a) {  // the row vector v·A
+  return V{v[0] * a[0][0] + v[1] * a[1][0], v[0] * a[0][1] + v[1] * a[1][1]};
 };
 constexpr M2 fib{{{1, 1}, {1, 0}}};
 constexpr auto ms = ns >> constant<size_t>(fib);
@@ -441,7 +441,7 @@ struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatMul> {
   static constexpr value_type value{jlt_listing::listing3::V{1, 0},
                                     jlt_listing::listing3::V{0, 1}};
 };
-template <>  // act(act(v, A), B) = act(v, B·A), act(v, I) = v
+template <>  // act(act(v, A), B) = act(v, A·B), act(v, I) = v
 struct acting_monoid<
     std::remove_cvref_t<decltype(jlt_listing::listing3::act)>> {
   using type = jlt_listing::listing3::MatMul;
@@ -474,8 +474,13 @@ static_assert(dedekind::category::HasCountingAction<M2, MatAdd> &&
                      MatAdd{}) == Scale{}(10uz, shear) &&
               concat(std::views::repeat(shear, 100'000'000uz), MatAdd{}) ==
                   Scale{}(100'000'000uz, shear));
+// The certificate, checked on two matrices that do not commute: act is a
+// right action, the product in the walk's order.
 static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
-              dedekind::category::IsMonoidAction<decltype(act), M2>);
+              dedekind::category::IsMonoidAction<decltype(act), M2> &&
+              MatMul{}(fib, shear) != MatMul{}(shear, fib) &&
+              act(act(V{1, 2}, fib), shear) ==
+                  act(V{1, 2}, MatMul{}(fib, shear)));
 
 // Listing 5: Listing 3's matrix chain, its length a parameter; its LLVM IR
 // at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10

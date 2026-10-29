@@ -448,10 +448,10 @@ static_assert(
 // the fold on an action: matrices on vectors
 using V = array<size_t, 2>;
 using M = array<V, 2>;              // row by row
-constexpr auto act = [](V v, M a) {
+constexpr auto act = [](V v, M a) {  // v·A
   return V{
-     a[0][0] * v[0] + a[0][1] * v[1],
-     a[1][0] * v[0] + a[1][1] * v[1]};};
+     v[0] * a[0][0] + v[1] * a[1][0],
+     v[0] * a[0][1] + v[1] * a[1][1]};};
 constexpr M fib{{{1, 1}, {1, 0}}};
 constexpr auto ms = ns >> constant<size_t>(fib);
 // F(11), F(10)
@@ -725,7 +725,7 @@ static_assert(
 \end{cpp}
 \end{minipage}
 \caption{Laws composing: two declared laws, two overloads, and a complexity class less.
-Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, BA)$.
+Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
 Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} = (M^k)^2$, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
 Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
 Bottom right: resolution picks each overload, and the two compose.

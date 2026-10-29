@@ -288,8 +288,10 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
 /** @section action__Fold
  *  @brief A fold along the walk, @c fold(r, v, h), and its specialisation by
  *  the action law (the Jlt paper's Listing 4).  @c acting_monoid<H> names the
- *  monoid an action @c h acts by, a declared certificate of
- *  @f$h(h(v, a), b) = h(v, b \cdot a)@f$ and @f$h(v, 1) = v@f$; keyed by the
+ *  monoid an action @c h acts by on the right, a declared certificate of
+ *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
+ *  in the walk's order (a left action registers the opposite product); keyed
+ *  by the
  *  action's type without cv-qualification, as a fold deduces it.  On @c n
  *  copies of one value the fold is then @c v acted on by their product, and
  *  @c concat (@c :total) computes the product by squaring: two declared laws,
@@ -311,9 +313,10 @@ constexpr M fold(R r, M v, H h) {
 }
 /** @brief The fold of @c n copies of one value under a monoid action:
  *  @c v acted on by their product.  The same signature as the plain fold and
- *  a stronger constraint, so resolution prefers it.  The product of the
- *  copies is in either order the same; a range of distinct values would need
- *  it reversed.  @param r the copies.  @param v the start.  @param h the
+ *  a stronger constraint, so resolution prefers it.  The law makes any fold
+ *  @c v acted on by the product in the walk's order; on distinct values that
+ *  product costs the same @c n steps, so only copies are specialised.
+ *  @param r the copies.  @param v the start.  @param h the
  *  action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
   requires std::invocable<const H&, M, std::ranges::range_value_t<R>> &&
