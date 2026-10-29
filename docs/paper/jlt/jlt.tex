@@ -360,10 +360,28 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & &\cdots \arrow[rr, "g"]
   & & \bullet
 \end{tikzcd}
+% Dedekind, Was sind und was sollen die Zahlen?, the source of the caption's opening:
+% http://opera-platonis.de/dedekind/Dedekind_Was_sind_2.pdf
+%36. Erklärung. Ist $\varphi$ eine bijektive oder nicht bijektive Abbildung einer Menge $S$, und $\varphi(S)$ Teil
+%einer Menge $Z$, so nennen wir $\varphi$ eine Abbildung von $S$ in $Z$, und wir sagen, $S$ werde durch $\varphi$ in
+%$Z$ abgebildet. Wir nennen daher $\varphi$ eine Abbildung der Menge $S$ in sich selbst, wenn $\varphi(S) \subset S$ ist,
+%und wir wollen in diesem Paragraphen die allgemeinen Gesetze einer solchen Abbildung  untersuchen. Hierbei bedienen wir uns derselben Bezeichnungen wie in § 2, indem wir wieder (s) = s',
+%(T) = T' setzen. Diese Bilder s', T' sind zufolge (22), (7) jetzt selbst wieder Elemente oder Teile
+%von S, wie alle mit lateinischen Buchstaben bezeichneten Dinge. 
+%
+%37. Erklärung. K heißt eine Kette, wenn K'  K ist. Wir bemerken ausdrücklich, daß dieser Name
+%dem Teile K der Menge S nicht etwa an sich zukommt, sondern nur in Beziehung auf die
+%bestimmte Abbildung  erteilt wird; in bezug auf eine andere Abbildung der Menge S in sich selbst
+%kann K sehr wohl keine Kette sein. 
+%}
 \caption{Where each structure lives.
-Top: the order, a finite chain, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}, and nothing more: hence a bounded lattice, meet $\min$ and join $\max$, with no operation on its elements.
+Top: the order, after Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, $\varphi(K) \subseteq K$, a part in his sense, equality included.
+The chain of $x$ is the least such set containing $x$: $x, \varphi x, \varphi^2 x, \ldots$
+It is ordered by reachability, $y \le x$ when $y = \varphi^k x$ for some $k$, and the order is total, since any two elements are iterates of $x$.
+It is finite when the iteration reaches a fixed point, here $p$'s at $0$; between two elements lie finitely many, so the order is locally finite, and that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
+Finite and total, it is a bounded lattice, its top the seed and its bottom the fixed point, meet $\min$ and join $\max$, with no operation on its elements.
 What generates it is unary and endomorphic, $s, p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
-It is traversed both ways, the successor $s$ ascending and the predecessor $p$ descending, and its bottom and top are their fixed points, the origin $0$ for $p$ and the bound $n$ for $s$, so a walk in either direction ends with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
+It is traversed both ways, the successor $s$ ascending and the predecessor $p$ descending, and its bottom and top are their fixed points, the origin $0$ for $p$ and the bound $n$ for $s$, so a walk in either direction ends with no bound taken from an infinite $\mathbb{N}$.
 Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
 The left fold $g : M \times S \to M$ acts on the right and runs from the left, each $\bullet$ the accumulator from its left and $f\,x$ from above; the right fold $h : S \times M \to M$ acts on the left and runs from the right; the two agree when $S$ is commutative, and a monoid is the case $S = M$ acting on itself.
 Following the arrows from either $e$ retraces the computation.
