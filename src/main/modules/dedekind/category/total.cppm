@@ -38,12 +38,15 @@
 module;
 
 #include <algorithm>
+#include <bit>      // std::bit_width: the binary method
 #include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
 #include <limits>       // for std::numeric_limits (cyclic_order_v)
+#include <ranges>       // concat: the free monoid's fold over a range
 #include <type_traits>  // for std::false_type, std::integral_constant
+#include <utility>      // std::pair: the binary method's state
 
 export module dedekind.category:total;
 
@@ -52,6 +55,7 @@ import :morphism;
 import :mereology;  // Sup / Inf
 import :posetal;
 import :species;
+import :nno;  // the counting chain, for concat on n copies of one value
 
 namespace dedekind::category {
 
@@ -1193,5 +1197,69 @@ inline constexpr bool is_closure_forcing_v = false;
 export template <typename Op, typename A, typename B>
 concept IsClosureForcing =
     HasClosureForcingShape<Op, A, B> && is_closure_forcing_v<Op, A, B>;
+
+/** @section total__Concat
+ *  @brief The free monoid's fold, @c concat, the canonical fold of a monoid:
+ *  a range folded under the operation from its unit (the Jlt paper's
+ *  Listings 2 to 4).  Its specialisation, licensed by associativity, folds
+ *  @c n copies of one value, the counting chain of @c n under a constant
+ *  arrow, by the binary method, one squaring per bit of @c n (Knuth, TAOCP 2
+ *  §4.6.3).  Resolution picks it over the plain fold, its parameter being the
+ *  more specific.  @param r the range.  @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(R r, Op op = {}) {
+  return std::ranges::fold_left(std::move(r), unit<T>(op), op);
+}
+/** @brief The type of @c n copies of one value: the counting chain of @c n,
+ *  @c n >> chain<std::size_t>(), under the arrow @c F.  @tparam F the arrow. */
+export template <IsArrow F>
+using ConstantChain = unfold_view<
+    std::size_t,
+    Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>;
+namespace detail_concat {
+/** @brief One step of the binary method: the accumulator takes the square
+ *  where bit @c k of @c n is set, and the square squares. */
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+struct Square {
+  std::size_t n;
+  Op op;
+  constexpr std::pair<T, T> operator()(std::pair<T, T> p, std::size_t k) const {
+    return {((n >> k) & 1U) != 0 ? op(p.first, p.second) : p.first,
+            op(p.second, p.second)};
+  }
+};
+}  // namespace detail_concat
+/** @brief @c concat on @c n copies of one value: its @c n-th power, by
+ *  squaring.  @param r the copies.  @param op the operation. */
+export template <IsConstantArrow F, typename Op>
+  requires IsMonoid<Cod<F>, Op>
+constexpr Cod<F> concat(ConstantChain<F> r, Op op) {
+  using T = Cod<F>;
+  const std::size_t n = r.seed();
+  const T x = r.coalgebra().f(n);
+  return std::ranges::fold_left(
+             std::views::iota(std::size_t{0},
+                              static_cast<std::size_t>(std::bit_width(n))),
+             std::pair<T, T>{unit<T>(op), x},
+             detail_concat::Square<T, Op>{n, op})
+      .first;
+}
+namespace detail_concat_witness {
+constexpr std::size_t ten = 10;
+constexpr std::size_t seven = 7;
+static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
+                  concat(ten >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 70 &&
+                  concat(std::size_t{0} >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 0 &&
+                  concat(std::size_t{100'000'000} >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 700'000'000,
+              "concat folds a range from the unit; on n copies of one value it "
+              "squares, so 10^8 copies are 27 steps, not 10^8");
+}  // namespace detail_concat_witness
 
 }  // namespace dedekind::category

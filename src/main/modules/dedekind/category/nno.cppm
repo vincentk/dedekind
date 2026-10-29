@@ -450,11 +450,11 @@ struct StepCoalgebra {
   }
   constexpr bool operator==(const StepCoalgebra&) const = default;
 };
-/** @brief Dedekind's chain (Kette) of @c x under a partial step: @c x, then
- *  the step of it, and so on, up to and excluding the element where the
- *  step has nothing (Dedekind @cite dedekind1888zahlen).  With the
- *  destructor @c Prior it is @f$Z_n = \{n, \ldots, 1\}@f$ walked down, the
- *  base delimiting: @c n elements, the Jlt paper's Figure 2.
+/** @brief The chain of @c x under a partial step: what the step reaches from
+ *  @c x, the step of it, then the step of that, until the step has nothing
+ *  (Dedekind's chain of the step of @c x, @cite dedekind1888zahlen).  With
+ *  @c Prior it is @f$n - 1, \ldots, 0@f$, the @c n elements below @c n,
+ *  @c n itself excluded: the Jlt paper's Figure 2, after Lambek.
  *  @tparam X the carrier.  @tparam Step the partial step.  @param x the
  *  first element.  @param step the step.  @return the view. */
 /** @brief The type of @c chain(x, step).  @tparam X the carrier.

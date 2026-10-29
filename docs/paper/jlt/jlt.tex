@@ -141,14 +141,14 @@ Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989ad
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
 Section~\ref{sec:posture} is the right hook, the rules that carve Jlt out of \Cpp{23}; Section~\ref{sec:translation:adequacy} is the left hook, the sugar: which Jlt programs are kernel programs; Section~\ref{sec:translation} is $\llbracket\cdot\rrbracket$, the translation of Featherweight Jlt into System~F; Section~\ref{sec:guarantees} is \emph{eval}, the theorems read back from System~F; Section~\ref{sec:binding} is \texttt{clang++} and \emph{run}, one program at both binding times, and how instantiation relates to the translation.
-The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, and three arrows, constant, identity and a lookup into an array, under which the chain is represented by a pair, a seed and a block of memory.
+The listings follow one example through the paper, and Figure~\ref{fig:structures} shows where its structures live: \cppinline{concat}, a monoid at the lengths that need no recursion, then the fold over the chain of a count under an arrow, then Fibonacci's matrix chain, which two declared laws fold in logarithmically many steps and the compiler partially evaluates.
 Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:related} where the work sits, and the calculus is the appendix.
 
 \section{From \Cpp{} to Jlt}
 \label{sec:posture}
 
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
-Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits, or, as in Listing~\ref{lst:rule1}, the tree's definitions a listing prints and the test imports; the LLVM IR panels are Clang~23's output at \texttt{-O2} for functions the test defines.
+Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits, or, as in Listing~\ref{lst:rule1}, the tree's definitions a listing prints and the test imports; the LLVM IR panels are Clang~23's output at \texttt{-O2 -fno-unroll-loops} for functions the test defines, with names shortened.
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
@@ -306,19 +306,19 @@ concat<string>() == "" &&
 concat<string>("ab"s, "c"s) == "abc" &&
 concat<bool, logical_or<bool>>(false, true) &&
 concat<bool, logical_and<bool>>(true, true) &&
-concat<Arrows<size_t>, compose>()(42uz)
+concat<Sections<size_t>, compose>()(42uz)
     == 42 &&
-concat<Arrows<size_t>, compose>(
-    ~id_u, -id_u)(3uz) == 4);
+concat<Sections<size_t>, compose>(
+    adding(40uz), adding(2uz))(0uz) == 42);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
 Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
-The unit, however, is identified.
+The unit is identified instead: \cppinline{is_unit}, by default equality with the unit, which a carrier may supply otherwise.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
 Right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
-The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Arrows} under \cppinline{(id, >>)}.
+The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Sections}, the sections of $+$, under \cppinline{(id, >>)}, with \cppinline{adding} the curried $+$.
 }
 \label{lst:rule2}
 \end{listing}
@@ -428,7 +428,7 @@ static_assert(
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the fold on a monoid: Listing 2's concat
+// the fold on a monoid: the library's concat
 template <ranges::input_range R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
@@ -659,51 +659,52 @@ It is also what lets laws compose: two overloads written apart, each licensed by
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // the laws, declared: a monoid and its action
-template <> constexpr M unit<M>(MatMul) {
-  return {{{1, 0}, {0, 1}}};
-}
-template <>
-constexpr bool associative<M>(MatMul) {
-  return true;
-}
-using Act = remove_cvref_t<decltype(act)>;
-template <>
-constexpr MatMul monoid_of<Act>{};
+template <> struct is_associative<M, MatMul>
+    : true_type {};
+template <> struct is_periodic<M, MatMul>
+    : true_type {};                    // total
+template <> struct unit_trait<M, MatMul> {
+  static constexpr M value{{{1, 0}, {0, 1}}};
+};
+template <> struct acting_monoid<Act> {
+  using type = MatMul;
+};
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // associativity: n copies, by squaring
-template <typename T, typename Op>
-  requires IsMonoid<T, Op>
-constexpr T concat(ConstantChain<T> r,
-                   Op op) {
+template <IsConstantArrow F, typename Op>
+  requires IsMonoid<Cod<F>, Op>
+constexpr Cod<F> concat(ConstantChain<F> r,
+                        Op op) {
+  using T = Cod<F>;
   const size_t n = r.seed();
-  const T x = r.coalgebra().f.value;
-  auto sq = [n, op](auto p, size_t k) {
-    auto [a, s] = p;
-    return pair{(n >> k) & 1 ? op(a, s) : a,
-                op(s, s)};
-  };
+  const T x = r.coalgebra().f(n);
   return ranges::fold_left(
       views::iota(0uz, size_t(bit_width(n))),
-      pair{unit<T>(op), x}, sq).first;
+      pair<T, T>{unit<T>(op), x},
+      Square<T, Op>{n, op}).first;
 }
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // the action law: n copies acting, one product
-template <ranges::input_range R, typename S,
-          typename H>
-constexpr S fold(R r, S v, H h) {
+template <ranges::input_range R,
+          semiregular M, typename H>
+  requires invocable<const H&, M,
+                     ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
   return ranges::fold_left(r, v, h);
 }
-template <typename T, typename S,
+template <IsConstantArrow F, semiregular M,
           typename H>
-  requires IsMonoid<T, monoid_of_t<H>>
-constexpr S fold(ConstantChain<T> r, S v, H h) {
-  return h(v, concat(r, monoid_of_t<H>{}));
+  requires IsMonoidAction<H, Cod<F>>
+constexpr M fold(ConstantChain<F> r, M v,
+                 H h) {
+  using Op = acting_monoid<H>::type;
+  return h(v, concat(r, Op{}));
 }
 \end{cpp}
 \end{minipage}\hfill
@@ -727,7 +728,7 @@ Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} =
 Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
 Bottom right: resolution picks each overload, since its parameter is the more specific, and the two compose.
 $10^8$ copies take 27 squarings, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
-\cppinline{ConstantChain}, the type of \cppinline{n >> chain<size_t>() >> constant(x)}, \cppinline{MatMul} and \cppinline{monoid_of} are in the test.}
+\cppinline{concat}, \cppinline{fold}, \cppinline{ConstantChain}, the type of \cppinline{n >> chain<size_t>() >> constant(x)}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{MatMul} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
 \label{lst:laws}
 \end{listing}
 
@@ -852,7 +853,8 @@ Bottom right: with $10$ given, the code is the value, $55$, as the static assert
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
-The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 squarings with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks; at run time both are code the optimiser handles, a closed form and a loop, as the listings' panels show.
+The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 squarings with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks.
+At run time the plain fold is a loop, Listing~\ref{lst:desugar}'s, and the optimiser does not find the squaring on its own.
 
 \begin{table}[htbp]
 \centering

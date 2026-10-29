@@ -472,12 +472,13 @@ using ι = Injection<K, A, B>;
  *    is restricted to one level, since a composite of composites has no
  *    alternative of fixed size to land in: it is refused, at compile time by
  *    failing the constant evaluation, at run time by ending the program. Within
- * the restriction it is a monoid with the identity as unit, decidably so: the
- * unit has one representation, and equality is case by case, pointers and
- * elements, so the laws can be checked, which an erased closure would not
- * allow. Composition normalises: the identity is absorbed and two sections
- * merge, so that the laws hold on representations, which is what equality
- * reads. */
+ * the restriction it is a partial monoid, its composition defined to one level,
+ * not a monoid, so no monoid is certified on it; the identity is its unit,
+ * decidably so: the unit has one representation, and equality is case by case,
+ * pointers and elements, so the laws can be checked, which an erased closure
+ * would not allow. Composition normalises: the identity is absorbed and two
+ * sections merge, so that the laws hold on representations, which is what
+ * equality reads. */
 namespace detail_arrows {
 /** @brief The visitor that applies the active arrow to @c x. */
 template <typename T>

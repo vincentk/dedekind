@@ -305,27 +305,29 @@ static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
               is_monic(inl) && !is_epic(inl) && is_epic(ret) &&
               !is_monic(ret) && (inl >> ret)(true) && !(inl >> ret)(false));
 
-// Listing 2's fifth monoid, stated here where Listing 1's arrows exist: the
-// arrows on size_t under composition, the tree's Arrows, a coproduct of the
-// identity, the sections and the morphisms over a function pointer and of
-// their composites, with the identity as unit, which has one representation;
-// compose is the tree's operation, the function object whose call is >>.
-using dedekind::category::Arrows;
+// Listing 2's fifth monoid: the sections of + on size_t under composition,
+// the tree's Sections, closed, two sections composing to one by
+// associativity, with the identity as unit.  (The tree's Arrows, which adds
+// morphisms over a function pointer and their composites, is a partial
+// monoid, its composition defined to one level, and is certified as none.)
 using dedekind::category::compose;
+using dedekind::category::curry;
+using dedekind::category::Sections;
+constexpr auto adding = curry<size_t>(std::plus<size_t>{});
 template <>
-constexpr Arrows<size_t> unit<Arrows<size_t>>(compose) {
+constexpr Sections<size_t> unit<Sections<size_t>>(compose) {
   return {};
 }
 template <>
-constexpr bool associative<Arrows<size_t>>(compose) {
+constexpr bool associative<Sections<size_t>>(compose) {
   return true;
 }
-static_assert(IsMonoid<Arrows<size_t>, compose> &&
-              is_unit(Arrows<size_t>{}, compose{}) &&
-              !is_unit(Arrows<size_t>{~id_u}, compose{}) &&
-              concat<Arrows<size_t>, compose>()(42uz) == 42 &&
-              concat<Arrows<size_t>, compose>(~id_u)(3uz) == ~3uz &&
-              concat<Arrows<size_t>, compose>(~id_u, -id_u)(3uz) == 4);
+static_assert(IsMonoid<Sections<size_t>, compose> &&
+              is_unit(Sections<size_t>{}, compose{}) &&
+              !is_unit(Sections<size_t>{adding(1uz)}, compose{}) &&
+              concat<Sections<size_t>, compose>()(42uz) == 42 &&
+              concat<Sections<size_t>, compose>(adding(40uz),
+                                                adding(2uz))(0uz) == 42);
 
 template <typename T>
 constexpr T twice_loose(T x) {
@@ -371,14 +373,9 @@ constexpr auto cs = 1'000uz >> chain(prior);  // 500, 250, …, 1
 static_assert(std::ranges::input_range<decltype(cs)> &&
               std::ranges::distance(cs) == 111 && std::ranges::max(cs) == 9232);
 
-// bottom left: the fold on a monoid, one chain under two operations
-template <std::ranges::input_range R,
-          typename T = std::ranges::range_value_t<R>,
-          typename Op = std::plus<T>>
-  requires IsMonoid<T, Op>
-constexpr T concat(R r, Op op = {}) {
-  return std::ranges::fold_left(r, unit<T>(op), op);
-}
+// bottom left: the fold on a monoid, one chain under two operations: the
+// tree's concat (:total), Listing 2's at a range
+using dedekind::category::concat;
 static_assert(concat(ns) == 45 &&
               concat(ns, std::multiplies<size_t>{}) == 0 &&  // 0 absorbs
               concat(ns >> constant<size_t>(7uz)) == 70 &&
@@ -407,8 +404,9 @@ static_assert(std::ranges::fold_left(ns >> is_even, 0uz, pop_count) == 5 &&
                                      append_bit) == "0101010101" &&
               std::ranges::fold_left(cs >> is_even, 0uz, pop_count) == 71);
 
-// Listing 4's law: 2×2 matrices under multiplication are a monoid, declared,
-// so n copies of one matrix fold by squaring.
+// Listing 4's example: 2×2 matrices under multiplication, registered with the
+// tree's traits as a monoid, and act as its action; the overloads that use the
+// laws are the tree's, concat in :total and fold in :action.
 struct MatMul {
   constexpr M2 operator()(M2 a, M2 b) const {
     return M2{V{a[0][0] * b[0][0] + a[0][1] * b[1][0],
@@ -418,43 +416,33 @@ struct MatMul {
   }
 };
 }  // namespace listing3
+}  // namespace jlt_listing
+namespace dedekind::category {
 template <>
-constexpr listing3::M2 unit<listing3::M2>(listing3::MatMul) {
-  return listing3::M2{listing3::V{1, 0}, listing3::V{0, 1}};
-}
+struct is_associative<jlt_listing::listing3::M2, jlt_listing::listing3::MatMul>
+    : std::true_type {};
+template <>  // size_t arithmetic wraps, so the product is total
+struct is_periodic<jlt_listing::listing3::M2, jlt_listing::listing3::MatMul>
+    : std::true_type {};
 template <>
-constexpr bool associative<listing3::M2>(listing3::MatMul) {
-  return true;
-}
+struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatMul> {
+  using value_type = jlt_listing::listing3::M2;
+  static constexpr value_type value{jlt_listing::listing3::V{1, 0},
+                                    jlt_listing::listing3::V{0, 1}};
+};
+template <>  // act(act(v, A), B) = act(v, B·A), act(v, I) = v
+struct acting_monoid<
+    std::remove_cvref_t<decltype(jlt_listing::listing3::act)>> {
+  using type = jlt_listing::listing3::MatMul;
+};
+}  // namespace dedekind::category
+namespace jlt_listing {
 namespace listing3 {
-// The type of n >> chain<size_t>() >> constant(x): n copies of one value.
-template <typename T>
-using ConstantChain = dedekind::category::unfold_view<
-    size_t,
-    dedekind::category::Mapped<size_t,
-                               dedekind::category::StepCoalgebra<
-                                   size_t, dedekind::category::Prior<size_t>>,
-                               Constant<size_t, T>>>;
-// The fold of n copies under an associative operation is the n-th power,
-// by the binary method, one squaring per bit of n; resolution picks it over
-// the plain fold, since its parameter is the more specific.
-template <typename T, typename Op>
-  requires IsMonoid<T, Op>
-constexpr T concat(ConstantChain<T> r, Op op) {
-  const size_t n = r.seed();
-  const T x = r.coalgebra().f.value;
-  return std::ranges::fold_left(
-             std::views::iota(0uz, static_cast<size_t>(std::bit_width(n))),
-             std::pair<T, T>{unit<T>(op), x},
-             [n, op](std::pair<T, T> p, size_t k) {
-               return std::pair<T, T>{
-                   ((n >> k) & 1) ? op(p.first, p.second) : p.first,
-                   op(p.second, p.second)};
-             })
-      .first;
-}
+using dedekind::category::fold;
+static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
+              dedekind::category::IsMonoidAction<decltype(act), M2>);
 
-// Listing 4: Listing 3's matrix chain, its length a parameter; its LLVM IR
+// Listing 5: Listing 3's matrix chain, its length a parameter; its LLVM IR
 // at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10
 // given, the value.
 constexpr size_t fibonacci(size_t n) {
@@ -465,28 +453,9 @@ static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55 &&
               fibonacci(90) == 2'880'067'194'370'816'120uz);
 constexpr size_t fibonacci_10() { return fibonacci(10); }
 static_assert(fibonacci_10() == 55);
-// The action law, declared: act is an action of the monoid (M2, mat_mul),
-// act(act(v, A), B) = act(v, B·A), act(v, I) = v.
-template <typename H>
-constexpr std::nullptr_t monoid_of = nullptr;  // undeclared
-template <>  // keyed by the closure's type, as fold deduces it, without const
-constexpr MatMul monoid_of<std::remove_cvref_t<decltype(act)>>{};
-template <typename H>
-using monoid_of_t = std::remove_cvref_t<decltype(monoid_of<H>)>;
-// A fold along the walk, and its specialisation on n copies of one value
-// under a monoid action: v acted on by their concat, which the binary method
-// computes; resolution picks each, one law apiece.
-template <std::ranges::input_range R, typename S, typename H>
-constexpr S fold(R r, S v, H h) {
-  return std::ranges::fold_left(r, v, h);
-}
-template <typename T, typename S, typename H>
-  requires IsMonoid<T, monoid_of_t<H>>
-constexpr S fold(ConstantChain<T> r, S v, H h) {
-  return h(v, concat(r, monoid_of_t<H>{}));
-}
-// With the laws: 10^8 copies of the matrix, 27 squarings, where the plain
-// fold of 10^8 steps is refused at compile time.
+// Listing 4: the same chain under the tree's fold; the action law and
+// associativity compose, so 10^8 copies of the matrix are 27 squarings, where
+// the plain fold of 10^8 steps is refused at compile time.
 constexpr size_t fibonacci_fast(size_t n) {
   return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
 }
