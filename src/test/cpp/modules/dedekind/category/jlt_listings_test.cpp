@@ -459,8 +459,8 @@ constexpr T concat(ConstantChain<T> r, Op op) {
 // at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10
 // given, the value.
 constexpr size_t fibonacci(size_t n) {
-  const auto ms = n >> chain<size_t>() >> constant<size_t>(fib);
-  return std::ranges::fold_left(ms, V{1, 0}, act)[1];
+  const auto copies = n >> chain<size_t>() >> constant<size_t>(fib);
+  return std::ranges::fold_left(copies, V{1, 0}, act)[1];
 }
 static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55 &&
               fibonacci(90) == 2'880'067'194'370'816'120uz);

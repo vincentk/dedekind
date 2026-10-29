@@ -783,9 +783,9 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{cpp}
 // Listing 3's chain, its length a parameter
 constexpr size_t fibonacci(size_t n) {
-  const auto ms =
+  const auto copies =
       n >> chain<size_t>() >> constant<size_t>(fib);
-  return ranges::fold_left(ms, V{1, 0}, act)[1];
+  return ranges::fold_left(copies, V{1, 0}, act)[1];
 }
 \end{cpp}
 \end{minipage}\hfill
