@@ -334,8 +334,8 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep=2em, row sep=1.5em]
-  \llap{$1$:\quad}
-  &[1.6em] & & & & & & & & 1 \arrow[d, "n"] \\
+  \llap{$\mathbf{1}$:\quad}
+  &[1.6em] & & & & & & & & \mathbf{1} \arrow[d, "n"] \\
   \llap{$X$:\quad} \ast
   & 0 \arrow[l, "\mathit{prior}"'] \arrow[d, "f"]
   & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
@@ -357,23 +357,9 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & & \circ \arrow[ll, "h"']
   & & e \arrow[ll, "h"']
 \end{tikzcd}
-% Dedekind, Was sind und was sollen die Zahlen?, the source of the caption's opening:
-% http://opera-platonis.de/dedekind/Dedekind_Was_sind_2.pdf
-%36. Erklärung. Ist $\varphi$ eine bijektive oder nicht bijektive Abbildung einer Menge $S$, und $\varphi(S)$ Teil
-%einer Menge $Z$, so nennen wir $\varphi$ eine Abbildung von $S$ in $Z$, und wir sagen, $S$ werde durch $\varphi$ in
-%$Z$ abgebildet. Wir nennen daher $\varphi$ eine Abbildung der Menge $S$ in sich selbst, wenn $\varphi(S) \subset S$ ist,
-%und wir wollen in diesem Paragraphen die allgemeinen Gesetze einer solchen Abbildung  untersuchen. Hierbei bedienen wir uns derselben Bezeichnungen wie in § 2, indem wir wieder (s) = s',
-%(T) = T' setzen. Diese Bilder s', T' sind zufolge (22), (7) jetzt selbst wieder Elemente oder Teile
-%von S, wie alle mit lateinischen Buchstaben bezeichneten Dinge. 
-%
-%37. Erklärung. K heißt eine Kette, wenn K'  K ist. Wir bemerken ausdrücklich, daß dieser Name
-%dem Teile K der Menge S nicht etwa an sich zukommt, sondern nur in Beziehung auf die
-%bestimmte Abbildung  erteilt wird; in bezug auf eine andere Abbildung der Menge S in sich selbst
-%kann K sehr wohl keine Kette sein. 
-%}
 \caption{Where each structure lives.
-Seed: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, \mathit{succ}] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down and always ends, where Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does; the user supplies the point $n : 1 \to X$ and $\mathit{prior}$, and the chain is what $\mathit{prior}$ reaches from $n$, the $n$ elements below it, not $n$ itself, so $n$ names the chain's cardinality and $0$ the empty chain.
-Order: Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, and the chain of an element its forward orbit, here the $n$ elements below $n$; the carrier needs neither an order nor an origin, since reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Seed: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends, where Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does; the user supplies the point $n : \mathbf{1} \to X$ and $\mathit{prior}$, and the chain is what $\mathit{prior}$ reaches from $n$, the $n$ elements below it, not $n$ itself, so $n$ names the chain's cardinality and $0$ the empty chain.
+Order: Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, and the chain of an element its forward orbit, here the chain of $\mathit{prior}\,n$, the $n$ elements below $n$; the carrier needs neither an order nor an origin, since reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
 Algebra: on the codomain of $f$, a semiring $S$ acting on a semimodule $M$, a monoid when $S = M$.
 Fold: of the two folds of a list~\cite{meijer1991functional,gibbons1996third}, the one along the walk, $h : M \times S \to M$ from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$, needs no list: a stream and its iterator~\cite{stepanov2009elements}.
 With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}: the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
