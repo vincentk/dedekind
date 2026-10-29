@@ -27,6 +27,7 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::fold_left
 #include <concepts>
 #include <functional>
 #include <ranges>
