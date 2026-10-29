@@ -383,12 +383,13 @@ Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the counts: the type's own prior
+// the counts, a finite chain
+static_assert(IsFinite<size_t> &&
+    IsTotalOrder<size_t, less_equal<>>);
 constexpr auto ns =                   // 9, …, 0
     10uz >> chain<size_t>();
 static_assert(
-    HasNNOStep<size_t> &&
-    ranges::forward_range<decltype(ns)> &&
+    ranges::input_range<decltype(ns)> &&
     ranges::distance(ns) == 10 &&
     ranges::equal(ns, views::iota(0uz, 10uz)
                       | views::reverse) &&
@@ -399,13 +400,14 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // Collatz's step, until 1
+constexpr auto prior = until(equals(1uz),
+    arrow<size_t>([](size_t n) {
+      return n % 2 ? 3 * n + 1 : n / 2;
+    }));
 constexpr auto cs =        // 500, 250, …, 1
-    1000uz >> chain(until(equals(1uz),
-        arrow<size_t>([](size_t n) {
-          return n % 2 ? 3 * n + 1 : n / 2;
-        })));
+    1'000uz >> chain(prior);
 static_assert(
-    ranges::forward_range<decltype(cs)> &&
+    ranges::input_range<decltype(cs)> &&
     ranges::distance(cs) == 111 &&
     ranges::max(cs) == 9232);
 \end{cpp}
@@ -422,6 +424,7 @@ constexpr T concat(R r, Op op = {}) {
 }
 static_assert(
     concat(ns) == 45 &&
+    concat(ns, multiplies<size_t>{}) == 0 &&
     concat(ns >> constant<size_t>(7uz)) == 70 &&
     concat(cs) == 102512);
 \end{cpp}
@@ -429,32 +432,29 @@ static_assert(
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // the fold on an action, M × S → M
-template <typename M, typename S,
-          typename H>
-concept IsAction = semiregular<M> &&
-    requires(const M m, const S s, const H h) {
-      { h(m, s) } -> same_as<M>;
+constexpr auto is_even = arrow<size_t>(
+    [](size_t k) { return k % 2 == 0; });
+constexpr auto pop_count =
+    [](size_t m, bool b) -> size_t { return m + b; };
+constexpr auto append_bit =
+    [](string s, bool b) {
+      return s + (b ? '1' : '0');
     };
-template <ranges::input_range R,
-          typename M, typename H>
-  requires IsAction<M,
-                    ranges::range_value_t<R>, H>
-constexpr M fold(R r, M e, H h) {
-  return ranges::fold_left(r, e, h);
-}
 static_assert(
-    fold(ns >> Even{}, 0uz, Count{}) == 5 &&
-    fold(ns >> Even{}, string{}, Bit{})
-        == "0101010101" &&
-    fold(cs >> Even{}, 0uz, Count{}) == 71);
+    ranges::fold_left(ns >> is_even, 0uz,
+                      pop_count) == 5 &&
+    ranges::fold_left(ns >> is_even, string{},
+                      append_bit) == "0101010101" &&
+    ranges::fold_left(cs >> is_even, 0uz,
+                      pop_count) == 71);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top left: the counts, their $\mathit{prior}$ the default that the type's certificate supplies, \cppinline{HasNNOStep}, the weakest in the library that gives a predecessor and a zero: the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is a forward range the standard also spells, \cppinline{iota} read backwards.
+Top left: the counts are a finite chain, a finite total order, which is why the defaults can be inferred: a finite chain has a bottom and a lower cover for every other element, so the type supplies $\mathit{prior}$, and the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is the standard's \cppinline{iota} read backwards.
 Top right: Collatz's step, guarded by \cppinline{until(equals(1uz), ...)}, a deliberate test of the combinators' expressiveness: from $1000$ the walk is known to reach $1$, after $111$ steps and a peak of $9232$, but that it does so from every natural is an open problem~\cite{lagarias1985collatz}, so this chain is finite by fact, checked here, and not by Rule~3, which the step does not obey.
-Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, by the standard's \cppinline{fold_left}, the kernel's iterator.
-Bottom right: the fold on an action $M \times S \to M$, heterogeneous, the booleans acting on the counts and on the words; it is a semimodule's fold when the action's laws hold, which the tree certifies and the listing does not ask.
-\cppinline{Even}, \cppinline{Count} and \cppinline{Bit} are in the test.}
+Both chains are input ranges, which is all the bottom row asks: what ties them to the standard's \cppinline{fold_left}, the kernel's iterator.
+Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, one chain under two operations.
+Bottom right: the fold on an action $M \times S \to M$, heterogeneous, the booleans acting on the counts, \cppinline{pop_count}, and on the words, \cppinline{append_bit}, by \cppinline{fold_left} as it stands; it is a semimodule's fold when the action's laws hold, which the tree certifies and the listing does not ask.}
 \label{lst:rule3}
 \end{listing}
 

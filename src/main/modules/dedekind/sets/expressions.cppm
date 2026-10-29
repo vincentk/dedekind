@@ -33,7 +33,7 @@
  * @section expressions__References
  * - Lawvere, F.W. (1964) -- ETCS axioms @cite lawvere1964etcs
  * - Lambek & Scott (1988) -- higher-order categorical logic @cite
- * lambek1988higher
+ * lambek1988introduction
  * - Pierce (1991) -- basic category theory @cite pierce1991basic
  *
  * @quote
@@ -1390,7 +1390,7 @@ concept SetShaped = requires {
  * algebraic default lifted by per-carrier decidable specialisations).  A
  * non-set-shaped argument fails @c SetShaped and matches nothing (also a type
  * error).
- * @see Lambek and Scott @cite lambek1988higher
+ * @see Lambek and Scott @cite lambek1988introduction
  */
 export template <typename S>
   requires SetShaped<S>

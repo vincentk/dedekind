@@ -333,39 +333,44 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: Figure 2 in code, four panels.  Top left: the counts, their
-// prior the default the type's certificate supplies, the chain a forward
-// range the standard can also spell; top right: Collatz's step, guarded by
-// until(equals(1), ...), a chain finite by fact and not by Rule 3; bottom
-// left: the fold on a monoid, homogeneous, Listing 2's concat at a range;
-// bottom right: the fold on an action M × S → M, heterogeneous, a
-// semimodule's when the laws hold.  chain, until, equals, arrow and
-// HasNNOStep are the library's; Even, Count and Bit are the test's.
+// Listing 3: Figure 2 in code, four panels.  Top left: the counts, a finite
+// chain, so the type supplies its prior and the chain is a default; top
+// right: Collatz's step, guarded by until(equals(1), ...), a chain finite by
+// fact and not by Rule 3; bottom left: the fold on a monoid, homogeneous,
+// Listing 2's concat at a range, one chain under two operations; bottom
+// right: the fold on an action M × S → M, heterogeneous, the standard's
+// fold_left as it stands.  Both chains are input ranges, which is what ties
+// them to fold_left.  chain, until, equals, arrow, IsFinite, IsTotalOrder and
+// HasNNOStep are the library's.
 namespace listing3 {
 using dedekind::category::arrow;
 using dedekind::category::chain;
 using dedekind::category::equals;
 using dedekind::category::HasNNOStep;
+using dedekind::category::IsFinite;
+using dedekind::category::IsTotalOrder;
 using dedekind::category::until;
 
-// top left: the counts
+// top left: the counts, a finite chain
+static_assert(IsFinite<size_t> && IsTotalOrder<size_t, std::less_equal<>> &&
+              HasNNOStep<size_t>);
 constexpr auto ns = 10uz >> chain<size_t>();  // 9, …, 0
-static_assert(HasNNOStep<size_t> && std::ranges::forward_range<decltype(ns)> &&
+static_assert(std::ranges::input_range<decltype(ns)> &&
               std::ranges::distance(ns) == 10 &&
               std::ranges::equal(ns, std::views::iota(0uz, 10uz) |
                                          std::views::reverse) &&
               std::ranges::empty(0uz >> chain<size_t>()) &&
               std::ranges::equal(ns >> id<size_t>(), ns));
 
-// top right: Collatz, until 1
-constexpr auto cs = 1000uz >>
-                    chain(until(equals(1uz), arrow<size_t>([](size_t n) {
-                                  return n % 2 ? 3 * n + 1 : n / 2;
-                                })));  // 500, 250, …, 1
-static_assert(std::ranges::forward_range<decltype(cs)> &&
+// top right: Collatz's step, until 1
+constexpr auto prior =
+    until(equals(1uz),
+          arrow<size_t>([](size_t n) { return n % 2 ? 3 * n + 1 : n / 2; }));
+constexpr auto cs = 1'000uz >> chain(prior);  // 500, 250, …, 1
+static_assert(std::ranges::input_range<decltype(cs)> &&
               std::ranges::distance(cs) == 111 && std::ranges::max(cs) == 9232);
 
-// bottom left: the fold on a monoid
+// bottom left: the fold on a monoid, one chain under two operations
 template <std::ranges::input_range R,
           typename T = std::ranges::range_value_t<R>,
           typename Op = std::plus<T>>
@@ -373,37 +378,21 @@ template <std::ranges::input_range R,
 constexpr T concat(R r, Op op = {}) {
   return std::ranges::fold_left(r, unit<T>(op), op);
 }
-static_assert(concat(ns) == 45 && concat(ns >> constant<size_t>(7uz)) == 70 &&
+static_assert(concat(ns) == 45 &&
+              concat(ns, std::multiplies<size_t>{}) == 0 &&  // 0 absorbs
+              concat(ns >> constant<size_t>(7uz)) == 70 &&
               concat(cs) == 102512);
 
 // bottom right: the fold on an action, M × S → M
-template <typename M, typename S, typename H>
-concept IsAction =
-    std::semiregular<M> && requires(const M m, const S s, const H h) {
-      { h(m, s) } -> std::same_as<M>;
-    };
-template <std::ranges::input_range R, typename M, typename H>
-  requires IsAction<M, std::ranges::range_value_t<R>, H>
-constexpr M fold(R r, M e, H h) {
-  return std::ranges::fold_left(r, e, h);
-}
-struct Even {
-  using Domain = size_t;
-  using Codomain = bool;
-  constexpr bool operator()(size_t k) const { return k % 2 == 0; }
-  constexpr bool operator==(const Even&) const = default;
+constexpr auto is_even = arrow<size_t>([](size_t k) { return k % 2 == 0; });
+constexpr auto pop_count = [](size_t m, bool b) -> size_t { return m + b; };
+constexpr auto append_bit = [](std::string s, bool b) {
+  return s + (b ? '1' : '0');
 };
-struct Count {  // 𝔹 acts on ℕ: a true counts one
-  constexpr size_t operator()(size_t m, bool b) const { return m + b; }
-};
-struct Bit {  // 𝔹 acts on the words: a bit appended
-  constexpr std::string operator()(std::string s, bool b) const {
-    return s + (b ? '1' : '0');
-  }
-};
-static_assert(fold(ns >> Even{}, 0uz, Count{}) == 5 &&
-              fold(ns >> Even{}, std::string{}, Bit{}) == "0101010101" &&
-              fold(cs >> Even{}, 0uz, Count{}) == 71);
+static_assert(std::ranges::fold_left(ns >> is_even, 0uz, pop_count) == 5 &&
+              std::ranges::fold_left(ns >> is_even, std::string{},
+                                     append_bit) == "0101010101" &&
+              std::ranges::fold_left(cs >> is_even, 0uz, pop_count) == 71);
 
 // The chain summed with the count known only at run time.
 constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
