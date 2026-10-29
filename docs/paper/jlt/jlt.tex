@@ -300,25 +300,26 @@ template <typename T, typename Op = plus<T>>
 constexpr T concat(T v, T w) { return Op{}(v, w); }
 
 static_assert(
-    concat<size_t>() == 0 &&
-    concat<size_t>(42uz) == 42 &&
-    concat<size_t>(40uz, 2uz) == 42 &&
-    concat<size_t, multiplies<size_t>>() == 1 &&
-    concat<size_t, multiplies<size_t>>(6uz, 7uz)
-        == 42 &&
-    !concat<bool, logical_or<bool>>() &&
-    concat<bool, logical_or<bool>>(false, true) &&
-    concat<string>() == "" &&
-    concat<string>("ab"s, "c"s) == "abc" &&
-    concat<Arrows<size_t>, Composition>(
-        ~id_u, -id_u)(3uz) == 4);
+concat<size_t>() == 0 &&
+concat<size_t>(42uz) == 42 &&
+concat<size_t>(40uz, 2uz) == 42 &&
+concat<size_t, multiplies<size_t>>(6uz, 7uz)
+    == 42 &&
+concat<string>() == "" &&
+concat<string>("ab"s, "c"s) == "abc" &&
+concat<bool, logical_or<bool>>(false, true) &&
+concat<bool, logical_and<bool>>(true, true) &&
+concat<Arrows<size_t>, compose>()(42uz)
+    == 42 &&
+concat<Arrows<size_t>, compose>(
+    ~id_u, -id_u)(3uz) == 4);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: the monoid shape: a set which is closed under an associative binary operation \cppinline{Op{}(a, b)} and equipped with a unit element.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} with signature \cppinline{operator+} and \cppinline{0}.
 Right: \cppinline{concat} at the lengths that need no recursion, none, one and two: the unit, the identity and one application of \cppinline{Op}, each body using only what its constraint names, called on five monoids whose certificates are in the test; the calls are the axioms read as programs, a unit per signature, registered on its operation type.
-The fifth is Listing~\ref{lst:rule1}'s arrows under composition, \mbox{\cppinline{Composition}} the function object whose call is \cppinline{>>}: \cppinline{Arrows<T>} is the tree's coproduct of the identity, the sections of the operation and the morphisms over a function pointer, and of their composites, with the identity as unit, which has one representation, and equality case by case, so that a law can be checked on it; \cppinline{concat(~id_u, -id_u)} is Listing~\ref{lst:rule1}'s $x + 1$, applied at 3.
+The fifth is Listing~\ref{lst:rule1}'s arrows under composition, \cppinline{compose} the function object whose call is \cppinline{>>}: \cppinline{Arrows<T>} is the tree's coproduct of the identity, the sections of the operation and the morphisms over a function pointer, and of their composites, with the identity as unit, which has one representation, and equality case by case, so that a law can be checked on it; \cppinline{concat(~id_u, -id_u)} is Listing~\ref{lst:rule1}'s $x + 1$, applied at 3.
 The shape asks \cppinline{semiregular}, as Rule~1 does, and one comparison, with the unit: equality is not in a monoid's signature, and the test asks it of the carriers it checks a law on.
 }
 \label{lst:rule2}

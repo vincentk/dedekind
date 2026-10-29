@@ -1035,20 +1035,23 @@ static_assert(
         std::same_as<decltype(id<int>() >> id<int>()), Identity<int>>,
     "id >> f is f, f >> id is f and id >> id is id, by resolution");
 
-/** @brief Composition as a value, the function object whose call is
- *  @c f >> g, so that a fold can take it as it takes @c std::plus; the
- *  operator stays what the partitions overload, and this only names it (the
- *  standard made the same move for @c + and never for @c >>).  The type is
- *  @c Composition, for a shape that takes the operation as a type; the value
- *  @c compose, for a fold that takes it as a value. */
-export struct Composition {
+/** @brief Composition as an operation, the function object whose call is
+ *  @c f >> g, so that a fold or a shape can take it as it takes
+ *  @c std::plus; the operator stays what the partitions overload, and this
+ *  only names it (the standard made the same move for @c + and never for
+ *  @c >>).  It lives in a namespace of its own, so that lookup by argument
+ *  reaches no law function of the tree's (@c :species' @c associative) and a
+ *  shape stating the laws of its own finds only those. */
+namespace operations {
+export struct compose {
   template <typename F, typename G>
     requires requires(F f, G g) { std::move(f) >> std::move(g); }
   constexpr auto operator()(F f, G g) const {
     return std::move(f) >> std::move(g);
   }
 };
-export inline constexpr Composition compose{};
+}  // namespace operations
+export using operations::compose;
 
 /** @brief A stateless arrow as a function: @c &call<F{}, T> is a pointer
  *  through which @c F{} is called, so that an empty arrow has a

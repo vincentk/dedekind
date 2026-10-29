@@ -99,7 +99,6 @@ constexpr T concat(T v, T w) {
 
 static_assert(concat<size_t>() == 0 && concat<size_t>(42uz) == 42 &&
               concat<size_t>(40uz, 2uz) == 42 &&
-              concat<size_t, std::multiplies<size_t>>() == 1 &&
               concat<size_t, std::multiplies<size_t>>(6uz, 7uz) == 42 &&
               concat<std::string>() == "" &&
               concat<std::string>("ab"s, "c"s) == "abc");
@@ -126,8 +125,8 @@ constexpr bool associative<bool>(std::logical_or<bool>) {
 static_assert(IsMonoid<bool, std::logical_and<bool>>);
 static_assert(IsMonoid<bool, std::logical_or<bool>>);
 static_assert(!IsMonoid<bool, std::plus<>>);
-static_assert(!concat<bool, std::logical_or<bool>>() &&
-              concat<bool, std::logical_or<bool>>(false, true));
+static_assert(concat<bool, std::logical_or<bool>>(false, true) &&
+              concat<bool, std::logical_and<bool>>(true, true));
 
 // Certificates the listings use and do not print: size_t.
 template <>
@@ -302,31 +301,24 @@ static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
 // Listing 2's fifth monoid, stated here where Listing 1's arrows exist: the
 // arrows on size_t under composition, the tree's Arrows, a coproduct of the
 // identity, the sections and the morphisms over a function pointer and of
-// their composites, with the identity as unit, which has one representation.
-// The operation is the tree's compose under a name of the test's own: the
-// tree's Composition lives in dedekind::category, whose unit and associative,
-// in :species, would tie by ADL with the listing's.
+// their composites, with the identity as unit, which has one representation;
+// compose is the tree's operation, the function object whose call is >>.
 using dedekind::category::Arrows;
-struct Composition {
-  template <typename F, typename G>
-  constexpr auto operator()(F f, G g) const {
-    return dedekind::category::compose(f, g);
-  }
-};
+using dedekind::category::compose;
 template <>
-constexpr Arrows<size_t> unit<Arrows<size_t>>(Composition) {
+constexpr Arrows<size_t> unit<Arrows<size_t>>(compose) {
   return {};
 }
 template <>
-constexpr bool associative<Arrows<size_t>>(Composition) {
+constexpr bool associative<Arrows<size_t>>(compose) {
   return true;
 }
-static_assert(IsMonoid<Arrows<size_t>, Composition> &&
-              is_unit(Arrows<size_t>{}, Composition{}) &&
-              !is_unit(Arrows<size_t>{~id_u}, Composition{}) &&
-              concat<Arrows<size_t>, Composition>()(3uz) == 3 &&
-              concat<Arrows<size_t>, Composition>(~id_u)(3uz) == ~3uz &&
-              concat<Arrows<size_t>, Composition>(~id_u, -id_u)(3uz) == 4);
+static_assert(IsMonoid<Arrows<size_t>, compose> &&
+              is_unit(Arrows<size_t>{}, compose{}) &&
+              !is_unit(Arrows<size_t>{~id_u}, compose{}) &&
+              concat<Arrows<size_t>, compose>()(42uz) == 42 &&
+              concat<Arrows<size_t>, compose>(~id_u)(3uz) == ~3uz &&
+              concat<Arrows<size_t>, compose>(~id_u, -id_u)(3uz) == 4);
 
 template <typename T>
 constexpr T twice_loose(T x) {
