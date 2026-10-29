@@ -427,7 +427,6 @@ constexpr bool associative<listing3::M2>(listing3::MatMul) {
   return true;
 }
 namespace listing3 {
-constexpr MatMul mat_mul{};
 // The type of n >> chain<size_t>() >> constant(x): n copies of one value.
 template <typename T>
 using ConstantChain = dedekind::category::unfold_view<
