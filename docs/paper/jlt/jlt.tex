@@ -325,12 +325,6 @@ The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, 
 \label{lst:rule2}
 \end{listing}
 
-Listing~\ref{lst:rule2} illustrates the principle for monoids of different signatures.
-\cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
-A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
-It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
-A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
-
 \begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep=2em, row sep=1.5em]
@@ -366,6 +360,13 @@ With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chai
 Properties of $f$ license shortcuts, each representing the chain by less than its traversal (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
+
+Listing~\ref{lst:rule2} illustrates the principle for monoids of different signatures.
+\cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
+A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
+It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
+A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
+
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
