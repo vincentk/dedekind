@@ -384,7 +384,7 @@ static_assert(concat(ns) == 45 &&
 // bottom right: the fold on an action, M × S → M: 2×2 matrices acting on
 // vectors, the chain of 10 under the constant Fibonacci matrix
 using V = std::array<size_t, 2>;
-using M2 = std::array<V, 2>;  // row by row
+using M2 = std::array<V, 2>;          // row by row
 constexpr auto act = [](V v, M2 a) {  // the row vector v·A
   return V{v[0] * a[0][0] + v[1] * a[1][0], v[0] * a[0][1] + v[1] * a[1][1]};
 };
