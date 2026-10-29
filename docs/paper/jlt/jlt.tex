@@ -333,21 +333,16 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 
 \begin{figure}[tbp]
 \centering
-\begin{tikzcd}[column sep=3.2em]
-  \bot = 0 \arrow[loop left, "p"] \arrow[r, bend left=25, "s"]
-  & 1 \arrow[l, bend left=25, "p"] \arrow[r, bend left=25, "s"]
-  & \cdots \arrow[l, bend left=25, "p"] \arrow[r, bend left=25, "s"]
-  & n = \top \arrow[l, bend left=25, "p"] \arrow[loop right, "s"]
-\end{tikzcd}
-
-\medskip
 \begin{tikzcd}[column sep=1.1em, row sep=1.5em]
   \llap{\small order, $X$:\quad}
-  & 0 \arrow[dd, crossing over, "f"' near start]
-  & & 1 \arrow[dd, crossing over, "f"' near start]
-  & & \cdots
-  & & n \arrow[dd, crossing over, "f"' near start]
-  & \\
+  & \bot = 0 \arrow[loop above, "p"] \arrow[rr, bend left=25, "s"]
+    \arrow[dd, crossing over, "f" near end]
+  & & 1 \arrow[ll, bend left=25, "p"] \arrow[rr, bend left=25, "s"]
+    \arrow[dd, crossing over, "f" near end]
+  & & \cdots \arrow[ll, bend left=25, "p"] \arrow[rr, bend left=25, "s"]
+  & & n = \top \arrow[ll, bend left=25, "p"] \arrow[loop above, "s"]
+    \arrow[dd, crossing over, "f" near end]
+  & \\[1.2em]
   \llap{\small right fold, $h$:\quad} \bullet
   & & \bullet \arrow[ll, "h"' near start]
   & & \bullet \arrow[ll, "h"' near start]
