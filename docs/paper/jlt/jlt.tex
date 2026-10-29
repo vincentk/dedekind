@@ -331,7 +331,7 @@ A requirement names an operation with its result type, exactly, \cppinline{same_
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
-\begin{figure}[tb]
+\begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep=3.2em]
   \bot = 0 \arrow[loop left, "p"] \arrow[r, bend left=25, "s"]
@@ -341,27 +341,37 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \end{tikzcd}
 
 \medskip
-\begin{tikzcd}[column sep=2.6em, row sep=2.4em]
-  \llap{\small order, $X$:\quad} 0 \arrow[r, "s"] \arrow[d, "f"']
-  & 1 \arrow[r, "s"] \arrow[d, "f"]
-  & \cdots \arrow[r, "s"]
-  & n \arrow[d, "f"] \\
-  \llap{\small algebra, $S$:\quad} f\,0
-  & f\,1
-  & \cdots
-  & f\,n
+\begin{tikzcd}[column sep=1.1em, row sep=1.5em]
+  \llap{\small order, $X$:\quad}
+  & 0 \arrow[dd, crossing over, "f"' near start]
+  & & 1 \arrow[dd, crossing over, "f"' near start]
+  & & \cdots
+  & & n \arrow[dd, crossing over, "f"' near start]
+  & \\
+  \llap{\small right fold, $h$:\quad} \bullet
+  & & \bullet \arrow[ll, "h"' near start]
+  & & \bullet \arrow[ll, "h"' near start]
+  & & \bullet \arrow[ll, "h"' near start]
+  & & e \arrow[ll, "h"' near start] \\
+  \llap{\small algebra, $S$:\quad}
+  & f\,0 \arrow[ul] \arrow[dr]
+  & & f\,1 \arrow[ul] \arrow[dr]
+  & & \cdots
+  & & f\,n \arrow[ul] \arrow[dr]
+  & \\
+  \llap{\small left fold, $g$:\quad} e \arrow[rr, "g"]
+  & & \bullet \arrow[rr, "g"]
+  & & \bullet \arrow[rr, "g"]
+  & & \bullet \arrow[rr, "g"]
+  & & \bullet
 \end{tikzcd}
-\[
-\begin{array}{r@{\quad}l}
-\text{left fold:} & (\cdots((e \lhd f\,0) \lhd f\,1) \cdots) \lhd f\,n \\
-\text{right fold:} & f\,0 \rhd (f\,1 \rhd (\cdots (f\,n \rhd e) \cdots))
-\end{array}
-\]
 \caption{Where each structure lives.
 Top: the order, a finite chain, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}, and nothing more: hence a bounded lattice, meet $\min$ and join $\max$, with no operation on its elements.
 What generates it is unary and endomorphic, $s, p : X \to X$, one argument on one carrier; an algebra begins where an operation takes two.
 It is traversed both ways, the successor $s$ ascending and the predecessor $p$ descending, and its bottom and top are their fixed points, the origin $0$ for $p$ and the bound $n$ for $s$, so a walk in either direction ends with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
-Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers: a left fold acts on the right, $M \times S \to M$, a right fold on the left, $S \times M \to M$, and the two agree when $S$ is commutative; a monoid is the case $S = M$ acting on itself.
+Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
+The left fold $g : M \times S \to M$ acts on the right and runs from the left, each $\bullet$ the accumulator from its left and $f\,x$ from above; the right fold $h : S \times M \to M$ acts on the left and runs from the right; the two agree when $S$ is commutative, and a monoid is the case $S = M$ acting on itself.
+Following the arrows from either $e$ retraces the computation.
 With the chain offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
 Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one action; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
