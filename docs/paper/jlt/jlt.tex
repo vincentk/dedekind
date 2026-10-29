@@ -346,22 +346,17 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
   & & n-1 \arrow[ll, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
   & \\[1.2em]
-  \llap{\small right fold, $h$:\quad} \bullet
+  \llap{\small fold, $h$:\quad} \bullet
   & & \bullet \arrow[ll, "h"' near start]
   & & \cdots \arrow[ll, "h"' near start]
   & & \bullet \arrow[ll, "h"' near start]
   & & e \arrow[ll, "h"' near start] \\
   \llap{\small algebra, $S$:\quad}
-  & f\,0 \arrow[ul] \arrow[dr]
-  & & f\,1 \arrow[ul] \arrow[dr]
+  & f\,0 \arrow[ul]
+  & & f\,1 \arrow[ul]
   & & \cdots
-  & & f(n-1) \arrow[ul] \arrow[dr]
-  & \\
-  \llap{\small left fold, $g$:\quad} e \arrow[rr, "g"]
-  & & \bullet \arrow[rr, "g"]
-  & & \bullet \arrow[rr, "g"]
-  & &\cdots \arrow[rr, "g"]
-  & & \bullet
+  & & f(n-1) \arrow[ul]
+  &
 \end{tikzcd}
 % Dedekind, Was sind und was sollen die Zahlen?, the source of the caption's opening:
 % http://opera-platonis.de/dedekind/Dedekind_Was_sind_2.pdf
@@ -386,10 +381,10 @@ It is ordered by reachability, total since any two elements are iterates of $n -
 Finite and total, a nonempty chain is a bounded lattice, top $n - 1$ and bottom $0$, meet $\min$ and join $\max$, with no operation on its elements.
 What generates it is unary, $\mathit{prior} : X \to 1 + X$, one argument on one carrier; an algebra begins where an operation takes two.
 Bottom: the algebra, which lives on the codomain of an arrow $f$ from the chain, drawn once per element, and matters once it supports a fold: here a semiring $S$, the image folded into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers.
-The left fold $g : M \times S \to M$ acts on the right and runs from the left, each $\bullet$ the accumulator from its left and $f\,x$ from above; the right fold $h : S \times M \to M$ acts on the left and runs from the right; the two agree when $S$ is commutative, and a monoid is the case $S = M$ acting on itself.
-Following the arrows from either $e$ retraces the computation.
+The fold $h : M \times S \to M$ runs along the walk, from $e$ at the seed's end, each $\bullet$ the accumulator from its right and $f\,x$ from below: a streaming algorithm, one accumulator and no chain stored, where the other order would need the whole chain or a stack of depth $n$; a monoid is the case $S = M$ acting on itself.
+Following the arrows from $e$ retraces the computation.
 With the chain offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
-Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one action; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
+Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one action; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f(n-1)$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
 
