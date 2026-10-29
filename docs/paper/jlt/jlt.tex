@@ -674,17 +674,16 @@ template <> struct acting_monoid<Act> {
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // associativity: n copies, by squaring
-template <IsConstantArrow F,
-          typename Op = plus<Cod<F>>>
-  requires IsMonoid<Cod<F>, Op>
-constexpr Cod<F> concat(ConstantChain<F> r,
-                        Op op = {}) {
-  using T = Cod<F>;
-  const size_t n = r.seed();
-  const T x = r.coalgebra().f(n);
+template <ranges::input_range R,
+          typename T = ranges::range_value_t<R>,
+          typename Op = plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R>
+constexpr T concat(R r, Op op = {}) {
+  const size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);
   return ranges::fold_left(
       views::iota(0uz, size_t(bit_width(n))),
-      pair<T, T>{unit<T>(op), x},
+      pair<T, T>{unit<T>(op), copies_value(r)},
       Square<T, Op>{n, op}).first;
 }
 \end{cpp}
@@ -699,11 +698,13 @@ template <ranges::input_range R,
 constexpr M fold(R r, M v, H h) {
   return ranges::fold_left(r, v, h);
 }
-template <IsConstantArrow F, semiregular M,
-          typename H>
-  requires IsMonoidAction<H, Cod<F>>
-constexpr M fold(ConstantChain<F> r, M v,
-                 H h) {
+template <ranges::input_range R,
+          semiregular M, typename H>
+  requires invocable<const H&, M,
+                     ranges::range_value_t<R>> &&
+           IsCopies<R> && IsMonoidAction<H,
+               ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
   using Op = acting_monoid<H>::type;
   return h(v, concat(r, Op{}));
 }
@@ -727,9 +728,11 @@ static_assert(
 Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, BA)$.
 Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} = (M^k)^2$, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
 Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
-Bottom right: resolution picks each overload, since its parameter is the more specific, and the two compose.
+Bottom right: resolution picks each overload, and the two compose.
 $10^8$ copies take 27 squarings, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
-\cppinline{concat}, \cppinline{fold}, \cppinline{ConstantChain}, the type of \cppinline{n >> chain<size_t>() >> constant(x)}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{MatMul} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
+\cppinline{IsCopies}, a range of $n$ copies of one value whose $n$ and value are known without walking it, is met by \cppinline{n >> chain<size_t>() >> constant(x)} and by the standard's \cppinline{views::repeat(x, n)}.
+Each overload has the plain one's signature and a stronger constraint, so resolution prefers it.
+\cppinline{concat}, \cppinline{fold}, \cppinline{IsCopies}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{MatMul} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
 \label{lst:laws}
 \end{listing}
 

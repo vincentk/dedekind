@@ -310,12 +310,15 @@ constexpr M fold(R r, M v, H h) {
   return std::ranges::fold_left(std::move(r), std::move(v), h);
 }
 /** @brief The fold of @c n copies of one value under a monoid action:
- *  @c v acted on by their product.  The product of the copies is in either
- *  order the same; a chain of distinct values would need it reversed.
- *  @param r the copies.  @param v the start.  @param h the action. */
-export template <IsConstantArrow F, std::semiregular M, typename H>
-  requires IsMonoidAction<H, Cod<F>> && std::invocable<const H&, M, Cod<F>>
-constexpr M fold(ConstantChain<F> r, M v, H h) {
+ *  @c v acted on by their product.  The same signature as the plain fold and
+ *  a stronger constraint, so resolution prefers it.  The product of the
+ *  copies is in either order the same; a range of distinct values would need
+ *  it reversed.  @param r the copies.  @param v the start.  @param h the
+ *  action. */
+export template <std::ranges::input_range R, std::semiregular M, typename H>
+  requires std::invocable<const H&, M, std::ranges::range_value_t<R>> &&
+           IsCopies<R> && IsMonoidAction<H, std::ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
   return h(std::move(v), concat(std::move(r), Op{}));
 }

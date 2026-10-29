@@ -1202,10 +1202,10 @@ concept IsClosureForcing =
  *  @brief The free monoid's fold, @c concat, the canonical fold of a monoid:
  *  a range folded under the operation from its unit (the Jlt paper's
  *  Listings 2 to 4).  Its specialisation, licensed by associativity, folds
- *  @c n copies of one value, the counting chain of @c n under a constant
- *  arrow, by the binary method, one squaring per bit of @c n (Knuth, TAOCP 2
- *  §4.6.3).  Resolution picks it over the plain fold, its parameter being the
- *  more specific.  @param r the range.  @param op the operation. */
+ *  @c n copies of one value, any @c IsCopies range, by the binary method, one
+ * squaring per bit of @c n (Knuth, TAOCP 2 §4.6.3).  Resolution picks it over
+ * the plain fold, its parameter being the more specific.  @param r the range.
+ * @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
@@ -1213,12 +1213,46 @@ export template <std::ranges::input_range R,
 constexpr T concat(R r, Op op = {}) {
   return std::ranges::fold_left(std::move(r), unit<T>(op), op);
 }
-/** @brief The type of @c n copies of one value: the counting chain of @c n,
- *  @c n >> chain<std::size_t>(), under the arrow @c F.  @tparam F the arrow. */
-export template <IsArrow F>
-using ConstantChain = unfold_view<
-    std::size_t,
-    Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>;
+/** @brief The counting chain of @c n under a constant arrow,
+ *  @c n >> chain<std::size_t>() >> constant(x), is @c n copies of @c x.
+ *  @param r the chain. */
+export template <IsConstantArrow F>
+constexpr std::size_t copies_count(
+    const unfold_view<
+        std::size_t,
+        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
+        r) {
+  return r.seed();
+}
+export template <IsConstantArrow F>
+constexpr Cod<F> copies_value(
+    const unfold_view<
+        std::size_t,
+        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
+        r) {
+  return r.coalgebra().f(std::size_t{0});
+}
+/** @brief The standard's @c views::repeat(x, n) is @c n copies of @c x; its
+ *  value is read only where @c n is not zero.  @param r the view. */
+export template <std::copy_constructible T>
+constexpr std::size_t copies_count(
+    const std::ranges::repeat_view<T, std::size_t>& r) {
+  return static_cast<std::size_t>(std::ranges::size(r));
+}
+export template <std::copy_constructible T>
+constexpr T copies_value(const std::ranges::repeat_view<T, std::size_t>& r) {
+  return *std::ranges::begin(r);
+}
+/** @brief A range of @c n copies of one value, @c n and the value known
+ *  without walking it: @c copies_count(r) and @c copies_value(r), which each
+ *  model supplies, declared above so that ordinary lookup finds them for
+ *  models outside this namespace, the standard's among them.  @tparam R the
+ * range. */
+export template <typename R>
+concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
+  { copies_count(r) } -> std::same_as<std::size_t>;
+  { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
+};
 namespace detail_concat {
 /** @brief One step of the binary method: the accumulator takes the square
  *  where bit @c k of @c n is set, and the square squares. */
@@ -1234,17 +1268,20 @@ struct Square {
 };
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
- *  squaring.  @param r the copies.  @param op the operation. */
-export template <IsConstantArrow F, typename Op = std::plus<Cod<F>>>
-  requires IsMonoid<Cod<F>, Op>
-constexpr Cod<F> concat(ConstantChain<F> r, Op op = {}) {
-  using T = Cod<F>;
-  const std::size_t n = r.seed();
-  const T x = r.coalgebra().f(n);
+ *  squaring, licensed by associativity.  The same signature as the plain
+ *  fold and a stronger constraint, so resolution prefers it wherever
+ *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R>
+constexpr T concat(R r, Op op = {}) {
+  const std::size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);
   return std::ranges::fold_left(
              std::views::iota(std::size_t{0},
                               static_cast<std::size_t>(std::bit_width(n))),
-             std::pair<T, T>{unit<T>(op), x},
+             std::pair<T, T>{unit<T>(op), copies_value(r)},
              detail_concat::Square<T, Op>{n, op})
       .first;
 }
@@ -1257,7 +1294,10 @@ static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
                   concat(std::size_t{0} >> chain<std::size_t>() >>
                          constant<std::size_t>(seven)) == 0 &&
                   concat(std::size_t{100'000'000} >> chain<std::size_t>() >>
-                         constant<std::size_t>(seven)) == 700'000'000,
+                         constant<std::size_t>(seven)) == 700'000'000 &&
+                  concat(std::views::repeat(seven, std::size_t{100'000'000})) ==
+                      700'000'000 &&
+                  concat(std::views::repeat(seven, std::size_t{0})) == 0,
               "concat folds a range from the unit; on n copies of one value it "
               "squares, so 10^8 copies are 27 steps, not 10^8");
 }  // namespace detail_concat_witness
