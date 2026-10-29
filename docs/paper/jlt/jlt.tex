@@ -335,14 +335,13 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \centering
 \begin{tikzcd}[column sep=2em, row sep=1.5em]
   \llap{\small seed:\quad}
-  &[1.6em] & & & & 1 \arrow[rrrr, "n"]
-  & & & & n \arrow[dll, "\mathit{prior}"'] \\
+  &[1.6em] & & & & & & & & 1 \arrow[d, "n"] \\
   \llap{\small order, $X$:\quad} \ast
   & 0 \arrow[l, "\mathit{prior}"'] \arrow[d, "f"]
   & & 1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
   & & \cdots \arrow[ll, "\mathit{prior}"']
   & & n-1 \arrow[ll, "\mathit{prior}"'] \arrow[d, "f"]
-    \arrow[rr, dashed, "\mathit{succ}"]
+  & & n \arrow[ll, "\mathit{prior}"'] \arrow[rr, dashed, "\mathit{succ}"]
   & & \cdots \arrow[rr, dashed, "\mathit{succ}"]
   & & \mathbb{N} \\
   \llap{\small algebra, $S$:\quad}
@@ -373,7 +372,7 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 %kann K sehr wohl keine Kette sein. 
 %}
 \caption{Where each structure lives.
-Seed: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, \mathit{succ}] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down and always ends, where Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does; the user supplies the point $n : 1 \to X$, which names the chain's cardinality, $0$ the empty chain, and $\mathit{prior}$.
+Seed: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, \mathit{succ}] : 1 + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to 1 + X$ steps down and always ends, where Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does; the user supplies the point $n : 1 \to X$ and $\mathit{prior}$, and the chain is what $\mathit{prior}$ reaches from $n$, the $n$ elements below it, not $n$ itself, so $n$ names the chain's cardinality and $0$ the empty chain.
 Order: Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, and the chain of an element its forward orbit, here the $n$ elements below $n$; the carrier needs neither an order nor an origin, since reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
 Fold: of the two folds of a list~\cite{meijer1991functional,gibbons1996third}, the one along the walk, $h : M \times S \to M$ from $e$ at the seed's end, needs no list: a stream and its iterator~\cite{stepanov2009elements}.
 Algebra: on the codomain of $f$, a semiring $S$ acting on a semimodule $M$, a monoid when $S = M$.
