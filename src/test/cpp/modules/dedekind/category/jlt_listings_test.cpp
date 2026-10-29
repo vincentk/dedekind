@@ -39,7 +39,7 @@ constexpr bool associative(Op) = delete;
 template <typename T, typename Op>
   requires std::equality_comparable<T>
 constexpr bool is_unit(const T& a, Op op) {
-  return a == jlt_listing::unit<T>(op);
+  return a == unit<T>(op);
 }
 
 // Listing 2, left: an instance for a family, before the shape (Section 7).
@@ -55,9 +55,9 @@ constexpr bool associative(std::plus<T>) {
 template <typename T, typename Op>
 concept IsMonoid = std::semiregular<T> && requires(const T a, const T b) {
   { Op{}(a, b) } -> std::same_as<T>;
-  { jlt_listing::unit<T>(Op{}) } -> std::same_as<T>;
-  { jlt_listing::is_unit(a, Op{}) } -> std::same_as<bool>;
-} && jlt_listing::associative<T>(Op{});
+  { unit<T>(Op{}) } -> std::same_as<T>;
+  { is_unit(a, Op{}) } -> std::same_as<bool>;
+} && associative<T>(Op{});
 
 // Listing 2, right: std::string, and concat at size_t and at std::string.
 template <>
@@ -84,7 +84,7 @@ constexpr bool associative<size_t>(std::multiplies<size_t>) {
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
 constexpr T concat() {
-  return jlt_listing::unit<T>(Op{});
+  return unit<T>(Op{});
 }
 template <typename T, typename Op = std::plus<T>>
   requires IsMonoid<T, Op>
@@ -299,14 +299,20 @@ static_assert(is_epic(fst) && !is_monic(fst) && is_monic(sec) &&
               is_monic(inl) && !is_epic(inl) && is_epic(ret) &&
               !is_monic(ret) && (inl >> ret)(true) && !(inl >> ret)(false));
 
-// Listing 2's fifth monoid, stated here where Listing 1's arrows exist; the
-// shape's calls are qualified, since the tree's unit and associative, in
-// Composition's namespace, would otherwise tie with the listing's: the
+// Listing 2's fifth monoid, stated here where Listing 1's arrows exist: the
 // arrows on size_t under composition, the tree's Arrows, a coproduct of the
 // identity, the sections and the morphisms over a function pointer and of
 // their composites, with the identity as unit, which has one representation.
+// The operation is the tree's compose under a name of the test's own: the
+// tree's Composition lives in dedekind::category, whose unit and associative,
+// in :species, would tie by ADL with the listing's.
 using dedekind::category::Arrows;
-using dedekind::category::Composition;
+struct Composition {
+  template <typename F, typename G>
+  constexpr auto operator()(F f, G g) const {
+    return dedekind::category::compose(f, g);
+  }
+};
 template <>
 constexpr Arrows<size_t> unit<Arrows<size_t>>(Composition) {
   return {};
@@ -316,8 +322,8 @@ constexpr bool associative<Arrows<size_t>>(Composition) {
   return true;
 }
 static_assert(IsMonoid<Arrows<size_t>, Composition> &&
-              jlt_listing::is_unit(Arrows<size_t>{}, Composition{}) &&
-              !jlt_listing::is_unit(Arrows<size_t>{~id_u}, Composition{}) &&
+              is_unit(Arrows<size_t>{}, Composition{}) &&
+              !is_unit(Arrows<size_t>{~id_u}, Composition{}) &&
               concat<Arrows<size_t>, Composition>()(3uz) == 3 &&
               concat<Arrows<size_t>, Composition>(~id_u)(3uz) == ~3uz &&
               concat<Arrows<size_t>, Composition>(~id_u, -id_u)(3uz) == 4);
