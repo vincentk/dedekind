@@ -317,6 +317,146 @@ static_assert(
     "curry<T>(op)(a)(b) = op(a, b), uncurry takes it back, and both are "
     "arrows with names");
 
+/**
+ * @concept IsCoproduct
+ * @brief Categorification of `std::variant<A, B>` as the categorical
+ * coproduct (A + B).
+ * @details A coproduct of A and B is an object C equipped with injection
+ * morphisms ι₁: A → C and ι₂: B → C such that for any object X with morphisms
+ * f: A → X and g: B → X, there exists a unique morphism v: C → X making the
+ * following diagram commute:
+ * @code
+ *   A       B
+ *    \     /
+ *    ι₁   ι₂
+ *      \ /
+ *       C
+ *      / \
+ *     f   g
+ *    /     \
+ *   X       X
+ * @endcode
+ *
+ * `std::variant<A, B>` satisfies this concept: any value of type A or B can be
+ * injected into the variant, and `std::visit` provides the universal
+ * elimination morphism.
+ *
+ * @note (#881) The @c Op-refinement (the injection factory @c Op::inl / @c
+ * Op::inr) is landed here for symmetry with @c IsProduct's pairing factory, but
+ * its consumer is @b not the set join (which is product-shaped).  Its home is
+ * the set-expression @b collapse: the reduced-form outcome space
+ * @c {Ø, Singleton, Interval, Set, U} is a coproduct and each collapse rule is
+ * an injection into one summand (see #865, and the boundary injections
+ * @c Set{AlwaysTrue/False} == U/Ø in #685).  The recursive case (fold over an
+ * initial F-algebra, @c ℕ = @c μX.1+X) is #449.  Until one of those lands, the
+ * @c Op parameter is exercised only by its own witnesses.
+ */
+export template <typename T, typename A, typename B, typename Op = AnyOperation>
+concept IsCoproduct =
+    // Default sentinel: the legacy structural check --- T is constructible from
+    // either summand.
+    (std::same_as<Op, AnyOperation> &&
+     requires(A a, B b) {
+       { T(a) } -> std::same_as<T>;
+       { T(b) } -> std::same_as<T>;
+     }) ||
+    // A named Op SUPERSEDES that check (it is ambiguous for equal summands):
+    // dual to IsProduct's single binary pairing factory, a coproduct has TWO
+    // unary injection constructors (the Haskell Left / Right), so a named Op
+    // exposes them as distinct Op::inl : A → C, Op::inr : B → C.  Two named
+    // constructors (not one overloaded call, nor the constructor check) keep
+    // the injections distinguishable even for equal summands A == B, so the
+    // canonical std::variant<int,int> (via indexed ι_1 / ι_2) qualifies.
+    requires(const A& a, const B& b) {
+      { Op::inl(a) } -> std::convertible_to<T>;
+      { Op::inr(b) } -> std::convertible_to<T>;
+    };
+
+/**
+ * @brief Left injection ι₁: A → A + B.
+ * @details Wraps a value of type A into the coproduct `std::variant<A, B>`.
+ * When A and B are the same type, uses `std::in_place_index<0>` to
+ * unambiguously select the first alternative.
+ */
+export template <typename A, typename B>
+constexpr auto ι_1(A value) {
+  using Var = std::variant<A, B>;
+  if constexpr (std::same_as<A, B>) {
+    return Var(std::in_place_index<0>, std::move(value));
+  } else {
+    return Var(std::move(value));
+  }
+}
+
+/**
+ * @brief Right injection ι₂: B → A + B.
+ * @details Wraps a value of type B into the coproduct `std::variant<A, B>`.
+ * When A and B are the same type, uses `std::in_place_index<1>` to
+ * unambiguously select the second alternative.
+ */
+export template <typename A, typename B>
+constexpr auto ι_2(B value) {
+  using Var = std::variant<A, B>;
+  if constexpr (std::same_as<A, B>) {
+    return Var(std::in_place_index<1>, std::move(value));
+  } else {
+    return Var(std::move(value));
+  }
+}
+
+/** @brief The injections of the coproduct @c std::variant<A, B> as a named
+ *  operation (@c IsCoproduct's @c Op, #881): @c inl / @c inr place a value by
+ *  @b index, so equal summands stay apart (@c variant<int, int>).  Static
+ *  members, as the concept asks for @c Op::inl(a) / @c Op::inr(b).
+ *  @tparam A, B the summands. */
+export template <typename A, typename B>
+struct Injections {
+  static constexpr std::variant<A, B> inl(const A& a)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<0>, const A&>
+  {
+    return std::variant<A, B>(std::in_place_index<0>, a);
+  }
+  static constexpr std::variant<A, B> inr(const B& b)
+    requires std::constructible_from<std::variant<A, B>,
+                                     std::in_place_index_t<1>, const B&>
+  {
+    return std::variant<A, B>(std::in_place_index<1>, b);
+  }
+};
+static_assert(
+    IsCoproduct<std::variant<int, int>, int, int, Injections<int, int>> &&
+        Injections<int, int>::inl(1).index() == 0 &&
+        Injections<int, int>::inr(1).index() == 1,
+    "the named injections keep equal summands apart");
+
+/** @brief The injection @c ι_K : A → A + B as an arrow: monic (it is
+ *  injective, and its image is disjoint from the other summand's), the ground
+ *  of a sum's strength reduction (a set inside one injection's image pulls
+ *  back along it without loss).  @tparam K the summand, 1 or 2. */
+export template <std::size_t K, typename A, typename B>
+  requires(K == 1 || K == 2)
+struct Injection {
+  using Domain = std::conditional_t<K == 1, A, B>;
+  using Codomain = std::variant<A, B>;
+  using is_monic_arrow_tag = void;
+  constexpr Codomain operator()(const Domain& x) const
+    requires std::constructible_from<Codomain, std::in_place_index_t<K - 1>,
+                                     const Domain&>
+  {
+    return Codomain(std::in_place_index<K - 1>, x);
+  }
+};
+static_assert(IsMonicArrow<Injection<1, int, int>> &&
+                  IsMonicArrow<Injection<2, int, int>> &&
+                  Injection<2, int, int>{}(3).index() == 1,
+              "the injections of a sum are monic");
+/** @brief The injection by its textbook name, @f$\iota_K@f$ (Pierce), as the
+ *  projection is @c Π.  @tparam K the summand, 1 or 2.  @tparam A, B the
+ *  summands. */
+export template <std::size_t K, typename A, typename B>
+using ι = Injection<K, A, B>;
+
 /** @section cartesian__Arrows_As_Coproducts
  *  @brief The endomorphisms of @c T that have a storage class, as three
  *  coproducts, each an arrow by case analysis and a coproduct by
@@ -471,146 +611,6 @@ static_assert(
     "three coproducts of arrows: each an arrow; the identity absorbed, two "
     "sections one, two pointers a composite; equality by representation");
 }  // namespace detail_arrows_witness
-
-/**
- * @concept IsCoproduct
- * @brief Categorification of `std::variant<A, B>` as the categorical
- * coproduct (A + B).
- * @details A coproduct of A and B is an object C equipped with injection
- * morphisms ι₁: A → C and ι₂: B → C such that for any object X with morphisms
- * f: A → X and g: B → X, there exists a unique morphism v: C → X making the
- * following diagram commute:
- * @code
- *   A       B
- *    \     /
- *    ι₁   ι₂
- *      \ /
- *       C
- *      / \
- *     f   g
- *    /     \
- *   X       X
- * @endcode
- *
- * `std::variant<A, B>` satisfies this concept: any value of type A or B can be
- * injected into the variant, and `std::visit` provides the universal
- * elimination morphism.
- *
- * @note (#881) The @c Op-refinement (the injection factory @c Op::inl / @c
- * Op::inr) is landed here for symmetry with @c IsProduct's pairing factory, but
- * its consumer is @b not the set join (which is product-shaped).  Its home is
- * the set-expression @b collapse: the reduced-form outcome space
- * @c {Ø, Singleton, Interval, Set, U} is a coproduct and each collapse rule is
- * an injection into one summand (see #865, and the boundary injections
- * @c Set{AlwaysTrue/False} == U/Ø in #685).  The recursive case (fold over an
- * initial F-algebra, @c ℕ = @c μX.1+X) is #449.  Until one of those lands, the
- * @c Op parameter is exercised only by its own witnesses.
- */
-export template <typename T, typename A, typename B, typename Op = AnyOperation>
-concept IsCoproduct =
-    // Default sentinel: the legacy structural check --- T is constructible from
-    // either summand.
-    (std::same_as<Op, AnyOperation> &&
-     requires(A a, B b) {
-       { T(a) } -> std::same_as<T>;
-       { T(b) } -> std::same_as<T>;
-     }) ||
-    // A named Op SUPERSEDES that check (it is ambiguous for equal summands):
-    // dual to IsProduct's single binary pairing factory, a coproduct has TWO
-    // unary injection constructors (the Haskell Left / Right), so a named Op
-    // exposes them as distinct Op::inl : A → C, Op::inr : B → C.  Two named
-    // constructors (not one overloaded call, nor the constructor check) keep
-    // the injections distinguishable even for equal summands A == B, so the
-    // canonical std::variant<int,int> (via indexed ι_1 / ι_2) qualifies.
-    requires(const A& a, const B& b) {
-      { Op::inl(a) } -> std::convertible_to<T>;
-      { Op::inr(b) } -> std::convertible_to<T>;
-    };
-
-/**
- * @brief Left injection ι₁: A → A + B.
- * @details Wraps a value of type A into the coproduct `std::variant<A, B>`.
- * When A and B are the same type, uses `std::in_place_index<0>` to
- * unambiguously select the first alternative.
- */
-export template <typename A, typename B>
-constexpr auto ι_1(A value) {
-  using Var = std::variant<A, B>;
-  if constexpr (std::same_as<A, B>) {
-    return Var(std::in_place_index<0>, std::move(value));
-  } else {
-    return Var(std::move(value));
-  }
-}
-
-/**
- * @brief Right injection ι₂: B → A + B.
- * @details Wraps a value of type B into the coproduct `std::variant<A, B>`.
- * When A and B are the same type, uses `std::in_place_index<1>` to
- * unambiguously select the second alternative.
- */
-export template <typename A, typename B>
-constexpr auto ι_2(B value) {
-  using Var = std::variant<A, B>;
-  if constexpr (std::same_as<A, B>) {
-    return Var(std::in_place_index<1>, std::move(value));
-  } else {
-    return Var(std::move(value));
-  }
-}
-
-/** @brief The injections of the coproduct @c std::variant<A, B> as a named
- *  operation (@c IsCoproduct's @c Op, #881): @c inl / @c inr place a value by
- *  @b index, so equal summands stay apart (@c variant<int, int>).  Static
- *  members, as the concept asks for @c Op::inl(a) / @c Op::inr(b).
- *  @tparam A, B the summands. */
-export template <typename A, typename B>
-struct Injections {
-  static constexpr std::variant<A, B> inl(const A& a)
-    requires std::constructible_from<std::variant<A, B>,
-                                     std::in_place_index_t<0>, const A&>
-  {
-    return std::variant<A, B>(std::in_place_index<0>, a);
-  }
-  static constexpr std::variant<A, B> inr(const B& b)
-    requires std::constructible_from<std::variant<A, B>,
-                                     std::in_place_index_t<1>, const B&>
-  {
-    return std::variant<A, B>(std::in_place_index<1>, b);
-  }
-};
-static_assert(
-    IsCoproduct<std::variant<int, int>, int, int, Injections<int, int>> &&
-        Injections<int, int>::inl(1).index() == 0 &&
-        Injections<int, int>::inr(1).index() == 1,
-    "the named injections keep equal summands apart");
-
-/** @brief The injection @c ι_K : A → A + B as an arrow: monic (it is
- *  injective, and its image is disjoint from the other summand's), the ground
- *  of a sum's strength reduction (a set inside one injection's image pulls
- *  back along it without loss).  @tparam K the summand, 1 or 2. */
-export template <std::size_t K, typename A, typename B>
-  requires(K == 1 || K == 2)
-struct Injection {
-  using Domain = std::conditional_t<K == 1, A, B>;
-  using Codomain = std::variant<A, B>;
-  using is_monic_arrow_tag = void;
-  constexpr Codomain operator()(const Domain& x) const
-    requires std::constructible_from<Codomain, std::in_place_index_t<K - 1>,
-                                     const Domain&>
-  {
-    return Codomain(std::in_place_index<K - 1>, x);
-  }
-};
-static_assert(IsMonicArrow<Injection<1, int, int>> &&
-                  IsMonicArrow<Injection<2, int, int>> &&
-                  Injection<2, int, int>{}(3).index() == 1,
-              "the injections of a sum are monic");
-/** @brief The injection by its textbook name, @f$\iota_K@f$ (Pierce), as the
- *  projection is @c Π.  @tparam K the summand, 1 or 2.  @tparam A, B the
- *  summands. */
-export template <std::size_t K, typename A, typename B>
-using ι = Injection<K, A, B>;
 static_assert(
     !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,
                  int, Injections<std::unique_ptr<int>, int>> &&
