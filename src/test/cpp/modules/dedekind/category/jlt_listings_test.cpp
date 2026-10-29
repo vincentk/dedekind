@@ -333,43 +333,37 @@ constexpr T twice_loose(T x) {
 
 static_assert(twice_loose(std::string{"ab"}) == "abab");
 
-// Listing 3: Figure 2 in code, four panels.  Top left: the counts, Lambek's
-// prior from a seed, the chain a forward range the standard can also spell;
-// top right: words under their init, a carrier with no origin, no order and
-// no standard spelling, the chain still a forward range; bottom left: the
-// fold on a monoid, homogeneous, Listing 2's concat at a range; bottom
-// right: the fold on an action M × S → M, heterogeneous, a semimodule's when
-// the laws hold.  chain and Prior are the library's; Str, Even, Count and Bit
-// are the test's.
+// Listing 3: Figure 2 in code, four panels.  Top left: the counts, their
+// prior the default the type's certificate supplies, the chain a forward
+// range the standard can also spell; top right: Collatz's step, guarded by
+// until(equals(1), ...), a chain finite by fact and not by Rule 3; bottom
+// left: the fold on a monoid, homogeneous, Listing 2's concat at a range;
+// bottom right: the fold on an action M × S → M, heterogeneous, a
+// semimodule's when the laws hold.  chain, until, equals, arrow and
+// HasNNOStep are the library's; Even, Count and Bit are the test's.
 namespace listing3 {
+using dedekind::category::arrow;
 using dedekind::category::chain;
-using dedekind::category::Prior;
-using namespace std::string_view_literals;
+using dedekind::category::equals;
+using dedekind::category::HasNNOStep;
+using dedekind::category::until;
 
 // top left: the counts
-constexpr auto ns = 10uz >> chain(Prior<size_t>{});  // 9, …, 0
-static_assert(std::ranges::forward_range<decltype(ns)> &&
+constexpr auto ns = 10uz >> chain<size_t>();  // 9, …, 0
+static_assert(HasNNOStep<size_t> && std::ranges::forward_range<decltype(ns)> &&
               std::ranges::distance(ns) == 10 &&
               std::ranges::equal(ns, std::views::iota(0uz, 10uz) |
                                          std::views::reverse) &&
-              std::ranges::empty(0uz >> chain(Prior<size_t>{})) &&
+              std::ranges::empty(0uz >> chain<size_t>()) &&
               std::ranges::equal(ns >> id<size_t>(), ns));
 
-// top right: words, prior the init, nothing at the empty word
-struct Init {
-  using Domain = std::string_view;
-  using Codomain = std::optional<std::string_view>;
-  constexpr Codomain operator()(std::string_view w) const {
-    if (w.empty()) return std::nullopt;
-    return w.substr(0, w.size() - 1);
-  }
-  constexpr bool operator==(const Init&) const = default;
-};
-constexpr auto ws = "abc"sv >> chain(Init{});  // ab, a, ""
-static_assert(std::ranges::forward_range<decltype(ws)> &&
-              std::ranges::distance(ws) == 3 && ws.front() == "ab" &&
-              std::ranges::equal(ws, std::array{"ab"sv, "a"sv, ""sv}) &&
-              std::ranges::empty(""sv >> chain(Init{})));
+// top right: Collatz, until 1
+constexpr auto cs = 1000uz >>
+                    chain(until(equals(1uz), arrow<size_t>([](size_t n) {
+                                  return n % 2 ? 3 * n + 1 : n / 2;
+                                })));  // 500, 250, …, 1
+static_assert(std::ranges::forward_range<decltype(cs)> &&
+              std::ranges::distance(cs) == 111 && std::ranges::max(cs) == 9232);
 
 // bottom left: the fold on a monoid
 template <std::ranges::input_range R,
@@ -379,16 +373,8 @@ template <std::ranges::input_range R,
 constexpr T concat(R r, Op op = {}) {
   return std::ranges::fold_left(r, unit<T>(op), op);
 }
-struct Str {  // a word as a string
-  using Domain = std::string_view;
-  using Codomain = std::string;
-  constexpr std::string operator()(std::string_view w) const {
-    return std::string(w);
-  }
-  constexpr bool operator==(const Str&) const = default;
-};
 static_assert(concat(ns) == 45 && concat(ns >> constant<size_t>(7uz)) == 70 &&
-              concat(ws >> Str{}) == "aba");
+              concat(cs) == 102512);
 
 // bottom right: the fold on an action, M × S → M
 template <typename M, typename S, typename H>
@@ -416,10 +402,11 @@ struct Bit {  // 𝔹 acts on the words: a bit appended
   }
 };
 static_assert(fold(ns >> Even{}, 0uz, Count{}) == 5 &&
-              fold(ns >> Even{}, std::string{}, Bit{}) == "0101010101");
+              fold(ns >> Even{}, std::string{}, Bit{}) == "0101010101" &&
+              fold(cs >> Even{}, 0uz, Count{}) == 71);
 
 // The chain summed with the count known only at run time.
-constexpr size_t sum_n(size_t n) { return concat(n >> chain(Prior<size_t>{})); }
+constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
 static_assert(sum_n(100) == 4950);
 }  // namespace listing3
 

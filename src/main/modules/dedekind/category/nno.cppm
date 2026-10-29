@@ -677,6 +677,16 @@ struct Prior {
     return Predecessor<N>{}(n);
   }
 };
+/** @brief The default chain of a carrier with the NNO's step, the one its
+ *  certificate supplies: @c n >> chain<N>() is what @c Prior<N> reaches from
+ *  @c n, @c n - 1, ..., 0 (the Jlt paper's Listing 3).  @tparam N the
+ *  carrier. */
+export template <HasNNOStep N>
+  requires std::equality_comparable<N> && std::default_initializable<N> &&
+           std::regular<N>
+constexpr auto chain() {
+  return chain(Prior<N>{});
+}
 
 /** @section nno__Lambek  Lambek's lemma as the honesty obligation
  *  The structure map @f$[Z, S] : 1 + N \to N@f$ of the @b initial algebra is an

@@ -87,6 +87,27 @@ constexpr auto constant(B y) {
   return Constant<A, B>{y};
 }
 
+/** @brief The equality test against one value as an arrow @f$A \to 2@f$,
+ *  the characteristic map of the point @c x: the condition a guard asks of a
+ *  state (the Jlt paper's Listing 3, @c until(equals(1), step)).
+ *  @tparam A the object, its values comparable. */
+export template <std::equality_comparable A>
+struct Equals {
+  using Domain = A;
+  using Codomain = bool;
+  A value;
+  /** @param a an element.  @return whether it is the value. */
+  constexpr bool operator()(const A& a) const { return a == value; }
+  constexpr bool operator==(const Equals&) const = default;
+};
+/** @brief The equality test's factory.  @param x the value. */
+export template <std::equality_comparable A>
+constexpr Equals<A> equals(A x) {
+  return {x};
+}
+static_assert(IsArrow<Equals<int>> && equals(1)(1) && !equals(1)(2),
+              "equals(x) is the arrow a ↦ (a == x)");
+
 // NOTE (#637 re-home): the algebra-flavoured @c zero<A, B, Op>() factory
 // (the constant morphism pointing at @c unit<B>(Op{})) plus the @c
 // unit_registry specialisation for

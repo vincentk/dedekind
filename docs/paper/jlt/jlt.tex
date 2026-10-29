@@ -383,38 +383,31 @@ Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// the counts: Lambek's prior from a seed
+// the counts: the type's own prior
 constexpr auto ns =                   // 9, …, 0
-    10uz >> chain(Prior<size_t>{});
+    10uz >> chain<size_t>();
 static_assert(
+    HasNNOStep<size_t> &&
     ranges::forward_range<decltype(ns)> &&
     ranges::distance(ns) == 10 &&
     ranges::equal(ns, views::iota(0uz, 10uz)
                       | views::reverse) &&
-    ranges::empty(
-        0uz >> chain(Prior<size_t>{})) &&
+    ranges::empty(0uz >> chain<size_t>()) &&
     ranges::equal(ns >> id<size_t>(), ns));
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// words: prior the init, nothing at ""
-struct Init {
-  using Domain = string_view;
-  using Codomain = optional<string_view>;
-  constexpr auto operator()(string_view s) const {
-    if (s.empty()) return Codomain{};
-    return Codomain{s.substr(0, s.size() - 1)};
-  }
-};
-constexpr auto ws =                   // ab, a, ""
-    "abc"sv >> chain(Init{});
+// Collatz's step, until 1
+constexpr auto cs =        // 500, 250, …, 1
+    1000uz >> chain(until(equals(1uz),
+        arrow<size_t>([](size_t n) {
+          return n % 2 ? 3 * n + 1 : n / 2;
+        })));
 static_assert(
-    ranges::forward_range<decltype(ws)> &&
-    ranges::distance(ws) == 3 &&
-    ranges::equal(ws,
-                  array{"ab"sv, "a"sv, ""sv}) &&
-    ranges::empty(""sv >> chain(Init{})));
+    ranges::forward_range<decltype(cs)> &&
+    ranges::distance(cs) == 111 &&
+    ranges::max(cs) == 9232);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -430,7 +423,7 @@ constexpr T concat(R r, Op op = {}) {
 static_assert(
     concat(ns) == 45 &&
     concat(ns >> constant<size_t>(7uz)) == 70 &&
-    concat(ws >> Str{}) == "aba");
+    concat(cs) == 102512);
 \end{cpp}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
@@ -452,15 +445,16 @@ constexpr M fold(R r, M e, H h) {
 static_assert(
     fold(ns >> Even{}, 0uz, Count{}) == 5 &&
     fold(ns >> Even{}, string{}, Bit{})
-        == "0101010101");
+        == "0101010101" &&
+    fold(cs >> Even{}, 0uz, Count{}) == 71);
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top left: the counts, Lambek's $\mathit{prior}$ from a seed, the library's \cppinline{Prior}: the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is a forward range the standard also spells, \cppinline{iota} read backwards.
-Top right: words under their init, a carrier with no origin, no order and no standard spelling: the chain is still a forward range, and nothing else is asked of the words.
-Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, by the standard's \cppinline{fold_left}, the kernel's iterator, into whatever monoid the arrow lands in.
+Top left: the counts, their $\mathit{prior}$ the default that the type's certificate supplies, \cppinline{HasNNOStep}, the weakest in the library that gives a predecessor and a zero: the chain of $10$ is the ten counts below it, the chain of $0$ is empty, \cppinline{>> id} is the chain itself, and the chain is a forward range the standard also spells, \cppinline{iota} read backwards.
+Top right: Collatz's step, guarded by \cppinline{until(equals(1uz), ...)}, a deliberate test of the combinators' expressiveness: from $1000$ the walk is known to reach $1$, after $111$ steps and a peak of $9232$, but that it does so from every natural is an open problem~\cite{lagarias1985collatz}, so this chain is finite by fact, checked here, and not by Rule~3, which the step does not obey.
+Bottom left: the fold on a monoid, homogeneous, Listing~\ref{lst:rule2}'s \cppinline{concat} at a range, by the standard's \cppinline{fold_left}, the kernel's iterator.
 Bottom right: the fold on an action $M \times S \to M$, heterogeneous, the booleans acting on the counts and on the words; it is a semimodule's fold when the action's laws hold, which the tree certifies and the listing does not ask.
-\cppinline{Str}, \cppinline{Even}, \cppinline{Count} and \cppinline{Bit} are in the test.}
+\cppinline{Even}, \cppinline{Count} and \cppinline{Bit} are in the test.}
 \label{lst:rule3}
 \end{listing}
 
