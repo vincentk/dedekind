@@ -448,7 +448,8 @@ static_assert(ranges::fold_left(
 Top left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
 Top right: a chaotic path, Collatz's step from $1000$, finite by fact and not by Rule~3: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
 Bottom left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
-Bottom right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.}
+Bottom right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
+In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}, $f$ along it \cppinline{views::transform}, and the fold with the action $h$ \cppinline{ranges::fold_left}.}
 \label{lst:rule3}
 \end{listing}
 
