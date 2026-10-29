@@ -333,24 +333,35 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 
 \begin{figure}[tb]
 \centering
-\begin{tikzcd}[column sep=2.2em, row sep=2.6em]
-  \llap{\small counts $X$, ordered:\quad} n \arrow[r, "s"] \arrow[d, "f"']
-  & s\,n \arrow[r, "s"] \arrow[d, "f"]
-  & \cdots \arrow[r, "s"]
-  & 1 \arrow[r, "s"] \arrow[d, "f"]
-  & 0 \arrow[loop right, "s"] \arrow[d, dashed, "\text{delimits}"] \\
-  \llap{\small values $M$, a monoid:\quad} f\,n \arrow[r, phantom, "\oplus"]
-  & f(s\,n) \arrow[r, phantom, "\oplus"]
-  & \cdots \arrow[r, phantom, "\oplus"]
-  & f\,1 \arrow[r, phantom, "\oplus"]
-  & e
+\begin{tikzcd}[column sep=3.2em]
+  \min = 0 \arrow[loop left, "p"] \arrow[r, bend left=25, "s"]
+  & 1 \arrow[l, bend left=25, "p"] \arrow[r, bend left=25, "s"]
+  & \cdots \arrow[l, bend left=25, "p"] \arrow[r, bend left=25, "s"]
+  & n = \max \arrow[l, bend left=25, "p"] \arrow[loop right, "s"]
 \end{tikzcd}
+
+\medskip
+\begin{tikzcd}[column sep=2.6em, row sep=2.4em]
+  \llap{\small the chain $X$:\quad} 0 \arrow[r, "s"] \arrow[d, "f"']
+  & 1 \arrow[r, "s"] \arrow[d, "f"]
+  & \cdots \arrow[r, "s"]
+  & n \arrow[d, "f"] \\
+  \llap{\small a semiring $S$:\quad} f\,0
+  & f\,1
+  & \cdots
+  & f\,n
+\end{tikzcd}
+\[
+\begin{array}{r@{\quad}l}
+\text{left fold:} & (\cdots((e \lhd f\,0) \lhd f\,1) \cdots) \lhd f\,n \\
+\text{right fold:} & f\,0 \rhd (f\,1 \rhd (\cdots (f\,n \rhd e) \cdots))
+\end{array}
+\]
 \caption{Where each structure lives.
-Top: the counts, with the order their step gives them, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}: the step descends, $s\,x \le x$, and its first fixed point, the unit $0$, delimits the chain, with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches it is Archimedes' axiom~\cite{heath1897archimedes}.
-Down: an arrow $f$ from the counts to the values.
-With the counts offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
-Bottom: the values, a monoid $(M, \oplus, e)$, which \cppinline{concat} folds, the delimiter contributing $e$; in the bootstrap $M = X$, as in Peano.
-Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one multiplication; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
+Top: a bounded chain, as in Dedekind's naturals, the chain of one element under a map into itself~\cite{dedekind1888zahlen}, traversed both ways: the successor $s$ ascends and the predecessor $p$ descends, and each has a fixed point, the origin $0$ for $p$ and the bound $n$ for $s$, so a walk in either direction ends with no bound taken from an infinite $\mathbb{N}$; that a step of fixed size reaches the end is Archimedes' axiom~\cite{heath1897archimedes}.
+Bottom: an arrow $f$ from the chain into a semiring $S$, and a fold of the image into a semimodule $M$ over $S$ from its zero $e$, heterogeneous, since the chain, the scalars and the accumulator are three carriers: a left fold acts on the right, $M \times S \to M$, a right fold on the left, $S \times M \to M$, and the two agree when $S$ is commutative; a monoid is the case $S = M$ acting on itself.
+With the chain offsets and $f$ a load from memory, rather than an arrow whose laws the compiler can use, this is an array in sequential allocation~\cite[\S 2.2.2]{knuth1997art1}: the offsets an arithmetic progression with the element size as common difference, the address of element $n$ one multiplication, $a + n \cdot d$, and the sum of such a progression the closed form told of the young Gauss~\cite{hayes2006gauss}.
+Properties of $f$ license shortcuts, each representing the chain by less than its traversal: $f$ constant, monotone and antitone, makes it a value and a count, which associativity folds by squaring and a semimodule in one action; $f$ monotone, as the identity is, makes the fold of a chain into the join semilattice of the chain's own order its top, $f\,n$; $f$ a load from memory makes it the array above, the same semantics in another representation at evaluation, memory allocated or not (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
 
