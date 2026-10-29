@@ -41,7 +41,7 @@ ii) generic code varies with a type only through that type's concepts and traits
 iii) recursion is structural, on a type or on a natural number that counts down.
 Its kernel, Featherweight Jlt (FJlt), translates into System~F by dictionary passing, as Haskell's type classes do, and the translation is total and preserves types and evaluation, so an FJlt program inherits termination, parametricity and a value.
 What Jlt writes beyond the kernel is sugar, named with its desugaring, and that the desugaring keeps meaning is the paper's working hypothesis.
-A declared law licenses a specialisation: by associativity the fold of a constant arrow is computed by squaring, in logarithmically many steps, even at compile time, where no optimiser runs.
+Declared laws license overloads, and overload resolution composes them: in one program the action law and associativity, neither aware of the other, turn a fold of $n$ steps into one of $\log n$, even at compile time, where no optimiser runs.
 Along the way the paper shows that \Cpp{20} concepts with overlapping overloads resolve incoherently in GHC's sense, and adopts GHC's rule.
 The evidence is proof sketches, listings that compile and run at both binding times under a test in the public repository, their compiled output, and a library whose core a linter checks against the rules.
 
@@ -69,7 +69,7 @@ This paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
-Listing~\ref{lst:desugar} is a case: a declared law gives resolution a shortcut that the code without it lacks.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
+Listing~\ref{lst:desugar} is a case: the chain, the arrow and the matrix arithmetic compile away to the Fibonacci recurrence.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 What the posture addresses is the other cost, the language's size.
 Alignment with the posture is easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against its rules.
 And while this is not a hard proof but only a read, it is often a thorough read (Section~\ref{sec:limits}).
@@ -100,7 +100,6 @@ No claim is made that Jlt is unique or canonical, although it seems likely that 
 As in the tagless-final style of Carette, Kiselyov and Shan~\cite{carette2009finally}, the embedded terms are generic code over an interface, here a \cppinline{concept}, and their interpretations are its models.
 The posture's name is a nod to structural typing~\cite{pierce2002tapl,cardelli1996typesystems}: in \Cpp{23} a \cppinline{concept} is a predicate on a type's structure, not its lineage, and so a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 Figure~\ref{fig:arrows} sketches the arrows between these pieces.
-
 
 \begin{figure}[tb]
 \centering
@@ -138,7 +137,6 @@ Jlt adopts GHC's rule, and the repository's tool reports a call at a value of pa
 \end{enumerate}
 Not contributed: the translation, which is Wadler and Blott's~\cite{wadler1989adhoc}; the calculus-with-concepts, which is Siek and Lumsdaine's $F^G$~\cite{siek2005essential}; and complete definition checking: Section~\ref{sec:limits} says what the repository's linter reads and what it misses.
 
-
 \paragraph{How to read this paper.}
 The paper is written for authors of generic \Cpp{} libraries first, with System~F as the warranty and a rule for their overloads; for those who audit \Cpp{} against a policy and need to know what a tool checks; for readers of programming languages in the line of concepts and type classes; and for researchers who arrive from Python and want the performance of \Cpp{} with a guard rail.
 The sections follow the arrows of Figure~\ref{fig:arrows}, one each.
@@ -151,7 +149,6 @@ Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:rel
 
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
 Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits, or, as in Listing~\ref{lst:rule1}, the tree's definitions a listing prints and the test imports; the LLVM IR panels are Clang~23's output at \texttt{-O2} for functions the test defines.
-
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
@@ -245,7 +242,7 @@ A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} re
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
-The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are certificates the tree declares or derives, and Listing~\ref{lst:desugar} specialises a fold on two of them.
+The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are certificates the tree declares or derives.
 A certificate attaches to the arrow, whose type names the carrier and the operation, so it certifies the signature, not a carrier beside an operation~\cite{pierce1991basic}.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
@@ -371,7 +368,7 @@ It needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
 With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
 With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}.
 These are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
-Properties of $f$ license shortcuts, each representing the chain by less than its traversal (Listing~\ref{lst:desugar}).}
+}
 \label{fig:structures}
 \end{figure}
 
@@ -380,7 +377,6 @@ Listing~\ref{lst:rule2} illustrates the principle for monoids of different signa
 A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
-
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
@@ -393,12 +389,10 @@ The structure lives in a \emph{type} (a typed term, an array of known length), o
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
 Regardless of presentation, it is a traversal of the figure's chain.
 The chain is held as one count or as the elements of an array, with the same semantics.
-Listing~\ref{lst:desugar}'s third specialisation reads the one as the other.
 Listing~\ref{lst:rule3} is the figure in code.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
 \cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list.
-
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
@@ -498,7 +492,6 @@ Section~\ref{sec:limits} says how.}
 \label{tab:posture}
 \end{table}
 
-
 \section{From Jlt to Featherweight Jlt}
 \label{sec:translation:adequacy}
 
@@ -507,134 +500,8 @@ Desugaring rewrites a program into one that uses only the kernel's constructions
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} state it construction by construction: a condition, and the kernel term it yields.
 The repository's linter measures that the table names every construction the library writes.
 
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.56\linewidth}
-\begin{cpp}
-template <typename T, typename Op = plus<T>,
-          typename N, typename OpN>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> &&
-           integral<N>
-constexpr T concat(chain_t<N, out<N, OpN>> ns,
-                   Constant<N, T> f) {
-  const N u = unit<N>(OpN{});  // the length: 0 below u
-  const N n = static_cast<N>(max(ns.seed(), u) - u);
-  return ranges::fold_left(unfold(n, Bits<N>{}),
-      pair<T, T>{unit<T>(Op{}), f(n)}, Square<T, Op>{}).first;
-}
-template <typename T, typename Op = plus<T>, typename OpN>
-  requires IsCount<T, OpN> && same_as<Op, OpN> &&
-           IsOrderJoinSemilattice<T, Op>
-constexpr T concat(chain_t<T, out<T, OpN>> ns,
-                   Identity<T>) {
-  return out<T, OpN>{}(ns.seed())
-      .value_or(unit<T>(Op{}));  // the top
-}
-template <typename T, size_t K>
-struct At {                    // a lookup into an array,
-  using Domain = size_t;       // in order along the chain
-  using Codomain = T;
-  array<T, K> a;
-  constexpr T operator()(size_t k) const {
-    return a[K - 1 - k];
-  }
-};
-template <typename T, typename Op = plus<T>,
-          size_t K>
-  requires IsCount<size_t> && IsMonoid<T, Op>
-constexpr T concat(chain_t<size_t, out<size_t>> ns,
-                   At<T, K> f) {
-  return ranges::fold_left(f.a | views::reverse |
-      views::take(ns.seed()) | views::reverse,
-      unit<T>(Op{}), Op{});
-}
-static_assert(concat<string>(chain(3uz, out<size_t>{}),
-    constant<size_t>("ab"s)) == "ababab");
-static_assert(concat<size_t, Max<size_t>>(
-    chain(10uz, out<size_t, Max<size_t>>{}),
-    Identity<size_t>{}) == 9);
-static_assert(concat<size_t>(chain(4uz, out<size_t>{}),
-    At<size_t, 4>{{1, 2, 3, 4}}) == 10);
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.42\linewidth}
-\begin{minted}{llvm}
-define i64 @copies_n(i64 %x, i64 %n) {
-  %z = icmp eq i64 %n, 0
-  br i1 %z, label %exit, label %first
-first:
-  %b0 = trunc i64 %n to i1
-  %n1 = lshr i64 %n, 1
-  %a0 = select i1 %b0, i64 %x, i64 0
-  %o = icmp eq i64 %n1, 0
-  br i1 %o, label %exit, label %loop
-loop:
-  %k = phi i64 [ %k1, %loop ], [ %n1, %first ]
-  %s = phi i64 [ %s1, %loop ], [ %x, %first ]
-  %a = phi i64 [ %a1, %loop ], [ %a0, %first ]
-  %s1 = shl i64 %s, 1
-  %k1 = lshr i64 %k, 1
-  %b = trunc i64 %k to i1
-  %t = select i1 %b, i64 %s1, i64 0
-  %a1 = add i64 %t, %a
-  %e = icmp eq i64 %k1, 0
-  br i1 %e, label %exit, label %loop
-exit:
-  %r = phi i64 [ 0, %entry ],
-               [ %a0, %first ], [ %a1, %loop ]
-  ret i64 %r
-}
-define i64 @top_n(i64 %n) {
-  %t = call i64 @llvm.usub.sat.i64(i64 %n, i64 1)
-  ret i64 %t
-}
-define i64 @sum_a(ptr %a) {
-  %v = load <8 x i64>, ptr %a
-  %s = call i64
-    @llvm.vector.reduce.add.v8i64(<8 x i64> %v)
-  ret i64 %s
-}
-\end{minted}
-\end{minipage}
-\caption{Three specialisations.
-Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
-A constant arrow makes the array a value and a count, $(x, n)$.
-By associativity, copies compose by squaring: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}.
-$10^8$ copies take 27 steps (Section~\ref{sec:binding}).
-The identity along the chain is monotone.
-Into a join semilattice whose join is the chain's own order, such as \cppinline{size_t} under \cppinline{max}, the fold is its top, the seed's $\mathit{prior}$: one step.
-A lookup into an array of \cppinline{K} makes the array physical and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
-Right: the IR at \texttt{-O2}.
-The copies are a loop over the bits.
-The top is its argument less one, saturating at zero.
-The array is one vector load and one reduction.
-\cppinline{Bits}, \cppinline{Square}, \cppinline{IsOrderJoinSemilattice} and \cppinline{Max} are in the test.}
-\label{lst:desugar}
-\end{listing}
-
-\begin{listing}[htbp]
-\begin{minted}[fontsize=\footnotesize]{text}
-concat₁ =  Λ T Op N F. λ m c f ns.  fold (λ a k. m.op a (f k)) m.unit ns
-concat₂ =  Λ T Op N.   λ m c x ns.  π₁ (fold square (m.unit, x) (unfold bits (max (seed ns) c.unit − c.unit)))
-                   where square (a, b) bit = (if bit then m.op a b else a,  m.op b b)
-concat₃ =  Λ T Op.   λ m c ns.    case out (seed ns) of ∗ ↦ m.unit; t ↦ t
-concat₄ =  Λ T Op K. λ m c a ns.  fold m.op m.unit (reverse (take (seed ns) (reverse a)))
-concat [u64 plus] (chain out 10) id        =  concat₁ [u64 plus u64 id] plus_u64 count_u64 id (chain out 10)
-concat [u64 plus] (chain out 10) (const 7) =  concat₂ [u64 plus u64] plus_u64 count_u64 7 (chain out 10)
-concat [u64 max] (chain out 10) id         =  concat₃ [u64 max] max_u64 count_u64 (chain out 10)
-concat [u64 plus] (chain out 4) (at a)     =  concat₄ [u64 plus 4] plus_u64 count_u64 a (chain out 4)
-\end{minted}
-\caption{Listing~\ref{lst:desugar}'s family under the translation of Section~\ref{sec:translation}: \texttt{m} and \texttt{c} the monoid's and the count's records, each function a plain function of them, and four calls, each the function its resolution picks.}
-\label{lst:translate}
-\end{listing}
-
-Listing~\ref{lst:desugar} shows the desugaring that matters most: a branch on a type becomes a family of generic functions.
-Written as branches inside Listing~\ref{lst:rule3}'s \cppinline{concat}, the specialisations are an \cppinline{if constexpr} on the arrow being \cppinline{Constant}, one on its being \cppinline{Identity} under a semilattice, and one on its being a lookup into an array.
-Desugared, they are the listing's overloads: their second parameter is the more specific, so resolution picks them by partial ordering, and a type is decided at the type variable as at the instantiation, which is why no clause is left undecided (Appendix~\ref{app:fjlt:typing}).
-System~F has no overloading, so in the translated family (Listing~\ref{lst:translate}) each function is a plain function of its constraints' records, and each call is the function its resolution picks.
-The bodies keep Rule~2, and the translation makes it visible: the fold's operation and its unit become \texttt{m.op} and \texttt{m.unit}, fields of a record, because a constraint named them.
-The free theorem and the laws do different work: the first says that \cppinline{concat} can only combine the arrow's values with \cppinline{Op} from the unit, the second which of those combinations are equal, associativity letting the copies be regrouped into squares, idempotence letting the chain's values collapse to its top, and the unit law letting the empty chain fold to the unit; the array needs no law, since it is the chain's elements already in memory.
-In Birkhoff's terms the monoids are the variety, lists its free algebra, and the chain of a count under a constant arrow the free algebra on one generator, which is why the binary method needs nothing beyond the monoid.
-In the kernel the choice is resolution by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent.
+A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent.
+Listing~\ref{lst:laws} shows two that compose, each licensed by a declared law: \cppinline{fold} specialised by the action law, and \cppinline{concat} by associativity.
 The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
 
 The theorems of Section~\ref{sec:guarantees} are about FJlt, and they reach a \Cpp{} program on two conditions, which hold in different ways.
@@ -667,7 +534,7 @@ The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~1 and~2 are closed by the grammar, except for overloads ordered by their parameter types or their constraints, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:desugar}'s.
+Rows~1 and~2 are closed by the grammar, except for overloads ordered by their parameter types or their constraints, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:laws}'s.
 Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure} or~\ref{tab:closure:decl}: the condition under which it desugars, and the kernel term it becomes.
 No row needs anything the calculus lacks.
 By measurement, the table is complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
@@ -706,7 +573,7 @@ The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:
 \label{tab:rules}
 \end{table}
 
-Listing~\ref{lst:translate} is such a System~F program: the shape of Listing~\ref{lst:rule2} and the family of Section~\ref{sec:translation:adequacy}, read through the translation.
+Listing~\ref{lst:desugar}'s middle panel is such a System~F term: Listing~\ref{lst:rule3}'s fold, read through the translation.
 A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
 The whole is dictionary passing, the translation of type classes into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
@@ -786,6 +653,83 @@ The translation is a function of the program: two resolutions of the same constr
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 It is what makes ``the unit of \cppinline{+} at \cppinline{size_t}'' a phrase with one meaning in a program, and therefore something a law can be stated about.
+It is also what lets laws compose: two overloads written apart, each licensed by one declared law, are chosen the same way wherever a program calls them, and Listing~\ref{lst:laws} composes two of them into a fold of logarithmically many steps.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the laws, declared: a monoid and its action
+template <> constexpr M unit<M>(MatMul) {
+  return {{{1, 0}, {0, 1}}};
+}
+template <>
+constexpr bool associative<M>(MatMul) {
+  return true;
+}
+using Act = remove_cvref_t<decltype(act)>;
+template <>
+constexpr MatMul monoid_of<Act>{};
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// associativity: n copies, by squaring
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T concat(ConstantChain<T> r,
+                   Op op) {
+  const size_t n = r.seed();
+  const T x = r.coalgebra().f.value;
+  auto sq = [n, op](auto p, size_t k) {
+    auto [a, s] = p;
+    return pair{(n >> k) & 1 ? op(a, s) : a,
+                op(s, s)};
+  };
+  return ranges::fold_left(
+      views::iota(0uz, size_t(bit_width(n))),
+      pair{unit<T>(op), x}, sq).first;
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the action law: n copies acting, one product
+template <ranges::input_range R, typename S,
+          typename H>
+constexpr S fold(R r, S v, H h) {
+  return ranges::fold_left(r, v, h);
+}
+template <typename T, typename S,
+          typename H>
+  requires IsMonoid<T, monoid_of_t<H>>
+constexpr S fold(ConstantChain<T> r, S v, H h) {
+  return h(v, concat(r, monoid_of_t<H>{}));
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the same chain, both laws
+constexpr size_t fibonacci_fast(size_t n) {
+  return fold(n >> chain<size_t>()
+                >> constant<size_t>(fib),
+              V{1, 0}, act)[1];
+}
+static_assert(
+    fibonacci_fast(90) == fibonacci(90) &&
+    fibonacci_fast(100'000'000) ==
+        14'139'011'350'745'967'675uz);
+\end{cpp}
+\end{minipage}
+\caption{Laws composing: two declared laws, two overloads, and a complexity class less.
+Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, BA)$.
+Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} = (M^k)^2$, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
+Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
+Bottom right: resolution picks each overload, since its parameter is the more specific, and the two compose.
+$10^8$ copies take 27 squarings, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
+\cppinline{ConstantChain}, the type of \cppinline{n >> chain<size_t>() >> constant(x)}, \cppinline{MatMul} and \cppinline{monoid_of} are in the test.}
+\label{lst:laws}
+\end{listing}
 
 \begin{corollary}[Termination]
 \label{cor:termination}
@@ -816,8 +760,6 @@ This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweig
 A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
-
-
 \section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
@@ -827,10 +769,90 @@ The test behind the listings calls the same functions at runtime, on values it d
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
 A \cppinline{consteval} function, an immediate function, is the opposite case: it is evaluated only at compile time, so it has exactly one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.
 Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
-Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest, nothing for a \cppinline{static_assert}, whose arguments are constants, and the fold over the chain of \cppinline{n} with \cppinline{n} read at run time.
+Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
+Listing~\ref{lst:desugar} shows one program at both stages: a Jlt function, its desugared and translated term, and the code the compiler emits.
+The function is Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
+Desugared and translated, the chain, the arrow and the fold are a System~F term, the action a plain function (Section~\ref{sec:translation}).
+With $n$ free the term does not normalise all the way: the fold over $n$ stays, as it must, since $n$ is known only at run time.
+Everything around it reduces: the map fuses into the fold, and the constant matrix multiplies out.
+That normal form is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
+With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// Listing 3's chain, its length a parameter
+constexpr size_t fibonacci(size_t n) {
+  const auto ms =
+      n >> chain<size_t>() >> constant<size_t>(fib);
+  return ranges::fold_left(ms, V{1, 0}, act)[1];
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(fibonacci(0) == 0 &&
+              fibonacci(1) == 1 &&
+              fibonacci(10) == 55 &&
+              fibonacci(90) ==
+                  2'880'067'194'370'816'120uz);
+constexpr size_t fibonacci_10() {
+  return fibonacci(10);
+}
+\end{cpp}
+\end{minipage}
+\begin{minted}{text}
+fibonacci = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
+         ~> λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))     -- normal form, n free
+fibonacci 10 ~> 55
+-- the IR's loop below, read back as a function
+fibonacci n = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
+  where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
+\end{minted}
+\begin{minipage}[t]{0.6\linewidth}
+\begin{minted}{llvm}
+define i64 @fibonacci(i64 %n) {
+  %z = icmp eq i64 %n, 0
+  br i1 %z, label %exit, label %one
+one:
+  %m = add i64 %n, -1
+  %o = icmp eq i64 %m, 0
+  br i1 %o, label %exit, label %loop
+loop:
+  %a = phi i64 [ %s, %loop ], [ 1, %one ]
+  %b = phi i64 [ %a, %loop ], [ 1, %one ]
+  %k = phi i64 [ %k1, %loop ], [ %m, %one ]
+  %k1 = add i64 %k, -1
+  %s = add i64 %b, %a
+  %e = icmp eq i64 %k1, 0
+  br i1 %e, label %exit, label %loop
+exit:
+  %r = phi i64 [ 0, %entry ], [ 1, %one ],
+               [ %a, %loop ]
+  ret i64 %r
+}
+\end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.38\linewidth}
+\begin{minted}{llvm}
+define i64 @fibonacci_10() {
+  ret i64 55
+}
+\end{minted}
+\end{minipage}
+\caption{Partial evaluation: Figure~\ref{fig:arrows}'s bottom edge on one program.
+Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
+Top right: the function at four lengths, evaluated at compile time.
+Middle: the function desugared and translated (Section~\ref{sec:translation}), its normal form with $n$ free, and its value at $10$.
+With $n$ free the fold over $n$ stays, and the matrices multiply out to $(a, b) \mapsto (a + b, a)$.
+Bottom left: the LLVM IR Clang~23 emits at \texttt{-O2 -fno-unroll-loops}, with $n$ known only at run time.
+It is the normal form's loop, read back as a function in the middle panel after Appel~\cite{appel1998ssa}.
+Bottom right: with $10$ given, the code is the value, $55$, as the static assertion and the System~F term say.}
+\label{lst:desugar}
+\end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
-The parting that matters for a fold is the step limit: $10^8$ copies of \cppinline{3} are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 steps with Listing~\ref{lst:desugar}'s overload beside it, which resolution picks; at run time both are code the optimiser handles, a closed form and a loop, as the listings' panels show.
+The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 squarings with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks; at run time both are code the optimiser handles, a closed form and a loop, as the listings' panels show.
 
 \begin{table}[htbp]
 \centering
@@ -844,7 +866,7 @@ a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past w
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
 an allocation & freed before the evaluation ends, or refused & may outlive the call \\
-a shortcut & only by resolution, a declared law, as Listing~\ref{lst:desugar}'s overload & the optimiser's, as Listing~\ref{lst:rule3}'s fold become Gauss's closed form \\
+a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as Listing~\ref{lst:desugar}'s matrices become two additions \\
 a \texttt{consteval} function & evaluated, at every call & not callable: no call survives to run time \\
 telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
 \bottomrule
@@ -856,8 +878,8 @@ Apart from the last row, no difference is a different value: where both evaluati
 \end{table}
 
 \paragraph{The two evaluators are different programs.}
-In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that finds Listing~\ref{lst:rule3}'s closed form sees only the code emitted for run time.
-So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:desugar}'s overload: it buys at build time what the optimiser finds at run time by itself.
+In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that reduces Listing~\ref{lst:desugar}'s matrices to two additions sees only the code emitted for run time.
+So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
 
 Not every algorithm converges, so Jlt allows a \emph{budget}, a counter out of band beside the structure's own count, with a maximum number of steps, just as the compiler does; the compiler's budgets apply at compile time only, Jlt's at both binding times, and the exhaustion of either is never a value, a refusal from the compiler and an absent answer from the fold (Appendix~\ref{app:fjlt:ssa}).
 They are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.

@@ -11,6 +11,7 @@
  */
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <cstddef>
@@ -405,6 +406,94 @@ static_assert(std::ranges::fold_left(ns >> is_even, 0uz, pop_count) == 5 &&
               std::ranges::fold_left(ns >> is_even, std::string{},
                                      append_bit) == "0101010101" &&
               std::ranges::fold_left(cs >> is_even, 0uz, pop_count) == 71);
+
+// Listing 4's law: 2×2 matrices under multiplication are a monoid, declared,
+// so n copies of one matrix fold by squaring.
+struct MatMul {
+  constexpr M2 operator()(M2 a, M2 b) const {
+    return M2{V{a[0][0] * b[0][0] + a[0][1] * b[1][0],
+                a[0][0] * b[0][1] + a[0][1] * b[1][1]},
+              V{a[1][0] * b[0][0] + a[1][1] * b[1][0],
+                a[1][0] * b[0][1] + a[1][1] * b[1][1]}};
+  }
+};
+}  // namespace listing3
+template <>
+constexpr listing3::M2 unit<listing3::M2>(listing3::MatMul) {
+  return listing3::M2{listing3::V{1, 0}, listing3::V{0, 1}};
+}
+template <>
+constexpr bool associative<listing3::M2>(listing3::MatMul) {
+  return true;
+}
+namespace listing3 {
+constexpr MatMul mat_mul{};
+// The type of n >> chain<size_t>() >> constant(x): n copies of one value.
+template <typename T>
+using ConstantChain = dedekind::category::unfold_view<
+    size_t,
+    dedekind::category::Mapped<size_t,
+                               dedekind::category::StepCoalgebra<
+                                   size_t, dedekind::category::Prior<size_t>>,
+                               Constant<size_t, T>>>;
+// The fold of n copies under an associative operation is the n-th power,
+// by the binary method, one squaring per bit of n; resolution picks it over
+// the plain fold, since its parameter is the more specific.
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+constexpr T concat(ConstantChain<T> r, Op op) {
+  const size_t n = r.seed();
+  const T x = r.coalgebra().f.value;
+  return std::ranges::fold_left(
+             std::views::iota(0uz, static_cast<size_t>(std::bit_width(n))),
+             std::pair<T, T>{unit<T>(op), x},
+             [n, op](std::pair<T, T> p, size_t k) {
+               return std::pair<T, T>{
+                   ((n >> k) & 1) ? op(p.first, p.second) : p.first,
+                   op(p.second, p.second)};
+             })
+      .first;
+}
+
+// Listing 4: Listing 3's matrix chain, its length a parameter; its LLVM IR
+// at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10
+// given, the value.
+constexpr size_t fibonacci(size_t n) {
+  const auto ms = n >> chain<size_t>() >> constant<size_t>(fib);
+  return std::ranges::fold_left(ms, V{1, 0}, act)[1];
+}
+static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55 &&
+              fibonacci(90) == 2'880'067'194'370'816'120uz);
+constexpr size_t fibonacci_10() { return fibonacci(10); }
+static_assert(fibonacci_10() == 55);
+// The action law, declared: act is an action of the monoid (M2, mat_mul),
+// act(act(v, A), B) = act(v, B·A), act(v, I) = v.
+template <typename H>
+constexpr std::nullptr_t monoid_of = nullptr;  // undeclared
+template <>  // keyed by the closure's type, as fold deduces it, without const
+constexpr MatMul monoid_of<std::remove_cvref_t<decltype(act)>>{};
+template <typename H>
+using monoid_of_t = std::remove_cvref_t<decltype(monoid_of<H>)>;
+// A fold along the walk, and its specialisation on n copies of one value
+// under a monoid action: v acted on by their concat, which the binary method
+// computes; resolution picks each, one law apiece.
+template <std::ranges::input_range R, typename S, typename H>
+constexpr S fold(R r, S v, H h) {
+  return std::ranges::fold_left(r, v, h);
+}
+template <typename T, typename S, typename H>
+  requires IsMonoid<T, monoid_of_t<H>>
+constexpr S fold(ConstantChain<T> r, S v, H h) {
+  return h(v, concat(r, monoid_of_t<H>{}));
+}
+// With the laws: 10^8 copies of the matrix, 27 squarings, where the plain
+// fold of 10^8 steps is refused at compile time.
+constexpr size_t fibonacci_fast(size_t n) {
+  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
+}
+static_assert(fibonacci_fast(0) == 0 && fibonacci_fast(10) == 55 &&
+              fibonacci_fast(90) == fibonacci(90) &&
+              fibonacci_fast(100'000'000) == 14'139'011'350'745'967'675uz);
 
 // The chain summed with the count known only at run time.
 constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
@@ -810,6 +899,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     size_t twelve = 12;
     CHECK(L::id<size_t>()(twelve) == 12);
     CHECK(L::listing3::sum_n(twelve) == 66);
+    CHECK(L::listing3::fibonacci(twelve) == 144);
     CHECK(L::copies_n(7, twelve) == 84);
     CHECK(L::top_n(twelve) == 11);
     CHECK(L::sum_a({1, 2, 3, 4, 5, 6, 7, twelve}) == 40);
