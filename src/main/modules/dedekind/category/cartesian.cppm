@@ -499,6 +499,10 @@ struct Sections {
   constexpr Sections() = default;  // the identity
   constexpr Sections(Identity<T> i) : v(i) {}
   constexpr Sections(Section<T, Op> s) : v(s) {}
+  /** @brief The injections ι₁, ι₂, named, so that @c Sections is its own
+   *  coproduct operation (@c IsCoproduct's @c Op). */
+  static constexpr Sections inl(const Identity<T>& i) { return {i}; }
+  static constexpr Sections inr(const Section<T, Op>& s) { return {s}; }
   constexpr T operator()(const T& x) const {
     return std::visit(detail_arrows::At<T>{x}, v);
   }
@@ -529,6 +533,9 @@ struct Morphisms {
   constexpr Morphisms(Identity<T> i) : v(Sections<T, Op>{i}) {}
   constexpr Morphisms(Section<T, Op> s) : v(Sections<T, Op>{s}) {}
   constexpr Morphisms(Pointer p) : v(p) {}
+  /** @brief The injections ι₁, ι₂, named. */
+  static constexpr Morphisms inl(const Sections<T, Op>& s) { return {s}; }
+  static constexpr Morphisms inr(const Pointer& p) { return {p}; }
   /** @brief Any stateless arrow on @c T, by its type: called through
    *  @c call<F{}, T>. */
   template <IsArrow F>
@@ -550,6 +557,9 @@ struct Arrows {
   constexpr Arrows() = default;  // the identity
   constexpr Arrows(Morphisms<T, Op> m) : v(m) {}
   constexpr Arrows(Composite c) : v(c) {}
+  /** @brief The injections ι₁, ι₂, named. */
+  static constexpr Arrows inl(const Morphisms<T, Op>& m) { return {m}; }
+  static constexpr Arrows inr(const Composite& k) { return {k}; }
   /** @brief Anything a @c Morphisms is made from. */
   template <typename F>
     requires std::constructible_from<Morphisms<T, Op>, F> &&
@@ -602,7 +612,12 @@ static_assert(
         IsCoproduct<S, Identity<unsigned>,
                     Section<unsigned, std::plus<unsigned>>> &&
         IsCoproduct<M, S, M::Pointer> && IsCoproduct<A, M, A::Composite> &&
-        A{}(5u) == 5 && A{twice}(5u) == 7 && A{Inc{}}(5u) == 6 &&
+        IsCoproduct<S, Identity<unsigned>,
+                    Section<unsigned, std::plus<unsigned>>, S> &&
+        IsCoproduct<M, S, M::Pointer, M> &&
+        IsCoproduct<A, M, A::Composite, A> && S::inr(twice)(1u) == 3 &&
+        A::inl(M{Inc{}})(1u) == 2 && A{}(5u) == 5 && A{twice}(5u) == 7 &&
+        A{Inc{}}(5u) == 6 &&
         (A{twice} >> A{twice}) ==
             A{Section<unsigned, std::plus<unsigned>>{{}, 4u}} &&
         (A{} >> A{Inc{}}) == A{Inc{}} && (A{Inc{}} >> A{}) == A{Inc{}} &&
