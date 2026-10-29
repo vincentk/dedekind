@@ -334,16 +334,18 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 \begin{figure}[tbp]
 \centering
 \begin{tikzcd}[column sep=1.1em, row sep=1.5em]
+  \llap{\small cardinality:\quad}
+  &[1.6em] & & & & 1 \arrow[rr, "n"]
+  & & n \arrow[d, "\mathit{prior}"] \\
   \llap{\small order, $X$:\quad} \ast
-  &[1.6em] 0 \arrow[l, "\mathit{prior}"']
+  & 0 \arrow[l, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
   & & 1 \arrow[ll, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
   & & \cdots \arrow[ll, "\mathit{prior}"']
   & & n-1 \arrow[ll, "\mathit{prior}"']
     \arrow[dd, crossing over, "f" near end]
-  & & n \arrow[ll, "\mathit{prior}"']
-  &[1.6em] 1 \arrow[l, "n"'] \\[1.2em]
+  & \\[1.2em]
   \llap{\small right fold, $h$:\quad} \bullet
   & & \bullet \arrow[ll, "h"' near start]
   & & \cdots \arrow[ll, "h"' near start]
