@@ -317,7 +317,8 @@ concat<Arrows<size_t>, compose>(
 \end{minipage}
 \caption{\hyperref[def:rule2]{Rule~2}: Abstraction.
 Left: a monoid is a set which is closed under an associative binary operation and equipped with a unit element.
-Its elements need not be comparable, as equality is not decidable on every carrier, on functions for one, but the unit is identified.
+Its elements need not be comparable, since equality is not decidable on every carrier, on functions for one.
+The unit, however, is identified.
 The monoid shape is certified for the family of \cppinline{std::unsigned_integral} under \cppinline{(0, +)}.
 Right: \cppinline{concat} at the lengths that need no recursion, none, one and two.
 The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, \cppinline{bool} under \cppinline{(false, ||), (true, &&)}, \cppinline{string} under \cppinline{("", +)}, and \cppinline{Arrows} under \cppinline{(id, >>)}.
@@ -352,11 +353,24 @@ The monoid signatures are: \cppinline{size_t} under \cppinline{(0, +), (1, *)}, 
   & & e \arrow[ll, "h"']
 \end{tikzcd}
 \caption{Where each structure lives.
-Seed: Lambek~\cite{lambek1968fixpoint}: the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism, and its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends, where Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does; the user supplies the point $n : \mathbf{1} \to X$ and $\mathit{prior}$, and the chain is what $\mathit{prior}$ reaches from $n$, the $n$ elements below it, not $n$ itself, so $n$ names the chain's cardinality and $0$ the empty chain.
-Order: Dedekind~\cite{dedekind1888zahlen}: a chain is a set closed under a map into itself, and the chain of an element its forward orbit, here the chain of $\mathit{prior}\,n$, the $n$ elements below $n$; the carrier needs neither an order nor an origin, since reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Algebra: on the codomain of $f$, a semiring $S$ acting on a semimodule $M$, a monoid when $S = M$.
-Fold: of the two folds of a list~\cite{meijer1991functional,gibbons1996third}, the one along the walk, $h : M \times S \to M$ from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$, needs no list: a stream and its iterator~\cite{stepanov2009elements}.
-With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}, and with offsets an array~\cite[\S 2.2.2]{knuth1997art1}: the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
+Seed: after Lambek~\cite{lambek1968fixpoint}, the structure map $[0, \mathit{succ}] : \mathbf{1} + X \to X$ of the naturals is an isomorphism.
+Its inverse $\mathit{prior} : X \to \mathbf{1} + X$ steps down and always ends.
+Peano's $\mathit{succ}$~\cite{peano1889arithmetices}, dashed, never does.
+The user supplies the point $n : \mathbf{1} \to X$ and $\mathit{prior}$.
+The chain is what $\mathit{prior}$ reaches from $n$: the $n$ elements below it, not $n$ itself.
+So $n$ names the chain's cardinality, and $0$ the empty chain.
+Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a map into itself.
+The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
+The carrier needs neither an order nor an origin.
+Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
+Algebra: on the codomain of $f$, a semiring $S$ acts on a semimodule $M$.
+A monoid is the case $S = M$.
+Fold: a list has two folds~\cite{meijer1991functional,gibbons1996third}.
+The one along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
+It needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
+With $\mathit{succ}$ as well, $\mathit{succ} >> \mathit{prior} = \eta$, the chain is a zipper~\cite{huet1997zipper}.
+With offsets it is an array~\cite[\S 2.2.2]{knuth1997art1}.
+These are the standard's forward, bidirectional and random-access iterators~\cite{cpp23standard}.
 Properties of $f$ license shortcuts, each representing the chain by less than its traversal (Listing~\ref{lst:desugar}).}
 \label{fig:structures}
 \end{figure}
@@ -370,14 +384,20 @@ A \Cpp{} compiler checks a template's body at instantiation, against the type su
 
 \paragraph{Rule 3, Descent: recursion is structural.}
 \phantomsection\label{def:rule3}
-A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end: the step is Figure~\ref{fig:structures}'s $\mathit{prior}$, which steps down and has nothing at the bottom, on an order with no infinite descent.
+A Jlt program recurses on a structure whose residue, what remains to be folded, gets smaller at every step and so reaches its end.
+The step is Figure~\ref{fig:structures}'s $\mathit{prior}$, which steps down and has nothing at the bottom, on an order with no infinite descent.
 What the rule conserves is that inductive argument: structural induction~\cite{burstall1969proving}, a language all of whose programs end by it being Turner's total functional programming~\cite{turner2004total}, and the fold's universal property its equation~\cite{meijer1991functional}, $h = \mathit{fold}\,a$ exactly when $h \circ \mathit{in} = a \circ F\,h$.\footnote{$F$ is one layer of the data type with a hole for the rest, for a list of words $F\,X = 1 + \mathit{Word} \times X$; $\mathit{in}$ builds one more layer, the constructors $\mathit{nil}$ and $\mathit{cons}$; $a$, the algebra, says what to do with one layer once the rest is folded; and $F\,h$ applies $h$ to the rest only.
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
-Regardless of presentation, it is a traversal of the figure's chain, held as one count or as the elements of an array, with the same semantics, and Listing~\ref{lst:desugar}'s third specialisation is the one read as the other.
-Listing~\ref{lst:rule3} is the figure in code, and in the terms of Meijer et al.\ \cppinline{concat} over a list is a catamorphism, the chain an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing, and \cppinline{concat} over it a hylomorphism, the chain never built as a list.
+Regardless of presentation, it is a traversal of the figure's chain.
+The chain is held as one count or as the elements of an array, with the same semantics.
+Listing~\ref{lst:desugar}'s third specialisation reads the one as the other.
+Listing~\ref{lst:rule3} is the figure in code.
+In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
+The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
+\cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list.
 
 
 \begin{listing}[htbp]
@@ -435,21 +455,25 @@ static_assert(
 using V = array<size_t, 2>;
 using M = array<V, 2>;              // row by row
 constexpr auto act = [](V v, M a) {
-  return V{a[0][0] * v[0] + a[0][1] * v[1],
-           a[1][0] * v[0] + a[1][1] * v[1]};
-};
+  return V{
+     a[0][0] * v[0] + a[0][1] * v[1],
+     a[1][0] * v[0] + a[1][1] * v[1]};};
 constexpr M fib{{{1, 1}, {1, 0}}};
-static_assert(ranges::fold_left(
-    ns >> constant<size_t>(fib), V{1, 0}, act)
-        == V{89, 55});              // F(11), F(10)
+constexpr auto ms = ns >> constant<size_t>(fib);
+// F(11), F(10)
+constexpr auto fs_10 = ranges::fold_left(
+  ms, V{1, 0}, act);
+static_assert(fs_10 == V{89, 55}); 
 \end{cpp}
 \end{minipage}
 \caption{\hyperref[def:rule3]{Rule~3}: Descent, Figure~\ref{fig:structures} in code.
-Top left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
-Top right: a chaotic path, Collatz's step from $1000$, finite by fact and not by Rule~3: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
-Bottom left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
-Bottom right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
-In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}, $f$ along it \cppinline{views::transform}, and the fold with the action $h$ \cppinline{ranges::fold_left}.}
+Top. Left: counting down, a finite chain, whose type supplies $\mathit{prior}$.
+Right: a chaotic path, Collatz's step from $1000$.
+It is finite by fact, not by Rule~3: that every natural reaches $1$ is an open problem~\cite{lagarias1985collatz}.
+Bottom. Left: a closed operation, \cppinline{concat} on any monoid, generically, Listing~\ref{lst:rule2}'s at a range.
+Right: a general fold is a heterogeneous action, here matrices on vectors, Fibonacci's.
+In the standard's ranges library~\cite{cpp23standard}, Figure~\ref{fig:structures}'s chain is an \cppinline{input_range}.
+The arrow $f$ along it is \cppinline{views::transform}, and the fold with the action $h$ is \cppinline{ranges::fold_left}.}
 \label{lst:rule3}
 \end{listing}
 
@@ -573,10 +597,16 @@ define i64 @sum_a(ptr %a) {
 \end{minipage}
 \caption{Three specialisations.
 Left: Listing~\ref{lst:rule3}'s \cppinline{concat} specialised on the type of its arrow, each a representation of the symbolic array by something smaller than its traversal.
-A constant arrow makes the array a value and a count, $(x, n)$, and copies compose by squaring, by associativity: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}, $10^8$ copies in 27 steps (Section~\ref{sec:binding}).
-The identity along the chain is monotone, so into a join semilattice whose join is the chain's own order, \cppinline{size_t} under \cppinline{max}, the fold is its top, the seed's $\mathit{prior}$, one step.
+A constant arrow makes the array a value and a count, $(x, n)$.
+By associativity, copies compose by squaring: the binary method over the bits of the count~\cite[\S 4.6.3]{knuth1997art2}.
+$10^8$ copies take 27 steps (Section~\ref{sec:binding}).
+The identity along the chain is monotone.
+Into a join semilattice whose join is the chain's own order, such as \cppinline{size_t} under \cppinline{max}, the fold is its top, the seed's $\mathit{prior}$: one step.
 A lookup into an array of \cppinline{K} makes the array physical and the fold Listing~\ref{lst:rule2}'s \cppinline{concat} at length \cppinline{K}.
-Right: the IR at \texttt{-O2} for the copies, a loop over the bits; for the top, its argument less one, saturating at zero; for the array, one vector load and one reduction.
+Right: the IR at \texttt{-O2}.
+The copies are a loop over the bits.
+The top is its argument less one, saturating at zero.
+The array is one vector load and one reduction.
 \cppinline{Bits}, \cppinline{Square}, \cppinline{IsOrderJoinSemilattice} and \cppinline{Max} are in the test.}
 \label{lst:desugar}
 \end{listing}

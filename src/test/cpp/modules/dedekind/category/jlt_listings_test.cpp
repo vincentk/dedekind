@@ -391,8 +391,10 @@ constexpr auto act = [](V v, M2 a) {
   return V{a[0][0] * v[0] + a[0][1] * v[1], a[1][0] * v[0] + a[1][1] * v[1]};
 };
 constexpr M2 fib{{{1, 1}, {1, 0}}};
-static_assert(std::ranges::fold_left(ns >> constant<size_t>(fib), V{1, 0},
-                                     act) == V{89, 55});  // F11, F10
+constexpr auto ms = ns >> constant<size_t>(fib);
+// F(11), F(10)
+constexpr auto fs_10 = std::ranges::fold_left(ms, V{1, 0}, act);
+static_assert(fs_10 == V{89, 55});
 // The test's other actions: the booleans on the counts and on the words.
 constexpr auto is_even = arrow<size_t>([](size_t k) { return k % 2 == 0; });
 constexpr auto pop_count = [](size_t m, bool b) -> size_t { return m + b; };
