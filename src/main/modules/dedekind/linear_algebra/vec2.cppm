@@ -527,27 +527,6 @@ static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
 // here (free-module ⟹ module is the algebraic implication, but the
 // rank @c N is structural metadata that no concept derives from the
 // operator surface).
-}  // namespace dedekind::linear_algebra
-
-// The plane over a semiring T, componentwise, is a semimodule over T, the
-// free semimodule of rank 2; certified for the column and the row alike.
-namespace dedekind::category {
-template <typename T>
-  requires IsSemiring<T, std::plus<T>, std::multiplies<T>>
-struct is_linear_action<dedekind::linear_algebra::Vec2V<T>, T,
-                        std::plus<dedekind::linear_algebra::Vec2V<T>>,
-                        std::plus<T>, std::multiplies<T>, std::multiplies<>>
-    : std::true_type {};
-template <typename T>
-  requires IsSemiring<T, std::plus<T>, std::multiplies<T>>
-struct is_linear_action<dedekind::linear_algebra::Covec2V<T>, T,
-                        std::plus<dedekind::linear_algebra::Covec2V<T>>,
-                        std::plus<T>, std::multiplies<T>, std::multiplies<>>
-    : std::true_type {};
-}  // namespace dedekind::category
-
-namespace dedekind::linear_algebra {
-
 template <typename T>
   requires dedekind::algebra::IsModule<Vec2V<T>, T>
 inline constexpr bool is_free_module_v<Vec2V<T>, T, 2> = true;
