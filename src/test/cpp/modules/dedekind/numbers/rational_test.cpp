@@ -4,6 +4,7 @@
 #include <limits>
 #include <stdexcept>  // std::domain_error (the #680 rejection)
 
+import dedekind.algebra;
 import dedekind.category;
 import dedekind.morphologies;
 import dedekind.numbers;
@@ -173,6 +174,8 @@ TEST_CASE("embed_𝕃_ℚ: injectivity (the monic property)",
 // gcd-normalises at COMPILE TIME (6/4 → 3/2).
 namespace {
 using Q680 = Rational<>;  // default carrier = SignedCardinality
+// A commutative semiring acts on itself by its multiplication: a scalar.
+static_assert(dedekind::algebra::IsScalar<Rational<default_integer>>);
 constexpr Q680 r680_half{dedekind::sets::finite_signed_cardinality(6),
                          dedekind::sets::finite_signed_cardinality(4)};
 static_assert(r680_half.first == dedekind::sets::finite_signed_cardinality(3) &&

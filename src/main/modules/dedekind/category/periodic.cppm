@@ -111,6 +111,9 @@ namespace detail_periodic {
 [[noreturn]] constexpr void refuse_beyond_extent() { std::abort(); }
 /** @brief Refuses a period the word cannot hold. */
 [[noreturn]] constexpr void refuse_unrepresentable_period() { std::abort(); }
+/** @brief Refuses a modulus past the square root of the word's order, whose
+ *  residues' products would leave the word. */
+[[noreturn]] constexpr void refuse_wide_modulus() { std::abort(); }
 /** @brief The least common multiple of two periods, refused where the word
  *  cannot hold it, which @c std::lcm leaves undefined.  @param a @param b
  *  the periods, positive.  @return their lcm. */
@@ -189,10 +192,25 @@ struct Pisano {
 };
 }  // namespace detail_periodic
 
+namespace detail_periodic {
+/** @brief A modulus for the Fibonacci numbers in the word @c N: positive and
+ *  at most @f$2^{w/2}@f$ for a word of @c w bits, so that a product of two
+ *  residues, below @f$m^2@f$, and the Pisano bound @f$6m@f$ stay in the word;
+ *  refused otherwise.  @param m the modulus.  @return @c m. */
+template <IsCountWord N>
+constexpr N fibonacci_modulus(N m) {
+  if (m == 0) refuse_zero_modulus();
+  if (m > (N{1} << (std::numeric_limits<N>::digits / 2))) {
+    refuse_wide_modulus();
+  }
+  return m;
+}
+}  // namespace detail_periodic
+
 /** @brief The Fibonacci numbers modulo @c m, @f$k \mapsto F(k) \bmod m@f$,
- *  by fast doubling, @f$\log k@f$ steps; the modulus is below the square root
- *  of the word's order, so that the products stay in the word.
- *  @tparam N the counts. */
+ *  by fast doubling, @f$\log k@f$ steps; the modulus is at most the square
+ *  root of the word's order, so that the products stay in the word, and a
+ *  wider one is refused where the arrow is read.  @tparam N the counts. */
 export template <IsCountWord N = std::size_t>
 struct FibonacciMod {
   using Domain = N;
@@ -200,11 +218,12 @@ struct FibonacciMod {
   N modulus{1};
   /** @param k a count.  @return @f$F(k) \bmod m@f$. */
   constexpr N operator()(N k) const {
+    const N m = detail_periodic::fibonacci_modulus(modulus);
     const auto w = static_cast<N>(std::bit_width(k));
     return std::ranges::fold_left(
         std::views::iota(N{0}, w),
-        std::array<N, 2>{0, static_cast<N>(1 % modulus)},
-        detail_periodic::Double<N>{k, modulus, w})[0];
+        std::array<N, 2>{0, static_cast<N>(1 % m)},
+        detail_periodic::Double<N>{k, m, w})[0];
   }
   constexpr bool operator==(const FibonacciMod&) const = default;
 };
@@ -213,18 +232,18 @@ struct FibonacciMod {
  *  search of that length finds it.  @param f the arrow.  @return its period. */
 export template <IsCountWord N>
 constexpr N period(const FibonacciMod<N>& f) {
-  const N m = f.modulus;
+  const N m = detail_periodic::fibonacci_modulus(f.modulus);
   return std::ranges::fold_left(
       std::views::iota(N{1}, static_cast<N>(6 * m + 1)),
       std::array<N, 3>{0, static_cast<N>(1 % m), 0},
       detail_periodic::Pisano<N>{m})[2];
 }
 /** @brief The Fibonacci numbers modulo @c m.  @tparam N the counts.
- *  @param m the modulus, positive. */
+ *  @param m the modulus, positive and at most @f$2^{w/2}@f$ for a word of
+ *  @c w bits. */
 export template <IsCountWord N = std::size_t>
 constexpr FibonacciMod<N> fibonacci_mod(std::type_identity_t<N> m) {
-  if (m == 0) detail_periodic::refuse_zero_modulus();
-  return {m};
+  return {detail_periodic::fibonacci_modulus<N>(m)};
 }
 
 /** @brief An arrow with its laws hidden: called as @c f, with no period, so
@@ -296,6 +315,7 @@ export template <IsCountWord N, HasPeriod F>
 constexpr N count(
     const unfold_view<std::optional<N>, detail_chain::SliceStep<N, F>>& v) {
   const auto step = v.coalgebra();
+  if (!v.seed()) return N{0};  // a default view: empty, as the plain fold
   const N lo = *v.seed(), hi = step.hi;
   if (lo >= hi) return N{0};
   return static_cast<N>(count(hi >> chain<N>() >> step.f) -

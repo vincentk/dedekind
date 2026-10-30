@@ -78,6 +78,12 @@ static_assert(
     count(1'000u >> chain<unsigned>() >> congruent<unsigned>(3, 1)) == 333u &&
     std::same_as<decltype(period(congruent<unsigned>(3, 1))), unsigned> &&
     period(fibonacci_mod<unsigned>(10)) == 60u);
+
+// The widest modulus a word admits, 2^(w/2), agrees with a wider word; a
+// default view of a slice is empty, as its plain fold.
+static_assert(fibonacci_mod<unsigned>(65'536u)(50u) == 14'689u &&
+              fibonacci_mod(65'536)(50) == 14'689 &&
+              count(decltype(slice(0uz, 10uz) >> is_even){}) == 0);
 }  // namespace periodic_witness
 
 TEST_CASE("Periodic: a count by the law at run time", "[category][periodic]") {

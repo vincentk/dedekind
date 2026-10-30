@@ -33,6 +33,8 @@ import dedekind.category;
 
 using dedekind::algebra::Bit2U64Action;
 using dedekind::algebra::𝔽64;
+// The field over itself, by its multiplication, beside its action of 𝔽2.
+static_assert(dedekind::algebra::IsScalar<𝔽64>);
 using dedekind::category::unit;
 
 namespace {

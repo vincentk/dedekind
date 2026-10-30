@@ -200,16 +200,31 @@ export template <typename M, typename S, typename AddM, typename AddS,
                  typename MultS, typename Act>
 inline constexpr bool is_linear_action_v =
     is_linear_action<M, S, AddM, AddS, MultS, Act>::value;
-/** @brief The unsigned integers over themselves, the ring of integers modulo
- *  a power of two, by its own multiplication: a module, so a semimodule. */
-template <std::unsigned_integral M>
-  requires(!std::same_as<M, bool>)
-struct is_linear_action<M, M, std::plus<M>, std::plus<M>, std::multiplies<M>,
-                        std::multiplies<>> : std::true_type {};
-template <std::unsigned_integral M>
-  requires(!std::same_as<M, bool>)
-struct is_linear_action<M, M, std::plus<M>, std::plus<M>, std::multiplies<M>,
-                        std::multiplies<M>> : std::true_type {};
+namespace detail_action {
+/** @brief A carrier whose product stays in it: no integer narrower than
+ *  @c int, whose product promotes to a signed @c int that may overflow. */
+template <typename S>
+concept MultipliesInPlace =
+    !std::integral<S> ||
+    std::same_as<decltype(std::declval<S>() * std::declval<S>()), S>;
+}  // namespace detail_action
+/** @brief A commutative semiring over itself, by its own multiplication: the
+ *  semimodule laws are the semiring's (Golan, @e Semirings and their
+ *  Applications, 1999, ch. 14), among them the unsigned integers, the ring of
+ *  integers modulo a power of two.  @tparam S the semiring.  @tparam Add
+ *  @tparam Mult its operations. */
+template <typename S, typename Add, typename Mult>
+  requires IsSemiring<S, Add, Mult> && IsCommutative<S, Mult> &&
+           detail_action::MultipliesInPlace<S>
+struct is_linear_action<S, S, Add, Add, Mult, Mult> : std::true_type {};
+/** @brief The same, acted on by the transparent @c std::multiplies<>.
+ *  @tparam S the semiring.  @tparam Add its addition. */
+template <typename S, typename Add>
+  requires IsSemiring<S, Add, std::multiplies<S>> &&
+           IsCommutative<S, std::multiplies<S>> &&
+           detail_action::MultipliesInPlace<S>
+struct is_linear_action<S, S, Add, Add, std::multiplies<S>, std::multiplies<>>
+    : std::true_type {};
 
 /**
  * @concept IsSemimodule
