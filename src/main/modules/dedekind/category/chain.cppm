@@ -31,6 +31,29 @@ import :nno;  // the step, cover and Prior: what a chain walks by
 
 namespace dedekind::category {
 
+/** @brief Whether a carrier is an integer chain: the integral types, and the
+ *  carriers that register themselves (@c sets' cardinals, a bignum).
+ *  @tparam T the carrier. */
+export template <typename T>
+struct is_integer_chain : std::bool_constant<std::integral<T>> {};
+/** @brief A chain with integer arithmetic: a discrete total order, locally
+ *  finite (every bounded interval is finite), so a distributive lattice under
+ *  min and max, with the NNO's step and the arithmetic operators as a shape.
+ *  Finite on a machine word, unbounded for a bignum.  Not a ring: @c int's
+ *  overflow is undefined and a cardinal may saturate at @f$\aleph_0@f$; the
+ *  ring is @c IsRing's to claim.  @tparam T the carrier. */
+export template <typename T>
+concept IsIntegerChain =
+    HasNNOStep<std::remove_cvref_t<T>> &&
+    std::totally_ordered<std::remove_cvref_t<T>> &&
+    requires(const std::remove_cvref_t<T> a, const std::remove_cvref_t<T> b) {
+      a + b;
+      a - b;
+      a * b;
+      a / b;
+      a % b;
+    } && is_integer_chain<std::remove_cvref_t<T>>::value;
+
 /** @section chain__Unfold  The anamorphism, and Dedekind's chain
  *  The unfold of a seed by a coalgebra @f$S \to 1 + A \times S@f$: nothing
  *  ends the walk, a pair yields an element and the next state.  This is the

@@ -240,20 +240,6 @@ concept HasNNOStep = requires(const T& n) {
   { predecessor(n) } -> std::convertible_to<T>;
 };
 
-/** @brief Whether a carrier reads as an integer magnitude: the integral types,
- *  and the carriers that register themselves (@c sets' cardinals).
- *  @tparam T the carrier. */
-export template <typename T>
-struct is_ring_integral : std::bool_constant<std::integral<T>> {};
-/** @brief A carrier that reads as an integer magnitude, a refinement of
- *  @c HasNNOStep: every such carrier has the NNO's step.  A shape, not a law:
- *  it claims no closure, inverse or ring law, so @c int is admitted, its
- *  overflow undefined, and so is a cardinal that saturates at @f$\aleph_0@f$.
- *  @tparam T the carrier. */
-export template <typename T>
-concept IsRingIntegral = HasNNOStep<std::remove_cvref_t<T>> &&
-                         is_ring_integral<std::remove_cvref_t<T>>::value;
-
 /** @brief The successor @f$S : N \to N@f$ as an @b arrow, over any carrier with
  *  the NNO step: the one spelling of the Peano successor where an @c IsArrow is
  *  needed (@c image, @c graph, the NNO witness), in place of a struct per site.

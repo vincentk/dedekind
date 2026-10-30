@@ -1876,25 +1876,28 @@ constexpr SignedExtensionalCardinal<S> predecessor(
 }
 }  // namespace dedekind::sets
 
-// The cardinals read as integer magnitudes: registered with @c :nno's
-// @c IsRingIntegral, which refines the NNO's step.
+// The cardinals are integer chains: registered with @c :chain's
+// @c IsIntegerChain, which refines the NNO's step.
 namespace dedekind::category {
 template <>
-struct is_ring_integral<dedekind::sets::Cardinality> : std::true_type {};
+struct is_integer_chain<dedekind::sets::Cardinality> : std::true_type {};
 template <>
-struct is_ring_integral<dedekind::sets::SignedCardinality> : std::true_type {};
+struct is_integer_chain<dedekind::sets::SignedCardinality> : std::true_type {};
 template <typename W>
-struct is_ring_integral<dedekind::sets::ExtensionalCardinal<W>>
+struct is_integer_chain<dedekind::sets::ExtensionalCardinal<W>>
     : std::true_type {};
 template <typename S>
-struct is_ring_integral<dedekind::sets::SignedExtensionalCardinal<S>>
+struct is_integer_chain<dedekind::sets::SignedExtensionalCardinal<S>>
     : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::sets {
-/** @brief @c :nno's @c IsRingIntegral, under the name this module exported
- *  before it moved there. */
-export using dedekind::category::IsRingIntegral;
+/** @brief @c :chain's @c IsIntegerChain. */
+export using dedekind::category::IsIntegerChain;
+/** @brief The old name of @c IsIntegerChain, which never claimed a ring.
+ *  @deprecated Use @c IsIntegerChain.  @tparam T the carrier. */
+export template <typename T>
+concept IsRingIntegral = IsIntegerChain<T>;
 
 // Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
 static_assert(IsRingIntegral<int>);
