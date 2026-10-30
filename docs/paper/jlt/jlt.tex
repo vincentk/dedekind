@@ -874,9 +874,8 @@ So an instance declared after the shape is never found, unless the shape names a
 This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
 \paragraph{\texttt{std::plus<T>} promises what its body cannot keep.}
-\cppinline{std::plus<T>} declares its call as \cppinline{T operator()(const T&, const T&)}, so a requirement such as \cppinline|{ Op{}(a, b) } -> same_as<T>| is met by signature for every \cppinline{T}, even one with no \cppinline{+}; its body, \cppinline{a + b}, fails only when instantiated, inside \cppinline{<functional>}, where the linter does not read.
-The transparent \cppinline{std::plus<>} declares its result as \cppinline{decltype(a + b)}, so a \cppinline{T} with no \cppinline{+} fails the requirement itself: the typed form is the standard library's own gap between signature and body, Rule~2 one level down.
-The listings use the typed form and never ask it about a carrier it was not written for.
+\cppinline{std::plus<T>} declares its call as \cppinline{T operator()(const T&, const T&)}, so a requirement such as \cppinline|{ Op{}(a, b) } -> same_as<T>| is met by signature for every \cppinline{T}, even one with no \cppinline{+}, and its body fails only when instantiated: Rule~2's gap, one level down in the standard library.
+The listings never ask it about a carrier it was not written for.
 
 \paragraph{A shape knows the laws someone declared.}
 \Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics for that reason~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
@@ -892,11 +891,8 @@ Constant evaluation refuses it and run time does not (Table~\ref{tab:binding}), 
 A signed integer such as \cppinline{int} is a chain under \cppinline{<} and a bounded lattice under \cppinline{min} and \cppinline{max}, but no monoid under \cppinline{+} or \cppinline{*}, since overflow is undefined; a Jlt program on \cppinline{int} is a Jlt program only where its arithmetic cannot overflow, a fact about the program that no rule checks.
 
 \paragraph{The compiler has its own limits.}
-Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds either binding time, since instantiation precedes both.
-Rule~3 keeps them predictable, because every fold's length is in the program: a count, or the depth of a term.
-A fold over a count has no recursion and meets no depth limit.
-A fold over a typed term, such as the library's \cppinline{cata} over \cppinline{Compose<F, G>}, is one instantiation per nesting, bounded by \texttt{-ftemplate-depth}.
-A fold over a term that is a value, evaluated at compile time, is one \cppinline{constexpr} call per nesting, bounded by \texttt{-fconstexpr-depth}.
+Table~\ref{tab:binding} lists two, steps and call depth, and the template instantiation depth bounds both binding times.
+Rule~3 keeps them predictable, because every fold's length is in the program: a count, which meets no depth limit, or the depth of a term, one instantiation or one call per nesting.
 
 \subsection{Limits of this presentation}
 
@@ -907,22 +903,14 @@ Review complements it: an agentic reviewer reads every pull request against the 
 
 \paragraph{The adequacy argument covers part of the library.}
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
-The modules \texttt{order}, \texttt{sets} and \texttt{relational} are held by the same linter.
-A file is gated at zero under a rule once it is clean, and the rest is gated at today's count, a ratchet that only goes down.
-What remains there is a run-time layer kept for the Python bindings: heap-allocated term trees, run lists stored in a \cppinline{std::map}, and errors reported by throwing.
-Bringing it into the posture is a redesign, not a fix, and is not done here.
+Other modules are held by the same linter at a count that only goes down; what remains there is a run-time layer kept for the Python bindings, whose redesign is not done here.
 
 \paragraph{Facts live in tables, instances in functions.}
-The library behind the listings stores its facts in class and variable templates, \cppinline{unit_trait<T, Op>} and \cppinline{is_commutative_v<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})} and \cppinline{commutative<T>(Op{})}.
-The reason is partial specialisation: ``every \cppinline{Rational<I>} is a monoid under \cppinline{+}'' is one declaration for a family, which no function template can make, and a constrained overload in its place is found only before the shape, as Listing~\ref{lst:rule2}'s is, while the library registers after its shapes, in other modules.
-Appendix~\ref{app:fjlt:closure} desugars such a registration into an instance with a context, and a default beside families resolves by specificity (Appendix~\ref{app:fjlt:typing}).
+The library stores its facts in class templates, \cppinline{unit_trait<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})}, since only a partial specialisation declares a fact for a family, after the shapes and in other modules.
+Appendix~\ref{app:fjlt:closure} desugars such a registration into an instance with a context.
 
-\paragraph{The library is part of the toolchain.}
-``Standard \Cpp{23}'' names a language and a library, and the claim holds for a pair of implementations, not for the standard.
-\mbox{\cppinline{std::bind_front}} is standard, and the version in one widely used library does not compile under the compiler this paper uses.
-The listings were built with one compiler against two standard libraries, and that is what ``compiles as written'' means here.
-The youngest piece the posture uses is the fold algorithms over ranges, which entered the standard in 2022 and which the library this paper builds with completed in its release 23~\cite{libcxx2026status}.
-An enumeration is not among the listings' counts: \Cpp{23} cannot list an enumeration's enumerators, so its \cppinline{pred} would have to be declared enumerator by enumerator, and the static reflection of \Cpp{26} would compute it.
+\paragraph{The standard library is trusted.}
+The listings compile with Clang~23 against two standard libraries, trusted as every \Cpp{} program trusts them; the youngest piece they use, the folds over ranges, is complete since libc++~23~\cite{libcxx2026status}.
 
 \section{Related Work}
 \label{sec:related}
