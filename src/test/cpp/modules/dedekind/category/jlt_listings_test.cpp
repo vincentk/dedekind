@@ -376,12 +376,32 @@ static_assert(concat(ns) == 45 &&
 
 // bottom right: the fold on an action, M × S → M: 2×2 matrices acting on
 // vectors, the chain of 10 under the constant Fibonacci matrix
+// M2 is a struct of the test's, not an array of arrays, so that its operators
+// are found: the standard's function objects, std::multiplies<> among them,
+// call a * b inside namespace std, and argument-dependent lookup searches only
+// the arguments' namespaces, which for std::array is std (the paper's lookup
+// wall, Section 7).  Its operators are hidden friends, found by that lookup.
 using V = std::array<size_t, 2>;
-using M2 = std::array<V, 2>;          // row by row
-constexpr auto act = [](V v, M2 a) {  // the row vector v·A
-  return V{v[0] * a[0][0] + v[1] * a[1][0], v[0] * a[0][1] + v[1] * a[1][1]};
+struct M2 {  // row by row
+  V top, bottom;
+  friend constexpr V operator*(V v, M2 a) {  // the row vector v·A
+    return {v[0] * a.top[0] + v[1] * a.bottom[0],
+            v[0] * a.top[1] + v[1] * a.bottom[1]};
+  }
+  friend constexpr M2 operator*(M2 a, M2 b) {  // row by row, each times b
+    return {a.top * b, a.bottom * b};
+  }
+  friend constexpr M2 operator+(M2 a, M2 b) {
+    return {{a.top[0] + b.top[0], a.top[1] + b.top[1]},
+            {a.bottom[0] + b.bottom[0], a.bottom[1] + b.bottom[1]}};
+  }
+  friend constexpr M2 operator*(size_t k, M2 a) {  // entry by entry
+    return {{k * a.top[0], k * a.top[1]}, {k * a.bottom[0], k * a.bottom[1]}};
+  }
+  constexpr bool operator==(const M2&) const = default;
 };
-constexpr M2 fib{{{1, 1}, {1, 0}}};
+constexpr auto act = [](V v, M2 a) { return v * a; };
+constexpr M2 fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
 // F(11), F(10)
 constexpr auto fs_10 = std::ranges::fold_left(ms, V{1, 0}, act);
@@ -400,25 +420,8 @@ static_assert(std::ranges::fold_left(ns >> is_even, 0uz, pop_count) == 5 &&
 // Listing 4's example: 2×2 matrices under multiplication, registered with the
 // tree's traits as a monoid, and act as its action; the overloads that use the
 // laws are the tree's, concat in :total and fold in :action.
-struct MatMul {
-  constexpr M2 operator()(M2 a, M2 b) const {
-    return M2{V{a[0][0] * b[0][0] + a[0][1] * b[1][0],
-                a[0][0] * b[0][1] + a[0][1] * b[1][1]},
-              V{a[1][0] * b[0][0] + a[1][1] * b[1][0],
-                a[1][0] * b[0][1] + a[1][1] * b[1][1]}};
-  }
-};
-struct MatAdd {
-  constexpr M2 operator()(M2 a, M2 b) const {
-    return M2{V{a[0][0] + b[0][0], a[0][1] + b[0][1]},
-              V{a[1][0] + b[1][0], a[1][1] + b[1][1]}};
-  }
-};
-struct Scale {  // the counts acting on the matrices, entry by entry
-  constexpr M2 operator()(size_t k, M2 a) const {
-    return M2{V{k * a[0][0], k * a[0][1]}, V{k * a[1][0], k * a[1][1]}};
-  }
-};
+using MatMul = std::multiplies<M2>;
+using MatAdd = std::plus<M2>;
 }  // namespace listing3
 }  // namespace jlt_listing
 namespace dedekind::category {
@@ -453,7 +456,7 @@ struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd> {
 template <>  // n copies of A under + are n·A, entry by entry
 struct counting_action<jlt_listing::listing3::M2,
                        jlt_listing::listing3::MatAdd> {
-  using type = jlt_listing::listing3::Scale;
+  using type = std::multiplies<>;
 };
 }  // namespace dedekind::category
 namespace jlt_listing {
@@ -461,19 +464,18 @@ namespace listing3 {
 using dedekind::category::fold;
 // The third rung: matrix addition, where the counts act by scaling, so n
 // copies of A are n·A in one action, 10^8 of them included.
-constexpr M2 shear{{{1, 2}, {0, 1}}};
+constexpr M2 shear{{1, 2}, {0, 1}};
 static_assert(dedekind::category::HasCountingAction<M2, MatAdd> &&
               concat(10uz >> chain<size_t>() >> constant<size_t>(shear),
-                     MatAdd{}) == Scale{}(10uz, shear) &&
+                     MatAdd{}) == 10uz * shear &&
               concat(std::views::repeat(shear, 100'000'000uz), MatAdd{}) ==
-                  Scale{}(100'000'000uz, shear));
+                  100'000'000uz * shear);
 // The certificate, checked on two matrices that do not commute: act is a
 // right action, the product in the walk's order.
 static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
-              dedekind::category::IsMonoidAction<decltype(act), M2> &&
-              MatMul{}(fib, shear) != MatMul{}(shear, fib) &&
-              act(act(V{1, 2}, fib), shear) ==
-                  act(V{1, 2}, MatMul{}(fib, shear)));
+              dedekind::category::IsMonoidAction<decltype(act), V, M2> &&
+              fib * shear != shear * fib &&
+              act(act(V{1, 2}, fib), shear) == act(V{1, 2}, fib* shear));
 
 // Listing 5: Listing 3's matrix chain, its length a parameter; its LLVM IR
 // at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10

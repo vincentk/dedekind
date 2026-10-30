@@ -447,12 +447,13 @@ static_assert(
 \begin{cpp}
 // the fold on an action: matrices on vectors
 using V = array<size_t, 2>;
-using M = array<V, 2>;              // row by row
-constexpr auto act = [](V v, M a) {  // v·A
-  return V{
-     v[0] * a[0][0] + v[1] * a[1][0],
-     v[0] * a[0][1] + v[1] * a[1][1]};};
-constexpr M fib{{{1, 1}, {1, 0}}};
+struct M { V top, bottom;           // row by row
+  friend constexpr V operator*(V v, M a) {  // v·A
+    return {v[0] * a.top[0] + v[1] * a.bottom[0],
+            v[0] * a.top[1] + v[1] * a.bottom[1]};}
+  /* M * M, M + M, n * M, == */ };
+constexpr auto act = [](V v, M a) { return v * a; };
+constexpr M fib{{1, 1}, {1, 0}};
 constexpr auto ms = ns >> constant<size_t>(fib);
 // F(11), F(10)
 constexpr auto fs_10 = ranges::fold_left(
@@ -659,15 +660,16 @@ It is also what lets laws compose: two overloads written apart, each licensed by
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // the laws, declared: a monoid and its action
-template <> struct is_associative<M, MatMul>
+using Mul = multiplies<M>;
+template <> struct is_associative<M, Mul>
     : true_type {};
-template <> struct is_periodic<M, MatMul>
+template <> struct is_periodic<M, Mul>
     : true_type {};                    // total
-template <> struct unit_trait<M, MatMul> {
-  static constexpr M value{{{1, 0}, {0, 1}}};
+template <> struct unit_trait<M, Mul> {
+  static constexpr M value{{1, 0}, {0, 1}};
 };
 template <> struct acting_monoid<Act> {
-  using type = MatMul;
+  using type = Mul;
 };
 \end{cpp}
 \end{minipage}\hfill
@@ -700,10 +702,8 @@ constexpr M fold(R r, M v, H h) {
 }
 template <ranges::input_range R,
           semiregular M, typename H>
-  requires invocable<const H&, M,
-                     ranges::range_value_t<R>> &&
-           IsCopies<R> && IsMonoidAction<H,
-               ranges::range_value_t<R>>
+  requires IsCopies<R> && IsMonoidAction<
+               H, M, ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = acting_monoid<H>::type;
   return h(v, concat(r, Op{}));
@@ -732,7 +732,7 @@ Bottom right: resolution picks each overload, and the two compose.
 $10^8$ copies take 27 squarings, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
 \cppinline{IsCopies}, a range of $n$ copies of one value whose $n$ and value are known without walking it, is met by \cppinline{n >> chain<size_t>() >> constant(x)} and by the standard's \cppinline{views::repeat(x, n)}.
 Each overload has the plain one's signature and a stronger constraint, so resolution prefers it.
-\cppinline{concat}, \cppinline{fold}, \cppinline{IsCopies}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{MatMul} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
+\cppinline{concat}, \cppinline{fold}, \cppinline{IsCopies}, \cppinline{IsMonoidAction}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{M} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
 \label{lst:laws}
 \end{listing}
 

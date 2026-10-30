@@ -298,12 +298,15 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
  *  two overloads, composed by resolution. */
 export template <typename H>
 struct acting_monoid {};
-/** @brief @c H acts on its accumulator by the monoid @c (S, Op) that
- *  @c acting_monoid<H> names.  @tparam H the action.  @tparam S the scalars. */
-export template <typename H, typename S>
-concept IsMonoidAction = requires {
-  typename acting_monoid<std::remove_cvref_t<H>>::type;
-} && IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
+/** @brief @c H is an action @f$M \times S \to M@f$, on the right, of the
+ *  monoid @c (S, Op) that @c acting_monoid<H> names.  @tparam H the action.
+ *  @tparam M what it acts on.  @tparam S the monoid. */
+export template <typename H, typename M, typename S>
+concept IsMonoidAction =
+    std::invocable<const H&, M, S> &&
+    std::convertible_to<std::invoke_result_t<const H&, M, S>, M> &&
+    requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
+    IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
 /** @brief The fold along the walk: the standard's @c fold_left.
  *  @param r the range.  @param v the start.  @param h the action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
@@ -319,8 +322,7 @@ constexpr M fold(R r, M v, H h) {
  *  @param r the copies.  @param v the start.  @param h the
  *  action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
-  requires std::invocable<const H&, M, std::ranges::range_value_t<R>> &&
-           IsCopies<R> && IsMonoidAction<H, std::ranges::range_value_t<R>>
+  requires IsCopies<R> && IsMonoidAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
   return h(std::move(v), concat(std::move(r), Op{}));
