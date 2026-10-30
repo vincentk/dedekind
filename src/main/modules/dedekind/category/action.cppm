@@ -134,8 +134,7 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename Act = std::multiplies<>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    IsLeftAction<S, M, Act> &&
-    is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
+    IsLeftAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
 
 /** @brief The counts' action on a monoid @c (T, Op), @f$(n, x) \mapsto
  *  x^n@f$, the @c n copies of @c x, where its laws give it in one step:
