@@ -453,19 +453,22 @@ struct unit_trait<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd> {
   using value_type = jlt_listing::listing3::M2;
   static constexpr value_type value{};
 };
-template <>  // n copies of A under + are n·A, entry by entry
-struct counting_action<jlt_listing::listing3::M2,
-                       jlt_listing::listing3::MatAdd> {
-  using type = std::multiplies<>;
-};
+template <>
+struct is_commutative<jlt_listing::listing3::M2, jlt_listing::listing3::MatAdd>
+    : std::true_type {};
+template <>  // a semimodule over the counts: k·A entry by entry
+struct is_linear_action<jlt_listing::listing3::M2, size_t,
+                        jlt_listing::listing3::MatAdd, std::plus<size_t>,
+                        std::multiplies<size_t>, std::multiplies<>>
+    : std::true_type {};
 }  // namespace dedekind::category
 namespace jlt_listing {
 namespace listing3 {
 using dedekind::category::fold;
-// The third rung: matrix addition, where the counts act by scaling, so n
-// copies of A are n·A in one action, 10^8 of them included.
+// The third rung: matrix addition, a semimodule over the counts, so n copies
+// of A are n·A in one action, 10^8 of them included.
 constexpr M2 shear{{1, 2}, {0, 1}};
-static_assert(dedekind::category::HasCountingAction<M2, MatAdd> &&
+static_assert(dedekind::category::IsSemimodule<M2, size_t, MatAdd> &&
               concat(10uz >> chain<size_t>() >> constant<size_t>(shear),
                      MatAdd{}) == 10uz * shear &&
               concat(std::views::repeat(shear, 100'000'000uz), MatAdd{}) ==

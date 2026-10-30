@@ -1289,63 +1289,13 @@ constexpr T concat(R r, Op op = {}) {
              detail_concat::Square<T, Op>{n, op})
       .first;
 }
-/** @brief The counts act on @c (T, Op) by repetition: @c Act{}(n, x) is
- *  @c x folded under @c Op with itself @c n times, a declared law, the
- *  semimodule's @f$n \cdot x = x + \cdots + x@f$ (@c :action's
- *  @c IsSemimodule implies it).  Where it is declared, @c n copies cost one
- *  action, not @f$\log n@f$ squarings.  It is the monoid's power
- *  @f$x^n@f$, which every monoid has, given a closed form.
- *  FIXME(#1099): the closed form under @c + is implied by the semimodule laws,
- *  @f$1 \cdot m = m@f$ and @f$(s + t) \cdot m = s \cdot m + t \cdot m@f$, so
- *  this rung should be keyed on @c IsSemimodule and this certificate deleted;
- *  it cannot be yet, since @c :action's @c is_linear_action_v defaults to a
- *  signature check that asserts no law, and a rung keyed on it would accept
- *  any carrier with the right signatures.  @tparam T the carrier.
- *  @tparam Op the operation. */
-export template <typename T, typename Op>
-struct counting_action {};
-/** @brief The unsigned integers under @c +: @c n copies of @c x are
- *  @c n * x, modulo the word. */
-template <std::unsigned_integral T>
-  requires(!std::same_as<T, bool>)
-struct counting_action<T, std::plus<T>> {
-  using type = std::multiplies<>;
-};
-/** @brief The counts act on @c (T, Op), declared.  @tparam T the carrier.
- *  @tparam Op the operation. */
-export template <typename T, typename Op>
-concept HasCountingAction = requires {
-  typename counting_action<T, std::remove_cvref_t<Op>>::type;
-} && requires(std::size_t n, const T& x) {
-  {
-    typename counting_action<T, std::remove_cvref_t<Op>>::type{}(n, x)
-  } -> std::convertible_to<T>;
-};
-/** @brief @c concat on @c n copies of one value where the counts act: one
- *  action.  The same signature as the binary method and a stronger
- *  constraint, so resolution prefers it.  An idempotent operation goes to the
- *  rung below, which needs no action, so that both certificates on one
- *  operation leave the call unambiguous.  @param r the copies.  @param op the
- *  operation. */
-export template <std::ranges::input_range R,
-                 typename T = std::ranges::range_value_t<R>,
-                 typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op> &&
-           (!IsIdempotent<T, Op>)
-constexpr T concat(R r, Op op = {}) {
-  using Act = typename counting_action<T, std::remove_cvref_t<Op>>::type;
-  const std::size_t n = copies_count(r);
-  if (n == 0) return unit<T>(op);  // no copy to read
-  return static_cast<T>(Act{}(n, copies_value(r)));
-}
 /** @brief @c concat on @c n copies of one value under an idempotent
  *  operation: the value itself, @f$x \cdot x = x@f$, or the unit for none.
  *  The same signature as the binary method and a stronger constraint, so
- *  resolution prefers it.  FIXME(#1104): idempotence is strictly stronger than
- * a counting action and fixes it, @f$n \cdot x = x@f$ for @f$n \geq 1@f$ and
- *  the unit for none; derive @c counting_action from @c IsIdempotent and this
- *  rung becomes the one above at the derived action, without the exclusion.
- *  @param r the copies.  @param op the operation. */
+ *  resolution prefers it.  Idempotence fixes the counts' action, @f$n \cdot x
+ *  = x@f$ for @f$n \geq 1@f$ and the unit for none, so this is the
+ *  semimodule rung of @c :action at that action, which leaves idempotent
+ *  operations here.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
@@ -1374,7 +1324,6 @@ static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
                           std::logical_or<bool>{}),
               "concat folds a range from the unit; on n copies of one value it "
               "squares, so 10^8 copies are 27 steps, not 10^8, and where the "
-              "counts act, as on the unsigned integers under +, or the "
               "operation is idempotent, as on the booleans, one step");
 }  // namespace detail_concat_witness
 
