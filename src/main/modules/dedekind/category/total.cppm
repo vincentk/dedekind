@@ -1257,7 +1257,8 @@ concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
 };
 namespace detail_concat {
 /** @brief One step of the binary method: the accumulator takes the square
- *  where bit @c k of @c n is set, and the square squares. */
+ *  where bit @c k of @c n is set, and the square squares, except after the
+ *  top bit, where no step reads it. */
 template <typename T, typename Op>
   requires IsMonoid<T, Op>
 struct Square {
@@ -1265,7 +1266,7 @@ struct Square {
   Op op;
   constexpr std::pair<T, T> operator()(std::pair<T, T> p, std::size_t k) const {
     return {((n >> k) & 1U) != 0 ? op(p.first, p.second) : p.first,
-            op(p.second, p.second)};
+            (n >> k) > 1 ? op(p.second, p.second) : p.second};
   }
 };
 }  // namespace detail_concat
@@ -1330,9 +1331,11 @@ export template <std::ranges::input_range R,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op> &&
            (!IsIdempotent<T, Op>)
-constexpr T concat(R r, Op = {}) {
+constexpr T concat(R r, Op op = {}) {
   using Act = typename counting_action<T, std::remove_cvref_t<Op>>::type;
-  return static_cast<T>(Act{}(copies_count(r), copies_value(r)));
+  const std::size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);  // no copy to read
+  return static_cast<T>(Act{}(n, copies_value(r)));
 }
 /** @brief @c concat on @c n copies of one value under an idempotent
  *  operation: the value itself, @f$x \cdot x = x@f$, or the unit for none.

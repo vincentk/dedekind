@@ -39,6 +39,7 @@ module;
 #include <cstdlib>     // std::abort: the refusal of a composite of composites
 #include <functional>  // std::invoke: a section calls what it admits
 #include <memory>
+#include <ranges>  // std::views::repeat: the witness's copies
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -54,6 +55,7 @@ import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
 import :posetal;   // the laws of a function (arrow_node, arrow_laws_v),
                    // ProductLeq
 import :species;   // IsAssociative: what lets two sections merge
+import :total;     // IsMonoid, concat: sections under composition
 
 namespace dedekind::category {
 
@@ -272,7 +274,8 @@ struct Section {
    *  operation with state, their operations are; an operation with state and
    *  no @c == offers no equality.  A stateless operation is its type. */
   constexpr bool operator==(const Section& o) const
-    requires std::is_empty_v<Op> || std::equality_comparable<Op>
+    requires std::equality_comparable<T> &&
+             (std::is_empty_v<Op> || std::equality_comparable<Op>)
   {
     if constexpr (std::is_empty_v<Op>)
       return a == o.a;
@@ -539,6 +542,27 @@ constexpr Sections<T, Op> operator>>(const Sections<T, Op>& f,
   const Section<T, Op>& r = std::get<1>(g.v);
   return Section<T, Op>{s.op, s.op(r.a, s.a)};
 }
+/** @brief Sections under composition are a monoid: composition is
+ *  associative, total where the operation is, and the identity is its unit. */
+template <typename T, typename Op>
+struct is_associative<Sections<T, Op>, compose> : std::true_type {};
+template <typename T, typename Op>
+struct is_periodic<Sections<T, Op>, compose> : is_periodic<T, Op> {};
+template <typename T, typename Op>
+struct unit_trait<Sections<T, Op>, compose> {
+  using value_type = Sections<T, Op>;
+  static constexpr value_type value{};
+};
+namespace detail_sections_witness {
+constexpr auto twice = Section<unsigned, std::plus<unsigned>>{{}, 2u};
+static_assert(IsMonoid<Sections<unsigned>, compose> &&
+                  concat(std::views::repeat(Sections<unsigned>{twice}, 3uz),
+                         compose{})(1u) == 7 &&
+                  concat(std::views::repeat(Sections<unsigned>{twice}, 0uz),
+                         compose{}) == Sections<unsigned>{},
+              "sections under composition are the library's monoid, so "
+              "concat squares them: three sections adding 2 add 6");
+}  // namespace detail_sections_witness
 
 export template <typename T, typename Op = std::plus<T>>
 struct Morphisms {

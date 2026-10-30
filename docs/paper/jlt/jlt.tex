@@ -731,7 +731,7 @@ Top left: the laws, declared: matrices under multiplication are a monoid, and \c
 Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} = (M^k)^2$, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
 Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
 Bottom right: resolution picks each overload, and the two compose.
-$10^8$ copies take 27 squarings, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
+$10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
 \cppinline{IsCopies}, a range of $n$ copies of one value whose $n$ and value are known without walking it, is met by \cppinline{n >> chain<size_t>() >> constant(x)} and by the standard's \cppinline{views::repeat(x, n)}.
 Each overload has the plain one's signature and a stronger constraint, so resolution prefers it.
 \cppinline{concat}, \cppinline{fold}, \cppinline{IsCopies}, \cppinline{IsMonoidAction}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{M} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
@@ -781,8 +781,9 @@ Listing~\ref{lst:desugar} shows one program at both stages: a Jlt function, its 
 The function is Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
 Desugared and translated, the chain, the arrow and the fold are a System~F term, the action a plain function (Section~\ref{sec:translation}).
 With $n$ free the term does not normalise all the way: the fold over $n$ stays, as it must, since $n$ is known only at run time.
-Everything around it reduces: the map fuses into the fold, and the constant matrix multiplies out.
-That normal form is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
+The constant matrix multiplies out.
+Two equations outside the appendix's reductions fuse the map into the fold and drop the unread position.
+What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
 With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
 
 \begin{listing}[htbp]
@@ -810,7 +811,7 @@ constexpr size_t fibonacci_10() {
 \end{minipage}
 \begin{minted}{text}
 fibonacci = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
-         ~> λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))     -- normal form, n free
+          = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))     -- by fusion, n free
 fibonacci 10 ~> 55
 -- the IR's loop below, read back as a function
 fibonacci n = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
@@ -850,16 +851,16 @@ define i64 @fibonacci_10() {
 \caption{Partial evaluation: Figure~\ref{fig:arrows}'s bottom edge on one program.
 Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
 Top right: the function at four lengths, evaluated at compile time.
-Middle: the function desugared and translated (Section~\ref{sec:translation}), its normal form with $n$ free, and its value at $10$.
+Middle: the function desugared and translated (Section~\ref{sec:translation}), rewritten by fusion with $n$ free, and its value at $10$.
 With $n$ free the fold over $n$ stays, and the matrices multiply out to $(a, b) \mapsto (a + b, a)$.
 Bottom left: the LLVM IR Clang~23 emits at \texttt{-O2 -fno-unroll-loops}, with $n$ known only at run time.
-It is the normal form's loop, read back as a function in the middle panel after Appel~\cite{appel1998ssa}.
+It is the rewritten term's loop, read back as a function in the middle panel after Appel~\cite{appel1998ssa}.
 Bottom right: with $10$ given, the code is the value, $55$, as the static assertion and the System~F term say.}
 \label{lst:desugar}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
-The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 squarings with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks.
+The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 steps with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks.
 At run time the plain fold is a loop, Listing~\ref{lst:desugar}'s, and the optimiser does not find the squaring on its own.
 
 \begin{table}[htbp]

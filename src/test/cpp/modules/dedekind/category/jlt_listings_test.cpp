@@ -489,7 +489,7 @@ static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55 &&
 constexpr size_t fibonacci_10() { return fibonacci(10); }
 static_assert(fibonacci_10() == 55);
 // Listing 4: the same chain under the tree's fold; the action law and
-// associativity compose, so 10^8 copies of the matrix are 27 squarings, where
+// associativity compose, so 10^8 copies of the matrix are 27 steps, where
 // the plain fold of 10^8 steps is refused at compile time.
 constexpr size_t fibonacci_fast(size_t n) {
   return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
