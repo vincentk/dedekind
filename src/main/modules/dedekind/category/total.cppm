@@ -1235,13 +1235,14 @@ constexpr Cod<F> copies_value(
 }
 /** @brief The standard's @c views::repeat(x, n) is @c n copies of @c x; its
  *  value is read only where @c n is not zero.  @param r the view. */
-export template <std::copy_constructible T>
-constexpr std::size_t copies_count(
-    const std::ranges::repeat_view<T, std::size_t>& r) {
+export template <std::copy_constructible T, std::integral B>
+  requires(!std::same_as<B, bool>)
+constexpr std::size_t copies_count(const std::ranges::repeat_view<T, B>& r) {
   return static_cast<std::size_t>(std::ranges::size(r));
 }
-export template <std::copy_constructible T>
-constexpr T copies_value(const std::ranges::repeat_view<T, std::size_t>& r) {
+export template <std::copy_constructible T, std::integral B>
+  requires(!std::same_as<B, bool>)
+constexpr T copies_value(const std::ranges::repeat_view<T, B>& r) {
   return *std::ranges::begin(r);
 }
 /** @brief A range of @c n copies of one value, @c n and the value known
@@ -1313,12 +1314,15 @@ concept HasCountingAction = requires {
 };
 /** @brief @c concat on @c n copies of one value where the counts act: one
  *  action.  The same signature as the binary method and a stronger
- *  constraint, so resolution prefers it.  @param r the copies.  @param op the
+ *  constraint, so resolution prefers it.  An idempotent operation goes to the
+ *  rung below, which needs no action, so that both certificates on one
+ *  operation leave the call unambiguous.  @param r the copies.  @param op the
  *  operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
+  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op> &&
+           (!IsIdempotent<T, Op>)
 constexpr T concat(R r, Op = {}) {
   using Act = typename counting_action<T, std::remove_cvref_t<Op>>::type;
   return static_cast<T>(Act{}(copies_count(r), copies_value(r)));
@@ -1347,6 +1351,8 @@ static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
                   concat(std::views::repeat(seven, std::size_t{100'000'000})) ==
                       700'000'000 &&
                   concat(std::views::repeat(seven, std::size_t{0})) == 0 &&
+                  concat(std::views::repeat(seven, 100'000'000)) ==
+                      700'000'000 &&
                   concat(std::views::repeat(true, std::size_t{100'000'000}),
                          std::logical_and<bool>{}) &&
                   !concat(std::views::repeat(false, std::size_t{0}),

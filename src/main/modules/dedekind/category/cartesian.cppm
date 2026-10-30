@@ -53,6 +53,7 @@ import :mereology;
 import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
 import :posetal;   // the laws of a function (arrow_node, arrow_laws_v),
                    // ProductLeq
+import :species;   // IsAssociative: what lets two sections merge
 
 namespace dedekind::category {
 
@@ -267,9 +268,17 @@ struct Section {
   constexpr Codomain operator()(const T& b) const {
     return std::invoke(op, a, b);
   }
-  /** @brief Two sections of one operation are equal when their elements
-   *  are: the operation is its type. */
-  constexpr bool operator==(const Section& o) const { return a == o.a; }
+  /** @brief Two sections are equal when their elements are and, for an
+   *  operation with state, their operations are; an operation with state and
+   *  no @c == offers no equality.  A stateless operation is its type. */
+  constexpr bool operator==(const Section& o) const
+    requires std::is_empty_v<Op> || std::equality_comparable<Op>
+  {
+    if constexpr (std::is_empty_v<Op>)
+      return a == o.a;
+    else
+      return op == o.op && a == o.a;
+  }
 };
 /** @brief @f$T \to T^T@f$: the operation, one argument at a time. */
 export template <typename T, typename Op>
@@ -498,7 +507,8 @@ struct At {
 }  // namespace detail_arrows
 
 export template <typename T, typename Op = std::plus<T>>
-  requires std::same_as<typename Section<T, Op>::Codomain, T>
+  requires std::same_as<typename Section<T, Op>::Codomain, T> &&
+           IsAssociative<T, Op> && std::is_empty_v<Op>
 struct Sections {
   using Domain = T;
   using Codomain = T;
@@ -517,7 +527,9 @@ struct Sections {
 };
 /** @brief @c f >> g on sections: the identity absorbed, two sections one,
  *  @f$(b \mapsto a \cdot b) ; (c \mapsto a' \cdot c) = (b \mapsto (a' \cdot a)
- *  \cdot b)@f$ by associativity.  @param f @param g the sections. */
+ *  \cdot b)@f$ by associativity, which @c Sections asks of the operation,
+ *  with no state, so that both sections are of one operation.
+ *  @param f @param g the sections. */
 export template <typename T, typename Op>
 constexpr Sections<T, Op> operator>>(const Sections<T, Op>& f,
                                      const Sections<T, Op>& g) {
@@ -631,6 +643,10 @@ static_assert(
         (A{Inc{}} >> A{Inc{}}).v.index() == 1,
     "three coproducts of arrows: each an arrow; the identity absorbed, two "
     "sections one, two pointers a composite; equality by representation");
+static_assert(
+    !requires { typename Sections<int, std::minus<int>>; },
+    "sections merge by associativity, so a non-associative "
+    "operation has none: 5 - (3 - x) is not (5 - 3) - x");
 }  // namespace detail_arrows_witness
 static_assert(
     !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,

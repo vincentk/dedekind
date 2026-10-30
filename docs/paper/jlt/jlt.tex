@@ -262,16 +262,17 @@ template <typename T, typename Op>
 constexpr T unit(Op) = delete;
 template <typename T, typename Op>
 constexpr bool associative(Op) = delete;
-template <typename T, typename Op>
-constexpr bool is_unit(const T& a, Op op) {
-  return a == unit<T>(op);
-}
 
 template <unsigned_integral T>
 constexpr T unit(plus<T>) { return 0; }
 template <unsigned_integral T>
 constexpr bool associative(plus<T>) {
   return true;
+}
+template <typename T, typename Op>
+  requires equality_comparable<T>
+constexpr bool is_unit(const T& a, Op op) {
+  return a == unit<T>(op);
 }
 
 template <typename T, typename Op>
@@ -360,8 +361,9 @@ Order: after Dedekind~\cite{dedekind1888zahlen}, a chain is a set closed under a
 The chain of an element is its forward orbit, here the chain of $\mathit{prior}\,n$.
 The carrier needs neither an order nor an origin.
 Reachability under $\mathit{prior}$ orders the chain, and its bottom is where $\mathit{prior}$ has nothing.
-Algebra: on the codomain of $f$, a semiring $S$ acts on a semimodule $M$.
-A monoid is the case $S = M$.
+Algebra: $f$ lands in $S$, and the fold in $M$.
+In the simplest case $S = M$ is a monoid.
+A monoid $S$ may also act on $M$, and a semiring on a semimodule, which adds distributivity.
 Fold: a list has two folds~\cite{meijer1991functional,gibbons1996third}.
 The one along the walk, $h : M \times S \to M$, runs from $e$ at the seed's end through the intermediate values, $\circ$, to the result, $\bullet$.
 It needs no list: it is a stream and its iterator~\cite{stepanov2009elements}.
