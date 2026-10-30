@@ -643,10 +643,11 @@ static_assert(
         (A{Inc{}} >> A{Inc{}}).v.index() == 1,
     "three coproducts of arrows: each an arrow; the identity absorbed, two "
     "sections one, two pointers a composite; equality by representation");
-static_assert(
-    !requires { typename Sections<int, std::minus<int>>; },
-    "sections merge by associativity, so a non-associative "
-    "operation has none: 5 - (3 - x) is not (5 - 3) - x");
+template <typename T, typename Op>
+concept HasSections = requires { typename Sections<T, Op>; };
+static_assert(!HasSections<int, std::minus<int>>,
+              "sections merge by associativity, so a non-associative "
+              "operation has none: 5 - (3 - x) is not (5 - 3) - x");
 }  // namespace detail_arrows_witness
 static_assert(
     !IsCoproduct<std::variant<std::unique_ptr<int>, int>, std::unique_ptr<int>,
