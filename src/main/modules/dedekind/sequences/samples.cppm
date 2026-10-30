@@ -92,6 +92,12 @@ using ℕ_Form = dedekind::sets::ExtensionalCardinal<>;
  * column, producing rows of type @c (ℕ, @c 𝔹, @c ℕ) — a heterogeneous
  * triple, not a list of one type.  The join's @em tuples-not-lists
  * character is the page-2 beat the paper prose lands on.
+ *
+ * The same property as an arrow on the counts, with its period declared,
+ * is @c dedekind::category::is_even (@c :periodic), the residue class
+ * @c congruent(2, 0).  This sequence reads it on @c ℕ_Form as a path; it
+ * cannot simply call that arrow yet, since @c ℕ_Form saturates at @c ℵ_0
+ * and the word does not, so the cast is not total (#1035).
  */
 export inline const auto is_even =
     Path<Truth<Boole>, ℵ_0, ℕ_Form>{[](ℕ_Form n) -> Truth<Boole> {

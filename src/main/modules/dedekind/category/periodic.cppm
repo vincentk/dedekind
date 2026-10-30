@@ -80,7 +80,9 @@ export constexpr Congruent congruent(std::size_t m, std::size_t r) {
   if (m == 0) detail_periodic::refuse_zero_modulus();
   return {m, r % m};
 }
-/** @brief The even counts, the residue class of 0 modulo 2. */
+/** @brief The even counts, the residue class of 0 modulo 2.  Its reading on
+ *  ℕ as a sequence, a path into the truth values, is
+ *  @c dedekind::sequences::is_even (@c sequences:samples). */
 export inline constexpr Congruent is_even{2, 0};
 
 namespace detail_periodic {
