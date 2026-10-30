@@ -7,7 +7,19 @@
  *        along a chain of any length is @c (n div p) periods and a remainder
  *        (the Jlt paper's flagship, #1104).
  *
- * @details The period is a @b value the arrow carries, read by @c period(f),
+ * @details Three readings of one idea, kept apart by name.  @c :total's
+ *          @c is_periodic<T, Op> (@c IsPeriodic) says an @b operation wraps,
+ *          @c (T, Op) cyclic, of order @c cyclic_order; @c morphologies'
+ *          @c Modular<N> is the cyclic @b carrier @f$\mathbb{Z}/N\mathbb{Z}@f$;
+ *          and here a @b sequence repeats, @f$f(k + p) = f(k)@f$, which is to
+ *          say @c f factors through the quotient
+ *          @f$\mathbb{N} \to \mathbb{Z}/p\mathbb{Z}@f$,
+ *          @f$f = g \circ (k \mapsto k \bmod p)@f$: @c congruent(m, r) is
+ *          that quotient followed by @c equals(r).  A law holds on the whole
+ *          word because the counts themselves wrap only at the word's
+ *          @c cyclic_order, @f$2^{64}@f$; a shift narrows it (@c extent).
+ *
+ *          The period is a @b value the arrow carries, read by @c period(f),
  *          and @c HasPeriod<F> says only that @c F carries one: a period that
  *          is a type would leave nothing for a caller to choose, and the
  *          Python bindings choose it.  @c opaque(f) hides the law, so that the
@@ -82,7 +94,8 @@ namespace detail_periodic {
 }  // namespace detail_periodic
 
 /** @brief The residue class @f$\{k \mid k \equiv r \pmod m\}@f$ as a
- *  predicate on the counts, periodic with period @c m. */
+ *  predicate on the counts, periodic with period @c m: the quotient onto
+ *  @c Modular<m>'s carrier, then the test for @c r. */
 export struct Congruent {
   using Domain = std::size_t;
   using Codomain = bool;
