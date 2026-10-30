@@ -649,7 +649,9 @@ A law at a construction is derived from the laws of its parts, through an instan
 The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: a law flows from a term's immediate parts to the term and never back from its use, a synthesized attribute~\cite{knuth1968semantics}.
 They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
 By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
-As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which Rice's theorem places out of reach~\cite{rice1953classes}; and since the laws are the application's, not the machine's, so are the optimisations they license.
+As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which Rice's theorem places out of reach~\cite{rice1953classes}.
+Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
+Since the laws are the application's, not the machine's, so are the optimisations they license.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
