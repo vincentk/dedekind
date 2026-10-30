@@ -610,7 +610,9 @@ struct unit_trait<dedekind::numbers::Rational<I>,
 };
 
 // ℚ is a ℤ-module: the field of fractions Frac(ℤ), the integers acting by
-// n (p / q) = (n p) / q (Lang, Algebra §III.1), so a semimodule.
+// n (p / q) = (n p) / q (Lang, Algebra §III.1), so a semimodule.  The law of
+// the intended carriers: FIXME(#1035), the machine ℕ and ℤ are not yet the
+// initial rig and ring, and this certificate inherits their gaps.
 template <dedekind::morphologies::IsInteger I>
 struct is_linear_action<dedekind::numbers::Rational<I>, I,
                         std::plus<dedekind::numbers::Rational<I>>, std::plus<I>,

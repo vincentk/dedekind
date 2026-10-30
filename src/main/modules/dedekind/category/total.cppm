@@ -1295,7 +1295,7 @@ constexpr T concat(R r, Op op = {}) {
  *  @c IsSemimodule implies it).  Where it is declared, @c n copies cost one
  *  action, not @f$\log n@f$ squarings.  It is the monoid's power
  *  @f$x^n@f$, which every monoid has, given a closed form.
- *  FIXME(#959): the closed form under @c + is implied by the semimodule laws,
+ *  FIXME(#1099): the closed form under @c + is implied by the semimodule laws,
  *  @f$1 \cdot m = m@f$ and @f$(s + t) \cdot m = s \cdot m + t \cdot m@f$, so
  *  this rung should be keyed on @c IsSemimodule and this certificate deleted;
  *  it cannot be yet, since @c :action's @c is_linear_action_v defaults to a
