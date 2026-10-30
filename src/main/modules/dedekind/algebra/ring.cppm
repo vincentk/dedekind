@@ -92,9 +92,9 @@ concept HasRingOperators =
  *          @c IsAlgebraOnSet supplies the carrier discipline and
  *          @c category::IsSemiring<X::Domain, Add, Mult> supplies the full
  *          axioms --- commutative additive monoid, multiplicative monoid,
- *          and the registered distributive laws.  (The earlier composition
- *          via @c IsLinearAction only checked action/call shapes and was
- *          strictly weaker than the category rung it names.)
+ *          and the registered distributive laws.  (An earlier composition
+ *          through a signature-only action concept checked call shapes and
+ *          was strictly weaker than the category rung it names.)
  * @tparam X    The set object (@c category::IsSet).
  * @tparam Add Additive operation witness (defaults to `std::plus`).
  * @tparam Mult Multiplicative operation witness (defaults to

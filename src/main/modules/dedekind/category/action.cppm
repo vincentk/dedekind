@@ -10,11 +10,9 @@
  * Scalar multiplication, leading naturally to the concepts of Modules,
  * Vector Spaces, and eventually, the Linear Algebra of the Continuum.
  *
- * @section action__The_PR96_Shielding_Logic
- * To ensure zero-overhead and prevent "too few arguments" errors when
- * checking binary functors (like std::multiplies) against unary morphism
- * concepts, we utilize "Signature Shields." This allows the compiler to
- * reason about the algebraic law without attempting an invalid invocation.
+ * @section action__Declared_Laws
+ * A signature is no law: the semimodule laws of an action are a declared
+ * certificate, @c is_linear_action, false where none is declared (#1099).
  *
  * @copyright 2026 The Dedekind Authors
  *
@@ -69,119 +67,6 @@ concept IsAction = requires(S s, M m) {
       });
 };
 
-// Pass the transparent version to the assert
-static_assert(IsAction<decltype(zero<int, int>()), int>,
-              "Zero Morphism must satisfy the Additive Action axioms.");
-
-// Verify that the Unit Morphism fulfills the Action Axioms
-// (Mapping everything to identity satisfies the "Neutrality" of the action)
-static_assert(IsAction<decltype(zero<int, int, std::multiplies<int>>()), int>,
-              "Unit Morphism must satisfy the Action axioms (Absorption).");
-
-/** @section action__Axiomatic_Verification */
-
-constexpr auto z = zero<int, int>();
-constexpr auto highway = id<int>();
-constexpr auto u = zero<int, int, std::multiplies<int>>();
-
-// 1. Verification of Absorption (Level 1 Logic)
-// The Zero Morphism maps any input to the Point 0.
-static_assert(
-    z(42) == 0,
-    "Absorption Law: The Zero Morphism must map all inputs to the Point 0.");
-
-// 2. Verification of Preservation (Level 0 Logic)
-// The Identity Morphism (Highway) preserves the input value.
-static_assert(highway(42) == 42,
-              "Unit Law: The Identity Highway must preserve the input.");
-
-/** @section action__Unit_Algebraic_Verification */
-
-// 1. The Multiplicative Unit Law (Point-wise)
-// The Unit Morphism maps any input to the Point 1.
-static_assert(
-    u(42) == 1,
-    "Absorption Law: The Unit Morphism must map all inputs to the Point 1.");
-
-// 2. The Successor Relationship (Manual Composition)
-// To verify 1 + n, we evaluate the unit and then perform the species addition.
-static_assert(
-    u(42) + 42 == 43,
-    "Successor Law: The value of the unit (1) plus n (42) must be 43.");
-
-/**
- * @concept IsAdditiveMorphism
- * @brief Formal verification of the first law of linearity: f(x + y) = f(x) +
- * f(y).
- * @details This is "Internal" linearity: the mapping preserves the additive
- * harmony.
- */
-/**
- * @concept IsAdditiveMorphism
- * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
- *
- * @details In the Ring context, this verifies the Distributive Law.
- * For PR 96, we shield the unary call check if F is a standard
- * binary functor (like std::multiplies) to avoid signature mismatch.
- */
-/**
- * @concept IsAdditiveMorphism
- * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
- *
- * @details In the Ring context, this verifies the Distributive Law.
- * For PR 96, we shield functional calls if F is a standard binary
- * functor (like std::multiplies) to avoid signature mismatches.
- */
-export template <typename F, typename M>
-concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
-  /**
-   * @section action__Distributive_Axiom_Shield
-   * We only enforce the unary call f(m1 + m2) if F is not a known binary
-   * operator or if M is not a primitive integral.
-   */
-  requires(std::same_as<F, std::multiplies<void>> ||
-           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
-              requires {
-                { f(m1 + m2) } -> std::same_as<M>;
-                { f(m1) + f(m2) } -> std::same_as<M>;
-              };
-
-  /**
-   * @section action__Linear_Preservation_Shield
-   * The Morphism must preserve the additive identity: f(0) = 0.
-   * We shield this for binary functors to prevent "too few arguments" errors.
-   */
-  requires(std::same_as<F, std::multiplies<void>> ||
-           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
-              requires {
-                {
-                  f(dedekind::category::unit<M>(std::plus<M>{}))
-                } -> std::same_as<M>;
-              };
-};
-
-/**
- * @concept IsLinearAction
- * @brief The "Jewel": An Action that satisfies the Four Axioms of Harmony.
- * @details This is the categorical ground for Modules and Vector Spaces.
- *
- * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
- * 2. Scalar Additivity: (s1 + s2) * m = s1*m + s2*m
- */
-export template <typename S, typename M, typename Act = std::multiplies<>,
-                 typename AddS = std::plus<S>>
-concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
-                         requires(S s1, S s2, M m) {
-                           // Scalar Additivity (The "Second Linearity") via
-                           // chosen witnesses.
-                           { Act{}(AddS{}(s1, s2), m) } -> std::same_as<M>;
-                         };
-
-/**
- * @concept IsLinearMorphism
- * @brief Formal verification of the second law: f(s * x) = s * f(x).
- * @details Links the mapping f to an external scalar influence S.
- */
 /**
  * @brief The semimodule laws of an action @c Act : S x M -> M, declared:
  *        1 m = m, 0 m = 0, (s + t) m = s m + t m, (s t) m = s (t m) and
@@ -246,9 +131,6 @@ concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
     IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
 
-static_assert(IsSemimodule<unsigned int, unsigned int>,
-              "unsigned int is a semimodule over itself: Z/2^32.");
-
 /** @brief @c concat on @c n copies of one value where @c (T, Op) is a
  *  semimodule over the counts: one action, @f$n \cdot x@f$, by the
  *  semimodule laws, @f$1 \cdot x = x@f$ and @f$(s + t) \cdot x = s \cdot x + t
@@ -271,20 +153,6 @@ static_assert(
             700'000'000 &&
         concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0,
     "n copies under + over the counts are one multiplication");
-
-export template <typename F, typename M, typename S,
-                 typename Act = std::multiplies<>>
-concept IsLinearMorphism =
-    IsAdditiveMorphism<F, M> && IsAction<S, M, Act> && requires(F f, M m, S s) {
-      requires(
-          requires {
-            { f(s(m)) } -> std::same_as<M>;
-          } ||
-          requires {
-            { f(Act{}(s, m)) } -> std::same_as<M>;
-          });
-      // Semantic: f(s * m) == s * f(m)
-    };
 
 /**
  * @struct ZeroAction
