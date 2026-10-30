@@ -20,6 +20,7 @@ module;
 
 #include <algorithm>  // std::ranges::fold_left
 #include <array>
+#include <bit>  // std::bit_width: the bits fast doubling reads
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>  // std::abort: a modulus of 0 is refused
@@ -89,13 +90,15 @@ namespace detail_periodic {
 struct Double {
   std::size_t k;
   std::size_t m;
+  std::size_t w;  // the bits of k, read from the top: step i reads bit w-1-i
   constexpr std::array<std::size_t, 2> operator()(std::array<std::size_t, 2> p,
                                                   std::size_t i) const {
     const std::size_t a = p[0], b = p[1];
     const std::size_t c = a * ((2 * b + m - a) % m) % m;
     const std::size_t d = (a * a + b * b) % m;
-    return ((k >> i) & 1U) != 0 ? std::array<std::size_t, 2>{d, (c + d) % m}
-                                : std::array<std::size_t, 2>{c, d};
+    return ((k >> (w - 1 - i)) & 1U) != 0
+               ? std::array<std::size_t, 2>{d, (c + d) % m}
+               : std::array<std::size_t, 2>{c, d};
   }
 };
 /** @brief One step of the search for the Pisano period: the pair
@@ -121,12 +124,10 @@ export struct FibonacciMod {
   std::size_t modulus{1};
   /** @param k a count.  @return @f$F(k) \bmod m@f$. */
   constexpr std::size_t operator()(std::size_t k) const {
-    const auto bits =
-        std::views::iota(std::size_t{0}, static_cast<std::size_t>(64)) |
-        std::views::reverse;
-    return std::ranges::fold_left(bits,
+    const auto w = static_cast<std::size_t>(std::bit_width(k));
+    return std::ranges::fold_left(std::views::iota(std::size_t{0}, w),
                                   std::array<std::size_t, 2>{0, 1 % modulus},
-                                  detail_periodic::Double{k, modulus})[0];
+                                  detail_periodic::Double{k, modulus, w})[0];
   }
   constexpr bool operator==(const FibonacciMod&) const = default;
 };
