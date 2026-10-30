@@ -279,22 +279,23 @@ struct opposite<Reversed<Op>> {
 /** @brief The opposite operation, @f$a \cdot^{op} b = b \cdot a@f$, the
  *  product of the opposite monoid @f$M^{op}@f$ (Mac Lane, @e Categories for
  *  the Working Mathematician, II.2), an involution on operations:
- *  @c Opposite<Opposite<Op>> is @c Op, the same type.  A left action of @f$M@f$ is a right action of @f$M^{op}@f$, so
- *  a left action folded along a walk acts by the product in @f$M^{op}@f$.
- *  The laws read backwards are the laws: associativity, the unit,
- *  commutativity and idempotence carry over, declared once here, and totality
- *  in @c :total.
+ *  @c Opposite<Opposite<Op>> is @c Op, the same type.  A left action of @f$M@f$
+ * is a right action of @f$M^{op}@f$, so a left action folded along a walk acts
+ * by the product in @f$M^{op}@f$. The laws read backwards are the laws:
+ * associativity, the unit, commutativity and idempotence carry over, declared
+ * once here, and totality in @c :total.
  *  @tparam Op the operation. */
 export template <std::semiregular Op>
 using Opposite = typename detail_involution::opposite<Op>::type;
 template <typename T, std::semiregular Op>
-struct is_associative<T, detail_involution::Reversed<Op>> : is_associative<T, Op> {
-};
+struct is_associative<T, detail_involution::Reversed<Op>>
+    : is_associative<T, Op> {};
 template <typename T, std::semiregular Op>
-struct is_commutative<T, detail_involution::Reversed<Op>> : is_commutative<T, Op> {
-};
+struct is_commutative<T, detail_involution::Reversed<Op>>
+    : is_commutative<T, Op> {};
 template <typename T, std::semiregular Op>
-struct is_idempotent<T, detail_involution::Reversed<Op>> : is_idempotent<T, Op> {};
+struct is_idempotent<T, detail_involution::Reversed<Op>>
+    : is_idempotent<T, Op> {};
 template <typename T, std::semiregular Op>
 struct unit_trait<T, detail_involution::Reversed<Op>> : unit_trait<T, Op> {};
 

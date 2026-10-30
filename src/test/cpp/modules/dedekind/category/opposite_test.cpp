@@ -67,13 +67,14 @@ constexpr Affine twice{2, 0};
 constexpr Affine next{1, 1};
 
 // An involution on operations, and the laws read backwards.
-static_assert(std::same_as<Opposite<Op>, Compose> &&
-              std::same_as<Opposite<Opposite<std::plus<size_t>>>,
-                           std::plus<size_t>>);
+static_assert(
+    std::same_as<Opposite<Op>, Compose> &&
+    std::same_as<Opposite<Opposite<std::plus<size_t>>>, std::plus<size_t>>);
 static_assert(IsMonoid<Affine, Op> && !IsCommutative<Affine, Op> &&
               IsMonoid<size_t, Opposite<std::plus<size_t>>> &&
               IsCommutative<size_t, Opposite<std::plus<size_t>>>);
-static_assert(twice * next != next * twice && Op{}(twice, next) == next * twice);
+static_assert(twice * next != next * twice &&
+              Op{}(twice, next) == next * twice);
 
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.
