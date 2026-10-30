@@ -1291,8 +1291,15 @@ constexpr T concat(R r, Op op = {}) {
  *  @c x folded under @c Op with itself @c n times, a declared law, the
  *  semimodule's @f$n \cdot x = x + \cdots + x@f$ (@c :action's
  *  @c IsSemimodule implies it).  Where it is declared, @c n copies cost one
- *  action, not @f$\log n@f$ squarings.  @tparam T the carrier.  @tparam Op
- *  the operation. */
+ *  action, not @f$\log n@f$ squarings.  It is the monoid's power
+ *  @f$x^n@f$, which every monoid has, given a closed form.
+ *  FIXME(#959): the closed form under @c + is implied by the semimodule laws,
+ *  @f$1 \cdot m = m@f$ and @f$(s + t) \cdot m = s \cdot m + t \cdot m@f$, so
+ *  this rung should be keyed on @c IsSemimodule and this certificate deleted;
+ *  it cannot be yet, since @c :action's @c is_linear_action_v defaults to a
+ *  signature check that asserts no law, and a rung keyed on it would accept
+ *  any carrier with the right signatures.  @tparam T the carrier.
+ *  @tparam Op the operation. */
 export template <typename T, typename Op>
 struct counting_action {};
 /** @brief The unsigned integers under @c +: @c n copies of @c x are
@@ -1330,7 +1337,11 @@ constexpr T concat(R r, Op = {}) {
 /** @brief @c concat on @c n copies of one value under an idempotent
  *  operation: the value itself, @f$x \cdot x = x@f$, or the unit for none.
  *  The same signature as the binary method and a stronger constraint, so
- *  resolution prefers it.  @param r the copies.  @param op the operation. */
+ *  resolution prefers it.  FIXME(#1104): idempotence is strictly stronger than
+ * a counting action and fixes it, @f$n \cdot x = x@f$ for @f$n \geq 1@f$ and
+ *  the unit for none; derive @c counting_action from @c IsIdempotent and this
+ *  rung becomes the one above at the derived action, without the exclusion.
+ *  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>

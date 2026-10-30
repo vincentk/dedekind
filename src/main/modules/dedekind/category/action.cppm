@@ -187,7 +187,9 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
  *        modulo 2^64, the laws make n m the n-fold sum of m for every n.
  *        FIXME(#959): defaults to the signature check @c IsLinearAction, which
  *        asserts no law; a declared @c false default needs a certificate at
- *        every carrier the matrix columns and vector spaces reach.
+ *        every carrier the matrix columns and vector spaces reach.  Until
+ *        then @c :total's @c concat cannot key its one-action rung on
+ *        @c IsSemimodule and asks the narrower @c counting_action instead.
  */
 export template <typename M, typename S, typename AddM, typename AddS,
                  typename MultS, typename Act>
@@ -292,7 +294,13 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
  *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
  *  in the walk's order (a left action registers the opposite product); keyed
  *  by the
- *  action's type without cv-qualification, as a fold deduces it.  On @c n
+ *  action's type without cv-qualification, as a fold deduces it.
+ *  FIXME(#1104): a left action's opposite product is registered by hand; a
+ * generic
+ *  @c Opposite<Op>, forwarding associativity and the unit, with
+ *  @c Opposite<Opposite<Op>> = @c Op, would derive it.  @c IsAction above is
+ *  scalar first, @f$S \times M \to M@f$, a left action, and
+ *  @c IsMonoidAction a right one: two conventions to reconcile.  On @c n
  *  copies of one value the fold is then @c v acted on by their product, and
  *  @c concat (@c :total) computes the product by squaring: two declared laws,
  *  two overloads, composed by resolution. */
