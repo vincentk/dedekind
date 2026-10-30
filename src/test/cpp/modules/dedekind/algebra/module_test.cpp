@@ -35,6 +35,8 @@ TEST_CASE("Modules: one-dimensional carriers", "[algebra][modules]") {
 
   SECTION("Semimodule and vector-space baseline concepts are grounded") {
     CHECK(IsSemimodule<unsigned int, unsigned int>);
+    // A product that promotes to a signed int is no action of the word.
+    CHECK(!IsSemimodule<unsigned short, unsigned short>);
     using RealScalar = decltype(RealLine{}.coordinate());
     CHECK(HasVectorSpaceOperators<RealLine, RealScalar>);
     CHECK(SatisfiesVectorSpaceAxioms<RealLine, RealScalar>);

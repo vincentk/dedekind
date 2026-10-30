@@ -15,6 +15,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::less_equal
 #include <type_traits>
 #include <vector>
 

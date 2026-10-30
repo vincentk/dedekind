@@ -22,6 +22,9 @@ import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::sequences;
+// The sample sequence, apart from the category's residue class of the same
+// name, which the using-directives above also bring in.
+namespace seq = dedekind::sequences;
 using namespace dedekind::sets;
 using namespace dedekind::relational;
 
@@ -36,12 +39,12 @@ using ℕ_Form = ExtensionalCardinal<>;
 
 TEST_CASE("is_even pins the parity sequence on its first six indices",
           "[sequences][samples][is_even]") {
-  REQUIRE(is_even.at(ℕ_Form{0u}) == Truth<Boole>{true});
-  REQUIRE(is_even.at(ℕ_Form{1u}) == Truth<Boole>{false});
-  REQUIRE(is_even.at(ℕ_Form{2u}) == Truth<Boole>{true});
-  REQUIRE(is_even.at(ℕ_Form{3u}) == Truth<Boole>{false});
-  REQUIRE(is_even.at(ℕ_Form{4u}) == Truth<Boole>{true});
-  REQUIRE(is_even.at(ℕ_Form{5u}) == Truth<Boole>{false});
+  REQUIRE(seq::is_even.at(ℕ_Form{0u}) == Truth<Boole>{true});
+  REQUIRE(seq::is_even.at(ℕ_Form{1u}) == Truth<Boole>{false});
+  REQUIRE(seq::is_even.at(ℕ_Form{2u}) == Truth<Boole>{true});
+  REQUIRE(seq::is_even.at(ℕ_Form{3u}) == Truth<Boole>{false});
+  REQUIRE(seq::is_even.at(ℕ_Form{4u}) == Truth<Boole>{true});
+  REQUIRE(seq::is_even.at(ℕ_Form{5u}) == Truth<Boole>{false});
 }
 
 TEST_CASE("fibonacci pins the canonical sequence 0, 1, 1, 2, 3, 5, 8, 13",
@@ -75,7 +78,7 @@ TEST_CASE("fibonacci_of<T> is Form-generic across IsRingIntegral carriers",
 
 TEST_CASE("as_relation(is_even) graph membership",
           "[sequences][samples][as_relation]") {
-  const auto rel = as_relation(is_even);
+  const auto rel = as_relation(seq::is_even);
   // On-graph pairs: (n, is_even(n)).  Pair index column is ℕ (Form-
   // shaped) because @c is_even now carries @c ExtensionalCardinal<>
   // at its Path's @c Index role.
@@ -127,7 +130,7 @@ TEST_CASE("θ-join via σ∘× on (is_even, fibonacci) exhibits a heterogeneous 
   using FibPair = std::pair<std::size_t, ℕ_Form>;
   using JoinedRow = std::pair<EvenPair, FibPair>;
 
-  const auto rel_even = as_relation(is_even);
+  const auto rel_even = as_relation(seq::is_even);
   const auto rel_fib = as_relation(fibonacci);
 
   const auto joined = select(

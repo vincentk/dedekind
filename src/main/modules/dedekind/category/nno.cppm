@@ -230,6 +230,19 @@ constexpr T successor(const T& n) {
  *  integral, so its successor already saturates (@c true + 1 narrows to
  *  @c true); its predecessor must not wrap. */
 export constexpr bool predecessor(bool) noexcept { return false; }
+/** @brief The octets' covering step: @c std::byte's order read as a chain,
+ *  the next byte, saturating at the top.  No arithmetic, only the step, so a
+ *  byte chain is a chain and no integer chain.  @param b a byte.
+ *  @return the byte after it. */
+export constexpr std::byte successor(std::byte b) noexcept {
+  const auto v = std::to_integer<unsigned>(b);
+  return v == 0xFFU ? b : static_cast<std::byte>(v + 1U);
+}
+/** @param b a byte.  @return the byte before it, saturating at the bottom. */
+export constexpr std::byte predecessor(std::byte b) noexcept {
+  const auto v = std::to_integer<unsigned>(b);
+  return v == 0U ? b : static_cast<std::byte>(v - 1U);
+}
 // K₃'s step (successor / predecessor) lives with Ternary, in :logic.
 
 /** @brief A carrier with both NNO steps available: the shape a
@@ -311,6 +324,8 @@ constexpr std::optional<N> cover(const N& n) {
     if (n == std::numeric_limits<N>::max()) return std::nullopt;
   const N s = successor(n);
   if (s == n) return std::nullopt;
+  if constexpr (std::totally_ordered<N>)  // a cover is above: a wrap is none
+    if (!(n < s)) return std::nullopt;
   return s;
 }
 /** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
@@ -325,6 +340,8 @@ constexpr std::optional<N> lower_cover(const N& n) {
     if (n == std::numeric_limits<N>::min()) return std::nullopt;
   const N p = predecessor(n);
   if (p == n) return std::nullopt;
+  if constexpr (std::totally_ordered<N>)  // below, as the cover is above
+    if (!(p < n)) return std::nullopt;
   return p;
 }
 

@@ -288,6 +288,20 @@ struct construction_base<Q> {
   using type = product_algebra_base_t<Q>;
   static constexpr bool times_mixes_plus = false;
 };
+// The semimodule laws ride the P leg too: a semiring S is a semimodule over
+// itself, and semimodules over S form a variety, closed under products, so a
+// declared finite power of S, acting componentwise, is a semimodule over S.
+// Over the base's own + and *, the operations the product lifts, and no
+// other semiring on the base.
+template <typename Q>
+  requires IsProductAlgebra<Q> &&
+           IsSemiring<product_algebra_base_t<Q>,
+                      std::plus<product_algebra_base_t<Q>>,
+                      std::multiplies<product_algebra_base_t<Q>>>
+struct is_linear_action<Q, product_algebra_base_t<Q>, std::plus<Q>,
+                        std::plus<product_algebra_base_t<Q>>,
+                        std::multiplies<product_algebra_base_t<Q>>,
+                        std::multiplies<>> : std::true_type {};
 
 // ---------------------------------------------------------------------------
 // S (Subalgebra) — Birkhoff's HSP, Burris-Sankappanavar §II.5 / §II.10.

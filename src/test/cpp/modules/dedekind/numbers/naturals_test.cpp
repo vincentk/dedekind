@@ -20,13 +20,13 @@ TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
 
   SECTION("Arrow Factory (Morphism Tagging)") {
     // Tagging a lambda as a Morphism from int to bool
-    auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
+    auto even_int = arrow<int, bool>([](int x) { return x % 2 == 0; });
 
-    CHECK(is_even(2) == true);
-    CHECK(is_even(3) == false);
+    CHECK(even_int(2) == true);
+    CHECK(even_int(3) == false);
 
     // Verify it satisfies the IsArrow concept
-    STATIC_CHECK(IsArrow<decltype(is_even)>);
+    STATIC_CHECK(IsArrow<decltype(even_int)>);
   }
 
   SECTION("Endomorphism Factory (endo)") {

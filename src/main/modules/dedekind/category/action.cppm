@@ -29,6 +29,7 @@ module;
 
 #include <algorithm>  // std::ranges::fold_left
 #include <concepts>
+#include <cstddef>  // std::size_t: the counts that act
 #include <functional>
 #include <ranges>
 #include <type_traits>
@@ -40,6 +41,7 @@ import :total;
 import :discrete;  // constant: the witness's copies
 import :morphism;  // IsArrow, IsConstantArrow, Cod
 import :chain;     // the counting chain: fold on n copies of one value
+import :species;   // IsIdempotent: what the semimodule rung leaves alone
 
 namespace dedekind::category {
 
@@ -183,17 +185,46 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
 /**
  * @brief The semimodule laws of an action @c Act : S x M -> M, declared:
  *        1 m = m, 0 m = 0, (s + t) m = s m + t m, (s t) m = s (t m) and
- *        s (m + n) = s m + s n.  For scalars of type @c size_t, the integers
- *        modulo 2^64, the laws make n m the n-fold sum of m for every n.
- *        FIXME(#959): defaults to the signature check @c IsLinearAction, which
- *        asserts no law; a declared @c false default needs a certificate at
- *        every carrier the matrix columns and vector spaces reach.  Until
- *        then @c :total's @c concat cannot key its one-action rung on
- *        @c IsSemimodule and asks the narrower @c counting_action instead.
+ *        s (m + n) = s m + s n.  A certificate, false where none is
+ *        declared: a carrier with the right signatures is not thereby a
+ *        semimodule.  For scalars of type @c size_t, the integers modulo
+ *        2^64, the laws make n m the n-fold sum of m for every n.
+ *  @tparam M the module.  @tparam S the scalars.  @tparam AddM @tparam AddS
+ *  @tparam MultS the operations.  @tparam Act the action.
  */
 export template <typename M, typename S, typename AddM, typename AddS,
                  typename MultS, typename Act>
-inline constexpr bool is_linear_action_v = IsLinearAction<S, M, Act, AddS>;
+struct is_linear_action : std::false_type {};
+/** @brief Value form of @c is_linear_action. */
+export template <typename M, typename S, typename AddM, typename AddS,
+                 typename MultS, typename Act>
+inline constexpr bool is_linear_action_v =
+    is_linear_action<M, S, AddM, AddS, MultS, Act>::value;
+namespace detail_action {
+/** @brief A carrier whose product stays in it: no integer narrower than
+ *  @c int, whose product promotes to a signed @c int that may overflow. */
+template <typename S>
+concept MultipliesInPlace =
+    !std::integral<S> ||
+    std::same_as<decltype(std::declval<S>() * std::declval<S>()), S>;
+}  // namespace detail_action
+/** @brief A commutative semiring over itself, by its own multiplication: the
+ *  semimodule laws are the semiring's (Golan, @e Semirings and their
+ *  Applications, 1999, ch. 14), among them the unsigned integers, the ring of
+ *  integers modulo a power of two.  @tparam S the semiring.  @tparam Add
+ *  @tparam Mult its operations. */
+template <typename S, typename Add, typename Mult>
+  requires IsSemiring<S, Add, Mult> && IsCommutative<S, Mult> &&
+           detail_action::MultipliesInPlace<S>
+struct is_linear_action<S, S, Add, Add, Mult, Mult> : std::true_type {};
+/** @brief The same, acted on by the transparent @c std::multiplies<>.
+ *  @tparam S the semiring.  @tparam Add its addition. */
+template <typename S, typename Add>
+  requires IsSemiring<S, Add, std::multiplies<S>> &&
+           IsCommutative<S, std::multiplies<S>> &&
+           detail_action::MultipliesInPlace<S>
+struct is_linear_action<S, S, Add, Add, std::multiplies<S>, std::multiplies<>>
+    : std::true_type {};
 
 /**
  * @concept IsSemimodule
@@ -217,6 +248,29 @@ concept IsSemimodule =
 
 static_assert(IsSemimodule<unsigned int, unsigned int>,
               "unsigned int is a semimodule over itself: Z/2^32.");
+
+/** @brief @c concat on @c n copies of one value where @c (T, Op) is a
+ *  semimodule over the counts: one action, @f$n \cdot x@f$, by the
+ *  semimodule laws, @f$1 \cdot x = x@f$ and @f$(s + t) \cdot x = s \cdot x + t
+ *  \cdot x@f$, which make @f$n \cdot x@f$ the @c n-fold sum.  The same
+ *  signature as the binary method of @c :total and a stronger constraint, so
+ *  resolution prefers it; an idempotent operation stays with @c :total's
+ *  idempotent rung.  @param r the copies.  @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R> && IsSemimodule<T, std::size_t, Op> &&
+           (!IsIdempotent<T, Op>)
+constexpr T concat(R r, Op op = {}) {
+  const std::size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);  // no copy to read
+  return static_cast<T>(std::multiplies<>{}(n, copies_value(r)));
+}
+static_assert(
+    concat(std::views::repeat(std::size_t{7}, std::size_t{100'000'000})) ==
+            700'000'000 &&
+        concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0,
+    "n copies under + over the counts are one multiplication");
 
 export template <typename F, typename M, typename S,
                  typename Act = std::multiplies<>>

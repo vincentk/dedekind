@@ -4,6 +4,10 @@
 % Build from this directory: lualatex -shell-escape -halt-on-error jlt.tex
 \input{preamble-jlt}
 \addbibresource{../references.bib}
+% Codd's note is commentary for the other paper; this one prints none of it.
+\DeclareSourcemap{\maps[datatype=bibtex]{\map{
+  \step[fieldsource=entrykey, match=\regexp{\Acodd1970relational\Z}, final]
+  \step[fieldset=note, null]}}}
 \graphicspath{{../figures/}}
 
 \paperdetails{
@@ -67,6 +71,7 @@ The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976di
 The case is usually made in a language built around it.
 This paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
+The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, after Tarski's calculus of relations~\cite{tarski1941calculus}.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
 Listing~\ref{lst:desugar} is a case: the chain, the arrow and the matrix arithmetic compile away to the Fibonacci recurrence.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
@@ -155,7 +160,7 @@ Each rule has a listing of a few lines, verbatim from the repository's test up t
 Every type a Jlt program passes around is \cppinline{std::semiregular}: default constructible, copyable, and nothing else is assumed.
 Every function is \cppinline{constexpr} and depends on its arguments alone.\footnote{A \cppinline{constexpr} function may still change its own locals: constant evaluation permits modifying only objects whose lifetime began within it, so no mutation can leak, which is the encapsulated state of \cppinline{runST}~\cite{launchbury1994lazy}.
 At runtime the linter of Section~\ref{sec:limits} holds the body to the same condition by closing each channel a mutation could leak through: parameters, results, the object, statics, globals, \cppinline{volatile}, boxes, and escaping closures that capture by reference.}
-What the rule conserves is Leibniz's law~\cite{leibniz1686discourse}, that equals cannot be told apart by any operation, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
+What the rule conserves is Leibniz's law~\cite{leibniz1686discours,leibniz1686discourse}, that equals cannot be told apart by any operation, at either binding time: a call may be replaced by its value, $e[f(x)] = e[v]$ whenever $f(x)$ evaluates to $v$.
 In a programming language the law is referential transparency~\cite{strachey2000fundamental}, and a language where $a = b$ but $f(a) \neq f(b)$ for some $f$ has an equality one cannot reason with.
 
 \begin{listing}[htbp]
@@ -642,6 +647,17 @@ The translation is a function of the program: two resolutions of the same constr
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s two are.
 
+\paragraph{Certified and inferred laws.}
+A program declares few laws and infers the rest.
+A declared law is an axiom, its certificate evaluated where a record is built.
+A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
+The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: a law flows from a term's immediate parts to the term and never back from its use, a synthesized attribute~\cite{knuth1968semantics}.
+They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
+By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
+As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which Rice's theorem places out of reach~\cite{rice1953classes}.
+Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
+Since the laws are the application's, not the machine's, so are the optimisations they license.
+
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
@@ -879,6 +895,7 @@ Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left c
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head.
 Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types declared after their shape do not fit, is in Section~\ref{sec:limits}.
+Instance resolution is the inference half of type classes, Hindley--Milner's~\cite{milner1978theory,damas1982principal} extended with predicates~\cite{jones1994qualified}; FJlt infers no types, since \Cpp{} deduces them, but it infers laws the same way.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, with the missing bound named in the message~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
@@ -924,6 +941,8 @@ Certifying that a run-time shortcut agrees with the fold it replaces, which a br
 A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
+Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
+The same laws are those a query optimiser applies to relational algebra~\cite{codd1970relational}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 
 \acks

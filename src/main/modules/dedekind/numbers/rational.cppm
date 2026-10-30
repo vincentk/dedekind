@@ -609,6 +609,16 @@ struct unit_trait<dedekind::numbers::Rational<I>,
   static constexpr value_type value = value_type{I{1}, I{1}};
 };
 
+// ℚ is a ℤ-module: the field of fractions Frac(ℤ), the integers acting by
+// n (p / q) = (n p) / q (Lang, Algebra §III.1), so a semimodule.  The law of
+// the intended carriers: FIXME(#1035), the machine ℕ and ℤ are not yet the
+// initial rig and ring, and this certificate inherits their gaps.
+template <dedekind::morphologies::IsInteger I>
+struct is_linear_action<dedekind::numbers::Rational<I>, I,
+                        std::plus<dedekind::numbers::Rational<I>>, std::plus<I>,
+                        std::multiplies<I>, std::multiplies<>>
+    : std::true_type {};
+
 // Carrier-specific additive inverse: the defining ℚ trait — every
 // rational has an additive inverse via numerator-negation.  This too
 // is carrier-specific (the construction depends on Rational's layout).

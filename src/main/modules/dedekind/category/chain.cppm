@@ -31,6 +31,29 @@ import :nno;  // the step, cover and Prior: what a chain walks by
 
 namespace dedekind::category {
 
+/** @brief Whether a carrier is an integer chain: the integral types, and the
+ *  carriers that register themselves (@c sets' cardinals, a bignum).
+ *  @tparam T the carrier. */
+export template <typename T>
+struct is_integer_chain : std::bool_constant<std::integral<T>> {};
+/** @brief A chain with integer arithmetic: a discrete total order, locally
+ *  finite (every bounded interval is finite), so a distributive lattice under
+ *  min and max, with the NNO's step and the arithmetic operators as a shape.
+ *  Finite on a machine word, unbounded for a bignum.  Not a ring: @c int's
+ *  overflow is undefined and a cardinal may saturate at @f$\aleph_0@f$; the
+ *  ring is @c IsRing's to claim.  @tparam T the carrier. */
+export template <typename T>
+concept IsIntegerChain =
+    HasNNOStep<std::remove_cvref_t<T>> &&
+    std::totally_ordered<std::remove_cvref_t<T>> &&
+    requires(const std::remove_cvref_t<T> a, const std::remove_cvref_t<T> b) {
+      a + b;
+      a - b;
+      a * b;
+      a / b;
+      a % b;
+    } && is_integer_chain<std::remove_cvref_t<T>>::value;
+
 /** @section chain__Unfold  The anamorphism, and Dedekind's chain
  *  The unfold of a seed by a coalgebra @f$S \to 1 + A \times S@f$: nothing
  *  ends the walk, a pair yields an element and the next state.  This is the
@@ -352,6 +375,49 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
  private:
   Walk walk_{};  // held, not inherited: the posture has no subtyping
 };
+
+namespace detail_chain {
+/** @brief The step of a chain restricted by value to @c [lo, hi): @c f of
+ *  the element and its cover, while the element is below @c hi. */
+template <HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C>
+struct SliceStep {
+  C hi{};
+  F f{};
+  constexpr std::optional<std::pair<Cod<F>, std::optional<C>>> operator()(
+      const std::optional<C>& s) const {
+    if (s.has_value() && *s < hi)
+      return std::pair<Cod<F>, std::optional<C>>{f(*s), cover(*s)};
+    return std::nullopt;
+  }
+};
+}  // namespace detail_chain
+/** @brief The chain of @c C restricted by value to @c [lo, hi): the elements
+ *  from @c lo up to @c hi, @c hi excluded, as pandas' @c .loc reads a slice.
+ *  For any carrier with the covering step, @c std::byte among them.
+ *  @tparam C the chain. */
+export template <HasNNOStep C>
+  requires std::totally_ordered<C>
+struct Slice {
+  C lo{};
+  C hi{};
+};
+/** @param lo the bottom.  @param hi the top, excluded.  @return the chain
+ *  between them. */
+export template <HasNNOStep C>
+  requires std::totally_ordered<C>
+constexpr Slice<C> slice(C lo, C hi) {
+  return {lo, hi};
+}
+/** @brief An arrow along a restricted chain: @c f(lo), ..., @c f(hi - 1), a
+ *  range never built.  @param s the restricted chain.  @param f the arrow.
+ *  @return the values along it. */
+export template <HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C>
+constexpr unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>
+operator>>(const Slice<C>& s, F f) {
+  return {std::optional<C>{s.lo}, detail_chain::SliceStep<C, F>{s.hi, f}};
+}
 
 /** @brief The default chain of a carrier with the NNO's step, the one its
  *  certificate supplies: @c n >> chain<N>() is what @c Prior<N> reaches from

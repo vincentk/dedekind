@@ -46,6 +46,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::minus
 #include <optional>
 #include <stdexcept>
 #include <tuple>

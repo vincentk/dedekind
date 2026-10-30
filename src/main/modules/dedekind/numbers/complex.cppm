@@ -896,6 +896,17 @@ struct quotient_algebra_base<dedekind::numbers::Complex<R>> {
   using type = R;
 };
 
+// R[i] / (i^2 + 1) is free of rank 2 over R, the pair (real, imag) under
+// componentwise addition and R acting on both: a module, so a semimodule,
+// wherever R is a semiring.
+template <dedekind::numbers::IsComplexScalar R>
+  requires IsSemiring<R, std::plus<R>, std::multiplies<R>> &&
+           (!std::unsigned_integral<R>)  // as for the dual numbers
+struct is_linear_action<dedekind::numbers::Complex<R>, R,
+                        std::plus<dedekind::numbers::Complex<R>>, std::plus<R>,
+                        std::multiplies<R>, std::multiplies<>>
+    : std::true_type {};
+
 template <dedekind::numbers::IsComplexScalar R>
 struct unit_trait<dedekind::numbers::Complex<R>,
                   std::plus<dedekind::numbers::Complex<R>>> {
