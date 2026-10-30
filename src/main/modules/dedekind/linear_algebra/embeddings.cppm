@@ -187,16 +187,20 @@ static_assert(as_matrix2x2(eps_q* eps_q) == zero_matrix2x2_v<Rat>,
  *  at the type level, folding the four preservation static_asserts above
  *  (0, 1, +, ·) into a single structural claim. Each wrapper struct
  *  promotes the function template to a callable object so the concept can
- *  bind `Phi` to a concrete type.
+ *  bind `Phi` to a concrete type, an arrow with its domain and codomain.
  */
 
 struct ComplexToMatrix2x2Hom {
+  using Domain = Complex<Rat>;
+  using Codomain = Matrix2x2V<Rat>;
   constexpr Matrix2x2V<Rat> operator()(const Complex<Rat>& z) const {
     return as_matrix2x2(z);
   }
 };
 
 struct DualToMatrix2x2Hom {
+  using Domain = Dual<Rat>;
+  using Codomain = Matrix2x2V<Rat>;
   constexpr Matrix2x2V<Rat> operator()(const Dual<Rat>& d) const {
     return as_matrix2x2(d);
   }

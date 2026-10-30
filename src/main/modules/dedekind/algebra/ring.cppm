@@ -14,7 +14,6 @@ module;
 
 #include <concepts>
 #include <functional>
-#include <type_traits>  // std::invoke_result_t: the image of a ring map
 
 export module dedekind.algebra:ring;
 
@@ -302,26 +301,22 @@ concept HasSemiringOperators = requires(T a, T b) {
  *        @f$\varphi(a b) = \varphi(a) \varphi(b)@f$, @f$\varphi(0) = 0@f$
  *        and @f$\varphi(1) = 1@f$ (Lang, @e Algebra, §II.1).
  *
- * @details Two monoid homomorphisms, the category's
- * @c IsMonoidHomomorphism for @c ⊕ and for @c ⊗, the operations each ring
- * registers on @c semiring_ops: the laws on every pair are
- * the declared certificate @c category::is_homomorphism, the laws at the
- * units are computed.  A callable, not an arrow, so a function object with
- * no @c Domain qualifies.  @tparam Phi the map.  @tparam Source
- * @tparam Target the rings.
+ * @details A homomorphism of the semiring signatures, @c IsHomomorphism of
+ * the @c (⊕, ⊗) each ring registers on @c semiring_ops: two monoid
+ * homomorphisms, the laws on every pair declared on
+ * @c category::is_homomorphism and the laws at the units computed.  The
+ * negation comes along, since a monoid homomorphism between additive groups
+ * is a group homomorphism.  An arrow from @c Source to @c Target.
+ * @tparam Phi the map.  @tparam Source @tparam Target the rings.
  */
 export template <typename Phi, typename Source, typename Target>
 concept IsRingHomomorphism =
     HasRingOperators<Source> && HasRingOperators<Target> &&
-    std::same_as<
-        std::remove_cvref_t<std::invoke_result_t<const Phi&, const Source&>>,
-        Target> &&
-    dedekind::category::IsMonoidHomomorphism<
-        Phi, Source, typename semiring_ops<Source>::add,
-        typename semiring_ops<Target>::add> &&
-    dedekind::category::IsMonoidHomomorphism<
-        Phi, Source, typename semiring_ops<Source>::mult,
-        typename semiring_ops<Target>::mult>;
+    dedekind::category::IsArrow<Phi> &&
+    std::same_as<dedekind::category::Dom<Phi>, Source> &&
+    std::same_as<dedekind::category::Cod<Phi>, Target> &&
+    IsHomomorphism<Phi, semiring_signature<Source>,
+                   semiring_signature<Target>>;
 
 /** @section ring__Formal_Verification */
 
