@@ -55,7 +55,8 @@ import :morphism;
 import :mereology;  // Sup / Inf
 import :posetal;
 import :species;
-import :nno;  // the counting chain, for concat on n copies of one value
+import :nno;
+import :chain;  // the counting chain, for concat on n copies of one value
 
 namespace dedekind::category {
 

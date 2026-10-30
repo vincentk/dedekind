@@ -39,7 +39,7 @@ export module dedekind.category:action;
 import :total;
 import :discrete;  // constant: the witness's copies
 import :morphism;  // IsArrow, IsConstantArrow, Cod
-import :nno;       // the counting chain: fold on n copies of one value
+import :chain;     // the counting chain: fold on n copies of one value
 
 namespace dedekind::category {
 
