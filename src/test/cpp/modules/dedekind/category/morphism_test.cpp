@@ -98,13 +98,13 @@ TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
 
   SECTION("Arrow Factory (Morphism Tagging)") {
     // Tagging a lambda as a Morphism from int to bool
-    auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
+    auto even_int = arrow<int, bool>([](int x) { return x % 2 == 0; });
 
-    CHECK(is_even(2) == true);
-    CHECK(is_even(3) == false);
+    CHECK(even_int(2) == true);
+    CHECK(even_int(3) == false);
 
     // Verify it satisfies the IsArrow concept
-    STATIC_CHECK(IsArrow<decltype(is_even)>);
+    STATIC_CHECK(IsArrow<decltype(even_int)>);
   }
 
   SECTION("Endomorphism Factory (endo)") {
@@ -259,11 +259,11 @@ TEST_CASE("operator>> auto-wraps an RHS lambda as an arrow",
   SECTION("RHS lambda's codomain can differ from its domain") {
     // Arrow<int, int> chained with a bool-returning lambda.
     const auto plus_one = arrow<int, int>([](int x) { return x + 1; });
-    const auto is_even =
+    const auto even_int =
         plus_one >> [](const int& x) -> bool { return x % 2 == 0; };
 
-    STATIC_CHECK(IsArrow<decltype(is_even)>);
-    REQUIRE(is_even(1) == true);   // (1 + 1) % 2 == 0
-    REQUIRE(is_even(2) == false);  // (2 + 1) % 2 != 0
+    STATIC_CHECK(IsArrow<decltype(even_int)>);
+    REQUIRE(even_int(1) == true);   // (1 + 1) % 2 == 0
+    REQUIRE(even_int(2) == false);  // (2 + 1) % 2 != 0
   }
 }
