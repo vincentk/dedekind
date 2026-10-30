@@ -122,5 +122,5 @@ TEST_CASE("Tensor exhibit: a count over a vector of 2^60 entries, at run time",
   size_t lo = 60;
   const size_t n = size_t{1} << lo;
   CHECK(tensor_exhibit::count(n >> dedekind::category::chain<size_t>() >>
-                        dedekind::category::is_even) == n / 2);
+                              dedekind::category::is_even) == n / 2);
 }
