@@ -220,10 +220,9 @@ struct FibonacciMod {
   constexpr N operator()(N k) const {
     const N m = detail_periodic::fibonacci_modulus(modulus);
     const auto w = static_cast<N>(std::bit_width(k));
-    return std::ranges::fold_left(
-        std::views::iota(N{0}, w),
-        std::array<N, 2>{0, static_cast<N>(1 % m)},
-        detail_periodic::Double<N>{k, m, w})[0];
+    return std::ranges::fold_left(std::views::iota(N{0}, w),
+                                  std::array<N, 2>{0, static_cast<N>(1 % m)},
+                                  detail_periodic::Double<N>{k, m, w})[0];
   }
   constexpr bool operator==(const FibonacciMod&) const = default;
 };
