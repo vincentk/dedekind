@@ -442,7 +442,8 @@ Their mechanisation is future work.
 \subsection{The compiler's own functional language}
 \label{app:fjlt:ssa}
 
-Section~\ref{sec:binding} said that instantiation is partial evaluation of the translated term at a static type.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs, so the two agree on every closed term: Theorem~\ref{thm:simulation} at the binding time where the records are constants, nothing of a record surviving to run time, and parametricity, a property of the term before that evaluation, holds of every instantiation as an application of it.
+For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
 What that evaluation leaves is a closed first-order term over the base types: the type abstractions are gone with their arguments, the record parameters are gone with the records the compiler resolved, every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
 The compiler then lowers that term to its intermediate representation, and the representation is in static single assignment form~\cite{cytron1991ssa}: every variable is assigned exactly once, and where two paths of control join, a $\phi$-node names the value that arrives along each.
 
@@ -572,9 +573,21 @@ local state that does not escape & assignments only to locals, by-value paramete
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
 Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
 The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
-The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Section~\ref{sec:binding}).}
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
 \label{tab:closure}
 \end{table}
+
+\paragraph{Parallelism, and a branch on the binding time.}
+\label{app:fjlt:consteval}
+\cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
+A parallel \cppinline{concat} is then one more overload, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
+The laws say when the split is correct, not when it pays.
+
+\cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
+\cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
+For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
+So the law that licenses the shortcut also proves that the branches agree.
+For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
 \begin{table}[tbp]
 \centering
