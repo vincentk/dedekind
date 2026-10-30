@@ -324,6 +324,8 @@ constexpr std::optional<N> cover(const N& n) {
     if (n == std::numeric_limits<N>::max()) return std::nullopt;
   const N s = successor(n);
   if (s == n) return std::nullopt;
+  if constexpr (std::totally_ordered<N>)  // a cover is above: a wrap is none
+    if (!(n < s)) return std::nullopt;
   return s;
 }
 /** @brief The lower cover @f$P^{+} : N \to 1 + N@f$, dual to @ref cover: the
@@ -338,6 +340,8 @@ constexpr std::optional<N> lower_cover(const N& n) {
     if (n == std::numeric_limits<N>::min()) return std::nullopt;
   const N p = predecessor(n);
   if (p == n) return std::nullopt;
+  if constexpr (std::totally_ordered<N>)  // below, as the cover is above
+    if (!(p < n)) return std::nullopt;
   return p;
 }
 

@@ -15,9 +15,16 @@
  *          say @c f factors through the quotient
  *          @f$\mathbb{N} \to \mathbb{Z}/p\mathbb{Z}@f$,
  *          @f$f = g \circ (k \mapsto k \bmod p)@f$: @c congruent(m, r) is
- *          that quotient followed by @c equals(r).  A law holds on the whole
- *          word because the counts themselves wrap only at the word's
- *          @c cyclic_order; a shift narrows it (@c extent).
+ *          that quotient followed by @c equals(r).  What periodicity needs is
+ *          a translation, not an order: @c f has period @c p when it is
+ *          invariant under the action of @c p, @f$f(k + p) = f(k)@f$, the
+ *          counts acting on themselves by @c + (@c :action's
+ *          @c acting_monoid<std::plus<std::size_t>>; the affine reading of
+ *          a space acted on by its vectors is @c geometry:affine's).  The
+ *          order enters with the extent, the bound below which the law
+ *          holds, and with the counts by consecutive periods.  A law holds on
+ *          the whole word because the counts themselves wrap only at the
+ *          word's @c cyclic_order; a shift narrows it (@c extent).
  *
  *          The counts are any @c IsCountWord, @c std::size_t by default.  The
  *          period is a @b value the arrow carries, read by @c period(f), and
@@ -58,11 +65,14 @@ import :cartesian_bicategory;  // Tensor, Merge: the outer product
 namespace dedekind::category {
 
 /** @brief A word of the counts: an integer chain whose arithmetic wraps at
- *  its cyclic order, the unsigned integers but @c bool.  @c std::size_t is
- *  the default throughout.  @tparam N the word. */
+ *  its cyclic order, the unsigned integers but @c bool, and none narrower than
+ *  @c int, whose products promote to a signed @c int that may overflow.
+ *  @c std::size_t is the default throughout.  @tparam N the word. */
 export template <typename N>
 concept IsCountWord =
-    IsIntegerChain<N> && std::unsigned_integral<N> && (!std::same_as<N, bool>);
+    IsIntegerChain<N> && std::unsigned_integral<N> &&
+    (!std::same_as<N, bool>) &&
+    std::same_as<decltype(std::declval<N>() * std::declval<N>()), N>;
 
 /** @brief An arrow on the counts with a declared period, read by
  *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  @tparam F the arrow. */
@@ -397,6 +407,18 @@ constexpr Dom<P> extent(const Meet<P, Q>& m) {
   return std::min(extent(m.lhs), extent(m.rhs));
 }
 
+/** @param n the complement of a periodic predicate.  @return its period:
+ *  negation reads one value, so keeps the period. */
+export template <HasPeriod P>
+constexpr Dom<P> period(const Not<P>& n) {
+  return period(n.base);
+}
+/** @param n the complement of a periodic predicate.  @return its extent. */
+export template <HasPeriod P>
+constexpr Dom<P> extent(const Not<P>& n) {
+  return extent(n.base);
+}
+
 namespace detail_periodic {
 /** @brief The window's step: how many are true. */
 template <IsCountWord N>
@@ -582,17 +604,30 @@ constexpr std::vector<std::vector<N>> residues_of(const T& t,
                                    Residue<T, N>{t, sides[at], m})};
   }
 }
-/** @brief One term of a cyclic convolution: the residues @c q div m and
- *  @c q mod m of two histograms add to their sum modulo @c m. */
+/** @brief One term of a cyclic convolution: the residues @c i and @c j of
+ *  two histograms add to their sum modulo @c m. */
 template <IsCountWord N>
 struct CyclicTerm {
   std::vector<N> a;
   std::vector<N> b;
   N m;
-  constexpr std::vector<N> operator()(std::vector<N> c, N q) const {
-    const N i = static_cast<N>(q / m), j = static_cast<N>(q % m);
-    c[(i + j) % m] = static_cast<N>(c[(i + j) % m] + a[i] * b[j]);
+  N i;
+  constexpr std::vector<N> operator()(std::vector<N> c, N j) const {
+    const std::size_t at = (static_cast<std::size_t>(i) + j) % m;
+    c[at] = static_cast<N>(c[at] + a[i] * b[j]);
     return c;
+  }
+};
+/** @brief One row of a cyclic convolution: residue @c i of the first
+ *  histogram against every residue of the second. */
+template <IsCountWord N>
+struct CyclicRow {
+  std::vector<N> a;
+  std::vector<N> b;
+  N m;
+  constexpr std::vector<N> operator()(std::vector<N> c, N i) const {
+    return std::ranges::fold_left(std::views::iota(N{0}, m), std::move(c),
+                                  CyclicTerm<N>{a, b, m, i});
   }
 };
 /** @brief The cyclic convolution of the histogram so far with one more leg's,
@@ -602,9 +637,9 @@ struct Convolve {
   N m;
   constexpr std::vector<N> operator()(const std::vector<N>& acc,
                                       const std::vector<N>& h) const {
-    return std::ranges::fold_left(std::views::iota(N{0}, static_cast<N>(m * m)),
+    return std::ranges::fold_left(std::views::iota(N{0}, m),
                                   std::vector<N>(m, N{0}),
-                                  CyclicTerm<N>{acc, h, m});
+                                  CyclicRow<N>{acc, h, m});
   }
 };
 }  // namespace detail_periodic

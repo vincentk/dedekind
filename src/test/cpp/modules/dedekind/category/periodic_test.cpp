@@ -65,6 +65,14 @@ static_assert(count(slice(256uz, 512uz) >> fib_even) ==
               count(slice(5uz, 5uz) >> is_even) == 0 &&
               count(slice(7uz, 5uz) >> is_even) == 0);
 
+// The complement of a join keeps its period, so it is counted by the law over
+// 2^60; and no word narrower than int, whose products would promote to it.
+static_assert(period(!(is_even | fib_even)) == 6 &&
+              count(every >> !(is_even | fib_even)) ==
+                  n - (n / 2 + n / 3 - n / 6) &&
+              IsCountWord<unsigned> && !IsCountWord<unsigned short> &&
+              !IsCountWord<bool>);
+
 // Generic in the counts: the same laws on another word, its own type kept.
 static_assert(
     count(1'000u >> chain<unsigned>() >> congruent<unsigned>(3, 1)) == 333u &&
