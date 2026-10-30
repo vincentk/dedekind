@@ -548,6 +548,8 @@ template <typename T, typename Op>
 struct is_associative<Sections<T, Op>, compose> : std::true_type {};
 template <typename T, typename Op>
 struct is_periodic<Sections<T, Op>, compose> : is_periodic<T, Op> {};
+template <typename T, typename Op>  // every way the operation is total
+struct is_total_by_construction<Sections<T, Op>, compose> : is_total<T, Op> {};
 template <typename T, typename Op>
 struct unit_trait<Sections<T, Op>, compose> {
   using value_type = Sections<T, Op>;
@@ -555,13 +557,15 @@ struct unit_trait<Sections<T, Op>, compose> {
 };
 namespace detail_sections_witness {
 constexpr auto twice = Section<unsigned, std::plus<unsigned>>{{}, 2u};
-static_assert(IsMonoid<Sections<unsigned>, compose> &&
-                  concat(std::views::repeat(Sections<unsigned>{twice}, 3uz),
-                         compose{})(1u) == 7 &&
-                  concat(std::views::repeat(Sections<unsigned>{twice}, 0uz),
-                         compose{}) == Sections<unsigned>{},
-              "sections under composition are the library's monoid, so "
-              "concat squares them: three sections adding 2 add 6");
+static_assert(
+    IsMonoid<Sections<unsigned>, compose> &&
+        IsMonoid<Sections<unsigned, std::bit_or<unsigned>>, compose> &&
+        concat(std::views::repeat(Sections<unsigned>{twice}, 3uz),
+               compose{})(1u) == 7 &&
+        concat(std::views::repeat(Sections<unsigned>{twice}, 0uz), compose{}) ==
+            Sections<unsigned>{},
+    "sections under composition are the library's monoid, so "
+    "concat squares them: three sections adding 2 add 6");
 }  // namespace detail_sections_witness
 
 export template <typename T, typename Op = std::plus<T>>
@@ -615,6 +619,14 @@ struct Arrows {
   }
   constexpr bool operator==(const Arrows&) const = default;
 };
+namespace detail_arrows {
+/** @brief Whether a morphism is the identity, read off its tags, so that
+ *  composing asks no @c == of the carrier.  @param m the morphism. */
+template <typename T, typename Op>
+constexpr bool is_identity_tag(const Morphisms<T, Op>& m) {
+  return m.v.index() == 0 && std::get<0>(m.v).v.index() == 0;
+}
+}  // namespace detail_arrows
 /** @brief @c f >> g on morphisms, into @c Arrows: the identity absorbed, two
  *  sections one, two pointers a composite.  @param f @param g the morphisms. */
 export template <typename T, typename Op>
@@ -634,8 +646,8 @@ constexpr Arrows<T, Op> operator>>(const Arrows<T, Op>& f,
                                    const Arrows<T, Op>& g) {
   const bool fm = f.v.index() == 0, gm = g.v.index() == 0;
   if (fm && gm) return std::get<0>(f.v) >> std::get<0>(g.v);
-  if (fm && std::get<0>(f.v) == Morphisms<T, Op>{}) return g;
-  if (gm && std::get<0>(g.v) == Morphisms<T, Op>{}) return f;
+  if (fm && detail_arrows::is_identity_tag(std::get<0>(f.v))) return g;
+  if (gm && detail_arrows::is_identity_tag(std::get<0>(g.v))) return f;
   detail_arrows::refuse_deep_composite();
 }
 

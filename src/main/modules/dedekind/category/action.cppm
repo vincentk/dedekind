@@ -312,8 +312,9 @@ struct acting_monoid {};
 export template <typename H, typename M, typename S>
 concept IsMonoidAction =
     std::invocable<const H&, M, S> &&
-    std::convertible_to<std::invoke_result_t<const H&, M, S>, M> &&
-    requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
+    requires(const H& h, M v, S s) {  // called directly: a function object
+      { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
+    } && requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
     IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
 /** @brief The fold along the walk: the standard's @c fold_left.
  *  @param r the range.  @param v the start.  @param h the action. */

@@ -647,6 +647,7 @@ It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a pr
 \begin{cpp}
 // the laws, declared: a monoid and its action
 using Mul = multiplies<M>;
+using Act = remove_cvref_t<decltype(act)>;
 template <> struct is_associative<M, Mul>
     : true_type {};
 template <> struct is_periodic<M, Mul>

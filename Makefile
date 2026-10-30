@@ -365,8 +365,10 @@ check-review-comments:
 # Resolve one review thread on the current PR (or PR=<number>) and reply with a reason.
 # Usage: make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
 # REASON is single-quoted from its raw value, never expanded by make or the
-# shell, so backticks and $(...) in it are posted literally.  The thread is
-# resolved only after the reply is posted.
+# shell, so backticks and $(...) in it are posted literally; it is not
+# exported, since make expands an exported variable to build the environment.
+# The thread is resolved only after the reply is posted.
+unexport REASON
 pr-resolve-thread:
 	@PR_NUM="$(PR)"; \
 	THREAD_ID="$(THREAD_ID)"; \
