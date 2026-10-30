@@ -148,7 +148,7 @@ Section~\ref{sec:limits} says where the arrows are partial, Section~\ref{sec:rel
 \label{sec:posture}
 
 Jlt is standard \Cpp{23} under three rules, not a dialect and not a library; the compiler enforces some of the rules, and we say which.
-Each rule has a listing of a few lines, verbatim in the test that holds this paper's listings up to formatting, qualification, repetitions and definitions a listing omits, or, as in Listing~\ref{lst:rule1}, the tree's definitions a listing prints and the test imports; the LLVM IR panels are Clang~23's output at \texttt{-O2 -fno-unroll-loops} for functions the test defines, with names shortened.
+Each rule has a listing of a few lines, verbatim from the repository's test up to formatting and the definitions a listing omits or the test imports; the LLVM IR is Clang~23's output at \texttt{-O2 -fno-unroll-loops}, with names shortened.
 
 \paragraph{Rule 1, Substitution: values and pure functions.}
 \phantomsection\label{def:rule1}
@@ -242,8 +242,7 @@ A law is asked on the arrow's value, at compile time: \cppinline{is_monic(f)} re
 
 In Listing~\ref{lst:rule1}, \cppinline{const T} and \cppinline{const T&} are one parameter, the second an optimisation the translation erases, since nothing changes the value the reference denotes.
 An arrow is a function made a value, and its laws are equations between values, so \cppinline{==} is where Leibniz's law meets the program: the kernel asks it of no type, the listings of every carrier a law is stated on.
-The properties a law singles out, mono, epi and iso by cancellation, involution, the variances~\cite{pierce1991basic}, are certificates the tree declares or derives.
-A certificate attaches to the arrow, whose type names the carrier and the operation, so it certifies the signature, not a carrier beside an operation~\cite{pierce1991basic}.
+The properties a law singles out, mono, epi and iso by cancellation, involution, the variances, are certificates declared or derived on the arrow, whose type names carrier and operation, so a certificate is about the signature~\cite{pierce1991basic}.
 Two consequences keep that exact: a function returns a value, never a reference, and every member function, a call operator included, is \cppinline{const}.
 The grammar of Appendix~\ref{app:fjlt} has neither a reference type nor a non-\cppinline{const} member, and the linter of Section~\ref{sec:limits} holds \Cpp{} to the same.
 The compiler enforces the rule in part: a \cppinline{constexpr} function that reaches for state fails to evaluate at compile time, but nothing stops a caller from only ever calling it at runtime.
@@ -374,10 +373,7 @@ These are the standard's forward, bidirectional and random-access iterators~\cit
 \label{fig:structures}
 \end{figure}
 
-Listing~\ref{lst:rule2} illustrates the principle for monoids of different signatures.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
-A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}.
-It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
 \paragraph{Rule 3, Descent: recursion is structural.}
@@ -389,7 +385,6 @@ For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathi
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
-Listing~\ref{lst:rule3} is the figure in code.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
 \cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list.
@@ -499,11 +494,10 @@ Section~\ref{sec:limits} says how.}
 This section is the $-$sugar arrow of Figure~\ref{fig:arrows}, between the rules of Section~\ref{sec:posture} and the kernel's grammar of Section~\ref{sec:translation}: which construction of Jlt becomes which term of the kernel, each lemma left to Appendix~\ref{app:fjlt:closure}.
 Desugaring rewrites a program into one that uses only the kernel's constructions and computes the same value, as the \Cpp{} standard defines a lambda as a class with a call operator; no tool runs it.
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} state it construction by construction: a condition, and the kernel term it yields.
-The repository's linter measures that the table names every construction the library writes.
 
 A branch on a type, the sugar that matters most, becomes a family of generic functions ordered by specificity (Appendix~\ref{app:fjlt:typing}), which Theorem~\ref{thm:coherence} keeps coherent.
-Listing~\ref{lst:laws} shows two that compose, each licensed by a declared law: \cppinline{fold} specialised by the action law, and \cppinline{concat} by associativity.
-The other kinds of sugar, a lambda or an \cppinline{if} statement, are routine, and Table~\ref{tab:closure} gives each its kernel term.
+Listing~\ref{lst:laws}'s two specialisations, each licensed by a law, compose under it.
+The other sugar is routine (Table~\ref{tab:closure}).
 
 The theorems of Section~\ref{sec:guarantees} are about FJlt, and they reach a \Cpp{} program on two conditions, which hold in different ways.
 
@@ -514,7 +508,6 @@ Constant evaluation refuses undefined behaviour, so at compile time an FJlt prog
 \emph{A Jlt program written in the grammar of Figure~\ref{fig:fjlt-syntax} is an FJlt program.}
 This direction is not a theorem, because the compiler does not check two of the rules.
 It is also conditional on the grammar, because \Cpp{} has constructions FJlt lacks, and a Jlt program may use them.
-Table~\ref{tab:adequacy} lists what a Jlt program may write that the kernel's grammar does not have, and what the kernel has instead.
 
 \begin{table}[ht]
 \centering
@@ -530,17 +523,13 @@ Table~\ref{tab:adequacy} lists what a Jlt program may write that the kernel's gr
 5 & the sugar: branches on a trait or a concept, lambdas, inheritance, \texttt{*} on an optional, \ldots & the grammar, and desugared (Table~\ref{tab:closure}) & \texttt{?:} on a law, specialisation, an operation struct, a registration, the case form on a sum, \ldots \\
 \bottomrule
 \end{tabularx}
-\caption{The filtration from Jlt to its kernel FJlt: what a Jlt program may write that the kernel's grammar does not have (left), what keeps it out of the kernel (middle), and what the kernel has instead (right).
+\caption{The filtration from Jlt to its kernel FJlt.
 The filtration from \Cpp{} to Jlt is the rules' (Table~\ref{tab:posture}).}
 \label{tab:adequacy}
 \end{table}
 
-Rows~1 and~2 are closed by the grammar, except for overloads ordered by their parameter types or their constraints, which the kernel keeps and resolves by specificity, as for Listing~\ref{lst:laws}'s.
-Each construction the library writes beyond the kernel's grammar has a row in Table~\ref{tab:closure} or~\ref{tab:closure:decl}: the condition under which it desugars, and the kernel term it becomes.
-No row needs anything the calculus lacks.
-By measurement, the table is complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
+No row of Tables~\ref{tab:closure} and~\ref{tab:closure:decl} needs anything the calculus lacks, and by measurement they are complete for the \texttt{category} module and the listings, at the resolution of a syntax node's kind (Appendix~\ref{app:fjlt:closure}).
 That each desugaring keeps the meaning is named, not proved: it is the paper's working hypothesis.
-The library's other modules hold code outside the posture, and the adequacy argument does not cover them (Section~\ref{sec:limits}).
 
 \section{From Featherweight Jlt to System~F}
 \label{sec:translation}
@@ -568,14 +557,12 @@ FJlt & System~F & in \\
 \texttt{fold\_left(r, a, f)}, $r$ a chain & $\pi_2\,(\mathit{iter}\,|r|\,\mathit{step}\,(\llbracket r \rrbracket, \llbracket a \rrbracket))$, $\mathit{step}$ the chain's $\mathit{next}$ beside $\llbracket f \rrbracket$ at its $\mathit{head}$ & Listing~\ref{lst:rule3} \\
 \bottomrule
 \end{tabularx}
-\caption{Six translation rules exercised by code listings: a concept is a record type, a trait only its instances, an instance a field at $\overline{\tau}$, a constraint a parameter, a call supplies the resolved records $\overline{d}$, and a chain is iterated for its length, its position carried beside the accumulator (Figure~\ref{fig:structures}).
-Inside a constrained body, a trait read at the type variable, \cppinline{unit<T>(Op{})} under \cppinline{IsMonoid<T, Op>}, is the projection \texttt{d.unit} of the record parameter.
+\caption{Six translation rules exercised by the listings; a chain is iterated for its length, its position carried beside the accumulator (Figure~\ref{fig:structures}).
 The whole translation is Figure~\ref{fig:fjlt-translation} in Appendix~\ref{app:fjlt:translation}.}
 \label{tab:rules}
 \end{table}
 
-Listing~\ref{lst:desugar}'s middle panel is such a System~F term: Listing~\ref{lst:rule3}'s fold, read through the translation.
-A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, as \cppinline{IsSemiring} holds those of two monoids, which is how a superclass is passed.
+A law is a field of type \texttt{Bool}, and a shape built from shapes is a record holding their records, which is how a superclass is passed.
 The whole is dictionary passing, the translation of type classes into System~F, the record being the dictionary~\cite{wadler1989adhoc}.
 Table~\ref{tab:dictionary} names the \Cpp{} devices it meets.
 \cppinline{Op} is a type with exactly one value, the closure \cppinline{Op{}}, so under translation the type \emph{is} that closure, and \cppinline{Op{}(a, b)} is \texttt{d.op a b}.
@@ -742,18 +729,14 @@ What the translation adds is the second half of Theorem~\ref{thm:simulation}: th
 \label{sec:binding}
 
 Every function in this paper has run twice already.
-\cppinline{id<size_t>()(42)}, \cppinline{concat} on two numbers and on two words, and the chain of \cppinline{10} summed were each checked in a \cppinline{static_assert}.
 The test behind the listings calls the same functions at runtime, on values it did not have at compile time.
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.
 A \cppinline{consteval} function, an immediate function, is the opposite case: it is evaluated only at compile time, so it has exactly one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.
 Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
-Listing~\ref{lst:desugar} shows one program at both stages: a Jlt function, its desugared and translated term, and the code the compiler emits.
-The function is Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
-Desugared and translated, the chain, the arrow and the fold are a System~F term, the action a plain function (Section~\ref{sec:translation}).
-With $n$ free the term does not normalise all the way: the fold over $n$ stays, as it must, since $n$ is known only at run time.
-The constant matrix multiplies out.
-Two equations outside the appendix's reductions fuse the map into the fold and drop the unread position.
+Listing~\ref{lst:desugar} follows one program down both legs.
+With $n$ free, each leg evaluates what it can and keeps the fold over $n$, which only the run time can finish.
+The System~F term gets there by two equations outside the appendix's reductions, fusion and dropping an unread position.
 What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
 With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
 
@@ -864,12 +847,9 @@ So Rules~2 and~3 are posture: they are held outside the compiler, and no tool tu
 
 \paragraph{Lookup stops at \cppinline{std}.}
 A name in a template is looked up twice: at the template's definition, among the declarations visible there, and at instantiation only by argument-dependent lookup, in the namespaces of the argument types, which for a standard type is \cppinline{std}, where no instance of ours lives.
-So an instance declared after the shape is never found, unless the shape names a primary template, found at the definition and then specialised, as Listing~\ref{lst:rule2}'s deleted \cppinline{unit} is; a constrained overload instead must precede the shape, as the listing's instance for the unsigned integrals does, and a pair of monoids is a monoid only through an operation type of ours, not \cppinline{std::plus<std::pair<A, B>>}.
+So an instance declared after the shape is found only as a specialisation of a primary template the shape names, as Listing~\ref{lst:rule2}'s deleted \cppinline{unit} is, and a constrained overload must precede the shape.
 This is a constraint on declaration order that the translation's instance resolution does not have, and FJlt resolves it by fiat: an instance is a specialisation of the trait, found by the trait's name.
 
-\paragraph{\texttt{std::plus<T>} promises what its body cannot keep.}
-\cppinline{std::plus<T>} declares its call as \cppinline{T operator()(const T&, const T&)}, so a requirement such as \cppinline|{ Op{}(a, b) } -> same_as<T>| is met by signature for every \cppinline{T}, even one with no \cppinline{+}, and its body fails only when instantiated: Rule~2's gap, one level down in the standard library.
-The listings never ask it about a carrier it was not written for.
 
 \paragraph{A shape knows the laws someone declared.}
 \Cpp{}'s own words are that a type \emph{satisfies} a concept, which the compiler decides, and \emph{models} it, which it does not~\cite[{\texttt{res.on.requirements}}]{cpp23standard}, and the Core Guidelines ask that a concept carry meaningful semantics for that reason~\cite[T.20]{cppcoreguidelines}.\footnote{The standard calls the first kind of requirement syntactic and the second semantic.
@@ -893,15 +873,12 @@ Rule~3 keeps them predictable, because every fold's length is in the program: a 
 \paragraph{The linter is sound and incomplete.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
 Its findings are sound, and its silence is not a proof.
-Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach, the one planted finding being the test's \cppinline{twice_loose}.
+Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach.
 
 \paragraph{The adequacy argument covers part of the library.}
 Tables~\ref{tab:closure} and~\ref{tab:closure:decl} are measured complete for the \texttt{category} module and the listings only.
-Other modules are held by the same linter at a count that only goes down; what remains there is a run-time layer kept for the Python bindings, whose redesign is not done here.
+Other modules are held by the same linter at a count that only goes down.
 
-\paragraph{Facts live in tables, instances in functions.}
-The library stores its facts in class templates, \cppinline{unit_trait<T, Op>}, and reads them through the functions the listings use, \cppinline{unit<T>(Op{})}, since only a partial specialisation declares a fact for a family, after the shapes and in other modules.
-Appendix~\ref{app:fjlt:closure} desugars such a registration into an instance with a context.
 
 \paragraph{The standard library is trusted.}
 The listings compile with Clang~23 against two standard libraries, trusted as every \Cpp{} program trusts them; the youngest piece they use, the folds over ranges, is complete since libc++~23~\cite{libcxx2026status}.
