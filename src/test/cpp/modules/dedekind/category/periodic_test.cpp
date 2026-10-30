@@ -9,6 +9,7 @@
  */
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 
@@ -56,6 +57,11 @@ static_assert(count_factors((n >> chain<std::size_t>() >> is_even) *
                             (n >> chain<std::size_t>() >> fib_even)) ==
                   std::array<std::size_t, 2>{n / 2, n / 3 + 1},
               "the box's count factorises, leg by leg");
+// Generic in the counts: the same laws on another word, its own type kept.
+static_assert(
+    count(1'000u >> chain<unsigned>() >> congruent<unsigned>(3, 1)) == 333u &&
+    std::same_as<decltype(period(congruent<unsigned>(3, 1))), unsigned> &&
+    period(fibonacci_mod<unsigned>(10)) == 60u);
 }  // namespace periodic_witness
 
 TEST_CASE("Periodic: a count by the law at run time", "[category][periodic]") {
