@@ -35,9 +35,9 @@
 module;
 
 #include <concepts>
-#include <cstddef>  // std::size_t: the summand of an injection
-#include <cstdlib>  // std::abort: the refusal of a composite of composites
-#include <functional>
+#include <cstddef>     // std::size_t: the summand of an injection
+#include <cstdlib>     // std::abort: the refusal of a composite of composites
+#include <functional>  // std::invoke: a section calls what it admits
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -264,7 +264,9 @@ struct Section {
   [[no_unique_address]] Op op;
   T a;
   /** @param b the second argument.  @return @c op(a, b). */
-  constexpr Codomain operator()(const T& b) const { return op(a, b); }
+  constexpr Codomain operator()(const T& b) const {
+    return std::invoke(op, a, b);
+  }
   /** @brief Two sections of one operation are equal when their elements
    *  are: the operation is its type. */
   constexpr bool operator==(const Section& o) const { return a == o.a; }
@@ -298,7 +300,7 @@ struct Uncurried {
   Op op;
   /** @param p both arguments.  @return @c op(p.first, p.second). */
   constexpr Codomain operator()(const Domain& p) const {
-    return op(p.first, p.second);
+    return std::invoke(op, p.first, p.second);
   }
   constexpr bool operator==(const Uncurried&) const = default;
 };
