@@ -491,11 +491,19 @@ namespace dedekind::category {
 // S-leg: ℝ ↪ 𝔻 is a ring homomorphism (r ↦ r+0ε preserves + and ×; 0 and 1
 // are computed) — backed by the computed witnesses below.
 template <>
-struct is_homomorphism<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>, dedekind::numbers::QuadraticReal<2>, std::plus<dedekind::numbers::QuadraticReal<2>>,
-                       std::plus<dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>> : std::true_type {};
+struct is_homomorphism<
+    std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>,
+    dedekind::numbers::QuadraticReal<2>,
+    std::plus<dedekind::numbers::QuadraticReal<2>>,
+    std::plus<dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>>
+    : std::true_type {};
 template <>
-struct is_homomorphism<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>, dedekind::numbers::QuadraticReal<2>, std::multiplies<dedekind::numbers::QuadraticReal<2>>,
-                       std::multiplies<dedekind::analysis::Dual<dedekind::numbers::QuadraticReal<2>>>> : std::true_type {};
+struct is_homomorphism<std::decay_t<decltype(dedekind::analysis::embed_ℝ_𝔻)>,
+                       dedekind::numbers::QuadraticReal<2>,
+                       std::multiplies<dedekind::numbers::QuadraticReal<2>>,
+                       std::multiplies<dedekind::analysis::Dual<
+                           dedekind::numbers::QuadraticReal<2>>>>
+    : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::analysis {

@@ -1370,9 +1370,9 @@ export template <typename F, typename T, typename Op, typename Op2 = Op>
 concept IsMonoidHomomorphism =
     IsMagmaHomomorphism<F, T, Op, Op2> &&
     std::default_initializable<std::remove_cvref_t<F>> && requires {
-      requires std::remove_cvref_t<F>{}(unit<T>(std::remove_cvref_t<Op>{})) ==
-                   unit<detail_morphism::image_t<F, T>>(
-                       std::remove_cvref_t<Op2>{});
+      requires std::remove_cvref_t<F> {}
+      (unit<T>(std::remove_cvref_t<Op>{})) ==
+          unit<detail_morphism::image_t<F, T>>(std::remove_cvref_t<Op2>{});
     };
 
 // The retract / iso-enabling surface (IsoRetract, the blanket iso retract, and

@@ -210,29 +210,36 @@ namespace dedekind::category {
 // The two embeddings preserve + and ×, declared here on the strength of the
 // preservation witnesses above; 0 and 1 are computed by the concept.
 template <>
-struct is_homomorphism<dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
-                       dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
-                       std::plus<dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
-                       std::plus<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
-    : std::true_type {};
+struct is_homomorphism<
+    dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
+    dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
+    std::plus<
+        dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
+    std::plus<dedekind::linear_algebra::Matrix2x2V<
+        dedekind::linear_algebra::detail::Rat>>> : std::true_type {};
 template <>
-struct is_homomorphism<dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
-                       dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
-                       std::multiplies<dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
-                       std::multiplies<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
-    : std::true_type {};
+struct is_homomorphism<
+    dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
+    dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
+    std::multiplies<
+        dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<
+        dedekind::linear_algebra::detail::Rat>>> : std::true_type {};
 template <>
-struct is_homomorphism<dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
-                       dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
-                       std::plus<dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
-                       std::plus<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
-    : std::true_type {};
+struct is_homomorphism<
+    dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
+    dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
+    std::plus<dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
+    std::plus<dedekind::linear_algebra::Matrix2x2V<
+        dedekind::linear_algebra::detail::Rat>>> : std::true_type {};
 template <>
-struct is_homomorphism<dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
-                       dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
-                       std::multiplies<dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
-                       std::multiplies<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
-    : std::true_type {};
+struct is_homomorphism<
+    dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
+    dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
+    std::multiplies<
+        dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<
+        dedekind::linear_algebra::detail::Rat>>> : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra::detail {

@@ -313,9 +313,9 @@ concept HasSemiringOperators = requires(T a, T b) {
 export template <typename Phi, typename Source, typename Target>
 concept IsRingHomomorphism =
     HasRingOperators<Source> && HasRingOperators<Target> &&
-    std::same_as<std::remove_cvref_t<std::invoke_result_t<const Phi&,
-                                                         const Source&>>,
-                 Target> &&
+    std::same_as<
+        std::remove_cvref_t<std::invoke_result_t<const Phi&, const Source&>>,
+        Target> &&
     dedekind::category::IsMonoidHomomorphism<
         Phi, Source, typename semiring_ops<Source>::add,
         typename semiring_ops<Target>::add> &&

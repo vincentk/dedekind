@@ -28,7 +28,7 @@ module;
 export module dedekind.algebra:tropical;
 
 import dedekind.category; // trait registry + IsSemiring, is_idempotent_v
-import :universal;        // semiring_ops: the seam the tropical carrier specialises
+import :universal;  // semiring_ops: the seam the tropical carrier specialises
 
 namespace dedekind::algebra {
 

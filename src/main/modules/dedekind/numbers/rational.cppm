@@ -839,11 +839,19 @@ namespace dedekind::category {
  *  rejection --- not saturation --- is the coherent fix.  The finite fragment
  *  is unaffected and still gcd-normalises at compile time. */
 template <>
-struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, dedekind::numbers::default_integer, std::plus<dedekind::numbers::default_integer>,
-                       std::plus<dedekind::numbers::Rational<dedekind::numbers::default_integer>>> : std::true_type {};
+struct is_homomorphism<
+    std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
+    dedekind::numbers::default_integer,
+    std::plus<dedekind::numbers::default_integer>,
+    std::plus<dedekind::numbers::Rational<dedekind::numbers::default_integer>>>
+    : std::true_type {};
 template <>
-struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, dedekind::numbers::default_integer, std::multiplies<dedekind::numbers::default_integer>,
-                       std::multiplies<dedekind::numbers::Rational<dedekind::numbers::default_integer>>> : std::true_type {};
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>,
+                       dedekind::numbers::default_integer,
+                       std::multiplies<dedekind::numbers::default_integer>,
+                       std::multiplies<dedekind::numbers::Rational<
+                           dedekind::numbers::default_integer>>>
+    : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {

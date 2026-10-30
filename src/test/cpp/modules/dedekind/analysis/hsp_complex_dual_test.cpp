@@ -74,8 +74,9 @@ TEST_CASE("HSP-S: ℝ ↪ ℂ and ℝ ↪ 𝔻 classify as EmbedsAsSubalgebra",
   // a part of it is a homomorphism too, and an empty one claims nothing.
   using dedekind::algebra::Signature;
   using C = dedekind::category::Cod<EmbC>;
-  STATIC_REQUIRE(dedekind::algebra::IsHomomorphism<
-                 EmbC, Signature<std::plus<R2>>, Signature<std::plus<C>>>);
+  STATIC_REQUIRE(
+      dedekind::algebra::IsHomomorphism<EmbC, Signature<std::plus<R2>>,
+                                        Signature<std::plus<C>>>);
   STATIC_REQUIRE(
       !dedekind::algebra::IsHomomorphism<EmbC, Signature<>, Signature<>>);
 }

@@ -32,7 +32,7 @@ module;
 
 export module dedekind.numbers:real_bridge;
 
-import dedekind.algebra; // EmbedsAsSubalgebra, IsHomomorphism
+import dedekind.algebra;    // EmbedsAsSubalgebra, IsHomomorphism
 import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
 import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
 import :rational;           // Rational<default_integer> — the ℚ carrier
@@ -81,11 +81,19 @@ namespace dedekind::category {
 /** @brief S-leg is structure-preserving (witness: preserves + and ×; 0 and 1
  *  are computed). */
 template <typename I>
-struct is_homomorphism<dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>,
-                       std::plus<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>> : std::true_type {};
+struct is_homomorphism<
+    dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>,
+    std::plus<dedekind::numbers::Rational<I>>,
+    std::plus<
+        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>>
+    : std::true_type {};
 template <typename I>
-struct is_homomorphism<dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>, std::multiplies<dedekind::numbers::Rational<I>>,
-                       std::multiplies<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>> : std::true_type {};
+struct is_homomorphism<
+    dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>,
+    std::multiplies<dedekind::numbers::Rational<I>>,
+    std::multiplies<
+        dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>>
+    : std::true_type {};
 }  // namespace dedekind::category
 
 namespace dedekind::category {

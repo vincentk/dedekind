@@ -529,8 +529,8 @@ struct Signature {};
  *  @c semiring_ops: the default family of a homomorphism.  @tparam S the
  *  carrier. */
 export template <typename S>
-using semiring_signature = Signature<typename semiring_ops<S>::add,
-                                     typename semiring_ops<S>::mult>;
+using semiring_signature =
+    Signature<typename semiring_ops<S>::add, typename semiring_ops<S>::mult>;
 
 namespace detail_universal {
 /** @brief @c Arrow is an arrow between two algebras, @c IsAlgebra of
@@ -544,12 +544,11 @@ struct homomorphism_of : std::false_type {};
 template <typename Arrow, typename... Ss, typename... Ts>
   requires(sizeof...(Ss) == sizeof...(Ts) && sizeof...(Ss) > 0)
 struct homomorphism_of<Arrow, Signature<Ss...>, Signature<Ts...>>
-    : std::bool_constant<
-          IsAlgebra<dedekind::category::Dom<Arrow>, Ss...> &&
-          IsAlgebra<dedekind::category::Cod<Arrow>, Ts...> &&
-          (dedekind::category::IsMonoidHomomorphism<
-               Arrow, dedekind::category::Dom<Arrow>, Ss, Ts> &&
-           ...)> {};
+    : std::bool_constant<IsAlgebra<dedekind::category::Dom<Arrow>, Ss...> &&
+                         IsAlgebra<dedekind::category::Cod<Arrow>, Ts...> &&
+                         (dedekind::category::IsMonoidHomomorphism<
+                              Arrow, dedekind::category::Dom<Arrow>, Ss, Ts> &&
+                          ...)> {};
 }  // namespace detail_universal
 
 /**
@@ -607,8 +606,8 @@ export template <
     typename Arrow,
     typename S = semiring_signature<dedekind::category::Dom<Arrow>>,
     typename T = semiring_signature<dedekind::category::Cod<Arrow>>>
-concept IsQuotientMorphism = IsHomomorphism<Arrow, S, T> &&
-                             dedekind::category::IsSurjective<Arrow>;
+concept IsQuotientMorphism =
+    IsHomomorphism<Arrow, S, T> && dedekind::category::IsSurjective<Arrow>;
 
 /**
  * @concept EmbedsAsSubalgebra

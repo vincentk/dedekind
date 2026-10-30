@@ -512,9 +512,9 @@ struct unit_trait<dedekind::linear_algebra::MatNxNV<S, N>,
 
 /** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A) for @b any @c S, so
  *  @c TransposeF is a certified @c IsInvolution on @c Mat(S) --- the
- * involutive core of the dagger the predicates (@c is_unitary) read.  A @b structural fact
- * about the operation, @b not a per-arrow unitarity claim (unitarity is a @b
- * value property; see @c :involution).
+ * involutive core of the dagger the predicates (@c is_unitary) read.  A @b
+ * structural fact about the operation, @b not a per-arrow unitarity claim
+ * (unitarity is a @b value property; see @c :involution).
  *  @note The involution alone is no dagger: the @b contravariant reading
  *  @f$(A B)^{\top}=B^{\top}A^{\top}@f$ is the next certificate, and holds
  *  only when the scalar @c ⊗ is @b commutative. */
@@ -530,7 +530,8 @@ struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
  *  below; over a noncommutative @c ⊗ the transpose stays an involution and is
  *  no dagger. */
 template <typename S, std::size_t N>
-  requires is_commutative_v<S, typename dedekind::algebra::semiring_ops<S>::mult>
+  requires is_commutative_v<S,
+                            typename dedekind::algebra::semiring_ops<S>::mult>
 struct is_homomorphism<dedekind::linear_algebra::TransposeF<S, N>,
                        dedekind::linear_algebra::MatNxNV<S, N>,
                        dedekind::linear_algebra::MatTimes<S, N>,
@@ -705,8 +706,8 @@ static_assert(
 //     involution TransposeF (Aᵀᵀ = A, the order-2 / ℤ2 fact).  ("The" dagger is
 //     relative to a chosen involution functor --- TransposeF here; ℂ's
 //     conjugate-transpose is a different one, #787.)
-static_assert(dedekind::category::IsDagger<TransposeF<MPll, 3>, MatNxNV<MPll, 3>,
-                                           MatTimes<MPll, 3>>,
+static_assert(dedekind::category::IsDagger<TransposeF<MPll, 3>,
+                                           MatNxNV<MPll, 3>, MatTimes<MPll, 3>>,
               "transpose is a dagger on Mat(S) over a commutative ⊗: Aᵀᵀ = A "
               "and (AB)ᵀ = BᵀAᵀ.");
 static_assert(TransposeF<MPll, 3>{}(TransposeF<MPll, 3>{}(
