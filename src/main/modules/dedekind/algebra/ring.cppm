@@ -306,12 +306,16 @@ concept HasSemiringOperators = requires(T a, T b) {
  * homomorphisms, the laws on every pair declared on
  * @c category::is_homomorphism and the laws at the units computed.  The
  * negation comes along, since a monoid homomorphism between additive groups
- * is a group homomorphism.  An arrow from @c Source to @c Target.
+ * is a group homomorphism.  An arrow between two rings, each certified
+ * @c category::IsRing under the operations it registers.
  * @tparam Phi the map.  @tparam Source @tparam Target the rings.
  */
 export template <typename Phi, typename Source, typename Target>
 concept IsRingHomomorphism =
-    HasRingOperators<Source> && HasRingOperators<Target> &&
+    dedekind::category::IsRing<Source, typename semiring_ops<Source>::add,
+                               typename semiring_ops<Source>::mult> &&
+    dedekind::category::IsRing<Target, typename semiring_ops<Target>::add,
+                               typename semiring_ops<Target>::mult> &&
     dedekind::category::IsArrow<Phi> &&
     std::same_as<dedekind::category::Dom<Phi>, Source> &&
     std::same_as<dedekind::category::Cod<Phi>, Target> &&

@@ -1330,7 +1330,8 @@ static_assert(IsEpicArrow<Identity<int>>,
  * @brief The homomorphism law of a map @c F on the carrier @c T, declared:
  *        @f$f(a \odot b) = f(a) \circledast f(b)@f$, @c Op on @c T and
  *        @c Op2 on the codomain, a homomorphism of magmas (Bourbaki,
- *        @e Algebra I, §I.1.1).  A certificate, false where none is declared:
+ *        @e Algebra I, §I.1.1); for a unary operation, @f$f(u(a)) =
+ *        u'(f(a))@f$.  A certificate, false where none is declared:
  *        the law is an equation on every pair, so it is declared and
  *        witnessed by computation at the declaration, as @c is_monic_arrow_v.
  *        A class template, so that a family of maps declares it once across

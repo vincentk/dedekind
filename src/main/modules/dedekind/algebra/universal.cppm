@@ -541,14 +541,38 @@ namespace detail_universal {
  *  boundaries. */
 template <typename Arrow, typename S, typename T>
 struct homomorphism_of : std::false_type {};
+/** @brief @c Arrow carries @c Op to @c Op2, of any arity, by the declared
+ *  certificate, and the unit to the unit where @c Op has one, computed: a
+ *  unary or non-unital operation asks the law alone. */
+template <typename Arrow, typename Op, typename Op2>
+struct preserves
+    : std::bool_constant<
+          dedekind::category::is_homomorphism_v<
+              Arrow, dedekind::category::Dom<Arrow>, Op, Op2> &&
+          (!requires {
+            dedekind::category::unit<dedekind::category::Dom<Arrow>>(Op{});
+          } ||
+           dedekind::category::IsMonoidHomomorphism<
+               Arrow, dedekind::category::Dom<Arrow>, Op, Op2>)> {};
 template <typename Arrow, typename... Ss, typename... Ts>
   requires(sizeof...(Ss) == sizeof...(Ts) && sizeof...(Ss) > 0)
 struct homomorphism_of<Arrow, Signature<Ss...>, Signature<Ts...>>
     : std::bool_constant<IsAlgebra<dedekind::category::Dom<Arrow>, Ss...> &&
                          IsAlgebra<dedekind::category::Cod<Arrow>, Ts...> &&
-                         (dedekind::category::IsMonoidHomomorphism<
-                              Arrow, dedekind::category::Dom<Arrow>, Ss, Ts> &&
-                          ...)> {};
+                         (preserves<Arrow, Ss, Ts>::value && ...)> {};
+/** @brief The signatures a homomorphism defaults to: the semiring each end
+ *  of an arrow registers, and the empty signature, which claims nothing, for
+ *  a type that is no arrow.  @tparam Arrow the candidate. */
+template <typename Arrow>
+struct default_signatures {
+  using source = Signature<>;
+  using target = Signature<>;
+};
+template <dedekind::category::IsArrow Arrow>
+struct default_signatures<Arrow> {
+  using source = semiring_signature<dedekind::category::Dom<Arrow>>;
+  using target = semiring_signature<dedekind::category::Cod<Arrow>>;
+};
 }  // namespace detail_universal
 
 /**
@@ -559,12 +583,13 @@ struct homomorphism_of<Arrow, Signature<Ss...>, Signature<Ts...>>
  *        and @f$f(e) = e'@f$ for each (Burris and Sankappanavar, @e A Course
  *        in Universal Algebra, §II.6).
  *
- * @details Per operation it is @c category::IsMonoidHomomorphism: the law on
- * every pair is the declared certificate @c category::is_homomorphism, keyed
- * by the arrow, its domain and the pair of operations, and the law at the
- * unit is computed.  The signatures default to the semiring operations each
+ * @details Per operation the law is the declared certificate
+ * @c category::is_homomorphism, keyed by the arrow, its domain and the pair
+ * of operations, of any arity, and where the operation has a unit, the law
+ * at the unit is computed, @c category::IsMonoidHomomorphism.  The signatures default to the semiring operations each
  * carrier registers, @c semiring_ops, so a ring embedding is named by its
- * arrow alone; an empty signature asserts nothing and is refused.  The
+ * arrow alone; an empty signature asserts nothing and is refused, and so is
+ * a type that is no arrow.  The
  * honest discipline is to pin each declaration with computed witnesses at
  * its site.
  *
@@ -577,8 +602,8 @@ struct homomorphism_of<Arrow, Signature<Ss...>, Signature<Ts...>>
  */
 export template <
     typename Arrow,
-    typename S = semiring_signature<dedekind::category::Dom<Arrow>>,
-    typename T = semiring_signature<dedekind::category::Cod<Arrow>>>
+    typename S = typename detail_universal::default_signatures<Arrow>::source,
+    typename T = typename detail_universal::default_signatures<Arrow>::target>
 concept IsHomomorphism =
     dedekind::category::IsArrow<Arrow> &&
     detail_universal::homomorphism_of<std::remove_cvref_t<Arrow>, S, T>::value;
@@ -604,8 +629,8 @@ concept IsHomomorphism =
  */
 export template <
     typename Arrow,
-    typename S = semiring_signature<dedekind::category::Dom<Arrow>>,
-    typename T = semiring_signature<dedekind::category::Cod<Arrow>>>
+    typename S = typename detail_universal::default_signatures<Arrow>::source,
+    typename T = typename detail_universal::default_signatures<Arrow>::target>
 concept IsQuotientMorphism =
     IsHomomorphism<Arrow, S, T> && dedekind::category::IsSurjective<Arrow>;
 
@@ -655,8 +680,8 @@ concept IsQuotientMorphism =
  */
 export template <
     typename Arrow,
-    typename S = semiring_signature<dedekind::category::Dom<Arrow>>,
-    typename T = semiring_signature<dedekind::category::Cod<Arrow>>>
+    typename S = typename detail_universal::default_signatures<Arrow>::source,
+    typename T = typename detail_universal::default_signatures<Arrow>::target>
 concept EmbedsAsSubalgebra =
     IsHomomorphism<Arrow, S, T> && dedekind::category::IsMonicArrow<Arrow> &&
     std::regular<typename std::remove_cvref_t<Arrow>::Domain> &&

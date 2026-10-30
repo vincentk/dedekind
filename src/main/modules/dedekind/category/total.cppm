@@ -316,10 +316,18 @@ struct is_total
  *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 inline constexpr bool is_total_v = is_total<T, Op>::value;
-/** @brief The opposite operation is total where the operation is.
+/** @brief The opposite operation is total where the operation is, read off
+ *  the value form, which sees registrations on the struct and on the value.
  *  @tparam T the carrier.  @tparam Op the operation. */
 template <typename T, std::semiregular Op>
-struct is_total<T, detail_involution::Reversed<Op>> : is_total<T, Op> {};
+struct is_total<T, detail_involution::Reversed<Op>>
+    : std::bool_constant<is_total_v<T, Op>> {};
+/** @brief A qualified operation is total where the operation is: the paths
+ *  read the unqualified operation, and so does every specialisation.
+ *  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, typename Op>
+  requires(!std::same_as<Op, std::remove_cvref_t<Op>>)
+struct is_total<T, Op> : std::bool_constant<is_total_v<T, std::remove_cvref_t<Op>>> {};
 
 // Path E, read off the construction: + is computed with the base's +; × with
 // the base's × and, where it multiplies out, the base's + as well.

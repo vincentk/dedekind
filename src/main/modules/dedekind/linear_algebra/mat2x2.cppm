@@ -657,6 +657,45 @@ struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
       dedekind::linear_algebra::identity_matrix2x2_v<T>;
 };
 
+namespace detail_mat2x2 {
+/** @brief The entries form a ring under the @c + and @c × the matrices are
+ *  computed with: then @c M₂(T) is a ring (Lang, @e Algebra, §XIII.1), each
+ *  law below inherited from it, and not otherwise. */
+template <typename T>
+concept HasRingEntries = IsRing<T, std::plus<T>, std::multiplies<T>>;
+}  // namespace detail_mat2x2
+template <detail_mat2x2::HasRingEntries T>
+struct is_associative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_associative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_commutative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+inline constexpr bool is_distributive_v<
+    dedekind::linear_algebra::Matrix2x2V<T>,
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>,
+    std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> = true;
+template <detail_mat2x2::HasRingEntries T>
+struct inverse_trait<dedekind::linear_algebra::Matrix2x2V<T>,
+                     std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
+  static constexpr bool exists = true;  // -A, entry by entry
+};
+template <detail_mat2x2::HasRingEntries T>
+struct is_total_by_construction<
+    dedekind::linear_algebra::Matrix2x2V<T>,
+    std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_total_by_construction<
+    dedekind::linear_algebra::Matrix2x2V<T>,
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra {

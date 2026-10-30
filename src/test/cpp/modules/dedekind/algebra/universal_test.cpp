@@ -107,6 +107,26 @@ TEST_CASE(
       !IsAlgebraOnSet<PlainArrow, std::plus<int>, std::multiplies<int>>);
 }
 
+// A homomorphism of a unary operation asks its law alone, no unit; a type
+// that is no arrow is no homomorphism.
+namespace universal_witness {
+struct Twice {  // x ↦ 2x on the unsigned integers, modulo the word
+  using Domain = unsigned;
+  using Codomain = unsigned;
+  constexpr unsigned operator()(unsigned x) const { return 2 * x; }
+};
+}  // namespace universal_witness
+template <>  // 2(-x) = -(2x)
+struct dedekind::category::is_homomorphism<
+    universal_witness::Twice, unsigned, std::negate<unsigned>> : std::true_type {
+};
+static_assert(
+    dedekind::algebra::IsHomomorphism<
+        universal_witness::Twice,
+        dedekind::algebra::Signature<std::negate<unsigned>>,
+        dedekind::algebra::Signature<std::negate<unsigned>>> &&
+    !dedekind::algebra::IsHomomorphism<int>);
+
 // Note: a composite-carrier exhibit (e.g.\ @c IsAlgebra<Rational<...>,
 // +, *>) belongs in a downstream test file because @c dedekind.numbers
 // sits below @c dedekind.algebra in the module DAG.  See
