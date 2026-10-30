@@ -642,6 +642,14 @@ The translation is a function of the program: two resolutions of the same constr
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
 It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s two are.
 
+\paragraph{Certified and inferred laws.}
+A program declares few laws and infers the rest.
+A declared law is an axiom, its certificate evaluated where a record is built.
+A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
+The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: a law flows from a term's immediate parts to the term and never back from its use, a synthesized attribute~\cite{knuth1968semantics}.
+They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
+By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
+
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
@@ -879,6 +887,7 @@ Table~\ref{tab:dictionary} is that translation with \Cpp{}'s names in the left c
 Coherence, that a program has one meaning however its constraints are resolved, is where the designs diverge: Racordon et al.~\cite{racordon2025coherence} survey how Haskell, Swift, Rust and Scala keep or trade it, between unique instances and context-dependent resolution.
 FJlt takes the strict side by construction, since an instance is a function specialisation and the one-definition rule admits one per head.
 Theorem~\ref{thm:coherence} is that choice stated as a property of the translation, and the price, that instances for families of types declared after their shape do not fit, is in Section~\ref{sec:limits}.
+Instance resolution is the inference half of type classes, Hindley--Milner's~\cite{milner1978theory,damas1982principal} extended with predicates~\cite{jones1994qualified}; FJlt infers no types, since \Cpp{} deduces them, but it infers laws the same way.
 Rust and Swift also check a generic body against its bounds: a comparison on an unconstrained type parameter is a compile error in both, with the missing bound named in the message~\cite{klabnik2023rust,swift2026generics}.
 That is Rule~2 as a compiler check, the half \Cpp{20} dropped, and the posture, together with the linter of Section~\ref{sec:limits}, is what recovering it by hand costs.
 
