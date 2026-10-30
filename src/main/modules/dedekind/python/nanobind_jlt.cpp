@@ -189,17 +189,18 @@ void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
       m, succ_name,
       "The successor arrow S : T -> T (the real :nno Successor), total: "
-      "saturating at ⊤ on bool, wrapping on the word u64 (succ(2**64 - 1) is "
+      "saturating at ⊤ on bool, wrapping on the word u64 (successor(2**64 - 1) "
+      "is "
       "0).");
   bind_step_operators(succ);
-  succ.def("__repr__", [](const Successor<T>&) { return "succ"; });
+  succ.def("__repr__", [](const Successor<T>&) { return "successor"; });
   auto pred = nb::class_<Predecessor<T>>(
       m, pred_name,
       "The predecessor arrow P : T -> T (the real :nno Predecessor), total: "
-      "saturating at ⊥ on bool, wrapping on the word u64 (pred(0) is "
+      "saturating at ⊥ on bool, wrapping on the word u64 (predecessor(0) is "
       "2**64 - 1).");
   bind_step_operators(pred);
-  pred.def("__repr__", [](const Predecessor<T>&) { return "pred"; });
+  pred.def("__repr__", [](const Predecessor<T>&) { return "predecessor"; });
   m.def("dom", [](const Successor<T>&) { return type_object<T>(); });
   m.def("cod", [](const Successor<T>&) { return type_object<T>(); });
   m.def("dom", [](const Predecessor<T>&) { return type_object<T>(); });
@@ -336,27 +337,31 @@ NB_MODULE(_jlt, m) {
       "refl(T): the reflection involution on carrier T (not on bool, negation "
       "on int).");
   m.def(
-      "succ",
+      "successor",
       [](nb::handle t) -> nb::object {
         if (t.is(type_object<bool>())) return nb::cast(Successor<bool>{});
         if (t.is(type_object<jlt::Int>()))
           return nb::cast(Successor<jlt::Int>{});
-        throw nb::type_error("succ(T): T must be bool or int");
+        throw nb::type_error("successor(T): T must be bool or int");
       },
       nb::arg("carrier"),
-      "succ(T): the successor arrow on carrier T, the NNO step (saturating: "
-      "succ(bool)(True) is True; on int, the word u64, it wraps: succ(2**64 - "
+      "successor(T): the successor arrow on carrier T, the NNO step "
+      "(saturating: "
+      "successor(bool)(True) is True; on int, the word u64, it wraps: "
+      "successor(2**64 - "
       "1) is 0).");
   m.def(
-      "pred",
+      "predecessor",
       [](nb::handle t) -> nb::object {
         if (t.is(type_object<bool>())) return nb::cast(Predecessor<bool>{});
         if (t.is(type_object<jlt::Int>()))
           return nb::cast(Predecessor<jlt::Int>{});
-        throw nb::type_error("pred(T): T must be bool or int");
+        throw nb::type_error("predecessor(T): T must be bool or int");
       },
       nb::arg("carrier"),
-      "pred(T): the predecessor arrow on carrier T (saturating: pred(bool)"
-      "(False) is False; on int, the word u64, it wraps: pred(0) is 2**64 - "
+      "predecessor(T): the predecessor arrow on carrier T (saturating: "
+      "predecessor(bool)"
+      "(False) is False; on int, the word u64, it wraps: predecessor(0) is "
+      "2**64 - "
       "1).");
 }

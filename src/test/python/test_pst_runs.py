@@ -10,7 +10,7 @@ and wraps at the end.  Nothing is decided in Python.
 
 import unittest
 
-from dedekind.jlt import id, pred, refl, succ
+from dedekind.jlt import id, predecessor, refl, successor
 from dedekind.pst import A, ap, canonical, image, preimage, u64, π, cardinality
 
 U = A(u64)
@@ -62,7 +62,7 @@ class OneSetOneNormalForm(unittest.TestCase):
 
     def test_a_set_applied_to_a_term_substitutes(self) -> None:
         S = above(5)
-        self.assertEqual(U & (ap(S, π + 1) == True), preimage(succ(int), S))  # noqa: E712  {x | x + 1 ∈ S}
+        self.assertEqual(U & (ap(S, π + 1) == True), preimage(successor(int), S))  # noqa: E712  {x | x + 1 ∈ S}
         # The numeral is pinned to the word, the sort it had in S.
         self.assertEqual(repr(ap(S, π + 1)), "cond((π + 1) > u64(5), True, False)")
         with self.assertRaises(TypeError):
@@ -146,26 +146,26 @@ class TheElementsAreReadOffTheRuns(unittest.TestCase):
 class ImageAndPreimage(unittest.TestCase):
     def test_structural_arrows_shift_the_set(self) -> None:
         bounded = at_least(3) & below(8)
-        self.assertEqual(image(succ(int), bounded), at_least(4) & below(9))
-        self.assertEqual(preimage(succ(int), at_least(4) & below(9)), bounded)
-        self.assertEqual(image(pred(int), at_most(5)), at_most(4) | point(MAX))  # pred(0) wraps
-        self.assertEqual(image(succ(int), point(4)), point(5))
+        self.assertEqual(image(successor(int), bounded), at_least(4) & below(9))
+        self.assertEqual(preimage(successor(int), at_least(4) & below(9)), bounded)
+        self.assertEqual(image(predecessor(int), at_most(5)), at_most(4) | point(MAX))  # predecessor(0) wraps
+        self.assertEqual(image(successor(int), point(4)), point(5))
         self.assertEqual(image(id(int), above(5)), above(5))
-        self.assertEqual(image(succ(int), everything), everything)
+        self.assertEqual(image(successor(int), everything), everything)
 
     def test_the_word_wraps(self) -> None:
         # The successor sends the word's end to 0, so a ray gains the point 0.
-        self.assertEqual(image(succ(int), above(5)), U & ((π > 6) | (π == 0)))
-        self.assertEqual(preimage(succ(int), at_most(0)), point(MAX))
-        self.assertIn(MAX, preimage(succ(int), at_most(0)))
-        self.assertEqual(succ(int)(MAX), 0)
-        self.assertEqual(pred(int)(0), MAX)
+        self.assertEqual(image(successor(int), above(5)), U & ((π > 6) | (π == 0)))
+        self.assertEqual(preimage(successor(int), at_most(0)), point(MAX))
+        self.assertIn(MAX, preimage(successor(int), at_most(0)))
+        self.assertEqual(successor(int)(MAX), 0)
+        self.assertEqual(predecessor(int)(0), MAX)
 
     def test_an_erased_composite_is_refused(self) -> None:
         with self.assertRaises(TypeError):
             image(refl(int), above(5))
         with self.assertRaises(TypeError):
-            image(succ(int) >> succ(int), above(5))
+            image(successor(int) >> successor(int), above(5))
 
 
 if __name__ == "__main__":

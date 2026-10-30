@@ -6,8 +6,8 @@ plus the free functions ``dom`` / ``cod``, not a base class.  The objects are
 the two carriers ``bool`` and ``int``; the primitive arrows on a carrier ``T``
 are ``id(T)`` (identity), ``refl(T)`` (:logic's reflection involution
 ``logic_complement``: ``not`` (¬) on ``bool``, the order-reversing ``~`` on the
-``int`` chain), and the NNO step ``succ(T)`` / ``pred(T)`` (#1001), total and
-saturating at the chain's bounds: ``succ(bool)(True) is True``.
+``int`` chain), and the NNO step ``successor(T)`` / ``predecessor(T)`` (#1001), total and
+saturating at the chain's bounds: ``successor(bool)(True) is True``.
 
     from dedekind.jlt import id, refl, dom, cod
 
@@ -32,11 +32,11 @@ from ._jlt import dom
 from ._jlt import fib_even
 from ._jlt import id
 from ._jlt import is_even
-from ._jlt import pred
+from ._jlt import predecessor
 from ._jlt import refl
-from ._jlt import succ
+from ._jlt import successor
 
 __all__ = [
-    "cod", "count_factors", "dom", "fib_even", "id", "is_even", "pred",
-    "refl", "succ",
+    "cod", "count_factors", "dom", "fib_even", "id", "is_even", "predecessor",
+    "refl", "successor",
 ]

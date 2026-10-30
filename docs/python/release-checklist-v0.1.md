@@ -87,7 +87,7 @@ python -m twine upload dist/*
 2. Install from PyPI in a clean environment.
 3. Verify import succeeds and representative calls work:
    - `dedekind.pst`: `A(u64) & term`, `u64`, `𝔽ₚ`, the truth chains
-   - `dedekind.jlt`: `succ(int)`, `refl(bool)`, composition with `>>`
+   - `dedekind.jlt`: `successor(int)`, `refl(bool)`, composition with `>>`
 4. Confirm CI remains green after release tagging.
 5. Confirm notebook demos still execute successfully against the published package expectations.
 6. Post release note linking:
