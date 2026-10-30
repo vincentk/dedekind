@@ -22,6 +22,8 @@ import dedekind.relational;
 
 using namespace dedekind::category;
 using namespace dedekind::sequences;
+// The sample sequence, not the category's residue class of the same name.
+using dedekind::sequences::is_even;
 using namespace dedekind::sets;
 using namespace dedekind::relational;
 
