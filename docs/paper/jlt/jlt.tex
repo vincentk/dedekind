@@ -677,31 +677,12 @@ template <> struct acting_monoid<Act> {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// associativity: n copies, by squaring
+// the overloads they license
 template <ranges::input_range R,
           typename T = ranges::range_value_t<R>,
           typename Op = plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
-constexpr T concat(R r, Op op = {}) {
-  const size_t n = copies_count(r);
-  if (n == 0) return unit<T>(op);
-  return ranges::fold_left(
-      views::iota(0uz, size_t(bit_width(n))),
-      pair<T, T>{unit<T>(op), copies_value(r)},
-      Square<T, Op>{n, op}).first;
-}
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// the action law: n copies acting, one product
-template <ranges::input_range R,
-          semiregular M, typename H>
-  requires invocable<const H&, M,
-                     ranges::range_value_t<R>>
-constexpr M fold(R r, M v, H h) {
-  return ranges::fold_left(r, v, h);
-}
+constexpr T concat(R r, Op op = {});  // squares
 template <ranges::input_range R,
           semiregular M, typename H>
   requires IsCopies<R> && IsMonoidAction<
@@ -711,30 +692,23 @@ constexpr M fold(R r, M v, H h) {
   return h(v, concat(r, Op{}));
 }
 \end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
+\end{minipage}
 \begin{cpp}
 // the same chain, both laws
 constexpr size_t fibonacci_fast(size_t n) {
-  return fold(n >> chain<size_t>()
-                >> constant<size_t>(fib),
-              V{1, 0}, act)[1];
+  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
 }
-static_assert(
-    fibonacci_fast(90) == fibonacci(90) &&
-    fibonacci_fast(100'000'000) ==
-        14'139'011'350'745'967'675uz);
+static_assert(fibonacci_fast(90) == fibonacci(90) &&
+              fibonacci_fast(100'000'000) == 14'139'011'350'745'967'675uz);
 \end{cpp}
-\end{minipage}
 \caption{Laws composing: two declared laws, two overloads, and a complexity class less.
 Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
-Top right: by associativity, $n$ copies of one value fold by squaring, $M^{2k} = (M^k)^2$, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
-Bottom left: by the action law, $n$ copies acting on $v$ fold to $v$ acted on by their product, $\mathit{act}(v, M^n)$.
-Bottom right: resolution picks each overload, and the two compose.
+Top right: the overloads they license, each beside a plain one of the same signature, on \cppinline{IsCopies}, $n$ copies of one value.
+By associativity, $n$ copies fold by squaring, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
+By the action law, $n$ copies acting on $v$ fold to $\mathit{act}(v, M^n)$.
+Bottom: resolution picks each overload, and the two compose.
 $10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
-\cppinline{IsCopies}, a range of $n$ copies of one value whose $n$ and value are known without walking it, is met by \cppinline{n >> chain<size_t>() >> constant(x)} and by the standard's \cppinline{views::repeat(x, n)}.
-Each overload has the plain one's signature and a stronger constraint, so resolution prefers it.
-\cppinline{concat}, \cppinline{fold}, \cppinline{IsCopies}, \cppinline{IsMonoidAction}, the binary method's step \cppinline{Square} and \cppinline{acting_monoid} are the library's; \cppinline{M} and \cppinline{Act}, the type of \cppinline{act}, are the test's.}
+The overloads, \cppinline{IsCopies} and the certificates are the library's.}
 \label{lst:laws}
 \end{listing}
 
@@ -851,17 +825,13 @@ define i64 @fibonacci_10() {
 \caption{Partial evaluation: Figure~\ref{fig:arrows}'s bottom edge on one program.
 Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
 Top right: the function at four lengths, evaluated at compile time.
-Middle: the function desugared and translated (Section~\ref{sec:translation}), rewritten by fusion with $n$ free, and its value at $10$.
-With $n$ free the fold over $n$ stays, and the matrices multiply out to $(a, b) \mapsto (a + b, a)$.
-Bottom left: the LLVM IR Clang~23 emits at \texttt{-O2 -fno-unroll-loops}, with $n$ known only at run time.
-It is the rewritten term's loop, read back as a function in the middle panel after Appel~\cite{appel1998ssa}.
-Bottom right: with $10$ given, the code is the value, $55$, as the static assertion and the System~F term say.}
+Middle: the function desugared and translated (Section~\ref{sec:translation}), rewritten with $n$ free, and its value at $10$.
+Bottom left: the LLVM IR Clang~23 emits at \texttt{-O2 -fno-unroll-loops}, $n$ known at run time, the middle panel's loop.
+Bottom right: with $10$ given, the code is the value, $55$.}
 \label{lst:desugar}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
-The parting that matters for a fold is the step limit: $10^8$ copies of Fibonacci's matrix are refused at compile time with Listing~\ref{lst:rule3}'s fold alone, and are 27 steps with Listing~\ref{lst:laws}'s overloads beside it, which resolution picks.
-At run time the plain fold is a loop, Listing~\ref{lst:desugar}'s, and the optimiser does not find the squaring on its own.
 
 \begin{table}[htbp]
 \centering
@@ -895,13 +865,9 @@ They are the compiler's to set: raised, the refused fold of $10^8$ copies compil
 Undefined behaviour runs the other way: constant evaluation refuses it, and at run time nothing is guaranteed (Section~\ref{sec:limits}).
 
 \paragraph{The same laws license parallelism.}
-Parallelism is modelled here from the algebra, by which problems can be split at all, not from the hardware.
-\cppinline{std::reduce} may regroup and reorder the operands it folds, so its result is determined only for an operation that is associative and commutative, laws that \cppinline{IsMonoid} and \cppinline{IsCommutativeMonoid} declare.
-Its parallel policies further ask that the operation introduce no data race, which Rule~1 gives by construction.
-So a parallel \cppinline{concat} is one more overload, under \cppinline{IsCommutativeMonoid} and for a forward range, which the parallel policies require, calling \cppinline{std::reduce} with \cppinline{std::execution::par}, and its threads stay inside it.
-The laws say when the split is correct, not when it pays: a thread costs more than a step of a fold, only enough work repays it, and that is the run time's to measure.
-The shortcut is a run-time one: the overloads that take a policy are not \cppinline{constexpr}, so keeping the compile-time fold beside it needs \cppinline{if consteval}, the last row of Table~\ref{tab:binding}.
-And \cppinline{double} under \cppinline{+}, which no shape certifies (Section~\ref{sec:limits}), is the operation whose parallel sum changes from run to run.
+\cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
+A parallel \cppinline{concat} is then one more overload, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
+The laws say when the split is correct, not when it pays.
 
 \paragraph{A branch on the binding time desugars to its compile-time branch.}
 \cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
