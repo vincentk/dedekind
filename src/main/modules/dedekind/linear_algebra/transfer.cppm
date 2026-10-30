@@ -707,9 +707,9 @@ using PDagger = TransposeF<bool, 4>;               // the dagger functor
 using PMatMult =
     typename dedekind::algebra::semiring_ops<PMat>::mult;  // Mat(𝔹)'s ⊗
 
-// (1) the transpose is a certified dagger (an involution) on Mat(𝔹):
-static_assert(dedekind::category::IsDagger<PDagger, PMat>,
-              "transpose is a dagger: Aᵀᵀ = A.");
+// (1) the transpose is a dagger on Mat(𝔹), whose ∧ commutes:
+static_assert(dedekind::category::IsDagger<PDagger, PMat, PMatMult>,
+              "transpose is a dagger: Aᵀᵀ = A and (AB)ᵀ = BᵀAᵀ.");
 
 // (2) the intensional dagger (converse R°) and the extensional one (Aᵀ) agree
 //     once materialised --- ONE dagger, two spellings:

@@ -14,6 +14,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::invoke_result_t: the image of a ring map
 
 export module dedekind.algebra:ring;
 
@@ -296,56 +297,31 @@ concept HasSemiringOperators = requires(T a, T b) {
 
 /**
  * @concept IsRingHomomorphism
- * @brief A callable φ that sends `Source` to `Target` with additive
- *        and multiplicative preservation:
+ * @brief A callable φ from @c Source to @c Target that carries the ring
+ *        structure: @f$\varphi(a + b) = \varphi(a) + \varphi(b)@f$,
+ *        @f$\varphi(a b) = \varphi(a) \varphi(b)@f$, @f$\varphi(0) = 0@f$
+ *        and @f$\varphi(1) = 1@f$ (Lang, @e Algebra, §II.1).
  *
- *   φ(a + b) == φ(a) + φ(b)      additive preservation
- *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
- *
- *  The concept checks the STRUCTURAL shape of the claim:
- *   - `Source` and `Target` both have the literal ring operator
- *     surface (`HasRingOperators`),
- *   - `φ(a)` is well-typed and returns `Target`,
- *   - both preservation expressions are well-formed (yield `bool`).
- *
- *  Preservation of distinguished identities (φ(0) = 0, φ(1) = 1) is NOT
- *  encoded structurally here: `HasRingOperators` does not expose
- *  identity elements, so the concept cannot reach them. Unital /
- *  identity laws, when needed, must be checked by stricter concepts or
- *  on concrete probe values (cf. `dedekind.linear_algebra:embeddings`
- *  for the ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
- *  `identity_matrix2x2_v` are asserted at specific instances).
- *
- *  The semantic LAW --- that each `==` returns `true` for all inputs ---
- *  is a value-level claim, witnessed per instance via `static_assert`
- *  on concrete probes. A concept cannot encode a universally-quantified
- *  runtime property directly; this is the conventional shape witness.
- *
- *  A strict categorical `IsRingHomomorphism` would additionally witness
- *  identity preservation and require the strict axiom-hook tower. No
- *  such strict version is exported yet because the carrier-level hooks
- *  are not generally populated on machine-backed carriers.
- *
- *  Renamed from `IsRingLikeHomomorphism` under the #394 retire-Like
- *  sweep; body now uses `HasRingOperators` directly.
+ * @details Two monoid homomorphisms, the category's
+ * @c IsMonoidHomomorphism for @c ⊕ and for @c ⊗, the operations each ring
+ * registers on @c semiring_ops: the laws on every pair are
+ * the declared certificate @c category::is_homomorphism, the laws at the
+ * units are computed.  A callable, not an arrow, so a function object with
+ * no @c Domain qualifies.  @tparam Phi the map.  @tparam Source
+ * @tparam Target the rings.
  */
-// FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
-// `IsSemiringHomomorphism` specialisations alongside once there are
-// concrete call sites that need them (e.g. embedding modular groups
-// into symmetric groups, or tropical-semiring homomorphisms).
 export template <typename Phi, typename Source, typename Target>
 concept IsRingHomomorphism =
     HasRingOperators<Source> && HasRingOperators<Target> &&
-    requires(const Phi& phi, Source a, Source b) {
-      { phi(a) } -> std::same_as<Target>;
-      { phi(a + b) == (phi(a) + phi(b)) } -> std::same_as<bool>;
-      { phi(a * b) == (phi(a) * phi(b)) } -> std::same_as<bool>;
-    };
-// This concept encodes additive and multiplicative preservation only.
-// It does not structurally require or witness preservation of identities
-// (0 or 1), because `HasRingOperators` does not expose identity elements.
-// Unital / identity laws, when needed, must be witnessed by stricter
-// concepts or on concrete probe values.
+    std::same_as<std::remove_cvref_t<std::invoke_result_t<const Phi&,
+                                                         const Source&>>,
+                 Target> &&
+    dedekind::category::IsMonoidHomomorphism<
+        Phi, Source, typename semiring_ops<Source>::add,
+        typename semiring_ops<Target>::add> &&
+    dedekind::category::IsMonoidHomomorphism<
+        Phi, Source, typename semiring_ops<Source>::mult,
+        typename semiring_ops<Target>::mult>;
 
 /** @section ring__Formal_Verification */
 

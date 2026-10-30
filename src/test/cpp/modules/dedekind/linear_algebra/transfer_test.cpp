@@ -201,8 +201,8 @@ TEST_CASE(
   const Mat id2 = mk(true, false, false, true);   // the identity
   const Mat shear = mk(true, true, false, true);  // NOT a permutation
 
-  SECTION("transpose is a certified dagger (an involution)") {
-    CHECK(cat::IsDagger<Dag, Mat>);
+  SECTION("transpose is a dagger: an involution that reverses products") {
+    CHECK(cat::IsDagger<Dag, Mat, Mult>);
     CHECK(Dag{}(swap) == swap);           // the swap is symmetric: sᵀ = s
     CHECK(Dag{}(Dag{}(shear)) == shear);  // Aᵀᵀ = A
   }

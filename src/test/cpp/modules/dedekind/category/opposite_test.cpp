@@ -1,8 +1,9 @@
 /**
  * @file opposite_test.cpp
  * @brief The opposite operation, an involution on operations (#1104): its
- *        laws read backwards, and a left action folded along a walk as a
- *        right action of the opposite monoid.
+ *        laws read backwards, a left action folded along a walk as a right
+ *        action of the opposite monoid, and a dagger as an involution that is
+ *        a homomorphism into the opposite.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -53,6 +54,9 @@ template <>  // g(f(x)) = (g ∘ f)(x): along the walk, the opposite product
 struct acting_monoid<opposite_witness::Apply> {
   using type = Opposite<opposite_witness::Compose>;
 };
+template <>  // -(a + b) = -a + -b, modulo the word
+struct is_homomorphism<std::negate<std::size_t>, std::size_t,
+                       std::plus<std::size_t>> : std::true_type {};
 }  // namespace dedekind::category
 
 namespace opposite_witness {
@@ -84,6 +88,20 @@ static_assert(IsMonoidAction<Apply, size_t, Affine> &&
               fold(walk, size_t{3}, Apply{}) == 7 &&
               fold(std::views::repeat(next, 100'000'000uz), size_t{0},
                    Apply{}) == 100'000'000);
+
+// A dagger is an involution that reverses the operation.  Negation on the
+// counts is a homomorphism of +, which commutes, so it is one into the
+// opposite as well, and a dagger; the unit comes along, -0 = 0.  It is no
+// homomorphism of *: (-a)(-b) = ab.
+using dedekind::category::IsAntiHomomorphism;
+using dedekind::category::IsDagger;
+using dedekind::category::IsMonoidHomomorphism;
+using Negate = std::negate<size_t>;
+static_assert(IsMonoidHomomorphism<Negate, size_t, std::plus<size_t>> &&
+              IsAntiHomomorphism<Negate, size_t, std::plus<size_t>> &&
+              IsDagger<Negate, size_t, std::plus<size_t>> &&
+              !IsDagger<Negate, size_t, std::multiplies<size_t>> &&
+              !IsDagger<std::bit_not<size_t>, size_t, std::plus<size_t>>);
 }  // namespace opposite_witness
 
 TEST_CASE("Opposite: a left action folded along a walk",

@@ -821,11 +821,11 @@ inline constexpr bool is_monotone_v<
     true;
 }  // namespace dedekind::category
 
-namespace dedekind::algebra {
+namespace dedekind::category {
 /** @brief ℤ ↪ ℚ preserves @f$+,\times,0,1@f$ — the field-of-fractions ring
  *  embedding, between two @b strict-total algebras: ℤ is @c category::IsRing
  *  (saturating totality, @c :cardinality) and ℚ is @c category::IsField (exact
- *  totality, registered in this partition).  So @c is_homomorphism_v here is a
+ *  totality, registered in this partition).  So the declarations here make a
  *  fully-certified ring homomorphism, not merely an operational declaration.
  *
  *  @b Boundary behaviour (#680, resolved): ℚ has @b no sentinels.  ℕ/ℤ
@@ -839,10 +839,12 @@ namespace dedekind::algebra {
  *  rejection --- not saturation --- is the coherent fix.  The finite fragment
  *  is unaffected and still gcd-normalises at compile time. */
 template <>
-inline constexpr bool
-    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>> =
-        true;
-}  // namespace dedekind::algebra
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, dedekind::numbers::default_integer, std::plus<dedekind::numbers::default_integer>,
+                       std::plus<dedekind::numbers::Rational<dedekind::numbers::default_integer>>> : std::true_type {};
+template <>
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ_)>, dedekind::numbers::default_integer, std::multiplies<dedekind::numbers::default_integer>,
+                       std::multiplies<dedekind::numbers::Rational<dedekind::numbers::default_integer>>> : std::true_type {};
+}  // namespace dedekind::category
 
 namespace dedekind::numbers {
 
@@ -991,7 +993,7 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
   using machine_type = dedekind::numbers::Rational<Z>;
 };
 
-// embed_ℤ_ℚ monicity / IsEmbeddingFunctor / is_homomorphism_v
+// embed_ℤ_ℚ monicity / IsEmbeddingFunctor / is_homomorphism
 // registrations removed under ℚ-retarget chiselling — the arrow
 // itself was removed (machine-layer ℕ → ℤ scaffolding).  Restoring
 // on the new ℤ carrier (SignedCardinality) lands as a follow-up.

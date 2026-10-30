@@ -835,14 +835,16 @@ inline constexpr bool
         true;
 }  // namespace dedekind::category
 
-namespace dedekind::algebra {
+namespace dedekind::category {
 // The coat-hanger S-leg ℝ ↪ ℂ is a ring homomorphism (r ↦ (r,0) preserves
-// +,×,0,1) — backed by the computed witnesses below.
+// + and ×; 0 and 1 are computed) — backed by the computed witnesses below.
 template <>
-inline constexpr bool
-    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>> =
-        true;
-}  // namespace dedekind::algebra
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>, dedekind::numbers::QuadraticReal<2>, std::plus<dedekind::numbers::QuadraticReal<2>>,
+                       std::plus<dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<2>>>> : std::true_type {};
+template <>
+struct is_homomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>, dedekind::numbers::QuadraticReal<2>, std::multiplies<dedekind::numbers::QuadraticReal<2>>,
+                       std::multiplies<dedekind::numbers::Complex<dedekind::numbers::QuadraticReal<2>>>> : std::true_type {};
+}  // namespace dedekind::category
 
 namespace dedekind::numbers {
 

@@ -1326,6 +1326,55 @@ inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");
 
+/**
+ * @brief The homomorphism law of a map @c F on the carrier @c T, declared:
+ *        @f$f(a \odot b) = f(a) \circledast f(b)@f$, @c Op on @c T and
+ *        @c Op2 on the codomain, a homomorphism of magmas (Bourbaki,
+ *        @e Algebra I, §I.1.1).  A certificate, false where none is declared:
+ *        the law is an equation on every pair, so it is declared and
+ *        witnessed by computation at the declaration, as @c is_monic_arrow_v.
+ *        A class template, so that a family of maps declares it once across
+ *        modules; keyed like @c is_involutive<F, T>, a bare callable naming
+ *        its carrier.
+ *  @tparam F the map.  @tparam T its carrier.  @tparam Op the operation on
+ *  @c T.  @tparam Op2 the operation on the codomain.
+ */
+export template <typename F, typename T, typename Op, typename Op2 = Op>
+struct is_homomorphism : std::false_type {};
+/** @brief Value form of @c is_homomorphism. */
+export template <typename F, typename T, typename Op, typename Op2 = Op>
+inline constexpr bool is_homomorphism_v = is_homomorphism<F, T, Op, Op2>::value;
+
+/** @concept IsMagmaHomomorphism
+ *  @brief A map on @c T declared to carry @c Op to @c Op2:
+ *  @f$f(a \odot b) = f(a) \circledast f(b)@f$.  @tparam F the map.
+ *  @tparam T its carrier.  @tparam Op @tparam Op2 the operations. */
+export template <typename F, typename T, typename Op, typename Op2 = Op>
+concept IsMagmaHomomorphism =
+    std::invocable<const F&, const T&> &&
+    is_homomorphism_v<std::remove_cvref_t<F>, T, std::remove_cvref_t<Op>,
+                      std::remove_cvref_t<Op2>>;
+
+namespace detail_morphism {
+/** @brief The carrier a map on @c T lands in. */
+template <typename F, typename T>
+using image_t = std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>;
+}  // namespace detail_morphism
+
+/** @concept IsMonoidHomomorphism
+ *  @brief A homomorphism of magmas that carries the unit to the unit,
+ *  @f$f(e) = e'@f$: declared on every pair, computed at the one unit, so a
+ *  map that is not a @c constexpr function object stays out.  @tparam F the
+ *  map.  @tparam T its carrier.  @tparam Op @tparam Op2 the operations. */
+export template <typename F, typename T, typename Op, typename Op2 = Op>
+concept IsMonoidHomomorphism =
+    IsMagmaHomomorphism<F, T, Op, Op2> &&
+    std::default_initializable<std::remove_cvref_t<F>> && requires {
+      requires std::remove_cvref_t<F>{}(unit<T>(std::remove_cvref_t<Op>{})) ==
+                   unit<detail_morphism::image_t<F, T>>(
+                       std::remove_cvref_t<Op2>{});
+    };
+
 // The retract / iso-enabling surface (IsoRetract, the blanket iso retract, and
 // the IsRetractableArrow concept) was extracted to the @c :iso partition, which
 // imports @c :morphism.  @c :morphism keeps the basic arrow / factorisation

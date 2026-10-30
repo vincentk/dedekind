@@ -202,16 +202,46 @@ struct DualToMatrix2x2Hom {
   }
 };
 
-static_assert(dedekind::algebra::IsRingHomomorphism<
-                  ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>,
-              "ℂ ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
-              "four preservation laws above pin its value-level content.");
-
-static_assert(dedekind::algebra::IsRingHomomorphism<DualToMatrix2x2Hom,
-                                                    Dual<Rat>, Matrix2x2V<Rat>>,
-              "𝔻 ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
-              "four preservation laws above pin its value-level content.");
-
 }  // namespace detail
 
 }  // namespace dedekind::linear_algebra
+
+namespace dedekind::category {
+// The two embeddings preserve + and ×, declared here on the strength of the
+// preservation witnesses above; 0 and 1 are computed by the concept.
+template <>
+struct is_homomorphism<dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
+                       dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
+                       std::plus<dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
+                       std::plus<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
+    : std::true_type {};
+template <>
+struct is_homomorphism<dedekind::linear_algebra::detail::ComplexToMatrix2x2Hom,
+                       dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>,
+                       std::multiplies<dedekind::numbers::Complex<dedekind::linear_algebra::detail::Rat>>,
+                       std::multiplies<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
+    : std::true_type {};
+template <>
+struct is_homomorphism<dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
+                       dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
+                       std::plus<dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
+                       std::plus<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
+    : std::true_type {};
+template <>
+struct is_homomorphism<dedekind::linear_algebra::detail::DualToMatrix2x2Hom,
+                       dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>,
+                       std::multiplies<dedekind::analysis::Dual<dedekind::linear_algebra::detail::Rat>>,
+                       std::multiplies<dedekind::linear_algebra::Matrix2x2V<dedekind::linear_algebra::detail::Rat>>>
+    : std::true_type {};
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra::detail {
+static_assert(dedekind::algebra::IsRingHomomorphism<
+                  ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>,
+              "ℂ ↪ M₂(ℚ) is a ring homomorphism: + and × declared on the "
+              "witnesses above, 0 and 1 computed.");
+static_assert(dedekind::algebra::IsRingHomomorphism<DualToMatrix2x2Hom,
+                                                    Dual<Rat>, Matrix2x2V<Rat>>,
+              "𝔻 ↪ M₂(ℚ) is a ring homomorphism: + and × declared on the "
+              "witnesses above, 0 and 1 computed.");
+}  // namespace dedekind::linear_algebra::detail

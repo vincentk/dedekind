@@ -638,6 +638,25 @@ struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   }
 };
 
+/** @brief The units of @c M₂(T): the zero matrix for @c +, the identity for
+ *  @c ×, what a ring homomorphism into it carries @c 0 and @c 1 to. */
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
+                  std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
+  using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
+  static constexpr value_type value =
+      dedekind::linear_algebra::zero_matrix2x2_v<T>;
+};
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
+                  std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> {
+  using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
+  static constexpr value_type value =
+      dedekind::linear_algebra::identity_matrix2x2_v<T>;
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra {

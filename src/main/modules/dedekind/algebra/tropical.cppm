@@ -28,6 +28,7 @@ module;
 export module dedekind.algebra:tropical;
 
 import dedekind.category; // trait registry + IsSemiring, is_idempotent_v
+import :universal;        // semiring_ops: the seam the tropical carrier specialises
 
 namespace dedekind::algebra {
 
@@ -148,33 +149,12 @@ export template <typename S, typename Add, typename Mult>
 concept IsTropical = dedekind::category::IsSemiring<S, Add, Mult> &&
                      dedekind::category::idempotent<S>(Add{});
 
-/**
- * @brief Canonical semiring operations of a carrier, so combinators can
- *        default their @c Add / @c Mult without a call site spelling them.
- *        The @b default (this primary) is the ordinary ring @c (+, ×), which is
- *        correct for any carrier whose native operators @b are its semiring
- * ops; carriers whose ops differ @b specialize (the burden of proof sits at the
- * implementation site): @c Tropical → @c (⊕ = TropicalPlus, ⊗ = +),
- *        @c bool → @c (∨, ∧) --- @c bool must NOT take the default (@c bool @c
- * +
- *        @c bool promotes to @c int).  This single defaulted seam replaces the
- *        old detection(empty-primary)/resolution(@c semiring_ops_of) split.
- */
-export template <typename S>
-struct semiring_ops {
-  using add = std::plus<S>;
-  using mult = std::multiplies<S>;
-};
-
+/** @brief The tropical semiring's operations, @c (⊕ = TropicalPlus, ⊗ = +):
+ *  its own, not the ring's, registered on @c :universal's @c semiring_ops. */
 template <typename T, bool M>
 struct semiring_ops<Tropical<T, M>> {
   using add = TropicalPlus;
   using mult = std::plus<Tropical<T, M>>;
-};
-template <>
-struct semiring_ops<bool> {
-  using add = std::logical_or<bool>;
-  using mult = std::logical_and<bool>;
 };
 
 // Cross-partition invariant: the tropical carrier is a certified dioid over an

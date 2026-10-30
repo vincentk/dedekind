@@ -20,7 +20,7 @@
  * lands in a genuine, inhabited field, so the homomorphism and injectivity laws
  * are @b run at compile time (@c embed(a+b)==embed(a)+embed(b), @c embed
  * injective) rather than declared on faith.  The opt-in
- * @c is_homomorphism_v / @c is_monic_arrow_v registrations below are backed,
+ * @c is_homomorphism / @c is_monic_arrow_v registrations below are backed,
  * one-for-one, by the static_asserts in @c real_bridge__Formal_Verification.
  */
 
@@ -32,7 +32,7 @@ module;
 
 export module dedekind.numbers:real_bridge;
 
-import dedekind.algebra; // EmbedsAsSubalgebra, IsHomomorphism, is_homomorphism_v
+import dedekind.algebra; // EmbedsAsSubalgebra, IsHomomorphism
 import dedekind.category;   // IsArrow, IsMonicArrow, is_monic_arrow_v, IsSet
 import dedekind.relational; // graph(f): the arrow's graph Γ (reified relation)
 import :rational;           // Rational<default_integer> — the ℚ carrier
@@ -77,12 +77,16 @@ export inline constexpr EmbedRationalToReal<> embed_ℚ_ℝ{};
 // real_bridge__Formal_Verification section below (the audit trail): the
 // declaration is honest exactly because the law it asserts is run there.
 // ---------------------------------------------------------------------------
-namespace dedekind::algebra {
-/** @brief S-leg is structure-preserving (witness: preserves +,×,0,1). */
+namespace dedekind::category {
+/** @brief S-leg is structure-preserving (witness: preserves + and ×; 0 and 1
+ *  are computed). */
 template <typename I>
-inline constexpr bool
-    is_homomorphism_v<dedekind::numbers::EmbedRationalToReal<I>> = true;
-}  // namespace dedekind::algebra
+struct is_homomorphism<dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>,
+                       std::plus<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>> : std::true_type {};
+template <typename I>
+struct is_homomorphism<dedekind::numbers::EmbedRationalToReal<I>, dedekind::numbers::Rational<I>, std::multiplies<dedekind::numbers::Rational<I>>,
+                       std::multiplies<dedekind::numbers::QuadraticReal<2, dedekind::numbers::Rational<I>>>> : std::true_type {};
+}  // namespace dedekind::category
 
 namespace dedekind::category {
 /** @brief S-leg is monic (witness: @f$a\neq b\Rightarrow embed(a)\neq
