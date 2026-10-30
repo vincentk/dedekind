@@ -1848,51 +1848,53 @@ export constexpr SignedCardinality operator*(const SignedCardinality& a,
   return a * lift_cardinality_to_signed(b);
 }
 
-/**
- * @concept IsRingIntegral
- * @brief Carrier types that admit integer-range arithmetic semantics.
- *
- * @details Generalises @c std::integral to also recognise the project's variant
- * ℕ-/ℤ-proxy carriers (@c Cardinality, @c SignedCardinality) and their bounded
- * @c ExtensionalCardinal / @c SignedExtensionalCardinal cousins.  The concept
- * names "carriers that read as an integer-magnitude domain for cardinality
- * counting" --- the integer-range reading --- @b without claiming closure under
- * arithmetic, additive inverses, or strict ring laws (a @b shape concept,
- * sibling of @c HasRingOperators / @c IsRing).
- *
- * Raw floating-point carriers (@c float / @c double) are @b not admitted:
- * their abstract range is uncountable and IEEE arithmetic rounds.  The finite
- * floats @c 𝕃<F> are excluded for a different reason: they form a finite set
- * of dyadic rationals, but they are not integral and claim only a lattice
- * reduct, no arithmetic.
- *
- * @note Lives in @c :sets:cardinality --- the canonical cardinality /
- * enumerability home --- since it depends only on @c std::integral and the
- * cardinal carriers above.  It was previously (mis)housed in
- * @c :order:halfspace; relocated here (#878) as that partition sheds its
- * accreted non-order concerns.
- */
-namespace detail_isringintegral {
-template <typename>
-struct is_signed_extensional_cardinal : std::false_type {};
-template <typename S>
-struct is_signed_extensional_cardinal<SignedExtensionalCardinal<S>>
-    : std::true_type {};
-template <typename>
-struct is_extensional_cardinal : std::false_type {};
-template <typename W>
-struct is_extensional_cardinal<ExtensionalCardinal<W>> : std::true_type {};
-}  // namespace detail_isringintegral
+/** @brief The NNO's step on the extensional cardinals, the wrapping ring
+ *  @f$\mathbb{Z}/2^w@f$: @c n + 1 and @c n - 1 modulo the word, as on the
+ *  word itself.  @param n a cardinal.  @return its successor. */
+export template <IsWrappingWord W>
+constexpr ExtensionalCardinal<W> successor(
+    const ExtensionalCardinal<W>& n) noexcept {
+  return n + ExtensionalCardinal<W>{W{1}};
+}
+/** @param n a cardinal.  @return its predecessor, modulo the word. */
+export template <IsWrappingWord W>
+constexpr ExtensionalCardinal<W> predecessor(
+    const ExtensionalCardinal<W>& n) noexcept {
+  return n - ExtensionalCardinal<W>{W{1}};
+}
+/** @param n a signed cardinal.  @return its successor, modulo the word. */
+export template <typename S>
+constexpr SignedExtensionalCardinal<S> successor(
+    const SignedExtensionalCardinal<S>& n) noexcept {
+  return n + SignedExtensionalCardinal<S>{1};
+}
+/** @param n a signed cardinal.  @return its predecessor, modulo the word. */
+export template <typename S>
+constexpr SignedExtensionalCardinal<S> predecessor(
+    const SignedExtensionalCardinal<S>& n) noexcept {
+  return n - SignedExtensionalCardinal<S>{1};
+}
+}  // namespace dedekind::sets
 
-export template <typename T>
-concept IsRingIntegral =
-    std::integral<std::remove_cvref_t<T>> ||
-    std::same_as<std::remove_cvref_t<T>, Cardinality> ||
-    std::same_as<std::remove_cvref_t<T>, SignedCardinality> ||
-    detail_isringintegral::is_signed_extensional_cardinal<
-        std::remove_cvref_t<T>>::value ||
-    detail_isringintegral::is_extensional_cardinal<
-        std::remove_cvref_t<T>>::value;
+// The cardinals read as integer magnitudes: registered with @c :nno's
+// @c IsRingIntegral, which refines the NNO's step.
+namespace dedekind::category {
+template <>
+struct is_ring_integral<dedekind::sets::Cardinality> : std::true_type {};
+template <>
+struct is_ring_integral<dedekind::sets::SignedCardinality> : std::true_type {};
+template <typename W>
+struct is_ring_integral<dedekind::sets::ExtensionalCardinal<W>>
+    : std::true_type {};
+template <typename S>
+struct is_ring_integral<dedekind::sets::SignedExtensionalCardinal<S>>
+    : std::true_type {};
+}  // namespace dedekind::category
+
+namespace dedekind::sets {
+/** @brief @c :nno's @c IsRingIntegral, under the name this module exported
+ *  before it moved there. */
+export using dedekind::category::IsRingIntegral;
 
 // Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
 static_assert(IsRingIntegral<int>);
