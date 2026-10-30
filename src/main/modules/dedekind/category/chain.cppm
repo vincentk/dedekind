@@ -14,6 +14,7 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::fold_left: the witnesses' folds
 #include <concepts>
 #include <cstddef>
 #include <functional>  // std::invoke
