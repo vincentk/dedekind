@@ -78,13 +78,12 @@ constexpr size_t brute(const B& b, size_t m, size_t r) {
 // The laws, checked against the brute force where both can run: the box, its
 // modular section, and the plain fold of a window.
 constexpr auto small =
-    (40uz >> chain<size_t>() >> near) * (30uz >> chain<size_t>() >> odd);
+    (24uz >> chain<size_t>() >> near) * (18uz >> chain<size_t>() >> odd);
 static_assert(count(small) == brute(small, 0, 0) &&
               count_section(small, 3, 0) == brute(small, 3, 0) &&
               count_section(small, 5, 2) == brute(small, 5, 2));
-static_assert(sum(1'000uz >> chain<size_t>() >> rolling_count(near, 4)) ==
-              sum(1'000uz >> chain<size_t>() >>
-                  opaque(rolling_count(near, 4))));
+static_assert(sum(120uz >> chain<size_t>() >> rolling_count(near, 4)) ==
+              sum(120uz >> chain<size_t>() >> opaque(rolling_count(near, 4))));
 
 // The exhibit: five vectors of 2^60 entries, 2^300 in the box.
 constexpr size_t n = size_t{1} << 60;

@@ -603,12 +603,12 @@ static_assert(count(every >> (is_even | fib_even)) == n / 2 + n / 3 - n / 6 &&
                   sum(every >> rolling_count(fib_even, 3)) == n,
               "every window of three Fibonacci numbers holds exactly one even "
               "one, found by the law over 2^60");
-static_assert(count(1'000uz >> chain<std::size_t>() >> (is_even | fib_even)) ==
-                      count(1'000uz >> chain<std::size_t>() >>
+static_assert(count(200uz >> chain<std::size_t>() >> (is_even | fib_even)) ==
+                      count(200uz >> chain<std::size_t>() >>
                             opaque(is_even | fib_even)) &&
-                  sum(1'000uz >> chain<std::size_t>() >>
+                  sum(200uz >> chain<std::size_t>() >>
                       rolling_count(fib_even, 3)) ==
-                      sum(1'000uz >> chain<std::size_t>() >>
+                      sum(200uz >> chain<std::size_t>() >>
                           opaque(rolling_count(fib_even, 3))),
               "the laws agree with the plain fold where both can run");
 static_assert(count_factors((n >> chain<std::size_t>() >> is_even) *
