@@ -482,7 +482,7 @@ constexpr auto operator*(const Box<T, K>& x,
 namespace detail_periodic {
 /** @brief Two arrays, one after the other. */
 template <std::size_t A, std::size_t B>
-constexpr std::array<std::size_t, A + B> concat(
+constexpr std::array<std::size_t, A + B> join_arrays(
     const std::array<std::size_t, A>& a, const std::array<std::size_t, B>& b) {
   std::array<std::size_t, A + B> out{};
   std::ranges::copy(a, out.begin());
@@ -495,8 +495,8 @@ constexpr std::array<std::size_t, box_legs<T>::value> counts_of(
     const T& t, const std::array<std::size_t, K>& sides, std::size_t at) {
   if constexpr (box_node<T>::value) {
     using L = typename box_node<T>::left;
-    return concat(counts_of(t.f.r, sides, at),
-                  counts_of(t.f.s, sides, at + box_legs<L>::value));
+    return join_arrays(counts_of(t.f.r, sides, at),
+                       counts_of(t.f.s, sides, at + box_legs<L>::value));
   } else {
     return {count(sides[at] >> chain<std::size_t>() >> t)};
   }
