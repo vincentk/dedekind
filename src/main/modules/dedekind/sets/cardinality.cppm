@@ -1863,13 +1863,13 @@ constexpr ExtensionalCardinal<W> predecessor(
   return n - ExtensionalCardinal<W>{W{1}};
 }
 /** @param n a signed cardinal.  @return its successor, modulo the word. */
-export template <typename S>
+export template <std::integral S>
 constexpr SignedExtensionalCardinal<S> successor(
     const SignedExtensionalCardinal<S>& n) noexcept {
   return n + SignedExtensionalCardinal<S>{1};
 }
 /** @param n a signed cardinal.  @return its predecessor, modulo the word. */
-export template <typename S>
+export template <std::integral S>
 constexpr SignedExtensionalCardinal<S> predecessor(
     const SignedExtensionalCardinal<S>& n) noexcept {
   return n - SignedExtensionalCardinal<S>{1};

@@ -104,7 +104,7 @@ namespace detail_periodic {
 /** @brief The least common multiple of two periods, refused where the word
  *  cannot hold it, which @c std::lcm leaves undefined.  @param a @param b
  *  the periods, positive.  @return their lcm. */
-template <typename N>
+template <IsCountWord N>
 constexpr N checked_lcm(N a, N b) {
   const N g = std::gcd(a, b);
   const N q = static_cast<N>(a / g);
@@ -112,7 +112,7 @@ constexpr N checked_lcm(N a, N b) {
   return static_cast<N>(q * b);
 }
 /** @brief A chain of the counts under an arrow. */
-template <typename N, typename F>
+template <IsCountWord N, IsArrow F>
 using Along = unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
 }  // namespace detail_periodic
 
@@ -414,7 +414,7 @@ template <IsArrow F, typename Step>
 struct Window {
   F f;
   Dom<F> k;
-  template <typename Acc>
+  template <std::semiregular Acc>
   constexpr Acc operator()(Acc acc, Dom<F> j) const {
     return Step{}(acc, f(static_cast<Dom<F>>(k + j)));
   }
@@ -425,8 +425,8 @@ struct Window {
  *  @f$k \mapsto@f$ the step folded over @f$f(k), \ldots, f(k + w - 1)@f$.  A
  *  finite combination of translations, so periodic with the same period.
  *  @tparam F the predicate.  @tparam Step the fold.  @tparam Acc its result. */
-export template <detail_periodic::IsPeriodicPredicate F, typename Step,
-                 typename Acc>
+export template <detail_periodic::IsPeriodicPredicate F, std::semiregular Step,
+                 std::semiregular Acc>
 struct Rolling {
   using Domain = Dom<F>;
   using Codomain = Acc;
@@ -439,15 +439,15 @@ struct Rolling {
   }
 };
 /** @param r the window.  @return the predicate's period. */
-export template <detail_periodic::IsPeriodicPredicate F, typename Step,
-                 typename Acc>
+export template <detail_periodic::IsPeriodicPredicate F, std::semiregular Step,
+                 std::semiregular Acc>
 constexpr Dom<F> period(const Rolling<F, Step, Acc>& r) {
   return period(r.f);
 }
 /** @param r the window.  @return the predicate's extent, less the window; an
  *  empty window reads nothing, so keeps the whole extent. */
-export template <detail_periodic::IsPeriodicPredicate F, typename Step,
-                 typename Acc>
+export template <detail_periodic::IsPeriodicPredicate F, std::semiregular Step,
+                 std::semiregular Acc>
 constexpr Dom<F> extent(const Rolling<F, Step, Acc>& r) {
   const Dom<F> e = extent(r.f);
   if (r.width == 0) return e;
@@ -500,7 +500,7 @@ struct box_legs<Compose<Tensor<A, B>, Both>>
  *  for the box, a residue class for a section.
  *  @tparam T the entry.  @tparam K the number of legs.  @tparam N the counts.
  */
-export template <typename T, std::size_t K, IsCountWord N = std::size_t>
+export template <IsArrow T, std::size_t K, IsCountWord N = std::size_t>
 struct Box {
   T entry;
   std::array<N, K> sides;
@@ -518,7 +518,7 @@ constexpr auto operator*(const detail_periodic::Along<N, F>& a,
 }
 /** @param x an outer product.  @param b one more chain under a predicate.
  *  @return their outer product. */
-export template <typename T, std::size_t K, IsCountWord N, IsArrow G>
+export template <IsArrow T, std::size_t K, IsCountWord N, IsArrow G>
   requires std::same_as<Cod<G>, bool>
 constexpr auto operator*(const Box<T, K, N>& x,
                          const detail_periodic::Along<N, G>& b) {
@@ -542,7 +542,7 @@ constexpr std::array<N, A + B> join_arrays(const std::array<N, A>& a,
   return out;
 }
 /** @brief Each leg's count, the legs read left to right from @c at. */
-template <typename T, std::size_t K, IsCountWord N>
+template <IsArrow T, std::size_t K, IsCountWord N>
 constexpr std::array<N, box_legs<T>::value> counts_of(
     const T& t, const std::array<N, K>& sides, std::size_t at) {
   if constexpr (box_node<T>::value) {
@@ -554,7 +554,7 @@ constexpr std::array<N, box_legs<T>::value> counts_of(
   }
 }
 /** @brief One residue's count on a leg, appended to its histogram. */
-template <typename T, IsCountWord N>
+template <IsArrow T, IsCountWord N>
 struct Residue {
   T t;
   N n;
@@ -567,7 +567,7 @@ struct Residue {
 };
 /** @brief Each leg's histogram over the residues modulo @c m, the legs read
  *  left to right from @c at. */
-template <typename T, std::size_t K, IsCountWord N>
+template <IsArrow T, std::size_t K, IsCountWord N>
 constexpr std::vector<std::vector<N>> residues_of(const T& t,
                                                   const std::array<N, K>& sides,
                                                   std::size_t at, N m) {
@@ -611,7 +611,7 @@ struct Convolve {
 
 /** @brief Each leg's count over its chain, the factors of the box's count.
  *  @param b the outer product.  @return the counts, leg by leg. */
-export template <typename T, std::size_t K, IsCountWord N>
+export template <IsArrow T, std::size_t K, IsCountWord N>
 constexpr std::array<N, K> count_factors(const Box<T, K, N>& b) {
   return detail_periodic::counts_of(b.entry, b.sides, 0);
 }
@@ -620,7 +620,7 @@ constexpr std::array<N, K> count_factors(const Box<T, K, N>& b) {
  *  tensor against the all-ones covector on each leg.  Exact beyond the word
  *  only as its factors (@c count_factors); this is its residue.
  *  @param b the outer product.  @return the count, modulo the word. */
-export template <typename T, std::size_t K, IsCountWord N>
+export template <IsArrow T, std::size_t K, IsCountWord N>
 constexpr N count(const Box<T, K, N>& b) {
   return std::ranges::fold_left(count_factors(b), N{1}, std::multiplies<N>{});
 }
@@ -630,7 +630,7 @@ constexpr N count(const Box<T, K, N>& b) {
  *  leg, in the counts' semiring.  @param b the outer product.  @param m the
  *  modulus, positive.  @param r the residue.  @return the count, modulo the
  *  word. */
-export template <typename T, std::size_t K, IsCountWord N>
+export template <IsArrow T, std::size_t K, IsCountWord N>
 constexpr N count_section(const Box<T, K, N>& b, std::type_identity_t<N> m,
                           std::type_identity_t<N> r) {
   if (m == 0) detail_periodic::refuse_zero_modulus();
