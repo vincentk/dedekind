@@ -784,50 +784,26 @@ constexpr size_t fibonacci_10() {
 \end{cpp}
 \end{minipage}
 \begin{minted}{text}
-fibonacci = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
-          = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))     -- by fusion, n free
+-- FJlt's leg: the translation into System F, then reduction
+fibonacci    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
+             = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion, n free
 fibonacci 10 ~> 55
--- the IR's loop below, read back as a function
-fibonacci n = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
+-- the compiler's leg: @fibonacci's IR at -O2 -fno-unroll-loops, read back
+fibonacci n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
   where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
 \end{minted}
-\begin{minipage}[t]{0.6\linewidth}
-\begin{minted}{llvm}
-define i64 @fibonacci(i64 %n) {
-  %z = icmp eq i64 %n, 0
-  br i1 %z, label %exit, label %one
-one:
-  %m = add i64 %n, -1
-  %o = icmp eq i64 %m, 0
-  br i1 %o, label %exit, label %loop
-loop:
-  %a = phi i64 [ %s, %loop ], [ 1, %one ]
-  %b = phi i64 [ %a, %loop ], [ 1, %one ]
-  %k = phi i64 [ %k1, %loop ], [ %m, %one ]
-  %k1 = add i64 %k, -1
-  %s = add i64 %b, %a
-  %e = icmp eq i64 %k1, 0
-  br i1 %e, label %exit, label %loop
-exit:
-  %r = phi i64 [ 0, %entry ], [ 1, %one ],
-               [ %a, %loop ]
-  ret i64 %r
-}
-\end{minted}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.38\linewidth}
 \begin{minted}{llvm}
 define i64 @fibonacci_10() {
   ret i64 55
 }
 \end{minted}
-\end{minipage}
-\caption{Partial evaluation: Figure~\ref{fig:arrows}'s bottom edge on one program.
+\caption{Partial evaluation along both legs of Figure~\ref{fig:arrows}'s bottom edge, on one program.
 Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
 Top right: the function at four lengths, evaluated at compile time.
-Middle: the function desugared and translated (Section~\ref{sec:translation}), rewritten with $n$ free, and its value at $10$.
-Bottom left: the LLVM IR Clang~23 emits at \texttt{-O2 -fno-unroll-loops}, $n$ known at run time, the middle panel's loop.
-Bottom right: with $10$ given, the code is the value, $55$.}
+Middle: FJlt's leg, the function translated (Section~\ref{sec:translation}) and rewritten with $n$ free, and its value at $10$.
+Then the compiler's leg: the IR Clang~23 emits with $n$ known at run time, read back as a function after Appel, its blocks local functions and its $\phi$-nodes their parameters (Appendix~\ref{app:fjlt:ssa}).
+The two legs agree: the same iteration over $(a + b, a)$, its first step peeled, an equivalence checked by inspection.
+Bottom: with $10$ given, the IR is the value, $55$.}
 \label{lst:desugar}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
