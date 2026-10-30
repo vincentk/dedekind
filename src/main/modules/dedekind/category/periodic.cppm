@@ -5,7 +5,7 @@
  *        @c f is periodic with period @c p when @f$f(k + p) = f(k)@f$, a law
  *        declared at a generator and inferred at a composite, so that a count
  *        along a chain of any length is @c (n div p) periods and a remainder
- *        (the Jlt paper's flagship, #1104).
+ *        (the Jlt paper's tensor exhibit, #1104).
  *
  * @details Three readings of one idea, kept apart by name.  @c :total's
  *          @c is_periodic<T, Op> (@c IsPeriodic) says an @b operation wraps,

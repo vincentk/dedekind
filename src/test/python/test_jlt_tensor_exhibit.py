@@ -1,15 +1,15 @@
-"""The flagship of the Jlt paper (#1104), a first attempt, from Python.
+"""The tensor exhibit of the Jlt paper (#1104), a first attempt, from Python.
 
 Five periodic vectors of 2**60 entries, their outer product of 2**300 entries,
 and its count over the box of all indices: by distributivity the product of the
 factors' counts, exact in Python's integers, with its residue mod 2**64.  The
-same exhibit as the C++ test ``flagship_test.cpp``; it must answer at once.
+same exhibit as the C++ test ``tensor_exhibit_test.cpp``; it must answer at once.
 """
 
 import time
 import unittest
 
-try:  # the flagship's bindings follow the core's arrows (#1104)
+try:  # the exhibit's bindings follow the core's arrows (#1104)
     from dedekind.jlt import count, fib, is_even  # noqa: F401
 except ImportError:
     count = fib = is_even = None
@@ -17,10 +17,10 @@ except ImportError:
 N = 2**60
 
 
-class JltFlagshipTest(unittest.TestCase):
+class JltTensorExhibitTest(unittest.TestCase):
     # Python binds handles to the core's arrows, never a second copy of their
     # laws, so the test waits for those handles (#1104).
-    @unittest.skipIf(count is None, "the flagship's bindings are not in yet")
+    @unittest.skipIf(count is None, "the exhibit's bindings are not in yet")
     def test_the_box_counts_at_once(self) -> None:
         evens, odds, fibs = is_even(N), ~is_even(N), fib(N)
         start = time.perf_counter()

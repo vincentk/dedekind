@@ -1,6 +1,6 @@
 /**
- * @file flagship_test.cpp
- * @brief The flagship of the Jlt paper (#1104), in progress: periodic
+ * @file tensor_exhibit_test.cpp
+ * @brief The tensor exhibit of the Jlt paper (#1104), in progress: periodic
  *        vectors built from the library's arrows, the laws inferred through
  *        the combinators, their outer product beyond 2^128 entries, and its
  *        counts, over the box, over a window and over a modular section, all
@@ -20,7 +20,7 @@
 
 import dedekind.category;
 
-namespace flagship {
+namespace tensor_exhibit {
 using dedekind::category::chain;
 using dedekind::category::count;
 using dedekind::category::count_factors;
@@ -114,13 +114,13 @@ static_assert(count_section(evens* odds, 2, 0) == 0 &&
                   count_section(evens * odds, 2, 1) == count(evens * odds),
               "an even and an odd index sum to an odd one: the section "
               "i + j ≡ 0 (mod 2) is empty, and i + j ≡ 1 (mod 2) is the box");
-}  // namespace flagship
+}  // namespace tensor_exhibit
 
-TEST_CASE("Flagship: a count over a vector of 2^60 entries, at run time",
-          "[category][flagship]") {
+TEST_CASE("Tensor exhibit: a count over a vector of 2^60 entries, at run time",
+          "[category][tensor_exhibit]") {
   using std::size_t;
   size_t lo = 60;
   const size_t n = size_t{1} << lo;
-  CHECK(flagship::count(n >> dedekind::category::chain<size_t>() >>
+  CHECK(tensor_exhibit::count(n >> dedekind::category::chain<size_t>() >>
                         dedekind::category::is_even) == n / 2);
 }
