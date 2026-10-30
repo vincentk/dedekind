@@ -526,6 +526,19 @@ struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
                      dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
 };
 
+/** @brief @f$S^N@f$, entrywise, is a semimodule over any semiring @c S: the
+ *         free semimodule of rank @c N, its laws the semiring's, entry by
+ *         entry.  One certificate for both orientations. */
+template <typename S, std::size_t N, typename O>
+  requires IsSemiring<S, typename dedekind::algebra::semiring_ops<S>::add,
+                      typename dedekind::algebra::semiring_ops<S>::mult>
+struct is_linear_action<
+    dedekind::linear_algebra::SemimoduleVec<S, N, O>, S,
+    std::plus<dedekind::linear_algebra::SemimoduleVec<S, N, O>>,
+    typename dedekind::algebra::semiring_ops<S>::add,
+    typename dedekind::algebra::semiring_ops<S>::mult, std::multiplies<>>
+    : std::true_type {};
+
 /** @brief The @c ⊕-identity of a @ref dedekind::linear_algebra::SemimoduleVec
  *         (a @ref Ket or @ref Bra) is the zero vector (every entry the base
  *         @c ⊕-identity) --- what makes it an @c IsCommutativeMonoid, hence an

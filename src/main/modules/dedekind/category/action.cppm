@@ -183,17 +183,31 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
 /**
  * @brief The semimodule laws of an action @c Act : S x M -> M, declared:
  *        1 m = m, 0 m = 0, (s + t) m = s m + t m, (s t) m = s (t m) and
- *        s (m + n) = s m + s n.  For scalars of type @c size_t, the integers
- *        modulo 2^64, the laws make n m the n-fold sum of m for every n.
- *        FIXME(#959): defaults to the signature check @c IsLinearAction, which
- *        asserts no law; a declared @c false default needs a certificate at
- *        every carrier the matrix columns and vector spaces reach.  Until
- *        then @c :total's @c concat cannot key its one-action rung on
- *        @c IsSemimodule and asks the narrower @c counting_action instead.
+ *        s (m + n) = s m + s n.  A certificate, false where none is
+ *        declared: a carrier with the right signatures is not thereby a
+ *        semimodule.  For scalars of type @c size_t, the integers modulo
+ *        2^64, the laws make n m the n-fold sum of m for every n.
+ *  @tparam M the module.  @tparam S the scalars.  @tparam AddM @tparam AddS
+ *  @tparam MultS the operations.  @tparam Act the action.
  */
 export template <typename M, typename S, typename AddM, typename AddS,
                  typename MultS, typename Act>
-inline constexpr bool is_linear_action_v = IsLinearAction<S, M, Act, AddS>;
+struct is_linear_action : std::false_type {};
+/** @brief Value form of @c is_linear_action. */
+export template <typename M, typename S, typename AddM, typename AddS,
+                 typename MultS, typename Act>
+inline constexpr bool is_linear_action_v =
+    is_linear_action<M, S, AddM, AddS, MultS, Act>::value;
+/** @brief The unsigned integers over themselves, the ring of integers modulo
+ *  a power of two, by its own multiplication: a module, so a semimodule. */
+template <std::unsigned_integral M>
+  requires(!std::same_as<M, bool>)
+struct is_linear_action<M, M, std::plus<M>, std::plus<M>, std::multiplies<M>,
+                        std::multiplies<>> : std::true_type {};
+template <std::unsigned_integral M>
+  requires(!std::same_as<M, bool>)
+struct is_linear_action<M, M, std::plus<M>, std::plus<M>, std::multiplies<M>,
+                        std::multiplies<M>> : std::true_type {};
 
 /**
  * @concept IsSemimodule

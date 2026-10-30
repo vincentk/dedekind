@@ -182,6 +182,20 @@ export struct Bit2U64Action {
 
 }  // namespace dedekind::algebra
 
+// The semimodule laws, certified: 𝔽64 over its prime subfield 𝔽2, and
+// uint64_t under XOR, 𝔽2^64, each a vector space and so a semimodule.
+namespace dedekind::category {
+template <>
+struct is_linear_action<dedekind::algebra::𝔽64, bool,
+                        std::plus<dedekind::algebra::𝔽64>, std::bit_xor<bool>,
+                        std::bit_and<bool>, std::multiplies<>>
+    : std::true_type {};
+template <>
+struct is_linear_action<std::uint64_t, bool, std::bit_xor<std::uint64_t>,
+                        std::bit_xor<bool>, std::bit_and<bool>,
+                        dedekind::algebra::Bit2U64Action> : std::true_type {};
+}  // namespace dedekind::category
+
 namespace dedekind::algebra {
 
 /** @section vectorspace__Formal_Verification */
