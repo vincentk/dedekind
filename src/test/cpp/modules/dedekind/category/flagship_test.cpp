@@ -28,6 +28,7 @@ using dedekind::category::StepCoalgebra;
 using dedekind::category::unfold_view;
 using std::size_t;
 using dedekind::category::operator>>;
+using dedekind::category::operator!;  // ADL does not reach it from here
 
 // A vector in the numpy sense: n >> chain<size_t>() >> f, the values f(k) for
 // k below n, never stored.
