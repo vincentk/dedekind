@@ -4,6 +4,10 @@
 % Build from this directory: lualatex -shell-escape -halt-on-error jlt.tex
 \input{preamble-jlt}
 \addbibresource{../references.bib}
+% Codd's note is commentary for the other paper; this one prints none of it.
+\DeclareSourcemap{\maps[datatype=bibtex]{\map{
+  \step[fieldsource=entrykey, match=\regexp{\Acodd1970relational\Z}, final]
+  \step[fieldset=note, null]}}}
 \graphicspath{{../figures/}}
 
 \paperdetails{
@@ -67,6 +71,7 @@ The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976di
 The case is usually made in a language built around it.
 This paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
+The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, after Tarski's calculus of relations~\cite{tarski1941calculus}.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
 Listing~\ref{lst:desugar} is a case: the chain, the arrow and the matrix arithmetic compile away to the Fibonacci recurrence.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
@@ -937,6 +942,7 @@ A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did f
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
 Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
+The same laws are those a query optimiser applies to relational algebra~\cite{codd1970relational}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 
 \acks
