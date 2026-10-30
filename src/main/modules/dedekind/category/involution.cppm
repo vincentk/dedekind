@@ -309,12 +309,22 @@ struct unit_trait<T, detail_involution::Reversed<Op>> : unit_trait<T, Op> {};
  *  operations. */
 template <typename F, typename T, typename Op, std::semiregular Op2>
   requires std::invocable<const F&, const T&> &&
-           is_commutative_v<
-               std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>,
-               Op2> &&
+           is_commutative_v<detail_morphism::image_t<F, T>, Op2> &&
            is_homomorphism_v<F, T, Op, Op2>
 struct is_homomorphism<F, T, Op, detail_involution::Reversed<Op2>>
     : std::true_type {};
+/** @brief The arrow wrapping a callable reverses an operation where the
+ *  callable does, declared or derived: the meeting of the two rules above,
+ *  more specialised than either, so that they never both apply.
+ *  @tparam A @tparam B the arrow's ends.  @tparam Impl the callable.
+ *  @tparam Op @tparam Op2 the operations. */
+template <typename A, typename B, typename Impl, typename Op,
+          std::semiregular Op2>
+  requires std::same_as<detail_morphism::image_t<Impl, A>, B>
+struct is_homomorphism<Morphism<A, B, Impl>, A, Op,
+                       detail_involution::Reversed<Op2>>
+    : std::bool_constant<
+          is_homomorphism_v<Impl, A, Op, detail_involution::Reversed<Op2>>> {};
 
 /** @concept IsAntiHomomorphism
  *  @brief A map on @c T that reverses @c Op, @f$f(a \cdot b) = f(b) \cdot

@@ -104,6 +104,10 @@ static_assert(IsMonoidHomomorphism<Negate, size_t, std::plus<size_t>> &&
               IsDagger<Negate, size_t, std::plus<size_t>> &&
               !IsDagger<Negate, size_t, std::multiplies<size_t>> &&
               !IsDagger<std::bit_not<size_t>, size_t, std::plus<size_t>>);
+// Lifted to an arrow, endo<size_t>(-), it keeps both certificates.
+using NegateArrow = decltype(dedekind::category::endo<size_t>(Negate{}));
+static_assert(IsDagger<NegateArrow, size_t, std::plus<size_t>> &&
+              IsMonoidHomomorphism<NegateArrow, size_t, std::plus<size_t>>);
 }  // namespace opposite_witness
 
 TEST_CASE("Opposite: a left action folded along a walk",

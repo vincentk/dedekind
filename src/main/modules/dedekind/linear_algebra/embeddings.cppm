@@ -252,6 +252,11 @@ static_assert(dedekind::algebra::IsRingHomomorphism<
                   ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>,
               "ℂ ↪ M₂(ℚ) is a ring homomorphism: + and × declared on the "
               "witnesses above, 0 and 1 computed.");
+// M₂(ℚ) is a ring: its additive inverse is computed, through the exported
+// inverse arrow of its additive group.
+static_assert(
+    dedekind::algebra::Inverse<Matrix2x2V<Rat>, std::plus<Matrix2x2V<Rat>>>{}(
+        as_matrix2x2(z_probe)) == -as_matrix2x2(z_probe));
 static_assert(dedekind::algebra::IsRingHomomorphism<DualToMatrix2x2Hom,
                                                     Dual<Rat>, Matrix2x2V<Rat>>,
               "𝔻 ↪ M₂(ℚ) is a ring homomorphism: + and × declared on the "

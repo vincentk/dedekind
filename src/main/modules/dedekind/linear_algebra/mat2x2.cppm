@@ -543,6 +543,16 @@ inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
 export template <typename T>
 inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
 
+/** @brief The additive inverse, @f$-A@f$ entry by entry: the hook
+ *  @c category::inverse_v reads, found by argument-dependent lookup.
+ *  @param a the matrix.  @return @f$-A@f$. */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
+                                std::plus<Matrix2x2V<T>>) {
+  return -a;
+}
+
 /** @section matrix__Functorial_Hub
  *
  *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
@@ -638,23 +648,27 @@ struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   }
 };
 
-/** @brief The units of @c M₂(T): the zero matrix for @c +, the identity for
- *  @c ×, what a ring homomorphism into it carries @c 0 and @c 1 to. */
+/** @brief The units of @c M₂(T), built from the scalars' own: the zero
+ *  matrix for @c +, the identity for @c ×, what a ring homomorphism into it
+ *  carries @c 0 and @c 1 to. */
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+           IsPointed<T, std::plus<T>>
 struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
                   std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
   using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
-  static constexpr value_type value =
-      dedekind::linear_algebra::zero_matrix2x2_v<T>;
+  static constexpr T o = unit<T>(std::plus<T>{});
+  static constexpr value_type value{o, o, o, o};
 };
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+           IsPointed<T, std::plus<T>> && IsPointed<T, std::multiplies<T>>
 struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
                   std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> {
   using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
-  static constexpr value_type value =
-      dedekind::linear_algebra::identity_matrix2x2_v<T>;
+  static constexpr T o = unit<T>(std::plus<T>{});
+  static constexpr T e = unit<T>(std::multiplies<T>{});
+  static constexpr value_type value{e, o, o, e};
 };
 
 namespace detail_mat2x2 {
@@ -682,11 +696,6 @@ inline constexpr bool
                       std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>,
                       std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> =
         true;
-template <detail_mat2x2::HasRingEntries T>
-struct inverse_trait<dedekind::linear_algebra::Matrix2x2V<T>,
-                     std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
-  static constexpr bool exists = true;  // -A, entry by entry
-};
 template <detail_mat2x2::HasRingEntries T>
 struct is_total_by_construction<
     dedekind::linear_algebra::Matrix2x2V<T>,

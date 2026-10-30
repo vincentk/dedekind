@@ -1342,6 +1342,31 @@ static_assert(IsEpicArrow<Identity<int>>,
  */
 export template <typename F, typename T, typename Op, typename Op2 = Op>
 struct is_homomorphism : std::false_type {};
+
+namespace detail_morphism {
+/** @brief The carrier a map on @c T lands in: an arrow's declared codomain,
+ *  a bare callable's result.  @tparam F the map.  @tparam T its carrier. */
+template <typename F, typename T>
+struct image_of {
+  using type = std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>;
+};
+template <IsArrow F, typename T>
+struct image_of<F, T> {
+  using type = Cod<F>;
+};
+template <typename F, typename T>
+using image_t = typename image_of<std::remove_cvref_t<F>, T>::type;
+}  // namespace detail_morphism
+
+/** @brief The arrow wrapping a callable carries an operation where the
+ *  callable does, when it keeps the callable's carrier: @c endo<A>(f) is a
+ *  homomorphism when @c f is, with no second declaration.
+ *  @tparam A @tparam B the arrow's ends.  @tparam Impl the callable.
+ *  @tparam Op @tparam Op2 the operations. */
+template <typename A, typename B, typename Impl, typename Op, typename Op2>
+  requires std::same_as<detail_morphism::image_t<Impl, A>, B>
+struct is_homomorphism<Morphism<A, B, Impl>, A, Op, Op2>
+    : std::bool_constant<is_homomorphism<Impl, A, Op, Op2>::value> {};
 /** @brief Value form of @c is_homomorphism. */
 export template <typename F, typename T, typename Op, typename Op2 = Op>
 inline constexpr bool is_homomorphism_v = is_homomorphism<F, T, Op, Op2>::value;
@@ -1355,12 +1380,6 @@ concept IsMagmaHomomorphism =
     std::invocable<const F&, const T&> &&
     is_homomorphism_v<std::remove_cvref_t<F>, T, std::remove_cvref_t<Op>,
                       std::remove_cvref_t<Op2>>;
-
-namespace detail_morphism {
-/** @brief The carrier a map on @c T lands in. */
-template <typename F, typename T>
-using image_t = std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>;
-}  // namespace detail_morphism
 
 /** @concept IsMonoidHomomorphism
  *  @brief A homomorphism of magmas that carries the unit to the unit,
