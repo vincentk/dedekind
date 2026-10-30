@@ -11,17 +11,14 @@
  */
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <limits>
 #include <optional>
 #include <ranges>
 #include <string>
-#include <string_view>
 #include <utility>
 
 import dedekind.category;
@@ -246,12 +243,9 @@ static_assert(!IsCommutativeMonoid<size_t, std::multiplies<size_t>>);
 // their only structure.  The definitions are the tree's and the facts are
 // checked here; a law is asked on the arrow's value (is_monic(f) reads what
 // IsMonicArrow<F> reads), a composite's law derived by the engine in :posetal.
-using dedekind::category::Cod;
 using dedekind::category::Constant;
 using dedekind::category::constant;
 using dedekind::category::Copairing;
-using dedekind::category::Dom;
-using dedekind::category::endo;
 using dedekind::category::id;
 using dedekind::category::Identity;
 using dedekind::category::is_antitone;
@@ -262,7 +256,6 @@ using dedekind::category::is_involution;
 using dedekind::category::is_iso;
 using dedekind::category::is_monic;
 using dedekind::category::is_monotone;
-using dedekind::category::IsArrow;
 using dedekind::category::Pairing;
 using dedekind::category::Π;
 using dedekind::category::operator!;
@@ -508,327 +501,6 @@ constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
 static_assert(sum_n(100) == 4950);
 }  // namespace listing3
 
-// Listing 4's machinery: the fold in its previous spelling, a family of
-// terminators out<T, Op> and concat(chain, f) with the arrow beside the
-// chain, kept until Listing 4 is ported to the arrows above.
-using dedekind::category::chain;
-using dedekind::category::chain_t;
-// The step, a family: a count's predecessor, a word's init.
-template <typename T>
-constexpr T pred(T) = delete;
-template <std::integral T>
-constexpr T pred(T x) {
-  return static_cast<T>(x - 1);
-}
-template <>
-constexpr std::string pred<std::string>(std::string s) {
-  return s.substr(0, s.size() - 1);
-}
-
-// The terminator: the monoid's unit, which the chain descends to and does not
-// include; a count below it has an empty chain.
-template <typename T, typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && std::totally_ordered<T> && requires(const T x) {
-    { pred(x) } -> std::same_as<T>;
-  }
-struct out {
-  constexpr std::optional<T> operator()(T x) const {
-    return x <= unit<T>(Op{}) ? std::nullopt : std::optional<T>{pred(x)};
-  }
-};
-
-// A count: an element whose chain the fold can descend.
-template <typename T, typename Op = std::plus<T>>
-concept IsCount = requires(const T x) {
-  { out<T, Op>{}(x) } -> std::same_as<std::optional<T>>;
-  { chain(x, out<T, Op>{}) } -> std::same_as<chain_t<T, out<T, Op>>>;
-};
-// The algebra of the fold: a, then f(k), for an arrow from the counts into
-// the carrier.
-template <typename T, typename Op, typename N, IsArrow F>
-  requires IsMonoid<T, Op> && std::same_as<Dom<F>, N> && std::same_as<Cod<F>, T>
-struct Step {
-  F f;
-  constexpr T operator()(T a, N k) const { return Op{}(a, f(k)); }
-};
-// The counts N and the carrier T coincide when a count is an element of the
-// carrier, Figure 2's bootstrap; a physical array parts them.
-template <typename T, typename Op = std::plus<T>, typename N, typename OpN,
-          IsArrow F>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> && std::same_as<Dom<F>, N> &&
-           std::same_as<Cod<F>, T>
-constexpr T concat(chain_t<N, out<N, OpN>> ns, F f) {
-  return std::ranges::fold_left(ns, unit<T>(Op{}), Step<T, Op, N, F>{f});
-}
-
-// Listing 3's fold at a constant arrow, spelled out: what Listing 4 and the
-// algebra below are held to.
-template <
-    typename T, typename Op = std::plus<T>, typename N = T,
-    typename OpN = std::conditional_t<std::same_as<N, T>, Op, std::plus<N>>>
-  requires IsCount<N, OpN> && IsMonoid<T, Op>
-constexpr T copies(T x, N n) {
-  return std::ranges::fold_left(
-      chain(n, out<N, OpN>{}), unit<T>(Op{}),
-      Step<T, Op, N, Constant<N, T>>{Constant<N, T>{x}});
-}
-static_assert(copies<size_t>(7, 10uz) == 70);
-static_assert(copies<std::string>("ab"s, 3uz) == "ababab");
-
-// Listing 4: the constant arrow specialises the fold.  Every step folds in
-// the same x, so the fold is as many copies of x as the chain is long, and
-// copies compose by squaring: the binary method over the bits of the count,
-// log n steps for any monoid (Knuth, TAOCP 2, 4.6.3; Haskell's stimes).
-template <std::integral N>
-struct Bits {  // the bits of n, low to high: a coalgebra, the chain of halves
-  constexpr std::optional<std::pair<bool, N>> operator()(N n) const {
-    return n <= 0 ? std::nullopt
-                  : std::optional<std::pair<bool, N>>{
-                        {n % 2 == 1, static_cast<N>(n / 2)}};
-  }
-};
-template <typename T, typename Op>
-  requires IsMonoid<T, Op>
-struct Square {  // the algebra: a set bit folds the base in; the base squares
-  constexpr std::pair<T, T> operator()(std::pair<T, T> s, bool bit) const {
-    return {bit ? Op{}(s.first, s.second) : s.first, Op{}(s.second, s.second)};
-  }
-};
-template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
-  requires IsCount<N, OpN> && IsMonoid<T, Op> && std::integral<N>
-constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
-  const N u = unit<N>(OpN{});  // the chain's length: 0 at or below the unit
-  const N n = static_cast<N>(std::max(ns.seed(), u) - u);
-  return std::ranges::fold_left(dedekind::category::unfold(n, Bits<N>{}),
-                                std::pair<T, T>{unit<T>(Op{}), f(n)},
-                                Square<T, Op>{})
-      .first;
-}
-// The counts and the carrier part: three copies of a word, by squaring.
-static_assert(concat<std::string>(chain(3uz, out<size_t>{}),
-                                  constant<size_t>("ab"s)) == "ababab");
-
-static_assert(concat<size_t>(chain(10uz, out<size_t>{}),
-                             constant<size_t>(7uz)) == 70);
-static_assert(concat<size_t, std::multiplies<size_t>>(
-                  chain(10uz, out<size_t, std::multiplies<size_t>>{}),
-                  constant<size_t>(2uz)) == 512);
-static_assert(concat<bool, std::logical_or<bool>>(
-    chain(true, out<bool, std::logical_or<bool>>{}), constant<bool>(true)));
-// A seed at or below the count's unit is the empty chain, whose fold is the
-// unit: under multiplication the unit is 1, and 0 must not wrap to a length.
-static_assert(concat<size_t, std::multiplies<size_t>>(
-                  chain(0uz, out<size_t, std::multiplies<size_t>>{}),
-                  constant<size_t>(2uz)) == 1 &&
-              concat<size_t, std::multiplies<size_t>>(
-                  chain(1uz, out<size_t, std::multiplies<size_t>>{}),
-                  constant<size_t>(2uz)) == 1);
-// Section 6: at compile time only a law shortens a fold: 10^8 copies are
-// refused with Listing 3 alone (the step limit) and are 27 steps here.
-static_assert(concat<size_t>(chain(100'000'000uz, out<size_t>{}),
-                             constant<size_t>(3uz)) == 300'000'000);
-// Listing 4, right: the copies with the count known only at run time.
-constexpr size_t copies_n(size_t x, size_t n) {
-  return concat<size_t>(chain(n, out<size_t>{}), constant<size_t>(x));
-}
-static_assert(copies_n(7, 100) == 700);
-
-// Listing 4, second: the identity along the chain is monotone, so into a join
-// semilattice, an idempotent commutative monoid such as size_t under max, the
-// fold is the chain's top: one step.  Max is an operation type of ours, so
-// its certificates may follow the shapes (Section 7).
-template <std::totally_ordered T>
-struct Max {
-  constexpr T operator()(T a, T b) const { return a < b ? b : a; }
-};
-template <typename T, typename Op>
-constexpr bool idempotent(Op) = delete;
-template <std::unsigned_integral T>
-constexpr T unit(Max<T>) {
-  return 0;
-}
-template <std::unsigned_integral T>
-constexpr bool associative(Max<T>) {
-  return true;
-}
-template <std::unsigned_integral T>
-constexpr bool commutative(Max<T>) {
-  return true;
-}
-template <std::unsigned_integral T>
-constexpr bool idempotent(Max<T>) {
-  return true;
-}
-template <typename T, typename Op>
-concept IsSemilattice = IsCommutativeMonoid<T, Op> && idempotent<T>(Op{});
-static_assert(IsSemilattice<size_t, Max<size_t>> &&
-              !IsSemilattice<size_t, std::plus<size_t>>);
-// The join is the order's own, a <= b iff Op(a, b) == b, so that a chain
-// descending in T's order is descending in the semilattice's: bitwise or is a
-// semilattice on size_t whose order is not the chain's (2 | 1 = 3).  The
-// tree's name for the certified shape is IsCertifiedOrderJoinSemilattice.
-template <typename T, typename Op>
-constexpr bool join_of_order(Op) = delete;
-template <std::unsigned_integral T>
-constexpr bool join_of_order(Max<T>) {
-  return true;
-}
-template <typename T, typename Op>
-concept IsOrderJoinSemilattice =
-    IsSemilattice<T, Op> && std::totally_ordered<T> && join_of_order<T>(Op{});
-static_assert(IsOrderJoinSemilattice<size_t, Max<size_t>> &&
-              !IsOrderJoinSemilattice<size_t, std::bit_or<size_t>>);
-
-// The fold's Op and the chain's OpN are named apart and required equal, so
-// that a Max chain folded under the default, +, stays the fold.
-template <typename T, typename Op = std::plus<T>, typename OpN>
-  requires IsCount<T, OpN> && std::same_as<Op, OpN> &&
-           IsOrderJoinSemilattice<T, Op>
-constexpr T concat(chain_t<T, out<T, OpN>> ns, Identity<T>) {
-  return out<T, OpN>{}(ns.seed()).value_or(unit<T>(Op{}));  // the top
-}
-static_assert(concat<size_t>(chain(10uz, out<size_t, Max<size_t>>{}),
-                             Identity<size_t>{}) == 45);
-static_assert(concat<size_t, Max<size_t>>(chain(10uz,
-                                                out<size_t, Max<size_t>>{}),
-                                          Identity<size_t>{}) == 9);
-static_assert(concat<size_t, Max<size_t>>(chain(0uz,
-                                                out<size_t, Max<size_t>>{}),
-                                          Identity<size_t>{}) == 0);
-// The fold spelled out agrees, and the count below the unit folds to it.
-static_assert(std::ranges::fold_left(chain(10uz, out<size_t, Max<size_t>>{}),
-                                     0uz, Max<size_t>{}) == 9);
-// Listing 4, right, second: the top with the count known only at run time.
-constexpr size_t top_n(size_t n) {
-  return concat<size_t, Max<size_t>>(chain(n, out<size_t, Max<size_t>>{}),
-                                     Identity<size_t>{});
-}
-static_assert(top_n(100) == 99);
-
-// Listing 4, third: the arrow is a lookup into a physical array, Figure 2's
-// array itself, along the chain of its length, so the symbolic array is
-// represented by a block of memory and the fold is Listing 2's concat at
-// length K: the chain goes, the memory is walked.
-template <typename T, size_t K>
-struct At {
-  using Domain = size_t;
-  using Codomain = T;
-  std::array<T, K> a;
-  constexpr T operator()(size_t k) const { return a[K - 1 - k]; }  // in order
-};
-template <typename T, typename Op = std::plus<T>, size_t K>
-  requires IsCount<size_t> && IsMonoid<T, Op>
-constexpr T concat(chain_t<size_t, out<size_t>> ns, At<T, K> f) {
-  // The chain of n visits the last n elements, in order; all of them when n
-  // exceeds K, where the lookup itself is out of bounds.
-  return std::ranges::fold_left(f.a | std::views::reverse |
-                                    std::views::take(ns.seed()) |
-                                    std::views::reverse,
-                                unit<T>(Op{}), Op{});
-}
-static_assert(concat<size_t>(chain(4uz, out<size_t>{}),
-                             At<size_t, 4>{{1, 2, 3, 4}}) == 10);
-static_assert(concat<std::string>(chain(3uz, out<size_t>{}),
-                                  At<std::string, 3>{{"a"s, "b"s, "c"s}}) ==
-              "abc");
-static_assert(concat<std::string>(chain(2uz, out<size_t>{}),
-                                  At<std::string, 3>{{"a"s, "b"s, "c"s}}) ==
-              "bc");
-// The fold spelled out agrees: the lookup runs the array in order.
-static_assert(
-    std::ranges::fold_left(
-        chain(3uz, out<size_t>{}), ""s,
-        Step<std::string, std::plus<std::string>, size_t, At<std::string, 3>>{
-            At<std::string, 3>{{"a"s, "b"s, "c"s}}}) == "abc");
-// Listing 4, right, third: the sum over an array read at run time.
-constexpr size_t sum_a(std::array<size_t, 8> a) {
-  return concat<size_t>(chain(8uz, out<size_t>{}), At<size_t, 8>{a});
-}
-static_assert(sum_a({1, 2, 3, 4, 5, 6, 7, 8}) == 36);
-
-// The semimodule, the library's shape with its laws declared and
-// its action n * x.  A certificate vouches for the laws and for the premise
-// that each count n is the sum of as many ones of its semiring as its chain
-// has elements, which the language's arithmetic makes true of size_t and
-// bool.  Scalars of type
-// size_t are the integers modulo 2^64, so the certificate holds for the
-// unsigned carriers, which wrap at a power of two dividing it.
-template <typename M, typename S, typename AddM, typename AddS, typename MultS>
-constexpr bool linear(AddM, AddS, MultS) = delete;
-template <std::unsigned_integral M, std::same_as<size_t> S>
-  requires(!std::same_as<M, bool>)
-constexpr bool linear(std::plus<M>, std::plus<S>, std::multiplies<S>) {
-  return true;
-}
-
-// bool under || over the Boolean semiring: n copies of x are n * x, which is
-// n and x.
-template <>
-constexpr bool linear<bool, bool>(std::logical_or<bool>, std::plus<bool>,
-                                  std::multiplies<bool>) {
-  return true;
-}
-
-// The library's shape (dedekind.category:action), its laws declared and its
-// action the library's default, *, relaxed here: the action's result is up to
-// conversion, since true * true is an int, where the library's IsAction still
-// asks for M exactly (#1099).
-template <typename M, typename S, typename AddM = std::plus<M>,
-          typename AddS = std::plus<S>, typename MultS = std::multiplies<S>>
-concept IsSemimodule =
-    IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    requires(const S s, const M m) {
-      { s * m } -> std::convertible_to<M>;
-    } && linear<M, S>(AddM{}, AddS{}, MultS{});
-
-static_assert(IsSemimodule<size_t, size_t>);
-static_assert(!IsSemimodule<std::string, size_t>);
-// Under * the carrier is no semimodule over size_t: the certificate is for +,
-// so the overload drops out and a power stays a fold.
-static_assert(!IsSemimodule<size_t, size_t, std::multiplies<size_t>>);
-// The count type decides the algebra: bool under || is a semimodule over the
-// Boolean semiring, but not over size_t's counts, where 2^63 + 2^63 copies
-// wrap to none while the copies are true.
-static_assert(IsSemimodule<bool, bool, std::logical_or<bool>>);
-static_assert(!IsSemimodule<bool, size_t, std::logical_or<bool>>);
-// bool is an unsigned integral, but its + saturates: no semimodule over
-// size_t's counts under + either.
-static_assert(!IsSemimodule<bool, size_t>);
-
-// Over a semimodule the copies are one action, n * x; the paper keeps this
-// in the test, where the fold, the binary method and the action are held to
-// agree.
-namespace algebra {
-template <typename T, typename Op = std::plus<T>, typename N, typename OpN>
-  requires IsCount<N, OpN> && IsSemimodule<T, N, Op> && std::integral<N>
-constexpr T concat(chain_t<N, out<N, OpN>> ns, Constant<N, T> f) {
-  const N u = unit<N>(OpN{});
-  const N n = static_cast<N>(std::max(ns.seed(), u) - u);
-  return static_cast<T>(n * f(n));
-}
-}  // namespace algebra
-
-static_assert(copies<size_t>(7, 10uz) ==
-                  concat<size_t>(chain(10uz, out<size_t>{}),
-                                 Constant<size_t>{7}) &&
-              copies<size_t>(7, 10uz) ==
-                  algebra::concat<size_t>(chain(10uz, out<size_t>{}),
-                                          Constant<size_t>{7}));
-static_assert(copies<size_t>(0, 9uz) == 0 && copies<size_t>(7, 0uz) == 0 &&
-              copies<size_t>(SIZE_MAX, 3uz) ==
-                  concat<size_t>(chain(3uz, out<size_t>{}),
-                                 Constant<size_t>{SIZE_MAX}));
-static_assert(copies<bool, std::logical_or<bool>>(true, true) &&
-              copies<bool, std::logical_or<bool>>(true, true) ==
-                  algebra::concat<bool, std::logical_or<bool>>(
-                      chain(true, out<bool, std::logical_or<bool>>{}),
-                      Constant<bool>{true}));
-static_assert(!copies<bool, std::logical_or<bool>>(false, true) &&
-              !concat<bool, std::logical_or<bool>>(
-                  chain(true, out<bool, std::logical_or<bool>>{}),
-                  Constant<bool>{false}));
-static_assert(copies<std::string>("ab"s, "xyz"s) == "ababab");
-
 // Appendix, the search listing: a budget, and running out of it.
 template <typename P>
 concept IsPredicate = std::semiregular<P> && requires(const P p, size_t n) {
@@ -908,20 +580,10 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id<size_t>()(twelve) == 12);
     CHECK(L::listing3::sum_n(twelve) == 66);
     CHECK(L::listing3::fibonacci(twelve) == 144);
-    CHECK(L::copies_n(7, twelve) == 84);
-    CHECK(L::top_n(twelve) == 11);
-    CHECK(L::sum_a({1, 2, 3, 4, 5, 6, 7, twelve}) == 40);
-    CHECK(L::copies<size_t>(7, twelve) == 84);
-    bool yes = true;
-    CHECK(!L::concat<bool, std::logical_or<bool>>(
-        L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
-        L::Identity<bool>{}));
-    CHECK(L::concat<bool, std::logical_or<bool>>(
-        L::chain(yes, L::out<bool, std::logical_or<bool>>{}),
-        L::endo<bool>(std::logical_not<bool>{})));
-    std::string abc = "abc";
-    CHECK(L::concat<std::string>(L::chain(abc, L::out<std::string>{}),
-                                 L::Identity<std::string>{}) == "aba");
+    CHECK(L::listing3::fibonacci_fast(twelve) == 144);
+    CHECK(
+        C::fold(twelve >> C::chain<size_t>() >> C::constant<size_t>(size_t{7}),
+                size_t{0}, std::plus<size_t>{}) == 84);
   }
 
   SECTION("Section 4: a fold over a term, at runtime") {
