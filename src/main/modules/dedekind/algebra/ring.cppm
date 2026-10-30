@@ -315,8 +315,7 @@ concept IsRingHomomorphism =
     dedekind::category::IsArrow<Phi> &&
     std::same_as<dedekind::category::Dom<Phi>, Source> &&
     std::same_as<dedekind::category::Cod<Phi>, Target> &&
-    IsHomomorphism<Phi, semiring_signature<Source>,
-                   semiring_signature<Target>>;
+    IsHomomorphism<Phi, semiring_signature<Source>, semiring_signature<Target>>;
 
 /** @section ring__Formal_Verification */
 
