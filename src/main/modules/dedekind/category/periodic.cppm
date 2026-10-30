@@ -429,7 +429,11 @@ struct box_legs<Compose<Tensor<A, B>, Both>>
 /** @brief The outer product of predicates along chains, @f$T(i_1, \ldots,
  *  i_K) = f_1(i_1) \wedge \cdots \wedge f_K(i_K)@f$ over the box of all
  *  indices, a rank-one tensor never built: its entry is the legs' @c Tensor
- *  followed by the merge, and the box's sides are the chains' lengths.
+ *  followed by the merge, and the box's sides are the chains' lengths.  In
+ *  the pictures of tensor networks (Bridgeman and Chubb, "Hand-waving and
+ *  Interpretive Dance: An Introductory Course on Tensor Networks", J. Phys. A
+ *  50, 2017), each count contracts a leg's index against a covector: all ones
+ *  for the box, a residue class for a section.
  *  @tparam T the entry.  @tparam K the number of legs. */
 export template <typename T, std::size_t K>
 struct Box {
