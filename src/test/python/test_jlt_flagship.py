@@ -9,27 +9,24 @@ same exhibit as the C++ test ``flagship_test.cpp``; it must answer at once.
 import time
 import unittest
 
-from dedekind.jlt import count_factors, fib_even, is_even
+try:  # the flagship's bindings follow the core's arrows (#1104)
+    from dedekind.jlt import count, fib, is_even  # noqa: F401
+except ImportError:
+    count = fib = is_even = None
 
 N = 2**60
 
 
 class JltFlagshipTest(unittest.TestCase):
-    # The outer product is not yet a handle: Vec * Vec is a list, so a third
-    # factor fails.  The first attempt's known gap, to be closed by moving the
-    # flagship's combinators into category and binding them (#1104).
-    @unittest.expectedFailure
+    # Python binds handles to the core's arrows, never a second copy of their
+    # laws, so the test waits for those handles (#1104).
+    @unittest.skipIf(count is None, "the flagship's bindings are not in yet")
     def test_the_box_counts_at_once(self) -> None:
-        evens, odds, fibs = is_even(N), ~is_even(N), fib_even(N)
+        evens, odds, fibs = is_even(N), ~is_even(N), fib(N)
         start = time.perf_counter()
         box = evens * odds * fibs * evens * fibs
-        factors = count_factors(box)
-        exact = 1
-        for f in factors:
-            exact *= f
+        exact = count(box)
         elapsed = time.perf_counter() - start
-        self.assertEqual(
-            factors, [N // 2, N // 2, N // 3 + 1, N // 2, N // 3 + 1])
         self.assertEqual(exact, (N // 2) ** 3 * (N // 3 + 1) ** 2)
         self.assertGreater(exact.bit_length(), 128)  # beyond 128 bits
         self.assertLess(elapsed, 0.1)  # the size of the box costs nothing

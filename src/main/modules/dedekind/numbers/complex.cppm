@@ -900,7 +900,8 @@ struct quotient_algebra_base<dedekind::numbers::Complex<R>> {
 // componentwise addition and R acting on both: a module, so a semimodule,
 // wherever R is a semiring.
 template <dedekind::numbers::IsComplexScalar R>
-  requires IsSemiring<R, std::plus<R>, std::multiplies<R>>
+  requires IsSemiring<R, std::plus<R>, std::multiplies<R>> &&
+           (!std::unsigned_integral<R>)  // as for the dual numbers
 struct is_linear_action<dedekind::numbers::Complex<R>, R,
                         std::plus<dedekind::numbers::Complex<R>>, std::plus<R>,
                         std::multiplies<R>, std::multiplies<>>

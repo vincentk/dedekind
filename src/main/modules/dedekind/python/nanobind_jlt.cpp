@@ -23,16 +23,13 @@
  */
 
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/vector.h>
 
-#include <bit>
 #include <concepts>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 import dedekind.category; // Identity, Successor, Predecessor, the species
 
@@ -240,60 +237,9 @@ void bind_carrier(nb::module_& m, const char* identity_name,
       "cod(f): the codomain object (a type).");
 }
 
-// ── The flagship, a first attempt (#1104) ─────────────────────────────────
-//
-// A periodic vector, erased: its length, its period and one period's values
-// as bits.  The C++ test's vectors are types; a Python handle cannot be a
-// type, so the invariant survives the binding only as data.  The generators
-// and the count are repeated here, which is the first thing to resolve.
-namespace flagship {
-struct Vec {
-  std::uint64_t n;        // the length
-  std::uint64_t period;   // the declared period, at most 64
-  std::uint64_t pattern;  // bit j: the value at j, for j below the period
-};
-constexpr std::uint64_t popcount_below(std::uint64_t pattern, std::uint64_t m) {
-  const std::uint64_t mask =
-      m >= 64 ? ~std::uint64_t{0} : (std::uint64_t{1} << m) - 1;
-  return static_cast<std::uint64_t>(std::popcount(pattern & mask));
-}
-constexpr std::uint64_t count(const Vec& v) {
-  return (v.n / v.period) * popcount_below(v.pattern, v.period) +
-         popcount_below(v.pattern, v.n % v.period);
-}
-constexpr Vec negate(const Vec& v) {
-  return {v.n, v.period, ~v.pattern & ((std::uint64_t{1} << v.period) - 1)};
-}
-}  // namespace flagship
 }  // namespace
 
 NB_MODULE(_jlt, m) {
-  // The flagship's erased vectors, two generators and the outer product.
-  nb::class_<flagship::Vec>(m, "Vec")
-      .def_ro("n", &flagship::Vec::n)
-      .def_ro("period", &flagship::Vec::period)
-      .def("__invert__", &flagship::negate)
-      .def("__mul__", [](const flagship::Vec& a, const flagship::Vec& b) {
-        return std::vector<flagship::Vec>{a, b};
-      });
-  m.def(
-      "is_even", [](std::uint64_t n) { return flagship::Vec{n, 2, 0b01}; },
-      nb::arg("n"), "is_even(n): the parity of the counts below n, period 2.");
-  m.def(
-      "fib_even", [](std::uint64_t n) { return flagship::Vec{n, 3, 0b001}; },
-      nb::arg("n"),
-      "fib_even(n): whether F(k) is even for k below n, Pisano period 3.");
-  m.def(
-      "count_factors",
-      [](const std::vector<flagship::Vec>& box) {
-        std::vector<std::uint64_t> fs;
-        for (const auto& v : box) fs.push_back(flagship::count(v));
-        return fs;
-      },
-      nb::arg("box"),
-      "count_factors(box): the count over a box of an outer product, as the "
-      "factors' counts (distributivity).");
-
   m.doc() =
       "The Jlt arrow DSL (#961): a fluent, point-free calculus of involutive "
       "endomorphisms over two objects, bool and int.  Generators are `id(T)` "

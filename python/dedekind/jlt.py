@@ -27,16 +27,10 @@ is *intensional* and lives on the C++ side; it is vacuous here.  ``id`` /
 # `_jlt` is the exhibit's own private native extension module (dedekind._jlt),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._jlt import cod
-from ._jlt import count_factors
 from ._jlt import dom
-from ._jlt import fib_even
 from ._jlt import id
-from ._jlt import is_even
 from ._jlt import pred
 from ._jlt import refl
 from ._jlt import succ
 
-__all__ = [
-    "cod", "count_factors", "dom", "fib_even", "id", "is_even", "pred",
-    "refl", "succ",
-]
+__all__ = ["cod", "dom", "id", "pred", "refl", "succ"]

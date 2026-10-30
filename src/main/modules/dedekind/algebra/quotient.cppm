@@ -291,10 +291,16 @@ struct construction_base<Q> {
 // The semimodule laws ride the P leg too: a semiring S is a semimodule over
 // itself, and semimodules over S form a variety, closed under products, so a
 // declared finite power of S, acting componentwise, is a semimodule over S.
-template <typename Q, typename AddS, typename MultS>
+// Over the base's own + and *, the operations the product lifts, and no
+// other semiring on the base.
+template <typename Q>
   requires IsProductAlgebra<Q> &&
-           IsSemiring<product_algebra_base_t<Q>, AddS, MultS>
-struct is_linear_action<Q, product_algebra_base_t<Q>, std::plus<Q>, AddS, MultS,
+           IsSemiring<product_algebra_base_t<Q>,
+                      std::plus<product_algebra_base_t<Q>>,
+                      std::multiplies<product_algebra_base_t<Q>>>
+struct is_linear_action<Q, product_algebra_base_t<Q>, std::plus<Q>,
+                        std::plus<product_algebra_base_t<Q>>,
+                        std::multiplies<product_algebra_base_t<Q>>,
                         std::multiplies<>> : std::true_type {};
 
 // ---------------------------------------------------------------------------

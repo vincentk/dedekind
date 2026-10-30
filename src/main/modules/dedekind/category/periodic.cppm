@@ -98,6 +98,18 @@ namespace detail_periodic {
 [[noreturn]] constexpr void refuse_zero_modulus() { std::abort(); }
 /** @brief Refuses a count past the extent of the law it would use. */
 [[noreturn]] constexpr void refuse_beyond_extent() { std::abort(); }
+/** @brief Refuses a period the word cannot hold. */
+[[noreturn]] constexpr void refuse_unrepresentable_period() { std::abort(); }
+/** @brief The least common multiple of two periods, refused where the word
+ *  cannot hold it, which @c std::lcm leaves undefined.  @param a @param b
+ *  the periods, positive.  @return their lcm. */
+template <typename N>
+constexpr N checked_lcm(N a, N b) {
+  const N g = std::gcd(a, b);
+  const N q = static_cast<N>(a / g);
+  if (q > std::numeric_limits<N>::max() / b) refuse_unrepresentable_period();
+  return static_cast<N>(q * b);
+}
 /** @brief A chain of the counts under an arrow. */
 template <typename N, typename F>
 using Along = unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
@@ -146,7 +158,7 @@ struct Double {
   constexpr std::array<N, 2> operator()(std::array<N, 2> p, N i) const {
     const N a = p[0], b = p[1];
     const N c = static_cast<N>(a * ((2 * b + m - a) % m) % m);
-    const N d = static_cast<N>((a * a + b * b) % m);
+    const N d = static_cast<N>((a * a % m + b * b % m) % m);
     return ((k >> (w - 1 - i)) & 1U) != 0
                ? std::array<N, 2>{d, static_cast<N>((c + d) % m)}
                : std::array<N, 2>{c, d};
@@ -258,6 +270,7 @@ constexpr N count(const detail_periodic::Along<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  if (n < p) return detail_periodic::count_below(n, f);  // less than a period
   return static_cast<N>((n / p) * detail_periodic::count_below(p, f) +
                         detail_periodic::count_below(static_cast<N>(n % p), f));
 }
@@ -288,6 +301,7 @@ constexpr N sum(const detail_periodic::Along<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  if (n < p) return detail_periodic::sum_below(n, f);  // less than a period
   return static_cast<N>((n / p) * detail_periodic::sum_below(p, f) +
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
 }
@@ -348,12 +362,12 @@ constexpr Meet<P, Q> operator&(P p, Q q) {
 /** @param j the join.  @return the lcm of its legs' periods. */
 export template <HasPeriod P, HasPeriod Q>
 constexpr Dom<P> period(const Join<P, Q>& j) {
-  return std::lcm(period(j.lhs), period(j.rhs));
+  return detail_periodic::checked_lcm(period(j.lhs), period(j.rhs));
 }
 /** @param m the meet.  @return the lcm of its legs' periods. */
 export template <HasPeriod P, HasPeriod Q>
 constexpr Dom<P> period(const Meet<P, Q>& m) {
-  return std::lcm(period(m.lhs), period(m.rhs));
+  return detail_periodic::checked_lcm(period(m.lhs), period(m.rhs));
 }
 /** @param j the join.  @return the lesser of its legs' extents. */
 export template <HasPeriod P, HasPeriod Q>
@@ -413,11 +427,13 @@ export template <detail_periodic::IsPeriodicPredicate F, typename Step,
 constexpr Dom<F> period(const Rolling<F, Step, Acc>& r) {
   return period(r.f);
 }
-/** @param r the window.  @return the predicate's extent, less the window. */
+/** @param r the window.  @return the predicate's extent, less the window; an
+ *  empty window reads nothing, so keeps the whole extent. */
 export template <detail_periodic::IsPeriodicPredicate F, typename Step,
                  typename Acc>
 constexpr Dom<F> extent(const Rolling<F, Step, Acc>& r) {
   const Dom<F> e = extent(r.f);
+  if (r.width == 0) return e;
   return e >= r.width ? static_cast<Dom<F>>(e - (r.width - 1)) : Dom<F>{0};
 }
 /** @brief How many of @c w consecutive values are true, SQL's

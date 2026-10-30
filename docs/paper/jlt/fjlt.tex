@@ -144,10 +144,10 @@ In \textsc{T-Cata}, $\mu F$ is a term type, the inductive type of the nodes that
 
 \paragraph{Inferred laws.}
 \label{app:fjlt:inferred}
-A law at a construction is entailed, not declared: the law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate.
+A law at a construction is entailed, not declared: the law is a trait call, resolution picks the instance whose context the program entails, and \textsc{E-Law} evaluates its certificate, which must be \texttt{true}.
 Composed, these give a derived rule, the instance rule of the entailment of qualified types~\cite{jones1994qualified}:
 \[
-\textsc{(E-Law-Ctx)}\quad \dfrac{\mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \qquad \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}]}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
+\textsc{(E-Law-Ctx)}\quad \dfrac{\mathit{law}\texttt{<}\overline{\tau}\texttt{>} \text{ resolves to } \forall\overline{\alpha}.\,\overline{Q} \Rightarrow \mathit{law}\texttt{<}\overline{\tau'}\texttt{>} \qquad \overline{\tau} = \overline{\tau'}[\overline{\sigma}/\overline{\alpha}] \qquad \Delta \Vdash \overline{Q}[\overline{\sigma}/\overline{\alpha}] \qquad \mathit{law}\texttt{<}\overline{\tau}\texttt{>} \Downarrow \texttt{true}}{\Delta \Vdash \mathit{law}\texttt{<}\overline{\tau}\texttt{>}}
 \]
 A finite power of a semiring is a semimodule over it so: the library declares the power a product of its base, and one instance, whose context is the base's semiring laws, gives the power's semimodule law, as semimodules over a semiring form a variety, closed under products.
 Each step reads the laws of a term's immediate parts only, so the inference is local~\cite{pierce2000local}, and it ends by the conditions on contexts that end instance search~\cite{sulzmann2007understanding}.

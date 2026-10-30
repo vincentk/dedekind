@@ -382,7 +382,9 @@ struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
 // componentwise addition and F acting on both: a module, so a semimodule,
 // wherever F is a semiring.
 template <typename F>
-  requires std::regular<F> && IsSemiring<F, std::plus<F>, std::multiplies<F>>
+  requires std::regular<F> && IsSemiring<F, std::plus<F>, std::multiplies<F>> &&
+           (!std::unsigned_integral<
+               F>)  // the carrier saturates, the word wraps
 struct is_linear_action<dedekind::analysis::Dual<F>, F,
                         std::plus<dedekind::analysis::Dual<F>>, std::plus<F>,
                         std::multiplies<F>, std::multiplies<>>
