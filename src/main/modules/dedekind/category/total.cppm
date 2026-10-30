@@ -1294,20 +1294,6 @@ constexpr T concat(R r, Op op = {}) {
              detail_concat::Square<T, Op>{n, op})
       .first;
 }
-/** @brief @c concat on @c n copies of one value under an idempotent
- *  operation: the value itself, @f$x \cdot x = x@f$, or the unit for none.
- *  The same signature as the binary method and a stronger constraint, so
- *  resolution prefers it.  Idempotence fixes the counts' action, @f$n \cdot x
- *  = x@f$ for @f$n \geq 1@f$ and the unit for none, so this is the
- *  semimodule rung of @c :action at that action, which leaves idempotent
- *  operations here.  @param r the copies.  @param op the operation. */
-export template <std::ranges::input_range R,
-                 typename T = std::ranges::range_value_t<R>,
-                 typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R> && IsIdempotent<T, Op>
-constexpr T concat(R r, Op op = {}) {
-  return copies_count(r) == 0 ? unit<T>(op) : static_cast<T>(copies_value(r));
-}
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;
 constexpr std::size_t seven = 7;
@@ -1328,8 +1314,7 @@ static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
                   !concat(std::views::repeat(false, std::size_t{0}),
                           std::logical_or<bool>{}),
               "concat folds a range from the unit; on n copies of one value it "
-              "squares, so 10^8 copies are 27 steps, not 10^8, and where the "
-              "operation is idempotent, as on the booleans, one step");
+              "squares, so 10^8 copies are 27 steps, not 10^8");
 }  // namespace detail_concat_witness
 
 }  // namespace dedekind::category

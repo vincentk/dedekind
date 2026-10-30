@@ -63,7 +63,7 @@ namespace opposite_witness {
 using dedekind::category::fold;
 using dedekind::category::IsCommutative;
 using dedekind::category::IsMonoid;
-using dedekind::category::IsMonoidAction;
+using dedekind::category::IsRightAction;
 using dedekind::category::Opposite;
 using Op = Opposite<Compose>;
 
@@ -83,7 +83,7 @@ static_assert(twice * next != next * twice &&
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.
 constexpr std::array<Affine, 2> walk{twice, next};
-static_assert(IsMonoidAction<Apply, size_t, Affine> &&
+static_assert(IsRightAction<Apply, size_t, Affine> &&
               fold(walk, size_t{3}, Apply{}) == Op{}(twice, next)(3) &&
               fold(walk, size_t{3}, Apply{}) == 7 &&
               fold(std::views::repeat(next, 100'000'000uz), size_t{0},

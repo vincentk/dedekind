@@ -96,7 +96,7 @@ class Complex {
   // Explicit scalar action R × Complex<R> → Complex<R> (and the
   // symmetric form), matching Vec2V<T>'s scalar-action pattern.  The
   // implicit-conversion path R → Complex<R>{r, 0} → Complex<R>×Complex<R>
-  // exists, but nested requires-expressions in the IsAction concept
+  // exists, but nested requires-expressions in the IsLeftAction concept
   // don't discover the friend operator* through ADL on the dependent
   // friend, so we expose the action explicitly.
   friend constexpr Complex operator*(const R& s, const Complex& a) {

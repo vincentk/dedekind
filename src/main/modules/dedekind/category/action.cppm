@@ -39,13 +39,18 @@ import :total;
 import :discrete;  // constant: the witness's copies
 import :morphism;  // IsArrow, IsConstantArrow, Cod
 import :chain;     // the counting chain: fold on n copies of one value
-import :species;   // IsIdempotent: what the semimodule rung leaves alone
+import :species;   // IsIdempotent: the counting action by idempotence
 
 namespace dedekind::category {
 
 /**
- * @concept IsAction
- * @brief An Action (S ⟳ M) where S acts on M via its mapping property.
+ * @concept IsLeftAction
+ * @brief The shape of a left action (S ⟳ M), @f$S \times M \to M@f$, scalar
+ *        first, as a module's: its laws are the certificate a concept above
+ *        it reads (@c is_linear_action for a semimodule).  A left action of
+ *        a monoid @f$M@f$ is a right action (@c IsRightAction) of its
+ *        opposite, @c Opposite<Op> (@c :involution), and over a commutative
+ *        monoid the two coincide.
  * @tparam S The scalar/influencer species.
  * @tparam M The acted-on species.
  * @tparam Act External action witness (defaults to `std::multiplies<>`).
@@ -55,7 +60,7 @@ namespace dedekind::category {
  * 2. binary action witness `Act{}(s, m)`
  */
 export template <typename S, typename M, typename Act = std::multiplies<>>
-concept IsAction = requires(S s, M m) {
+concept IsLeftAction = requires(S s, M m) {
   requires(
       requires {
         // Categorical action as an arrow object.
@@ -129,30 +134,75 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename Act = std::multiplies<>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
+    IsLeftAction<S, M, Act> &&
+    is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
 
-/** @brief @c concat on @c n copies of one value where @c (T, Op) is a
- *  semimodule over the counts: one action, @f$n \cdot x@f$, by the
- *  semimodule laws, @f$1 \cdot x = x@f$ and @f$(s + t) \cdot x = s \cdot x + t
- *  \cdot x@f$, which make @f$n \cdot x@f$ the @c n-fold sum.  The same
- *  signature as the binary method of @c :total and a stronger constraint, so
- *  resolution prefers it; an idempotent operation stays with @c :total's
- *  idempotent rung.  @param r the copies.  @param op the operation. */
+/** @brief The counts' action on a monoid @c (T, Op), @f$(n, x) \mapsto
+ *  x^n@f$, the @c n copies of @c x, where its laws give it in one step:
+ *  derived, never declared, and absent where no law gives it, so that the
+ *  binary method of @c :total squares instead.  @tparam T the carrier.
+ *  @tparam Op the operation. */
+export template <typename T, typename Op>
+struct counting_action {};
+/** @brief By the semimodule laws over the counts, @f$1 \cdot x = x@f$ and
+ *  @f$(s + t) \cdot x = s \cdot x + t \cdot x@f$, @f$x^n@f$ is @f$n \cdot
+ *  x@f$, one action.  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, typename Op>
+  requires IsSemimodule<T, std::size_t, Op> && (!IsIdempotent<T, Op>)
+struct counting_action<T, Op> {
+  /** @param n the copies.  @param x the value.  @return @f$n \cdot x@f$. */
+  constexpr T operator()(std::size_t n, const T& x) const {
+    return static_cast<T>(std::multiplies<>{}(n, x));
+  }
+};
+/** @brief By idempotence, @f$x \cdot x = x@f$, @f$x^n@f$ is @c x for
+ *  @f$n \geq 1@f$ and the unit for none: the counts act through the
+ *  Boolean semiring, @f$n \mapsto [n > 0]@f$.  On a semilattice this is a
+ *  semimodule action over the counts; on a band, a monoid that is idempotent
+ *  and not commutative, no semimodule, it is still the powers.  Where both
+ *  laws hold they agree, @f$n \cdot x = x@f$, and this one is taken.
+ *  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, typename Op>
+  requires IsMonoid<T, Op> && IsIdempotent<T, Op>
+struct counting_action<T, Op> {
+  /** @param n the copies.  @param x the value.  @return @c x, or the unit
+   *  for none. */
+  constexpr T operator()(std::size_t n, const T& x) const {
+    return n == 0 ? unit<T>(Op{}) : x;
+  }
+};
+/** @concept HasCountingAction
+ *  @brief The counts act on @c (T, Op) in one step, by a law: the semimodule
+ *  laws or idempotence.  @tparam T the carrier.  @tparam Op the operation. */
+export template <typename T, typename Op>
+concept HasCountingAction =
+    std::invocable<const counting_action<T, std::remove_cvref_t<Op>>&,
+                   std::size_t, const T&>;
+
+/** @brief @c concat on @c n copies of one value where the counts act in one
+ *  step: @f$x^n@f$ by the counting action, @f$n \cdot x@f$ over a
+ *  semimodule, @c x under an idempotent operation.  The same signature as the
+ *  binary method of @c :total and a stronger constraint, so resolution
+ *  prefers it.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R> && IsSemimodule<T, std::size_t, Op> &&
-           (!IsIdempotent<T, Op>)
+  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
 constexpr T concat(R r, Op op = {}) {
   const std::size_t n = copies_count(r);
   if (n == 0) return unit<T>(op);  // no copy to read
-  return static_cast<T>(std::multiplies<>{}(n, copies_value(r)));
+  return counting_action<T, Op>{}(n, copies_value(r));
 }
 static_assert(
     concat(std::views::repeat(std::size_t{7}, std::size_t{100'000'000})) ==
             700'000'000 &&
-        concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0,
-    "n copies under + over the counts are one multiplication");
+        concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0 &&
+        concat(std::views::repeat(true, std::size_t{100'000'000}),
+               std::logical_and<bool>{}) &&
+        !concat(std::views::repeat(false, std::size_t{0}),
+                std::logical_or<bool>{}),
+    "n copies are one step where a law gives the counts' action: one "
+    "multiplication over the counts, the value itself on the booleans");
 
 /**
  * @struct ZeroAction
@@ -214,24 +264,23 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
  *  the action law (the Jlt paper's Listing 4).  @c acting_monoid<H> names the
  *  monoid an action @c h acts by on the right, a declared certificate of
  *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
- *  in the walk's order (a left action registers @c Opposite<Op>, the
- *  product of the opposite monoid, from @c :involution); keyed by the
- *  action's type without cv-qualification, as a fold deduces it.
- *  FIXME(#1104): @c IsAction above is
- *  scalar first, @f$S \times M \to M@f$, a left action, and
- *  @c IsMonoidAction a right one: two conventions to reconcile.  On @c n
- *  copies of one value the fold is then @c v acted on by their product, and
- *  @c concat (@c :total) computes the product by squaring: two declared laws,
- *  two overloads, composed by resolution. */
+ *  in the walk's order; keyed by the action's type without cv-qualification,
+ *  as a fold deduces it.  A fold walks a right action; a left action, scalar
+ *  first as @c IsLeftAction, is a right action of the opposite monoid and
+ *  registers @c Opposite<Op> (@c :involution), the bridge between the two
+ *  textbook conventions.  On @c n copies of one value the fold is @c v acted
+ *  on by their product, and @c concat computes the product in one step or by
+ *  squaring: two declared laws, two overloads, composed by resolution. */
 export template <typename H>
 struct acting_monoid {};
-/** @brief @c H is an action @f$M \times S \to M@f$, on the right, of the
- *  monoid @c (S, Op) that @c acting_monoid<H> names: @c M is a right
- *  @c S-set (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
- *  Monoids, Acts and Categories).  @tparam H the action.
+/** @brief @c H is a right action @f$M \times S \to M@f$ of the monoid
+ *  @c (S, Op) that @c acting_monoid<H> names: @c M is a right @c S-set
+ *  (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
+ *  Monoids, Acts and Categories).  A left action is a right action of the
+ *  opposite, @c Opposite<Op>.  @tparam H the action.
  *  @tparam M what it acts on.  @tparam S the monoid. */
 export template <typename H, typename M, typename S>
-concept IsMonoidAction =
+concept IsRightAction =
     std::invocable<const H&, M, S> &&
     requires(const H& h, M v, S s) {  // called directly: a function object
       { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
@@ -252,7 +301,7 @@ constexpr M fold(R r, M v, H h) {
  *  @param r the copies.  @param v the start.  @param h the
  *  action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
-  requires IsCopies<R> && IsMonoidAction<H, M, std::ranges::range_value_t<R>>
+  requires IsCopies<R> && IsRightAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
   return h(std::move(v), concat(std::move(r), Op{}));

@@ -686,7 +686,7 @@ template <ranges::input_range R,
 constexpr T concat(R r, Op op = {});  // squares
 template <ranges::input_range R,
           semiregular M, typename H>
-  requires IsCopies<R> && IsMonoidAction<
+  requires IsCopies<R> && IsRightAction<
                H, M, ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = acting_monoid<H>::type;
@@ -703,7 +703,7 @@ static_assert(fibonacci_fast(90) == fibonacci(90) &&
               fibonacci_fast(100'000'000) == 14'139'011'350'745'967'675uz);
 \end{cpp}
 \caption{Laws composing: two declared laws, two overloads, and a complexity class less.
-Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is an action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
+Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is a right action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
 Top right: the overloads they license, each beside a plain one of the same signature, on \cppinline{IsCopies}, $n$ copies of one value.
 By associativity, $n$ copies fold to the power $M^n$ by squaring, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
 By the action law, $n$ copies acting on $v$ fold to $\mathit{act}(v, M^n)$.
