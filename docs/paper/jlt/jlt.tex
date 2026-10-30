@@ -376,7 +376,7 @@ These are the standard's forward, bidirectional and random-access iterators~\cit
 
 Listing~\ref{lst:rule2} illustrates the principle for monoids of different signatures.
 \cppinline{concat} uses only what its constraint names, so it is a function of the monoid's record.
-A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}, the language's own form, which the library needs about as often: \cppinline{true * true} is an \cppinline{int}.
+A requirement names an operation with its result type, exactly, \cppinline{same_as<T>}, or up to conversion, \cppinline{convertible_to<T>}.
 It keeps Rule~2 because the body may use the result only at the declared type (Appendix~\ref{app:fjlt:typing}).
 A \Cpp{} compiler checks a template's body at instantiation, against the type supplied, and not at definition, against the constraint, which is why this is a rule here and not a theorem.
 
@@ -388,9 +388,7 @@ What the rule conserves is that inductive argument: structural induction~\cite{b
 For \cppinline{concat} the equation is its definition, $h(\mathit{nil}) = \mathit{unit}$ and $h(\mathit{cons}(w, r)) = w \oplus h(r)$, and \emph{exactly when} says that \cppinline{concat} is the only function that satisfies both.}
 Meijer et al.\ take their recursion operators in CPO, where one list type holds the finite, the infinite and the partial lists, and a fold over it need not end; Jlt takes them for data only, the initial algebras in Set, where a list in a type is finite as an initial algebra and the chain in a value is finite by the descent, and codata is out of scope: a coalgebra is admitted as a generator bounded by a count, never as a value.
 The structure lives in a \emph{type} (a typed term, an array of known length), or in a \emph{value}.
-In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates.
-Regardless of presentation, it is a traversal of the figure's chain.
-The chain is held as one count or as the elements of an array, with the same semantics.
+In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
 Listing~\ref{lst:rule3} is the figure in code.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
@@ -819,9 +817,7 @@ who evaluates & the front end's interpreter, one step at a time & the processor,
 a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
-an allocation & freed before the evaluation ends, or refused & may outlive the call \\
 a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as Listing~\ref{lst:desugar}'s matrices become two additions \\
-a \texttt{consteval} function & evaluated, at every call & not callable: no call survives to run time \\
 telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
@@ -837,7 +833,6 @@ So at compile time only a declared law shortens a fold, chosen by resolution, as
 
 Not every algorithm converges, so Jlt allows a \emph{budget}, a counter out of band beside the structure's own count, with a maximum number of steps, just as the compiler does; the compiler's budgets apply at compile time only, Jlt's at both binding times, and the exhaustion of either is never a value, a refusal from the compiler and an absent answer from the fold (Appendix~\ref{app:fjlt:ssa}).
 They are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.
-Undefined behaviour runs the other way: constant evaluation refuses it, and at run time nothing is guaranteed (Section~\ref{sec:limits}).
 
 \paragraph{The same laws license parallelism.}
 \cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
@@ -957,8 +952,7 @@ The nearest relatives are the safety profiles proposed for \Cpp{26}~\cite{sutter
 Three rules on standard \Cpp{23} were stated, and a program that keeps them is, up to the gaps Section~\ref{sec:translation:adequacy} names, a term of a core calculus whose syntax is that \Cpp{}.
 The calculus translates into System~F by dictionary passing, and the translation preserves types and evaluation and is a function of the program (Theorems~\ref{thm:preservation} to~\ref{thm:coherence}), so a program of the calculus terminates, is parametric and is sound (Corollaries~\ref{cor:termination} to~\ref{cor:soundness}).
 
-Two of the three rules are held by the author and not by the compiler, since a template body is checked at instantiation and a loop is not checked for a bound.
-A tool in the repository narrows the gap, and an agentic reviewer reads for the rest, which makes holding the two rules cheaper than it was a decade ago (Section~\ref{sec:limits}).
+Two of the three rules are held by the author, a linter and an agentic reviewer, not by the compiler (Section~\ref{sec:limits}).
 
 Four things follow as work not done here.
 Completing the linter into a checker, with definition checking over types, arities and the full constraint language, as the \Cpp{0x} design had it.
@@ -966,8 +960,7 @@ Certifying that a run-time shortcut agrees with the fold it replaces, which a br
 A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
-Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged.
-The posture needs nothing installed beyond a compiler and nothing at run time beyond what the program links, so its potential users are the people who already write \Cpp{23}, among some 4.5 million \Cpp{} developers in 2020~\cite{stroustrup2020thriving}.
+Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 
 \section*{Use of Agentic Systems and AI-Assistance Disclosure}
 
