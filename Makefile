@@ -364,10 +364,15 @@ check-review-comments:
 
 # Resolve one review thread on the current PR (or PR=<number>) and reply with a reason.
 # Usage: make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
+# REASON is single-quoted from its raw value, never expanded by make or the
+# shell, so backticks and $(...) in it are posted literally; it is not
+# exported, since make expands an exported variable to build the environment.
+# The thread is resolved only after the reply is posted.
+unexport REASON
 pr-resolve-thread:
 	@PR_NUM="$(PR)"; \
 	THREAD_ID="$(THREAD_ID)"; \
-	REASON="$(REASON)"; \
+	REASON='$(subst ','\'',$(value REASON))'; \
 	if [ -z "$$THREAD_ID" ]; then \
 		echo "ERROR: THREAD_ID is required."; \
 		echo "Usage: make pr-resolve-thread THREAD_ID=<thread_id> REASON=\"<resolution note>\" [PR=<number>]"; \
@@ -400,7 +405,9 @@ pr-resolve-thread:
 	fi; \
 	echo "Replying to $$THREAD_ID with reason and resolving..."; \
 	gh api repos/$$REPO/pulls/$$PR_NUM/comments/$$COMMENT_ID/replies \
-		-f body="$$REASON" > /dev/null; \
+		-f body="$$REASON" > /dev/null || { \
+		echo "ERROR: the reply to $$THREAD_ID failed; the thread is left unresolved."; \
+		exit 1; }; \
 	gh api graphql \
 		-F threadId="$$THREAD_ID" \
 		-f query='mutation($$threadId:ID!) { resolveReviewThread(input:{threadId:$$threadId}) { thread { isResolved } } }' \
@@ -421,7 +428,7 @@ resolve-review-comment:
 		echo "Usage: make resolve-review-comment THREAD_ID=<thread_id> REASON=\"<resolution note>\" [PR=<number>]"; \
 		exit 2; \
 	fi; \
-	$(MAKE) pr-resolve-thread THREAD_ID="$$THREAD_VAL" REASON="$(REASON)" PR="$(PR)"
+	$(MAKE) pr-resolve-thread THREAD_ID="$$THREAD_VAL" PR="$(PR)"
 
 # Deprecated: bulk resolution is intentionally disabled.
 # Resolve threads one by one with a reason via pr-resolve-thread.

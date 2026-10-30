@@ -385,10 +385,10 @@ inline constexpr Cardinality largest_finite =
 // std::optional's own == throughout: the point datum's == (sets:singleton) is
 // still found by ADL here, but its head no longer probes equality on the
 // deduced T, so it is rejected as non-viable without re-entering itself.
-static_assert(Out<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
+static_assert(Prior<Cardinality>{}(In<Cardinality>{}(std::optional<Cardinality>{
                   finite_cardinality(3)})) ==
                       std::optional<Cardinality>{finite_cardinality(3)} &&
-                  In<Cardinality>{}(Out<Cardinality>{}(
+                  In<Cardinality>{}(Prior<Cardinality>{}(
                       finite_cardinality(0))) == finite_cardinality(0),
               "out ∘ in = id and in ∘ out = id on ℕ's finite fragment.");
 static_assert(

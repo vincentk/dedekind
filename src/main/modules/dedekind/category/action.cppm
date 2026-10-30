@@ -27,12 +27,19 @@
  */
 module;
 
+#include <algorithm>  // std::ranges::fold_left
 #include <concepts>
 #include <functional>
+#include <ranges>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.category:action;
 
 import :total;
+import :discrete;  // constant: the witness's copies
+import :morphism;  // IsArrow, IsConstantArrow, Cod
+import :chain;     // the counting chain: fold on n copies of one value
 
 namespace dedekind::category {
 
@@ -180,7 +187,9 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
  *        modulo 2^64, the laws make n m the n-fold sum of m for every n.
  *        FIXME(#959): defaults to the signature check @c IsLinearAction, which
  *        asserts no law; a declared @c false default needs a certificate at
- *        every carrier the matrix columns and vector spaces reach.
+ *        every carrier the matrix columns and vector spaces reach.  Until
+ *        then @c :total's @c concat cannot key its one-action rung on
+ *        @c IsSemimodule and asks the narrower @c counting_action instead.
  */
 export template <typename M, typename S, typename AddM, typename AddS,
                  typename MultS, typename Act>
@@ -277,5 +286,72 @@ static_assert(zero<int, int, std::plus<int>>()(42) == 0,
 // 3. Action Proof: Zero maps everything to 'true' (under logic AND).
 static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
               "Absorption: Boolean AND zero must return 'true'.");
+
+/** @section action__Fold
+ *  @brief A fold along the walk, @c fold(r, v, h), and its specialisation by
+ *  the action law (the Jlt paper's Listing 4).  @c acting_monoid<H> names the
+ *  monoid an action @c h acts by on the right, a declared certificate of
+ *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
+ *  in the walk's order (a left action registers the opposite product); keyed
+ *  by the
+ *  action's type without cv-qualification, as a fold deduces it.
+ *  FIXME(#1104): a left action's opposite product is registered by hand; a
+ * generic
+ *  @c Opposite<Op>, forwarding associativity and the unit, with
+ *  @c Opposite<Opposite<Op>> = @c Op, would derive it.  @c IsAction above is
+ *  scalar first, @f$S \times M \to M@f$, a left action, and
+ *  @c IsMonoidAction a right one: two conventions to reconcile.  On @c n
+ *  copies of one value the fold is then @c v acted on by their product, and
+ *  @c concat (@c :total) computes the product by squaring: two declared laws,
+ *  two overloads, composed by resolution. */
+export template <typename H>
+struct acting_monoid {};
+/** @brief @c H is an action @f$M \times S \to M@f$, on the right, of the
+ *  monoid @c (S, Op) that @c acting_monoid<H> names: @c M is a right
+ *  @c S-set (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
+ *  Monoids, Acts and Categories).  @tparam H the action.
+ *  @tparam M what it acts on.  @tparam S the monoid. */
+export template <typename H, typename M, typename S>
+concept IsMonoidAction =
+    std::invocable<const H&, M, S> &&
+    requires(const H& h, M v, S s) {  // called directly: a function object
+      { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
+    } && requires { typename acting_monoid<std::remove_cvref_t<H>>::type; } &&
+    IsMonoid<S, typename acting_monoid<std::remove_cvref_t<H>>::type>;
+/** @brief The fold along the walk: the standard's @c fold_left.
+ *  @param r the range.  @param v the start.  @param h the action. */
+export template <std::ranges::input_range R, std::semiregular M, typename H>
+  requires std::invocable<const H&, M, std::ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
+  return std::ranges::fold_left(std::move(r), std::move(v), h);
+}
+/** @brief The fold of @c n copies of one value under a monoid action:
+ *  @c v acted on by their product.  The same signature as the plain fold and
+ *  a stronger constraint, so resolution prefers it.  The law makes any fold
+ *  @c v acted on by the product in the walk's order; on distinct values that
+ *  product costs the same @c n steps, so only copies are specialised.
+ *  @param r the copies.  @param v the start.  @param h the
+ *  action. */
+export template <std::ranges::input_range R, std::semiregular M, typename H>
+  requires IsCopies<R> && IsMonoidAction<H, M, std::ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
+  using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
+  return h(std::move(v), concat(std::move(r), Op{}));
+}
+/** @brief A monoid acts on itself: @c (std::size_t, +) by @c +. */
+template <>
+struct acting_monoid<std::plus<std::size_t>> {
+  using type = std::plus<std::size_t>;
+};
+namespace detail_fold_witness {
+constexpr std::size_t ten = 10;
+static_assert(fold(ten >> chain<std::size_t>(), std::size_t{0},
+                   std::plus<std::size_t>{}) == 45 &&
+                  fold(std::size_t{100'000'000} >> chain<std::size_t>() >>
+                           constant<std::size_t>(std::size_t{7}),
+                       std::size_t{1}, std::plus<std::size_t>{}) == 700'000'001,
+              "fold is fold_left; on n copies under a monoid action it is the "
+              "start acted on by their product, which concat squares");
+}  // namespace detail_fold_witness
 
 }  // namespace dedekind::category

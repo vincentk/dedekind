@@ -38,12 +38,15 @@
 module;
 
 #include <algorithm>
+#include <bit>      // std::bit_width: the binary method
 #include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
 #include <limits>       // for std::numeric_limits (cyclic_order_v)
+#include <ranges>       // concat: the free monoid's fold over a range
 #include <type_traits>  // for std::false_type, std::integral_constant
+#include <utility>      // std::pair: the binary method's state
 
 export module dedekind.category:total;
 
@@ -52,6 +55,8 @@ import :morphism;
 import :mereology;  // Sup / Inf
 import :posetal;
 import :species;
+import :nno;
+import :chain;  // the counting chain, for concat on n copies of one value
 
 namespace dedekind::category {
 
@@ -1193,5 +1198,184 @@ inline constexpr bool is_closure_forcing_v = false;
 export template <typename Op, typename A, typename B>
 concept IsClosureForcing =
     HasClosureForcingShape<Op, A, B> && is_closure_forcing_v<Op, A, B>;
+
+/** @section total__Concat
+ *  @brief The free monoid's fold, @c concat, the canonical fold of a monoid:
+ *  a range folded under the operation from its unit (the Jlt paper's
+ *  Listings 2 to 4).  Its specialisation, licensed by associativity, folds
+ *  @c n copies of one value, any @c IsCopies range, by the binary method, one
+ * squaring per bit of @c n (Knuth, TAOCP 2 §4.6.3).  Resolution picks it over
+ * the plain fold, its parameter being the more specific.  @param r the range.
+ * @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op>
+constexpr T concat(R r, Op op = {}) {
+  return std::ranges::fold_left(std::move(r), unit<T>(op), op);
+}
+/** @brief The counting chain of @c n under a constant arrow,
+ *  @c n >> chain<std::size_t>() >> constant(x), is @c n copies of @c x.
+ *  @param r the chain. */
+export template <IsConstantArrow F>
+constexpr std::size_t copies_count(
+    const unfold_view<
+        std::size_t,
+        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
+        r) {
+  return r.seed();
+}
+export template <IsConstantArrow F>
+constexpr Cod<F> copies_value(
+    const unfold_view<
+        std::size_t,
+        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
+        r) {
+  return r.coalgebra().f(std::size_t{0});
+}
+/** @brief The standard's @c views::repeat(x, n) is @c n copies of @c x; its
+ *  value is read only where @c n is not zero.  @param r the view. */
+export template <std::copy_constructible T, std::integral B>
+  requires(!std::same_as<B, bool>)
+constexpr std::size_t copies_count(const std::ranges::repeat_view<T, B>& r) {
+  return static_cast<std::size_t>(std::ranges::size(r));
+}
+export template <std::copy_constructible T, std::integral B>
+  requires(!std::same_as<B, bool>)
+constexpr T copies_value(const std::ranges::repeat_view<T, B>& r) {
+  return *std::ranges::begin(r);
+}
+/** @brief A range of @c n copies of one value, Bird's @c replicate @c n @c x,
+ *  whose fold under a monoid is the power @f$x^n@f$; @c n and the value known
+ *  without walking it: @c copies_count(r) and @c copies_value(r), which each
+ *  model supplies, declared above so that ordinary lookup finds them for
+ *  models outside this namespace, the standard's among them.  @tparam R the
+ * range. */
+export template <typename R>
+concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
+  { copies_count(r) } -> std::same_as<std::size_t>;
+  { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
+};
+namespace detail_concat {
+/** @brief One step of the binary method: the accumulator takes the square
+ *  where bit @c k of @c n is set, and the square squares, except after the
+ *  top bit, where no step reads it. */
+template <typename T, typename Op>
+  requires IsMonoid<T, Op>
+struct Square {
+  std::size_t n;
+  Op op;
+  constexpr std::pair<T, T> operator()(std::pair<T, T> p, std::size_t k) const {
+    return {((n >> k) & 1U) != 0 ? op(p.first, p.second) : p.first,
+            (n >> k) > 1 ? op(p.second, p.second) : p.second};
+  }
+};
+}  // namespace detail_concat
+/** @brief @c concat on @c n copies of one value: its @c n-th power, by
+ *  squaring, licensed by associativity.  The same signature as the plain
+ *  fold and a stronger constraint, so resolution prefers it wherever
+ *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R>
+constexpr T concat(R r, Op op = {}) {
+  const std::size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);
+  return std::ranges::fold_left(
+             std::views::iota(std::size_t{0},
+                              static_cast<std::size_t>(std::bit_width(n))),
+             std::pair<T, T>{unit<T>(op), copies_value(r)},
+             detail_concat::Square<T, Op>{n, op})
+      .first;
+}
+/** @brief The counts act on @c (T, Op) by repetition: @c Act{}(n, x) is
+ *  @c x folded under @c Op with itself @c n times, a declared law, the
+ *  semimodule's @f$n \cdot x = x + \cdots + x@f$ (@c :action's
+ *  @c IsSemimodule implies it).  Where it is declared, @c n copies cost one
+ *  action, not @f$\log n@f$ squarings.  It is the monoid's power
+ *  @f$x^n@f$, which every monoid has, given a closed form.
+ *  FIXME(#959): the closed form under @c + is implied by the semimodule laws,
+ *  @f$1 \cdot m = m@f$ and @f$(s + t) \cdot m = s \cdot m + t \cdot m@f$, so
+ *  this rung should be keyed on @c IsSemimodule and this certificate deleted;
+ *  it cannot be yet, since @c :action's @c is_linear_action_v defaults to a
+ *  signature check that asserts no law, and a rung keyed on it would accept
+ *  any carrier with the right signatures.  @tparam T the carrier.
+ *  @tparam Op the operation. */
+export template <typename T, typename Op>
+struct counting_action {};
+/** @brief The unsigned integers under @c +: @c n copies of @c x are
+ *  @c n * x, modulo the word. */
+template <std::unsigned_integral T>
+  requires(!std::same_as<T, bool>)
+struct counting_action<T, std::plus<T>> {
+  using type = std::multiplies<>;
+};
+/** @brief The counts act on @c (T, Op), declared.  @tparam T the carrier.
+ *  @tparam Op the operation. */
+export template <typename T, typename Op>
+concept HasCountingAction = requires {
+  typename counting_action<T, std::remove_cvref_t<Op>>::type;
+} && requires(std::size_t n, const T& x) {
+  {
+    typename counting_action<T, std::remove_cvref_t<Op>>::type{}(n, x)
+  } -> std::convertible_to<T>;
+};
+/** @brief @c concat on @c n copies of one value where the counts act: one
+ *  action.  The same signature as the binary method and a stronger
+ *  constraint, so resolution prefers it.  An idempotent operation goes to the
+ *  rung below, which needs no action, so that both certificates on one
+ *  operation leave the call unambiguous.  @param r the copies.  @param op the
+ *  operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op> &&
+           (!IsIdempotent<T, Op>)
+constexpr T concat(R r, Op op = {}) {
+  using Act = typename counting_action<T, std::remove_cvref_t<Op>>::type;
+  const std::size_t n = copies_count(r);
+  if (n == 0) return unit<T>(op);  // no copy to read
+  return static_cast<T>(Act{}(n, copies_value(r)));
+}
+/** @brief @c concat on @c n copies of one value under an idempotent
+ *  operation: the value itself, @f$x \cdot x = x@f$, or the unit for none.
+ *  The same signature as the binary method and a stronger constraint, so
+ *  resolution prefers it.  FIXME(#1104): idempotence is strictly stronger than
+ * a counting action and fixes it, @f$n \cdot x = x@f$ for @f$n \geq 1@f$ and
+ *  the unit for none; derive @c counting_action from @c IsIdempotent and this
+ *  rung becomes the one above at the derived action, without the exclusion.
+ *  @param r the copies.  @param op the operation. */
+export template <std::ranges::input_range R,
+                 typename T = std::ranges::range_value_t<R>,
+                 typename Op = std::plus<T>>
+  requires IsMonoid<T, Op> && IsCopies<R> && IsIdempotent<T, Op>
+constexpr T concat(R r, Op op = {}) {
+  return copies_count(r) == 0 ? unit<T>(op) : static_cast<T>(copies_value(r));
+}
+namespace detail_concat_witness {
+constexpr std::size_t ten = 10;
+constexpr std::size_t seven = 7;
+static_assert(concat(ten >> chain<std::size_t>()) == 45 &&
+                  concat(ten >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 70 &&
+                  concat(std::size_t{0} >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 0 &&
+                  concat(std::size_t{100'000'000} >> chain<std::size_t>() >>
+                         constant<std::size_t>(seven)) == 700'000'000 &&
+                  concat(std::views::repeat(seven, std::size_t{100'000'000})) ==
+                      700'000'000 &&
+                  concat(std::views::repeat(seven, std::size_t{0})) == 0 &&
+                  concat(std::views::repeat(seven, 100'000'000)) ==
+                      700'000'000 &&
+                  concat(std::views::repeat(true, std::size_t{100'000'000}),
+                         std::logical_and<bool>{}) &&
+                  !concat(std::views::repeat(false, std::size_t{0}),
+                          std::logical_or<bool>{}),
+              "concat folds a range from the unit; on n copies of one value it "
+              "squares, so 10^8 copies are 27 steps, not 10^8, and where the "
+              "counts act, as on the unsigned integers under +, or the "
+              "operation is idempotent, as on the booleans, one step");
+}  // namespace detail_concat_witness
 
 }  // namespace dedekind::category

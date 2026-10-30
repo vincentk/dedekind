@@ -86,7 +86,7 @@ using dedekind::sets::𝔸;  // the declared-domain/codomain universal set
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.
  * @details ETCS reading: relations are subobjects of products.
- * @see Lambek and Scott @cite lambek1988higher
+ * @see Lambek and Scott @cite lambek1988introduction
  */
 export template <typename T1, typename T2, typename L, typename P>
 using Relation = Comprehension<𝔸<std::pair<T1, T2>, L>, P>;

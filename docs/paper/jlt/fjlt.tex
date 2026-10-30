@@ -46,8 +46,22 @@ A sum is a type of a family $\mathcal{S}$ that, like $\mathcal{R}$ below, is def
 A box is built and read, and nothing else: there is no term for \cppinline{get}, \cppinline{use_count} or \cppinline{==} between boxes, so no program can ask which box holds a value, and that absence is what makes a box a value.
 There are two recursion primitives, one per kind of finiteness.
 \cppinline{fold_left} folds over a range of fixed length, a value $r$ of a family $\mathcal{R}$ that, like $\Sigma$, is defined by conditions and not by a list: $r$ has a length $|r| \in \mathbb{N}$, fixed before the fold starts, and, when $|r| > 0$, a head and a tail $\mathit{next}\,r$ with $|\mathit{next}\,r| = |r| - 1$; \textsc{S-Fold} consults $|r|$ before it asks for either, and in the target both are extended to the empty range by an arbitrary value, which the iterator never reaches, since it runs $|r|$ times.
-Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations as constants, $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$; the state of \cppinline{chain(n, out)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, that of \cppinline{repeat(x, n)} is $\llbracket \tau \rrbracket \times \mathbb{N}$, that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$, that of \cppinline{take(r, n)} is $\llbracket R \rrbracket \times \mathbb{N}$, that of \cppinline{reverse(a)} for an array $a$ of length $n$ is $\llbracket a \rrbracket \times \mathbb{N}$, the index from the end, and that of \cppinline{chain_view{lo, hi}} is $\llbracket C \rrbracket \times \llbracket C \rrbracket$ for the chain $C$.
-The listings' ranges are \cppinline{chain(n, out)}, the chain of a count under its destructor, with head $n$ and tail \cppinline{chain(out(n), out)}, empty where \cppinline{out(n)} is nothing, its length the number of steps to that delimiter, finite because the step descends (Section~\ref{sec:posture}, Figure~\ref{fig:structures}); \cppinline{transform(r, g)}, the image of a range under an arrow, with head \cppinline{g(head r)}, tail \cppinline{transform(next r, g)} and length $|r|$; \cppinline{repeat(x, n)}, $n$ copies of $x$, with head $x$ and tail \cppinline{repeat(x, n - 1)}; \cppinline{take(r, n)}, the first $n$ of $r$, with head \cppinline{head r}, tail \cppinline{take(next r, n - 1)} and length $\min(|r|, n)$; \cppinline{reverse(a)}, an array of length $n$ from its last element, with head $a_{n-1-i}$ at index $i$ and length $n - i$, which with \cppinline{take} spells the last $n$ elements of an array in order, as Listing~\ref{lst:desugar}'s array overload does; \cppinline{iota(i, j)} with $i \le j$, the naturals from $i$ below $j$, with head $i$ and tail \cppinline{iota(i + 1, j)}, the condition $i \le j$ being the standard view's, whose reversed endpoints are undefined behaviour rather than an empty range; and \cppinline{chain_view{lo, hi}}, the elements of a finite chain from \cppinline{lo} to \cppinline{hi} walked by the covering step, with head \cppinline{lo}, tail the interval from the cover of \cppinline{lo}, and empty when \cppinline{lo > hi}, of which \cppinline{iota} is the instance on \cppinline{size_t}.
+Each instance $R$ of $\mathcal{R}$ over an element type $\tau$ contributes to the target a state type $\llbracket R \rrbracket$, a constructor constant $c_R$ applied to the translations of its arguments, and its operations as constants, $|\cdot| : \llbracket R \rrbracket \to \mathbb{N}$, $\mathit{head} : \llbracket R \rrbracket \to \llbracket \tau \rrbracket$ and $\mathit{next} : \llbracket R \rrbracket \to \llbracket R \rrbracket$; the state of \cppinline{n >> chain(prior)} is $\llbracket N \rrbracket$, the count, that of \cppinline{transform(r, g)} is $\llbracket R \rrbracket \times \llbracket g \rrbracket$, the arrow carried so that $\mathit{head}$ applies it and $\mathit{next}$ keeps it, that of \cppinline{repeat(x, n)} is $\llbracket \tau \rrbracket \times \mathbb{N}$, that of \cppinline{iota(i, j)} is $\mathbb{N} \times \mathbb{N}$, that of \cppinline{take(r, n)} is $\llbracket R \rrbracket \times \mathbb{N}$, that of \cppinline{reverse(a)} for an array $a$ of length $n$ is $\llbracket a \rrbracket \times \mathbb{N}$, the index from the end, and that of \cppinline{chain_view{lo, hi}} is $\llbracket C \rrbracket \times \llbracket C \rrbracket$ for the chain $C$.
+The kernel's ranges are these.
+\cppinline{n >> chain(prior)} is the chain of a count under Figure~\ref{fig:structures}'s $\mathit{prior}$.
+Its head is \cppinline{prior(n)} and its tail \cppinline{prior(n) >> chain(prior)}.
+It is empty where \cppinline{prior(n)} is nothing, and finite because the step descends (Section~\ref{sec:posture}).
+\cppinline{transform(r, g)} is the image of a range under an arrow, Listing~\ref{lst:rule3}'s \cppinline{r >> g}.
+Its head is \cppinline{g(head r)}, its tail \cppinline{transform(next r, g)}, and its length $|r|$.
+\cppinline{repeat(x, n)} is $n$ copies of $x$, with head $x$ and tail \cppinline{repeat(x, n - 1)}.
+\cppinline{take(r, n)} is the first $n$ of $r$, with head \cppinline{head r}, tail \cppinline{take(next r, n - 1)} and length $\min(|r|, n)$.
+\cppinline{reverse(a)} reads an array of length $n$ from its last element, $a_{n-1-i}$ at index $i$.
+With \cppinline{take} it spells the last $n$ elements of an array in order.
+\cppinline{iota(i, j)}, with $i \le j$, is the naturals from $i$ below $j$, with head $i$ and tail \cppinline{iota(i + 1, j)}.
+The condition $i \le j$ is the standard view's: reversed endpoints are undefined behaviour, not an empty range.
+\cppinline{chain_view{lo, hi}} is a finite chain from \cppinline{lo} to \cppinline{hi}, walked by the covering step.
+Its head is \cppinline{lo} and its tail the interval from the cover of \cppinline{lo}, and it is empty when \cppinline{lo > hi}.
+\cppinline{iota} is its half-open counterpart on the naturals.
 \cppinline{cata(alg, t)} folds over a term: an operation whose fields are terms is a node, a term is a finite composition of nodes, and the fold applies the algebra to each node and the folded values of its legs, one node at a time.
 A pair's projections are written as the standard writes them, \cppinline{e.first} and \cppinline{e.second}, and read as $\pi_1$ and $\pi_2$~\cite{pierce1991basic}; the library's \cppinline{π_1} and \cppinline{π_2} are the same projections as function objects, applications under \textsc{T-Op}, so a program may write either.
 The type formers are productions, not members of $\Sigma$, because the translation acts on them structurally: pairs as products, optionals as sums, boxes as unary products; a former enters when it has such an image, as \cppinline{std::variant} does as a sum, above, and \cppinline{std::vector} would as lists with their fold, which is absent because no listing needs it.
@@ -214,7 +228,12 @@ The context grammar picks one redex per non-value term, so the relation is deter
 \normalsize
 \caption{Evaluation.
 \textsc{S-Call} covers specialisations and generic functions alike, since resolution has already chosen the body; for a generic function the explicit type arguments are substituted first.
-\textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements: \cppinline{chain(n, out)} steps to \cppinline{chain(out(n), out)} with \cppinline{f(a, n)}, or to the empty range where \cppinline{out(n)} is nothing; \cppinline{transform(r, g)} to \cppinline{transform(next r, g)} with \cppinline{f(a, g(head r))}; \cppinline{repeat(v, k + 1)} steps to \cppinline{repeat(v, k)} with \cppinline{f(a, v)}; \cppinline{iota(i, j)}, $i \le j$ by typing, to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)}; and \cppinline{chain_view{lo, hi}} to the interval from the cover of \cppinline{lo}, or to the empty range when \cppinline{lo} has no cover or \cppinline{lo == hi}, with \cppinline{f(a, lo)}.
+\textsc{S-Fold} consumes the head of the range, so a fold takes as many steps as the range has elements.
+\cppinline{n >> chain(prior)} steps to \cppinline{prior(n) >> chain(prior)} with \cppinline{f(a, prior(n))}, or to the empty range where \cppinline{prior(n)} is nothing.
+\cppinline{transform(r, g)} steps to \cppinline{transform(next r, g)} with \cppinline{f(a, g(head r))}.
+\cppinline{repeat(v, k + 1)} steps to \cppinline{repeat(v, k)} with \cppinline{f(a, v)}.
+\cppinline{iota(i, j)}, $i \le j$ by typing, steps to \cppinline{iota(i + 1, j)} with \cppinline{f(a, i)}.
+\cppinline{chain_view{lo, hi}} steps to the interval from the cover of \cppinline{lo} with \cppinline{f(a, lo)}, or to the empty range when \cppinline{lo} has no cover or \cppinline{lo == hi}.
 \textsc{S-Cata} unfolds one node, passing the node itself beside its legs' folds; a leaf has no legs and the algebra is applied to it alone.
 Constants, pairs, optionals and boxes are values; \textsc{S-Prim} and \textsc{S-Std} are total because the admitted operations are, which is what Lemma~\ref{lem:progress} needs.
 \textsc{S-Unbox} is evaluation at run time only: \cppinline{std::shared_ptr} is not \cppinline{constexpr} in \Cpp{23}, so a constant evaluator rejects a term that builds a box.}
@@ -423,7 +442,8 @@ Their mechanisation is future work.
 \subsection{The compiler's own functional language}
 \label{app:fjlt:ssa}
 
-Section~\ref{sec:binding} said that instantiation is partial evaluation of the translated term at a static type.
+Instantiation is partial evaluation of the dictionary-passing term at a static type, $\llbracket \mathit{concat} \rrbracket\,[\mathtt{size\_t}]\,d$ with its type and record arguments applied and $\beta$-reduced before the program runs, so the two agree on every closed term: Theorem~\ref{thm:simulation} at the binding time where the records are constants, nothing of a record surviving to run time, and parametricity, a property of the term before that evaluation, holds of every instantiation as an application of it.
+For Go, Ellis et al.~\cite{ellis2022generic} prove the dictionary-passing translation correct beside monomorphisation, which Griesemer et al.~\cite{griesemer2020featherweight} proved; \Cpp{} only ever does the second, and the first carries the theorems.
 What that evaluation leaves is a closed first-order term over the base types: the type abstractions are gone with their arguments, the record parameters are gone with the records the compiler resolved, every trait call is a call to one specialisation, and the only recursion left is $\mathit{iter}$ and $\mathit{fold}_F$.
 The compiler then lowers that term to its intermediate representation, and the representation is in static single assignment form~\cite{cytron1991ssa}: every variable is assigned exactly once, and where two paths of control join, a $\phi$-node names the value that arrives along each.
 
@@ -553,9 +573,21 @@ local state that does not escape & assignments only to locals, by-value paramete
 \caption{Closure of FJlt under the constructions of \Cpp{} that Table~\ref{tab:adequacy} keeps out by the grammar.
 Each row is a lemma: a term built by the construction from FJlt terms, under the condition, is the FJlt term in the third column, and none needs anything the calculus does not have.
 The fourth column is who holds the condition, as Table~\ref{tab:posture} says of the rules.
-The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Section~\ref{sec:binding}).}
+The rows are the syntax the repository's tool finds in the library's \texttt{category} module and the listings, by node kind, beyond the kernel's grammar, and \texttt{if consteval}, which a parallel \cppinline{concat} would need (Appendix~\ref{app:fjlt:consteval}).}
 \label{tab:closure}
 \end{table}
+
+\paragraph{Parallelism, and a branch on the binding time.}
+\label{app:fjlt:consteval}
+\cppinline{std::reduce} may regroup and reorder its operands, so its result is determined only for an operation that \cppinline{IsCommutativeMonoid} certifies, and Rule~1 gives the absence of data races its parallel policies ask.
+A parallel \cppinline{concat} is then one more overload, a run-time one, since the policies' overloads are not \cppinline{constexpr}.
+The laws say when the split is correct, not when it pays.
+
+\cppinline{if consteval}, and an \cppinline{if} on \cppinline{std::is_constant_evaluated()}, are how a program can observe its binding time, and FJlt need not have them.
+\cppinline|if consteval { A } else { B }| desugars to \cppinline{A}, provided \cppinline{B} computes the same value as \cppinline{A} on every input, so that the program cannot observe the difference after all (Table~\ref{tab:closure}).\footnote{The choice of \cppinline{A} is not arbitrary: it is the branch constant evaluation takes, which is FJlt's evaluation, while \cppinline{B} is typically not constant-evaluable, which is why the program branches at all.}
+For the parallel \cppinline{concat} the condition is the free monoid's universal property: a fold over a concatenation is the operation applied to the folds of the parts, by associativity, and commutativity lets the parts come in any order.
+So the law that licenses the shortcut also proves that the branches agree.
+For an arbitrary branch the condition is semantic, and a reader holds it, as for the part of Rule~2 the linter does not reach.
 
 \begin{table}[tbp]
 \centering
@@ -640,7 +672,7 @@ An alias template is substitution.
 
 \paragraph{Overloading.}
 Overloads of one name at distinct concrete carriers are explicit specialisations of one trait.
-Constrained overloads are generic functions, and where their heads both match, resolution by specificity orders them, as for Listing~\ref{lst:desugar}'s overloads of \cppinline{concat}.
+Constrained overloads are generic functions, and where their heads both match, resolution by specificity orders them, as for Listing~\ref{lst:laws}'s overloads of \cppinline{fold} and \cppinline{concat}.
 
 \paragraph{Inheritance.}
 Jlt has no subtyping: the grammar has no base clause and no derived-to-base conversion, a class with a base that holds state or a virtual function is outside the posture, and the tool's \texttt{inheritance} check holds the module at zero.
