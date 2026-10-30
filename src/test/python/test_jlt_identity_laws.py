@@ -15,7 +15,7 @@ The Python side is a fluent DSL over the *real* category arrows, duck-typed: an
 
 import unittest
 
-from dedekind.jlt import cod, dom, id, predecessor, refl, successor
+from dedekind.jlt import cod, dom, id, pred, refl, succ
 
 _ARROW_OPERATORS = ("__call__", "__rshift__")
 
@@ -104,32 +104,32 @@ if __name__ == "__main__":
 
 
 class JltStepArrowsTest(unittest.TestCase):
-    """successor / predecessor are typed arrows beside id / refl: saturating on bool, wrapping
+    """succ / pred are typed arrows beside id / refl: saturating on bool, wrapping
     on int (the word u64), composable, and refused on a carrier without the
     step."""
 
     def test_the_protocol_and_the_objects(self) -> None:
-        for arrow in (successor(int), predecessor(int), successor(bool), predecessor(bool)):
+        for arrow in (succ(int), pred(int), succ(bool), pred(bool)):
             for op in _ARROW_OPERATORS:
                 self.assertTrue(hasattr(arrow, op), (arrow, op))
-        self.assertIs(dom(successor(int)), int)
-        self.assertIs(cod(predecessor(int)), int)
-        self.assertIs(dom(successor(bool)), bool)
+        self.assertIs(dom(succ(int)), int)
+        self.assertIs(cod(pred(int)), int)
+        self.assertIs(dom(succ(bool)), bool)
 
     def test_bool_saturates_and_int_wraps(self) -> None:
-        self.assertIs(successor(bool)(False), True)
-        self.assertIs(successor(bool)(True), True)
-        self.assertIs(predecessor(bool)(True), False)
-        self.assertIs(predecessor(bool)(False), False)
-        self.assertEqual(successor(int)(41), 42)
-        self.assertEqual(successor(int)(2**64 - 1), 0)
-        self.assertEqual(predecessor(int)(0), 2**64 - 1)
+        self.assertIs(succ(bool)(False), True)
+        self.assertIs(succ(bool)(True), True)
+        self.assertIs(pred(bool)(True), False)
+        self.assertIs(pred(bool)(False), False)
+        self.assertEqual(succ(int)(41), 42)
+        self.assertEqual(succ(int)(2**64 - 1), 0)
+        self.assertEqual(pred(int)(0), 2**64 - 1)
 
     def test_composition_and_refusal(self) -> None:
-        self.assertEqual((successor(int) >> successor(int))(5), 7)
-        self.assertEqual((successor(int) >> predecessor(int))(5), 5)
-        self.assertEqual((id(int) >> successor(int))(5), 6)
-        self.assertIs((successor(bool) >> predecessor(bool))(False), False)
+        self.assertEqual((succ(int) >> succ(int))(5), 7)
+        self.assertEqual((succ(int) >> pred(int))(5), 5)
+        self.assertEqual((id(int) >> succ(int))(5), 6)
+        self.assertIs((succ(bool) >> pred(bool))(False), False)
         with self.assertRaises(TypeError):
-            successor(str)
+            succ(str)
 

@@ -11,7 +11,7 @@ names, the same as in C++:
 
 ``A(Ternary, Kleene)`` is the universe whose sets are valued in K₃.  The truth
 chains' universes carry their order: the ends ``bottom`` / ``top``, the step
-read twice (the total, saturating ``successor`` / ``predecessor``; the partial ``cover``,
+read twice (the total, saturating ``succ`` / ``pred``; the partial ``cover``,
 ``None`` at ⊤), the order ``le``, the classification as the C++ concepts decide
 it, and iteration from ⊥ by the cover.
 
@@ -94,15 +94,15 @@ is the one coercion, any other two carriers meet through ``ap``::
 
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
-are the library's; ``image`` / ``preimage`` under ``successor`` / ``predecessor`` / ``id``
+are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
 (from ``dedekind.jlt``) substitute the variable, and the run list translates,
 wrapping at the word's end::
 
-    from dedekind.jlt import successor
+    from dedekind.jlt import succ
     (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)    # True: one normal form
     canonical(~(U & (π == 5)))     # 𝔸(u64) & ((π <= 4) | (π >= 6)): the runs, written
     list(U[3:8]);  len(U & (π < 3))                  # [3, 4, 5, 6, 7]; 3
-    image(successor(int), U & (π > 5)) == U & ((π > 6) | (π == 0))   # True: wraps
+    image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))   # True: wraps
 
 Spelling: Python normalises identifiers (NFKC), so ``𝔸`` *is* the name ``A``
 and ``𝔹`` is ``B``; ``Ø``, ``η``, ``π`` are names as
