@@ -677,10 +677,11 @@ struct is_commutative<dedekind::linear_algebra::Matrix2x2V<T>,
                       std::plus<dedekind::linear_algebra::Matrix2x2V<T>>>
     : std::true_type {};
 template <detail_mat2x2::HasRingEntries T>
-inline constexpr bool is_distributive_v<
-    dedekind::linear_algebra::Matrix2x2V<T>,
-    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>,
-    std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> = true;
+inline constexpr bool
+    is_distributive_v<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> =
+        true;
 template <detail_mat2x2::HasRingEntries T>
 struct inverse_trait<dedekind::linear_algebra::Matrix2x2V<T>,
                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
@@ -693,8 +694,8 @@ struct is_total_by_construction<
 template <detail_mat2x2::HasRingEntries T>
 struct is_total_by_construction<
     dedekind::linear_algebra::Matrix2x2V<T>,
-    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>>
-    : std::true_type {};
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> : std::true_type {
+};
 
 }  // namespace dedekind::category
 

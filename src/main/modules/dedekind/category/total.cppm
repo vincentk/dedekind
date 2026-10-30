@@ -327,7 +327,8 @@ struct is_total<T, detail_involution::Reversed<Op>>
  *  @tparam T the carrier.  @tparam Op the operation. */
 template <typename T, typename Op>
   requires(!std::same_as<Op, std::remove_cvref_t<Op>>)
-struct is_total<T, Op> : std::bool_constant<is_total_v<T, std::remove_cvref_t<Op>>> {};
+struct is_total<T, Op>
+    : std::bool_constant<is_total_v<T, std::remove_cvref_t<Op>>> {};
 
 // Path E, read off the construction: + is computed with the base's +; × with
 // the base's × and, where it multiplies out, the base's + as well.

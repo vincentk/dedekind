@@ -74,11 +74,11 @@ constexpr Affine next{1, 1};
 static_assert(
     std::same_as<Opposite<Op>, Compose> &&
     std::same_as<Opposite<Opposite<std::plus<size_t>>>, std::plus<size_t>>);
-static_assert(IsMonoid<Affine, Op> && !IsCommutative<Affine, Op> &&
-              IsMonoid<size_t, Opposite<std::plus<size_t>>> &&
-              IsCommutative<size_t, Opposite<std::plus<size_t>>> &&
-              dedekind::category::IsTotal<size_t,
-                                          const Opposite<std::plus<size_t>>>);
+static_assert(
+    IsMonoid<Affine, Op> && !IsCommutative<Affine, Op> &&
+    IsMonoid<size_t, Opposite<std::plus<size_t>>> &&
+    IsCommutative<size_t, Opposite<std::plus<size_t>>> &&
+    dedekind::category::IsTotal<size_t, const Opposite<std::plus<size_t>>>);
 static_assert(twice * next != next * twice &&
               Op{}(twice, next) == next * twice);
 
