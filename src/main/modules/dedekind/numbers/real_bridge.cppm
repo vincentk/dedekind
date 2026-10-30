@@ -27,6 +27,7 @@
 module;
 
 #include <concepts>
+#include <functional>  // std::plus, std::multiplies: the homomorphisms declared
 #include <type_traits>
 #include <utility>
 

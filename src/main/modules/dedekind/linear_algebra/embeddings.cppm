@@ -34,6 +34,7 @@
 module;
 
 #include <concepts>
+#include <functional>  // std::plus, std::multiplies: the homomorphisms declared
 
 export module dedekind.linear_algebra:embeddings;
 
