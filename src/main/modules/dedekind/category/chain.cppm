@@ -186,10 +186,11 @@ constexpr chain_t<X, Step> chain(X x, Step step) {
 /** @section chain__Chain_As_Arrows
  *  @brief The chain in arrows (the Jlt paper, Listing 3).  Three arrows make
  *  it: an end, a predicate on the states; a step, an endo; a seed, a point.
- *  @c until(end, step) is the guard, the partial step @f$N \to 1 + N@f$ a
- *  cartesian category builds as @f$\langle end, 1\rangle ; dist ; (! +
- *  step)@f$.  @c chain(out) is the anamorphism as an arrow @f$N \to N^*@f$,
- *  so a seed composed into it, @c x >> chain(out), is its chain.
+ *  @c until(end, step) is the guard, after the Haskell Prelude's @c until, the
+ * partial step @f$N \to 1 + N@f$ a cartesian category builds as @f$\langle end,
+ * 1\rangle ; dist ; (! + step)@f$.  @c chain(out) is the anamorphism as an
+ * arrow @f$N \to N^*@f$, so a seed composed into it, @c x >> chain(out), is its
+ * chain.
  *  @c ns >> f is the functor's action, @c f mapped over the elements, the
  *  coalgebra's emitted leg post-composed, @f$(1 + f \times 1) \circ
  *  out@f$, and @c map @c id is the chain itself, decided at the type.  A fold

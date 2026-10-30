@@ -307,7 +307,9 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
 export template <typename H>
 struct acting_monoid {};
 /** @brief @c H is an action @f$M \times S \to M@f$, on the right, of the
- *  monoid @c (S, Op) that @c acting_monoid<H> names.  @tparam H the action.
+ *  monoid @c (S, Op) that @c acting_monoid<H> names: @c M is a right
+ *  @c S-set (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
+ *  Monoids, Acts and Categories).  @tparam H the action.
  *  @tparam M what it acts on.  @tparam S the monoid. */
 export template <typename H, typename M, typename S>
 concept IsMonoidAction =

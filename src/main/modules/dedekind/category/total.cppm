@@ -1245,7 +1245,8 @@ export template <std::copy_constructible T, std::integral B>
 constexpr T copies_value(const std::ranges::repeat_view<T, B>& r) {
   return *std::ranges::begin(r);
 }
-/** @brief A range of @c n copies of one value, @c n and the value known
+/** @brief A range of @c n copies of one value, Bird's @c replicate @c n @c x,
+ *  whose fold under a monoid is the power @f$x^n@f$; @c n and the value known
  *  without walking it: @c copies_count(r) and @c copies_value(r), which each
  *  model supplies, declared above so that ordinary lookup finds them for
  *  models outside this namespace, the standard's among them.  @tparam R the
