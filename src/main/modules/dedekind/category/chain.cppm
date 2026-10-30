@@ -376,6 +376,49 @@ class chain_view : public std::ranges::view_interface<chain_view<C>> {
   Walk walk_{};  // held, not inherited: the posture has no subtyping
 };
 
+namespace detail_chain {
+/** @brief The step of a chain restricted by value to @c [lo, hi): @c f of
+ *  the element and its cover, while the element is below @c hi. */
+template <HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C>
+struct SliceStep {
+  C hi{};
+  F f{};
+  constexpr std::optional<std::pair<Cod<F>, std::optional<C>>> operator()(
+      const std::optional<C>& s) const {
+    if (s.has_value() && *s < hi)
+      return std::pair<Cod<F>, std::optional<C>>{f(*s), cover(*s)};
+    return std::nullopt;
+  }
+};
+}  // namespace detail_chain
+/** @brief The chain of @c C restricted by value to @c [lo, hi): the elements
+ *  from @c lo up to @c hi, @c hi excluded, as pandas' @c .loc reads a slice.
+ *  For any carrier with the covering step, @c std::byte among them.
+ *  @tparam C the chain. */
+export template <HasNNOStep C>
+  requires std::totally_ordered<C>
+struct Slice {
+  C lo{};
+  C hi{};
+};
+/** @param lo the bottom.  @param hi the top, excluded.  @return the chain
+ *  between them. */
+export template <HasNNOStep C>
+  requires std::totally_ordered<C>
+constexpr Slice<C> slice(C lo, C hi) {
+  return {lo, hi};
+}
+/** @brief An arrow along a restricted chain: @c f(lo), ..., @c f(hi - 1), a
+ *  range never built.  @param s the restricted chain.  @param f the arrow.
+ *  @return the values along it. */
+export template <HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C>
+constexpr unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>
+operator>>(const Slice<C>& s, F f) {
+  return {std::optional<C>{s.lo}, detail_chain::SliceStep<C, F>{s.hi, f}};
+}
+
 /** @brief The default chain of a carrier with the NNO's step, the one its
  *  certificate supplies: @c n >> chain<N>() is what @c Prior<N> reaches from
  *  @c n, @c n - 1, ..., 0 (the Jlt paper's Listing 3).  @tparam N the

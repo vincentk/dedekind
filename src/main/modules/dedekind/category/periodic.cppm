@@ -38,8 +38,9 @@ module;
 #include <cstddef>
 #include <cstdlib>  // std::abort: a modulus of 0 is refused
 #include <functional>
-#include <limits>   // the extent of a law that holds on the whole word
-#include <numeric>  // std::lcm: the period of a join or a meet
+#include <limits>  // the extent of a law that holds on the whole word
+#include <numeric>
+#include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -273,6 +274,22 @@ constexpr N count(const detail_periodic::Along<N, F>& v) {
   if (n < p) return detail_periodic::count_below(n, f);  // less than a period
   return static_cast<N>((n / p) * detail_periodic::count_below(p, f) +
                         detail_periodic::count_below(static_cast<N>(n % p), f));
+}
+
+/** @brief The count along a chain restricted by value to @c [lo, hi) under a
+ *  periodic predicate: the law's count below @c hi less the law's count below
+ *  @c lo, two calls whatever the bounds.  @param v the restricted chain under
+ *  the predicate.  @return how many of @c f(lo), ..., @c f(hi - 1) are
+ *  true. */
+export template <IsCountWord N, HasPeriod F>
+  requires std::same_as<Dom<F>, N> && std::convertible_to<Cod<F>, bool>
+constexpr N count(
+    const unfold_view<std::optional<N>, detail_chain::SliceStep<N, F>>& v) {
+  const auto step = v.coalgebra();
+  const N lo = *v.seed(), hi = step.hi;
+  if (lo >= hi) return N{0};
+  return static_cast<N>(count(hi >> chain<N>() >> step.f) -
+                        count(lo >> chain<N>() >> step.f));
 }
 
 /** @brief The sum of a range of counts: the plain fold.  @param r the range.

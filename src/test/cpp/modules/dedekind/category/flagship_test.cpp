@@ -85,6 +85,23 @@ static_assert(count(small) == brute(small, 0, 0) &&
 static_assert(sum(120uz >> chain<size_t>() >> rolling_count(near, 4)) ==
               sum(120uz >> chain<size_t>() >> opaque(rolling_count(near, 4))));
 
+// A leg with no law: the vowels among the letters, a chain of bytes
+// restricted by value to ['a', '{'), counted by the plain fold.  A byte chain
+// has the covering step and no arithmetic, so it is a chain and no word.
+struct IsVowel {
+  using Domain = std::byte;
+  using Codomain = bool;
+  constexpr bool operator()(std::byte b) const {
+    const char c = std::to_integer<char>(b);
+    return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u';
+  }
+};
+constexpr auto letters =
+    dedekind::category::slice(std::byte{'a'}, std::byte{'{'});
+static_assert(count(letters >> IsVowel{}) == 5 &&
+              !dedekind::category::IsIntegerChain<std::byte> &&
+              dedekind::category::HasNNOStep<std::byte>);
+
 // The exhibit: five vectors of 2^60 entries, 2^300 in the box.
 constexpr size_t n = size_t{1} << 60;
 constexpr auto evens = n >> chain<size_t>() >> is_even;

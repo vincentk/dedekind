@@ -57,6 +57,14 @@ static_assert(count_factors((n >> chain<std::size_t>() >> is_even) *
                             (n >> chain<std::size_t>() >> fib_even)) ==
                   std::array<std::size_t, 2>{n / 2, n / 3 + 1},
               "the box's count factorises, leg by leg");
+// A chain restricted by value, [lo, hi): by the law, two counts whatever the
+// bounds, checked against the plain fold where both can run.
+static_assert(count(slice(256uz, 512uz) >> fib_even) ==
+                  count(slice(256uz, 512uz) >> opaque(fib_even)) &&
+              count(slice(n / 2, n) >> is_even) == n / 4 &&
+              count(slice(5uz, 5uz) >> is_even) == 0 &&
+              count(slice(7uz, 5uz) >> is_even) == 0);
+
 // Generic in the counts: the same laws on another word, its own type kept.
 static_assert(
     count(1'000u >> chain<unsigned>() >> congruent<unsigned>(3, 1)) == 333u &&
