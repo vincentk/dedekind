@@ -655,8 +655,7 @@ The translation is a function of the program: two resolutions of the same constr
 \end{theorem}
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
-It is what makes ``the unit of \cppinline{+} at \cppinline{size_t}'' a phrase with one meaning in a program, and therefore something a law can be stated about.
-It is also what lets laws compose: two overloads written apart, each licensed by one declared law, are chosen the same way wherever a program calls them, and Listing~\ref{lst:laws} composes two of them into a fold of logarithmically many steps.
+It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s two are.
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
@@ -898,7 +897,7 @@ Rule~3 keeps them predictable, because every fold's length is in the program: a 
 
 \paragraph{The linter is sound and incomplete.}
 The repository's linter, run in continuous integration on the compiler's own front end and documented there, checks Rule~3 for every instantiated body, Rule~1's syntactic part, and Rule~2 at the level of names: a body may use, on a value of parameter type, only what a declared constraint names.
-A finding is a breach or a gap in its reading of the standard's concepts; its silence certifies nothing, since it reads names and not types, and definition checking proper is not promised here.
+Its findings are sound, and its silence is not a proof.
 Review complements it: an agentic reviewer reads every pull request against the three rules, and the listings and the library's core are held at zero on all three to the extent the two instruments reach, the one planted finding being the test's \cppinline{twice_loose}.
 
 \paragraph{The adequacy argument covers part of the library.}
@@ -929,8 +928,7 @@ The nearest neighbour of Appendix~\ref{app:fjlt} is Siek and Lumsdaine's $F^G$~\
 It was written for the concepts then proposed for \Cpp{0x}~\cite{gregor2006concepts,dosreis2006specifying}, which checked template bodies and were removed~\cite{stroustrup2009remove}, leaving the gap Rule~2 names.
 $F^G$'s models are nominal and can be declared for whole families of types, which is what the library behind this paper's listings needs after its shapes, where FJlt's function-specialisation instances are not found (Section~\ref{sec:limits}).
 FJlt is the smaller calculus, and the price of being a subset of a shipped language.
-Garcia et al.~\cite{garcia2007extended} compare eight languages' support for generic programming against a fixed design.
-The rows of their table that \Cpp{} lacked at the time, multi-type concepts and retroactive modelling, are the rows Listing~\ref{lst:rule2} exercises with \cppinline{IsMonoid<T, Op>} and specialisations on types one does not own.
+Of the generic-programming features Garcia et al.~\cite{garcia2007extended} compare across eight languages, the two \Cpp{} then lacked, multi-type concepts and retroactive modelling, are what Listing~\ref{lst:rule2} exercises.
 
 \paragraph{Featherweight calculi.}
 Featherweight Java~\cite{igarashi2001featherweight} set the pattern: a core calculus small enough to prove things about, with a syntax that is a subset of the host language's.
@@ -942,8 +940,7 @@ CoreC++~\cite{wasserrab2006operational} gives an operational semantics and a mac
 These formalise the part of \Cpp{} that Rule~1 excludes, objects with identity and lifetime, and none covers templates, concepts or constant evaluation, so FJlt is a fragment with its own grammar rather than a subset of a formalised \Cpp{}.
 
 \paragraph{What System~F supplies.}
-Strong normalisation of System~F is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}.
-The appendix uses the three as black boxes, which is the point of translating into System~F rather than proving about FJlt directly.
+Strong normalisation is Girard's \cite{girard1989proofs}, parametricity Reynolds' \cite{reynolds1983types}, and data types as their own folds B\"ohm and Berarducci's \cite{bohm1985automatic}: the appendix uses the three as black boxes, which is the point of translating into System~F.
 
 \paragraph{Functional programming in \Cpp{}, and the other direction.}
 Functional programming in \Cpp{} is practised and taught: in a book~\cite{cukic2018functional}, in a metaprogramming library~\cite{chagnon2016hana}, and in category theory written in \Cpp{}~\cite{milewski2019category}; none states a fragment or proves anything of it.
@@ -964,9 +961,9 @@ Two of the three rules are held by the author and not by the compiler, since a t
 A tool in the repository narrows the gap, and an agentic reviewer reads for the rest, which makes holding the two rules cheaper than it was a decade ago (Section~\ref{sec:limits}).
 
 Four things follow as work not done here.
-Completing the linter into a checker, with definition checking over types, arities and the full constraint language, as the \Cpp{0x} design had it: until then, membership in the fragment is a reading the tool narrows, not a verdict it gives.
+Completing the linter into a checker, with definition checking over types, arities and the full constraint language, as the \Cpp{0x} design had it.
 Certifying that a run-time shortcut agrees with the fold it replaces, which a branch on the binding time leaves to a law or a reader: the third homomorphism theorem characterises when a fold can be split~\cite{gibbons1996third}, and a shape could declare it.
-A mechanisation of the proofs, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}, so that the theorems hold as stated rather than in sketch.
+A mechanisation of the proofs, the aspirational end, as Siek and Lumsdaine did for $F^G$ in Isabelle~\cite{siek2004formalization}.
 And laws that are computed with rather than only declared, which needs terms and their composition.
 
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged.
