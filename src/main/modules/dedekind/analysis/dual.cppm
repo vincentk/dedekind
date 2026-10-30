@@ -378,6 +378,16 @@ struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
   using type = F;
 };
 
+// F[ε] / (ε^2) is free of rank 2 over F, the pair (value, derivative) under
+// componentwise addition and F acting on both: a module, so a semimodule,
+// wherever F is a semiring.
+template <typename F>
+  requires std::regular<F> && IsSemiring<F, std::plus<F>, std::multiplies<F>>
+struct is_linear_action<dedekind::analysis::Dual<F>, F,
+                        std::plus<dedekind::analysis::Dual<F>>, std::plus<F>,
+                        std::multiplies<F>, std::multiplies<>>
+    : std::true_type {};
+
 // The totality trait the ring/rig rungs require (IsMagma's exactness) is not
 // carried by quotient_algebra_base's forwarding, so lift it explicitly from F
 // (mirroring Complex<R>).  This is what makes 𝔻 = ℝ[ε]/(ε²) certify as
