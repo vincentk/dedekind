@@ -51,6 +51,7 @@ module;
 export module dedekind.category:total;
 
 import :discrete;
+import :involution;  // Opposite: totality read backwards
 import :morphism;
 import :mereology;  // Sup / Inf
 import :posetal;
@@ -315,6 +316,10 @@ struct is_total
  *  @tparam Op the operation on @c T. */
 export template <typename T, typename Op>
 inline constexpr bool is_total_v = is_total<T, Op>::value;
+/** @brief The opposite operation is total where the operation is.
+ *  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, std::semiregular Op>
+struct is_total<T, detail_involution::Reversed<Op>> : is_total<T, Op> {};
 
 // Path E, read off the construction: + is computed with the base's +; × with
 // the base's × and, where it multiplies out, the base's + as well.

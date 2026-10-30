@@ -214,13 +214,10 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
  *  the action law (the Jlt paper's Listing 4).  @c acting_monoid<H> names the
  *  monoid an action @c h acts by on the right, a declared certificate of
  *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
- *  in the walk's order (a left action registers the opposite product); keyed
- *  by the
+ *  in the walk's order (a left action registers @c Opposite<Op>, the
+ *  product of the opposite monoid, from @c :involution); keyed by the
  *  action's type without cv-qualification, as a fold deduces it.
- *  FIXME(#1104): a left action's opposite product is registered by hand; a
- * generic
- *  @c Opposite<Op>, forwarding associativity and the unit, with
- *  @c Opposite<Opposite<Op>> = @c Op, would derive it.  @c IsAction above is
+ *  FIXME(#1104): @c IsAction above is
  *  scalar first, @f$S \times M \to M@f$, a left action, and
  *  @c IsMonoidAction a right one: two conventions to reconcile.  On @c n
  *  copies of one value the fold is then @c v acted on by their product, and

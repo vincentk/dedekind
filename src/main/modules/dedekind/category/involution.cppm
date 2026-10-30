@@ -31,6 +31,10 @@
  *      @f$Q^{*}=Q^{-1}@f$ iff @c Q is @b unitary.
  *  @li a Boolean subobject lattice: dagger = complement @f$\neg@f$ (self-dual).
  *
+ * Below the dagger, the involution on operations: @c Opposite<Op>, the
+ * product of the opposite monoid, @f$a \cdot^{op} b = b \cdot a@f$.  A dagger
+ * is an involutive map into it, @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$.
+ *
  * The unifying statement --- an arrow in a @f$\dagger@f$-category whose dagger
  * @b is its inverse (a @b unitary / dagger-iso) --- makes "the converse is the
  * inverse" (bijective relation) and "the transpose is the inverse" (orthogonal
@@ -243,6 +247,56 @@ static_assert(
     "− ∘ ~ is an isomorphism (two involutions compose to one) but no "
     "involution: −(~3) = 4, applied twice −(~4) = 5 ≠ 3; no rule "
     "certifies what is false");
+
+/**
+ * @section involution__Opposite
+ * @brief The opposite operation, an involution on operations: exchanging the
+ *        arguments twice is the operation itself.  The dagger below is an
+ *        involutive anti-isomorphism, a homomorphism into the opposite.
+ */
+namespace detail_involution {
+/** @brief @c Op with its arguments exchanged, @f$a \cdot^{op} b = b \cdot
+ *  a@f$.  @tparam Op the operation. */
+template <std::semiregular Op>
+struct Reversed {
+  /** @param a @param b the operands.  @return @c Op{}(b, a). */
+  template <typename A, typename B>
+    requires std::invocable<const Op&, const B&, const A&>
+  constexpr auto operator()(const A& a, const B& b) const {
+    return Op{}(b, a);
+  }
+  constexpr bool operator==(const Reversed&) const = default;
+};
+template <std::semiregular Op>
+struct opposite {
+  using type = Reversed<Op>;
+};
+template <std::semiregular Op>
+struct opposite<Reversed<Op>> {
+  using type = Op;
+};
+}  // namespace detail_involution
+/** @brief The opposite operation, @f$a \cdot^{op} b = b \cdot a@f$, the
+ *  product of the opposite monoid @f$M^{op}@f$ (Mac Lane, @e Categories for
+ *  the Working Mathematician, II.2), an involution on operations:
+ *  @c Opposite<Opposite<Op>> is @c Op, the same type.  A left action of @f$M@f$ is a right action of @f$M^{op}@f$, so
+ *  a left action folded along a walk acts by the product in @f$M^{op}@f$.
+ *  The laws read backwards are the laws: associativity, the unit,
+ *  commutativity and idempotence carry over, declared once here, and totality
+ *  in @c :total.
+ *  @tparam Op the operation. */
+export template <std::semiregular Op>
+using Opposite = typename detail_involution::opposite<Op>::type;
+template <typename T, std::semiregular Op>
+struct is_associative<T, detail_involution::Reversed<Op>> : is_associative<T, Op> {
+};
+template <typename T, std::semiregular Op>
+struct is_commutative<T, detail_involution::Reversed<Op>> : is_commutative<T, Op> {
+};
+template <typename T, std::semiregular Op>
+struct is_idempotent<T, detail_involution::Reversed<Op>> : is_idempotent<T, Op> {};
+template <typename T, std::semiregular Op>
+struct unit_trait<T, detail_involution::Reversed<Op>> : unit_trait<T, Op> {};
 
 /**
  * @section involution__Dagger_Category
