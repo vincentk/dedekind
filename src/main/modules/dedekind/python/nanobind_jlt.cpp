@@ -223,10 +223,12 @@ void bind_tensors(nb::module_& m) {
   auto factored = nb::class_<jlt::Factored>(
       m, "Tensor", "A tensor held by its factors, the core's count_factors.");
   factored.def("__mul__", [](const jlt::Factored& a, const jlt::Factored& b) {
-    return jlt::Factored{jlt::count_factors(a * b)};
+    return jlt::Factored{
+        jlt::count_factors(dedekind::category::operator*(a, b))};
   });
   factored.def("__mul__", [](const jlt::Factored& a, const jlt::WordPower& b) {
-    return jlt::Factored{jlt::count_factors(a * b)};
+    return jlt::Factored{
+        jlt::count_factors(dedekind::category::operator*(a, b))};
   });
 
   m.def("alphabet", &jlt::alphabet, nb::arg("letters"),
