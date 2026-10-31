@@ -184,8 +184,9 @@ static_assert(
     exact_count(count_factors(symmetric(power(bases, 13), Reversal{},
                                         Complement{}))) == 0uz);
 
-// The same counts by brute force over the 4^6 words of length 6, each word
-// read off its index in base 4: the sequence a size_t can index, here.
+// The same counts by brute force over the 4^L words of length L, each word
+// read off its index in base 4: the sequence a size_t can index, here; 4^4 at
+// compile time, within the evaluator's step limit, and 4^6 at run time.
 constexpr std::array<std::byte, 4> acgt{std::byte{'A'}, std::byte{'C'},
                                         std::byte{'G'}, std::byte{'T'}};
 constexpr std::byte letter_of(size_t word, size_t i) {
@@ -194,30 +195,32 @@ constexpr std::byte letter_of(size_t word, size_t i) {
 template <typename Tau>
 struct Mirrors {
   size_t word;
+  size_t length;
   Tau tau;
   constexpr bool operator()(bool ok, size_t i) const {
-    return ok && letter_of(word, i) == tau(letter_of(word, 5 - i));
+    return ok && letter_of(word, i) == tau(letter_of(word, length - 1 - i));
   }
 };
 template <typename Tau>
-struct IsSymmetric6 {
+struct IsSymmetric {
   using Domain = size_t;
   using Codomain = bool;
+  size_t length;
   Tau tau;
   constexpr bool operator()(size_t word) const {
-    return std::ranges::fold_left(std::views::iota(size_t{0}, size_t{6}), true,
-                                  Mirrors<Tau>{word, tau});
+    return std::ranges::fold_left(std::views::iota(size_t{0}, length), true,
+                                  Mirrors<Tau>{word, length, tau});
   }
 };
+using SameLetter = std::remove_cvref_t<decltype(same_letter)>;
 static_assert(
-    count(4096uz >> chain<size_t>() >>
-          dedekind::category::opaque(IsSymmetric6<Complement>{})) ==
-        exact_count(count_factors(symmetric(power(bases, 6), Reversal{},
+    count(256uz >> chain<size_t>() >>
+          dedekind::category::opaque(IsSymmetric<Complement>{4, {}})) ==
+        exact_count(count_factors(symmetric(power(bases, 4), Reversal{},
                                             Complement{}))) &&
-    count(4096uz >> chain<size_t>() >>
-          dedekind::category::opaque(
-              IsSymmetric6<std::remove_cvref_t<decltype(same_letter)>>{
-                  same_letter})) == 64);
+    count(256uz >> chain<size_t>() >>
+          dedekind::category::opaque(IsSymmetric<SameLetter>{
+              4, same_letter})) == 16);
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the
@@ -270,4 +273,21 @@ TEST_CASE("Tensor exhibit: a count over a vector of 2^60 entries, at run time",
   const size_t n = size_t{1} << lo;
   CHECK(tensor_exhibit::count(n >> dedekind::category::chain<size_t>() >>
                               dedekind::category::is_even) == n / 2);
+}
+
+TEST_CASE("Tensor exhibit: the genome's symmetries by brute force, at run time",
+          "[category][tensor_exhibit]") {
+  using namespace tensor_exhibit;
+  size_t length = 6;  // 4^6 words, past the evaluator's steps
+  const size_t words = size_t{1} << (2 * length);
+  CHECK(
+      count(words >> chain<size_t>() >>
+            dedekind::category::opaque(IsSymmetric<Complement>{length, {}})) ==
+      exact_count(count_factors(
+          symmetric(power(bases, length), Reversal{}, Complement{}))));
+  CHECK(count(words >> chain<size_t>() >>
+              dedekind::category::opaque(
+                  IsSymmetric<SameLetter>{length, same_letter})) ==
+        exact_count(count_factors(
+            symmetric(power(bases, length), Reversal{}, same_letter))));
 }
