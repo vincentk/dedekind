@@ -718,7 +718,8 @@ Top left: the laws, declared as traits: $2 \times 2$ matrices under multiplicati
 Top right: the overload they license, the library's \cppinline{fold} on $n$ copies of one value, the word $a^n$: it acts once, by the product $a^n$, which \cppinline{concat} computes by squaring~\cite[\S 4.6.3]{knuth1997art2}.
 Middle: \cppinline{fibonacci} is the chain's fold with the library's \cppinline{fold} in place of the standard's \cppinline{fold_left}, which it is on any other range, and resolution picks the overload the same way wherever it is called.
 Bottom: its translation, rewritten by the action law and then by associativity, two equations outside the appendix's reductions, each licensed by a certificate.
-$10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser alone finds a loop of $n$ steps (Listing~\ref{lst:desugar}).
+$10^8$ copies take 27 steps, so the assertion is itself the witness that resolution picked the overload: Listing~\ref{lst:rule3}'s fold of $10^8$ steps exceeds the evaluator's step limit (Table~\ref{tab:binding}) and would not compile.
+At run time the optimiser alone finds a loop of $n$ steps (Listing~\ref{lst:desugar}).
 The overload, \cppinline{IsCopies} and the certificates are the library's.}
 \label{lst:laws}
 \end{listing}
