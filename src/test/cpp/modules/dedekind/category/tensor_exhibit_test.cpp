@@ -267,6 +267,18 @@ static_assert((pack<8> >> unpack<8>)(0xA5uz) == 0xA5 &&
               IsSquare<128>{}(pack<128>(0uz)) &&
               !IsSquare<128>{}(pack<128>(1uz)));
 
+// A count is a monoid concat under * over the factors, each e copies of a
+// popcount, which concat squares: it agrees with the exact count wherever
+// the word holds it, and is its residue where it does not.
+static_assert(count(count_factors(symmetric(power(bases, 13), Reversal{},
+                                            same_letter))) ==
+                  exact_count(count_factors(
+                      symmetric(power(bases, 13), Reversal{}, same_letter))) &&
+              count(count_factors(symmetric(power(bases, 13), Reversal{},
+                                            Complement{}))) == 0 &&
+              count(Factors{{3, 40}}) == 12'157'665'459'056'928'801uz &&
+              count(Factors{{2, 64}}) == 0);
+
 // The exhibit: a tensor of the two, the palindromes of length 99 over the
 // bases and the squares of 128 bits, 2^100 · 2^64 entries, counted as factors.
 constexpr auto exhibit =

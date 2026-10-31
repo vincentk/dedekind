@@ -896,6 +896,28 @@ struct CheckedLength {
   }
 };
 }  // namespace detail_periodic
+namespace detail_periodic {
+/** @brief One factor into the product: @f$b^e@f$ is @c e copies of @c b
+ *  under @c *, which @c concat on copies computes by squaring, Listing 4's
+ *  overload at the monoid @f$(\mathbb{N}/2^w, \times)@f$; the factors are
+ *  then the plain fold, one multiplication each. */
+template <IsCountWord N>
+struct TimesPower {
+  constexpr N operator()(N acc, const Factor<N>& f) const {
+    return static_cast<N>(acc * concat(std::views::repeat(f.base, f.exponent),
+                                       std::multiplies<N>{}));
+  }
+};
+}  // namespace detail_periodic
+/** @brief The count of a factored tensor, modulo the word: a monoid
+ *  @c concat under @c * over the factors, each a @c concat on copies of a
+ *  popcount, by squaring.  Agrees with @c exact_count wherever the word
+ *  holds the count.  @param fs the factors.  @return the count, modulo the
+ *  word. */
+export template <IsCountWord N>
+constexpr N count(const std::vector<Factor<N>>& fs) {
+  return std::ranges::fold_left(fs, N{1}, detail_periodic::TimesPower<N>{});
+}
 /** @brief The count of a factored tensor, exactly, or none where the word
  *  cannot hold it: never wrapped, the discipline of @c checked_lcm.
  *  @param fs the factors.  @return the count, or none. */
