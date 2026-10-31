@@ -188,9 +188,9 @@ export template <std::ranges::input_range R,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
 constexpr T concat(R r, Op op = {}) {
-  const std::size_t n = copies_count(r);
+  const auto n = copies_count(r);
   if (n == 0) return unit<T>(op);  // no copy to read
-  return counting_action<T, Op>{}(n, copies_value(r));
+  return counting_action<T, Op>{}(static_cast<std::size_t>(n), copies_value(r));
 }
 static_assert(
     concat(std::views::repeat(std::size_t{7}, std::size_t{100'000'000})) ==

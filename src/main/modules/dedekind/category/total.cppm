@@ -38,6 +38,7 @@
 module;
 
 #include <algorithm>
+#include <bit>      // std::bit_width: the bits a power reads
 #include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
@@ -1239,30 +1240,25 @@ constexpr T concat(R r, Op op = {}) {
   return std::ranges::fold_left(std::move(r), unit<T>(op), op);
 }
 /** @brief The counting chain of @c n under a constant arrow,
- *  @c n >> chain<std::size_t>() >> constant(x), is @c n copies of @c x.
- *  @param r the chain. */
-export template <IsConstantArrow F>
-constexpr std::size_t copies_count(
-    const unfold_view<
-        std::size_t,
-        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
-        r) {
+ *  @c n >> chain<N>() >> constant(x), is @c n copies of @c x, counted in the
+ *  chain's own word.  @param r the chain. */
+export template <IsCountWord N, IsConstantArrow F>
+constexpr N copies_count(
+    const unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>& r) {
   return r.seed();
 }
-export template <IsConstantArrow F>
+export template <IsCountWord N, IsConstantArrow F>
 constexpr Cod<F> copies_value(
-    const unfold_view<
-        std::size_t,
-        Mapped<std::size_t, StepCoalgebra<std::size_t, Prior<std::size_t>>, F>>&
-        r) {
-  return r.coalgebra().f(std::size_t{0});
+    const unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>& r) {
+  return r.coalgebra().f(N{0});
 }
 /** @brief The standard's @c views::repeat(x, n) is @c n copies of @c x; its
  *  value is read only where @c n is not zero.  @param r the view. */
 export template <std::copy_constructible T, std::integral B>
   requires(!std::same_as<B, bool>)
-constexpr std::size_t copies_count(const std::ranges::repeat_view<T, B>& r) {
-  return static_cast<std::size_t>(std::ranges::size(r));
+constexpr std::make_unsigned_t<B> copies_count(
+    const std::ranges::repeat_view<T, B>& r) {
+  return static_cast<std::make_unsigned_t<B>>(std::ranges::size(r));
 }
 export template <std::copy_constructible T, std::integral B>
   requires(!std::same_as<B, bool>)
@@ -1277,35 +1273,42 @@ constexpr T copies_value(const std::ranges::repeat_view<T, B>& r) {
  * range. */
 export template <typename R>
 concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
-  { copies_count(r) } -> std::same_as<std::size_t>;
+  { copies_count(r) } -> IsCountWord;
   { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
 };
 namespace detail_concat {
-/** @brief @f$x^n@f$ by halving @c n, @f$x^{2m+b} = x^b (x x)^m@f$: one call
- *  per bit of @c n, a descent on a value to its base case, licensed by
- *  associativity.  @param x the value.  @param n the power.  @param op the
- *  operation.  @return @f$x^n@f$. */
-template <typename T, typename Op>
+/** @brief The concat of a prefix of @c n copies of @c x, grown from the top
+ *  bit of @c n down: @c acc is the concat of the first @f$n \gg k@f$ copies,
+ *  and doubling it, one copy more where bit @f$k - 1@f$ of @c n is set, makes
+ *  it the concat of the first @f$n \gg (k - 1)@f$.  A tail call per bit of
+ *  @c n, descending on @c k to its base case, licensed by associativity.
+ *  @param acc the prefix's concat.  @param x the value.  @param n the copies.
+ *  @param k the bits of @c n still to read.  @param op the operation.
+ *  @return the concat of the @c n copies. */
+template <typename T, typename Op, IsCountWord N>
   requires IsMonoid<T, Op>
-constexpr T power(const T& x, std::size_t n, Op op) {
-  if (n == 0) {
-    return unit<T>(op);
+constexpr T prefix(const T& acc, const T& x, N n, std::size_t k, Op op) {
+  if (k == 0) {
+    return acc;
   } else {
-    const T y = power(op(x, x), n / 2, op);  // (x x)^(n / 2)
-    return n % 2 == 1 ? op(x, y) : y;
+    const T twice = op(acc, acc);
+    const bool set = ((n >> (k - 1)) & 1U) != 0;
+    return prefix(set ? op(twice, x) : twice, x, n, k - 1, op);
   }
 }
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
- *  halving @c n, licensed by associativity.  The same signature as the plain
- *  fold and a stronger constraint, so resolution prefers it wherever
+ *  doubling its prefixes, licensed by associativity.  The same signature as the
+ * plain fold and a stronger constraint, so resolution prefers it wherever
  *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  return detail_concat::power(copies_value(r), copies_count(r), op);
+  const auto n = copies_count(r);  // none: bit_width(0) is 0, the unit
+  return detail_concat::prefix(unit<T>(op), copies_value(r), n,
+                               static_cast<std::size_t>(std::bit_width(n)), op);
 }
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;

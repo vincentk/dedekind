@@ -68,16 +68,6 @@ import :cartesian_bicategory;  // Tensor, Merge: the outer product
 
 namespace dedekind::category {
 
-/** @brief A word of the counts: an integer chain whose arithmetic wraps at
- *  its cyclic order, the unsigned integers but @c bool, and none narrower than
- *  @c int, whose products promote to a signed @c int that may overflow.
- *  @c std::size_t is the default throughout.  @tparam N the word. */
-export template <typename N>
-concept IsCountWord =
-    IsIntegerChain<N> && std::unsigned_integral<N> &&
-    (!std::same_as<N, bool>) &&
-    std::same_as<decltype(std::declval<N>() * std::declval<N>()), N>;
-
 /** @brief An arrow on the counts with a declared period, read by
  *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  @tparam F the arrow. */
 export template <typename F>
