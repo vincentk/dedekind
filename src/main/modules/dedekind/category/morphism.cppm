@@ -876,6 +876,40 @@ struct Compose final {
   }
 };
 
+/** @brief Trait: the type @c T has exactly one value, so that two of its
+ *  values are equal without comparing them: an empty type, or a composite
+ *  of two such, whose legs leave nothing to choose.  What lets a law read
+ *  on a type speak of the one value it has (@c :natural).  @tparam T the
+ *  type. */
+export template <typename T>
+struct has_one_value : std::bool_constant<std::is_empty_v<T>> {};
+export template <typename T>
+inline constexpr bool has_one_value_v =
+    has_one_value<std::remove_cvref_t<T>>::value;
+template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Dom<G>>
+struct has_one_value<Compose<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
+static_assert(has_one_value_v<Identity<int>> &&
+                  has_one_value_v<Compose<Identity<int>, Identity<int>>> &&
+                  !has_one_value_v<int>,
+              "an empty arrow has one value, and so does a composite of two; "
+              "an int has many");
+
+/** @brief Trait: the arrows @c F and @c G commute, @f$f \circ g = g \circ
+ *  f@f$: a certificate, primary @c std::false_type, since that two
+ *  particular maps commute is a claim about them, not a property of their
+ *  calls, and composition commutes for no category in general.  Read
+ *  symmetrically by @c commutes_v.  It is a naturality square with one
+ *  functor (@c :natural), and what makes a composite of two involutions one
+ *  (@c :involution, @c :posetal). */
+export template <typename F, typename G>
+struct commutes : std::false_type {};
+export template <typename F, typename G>
+inline constexpr bool commutes_v =
+    commutes<std::remove_cvref_t<F>, std::remove_cvref_t<G>>::value ||
+    commutes<std::remove_cvref_t<G>, std::remove_cvref_t<F>>::value;
+
 /** @brief The contravariant @b substitution / pullback @c f*: pull a codomain
  *  predicate (or arrow) @c P back along @c f, @c preimage(f,P) @c = @c P∘f
  *  @c = @c Compose<F,P>.

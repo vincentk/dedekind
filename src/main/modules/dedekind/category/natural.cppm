@@ -59,7 +59,8 @@ module;
 #include <concepts>
 #include <functional>
 #include <optional>
-#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
+#include <tuple>    // std::tuple<T> — bona-fide Frobenius carrier (#632)
+#include <utility>  // std::declval: a family's one component
 
 export module dedekind.category:natural;
 
@@ -288,20 +289,58 @@ concept IsTwoMorphism =
                                 G::Σ_cat::id_c(c)))::Domain>;
     };
 
+namespace detail_natural {
+/** @brief A family with one component at every object: @c component(), the
+ *  arrow its call returns wherever it is called.  Commuting with each lifted
+ *  arrow makes such a family natural; a family whose component depends on
+ *  the object needs the square at both ends, which no certificate here
+ *  states. */
+template <typename Α>
+concept IsConstantFamily = requires(const Α& a) { a.component(); };
+/** @brief The naturality square at an arrow @c f, @f$\alpha \circ F(f) =
+ *  G(f) \circ \alpha@f$, for a component @c Ac of one type at every object
+ *  (the single-species categories), decided by the arrow algebra and never
+ *  by comparing the two composites' types, which differ for any component
+ *  but an identity although the arrows they denote agree:
+ *   - one functor, of a type with one value (@c has_one_value), so that its two
+ * ends are one functor, and an identity component: the unit law;
+ *   - that one functor and one component at every object
+ *     (@c IsConstantFamily),
+ *     certified to commute with @f$F(f)@f$ (@c commutes, @c :morphism): the
+ *     square is that certificate;
+ *   - two functors and an identity component: the square is @f$F(f) =
+ *     G(f)@f$, which holds where both lift @c f to one arrow of a type with
+ *     one value (@c has_one_value).
+ *  Any other family is refused, natural or not: what is not certified is not
+ *  claimed.  @tparam Α the family.  @tparam F @tparam G the functors.
+ *  @tparam Ff @tparam Gf their lifts of @c f.  @tparam Ac the component. */
+template <typename Α, typename F, typename G, typename Ff, typename Gf,
+          typename Ac>
+concept IsNaturalSquare =
+    (std::same_as<F, G> && has_one_value_v<F> &&
+     (IsIdentityArrow<Ac> ||
+      (IsConstantFamily<Α> &&
+       std::same_as<Ac, decltype(std::declval<const Α&>().component())> &&
+       commutes_v<Ff, Ac>))) ||
+    (IsIdentityArrow<Ac> && std::same_as<Ff, Gf> && has_one_value_v<Ff>);
+}  // namespace detail_natural
+
 /**
  * @concept IsNaturalTransformation
  * @theorem Naturality (F ⟹ G)
+ * @brief A family of components, one per object, whose square commutes at
+ *        every arrow of the source: @f$\alpha_Y \circ F(f) = G(f) \circ
+ *        \alpha_X@f$ for each @f$f : X \to Y@f$, read at an arbitrary arrow
+ *        of the source category's one arrow type, not only at its identities,
+ *        where every family passes.
  */
 export template <typename Α, typename F, typename G>
 concept IsNaturalTransformation =
     IsTwoMorphism<Α, F, G> &&
-    requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow::Domain c) {
-      // The Slide is witnessed through the identity spoke at c.
-      // This keeps the condition structural for categories whose object
-      // labels are recovered via their identity arrows.
-      {
-        (f_map >> F::Σ_cat::id_c(c)) >> α(c)
-      } -> std::same_as<decltype(α(c) >> (g_map >> F::Σ_cat::id_c(c)))>;
+    requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow f,
+             typename F::Σ_cat::Arrow::Domain c) {
+      requires detail_natural::IsNaturalSquare<
+          Α, F, G, decltype(f_map.φ(f)), decltype(g_map.φ(f)), decltype(α(c))>;
     };
 
 /**

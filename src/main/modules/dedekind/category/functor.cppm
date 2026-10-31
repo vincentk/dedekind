@@ -61,7 +61,6 @@
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
  * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
  *   bona-fide Frobenius carrier; #632).
- * - @ref trace_functor: Set<T> -> StringCategory.
  * - @ref composite_functor: composition G . F for any composable functors.
  *
  * Notes:
@@ -90,7 +89,8 @@ module;
 #include <optional>
 #include <ranges>
 #include <string>
-#include <tuple>  // tuple_functor — bona-fide Frobenius carrier (#632)
+#include <tuple>        // tuple_functor — bona-fide Frobenius carrier (#632)
+#include <type_traits>  // the functor-law certificate
 #include <utility>
 
 export module dedekind.category:functor;
@@ -159,6 +159,19 @@ constexpr auto map_arrow(const F& f, A a) {
  * arrows as a small category (so an embedding @f$A\hookrightarrow C\langle A
  * \rangle@f$ satisfies @c IsFunctor directly) is the remaining #633 step.
  */
+/** @brief Trait: @c F preserves identities and composition, @f$F(\mathrm{id})
+ *  = \mathrm{id}@f$ and @f$F(f \gg g) = F(f) \gg F(g)@f$: the functor laws,
+ *  a certificate as @c is_involutive and @c commutes are, primary
+ *  @c std::false_type.  A type cannot show them, since @f$F(f \gg g)@f$ and
+ *  @f$F(f) \gg F(g)@f$ are different types that denote one arrow; a hub
+ *  that lifts each arrow letterwise, elementwise or not at all declares it,
+ *  and a composite of functors derives it.  @tparam F the hub. */
+export template <typename F>
+struct is_functorial : std::false_type {};
+export template <typename F>
+inline constexpr bool is_functorial_v =
+    is_functorial<std::remove_cvref_t<F>>::value;
+
 export template <typename F>
 concept IsFunctor =
     IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>> &&
@@ -166,7 +179,7 @@ concept IsFunctor =
       // The morphism map, required via the FREE helper @c map_arrow (not a
       // member @c f.φ): a source arrow lifts to a target arrow.
       { map_arrow(f, a) } -> IsArrow;
-    };
+    } && is_functorial_v<F>;
 
 /**
  * @concept IsShapedFunctor
@@ -385,6 +398,13 @@ struct tuple_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
+/** @brief The container hubs map their one slot or none elementwise: the
+ *  functor laws hold by construction. */
+template <typename T>
+struct is_functorial<maybe_functor<T>> : std::true_type {};
+template <typename T>
+struct is_functorial<tuple_functor<T>> : std::true_type {};
+
 static_assert(
     IsShapedFunctor<tuple_functor<int>>,
     "Verification Failed: tuple_functor must satisfy IsShapedFunctor.");
@@ -505,6 +525,19 @@ struct composite_functor {
     return second(first(c));
   }
 };
+/** @brief A composite of functors is a functor: its laws derived from its
+ *  legs'. */
+template <IsShapedFunctor F, IsShapedFunctor G>
+  requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
+struct is_functorial<composite_functor<F, G>>
+    : std::bool_constant<is_functorial_v<F> && is_functorial_v<G>> {};
+/** @brief A composite of two functors with one value each has one value:
+ *  its legs leave nothing to choose, although its two members keep it from
+ *  being an empty type. */
+template <IsShapedFunctor F, IsShapedFunctor G>
+  requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
+struct has_one_value<composite_functor<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
 
 // f >> g  =>  g ∘ f      [Canonical Functorial Fish]
 export template <typename 𝗙, typename 𝗚>
@@ -515,6 +548,44 @@ export template <typename 𝗙, typename 𝗚>
 constexpr auto operator>>(𝗙 f, 𝗚 g) {
   return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
       std::move(f), std::move(g)};
+}
+
+/** @brief The unit laws of Cat, decided at the type: an identity functor
+ *  composes to the other leg itself, @f$\mathrm{id} \gg F = F = F \gg
+ *  \mathrm{id}@f$, not to a composite around it, as an identity arrow does
+ *  (@c :morphism).  The overloads repeat the generic one's constraints and
+ *  add one, so resolution orders them by subsumption (Jlt paper, Listing 1). */
+template <typename F>
+inline constexpr bool is_identity_functor_v = false;
+export template <typename F>
+concept IsIdentityFunctor =
+    IsShapedFunctor<F> && is_identity_functor_v<std::remove_cvref_t<F>>;
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗙>
+[[nodiscard]]
+constexpr auto operator>>(𝗙, 𝗚 g) {
+  return g;
+}
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗚>
+[[nodiscard]]
+constexpr auto operator>>(𝗙 f, 𝗚) {
+  return f;
+}
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗙> && IsIdentityFunctor<𝗚>
+[[nodiscard]]
+constexpr auto operator>>(𝗙 f, 𝗚) {
+  return f;
 }
 
 /**
@@ -734,38 +805,6 @@ constexpr T closure(const T& x, Expand expand, Join join, Equal equal = {},
 // it uses, not here.
 
 /**
- * @brief TraceFunctor: Maps Set -> StringCategory.
- *
- * Instead of 'boxing' a value, this functor 'describes' the mapping.
- * It's perfect for verifying that fmap is called exactly when it should be.
- * Concrete @ref IsShapedFunctor model.
- */
-export template <typename T>
-struct trace_functor {
-  using ArrowKind = hub_arrow_tag;
-  using Σ_cat = Set<T>;
-  using Τ_cat = StringCategory;
-
-  using Domain = Σ_cat;
-  using Codomain = Τ_cat;
-
-  template <typename 𝗳>
-    requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ([[maybe_unused]] 𝗳 f) const {
-    return StringArrow{.label = "lifted", .domain_id = 0, .codomain_id = 0};
-  }
-
-  template <typename U>
-  using Shape = int;
-
-  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
-};
-
-static_assert(
-    IsShapedFunctor<trace_functor<int>>,
-    "Verification Failed: trace_functor must satisfy IsShapedFunctor.");
-
-/**
  * The "Identity Hub" for any category, which simply returns the input arrow
  * as-is. This serves as the canonical identity functor for any category,
  * ensuring that the identity morphism is preserved without alteration.
@@ -807,6 +846,14 @@ struct identity_functor {
   template <typename U>
   using Shape = U;
 };
+/** @brief The identity functor returns each arrow itself: the functor laws
+ *  hold by construction. */
+template <typename Cat>
+  requires IsSmallCategory<Cat>
+struct is_functorial<identity_functor<Cat>> : std::true_type {};
+template <typename Cat>
+  requires IsSmallCategory<Cat>
+inline constexpr bool is_identity_functor_v<identity_functor<Cat>> = true;
 
 static_assert(
     IsEndofunctor<identity_functor<Set<int>>>,

@@ -861,6 +861,15 @@ export template <IsArrow F>
 constexpr bool is_involution(const F&) {
   return IsInvolution<F>;
 }
+/** @brief A composite of two commuting involutions is one,
+ *  @f$(g f)^2 = g g f f = \mathrm{id}@f$, its law derived from its legs'
+ *  (@c commutes, @c :involution); where the legs do not commute, the reading
+ *  above decides, and @c - after @c ~ is none.  @param c the composite. */
+export template <IsArrow F, IsArrow G>
+  requires commutes_v<F, G>
+constexpr bool is_involution(const Compose<F, G>& c) {
+  return is_involution(c.f) && is_involution(c.g);
+}
 export template <IsArrow F, typename Op = std::less_equal<>>
 constexpr bool is_monotone(const F&, Op = {}) {
   return IsMonotone<F, Op>;
