@@ -480,26 +480,28 @@ static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
               fib * shear != shear * fib &&
               act(act(V{1, 2}, fib), shear) == act(V{1, 2}, fib* shear));
 
-// Listing 5: Listing 3's matrix chain, its length a parameter; its LLVM IR
-// at -O2 -fno-unroll-loops with n at run time is the paper's loop, and with 10
-// given, the value.
+// Listing 4: Listing 3's fold, by the library's fold in place of the
+// standard's fold_left; the action law and associativity compose, so 10^8
+// copies of the matrix are 27 steps, where the plain fold of 10^8 steps is
+// refused at compile time.
 constexpr size_t fibonacci(size_t n) {
+  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
+}
+static_assert(fibonacci(0) == 0 && fibonacci(10) == fs_10[1] &&
+              fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
+// Listing 5: the plain fold, its length a parameter; its LLVM IR at -O2
+// -fno-unroll-loops with n at run time is the paper's loop, and with 10 given,
+// the value.
+constexpr size_t fibonacci_steps(size_t n) {
   const auto copies = n >> chain<size_t>() >> constant<size_t>(fib);
   return std::ranges::fold_left(copies, V{1, 0}, act)[1];
 }
-static_assert(fibonacci(0) == 0 && fibonacci(1) == 1 && fibonacci(10) == 55 &&
-              fibonacci(90) == 2'880'067'194'370'816'120uz);
-constexpr size_t fibonacci_10() { return fibonacci(10); }
+static_assert(fibonacci_steps(0) == 0 && fibonacci_steps(1) == 1 &&
+              fibonacci_steps(10) == 55 &&
+              fibonacci_steps(90) == 2'880'067'194'370'816'120uz &&
+              fibonacci_steps(90) == fibonacci(90));
+constexpr size_t fibonacci_10() { return fibonacci_steps(10); }
 static_assert(fibonacci_10() == 55);
-// Listing 4: the same chain under the tree's fold; the action law and
-// associativity compose, so 10^8 copies of the matrix are 27 steps, where
-// the plain fold of 10^8 steps is refused at compile time.
-constexpr size_t fibonacci_fast(size_t n) {
-  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
-}
-static_assert(fibonacci_fast(0) == 0 && fibonacci_fast(10) == 55 &&
-              fibonacci_fast(90) == fibonacci(90) &&
-              fibonacci_fast(100'000'000) == 14'139'011'350'745'967'675uz);
 
 // The chain summed with the count known only at run time.
 constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
@@ -585,7 +587,7 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id<size_t>()(twelve) == 12);
     CHECK(L::listing3::sum_n(twelve) == 66);
     CHECK(L::listing3::fibonacci(twelve) == 144);
-    CHECK(L::listing3::fibonacci_fast(twelve) == 144);
+    CHECK(L::listing3::fibonacci_steps(twelve) == 144);
     CHECK(
         C::fold(twelve >> C::chain<size_t>() >> C::constant<size_t>(size_t{7}),
                 size_t{0}, std::plus<size_t>{}) == 84);

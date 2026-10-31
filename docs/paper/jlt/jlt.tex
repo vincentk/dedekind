@@ -645,73 +645,7 @@ The translation is a function of the program: two resolutions of the same constr
 \end{theorem}
 
 In \Cpp{} this is overload resolution together with the one-definition rule: at concrete types a specialisation is unique, or the program is ill-formed.
-It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as Listing~\ref{lst:laws}'s two are.
-
-\paragraph{Certified and inferred laws.}
-A program declares few laws and infers the rest.
-A declared law is an axiom, its certificate evaluated where a record is built.
-A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
-The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: a law flows from a term's immediate parts to the term and never back from its use, a synthesized attribute~\cite{knuth1968semantics}.
-They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
-By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
-As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which Rice's theorem places out of reach~\cite{rice1953classes}.
-Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
-Since the laws are the application's, not the machine's, so are the optimisations they license.
-
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// the laws, declared: a monoid and its action
-using Mul = multiplies<M>;
-using Act = remove_cvref_t<decltype(act)>;
-template <> struct is_associative<M, Mul>
-    : true_type {};
-template <> struct is_periodic<M, Mul>
-    : true_type {};                    // total
-template <> struct unit_trait<M, Mul> {
-  static constexpr M value{{1, 0}, {0, 1}};
-};
-template <> struct acting_monoid<Act> {
-  using type = Mul;
-};
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// the overloads they license
-template <ranges::input_range R,
-          typename T = ranges::range_value_t<R>,
-          typename Op = plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R>
-constexpr T concat(R r, Op op = {});  // squares
-template <ranges::input_range R,
-          semiregular M, typename H>
-  requires IsCopies<R> && IsRightAction<
-               H, M, ranges::range_value_t<R>>
-constexpr M fold(R r, M v, H h) {
-  using Op = acting_monoid<H>::type;
-  return h(v, concat(r, Op{}));
-}
-\end{cpp}
-\end{minipage}
-\begin{cpp}
-// the same chain, both laws
-constexpr size_t fibonacci_fast(size_t n) {
-  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
-}
-static_assert(fibonacci_fast(90) == fibonacci(90) &&
-              fibonacci_fast(100'000'000) == 14'139'011'350'745'967'675uz);
-\end{cpp}
-\caption{Laws composing: two declared laws, two overloads, and a complexity class less.
-Top left: the laws, declared: matrices under multiplication are a monoid, and \cppinline{act} is a right action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
-Top right: the overloads they license, each beside a plain one of the same signature, on \cppinline{IsCopies}, $n$ copies of one value.
-By associativity, $n$ copies fold to the power $M^n$ by squaring, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
-By the action law, $n$ copies acting on $v$ fold to $\mathit{act}(v, M^n)$.
-Bottom: resolution picks each overload, and the two compose.
-$10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser finds only Listing~\ref{lst:desugar}'s loop at run time.
-The overloads, \cppinline{IsCopies} and the certificates are the library's.}
-\label{lst:laws}
-\end{listing}
+It gives ``the unit of \cppinline{+} at \cppinline{size_t}'' one meaning in a program, so a law can be stated about it, and it lets laws compose: two overloads written apart are chosen the same way wherever they are called, as the two behind Listing~\ref{lst:laws} are.
 
 \begin{corollary}[Termination]
 \label{cor:termination}
@@ -742,6 +676,72 @@ This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweig
 A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
 What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the laws, declared: a monoid and its action
+using Mul = multiplies<M>;
+using Act = remove_cvref_t<decltype(act)>;
+template <> struct is_associative<M, Mul>
+    : true_type {};
+template <> struct is_periodic<M, Mul>
+    : true_type {};                    // total
+template <> struct unit_trait<M, Mul> {
+  static constexpr M value{{1, 0}, {0, 1}};
+};
+template <> struct acting_monoid<Act> {
+  using type = Mul;
+};
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// the overload they license
+template <ranges::input_range R,
+          semiregular M, typename H>
+  requires IsCopies<R> && IsRightAction<
+               H, M, ranges::range_value_t<R>>
+constexpr M fold(R r, M v, H h) {
+  using Op = acting_monoid<H>::type;
+  return h(v, concat(r, Op{}));
+}
+\end{cpp}
+\end{minipage}
+\begin{cpp}
+// Listing 3's fold, by the library: the laws choose how
+constexpr size_t fibonacci(size_t n) {
+  return fold(n >> chain<size_t>() >> constant<size_t>(fib), V{1, 0}, act)[1];
+}
+static_assert(fibonacci(10) == fs_10[1] &&
+              fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
+\end{cpp}
+\begin{minted}{text}
+-- its translation, ms = map (const M) (chain prior n), rewritten by the laws
+fibonacci = λ n. π₂ (fold act (1, 0) ms)
+          = λ n. π₂ (act (1, 0) (concat (·) ms))      -- by the action law
+          = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
+\end{minted}
+\caption{Laws composing: Rule~2 applied to Listing~\ref{lst:rule3}'s chain, the composition made sound by Theorem~\ref{thm:coherence}.
+Top left: the laws, declared as traits: $2 \times 2$ matrices under multiplication form a monoid, and \cppinline{act} is a right action of it, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$.
+Top right: the overload they license, the library's \cppinline{fold} on $n$ copies of one value under a right action, which acts once by their product and delegates the product to Listing~\ref{lst:rule3}'s \cppinline{concat}, which on copies squares, the binary method~\cite[\S 4.6.3]{knuth1997art2}.
+Middle: \cppinline{fibonacci} is Listing~\ref{lst:rule3}'s fold with the library's \cppinline{fold} in place of the standard's \cppinline{fold_left}, which it is on any other range, and resolution picks the overload the same way wherever it is called.
+Bottom: its translation, rewritten by the action law and then by associativity, two equations outside the appendix's reductions, each licensed by a certificate.
+$10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at compile time and the optimiser alone finds a loop of $n$ steps (Listing~\ref{lst:desugar}).
+The overload, \cppinline{IsCopies} and the certificates are the library's.}
+\label{lst:laws}
+\end{listing}
+
+\paragraph{Certified and inferred laws.}
+A program declares few laws and infers the rest.
+A declared law is an axiom, its certificate evaluated where a record is built.
+A law at a construction is derived from the laws of its parts, through an instance with a context, by the entailment of qualified types~\cite{jones1994qualified}: that a finite power of a semiring is a semimodule over it is inferred, not declared (Appendix~\ref{app:fjlt:inferred}).
+The inference is local in Pierce and Turner's sense~\cite{pierce2000local}: a law flows from a term's immediate parts to the term and never back from its use, a synthesized attribute~\cite{knuth1968semantics}.
+They infer type arguments and Jlt infers laws, so the likeness is in the flow of information, not in what is inferred.
+By Theorem~\ref{thm:coherence} each inferred law is unique, and the conditions on contexts that end instance search~\cite{sulzmann2007understanding} end the inference.
+As type checking rules out classes of errors without proving a program correct, law inference licenses classes of optimisations without deciding program equivalence, which Rice's theorem places out of reach~\cite{rice1953classes}.
+Each optimisation is local, a rewrite at the node whose law licenses it, and so mechanical; the global one, the best equivalent program, is the undecidable one.
+Since the laws are the application's, not the machine's, so are the optimisations they license.
+
 \section{Partial Evaluation at Build Time}
 \label{sec:binding}
 
@@ -760,7 +760,7 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
 // Listing 3's chain, its length a parameter
-constexpr size_t fibonacci(size_t n) {
+constexpr size_t fibonacci_steps(size_t n) {
   const auto copies =
       n >> chain<size_t>() >> constant<size_t>(fib);
   return ranges::fold_left(copies, V{1, 0}, act)[1];
@@ -769,23 +769,23 @@ constexpr size_t fibonacci(size_t n) {
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-static_assert(fibonacci(0) == 0 &&
-              fibonacci(1) == 1 &&
-              fibonacci(10) == 55 &&
-              fibonacci(90) ==
+static_assert(fibonacci_steps(0) == 0 &&
+              fibonacci_steps(1) == 1 &&
+              fibonacci_steps(10) == 55 &&
+              fibonacci_steps(90) ==
                   2'880'067'194'370'816'120uz);
 constexpr size_t fibonacci_10() {
-  return fibonacci(10);
+  return fibonacci_steps(10);
 }
 \end{cpp}
 \end{minipage}
 \begin{minted}{text}
 -- FJlt's leg: the translation into System F, then reduction
-fibonacci    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
-             = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion, n free
-fibonacci 10 ~> 55
--- the compiler's leg: @fibonacci's IR at -O2 -fno-unroll-loops, read back
-fibonacci n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
+fibonacci_steps    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
+                   = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion
+fibonacci_steps 10 ~> 55
+-- the compiler's leg: @fibonacci_steps's IR at -O2 -fno-unroll-loops, read back
+fibonacci_steps n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
   where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
 \end{minted}
 \begin{minted}{llvm}
