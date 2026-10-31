@@ -38,7 +38,6 @@
 module;
 
 #include <algorithm>
-#include <bit>      // std::bit_width: the binary method
 #include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
@@ -1282,22 +1281,23 @@ concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
   { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
 };
 namespace detail_concat {
-/** @brief One step of the binary method: the accumulator takes the square
- *  where bit @c k of @c n is set, and the square squares, except after the
- *  top bit, where no step reads it. */
+/** @brief @f$x^n@f$ by halving @c n, @f$x^{2m+b} = x^b (x x)^m@f$: one call
+ *  per bit of @c n, a descent on a value to its base case, licensed by
+ *  associativity.  @param x the value.  @param n the power.  @param op the
+ *  operation.  @return @f$x^n@f$. */
 template <typename T, typename Op>
   requires IsMonoid<T, Op>
-struct Square {
-  std::size_t n;
-  Op op;
-  constexpr std::pair<T, T> operator()(std::pair<T, T> p, std::size_t k) const {
-    const auto [a, s] = p;  // the accumulator and the square
-    return {((n >> k) & 1U) != 0 ? op(a, s) : a, (n >> k) > 1 ? op(s, s) : s};
+constexpr T power(const T& x, std::size_t n, Op op) {
+  if (n == 0) {
+    return unit<T>(op);
+  } else {
+    const T y = power(op(x, x), n / 2, op);  // (x x)^(n / 2)
+    return n % 2 == 1 ? op(x, y) : y;
   }
-};
+}
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
- *  squaring, licensed by associativity.  The same signature as the plain
+ *  halving @c n, licensed by associativity.  The same signature as the plain
  *  fold and a stronger constraint, so resolution prefers it wherever
  *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
@@ -1305,14 +1305,7 @@ export template <std::ranges::input_range R,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  const std::size_t n = copies_count(r);
-  if (n == 0) return unit<T>(op);
-  return std::ranges::fold_left(
-             std::views::iota(std::size_t{0},
-                              static_cast<std::size_t>(std::bit_width(n))),
-             std::pair<T, T>{unit<T>(op), copies_value(r)},
-             detail_concat::Square<T, Op>{n, op})
-      .first;
+  return detail_concat::power(copies_value(r), copies_count(r), op);
 }
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;
