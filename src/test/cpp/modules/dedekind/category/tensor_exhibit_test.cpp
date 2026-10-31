@@ -248,15 +248,24 @@ struct IsProperPower8 {
     return std::ranges::fold_left(std::views::iota(1, 8), false, FixedBy{x});
   }
 };
-static_assert(
-    count(256uz >> chain<size_t>() >>
-          (dedekind::category::as_bits<8> >> IsProperPower8{})) == 16 &&
-    count(256uz >> chain<size_t>() >> (dedekind::category::as_bits<8> >>
-                                       dedekind::category::IsSquare<8>{})) ==
-        16 &&
-    exact_count(count_factors(symmetric(power(bits, 8uz), Rotation{4},
-                                        dedekind::category::id<size_t>()))) ==
-        16uz);
+using dedekind::category::bit_patterns;
+using dedekind::category::IsSquare;
+using dedekind::category::pack;
+using dedekind::category::unpack;
+static_assert(count(bit_patterns(8) >> (pack<8> >> IsProperPower8{})) == 16 &&
+              count(bit_patterns(8) >> (pack<8> >> IsSquare<8>{})) == 16 &&
+              exact_count(count_factors(
+                  symmetric(power(bits, 8uz), Rotation{4},
+                            dedekind::category::id<size_t>()))) == 16uz);
+
+// Packing switches the representation and loses nothing: unpack retracts it
+// on the patterns the word holds; a pattern narrower than its word is rotated
+// within its width, the padding apart.
+static_assert((pack<8> >> unpack<8>)(0xA5uz) == 0xA5 &&
+              (pack<64> >> unpack<64>)(~0uz) == ~0uz &&
+              count(bit_patterns(4) >> (pack<8> >> IsSquare<8>{4})) == 4 &&
+              IsSquare<128>{}(pack<128>(0uz)) &&
+              !IsSquare<128>{}(pack<128>(1uz)));
 
 // The exhibit: a tensor of the two, the palindromes of length 99 over the
 // bases and the squares of 128 bits, 2^100 · 2^64 entries, counted as factors.
@@ -290,4 +299,21 @@ TEST_CASE("Tensor exhibit: the genome's symmetries by brute force, at run time",
                   IsSymmetric<SameLetter>{length, same_letter})) ==
         exact_count(count_factors(
             symmetric(power(bases, length), Reversal{}, same_letter))));
+}
+
+TEST_CASE(
+    "Tensor exhibit: the squares by packed brute force, a width at run time",
+    "[category][tensor_exhibit]") {
+  using namespace tensor_exhibit;
+  // A width known only at run time picks the narrowest precompiled word.
+  for (size_t n : {size_t{4}, size_t{8}, size_t{16}}) {
+    const auto squares_of = [n](auto w) {
+      constexpr size_t W = decltype(w)::value;
+      return count(bit_patterns(n) >> (pack<W> >> IsSquare<W>{n}));
+    };
+    CHECK(dedekind::category::with_width(n, squares_of) ==
+          exact_count(
+              count_factors(symmetric(power(bits, n), Rotation{n / 2},
+                                      dedekind::category::id<size_t>()))));
+  }
 }

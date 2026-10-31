@@ -1022,16 +1022,35 @@ template <>
 struct bit_word<64> {
   using type = std::uint64_t;
 };
-/** @brief A machine word rotated by @c d bits. */
+/** @brief The low @c n bits of a machine word: the pattern, its padding
+ *  zero. */
 template <std::unsigned_integral B>
-constexpr B rotated(B x, int d) {
-  return std::rotl(x, d);
+constexpr B low_bits(std::size_t n) {
+  return n >= std::numeric_limits<B>::digits ? static_cast<B>(~B{0})
+                                             : static_cast<B>((B{1} << n) - 1U);
 }
-/** @brief A @c std::bitset rotated by @c d bits. */
+/** @brief The low @c n bits of a @c std::bitset. */
 template <std::size_t W>
-constexpr std::bitset<W> rotated(const std::bitset<W>& x, int d) {
-  const auto k = static_cast<std::size_t>(d) % W;
-  return k == 0 ? x : (x << k) | (x >> (W - k));
+constexpr std::bitset<W> low_bits_of(std::size_t n) {
+  return n >= W ? ~std::bitset<W>{} : ~std::bitset<W>{} >> (W - n);
+}
+/** @brief A pattern of @c n bits in a machine word, rotated by @c d within
+ *  them, the padding kept zero. */
+template <std::unsigned_integral B>
+constexpr B rotated(B x, std::size_t n, std::size_t d) {
+  const std::size_t k = d % n;
+  if (k == 0) return x;
+  return static_cast<B>(
+      (static_cast<B>(x << k) | static_cast<B>(x >> (n - k))) & low_bits<B>(n));
+}
+/** @brief A pattern of @c n bits in a @c std::bitset, rotated by @c d within
+ *  them, the padding kept zero. */
+template <std::size_t W>
+constexpr std::bitset<W> rotated(const std::bitset<W>& x, std::size_t n,
+                                 std::size_t d) {
+  const std::size_t k = d % n;
+  if (k == 0) return x;
+  return ((x << k) | (x >> (n - k))) & low_bits_of<W>(n);
 }
 }  // namespace detail_periodic
 /** @brief The bit word of width @c W, chosen by the width: the machine word
@@ -1039,31 +1058,85 @@ constexpr std::bitset<W> rotated(const std::bitset<W>& x, int d) {
  *  width. */
 export template <std::size_t W>
 using BitWord = typename detail_periodic::bit_word<W>::type;
-/** @brief A count read as a bit pattern of width @c W: its low @c W bits.
- *  @tparam W the width. */
+/** @brief The bit patterns of width @c n as a chain: the counts below
+ *  @f$2^n@f$, which binary numeration makes the words of @f$\mathbb{B}^n@f$,
+ *  bit @c i the letter at position @c i.  No pattern is built: an arrow along
+ *  the chain reads it.  Refused past the word, where the patterns are no
+ *  sequence a @c std::size_t can index.  @param n the width.  @return the
+ *  chain of patterns. */
+export constexpr auto bit_patterns(std::size_t n) {
+  return pow2(n) >> chain<std::size_t>();
+}
+/** @brief A pattern, given by its count, in the bit word of width @c W, the
+ *  padding above it zero: the switch of representation, from the counts to
+ *  the word whose API has the rotations and masks.  A section of @c unpack
+ *  on the counts below @f$2^W@f$.  @tparam W the width. */
 export template <std::size_t W>
   requires(W > 0)
-struct AsBits {
+struct Pack {
   using Domain = std::size_t;
   using Codomain = BitWord<W>;
   constexpr Codomain operator()(std::size_t k) const { return Codomain(k); }
 };
-/** @brief A count read as a bit pattern of width @c W. */
+/** @brief A pattern packed into the bit word of width @c W. */
 export template <std::size_t W>
   requires(W > 0)
-inline constexpr AsBits<W> as_bits{};
-/** @brief A bit pattern of even width @c W that is a square @f$u u@f$,
- *  fixed by the rotation by half its width.  For @f$W = 2^k@f$ these are
- *  exactly the proper powers, the patterns that are not primitive (Lothaire,
- *  @e Combinatorics on Words, §1.3): every proper divisor of @f$2^k@f$
- *  divides @f$2^{k-1}@f$.  @tparam W the width. */
+inline constexpr Pack<W> pack{};
+/** @brief A machine word read back as the count of its pattern: the
+ *  retraction of @c pack, @f$\mathit{unpack} \circ \mathit{pack} =
+ *  \mathrm{id}@f$ on the counts below @f$2^W@f$.  Up to a machine word,
+ *  since a count is one.  @tparam W the width. */
 export template <std::size_t W>
-  requires(W > 0 && W % 2 == 0)
+  requires(W > 0 && W <= 64)
+struct Unpack {
+  using Domain = BitWord<W>;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(Domain x) const {
+    return static_cast<std::size_t>(x);
+  }
+};
+/** @brief A machine word read back as a count. */
+export template <std::size_t W>
+  requires(W > 0 && W <= 64)
+inline constexpr Unpack<W> unpack{};
+
+/** @brief The widest bit word the library precompiles: 512 bits, the widest
+ *  common vector register, a @c std::bitset at every width above 64. */
+export inline constexpr std::size_t max_packed_width = 512;
+/** @brief A width known only at run time, dispatched to the narrowest
+ *  precompiled bit word that holds it: 8, 16, 32 or 64 bits, a machine word,
+ *  or 128, 256 or 512, a @c std::bitset.  @c f is called with the width as a
+ *  type, so it can name @c BitWord of it.  Refused past @c max_packed_width.
+ *  @param n the width.  @param f what to do in that word.  @return its
+ *  result. */
+export template <typename F>
+  requires std::invocable<const F&, std::integral_constant<std::size_t, 8>>
+constexpr auto with_width(std::size_t n, const F& f) {
+  using W8 = std::integral_constant<std::size_t, 8>;
+  if (n <= 8) return f(W8{});
+  if (n <= 16) return f(std::integral_constant<std::size_t, 16>{});
+  if (n <= 32) return f(std::integral_constant<std::size_t, 32>{});
+  if (n <= 64) return f(std::integral_constant<std::size_t, 64>{});
+  if (n <= 128) return f(std::integral_constant<std::size_t, 128>{});
+  if (n <= 256) return f(std::integral_constant<std::size_t, 256>{});
+  if (n > max_packed_width) detail_periodic::refuse_beyond_word();
+  return f(std::integral_constant<std::size_t, 512>{});
+}
+/** @brief A pattern of even width @c length, packed into the bit word of
+ *  width @c W, that is a square @f$u u@f$: fixed by the rotation by half its
+ *  width, within its width, the padding apart.  For a width @f$2^k@f$ these
+ *  are exactly the proper powers, the patterns that are not primitive
+ *  (Lothaire, @e Combinatorics on Words, §1.3): every proper divisor of
+ *  @f$2^k@f$ divides @f$2^{k-1}@f$.  @tparam W the word. */
+export template <std::size_t W>
+  requires(W > 0)
 struct IsSquare {
   using Domain = BitWord<W>;
   using Codomain = bool;
+  std::size_t length = W;
   constexpr bool operator()(const Domain& x) const {
-    return detail_periodic::rotated(x, static_cast<int>(W / 2)) == x;
+    return length % 2 == 0 && length <= W &&
+           detail_periodic::rotated(x, length, length / 2) == x;
   }
 };
 
