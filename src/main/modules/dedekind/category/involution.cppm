@@ -31,6 +31,10 @@
  *      @f$Q^{*}=Q^{-1}@f$ iff @c Q is @b unitary.
  *  @li a Boolean subobject lattice: dagger = complement @f$\neg@f$ (self-dual).
  *
+ * Below the dagger, the involution on operations: @c Opposite<Op>, the
+ * product of the opposite monoid, @f$a \cdot^{op} b = b \cdot a@f$.  A dagger
+ * is an involutive map into it, @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$.
+ *
  * The unifying statement --- an arrow in a @f$\dagger@f$-category whose dagger
  * @b is its inverse (a @b unitary / dagger-iso) --- makes "the converse is the
  * inverse" (bijective relation) and "the transpose is the inverse" (orthogonal
@@ -245,6 +249,93 @@ static_assert(
     "certifies what is false");
 
 /**
+ * @section involution__Opposite
+ * @brief The opposite operation, an involution on operations: exchanging the
+ *        arguments twice is the operation itself.  The dagger below is an
+ *        involutive anti-isomorphism, a homomorphism into the opposite.
+ */
+namespace detail_involution {
+/** @brief @c Op with its arguments exchanged, @f$a \cdot^{op} b = b \cdot
+ *  a@f$.  @tparam Op the operation. */
+template <std::semiregular Op>
+struct Reversed {
+  /** @param a @param b the operands.  @return @c Op{}(b, a). */
+  template <typename A, typename B>
+    requires std::invocable<const Op&, const B&, const A&>
+  constexpr auto operator()(const A& a, const B& b) const {
+    return Op{}(b, a);
+  }
+  constexpr bool operator==(const Reversed&) const = default;
+};
+template <std::semiregular Op>
+struct opposite {
+  using type = Reversed<Op>;
+};
+template <std::semiregular Op>
+struct opposite<Reversed<Op>> {
+  using type = Op;
+};
+}  // namespace detail_involution
+/** @brief The opposite operation, @f$a \cdot^{op} b = b \cdot a@f$, the
+ *  product of the opposite monoid @f$M^{op}@f$ (Mac Lane, @e Categories for
+ *  the Working Mathematician, II.2), an involution on operations:
+ *  @c Opposite<Opposite<Op>> is @c Op, the same type.  A left action of @f$M@f$
+ * is a right action of @f$M^{op}@f$, so a left action folded along a walk acts
+ * by the product in @f$M^{op}@f$. The laws read backwards are the laws:
+ * associativity, the unit, commutativity and idempotence carry over, declared
+ * once here, and totality in @c :total.
+ *  @tparam Op the operation. */
+export template <std::semiregular Op>
+using Opposite = typename detail_involution::opposite<Op>::type;
+// Each law is read off the operation's value form, which sees registrations
+// on the struct and on the value alike; the forwarding is a struct partial
+// specialisation, which fires across module boundaries where a variable
+// template's partial specialisation may not (@c algebra:registration).
+template <typename T, std::semiregular Op>
+struct is_associative<T, detail_involution::Reversed<Op>>
+    : std::bool_constant<is_associative_v<T, Op>> {};
+template <typename T, std::semiregular Op>
+struct is_commutative<T, detail_involution::Reversed<Op>>
+    : std::bool_constant<is_commutative_v<T, Op>> {};
+template <typename T, std::semiregular Op>
+struct is_idempotent<T, detail_involution::Reversed<Op>>
+    : std::bool_constant<is_idempotent_v<T, Op>> {};
+template <typename T, std::semiregular Op>
+struct unit_trait<T, detail_involution::Reversed<Op>> : unit_trait<T, Op> {};
+
+/** @brief Over a commutative operation on the codomain, a homomorphism into
+ *  it is one into its opposite: @f$b \cdot a = a \cdot b@f$ there.
+ *  @tparam F the map.  @tparam T its carrier.  @tparam Op @tparam Op2 the
+ *  operations. */
+template <typename F, typename T, typename Op, std::semiregular Op2>
+  requires std::invocable<const F&, const T&> &&
+           is_commutative_v<detail_morphism::image_t<F, T>, Op2> &&
+           is_homomorphism_v<F, T, Op, Op2>
+struct is_homomorphism<F, T, Op, detail_involution::Reversed<Op2>>
+    : std::true_type {};
+/** @brief The arrow wrapping a callable reverses an operation where the
+ *  callable does, declared or derived: the meeting of the two rules above,
+ *  more specialised than either, so that they never both apply.
+ *  @tparam A @tparam B the arrow's ends.  @tparam Impl the callable.
+ *  @tparam Op @tparam Op2 the operations. */
+template <typename A, typename B, typename Impl, typename Op,
+          std::semiregular Op2>
+  requires std::same_as<detail_morphism::image_t<Impl, A>, B>
+struct is_homomorphism<Morphism<A, B, Impl>, A, Op,
+                       detail_involution::Reversed<Op2>>
+    : std::bool_constant<
+          is_homomorphism_v<Impl, A, Op, detail_involution::Reversed<Op2>>> {};
+
+/** @concept IsAntiHomomorphism
+ *  @brief A map on @c T that reverses @c Op, @f$f(a \cdot b) = f(b) \cdot
+ *  f(a)@f$: a homomorphism into the opposite, @c Opposite<Op>, read off the
+ *  homomorphism certificate rather than declared apart.  @tparam F the map.
+ *  @tparam T its carrier.  @tparam Op the operation. */
+export template <typename F, typename T, typename Op>
+concept IsAntiHomomorphism =
+    IsMagmaHomomorphism<F, T, Op, Opposite<std::remove_cvref_t<Op>>>;
+
+/**
  * @section involution__Dagger_Category
  * @brief The @f$\dagger@f$-category surface built on @c IsInvolution:
  *        @c IsDagger, the named intermediate @c IsIsometry, and @c IsUnitary
@@ -268,24 +359,33 @@ static_assert(
  */
 /**
  * @concept IsDagger
- * @brief A @b certified dagger on @c T: a direction-reversal
- * @f$f \mapsto f^\dagger@f$ that is an @b involution
- * (@f$f^{\dagger\dagger} = f@f$).  At the endomap level a dagger @b is exactly
- * this involutive core, so @c IsDagger is @b deliberately @c IsInvolution; the
- * contravariance @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$ and
- * identity-on-objects structure are @b not re-checked here.
- * @warning Contravariance is a @b precondition on the registered dagger, not a
- * consequence of the involutive core.  It holds unconditionally for @c converse
- * in @c order::halfspace, but for @c transpose in @c linear_algebra @b only
- * when the scalar @c ⊗ is commutative: @f$(A B)^{\top}_{ij}=\sum_k A_{jk}
- * B_{ki}@f$ while @f$(B^{\top}A^{\top})_{ij}=\sum_k B_{ki} A_{jk}@f$, equal iff
- * the entries commute.  Over a noncommutative semiring @c Aᵀᵀ=A still holds (so
- * the involutive core, and @c IsDagger, stay honest), but plain transpose is @b
- * not the contravariant adjoint --- that is the conjugate-transpose against the
- * scalar anti-involution (a dagger is relative to a @c (type, @c op) pair).
+ * @brief A dagger on the arrows @c T of one object, composed by @c Op: an
+ * involution, @f$f^{\dagger\dagger} = f@f$, that reverses composition,
+ * @f$(f\,g)^\dagger = g^\dagger f^\dagger@f$.  A refinement of
+ * @c IsInvolution, its certificate inherited, and of @c IsAntiHomomorphism, a
+ * homomorphism into @c Opposite<Op>: the ring theorist's involution, an
+ * involutive anti-automorphism.  The unit comes for free, since a bijective
+ * anti-homomorphism carries the unit to the unit.  The one-object case: in
+ * general a dagger's component is an arrow @f$\mathrm{Hom}(A, B) \to
+ * \mathrm{Hom}(B, A)@f$, an isomorphism with the component at @f$(B, A)@f$ as
+ * its inverse, and the involution is its diagonal (#787).
+ * @note Discussed and postponed (2026-10-30): the multi-object dagger, a
+ * refinement of @c IsIsomorphism with this involution as its diagonal.  A
+ * matrix transpose is still a matrix, but off the diagonal not of the same
+ * type: an @f$N \times M@f$ matrix transposes to an @f$M \times N@f$ one, and a
+ * transposed tensor has its dimension order changed.  The tree's daggers are
+ * all on square carriers, so the one-object case covers them for now.
+ * @note Contravariance depends on the pair @c (T, @c Op): the transpose
+ * reverses matrix multiplication only over a commutative scalar @c ⊗,
+ * @f$(A B)^{\top}_{ij}=\sum_k A_{jk} B_{ki}@f$ while
+ * @f$(B^{\top}A^{\top})_{ij}=\sum_k B_{ki} A_{jk}@f$; over a noncommutative
+ * semiring it is still an involution but no dagger, which is the
+ * conjugate-transpose against the scalar anti-involution.
+ * @tparam Dagger the dagger.  @tparam T the arrows.  @tparam Op their
+ * composition.
  */
-export template <typename Dagger, typename T>
-concept IsDagger = IsInvolution<Dagger, T>;
+export template <typename Dagger, typename T, typename Op>
+concept IsDagger = IsInvolution<Dagger, T> && IsAntiHomomorphism<Dagger, T, Op>;
 
 /**
  * @section involution__Unitary_Is_A_Value_Property
@@ -392,7 +492,7 @@ constexpr bool is_unitary(const T& f) {
  *  (Heunen &amp; Vicary).  For a value-level carrier, use the @c is_isometry
  *  predicate instead. */
 export template <typename F, typename Dagger, typename Op>
-concept IsIsometry = IsDagger<Dagger, F> && std::default_initializable<F> &&
+concept IsIsometry = IsDagger<Dagger, F, Op> && std::default_initializable<F> &&
                      requires { requires is_isometry<Dagger, Op>(F{}); };
 
 /** @concept IsUnitary
@@ -405,22 +505,20 @@ concept IsUnitary = IsIsometry<F, Dagger, Op> &&
 
 /** @section involution__Concept_Verification
  *  @brief The concepts are @b instantiated here, so an ill-formed constraint is
- *  a @b compile error rather than latent.  @c std::bit_not is an @b involution
- *  on @c int, hence satisfies @c IsDagger --- which is @b only the involutive
- *  core.  It is @b not a dagger of @c + in the full sense (@c ~(a+b) @c ≠
- *  @c ~a+~b: not a contravariant anti-homomorphism); that law is the
- *  dagger-category surface (#787), @b not certified by @c IsDagger.  What
- *  actually gates is the (co)isometry @b law, and it computes @b false here:
- *  @c int is not unitary under @c + because @c ~0 @c + @c 0 @c = @c -1 @c ≠ @c
- * 0 (the @c +-identity).  A @b positive concept witness needs a @b singleton
- *  morphism-carrier whose default value @b is a unitary arrow (follow-up #787);
- *  the value-level @c is_unitary predicate is witnessed over @c Mat(𝔹) (a
- *  permutation) in @c linear_algebra, and the real / complex (orthogonal /
- *  unitary) reading is the @b same predicate, left unexhibited for want of a
- *  @b constexpr real-field carrier (#790). */
-static_assert(IsDagger<std::bit_not<int>, int>,
-              "bit_not is an involution on int (IsDagger's involutive core, "
-              "NOT a contravariant dagger of +).");
+ *  a @b compile error rather than latent.  @c std::bit_not is an
+ *  @b involution on @c int but no dagger of @c +: @c ~(a+b) @c ≠ @c ~a+~b, so
+ *  no homomorphism into the opposite is declared, and @c IsDagger, which asks
+ *  for one, refuses it.  The (co)isometry law computes @b false as well:
+ *  @c ~0 @c + @c 0 @c = @c -1 @c ≠ @c 0, the @c +-identity.  A @b positive
+ *  concept witness needs a @b singleton morphism-carrier whose default value
+ *  @b is a unitary arrow (follow-up #787); the value-level @c is_unitary
+ *  predicate is witnessed over @c Mat(𝔹) (a permutation) in
+ *  @c linear_algebra, and the real / complex (orthogonal / unitary) reading
+ *  is the @b same predicate, left unexhibited for want of a @b constexpr
+ *  real-field carrier (#790). */
+static_assert(IsInvolution<std::bit_not<int>, int> &&
+                  !IsDagger<std::bit_not<int>, int, std::plus<int>>,
+              "bit_not is an involution on int, no dagger of +.");
 static_assert(!IsIsometry<int, std::bit_not<int>, std::plus<int>>,
               "int is not an isometry under (bit_not, +).");
 static_assert(!IsUnitary<int, std::bit_not<int>, std::plus<int>>,

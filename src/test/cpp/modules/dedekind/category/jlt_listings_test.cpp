@@ -476,7 +476,7 @@ static_assert(dedekind::category::IsSemimodule<M2, size_t, MatAdd> &&
 // The certificate, checked on two matrices that do not commute: act is a
 // right action, the product in the walk's order.
 static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
-              dedekind::category::IsMonoidAction<decltype(act), V, M2> &&
+              dedekind::category::IsRightAction<decltype(act), V, M2> &&
               fib * shear != shear * fib &&
               act(act(V{1, 2}, fib), shear) == act(V{1, 2}, fib* shear));
 

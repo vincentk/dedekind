@@ -511,20 +511,32 @@ struct unit_trait<dedekind::linear_algebra::MatNxNV<S, N>,
 };
 
 /** @brief The transpose is an @b involution (@c Aᵀᵀ = @c A) for @b any @c S, so
- *  @c TransposeF is a certified @c IsDagger on @c Mat(S) --- the involutive
- * core the dagger predicates (@c is_unitary) require.  A @b structural fact
- * about the operation, @b not a per-arrow unitarity claim (unitarity is a @b
- * value property; see @c :involution).
- *  @note @c IsDagger is @b deliberately just this involutive core.  The
- *  @b contravariant reading @f$(A B)^{\top}=B^{\top}A^{\top}@f$ (and the
- *  bra-ket adjoint) is @b not part of the certificate and holds only when the
- *  scalar @c ⊗ is @b commutative --- see the @c
- * contravariance_over_commutative_semiring witness below and the @c warning on
- * the vector @c transpose. */
+ *  @c TransposeF is a certified @c IsInvolution on @c Mat(S) --- the
+ * involutive core of the dagger the predicates (@c is_unitary) read.  A @b
+ * structural fact about the operation, @b not a per-arrow unitarity claim
+ * (unitarity is a @b value property; see @c :involution).
+ *  @note The involution alone is no dagger: the @b contravariant reading
+ *  @f$(A B)^{\top}=B^{\top}A^{\top}@f$ is the next certificate, and holds
+ *  only when the scalar @c ⊗ is @b commutative. */
 template <typename S, std::size_t N>
 struct is_involutive<dedekind::linear_algebra::TransposeF<S, N>,
                      dedekind::linear_algebra::MatNxNV<S, N>> : std::true_type {
 };
+
+/** @brief Over a commutative scalar @c ⊗ the transpose reverses matrix
+ *  multiplication, @f$(A B)^{\top} = B^{\top} A^{\top}@f$: a homomorphism
+ *  into the opposite product, so, with @f$A^{\top\top} = A@f$, a dagger on
+ *  @c Mat(S).  Witnessed by @c contravariance_over_commutative_semiring
+ *  below; over a noncommutative @c ⊗ the transpose stays an involution and is
+ *  no dagger. */
+template <typename S, std::size_t N>
+  requires is_commutative_v<S,
+                            typename dedekind::algebra::semiring_ops<S>::mult>
+struct is_homomorphism<dedekind::linear_algebra::TransposeF<S, N>,
+                       dedekind::linear_algebra::MatNxNV<S, N>,
+                       dedekind::linear_algebra::MatTimes<S, N>,
+                       Opposite<dedekind::linear_algebra::MatTimes<S, N>>>
+    : std::true_type {};
 
 /** @brief @f$S^N@f$, entrywise, is a semimodule over any semiring @c S: the
  *         free semimodule of rank @c N, its laws the semiring's, entry by
@@ -694,9 +706,10 @@ static_assert(
 //     involution TransposeF (Aᵀᵀ = A, the order-2 / ℤ2 fact).  ("The" dagger is
 //     relative to a chosen involution functor --- TransposeF here; ℂ's
 //     conjugate-transpose is a different one, #787.)
-static_assert(
-    dedekind::category::IsDagger<TransposeF<MPll, 3>, MatNxNV<MPll, 3>>,
-    "transpose is a certified dagger / involution on Mat(S): Aᵀᵀ = A.");
+static_assert(dedekind::category::IsDagger<TransposeF<MPll, 3>,
+                                           MatNxNV<MPll, 3>, MatTimes<MPll, 3>>,
+              "transpose is a dagger on Mat(S) over a commutative ⊗: Aᵀᵀ = A "
+              "and (AB)ᵀ = BᵀAᵀ.");
 static_assert(TransposeF<MPll, 3>{}(TransposeF<MPll, 3>{}(
                   identity_matrix<MPll, 3>())) == identity_matrix<MPll, 3>(),
               "the TransposeF dagger is an involution: M†† = M.");

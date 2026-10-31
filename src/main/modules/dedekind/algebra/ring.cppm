@@ -92,9 +92,9 @@ concept HasRingOperators =
  *          @c IsAlgebraOnSet supplies the carrier discipline and
  *          @c category::IsSemiring<X::Domain, Add, Mult> supplies the full
  *          axioms --- commutative additive monoid, multiplicative monoid,
- *          and the registered distributive laws.  (The earlier composition
- *          via @c IsLinearAction only checked action/call shapes and was
- *          strictly weaker than the category rung it names.)
+ *          and the registered distributive laws.  (An earlier composition
+ *          through a signature-only action concept checked call shapes and
+ *          was strictly weaker than the category rung it names.)
  * @tparam X    The set object (@c category::IsSet).
  * @tparam Add Additive operation witness (defaults to `std::plus`).
  * @tparam Mult Multiplicative operation witness (defaults to
@@ -296,56 +296,30 @@ concept HasSemiringOperators = requires(T a, T b) {
 
 /**
  * @concept IsRingHomomorphism
- * @brief A callable φ that sends `Source` to `Target` with additive
- *        and multiplicative preservation:
+ * @brief A callable φ from @c Source to @c Target that carries the ring
+ *        structure: @f$\varphi(a + b) = \varphi(a) + \varphi(b)@f$,
+ *        @f$\varphi(a b) = \varphi(a) \varphi(b)@f$, @f$\varphi(0) = 0@f$
+ *        and @f$\varphi(1) = 1@f$ (Lang, @e Algebra, §II.1).
  *
- *   φ(a + b) == φ(a) + φ(b)      additive preservation
- *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
- *
- *  The concept checks the STRUCTURAL shape of the claim:
- *   - `Source` and `Target` both have the literal ring operator
- *     surface (`HasRingOperators`),
- *   - `φ(a)` is well-typed and returns `Target`,
- *   - both preservation expressions are well-formed (yield `bool`).
- *
- *  Preservation of distinguished identities (φ(0) = 0, φ(1) = 1) is NOT
- *  encoded structurally here: `HasRingOperators` does not expose
- *  identity elements, so the concept cannot reach them. Unital /
- *  identity laws, when needed, must be checked by stricter concepts or
- *  on concrete probe values (cf. `dedekind.linear_algebra:embeddings`
- *  for the ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
- *  `identity_matrix2x2_v` are asserted at specific instances).
- *
- *  The semantic LAW --- that each `==` returns `true` for all inputs ---
- *  is a value-level claim, witnessed per instance via `static_assert`
- *  on concrete probes. A concept cannot encode a universally-quantified
- *  runtime property directly; this is the conventional shape witness.
- *
- *  A strict categorical `IsRingHomomorphism` would additionally witness
- *  identity preservation and require the strict axiom-hook tower. No
- *  such strict version is exported yet because the carrier-level hooks
- *  are not generally populated on machine-backed carriers.
- *
- *  Renamed from `IsRingLikeHomomorphism` under the #394 retire-Like
- *  sweep; body now uses `HasRingOperators` directly.
+ * @details A homomorphism of the semiring signatures, @c IsHomomorphism of
+ * the @c (⊕, ⊗) each ring registers on @c semiring_ops: two monoid
+ * homomorphisms, the laws on every pair declared on
+ * @c category::is_homomorphism and the laws at the units computed.  The
+ * negation comes along, since a monoid homomorphism between additive groups
+ * is a group homomorphism.  An arrow between two rings, each certified
+ * @c category::IsRing under the operations it registers.
+ * @tparam Phi the map.  @tparam Source @tparam Target the rings.
  */
-// FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
-// `IsSemiringHomomorphism` specialisations alongside once there are
-// concrete call sites that need them (e.g. embedding modular groups
-// into symmetric groups, or tropical-semiring homomorphisms).
 export template <typename Phi, typename Source, typename Target>
 concept IsRingHomomorphism =
-    HasRingOperators<Source> && HasRingOperators<Target> &&
-    requires(const Phi& phi, Source a, Source b) {
-      { phi(a) } -> std::same_as<Target>;
-      { phi(a + b) == (phi(a) + phi(b)) } -> std::same_as<bool>;
-      { phi(a * b) == (phi(a) * phi(b)) } -> std::same_as<bool>;
-    };
-// This concept encodes additive and multiplicative preservation only.
-// It does not structurally require or witness preservation of identities
-// (0 or 1), because `HasRingOperators` does not expose identity elements.
-// Unital / identity laws, when needed, must be witnessed by stricter
-// concepts or on concrete probe values.
+    dedekind::category::IsRing<Source, typename semiring_ops<Source>::add,
+                               typename semiring_ops<Source>::mult> &&
+    dedekind::category::IsRing<Target, typename semiring_ops<Target>::add,
+                               typename semiring_ops<Target>::mult> &&
+    dedekind::category::IsArrow<Phi> &&
+    std::same_as<dedekind::category::Dom<Phi>, Source> &&
+    std::same_as<dedekind::category::Cod<Phi>, Target> &&
+    IsHomomorphism<Phi, semiring_signature<Source>, semiring_signature<Target>>;
 
 /** @section ring__Formal_Verification */
 

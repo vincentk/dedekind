@@ -10,11 +10,9 @@
  * Scalar multiplication, leading naturally to the concepts of Modules,
  * Vector Spaces, and eventually, the Linear Algebra of the Continuum.
  *
- * @section action__The_PR96_Shielding_Logic
- * To ensure zero-overhead and prevent "too few arguments" errors when
- * checking binary functors (like std::multiplies) against unary morphism
- * concepts, we utilize "Signature Shields." This allows the compiler to
- * reason about the algebraic law without attempting an invalid invocation.
+ * @section action__Declared_Laws
+ * A signature is no law: the semimodule laws of an action are a declared
+ * certificate, @c is_linear_action, false where none is declared (#1099).
  *
  * @copyright 2026 The Dedekind Authors
  *
@@ -41,13 +39,18 @@ import :total;
 import :discrete;  // constant: the witness's copies
 import :morphism;  // IsArrow, IsConstantArrow, Cod
 import :chain;     // the counting chain: fold on n copies of one value
-import :species;   // IsIdempotent: what the semimodule rung leaves alone
+import :species;   // IsIdempotent: the counting action by idempotence
 
 namespace dedekind::category {
 
 /**
- * @concept IsAction
- * @brief An Action (S ⟳ M) where S acts on M via its mapping property.
+ * @concept IsLeftAction
+ * @brief The shape of a left action (S ⟳ M), @f$S \times M \to M@f$, scalar
+ *        first, as a module's: its laws are the certificate a concept above
+ *        it reads (@c is_linear_action for a semimodule).  A left action of
+ *        a monoid @f$M@f$ is a right action (@c IsRightAction) of its
+ *        opposite, @c Opposite<Op> (@c :involution), and over a commutative
+ *        monoid the two coincide.
  * @tparam S The scalar/influencer species.
  * @tparam M The acted-on species.
  * @tparam Act External action witness (defaults to `std::multiplies<>`).
@@ -57,7 +60,7 @@ namespace dedekind::category {
  * 2. binary action witness `Act{}(s, m)`
  */
 export template <typename S, typename M, typename Act = std::multiplies<>>
-concept IsAction = requires(S s, M m) {
+concept IsLeftAction = requires(S s, M m) {
   requires(
       requires {
         // Categorical action as an arrow object.
@@ -69,119 +72,6 @@ concept IsAction = requires(S s, M m) {
       });
 };
 
-// Pass the transparent version to the assert
-static_assert(IsAction<decltype(zero<int, int>()), int>,
-              "Zero Morphism must satisfy the Additive Action axioms.");
-
-// Verify that the Unit Morphism fulfills the Action Axioms
-// (Mapping everything to identity satisfies the "Neutrality" of the action)
-static_assert(IsAction<decltype(zero<int, int, std::multiplies<int>>()), int>,
-              "Unit Morphism must satisfy the Action axioms (Absorption).");
-
-/** @section action__Axiomatic_Verification */
-
-constexpr auto z = zero<int, int>();
-constexpr auto highway = id<int>();
-constexpr auto u = zero<int, int, std::multiplies<int>>();
-
-// 1. Verification of Absorption (Level 1 Logic)
-// The Zero Morphism maps any input to the Point 0.
-static_assert(
-    z(42) == 0,
-    "Absorption Law: The Zero Morphism must map all inputs to the Point 0.");
-
-// 2. Verification of Preservation (Level 0 Logic)
-// The Identity Morphism (Highway) preserves the input value.
-static_assert(highway(42) == 42,
-              "Unit Law: The Identity Highway must preserve the input.");
-
-/** @section action__Unit_Algebraic_Verification */
-
-// 1. The Multiplicative Unit Law (Point-wise)
-// The Unit Morphism maps any input to the Point 1.
-static_assert(
-    u(42) == 1,
-    "Absorption Law: The Unit Morphism must map all inputs to the Point 1.");
-
-// 2. The Successor Relationship (Manual Composition)
-// To verify 1 + n, we evaluate the unit and then perform the species addition.
-static_assert(
-    u(42) + 42 == 43,
-    "Successor Law: The value of the unit (1) plus n (42) must be 43.");
-
-/**
- * @concept IsAdditiveMorphism
- * @brief Formal verification of the first law of linearity: f(x + y) = f(x) +
- * f(y).
- * @details This is "Internal" linearity: the mapping preserves the additive
- * harmony.
- */
-/**
- * @concept IsAdditiveMorphism
- * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
- *
- * @details In the Ring context, this verifies the Distributive Law.
- * For PR 96, we shield the unary call check if F is a standard
- * binary functor (like std::multiplies) to avoid signature mismatch.
- */
-/**
- * @concept IsAdditiveMorphism
- * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
- *
- * @details In the Ring context, this verifies the Distributive Law.
- * For PR 96, we shield functional calls if F is a standard binary
- * functor (like std::multiplies) to avoid signature mismatches.
- */
-export template <typename F, typename M>
-concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
-  /**
-   * @section action__Distributive_Axiom_Shield
-   * We only enforce the unary call f(m1 + m2) if F is not a known binary
-   * operator or if M is not a primitive integral.
-   */
-  requires(std::same_as<F, std::multiplies<void>> ||
-           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
-              requires {
-                { f(m1 + m2) } -> std::same_as<M>;
-                { f(m1) + f(m2) } -> std::same_as<M>;
-              };
-
-  /**
-   * @section action__Linear_Preservation_Shield
-   * The Morphism must preserve the additive identity: f(0) = 0.
-   * We shield this for binary functors to prevent "too few arguments" errors.
-   */
-  requires(std::same_as<F, std::multiplies<void>> ||
-           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
-              requires {
-                {
-                  f(dedekind::category::unit<M>(std::plus<M>{}))
-                } -> std::same_as<M>;
-              };
-};
-
-/**
- * @concept IsLinearAction
- * @brief The "Jewel": An Action that satisfies the Four Axioms of Harmony.
- * @details This is the categorical ground for Modules and Vector Spaces.
- *
- * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
- * 2. Scalar Additivity: (s1 + s2) * m = s1*m + s2*m
- */
-export template <typename S, typename M, typename Act = std::multiplies<>,
-                 typename AddS = std::plus<S>>
-concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
-                         requires(S s1, S s2, M m) {
-                           // Scalar Additivity (The "Second Linearity") via
-                           // chosen witnesses.
-                           { Act{}(AddS{}(s1, s2), m) } -> std::same_as<M>;
-                         };
-
-/**
- * @concept IsLinearMorphism
- * @brief Formal verification of the second law: f(s * x) = s * f(x).
- * @details Links the mapping f to an external scalar influence S.
- */
 /**
  * @brief The semimodule laws of an action @c Act : S x M -> M, declared:
  *        1 m = m, 0 m = 0, (s + t) m = s m + t m, (s t) m = s (t m) and
@@ -244,47 +134,74 @@ export template <typename M, typename S, typename AddM = std::plus<M>,
                  typename Act = std::multiplies<>>
 concept IsSemimodule =
     IsCommutativeMonoid<M, AddM> && IsSemiring<S, AddS, MultS> &&
-    IsAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
+    IsLeftAction<S, M, Act> && is_linear_action_v<M, S, AddM, AddS, MultS, Act>;
 
-static_assert(IsSemimodule<unsigned int, unsigned int>,
-              "unsigned int is a semimodule over itself: Z/2^32.");
+/** @brief The counts' action on a monoid @c (T, Op), @f$(n, x) \mapsto
+ *  x^n@f$, the @c n copies of @c x, where its laws give it in one step:
+ *  derived, never declared, and absent where no law gives it, so that the
+ *  binary method of @c :total squares instead.  @tparam T the carrier.
+ *  @tparam Op the operation. */
+export template <typename T, typename Op>
+struct counting_action {};
+/** @brief By the semimodule laws over the counts, @f$1 \cdot x = x@f$ and
+ *  @f$(s + t) \cdot x = s \cdot x + t \cdot x@f$, @f$x^n@f$ is @f$n \cdot
+ *  x@f$, one action.  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, typename Op>
+  requires IsSemimodule<T, std::size_t, Op> && (!IsIdempotent<T, Op>)
+struct counting_action<T, Op> {
+  /** @param n the copies.  @param x the value.  @return @f$n \cdot x@f$. */
+  constexpr T operator()(std::size_t n, const T& x) const {
+    return static_cast<T>(std::multiplies<>{}(n, x));
+  }
+};
+/** @brief By idempotence, @f$x \cdot x = x@f$, @f$x^n@f$ is @c x for
+ *  @f$n \geq 1@f$ and the unit for none: the counts act through the
+ *  Boolean semiring, @f$n \mapsto [n > 0]@f$.  On a semilattice this is a
+ *  semimodule action over the counts; on a band, a monoid that is idempotent
+ *  and not commutative, no semimodule, it is still the powers.  Where both
+ *  laws hold they agree, @f$n \cdot x = x@f$, and this one is taken.
+ *  @tparam T the carrier.  @tparam Op the operation. */
+template <typename T, typename Op>
+  requires IsMonoid<T, Op> && IsIdempotent<T, Op>
+struct counting_action<T, Op> {
+  /** @param n the copies.  @param x the value.  @return @c x, or the unit
+   *  for none. */
+  constexpr T operator()(std::size_t n, const T& x) const {
+    return n == 0 ? unit<T>(Op{}) : x;
+  }
+};
+/** @concept HasCountingAction
+ *  @brief The counts act on @c (T, Op) in one step, by a law: the semimodule
+ *  laws or idempotence.  @tparam T the carrier.  @tparam Op the operation. */
+export template <typename T, typename Op>
+concept HasCountingAction =
+    std::invocable<const counting_action<T, std::remove_cvref_t<Op>>&,
+                   std::size_t, const T&>;
 
-/** @brief @c concat on @c n copies of one value where @c (T, Op) is a
- *  semimodule over the counts: one action, @f$n \cdot x@f$, by the
- *  semimodule laws, @f$1 \cdot x = x@f$ and @f$(s + t) \cdot x = s \cdot x + t
- *  \cdot x@f$, which make @f$n \cdot x@f$ the @c n-fold sum.  The same
- *  signature as the binary method of @c :total and a stronger constraint, so
- *  resolution prefers it; an idempotent operation stays with @c :total's
- *  idempotent rung.  @param r the copies.  @param op the operation. */
+/** @brief @c concat on @c n copies of one value where the counts act in one
+ *  step: @f$x^n@f$ by the counting action, @f$n \cdot x@f$ over a
+ *  semimodule, @c x under an idempotent operation.  The same signature as the
+ *  binary method of @c :total and a stronger constraint, so resolution
+ *  prefers it.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
-  requires IsMonoid<T, Op> && IsCopies<R> && IsSemimodule<T, std::size_t, Op> &&
-           (!IsIdempotent<T, Op>)
+  requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
 constexpr T concat(R r, Op op = {}) {
   const std::size_t n = copies_count(r);
   if (n == 0) return unit<T>(op);  // no copy to read
-  return static_cast<T>(std::multiplies<>{}(n, copies_value(r)));
+  return counting_action<T, Op>{}(n, copies_value(r));
 }
 static_assert(
     concat(std::views::repeat(std::size_t{7}, std::size_t{100'000'000})) ==
             700'000'000 &&
-        concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0,
-    "n copies under + over the counts are one multiplication");
-
-export template <typename F, typename M, typename S,
-                 typename Act = std::multiplies<>>
-concept IsLinearMorphism =
-    IsAdditiveMorphism<F, M> && IsAction<S, M, Act> && requires(F f, M m, S s) {
-      requires(
-          requires {
-            { f(s(m)) } -> std::same_as<M>;
-          } ||
-          requires {
-            { f(Act{}(s, m)) } -> std::same_as<M>;
-          });
-      // Semantic: f(s * m) == s * f(m)
-    };
+        concat(std::views::repeat(std::size_t{7}, std::size_t{0})) == 0 &&
+        concat(std::views::repeat(true, std::size_t{100'000'000}),
+               std::logical_and<bool>{}) &&
+        !concat(std::views::repeat(false, std::size_t{0}),
+                std::logical_or<bool>{}),
+    "n copies are one step where a law gives the counts' action: one "
+    "multiplication over the counts, the value itself on the booleans");
 
 /**
  * @struct ZeroAction
@@ -346,27 +263,23 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
  *  the action law (the Jlt paper's Listing 4).  @c acting_monoid<H> names the
  *  monoid an action @c h acts by on the right, a declared certificate of
  *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$ and @f$h(v, 1) = v@f$, the product
- *  in the walk's order (a left action registers the opposite product); keyed
- *  by the
- *  action's type without cv-qualification, as a fold deduces it.
- *  FIXME(#1104): a left action's opposite product is registered by hand; a
- * generic
- *  @c Opposite<Op>, forwarding associativity and the unit, with
- *  @c Opposite<Opposite<Op>> = @c Op, would derive it.  @c IsAction above is
- *  scalar first, @f$S \times M \to M@f$, a left action, and
- *  @c IsMonoidAction a right one: two conventions to reconcile.  On @c n
- *  copies of one value the fold is then @c v acted on by their product, and
- *  @c concat (@c :total) computes the product by squaring: two declared laws,
- *  two overloads, composed by resolution. */
+ *  in the walk's order; keyed by the action's type without cv-qualification,
+ *  as a fold deduces it.  A fold walks a right action; a left action, scalar
+ *  first as @c IsLeftAction, is a right action of the opposite monoid and
+ *  registers @c Opposite<Op> (@c :involution), the bridge between the two
+ *  textbook conventions.  On @c n copies of one value the fold is @c v acted
+ *  on by their product, and @c concat computes the product in one step or by
+ *  squaring: two declared laws, two overloads, composed by resolution. */
 export template <typename H>
 struct acting_monoid {};
-/** @brief @c H is an action @f$M \times S \to M@f$, on the right, of the
- *  monoid @c (S, Op) that @c acting_monoid<H> names: @c M is a right
- *  @c S-set (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
- *  Monoids, Acts and Categories).  @tparam H the action.
+/** @brief @c H is a right action @f$M \times S \to M@f$ of the monoid
+ *  @c (S, Op) that @c acting_monoid<H> names: @c M is a right @c S-set
+ *  (Mac Lane and Moerdijk), an @c S-act (Kilp, Knauer and Mikhalev,
+ *  Monoids, Acts and Categories).  A left action is a right action of the
+ *  opposite, @c Opposite<Op>.  @tparam H the action.
  *  @tparam M what it acts on.  @tparam S the monoid. */
 export template <typename H, typename M, typename S>
-concept IsMonoidAction =
+concept IsRightAction =
     std::invocable<const H&, M, S> &&
     requires(const H& h, M v, S s) {  // called directly: a function object
       { h(std::move(v), std::move(s)) } -> std::convertible_to<M>;
@@ -387,7 +300,7 @@ constexpr M fold(R r, M v, H h) {
  *  @param r the copies.  @param v the start.  @param h the
  *  action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
-  requires IsCopies<R> && IsMonoidAction<H, M, std::ranges::range_value_t<R>>
+  requires IsCopies<R> && IsRightAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
   return h(std::move(v), concat(std::move(r), Op{}));

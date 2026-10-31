@@ -543,6 +543,16 @@ inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
 export template <typename T>
 inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
 
+/** @brief The additive inverse, @f$-A@f$ entry by entry: the hook
+ *  @c category::inverse_v reads, found by argument-dependent lookup.
+ *  @param a the matrix.  @return @f$-A@f$. */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
+                                std::plus<Matrix2x2V<T>>) {
+  return -a;
+}
+
 /** @section matrix__Functorial_Hub
  *
  *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
@@ -636,6 +646,64 @@ struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
       const dedekind::linear_algebra::Matrix2x2V<T>& m) const {
     return m.m11;
   }
+};
+
+/** @brief The units of @c M₂(T), built from the scalars' own: the zero
+ *  matrix for @c +, the identity for @c ×, what a ring homomorphism into it
+ *  carries @c 0 and @c 1 to. */
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+           IsPointed<T, std::plus<T>>
+struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
+                  std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
+  using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
+  static constexpr T o = unit<T>(std::plus<T>{});
+  static constexpr value_type value{o, o, o, o};
+};
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+           IsPointed<T, std::plus<T>> && IsPointed<T, std::multiplies<T>>
+struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
+                  std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> {
+  using value_type = dedekind::linear_algebra::Matrix2x2V<T>;
+  static constexpr T o = unit<T>(std::plus<T>{});
+  static constexpr T e = unit<T>(std::multiplies<T>{});
+  static constexpr value_type value{e, o, o, e};
+};
+
+namespace detail_mat2x2 {
+/** @brief The entries form a ring under the @c + and @c × the matrices are
+ *  computed with: then @c M₂(T) is a ring (Lang, @e Algebra, §XIII.1), each
+ *  law below inherited from it, and not otherwise. */
+template <typename T>
+concept HasRingEntries = IsRing<T, std::plus<T>, std::multiplies<T>>;
+}  // namespace detail_mat2x2
+template <detail_mat2x2::HasRingEntries T>
+struct is_associative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_associative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_commutative<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>>
+    : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+inline constexpr bool
+    is_distributive_v<dedekind::linear_algebra::Matrix2x2V<T>,
+                      std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>,
+                      std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> =
+        true;
+template <detail_mat2x2::HasRingEntries T>
+struct is_total_by_construction<
+    dedekind::linear_algebra::Matrix2x2V<T>,
+    std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> : std::true_type {};
+template <detail_mat2x2::HasRingEntries T>
+struct is_total_by_construction<
+    dedekind::linear_algebra::Matrix2x2V<T>,
+    std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> : std::true_type {
 };
 
 }  // namespace dedekind::category
