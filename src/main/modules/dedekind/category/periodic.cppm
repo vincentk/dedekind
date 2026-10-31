@@ -1005,6 +1005,29 @@ export struct PowerFunctor {
     return {std::move(tau), length};
   }
 };
+/** @brief The power functor's laws: @f$\mathrm{id}^{\times n} = \mathrm{id}@f$
+ *  and @f$(\sigma \gg \tau)^{\times n} = \sigma^{\times n} \gg
+ *  \tau^{\times n}@f$, letterwise by construction, witnessed on a word. */
+template <>
+struct is_functorial<PowerFunctor> : std::true_type {};
+namespace detail_periodic {
+constexpr std::vector<std::byte> gattac() {
+  return {std::byte{'G'}, std::byte{'A'}, std::byte{'T'},
+          std::byte{'T'}, std::byte{'A'}, std::byte{'C'}};
+}
+constexpr LetterMap swap_at = letter_map("AT", "TA");
+constexpr LetterMap swap_cg = letter_map("CG", "GC");
+}  // namespace detail_periodic
+static_assert(
+    PowerFunctor{6}.φ(LetterMaps::id_c(std::byte{}))(
+        detail_periodic::gattac()) == detail_periodic::gattac() &&
+        PowerFunctor{6}.φ(detail_periodic::swap_at >> detail_periodic::swap_cg)(
+            detail_periodic::gattac()) ==
+            (PowerFunctor{6}.φ(detail_periodic::swap_at) >>
+             PowerFunctor{6}.φ(detail_periodic::swap_cg))(
+                detail_periodic::gattac()),
+    "the power functor preserves the identity and composition, on a word");
+
 /** @brief A transformation of the power functor with one component, a
  *  map on the words, at every letter.  @tparam S the map. */
 export template <typename S>

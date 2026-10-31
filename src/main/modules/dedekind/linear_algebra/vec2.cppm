@@ -363,6 +363,19 @@ struct covec2_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
+}  // namespace dedekind::linear_algebra
+namespace dedekind::category {
+/** @brief Elementwise lifts: the functor laws hold by construction. */
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct is_functorial<dedekind::linear_algebra::vec2_functor<T>>
+    : std::true_type {};
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct is_functorial<dedekind::linear_algebra::covec2_functor<T>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::linear_algebra {
 static_assert(dedekind::category::IsShapedFunctor<vec2_functor<int>>,
               "Vec2V<·> is a functor Set<T> → Set<Vec2V<T>>: lifts a T-arrow "
               "to the elementwise Vec2V<T>-arrow.");
