@@ -96,6 +96,11 @@ constexpr std::size_t leap(std::size_t n) {  // self-recursion 8: n - 2 wraps
   return n == 0 ? 0 : leap(n - 2);
 }
 
+// self-recursion 9: n / 2 descends, but in m's slot; n never changes
+constexpr std::size_t aside(std::size_t n, std::size_t m) {
+  return n == 0 ? m : aside(n, n / 2);
+}
+
 }  // namespace jlt_listing
 
 inline int harness(int n) {

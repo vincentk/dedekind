@@ -35,6 +35,7 @@
 #include <functional>
 #include <limits>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -174,9 +175,14 @@ std::vector<Factor<>> count_factors(const Factored& f) { return f.factors; }
 /** @param a the letters, as written.  @return the alphabet. */
 Alphabet alphabet(std::string_view a) {
   if (a.empty()) throw nb::value_error("alphabet: no letters");
-  const auto [lo, hi] = std::ranges::minmax(a);
-  return slice(std::byte{static_cast<unsigned char>(lo)},
-               std::byte{static_cast<unsigned char>(hi + 1)}) >>
+  // ordered as bytes, not as char, which may be signed
+  const auto [lo, hi] =
+      std::ranges::minmax(a | std::views::transform([](char c) {
+                            return static_cast<unsigned char>(c);
+                          }));
+  if (hi == 0xFF)
+    throw nb::value_error("alphabet: the byte 0xFF ends no byte slice");
+  return slice(std::byte{lo}, std::byte{static_cast<unsigned char>(hi + 1)}) >>
          dedekind::category::letters(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
@@ -207,6 +213,8 @@ std::size_t packed(std::size_t k, std::size_t w) {
 bool is_square(std::size_t k, std::size_t n) {
   if (n == 0 || n > dedekind::category::max_packed_width)
     throw nb::value_error("is_square: width must be 1..512");
+  // the low n bits, as pack reads them: no padding above the width
+  if (n < 64) k &= (std::size_t{1} << n) - 1;
   return with_width(n, [k, n](auto width) {
     constexpr std::size_t W = decltype(width)::value;
     return dedekind::category::IsSquare<W>{n}(dedekind::category::pack<W>(k));

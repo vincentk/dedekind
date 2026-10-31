@@ -72,6 +72,9 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertFalse(is_square(0b1001, 4) or is_square(1, 128))
         self.assertEqual(pack(0x1A5, 8), 0xA5)
         self.assertEqual(pack(0xFF, 4), 0xF)  # the low w bits, no padding
+        self.assertTrue(is_square(0xAA, 4))  # 1010 above padding 1010
+        # the letters are ordered as bytes: "é" is two bytes above "A", in UTF-8
+        self.assertEqual(count_factors(power(alphabet("Aé"), 1)), [(3, 1)])
 
     def test_the_exhibit_answers_at_once(self) -> None:
         start = time.perf_counter()
