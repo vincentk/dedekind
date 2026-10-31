@@ -71,6 +71,7 @@ The goal is correctness by construction in Dijkstra's sense~\cite{dijkstra1976di
 The case is usually made in a language built around it.
 This paper makes it in a mainstream systems language instead, \Cpp{23}.
 Much of machine learning and most embedded devices run on \Cpp{}, and a growing number of the people who write it arrive from Python with a functional vocabulary.
+For them the repository binds the library's combinators into Python as handles to the compiled core, so the laws declared in \Cpp{} hold in an interactive session: the specialisations they license run there at run time, and only what the compiler evaluates of them is fixed when the bindings are built (Section~\ref{sec:binding}).
 The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, after Tarski's calculus of relations~\cite{tarski1941calculus}.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
@@ -667,15 +668,6 @@ By Theorem~\ref{thm:preservation} and Reynolds' abstraction theorem~\cite{reynol
 It is also why an instance with a context (Section~\ref{sec:translation:contexts}) can read a composite's law off its components' records.
 The composite cannot do anything the components' records do not provide.
 
-\begin{corollary}[Type soundness]
-\label{cor:soundness}
-A well-typed closed FJlt term of base type evaluates to a value.
-\end{corollary}
-
-This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it is cheap once the rest is in place.
-A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
-What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
-
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
@@ -730,6 +722,15 @@ $10^8$ copies take 27 steps, where Listing~\ref{lst:rule3}'s fold is refused at 
 The overload, \cppinline{IsCopies} and the certificates are the library's.}
 \label{lst:laws}
 \end{listing}
+
+\begin{corollary}[Type soundness]
+\label{cor:soundness}
+A well-typed closed FJlt term of base type evaluates to a value.
+\end{corollary}
+
+This is the theorem a reader of Featherweight Java~\cite{igarashi2001featherweight} expects first, and here it is cheap once the rest is in place.
+A closed well-typed term is a value or takes a step (progress, Lemma~\ref{lem:progress}), and it cannot step forever (Corollary~\ref{cor:termination}), so it reaches a value.
+What the translation adds is the second half of Theorem~\ref{thm:simulation}: the value reached is the value the System~F image computes.
 
 \paragraph{Certified and inferred laws.}
 A program declares few laws and infers the rest.
@@ -943,6 +944,7 @@ And laws that are computed with rather than only declared, which needs terms and
 
 Declared laws, and the laws inferred from them, license optimisations of the application's own algebra, as types rule out errors: by a sound check, not a decision of equivalence.
 The same laws are those a query optimiser applies to relational algebra~\cite{codd1970relational}, so the posture reads, the other way round, as an intensional SQL: queries over relations given by their laws, not by their rows.
+The laws survive the trip into Python, up to the compile-time evaluation: a session that composes and counts through the bindings runs the overloads the laws license, for those who would rather tinker than compile.
 Nothing was added to the language, the compiler or the library: what was added is a boundary, inside which a mainstream compiler checks claims of a modest but real kind about programs that then run unchanged, for the people who already write \Cpp{23}.
 
 \acks
