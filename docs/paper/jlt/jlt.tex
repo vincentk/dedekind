@@ -679,8 +679,8 @@ template <> struct acting_monoid<Act> {
 // the overload it licenses
 template <ranges::input_range R,
           semiregular M, typename H>
-  requires IsRightAction<H, M,
-                         ranges::range_value_t<R>>
+  requires IsCopies<R> && IsRightAction<
+               H, M, ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = acting_monoid<H>::type;
   return h(v, concat(r, Op{}));
@@ -721,8 +721,9 @@ fibonacci = λ n. π₂ (fold act (1, 0) ms)
           = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
 \end{minted}
 \caption{Laws composing: Rule~2 applied to Listing~\ref{lst:rule3}'s chain, the composition made sound by Theorem~\ref{thm:coherence}.
-Top left: the action law, declared, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$ for $2 \times 2$ matrices under multiplication, and the overload it licenses: the library's \cppinline{fold} on any sequence of matrices acts once, by their product.
-Top right: the monoid laws, declared, and the overload they license: \cppinline{concat} on $n$ copies of one value, the word $a^n$, computes their product by squaring~\cite[\S 4.6.3]{knuth1997art2}, and the call in the left panel's body is where it takes over.
+Top left: the action law, declared, $\mathit{act}(\mathit{act}(v, A), B) = \mathit{act}(v, AB)$ for $2 \times 2$ matrices under multiplication, and the overload it licenses: the library's \cppinline{fold} on $n$ copies of one value, the word $a^n$, acts once, by their product.
+The law holds on any sequence, and the library uses it where the product has a fast form, as on copies: elsewhere a product each costs more than an action each.
+Top right: the monoid laws, declared, and the overload they license: \cppinline{concat} on the same copies computes $a^n$ by squaring~\cite[\S 4.6.3]{knuth1997art2}, and the call in the left panel's body is where it takes over.
 Middle: \cppinline{fibonacci} is the chain's fold with the library's \cppinline{fold} in place of the standard's \cppinline{fold_left}, which it is on any other range, and resolution picks the overload the same way wherever it is called.
 Bottom: its translation, rewritten by the left panel's law and then by the right panel's, two equations outside the appendix's reductions, each licensed by a certificate.
 $10^8$ copies take 27 steps, so the assertion is itself the witness that resolution picked both overloads: with either one plain, $10^8$ steps exceed the evaluator's step limit (Table~\ref{tab:binding}) and the program would not compile.

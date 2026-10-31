@@ -479,12 +479,14 @@ static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
               dedekind::category::IsRightAction<decltype(act), V, M2> &&
               fib * shear != shear * fib &&
               act(act(V{1, 2}, fib), shear) == act(V{1, 2}, fib* shear));
-// The action law on any sequence, not only copies: the library's fold acts
-// once, by the product in the walk's order, and agrees with the plain fold
-// on matrices that do not commute.
+// On a sequence that is not copies the product has no fast form, so the
+// library's fold is the plain one; the action law, acting once by the product
+// in the walk's order, agrees with it on matrices that do not commute.
 constexpr std::array<M2, 3> mixed{fib, shear, fib};
 static_assert(fold(mixed, V{1, 2}, act) ==
-              std::ranges::fold_left(mixed, V{1, 2}, act));
+                  std::ranges::fold_left(mixed, V{1, 2}, act) &&
+              fold(mixed, V{1, 2}, act) ==
+                  act(V{1, 2}, concat(mixed, MatMul{})));
 
 // Listing 4: Listing 3's fold, by the library's fold in place of the
 // standard's fold_left; the action law and associativity compose, so 10^8

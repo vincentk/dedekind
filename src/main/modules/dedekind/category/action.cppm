@@ -292,17 +292,18 @@ export template <std::ranges::input_range R, std::semiregular M, typename H>
 constexpr M fold(R r, M v, H h) {
   return std::ranges::fold_left(std::move(r), std::move(v), h);
 }
-/** @brief The fold of any sequence under a monoid action: @c v acted on
- *  once, by the product of the sequence in the walk's order, by the action
- *  law @f$h(h(v, a), b) = h(v, a \cdot b)@f$.  The same signature as the
- *  plain fold and a stronger constraint, so resolution prefers it.  The
- *  product no longer depends on @c v: @c concat computes it by its own laws,
- *  by squaring on copies, and it may be reused or, by associativity, reduced
- *  as a tree; on distinct values it costs a product each where the plain
- *  fold costs an action each.  @param r the sequence.  @param v the start.
- *  @param h the action. */
+/** @brief The fold under a monoid action of a sequence whose product has a
+ *  fast form: @c v acted on once, by the product in the walk's order.  The
+ *  action law @f$h(h(v, a), b) = h(v, a \cdot b)@f$ licenses this on any
+ *  sequence, but it pays only where the product is cheaper than the actions
+ *  one by one: elsewhere a product each costs more than an action each, a
+ *  matrix by a matrix against a vector by a matrix.  The fast form today is
+ *  copies, whose product @c concat computes by squaring; periodic sequences
+ *  are the natural next one.  The same signature as the plain fold and a
+ *  stronger constraint, so resolution prefers it.  @param r the copies.
+ *  @param v the start.  @param h the action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
-  requires IsRightAction<H, M, std::ranges::range_value_t<R>>
+  requires IsCopies<R> && IsRightAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {
   using Op = typename acting_monoid<std::remove_cvref_t<H>>::type;
   return h(std::move(v), concat(std::move(r), Op{}));
