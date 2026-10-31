@@ -97,9 +97,10 @@ export module dedekind.category:functor;
 
 import :action;
 import :cartesian;
-import :limit;    // One: the delooping's one object
-import :species;  // unit: the identity of an element's monoid
-import :total;    // IsMonoid: what a delooping is made of
+import :involution;  // IsDagger, Opposite: a dagger and the opposite category
+import :limit;       // One: the delooping's one object
+import :species;     // unit: the identity of an element's monoid
+import :total;       // IsMonoid: what a delooping is made of
 import :morphism;
 import :small;
 
@@ -1205,6 +1206,105 @@ template <std::semiregular H, std::semiregular V, std::semiregular S>
   requires IsRightAction<H, V, S>
 struct is_functorial<ActionFunctor<H, V, S>> : std::true_type {};
 
+/** @brief A scalar acting on the left: the arrow @f$m \mapsto s \cdot m@f$
+ *  of a semimodule.  @tparam Act the action.  @tparam M the module.
+ *  @tparam S the scalars. */
+export template <std::semiregular Act, std::semiregular M, std::semiregular S>
+  requires std::invocable<const Act&, S, M>
+struct LeftActing {
+  using Domain = M;
+  using Codomain = M;
+  [[no_unique_address]] Act act;
+  S by;
+  constexpr M operator()(M m) const {
+    return static_cast<M>(act(by, std::move(m)));
+  }
+};
+/** @brief The arrows by which the scalars act on a semimodule, as a
+ *  category.  @tparam M the module.  @tparam S the scalars.  @tparam MultS
+ *  their product.  @tparam Act the action. */
+export template <std::semiregular M, std::semiregular S, std::semiregular MultS,
+                 std::semiregular Act>
+  requires IsMonoid<S, MultS> && std::invocable<const Act&, S, M>
+struct LeftActingOn {
+  using Species = M;
+  using Arrow = LeftActing<Act, M, S>;
+  using Id = LeftActing<Act, M, S>;
+  static constexpr Id id_c(const M&) { return {Act{}, unit<S>(MultS{})}; }
+};
+/** @brief A semimodule's left action as a functor out of the opposite of
+ *  the delooping of its scalars' product: @f$(s t) m = s (t m)@f$, so @c s
+ *  then @c t along the walk acts as @f$t s@f$, the opposite product, and
+ *  @f$1 m = m@f$ keeps the identity.  Those laws are the semimodule's, which
+ *  @c is_linear_action declares, so the functor laws are derived.  A left
+ *  action of a monoid is a right action of its opposite: the right actions
+ *  are @c ActionFunctor.  @tparam M the module.  @tparam S the scalars.
+ *  @tparam AddM @tparam AddS @tparam MultS the operations.  @tparam Act the
+ *  action. */
+export template <std::semiregular M, std::semiregular S,
+                 std::semiregular AddM = std::plus<M>,
+                 std::semiregular AddS = std::plus<S>,
+                 std::semiregular MultS = std::multiplies<S>,
+                 std::semiregular Act = std::multiplies<>>
+  requires IsSemimodule<M, S, AddM, AddS, MultS, Act> &&
+           IsMonoid<S, Opposite<MultS>> && std::invocable<const Act&, S, M>
+struct LeftActionFunctor {
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Delooping<S, Opposite<MultS>>;
+  using Τ_cat = LeftActingOn<M, S, MultS, Act>;
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+  template <typename U>
+  using Shape = M;
+  [[no_unique_address]] Act act{};
+  constexpr Codomain operator()(const Domain&) const { return {}; }
+  constexpr LeftActing<Act, M, S> φ(
+      const Element<S, Opposite<MultS>>& s) const {
+    return {act, s.value};
+  }
+};
+/** @brief A semimodule's functor laws come with it: derived from
+ *  @c IsSemimodule. */
+template <std::semiregular M, std::semiregular S, std::semiregular AddM,
+          std::semiregular AddS, std::semiregular MultS, std::semiregular Act>
+  requires IsSemimodule<M, S, AddM, AddS, MultS, Act> &&
+           IsMonoid<S, Opposite<MultS>> && std::invocable<const Act&, S, M>
+struct is_functorial<LeftActionFunctor<M, S, AddM, AddS, MultS, Act>>
+    : std::true_type {};
+
+/** @brief A dagger as a functor: from the delooping of @c (T, Op) to that
+ *  of its opposite, each element to its dagger.  The functor laws are the
+ *  dagger's, @f$(a b)^\dagger = b^\dagger a^\dagger@f$, the composition law
+ *  into the opposite category, and @f$1^\dagger = 1@f$, which an involutive
+ *  anti-homomorphism keeps; so they are derived from @c IsDagger and not
+ *  declared again.  Contravariant on the one object, and its own inverse.
+ *  @tparam Dagger the dagger.  @tparam T the arrows.  @tparam Op their
+ *  composition. */
+export template <std::semiregular Dagger, std::semiregular T,
+                 std::semiregular Op>
+  requires IsMonoid<T, Op> && IsMonoid<T, Opposite<Op>> &&
+           IsDagger<Dagger, T, Op>
+struct DaggerFunctor {
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Delooping<T, Op>;
+  using Τ_cat = Delooping<T, Opposite<Op>>;
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+  template <typename U>
+  using Shape = One;
+  [[no_unique_address]] Dagger dagger{};
+  constexpr Codomain operator()(const Domain&) const { return {}; }
+  constexpr Element<T, Opposite<Op>> φ(const Element<T, Op>& a) const {
+    return {static_cast<T>(dagger(a.value))};
+  }
+};
+/** @brief A dagger's functor laws come with the dagger: derived from
+ *  @c IsDagger, its involution and its reversal of products. */
+template <std::semiregular Dagger, std::semiregular T, std::semiregular Op>
+  requires IsMonoid<T, Op> && IsMonoid<T, Opposite<Op>> &&
+           IsDagger<Dagger, T, Op>
+struct is_functorial<DaggerFunctor<Dagger, T, Op>> : std::true_type {};
+
 namespace detail_functor_actions {
 using Plus = std::plus<std::size_t>;
 using Adding = ActionFunctor<Plus, std::size_t, std::size_t>;
@@ -1220,5 +1320,25 @@ static_assert((Sum{3} >> Sum{4}).value == 7 &&
                       5,
               "composition is the operation; the functor keeps it and the "
               "unit, on values");
+using Negation = DaggerFunctor<std::negate<std::size_t>, std::size_t, Plus>;
+using Back = Element<std::size_t, Opposite<Plus>>;
+static_assert(
+    IsShapedFunctor<Negation> && has_one_value_v<Negation> &&
+        Negation{}.φ(Sum{3} >> Sum{4}).value ==
+            (Negation{}.φ(Sum{3}) >> Negation{}.φ(Sum{4})).value &&
+        Negation{}.φ(Delooping<std::size_t, Plus>::id_c(One{})).value == 0 &&
+        std::same_as<decltype(Negation{}.φ(Sum{3})), Back>,
+    "negation on (size_t, +) is a dagger, so a functor into the "
+    "opposite category, its laws on values");
+using Scaling = LeftActionFunctor<std::size_t, std::size_t>;
+using Scalar = Element<std::size_t, Opposite<std::multiplies<std::size_t>>>;
+using Scalars = Delooping<std::size_t, Opposite<std::multiplies<std::size_t>>>;
+static_assert(IsShapedFunctor<Scaling> && has_one_value_v<Scaling> &&
+                  Scaling{}.φ(Scalar{3} >> Scalar{4})(5uz) ==
+                      (Scaling{}.φ(Scalar{3}) >> Scaling{}.φ(Scalar{4}))(5uz) &&
+                  Scaling{}.φ(Scalar{3} >> Scalar{4})(5uz) == 60 &&
+                  Scaling{}.φ(Scalars::id_c(One{}))(5uz) == 5,
+              "the counts scale themselves on the left, a functor out of the "
+              "opposite delooping, its laws on values");
 }  // namespace detail_functor_actions
 }  // namespace dedekind::category

@@ -123,6 +123,16 @@ static_assert(IsMonoidHomomorphism<Negate, size_t, std::plus<size_t>> &&
               !IsDagger<std::bit_not<size_t>, size_t, std::plus<size_t>>);
 // A qualified operation names the same law.
 static_assert(IsDagger<Negate, size_t, const std::plus<size_t>>);
+// A dagger is a functor out of the one-object category into its opposite:
+// its laws derived from IsDagger, reversal of products being the opposite's
+// composition, and witnessed on values.
+using Negation =
+    dedekind::category::DaggerFunctor<Negate, size_t, std::plus<size_t>>;
+using Plus = dedekind::category::Element<size_t, std::plus<size_t>>;
+static_assert(dedekind::category::IsFunctor<Negation> &&
+              Negation{}.φ(Plus{5} >> Plus{7}).value ==
+                  (Negation{}.φ(Plus{5}) >> Negation{}.φ(Plus{7})).value &&
+              Negation{}.φ(Plus{5}).value == 0uz - 5uz);
 static_assert(dedekind::category::IsMagmaHomomorphism<AtRunTime, size_t,
                                                       std::plus<size_t>> &&
               !IsMonoidHomomorphism<AtRunTime, size_t, std::plus<size_t>>);
