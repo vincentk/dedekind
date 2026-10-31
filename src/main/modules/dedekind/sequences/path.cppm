@@ -688,7 +688,7 @@ constexpr Path<T> iterate(Op op, T seed_0, Ts... more_seeds) {
   // @c N) branch — the math is direct.  The head-projection lambda is
   // the operational form of @c path_functor::φ at this call site (see
   // the Sollbruchstelle docstring below for why @c φ remains unreified
-  // at the Hub level).
+  // as a functor's action on arrows).
   //
   // FIXME: the returned Path has the default @c Index @c = @c
   // std::size_t .  Propagating the user-chosen @c Index Form through
@@ -832,13 +832,13 @@ constexpr auto forall(const Path<T, Cardinality, Index>& path, Pred&& pred) {
 namespace dedekind::category {
 
 /**
- * @brief The Path Hub for the @c Path<·> shape (#508 / PR #521 review).
+ * @brief The path functor for the @c Path<·> shape (#508 / PR #521 review).
  *
  * @details Carries the @c Shape<U> @c = @c Path<U> alias used by the
  * Kleisli witness registry (@c unit_witness / @c counit_witness /
  * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius).
  * Named @c path_functor for naming-convention parity with the sibling
- * @c maybe_functor / @c vec2_functor / @c matrix2x2_functor Hubs in
+ * @c maybe_functor / @c vec2_functor / @c matrix2x2_functor functors in
  * other partitions.
  *
  * @section path__Why_The_Kleisli_Layer_And_Not_IsComonad
@@ -879,7 +879,7 @@ namespace dedekind::category {
  * Path is @b Frobenius — it carries both monadic and comonadic
  * structure (per the partition's header note).  At the Kleisli-witness
  * level:
- *   * @c path_functor is the Hub-tag for the type-constructor
+ *   * @c path_functor is the tag for the type-constructor
  *     @c Path<·> on objects (object-action only; see above).
  *   * @c unit_witness<path_functor<T>, T> is the @c T-component of
  *     @c η: @c Id @c ⇒ @c T (constant path @c λn.x).
@@ -942,7 +942,7 @@ using PathArrow = dedekind::category::CanonicalSetCCC<Path<int>>::Arrow;
 // Morphism<Path<int>, Path<int>, std::function<Path<int>(Path<int>)>> —
 // CanonicalSetCCC<X> is the exported alias for the in-cartesian Set<X>
 // type (Set itself is not export-qualified).  Same precedent as the
-// vec2_functor / matrix2x2_functor Hubs in :linear_algebra.
+// vec2_functor / matrix2x2_functor functors in :linear_algebra.
 static_assert(dedekind::category::IsArrow<Path<int>>,
               "Path<int> is itself an IsArrow at the type level "
               "(Domain = size_t, Codomain = T, call operator).");
@@ -950,13 +950,10 @@ static_assert(!dedekind::category::IsSmallCategoryShape<Path<int>>,
               "Path<int> is NOT a category-shaped thing — it has no "
               "::Arrow / ::Species / ::Id aliases.  This is the "
               "distinction the #525 discriminator-sharpening makes.");
-static_assert(dedekind::category::IsSpokeArrow<PathArrow>,
-              "Morphism<Path<int>, Path<int>, ...> is a SpokeArrow under "
-              "the #525 sharpening (Dom = Path<int>, which is not a "
-              "category-shaped thing). Pre-#525 this static_assert would "
-              "have failed because Path<int> satisfies IsArrow at the "
-              "type level, and the old !IsArrow<Dom<T>> discriminator "
-              "therefore mis-classified the Morphism as non-spoke.");
+static_assert(
+    dedekind::category::IsArrow<PathArrow>,
+    "Morphism<Path<int>, Path<int>, ...> is an arrow of Set<Path<int>>, "
+    "its ends objects, Path<int> not being a category.");
 }  // namespace _path_525
 
 static_assert(IsFiniteSequence<FinitePath<int>>,

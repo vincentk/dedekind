@@ -222,24 +222,25 @@ TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
     CHECK(bind(empty, plus_two) == std::nullopt);
   }
 
-  SECTION("bind with maybe_hub uses default join/phi route") {
+  SECTION("bind with maybe_monad uses default join/phi route") {
     std::optional<int> present{5};
     std::optional<int> empty{std::nullopt};
 
     auto plus_two = [](int x) { return std::optional<int>{x + 2}; };
-    CHECK(bind(maybe_hub, present, plus_two) == std::optional<int>{7});
-    CHECK(bind(maybe_hub, empty, plus_two) == std::nullopt);
+    CHECK(bind(maybe_monad, present, plus_two) == std::optional<int>{7});
+    CHECK(bind(maybe_monad, empty, plus_two) == std::nullopt);
   }
 
-  SECTION("bind and extend with tuple_hub use default Frobenius routes") {
+  SECTION("bind and extend with tuple_monad use default Frobenius routes") {
     std::tuple<int> value{6};
 
     auto bound =
-        bind(tuple_hub, value, [](int x) { return std::tuple<int>{x + 4}; });
+        bind(tuple_monad, value, [](int x) { return std::tuple<int>{x + 4}; });
     CHECK(bound == std::tuple<int>{10});
 
-    auto extended = extend(
-        tuple_hub, value, [](std::tuple<int> b) { return std::get<0>(b) * 3; });
+    auto extended = extend(tuple_monad, value, [](std::tuple<int> b) {
+      return std::get<0>(b) * 3;
+    });
     CHECK(extended == std::tuple<int>{18});
   }
 }

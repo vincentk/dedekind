@@ -309,14 +309,13 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
  *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
  *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
  *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
- *  The hub types below own that lift and witness
+ *  The functor types below own that lift and witness
  *  @c dedekind::category::IsShapedFunctor for each shape.  They mirror
  *  @c dedekind::category::maybe_functor in pattern.
  */
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct vec2_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Vec2V<T>>;
 
@@ -341,7 +340,6 @@ struct vec2_functor {
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct covec2_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Covec2V<T>>;
 
@@ -400,7 +398,7 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
 
 /** @section tuple__Monadic_Unit_Witnesses
  *
- *  The functor hubs above are the morphism-lifting half of a Kleisli
+ *  The functors above are the morphism-lifting half of a Kleisli
  *  triple; this section pins the @c η / unit half — the scalar → linear-map
  *  lift that the user expects to see at the linear-algebra layer.  For
  *  @c Vec2V<T> and @c Covec2V<T> the canonical unit is the diagonal
@@ -414,9 +412,9 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
  */
 namespace dedekind::category {
 
-// PR #508: unit_witness / counit_witness now take a Hub regular type
+// PR #508: unit_witness / counit_witness now take a Functor regular type
 // rather than a template-template parameter.  The existing
-// vec2_functor<T> / covec2_functor<T> Hubs (above in this partition)
+// vec2_functor<T> / covec2_functor<T> functors (above in this partition)
 // already carry the @c Shape<U> alias the new witness primary expects;
 // reuse them directly.
 

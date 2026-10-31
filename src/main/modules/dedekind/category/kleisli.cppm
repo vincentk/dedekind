@@ -64,11 +64,11 @@ module;
 
 export module dedekind.category:kleisli;
 
-import :functor;  // maybe_functor (canonical Hub for unit_witness, monad-only)
-                  // and tuple_functor (canonical Hub for both
+import :functor;  // maybe_functor (canonical Functor for unit_witness,
+                  // monad-only) and tuple_functor (canonical Functor for both
                   // unit_witness AND counit_witness; #508 / #632)
-import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
-                  // slot
+import :natural;  // IsDefaultMonadTag — type-checked constraint on the Kleisli
+                  // M slot
 import :monad;
 import :small;
 import :morphism;
@@ -108,15 +108,16 @@ constexpr auto operator>>=(const Maybe<T>& m, Func f) {
 }
 
 /**
- * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
- * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
+ * @brief unit_witness<Functor, T>: Generic Kleisli unit witness.
+ * Lifts a value into the Kleisli extension named by @c Functor::template
+ * Shape<T>.
  *
- * @tparam Hub A regular type carrying a nested @c Shape<U> alias; canonical
+ * @tparam Functor A regular type carrying a nested @c Shape<U> alias; canonical
  *             examples are @c maybe_functor<U> (monad-only) and
  *             @c tuple_functor<U> (Frobenius) from @c :functor.
  * @tparam T   The value type.
  */
-export template <typename Hub, typename T>
+export template <typename Functor, typename T>
 struct unit_witness;
 
 export template <typename T>
@@ -125,13 +126,13 @@ struct unit_witness<maybe_functor<T>, T> final {
 };
 
 /**
- * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
+ * @brief counit_witness<Functor, T>: Generic Kleisli counit witness.
  * Samples a value from the co-Kleisli extension named by
- * @c Hub::template Shape<T>.  Defined for genuine comonadic carriers
+ * @c Functor::template Shape<T>.  Defined for genuine comonadic carriers
  * only; @c maybe_functor is not specialised here because Maybe is a
  * monad, not a comonad (counit on nullopt has no honest answer).
  */
-export template <typename Hub, typename T>
+export template <typename Functor, typename T>
 struct counit_witness;
 
 /** @section kleisli__The_Tuple_Frobenius_Engine
@@ -185,27 +186,27 @@ struct counit_witness<tuple_functor<T>, T> final {
 
 /** @section kleisli__Extension_Concepts */
 
-export template <typename Hub, typename T, typename U>
+export template <typename Functor, typename T, typename U>
 concept IsKleisliExtension =
-    requires(T x, typename Hub::template Shape<T> box,
-             std::function<typename Hub::template Shape<U>(T)> f) {
+    requires(T x, typename Functor::template Shape<T> box,
+             std::function<typename Functor::template Shape<U>(T)> f) {
       {
-        unit_witness<Hub, T>{}(x)
-      } -> std::same_as<typename Hub::template Shape<T>>;
-      { box >>= f } -> std::same_as<typename Hub::template Shape<U>>;
+        unit_witness<Functor, T>{}(x)
+      } -> std::same_as<typename Functor::template Shape<T>>;
+      { box >>= f } -> std::same_as<typename Functor::template Shape<U>>;
     };
 
-export template <typename Hub, typename T, typename U>
+export template <typename Functor, typename T, typename U>
 concept IsCoKleisliExtension =
-    requires(typename Hub::template Shape<T> box,
-             std::function<U(typename Hub::template Shape<T>)> f) {
-      { counit_witness<Hub, T>{}(box) } -> std::same_as<T>;
-      { box <<= f } -> std::same_as<typename Hub::template Shape<U>>;
+    requires(typename Functor::template Shape<T> box,
+             std::function<U(typename Functor::template Shape<T>)> f) {
+      { counit_witness<Functor, T>{}(box) } -> std::same_as<T>;
+      { box <<= f } -> std::same_as<typename Functor::template Shape<U>>;
     };
 
-export template <typename Hub, typename T, typename U>
+export template <typename Functor, typename T, typename U>
 concept IsFrobenius =
-    IsKleisliExtension<Hub, T, U> && IsCoKleisliExtension<Hub, T, U>;
+    IsKleisliExtension<Functor, T, U> && IsCoKleisliExtension<Functor, T, U>;
 
 /** @section kleisli__Kleisli_Operators */
 
@@ -274,28 +275,28 @@ constexpr auto extend(WA const& wa, F f) {
 }
 
 /**
- * @brief bind with explicit hub-tag dispatch.
+ * @brief bind with explicit monad-tag dispatch.
  * @details Default route: bind(tag, ma, f) = join(tag, φ(ma, f)).
  */
-export template <typename HubTag, typename MA, typename F>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, MA const& ma, F&& f) {
+export template <typename MonadTag, typename MA, typename F>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, MA const& ma, F&& f) {
              join(tag, φ(ma, std::forward<F>(f)));
            }
-constexpr auto bind(HubTag tag, MA const& ma, F f) {
+constexpr auto bind(MonadTag tag, MA const& ma, F f) {
   return join(tag, φ(ma, std::move(f)));
 }
 
 /**
- * @brief extend with explicit hub-tag dispatch.
+ * @brief extend with explicit monad-tag dispatch.
  * @details Default route: extend(tag, wa, f) = φ(duplicate(tag, wa), f).
  */
-export template <typename HubTag, typename WA, typename F>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, WA const& wa, F&& f) {
+export template <typename MonadTag, typename WA, typename F>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, WA const& wa, F&& f) {
              φ(duplicate(tag, wa), std::forward<F>(f));
            }
-constexpr auto extend(HubTag tag, WA const& wa, F f) {
+constexpr auto extend(MonadTag tag, WA const& wa, F f) {
   return φ(duplicate(tag, wa), std::move(f));
 }
 
@@ -469,44 +470,43 @@ concept IsKleisliDeref =
 /**
  * @brief User-declared "Kleisli arrow" witness (#380, step 1).
  * @details A Kleisli arrow lives in the Kleisli category indexed by a
- *          monad-hub tag @c M.  Its underlying map has shape
+ *          monad tag @c M.  Its underlying map has shape
  *          @c e: @c A @c → @c T<B>, where @c T is the monadic carrier
- *          shape selected by the hub tag (@c Maybe for @c maybe_hub_tag,
- *          @c Identity for @c identity_hub_tag).  The @c M slot is the
- *          @b monad-hub @b tag itself — a tag type that names which
+ *          shape selected by the monad tag (@c Maybe for @c maybe_monad_tag,
+ *          @c Identity for @c identity_monad_tag).  The @c M slot is the
+ *          @b monad @b tag itself — a tag type that names which
  *          Kleisli category the arrow inhabits — not the class template.
- *          Constrained by @c IsDefaultHubTag to make the connection
+ *          Constrained by @c IsDefaultMonadTag to make the connection
  *          type-checked; downstream code can extend by adding new tags
- *          to the @c IsDefaultHubTag disjunction in @c :natural.
+ *          to the @c IsDefaultMonadTag disjunction in @c :natural.
  *          Default @c false; opt-in by specialising to @c true at the
  *          @c (E, M) pair.  Pairs with the composition / fmap
  *          machinery above; this trait only declares membership in the
  *          Kleisli category, it does not implement composition.
  */
 export template <typename E, typename M>
-  requires IsDefaultHubTag<M>
+  requires IsDefaultMonadTag<M>
 inline constexpr bool is_kleisli_arrow_v = false;
 
 /**
  * @concept IsKleisliArrow
  * @brief An arrow declared to live in the Kleisli category indexed by
- *        the monad-hub tag @c M (constrained by @c IsDefaultHubTag).
+ *        the monad tag @c M (constrained by @c IsDefaultMonadTag).
  * @details Opt-in via @c is_kleisli_arrow_v<E, M> @c = @c true.
  */
 export template <typename E, typename M>
 concept IsKleisliArrow =
-    IsArrow<E> && IsDefaultHubTag<M> && is_kleisli_arrow_v<E, M>;
+    IsArrow<E> && IsDefaultMonadTag<M> && is_kleisli_arrow_v<E, M>;
 
 namespace _kleisli_arrow_witness_380 {
 
 // Witness skeleton (#380 step 1): a hand-rolled arrow E with shape
-// @c A @c → @c Maybe<B> opts in to @c IsKleisliArrow<E, maybe_hub_tag>
+// @c A @c → @c Maybe<B> opts in to @c IsKleisliArrow<E, maybe_monad_tag>
 // via the @c is_kleisli_arrow_v specialisation below.  Demonstrates the
 // end-to-end pattern step 2 of #380 will apply to real
 // @c try_realize_to_<primitive> arrows: declare the arrow, register
 // the trait, recover @c IsKleisliArrow at the use site.
 struct toy_partial_realize {
-  using ArrowKind = spoke_arrow_tag;
   using Domain = int;
   using Codomain = Maybe<int>;
   constexpr Maybe<int> operator()(int n) const {
@@ -518,18 +518,18 @@ struct toy_partial_realize {
 
 template <>
 inline constexpr bool is_kleisli_arrow_v<
-    _kleisli_arrow_witness_380::toy_partial_realize, maybe_hub_tag> = true;
+    _kleisli_arrow_witness_380::toy_partial_realize, maybe_monad_tag> = true;
 
 namespace _kleisli_arrow_witness_380 {
 
 static_assert(IsArrow<toy_partial_realize>,
               "Witness arrow shape: A → Maybe<B> qualifies as IsArrow.");
 static_assert(
-    IsKleisliArrow<toy_partial_realize, maybe_hub_tag>,
-    "Opt-in via is_kleisli_arrow_v<E, maybe_hub_tag> = true lifts the "
+    IsKleisliArrow<toy_partial_realize, maybe_monad_tag>,
+    "Opt-in via is_kleisli_arrow_v<E, maybe_monad_tag> = true lifts the "
     "arrow into the IsKleisliArrow concept.");
 static_assert(
-    !IsKleisliArrow<toy_partial_realize, identity_hub_tag>,
+    !IsKleisliArrow<toy_partial_realize, identity_monad_tag>,
     "Opt-in is per-(E, M) pair: a Maybe-shaped Kleisli arrow does not "
     "automatically inhabit the Identity Kleisli category.");
 

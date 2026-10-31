@@ -58,18 +58,18 @@ TEST_CASE("Category: Monad Pipeline Operators",
 
 TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
   SECTION("pure and join route to η/μ for Maybe") {
-    CHECK(pure(maybe_hub, 3) == std::optional<int>{3});
+    CHECK(pure(maybe_monad, 3) == std::optional<int>{3});
 
     std::optional<std::optional<int>> nested{std::optional<int>{8}};
-    CHECK(join(maybe_hub, nested) == std::optional<int>{8});
+    CHECK(join(maybe_monad, nested) == std::optional<int>{8});
   }
 
   SECTION("pure and join route to η/μ for Identity") {
-    auto p = pure(identity_hub, 3);
+    auto p = pure(identity_monad, 3);
     STATIC_CHECK(std::same_as<decltype(p), Identity<int>>);
     CHECK(p(3) == 3);
 
-    auto j = join(identity_hub, id<Identity<int>>());
+    auto j = join(identity_monad, id<Identity<int>>());
     STATIC_CHECK(std::same_as<decltype(j), Identity<int>>);
     CHECK(j(8) == 8);
   }
@@ -77,18 +77,18 @@ TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
   SECTION("pure, join route through Maybe defaults (monad only)") {
     // Maybe is a monad, not a comonad — extract / duplicate live on
     // the Frobenius carrier std::tuple<T>, not on Maybe.
-    CHECK(pure(maybe_hub, 2) == Maybe<int>{2});
-    CHECK(join(maybe_hub, Maybe<Maybe<int>>{Maybe<int>{6}}) == Maybe<int>{6});
+    CHECK(pure(maybe_monad, 2) == Maybe<int>{2});
+    CHECK(join(maybe_monad, Maybe<Maybe<int>>{Maybe<int>{6}}) == Maybe<int>{6});
   }
 
   SECTION("pure, join, extract, duplicate route through tuple defaults") {
     // std::tuple<T> is the project's bona-fide Frobenius carrier
     // per #632 — both monad and comonad laws hold without concession.
-    CHECK(pure(tuple_hub, 2) == std::tuple<int>{2});
-    CHECK(join(tuple_hub, std::tuple<std::tuple<int>>{std::tuple<int>{6}}) ==
+    CHECK(pure(tuple_monad, 2) == std::tuple<int>{2});
+    CHECK(join(tuple_monad, std::tuple<std::tuple<int>>{std::tuple<int>{6}}) ==
           std::tuple<int>{6});
-    CHECK(extract(tuple_hub, std::tuple<int>{9}) == 9);
-    CHECK(duplicate(tuple_hub, std::tuple<int>{9}) ==
+    CHECK(extract(tuple_monad, std::tuple<int>{9}) == 9);
+    CHECK(duplicate(tuple_monad, std::tuple<int>{9}) ==
           std::tuple<std::tuple<int>>{std::tuple<int>{9}});
   }
 }

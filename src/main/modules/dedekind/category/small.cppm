@@ -190,7 +190,7 @@ inline constexpr bool is_associative_v<T, Op> = true;
  *      small concept requires a @c Cat::template Hom<A, @c B> slot,
  *      which is the same template-template territory the codebase
  *      otherwise tries to keep at arm's length (in the @c IsShapedFunctor
- *      Hub/Spoke pattern, etc.).  Paying that complexity without a
+ *      @c Shape pattern, etc.).  Paying that complexity without a
  *      load-bearing consumer would be the wrong trade.
  *
  * If a future slice introduces an honest @c Cpp-as-category or

@@ -6,7 +6,7 @@
  * This partition internalizes monads and comonads as endofunctor-level
  * algebraic structure. Because categories in this library are specialized to a
  * single `Species` type, the object witness used by the laws is always
- * recovered through the identity spoke `id_c(x)` rather than through a
+ * recovered through the identity arrow `id_c(x)` rather than through a
  * separate textbook object universe.
  *
  * @copyright 2026 The Dedekind Authors
@@ -36,9 +36,9 @@ namespace dedekind::category {
  * supported monad/comonad type (e.g., η for Maybe, Identity, Box). These
  * are specific overloads, not generic template-template helpers.
  *
- * This design leverages the hub-spoke architectural pattern established in
- * the :functor partition, avoiding C++ limitations with template-template
- * parameter overloading and maintaining clean partition boundaries.
+ * This design follows the tag dispatch of the :functor partition, avoiding C++
+ * limitations with template-template parameter overloading and maintaining
+ * clean partition boundaries.
  *
  * Textbook alignment:
  * - η (eta): unit/pure      [defined in :natural]
@@ -48,38 +48,39 @@ namespace dedekind::category {
  */
 
 /**
- * @brief Value-level alias for η (eta) with explicit hub tag dispatch.
- * @details Example: pure(maybe_hub, x), pure(identity_hub, x),
- *          pure(tuple_hub, x).
+ * @brief Value-level alias for η (eta) with explicit monad-tag dispatch.
+ * @details Example: pure(maybe_monad, x), pure(identity_monad, x),
+ *          pure(tuple_monad, x).
  */
-export template <typename HubTag, typename A>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, A&& v) { η(tag, std::forward<A>(v)); }
-constexpr auto pure(HubTag tag, A value) {
+export template <typename MonadTag, typename A>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, A&& v) { η(tag, std::forward<A>(v)); }
+constexpr auto pure(MonadTag tag, A value) {
   return η(tag, std::move(value));
 }
 
-/** @brief Value-level alias for μ (mu) with explicit hub tag dispatch. */
-export template <typename HubTag, typename MMA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, MMA const& mma) { μ(tag, mma); }
-constexpr auto join(HubTag tag, MMA const& mma) {
+/** @brief Value-level alias for μ (mu) with explicit monad-tag dispatch. */
+export template <typename MonadTag, typename MMA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, MMA const& mma) { μ(tag, mma); }
+constexpr auto join(MonadTag tag, MMA const& mma) {
   return μ(tag, mma);
 }
 
-/** @brief Value-level alias for ε (epsilon) with explicit hub tag dispatch. */
-export template <typename HubTag, typename WA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, WA const& wa) { ε(tag, wa); }
-constexpr auto extract(HubTag tag, WA const& wa) {
+/** @brief Value-level alias for ε (epsilon) with explicit monad-tag dispatch.
+ */
+export template <typename MonadTag, typename WA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, WA const& wa) { ε(tag, wa); }
+constexpr auto extract(MonadTag tag, WA const& wa) {
   return ε(tag, wa);
 }
 
-/** @brief Value-level alias for δ (delta) with explicit hub tag dispatch. */
-export template <typename HubTag, typename WA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, WA const& wa) { δ(tag, wa); }
-constexpr auto duplicate(HubTag tag, WA const& wa) {
+/** @brief Value-level alias for δ (delta) with explicit monad-tag dispatch. */
+export template <typename MonadTag, typename WA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, WA const& wa) { δ(tag, wa); }
+constexpr auto duplicate(MonadTag tag, WA const& wa) {
   return δ(tag, wa);
 }
 
@@ -92,7 +93,7 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
  * @details In the project's single-species setting, the component laws are
  *          checked against an object label `c`, then transported into the
- *          endofunctor context by lifting the identity spoke `id_c(c)`. This
+ *          endofunctor context by lifting the identity arrow `id_c(c)`. This
  *          is how the type system recovers the object witnesses `T(c)` and
  *          `T(T(c))` needed for η and μ.
  *
@@ -112,7 +113,7 @@ concept IsMonad =
 
     requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
       // `c` is the object label. The corresponding object in T and T² is
-      // recovered by functorially lifting the identity spoke on c.
+      // recovered by functorially lifting the identity arrow on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
       { T{}.φ(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
 
@@ -183,7 +184,7 @@ struct μ_tag {};
 // 1. Entry: value >> into<η_t>
 // Since η is a transformation from Id -> T, we select its component using the
 // raw object label directly. In the single-species setting that label is the
-// canonical witness for the identity spoke at the same object.
+// canonical witness for the identity arrow at the same object.
 export template <typename T, typename η_t>
   requires requires(const T& v) { η_t{}(v)(v); }
 constexpr auto operator>>(T val, η_tag<η_t>) {

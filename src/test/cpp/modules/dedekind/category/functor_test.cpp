@@ -12,10 +12,10 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsShapedFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsShapedFunctor<maybe_functor<int>>);
-  STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
+  STATIC_CHECK(IsArrow<decltype(plus_one)>);
 }
 
-TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
+TEST_CASE("Category: Functor action on arrows", "[category][functor][action]") {
   SECTION("Identity functor preserves arrow behavior") {
     identity_functor<DiscreteCategory<int>> idf;
     auto plus_one = arrow([](int x) { return x + 1; });

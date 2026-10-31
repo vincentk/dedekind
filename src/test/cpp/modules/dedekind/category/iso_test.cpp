@@ -70,7 +70,7 @@ static_assert(
 TEST_CASE("category:iso — client-namespace iso is retractable, retract inverts",
           "[category][iso][retract]") {
   // The derived retract is the total inverse wrapped in Some: retract(Flip)(5)
-  // = η(maybe_hub, inverse(Flip)(5)) = Some(Flip(5)) = Some(-5).
+  // = η(maybe_monad, inverse(Flip)(5)) = Some(Flip(5)) = Some(-5).
   auto r = retract(client_ns::Flip{});
   auto m = r(5);
   CHECK(m.has_value());

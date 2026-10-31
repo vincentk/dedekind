@@ -557,7 +557,7 @@ constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
  *
  *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
  *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
- *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The hub type below owns
+ *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The functor type below owns
  *  that lift and witnesses @c dedekind::category::IsShapedFunctor; it
  *  complements @c vec2_functor / @c covec2_functor in @c :vec2,
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
@@ -565,7 +565,6 @@ constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct matrix2x2_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Matrix2x2V<T>>;
 
@@ -631,9 +630,9 @@ static_assert(
 
 namespace dedekind::category {
 
-// PR #508: unit_witness / counit_witness now take a Hub regular type
+// PR #508: unit_witness / counit_witness now take a Functor regular type
 // rather than a template-template parameter.  The existing
-// matrix2x2_functor<T> Hub above carries the @c Shape<U> alias the new
+// matrix2x2_functor<T> Functor above carries the @c Shape<U> alias the new
 // witness primary expects; reuse it directly.
 
 export template <typename T>
@@ -798,7 +797,7 @@ static_assert(
  *    invariants on @c Matrix2x2V<·> (e.g.\ @c IsOrthogonalMatrixCarrier
  *    in @c :contracts), not as separate carrier types.  Until #368
  *    introduces dedicated carriers @c Orthogonal2x2<T>,
- *    @c Rotation2x2<T>, etc., there is no type for a functor hub to
+ *    @c Rotation2x2<T>, etc., there is no type for a functor to
  *    map into;
  *
  *  Both directions are real upgrades but require either bifunctor

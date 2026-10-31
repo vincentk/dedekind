@@ -987,7 +987,6 @@ export struct LetterMapsOnWords {
  *  functor, and @c reverse and @c rotate(d) are natural transformations of
  *  it to itself, by the certificates above. */
 export struct PowerFunctor {
-  using ArrowKind = hub_arrow_tag;
   using Σ_cat = LetterMaps;
   using Τ_cat = LetterMapsOnWords;
   using Domain = LetterMaps;

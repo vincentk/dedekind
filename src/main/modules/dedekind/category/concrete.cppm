@@ -74,7 +74,7 @@ export module dedekind.category:concrete;
 
 import :cartesian;  // Set<T> --- target of the IsConcrete witnesses below
 import :logic;      // classify, classifier_true, Ternary, IsΩ
-import :morphism;   // IsArrow, IsSpokeArrow, Dom, Cod, operator>>
+import :morphism;   // IsArrow, Dom, Cod, operator>>
 import :small;      // IsSmallCategory --- size-axis prerequisite for IsConcrete
 import :species;    // IsSpecies --- "object collection is set-shaped"
 import :topoi;      // IsSubobject, IsPredicate --- subobject machinery
@@ -237,8 +237,7 @@ constexpr auto in_via(const Dom<E>& x, E embedding, const S& s) {
  *          which returns a properly typed @c Morphism.
  */
 export template <IsArrow F, IsArrow G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
-           std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
+  requires std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
 constexpr auto compose_embedding(F f, G g) {
   return std::move(f) >> std::move(g);
 }

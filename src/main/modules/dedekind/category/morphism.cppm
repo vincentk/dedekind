@@ -59,12 +59,8 @@ import :species;
 namespace dedekind::category {
 
 // ---------------------------------------------------------------------------
-// Morphisms vs functors in a single-species universe (clarified under #525)
+// Arrows and functors (#525, #1115)
 // ---------------------------------------------------------------------------
-//
-// This block reads in two registers — categorical (morphism / functor)
-// and architectural (spoke / hub).  The categorical content drives the
-// design; the architectural vocabulary is the C++23 realisation of it.
 //
 // @section Single_Species_Universe
 //
@@ -100,156 +96,27 @@ namespace dedekind::category {
 //     sequence IS a function ℕ → T) — exactly the CCC reading where
 //     function spaces are first-class objects in @b Set.
 //
-// @section Morphisms_within_a_Category
+// @section Arrows_And_Functors
 //
-// A morphism in @c 𝒞 is an arrow @c f: @c a → @c b where @c a, @c b
-// are objects of @c 𝒞 (i.e., @c 𝒞.Species values).  Composition of
-// morphisms is internal: given @c f: @c a → @c b and @c g: @c b → @c c
-// in @c 𝒞, the composite @c g @c ∘ @c f: @c a → @c c is also a
-// morphism in @c 𝒞.  This is the closure axiom: a category is closed
-// under composition of its own morphisms.
+// An arrow @c f: @c a @c → @c b is @c IsArrow: a @c Domain, a
+// @c Codomain and a call.  Arrows compose by @c >>, @c f @c >> @c g
+// being @c g @c ∘ @c f, the reified @c Compose<F, G>.  A functor
+// @c F: @c 𝒞 @c → @c 𝒟 is an arrow too, an arrow of @b Cat whose ends
+// are categories, with extra structure: its action on the arrows of
+// @c 𝒞, @c F(f) @c = @c F.φ(f), with @c F(g @c ∘ @c f) @c = @c F(g)
+// @c ∘ @c F(f) and @c F(id) @c = @c id (@c IsFunctor, @c :functor).  So
+// there is one concept per notion, @c IsArrow and @c IsFunctor, the
+// second refining the first, and three spellings of @c >>:
 //
-// In code, @c 𝒞.Arrow instances ARE the morphisms.  In the dispatch
-// vocabulary below they are called @b spoke @b arrows, because in the
-// hub/spoke architecture they are arrows that connect ordinary
-// (object-level) endpoints — the spokes of the wheel, with the
-// category itself as the hub.  The fish @c f @c >> @c g (sugar for
-// @c g @c ∘ @c f) is the operator surface for spoke composition.
-//
-// @section Functors_between_Categories
-//
-// A functor @c F: @c 𝒞 → @c 𝒟 is, mathematically, a structure-
-// preserving map between two categories.  It has two parts:
-//
-//   * @b F_obj: an action on objects, taking @c 𝒞.Species @c → @c 𝒟.Species.
-//     In code this is @c F::template @c Shape<U> (the type-constructor
-//     part: @c maybe_functor<T>::Shape<U> @c = @c Maybe<U>, etc.).
-//   * @b F_mor: an action on morphisms, taking @c 𝒞.Arrow @c → @c 𝒟.Arrow,
-//     with @c F(g @c ∘ @c f) @c = @c F(g) @c ∘ @c F(f) and
-//     @c F(id_a) @c = @c id_{F(a)}.  In code this is @c F.φ(f) (the
-//     morphic-lift method on the functor Hub).
-//
-// Because functors are themselves arrows — they are the arrows of
-// @b Cat, the category of categories — they have their own
-// composition: given @c F: @c 𝒞 → @c 𝒟 and @c G: @c 𝒟 → @c ℰ, the
-// composite @c G @c ∘ @c F: @c 𝒞 → @c ℰ is a functor (a morphism in
-// @b Cat).  This is a @b different operation than morphism
-// composition within a single category — different category, different
-// composition law, different concrete realisation.
-//
-// In the architecture vocabulary below, functors are called @b hub
-// @b arrows: their endpoints are categories (the source / target
-// labels @c Σ_cat / @c Τ_cat that hub types like @c maybe_functor
-// expose), so they sit "above" the spoke arrows that connect objects
-// within a single category.  The fish @c F @c >> @c G (sugar for
-// @c G @c ∘ @c F) at the hub level is functor composition; that
-// operator is owned by @c :functor, not by this partition.
-//
-// @section Three_Composition_Shapes
-//
-// Together these give @b three distinct operator-@c >> shapes the
-// codebase uses:
-//
-//   1. @b Morphism @c >> @b Morphism (spoke @c >> spoke) —
-//      composition of arrows within a category.  Owned by this
-//      partition (@c :morphism, line ~565).  Requires
-//      @c IsSpokeArrow on both sides + matching middle types.
-//   2. @b Functor @c >> @b Functor (hub @c >> hub) — composition in
-//      @b Cat.  Owned by @c :functor (the @c composite_functor
-//      machinery).  Requires @c IsShapedFunctor on both sides +
-//      @c F::Τ_cat @c == @c G::Σ_cat (so the source/target categories
-//      of the chain match up).
-//   3. @b Functor @c >> @b Morphism (hub @c >> spoke) — @b not
-//      composition; instead a syntactic-sugar reuse of @c >> for the
-//      @b functorial @b action on arrows (i.e.\ @c F.φ(f) /
-//      @c fmap @c F @c f).  Owned by @c :functor.  Categorically,
-//      this is the F_mor part of the functor applied to an arrow in
-//      the source category, returning an arrow in the target
-//      category.  It is not "composition" in the same sense as (1)
-//      and (2); the operator-symbol overlap is for ergonomics in the
-//      Haskell idiom (@c functor @c <$> @c arrow), not for
-//      categorical uniformity.  Reader beware: @c F @c >> @c f does
-//      @b not mean "compose F with f as morphisms in the same
-//      category" — that would be ill-typed, since F's codomain is a
-//      category and f's domain is an object.
-//
-// The fourth combination, @b Morphism @c >> @b Functor (spoke @c >>
-// hub), has no categorical reading and no overload exists.  Such an
-// expression fails to compile.
-//
-// @section Discriminator (#525)
-//
-// The split between (1) and (2)/(3) at dispatch time hinges on a
-// single question: @b is @b the @b Domain @b a @b category?
-//
-//   * If yes — Domain has @c ::Arrow / @c ::Species / @c ::Id aliases
-//     identifying it as a category — the arrow is a functor
-//     (between categories): a hub.
-//   * If no — Domain is an object — the arrow is a morphism (within a
-//     category): a spoke.
-//
-// The codebase realises this question structurally as
-// @c IsSmallCategoryShape<Dom<T>>, defined further down.  @c
-// IsSmallCategoryShape is the structural prefix of the full @c IsSmallCategory
-// in @c :small — here we only need the shape to make the routing decision; the
-// behavioural axioms (composition closure, identity laws) are not
-// needed at this layer.
-//
-// Pre-#525 the discriminator used @c !IsArrow<Dom<T>> as a structural
-// proxy for "Domain isn't a category".  This worked coincidentally
-// for functor-Hubs (whose Domain is a category and therefore has
-// @c Cat::Arrow, satisfying @c IsArrow) but over-fired on object-level
-// types that happen to expose @c Domain / @c Codomain aliases for
-// unrelated reasons.  The canonical example: @c Path<T> declares
-// @c Domain @c = @c std::size_t to model the textbook reading "a
-// sequence is a function @c ℕ @c → @c T", which makes
-// @c IsArrow<Path<T>> trivially true even though @c Path<T> is an
-// @b object in @b Set, not a category.  The post-#525 form
-// @c !IsSmallCategoryShape<Dom<T>> asks the right question and the
-// over-fire stops.
-//
-// @section Manual_Override
-//
-// In addition to the structural test, types may opt in / out manually
-// via @c using @c ArrowKind @c = @c spoke_arrow_tag; or
-// @c hub_arrow_tag; .  Today the @c hub_arrow_tag opt-out is the
-// load-bearing override (functor Hubs use it to forcibly exclude
-// themselves from spoke routing); @c spoke_arrow_tag is a reserved
-// spoke-marker for parallel future opt-in cases (a type that wants
-// to participate in spoke composition despite an unusual Domain
-// shape, etc.).
+//   1. @c f @c >> @c g, arrows composed (this partition);
+//   2. @c F @c >> @c G, functors composed, which must compose their
+//      actions on arrows too: its overload (@c :functor) repeats the
+//      arrow overload's constraints and adds its own, so resolution
+//      prefers it by subsumption, as it does the unit laws below;
+//   3. @c F @c >> @c f, a functor's action on an arrow of its source
+//      category, @c F(f) (@c :functor); no composition is viable there,
+//      since the ends do not meet, a category against an object.
 // ---------------------------------------------------------------------------
-
-/**
- * @brief Marker tag reserved for ordinary object-level arrows (spoke arrows).
- *
- * @details Currently @b reserved: @c IsSpokeArrow does not check for
- * @c ArrowKind @c = @c spoke_arrow_tag as an opt-in.  The structural
- * discriminator @c !IsSmallCategoryShape<Dom<T>> already catches the typical
- * spoke case automatically, so no opt-in is needed in practice.  This
- * tag is kept as a parallel slot to @c hub_arrow_tag so a future opt-in
- * mechanism (e.g., for a type whose Domain is unusually category-shaped
- * but should still route as a spoke) can be added symmetrically.
- *
- * See the architecture block above for the single-species design context.
- */
-export struct spoke_arrow_tag {};
-
-/**
- * @brief Marker tag for hub-level arrows (e.g., functor hubs).
- *
- * @details Attach as @c using @c ArrowKind @c = @c hub_arrow_tag; to
- * opt out of spoke-level composition overloads.  Hub arrows are arrows
- * @b between categories (functors, natural transformations, etc.); they
- * compose by their own rules in bridge partitions (@c :functor,
- * @c :natural).
- *
- * The opt-out keeps @c :morphism decoupled from downstream naming
- * conventions while still letting higher-level partitions route
- * overload resolution explicitly.  See the architecture block above
- * for the dispatch rationale.
- */
-export struct hub_arrow_tag {};
 
 /** @section morphism__Objects_And_Their_Presentations
  *  @c Domain and @c Codomain name @b objects.  By default an object is
@@ -322,8 +189,8 @@ concept IsArrow =
 // serves a distinct audience.  Pick the right one for your call site:
 //
 //   * @c Dom<F> / @c Cod<F> — home: @c :morphism (here).
-//     Use when the site is @c IsArrow-strict: functors, naturality,
-//     hub-arrows; i.e. when the callable-with-Domain/Codomain shape
+//     Use when the site is @c IsArrow-strict: arrows, functors,
+//     naturality; i.e. when the callable-with-Domain/Codomain shape
 //     is required by the surrounding code.
 //
 //   * @c element_of_t<S> — home: @c :sets:boundaries.
@@ -372,21 +239,14 @@ using Cod = typename std::remove_cvref_t<F>::Codomain;
 
 /**
  * @concept IsSmallCategoryShape
- * @brief Structural prefix of @c dedekind::category::IsSmallCategory: a type
- *        carrying the identifying category-shaped aliases @c ::Arrow,
- *        @c ::Species, @c ::Id.
- *
- * @details The full @c IsSmallCategory in @c :small refines this with
- * behavioural checks (@c id_c factory, @c f @c >> @c g internal
- * closure, etc.).  At this layer we only need the structural test to
- * answer the question "is this thing a @b category" for purposes of
- * hub/spoke discrimination.  Full @c IsSmallCategory cannot be referenced
- * here because @c :small imports @c :morphism (cycle), and because
- * @c IsSmallCategory recursively uses @c f @c >> @c g which is the very
- * operator we are gating.  The structural prefix is the load-bearing
- * piece for routing — it identifies the @b argument-shape of a
- * functor (a thing taking a category, not an object), which is the
- * single distinction the hub/spoke split needs to make (#525).
+ * @brief The structural prefix of @c IsSmallCategory (@c :small): a type
+ *        naming an @c ::Arrow, a @c ::Species and an @c ::Id, the shape of a
+ *        category, without its behavioural axioms (@c id_c, composition
+ *        closure).  @c IsSmallCategory itself cannot be named here, since
+ *        @c :small imports @c :morphism.  It tells a category apart from an
+ *        object that merely exposes @c Domain / @c Codomain aliases: a
+ *        @c Path<T>, a sequence @f$\mathbb{N} \to T@f$, is an arrow and an
+ *        object of @b Set, not a category (#525).
  */
 export template <typename T>
 concept IsSmallCategoryShape = requires {
@@ -394,64 +254,6 @@ concept IsSmallCategoryShape = requires {
   typename std::remove_cvref_t<T>::Species;
   typename std::remove_cvref_t<T>::Id;
 };
-
-/**
- * @concept IsHubArrow
- * @brief Higher-order arrow whose Domain/Codomain are categories
- *        (functors and similar arrows-between-categories; #525).
- * @details In the hub/spoke vocabulary, a "hub" arrow acts on
- *          categories as its objects: it is an arrow @b between
- *          categories, not within one.  Functors are the canonical
- *          example.  The @c IsSmallCategoryShape prefix detects the
- *          identifying @c ::Arrow / @c ::Species / @c ::Id alias
- *          surface; the prior structural-proxy form
- *          (@c IsArrow<Dom<T>>) over-fired on object-level types
- *          that happen to expose @c Domain / @c Codomain aliases
- *          for unrelated reasons (e.g., @c Path<T> = sequence
- *          @c ℕ → @c T at the type level).
- */
-export template <typename T>
-concept IsHubArrow =
-    IsArrow<T> && IsSmallCategoryShape<Dom<T>> && IsSmallCategoryShape<Cod<T>>;
-
-/**
- * @concept IsSpokeArrow
- * @brief Object-level arrow whose Domain/Codomain are @b not
- *        categories (#525 sharpening).
- * @details A "spoke" arrow connects ordinary species-level objects
- *          @b within a category.  The discriminator is "Domain is
- *          not a category-shaped thing" (@c !IsSmallCategoryShape<Dom<T>>);
- *          this is the formal expression of "this isn't a functor".
- *          Generic categorical composition in this partition is
- *          intentionally limited to spoke arrows so higher-order
- *          composition (functor @c ∘ functor in @b Cat) can be
- *          owned by the appropriate bridge partitions.
- *
- * @section morphism__Spoke_Discriminator_Sharpening
- * Pre-#525 the discriminator read @c !IsArrow<Dom<T>> — a structural
- * proxy that worked coincidentally for functor-Hubs (whose Domain is
- * a @c IsSmallCategory<C> witness, which trivially satisfies @c IsArrow
- * via @c Cat::Arrow), but over-fired on object-level carriers that
- * happen to expose @c Domain / @c Codomain aliases for unrelated
- * reasons.  The canonical example is @c Path<T>, which models the
- * textbook reading "a sequence is a function @c ℕ @c → @c T" by
- * declaring @c Domain @c = @c std::size_t and a call operator —
- * making @c IsArrow<Path<T>> @b true at the type level even though
- * @c Path<T> is plainly an @b object (not a category-to-category
- * arrow).  The sharpened discriminator @c !IsSmallCategoryShape<Dom<T>>
- * stops the over-fire while preserving the original intent: hub
- * arrows are arrows between categories.
- *
- * If a type advertises @c using @c ArrowKind @c = @c hub_arrow_tag;
- * it is still excluded from @c IsSpokeArrow as a manual override.
- */
-export template <typename T>
-concept IsSpokeArrow =
-    IsArrow<T> && !IsSmallCategoryShape<Dom<T>> &&
-    !IsSmallCategoryShape<Cod<T>> && !requires {
-      requires std::same_as<typename std::remove_cvref_t<T>::ArrowKind,
-                            hub_arrow_tag>;
-    };
 
 /**
  * @section morphism__The_Skeletal_Morphism
@@ -1010,12 +812,12 @@ struct unit_trait<Identity<T>, Op> {
  * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
  * @details By requiring A, B, and C as template parameters, we ensure
  *          the composition is a statically verified bridge.
- *          This overload is the spoke-level path constructor: it composes
- *          object-level arrows only. Hub-level arrows such as functors are
- *          composed in their own partitions.
+ *          Functors are arrows too; their composition, which also
+ *          composes their actions on arrows, is a more constrained
+ *          overload in @c :functor, preferred by subsumption.
  */
 export template <typename F, typename G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain>
 constexpr auto operator>>(F f, G g) {
@@ -1035,10 +837,24 @@ template <typename T>
 inline constexpr bool is_identity_v = false;
 template <typename A>
 inline constexpr bool is_identity_v<Identity<A>> = true;
+/** @brief The identity of a category whose arrows are one type, @c Cat::Arrow:
+ *  an identity arrow on @c Cat::Species, so its law is read at the type, that
+ *  converts to the category's arrow, @c Cat::unit_arrow(), where an arrow of
+ *  that type is wanted.  @tparam Cat the category. */
+export template <typename Cat>
+struct IdentityIn {
+  using Domain = typename Cat::Species;
+  using Codomain = typename Cat::Species;
+  constexpr Domain operator()(Domain x) const { return x; }
+  constexpr operator typename Cat::Arrow() const { return Cat::unit_arrow(); }
+  constexpr bool operator==(const IdentityIn&) const = default;
+};
+template <typename Cat>
+inline constexpr bool is_identity_v<IdentityIn<Cat>> = true;
 export template <typename T>
 concept IsIdentityArrow = IsArrow<T> && is_identity_v<std::remove_cvref_t<T>>;
 export template <typename F, typename G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain> &&
            IsIdentityArrow<F>
@@ -1046,7 +862,7 @@ constexpr auto operator>>(F, G g) {
   return g;
 }
 export template <typename F, typename G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain> &&
            IsIdentityArrow<G>
@@ -1054,7 +870,7 @@ constexpr auto operator>>(F f, G) {
   return f;
 }
 export template <typename F, typename G>
-  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+  requires IsArrow<std::decay_t<F>> && IsArrow<std::decay_t<G>> &&
            std::same_as<typename std::decay_t<F>::Codomain,
                         typename std::decay_t<G>::Domain> &&
            IsIdentityArrow<F> && IsIdentityArrow<G>
@@ -1115,7 +931,7 @@ constexpr T call(T x) {
  * lambda explicitly via @c arrow<A>(λ) for that direction.
  */
 export template <typename F, typename G>
-  requires IsSpokeArrow<std::decay_t<F>> && (!IsArrow<std::decay_t<G>>) &&
+  requires IsArrow<std::decay_t<F>> && (!IsArrow<std::decay_t<G>>) &&
            std::invocable<std::decay_t<G>&,
                           const typename std::decay_t<F>::Codomain&>
 constexpr auto operator>>(F f, G g) {
@@ -1563,7 +1379,7 @@ static_assert(IsBijective<Identity<int>>,
 //   * @c >>   — arrow composition (here in @c :morphism); fish alias for
 //               monadic bind (in @c :kleisli) on monadic carriers.
 //   * @c <<   — fish alias for comonadic extend (in @c :kleisli).
-//               @b No spoke-level overload exists at the @c :morphism
+//               @b No arrow-level overload exists at the @c :morphism
 //               layer; this is comonadic-extend specific.
 //   * @c >>=  — monadic bind (in @c :kleisli).
 //   * @c <<=  — comonadic extend (in @c :kleisli).
@@ -1579,21 +1395,21 @@ static_assert(IsBijective<Identity<int>>,
 
 /**
  * @concept HasArrowComposeOperators
- * @brief Two spoke-arrow types @c F, @c G compose via @c >> .
+ * @brief Two arrow types @c F, @c G compose via @c >> .
  * @details Captures the operator-shape availability of categorical
  *          arrow composition aligned with this partition's
- *          @c operator>> policy: spoke-only ( @c IsSpokeArrow ) and
+ *          @c operator>> policy: arrows ( @c IsArrow ) and
  *          codomain/domain-matched ( @c F::Codomain @c = @c G::Domain ).
  *          Given @c f @c : @c A @c → @c B and @c g @c : @c B @c → @c C,
  *          the expression @c f @c >> @c g must compile and yield a
  *          result modelling @c IsArrow.
  *
  *          @b Note: this concept covers @c >> only.  There is no
- *          spoke-level @c << overload at the @c :morphism layer
+ *          arrow-level @c << overload at the @c :morphism layer
  *          ( @c << in the project is comonadic extend in @c :kleisli);
  *          the reverse-composition direction, if reified later, is a
- *          separate concept.  Hub arrows (e.g. functors) compose in
- *          their own partitions.
+ *          separate concept.  Functors compose by a more constrained
+ *          overload in @c :functor.
  *
  *          The laws (associativity, identity) are the engineer's
  *          honesty obligation, mechanically discharged by the
@@ -1601,7 +1417,7 @@ static_assert(IsBijective<Identity<int>>,
  */
 export template <typename F, typename G>
 concept HasArrowComposeOperators =
-    IsSpokeArrow<F> && IsSpokeArrow<G> &&
+    IsArrow<F> && IsArrow<G> &&
     std::same_as<typename std::remove_cvref_t<F>::Codomain,
                  typename std::remove_cvref_t<G>::Domain> &&
     requires(F const& f, G const& g) {
