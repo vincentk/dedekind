@@ -1291,8 +1291,8 @@ struct Square {
   std::size_t n;
   Op op;
   constexpr std::pair<T, T> operator()(std::pair<T, T> p, std::size_t k) const {
-    return {((n >> k) & 1U) != 0 ? op(p.first, p.second) : p.first,
-            (n >> k) > 1 ? op(p.second, p.second) : p.second};
+    const auto [a, s] = p;  // the accumulator and the square
+    return {((n >> k) & 1U) != 0 ? op(a, s) : a, (n >> k) > 1 ? op(s, s) : s};
   }
 };
 }  // namespace detail_concat
