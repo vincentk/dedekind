@@ -191,6 +191,8 @@ std::vector<std::pair<std::size_t, std::size_t>> pairs(
  *  the core's @c pack and @c unpack, the width dispatched at run time. */
 std::size_t packed(std::size_t k, std::size_t w) {
   if (w == 0 || w > 64) throw nb::value_error("pack: width must be 1..64");
+  // the low w bits: a narrower width than its word keeps no padding
+  if (w < 64) k &= (std::size_t{1} << w) - 1;
   return with_width(w, [k](auto width) -> std::size_t {
     constexpr std::size_t W = decltype(width)::value;
     if constexpr (W <= 64) {

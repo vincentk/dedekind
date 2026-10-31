@@ -73,6 +73,7 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertTrue(is_square(0b1010, 4) and is_square(0, 128))
         self.assertFalse(is_square(0b1001, 4) or is_square(1, 128))
         self.assertEqual(pack(0x1A5, 8), 0xA5)
+        self.assertEqual(pack(0xFF, 4), 0xF)  # the low w bits, no padding
 
     def test_the_exhibit_answers_at_once(self) -> None:
         start = time.perf_counter()

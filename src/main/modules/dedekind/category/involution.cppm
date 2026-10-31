@@ -114,13 +114,15 @@ struct is_involutive<std::negate<T>, T> : std::true_type {};
 
 /** @brief An involution on a carrier that is not a number: reversing a word
  *  twice is the identity, on any word a value holds, a @c std::string or a
- *  @c std::vector of letters.  A pure function object, value in and value
+ *  @c std::vector of letters; not a view, whose copy would alias the
+ *  caller's letters.  A pure function object, value in and value
  *  out, so that it is an arrow in the sense of the Jlt paper's Rule 1, and a
  *  family of them, one per word type, as @c std::logical_not is one per
  *  truth type; @c endo<W>(reverse) names the domain. */
 export struct Reverse {
   template <std::ranges::bidirectional_range W>
-    requires std::semiregular<W> && std::permutable<std::ranges::iterator_t<W>>
+    requires std::semiregular<W> && (!std::ranges::view<W>) &&
+             std::permutable<std::ranges::iterator_t<W>>
   constexpr W operator()(W s) const {
     std::ranges::reverse(s);
     return s;
@@ -137,7 +139,8 @@ export struct Reverse {
   constexpr bool operator==(const Reverse&) const = default;
 };
 template <std::ranges::bidirectional_range W>
-  requires std::semiregular<W> && std::permutable<std::ranges::iterator_t<W>>
+  requires std::semiregular<W> && (!std::ranges::view<W>) &&
+           std::permutable<std::ranges::iterator_t<W>>
 struct is_involutive<Reverse, W> : std::true_type {};
 template <>
 struct is_involutive<Reverse, std::strong_ordering> : std::true_type {};

@@ -858,7 +858,7 @@ export template <IsCountWord N = std::size_t>
 struct Rotation {
   N shift;
   template <std::ranges::random_access_range W>
-    requires std::semiregular<W> &&
+    requires std::semiregular<W> && (!std::ranges::view<W>) &&
              std::permutable<std::ranges::iterator_t<W>> &&
              std::ranges::sized_range<W>
   constexpr W operator()(W s) const {
@@ -1029,21 +1029,40 @@ static_assert(
     "the power functor preserves the identity and composition, on a word");
 
 /** @brief A transformation of the power functor with one component, a
- *  map on the words, at every letter.  @tparam S the map. */
+ *  map on the words, the same at every letter.  @tparam S the map. */
 export template <typename S>
 struct OnWords {
   S sigma;
   constexpr Morphism<std::vector<std::byte>, std::vector<std::byte>, S>
-  operator()(std::byte) const {
+  component() const {
     return endo<std::vector<std::byte>>(sigma);
   }
+  constexpr Morphism<std::vector<std::byte>, std::vector<std::byte>, S>
+  operator()(std::byte) const {
+    return component();
+  }
 };
+namespace detail_periodic {
+/** @brief A family of rotations that depends on the letter: each component
+ *  commutes with every map on the letters, yet a map that changes the letter
+ *  meets different rotations at the two ends of the square, so it is no
+ *  natural transformation, and is refused. */
+struct RotateByLetter {
+  constexpr Morphism<std::vector<std::byte>, std::vector<std::byte>, Rotation<>>
+  operator()(std::byte c) const {
+    return endo<std::vector<std::byte>>(
+        rotate(std::to_integer<std::size_t>(c)));
+  }
+};
+}  // namespace detail_periodic
 static_assert(
     IsShapedFunctor<PowerFunctor> &&
         IsNaturalTransformation<OnWords<Reverse>, PowerFunctor, PowerFunctor> &&
         IsNaturalTransformation<OnWords<Rotation<>>, PowerFunctor,
                                 PowerFunctor> &&
         !IsNaturalTransformation<OnWords<PowerMap<LetterMap>>, PowerFunctor,
+                                 PowerFunctor> &&
+        !IsNaturalTransformation<detail_periodic::RotateByLetter, PowerFunctor,
                                  PowerFunctor>,
     "the permutations of positions are natural on the power functor; the "
     "complement on every letter is not, since it commutes only with the "
@@ -1153,26 +1172,42 @@ constexpr FreeMonoid<C, F, N> free_monoid(
 }
 
 namespace detail_periodic {
-/** @brief A product kept while the word holds it: none from the first
- *  factor that would leave the word. */
+/** @brief @f$b^e@f$, or none where the word cannot hold it: by squaring, as
+ *  @c concat on copies, so its cost is the bits of @c e; @f$0^e@f$ and
+ *  @f$1^e@f$ at once. */
 template <IsCountWord N>
-struct CheckedTimes {
-  N b;
-  constexpr std::optional<N> operator()(std::optional<N> acc, N) const {
-    if (!acc || (b != 0 && *acc > std::numeric_limits<N>::max() / b)) {
-      return std::nullopt;
-    }
-    return static_cast<N>(*acc * b);
+constexpr std::optional<N> checked_power(N b, N e) {
+  if (e == 0) {
+    return N{1};
+  } else if (b <= 1) {
+    return b;
+  } else {
+    const std::optional<N> h = checked_power(b, e / 2);  // the first half
+    if (!h || *h > std::numeric_limits<N>::max() / *h) return std::nullopt;
+    const N hh = static_cast<N>(*h * *h);
+    if (e % 2 == 0) return hh;
+    if (hh > std::numeric_limits<N>::max() / b) return std::nullopt;
+    return static_cast<N>(hh * b);
   }
-};
+}
 /** @brief One factor into the product, checked. */
 template <IsCountWord N>
 struct CheckedFactor {
   constexpr std::optional<N> operator()(std::optional<N> acc,
                                         const Factor<N>& f) const {
     if (!acc) return std::nullopt;
-    return std::ranges::fold_left(std::views::iota(N{0}, f.exponent), acc,
-                                  CheckedTimes<N>{f.base});
+    const std::optional<N> p = checked_power(f.base, f.exponent);
+    if (!p || (*p != 0 && *acc > std::numeric_limits<N>::max() / *p)) {
+      return std::nullopt;
+    }
+    return static_cast<N>(*acc * *p);
+  }
+};
+/** @brief Whether a factor is empty, @f$0^e@f$ with @f$e > 0@f$. */
+template <IsCountWord N>
+struct IsEmptyFactor {
+  constexpr bool operator()(const Factor<N>& f) const {
+    return f.base == 0 && f.exponent > 0;
   }
 };
 /** @brief One length's count into the sum, checked. */
@@ -1217,6 +1252,8 @@ constexpr N count(const std::vector<Factor<N>>& fs) {
  *  @param fs the factors.  @return the count, or none. */
 export template <IsCountWord N>
 constexpr std::optional<N> exact_count(const std::vector<Factor<N>>& fs) {
+  // an empty factor empties the product, whatever overflows beside it
+  if (std::ranges::any_of(fs, detail_periodic::IsEmptyFactor<N>{})) return N{0};
   return std::ranges::fold_left(fs, std::optional<N>{1},
                                 detail_periodic::CheckedFactor<N>{});
 }
@@ -1350,7 +1387,11 @@ struct Unpack {
   using Domain = BitWord<W>;
   using Codomain = std::size_t;
   constexpr std::size_t operator()(Domain x) const {
-    return static_cast<std::size_t>(x);
+    if constexpr (std::unsigned_integral<Domain>) {
+      return static_cast<std::size_t>(x);
+    } else {
+      return static_cast<std::size_t>(x.to_ullong());
+    }
   }
 };
 /** @brief A machine word read back as a count. */
@@ -1393,7 +1434,7 @@ struct IsSquare {
   using Codomain = bool;
   std::size_t length = W;
   constexpr bool operator()(const Domain& x) const {
-    return length % 2 == 0 && length <= W &&
+    return length > 0 && length % 2 == 0 && length <= W &&
            detail_periodic::rotated(x, length, length / 2) == x;
   }
 };
@@ -1411,12 +1452,15 @@ template <IsArrow F, IsArrow T, IsCountWord N>
 struct KeptAfter {
   using Domain = Dom<F>;
   using Codomain = bool;
+  Slice<Domain> letters;
   F member;
   T tau;
   N steps;
   constexpr bool operator()(const Domain& a) const {
-    return static_cast<bool>(member(std::ranges::fold_left(
-        std::views::iota(N{0}, steps), a, Iterate<T, N>{tau})));
+    const Domain b = std::ranges::fold_left(std::views::iota(N{0}, steps), a,
+                                            Iterate<T, N>{tau});
+    // a letter of the alphabet: within the slice, and kept by the predicate
+    return letters.lo <= b && b < letters.hi && static_cast<bool>(member(b));
   }
 };
 /** @brief Whether @c tau taken @c steps times returns the letter. */
@@ -1497,15 +1541,21 @@ struct CycleCount {
     T tau;
     constexpr BitWord<W> operator()(const BitWord<W>& m, N j) const {
       return static_cast<BitWord<W>>(
-          m & packed_chi<W>(letters, KeptAfter<F, T, N>{member, tau, j}));
+          m &
+          packed_chi<W>(letters, KeptAfter<F, T, N>{letters, member, tau, j}));
     }
   };
   template <std::size_t W>
   constexpr N operator()(std::integral_constant<std::size_t, W>) const {
-    return static_cast<N>(popcount(std::ranges::fold_left(
-        std::views::iota(N{0}, length),
-        packed_chi<W>(letters, ReturnsAfter<T, N>{tau, length}),
-        AndStep<W>{letters, member, tau})));
+    if constexpr (IsIdentityArrow<T>) {
+      // every iterate is the letter itself: the alphabet, once
+      return static_cast<N>(popcount(packed_chi<W>(letters, member)));
+    } else {
+      return static_cast<N>(popcount(std::ranges::fold_left(
+          std::views::iota(N{0}, length),
+          packed_chi<W>(letters, ReturnsAfter<T, N>{tau, length}),
+          AndStep<W>{letters, member, tau})));
+    }
   }
 };
 /** @brief How many letters a chain has. */

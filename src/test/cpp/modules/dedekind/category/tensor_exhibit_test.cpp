@@ -14,10 +14,12 @@
 #include <array>
 #include <bit>
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <ranges>
+#include <span>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -287,6 +289,32 @@ static_assert(
 constexpr auto exhibit = symmetric(power(nucleotides, 99), reverse) * squares;
 static_assert(count_factors(exhibit) == Factors{{4, 49}, {4, 1}, {2, 64}} &&
               !exact_count(count_factors(exhibit)).has_value());
+
+// Review witnesses (#1108): an empty factor empties the product whatever
+// overflows beside it, in either order; a power of 0 or 1 at once, and an
+// overflowing one by squaring, within the evaluator's steps; an alphabet's
+// letters are the slice's AND the predicate's; a rotation on the letters
+// themselves counts each cycle once; no square of width 0; a narrow bit word
+// reads back through its bitset; the reversal refuses a view, whose copy
+// aliases the caller's letters.
+static_assert(exact_count(Factors{{4, 49}, {0, 1}}) == 0uz &&
+              exact_count(Factors{{0, 1}, {4, 49}}) == 0uz &&
+              exact_count(Factors{{1, 1'000'000'000}}) == 1uz &&
+              !exact_count(Factors{{2, 1'000'000'000}}).has_value() &&
+              exact_count(Factors{{0, 0}}) == 1uz);
+constexpr auto just_a = dedekind::category::slice(std::byte{'A'},
+                                                  std::byte{'B'}) >>
+                        dedekind::category::letters("AB");
+static_assert(exact_count(count_factors(symmetric(
+                  power(just_a, 2),
+                  power(dedekind::category::letter_map("AB", "BA"), 2) >>
+                      reverse))) == 0uz);
+static_assert(count_factors(symmetric(power(bits, 4096uz), rotate(1))) ==
+              Factors{{2, 1}});
+static_assert(!IsSquare<8>{0}(pack<8>(0uz)) && unpack<4>(pack<4>(5uz)) == 5uz &&
+              unpack<12>(pack<12>(0xABCuz)) == 0xABCuz);
+static_assert(!std::invocable<dedekind::category::Reverse, std::span<int>> &&
+              std::invocable<dedekind::category::Reverse, std::vector<int>>);
 }  // namespace tensor_exhibit
 
 TEST_CASE("Tensor exhibit: a count over a vector of 2^60 entries, at run time",
