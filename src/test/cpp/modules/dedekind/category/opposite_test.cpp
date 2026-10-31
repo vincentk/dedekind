@@ -96,8 +96,8 @@ using LeftActs = dedekind::category::ActionFunctor<Apply, size_t, Affine>;
 using Map = dedekind::category::Element<Affine, Op>;
 static_assert(dedekind::category::IsFunctor<LeftActs> &&
               (Map{twice} >> Map{next}).value == next * twice &&
-              LeftActs{}.φ(Map{twice} >> Map{next})(3) == 7 &&
-              (LeftActs{}.φ(Map{twice}) >> LeftActs{}.φ(Map{next}))(3) == 7);
+              LeftActs{}.φ(Map{twice} >> Map{next})(3uz) == 7 &&
+              (LeftActs{}.φ(Map{twice}) >> LeftActs{}.φ(Map{next}))(3uz) == 7);
 
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.

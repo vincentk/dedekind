@@ -1214,9 +1214,10 @@ static_assert(IsSmallCategory<Delooping<std::size_t, Plus>> &&
               "a monoid acting on itself, by +, is a functor out of its "
               "delooping, and one functor");
 static_assert((Sum{3} >> Sum{4}).value == 7 &&
-                  Adding{}.φ(Sum{3} >> Sum{4})(1) ==
-                      (Adding{}.φ(Sum{3}) >> Adding{}.φ(Sum{4}))(1) &&
-                  Adding{}.φ(Delooping<std::size_t, Plus>::id_c(One{}))(5) == 5,
+                  Adding{}.φ(Sum{3} >> Sum{4})(1uz) ==
+                      (Adding{}.φ(Sum{3}) >> Adding{}.φ(Sum{4}))(1uz) &&
+                  Adding{}.φ(Delooping<std::size_t, Plus>::id_c(One{}))(5uz) ==
+                      5,
               "composition is the operation; the functor keeps it and the "
               "unit, on values");
 }  // namespace detail_functor_actions
