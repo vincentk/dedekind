@@ -203,6 +203,15 @@ inline constexpr bool commutes_v =
     commutes<std::remove_cvref_t<F>, std::remove_cvref_t<G>>::value ||
     commutes<std::remove_cvref_t<G>, std::remove_cvref_t<F>>::value;
 
+/** @brief A composite of two commuting involutions is one, certified at the
+ *  type where both legs are: @f$(g f)^2 = g g f f = \mathrm{id}@f$.  The same
+ *  law @c is_involution reads on a value (@c :posetal), where a leg's law may
+ *  be decided on its value instead. */
+template <typename F, typename G, typename T>
+  requires commutes_v<F, G>
+struct is_involutive<Compose<F, G>, T>
+    : std::bool_constant<is_involutive_v<F, T> && is_involutive_v<G, T>> {};
+
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution
  *  (@c !!x = x): a certified witness that the seed rejects non-involutions. */

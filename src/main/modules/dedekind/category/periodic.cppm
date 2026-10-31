@@ -904,9 +904,13 @@ concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
   { cycle_type(s, n) } -> std::same_as<std::vector<Cycles<N>>>;
 };
 
-/** @brief A map applied to every letter commutes with every permutation of
- *  the positions, naturality read on words: @f$\sigma \circ \tau^{\times n} =
- *  \tau^{\times n} \circ \sigma@f$.  So the reverse complement is one map,
+/** @brief The naturality of the permutations of positions: @c reverse and
+ *  @c rotate(d) are natural transformations of the power functor
+ *  @f$(-)^n@f$ to itself, so each square @f$\sigma \circ \tau^{\times n} =
+ *  \tau^{\times n} \circ \sigma@f$ commutes, for every @c tau at once.  The
+ *  certificate is declared here, once per permutation; @c :natural's
+ *  @c IsNaturalTransformation checks its square only at the identities, by
+ *  type, and does not yet read it.  So the reverse complement is one map,
  *  written in either order, and an involution where @c tau is one
  *  (@c is_involution, @c :posetal). */
 template <IsArrow T, typename W>
@@ -915,6 +919,23 @@ struct commutes<PowerMap<T>, Morphism<W, W, Reverse>> : std::true_type {};
 template <IsArrow T, typename W, IsCountWord N>
   requires std::same_as<Dom<T>, Cod<T>>
 struct commutes<PowerMap<T>, Morphism<W, W, Rotation<N>>> : std::true_type {};
+
+/** @brief A map on every letter is an involution where the map on one is,
+ *  certified at the type where @c tau's is; a @c LetterMap's law is of its
+ *  table, so @c is_involution decides it on the value. */
+template <IsArrow T, typename C>
+  requires std::same_as<Dom<T>, Cod<T>>
+struct is_involutive<PowerMap<T>, std::vector<C>>
+    : std::bool_constant<is_involutive_v<T, C>> {};
+static_assert(
+    IsInvolution<Compose<PowerMap<Identity<std::byte>>,
+                         Morphism<std::vector<std::byte>,
+                                  std::vector<std::byte>, Reverse>>> &&
+        !IsInvolution<Compose<
+            PowerMap<LetterMap>,
+            Morphism<std::vector<std::byte>, std::vector<std::byte>, Reverse>>>,
+    "the type certifies the reversal after the identity on every letter; the "
+    "complement's law is in its table, read by is_involution on the value");
 
 namespace detail_periodic {
 /** @brief Whether a letter map, taken twice, returns one more byte. */
