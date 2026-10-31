@@ -154,7 +154,8 @@ struct ToByte {
   }
 };
 constexpr Word dna(std::string_view s) {
-  return s | std::views::transform(ToByte{}) | std::ranges::to<Word>();
+  const auto letters = s | std::views::transform(ToByte{});
+  return Word(letters.begin(), letters.end());
 }
 constexpr auto reverse_complement = power(complement, 6) >> reverse;
 constexpr auto complement_reversed = dedekind::category::endo<Word>(reverse) >>
