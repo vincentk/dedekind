@@ -189,20 +189,6 @@ concept IsInvolution = IsEndomorphism<detail_involution::on_t<F, T>> &&
                        std::same_as<Dom<detail_involution::on_t<F, T>>, T> &&
                        is_involutive_v<std::remove_cvref_t<F>, T>;
 
-/** @brief Trait: the arrows @c F and @c G commute, @f$f \circ g = g \circ
- *  f@f$.  Primary @c std::false_type, a certificate as @c is_involutive is:
- *  that two maps commute is a claim about them, not a property of their
- *  calls.  Read symmetrically by @c commutes_v.  It is what makes a composite
- *  of two involutions one: @f$(g f)^2 = g f g f = g g f f = \mathrm{id}@f$
- *  where @f$f g = g f@f$, and no involution where they do not, as @c ~ and
- *  @c - on @c int below. */
-export template <typename F, typename G>
-struct commutes : std::false_type {};
-export template <typename F, typename G>
-inline constexpr bool commutes_v =
-    commutes<std::remove_cvref_t<F>, std::remove_cvref_t<G>>::value ||
-    commutes<std::remove_cvref_t<G>, std::remove_cvref_t<F>>::value;
-
 /** @brief A composite of two commuting involutions is one, certified at the
  *  type where both legs are: @f$(g f)^2 = g g f f = \mathrm{id}@f$.  The same
  *  law @c is_involution reads on a value (@c :posetal), where a leg's law may

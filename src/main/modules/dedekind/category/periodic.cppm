@@ -966,6 +966,66 @@ constexpr bool is_involution(const PowerMap<T>& p) {
   return is_involution(p.tau);
 }
 
+/** @brief The letter maps on the bytes as a category: one arrow type,
+ *  @c LetterMap, the identity its identity table. */
+export struct LetterMaps {
+  using Species = std::byte;
+  using Arrow = LetterMap;
+  using Id = LetterMap;
+  static constexpr LetterMap id_c(std::byte) { return letter_map("", ""); }
+};
+/** @brief The letter maps on every letter of a word as a category: the
+ *  image of @c LetterMaps under the power functor. */
+export struct LetterMapsOnWords {
+  using Species = std::vector<std::byte>;
+  using Arrow = PowerMap<LetterMap>;
+  using Id = PowerMap<LetterMap>;
+  static constexpr PowerMap<LetterMap> id_c(const std::vector<std::byte>& w) {
+    return {letter_map("", ""), w.size()};
+  }
+};
+/** @brief The power functor @f$(-)^n@f$ on the letter maps: a word for a
+ *  letter, @c power(tau, n) for an arrow @c tau.  @c reverse and @c rotate(d)
+ *  are natural transformations of it to itself, by the certificates above. */
+export struct PowerFunctor {
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = LetterMaps;
+  using Τ_cat = LetterMapsOnWords;
+  using Domain = LetterMaps;
+  using Codomain = LetterMapsOnWords;
+  template <typename U>
+  using Shape = std::vector<U>;
+  std::size_t length = 0;
+  constexpr Codomain operator()(const Domain&) const { return {}; }
+  template <typename A>
+    requires IsArrow<std::remove_cvref_t<A>> &&
+             std::same_as<Dom<std::remove_cvref_t<A>>,
+                          Cod<std::remove_cvref_t<A>>>
+  constexpr PowerMap<std::remove_cvref_t<A>> φ(A tau) const {
+    return {std::move(tau), length};
+  }
+};
+/** @brief A transformation of the power functor with one component, a
+ *  map on the words, at every letter.  @tparam S the map. */
+export template <typename S>
+struct OnWords {
+  S sigma;
+  constexpr Morphism<std::vector<std::byte>, std::vector<std::byte>, S>
+  operator()(std::byte) const {
+    return endo<std::vector<std::byte>>(sigma);
+  }
+};
+static_assert(
+    IsShapedFunctor<PowerFunctor> &&
+        IsNaturalTransformation<OnWords<Reverse>, PowerFunctor, PowerFunctor> &&
+        IsNaturalTransformation<OnWords<Rotation<>>, PowerFunctor,
+                                PowerFunctor> &&
+        !IsNaturalTransformation<OnWords<PowerMap<LetterMap>>, PowerFunctor,
+                                 PowerFunctor>,
+    "the permutations of positions are natural on the power functor; the "
+    "complement on every letter is not, since it commutes only with the "
+    "letter maps that commute with the complement, and none is certified");
+
 /** @brief The section of a tensor power fixed by a permutation @c sigma of
  *  the positions and an arrow @c tau on the letters, @f$x_{\sigma(i)} =
  *  \tau(x_i)@f$: the legs merged along each cycle of @c sigma, the spider's
