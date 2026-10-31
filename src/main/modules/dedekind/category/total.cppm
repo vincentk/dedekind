@@ -1286,13 +1286,15 @@ constexpr T power(const T& x, N n, Op op) {
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
  *  squaring its first half, licensed by associativity.  The same signature as
  * the plain fold and a stronger constraint, so resolution prefers it wherever
- *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
+ *  @c IsCopies holds.  The value is read only where there is a copy, as a
+ *  model promises it.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  return detail_concat::power(copies_value(r), copies_count(r), op);
+  const auto n = copies_count(r);  // no copies: no value to read
+  return n == 0 ? unit<T>(op) : detail_concat::power(copies_value(r), n, op);
 }
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;

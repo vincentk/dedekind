@@ -689,8 +689,9 @@ template <ranges::input_range R,
           typename Op = plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  return power(copies_value(r),
-               copies_count(r), op);
+  const auto n = copies_count(r);
+  return n == 0 ? unit<T>(op)
+                : power(copies_value(r), n, op);
 }
 \end{cpp}
 \end{minipage}\hfill

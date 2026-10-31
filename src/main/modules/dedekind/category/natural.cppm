@@ -303,8 +303,10 @@ concept IsConstantFamily = requires(const Α& a) { a.component(); };
  *  (the single-species categories), decided by the arrow algebra and never
  *  by comparing the two composites' types, which differ for any component
  *  but an identity although the arrows they denote agree:
- *   - one functor and an identity component: the unit law;
- *   - one functor and one component at every object (@c IsConstantFamily),
+ *   - one functor, a type with one value, so that its two ends are one
+ *     functor, and an identity component: the unit law;
+ *   - that one functor and one component at every object
+ *     (@c IsConstantFamily),
  *     certified to commute with @f$F(f)@f$ (@c commutes, @c :morphism): the
  *     square is that certificate;
  *   - two functors and an identity component: the square is @f$F(f) =
@@ -316,7 +318,7 @@ concept IsConstantFamily = requires(const Α& a) { a.component(); };
 template <typename Α, typename F, typename G, typename Ff, typename Gf,
           typename Ac>
 concept IsNaturalSquare =
-    (std::same_as<F, G> &&
+    (std::same_as<F, G> && std::is_empty_v<F> &&
      (IsIdentityArrow<Ac> ||
       (IsConstantFamily<Α> &&
        std::same_as<Ac, decltype(std::declval<const Α&>().component())> &&

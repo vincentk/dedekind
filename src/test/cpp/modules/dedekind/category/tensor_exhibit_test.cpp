@@ -159,9 +159,9 @@ constexpr Word dna(std::string_view s) {
   const auto bytes = s | std::views::transform(ToByte{});
   return Word(bytes.begin(), bytes.end());
 }
-constexpr auto reverse_complement = power(complement, 6) >> reverse;
+constexpr auto reverse_complement = power(complement) >> reverse;
 constexpr auto complement_reversed = dedekind::category::endo<Word>(reverse) >>
-                                     power(complement, 6);
+                                     power(complement);
 static_assert(is_involution(complement) &&
               !is_involution(dedekind::category::letter_map("ACGT", "CGTA")) &&
               is_involution(reverse_complement) &&
@@ -178,17 +178,16 @@ static_assert(!exact_count(free_monoid(nucleotides, 100)).has_value() &&
 // n - 1 - i; through the complement, the reverse-complement palindromes, the
 // restriction sites, of which there are none of odd length, since no base is
 // its own complement.
-static_assert(count_factors(power(nucleotides, 99)) == Factors{{4, 99}} &&
-              count_factors(symmetric(power(nucleotides, 12), reverse)) ==
-                  Factors{{4, 6}} &&
-              count_factors(symmetric(power(nucleotides, 13), reverse)) ==
-                  Factors{{4, 6}, {4, 1}} &&
-              count_factors(symmetric(power(nucleotides, 12),
-                                      power(complement, 12) >> reverse)) ==
-                  Factors{{4, 6}} &&
-              exact_count(count_factors(symmetric(power(nucleotides, 13),
-                                                  power(complement, 13) >>
-                                                      reverse))) == 0uz);
+static_assert(
+    count_factors(power(nucleotides, 99)) == Factors{{4, 99}} &&
+    count_factors(symmetric(power(nucleotides, 12), reverse)) ==
+        Factors{{4, 6}} &&
+    count_factors(symmetric(power(nucleotides, 13), reverse)) ==
+        Factors{{4, 6}, {4, 1}} &&
+    count_factors(symmetric(power(nucleotides, 12),
+                            power(complement) >> reverse)) == Factors{{4, 6}} &&
+    exact_count(count_factors(symmetric(power(nucleotides, 13),
+                                        power(complement) >> reverse))) == 0uz);
 
 // The same counts by brute force over the 4^L words of length L, each word
 // read off its index in base 4: the sequence a size_t can index, here; 4^4 at
@@ -223,8 +222,8 @@ static_assert(
     count(256uz >> chain<size_t>() >>
           dedekind::category::opaque(IsSymmetric<dedekind::category::LetterMap>{
               4, complement})) ==
-        exact_count(count_factors(symmetric(
-            power(nucleotides, 4), power(complement, 4) >> reverse))) &&
+        exact_count(count_factors(symmetric(power(nucleotides, 4),
+                                            power(complement) >> reverse))) &&
     count(256uz >> chain<size_t>() >>
           dedekind::category::opaque(IsSymmetric<SameLetter>{
               4, SameLetter{}})) == 16);
@@ -279,7 +278,7 @@ static_assert(
         exact_count(count_factors(symmetric(power(nucleotides, 13),
                                             reverse))) &&
     count(count_factors(symmetric(power(nucleotides, 13),
-                                  power(complement, 13) >> reverse))) == 0 &&
+                                  power(complement) >> reverse))) == 0 &&
     count(Factors{{3, 40}}) == 12'157'665'459'056'928'801uz &&
     count(Factors{{2, 64}}) == 0);
 
@@ -305,10 +304,10 @@ static_assert(exact_count(Factors{{4, 49}, {0, 1}}) == 0uz &&
 constexpr auto just_a = dedekind::category::slice(std::byte{'A'},
                                                   std::byte{'B'}) >>
                         dedekind::category::letters("AB");
-static_assert(exact_count(count_factors(symmetric(
-                  power(just_a, 2),
-                  power(dedekind::category::letter_map("AB", "BA"), 2) >>
-                      reverse))) == 0uz);
+static_assert(exact_count(count_factors(
+                  symmetric(power(just_a, 2),
+                            power(dedekind::category::letter_map("AB", "BA")) >>
+                                reverse))) == 0uz);
 static_assert(count_factors(symmetric(power(bits, 4096uz), rotate(1))) ==
               Factors{{2, 1}});
 static_assert(!IsSquare<8>{0}(pack<8>(0uz)) && unpack<4>(pack<4>(5uz)) == 5uz &&
@@ -331,13 +330,12 @@ TEST_CASE("Tensor exhibit: the genome's symmetries by brute force, at run time",
   using namespace tensor_exhibit;
   size_t length = 6;  // 4^6 words, past the evaluator's steps
   const size_t words = size_t{1} << (2 * length);
-  CHECK(
-      count(
-          words >> chain<size_t>() >>
-          dedekind::category::opaque(IsSymmetric<dedekind::category::LetterMap>{
-              length, complement})) ==
-      exact_count(count_factors(symmetric(
-          power(nucleotides, length), power(complement, length) >> reverse))));
+  CHECK(count(words >> chain<size_t>() >>
+              dedekind::category::opaque(
+                  IsSymmetric<dedekind::category::LetterMap>{length,
+                                                             complement})) ==
+        exact_count(count_factors(symmetric(power(nucleotides, length),
+                                            power(complement) >> reverse))));
   CHECK(count(words >> chain<size_t>() >>
               dedekind::category::opaque(
                   IsSymmetric<SameLetter>{length, SameLetter{}})) ==

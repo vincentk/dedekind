@@ -49,11 +49,11 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertEqual(count_factors(palindromes), [(4, 6), (4, 1)])
         self.assertEqual(exact_count(palindromes), 4**7)
         sites = symmetric(
-            power(self.nucleotides, 12), power(self.complement, 12) >> reverse
+            power(self.nucleotides, 12), power(self.complement) >> reverse
         )
         self.assertEqual(exact_count(sites), 4**6)
         odd = symmetric(
-            power(self.nucleotides, 13), power(self.complement, 13) >> reverse
+            power(self.nucleotides, 13), power(self.complement) >> reverse
         )
         self.assertEqual(exact_count(odd), 0)  # no base is its own complement
 
@@ -61,9 +61,7 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertTrue(is_involution(self.complement))  # decided on its table
         self.assertFalse(is_involution(letter_map("ACGT", "CGTA")))
         # derived: the complement and the reversal commute
-        self.assertTrue(is_involution(power(self.complement, 6) >> reverse))
-        with self.assertRaises(ValueError):
-            symmetric(power(self.nucleotides, 12), power(self.complement, 6) >> reverse)
+        self.assertTrue(is_involution(power(self.complement) >> reverse))
 
     def test_the_squares_of_128_bits(self) -> None:
         squares = symmetric(power(self.bits, 128), rotate(64))

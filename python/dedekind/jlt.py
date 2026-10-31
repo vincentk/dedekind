@@ -20,7 +20,7 @@ The tensor exhibit (#1107) adds handles to ``:periodic``'s tensors: an
 ``alphabet("ACGT")``, its ``power(a, n)`` (the words of length n, never built),
 ``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, g)`` (the
 words a symmetry fixes: ``reverse``, ``rotate(d)``, or a ``letter_map`` on every
-letter then the reversal, ``power(complement, n) >> reverse``, the reverse
+letter then the reversal, ``power(complement) >> reverse``, the reverse
 complement; ``is_involution`` asks its law).  ``count_factors`` gives a count as factors, each a
 popcount; ``count`` its residue modulo 2**64; ``exact_count`` the count or
 ``None`` where no word holds it, so a genome of 2**200 words is refused as a

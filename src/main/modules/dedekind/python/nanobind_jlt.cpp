@@ -284,10 +284,9 @@ void bind_tensors(nb::module_& m) {
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
   m.def(
-      "power",
-      [](const jlt::LetterMap& t, std::size_t n) { return jlt::power(t, n); },
-      nb::arg("arrow"), nb::arg("length"),
-      "power(f, n): the letter map f on every letter of a word of length n.");
+      "power", [](const jlt::LetterMap& t) { return jlt::power(t); },
+      nb::arg("arrow"),
+      "power(f): the letter map f on every letter of a word.");
   m.def(
       "free_monoid",
       [](const jlt::Alphabet& a, std::size_t below) {
@@ -303,7 +302,7 @@ void bind_tensors(nb::module_& m) {
       nb::arg("power"), nb::arg("symmetry"),
       "symmetric(power, g): the words g fixes, the legs merged along the "
       "cycles of its permutation of the positions: reverse, rotate(d), or "
-      "power(complement, n) >> reverse.");
+      "power(complement) >> reverse.");
   m.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::Rotation<>& s) {
@@ -313,8 +312,6 @@ void bind_tensors(nb::module_& m) {
   m.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::ReverseAfter& g) {
-        if (g.f.length != p.length)
-          throw nb::value_error("symmetric: a symmetry of another length");
         return jlt::Factored{jlt::count_factors(jlt::symmetric(p, g))};
       },
       nb::arg("power"), nb::arg("symmetry"));

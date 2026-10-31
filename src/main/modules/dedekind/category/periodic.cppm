@@ -823,31 +823,30 @@ constexpr Power<C, F, N> power(
   return {slice(leg.seed().value_or(step.hi), step.hi), step.f, n};
 }
 
-/** @brief The tensor power of an arrow on the letters, @f$\tau^{\times n}@f$:
- *  @c tau applied to every letter of a word, the functor @f$(-)^n@f$ on
- *  arrows beside @c power on the alphabet, Listing 4's power one level up,
- *  @c length copies of @c tau under @f$\times@f$.  It commutes with every
- *  permutation of the positions, which is naturality read on words.
- *  @tparam T the arrow on the letters. */
+/** @brief An arrow on the letters applied to every letter of a word, of any
+ *  length: the list functor's action on arrows, @f$\tau^{\times n}@f$ at
+ *  each length @f$n@f$ at once, beside @c power on the alphabet, Listing 4's
+ *  power one level up.  It commutes with every permutation of the
+ *  positions, which is naturality read on words.  @tparam T the arrow on
+ *  the letters. */
 export template <IsArrow T>
   requires std::same_as<Dom<T>, Cod<T>>
 struct PowerMap {
   using Domain = std::vector<Dom<T>>;
   using Codomain = std::vector<Dom<T>>;
   T tau;
-  std::size_t length;
   constexpr Domain operator()(Domain w) const {
     std::ranges::transform(w, w.begin(), tau);
     return w;
   }
   constexpr bool operator==(const PowerMap&) const = default;
 };
-/** @param tau an arrow on the letters.  @param n the length.  @return
- *  @c tau on every letter of the words of length @c n. */
+/** @param tau an arrow on the letters.  @return @c tau on every letter of a
+ *  word. */
 export template <IsArrow T>
   requires std::same_as<Dom<T>, Cod<T>>
-constexpr PowerMap<T> power(const T& tau, std::size_t n) {
-  return {tau, n};
+constexpr PowerMap<T> power(const T& tau) {
+  return {tau};
 }
 
 /** @brief The rotation of the positions of a word by @c shift, @f$i \mapsto
@@ -946,8 +945,6 @@ struct ReturnsTwice {
     return ok && t(t(b)) == b;
   }
 };
-/** @brief Refuses a symmetry and a power of different lengths. */
-[[noreturn]] constexpr void refuse_unequal_lengths() { std::abort(); }
 }  // namespace detail_periodic
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
@@ -975,18 +972,20 @@ export struct LetterMaps {
   static constexpr LetterMap id_c(std::byte) { return letter_map("", ""); }
 };
 /** @brief The letter maps on every letter of a word as a category: the
- *  image of @c LetterMaps under the power functor. */
+ *  image of @c LetterMaps under the list functor. */
 export struct LetterMapsOnWords {
   using Species = std::vector<std::byte>;
   using Arrow = PowerMap<LetterMap>;
   using Id = PowerMap<LetterMap>;
-  static constexpr PowerMap<LetterMap> id_c(const std::vector<std::byte>& w) {
-    return {letter_map("", ""), w.size()};
+  static constexpr PowerMap<LetterMap> id_c(const std::vector<std::byte>&) {
+    return {letter_map("", "")};
   }
 };
-/** @brief The power functor @f$(-)^n@f$ on the letter maps: a word for a
- *  letter, @c power(tau, n) for an arrow @c tau.  @c reverse and @c rotate(d)
- *  are natural transformations of it to itself, by the certificates above. */
+/** @brief The list functor on the letter maps, a word for a letter, of
+ *  every length, and @c power(tau) for an arrow @c tau: the power functor
+ *  @f$(-)^n@f$ at each length at once.  It has no state, so it is one
+ *  functor, and @c reverse and @c rotate(d) are natural transformations of
+ *  it to itself, by the certificates above. */
 export struct PowerFunctor {
   using ArrowKind = hub_arrow_tag;
   using Σ_cat = LetterMaps;
@@ -995,14 +994,13 @@ export struct PowerFunctor {
   using Codomain = LetterMapsOnWords;
   template <typename U>
   using Shape = std::vector<U>;
-  std::size_t length = 0;
   constexpr Codomain operator()(const Domain&) const { return {}; }
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>> &&
              std::same_as<Dom<std::remove_cvref_t<A>>,
                           Cod<std::remove_cvref_t<A>>>
   constexpr PowerMap<std::remove_cvref_t<A>> φ(A tau) const {
-    return {std::move(tau), length};
+    return {std::move(tau)};
   }
 };
 /** @brief The power functor's laws: @f$\mathrm{id}^{\times n} = \mathrm{id}@f$
@@ -1019,12 +1017,12 @@ constexpr LetterMap swap_at = letter_map("AT", "TA");
 constexpr LetterMap swap_cg = letter_map("CG", "GC");
 }  // namespace detail_periodic
 static_assert(
-    PowerFunctor{6}.φ(LetterMaps::id_c(std::byte{}))(
+    PowerFunctor{}.φ(LetterMaps::id_c(std::byte{}))(
         detail_periodic::gattac()) == detail_periodic::gattac() &&
-        PowerFunctor{6}.φ(detail_periodic::swap_at >> detail_periodic::swap_cg)(
-            detail_periodic::gattac()) ==
-            (PowerFunctor{6}.φ(detail_periodic::swap_at) >>
-             PowerFunctor{6}.φ(detail_periodic::swap_cg))(
+        PowerFunctor{}.φ(detail_periodic::swap_at >>
+                         detail_periodic::swap_cg)(detail_periodic::gattac()) ==
+            (PowerFunctor{}.φ(detail_periodic::swap_at) >>
+             PowerFunctor{}.φ(detail_periodic::swap_cg))(
                 detail_periodic::gattac()),
     "the power functor preserves the identity and composition, on a word");
 
@@ -1098,7 +1096,7 @@ constexpr Symmetric<Power<C, F, N>, S, Identity<C>> symmetric(
   return {p, sigma.transform, Identity<C>{}};
 }
 /** @param p a tensor power.  @param g an arrow on every letter, then a
- *  permutation of the positions: @c power(complement, n) >> reverse.
+ *  permutation of the positions: @c power(complement) >> reverse.
  *  @return the words it fixes. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T, typename S>
   requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
@@ -1106,7 +1104,6 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
     const Power<C, F, N>& p,
     const Compose<PowerMap<T>, Morphism<std::vector<C>, std::vector<C>, S>>&
         g) {
-  if (g.f.length != p.length) detail_periodic::refuse_unequal_lengths();
   return {p, g.g.transform, g.f.tau};
 }
 /** @param p a tensor power.  @param g a permutation of the positions, then
@@ -1118,7 +1115,6 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
     const Power<C, F, N>& p,
     const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
         g) {
-  if (g.g.length != p.length) detail_periodic::refuse_unequal_lengths();
   return {p, g.f.transform, g.g.tau};
 }
 
