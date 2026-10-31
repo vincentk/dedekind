@@ -97,6 +97,9 @@ export module dedekind.category:functor;
 
 import :action;
 import :cartesian;
+import :limit;    // One: the delooping's one object
+import :species;  // unit: the identity of an element's monoid
+import :total;    // IsMonoid: what a delooping is made of
 import :morphism;
 import :small;
 
@@ -1109,4 +1112,112 @@ export template <typename F>
 concept IsQuotientFunctor =
     IsArrow<F> && IsEpicArrow<F> && is_quotient_functor_v<F>;
 
+/**
+ * @section functor__Actions
+ * @brief A monoid as a category with one object, its delooping, and an
+ *        action of it as a functor out of that category (Mac Lane, CWM
+ *        §I.2): the action's laws are the functor's.
+ */
+
+/** @brief An element of a monoid as an arrow of its delooping, from the one
+ *  object to itself; two compose by the monoid's operation, in the walk's
+ *  order, as @c >> reads.  @tparam T @tparam Op the monoid. */
+export template <std::semiregular T, std::semiregular Op>
+  requires IsMonoid<T, Op>
+struct Element {
+  using Domain = One;
+  using Codomain = One;
+  T value;
+  constexpr One operator()(One) const { return {}; }
+  /** @brief @c a then @c b is @f$a \cdot b@f$. */
+  friend constexpr Element operator>>(const Element& a, const Element& b) {
+    return {Op{}(a.value, b.value)};
+  }
+};
+/** @brief The delooping @f$\mathbf{B}(T, \cdot)@f$: one object, an arrow per
+ *  element, composition the operation, the identity its unit.  Of the
+ *  opposite operation, @c Opposite<Op>, it is the opposite category.
+ *  @tparam T @tparam Op the monoid. */
+export template <std::semiregular T, std::semiregular Op>
+  requires IsMonoid<T, Op>
+struct Delooping {
+  using Species = One;
+  using Arrow = Element<T, Op>;
+  using Id = Element<T, Op>;
+  static constexpr Id id_c(One) { return {unit<T>(Op{})}; }
+};
+
+/** @brief An element acting: the arrow @f$v \mapsto h(v, s)@f$ on the set
+ *  the monoid acts on.  @tparam H the action.  @tparam V what it acts on.
+ *  @tparam S the monoid's carrier. */
+export template <std::semiregular H, std::semiregular V, std::semiregular S>
+  requires std::invocable<const H&, V, S>
+struct Acting {
+  using Domain = V;
+  using Codomain = V;
+  H h;
+  S by;
+  constexpr V operator()(V v) const {
+    return static_cast<V>(h(std::move(v), by));
+  }
+};
+/** @brief The arrows by which a monoid acts on @c V, as a category: the
+ *  image of the delooping under the action.  @tparam H the action.
+ *  @tparam V what it acts on.  @tparam S the monoid's carrier. */
+export template <std::semiregular H, std::semiregular V, std::semiregular S>
+  requires IsRightAction<H, V, S>
+struct ActingOn {
+  using Species = V;
+  using Arrow = Acting<H, V, S>;
+  using Id = Acting<H, V, S>;
+  static constexpr Id id_c(const V&) {
+    return {H{}, unit<S>(typename acting_monoid<H>::type{})};
+  }
+};
+/** @brief A right action as a functor out of the delooping of the monoid it
+ *  acts by: the one object to @c V, an element @c s to @f$v \mapsto h(v,
+ *  s)@f$.  Its functor laws are the action's, @f$h(v, 1) = v@f$ and
+ *  @f$h(h(v, a), b) = h(v, a \cdot b)@f$, which @c acting_monoid declares,
+ *  so they are derived and not declared again.  A left action registers the
+ *  opposite operation, so it is a functor out of the opposite category.
+ *  @tparam H the action.  @tparam V what it acts on.  @tparam S the
+ *  monoid's carrier. */
+export template <std::semiregular H, std::semiregular V, std::semiregular S>
+  requires IsRightAction<H, V, S>
+struct ActionFunctor {
+  using ArrowKind = hub_arrow_tag;
+  using Op = typename acting_monoid<H>::type;
+  using Σ_cat = Delooping<S, Op>;
+  using Τ_cat = ActingOn<H, V, S>;
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+  template <typename U>
+  using Shape = V;
+  [[no_unique_address]] H h{};
+  constexpr Codomain operator()(const Domain&) const { return {}; }
+  constexpr Acting<H, V, S> φ(const Element<S, Op>& s) const {
+    return {h, s.value};
+  }
+};
+/** @brief An action's functor laws come with the action: derived from
+ *  @c acting_monoid, which @c IsRightAction reads. */
+template <std::semiregular H, std::semiregular V, std::semiregular S>
+  requires IsRightAction<H, V, S>
+struct is_functorial<ActionFunctor<H, V, S>> : std::true_type {};
+
+namespace detail_functor_actions {
+using Plus = std::plus<std::size_t>;
+using Adding = ActionFunctor<Plus, std::size_t, std::size_t>;
+using Sum = Element<std::size_t, Plus>;
+static_assert(IsSmallCategory<Delooping<std::size_t, Plus>> &&
+                  IsShapedFunctor<Adding> && has_one_value_v<Adding>,
+              "a monoid acting on itself, by +, is a functor out of its "
+              "delooping, and one functor");
+static_assert((Sum{3} >> Sum{4}).value == 7 &&
+                  Adding{}.φ(Sum{3} >> Sum{4})(1) ==
+                      (Adding{}.φ(Sum{3}) >> Adding{}.φ(Sum{4}))(1) &&
+                  Adding{}.φ(Delooping<std::size_t, Plus>::id_c(One{}))(5) == 5,
+              "composition is the operation; the functor keeps it and the "
+              "unit, on values");
+}  // namespace detail_functor_actions
 }  // namespace dedekind::category

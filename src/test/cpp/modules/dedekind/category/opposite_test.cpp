@@ -90,6 +90,15 @@ static_assert(
 static_assert(twice * next != next * twice &&
               Op{}(twice, next) == next * twice);
 
+// A left action is a functor out of the opposite category: the delooping of
+// the opposite operation, where twice then next composes to next ∘ twice.
+using LeftActs = dedekind::category::ActionFunctor<Apply, size_t, Affine>;
+using Map = dedekind::category::Element<Affine, Op>;
+static_assert(dedekind::category::IsFunctor<LeftActs> &&
+              (Map{twice} >> Map{next}).value == next * twice &&
+              LeftActs{}.φ(Map{twice} >> Map{next})(3) == 7 &&
+              (LeftActs{}.φ(Map{twice}) >> LeftActs{}.φ(Map{next}))(3) == 7);
+
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.
 constexpr std::array<Affine, 2> walk{twice, next};
