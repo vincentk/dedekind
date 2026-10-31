@@ -675,15 +675,13 @@ The composite cannot do anything the components' records do not provide.
 template <typename T, typename Op,
           IsCountWord N>
   requires IsMonoid<T, Op>
-constexpr T prefix(const T& acc, const T& x,
-                   N n, size_t k, Op op) {
-  if (k == 0) {
-    return acc;  // the first n copies
-  } else {  // the first n >> (k - 1)
-    const T twice = op(acc, acc);
-    const bool set = ((n >> (k - 1)) & 1U) != 0;
-    return prefix(set ? op(twice, x) : twice,
-                  x, n, k - 1, op);
+constexpr T power(const T& x, N n, Op op) {
+  if (n == 0) {
+    return unit<T>(op);
+  } else {  // the halves are equal: one, twice
+    const T h = power(x, n / 2, op);
+    const T hh = op(h, h);
+    return n % 2 == 1 ? op(hh, x) : hh;
   }
 }
 template <ranges::input_range R,
@@ -691,9 +689,8 @@ template <ranges::input_range R,
           typename Op = plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  const auto n = copies_count(r);
-  return prefix(unit<T>(op), copies_value(r), n,
-                size_t(bit_width(n)), op);
+  return power(copies_value(r),
+               copies_count(r), op);
 }
 \end{cpp}
 \end{minipage}\hfill
@@ -729,7 +726,7 @@ fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain p
           = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
 \end{minted}
 \caption{Laws composing: Rule~2 applied to Listing~\ref{lst:rule3}'s chain, the composition made sound by Theorem~\ref{thm:coherence}.
-Left: the fast path the monoid laws license, a second \cppinline{concat} that resolution prefers on $n$ copies of one value, their product by doubling prefixes, one copy more where a bit of $n$ is set~\cite[\S 4.6.3]{knuth1997art2}, a tail call per bit that Rule~3 admits, the matrices' monoid laws certified alike, not shown.
+Left: the fast path the monoid laws license, a second \cppinline{concat} that resolution prefers on $n$ copies of one value, their product the square of the first half's, one copy more where $n$ is odd~\cite[\S 4.6.3]{knuth1997art2}, a call per bit that Rule~3 admits, the matrices' monoid laws certified alike, not shown.
 Right: the action law, declared, and the overload it licenses: \cppinline{fold} on the same copies acts once, by their product under the monoid \cppinline{acting_monoid} names.
 The law holds on any sequence, and \cppinline{IsCopies} sends the call to the left panel, since elsewhere the rewrite costs more.
 Bottom: its translation, rewritten by the right panel's law, then the left's, two equations outside the appendix's reductions.

@@ -38,7 +38,6 @@
 module;
 
 #include <algorithm>
-#include <bit>      // std::bit_width: the bits a power reads
 #include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
@@ -1277,38 +1276,34 @@ concept IsCopies = std::ranges::input_range<R> && requires(const R& r) {
   { copies_value(r) } -> std::convertible_to<std::ranges::range_value_t<R>>;
 };
 namespace detail_concat {
-/** @brief The concat of a prefix of @c n copies of @c x, grown from the top
- *  bit of @c n down: @c acc is the concat of the first @f$n \gg k@f$ copies,
- *  and doubling it, one copy more where bit @f$k - 1@f$ of @c n is set, makes
- *  it the concat of the first @f$n \gg (k - 1)@f$.  A tail call per bit of
- *  @c n, descending on @c k to its base case, licensed by associativity.
- *  @param acc the prefix's concat.  @param x the value.  @param n the copies.
- *  @param k the bits of @c n still to read.  @param op the operation.
+/** @brief @f$x^n@f$ as the square of @f$x^{\lfloor n/2 \rfloor}@f$, one
+ *  @c x more where @c n is odd: the concat of the first half of the copies,
+ *  used twice, since the halves are equal.  A descent on @c n by halving to
+ *  its base case, one call per bit of @c n, licensed by associativity.
+ *  @param x the value.  @param n the copies.  @param op the operation.
  *  @return the concat of the @c n copies. */
 template <typename T, typename Op, IsCountWord N>
   requires IsMonoid<T, Op>
-constexpr T prefix(const T& acc, const T& x, N n, std::size_t k, Op op) {
-  if (k == 0) {
-    return acc;
+constexpr T power(const T& x, N n, Op op) {
+  if (n == 0) {
+    return unit<T>(op);
   } else {
-    const T twice = op(acc, acc);
-    const bool set = ((n >> (k - 1)) & 1U) != 0;
-    return prefix(set ? op(twice, x) : twice, x, n, k - 1, op);
+    const T h = power(x, n / 2, op);  // the first half
+    const T hh = op(h, h);
+    return n % 2 == 1 ? op(hh, x) : hh;
   }
 }
 }  // namespace detail_concat
 /** @brief @c concat on @c n copies of one value: its @c n-th power, by
- *  doubling its prefixes, licensed by associativity.  The same signature as the
- * plain fold and a stronger constraint, so resolution prefers it wherever
+ *  squaring its first half, licensed by associativity.  The same signature as
+ * the plain fold and a stronger constraint, so resolution prefers it wherever
  *  @c IsCopies holds.  @param r the copies.  @param op the operation. */
 export template <std::ranges::input_range R,
                  typename T = std::ranges::range_value_t<R>,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R>
 constexpr T concat(R r, Op op = {}) {
-  const auto n = copies_count(r);  // none: bit_width(0) is 0, the unit
-  return detail_concat::prefix(unit<T>(op), copies_value(r), n,
-                               static_cast<std::size_t>(std::bit_width(n)), op);
+  return detail_concat::power(copies_value(r), copies_count(r), op);
 }
 namespace detail_concat_witness {
 constexpr std::size_t ten = 10;
