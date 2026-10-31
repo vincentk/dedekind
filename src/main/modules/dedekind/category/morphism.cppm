@@ -1381,18 +1381,21 @@ concept IsMagmaHomomorphism =
     is_homomorphism_v<std::remove_cvref_t<F>, T, std::remove_cvref_t<Op>,
                       std::remove_cvref_t<Op2>>;
 
-/** @concept IsMonoidHomomorphism
- *  @brief A homomorphism of magmas that carries the unit to the unit,
- *  @f$f(e) = e'@f$: declared on every pair, computed at the one unit, so a
- *  map that is not a @c constexpr function object stays out.  @tparam F the
- *  map.  @tparam T its carrier.  @tparam Op @tparam Op2 the operations. */
+/** @concept PreservesUnit
+ *  @brief A map on @c T carries the unit of @c Op to the unit of @c Op2,
+ *  @f$f(e) = e'@f$, computed at the one unit: the comparison is a template
+ *  argument, so a map that is no @c constexpr function object is refused
+ *  rather than an error.  The unit half of a monoid homomorphism, and of a
+ *  homomorphism of any signature whose operations have units.
+ *  @tparam F the map.  @tparam T its carrier.  @tparam Op @tparam Op2 the
+ *  operations. */
 export template <typename F, typename T, typename Op, typename Op2 = Op>
-concept IsMonoidHomomorphism =
-    IsMagmaHomomorphism<F, T, Op, Op2> &&
+concept PreservesUnit =
     std::default_initializable<std::remove_cvref_t<F>> && requires {
-      requires std::remove_cvref_t<F> {}
-      (unit<T>(std::remove_cvref_t<Op>{})) ==
-          unit<detail_morphism::image_t<F, T>>(std::remove_cvref_t<Op2>{});
+      requires std::bool_constant<(
+          std::remove_cvref_t<F>{}(unit<T>(std::remove_cvref_t<Op>{})) ==
+          unit<detail_morphism::image_t<F, T>>(
+              std::remove_cvref_t<Op2>{}))>::value;
     };
 
 // The retract / iso-enabling surface (IsoRetract, the blanket iso retract, and

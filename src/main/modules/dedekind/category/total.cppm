@@ -589,6 +589,17 @@ concept IsCommutativeSemigroup = IsSemigroup<T, Op> && IsCommutative<T, Op>;
 export template <typename T, typename Op>
 concept IsMonoid = IsSemigroup<T, Op> && IsUnitalMagma<T, Op>;
 
+/** @concept IsMonoidHomomorphism
+ *  @brief A map between two monoids, @c (T, Op) and its image under @c Op2,
+ *  that carries the operation, declared on every pair, and the unit to the
+ *  unit, computed (@c :morphism's @c PreservesUnit).  @tparam F the map.
+ *  @tparam T its carrier.  @tparam Op @tparam Op2 the operations. */
+export template <typename F, typename T, typename Op, typename Op2 = Op>
+concept IsMonoidHomomorphism =
+    IsMonoid<T, std::remove_cvref_t<Op>> &&
+    IsMonoid<detail_morphism::image_t<F, T>, std::remove_cvref_t<Op2>> &&
+    IsMagmaHomomorphism<F, T, Op, Op2> && PreservesUnit<F, T, Op, Op2>;
+
 /**
  * @concept IsCommutativeMonoid
  * @brief A Monoid where the operation is commutative.

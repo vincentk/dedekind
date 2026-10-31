@@ -36,6 +36,11 @@ using Compose = std::multiplies<Affine>;
 struct Apply {
   constexpr size_t operator()(size_t x, Affine f) const { return f(x); }
 };
+/** @brief The identity on the counts, callable only at run time: its unit
+ *  law cannot be computed, so it is refused, not an error. */
+struct AtRunTime {
+  size_t operator()(size_t x) const { return x; }
+};
 }  // namespace opposite_witness
 
 namespace dedekind::category {
@@ -54,6 +59,9 @@ template <>  // g(f(x)) = (g ∘ f)(x): along the walk, the opposite product
 struct acting_monoid<opposite_witness::Apply> {
   using type = Opposite<opposite_witness::Compose>;
 };
+template <>  // a homomorphism, but no constexpr function object
+struct is_homomorphism<opposite_witness::AtRunTime, std::size_t,
+                       std::plus<std::size_t>> : std::true_type {};
 template <>  // -(a + b) = -a + -b, modulo the word
 struct is_homomorphism<std::negate<std::size_t>, std::size_t,
                        std::plus<std::size_t>> : std::true_type {};
@@ -104,6 +112,11 @@ static_assert(IsMonoidHomomorphism<Negate, size_t, std::plus<size_t>> &&
               IsDagger<Negate, size_t, std::plus<size_t>> &&
               !IsDagger<Negate, size_t, std::multiplies<size_t>> &&
               !IsDagger<std::bit_not<size_t>, size_t, std::plus<size_t>>);
+// A qualified operation names the same law.
+static_assert(IsDagger<Negate, size_t, const std::plus<size_t>>);
+static_assert(dedekind::category::IsMagmaHomomorphism<AtRunTime, size_t,
+                                                      std::plus<size_t>> &&
+              !IsMonoidHomomorphism<AtRunTime, size_t, std::plus<size_t>>);
 // Lifted to an arrow, endo<size_t>(-), it keeps both certificates.
 using NegateArrow = decltype(dedekind::category::endo<size_t>(Negate{}));
 static_assert(IsDagger<NegateArrow, size_t, std::plus<size_t>> &&

@@ -332,7 +332,8 @@ struct is_homomorphism<Morphism<A, B, Impl>, A, Op,
  *  homomorphism certificate rather than declared apart.  @tparam F the map.
  *  @tparam T its carrier.  @tparam Op the operation. */
 export template <typename F, typename T, typename Op>
-concept IsAntiHomomorphism = IsMagmaHomomorphism<F, T, Op, Opposite<Op>>;
+concept IsAntiHomomorphism =
+    IsMagmaHomomorphism<F, T, Op, Opposite<std::remove_cvref_t<Op>>>;
 
 /**
  * @section involution__Dagger_Category

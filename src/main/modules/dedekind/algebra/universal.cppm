@@ -550,7 +550,7 @@ struct preserves
           dedekind::category::is_homomorphism_v<
               Arrow, dedekind::category::Dom<Arrow>, Op, Op2> &&
           (!dedekind::category::IsPointed<dedekind::category::Dom<Arrow>, Op> ||
-           dedekind::category::IsMonoidHomomorphism<
+           dedekind::category::PreservesUnit<
                Arrow, dedekind::category::Dom<Arrow>, Op, Op2>)> {};
 template <typename Arrow, typename... Ss, typename... Ts>
   requires(sizeof...(Ss) == sizeof...(Ts) && sizeof...(Ss) > 0)
@@ -584,7 +584,7 @@ struct default_signatures<Arrow> {
  * @details Per operation the law is the declared certificate
  * @c category::is_homomorphism, keyed by the arrow, its domain and the pair
  * of operations, of any arity, and where the operation has a unit, the law
- * at the unit is computed, @c category::IsMonoidHomomorphism.  The signatures
+ * at the unit is computed, @c category::PreservesUnit.  The signatures
  * default to the semiring operations each carrier registers, @c semiring_ops,
  * so a ring embedding is named by its arrow alone; an empty signature asserts
  * nothing and is refused, and so is a type that is no arrow.  The honest
