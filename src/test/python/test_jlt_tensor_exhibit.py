@@ -18,12 +18,13 @@ from dedekind.jlt import (
     count_factors,
     exact_count,
     free_monoid,
+    is_involution,
     is_square,
     letter_map,
     pack,
     power,
-    reversal,
-    rotation,
+    reverse,
+    rotate,
     symmetric,
 )
 
@@ -34,26 +35,38 @@ def total(tensor):
 
 
 class JltTensorExhibitTest(unittest.TestCase):
-    bases = alphabet("ACGT")
+    nucleotides = alphabet("ACGT")
     bits = alphabet("01")
-    complement = letter_map("ACGT", "TGCA")
+    complement = letter_map("ACGT", "TGCA")  # Watson–Crick pairing
 
     def test_the_genome_is_refused_as_a_sequence(self) -> None:
-        self.assertIsNone(exact_count(free_monoid(self.bases, 100)))
-        self.assertEqual(exact_count(free_monoid(self.bases, 4)), 1 + 4 + 16 + 64)
+        self.assertIsNone(exact_count(free_monoid(self.nucleotides, 100)))
+        self.assertEqual(exact_count(free_monoid(self.nucleotides, 4)), 1 + 4 + 16 + 64)
 
     def test_the_genome_is_counted_as_a_tensor(self) -> None:
-        self.assertEqual(count_factors(power(self.bases, 99)), [(4, 99)])
-        palindromes = symmetric(power(self.bases, 13), reversal())
+        self.assertEqual(count_factors(power(self.nucleotides, 99)), [(4, 99)])
+        palindromes = symmetric(power(self.nucleotides, 13), reverse)
         self.assertEqual(count_factors(palindromes), [(4, 6), (4, 1)])
         self.assertEqual(exact_count(palindromes), 4**7)
-        sites = symmetric(power(self.bases, 12), reversal(), self.complement)
+        sites = symmetric(
+            power(self.nucleotides, 12), power(self.complement, 12) >> reverse
+        )
         self.assertEqual(exact_count(sites), 4**6)
-        odd = symmetric(power(self.bases, 13), reversal(), self.complement)
+        odd = symmetric(
+            power(self.nucleotides, 13), power(self.complement, 13) >> reverse
+        )
         self.assertEqual(exact_count(odd), 0)  # no base is its own complement
 
+    def test_the_reverse_complement_is_an_involution(self) -> None:
+        self.assertTrue(is_involution(self.complement))  # decided on its table
+        self.assertFalse(is_involution(letter_map("ACGT", "CGTA")))
+        # derived: the complement and the reversal commute
+        self.assertTrue(is_involution(power(self.complement, 6) >> reverse))
+        with self.assertRaises(ValueError):
+            symmetric(power(self.nucleotides, 12), power(self.complement, 6) >> reverse)
+
     def test_the_squares_of_128_bits(self) -> None:
-        squares = symmetric(power(self.bits, 128), rotation(64))
+        squares = symmetric(power(self.bits, 128), rotate(64))
         self.assertEqual(count_factors(squares), [(2, 64)])
         self.assertIsNone(exact_count(squares))  # one bit past the word
         self.assertEqual(total(squares), 2**64)
@@ -63,8 +76,8 @@ class JltTensorExhibitTest(unittest.TestCase):
 
     def test_the_exhibit_answers_at_once(self) -> None:
         start = time.perf_counter()
-        box = symmetric(power(self.bases, 99), reversal()) * symmetric(
-            power(self.bits, 128), rotation(64)
+        box = symmetric(power(self.nucleotides, 99), reverse) * symmetric(
+            power(self.bits, 128), rotate(64)
         )
         factors = count_factors(box)
         exact = total(box)

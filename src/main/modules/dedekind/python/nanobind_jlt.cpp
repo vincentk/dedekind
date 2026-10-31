@@ -142,7 +142,8 @@ using dedekind::category::LetterMap;
 using dedekind::category::Letters;
 using dedekind::category::power;
 using dedekind::category::Power;
-using dedekind::category::Reversal;
+using dedekind::category::PowerMap;
+using dedekind::category::Reverse;
 using dedekind::category::Rotation;
 using dedekind::category::slice;
 using dedekind::category::symmetric;
@@ -153,6 +154,13 @@ using dedekind::category::with_width;
 using Alphabet = decltype(slice(std::byte{}, std::byte{}) >> Letters{});
 using WordPower = Power<std::byte, Letters, std::size_t>;
 using Words = FreeMonoid<std::byte, Letters, std::size_t>;
+/** @brief A letter map on every letter of a word, and that followed by the
+ *  reversal of the positions: the reverse complement where the map is the
+ *  complement. */
+using LetterPower = PowerMap<LetterMap>;
+using Word = std::vector<std::byte>;
+using ReverseAfter = dedekind::category::Compose<
+    LetterPower, dedekind::category::Morphism<Word, Word, Reverse>>;
 
 /** @brief A tensor held by its factors, the core's @c count_factors of
  *  whatever it was built from. */
@@ -215,11 +223,18 @@ void bind_tensors(nb::module_& m) {
   nb::class_<jlt::Words>(m, "FreeMonoid",
                          "The free monoid on an alphabet truncated below a "
                          "length: the coproduct of the tensor powers.");
-  nb::class_<jlt::Reversal>(m, "Reversal",
-                            "The reversal of a word's positions.");
+  nb::class_<jlt::Reverse>(m, "Reverse", "The reversal of a word's positions.");
   nb::class_<jlt::Rotation<>>(m, "Rotation",
                               "A rotation of a word's positions.");
   nb::class_<jlt::LetterMap>(m, "LetterMap", "An arrow on the letters.");
+  nb::class_<jlt::ReverseAfter>(
+      m, "ReverseAfter",
+      "A map on every letter, then the reversal of the positions.");
+  nb::class_<jlt::LetterPower>(m, "PowerMap",
+                               "A letter map on every letter of a word.")
+      .def("__rshift__", [](const jlt::LetterPower& f, const jlt::Reverse& r) {
+        return f >> r;
+      });
   auto factored = nb::class_<jlt::Factored>(
       m, "Tensor", "A tensor held by its factors, the core's count_factors.");
   factored.def("__mul__", [](const jlt::Factored& a, const jlt::Factored& b) {
@@ -243,15 +258,34 @@ void bind_tensors(nb::module_& m) {
       nb::arg("from_"), nb::arg("to"),
       "letter_map(from, to): each letter to the image at the same place, every "
       "other byte fixed.");
-  m.def("reversal", [] { return jlt::Reversal{}; }, "reversal(): i -> n-1-i.");
+  m.attr("reverse") = dedekind::category::reverse;
   m.def(
-      "rotation", [](std::size_t d) { return jlt::Rotation<>{d}; },
-      nb::arg("by"), "rotation(by): i -> i + by mod n.");
+      "rotate", [](std::size_t d) { return dedekind::category::rotate(d); },
+      nb::arg("by"), "rotate(by): the positions i -> i + by mod n.");
+  m.def(
+      "is_involution",
+      [](const jlt::LetterMap& t) {
+        return dedekind::category::is_involution(t);
+      },
+      nb::arg("arrow"),
+      "is_involution(f): whether f twice is the identity, decided on its "
+      "table, or derived from its legs.");
+  m.def(
+      "is_involution",
+      [](const jlt::ReverseAfter& g) {
+        return dedekind::category::is_involution(g);
+      },
+      nb::arg("arrow"));
   m.def(
       "power",
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
+  m.def(
+      "power",
+      [](const jlt::LetterMap& t, std::size_t n) { return jlt::power(t, n); },
+      nb::arg("arrow"), nb::arg("length"),
+      "power(f, n): the letter map f on every letter of a word of length n.");
   m.def(
       "free_monoid",
       [](const jlt::Alphabet& a, std::size_t below) {
@@ -261,22 +295,27 @@ void bind_tensors(nb::module_& m) {
       "free_monoid(alphabet, L): the words shorter than L.");
   m.def(
       "symmetric",
-      [](const jlt::WordPower& p, const jlt::Reversal& s,
-         const jlt::LetterMap& t) {
-        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s, t))};
+      [](const jlt::WordPower& p, const jlt::Reverse& s) {
+        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s))};
       },
-      nb::arg("power"), nb::arg("sigma"),
-      nb::arg("tau") = dedekind::category::letter_map("", ""),
-      "symmetric(power, sigma, tau): the words fixed by sigma on positions "
-      "through tau on letters, the legs merged along sigma's cycles.");
+      nb::arg("power"), nb::arg("symmetry"),
+      "symmetric(power, g): the words g fixes, the legs merged along the "
+      "cycles of its permutation of the positions: reverse, rotate(d), or "
+      "power(complement, n) >> reverse.");
   m.def(
       "symmetric",
-      [](const jlt::WordPower& p, const jlt::Rotation<>& s,
-         const jlt::LetterMap& t) {
-        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s, t))};
+      [](const jlt::WordPower& p, const jlt::Rotation<>& s) {
+        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s))};
       },
-      nb::arg("power"), nb::arg("sigma"),
-      nb::arg("tau") = dedekind::category::letter_map("", ""));
+      nb::arg("power"), nb::arg("symmetry"));
+  m.def(
+      "symmetric",
+      [](const jlt::WordPower& p, const jlt::ReverseAfter& g) {
+        if (g.f.length != p.length)
+          throw nb::value_error("symmetric: a symmetry of another length");
+        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, g))};
+      },
+      nb::arg("power"), nb::arg("symmetry"));
   m.def(
       "count_factors",
       [](const jlt::WordPower& p) { return jlt::pairs(jlt::count_factors(p)); },

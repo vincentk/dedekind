@@ -38,7 +38,6 @@
 module;
 
 #include <algorithm>
-#include <compare>  // std::strong_ordering (the reverse utility)
 #include <concepts>
 #include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
@@ -169,16 +168,6 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  */
 export template <typename T, typename Op = std::plus<T>>
 concept IsSaturating = is_saturating_v<T, Op>;
-
-/** @brief Reverse a three-way comparison: @c less ↔ @c greater, @c equal fixed.
- *  The shared helper for carriers that compute an ordering in one direction and
- *  flip it (e.g.\ the reals' cut/field comparisons), so the idiom is written
- *  once rather than cloned per carrier. */
-export constexpr std::strong_ordering reverse(std::strong_ordering o) noexcept {
-  if (o == std::strong_ordering::less) return std::strong_ordering::greater;
-  if (o == std::strong_ordering::greater) return std::strong_ordering::less;
-  return std::strong_ordering::equal;
-}
 
 /**
  * @concept IsClosedUnder

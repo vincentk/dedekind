@@ -18,9 +18,10 @@ saturating at the chain's bounds: ``succ(bool)(True) is True``.
 
 The tensor exhibit (#1107) adds handles to ``:periodic``'s tensors: an
 ``alphabet("ACGT")``, its ``power(a, n)`` (the words of length n, never built),
-``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, sigma, tau)``
-(the words fixed by a ``reversal()`` or ``rotation(d)`` of positions through a
-``letter_map`` on letters).  ``count_factors`` gives a count as factors, each a
+``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, g)`` (the
+words a symmetry fixes: ``reverse``, ``rotate(d)``, or a ``letter_map`` on every
+letter then the reversal, ``power(complement, n) >> reverse``, the reverse
+complement; ``is_involution`` asks its law).  ``count_factors`` gives a count as factors, each a
 popcount; ``count`` its residue modulo 2**64; ``exact_count`` the count or
 ``None`` where no word holds it, so a genome of 2**200 words is refused as a
 sequence and counted as a tensor.  ``*`` is the outer product.
@@ -43,14 +44,15 @@ from ._jlt import dom
 from ._jlt import exact_count
 from ._jlt import free_monoid
 from ._jlt import id
+from ._jlt import is_involution
 from ._jlt import is_square
 from ._jlt import letter_map
 from ._jlt import pack
 from ._jlt import power
 from ._jlt import pred
 from ._jlt import refl
-from ._jlt import reversal
-from ._jlt import rotation
+from ._jlt import reverse
+from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
 
@@ -63,14 +65,15 @@ __all__ = [
     "exact_count",
     "free_monoid",
     "id",
+    "is_involution",
     "is_square",
     "letter_map",
     "pack",
     "power",
     "pred",
     "refl",
-    "reversal",
-    "rotation",
+    "reverse",
+    "rotate",
     "succ",
     "symmetric",
 ]

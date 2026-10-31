@@ -47,7 +47,8 @@ module;
 #include <cstdint>  // the bit words a machine word holds
 #include <cstdlib>  // std::abort: a modulus of 0 is refused
 #include <functional>
-#include <limits>  // the extent of a law that holds on the whole word
+#include <iterator>  // std::permutable: the words a symmetry reorders
+#include <limits>    // the extent of a law that holds on the whole word
 #include <numeric>
 #include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
@@ -65,6 +66,8 @@ import :nno;                   // Prior: the default chain's step
 import :discrete;              // equals: an arrow into the truth values
 import :lattice;               // Meet, Join: the nodes & and | build
 import :cartesian_bicategory;  // Tensor, Merge: the outer product
+import :involution;            // Reverse, commutes: the symmetries of a word
+import :posetal;               // is_involution: a law asked on the value
 
 namespace dedekind::category {
 
@@ -820,24 +823,65 @@ constexpr Power<C, F, N> power(
   return {slice(leg.seed().value_or(step.hi), step.hi), step.f, n};
 }
 
-/** @brief The reversal of the positions of a word, @f$i \mapsto n - 1 -
- *  i@f$: the symmetry of a palindrome. */
-export struct Reversal {
-  constexpr bool operator==(const Reversal&) const = default;
+/** @brief The tensor power of an arrow on the letters, @f$\tau^{\times n}@f$:
+ *  @c tau applied to every letter of a word, the functor @f$(-)^n@f$ on
+ *  arrows beside @c power on the alphabet, Listing 4's power one level up,
+ *  @c length copies of @c tau under @f$\times@f$.  It commutes with every
+ *  permutation of the positions, which is naturality read on words.
+ *  @tparam T the arrow on the letters. */
+export template <IsArrow T>
+  requires std::same_as<Dom<T>, Cod<T>>
+struct PowerMap {
+  using Domain = std::vector<Dom<T>>;
+  using Codomain = std::vector<Dom<T>>;
+  T tau;
+  std::size_t length;
+  constexpr Domain operator()(Domain w) const {
+    std::ranges::transform(w, w.begin(), tau);
+    return w;
+  }
+  constexpr bool operator==(const PowerMap&) const = default;
 };
+/** @param tau an arrow on the letters.  @param n the length.  @return
+ *  @c tau on every letter of the words of length @c n. */
+export template <IsArrow T>
+  requires std::same_as<Dom<T>, Cod<T>>
+constexpr PowerMap<T> power(const T& tau, std::size_t n) {
+  return {tau, n};
+}
+
 /** @brief The rotation of the positions of a word by @c shift, @f$i \mapsto
- *  i + d \bmod n@f$: the symmetry of a power @f$u^j@f$.  @tparam N the
- *  counts. */
+ *  i + d \bmod n@f$, the symmetry of a power @f$u^j@f$: on a word, the letter
+ *  at @c i moves to @c i + d, as @c std::rotl moves a bit.  A family of
+ *  arrows, one per word type, as @c Reverse is.  @tparam N the counts. */
 export template <IsCountWord N = std::size_t>
 struct Rotation {
   N shift;
+  template <std::ranges::random_access_range W>
+    requires std::semiregular<W> &&
+             std::permutable<std::ranges::iterator_t<W>> &&
+             std::ranges::sized_range<W>
+  constexpr W operator()(W s) const {
+    const auto n = static_cast<std::size_t>(std::ranges::size(s));
+    if (n == 0) return s;
+    const std::size_t k = static_cast<std::size_t>(shift) % n;
+    std::ranges::rotate(
+        s, std::ranges::begin(s) +
+               static_cast<std::ranges::range_difference_t<W>>((n - k) % n));
+    return s;
+  }
   constexpr bool operator==(const Rotation&) const = default;
 };
+/** @param d the shift.  @return the rotation of the positions by @c d. */
+export template <IsCountWord N = std::size_t>
+constexpr Rotation<N> rotate(std::type_identity_t<N> d) {
+  return {d};
+}
 /** @brief The cycle type of the reversal of @c n positions: @f$\lfloor n/2
  *  \rfloor@f$ pairs, and the middle where @c n is odd.  @param n the length.
  *  @return its cycles. */
 export template <IsCountWord N>
-constexpr std::vector<Cycles<N>> cycle_type(Reversal, N n) {
+constexpr std::vector<Cycles<N>> cycle_type(Reverse, N n) {
   std::vector<Cycles<N>> c{Cycles<N>{2, static_cast<N>(n / 2)}};
   if (n % 2 == 1) c.push_back(Cycles<N>{1, 1});
   return c;
@@ -860,10 +904,52 @@ concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
   { cycle_type(s, n) } -> std::same_as<std::vector<Cycles<N>>>;
 };
 
+/** @brief A map applied to every letter commutes with every permutation of
+ *  the positions, naturality read on words: @f$\sigma \circ \tau^{\times n} =
+ *  \tau^{\times n} \circ \sigma@f$.  So the reverse complement is one map,
+ *  written in either order, and an involution where @c tau is one
+ *  (@c is_involution, @c :posetal). */
+template <IsArrow T, typename W>
+  requires std::same_as<Dom<T>, Cod<T>>
+struct commutes<PowerMap<T>, Morphism<W, W, Reverse>> : std::true_type {};
+template <IsArrow T, typename W, IsCountWord N>
+  requires std::same_as<Dom<T>, Cod<T>>
+struct commutes<PowerMap<T>, Morphism<W, W, Rotation<N>>> : std::true_type {};
+
+namespace detail_periodic {
+/** @brief Whether a letter map, taken twice, returns one more byte. */
+struct ReturnsTwice {
+  LetterMap t;
+  constexpr bool operator()(bool ok, std::size_t i) const {
+    const std::byte b{static_cast<unsigned char>(i)};
+    return ok && t(t(b)) == b;
+  }
+};
+/** @brief Refuses a symmetry and a power of different lengths. */
+[[noreturn]] constexpr void refuse_unequal_lengths() { std::abort(); }
+}  // namespace detail_periodic
+/** @brief Whether a letter map is an involution, decided on its table: a
+ *  law of the value, the 256 bytes taken twice, as a law of a finite
+ *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
+ *  \mathrm{id}@f$. */
+export constexpr bool is_involution(const LetterMap& t) {
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, std::size_t{256}), true,
+      detail_periodic::ReturnsTwice{t});
+}
+/** @brief A map on every letter is an involution where the map on one is.
+ *  @param p the power of the map.  @return whether it is one. */
+export template <IsArrow T>
+  requires std::same_as<Dom<T>, Cod<T>>
+constexpr bool is_involution(const PowerMap<T>& p) {
+  return is_involution(p.tau);
+}
+
 /** @brief The section of a tensor power fixed by a permutation @c sigma of
  *  the positions and an arrow @c tau on the letters, @f$x_{\sigma(i)} =
  *  \tau(x_i)@f$: the legs merged along each cycle of @c sigma, the spider's
- *  @c Merge through @c tau.  @tparam P the power.  @tparam S the
+ *  @c Merge through @c tau, the words de Bruijn's power group element
+ *  @f$(\sigma, \tau)@f$ fixes.  @tparam P the power.  @tparam S the
  *  permutation.  @tparam T the arrow on the letters. */
 export template <typename P, typename S, IsArrow T>
 struct Symmetric {
@@ -871,14 +957,46 @@ struct Symmetric {
   S sigma;
   T tau;
 };
-/** @param p a tensor power.  @param sigma a permutation of its positions.
- *  @param tau an arrow on its letters.  @return the words fixed by both. */
-export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
-  requires std::same_as<Dom<T>, C> && std::same_as<Cod<T>, C> &&
-           HasCycleType<S, N>
-constexpr Symmetric<Power<C, F, N>, S, T> symmetric(const Power<C, F, N>& p,
-                                                    S sigma, T tau) {
-  return {p, sigma, tau};
+/** @param p a tensor power.  @param sigma a permutation of its positions,
+ *  @c reverse or @c rotate(d).  @return the words it fixes. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, Identity<C>> symmetric(
+    const Power<C, F, N>& p, S sigma) {
+  return {p, sigma, Identity<C>{}};
+}
+/** @param p a tensor power.  @param sigma a permutation of its positions,
+ *  named on its words.  @return the words it fixes. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, Identity<C>> symmetric(
+    const Power<C, F, N>& p,
+    const Morphism<std::vector<C>, std::vector<C>, S>& sigma) {
+  return {p, sigma.transform, Identity<C>{}};
+}
+/** @param p a tensor power.  @param g an arrow on every letter, then a
+ *  permutation of the positions: @c power(complement, n) >> reverse.
+ *  @return the words it fixes. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T, typename S>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
+    const Power<C, F, N>& p,
+    const Compose<PowerMap<T>, Morphism<std::vector<C>, std::vector<C>, S>>&
+        g) {
+  if (g.f.length != p.length) detail_periodic::refuse_unequal_lengths();
+  return {p, g.g.transform, g.f.tau};
+}
+/** @param p a tensor power.  @param g a permutation of the positions, then
+ *  an arrow on every letter: the same section, the two commuting.
+ *  @return the words it fixes. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T, typename S>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
+    const Power<C, F, N>& p,
+    const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
+        g) {
+  if (g.g.length != p.length) detail_periodic::refuse_unequal_lengths();
+  return {p, g.f.transform, g.g.tau};
 }
 
 /** @brief An outer product of two counted tensors, its count the product of
@@ -1068,8 +1186,11 @@ template <std::unsigned_integral B>
 constexpr B rotated(B x, std::size_t n, std::size_t d) {
   const std::size_t k = d % n;
   if (k == 0) return x;
-  // shifted as a 64-bit word, a concrete type, so that >> is the shift and
-  // never the arrow's application
+  if (n == static_cast<std::size_t>(std::numeric_limits<B>::digits)) {
+    return std::rotl(x, static_cast<int>(k));  // the whole word: one rotate
+  }
+  // within the low n bits: shifted as a 64-bit word, a concrete type, so that
+  // >> is the shift and never the arrow's application
   const auto w = static_cast<std::uint64_t>(x);
   return static_cast<B>(((w << k) | (w >> (n - k))) & low_bits<B>(n));
 }
