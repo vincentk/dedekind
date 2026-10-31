@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <tuple>
+#include <type_traits>
 
 import dedekind.category;
 
@@ -16,6 +17,11 @@ struct IdentityComponent {
 };
 
 static_assert(IsNaturalTransformation<IdentityComponent, IdF, IdF>);
+// A composite of two stateless functors is one functor, though not an empty
+// type: the square on it is read on its one value.
+using IdIdF = composite_functor<IdF, IdF>;
+static_assert(has_one_value_v<IdIdF> && !std::is_empty_v<IdIdF> &&
+              IsNaturalTransformation<IdentityComponent, IdIdF, IdIdF>);
 
 }  // namespace
 

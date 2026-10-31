@@ -876,6 +876,26 @@ struct Compose final {
   }
 };
 
+/** @brief Trait: the type @c T has exactly one value, so that two of its
+ *  values are equal without comparing them: an empty type, or a composite
+ *  of two such, whose legs leave nothing to choose.  What lets a law read
+ *  on a type speak of the one value it has (@c :natural).  @tparam T the
+ *  type. */
+export template <typename T>
+struct has_one_value : std::bool_constant<std::is_empty_v<T>> {};
+export template <typename T>
+inline constexpr bool has_one_value_v =
+    has_one_value<std::remove_cvref_t<T>>::value;
+template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Dom<G>>
+struct has_one_value<Compose<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
+static_assert(has_one_value_v<Identity<int>> &&
+                  has_one_value_v<Compose<Identity<int>, Identity<int>>> &&
+                  !has_one_value_v<int>,
+              "an empty arrow has one value, and so does a composite of two; "
+              "an int has many");
+
 /** @brief Trait: the arrows @c F and @c G commute, @f$f \circ g = g \circ
  *  f@f$: a certificate, primary @c std::false_type, since that two
  *  particular maps commute is a claim about them, not a property of their

@@ -531,6 +531,13 @@ template <IsShapedFunctor F, IsShapedFunctor G>
   requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
 struct is_functorial<composite_functor<F, G>>
     : std::bool_constant<is_functorial_v<F> && is_functorial_v<G>> {};
+/** @brief A composite of two functors with one value each has one value:
+ *  its legs leave nothing to choose, although its two members keep it from
+ *  being an empty type. */
+template <IsShapedFunctor F, IsShapedFunctor G>
+  requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
+struct has_one_value<composite_functor<F, G>>
+    : std::bool_constant<has_one_value_v<F> && has_one_value_v<G>> {};
 
 // f >> g  =>  g ∘ f      [Canonical Functorial Fish]
 export template <typename 𝗙, typename 𝗚>
