@@ -588,6 +588,15 @@ struct matrix2x2_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
+}  // namespace dedekind::linear_algebra
+namespace dedekind::category {
+/** @brief Elementwise lifts: the functor laws hold by construction. */
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct is_functorial<dedekind::linear_algebra::matrix2x2_functor<T>>
+    : std::true_type {};
+}  // namespace dedekind::category
+namespace dedekind::linear_algebra {
 static_assert(dedekind::category::IsShapedFunctor<matrix2x2_functor<int>>,
               "Matrix2x2V<·> is a functor Set<T> → Set<Matrix2x2V<T>>: "
               "lifts a T-arrow to the elementwise Matrix2x2V<T>-arrow.");

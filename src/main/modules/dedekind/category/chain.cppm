@@ -54,6 +54,16 @@ concept IsIntegerChain =
       a % b;
     } && is_integer_chain<std::remove_cvref_t<T>>::value;
 
+/** @brief A word of the counts: an integer chain whose arithmetic wraps at
+ *  its cyclic order, the unsigned integers but @c bool, and none narrower than
+ *  @c int, whose products promote to a signed @c int that may overflow.
+ *  @c std::size_t is the default throughout.  @tparam N the word. */
+export template <typename N>
+concept IsCountWord =
+    IsIntegerChain<N> && std::unsigned_integral<N> &&
+    (!std::same_as<N, bool>) &&
+    std::same_as<decltype(std::declval<N>() * std::declval<N>()), N>;
+
 /** @section chain__Unfold  The anamorphism, and Dedekind's chain
  *  The unfold of a seed by a coalgebra @f$S \to 1 + A \times S@f$: nothing
  *  ends the walk, a pair yields an element and the next state.  This is the

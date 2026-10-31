@@ -876,6 +876,20 @@ struct Compose final {
   }
 };
 
+/** @brief Trait: the arrows @c F and @c G commute, @f$f \circ g = g \circ
+ *  f@f$: a certificate, primary @c std::false_type, since that two
+ *  particular maps commute is a claim about them, not a property of their
+ *  calls, and composition commutes for no category in general.  Read
+ *  symmetrically by @c commutes_v.  It is a naturality square with one
+ *  functor (@c :natural), and what makes a composite of two involutions one
+ *  (@c :involution, @c :posetal). */
+export template <typename F, typename G>
+struct commutes : std::false_type {};
+export template <typename F, typename G>
+inline constexpr bool commutes_v =
+    commutes<std::remove_cvref_t<F>, std::remove_cvref_t<G>>::value ||
+    commutes<std::remove_cvref_t<G>, std::remove_cvref_t<F>>::value;
+
 /** @brief The contravariant @b substitution / pullback @c f*: pull a codomain
  *  predicate (or arrow) @c P back along @c f, @c preimage(f,P) @c = @c P∘f
  *  @c = @c Compose<F,P>.

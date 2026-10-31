@@ -188,9 +188,9 @@ export template <std::ranges::input_range R,
                  typename Op = std::plus<T>>
   requires IsMonoid<T, Op> && IsCopies<R> && HasCountingAction<T, Op>
 constexpr T concat(R r, Op op = {}) {
-  const std::size_t n = copies_count(r);
+  const auto n = copies_count(r);
   if (n == 0) return unit<T>(op);  // no copy to read
-  return counting_action<T, Op>{}(n, copies_value(r));
+  return counting_action<T, Op>{}(static_cast<std::size_t>(n), copies_value(r));
 }
 static_assert(
     concat(std::views::repeat(std::size_t{7}, std::size_t{100'000'000})) ==
@@ -292,13 +292,16 @@ export template <std::ranges::input_range R, std::semiregular M, typename H>
 constexpr M fold(R r, M v, H h) {
   return std::ranges::fold_left(std::move(r), std::move(v), h);
 }
-/** @brief The fold of @c n copies of one value under a monoid action:
- *  @c v acted on by their product.  The same signature as the plain fold and
- *  a stronger constraint, so resolution prefers it.  The law makes any fold
- *  @c v acted on by the product in the walk's order; on distinct values that
- *  product costs the same @c n steps, so only copies are specialised.
- *  @param r the copies.  @param v the start.  @param h the
- *  action. */
+/** @brief The fold under a monoid action of a sequence whose product has a
+ *  fast form: @c v acted on once, by the product in the walk's order.  The
+ *  action law @f$h(h(v, a), b) = h(v, a \cdot b)@f$ licenses this on any
+ *  sequence, but it pays only where the product is cheaper than the actions
+ *  one by one: elsewhere a product each costs more than an action each, a
+ *  matrix by a matrix against a vector by a matrix.  The fast form today is
+ *  copies, whose product @c concat computes by squaring; periodic sequences
+ *  are the natural next one.  The same signature as the plain fold and a
+ *  stronger constraint, so resolution prefers it.  @param r the copies.
+ *  @param v the start.  @param h the action. */
 export template <std::ranges::input_range R, std::semiregular M, typename H>
   requires IsCopies<R> && IsRightAction<H, M, std::ranges::range_value_t<R>>
 constexpr M fold(R r, M v, H h) {

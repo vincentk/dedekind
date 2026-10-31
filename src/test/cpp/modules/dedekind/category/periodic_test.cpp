@@ -12,6 +12,7 @@
 #include <concepts>
 #include <cstddef>
 #include <limits>
+#include <ranges>
 
 import dedekind.category;
 
@@ -84,6 +85,15 @@ static_assert(
 static_assert(fibonacci_mod<unsigned>(65'536u)(50u) == 14'689u &&
               fibonacci_mod(65'536)(50) == 14'689 &&
               count(decltype(slice(0uz, 10uz) >> is_even){}) == 0);
+// Copies are counted in the chain's own word, not only std::size_t: n
+// copies along a chain of unsigned, or a repeat bounded by an int, are a
+// power, grown from its prefixes.
+static_assert(
+    IsCopies<decltype(1'000u >> chain<unsigned>() >> constant<unsigned>(3u))> &&
+    concat(1'000u >> chain<unsigned>() >> constant<unsigned>(3u)) == 3'000u &&
+    std::same_as<decltype(copies_count(std::views::repeat(7uz, 10))),
+                 unsigned> &&
+    concat(std::views::repeat(7uz, 10)) == 70);
 }  // namespace periodic_witness
 
 TEST_CASE("Periodic: a count by the law at run time", "[category][periodic]") {

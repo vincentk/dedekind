@@ -53,12 +53,16 @@
 module;
 
 #include <algorithm>   // std::ranges::reverse: the involution on strings
+#include <compare>     // std::strong_ordering, which Reverse also reverses
 #include <concepts>    // std::invocable, std::convertible_to
 #include <cstddef>     // std::size_t, the carrier of the negate witness
 #include <functional>  // std::logical_not / std::bit_not (canonical involutions)
+#include <iterator>    // std::permutable: a word Reverse may reorder
+#include <ranges>      // the words Reverse reverses
 #include <string>      // the carrier of Reverse
 #include <type_traits>
 #include <utility>  // std::declval: the bare callable read as endo<T>(f)  // std::invoke_result_t, std::is_integral_v
+#include <vector>   // a word of letters, the other carrier of Reverse
 
 export module dedekind.category:involution;
 
@@ -108,18 +112,41 @@ struct is_involutive<std::bit_not<T>, T> : std::true_type {};
 template <std::unsigned_integral T>
 struct is_involutive<std::negate<T>, T> : std::true_type {};
 
-/** @brief An involution on a carrier that is not a number: reversing a string
- *  twice is the identity.  A pure function object, value in and value out, so
- *  that it is an arrow in the sense of the Jlt paper's Rule 1; registered so
- *  the certificate's reach beyond arithmetic is witnessed once. */
+/** @brief An involution on a carrier that is not a number: reversing a word
+ *  twice is the identity, on any word a value holds, a @c std::string or a
+ *  @c std::vector of letters; not a view, whose copy would alias the
+ *  caller's letters.  A pure function object, value in and value
+ *  out, so that it is an arrow in the sense of the Jlt paper's Rule 1, and a
+ *  family of them, one per word type, as @c std::logical_not is one per
+ *  truth type; @c endo<W>(reverse) names the domain. */
 export struct Reverse {
-  constexpr std::string operator()(std::string s) const {
+  template <std::ranges::bidirectional_range W>
+    requires std::semiregular<W> && (!std::ranges::view<W>) &&
+             std::permutable<std::ranges::iterator_t<W>>
+  constexpr W operator()(W s) const {
     std::ranges::reverse(s);
     return s;
   }
+  /** @brief A three-way comparison reversed, @c less ↔ @c greater and
+   *  @c equal fixed: the comparison in the opposite order, for carriers that
+   *  compute an ordering one way round and flip it (the reals' cut and field
+   *  comparisons), written once. */
+  constexpr std::strong_ordering operator()(std::strong_ordering o) const {
+    if (o == std::strong_ordering::less) return std::strong_ordering::greater;
+    if (o == std::strong_ordering::greater) return std::strong_ordering::less;
+    return std::strong_ordering::equal;
+  }
+  constexpr bool operator==(const Reverse&) const = default;
 };
+template <std::ranges::bidirectional_range W>
+  requires std::semiregular<W> && (!std::ranges::view<W>) &&
+           std::permutable<std::ranges::iterator_t<W>>
+struct is_involutive<Reverse, W> : std::true_type {};
 template <>
-struct is_involutive<Reverse, std::string> : std::true_type {};
+struct is_involutive<Reverse, std::strong_ordering> : std::true_type {};
+/** @brief The reversal: of a word's positions, @f$i \mapsto n - 1 - i@f$, the
+ *  symmetry of a palindrome, and of a comparison. */
+export inline constexpr Reverse reverse{};
 
 /** @brief The identity arrow is (trivially) an involution: @c id(id(x)) = x,
  *  so @c id⁻¹ = id.  @c Identity is the degenerate case where @b idempotent
@@ -165,6 +192,15 @@ concept IsInvolution = IsEndomorphism<detail_involution::on_t<F, T>> &&
                        std::same_as<Dom<detail_involution::on_t<F, T>>, T> &&
                        is_involutive_v<std::remove_cvref_t<F>, T>;
 
+/** @brief A composite of two commuting involutions is one, certified at the
+ *  type where both legs are: @f$(g f)^2 = g g f f = \mathrm{id}@f$.  The same
+ *  law @c is_involution reads on a value (@c :posetal), where a leg's law may
+ *  be decided on its value instead. */
+template <typename F, typename G, typename T>
+  requires commutes_v<F, G>
+struct is_involutive<Compose<F, G>, T>
+    : std::bool_constant<is_involutive_v<F, T> && is_involutive_v<G, T>> {};
+
 /** @section involution__Formal_Verification
  *  @c std::logical_not on @c bool is the canonical trivial involution
  *  (@c !!x = x): a certified witness that the seed rejects non-involutions. */
@@ -174,7 +210,8 @@ static_assert(IsInvolution<std::negate<std::size_t>, std::size_t>);
 static_assert(!IsInvolution<std::negate<int>, int>,
               "unary minus on a signed carrier is not certified: -INT_MIN is "
               "undefined, so it is not a function on int.");
-static_assert(IsInvolution<Reverse, std::string>);
+static_assert(IsInvolution<Reverse, std::string> &&
+              IsInvolution<Reverse, std::vector<char>>);
 static_assert(Reverse{}(Reverse{}(std::string{"posture"})) == "posture",
               "reversing twice is the identity, at compile time too.");
 static_assert(!IsInvolution<decltype([](int x) { return x + 1; }), int>,

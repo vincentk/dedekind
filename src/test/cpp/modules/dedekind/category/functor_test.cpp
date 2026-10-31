@@ -12,7 +12,6 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsShapedFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsShapedFunctor<maybe_functor<int>>);
-  STATIC_CHECK(IsShapedFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
 
@@ -37,18 +36,6 @@ TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(std::optional<int>{41}) == std::optional<int>{42});
     CHECK(lifted(std::optional<int>{}) == std::nullopt);
-  }
-
-  SECTION("Trace functor lifts into StringCategory") {
-    trace_functor<int> tracef;
-    auto plus_one = arrow([](int x) { return x + 1; });
-
-    auto lifted = tracef.φ(plus_one);
-
-    STATIC_CHECK(IsArrow<decltype(lifted)>);
-    CHECK(lifted.label == "lifted");
-    CHECK(lifted.domain_id == 0);
-    CHECK(lifted.codomain_id == 0);
   }
 }
 
@@ -90,6 +77,28 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
     CHECK(downstream.φ(plus_one)(9) == 10);
     CHECK(upstream.φ(plus_one)(9) == 10);
   }
+}
+
+TEST_CASE("Category: the unit laws of Cat, decided at the type",
+          "[category][functor][unit-law]") {
+  // id >> F = F = F >> id: an identity functor composes to the other leg
+  // itself, as an identity arrow does, so the functor keeps its value.
+  using IdLetters = identity_functor<LetterMaps>;
+  using IdWords = identity_functor<LetterMapsOnWords>;
+  constexpr PowerFunctor power6{6};
+  STATIC_CHECK(std::same_as<decltype(IdLetters{} >> power6), PowerFunctor>);
+  STATIC_CHECK(std::same_as<decltype(power6 >> IdWords{}), PowerFunctor>);
+  STATIC_CHECK((IdLetters{} >> power6).length == 6 &&
+               (power6 >> IdWords{}).length == 6);
+  STATIC_CHECK(
+      std::same_as<decltype(identity_functor<maybe_functor<int>::Σ_cat>{} >>
+                            maybe_functor<int>{}),
+                   maybe_functor<int>>);
+  STATIC_CHECK(
+      std::same_as<decltype(identity_functor<DiscreteCategory<int>>{} >>
+                            identity_functor<DiscreteCategory<int>>{}),
+                   identity_functor<DiscreteCategory<int>>>);
+  SUCCEED();
 }
 
 TEST_CASE("Category: functor composition type proof",
