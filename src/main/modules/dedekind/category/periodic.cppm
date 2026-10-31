@@ -40,9 +40,11 @@ module;
 
 #include <algorithm>  // std::ranges::fold_left
 #include <array>
-#include <bit>  // std::bit_width: the bits fast doubling reads
+#include <bit>     // std::bit_width: the bits fast doubling reads; std::rotl
+#include <bitset>  // the bit words wider than a machine word
 #include <concepts>
 #include <cstddef>
+#include <cstdint>  // the bit words a machine word holds
 #include <cstdlib>  // std::abort: a modulus of 0 is refused
 #include <functional>
 #include <limits>  // the extent of a law that holds on the whole word
@@ -111,6 +113,8 @@ namespace detail_periodic {
 [[noreturn]] constexpr void refuse_beyond_extent() { std::abort(); }
 /** @brief Refuses a period the word cannot hold. */
 [[noreturn]] constexpr void refuse_unrepresentable_period() { std::abort(); }
+/** @brief Refuses a power of two the word cannot hold. */
+[[noreturn]] constexpr void refuse_beyond_word() { std::abort(); }
 /** @brief Refuses a modulus past the square root of the word's order, whose
  *  residues' products would leave the word. */
 [[noreturn]] constexpr void refuse_wide_modulus() { std::abort(); }
@@ -694,5 +698,373 @@ constexpr N count_section(const Box<T, K, N>& b, std::type_identity_t<N> m,
       detail_periodic::residues_of(b.entry, b.sides, 0, m), unit,
       detail_periodic::Convolve<N>{m})[r % m];
 }
+
+/** @section periodic__Tensor_Powers
+ *  @brief Words over an alphabet as a tensor, not as a sequence: the tensor
+ *  power @f$\Sigma^n@f$ of a filtered alphabet, its symmetric sections, and
+ *  the free monoid on it truncated below a length, each counted as a product
+ *  of factors that never overflow where the total does.  Periodicity above is
+ *  invariance under a translation of the counts; a symmetry here is
+ *  invariance under a permutation of the positions of a word. */
+
+/** @brief A factor of a count, @f$b^e@f$: a base raised to an exponent.
+ *  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct Factor {
+  N base;
+  N exponent;
+  constexpr bool operator==(const Factor&) const = default;
+};
+/** @brief The cycles of a permutation of positions of one length, and how
+ *  many there are: one term of its cycle type.  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct Cycles {
+  N length;
+  N count;
+  constexpr bool operator==(const Cycles&) const = default;
+};
+
+/** @brief The tensor power @f$\Sigma^n@f$: the words of length @c n over the
+ *  letters of a chain that a predicate keeps, a box of @c n legs, each the
+ *  filtered alphabet, never built.  @tparam C the letters.  @tparam F the
+ *  predicate.  @tparam N the counts. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N = std::size_t>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
+           std::convertible_to<Cod<F>, bool>
+struct Power {
+  Slice<C> letters;
+  F member;
+  N length;
+};
+/** @param leg a chain of letters under a predicate, the filtered alphabet.
+ *  @param n the length.  @return the words of length @c n over it. */
+export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
+           std::convertible_to<Cod<F>, bool>
+constexpr Power<C, F, N> power(
+    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg,
+    std::type_identity_t<N> n) {
+  const auto step = leg.coalgebra();
+  return {slice(leg.seed().value_or(step.hi), step.hi), step.f, n};
+}
+
+/** @brief The reversal of the positions of a word, @f$i \mapsto n - 1 -
+ *  i@f$: the symmetry of a palindrome. */
+export struct Reversal {
+  constexpr bool operator==(const Reversal&) const = default;
+};
+/** @brief The rotation of the positions of a word by @c shift, @f$i \mapsto
+ *  i + d \bmod n@f$: the symmetry of a power @f$u^j@f$.  @tparam N the
+ *  counts. */
+export template <IsCountWord N = std::size_t>
+struct Rotation {
+  N shift;
+  constexpr bool operator==(const Rotation&) const = default;
+};
+/** @brief The cycle type of the reversal of @c n positions: @f$\lfloor n/2
+ *  \rfloor@f$ pairs, and the middle where @c n is odd.  @param n the length.
+ *  @return its cycles. */
+export template <IsCountWord N>
+constexpr std::vector<Cycles<N>> cycle_type(Reversal, N n) {
+  std::vector<Cycles<N>> c{Cycles<N>{2, static_cast<N>(n / 2)}};
+  if (n % 2 == 1) c.push_back(Cycles<N>{1, 1});
+  return c;
+}
+/** @brief The cycle type of a rotation of @c n positions by @c d: @f$g =
+ *  \gcd(n, d)@f$ cycles of length @f$n / g@f$, the identity where @c d is a
+ *  multiple of @c n.  @param r the rotation.  @param n the length.  @return
+ *  its cycles. */
+export template <IsCountWord N>
+constexpr std::vector<Cycles<N>> cycle_type(const Rotation<N>& r, N n) {
+  if (n == 0) return {};
+  const N g = std::gcd(n, static_cast<N>(r.shift % n));  // n where d ≡ 0
+  return {Cycles<N>{static_cast<N>(n / g), g}};
+}
+
+/** @brief A permutation of positions with a known cycle type.
+ *  @tparam S the permutation.  @tparam N the counts. */
+export template <typename S, typename N>
+concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
+  { cycle_type(s, n) } -> std::same_as<std::vector<Cycles<N>>>;
+};
+
+namespace detail_periodic {
+/** @brief One step along a cycle: the letter moved by @c tau, and whether
+ *  every letter so far is kept. */
+template <IsArrow F, IsArrow T, typename C, IsCountWord N>
+struct AlongCycle {
+  F member;
+  T tau;
+  constexpr std::pair<C, bool> operator()(std::pair<C, bool> s, N) const {
+    return {tau(s.first), s.second && static_cast<bool>(member(s.first))};
+  }
+};
+/** @brief A letter fills a merged cycle of @c length legs when every letter
+ *  along it is kept and @c tau taken @c length times returns it. */
+template <IsArrow F, IsArrow T, IsCountWord N>
+  requires std::same_as<Dom<T>, Dom<F>> && std::same_as<Cod<T>, Dom<F>> &&
+           std::equality_comparable<Dom<F>>
+struct FillsCycle {
+  using Domain = Dom<F>;
+  using Codomain = bool;
+  F member;
+  T tau;
+  N length;
+  constexpr bool operator()(const Domain& a) const {
+    const auto end = std::ranges::fold_left(
+        std::views::iota(N{0}, length), std::pair<Domain, bool>{a, true},
+        AlongCycle<F, T, Domain, N>{member, tau});
+    return end.second && end.first == a;
+  }
+};
+}  // namespace detail_periodic
+
+/** @brief The section of a tensor power fixed by a permutation @c sigma of
+ *  the positions and an arrow @c tau on the letters, @f$x_{\sigma(i)} =
+ *  \tau(x_i)@f$: the legs merged along each cycle of @c sigma, the spider's
+ *  @c Merge through @c tau.  @tparam P the power.  @tparam S the
+ *  permutation.  @tparam T the arrow on the letters. */
+export template <typename P, typename S, IsArrow T>
+struct Symmetric {
+  P power;
+  S sigma;
+  T tau;
+};
+/** @param p a tensor power.  @param sigma a permutation of its positions.
+ *  @param tau an arrow on its letters.  @return the words fixed by both. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires std::same_as<Dom<T>, C> && std::same_as<Cod<T>, C> &&
+           HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, T> symmetric(const Power<C, F, N>& p,
+                                                    S sigma, T tau) {
+  return {p, sigma, tau};
+}
+
+/** @brief The factors of a tensor power's count: the filtered alphabet's
+ *  count, raised to the length, by the box law.  @param p the power.
+ *  @return its count, factored. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr std::vector<Factor<N>> count_factors(const Power<C, F, N>& p) {
+  return {Factor<N>{count<N>(p.letters >> p.member), p.length}};
+}
+namespace detail_periodic {
+/** @brief One merged leg's factor: the letters that fill a cycle, counted by
+ *  the plain fold over the alphabet, raised to the number of such cycles. */
+template <HasNNOStep C, IsArrow F, IsArrow T, IsCountWord N>
+struct CycleFactor {
+  Slice<C> letters;
+  F member;
+  T tau;
+  constexpr std::vector<Factor<N>> operator()(std::vector<Factor<N>> fs,
+                                              const Cycles<N>& c) const {
+    fs.push_back(Factor<N>{
+        count<N>(letters >> FillsCycle<F, T, N>{member, tau, c.length}),
+        c.count});
+    return fs;
+  }
+};
+}  // namespace detail_periodic
+/** @brief The factors of a symmetric section's count: one merged leg per
+ *  cycle of @c sigma, so the box law after the merges, the count Pólya's
+ *  theorem gives for the words a permutation fixes.  @param s the section.
+ *  @return its count, factored. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires HasCycleType<S, N>
+constexpr std::vector<Factor<N>> count_factors(
+    const Symmetric<Power<C, F, N>, S, T>& s) {
+  const auto& p = s.power;
+  return std::ranges::fold_left(
+      cycle_type(s.sigma, p.length), std::vector<Factor<N>>{},
+      detail_periodic::CycleFactor<C, F, T, N>{p.letters, p.member, s.tau});
+}
+
+/** @brief An outer product of two counted tensors, its count the product of
+ *  theirs.  @tparam A @tparam B the factors. */
+export template <typename A, typename B>
+struct Outer {
+  A left;
+  B right;
+};
+/** @brief A tensor whose count is a product of factors. */
+export template <typename X>
+concept HasFactors = requires(const X& x) {
+  { count_factors(x) } -> std::same_as<std::vector<Factor<>>>;
+};
+/** @param a @param b two counted tensors.  @return their outer product. */
+export template <HasFactors A, HasFactors B>
+constexpr Outer<A, B> operator*(const A& a, const B& b) {
+  return {a, b};
+}
+/** @param o an outer product.  @return its count, factored: both factors'
+ *  factors. */
+export template <HasFactors A, HasFactors B>
+constexpr std::vector<Factor<>> count_factors(const Outer<A, B>& o) {
+  auto fs = count_factors(o.left);
+  const auto gs = count_factors(o.right);
+  fs.insert(fs.end(), gs.begin(), gs.end());
+  return fs;
+}
+
+/** @brief The free monoid on a filtered alphabet, truncated below a length:
+ *  @f$\Sigma^{<L} = \coprod_{n < L} \Sigma^n@f$, the coproduct of the tensor
+ *  powers, concatenation of words its operation.  @tparam C the letters.
+ *  @tparam F the predicate.  @tparam N the counts. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N = std::size_t>
+struct FreeMonoid {
+  Slice<C> letters;
+  F member;
+  N below;
+};
+/** @param leg a chain of letters under a predicate.  @param below the bound
+ *  on the length, excluded.  @return the words shorter than it. */
+export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
+           std::convertible_to<Cod<F>, bool>
+constexpr FreeMonoid<C, F, N> free_monoid(
+    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg,
+    std::type_identity_t<N> below) {
+  const auto p = power<N>(leg, below);
+  return {p.letters, p.member, below};
+}
+
+namespace detail_periodic {
+/** @brief A product kept while the word holds it: none from the first
+ *  factor that would leave the word. */
+template <IsCountWord N>
+struct CheckedTimes {
+  N b;
+  constexpr std::optional<N> operator()(std::optional<N> acc, N) const {
+    if (!acc || (b != 0 && *acc > std::numeric_limits<N>::max() / b)) {
+      return std::nullopt;
+    }
+    return static_cast<N>(*acc * b);
+  }
+};
+/** @brief One factor into the product, checked. */
+template <IsCountWord N>
+struct CheckedFactor {
+  constexpr std::optional<N> operator()(std::optional<N> acc,
+                                        const Factor<N>& f) const {
+    if (!acc) return std::nullopt;
+    return std::ranges::fold_left(std::views::iota(N{0}, f.exponent), acc,
+                                  CheckedTimes<N>{f.base});
+  }
+};
+/** @brief One length's count into the sum, checked. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+struct CheckedLength {
+  Slice<C> letters;
+  F member;
+  constexpr std::optional<N> operator()(std::optional<N> acc, N n) const {
+    if (!acc) return std::nullopt;
+    const auto c = std::ranges::fold_left(
+        count_factors(Power<C, F, N>{letters, member, n}), std::optional<N>{1},
+        CheckedFactor<N>{});
+    if (!c || *c > std::numeric_limits<N>::max() - *acc) return std::nullopt;
+    return static_cast<N>(*acc + *c);
+  }
+};
+}  // namespace detail_periodic
+/** @brief The count of a factored tensor, exactly, or none where the word
+ *  cannot hold it: never wrapped, the discipline of @c checked_lcm.
+ *  @param fs the factors.  @return the count, or none. */
+export template <IsCountWord N>
+constexpr std::optional<N> exact_count(const std::vector<Factor<N>>& fs) {
+  return std::ranges::fold_left(fs, std::optional<N>{1},
+                                detail_periodic::CheckedFactor<N>{});
+}
+/** @param m the truncated free monoid.  @return how many words are shorter
+ *  than its bound, exactly, or none where the word cannot hold it: then they
+ *  are no sequence a word can index. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr std::optional<N> exact_count(const FreeMonoid<C, F, N>& m) {
+  return std::ranges::fold_left(
+      std::views::iota(N{0}, m.below), std::optional<N>{0},
+      detail_periodic::CheckedLength<C, F, N>{m.letters, m.member});
+}
+
+/** @brief @f$k \mapsto 2^k@f$ on the counts, refused past the word: the
+ *  window of the bit words.  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct Pow2 {
+  using Domain = N;
+  using Codomain = N;
+  constexpr N operator()(N k) const {
+    if (k >= static_cast<N>(std::numeric_limits<N>::digits)) {
+      detail_periodic::refuse_beyond_word();
+    }
+    return static_cast<N>(N{1} << k);
+  }
+};
+/** @brief @f$k \mapsto 2^k@f$ on @c std::size_t. */
+export inline constexpr Pow2<> pow2{};
+
+namespace detail_periodic {
+/** @brief The bit word of width @c W: a machine word where one has the
+ *  width, @c std::bitset otherwise. */
+template <std::size_t W>
+struct bit_word {
+  using type = std::bitset<W>;
+};
+template <>
+struct bit_word<8> {
+  using type = std::uint8_t;
+};
+template <>
+struct bit_word<16> {
+  using type = std::uint16_t;
+};
+template <>
+struct bit_word<32> {
+  using type = std::uint32_t;
+};
+template <>
+struct bit_word<64> {
+  using type = std::uint64_t;
+};
+/** @brief A machine word rotated by @c d bits. */
+template <std::unsigned_integral B>
+constexpr B rotated(B x, int d) {
+  return std::rotl(x, d);
+}
+/** @brief A @c std::bitset rotated by @c d bits. */
+template <std::size_t W>
+constexpr std::bitset<W> rotated(const std::bitset<W>& x, int d) {
+  const auto k = static_cast<std::size_t>(d) % W;
+  return k == 0 ? x : (x << k) | (x >> (W - k));
+}
+}  // namespace detail_periodic
+/** @brief The bit word of width @c W, chosen by the width: the machine word
+ *  for 8, 16, 32 and 64 bits, @c std::bitset otherwise.  @tparam W the
+ *  width. */
+export template <std::size_t W>
+using BitWord = typename detail_periodic::bit_word<W>::type;
+/** @brief A count read as a bit pattern of width @c W: its low @c W bits.
+ *  @tparam W the width. */
+export template <std::size_t W>
+  requires(W > 0)
+struct AsBits {
+  using Domain = std::size_t;
+  using Codomain = BitWord<W>;
+  constexpr Codomain operator()(std::size_t k) const { return Codomain(k); }
+};
+/** @brief A count read as a bit pattern of width @c W. */
+export template <std::size_t W>
+  requires(W > 0)
+inline constexpr AsBits<W> as_bits{};
+/** @brief A bit pattern of even width @c W that is a square @f$u u@f$,
+ *  fixed by the rotation by half its width.  For @f$W = 2^k@f$ these are
+ *  exactly the proper powers, the patterns that are not primitive (Lothaire,
+ *  @e Combinatorics on Words, §1.3): every proper divisor of @f$2^k@f$
+ *  divides @f$2^{k-1}@f$.  @tparam W the width. */
+export template <std::size_t W>
+  requires(W > 0 && W % 2 == 0)
+struct IsSquare {
+  using Domain = BitWord<W>;
+  using Codomain = bool;
+  constexpr bool operator()(const Domain& x) const {
+    return detail_periodic::rotated(x, static_cast<int>(W / 2)) == x;
+  }
+};
 
 }  // namespace dedekind::category
