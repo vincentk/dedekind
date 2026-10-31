@@ -306,14 +306,14 @@ TEST_CASE(
     "[category][tensor_exhibit]") {
   using namespace tensor_exhibit;
   // A width known only at run time picks the narrowest precompiled word.
-  for (size_t n : {size_t{4}, size_t{8}, size_t{16}}) {
-    const auto squares_of = [n](auto w) {
-      constexpr size_t W = decltype(w)::value;
-      return count(bit_patterns(n) >> (pack<W> >> IsSquare<W>{n}));
+  for (size_t w : {size_t{4}, size_t{8}, size_t{16}}) {
+    const auto squares_of = [w](auto word) {
+      constexpr size_t W = decltype(word)::value;
+      return count(bit_patterns(w) >> (pack<W> >> IsSquare<W>{w}));
     };
-    CHECK(dedekind::category::with_width(n, squares_of) ==
+    CHECK(dedekind::category::with_width(w, squares_of) ==
           exact_count(
-              count_factors(symmetric(power(bits, n), Rotation{n / 2},
+              count_factors(symmetric(power(bits, w), Rotation{w / 2},
                                       dedekind::category::id<size_t>()))));
   }
 }
