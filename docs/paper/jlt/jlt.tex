@@ -274,7 +274,11 @@ constexpr bool associative(plus<T>) {
   return true;
 }
 template <typename T, typename Op>
-  requires equality_comparable<T>
+concept HasUnit = requires(Op op) {
+  { unit<T>(op) } -> same_as<T>;
+};
+template <typename T, typename Op>
+  requires HasUnit<T, Op> && equality_comparable<T>
 constexpr bool is_unit(const T& a, Op op) {
   return a == unit<T>(op);
 }
