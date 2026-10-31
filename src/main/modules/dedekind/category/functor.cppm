@@ -543,6 +543,44 @@ constexpr auto operator>>(𝗙 f, 𝗚 g) {
       std::move(f), std::move(g)};
 }
 
+/** @brief The unit laws of Cat, decided at the type: an identity functor
+ *  composes to the other leg itself, @f$\mathrm{id} \gg F = F = F \gg
+ *  \mathrm{id}@f$, not to a composite around it, as an identity arrow does
+ *  (@c :morphism).  The overloads repeat the generic one's constraints and
+ *  add one, so resolution orders them by subsumption (Jlt paper, Listing 1). */
+template <typename F>
+inline constexpr bool is_identity_functor_v = false;
+export template <typename F>
+concept IsIdentityFunctor =
+    IsShapedFunctor<F> && is_identity_functor_v<std::remove_cvref_t<F>>;
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗙>
+[[nodiscard]]
+constexpr auto operator>>(𝗙, 𝗚 g) {
+  return g;
+}
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗚>
+[[nodiscard]]
+constexpr auto operator>>(𝗙 f, 𝗚) {
+  return f;
+}
+export template <typename 𝗙, typename 𝗚>
+  requires IsShapedFunctor<𝗙> && IsShapedFunctor<𝗚> &&
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat> &&
+           IsIdentityFunctor<𝗙> && IsIdentityFunctor<𝗚>
+[[nodiscard]]
+constexpr auto operator>>(𝗙 f, 𝗚) {
+  return f;
+}
+
 /**
  * @brief The "Upstream Fish" (Optional Composition Sugar)
  * g << f  =>  g ∘ f
@@ -806,6 +844,9 @@ struct identity_functor {
 template <typename Cat>
   requires IsSmallCategory<Cat>
 struct is_functorial<identity_functor<Cat>> : std::true_type {};
+template <typename Cat>
+  requires IsSmallCategory<Cat>
+inline constexpr bool is_identity_functor_v<identity_functor<Cat>> = true;
 
 static_assert(
     IsEndofunctor<identity_functor<Set<int>>>,

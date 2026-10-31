@@ -79,6 +79,27 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   }
 }
 
+TEST_CASE("Category: the unit laws of Cat, decided at the type",
+          "[category][functor][unit-law]") {
+  // id >> F = F = F >> id: an identity functor composes to the other leg
+  // itself, as an identity arrow does, so the functor keeps its value.
+  using IdLetters = identity_functor<LetterMaps>;
+  using IdWords = identity_functor<LetterMapsOnWords>;
+  constexpr PowerFunctor power6{6};
+  STATIC_CHECK(std::same_as<decltype(IdLetters{} >> power6), PowerFunctor>);
+  STATIC_CHECK(std::same_as<decltype(power6 >> IdWords{}), PowerFunctor>);
+  STATIC_CHECK((IdLetters{} >> power6).length == 6 &&
+               (power6 >> IdWords{}).length == 6);
+  STATIC_CHECK(std::same_as<decltype(identity_functor<Set<int>>{} >>
+                                     maybe_functor<int>{}),
+                            maybe_functor<int>>);
+  STATIC_CHECK(
+      std::same_as<decltype(identity_functor<DiscreteCategory<int>>{} >>
+                            identity_functor<DiscreteCategory<int>>{}),
+                   identity_functor<DiscreteCategory<int>>>);
+  SUCCEED();
+}
+
 TEST_CASE("Category: functor composition type proof",
           "[category][functor][composition-proof]") {
   using IntCat = DiscreteCategory<int>;
