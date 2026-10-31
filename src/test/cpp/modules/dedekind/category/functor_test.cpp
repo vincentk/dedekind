@@ -90,9 +90,10 @@ TEST_CASE("Category: the unit laws of Cat, decided at the type",
   STATIC_CHECK(std::same_as<decltype(power6 >> IdWords{}), PowerFunctor>);
   STATIC_CHECK((IdLetters{} >> power6).length == 6 &&
                (power6 >> IdWords{}).length == 6);
-  STATIC_CHECK(std::same_as<decltype(identity_functor<Set<int>>{} >>
-                                     maybe_functor<int>{}),
-                            maybe_functor<int>>);
+  STATIC_CHECK(
+      std::same_as<decltype(identity_functor<maybe_functor<int>::Σ_cat>{} >>
+                            maybe_functor<int>{}),
+                   maybe_functor<int>>);
   STATIC_CHECK(
       std::same_as<decltype(identity_functor<DiscreteCategory<int>>{} >>
                             identity_functor<DiscreteCategory<int>>{}),
