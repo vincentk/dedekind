@@ -57,6 +57,16 @@ class JltTensorExhibitTest(unittest.TestCase):
         )
         self.assertEqual(exact_count(odd), 0)  # no base is its own complement
 
+    def test_a_power_multiplies_on_either_side(self) -> None:
+        a = self.nucleotides
+        self.assertEqual(count_factors(power(a, 2) * power(a, 3)), [(4, 2), (4, 3)])
+        palindromes = symmetric(power(a, 3), reverse)
+        self.assertEqual(
+            count_factors(power(a, 2) * palindromes),
+            count_factors(power(a, 2)) + count_factors(palindromes),
+        )
+        self.assertEqual(exact_count(free_monoid(a, 1_000_000_000)), None)
+
     def test_the_reverse_complement_is_an_involution(self) -> None:
         self.assertTrue(is_involution(self.complement))  # decided on its table
         self.assertFalse(is_involution(letter_map("ACGT", "CGTA")))

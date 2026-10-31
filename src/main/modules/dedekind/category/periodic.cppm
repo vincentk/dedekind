@@ -1220,6 +1220,11 @@ struct CheckedLength {
     return static_cast<N>(*acc + *c);
   }
 };
+/** @brief How many letters an alphabet keeps, its one-letter words. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr N letters_kept(const Slice<C>& letters, const F& member) {
+  return count_factors(Power<C, F, N>{letters, member, N{1}}).front().base;
+}
 }  // namespace detail_periodic
 namespace detail_periodic {
 /** @brief One factor into the product: @f$b^e@f$ is @c e copies of @c b
@@ -1258,6 +1263,16 @@ constexpr std::optional<N> exact_count(const std::vector<Factor<N>>& fs) {
  *  are no sequence a word can index. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N>
 constexpr std::optional<N> exact_count(const FreeMonoid<C, F, N>& m) {
+  // the letters, b: the words shorter than L are 1 + b + ... + b^(L-1)
+  const N b = detail_periodic::letters_kept<C, F, N>(m.letters, m.member);
+  if (m.below == 0) return N{0};
+  if (b == 0) return N{1};  // the empty word alone
+  if (b == 1) return m.below;
+  // past the word's width the sum exceeds 2^(L-1), so it leaves the word:
+  // decided without visiting the lengths, which are then at most the width
+  if (m.below > static_cast<N>(std::numeric_limits<N>::digits)) {
+    return std::nullopt;
+  }
   return std::ranges::fold_left(
       std::views::iota(N{0}, m.below), std::optional<N>{0},
       detail_periodic::CheckedLength<C, F, N>{m.letters, m.member});

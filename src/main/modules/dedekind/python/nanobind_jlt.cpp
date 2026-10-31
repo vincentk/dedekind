@@ -227,9 +227,15 @@ void bind_tensors(nb::module_& m) {
   nb::class_<jlt::Alphabet>(m, "Alphabet",
                             "A filtered alphabet: the byte chain under the "
                             "predicate that keeps its letters.");
-  nb::class_<jlt::WordPower>(m, "Power",
-                             "The words of one length over an alphabet, a "
-                             "tensor power, never built.");
+  auto power_class =
+      nb::class_<jlt::WordPower>(m, "Power",
+                                 "The words of one length over an alphabet, a "
+                                 "tensor power, never built.");
+  power_class.def(
+      "__mul__", [](const jlt::WordPower& a, const jlt::WordPower& b) {
+        return jlt::Factored{
+            jlt::count_factors(dedekind::category::operator*(a, b))};
+      });
   nb::class_<jlt::Words>(m, "FreeMonoid",
                          "The free monoid on an alphabet truncated below a "
                          "length: the coproduct of the tensor powers.");
@@ -251,6 +257,11 @@ void bind_tensors(nb::module_& m) {
     return jlt::Factored{
         jlt::count_factors(dedekind::category::operator*(a, b))};
   });
+  power_class.def(
+      "__mul__", [](const jlt::WordPower& a, const jlt::Factored& b) {
+        return jlt::Factored{
+            jlt::count_factors(dedekind::category::operator*(a, b))};
+      });
   factored.def("__mul__", [](const jlt::Factored& a, const jlt::WordPower& b) {
     return jlt::Factored{
         jlt::count_factors(dedekind::category::operator*(a, b))};

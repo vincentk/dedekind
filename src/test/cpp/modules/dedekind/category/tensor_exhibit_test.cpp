@@ -310,6 +310,17 @@ static_assert(exact_count(count_factors(
                                 reverse))) == 0uz);
 static_assert(count_factors(symmetric(power(bits, 4096uz), rotate(1))) ==
               Factors{{2, 1}});
+// The words shorter than a billion: refused at once, by the width, not after
+// visiting the lengths; over one letter, one word per length.
+constexpr auto just_g = dedekind::category::slice(std::byte{'G'},
+                                                  std::byte{'H'}) >>
+                        dedekind::category::letters("G");
+static_assert(
+    !exact_count(free_monoid(nucleotides, 1'000'000'000)).has_value() &&
+    exact_count(free_monoid(just_g, 1'000'000'000)) == 1'000'000'000uz &&
+    exact_count(free_monoid(nucleotides, 0)) == 0uz &&
+    exact_count(free_monoid(nucleotides, 32)) == 6'148'914'691'236'517'205uz &&
+    !exact_count(free_monoid(nucleotides, 33)).has_value());
 static_assert(!IsSquare<8>{0}(pack<8>(0uz)) && unpack<4>(pack<4>(5uz)) == 5uz &&
               unpack<12>(pack<12>(0xABCuz)) == 0xABCuz);
 static_assert(!std::invocable<dedekind::category::Reverse, std::span<int>> &&
