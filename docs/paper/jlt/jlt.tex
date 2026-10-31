@@ -725,12 +725,11 @@ fibonacci = λ n. π₂ (fold act (1, 0) ms)      -- ms = map (const M) (chain p
           = λ n. π₂ (act (1, 0) (concat (·) ms))      -- by the action law
           = λ n. π₂ (act (1, 0) (Mⁿ))                 -- by associativity, squaring
 \end{minted}
-\caption{Laws composing: Rule~2 applied to Listing~\ref{lst:rule3}'s chain, the composition made sound by Theorem~\ref{thm:coherence}.
-Left: the fast path the monoid laws license, a second \cppinline{concat} that resolution prefers on $n$ copies of one value, their product the square of the first half's, one copy more where $n$ is odd~\cite[\S 4.6.3]{knuth1997art2}, a call per bit that Rule~3 admits, the matrices' monoid laws certified alike, not shown.
-Right: the action law, declared, and the overload it licenses: \cppinline{fold} on the same copies acts once, by their product under the monoid \cppinline{acting_monoid} names.
-The law holds on any sequence, and \cppinline{IsCopies} sends the call to the left panel, since elsewhere the rewrite costs more.
-Bottom: its translation, rewritten by the right panel's law, then the left's, two equations outside the appendix's reductions.
-$10^8$ copies take 27 calls, the bits of $10^8$, and the assertion witnesses both overloads: with either one plain, $10^8$ steps exceed the step limit (Table~\ref{tab:binding}).}
+\caption{Laws composing, on Listing~\ref{lst:rule3}'s chain.
+Top left: the monoid concatenation $M \cdot M \cdots M$ is replaced by the power $M^n$, implemented by repeated squaring~\cite[\S 4.6.3]{knuth1997art2}.
+Top right: the type constraints license the power method (Rule~2 for the specialisation, Theorem~\ref{thm:coherence} for the composition).
+Middle: the power method keeps the $10^8$ terms of the Fibonacci sequence within the compile-time step limit (Table~\ref{tab:binding}).
+Bottom: the System~F translation closely resembles the \Cpp{} above (Figure~\ref{fig:arrows}).}
 \label{lst:laws}
 \end{listing}
 
