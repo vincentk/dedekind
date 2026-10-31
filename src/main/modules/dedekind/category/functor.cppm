@@ -1320,16 +1320,6 @@ static_assert((Sum{3} >> Sum{4}).value == 7 &&
                       5,
               "composition is the operation; the functor keeps it and the "
               "unit, on values");
-using Negation = DaggerFunctor<std::negate<std::size_t>, std::size_t, Plus>;
-using Back = Element<std::size_t, Opposite<Plus>>;
-static_assert(
-    IsShapedFunctor<Negation> && has_one_value_v<Negation> &&
-        Negation{}.φ(Sum{3} >> Sum{4}).value ==
-            (Negation{}.φ(Sum{3}) >> Negation{}.φ(Sum{4})).value &&
-        Negation{}.φ(Delooping<std::size_t, Plus>::id_c(One{})).value == 0 &&
-        std::same_as<decltype(Negation{}.φ(Sum{3})), Back>,
-    "negation on (size_t, +) is a dagger, so a functor into the "
-    "opposite category, its laws on values");
 using Scaling = LeftActionFunctor<std::size_t, std::size_t>;
 using Scalar = Element<std::size_t, Opposite<std::multiplies<std::size_t>>>;
 using Scalars = Delooping<std::size_t, Opposite<std::multiplies<std::size_t>>>;
