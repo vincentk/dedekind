@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <ranges>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -214,8 +215,9 @@ static_assert(
         exact_count(count_factors(symmetric(power(bases, 6), Reversal{},
                                             Complement{}))) &&
     count(4096uz >> chain<size_t>() >>
-          dedekind::category::opaque(IsSymmetric6<decltype(same_letter)>{
-              same_letter})) == 64);
+          dedekind::category::opaque(
+              IsSymmetric6<std::remove_cvref_t<decltype(same_letter)>>{
+                  same_letter})) == 64);
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the
