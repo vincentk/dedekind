@@ -970,11 +970,14 @@ constexpr std::bitset<W> low_bits_of(std::size_t n) {
 /** @brief A pattern of @c n bits in a machine word, rotated by @c d within
  *  them, the padding kept zero. */
 template <std::unsigned_integral B>
+  requires(std::numeric_limits<B>::digits <= 64)
 constexpr B rotated(B x, std::size_t n, std::size_t d) {
   const std::size_t k = d % n;
   if (k == 0) return x;
-  return static_cast<B>(
-      (static_cast<B>(x << k) | static_cast<B>(x >> (n - k))) & low_bits<B>(n));
+  // shifted as a 64-bit word, a concrete type, so that >> is the shift and
+  // never the arrow's application
+  const auto w = static_cast<std::uint64_t>(x);
+  return static_cast<B>(((w << k) | (w >> (n - k))) & low_bits<B>(n));
 }
 /** @brief A pattern of @c n bits in a @c std::bitset, rotated by @c d within
  *  them, the padding kept zero. */
