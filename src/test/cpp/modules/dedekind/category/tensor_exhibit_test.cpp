@@ -129,37 +129,13 @@ using dedekind::category::Reversal;
 using dedekind::category::symmetric;
 using Factor = dedekind::category::Factor<>;
 using Factors = std::vector<Factor>;
-struct IsBase {
-  using Domain = std::byte;
-  using Codomain = bool;
-  constexpr bool operator()(std::byte b) const {
-    const char c = std::to_integer<char>(b);
-    return c == 'A' || c == 'C' || c == 'G' || c == 'T';
-  }
-};
-/** @brief The complement of a base, A↔T and C↔G, every other letter fixed:
- *  an involution on the letters. */
-struct Complement {
-  using Domain = std::byte;
-  using Codomain = std::byte;
-  constexpr std::byte operator()(std::byte b) const {
-    switch (std::to_integer<char>(b)) {
-      case 'A':
-        return std::byte{'T'};
-      case 'T':
-        return std::byte{'A'};
-      case 'C':
-        return std::byte{'G'};
-      case 'G':
-        return std::byte{'C'};
-      default:
-        return b;
-    }
-  }
-};
+// The bases among the capitals, and the complement A↔T, C↔G: an alphabet
+// and an involution on it, each written as its letters.
+constexpr auto IsBase = dedekind::category::letters("ACGT");
+constexpr auto Complement = dedekind::category::letter_map("ACGT", "TGCA");
 constexpr auto capitals =
     dedekind::category::slice(std::byte{'A'}, std::byte{'['});
-constexpr auto bases = capitals >> IsBase{};
+constexpr auto bases = capitals >> IsBase;
 constexpr auto same_letter = dedekind::category::id<std::byte>();
 static_assert(count(capitals >>
                     dedekind::category::constant<std::byte>(true)) == 26 &&
@@ -179,10 +155,10 @@ static_assert(
         Factors{{4, 6}} &&
     count_factors(symmetric(power(bases, 13), Reversal{}, same_letter)) ==
         Factors{{4, 6}, {4, 1}} &&
-    count_factors(symmetric(power(bases, 12), Reversal{}, Complement{})) ==
+    count_factors(symmetric(power(bases, 12), Reversal{}, Complement)) ==
         Factors{{4, 6}} &&
     exact_count(count_factors(symmetric(power(bases, 13), Reversal{},
-                                        Complement{}))) == 0uz);
+                                        Complement))) == 0uz);
 
 // The same counts by brute force over the 4^L words of length L, each word
 // read off its index in base 4: the sequence a size_t can index, here; 4^4 at
@@ -215,9 +191,10 @@ struct IsSymmetric {
 using SameLetter = std::remove_cvref_t<decltype(same_letter)>;
 static_assert(
     count(256uz >> chain<size_t>() >>
-          dedekind::category::opaque(IsSymmetric<Complement>{4, {}})) ==
+          dedekind::category::opaque(IsSymmetric<dedekind::category::LetterMap>{
+              4, Complement})) ==
         exact_count(count_factors(symmetric(power(bases, 4), Reversal{},
-                                            Complement{}))) &&
+                                            Complement))) &&
     count(256uz >> chain<size_t>() >>
           dedekind::category::opaque(IsSymmetric<SameLetter>{
               4, same_letter})) == 16);
@@ -275,7 +252,7 @@ static_assert(count(count_factors(symmetric(power(bases, 13), Reversal{},
                   exact_count(count_factors(
                       symmetric(power(bases, 13), Reversal{}, same_letter))) &&
               count(count_factors(symmetric(power(bases, 13), Reversal{},
-                                            Complement{}))) == 0 &&
+                                            Complement))) == 0 &&
               count(Factors{{3, 40}}) == 12'157'665'459'056'928'801uz &&
               count(Factors{{2, 64}}) == 0);
 
@@ -301,11 +278,12 @@ TEST_CASE("Tensor exhibit: the genome's symmetries by brute force, at run time",
   using namespace tensor_exhibit;
   size_t length = 6;  // 4^6 words, past the evaluator's steps
   const size_t words = size_t{1} << (2 * length);
-  CHECK(
-      count(words >> chain<size_t>() >>
-            dedekind::category::opaque(IsSymmetric<Complement>{length, {}})) ==
-      exact_count(count_factors(
-          symmetric(power(bases, length), Reversal{}, Complement{}))));
+  CHECK(count(words >> chain<size_t>() >>
+              dedekind::category::opaque(
+                  IsSymmetric<dedekind::category::LetterMap>{length,
+                                                             Complement})) ==
+        exact_count(count_factors(
+            symmetric(power(bases, length), Reversal{}, Complement))));
   CHECK(count(words >> chain<size_t>() >>
               dedekind::category::opaque(
                   IsSymmetric<SameLetter>{length, same_letter})) ==

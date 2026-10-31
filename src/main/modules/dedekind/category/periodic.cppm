@@ -51,6 +51,8 @@ module;
 #include <numeric>
 #include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
+#include <string_view>  // the letters of an alphabet, as written
+#include <tuple>        // a letter and its image, zipped
 #include <type_traits>
 #include <utility>
 #include <vector>  // the residue histograms of a modular section
@@ -723,6 +725,86 @@ struct Cycles {
   N count;
   constexpr bool operator==(const Cycles&) const = default;
 };
+
+namespace detail_periodic {
+/** @brief One letter into a packed set of bytes. */
+struct SetByte {
+  constexpr std::bitset<256> operator()(std::bitset<256> m, char c) const {
+    return m.set(static_cast<unsigned char>(c));
+  }
+};
+/** @brief One letter and its image into a table on the bytes. */
+struct MapByte {
+  constexpr std::pair<std::array<std::byte, 256>, std::size_t> operator()(
+      std::pair<std::array<std::byte, 256>, std::size_t> s,
+      std::tuple<char, char> p) const {
+    s.first[static_cast<unsigned char>(std::get<0>(p))] =
+        std::byte{static_cast<unsigned char>(std::get<1>(p))};
+    return s;
+  }
+};
+}  // namespace detail_periodic
+
+/** @brief A subobject of the bytes given by its letters, @f$\chi : \Sigma
+ *  \to \Omega@f$ as a packed word of 256 bits: the predicate a filtered
+ *  alphabet is built from, @c letters("ACGT"). */
+export struct Letters {
+  using Domain = std::byte;
+  using Codomain = bool;
+  std::bitset<256> members;
+  constexpr bool operator()(std::byte b) const {
+    return members.test(std::to_integer<unsigned char>(b));
+  }
+  constexpr bool operator==(const Letters&) const = default;
+};
+/** @param alphabet the letters, as written.  @return the predicate that
+ *  keeps them. */
+export constexpr Letters letters(std::string_view alphabet) {
+  return {std::ranges::fold_left(alphabet, std::bitset<256>{},
+                                 detail_periodic::SetByte{})};
+}
+/** @brief An arrow on the bytes given by a table, each letter of @c from to
+ *  the letter at the same place of @c to, every other byte fixed:
+ *  @c letter_map("ACGT", "TGCA") is the complement of a base, an
+ *  involution. */
+export struct LetterMap {
+  using Domain = std::byte;
+  using Codomain = std::byte;
+  std::array<std::byte, 256> table;
+  constexpr std::byte operator()(std::byte b) const {
+    return table[std::to_integer<unsigned char>(b)];
+  }
+  constexpr bool operator==(const LetterMap&) const = default;
+};
+namespace detail_periodic {
+/** @brief One byte into the identity table. */
+struct FixByte {
+  constexpr std::array<std::byte, 256> operator()(std::array<std::byte, 256> t,
+                                                  std::size_t i) const {
+    t[i] = std::byte{static_cast<unsigned char>(i)};
+    return t;
+  }
+};
+/** @brief The identity table on the bytes. */
+constexpr std::array<std::byte, 256> identity_table() {
+  return std::ranges::fold_left(
+      std::views::iota(std::size_t{0}, std::size_t{256}),
+      std::array<std::byte, 256>{}, FixByte{});
+}
+/** @brief Refuses a letter map whose letters and images differ in number. */
+[[noreturn]] constexpr void refuse_unequal_letters() { std::abort(); }
+}  // namespace detail_periodic
+/** @param from the letters moved.  @param to their images, in the same
+ *  order, as many.  @return the arrow. */
+export constexpr LetterMap letter_map(std::string_view from,
+                                      std::string_view to) {
+  if (from.size() != to.size()) detail_periodic::refuse_unequal_letters();
+  return {std::ranges::fold_left(
+              std::views::zip(from, to),
+              std::pair{detail_periodic::identity_table(), std::size_t{0}},
+              detail_periodic::MapByte{})
+              .first};
+}
 
 /** @brief The tensor power @f$\Sigma^n@f$: the words of length @c n over the
  *  letters of a chain that a predicate keeps, a box of @c n legs, each the

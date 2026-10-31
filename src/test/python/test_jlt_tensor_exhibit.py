@@ -1,34 +1,78 @@
-"""The tensor exhibit of the Jlt paper (#1104), a first attempt, from Python.
+"""The tensor exhibit of the Jlt paper (#1107), from Python.
 
-Five periodic vectors of 2**60 entries, their outer product of 2**300 entries,
-and its count over the box of all indices: by distributivity the product of the
-factors' counts, exact in Python's integers, with its residue mod 2**64.  The
-same exhibit as the C++ test ``tensor_exhibit_test.cpp``; it must answer at once.
+A genome, the words shorter than 100 over {A, C, G, T}, is no sequence a word
+can index: about 2**200 of them, refused.  As a tensor it is counted, factor by
+factor, and its symmetries are merges of legs: the palindromes, the
+reverse-complement palindromes (none of odd length), and, on the bit patterns,
+the squares.  The handles are the core's; Python multiplies the exact factors
+into its own integers, which is the only arithmetic it does.
 """
 
+import math
 import time
 import unittest
 
-try:  # the exhibit's bindings follow the core's arrows (#1104)
-    from dedekind.jlt import count, fib, is_even  # noqa: F401
-except ImportError:
-    count = fib = is_even = None
+from dedekind.jlt import (
+    alphabet,
+    count,
+    count_factors,
+    exact_count,
+    free_monoid,
+    is_square,
+    letter_map,
+    pack,
+    power,
+    reversal,
+    rotation,
+    symmetric,
+)
 
-N = 2**60
+
+def total(tensor):
+    """The exact count from the factors, in Python's integers."""
+    return math.prod(base**exponent for base, exponent in count_factors(tensor))
 
 
 class JltTensorExhibitTest(unittest.TestCase):
-    # Python binds handles to the core's arrows, never a second copy of their
-    # laws, so the test waits for those handles (#1104).
-    @unittest.skipIf(count is None, "the exhibit's bindings are not in yet")
-    def test_the_box_counts_at_once(self) -> None:
-        evens, odds, fibs = is_even(N), ~is_even(N), fib(N)
+    bases = alphabet("ACGT")
+    bits = alphabet("01")
+    complement = letter_map("ACGT", "TGCA")
+
+    def test_the_genome_is_refused_as_a_sequence(self) -> None:
+        self.assertIsNone(exact_count(free_monoid(self.bases, 100)))
+        self.assertEqual(exact_count(free_monoid(self.bases, 4)), 1 + 4 + 16 + 64)
+
+    def test_the_genome_is_counted_as_a_tensor(self) -> None:
+        self.assertEqual(count_factors(power(self.bases, 99)), [(4, 99)])
+        palindromes = symmetric(power(self.bases, 13), reversal())
+        self.assertEqual(count_factors(palindromes), [(4, 6), (4, 1)])
+        self.assertEqual(exact_count(palindromes), 4**7)
+        sites = symmetric(power(self.bases, 12), reversal(), self.complement)
+        self.assertEqual(exact_count(sites), 4**6)
+        odd = symmetric(power(self.bases, 13), reversal(), self.complement)
+        self.assertEqual(exact_count(odd), 0)  # no base is its own complement
+
+    def test_the_squares_of_128_bits(self) -> None:
+        squares = symmetric(power(self.bits, 128), rotation(64))
+        self.assertEqual(count_factors(squares), [(2, 64)])
+        self.assertIsNone(exact_count(squares))  # one bit past the word
+        self.assertEqual(total(squares), 2**64)
+        self.assertTrue(is_square(0b1010, 4) and is_square(0, 128))
+        self.assertFalse(is_square(0b1001, 4) or is_square(1, 128))
+        self.assertEqual(pack(0x1A5, 8), 0xA5)
+
+    def test_the_exhibit_answers_at_once(self) -> None:
         start = time.perf_counter()
-        box = evens * odds * fibs * evens * fibs
-        exact = count(box)
+        box = symmetric(power(self.bases, 99), reversal()) * symmetric(
+            power(self.bits, 128), rotation(64)
+        )
+        factors = count_factors(box)
+        exact = total(box)
         elapsed = time.perf_counter() - start
-        self.assertEqual(exact, (N // 2) ** 3 * (N // 3 + 1) ** 2)
-        self.assertGreater(exact.bit_length(), 128)  # beyond 128 bits
+        self.assertEqual(factors, [(4, 49), (4, 1), (2, 64)])
+        self.assertEqual(exact, 2 ** (100 + 64))
+        self.assertIsNone(exact_count(box))
+        self.assertEqual(count(box), 0)  # its residue modulo 2**64
         self.assertLess(elapsed, 0.1)  # the size of the box costs nothing
 
 
