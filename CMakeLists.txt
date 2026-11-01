@@ -265,6 +265,12 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     # third panel of the §5 triptych: bit-ops IR on an axis-aligned
     # signed-unimodular pack, with MUL and DIV absent on the carrier.
     src/test/cpp/modules/dedekind/python/showcase_12b_lp_unimodular_runtime.cpp
+    # showcase_13 is the Jlt paper's Listing 5: restriction sites counted at
+    # four binding times, the last a constant.
+    src/test/cpp/modules/dedekind/python/showcase_13_site_occurrences.cpp
+    # research: Listing 5's count at binding times and loop types, tabulated
+    # by `make ir-research`, nothing asserted
+    src/test/cpp/modules/dedekind/python/research_binding_times.cpp
     # showcase_10_image_intensional_naturals.cpp is added for compile-time
     # validation of the layer-1 image overload on intensional Sets (#602 / #631);
     # it has no checked-in `.ll` fixture because its IR demo
