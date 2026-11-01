@@ -9,7 +9,7 @@ are ``id(T)`` (identity), ``refl(T)`` (:logic's reflection involution
 ``int`` chain), and the NNO step ``succ(T)`` / ``pred(T)`` (#1001), total and
 saturating at the chain's bounds: ``succ(bool)(True) is True``.
 
-    from dedekind.jlt import id, refl, dom, cod
+    from pynzli.jlt import id, refl, dom, cod
 
     (id(bool) >> refl(bool))(False)   # True   -- compose, then apply
     (refl(int) >> refl(int))(5)       # 5      -- refl is an involution: r∘r = id
@@ -34,7 +34,7 @@ is *intensional* and lives on the C++ side; it is vacuous here.  ``id`` /
 (and ``IsEndomorphism`` / ``IsInvolution``) in C++.
 """
 
-# `_jlt` is the exhibit's own private native extension module (dedekind._jlt),
+# `_jlt` is the exhibit's own private native extension module (pynzli._jlt),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._jlt import alphabet
 from ._jlt import cod

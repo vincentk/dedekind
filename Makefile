@@ -84,7 +84,7 @@ test: test-compile
 # that the package installs.
 integration-test: test
 	python -m pip install --upgrade pip jupyter
-	@ls $(BUILD_DIR)/python/dedekind/_jlt*.so $(BUILD_DIR)/python/dedekind/_pst*.so >/dev/null 2>&1 || \
+	@ls $(BUILD_DIR)/python/pynzli/_jlt*.so $(BUILD_DIR)/python/pynzli/_pst*.so >/dev/null 2>&1 || \
 		{ echo "ERROR: no staged dedekind package in $(BUILD_DIR)/python; configure with DEDEKIND_BUILD_PYTHON_BINDINGS=ON"; exit 2; }
 	mkdir -p $(BUILD_DIR)/python-notebooks
 	@export PYTHONPATH="$(abspath $(BUILD_DIR))/python$${PYTHONPATH:+:$$PYTHONPATH}"; \
@@ -103,8 +103,8 @@ integration-test: test
 	for nb in $$NOTEBOOKS; do \
 		TOTAL=$$((TOTAL + 1)); \
 		name="$$(basename $$nb)"; \
-		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import dedekind" in to_text(c.get("source", "")) or "from dedekind import" in to_text(c.get("source", "")) or "from dedekind." in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
-			echo "FAILED: $$name does not import dedekind in any code cell" | tee -a "$$REPORT"; \
+		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import pynzli" in to_text(c.get("source", "")) or "from pynzli import" in to_text(c.get("source", "")) or "from pynzli." in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
+			echo "FAILED: $$name does not import pynzli in any code cell" | tee -a "$$REPORT"; \
 			FAILURES=$$((FAILURES + 1)); \
 			continue; \
 		fi; \

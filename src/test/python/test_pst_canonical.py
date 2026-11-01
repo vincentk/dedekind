@@ -9,7 +9,7 @@ verdict, not a Python flag.
 
 import unittest
 
-from dedekind.pst import A, ap, u64, 𝔽ₚ, cardinality, carrier, is_field, is_ring, modulus  # 𝔽ₚ is the name Fp (NFKC)
+from pynzli.pst import A, ap, u64, 𝔽ₚ, cardinality, carrier, is_field, is_ring, modulus  # 𝔽ₚ is the name Fp (NFKC)
 
 P = 2**64 - 59
 

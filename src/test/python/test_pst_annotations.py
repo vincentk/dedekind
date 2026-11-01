@@ -16,8 +16,8 @@ many-sorted terms.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Kleene, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, identity
-from dedekind.trsk import Function, Relation
+from pynzli.pst import A, B, K3, Kleene, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, identity
+from pynzli.trsk import Function, Relation
 
 F, U_, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
 U, UF = A(u64), A(𝔽ₚ)  # not Fp: that is the name 𝔽ₚ (NFKC)

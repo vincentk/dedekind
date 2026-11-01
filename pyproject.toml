@@ -3,9 +3,9 @@ requires = ["scikit-build-core>=1.1"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "pydedekind"
-version = "0.1.0a0"
-description = "Python bindings for the dedekind library."
+name = "pynzli"
+dynamic = ["version"]
+description = "A library of structure-preserving combinators."
 readme = "README.md"
 requires-python = ">=3.15"
 license = "Apache-2.0"
@@ -26,10 +26,17 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/vincentk/dedekind"
 
+# The version is python/pynzli/_version.py's: 0.0.0.dev0 in the tree, the
+# release's 0.<YYYYMMDD>.<n> written there by CI before a release's wheel is
+# built (.github/scripts/release-version.sh).
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "python/pynzli/_version.py"
+
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 build-dir = "build-python/{wheel_tag}"
-wheel.packages = ["python/dedekind"]
+wheel.packages = ["python/pynzli"]
 # Scope the editable / wheel install to the nanobind extension targets
 # only.  CMake's dependency graph still pulls in the layer libraries
 # transitively (_pst → dedekind_optimization → … → dedekind_category),
@@ -66,23 +73,23 @@ test = [
 testpaths = ["src/test/python"]
 
 [tool.coverage.run]
-source = ["python/dedekind"]
+source = ["python/pynzli"]
 omit = ["*/__pycache__/*"]
 
 # Path-mapping: when CI installs the dedekind wheel into site-packages
 # (or a venv), coverage records the physical site-packages paths.  This
 # mapping rewrites them back to the source-tree path so:
 #   * the XML's <class filename="..."> attributes reference
-#     `python/dedekind/...`, satisfying the workflow gate
-#     `grep -q "python/dedekind/" build/python-coverage.xml` in
+#     `python/pynzli/...`, satisfying the workflow gate
+#     `grep -q "python/pynzli/" build/python-coverage.xml` in
 #     `.github/workflows/cmake.yml`;
 #   * Codecov / IDE jump-to-source resolves to the actual source files
 #     rather than to read-only installed copies.
 [tool.coverage.paths]
 source = [
-    "python/dedekind",
-    "*/site-packages/dedekind",
-    "*/dedekind",
+    "python/pynzli",
+    "*/site-packages/pynzli",
+    "*/pynzli",
 ]
 
 [tool.coverage.report]

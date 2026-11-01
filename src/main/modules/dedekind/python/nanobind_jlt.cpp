@@ -7,8 +7,8 @@
  *
  * @section Description
  * A @b fluent DSL over the @b real category arrows, bound as the private native
- * extension @c dedekind._jlt (NumPy-style, re-exported by the pure-Python
- * @c dedekind.jlt facade).  It exposes the actual @c :morphism arrows over TWO
+ * extension @c pynzli._jlt (NumPy-style, re-exported by the pure-Python
+ * @c pynzli.jlt facade).  It exposes the actual @c :morphism arrows over TWO
  * objects, @c bool and @c int --- the identity @c Identity<T> and the
  * type-erased @c Morphism<T,T> --- as @b duck-typed handles: an "arrow" is the
  * protocol @c __call__ / @c __rshift__ + the free functions @c dom / @c cod,
@@ -92,7 +92,7 @@ namespace jlt {
 template <typename T>
 using Arrow = Morphism<T, T, std::function<T(T)>>;
 /** @brief What a Python @c int crosses the boundary as: the canonical ring
- *  u64 = ℤ/2⁶⁴ (@c dedekind.pst), whose step wraps. */
+ *  u64 = ℤ/2⁶⁴ (@c pynzli.pst), whose step wraps. */
 using Int = std::uint64_t;
 
 /** @brief @c refl on a chain: @c :logic's pre-configured reflection
@@ -441,7 +441,7 @@ void bind_step_operators(nb::class_<S>& cls) {
 
 /** @brief Bind the step arrows on carrier @c T as their own classes, typed:
  *  the real @c :nno @c Successor / @c Predecessor, composable like @c id, and
- *  read by @c dedekind.pst.image. */
+ *  read by @c pynzli.pst.image. */
 template <typename T>
 void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
