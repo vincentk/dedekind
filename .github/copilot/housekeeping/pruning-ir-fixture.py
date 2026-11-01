@@ -193,8 +193,11 @@ def normalize_ir(ir_text: str) -> str:
 
 
 def extract_function_block(ir_text: str, symbol: str) -> str | None:
+    # The symbol on the define line itself: `.*` across lines would start the
+    # block at the file's first define and let another function's body satisfy
+    # a check.
     pattern = re.compile(
-        rf"(?ms)^define\b.*@{re.escape(symbol)}\b.*?\n\}}"
+        rf"(?ms)^define\b[^\n]*@{re.escape(symbol)}\([^\n]*\n.*?\n\}}"
     )
     match = pattern.search(ir_text)
     return match.group(0) if match else None
