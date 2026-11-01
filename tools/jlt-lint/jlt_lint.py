@@ -39,6 +39,10 @@ BINDS = re.compile(r'^(\S+:\d+:\d+): note: "root" binds here', re.M)
 # coverage bridges compile without constexpr on purpose, so their macro is
 # undone for the parse (the prebuilt modules are unaffected).
 UNDO_FOR_CHECK = ["--extra-arg=-UDEDEKIND_RUNTIME_COVERAGE_BRIDGES"]
+# Clang's own headers (stdarg.h, …) as the compiler that built the tree finds
+# them: a tool resolves them relative to its own binary, which on macOS with
+# Homebrew's LLVM is not next to them.  Set by main() from the database.
+RESOURCE_DIR = []
 
 
 def read_scope():
@@ -88,9 +92,10 @@ def run_tool(tool, build, path, namespace, checks):
     check, or None and the output on an error."""
     args = [str(tool), f"--check={','.join(checks)}", f"--scope={namespace}"]
     if path.startswith("tools/jlt-lint/fixtures/"):
-        args += [str(ROOT / path), "--", "-std=c++23", "-xc++"]
+        args += [str(ROOT / path), "--", "-std=c++23", "-xc++", *RESOURCE_DIR]
     else:
-        args += ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
+        args += ["-p", str(build), *UNDO_FOR_CHECK,
+                 *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
     p = subprocess.run(args, capture_output=True, text=True)
     if p.returncode != 0:
         return None, exit_status(p) + p.stdout + p.stderr
@@ -151,9 +156,10 @@ def run(query, build, path, namespace, rules):
         if traversal:
             script.append(DEFAULT_TRAVERSAL)
     if path.startswith("tools/jlt-lint/fixtures/"):
-        args = [str(ROOT / path), "--", "-std=c++23", "-xc++"]
+        args = [str(ROOT / path), "--", "-std=c++23", "-xc++", *RESOURCE_DIR]
     else:
-        args = ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
+        args = ["-p", str(build), *UNDO_FOR_CHECK,
+                *(f"--extra-arg={a}" for a in RESOURCE_DIR), str(ROOT / path)]
     p = subprocess.run([query] + [a for s in script for a in ("-c", s)] + args,
                        capture_output=True, text=True)
     out = p.stdout + p.stderr
@@ -189,6 +195,11 @@ def one_entry_per_file(build):
         old = kept.get(e["file"])
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
+    compiler = (entries[0].get("arguments") or entries[0]["command"].split())[0] if entries else None
+    if compiler:
+        r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            RESOURCE_DIR[:] = [f"-resource-dir={r.stdout.strip()}"]
     db = build / "jlt-lint-db"
     db.mkdir(exist_ok=True)
     (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
