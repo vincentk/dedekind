@@ -176,17 +176,16 @@ struct is_frobenius_monad : std::false_type {};
 template <typename T>
 struct is_frobenius_monad<tuple_functor<T>> : std::true_type {};
 
-namespace _kleisli_detail {
 /** @brief An arrow @c A → @c B the triple concepts probe bind and extend
- *  with: only its type is read, never its value.  @tparam A @tparam B the
- *  ends. */
+ *  with: only its type is read, never its value.  In this namespace, not a
+ *  detail one, so argument-dependent lookup finds the @c >>= and @c <<=
+ *  defined below.  @tparam A @tparam B the ends. */
 template <typename A, typename B>
-struct probe_arrow {
+struct kleisli_probe_arrow {
   using Domain = A;
   using Codomain = B;
   B operator()(const A&) const { std::unreachable(); }
 };
-}  // namespace _kleisli_detail
 
 /** @brief A Kleisli triple ⟨T, η, (−)*⟩ (Manes), the monad in its extension
  *  form: the unit and bind, their laws certified by @c is_kleisli_triple.
@@ -194,10 +193,8 @@ struct probe_arrow {
 export template <typename Functor, typename T, typename U>
 concept IsKleisliTriple =
     is_kleisli_triple<Functor>::value &&
-    requires(
-        T x, typename Functor::template Shape<T> box,
-        _kleisli_detail::probe_arrow<T, typename Functor::template Shape<U>>
-            f) {
+    requires(T x, typename Functor::template Shape<T> box,
+             kleisli_probe_arrow<T, typename Functor::template Shape<U>> f) {
       {
         unit_witness<Functor, T>{}(x)
       } -> std::same_as<typename Functor::template Shape<T>>;
@@ -211,10 +208,8 @@ concept IsKleisliTriple =
 export template <typename Functor, typename T, typename U>
 concept IsCoKleisliTriple =
     is_cokleisli_triple<Functor>::value &&
-    requires(
-        typename Functor::template Shape<T> box,
-        _kleisli_detail::probe_arrow<typename Functor::template Shape<T>, U>
-            f) {
+    requires(typename Functor::template Shape<T> box,
+             kleisli_probe_arrow<typename Functor::template Shape<T>, U> f) {
       { counit_witness<Functor, T>{}(box) } -> std::same_as<T>;
       { box <<= f } -> std::same_as<typename Functor::template Shape<U>>;
     };
