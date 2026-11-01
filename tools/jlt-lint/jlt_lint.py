@@ -75,7 +75,11 @@ def exit_status(p):
     if p.returncode == 0:
         return ""
     if p.returncode < 0:
-        return f"killed by signal {signal.Signals(-p.returncode).name}\n"
+        try:  # a real-time signal (SIGRTMIN + k) has no name
+            name = signal.Signals(-p.returncode).name
+        except ValueError:
+            name = str(-p.returncode)
+        return f"killed by signal {name}\n"
     return f"exit code {p.returncode}\n"
 
 
