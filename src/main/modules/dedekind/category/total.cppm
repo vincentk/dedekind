@@ -122,7 +122,8 @@ inline constexpr bool is_exact_total_v = is_exact_total<T, Op>::value;
 
 /**
  * Unsigned integers are natively periodic under
- * addition/subtraction/multiplication.
+ * addition/subtraction/multiplication; multiplication where it is defined on
+ * the whole word (@c HasTotalProduct: not @c unsigned @c short's).
  **/
 // The unsigned words wrap: ℤ/2^w.  bool is std::unsigned_integral too, but
 // std::plus<bool> is ∨ (the sum truncates), which saturates and has no
@@ -137,7 +138,8 @@ template <typename T>
 struct is_periodic<T, std::minus<T>> : std::true_type {};
 
 template <typename T>
-  requires std::unsigned_integral<T> && (!std::same_as<T, bool>)
+  requires std::unsigned_integral<T> && (!std::same_as<T, bool>) &&
+           HasTotalProduct<T>
 struct is_periodic<T, std::multiplies<T>> : std::true_type {};
 
 // XOR is Periodic (Order 2), ensuring its totality
