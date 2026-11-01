@@ -180,12 +180,23 @@ struct Section {
 /** @brief A tensor held by its factors, the core's @c count_factors of
  *  whatever it was built from; a section converts to it, so every count
  *  and product taking a tensor takes a section. */
+/** @brief The factors as a list the type does not bound: a Python tensor's
+ *  products are built at run time. */
+template <std::ranges::input_range L>
+std::vector<Factor<>> factor_list(const L& fs) {
+  return {std::ranges::begin(fs), std::ranges::end(fs)};
+}
 struct Factored {
   std::vector<Factor<>> factors;
   Factored(std::vector<Factor<>> fs) : factors(std::move(fs)) {}
+  template <std::ranges::input_range L>
+    requires std::same_as<std::ranges::range_value_t<L>, Factor<>>
+  Factored(const L& fs) : factors(factor_list(fs)) {}
   Factored(const Section& s)
       : factors(std::visit(
-            [](const auto& x) { return dedekind::category::count_factors(x); },
+            [](const auto& x) {
+              return factor_list(dedekind::category::count_factors(x));
+            },
             s.section)) {}
 };
 /** @brief The factors of a held tensor: what makes it @c HasFactors, so the
@@ -221,10 +232,10 @@ Alphabet alphabet(std::string_view a) {
          dedekind::category::letters(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
-std::vector<std::pair<std::size_t, std::size_t>> pairs(
-    const std::vector<Factor<>>& fs) {
+template <std::ranges::sized_range L>
+std::vector<std::pair<std::size_t, std::size_t>> pairs(const L& fs) {
   std::vector<std::pair<std::size_t, std::size_t>> out;
-  out.reserve(fs.size());
+  out.reserve(std::ranges::size(fs));
   for (const auto& f : fs) out.emplace_back(f.base, f.exponent);
   return out;
 }
