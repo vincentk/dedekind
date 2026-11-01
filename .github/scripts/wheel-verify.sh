@@ -11,7 +11,9 @@ index=${2:-}
 venv=build/venv-wheel-verify
 rm -rf "$venv"
 python -m venv "$venv"
-pip=("$venv/bin/python" -m pip install --quiet --no-cache-dir)
+# The wheel only: an unusable wheel must fail here, not fall back to building
+# the sdist from source.
+pip=("$venv/bin/python" -m pip install --quiet --no-cache-dir --only-binary=:all:)
 
 case "$index" in
   "") "${pip[@]}" dist/pynzli-"$version"-*.whl ;;
