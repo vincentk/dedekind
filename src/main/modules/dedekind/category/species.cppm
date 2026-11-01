@@ -482,11 +482,14 @@ struct unit_trait<T, std::multiplies<>> {
  *        @c unsigned @c short's does not (65535 · 65535 overflows @c int,
  *        undefined as @c -INT_MIN is), so it is refused as @c int is.
  *        Decided by the compiler: undefined behaviour is no constant
- *        expression.
- * @tparam T the carrier.
+ *        expression.  Unsigned words only: there the product grows with its
+ *        factors, so the largest is the one that may overflow, and
+ *        @c numeric_limits names it (a type without limits has @c max()
+ *        @c == @c T{}, and the probe would check only @c 0 · @c 0).
+ * @tparam T the carrier, an unsigned word.
  */
 export template <typename T>
-concept HasTotalProduct = requires {
+concept HasTotalProduct = std::unsigned_integral<T> && requires {
   typename std::bool_constant<(static_cast<void>(std::numeric_limits<T>::max() *
                                                  std::numeric_limits<T>::max()),
                                true)>;
