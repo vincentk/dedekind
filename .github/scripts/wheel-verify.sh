@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Installs pynzli at a version into a fresh environment and uses it: from
-# dist/, or from an index (testpypi, pypi), retried while the index catches
-# up.  The installed package must carry the version asked for.
+# Installs pynzli's wheel at a version into a fresh environment and runs the
+# kick-the-tyres suite on it: from dist/, or from an index (testpypi, pypi),
+# retried while the index catches up.  The installed package must carry the
+# version asked for, and its doctests and the Python tests pass on it.
 #
 # Usage: wheel-verify.sh <version> [testpypi|pypi]
 set -euo pipefail
@@ -43,3 +44,12 @@ assert (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)
 assert image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))
 print("pynzli", pynzli.__version__, "ok")
 PY
+
+# The kick-the-tyres suite on the installed binary: the package's doctests
+# (collected from the installed package) and the Python tests, run from
+# outside the tree and without its pytest configuration, so that every
+# import is the wheel's.
+"$venv/bin/python" -m pip install --quiet pytest
+tests=$(pwd)/src/test/python
+(cd "$venv" && bin/python -m pytest -q -p no:cacheprovider -c /dev/null \
+  --doctest-modules --pyargs pynzli "$tests")
