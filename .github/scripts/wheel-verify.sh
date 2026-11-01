@@ -9,12 +9,18 @@ set -euo pipefail
 
 version=$1
 index=${2:-}
-venv=build/venv-wheel-verify
+# Isolated: no path, home or startup file from the build, a fresh venv without
+# the system's packages, Python in isolated mode (-I: no PYTHON* variables,
+# no user site, not the current directory) and pip ignoring PIP_* and user
+# configuration (--isolated), so what runs is the wheel and nothing else.
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP
+venv=$(pwd)/build/venv-wheel-verify
 rm -rf "$venv"
-python -m venv "$venv"
+python -I -m venv "$venv"
+py=("$venv/bin/python" -I)
 # The wheel only: an unusable wheel must fail here, not fall back to building
 # the sdist from source.
-pip=("$venv/bin/python" -m pip install --quiet --no-cache-dir --only-binary=:all:)
+pip=("${py[@]}" -m pip --isolated install --quiet --no-cache-dir --only-binary=:all:)
 
 case "$index" in
   "") "${pip[@]}" dist/pynzli-"$version"-*.whl ;;
@@ -30,15 +36,15 @@ case "$index" in
 esac
 
 mkdir -p build/python-docs
-"$venv/bin/python" -m pip show pynzli > build/python-docs/install-report.txt
-"$venv/bin/python" -m pydoc pynzli > build/python-docs/pydoc-pynzli.txt
-PYNZLI_VERSION=$version "$venv/bin/python" - <<'PY'
-import os
+"${py[@]}" -m pip --isolated show pynzli > build/python-docs/install-report.txt
+"${py[@]}" -m pydoc pynzli > build/python-docs/pydoc-pynzli.txt
+"${py[@]}" - "$version" <<'PY'
+import sys
 import pynzli
 from pynzli.jlt import succ
 from pynzli.pst import A, image, u64, π
 
-assert pynzli.__version__ == os.environ["PYNZLI_VERSION"], pynzli.__version__
+assert pynzli.__version__ == sys.argv[1], pynzli.__version__
 U = A(u64)
 assert (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)
 assert image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))
@@ -49,7 +55,7 @@ PY
 # (collected from the installed package) and the Python tests, run from
 # outside the tree and without its pytest configuration, so that every
 # import is the wheel's.
-"$venv/bin/python" -m pip install --quiet pytest
+"${pip[@]}" pytest  # a wheel on PyPI, the index pip asks by default
 tests=$(pwd)/src/test/python
-(cd "$venv" && bin/python -m pytest -q -p no:cacheprovider -c /dev/null \
+(cd "$venv" && "${py[@]}" -m pytest -q -p no:cacheprovider -c /dev/null \
   --doctest-modules --pyargs pynzli "$tests")
