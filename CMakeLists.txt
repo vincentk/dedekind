@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.28)
+# The floor is the CMake Ubuntu's latest LTS ships (26.04: 4.2); the range
+# asks the policies of every CMake up to 4.4, the newest in use (#1121).
+cmake_minimum_required(VERSION 4.2...4.4)
 
 # The version is the latest release tag, v0.<YYYYMMDD>.<n>+<hash> (see
 # .github/workflows/release.yml): its numeric part is the project version,
@@ -33,7 +35,7 @@ if(APPLE)
 endif()
 
 # --- Instrumentation and Warnings ---
-# Hard-coded for Clang 22 as used in the CI pipeline
+# Clang's warnings, in CI and on the macOS dev machine alike
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
@@ -50,7 +52,6 @@ add_link_options(${DEDEKIND_COVERAGE_FLAGS})
 
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
-# Force C++23 standard for Clang 21
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # For clangd:
@@ -76,13 +77,22 @@ option(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
     "Allow double as explicit proxy for real scalars in geometry"
     OFF)
 
+# The options' definitions hold for every target, libraries, tests and the
+# Python bindings alike: a module's consumers then share its flags, and CMake
+# reuses its BMI rather than synthesising one per differing consumer (#1121).
+if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+    add_compile_definitions(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+endif()
+if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
+    add_compile_definitions(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
+endif()
+
 option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
 # Enable testing with Catch2, its latest release pinned (no tracking of main),
-# built from source because distribution packages lag far behind (Ubuntu
-# 24.04 ships 3.4).
+# built from source because distribution packages lag behind.
 include(FetchContent)
 FetchContent_Declare(
   Catch2
@@ -132,15 +142,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         # for both shared-library linkage and the test executables.
         POSITION_INDEPENDENT_CODE ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
-    target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-    if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-        target_compile_definitions(${LIB_TARGET}
-            PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-    endif()
-    if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
-        target_compile_definitions(${LIB_TARGET}
-            PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
-    endif()
     
     if(DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
@@ -157,14 +158,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     if(TEST_SOURCES)
         target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-        if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-            target_compile_definitions(${TEST_TARGET}
-                PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-        endif()
-        if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
-            target_compile_definitions(${TEST_TARGET}
-                PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
-        endif()
     endif()
 
     # Force whole-archive to ensure all module code is instrumented

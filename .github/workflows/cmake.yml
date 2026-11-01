@@ -43,6 +43,8 @@ jobs:
         chmod +x llvm.sh
         sudo ./llvm.sh 23
         sudo apt-get install -y clang-23 ninja-build clang-format-23 llvm-23 clang-tools-23 libclang-23-dev libclang-cpp23-dev
+        cmake --version | head -1
+        ninja --version
 
     # Create the .venv up front and prepend it to GITHUB_PATH so every
     # subsequent step uses the same virtualenv as a local dev box does.
