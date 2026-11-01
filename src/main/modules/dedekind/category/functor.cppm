@@ -60,7 +60,7 @@
  * - @ref identity_functor: Cat -> Cat.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
  * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
- *   bona-fide Frobenius carrier; #632).
+ *   Frobenius monad; #632).
  * - @ref composite_functor: composition G . F for any composable functors.
  *
  * Notes:
@@ -339,8 +339,8 @@ struct maybe_functor {
  * @brief The Intensional Functor for 1-tuple values.
  *
  * @details Concrete @ref IsShapedFunctor model implementing
- * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's bona-fide
- * Frobenius (= monad + comonad) carrier: std::tuple<T> always has a
+ * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's Frobenius
+ * monad (@c IsFrobenius, :kleisli): std::tuple<T> always has a
  * single element, so ε via std::get<0> is total (no Some-fragment
  * concession), and δ wraps once more cleanly.  Sister to
  * @ref maybe_functor (monad only) per the #632 carrier-role split.

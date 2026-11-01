@@ -256,7 +256,7 @@ static_assert(
  *  @c dedekind.category: the tag-dispatched @c η / @c pure and its siblings
  *  @c μ / @c ε / @c δ (@c :monad, laws checked by @c IsMonad; @c η / @c ε live
  * in
- *  @c :natural), whose bona-fide monad-and-comonad (@c IsFrobenius, #632)
+ *  @c :natural), whose Frobenius monad (@c IsFrobenius, #632)
  * carrier is @c std::tuple (@c :kleisli).  The power-set monad's own functor
  * (@c η
  * + the union-flatten @c μ) is tracked in #691.  @b Distinct from the two other

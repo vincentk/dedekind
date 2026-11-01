@@ -121,19 +121,20 @@ constexpr Maybe<A> μ(maybe_monad_tag, Maybe<Maybe<A>> const& mma) {
 }
 
 // (Maybe is a monad, not a comonad — counit on @c std::nullopt has no
-// honest answer.  The bona-fide Frobenius carrier in this codebase is
+// honest answer.  The Frobenius monad in this codebase is
 // @c std::tuple<T> below; see the @c tuple_monad_tag block.)
 
 /**
- * @brief The std::tuple<T> Frobenius carrier.
+ * @brief The std::tuple<T> Frobenius monad.
  *
  * @details @c std::tuple<T> is a 1-tuple — it always has a single
  * element, so the comonadic counit @c std::get<0> is total (no
  * Some-fragment caveat) and the duplicate wraps once more cleanly.
  * Combined with the textbook monadic structure (η as @c
  * std::make_tuple, μ via @c std::get<0> on the inner tuple), this
- * makes @c std::tuple<T> the project's bona-fide Frobenius witness
- * — both Kleisli and co-Kleisli laws hold without concession.
+ * makes @c std::tuple<T> the project's Frobenius monad
+ * — both Kleisli and co-Kleisli laws hold without concession, and the
+ * Frobenius law relating μ and δ (@c is_frobenius_monad, :kleisli).
  *
  * Replaces the vestigial @c Box-as-trivially-comonadic carrier
  * retired in #632.

@@ -80,9 +80,10 @@ namespace dedekind::category {
  *
  * @details Maybe is a monad, not a comonad — counit on @c std::nullopt
  * has no honest answer.  This block defines only the monadic surface
- * for @c Maybe<T> (bind, unit_witness).  The bona-fide Frobenius
- * carrier (= monad + comonad) is @c std::tuple<T> below; that's where
- * counit / extend / IsCoKleisliTriple / IsFrobenius witnesses live.
+ * for @c Maybe<T> (bind, unit_witness).  The Frobenius monad (a monad
+ * and a comonad on one functor, μ and δ related by the Frobenius law) is
+ * @c std::tuple<T> below; that's where counit / extend /
+ * IsCoKleisliTriple / IsFrobenius witnesses live.
  */
 
 namespace _kleisli_detail {
@@ -142,8 +143,9 @@ struct counit_witness;
  *
  * @details @c std::tuple<T> is a 1-tuple — always has a single
  * element, so @c std::get<0> is total.  This makes it the project's
- * bona-fide Frobenius (= monad + comonad) carrier: both Kleisli and
- * co-Kleisli laws hold without concession.  Replaces the vestigial
+ * Frobenius monad: both Kleisli and co-Kleisli laws hold without
+ * concession, and μ and δ, each the identity up to the one-tuple's
+ * wrapping, satisfy the Frobenius law.  Replaces the vestigial
  * Box-as-trivially-comonadic path retired in #632; the std-blessed
  * @c std::tuple wrapper carries the Frobenius role going forward.
  */
@@ -212,6 +214,19 @@ template <typename T>
 struct is_kleisli_triple<tuple_functor<T>> : std::true_type {};
 template <typename T>
 struct is_cokleisli_triple<tuple_functor<T>> : std::true_type {};
+/** @brief Trait: @c Functor's multiplication and comultiplication satisfy the
+ *  Frobenius law (Street, "Frobenius monads and pseudomonoids", 2004):
+ *  @f$T\mu \circ \delta T = \delta \circ \mu = \mu T \circ T\delta@f$.  A
+ *  certificate, primary false.  Being a monad and a comonad is not enough:
+ *  on streams (the diagonal monad, the suffix comonad) @f$\delta \circ \mu@f$
+ *  reads @f$s_{i+j}(i+j)@f$ where @f$T\mu \circ \delta T@f$ reads
+ *  @f$s_{i+j}(j)@f$.  @tparam Functor the functor. */
+export template <typename Functor>
+struct is_frobenius_monad : std::false_type {};
+/** The one-tuple: μ and δ are the identity up to wrapping, both sides of the
+ *  law the identity. */
+template <typename T>
+struct is_frobenius_monad<tuple_functor<T>> : std::true_type {};
 
 /** @brief A Kleisli triple ⟨T, η, (−)*⟩ (Manes), the monad in its extension
  *  form: the unit and bind, their laws certified by @c is_kleisli_triple.
@@ -240,9 +255,14 @@ concept IsCoKleisliTriple =
       { box <<= f } -> std::same_as<typename Functor::template Shape<U>>;
     };
 
+/** @brief A Frobenius monad (Street): a Kleisli and a co-Kleisli triple on one
+ *  functor whose μ and δ satisfy the Frobenius law, certified by
+ *  @c is_frobenius_monad.  @tparam Functor the functor.  @tparam T
+ *  @tparam U the element types. */
 export template <typename Functor, typename T, typename U>
 concept IsFrobenius =
-    IsKleisliTriple<Functor, T, U> && IsCoKleisliTriple<Functor, T, U>;
+    IsKleisliTriple<Functor, T, U> && IsCoKleisliTriple<Functor, T, U> &&
+    is_frobenius_monad<Functor>::value;
 
 /** @section kleisli__Kleisli_Operators */
 
@@ -305,7 +325,7 @@ constexpr auto κ(MA const& ma, F f) {
  * This is the textbook co-Kleisli extension operation (extend/cobind).
  *
  * @tparam WA The comonadic type (e.g., @c std::tuple<T> as the
- *             bona-fide Frobenius carrier per @c
+ *             Frobenius monad per @c
  *             kleisli__The_Tuple_Frobenius_Engine, or the identity-
  *             arrow Identity).  Maybe is monad-only and intentionally
  *             not a comonadic carrier here (#632).
