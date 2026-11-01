@@ -58,11 +58,12 @@ constexpr N sites(N L, N n, bool complemented) {
 }
 // 7 · 4^3 · 4^6 either way: a site and a palindrome of even length both
 // merge their legs in pairs.
-static_assert(sites<std::uint64_t, true>(12, 6) == 1'835'008 &&
-              sites<std::uint64_t, false>(12, 6) == 1'835'008 &&
-              sites<std::uint64_t, true>(12, 7) == 0 &&
-              sites<std::uint64_t, false>(12, 7) == 1'572'864 &&
-              sites<std::uint64_t>(12, 6, true) == 1'835'008);
+// One assertion each: together they exceed one constant evaluation's steps.
+static_assert(sites<std::uint64_t, true>(12, 6) == 1'835'008);
+static_assert(sites<std::uint64_t, false>(12, 6) == 1'835'008);
+static_assert(sites<std::uint64_t, true>(12, 7) == 0);
+static_assert(sites<std::uint64_t, false>(12, 7) == 1'572'864);
+static_assert(sites<std::uint64_t>(12, 6, true) == 1'835'008);
 }  // namespace
 
 // One symbol per variant, so the IR is read function by function:
