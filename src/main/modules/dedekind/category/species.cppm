@@ -69,10 +69,13 @@ struct SpeciesTraits<T> {
 /**
  * @concept IsSpecies
  * @brief Formal verification that a type has been registered in the Atlas.
- * @details @c std::regular, not Rule 1's @c std::semiregular: a species'
- * laws are equations, so its @c == belongs to it, and a function object with
- * @c SpeciesTraits (@c std::logical_and<bool>) is an arrow, not a species
- * (#1116).
+ * @details The rule of thumb for value constraints across the library:
+ * @c std::semiregular by default (the Jlt paper's Rule 1), @c std::regular
+ * only where the code needs @c operator==(T, T), since a carrier's @c == is
+ * one more operation of its signature.  @c IsSpecies asks @c std::regular: a
+ * species' laws are equations, so its @c == belongs to it, and a function
+ * object with @c SpeciesTraits (@c std::logical_and<bool>) is an arrow, not a
+ * species (#1116).
  */
 export template <typename T>
 concept IsSpecies =

@@ -15,7 +15,11 @@
  * independently testable part.  This partition is the @b assembly: @c Reduce
  * is the algebra that folds those parts into one normal form under @c cata
  * (@c :f_algebra), applying exactly the laws the carrier proves; @c reduce_t
- * is that normal form's type.  Reduction power scales with the carrier's
+ * is that normal form's type.  Terms are compared @b only as normal forms,
+ * where structural equality is equality of what they denote: a node-by-node
+ * @c == on unreduced terms would give false negatives (@c a∧b against
+ * @c b∧a), so the term nodes define none (#1116).  Reduction power scales
+ * with the carrier's
  * structure: a bounded chain collapses the most, and @c bool (the two-element
  * Boolean lattice) is the optimal witness where every law fires.
  *
