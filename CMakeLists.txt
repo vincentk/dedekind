@@ -289,7 +289,10 @@ target_compile_options(set-pruning-ir-fixture PRIVATE
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    find_package(Python 3.15 QUIET COMPONENTS Interpreter Development.Module)
+    # Development.SABIModule too: nanobind builds STABLE_ABI only where
+    # Python::SABIModule exists, and silently falls back to the full ABI otherwise.
+    find_package(Python 3.15 QUIET COMPONENTS Interpreter Development.Module
+                 Development.SABIModule)
     if(NOT Python_FOUND)
         find_package(Python COMPONENTS Interpreter QUIET)
         if(Python_Interpreter_FOUND)
