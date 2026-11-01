@@ -226,7 +226,7 @@ ci-install-paper-deps:
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments curl unzip fontconfig
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex texlive-lang-greek python3-pygments curl unzip fontconfig
 	# minted as a matching pair at its latest, ahead of TeX Live's: the LaTeX
 	# packages from CTAN (CTAN_LATEX_PACKAGES, each .sty generated from its
 	# .ins) into TEXMFHOME, which TeX searches first, and minted's Python
