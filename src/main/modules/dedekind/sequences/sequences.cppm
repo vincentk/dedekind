@@ -8,6 +8,15 @@
  * @note "Lo que no se sabe expresar no se sabe."
  *       — Miguel de Unamuno (España), Spanish Wikiquote.
  *       [Trans: "What one cannot express, one does not know."]
+ *
+ * @section sequences__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a>: limits, series, summability and monotone
+ *     or bounded sequences; still open are the ratio, root and comparison
+ *     tests and power series.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/330">#330
+ *     undergraduate algorithms and data structures</a>: finite sequences;
+ *     still open are stacks, queues, heaps and trees.
  */
 
 export module dedekind.sequences;

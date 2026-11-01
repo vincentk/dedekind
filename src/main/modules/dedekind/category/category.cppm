@@ -36,6 +36,17 @@
  * overflow the part of mathematics in the coming years, from the foundations up
  * to the most advanced parts."
  *       -- Alexander Grothendieck, ICM Edinburgh lecture (1958)
+ *
+ * @section category__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a>: the algebraic and categorical
+ *     hierarchy against the nLab; still open are the quasigroup, the
+ *     groupoid, the Lie algebra with Jacobi and antisymmetry checked, the
+ *     general comonoid, the monoidal category with its coherence data
+ *     (beyond the cartesian @c IsTensor), the symmetric monoidal and the
+ *     enriched category, and the multi-object dagger; the band and the
+ *     Heyting algebra exist as @c IsMereologicalMeetBand and
+ *     @c IsHeytingLatticeCategory.
  */
 
 export module dedekind.category;

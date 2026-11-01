@@ -49,6 +49,10 @@
  *
  * @build_order imports @c :species (@c unit_v); upstream of @c :lattice /
  *              @c :category.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a> (work in progress): the
+ *     multi-object dagger.
  */
 module;
 

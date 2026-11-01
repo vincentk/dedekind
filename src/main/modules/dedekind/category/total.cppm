@@ -34,6 +34,10 @@
  * indebted to E. Fischer, from whom I received the decisive impulse to study
  * abstract algebra from an arithmetical viewpoint."
  *       -- Emmy Noether, Habilitation curriculum vitae (1919)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a> (work in progress): the quasigroup
+ *     beside @c IsLoop.
  */
 module;
 

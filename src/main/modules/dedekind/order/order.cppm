@@ -29,6 +29,11 @@
  *       study of clarity of thought."
  *       — William P. Thurston, *On proof and progress in mathematics*,
  *         Bulletin of the AMS 30, 2 (1994), §1.
+ *
+ * @section order__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/308">#308
+ *     undergraduate probability and statistics</a>: the powerset lattice
+ *     @c Sub as the substrate of a σ-algebra; no measure yet.
  */
 export module dedekind.order;
 

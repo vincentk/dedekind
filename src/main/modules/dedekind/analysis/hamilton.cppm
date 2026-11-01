@@ -31,6 +31,10 @@
  * @note "The variation of the definite integral of the difference between
  * the kinetic and potential energies is zero." — Sir William Rowan Hamilton
  *
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a> (work in progress): the Lie
+ *     algebra: @c IsPoissonAlgebra with Jacobi and antisymmetry checked.
  */
 module;
 

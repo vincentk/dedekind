@@ -9,6 +9,10 @@
  * @note "A theorem's elegance is measured by the simplicity of the tests
  * needed to trust it in practice."
  *       -- Olga Taussky-Todd, paraphrase
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a> (work in progress): the ratio, root and
+ *     comparison tests.
  */
 module;
 

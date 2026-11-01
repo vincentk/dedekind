@@ -36,6 +36,11 @@
  *       (Cambridge, 2017), on spider fusion: the copy / merge Frobenius
  *       maps compose by their wiring alone, which is exactly why the meet
  *       falls out of the comonoid structure rather than the carrier.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a> (work in progress): the monoidal
+ *     category with its coherence data beyond the cartesian @c IsTensor (see
+ *     also #951).
  */
 module;
 

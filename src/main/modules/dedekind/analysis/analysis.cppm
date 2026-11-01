@@ -24,6 +24,24 @@
  * ("Analysis is not only about calculating; it is about organizing the
  *  structures that make calculation intelligible.")
  * -- Laurent Schwartz, paraphrase
+ *
+ * @section analysis__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a>: present in part are sequence limits and
+ *     series, the central-difference derivative, the trapezoidal integral
+ *     and the FTC as numerical hypotheses; still open are limits and
+ *     continuity of functions, a differentiability concept, Taylor series,
+ *     the integral theorems of vector calculus, initial-value problems and
+ *     the differential algebra.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/272">#272
+ *     Denotational Automatic Differentiation</a>: forward-mode AD by @c Dual
+ *     (a ring, ε² = 0); still open are @c DualVector with a directional
+ *     seed, Jacobians computed from it and their chain rule, the @c OneForm
+ *     bridge and nonsmooth derivatives.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/273">#273
+ *     Kernel Functions and Feature Maps</a>: the Gaussian kernel; still open
+ *     are the positive-definiteness witness, the Gabor kernel and the kernel
+ *     rig (sums and products).
  */
 
 export module dedekind.analysis;

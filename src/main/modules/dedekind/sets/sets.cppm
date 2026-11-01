@@ -34,6 +34,17 @@
  * @note "Das Wesen der Mathematik liegt in ihrer Freiheit." — Georg Cantor,
  * *Grundlagen einer allgemeinen Mannigfaltigkeitslehre* (1883).
  * [Trans: "The essence of mathematics lies entirely in its freedom."]
+ *
+ * @section sets__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/308">#308
+ *     undergraduate probability and statistics</a>: probability over sets:
+ *     measures and σ-algebras over the subobjects, random variables,
+ *     distributions and expectation; nothing delivered yet.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/274">#274
+ *     Probabilistic Set Membership</a>: graded membership exists as L-valued
+ *     sets over chains (@c IsLSet, @c Percentage); still open are real or
+ *     semiring scores (@c ScoreSet), Boltzmann weights, entropy, and
+ *     SoftMeet and SoftJoin with a temperature.
  */
 export module dedekind.sets;
 

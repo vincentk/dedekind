@@ -21,6 +21,11 @@
  * ("The theory of reproducing kernels links geometry and computation in a way
  *  that makes the operator truly visible.")
  * -- Stefan Bergman, paraphrase
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/273">#273
+ *     Kernel Functions and Feature Maps</a> (work in progress): a
+ *     positive-definiteness witness for @c IsKernel (symmetry is unchecked
+ *     today), the Gabor kernel and the kernel rig.
  */
 module;
 
