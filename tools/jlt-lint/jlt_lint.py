@@ -26,6 +26,7 @@ import glob
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 
@@ -66,6 +67,17 @@ def tool_check(rule):
     return None
 
 
+def exit_status(p):
+    """How a child ended, when it did not end well: its exit code, or the
+    signal that killed it (a negative return code), so a crash is not read as
+    a parse error."""
+    if p.returncode == 0:
+        return ""
+    if p.returncode < 0:
+        return f"killed by signal {signal.Signals(-p.returncode).name}\n"
+    return f"exit code {p.returncode}\n"
+
+
 def run_tool(tool, build, path, namespace, checks):
     """The checks of jlt-lint on one file, over one parse: locations per
     check, or None and the output on an error."""
@@ -76,7 +88,7 @@ def run_tool(tool, build, path, namespace, checks):
         args += ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
     p = subprocess.run(args, capture_output=True, text=True)
     if p.returncode != 0:
-        return None, p.stdout + p.stderr
+        return None, exit_status(p) + p.stdout + p.stderr
     lines = [l for l in p.stdout.splitlines() if l.strip()]
     if len(checks) == 1:  # one check prints no section header
         return {checks[0]: lines}, p.stdout + p.stderr
@@ -142,7 +154,7 @@ def run(query, build, path, namespace, rules):
     # findings of match k are the notes between count k-1 and count k.
     counts = [int(c) for c in COUNT.findall(out)]
     if p.returncode != 0 or len(counts) != len(owner) + 1:
-        return None, None, out
+        return None, None, exit_status(p) + out
     if counts[0] == 0:
         return None, None, f"namespace {namespace} does not occur in {path}"
     total = {r: 0 for r in rules}
@@ -197,7 +209,7 @@ def main():
     per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
     for ((f, ns), entries), (counts, where, out) in zip(ordered, results):
         if counts is None:
-            print(f"jlt-lint: {f}: does not parse, a matcher did not run, or the scope is absent", file=sys.stderr)
+            print(f"jlt-lint: {f}: does not parse, a matcher did not run, the scope is absent, or a tool failed", file=sys.stderr)
             print("\n".join(out.splitlines()[:30]), file=sys.stderr)
             failures += 1
             continue
