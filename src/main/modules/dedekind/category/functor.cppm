@@ -1077,7 +1077,8 @@ struct Delooping {
  *  the monoid acts on.  @tparam H the action.  @tparam V what it acts on.
  *  @tparam S the monoid's carrier. */
 export template <std::semiregular H, std::semiregular V, std::semiregular S>
-  requires std::invocable<const H&, V, S>
+  requires std::invocable<const H&, V, S> &&
+           std::convertible_to<std::invoke_result_t<const H&, V, S>, V>
 struct Acting {
   using Domain = V;
   using Codomain = V;
@@ -1140,7 +1141,8 @@ struct is_functorial<ActionFunctor<H, V, S>> : std::true_type {};
  *  of a semimodule.  @tparam Act the action.  @tparam M the module.
  *  @tparam S the scalars. */
 export template <std::semiregular Act, std::semiregular M, std::semiregular S>
-  requires std::invocable<const Act&, S, M>
+  requires std::invocable<const Act&, S, M> &&
+           std::convertible_to<std::invoke_result_t<const Act&, S, M>, M>
 struct LeftActing {
   using Domain = M;
   using Codomain = M;

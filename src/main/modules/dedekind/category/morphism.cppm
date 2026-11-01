@@ -103,19 +103,20 @@ namespace dedekind::category {
 // being @c g @c ∘ @c f, the reified @c Compose<F, G>.  A functor
 // @c F: @c 𝒞 @c → @c 𝒟 is an arrow too, an arrow of @b Cat whose ends
 // are categories, with extra structure: its action on the arrows of
-// @c 𝒞, @c F(f) @c = @c F(f), with @c F(g @c ∘ @c f) @c = @c F(g)
+// @c 𝒞, written as the textbook writes it, @c F(f), the call on an arrow
+// beside the call on a category, with @c F(g @c ∘ @c f) @c = @c F(g)
 // @c ∘ @c F(f) and @c F(id) @c = @c id (@c IsFunctor, @c :functor).  So
 // there is one concept per notion, @c IsArrow and @c IsFunctor, the
-// second refining the first, and three spellings of @c >>:
+// second refining the first.  @c >> composes, and nothing else:
 //
 //   1. @c f @c >> @c g, arrows composed (this partition);
 //   2. @c F @c >> @c G, functors composed, which must compose their
 //      actions on arrows too: its overload (@c :functor) repeats the
 //      arrow overload's constraints and adds its own, so resolution
-//      prefers it by subsumption, as it does the unit laws below;
-//   3. @c F @c >> @c f, a functor's action on an arrow of its source
-//      category, @c F(f) (@c :functor); no composition is viable there,
-//      since the ends do not meet, a category against an object.
+//      prefers it by subsumption, as it does the unit laws below.
+//
+// A functor's action on an arrow is no composition and has no @c >>: it is
+// @c F(f).
 // ---------------------------------------------------------------------------
 
 /** @section morphism__Objects_And_Their_Presentations
