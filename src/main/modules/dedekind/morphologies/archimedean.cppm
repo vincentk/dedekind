@@ -219,8 +219,9 @@ static_assert(s1 == singleton(Successor<int>{}(origin(s0))),
               "Breadcrumb (iii): image(f, s) == singleton(f(origin(s))) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");
-static_assert(s1 ==
-                  (s0 >>= [](int x) { return singleton(Successor<int>{}(x)); }),
+static_assert(s1 == (s0 >>= dedekind::category::arrow<int>([](int x) {
+                       return singleton(Successor<int>{}(x));
+                     })),
               "Breadcrumb (iii): image factors through the existing "
               "Singleton-monad Kleisli bind (>>=).");
 

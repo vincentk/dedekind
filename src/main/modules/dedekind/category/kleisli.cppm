@@ -84,29 +84,6 @@ namespace dedekind::category {
  * IsCoKleisliTriple / IsFrobenius witnesses live.
  */
 
-namespace _kleisli_detail {
-template <typename U>
-struct is_maybe : std::false_type {};
-template <typename U>
-struct is_maybe<Maybe<U>> : std::true_type {};
-template <typename U>
-inline constexpr bool is_maybe_v = is_maybe<U>::value;
-}  // namespace _kleisli_detail
-
-// Bind: Maybe<T> >>= (T -> Maybe<U>) -> Maybe<U>.
-// Constrained via SFINAE-friendly partial-specialization detector: the
-// Kleisli arrow's codomain must be exactly @c Maybe<U> (= @c
-// std::optional<U>), ruling out accidental carrier-changing binds to
-// unrelated types that happen to accept @c std::nullopt_t (Copilot
-// review on #632; mirror of the @c is_tuple1 detector below).
-export template <typename T, typename Func>
-  requires _kleisli_detail::is_maybe_v<
-      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
-constexpr auto operator>>=(const Maybe<T>& m, Func f) {
-  using Result = std::invoke_result_t<Func, T>;
-  return m.has_value() ? std::move(f)(*m) : Result{std::nullopt};
-}
-
 /**
  * @brief unit_witness<Functor, T>: Generic Kleisli unit witness.
  * Lifts a value into the Kleisli extension named by @c Functor::template
@@ -147,33 +124,6 @@ struct counit_witness;
  * Box-as-trivially-comonadic path retired in #632; the std-blessed
  * @c std::tuple wrapper carries the Frobenius role going forward.
  */
-
-namespace _kleisli_detail {
-template <typename U>
-struct is_tuple1 : std::false_type {};
-template <typename U>
-struct is_tuple1<std::tuple<U>> : std::true_type {};
-template <typename U>
-inline constexpr bool is_tuple1_v = is_tuple1<U>::value;
-}  // namespace _kleisli_detail
-
-// Bind: std::tuple<T> >>= (T -> std::tuple<U>) -> std::tuple<U>.
-// Constrained via SFINAE-friendly partial-specialization detector: the
-// Kleisli arrow's codomain must be a 1-tuple, ruling out accidental
-// carrier-changing binds (Copilot review on #632).
-export template <typename T, typename Func>
-  requires _kleisli_detail::is_tuple1_v<
-      std::remove_cvref_t<std::invoke_result_t<Func, T>>>
-constexpr auto operator>>=(const std::tuple<T>& t, Func f) {
-  return std::move(f)(std::get<0>(t));
-}
-
-// Extend: std::tuple<T> <<= (std::tuple<T> -> U) -> std::tuple<U>.
-export template <typename T, typename Func>
-constexpr auto operator<<=(const std::tuple<T>& t, Func f) {
-  using U = std::invoke_result_t<Func, std::tuple<T>>;
-  return std::tuple<U>{std::move(f)(t)};
-}
 
 export template <typename T>
 struct unit_witness<tuple_functor<T>, T> final {
@@ -226,14 +176,28 @@ struct is_frobenius_monad : std::false_type {};
 template <typename T>
 struct is_frobenius_monad<tuple_functor<T>> : std::true_type {};
 
+namespace _kleisli_detail {
+/** @brief An arrow @c A → @c B the triple concepts probe bind and extend
+ *  with: only its type is read, never its value.  @tparam A @tparam B the
+ *  ends. */
+template <typename A, typename B>
+struct probe_arrow {
+  using Domain = A;
+  using Codomain = B;
+  B operator()(const A&) const { std::unreachable(); }
+};
+}  // namespace _kleisli_detail
+
 /** @brief A Kleisli triple ⟨T, η, (−)*⟩ (Manes), the monad in its extension
  *  form: the unit and bind, their laws certified by @c is_kleisli_triple.
  *  @tparam Functor the functor.  @tparam T @tparam U the element types. */
 export template <typename Functor, typename T, typename U>
 concept IsKleisliTriple =
     is_kleisli_triple<Functor>::value &&
-    requires(T x, typename Functor::template Shape<T> box,
-             std::function<typename Functor::template Shape<U>(T)> f) {
+    requires(
+        T x, typename Functor::template Shape<T> box,
+        _kleisli_detail::probe_arrow<T, typename Functor::template Shape<U>>
+            f) {
       {
         unit_witness<Functor, T>{}(x)
       } -> std::same_as<typename Functor::template Shape<T>>;
@@ -247,8 +211,10 @@ concept IsKleisliTriple =
 export template <typename Functor, typename T, typename U>
 concept IsCoKleisliTriple =
     is_cokleisli_triple<Functor>::value &&
-    requires(typename Functor::template Shape<T> box,
-             std::function<U(typename Functor::template Shape<T>)> f) {
+    requires(
+        typename Functor::template Shape<T> box,
+        _kleisli_detail::probe_arrow<typename Functor::template Shape<T>, U>
+            f) {
       { counit_witness<Functor, T>{}(box) } -> std::same_as<T>;
       { box <<= f } -> std::same_as<typename Functor::template Shape<U>>;
     };

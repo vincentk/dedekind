@@ -264,9 +264,11 @@ struct Path {
 
   /**
    * @section path__Kleisli_Triple
-   * @brief Bind (>>=): m >>= f.
+   * @brief Bind (>>=): m >>= f, for a Kleisli arrow @c f: T → Path<U>.
    */
   template <typename F>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<F>> &&
+             std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
   friend constexpr auto operator>>=(const Path& m, F&& f) {
     using ResultPath = std::invoke_result_t<F, T>;
     using U = typename ResultPath::Codomain;
@@ -284,9 +286,12 @@ struct Path {
 
   /**
    * @section path__Co_Kleisli_Triple
-   * @brief Extend (<<=): w <<= f.
+   * @brief Extend (<<=): w <<= f, for a co-Kleisli arrow @c f: Path<T> → U.
    */
   template <typename F>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<F>> &&
+             std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                          Path<T, Cardinality, Index>>
   friend constexpr auto operator<<=(const Path& w, F&& f) {
     // Symmetry: F now maps Path<T> -> U.
     // We wrap that U back into a Path<U>.

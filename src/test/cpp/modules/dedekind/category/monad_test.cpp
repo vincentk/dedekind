@@ -78,7 +78,8 @@ TEST_CASE("Category: Maybe-style bind and join behavior",
           "[category][monad][maybe]") {
   SECTION("Bind maps present optional values") {
     std::optional<int> value{5};
-    auto result = value >>= [](int x) { return std::optional<int>{x + 7}; };
+    auto result = value >>=
+        arrow<int>([](int x) { return std::optional<int>{x + 7}; });
 
     REQUIRE(result.has_value());
     CHECK(*result == 12);
@@ -86,25 +87,26 @@ TEST_CASE("Category: Maybe-style bind and join behavior",
 
   SECTION("Bind short-circuits on nullopt") {
     std::optional<int> value{std::nullopt};
-    auto result = value >>= [](int x) { return std::optional<int>{x + 7}; };
+    auto result = value >>=
+        arrow<int>([](int x) { return std::optional<int>{x + 7}; });
 
     CHECK_FALSE(result.has_value());
   }
 
   SECTION("Bind chaining preserves null propagation") {
     std::optional<int> value{3};
-    auto result = (value >>= [](int x) {
-      return x > 0 ? std::optional<int>{x * 2} : std::nullopt;
-    }) >>= [](int x) {
+    auto result = (value >>= arrow<int>([](int x) {
+                     return x > 0 ? std::optional<int>{x * 2} : std::nullopt;
+                   })) >>= arrow<int>([](int x) {
       return x > 10 ? std::optional<int>{x - 1} : std::nullopt;
-    };
+    });
 
     CHECK_FALSE(result.has_value());
   }
 
   SECTION("Bind with identity flattens nested optional") {
     std::optional<std::optional<int>> nested{std::optional<int>{9}};
-    auto result = nested >>= [](std::optional<int> inner) { return inner; };
+    auto result = nested >>= id<std::optional<int>>();
 
     REQUIRE(result.has_value());
     CHECK(*result == 9);
@@ -112,7 +114,7 @@ TEST_CASE("Category: Maybe-style bind and join behavior",
 
   SECTION("Bind with identity keeps nullopt when outer optional is empty") {
     std::optional<std::optional<int>> nested{std::nullopt};
-    auto result = nested >>= [](std::optional<int> inner) { return inner; };
+    auto result = nested >>= id<std::optional<int>>();
 
     CHECK_FALSE(result.has_value());
   }

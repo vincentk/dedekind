@@ -328,8 +328,8 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the Kleisli arrow @c T → a set. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-                 typename Func>
-  requires std::invocable<const Func&, const T&>
+                 dedekind::category::IsArrow Func>
+  requires std::same_as<dedekind::category::Dom<Func>, T>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            const Func& f) {
   /**
@@ -347,9 +347,9 @@ constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the co-Kleisli arrow, a point @c → a value. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-                 typename Func>
-  requires std::invocable<const Func&,
-                          const Comprehension<𝔸<T, L, C>, Point<T>>&>
+                 dedekind::category::IsArrow Func>
+  requires std::same_as<dedekind::category::Dom<Func>,
+                        Comprehension<𝔸<T, L, C>, Point<T>>>
 constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            const Func& f) {
   using U = std::invoke_result_t<const Func&,

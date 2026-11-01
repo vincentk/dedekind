@@ -27,8 +27,8 @@ TEST_CASE("Sequences: The Path to Continuity",
   }
 
   SECTION("Comonadic Extension (Contextual Sampling)") {
-    auto diffs = path <<=
-        [](const Path<ℤ>& ctx) { return ctx.at(0) - ctx.at(1); };
+    auto diffs = path <<= arrow<Path<ℤ>>(
+        [](const Path<ℤ>& ctx) { return ctx.at(0) - ctx.at(1); });
 
     REQUIRE(diffs.at(0) == -1);
   }
