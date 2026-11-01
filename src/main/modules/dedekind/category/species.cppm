@@ -487,10 +487,9 @@ struct unit_trait<T, std::multiplies<>> {
  */
 export template <typename T>
 concept HasTotalProduct = requires {
-  typename std::bool_constant<(
-      static_cast<void>(std::numeric_limits<T>::max() *
-                        std::numeric_limits<T>::max()),
-      true)>;
+  typename std::bool_constant<(static_cast<void>(std::numeric_limits<T>::max() *
+                                                 std::numeric_limits<T>::max()),
+                               true)>;
 };
 static_assert(HasTotalProduct<unsigned char> && HasTotalProduct<unsigned> &&
               HasTotalProduct<unsigned long long> && HasTotalProduct<bool> &&
