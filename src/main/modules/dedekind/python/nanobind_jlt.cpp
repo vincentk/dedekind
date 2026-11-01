@@ -271,13 +271,22 @@ void bind_tensors(nb::module_& m) {
       .def("__rshift__", [](const jlt::LetterPower& f, const jlt::Reverse& r) {
         return f >> r;
       });
-  nb::class_<jlt::Section>(
+  auto section = nb::class_<jlt::Section>(
       m, "Section",
       "A symmetric section of a tensor power, held as itself: the words a "
       "symmetry fixes.  Counted as a Tensor wherever one is taken.");
   auto factored = nb::class_<jlt::Factored>(
       m, "Tensor", "A tensor held by its factors, the core's count_factors.");
   factored.def(nb::init_implicit<const jlt::Section&>());
+  // the left operand of * is not converted implicitly, only the arguments
+  section.def("__mul__", [](const jlt::Section& a, const jlt::Factored& b) {
+    return jlt::Factored{
+        jlt::count_factors(dedekind::category::operator*(jlt::Factored{a}, b))};
+  });
+  section.def("__mul__", [](const jlt::Section& a, const jlt::WordPower& b) {
+    return jlt::Factored{
+        jlt::count_factors(dedekind::category::operator*(jlt::Factored{a}, b))};
+  });
   nb::class_<dedekind::category::Window<>>(
       m, "Window",
       "The window of a word: its letters from a position, a given number "
