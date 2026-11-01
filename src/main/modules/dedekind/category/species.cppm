@@ -44,6 +44,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <limits>       // HasTotalProduct: the largest product
 #include <type_traits>  // std::remove_cvref_t: cv-normalise op keys (#934)
 
 export module dedekind.category:species;
@@ -474,10 +475,35 @@ struct unit_trait<T, std::multiplies<>> {
 };
 
 /**
+ * @concept HasTotalProduct
+ * @brief Whether @c T's product is defined on all of @c T: a word narrower
+ *        than @c int multiplies after promotion to @c int, and the largest
+ *        product must fit it.  @c unsigned @c char's does (255 · 255);
+ *        @c unsigned @c short's does not (65535 · 65535 overflows @c int,
+ *        undefined as @c -INT_MIN is), so it is refused as @c int is.
+ *        Decided by the compiler: undefined behaviour is no constant
+ *        expression.
+ * @tparam T the carrier.
+ */
+export template <typename T>
+concept HasTotalProduct = requires {
+  typename std::bool_constant<(
+      static_cast<void>(std::numeric_limits<T>::max() *
+                        std::numeric_limits<T>::max()),
+      true)>;
+};
+static_assert(HasTotalProduct<unsigned char> && HasTotalProduct<unsigned> &&
+              HasTotalProduct<unsigned long long> && HasTotalProduct<bool> &&
+              !HasTotalProduct<unsigned short> && !HasTotalProduct<char16_t>);
+
+/**
  * @brief Multiplication is ONLY associative for types with defined (modular)
- * overflow. Signed integers fail this at Level 0 due to the UB hazard.
+ * overflow. Signed integers fail this at Level 0 due to the UB hazard, and so
+ * does a word whose product overflows @c int after promotion
+ * (@c HasTotalProduct).
  */
 template <std::unsigned_integral T>
+  requires HasTotalProduct<T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
 
 template <std::unsigned_integral T>
@@ -594,6 +620,7 @@ struct unit_trait<T, std::bit_and<>> {
 
 // 3. Multiplication (*)
 template <std::unsigned_integral T>
+  requires HasTotalProduct<T>
 inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
 
 template <std::signed_integral T>
@@ -601,7 +628,7 @@ inline constexpr bool is_associative_v<T, std::multiplies<>> = false;
 
 template <typename T>
 inline constexpr bool is_distributive_v<T, std::multiplies<T>, std::plus<T>> =
-    std::unsigned_integral<T>;
+    std::unsigned_integral<T> && HasTotalProduct<T>;
 
 // Certification: Bitwise AND distributes over Bitwise OR, and OR over AND
 // (the bit lattice is distributive: a Boolean algebra, bit by bit)
@@ -648,7 +675,7 @@ static_assert(
  */
 template <typename T>
 inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
-    std::unsigned_integral<T>;
+    std::unsigned_integral<T> && HasTotalProduct<T>;
 
 static_assert(
     characteristic_v<unsigned char> == 256,
