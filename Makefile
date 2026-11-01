@@ -217,8 +217,9 @@ ci-install-doxygen-deps:
 JULIAMONO_VERSION := 0.062
 # The LaTeX packages taken from CTAN at their latest, ahead of the
 # distribution's TeX Live: minted 3.8 (beside latexminted 0.7 from PyPI) and
-# what it asks newer than ubuntu-26.04 has.  One more is one more name here.
-CTAN_LATEX_PACKAGES := minted fvextra
+# the two it asks newer than ubuntu-26.04 has, both by minted's author (its
+# other packages it asks at no version).  One more is one more name here.
+CTAN_LATEX_PACKAGES := minted fvextra latex2pydata
 ci-install-paper-deps:
 	@if ! command -v apt-get >/dev/null 2>&1; then \
 		echo "ERROR: ci-install-paper-deps requires apt-get (intended for Ubuntu CI runners)."; \
