@@ -222,6 +222,11 @@ ci-install-paper-deps:
 	fi
 	sudo apt-get update
 	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments curl unzip fontconfig
+	# minted's latexminted from PyPI, its latest, ahead of TeX Live's bundled
+	# 0.6.0 on PATH: that one passes argparse a keyword newer Pythons refuse
+	# ("unexpected keyword argument 'color'", ubuntu-26.04).
+	python -m pip install --upgrade latexminted
+	command -v latexminted
 	# JuliaMono — downloaded from GitHub releases, installed system-wide,
 	# fontconfig cache refreshed so lualatex/luaotfload finds it.  `curl -fsSL`
 	# fails fast on HTTP errors (e.g. a missing release asset) rather than
