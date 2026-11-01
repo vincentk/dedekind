@@ -241,7 +241,8 @@ ci-install-paper-deps:
 			&& dest="$$(kpsewhich -var-value TEXMFHOME)/tex/latex/$$p" \
 			&& mkdir -p "$$dest" && cp $$p/*.sty "$$dest"/ \
 			&& rm -rf $$p $$p.zip \
-			&& kpsewhich $$p.sty; \
+			&& kpsewhich $$p.sty \
+			|| { echo "ERROR: $$p from CTAN did not install"; exit 1; }; \
 	done
 	python -m pip install --upgrade latexminted
 	command -v latexminted
