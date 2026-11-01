@@ -321,8 +321,9 @@ concept HasAxiom10PowerObjectLattice =
  *  @details The standard textbook ETCS Axiom 10 is the @b Axiom of
  *  Choice: every epimorphism splits.  Diaconescu (1975) showed that
  *  in a topos, AC implies the topos is Boolean (classical internal
- *  logic).  The codebase commits to one direction of this
- *  bi-implication only:
+ *  logic).  It is an implication, not a bi-implication: a Boolean topos
+ *  need not satisfy AC (see @c etcs__Choice_And_Decidability).  The
+ *  codebase commits to the classifier's side only:
  *
  *      @c L @c = @c Boole @c ⟹ Sub(A) Boolean   (Diaconescu's
  * classical-Ω direction)
@@ -392,11 +393,11 @@ concept HasETCSAxioms =
  * lattice) are precisely what fails for general CCCs.
  *
  * @section etcs__Regular_carrier
- * The carrier @c A::Domain is additionally required to be @c std::regular
- * --- the @c Jlt value-semantics half of @c Trsk @c = @c Jlt @c ∩ @c Set.
- * Rooting it here means downstream algebraic-set concepts inherit carrier
- * regularity from @c IsSet rather than re-pinning it (see
- * @c algebra::IsClosedAlgebra).
+ * The carrier @c A::Domain is additionally required to be @c std::regular:
+ * @c IsSet is the Boolean specialisation of @c IsLSet, the one place a set's
+ * carrier is asked for @c ==, decidable equality being the diagonal
+ * classified in @c Ω @c = @c 𝔹.  The algebraic-set concepts sit on
+ * @c IsLSet and ask only @c std::semiregular (@c algebra::IsAlgebraOnSet).
  *
  * @note @c std::regular @b must stay the @b first conjunct.
  * @c HasETCSAxioms is not yet a total predicate: on a non-regular domain
@@ -410,6 +411,23 @@ concept HasETCSAxioms =
  * FIXME(#779): make
  * @c HasETCSAxioms SFINAE-total, after which this ordering becomes
  * defensive rather than load-bearing.
+ *
+ * @section etcs__Choice_And_Decidability
+ * Choice and decidable equality coincide on the sets this library works
+ * with, but are distinct axioms:
+ *   - Choice implies decidability: in a topos, AC implies excluded middle,
+ *     so every object's diagonal is complemented (Diaconescu 1975; Goodman
+ *     and Myhill 1978).  ETCS takes choice as an axiom (Lawvere 1964), so an
+ *     ETCS set has decidable equality.
+ *   - The converse fails in general: G-sets for a nontrivial group G form a
+ *     Boolean topos in which the epimorphism @c G @c → @c 1, @c G acting on
+ *     itself, has no section (no point is fixed).
+ *   - Over a finite index the converse holds: choosing from finitely many
+ *     inhabited sets needs no axiom, so a finite, enumerable carrier with
+ *     decidable equality has choice by search (the enumeration certificate).
+ * So choice is not encoded beside @c == (@c HasAxiom10ChoiceSplitEpicWitness
+ * is opt-in): where a set is finite and decidable it follows, and elsewhere
+ * it is a separate certificate.  #1116.
  */
 export template <typename A>
 concept IsSet =
