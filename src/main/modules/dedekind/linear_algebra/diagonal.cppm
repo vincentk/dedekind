@@ -432,7 +432,7 @@ static_assert(rk1_scaled(2, 5) == 12,
  */
 export template <typename F>
   requires dedekind::category::IsArrow<F> &&
-           std::regular<typename std::remove_cvref_t<F>::Codomain> &&
+           std::semiregular<typename std::remove_cvref_t<F>::Codomain> &&
            dedekind::algebra::HasRingOperators<
                typename std::remove_cvref_t<F>::Codomain>
 constexpr Matrix2x2V<typename std::remove_cvref_t<F>::Codomain> to_dense(

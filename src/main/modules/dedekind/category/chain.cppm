@@ -434,8 +434,7 @@ operator>>(const Slice<C>& s, F f) {
  *  @c n, @c n - 1, ..., 0 (the Jlt paper's Listing 3).  @tparam N the
  *  carrier. */
 export template <HasNNOStep N>
-  requires std::equality_comparable<N> && std::default_initializable<N> &&
-           std::regular<N>
+  requires std::regular<N>  // the walk compares states (unfold_view)
 constexpr auto chain() {
   return chain(Prior<N>{});
 }

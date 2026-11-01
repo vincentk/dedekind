@@ -159,7 +159,7 @@ static_assert(std::is_arithmetic_v<unsigned short> &&
  *
  * @details
  * The faithful lift, matching every other rung: @c IsAlgebraOnSet supplies
- * the carrier discipline (@c IsSet roots @c std::regular on @c X::Domain,
+ * the carrier discipline (@c IsLSet roots @c std::semiregular on @c X::Domain,
  * @c IsClosedAlgebra pins strict closure) and
  * @c category::IsField<X::Domain, Add, Mult> supplies the axioms --- a
  * commutative ring whose non-zero elements are multiplicatively invertible

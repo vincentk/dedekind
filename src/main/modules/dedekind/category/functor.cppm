@@ -47,11 +47,8 @@
  * Value provides the "What." The value is a resident of a category, but it does
  * not own the mapping logic itself.
  *
- * 3. The Applicator (The Bridge):
- *    To bridge the Intensional and the Extensional, we use the @ref fmap
- *    factory. This binds a Functor to a Value, creating a **Functorial
- * Applicator**. This witness allows the "Handy" fish operators (>> and <<) to
- * resolve unambiguously by utilizing the Functor's categorical authority.
+ * 3. The Bridge: the functor's action on an arrow, F(f), applied to a
+ *    value, F(f)(ma).  No applicator stands between them (#1116).
  *
  * @section functor__IsFunctor_Models
  * Partition
@@ -60,7 +57,7 @@
  * - @ref identity_functor: Cat -> Cat.
  * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
  * - @ref tuple_functor: Set<T> -> Set<std::tuple<T>> (the project's
- *   bona-fide Frobenius carrier; #632).
+ *   Frobenius monad; #632).
  * - @ref composite_functor: composition G . F for any composable functors.
  *
  * Notes:
@@ -115,7 +112,7 @@ namespace dedekind::category {
  * IsSmallCategory Domain and Codomain) @b and the morphism action, required
  * as the call on an arrow, @c F(f), beside the call on the source category,
  * its action on objects, as the textbook writes both.  @c IsShapedFunctor (the
- * fmap / type-constructor endofunctor: @c maybe_functor, @c tuple_functor,
+ * type-constructor functor: @c maybe_functor, @c tuple_functor,
  * @c complex-/dual-style functors) @b refines it with @c Shape<U>, so
  * @c IsShapedFunctor @c ⟹ @c IsFunctor by construction.  Functor
  * @b variance branches off @c IsFunctor directly.
@@ -218,65 +215,6 @@ concept IsShapedFunctor = IsFunctor<F> && requires {
   };
 };
 
-/**
- * @concept IsMorphicApplicator
- * @brief The stage-2 engine that has the data and waits for the action.
- */
-template <typename T, typename Functor, typename Value>
-concept IsMorphicApplicator =
-    requires(T engine, typename Functor::Σ_cat::Arrow f) {
-      /**
-       * The engine accepts a "Value-Arrow" and returns the result.
-       * We check that the result type is exactly the Target Category's Species.
-       */
-      { engine(f) } -> std::same_as<typename Functor::Τ_cat::Species>;
-    };
-
-/**
- * @concept IsFunctorialApplicator
- * @brief The interface of the "Contextual Wrapper" returned by fmap(Functor).
- */
-export template <typename T, typename Functor>
-concept IsFunctorialApplicator =
-    requires(T applicator, typename Functor::Σ_cat::Species ma) {
-      /**
-       * 1. Data Binding
-       * The applicator must accept a Value (ma) from the Functor's source
-       * category. This returns the "Morphic Applicator" (Stage 2).
-       */
-      { applicator(ma) } -> IsMorphicApplicator<Functor, decltype(ma)>;
-    };
-
-/**
- * @brief Stage 2: The Morphic Engine.
- * It has the Law and the Matter; it just needs the Action.
- */
-template <typename Functor, typename Value>
-struct morphic_engine {
-  Functor h;
-  Value ma;
-
-  template <typename Func>
-    requires requires(const Functor& functor, Func g) {
-      functor(arrow(std::move(g)));
-    }
-  constexpr auto operator()(Func f) const {
-    // 1. Ensure we have an Arrow (lifts lambdas if necessary)
-    auto lifted_arrow = h(arrow(std::move(f)));
-
-    /**
-     * 2. The Crucial Step:
-     * Your Functor knows the Target Category (Τ_cat).
-     * We wrap the raw data 'ma' into that category's Species (e.g.,
-     * Maybe<int>).
-     */
-    using TargetSpecies = typename Functor::Τ_cat::Species;
-
-    // Pass the 'Boxed' version of ma to the lifted morphism
-    return lifted_arrow(TargetSpecies{ma});
-  }
-};
-
 /** @brief @c f on the value an optional holds, none where it holds none:
  *  the optional functor's action on an arrow.  Its codomain is stated, so an
  *  arrow into optionals lifts to one into optionals of optionals, as a
@@ -339,8 +277,8 @@ struct maybe_functor {
  * @brief The Intensional Functor for 1-tuple values.
  *
  * @details Concrete @ref IsShapedFunctor model implementing
- * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's bona-fide
- * Frobenius (= monad + comonad) carrier: std::tuple<T> always has a
+ * Set<T> -> Set<std::tuple<T>>.  Pinned as the project's Frobenius
+ * monad (@c IsFrobenius, :kleisli): std::tuple<T> always has a
  * single element, so ε via std::get<0> is total (no Some-fragment
  * concession), and δ wraps once more cleanly.  Sister to
  * @ref maybe_functor (monad only) per the #632 carrier-role split.
@@ -389,56 +327,9 @@ static_assert(
 // { F(f) } is a valid IsArrow.
 static_assert(
     IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
-    "IsShapedFunctor ⟹ IsFunctor: the fmap functors are also textbook "
+    "IsShapedFunctor ⟹ IsFunctor: the container functors are also textbook "
     "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3) carrying the "
     "action on arrows, F(f).");
-
-/**
- * @brief Stage 1: The Functorial Applicator.
- * It has the Law; it just needs the Matter.
- */
-template <typename Functor>
-struct functor_applicator {
-  Functor h;
-
-  template <typename Value>
-  constexpr auto operator()(Value ma) const {
-    return morphic_engine<Functor, std::decay_t<Value>>{h, std::move(ma)};
-  }
-};
-
-// Now fmap is just a factory for the Applicator
-template <typename Functor>
-  requires IsShapedFunctor<Functor>
-[[nodiscard]] constexpr auto fmap(Functor const& h) {
-  return functor_applicator<Functor>{h};
-}
-
-/**
- * @brief A Functorial Context (The "Fishy" Value).
- * Holds both the Law (Functor) and the Matter (Value).
- */
-template <typename Functor, typename Value>
-struct context final {
-  Functor functor;  // The "Instruction Manual" (can have state!)
-  Value value;      // The "Matter"
-
-  template <typename Func>
-  constexpr auto operator>>(Func f) const {
-    // We use the specific instance of the functor, preserving its state
-    return fmap(functor)(value)(std::move(f));
-  }
-};
-
-/**
- * @brief 1-Argument Factory: Bind data to a specific Functor instance.
- * Creates a @ref context that pairs a functor with the value it acts on.
- */
-export template <typename Functor, typename Value>
-constexpr auto immerse(Functor h, Value s) {
-  return context<std::decay_t<Functor>, std::decay_t<Value>>{std::move(h),
-                                                             std::move(s)};
-}
 
 /**
  * @brief Composite Functor G . F (Maps CatS -> CatT -> CatU).

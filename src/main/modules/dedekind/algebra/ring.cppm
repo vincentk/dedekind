@@ -121,7 +121,7 @@ concept IsRig = dedekind::category::IsRig<typename X::Domain, Add, Mult> &&
  *
  *  A rng has no multiplicative identity, so it does not go through the
  *  multiplicative-monoid rung; the algebraic-set discipline is pinned
- *  directly via @c IsAlgebra (@c std::regular + closure under both
+ *  directly via @c IsAlgebra (@c std::semiregular + closure under both
  *  operations). */
 export template <typename X, typename Add = std::plus<typename X::Domain>,
                  typename Mult = std::multiplies<typename X::Domain>>

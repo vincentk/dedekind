@@ -487,9 +487,9 @@ Like System~F, strongly normalising and so unable to express every computable fu
 \toprule
 rule & archetype & keeps out of \Cpp{} & buys & costs \\
 \midrule
-1 Substitution & \cppinline{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
-2 Abstraction & \cppinline{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
-3 Descent & \cppinline{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & a third answer, \emph{out of budget} \\
+1 Substitution & \texttt{id}, the identity arrow & state, pointers, exceptions & one program, two binding times & no state beyond a call's own locals, no I/O \\
+2 Abstraction & \texttt{concat}, a monoid's fold at a length in its type & a body using what its constraints do not name & the System~F reading & no ad hoc use of a type \\
+3 Descent & \texttt{concat} over a chain, a fold over structure in a value & unbounded loops, general recursion & termination & a third answer, \emph{out of budget} \\
 \bottomrule
 \end{tabularx}
 \caption{The posture at a glance, each rule named for what it conserves, with what it keeps out of \Cpp{}: the filtration from \Cpp{} to Jlt.
@@ -588,7 +588,7 @@ concept & class & record type \\
 requirement met by the type's own operation & an instance nobody wrote & field filled by a primitive \\
 explicit specialisation of a deleted function template & instance & field supplied by a value \\
 constrained overload & instance with a context & function from records to a record \\
-\cppinline{requires} clause on a function & class constraint & one more parameter \\
+\texttt{requires} clause on a function & class constraint & one more parameter \\
 \bottomrule
 \end{tabularx}
 \caption{Dictionary passing, met in \Cpp{}.

@@ -5,7 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    # labeled: adding the `wheel` or `testpypi` label builds the wheel
+    # labeled: a label that builds more (`docs`, `wheel`, `testpypi`) runs
+    # CI again
     types: [opened, synchronize, reopened, labeled]
   # A manual release is this whole pipeline on main, the 48 hours lifted:
   # gh workflow run cmake.yml --ref main -f force=true
@@ -90,8 +91,12 @@ jobs:
           build/python-docs/install-report.txt
           build/python-docs/pydoc-pynzli.txt
 
+  # The docs and the papers; deployed to Pages from main.  A PR labelled
+  # `docs` builds them too, to try a change to the toolchain before main.
   docs-and-pages:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: >-
+      (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
+      contains(github.event.pull_request.labels.*.name, 'docs')
     needs: build-and-deploy
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
@@ -145,11 +150,13 @@ jobs:
         cp docs/paper/jlt/jlt.pdf build/pages/jlt.pdf
 
     - name: Upload artifact
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4
       with:
         path: 'build/pages'
 
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       id: deployment
       uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
