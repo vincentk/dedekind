@@ -26,9 +26,12 @@ jobs:
       contents: read
       pull-requests: write
 
+  # The wheel: the release's version when one is due (release-plan), else
+  # 0.0.0.dev0; manylinux-tagged (auditwheel) and checked, then installed and
+  # smoke-tested.  A release publishes this very wheel (the release job).
   python-dist:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build-and-deploy
+    needs: [build-and-deploy, release-plan]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
@@ -49,6 +52,20 @@ jobs:
         sudo ./llvm.sh 23
         sudo apt-get install -y clang-23 ninja-build clang-format-23
 
+    - name: Version
+      env:
+        PLAN: ${{ needs.release-plan.outputs.version }}
+        TAG: ${{ needs.release-plan.outputs.tag }}
+      run: |
+        case "$PLAN" in
+          skip) v=0.0.0.dev0 ;;
+          resume) v=${TAG#v} ;;
+          *) v=$PLAN ;;
+        esac
+        sed -i "s/^__version__ = .*/__version__ = \"$v\"/" python/pynzli/_version.py
+        echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
+        echo "pynzli $v"
+
     - name: Build Python Distribution Artifacts
       env:
         CC: clang-23
@@ -58,8 +75,12 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++-23
           -DCMAKE_CXX_SCAN_FOR_MODULES=ON
       run: |
-        python -m pip install --upgrade pip build twine
+        python -m pip install --upgrade pip build twine auditwheel patchelf
         python -m build
+        # The wheel CMake built is tagged linux_x86_64, which PyPI refuses:
+        # auditwheel checks the symbols it needs and retags it manylinux.
+        python -m auditwheel repair dist/*-linux_*.whl -w dist/
+        rm dist/*-linux_*.whl
         python -m twine check dist/*
         mkdir -p build/python-docs
         ls -lh dist | tee build/python-docs/dist-manifest.txt
@@ -72,12 +93,14 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install dist/*.whl
         mkdir -p build/python-docs
-        python -m pip show pydedekind > build/python-docs/install-report.txt
-        python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
+        python -m pip show pynzli > build/python-docs/install-report.txt
+        python -m pydoc pynzli > build/python-docs/pydoc-pynzli.txt
         python - <<'PY'
-        from dedekind.jlt import succ
-        from dedekind.pst import A, image, u64, π
+        from pynzli.jlt import succ
+        from pynzli.pst import A, image, u64, π
 
+        import os, pynzli
+        assert pynzli.__version__ == os.environ["PYNZLI_VERSION"], pynzli.__version__
         U = A(u64)
         assert (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)
         assert image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))
@@ -93,7 +116,7 @@ jobs:
           build/python-docs/dist-manifest.txt
           build/python-docs/dist-sha256.txt
           build/python-docs/install-report.txt
-          build/python-docs/pydoc-dedekind.txt
+          build/python-docs/pydoc-pynzli.txt
 
   docs-and-pages:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -169,7 +192,7 @@ jobs:
   # missing is resumed, else the next version, or "skip" inside the 48 hours.
   release-plan:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [build-and-deploy, python-dist, docs-and-pages]
+    needs: [build-and-deploy, docs-and-pages]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     env:
       MIN_HOURS: "48"
@@ -200,11 +223,17 @@ jobs:
       pull-requests: write
 
   release:
-    needs: [release-plan, build-macos]
+    needs: [release-plan, build-macos, python-dist]
     if: needs.release-plan.outputs.version != 'skip'
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    # Trusted publishing (OIDC, no token): TestPyPI knows this workflow and
+    # this environment as pynzli's publisher.
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pynzli
     permissions:
       contents: write
+      id-token: write
     concurrency:
       group: release
       cancel-in-progress: false
@@ -222,6 +251,43 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
+
+    - name: The wheel python-dist built
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+      with:
+        name: python-dist
+        path: python-dist
+
+    # The wheel carries the version of the first plan: a second plan that
+    # disagrees (another release cut meanwhile) stops here, before a tag.
+    - name: The wheel is this release's
+      if: steps.plan.outputs.version != 'skip'
+      env:
+        PLAN: ${{ steps.plan.outputs.version }}
+        TAG: ${{ steps.plan.outputs.tag }}
+      run: |
+        v=$PLAN; [ "$v" = resume ] && v=${TAG#v}
+        ls python-dist/dist/pynzli-"$v"-*.whl
+        mkdir -p dist && cp python-dist/dist/pynzli-"$v"* dist/
+        echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
+
+    - name: Publish to TestPyPI
+      if: steps.plan.outputs.version != 'skip'
+      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true  # a resumed release may have uploaded already
+
+    - name: Install from TestPyPI
+      if: steps.plan.outputs.version != 'skip'
+      run: |
+        python3 -m venv .venv-testpypi
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          .venv-testpypi/bin/pip install --quiet --no-cache-dir \
+            --index-url https://test.pypi.org/simple/ "pynzli==$PYNZLI_VERSION" && break
+          echo "not on the index yet ($i)"; sleep 30
+        done
+        .venv-testpypi/bin/python -c "import pynzli, pynzli.pst; assert pynzli.__version__ == '$PYNZLI_VERSION'; print('testpypi-ok', pynzli.__version__)"
 
     - name: Resume a tag whose release is missing
       if: steps.plan.outputs.version == 'resume'
