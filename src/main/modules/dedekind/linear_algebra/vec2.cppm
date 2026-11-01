@@ -308,12 +308,15 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
  *  endomap of the entries applied entrywise.  @tparam T the entries.
  *  @tparam F the arrow. */
 export template <typename T, typename F>
+  requires std::invocable<const F&, const T&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const T&>, T>
 struct Vec2Map {
   using Domain = Vec2V<T>;
   using Codomain = Vec2V<T>;
-  F f;
+  [[no_unique_address]] F f;
   constexpr Vec2V<T> operator()(Vec2V<T> const& v) const {
-    return {std::invoke(f, v.x), std::invoke(f, v.y)};
+    return {static_cast<T>(std::invoke(f, v.x)),
+            static_cast<T>(std::invoke(f, v.y))};
   }
 };
 
@@ -351,12 +354,15 @@ struct vec2_functor {
  *  endomap of the entries applied entrywise.  @tparam T the entries.
  *  @tparam F the arrow. */
 export template <typename T, typename F>
+  requires std::invocable<const F&, const T&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const T&>, T>
 struct Covec2Map {
   using Domain = Covec2V<T>;
   using Codomain = Covec2V<T>;
-  F f;
+  [[no_unique_address]] F f;
   constexpr Covec2V<T> operator()(Covec2V<T> const& v) const {
-    return {std::invoke(f, v.x), std::invoke(f, v.y)};
+    return {static_cast<T>(std::invoke(f, v.x)),
+            static_cast<T>(std::invoke(f, v.y))};
   }
 };
 

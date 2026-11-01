@@ -286,7 +286,9 @@ export template <typename T, typename F>
   requires std::invocable<const F&, const T&>
 struct MaybeMap {
   using Domain = std::optional<T>;
-  using Codomain = std::optional<std::invoke_result_t<const F&, const T&>>;
+  using Codomain =  // an owning value: the result decayed, never a reference
+      std::optional<
+          std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>>;
   [[no_unique_address]] F f;
   constexpr Codomain operator()(const Domain& m) const {
     if (!m.has_value()) return Codomain{std::nullopt};
@@ -299,7 +301,8 @@ export template <typename T, typename F>
   requires std::invocable<const F&, const T&>
 struct TupleMap {
   using Domain = std::tuple<T>;
-  using Codomain = std::tuple<std::invoke_result_t<const F&, const T&>>;
+  using Codomain =  // an owning value: the result decayed, never a reference
+      std::tuple<std::remove_cvref_t<std::invoke_result_t<const F&, const T&>>>;
   [[no_unique_address]] F f;
   constexpr Codomain operator()(const Domain& t) const {
     return Codomain{std::invoke(f, std::get<0>(t))};

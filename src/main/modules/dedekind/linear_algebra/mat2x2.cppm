@@ -557,13 +557,17 @@ constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
  *  endomap of the entries applied entrywise.  @tparam T the entries.
  *  @tparam F the arrow. */
 export template <typename T, typename F>
+  requires std::invocable<const F&, const T&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const T&>, T>
 struct Matrix2x2Map {
   using Domain = Matrix2x2V<T>;
   using Codomain = Matrix2x2V<T>;
-  F f;
+  [[no_unique_address]] F f;
   constexpr Matrix2x2V<T> operator()(Matrix2x2V<T> const& m) const {
-    return {std::invoke(f, m.m11), std::invoke(f, m.m12), std::invoke(f, m.m21),
-            std::invoke(f, m.m22)};
+    return {static_cast<T>(std::invoke(f, m.m11)),
+            static_cast<T>(std::invoke(f, m.m12)),
+            static_cast<T>(std::invoke(f, m.m21)),
+            static_cast<T>(std::invoke(f, m.m22))};
   }
 };
 
