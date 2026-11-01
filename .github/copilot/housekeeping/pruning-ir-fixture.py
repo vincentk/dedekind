@@ -378,6 +378,7 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                     f"{symbol}: expected residual `fdiv double` from the "
                     "Cramer 2x2 solve to survive in IR — its absence would "
                     "mean the runtime kernel was accidentally constant-folded."
+                    f"\n{block}"
                 )
             # Residual loop / argmax structure: the outer C(n,2) enumeration
             # and the argmax accumulator survive as `phi` nodes.
