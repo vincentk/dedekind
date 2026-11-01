@@ -25,7 +25,11 @@ project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 if(APPLE)
     # Move the Makefile's "CXXFLAGS" logic here so it's not overwritten
     add_compile_options("-stdlib=libc++")
-    add_link_options("-stdlib=libc++" "-L/usr/local/opt/llvm/lib")
+    # libc++ from the LLVM that compiles, wherever Homebrew put it
+    # (/usr/local on Intel, /opt/homebrew on Apple Silicon).
+    cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_llvm_bin)
+    cmake_path(GET _dedekind_llvm_bin PARENT_PATH _dedekind_llvm_root)
+    add_link_options("-stdlib=libc++" "-L${_dedekind_llvm_root}/lib")
     
     # Auto-find SDK path on Mac
     execute_process(COMMAND xcrun --sdk macosx --show-sdk-path
@@ -444,21 +448,18 @@ endif()
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
 # --- Find LLVM Tools (Cross-Platform) ---
-find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-23 llvm-profdata-22 llvm-profdata REQUIRED)
-find_program(LLVM_COV_TOOL      NAMES llvm-cov-23 llvm-cov-22 llvm-cov REQUIRED)
+# Next to the compiler first: Homebrew's LLVM is keg-only, not on PATH.
+cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_compiler_dir)
+find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-23 llvm-profdata
+             HINTS ${_dedekind_compiler_dir} REQUIRED)
+find_program(LLVM_COV_TOOL      NAMES llvm-cov-23 llvm-cov
+             HINTS ${_dedekind_compiler_dir} REQUIRED)
 
 # Prepare the -object list for the command line
 set(OBJ_ARGS "")
 foreach(lib IN LISTS ALL_LIBS)
     list(APPEND OBJ_ARGS -object ${lib})
 endforeach()
-
-# Determine sed flag based on OS
-if(APPLE)
-    set(SED_INPLACE_FLAG "-i" "") # macOS requires an empty string after -i
-else()
-    set(SED_INPLACE_FLAG "-i")    # Linux (GNU) does not
-endif()
 
 add_custom_target(generate_coverage
     # 1. Merge the raw profiles into a single .profdata file
