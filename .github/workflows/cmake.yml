@@ -5,6 +5,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    # labeled: adding the `wheel` label builds the wheel (python-dist)
+    types: [opened, synchronize, reopened, labeled]
 
 permissions:
   contents: read
@@ -28,9 +30,13 @@ jobs:
 
   # The wheel: the release's version when one is due (release-plan), else
   # 0.0.0.dev0; manylinux-tagged (auditwheel) and checked, then installed and
-  # smoke-tested.  A release publishes this very wheel (the release job).
+  # smoke-tested.  A release publishes this very wheel (the release job).  A
+  # PR labelled `wheel` builds it too, at 0.0.0.dev0 (it has no plan).
   python-dist:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: >-
+      !cancelled() && needs.build-and-deploy.result == 'success' &&
+      ((github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+       contains(github.event.pull_request.labels.*.name, 'wheel'))
     needs: [build-and-deploy, release-plan]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
@@ -58,7 +64,7 @@ jobs:
         TAG: ${{ needs.release-plan.outputs.tag }}
       run: |
         case "$PLAN" in
-          skip) v=0.0.0.dev0 ;;
+          skip|"") v=0.0.0.dev0 ;;
           resume) v=${TAG#v} ;;
           *) v=$PLAN ;;
         esac
