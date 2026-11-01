@@ -7,7 +7,7 @@ name = "pydedekind"
 version = "0.1.0a0"
 description = "Python bindings for the dedekind library."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.15"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = []
@@ -19,9 +19,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
@@ -44,9 +42,10 @@ wheel.packages = ["python/dedekind"]
 # missing one fails the wheel install (#961: _jlt is the Jlt arrow exhibit;
 # #1001: _pst the Pst chains, with the term surface over u64 and 𝔽ₚ).
 build.targets = ["_jlt", "_pst"]
-# One wheel per platform for every Python from 3.12, the stable ABI's (the
-# modules are nanobind STABLE_ABI, CMakeLists.txt): tagged cp312-abi3.
-wheel.py-api = "cp312"
+# One wheel per platform for every Python from 3.15, the floor, through the
+# stable ABI (the modules are nanobind STABLE_ABI, CMakeLists.txt): tagged
+# cp315-abi3.
+wheel.py-api = "cp315"
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
