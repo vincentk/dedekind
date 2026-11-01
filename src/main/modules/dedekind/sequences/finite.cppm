@@ -14,6 +14,10 @@
  * @c IsNet shapes, evaluable at translation time.  The pair is the two-way
  * bridge one level down --- one realization for run time, one for compile
  * time.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/330">#330
+ *     undergraduate algorithms and data structures</a> (work in progress):
+ *     stacks, queues, heaps and trees.
  */
 module;
 

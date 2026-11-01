@@ -60,6 +60,10 @@
  *       — Arthur Cayley, *A Memoir on the Theory of Matrices*,
  *         Philosophical Transactions of the Royal Society of London
  *         148 (1858), Article 14.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/297">#297
+ *     undergraduate linear algebra</a> (work in progress): n×n determinants,
+ *     adjugates and inverses.
  */
 module;
 

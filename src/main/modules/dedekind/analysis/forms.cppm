@@ -8,6 +8,13 @@
  *
  * @note "To new concepts correspond, necessarily, new signs."
  *       -- David Hilbert, Mathematical Problems (1900)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/272">#272
+ *     Denotational Automatic Differentiation</a> (work in progress): the
+ *     @c OneForm ↔ @c Dual bridge.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a> (work in progress): the integral theorems
+ *     of vector calculus.
  */
 
 module;

@@ -79,6 +79,14 @@
  *       ("Music is the pleasure the human mind experiences from counting
  * without being aware that it is counting.")
  *       -- Gottfried Wilhelm Leibniz, letter to Christian Goldbach (1712)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/272">#272
+ *     Denotational Automatic Differentiation</a> (work in progress):
+ *     @c DualVector<F,N> with a directional seed, and Jacobians computed
+ *     from @c Dual.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a> (work in progress): a differentiability
+ *     concept.
  */
 
 module;
