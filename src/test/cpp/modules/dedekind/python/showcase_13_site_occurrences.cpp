@@ -14,7 +14,8 @@
  *   (a) @c witness_sites(N, n): both at run time;
  *   (b) @c witness_sites_of_6(N): the site's length known, EcoRI's six;
  *   (b′) @c witness_sites_in_12(n): the genome's length known, twelve;
- *   (c) @c witness_sites_12_6(): both known, @c ret @c i64 @c 1835008.
+ *   (c) @c witness_sites_12_6(): both known and bound by @c constexpr,
+ *       @c ret @c i64 @c 1835008.
  * The functions are @c extern "C" and never inlined, so each is its own
  * symbol in the IR the fixture script reads at @c -O2.
  *
@@ -68,7 +69,10 @@ extern "C" __attribute__((noinline)) std::uint64_t witness_sites_in_12(
     std::uint64_t n) {
   return site_occurrences(12, n);
 }
-/** @brief (c) Both known: the count, a constant in the IR. */
+/** @brief (c) Both known, bound at compile time: the count, a constant in
+ *  the IR.  The binding time is the @c constexpr binding's, not the
+ *  optimiser's choice. */
 extern "C" __attribute__((noinline)) std::uint64_t witness_sites_12_6() {
-  return site_occurrences(12, 6);
+  constexpr std::size_t count = site_occurrences(12, 6);
+  return count;
 }

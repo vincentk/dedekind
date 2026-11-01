@@ -395,15 +395,19 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         # Listing 5: the count at four binding times.  With both lengths
         # known it is a constant, 7 · 4^3 · 4^6; the other three are what
         # the paper reads back from the IR, each present as its own symbol.
+        # The three partly or wholly free stages are printed, what the paper
+        # reads back; only the bound one is asserted.
         for symbol in ("witness_sites", "witness_sites_of_6",
                        "witness_sites_in_12", "witness_sites_12_6"):
-            if extract_function_block(ir_text, symbol) is None:
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
+            print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
         block = extract_function_block(ir_text, "witness_sites_12_6")
         if not re.search(r"^\s*ret i64 1835008\s*$", block, re.MULTILINE):
             raise AssertionError(
                 "Expected witness_sites_12_6 to collapse to `ret i64 1835008` "
-                "in IR (both lengths known at compile time)."
+                "in IR (both lengths bound by constexpr)."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
