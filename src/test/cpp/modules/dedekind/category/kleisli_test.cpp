@@ -144,22 +144,28 @@ TEST_CASE("Category: Co-Kleisli σ (sigma) extend",
 
 TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
   SECTION("bind and extend alias κ and σ") {
-    CHECK(bind(Maybe<size_t>{6}, adding(4uz) >> η_maybe) == Maybe<size_t>{10});
-    CHECK(extend(std::tuple<size_t>{6}, ε_tuple >> scaling(3uz)) ==
+    CHECK(dedekind::category::bind(Maybe<size_t>{6}, adding(4uz) >> η_maybe) ==
+          Maybe<size_t>{10});
+    CHECK(dedekind::category::extend(std::tuple<size_t>{6},
+                                     ε_tuple >> scaling(3uz)) ==
           std::tuple<size_t>{18});
   }
 
   SECTION("bind with maybe_monad uses the default join route") {
     const auto plus_two = adding(2uz) >> η_maybe;
-    CHECK(bind(maybe_monad, Maybe<size_t>{5}, plus_two) == Maybe<size_t>{7});
-    CHECK(bind(maybe_monad, Maybe<size_t>{}, plus_two) == std::nullopt);
+    CHECK(dedekind::category::bind(maybe_monad, Maybe<size_t>{5}, plus_two) ==
+          Maybe<size_t>{7});
+    CHECK(dedekind::category::bind(maybe_monad, Maybe<size_t>{}, plus_two) ==
+          std::nullopt);
   }
 
   SECTION("bind and extend with tuple_monad use the default routes") {
     const std::tuple<size_t> value{6};
-    CHECK(bind(tuple_monad, value, adding(4uz) >> η_tuple) ==
-          std::tuple<size_t>{10});
-    CHECK(extend(tuple_monad, value, ε_tuple >> scaling(3uz)) ==
+    CHECK(
+        dedekind::category::bind(tuple_monad, value, adding(4uz) >> η_tuple) ==
+        std::tuple<size_t>{10});
+    CHECK(dedekind::category::extend(tuple_monad, value,
+                                     ε_tuple >> scaling(3uz)) ==
           std::tuple<size_t>{18});
   }
 }
