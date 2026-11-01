@@ -1085,7 +1085,8 @@ struct Acting {
   H h;
   S by;
   constexpr V operator()(V v) const {
-    return static_cast<V>(h(std::move(v), S(by)));  // a temporary, as checked
+    // a temporary scalar, as checked; std::invoke admits member pointers
+    return static_cast<V>(std::invoke(h, std::move(v), S(by)));
   }
 };
 /** @brief The arrows by which a monoid acts on @c V, as a category: the
@@ -1149,7 +1150,8 @@ struct LeftActing {
   [[no_unique_address]] Act act;
   S by;
   constexpr M operator()(M m) const {
-    return static_cast<M>(act(S(by), std::move(m)));  // a temporary, as checked
+    // a temporary scalar, as checked; std::invoke admits member pointers
+    return static_cast<M>(std::invoke(act, S(by), std::move(m)));
   }
 };
 /** @brief The arrows by which the scalars act on a semimodule, as a
@@ -1233,7 +1235,7 @@ struct DaggerFunctor {
   [[no_unique_address]] Dagger dagger{};
   constexpr Codomain operator()(const Domain&) const { return {}; }
   constexpr Element<T, Opposite<Op>> operator()(const Element<T, Op>& a) const {
-    return {static_cast<T>(dagger(a.value))};
+    return {static_cast<T>(std::invoke(dagger, a.value))};
   }
   constexpr IdentityIn<Τ_cat> operator()(const IdentityIn<Σ_cat>&) const {
     return {};

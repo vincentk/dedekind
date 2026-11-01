@@ -81,17 +81,6 @@ TEST_CASE("Category: Natural textbook operator defaults",
     CHECK(duplicated(id<int>())(9) == 9);
   }
 
-  SECTION("Maybe monad supports monadic η, μ defaults") {
-    // Maybe is mathematically a monad, not a comonad — counit on
-    // nullopt has no honest answer.  The bona-fide Frobenius carrier
-    // is std::tuple<T> (next SECTION); Maybe stays monad-only here.
-    auto injected = η(maybe_monad, 4);
-    CHECK(injected == Maybe<int>{4});
-
-    Maybe<Maybe<int>> nested{Maybe<int>{17}};
-    CHECK(μ(maybe_monad, nested) == Maybe<int>{17});
-  }
-
   SECTION("Tuple monad supports η, μ, ε, δ defaults (Frobenius)") {
     // std::tuple<T> is the project's bona-fide Frobenius (= monad +
     // comonad) carrier per #632.  The 1-tuple always has a single

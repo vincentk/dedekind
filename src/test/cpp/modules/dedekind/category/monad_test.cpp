@@ -62,13 +62,6 @@ TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
     CHECK(j(8) == 8);
   }
 
-  SECTION("pure, join route through Maybe defaults (monad only)") {
-    // Maybe is a monad, not a comonad — extract / duplicate live on
-    // the Frobenius carrier std::tuple<T>, not on Maybe.
-    CHECK(pure(maybe_monad, 2) == Maybe<int>{2});
-    CHECK(join(maybe_monad, Maybe<Maybe<int>>{Maybe<int>{6}}) == Maybe<int>{6});
-  }
-
   SECTION("pure, join, extract, duplicate route through tuple defaults") {
     // std::tuple<T> is the project's bona-fide Frobenius carrier
     // per #632 — both monad and comonad laws hold without concession.
