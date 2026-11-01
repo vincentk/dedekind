@@ -69,6 +69,10 @@ struct SpeciesTraits<T> {
 /**
  * @concept IsSpecies
  * @brief Formal verification that a type has been registered in the Atlas.
+ * @details @c std::regular, not Rule 1's @c std::semiregular: a species'
+ * laws are equations, so its @c == belongs to it, and a function object with
+ * @c SpeciesTraits (@c std::logical_and<bool>) is an arrow, not a species
+ * (#1116).
  */
 export template <typename T>
 concept IsSpecies =
