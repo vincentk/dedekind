@@ -16,7 +16,8 @@
  * extensions for specific structures, we enable:
  * - Extensional Sets: Materialized collections (Singleton, Finite Sets).
  * - Intensional Sets: Rule-based definitions (Comprehensions).
- * - Set Morphisms: Automatic lifting of functions (fmap) and filters (bind).
+ * - Set Morphisms: Automatic lifting of functions (a functor's F(f)) and
+ *   filters (bind).
  *
  * @section sets__The_Comprehension_Syntax
  * This module enables symbolic set-builder notation:

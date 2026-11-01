@@ -6,8 +6,8 @@
  * @section kleisli__The_Kleisli_Unification
  * This partition defines the "Extension Systems" that serve as the functional
  * engine for the Dedekind ontology. By focusing on the Kleisli Triple (for
- * Monads) and the Co-Kleisli Triple (for Comonads), we sidestep C++ template
- * limitations regarding partial specialization of 'fmap'.
+ * Monads) and the Co-Kleisli Triple (for Comonads), extension reads the
+ * functor's action on arrows, F(f), and needs no applicator of its own.
  *
  * @subsection The_Kleisli_Triple (Monadic Push)
  * A species provides a Kleisli system if it implements:
@@ -38,10 +38,8 @@
  * - fish aliases: `ma >> f` (Kleisli) and `wa << f` (co-Kleisli)
  *
  * @section kleisli__The_Bootstrapping_Mechanism
- * This partition is the prerequisite for the ':functorial' partition. Because
- * 'fmap' is an epi-phenomenon in this ontology, the presence of either a
- * Kleisli or Co-Kleisli structure allows the automatic derivation of functorial
- * mapping via the Highway Bridge.
+ * Kleisli extension is μ ∘ T(f) and co-Kleisli extension W(f) ∘ δ: both read
+ * the functor's action on arrows, F(f), from @c :functor (#1114).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -527,8 +525,8 @@ concept IsKleisliDeref =
  *          type-checked; downstream code can extend by adding new tags
  *          to the @c IsDefaultMonadTag disjunction in @c :natural.
  *          Default @c false; opt-in by specialising to @c true at the
- *          @c (E, M) pair.  Pairs with the composition / fmap
- *          machinery above; this trait only declares membership in the
+ *          @c (E, M) pair.  Pairs with the Kleisli extension
+ *          above; this trait only declares membership in the
  *          Kleisli category, it does not implement composition.
  */
 export template <typename E, typename M>

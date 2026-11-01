@@ -27,8 +27,8 @@
  * @section singleton__Structural_Role
  * The Singleton provides the baseline proof for the Unified Highway Bridge.
  * Its sets-layer operations (constructor, bind, extend) are available now;
- * category-layer η/ε and derived fmap wiring is intentionally postponed to a
- * follow-up integration pass.
+ * category-layer η/ε and the functor's action F(f) are intentionally
+ * postponed to a follow-up integration pass.
  *
  * @tparam T The underlying Species of the pivot element.
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.

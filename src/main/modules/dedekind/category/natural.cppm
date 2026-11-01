@@ -359,7 +359,7 @@ struct identity_transformation {
   constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // In the common single-species case, the source object label can be reused
     // directly as the target witness. Otherwise, return the lifted identity
-    // arrow itself: by the functor identity law, fmap(id_c(c)) = id_{F(c)}.
+    // arrow itself: by the functor identity law, F(id_c(c)) = id_{F(c)}.
     if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
                                       typename F::Τ_cat::Arrow::Domain>) {
       return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
