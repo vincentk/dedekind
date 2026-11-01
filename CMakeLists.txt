@@ -80,12 +80,14 @@ option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
-# Enable testing with Catch2 (pinned release tag; no tracking of main).
+# Enable testing with Catch2, its latest release pinned (no tracking of main),
+# built from source because distribution packages lag far behind (Ubuntu
+# 24.04 ships 3.4).
 include(FetchContent)
 FetchContent_Declare(
   Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.14.0
+    GIT_TAG        v3.16.1
     GIT_SHALLOW    TRUE
 )
 
