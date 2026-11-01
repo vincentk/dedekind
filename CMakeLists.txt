@@ -130,7 +130,14 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         # not inlined) produce non-PIC relocations that fail the .so link.
         # POSITION_INDEPENDENT_CODE ON makes the static libs PIC-compatible
         # for both shared-library linkage and the test executables.
-        POSITION_INDEPENDENT_CODE ON)
+        POSITION_INDEPENDENT_CODE ON
+        # The bindings' visibility (nanobind hides every symbol), so a module
+        # the bindings import is compiled with the flags it was built with
+        # and CMake reuses its BMI, rather than synthesising a second copy of
+        # the library for them (@synth targets, 290 of them under CMake 4).
+        # A static library's symbols link alike either way.
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
@@ -333,11 +340,14 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
 
     # Both modules are built against CPython's stable ABI (STABLE_ABI, Python
     # 3.15 and later, the floor in pyproject.toml), so one wheel per platform,
-    # cp315-abi3, serves every Python from 3.15 on.
+    # cp315-abi3, serves every Python from 3.15 on.  NOMINSIZE keeps them at
+    # the build's own optimisation rather than nanobind's -Os, so the modules
+    # they import share one BMI with every other consumer (see the libraries'
+    # visibility above).
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python dedekind.jlt facade).
-    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
+    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI NOMINSIZE
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -350,7 +360,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Pst exhibit (#1001) is its own private native module, dedekind._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
     # field 𝔽ₚ, and the term surface over them; re-exported by dedekind.pst).
-    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
+    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI NOMINSIZE
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
         CXX_SCAN_FOR_MODULES ON
