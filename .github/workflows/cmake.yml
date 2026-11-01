@@ -15,7 +15,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
@@ -119,7 +119,7 @@ jobs:
   python-dist:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
     steps:
@@ -188,7 +188,7 @@ jobs:
   docs-and-pages:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
       pages: write       # required by actions/upload-pages-artifact + deploy-pages
@@ -256,7 +256,7 @@ jobs:
   release:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [build-and-deploy, python-dist, docs-and-pages]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: write
     concurrency:
