@@ -12,7 +12,7 @@ import math
 import time
 import unittest
 
-from dedekind.jlt import (
+from pynzli.jlt import (
     alphabet,
     count,
     count_factors,

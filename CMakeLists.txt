@@ -317,32 +317,25 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)
 
     set(DEDEKIND_PYTHON_PACKAGE_ROOT "${CMAKE_BINARY_DIR}/python")
-    set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/dedekind")
+    set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/pynzli")
+    # The package's pure-Python modules, staged next to the extensions so the
+    # tests and notebooks import the build as it is, and installed alike.
+    set(PYNZLI_MODULES __init__.py _version.py jlt.py pst.py trsk.py)
+    list(TRANSFORM PYNZLI_MODULES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/python/pynzli/"
+         OUTPUT_VARIABLE PYNZLI_MODULE_PATHS)
 
     file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
-        ${DEDEKIND_PYTHON_PACKAGE_DIR}/__init__.py
-        COPYONLY)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
-        ${DEDEKIND_PYTHON_PACKAGE_DIR}/jlt.py
-        COPYONLY)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
-        ${DEDEKIND_PYTHON_PACKAGE_DIR}/pst.py
-        COPYONLY)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/trsk.py
-        ${DEDEKIND_PYTHON_PACKAGE_DIR}/trsk.py
-        COPYONLY)
+    foreach(module IN LISTS PYNZLI_MODULES)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/python/pynzli/${module}
+                       ${DEDEKIND_PYTHON_PACKAGE_DIR}/${module} COPYONLY)
+    endforeach()
 
     # Both modules are built against CPython's stable ABI (STABLE_ABI, Python
     # 3.15 and later, the floor in pyproject.toml), so one wheel per platform,
     # cp315-abi3, serves every Python from 3.15 on.
-    # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
+    # The Jlt exhibit (#961) is its own private native module, pynzli._jlt
     # (NumPy-style: one private compiled module per cohesive component,
-    # re-exported by the pure-Python dedekind.jlt facade).
+    # re-exported by the pure-Python pynzli.jlt facade).
     nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
@@ -353,9 +346,9 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_jlt PRIVATE -Wno-sign-conversion)
     target_link_libraries(_jlt PRIVATE dedekind_optimization)
 
-    # The Pst exhibit (#1001) is its own private native module, dedekind._pst
+    # The Pst exhibit (#1001) is its own private native module, pynzli._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
-    # field 𝔽ₚ, and the term surface over them; re-exported by dedekind.pst).
+    # field 𝔽ₚ, and the term surface over them; re-exported by pynzli.pst).
     nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
@@ -366,13 +359,8 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_compile_options(_pst PRIVATE -Wno-sign-conversion)
     target_link_libraries(_pst PRIVATE dedekind_optimization)
 
-    install(TARGETS _jlt _pst LIBRARY DESTINATION dedekind)
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/jlt.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/pst.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/trsk.py
-        DESTINATION dedekind)
+    install(TARGETS _jlt _pst LIBRARY DESTINATION pynzli)
+    install(FILES ${PYNZLI_MODULE_PATHS} DESTINATION pynzli)
 
     add_test(
         NAME test_python_bindings

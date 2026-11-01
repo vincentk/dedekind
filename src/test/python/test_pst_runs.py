@@ -10,8 +10,8 @@ and wraps at the end.  Nothing is decided in Python.
 
 import unittest
 
-from dedekind.jlt import id, pred, refl, succ
-from dedekind.pst import A, ap, canonical, image, preimage, u64, π, cardinality
+from pynzli.jlt import id, pred, refl, succ
+from pynzli.pst import A, ap, canonical, image, preimage, u64, π, cardinality
 
 U = A(u64)
 MAX = 2**64 - 1

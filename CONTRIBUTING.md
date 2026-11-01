@@ -304,7 +304,7 @@ Both reports are uploaded to Codecov for centralized visibility.
 
 1. Open the PR's Codecov report link (available in PR checks or at `https://app.codecov.io/gh/vincentk/dedekind`).
 2. In the "Files" tab, verify that Python source files are listed alongside C++ files:
-   - Look for entries like `python/dedekind/__init__.py`, `python/dedekind/sequences.py`, etc.
+   - Look for entries like `python/pynzli/__init__.py`, `python/pynzli/sequences.py`, etc.
    - These indicate Python code is being tracked for coverage.
 3. Each file shows line-by-line coverage: green for covered, red for uncovered, gray for non-executable.
 

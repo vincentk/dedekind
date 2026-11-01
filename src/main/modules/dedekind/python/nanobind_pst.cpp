@@ -8,8 +8,8 @@
  *
  * @section Description
  * @f$\mathbf{Pst} = \mathbf{Jlt} \cap \mathbf{Chain}@f$ (paper §3), bound as
- * the private native extension @c dedekind._pst (re-exported by
- * @c dedekind.pst).  A @b universe is @c A(T), the set of every value of a
+ * the private native extension @c pynzli._pst (re-exported by
+ * @c pynzli.pst).  A @b universe is @c A(T), the set of every value of a
  * carrier type: @c B @c = @c A(bool) and @c K3 @c = @c A(Ternary), the
  * universes over the two truth chains, carry the chain's order (endpoints, the
  * step in both readings, the order, the classification, the unfold by the
