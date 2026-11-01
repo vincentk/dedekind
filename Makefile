@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: jlt-lint jlt-lint-tool
-.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
+.PHONY: all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -161,6 +161,15 @@ coverage: compile
 
 # Run Python tests with coverage collection and produce an XML report for Codecov.
 # Uses the repo-managed housekeeping helper for auditable approvals.
+# The wheel at a version (build, manylinux retag, check) and its install,
+# from dist/ or an index (INDEX=testpypi|pypi): the steps a release calls,
+# by CI or by hand.
+wheel:
+	bash .github/scripts/wheel.sh $(VERSION)
+
+wheel-verify:
+	bash .github/scripts/wheel-verify.sh $(VERSION) $(INDEX)
+
 python-coverage:
 	bash .github/copilot/housekeeping/python-coverage.sh
 

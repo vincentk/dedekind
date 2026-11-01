@@ -7,6 +7,14 @@ on:
     branches: [ "main" ]
     # labeled: adding the `wheel` or `testpypi` label builds the wheel
     types: [opened, synchronize, reopened, labeled]
+  # A manual release is this whole pipeline on main, the 48 hours lifted:
+  # gh workflow run cmake.yml --ref main -f force=true
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Release even if the last release is under 48 hours old"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -28,18 +36,16 @@ jobs:
       contents: read
       pull-requests: write
 
-  # The wheel: the release's version when one is due (release-plan), else
-  # 0.0.0.dev0; manylinux-tagged (auditwheel) and checked, then installed and
-  # smoke-tested.  A release publishes this very wheel (the release job).  A
-  # PR labelled `wheel` builds it too, at 0.0.0.dev0 (it has no plan); one
-  # labelled `testpypi` at 0.0.0.dev<run id>, and publishes it (testpypi-dev).
+  # The wheel, as a check: at 0.0.0.dev0, manylinux-tagged and checked
+  # (make wheel), installed and used (make wheel-verify).  A PR labelled
+  # `wheel` builds it too; one labelled `testpypi` at 0.0.0.dev<run id>, and
+  # publishes it (testpypi-dev).  A release builds its own, from its tag.
   python-dist:
     if: >-
-      !cancelled() && needs.build-and-deploy.result == 'success' &&
-      ((github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      ((github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
        contains(github.event.pull_request.labels.*.name, 'wheel') ||
        contains(github.event.pull_request.labels.*.name, 'testpypi'))
-    needs: [build-and-deploy, release-plan]
+    needs: build-and-deploy
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
@@ -60,63 +66,18 @@ jobs:
         sudo ./llvm.sh 23
         sudo apt-get install -y clang-23 ninja-build clang-format-23
 
-    - name: Version
-      env:
-        PLAN: ${{ needs.release-plan.outputs.version }}
-        TAG: ${{ needs.release-plan.outputs.tag }}
-        TESTPYPI: ${{ contains(github.event.pull_request.labels.*.name, 'testpypi') }}
-        RUN: ${{ github.run_id }}
-      run: |
-        case "$PLAN" in
-          skip) v=0.0.0.dev0 ;;
-          "") if [ "$TESTPYPI" = true ]; then v=0.0.0.dev$RUN; else v=0.0.0.dev0; fi ;;
-          resume) v=${TAG#v} ;;
-          *) v=$PLAN ;;
-        esac
-        sed -i "s/^__version__ = .*/__version__ = \"$v\"/" python/pynzli/_version.py
-        echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
-        echo "pynzli $v"
-
-    - name: Build Python Distribution Artifacts
+    # A dev version: a release builds its own wheel, from its tag.
+    - name: The wheel at a dev version
       env:
         CC: clang-23
         CXX: clang++-23
-        CMAKE_ARGS: >-
-          -DCMAKE_C_COMPILER=clang-23
-          -DCMAKE_CXX_COMPILER=clang++-23
-          -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+        DEV: ${{ contains(github.event.pull_request.labels.*.name, 'testpypi') && github.run_id || '0' }}
       run: |
-        python -m pip install --upgrade pip build twine auditwheel patchelf
-        python -m build
-        # The wheel CMake built is tagged linux_x86_64, which PyPI refuses:
-        # auditwheel checks the symbols it needs and retags it manylinux.
-        python -m auditwheel repair dist/*-linux_*.whl -w dist/
-        rm dist/*-linux_*.whl
-        python -m twine check dist/*
-        mkdir -p build/python-docs
-        ls -lh dist | tee build/python-docs/dist-manifest.txt
-        sha256sum dist/* | tee build/python-docs/dist-sha256.txt
+        echo "PYNZLI_VERSION=0.0.0.dev$DEV" >> "$GITHUB_ENV"
+        make wheel VERSION="0.0.0.dev$DEV"
 
-    - name: Verify Installed Wheel Smoke Test
-      run: |
-        python -m venv .venv-wheel-smoke
-        . .venv-wheel-smoke/bin/activate
-        python -m pip install --upgrade pip
-        python -m pip install dist/*.whl
-        mkdir -p build/python-docs
-        python -m pip show pynzli > build/python-docs/install-report.txt
-        python -m pydoc pynzli > build/python-docs/pydoc-pynzli.txt
-        python - <<'PY'
-        from pynzli.jlt import succ
-        from pynzli.pst import A, image, u64, π
-
-        import os, pynzli
-        assert pynzli.__version__ == os.environ["PYNZLI_VERSION"], pynzli.__version__
-        U = A(u64)
-        assert (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)
-        assert image(succ(int), U & (π > 5)) == U & ((π > 6) | (π == 0))
-        print("python-wheel-smoke-ok")
-        PY
+    - name: The wheel installed and used
+      run: make wheel-verify VERSION="$PYNZLI_VERSION"
 
     - name: Upload Python Dist Artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
@@ -130,7 +91,7 @@ jobs:
           build/python-docs/pydoc-pynzli.txt
 
   docs-and-pages:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build-and-deploy
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
@@ -221,23 +182,26 @@ jobs:
         repository-url: https://test.pypi.org/legacy/
         skip-existing: true  # a resumed release may have uploaded already
 
-    - name: The wheel from TestPyPI
-      uses: ./.github/actions/pypi-verify
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
       with:
-        version: 0.0.0.dev${{ github.run_id }}
         python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: The wheel from TestPyPI
+      run: make wheel-verify VERSION="0.0.0.dev${{ github.run_id }}" INDEX=testpypi
 
   # A release after a green build of main, at most once per 48 hours,
   # versioned 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (.github/scripts/release-version.sh).
   # It runs here rather than from a workflow_run event because such events
   # failed at startup on GitHub's side (nameless "BuildFailed" runs, 2026-10-25).
-  # release.yml keeps the manual, forced release.  Three jobs: the plan, the
-  # macOS build (only when a release is due), the release.
+  # A manual release is a run of this workflow on main (workflow_dispatch,
+  # force).  Three jobs: the plan, the macOS build (only when a release is
+  # due), the release.
   #
   # Whether this commit is released: a tag of this commit whose release is
   # missing is resumed, else the next version, or "skip" inside the 48 hours.
   release-plan:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [build-and-deploy, docs-and-pages]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     env:
@@ -254,7 +218,8 @@ jobs:
       id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
+        FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
+      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" "$FORCE" >> "$GITHUB_OUTPUT"
 
   # A release is built on macOS too, by the same pipeline; CI is not (#1121).
   build-macos:
@@ -285,63 +250,74 @@ jobs:
       cancel-in-progress: false
     env:
       MIN_HOURS: "48"
+    # The release, step by step: each step one call, so that this job read
+    # back is the runbook of a release by hand.  By hand, an upload takes an
+    # API token (twine upload) where this job has the OIDC publisher.
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:
         fetch-depth: 0
+        submodules: recursive
 
     # Decided again here, inside the serialised group, against the tags as
     # they are now: another release may have been cut while macOS built.
-    - name: Plan, again
+    - name: 1. Plan, again
       id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
+        FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '1' || '0' }}
+      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" "$FORCE" >> "$GITHUB_OUTPUT"
 
-    - name: The release's version
+    # The tag names the release; everything after it reads the version from
+    # it.  A resumed release keeps its tag.
+    - name: 2. Tag
       if: steps.plan.outputs.version != 'skip'
       env:
-        PLAN: ${{ steps.plan.outputs.version }}
-        TAG: ${{ steps.plan.outputs.tag }}
-      run: |
-        v=$PLAN; [ "$v" = resume ] && v=${TAG#v}
-        echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
+        TAG: ${{ steps.plan.outputs.version == 'resume' && steps.plan.outputs.tag || format('v{0}', steps.plan.outputs.version) }}
+      run: .github/scripts/release-tag.sh "$TAG" "$GITHUB_SHA"
 
-    - name: The wheel to publish
+    - name: 3. The version, from the tag
       if: steps.plan.outputs.version != 'skip'
-      uses: ./.github/actions/pypi-wheel
-      with:
-        version: ${{ env.PYNZLI_VERSION }}
+      run: echo "PYNZLI_VERSION=$(git describe --tags --exact-match HEAD | sed 's/^v//')" >> "$GITHUB_ENV"
 
-    - name: Publish to TestPyPI
+    - name: Set up Python
+      if: steps.plan.outputs.version != 'skip'
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install clang build chain
+      if: steps.plan.outputs.version != 'skip'
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 23
+        sudo apt-get install -y clang-23 ninja-build
+
+    - name: 4. The wheel, from the tag
+      if: steps.plan.outputs.version != 'skip'
+      env:
+        CC: clang-23
+        CXX: clang++-23
+      run: make wheel VERSION="$PYNZLI_VERSION"
+
+    # By hand: twine upload -r testpypi dist/*
+    - name: 5. Publish to TestPyPI
       if: steps.plan.outputs.version != 'skip'
       uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
       with:
         repository-url: https://test.pypi.org/legacy/
         skip-existing: true  # a resumed release may have uploaded already
 
-    - name: The wheel from TestPyPI
+    - name: 6. The wheel from TestPyPI
       if: steps.plan.outputs.version != 'skip'
-      uses: ./.github/actions/pypi-verify
-      with:
-        version: ${{ env.PYNZLI_VERSION }}
-        python-version: ${{ env.PYTHON_VERSION }}
+      run: make wheel-verify VERSION="$PYNZLI_VERSION" INDEX=testpypi
 
-    - name: Resume a tag whose release is missing
-      if: steps.plan.outputs.version == 'resume'
+    # Irreversible from here: the GitHub release is archived by Zenodo, a DOI.
+    - name: 7. GitHub release (Zenodo)
+      if: steps.plan.outputs.version != 'skip'
       env:
         GH_TOKEN: ${{ github.token }}
-        TAG: ${{ steps.plan.outputs.tag }}
-      run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+      run: gh release create "v$PYNZLI_VERSION" --verify-tag --title "v$PYNZLI_VERSION" --generate-notes
 
-    - name: Tag and release
-      if: steps.plan.outputs.version != 'resume' && steps.plan.outputs.version != 'skip'
-      env:
-        GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ steps.plan.outputs.version }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git tag -a "v$VERSION" -m "Release $VERSION" "$GITHUB_SHA"
-        git push origin "v$VERSION"
-        gh release create "v$VERSION" --verify-tag --title "v$VERSION" --generate-notes
+    # 8. PyPI, the same wheel (the next PR: environment pypi, main only).
