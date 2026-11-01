@@ -16,7 +16,7 @@ many-sorted terms.
 
 import unittest
 
-from pynzli.pst import A, B, K3, Kleene, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, identity
+from pynzli.pst import A, B, K3, Set, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, identity
 from pynzli.trsk import Function, Relation
 
 F, U_, T = Ternary.FALSE, Ternary.UNKNOWN, Ternary.TRUE
