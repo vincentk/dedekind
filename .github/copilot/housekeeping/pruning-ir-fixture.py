@@ -374,9 +374,10 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            # Residual Cramer 2x2 solve: two `fdiv double` (x* and y*
-            # numerators divided by the active-set determinant).
-            if "fdiv double" not in block:
+            # Residual Cramer 2x2 solve: x* and y*, the numerators divided
+            # by the active-set determinant, two `fdiv double` or one
+            # `fdiv <2 x double>` (the SLP vectoriser pairs them).
+            if not re.search(r"\bfdiv (<\d+ x )?double\b", block):
                 raise AssertionError(
                     f"{symbol}: expected residual `fdiv double` from the "
                     "Cramer 2x2 solve to survive in IR — its absence would "
