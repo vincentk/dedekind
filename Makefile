@@ -162,7 +162,7 @@ coverage: compile
 # Run Python tests with coverage collection and produce an XML report for Codecov.
 # Uses the repo-managed housekeeping helper for auditable approvals.
 # The wheel at a version (build, manylinux retag, check) and its install,
-# from dist/ or an index (INDEX=testpypi|pypi): the steps a release calls,
+# from dist/ or an index (INDEX=test.pypi.org|pypi.org): the steps a release calls,
 # by CI or by hand.
 wheel:
 	bash .github/scripts/wheel.sh $(VERSION)

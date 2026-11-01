@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Installs pynzli's wheel at a version into a fresh environment and runs the
-# kick-the-tyres suite on it: from dist/, or from an index (testpypi, pypi),
+# kick-the-tyres suite on it: from dist/, or from an index by its host
+# (test.pypi.org, pypi.org),
 # retried while the index catches up.  The installed package must carry the
 # version asked for, and its doctests and the Python tests pass on it.
 #
-# Usage: wheel-verify.sh <version> [testpypi|pypi]
+# Usage: wheel-verify.sh <version> [index host]
 set -euo pipefail
 
 version=$1
-index=${2:-}
+host=${2:-}
 # Isolated: no path, home or startup file from the build, a fresh venv without
 # the system's packages, Python in isolated mode (-I: no PYTHON* variables,
 # no user site, not the current directory) and pip ignoring PIP_* and user
@@ -22,18 +23,15 @@ py=("$venv/bin/python" -I)
 # the sdist from source.
 pip=("${py[@]}" -m pip --isolated install --quiet --no-cache-dir --only-binary=:all:)
 
-case "$index" in
-  "") "${pip[@]}" dist/pynzli-"$version"-*.whl ;;
-  testpypi|pypi)
-    url=https://pypi.org/simple/
-    [ "$index" = testpypi ] && url=https://test.pypi.org/simple/
-    for i in $(seq 1 10); do
-      "${pip[@]}" --index-url "$url" "pynzli==$version" && break
-      [ "$i" = 10 ] && { echo "pynzli==$version is not on $index" >&2; exit 1; }
-      echo "not on $index yet ($i)"; sleep 30
-    done ;;
-  *) echo "unknown index: $index" >&2; exit 2 ;;
-esac
+if [ -z "$host" ]; then
+  "${pip[@]}" dist/pynzli-"$version"-*.whl
+else
+  for i in $(seq 1 10); do
+    "${pip[@]}" --index-url "https://$host/simple/" "pynzli==$version" && break
+    [ "$i" = 10 ] && { echo "pynzli==$version is not on $host" >&2; exit 1; }
+    echo "not on $host yet ($i)"; sleep 30
+  done
+fi
 
 mkdir -p build/python-docs
 "${py[@]}" -m pip --isolated show pynzli > build/python-docs/install-report.txt
