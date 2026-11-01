@@ -289,18 +289,18 @@ target_compile_options(set-pruning-ir-fixture PRIVATE
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    find_package(Python 3.12...<3.15 QUIET COMPONENTS Interpreter Development.Module)
+    find_package(Python 3.12 QUIET COMPONENTS Interpreter Development.Module)
     if(NOT Python_FOUND)
         find_package(Python COMPONENTS Interpreter QUIET)
         if(Python_Interpreter_FOUND)
             message(FATAL_ERROR
-                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14. "
+                "Dedekind Python bindings/integration tests require Python 3.12 or newer. "
                 "Found ${Python_VERSION} at ${Python_EXECUTABLE}. "
                 "Activate a supported Python environment (for example: python3.12 -m venv .venv && source .venv/bin/activate) "
-                "or configure CMake with a 3.12-3.14 interpreter.")
+                "or configure CMake with a 3.12 or newer interpreter.")
         else()
             message(FATAL_ERROR
-                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14, but no Python interpreter was found.")
+                "Dedekind Python bindings/integration tests require Python 3.12 or newer, but no Python interpreter was found.")
         endif()
     endif()
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)

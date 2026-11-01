@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Prints the next release version for a commit, or "skip".
 #
-# Version: 0.<YYYYMMDD>.<n>+<short hash>, semantic versioning with the date
-# (ISO 8601 basic, UTC) as the minor number, n the count of releases already
-# cut on that date (0 in practice), and the commit as build metadata.
+# Version: 0.<YYYYMMDD>.<n>, semantic versioning with the date (ISO 8601
+# basic, UTC) as the minor number and n the count of releases already cut on
+# that date (0 in practice): a PEP 440 public version, as PyPI requires (it
+# refuses the local "+<hash>" part).  The tag names the commit.
 #
 # Skips a commit that is already tagged, and, unless forced, any commit less
 # than MIN_HOURS after the last release tag.
@@ -36,4 +37,4 @@ else
   day=$(date -u -r "$now" +%Y%m%d)
 fi
 n=$(git tag -l "v0.${day}.*" | wc -l | tr -d ' ')
-echo "0.${day}.${n}+$(git rev-parse --short=7 "$commit")"
+echo "0.${day}.${n}"

@@ -3,7 +3,7 @@ name: Release
 # A release cut by hand, on main, ignoring the 48-hour spacing by default:
 # for a paper submission or a fix that should not wait.  The automatic
 # release after a green build of main is the last job of cmake.yml.
-# Version: 0.<YYYYMMDD>.<n>+<short hash> (see .github/scripts/release-version.sh).
+# Version: 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (see .github/scripts/release-version.sh).
 
 on:
   workflow_dispatch:
