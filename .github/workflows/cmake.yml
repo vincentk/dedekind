@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    # labeled: adding the `wheel` label builds the wheel (python-dist)
+    # labeled: adding the `wheel` or `testpypi` label builds the wheel
     types: [opened, synchronize, reopened, labeled]
 
 permissions:
@@ -31,12 +31,14 @@ jobs:
   # The wheel: the release's version when one is due (release-plan), else
   # 0.0.0.dev0; manylinux-tagged (auditwheel) and checked, then installed and
   # smoke-tested.  A release publishes this very wheel (the release job).  A
-  # PR labelled `wheel` builds it too, at 0.0.0.dev0 (it has no plan).
+  # PR labelled `wheel` builds it too, at 0.0.0.dev0 (it has no plan); one
+  # labelled `testpypi` at 0.0.0.dev<run id>, and publishes it (testpypi-dev).
   python-dist:
     if: >-
       !cancelled() && needs.build-and-deploy.result == 'success' &&
       ((github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-       contains(github.event.pull_request.labels.*.name, 'wheel'))
+       contains(github.event.pull_request.labels.*.name, 'wheel') ||
+       contains(github.event.pull_request.labels.*.name, 'testpypi'))
     needs: [build-and-deploy, release-plan]
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
@@ -62,9 +64,12 @@ jobs:
       env:
         PLAN: ${{ needs.release-plan.outputs.version }}
         TAG: ${{ needs.release-plan.outputs.tag }}
+        TESTPYPI: ${{ contains(github.event.pull_request.labels.*.name, 'testpypi') }}
+        RUN: ${{ github.run_id }}
       run: |
         case "$PLAN" in
-          skip|"") v=0.0.0.dev0 ;;
+          skip) v=0.0.0.dev0 ;;
+          "") if [ "$TESTPYPI" = true ]; then v=0.0.0.dev$RUN; else v=0.0.0.dev0; fi ;;
           resume) v=${TAG#v} ;;
           *) v=$PLAN ;;
         esac
@@ -187,6 +192,26 @@ jobs:
       id: deployment
       uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
+  # A PR labelled testpypi publishes its dev wheel, to try the publisher
+  # before a release needs it.  The environment must admit the PR's branch.
+  testpypi-dev:
+    if: contains(github.event.pull_request.labels.*.name, 'testpypi')
+    needs: python-dist
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pynzli
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+    - name: Publish to TestPyPI
+      uses: ./.github/actions/publish-testpypi
+      with:
+        version: 0.0.0.dev${{ github.run_id }}
+        python-version: ${{ env.PYTHON_VERSION }}
+
   # A release after a green build of main, at most once per 48 hours,
   # versioned 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (.github/scripts/release-version.sh).
   # It runs here rather than from a workflow_run event because such events
@@ -258,42 +283,21 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
 
-    - name: The wheel python-dist built
-      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-      with:
-        name: python-dist
-        path: python-dist
-
-    # The wheel carries the version of the first plan: a second plan that
-    # disagrees (another release cut meanwhile) stops here, before a tag.
-    - name: The wheel is this release's
+    - name: The release's version
       if: steps.plan.outputs.version != 'skip'
       env:
         PLAN: ${{ steps.plan.outputs.version }}
         TAG: ${{ steps.plan.outputs.tag }}
       run: |
         v=$PLAN; [ "$v" = resume ] && v=${TAG#v}
-        ls python-dist/dist/pynzli-"$v"-*.whl
-        mkdir -p dist && cp python-dist/dist/pynzli-"$v"* dist/
         echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
 
     - name: Publish to TestPyPI
       if: steps.plan.outputs.version != 'skip'
-      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+      uses: ./.github/actions/publish-testpypi
       with:
-        repository-url: https://test.pypi.org/legacy/
-        skip-existing: true  # a resumed release may have uploaded already
-
-    - name: Install from TestPyPI
-      if: steps.plan.outputs.version != 'skip'
-      run: |
-        python3 -m venv .venv-testpypi
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          .venv-testpypi/bin/pip install --quiet --no-cache-dir \
-            --index-url https://test.pypi.org/simple/ "pynzli==$PYNZLI_VERSION" && break
-          echo "not on the index yet ($i)"; sleep 30
-        done
-        .venv-testpypi/bin/python -c "import pynzli, pynzli.pst; assert pynzli.__version__ == '$PYNZLI_VERSION'; print('testpypi-ok', pynzli.__version__)"
+        version: ${{ env.PYNZLI_VERSION }}
+        python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Resume a tag whose release is missing
       if: steps.plan.outputs.version == 'resume'
