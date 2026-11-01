@@ -216,7 +216,7 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
  *        a group --- the set-indexed lift of @c category::IsGroup.
  * @details @c X is an ETCS set, its carrier @c X::Domain satisfies the
  * axiomatic @c category::IsGroup<X::Domain, Op>, and @c IsAlgebraOnSet
- * supplies the carrier discipline (@c IsSet roots @c std::regular on
+ * supplies the carrier discipline (@c IsLSet roots @c std::semiregular on
  * @c X::Domain, @c IsClosedAlgebra pins strict closure).  The Op-defaulted
  * @c IsAdditiveGroup / @c IsMultiplicativeGroup siblings name the
  * canonical additive / multiplicative witnesses.

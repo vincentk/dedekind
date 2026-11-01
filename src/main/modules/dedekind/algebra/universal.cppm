@@ -102,9 +102,9 @@ using namespace dedekind::category;
  *        requirement.
  *
  * @details Factored out of @c IsAlgebra so that set-indexed callers can
- * compose it with @c IsSet (which now roots @c std::regular on the
+ * compose it with @c IsLSet (which roots @c std::semiregular on the
  * carrier, since @c Trsk @c = @c Jlt @c ∩ @c Set) instead of pinning
- * @c std::regular a second time.  Standalone type-level callers keep
+ * a value constraint a second time.  Standalone type-level callers keep
  * @c IsAlgebra, which adds the @c std::regular clause.
  */
 export template <typename T, typename... Ops>
@@ -167,11 +167,11 @@ concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
  *     subobject of a regular carrier with χ into a named chain), not merely
  *     an @c IsArrow --- Kleene-valued sets qualify; the ETCS specialisation
  *     @c IsSet is not required --- and, since @c Trsk @c = @c Jlt @c ∩ @c Set,
- *     @c IsLSet roots @c std::regular on @c X::Domain (the @c Jlt
+ *     @c IsLSet roots @c std::semiregular on @c X::Domain (the @c Jlt
  *     value-semantics half).
  *   - @c IsClosedAlgebra is the @c Alg half: the operations close on the
- *     carrier.  @c std::regular is @b not re-pinned here (it already comes
- *     from @c IsLSet), so the carrier's regularity is asserted exactly once.
+ *     carrier.  No value constraint is re-pinned here (@c std::semiregular
+ *     comes from @c IsLSet), so it is asserted exactly once.
  *     @c IsClosedUnderEither admits exactly the two operation shapes the
  *     carrier uses: a unary @c Op is already an endomap @c A @c → @c A, and a
  *     binary @c Op @c A×A @c → @c A @b corresponds to endomorphisms once one

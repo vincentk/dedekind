@@ -39,7 +39,7 @@ using namespace dedekind::category;
  * of the type-indexed @c category::IsMagma: @c X is an ETCS set
  * (@c category::IsSet), its carrier @c X::Domain satisfies the axiomatic
  * @c category::IsMagma<X::Domain, Op>, and @c IsAlgebraOnSet supplies the
- * carrier discipline: @c IsSet roots @c std::regular on @c X::Domain and
+ * carrier discipline: @c IsLSet roots @c std::semiregular on @c X::Domain and
  * @c IsClosedAlgebra pins strict closure under @c Op.
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).
