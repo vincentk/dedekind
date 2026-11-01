@@ -1,0 +1,39 @@
+# CodeQL code scanning, advanced setup: findings are cues on the Security tab
+# and on PRs, not a gate.  The weekly run brings new queries to unchanged code.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '45 22 * * 3'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-26.04
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # C/C++ is parsed without a build.  CodeQL does not read C++20
+        # modules yet, which hold the library: the scan covers the files
+        # around them (tests, bindings) until it does.
+        language: [actions, c-cpp, python]
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: none
+        queries: security-and-quality
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
+      with:
+        category: "/language:${{ matrix.language }}"
