@@ -3,11 +3,11 @@ requires = ["scikit-build-core>=0.10"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "dedekind"
+name = "pydedekind"
 version = "0.1.0a0"
-description = "Python MVP bindings for the dedekind C++23 module library"
+description = "Python bindings for the dedekind library."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = []
 authors = [
   { name = "Dedekind Authors" },
@@ -18,10 +18,9 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Mathematics",
 ]
 

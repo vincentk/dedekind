@@ -162,7 +162,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install dist/*.whl
         mkdir -p build/python-docs
-        python -m pip show dedekind > build/python-docs/install-report.txt
+        python -m pip show pydedekind > build/python-docs/install-report.txt
         python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
         python - <<'PY'
         from dedekind.jlt import succ
