@@ -91,25 +91,32 @@ def run_tool(tool, build, path, namespace, checks):
         return None, exit_status(p) + p.stdout + p.stderr
     lines = [l for l in p.stdout.splitlines() if l.strip()]
     if len(checks) == 1:  # one check prints no section header
-        return {checks[0]: lines}, p.stdout + p.stderr
-    found = {c: [] for c in checks}
-    seen = []
+        return {checks[0]: sorted(set(lines))}, p.stdout + p.stderr
+    # The tool runs once per entry the compilation database has for the file,
+    # and a module partition has one per set of flags it is built with (the
+    # Python bindings' stable ABI synthesises a second): a run starts again
+    # when a section repeats, and the findings are the union over the runs.
+    found = {c: set() for c in checks}
+    runs = [[]]
     section = None
     for l in lines:
         if l.startswith("== "):
             section = l[3:].strip()
-            if section not in found or section in seen:
-                return None, p.stdout + p.stderr
-            seen.append(section)
+            if section not in found:
+                return None, f"jlt-lint: unrequested section {section}\n" + p.stdout + p.stderr
+            if section in runs[-1]:
+                runs.append([])
+            runs[-1].append(section)
         elif section is None:
-            return None, p.stdout + p.stderr
+            return None, "jlt-lint: a finding before any section\n" + p.stdout + p.stderr
         else:
-            found[section].append(l)
-    # Every check must have reported, even with no findings: a missing
-    # section is a check that did not run, not a zero.
-    if sorted(seen) != sorted(checks):
-        return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
-    return found, p.stdout + p.stderr
+            found[section].add(l)
+    # Every check must have reported in every run, even with no findings: a
+    # missing section is a check that did not run, not a zero.
+    for seen in runs:
+        if sorted(seen) != sorted(checks):
+            return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
+    return {c: sorted(v) for c, v in found.items()}, p.stdout + p.stderr
 
 
 def matchers(rule):
