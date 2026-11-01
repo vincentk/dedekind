@@ -216,7 +216,7 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
  *        a group --- the set-indexed lift of @c category::IsGroup.
  * @details @c X is an ETCS set, its carrier @c X::Domain satisfies the
  * axiomatic @c category::IsGroup<X::Domain, Op>, and @c IsAlgebraOnSet
- * supplies the carrier discipline (@c IsSet roots @c std::regular on
+ * supplies the carrier discipline (@c IsLSet roots @c std::semiregular on
  * @c X::Domain, @c IsClosedAlgebra pins strict closure).  The Op-defaulted
  * @c IsAdditiveGroup / @c IsMultiplicativeGroup siblings name the
  * canonical additive / multiplicative witnesses.
@@ -264,7 +264,7 @@ concept IsMultiplicativeGroup = IsGroup<X, Mult>;
  *
  *   - @c category::IsGroup<T, std::plus<T>> + @c IsAlgebra --- the strict
  *     categorical additive-group proof (type level) under the canonical
- *     @c + functor, with @c std::regular + closure;
+ *     @c + functor, with @c std::semiregular + closure;
  *   - @c HasGroupOperatorsAdd<T> --- the literal C++ operators
  *     @c +, @c -, unary @c - close strictly on @c T.
  *

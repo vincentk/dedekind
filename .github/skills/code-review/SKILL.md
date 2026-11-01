@@ -81,6 +81,12 @@ Coherence checks:
   function) to handle a variant: the variant wants a composed, parameterised
   unit (a reusable workflow, a function, a concept or template parameter),
   failing that a shared base, failing that a branch inside the one copy.
+- **`std::semiregular` by default, `std::regular` only where the code needs
+  `operator==(T, T)`** (the Jlt paper's Rule 1: a carrier's `==` is one more
+  operation of its signature). Flag a new `std::regular` whose code never
+  compares two `T`s. Terms (`Meet`, `Join`, `Not`, `Compose`, …) compare only
+  as normal forms, through the reducer: flag a new node-by-node `==` on
+  unreduced terms, which gives false negatives (`a∧b` against `b∧a`).
 - **Burden of proof is on ADDING a struct/wrapper**, not on removing one. Push
   back on new wrappers that don't earn their place — especially thin "glorified
   for-loop" wrappers around `std::` containers/algorithms.

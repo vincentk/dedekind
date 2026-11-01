@@ -107,8 +107,8 @@ TEST_CASE("Sets: Singleton Acceptance", "[sets][singleton][acceptance]") {
 TEST_CASE("Sets: Composition of Operations: The Functor Highway",
           "[sets][composition][monad]") {
   SECTION("1. Forward Monadic Composition (Bind)") {
-    auto plus_one = [](int x) { return singleton(x + 1); };
-    auto times_two = [](int x) { return singleton(x * 2); };
+    auto plus_one = arrow<int>([](int x) { return singleton(x + 1); });
+    auto times_two = arrow<int>([](int x) { return singleton(x * 2); });
 
     // η(5) >>= plus_one >>= times_two   ≡   singleton((5+1)*2) = {12}.
     // Explicit parens because `>>=` is right-associative in C++; the
@@ -123,8 +123,9 @@ TEST_CASE("Sets: Composition of Operations: The Functor Highway",
     // Zero-overhead claim: the composition resolves to a constant 12.
     // Explicit left-fold parens on `>>=` (right-associative in C++).
     static_assert(
-        origin((singleton(5) >>= [](int x) { return singleton(x + 1); }) >>=
-               [](int x) { return singleton(x * 2); }) == 12,
+        origin((singleton(5) >>=
+                arrow<int>([](int x) { return singleton(x + 1); })) >>=
+               arrow<int>([](int x) { return singleton(x * 2); })) == 12,
         "The Composition Axiom must be resolved at compile-time.");
   }
 }

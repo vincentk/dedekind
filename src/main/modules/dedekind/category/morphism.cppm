@@ -1361,8 +1361,8 @@ static_assert(IsBijective<Identity<int>>,
 //
 //   * @b Kleisli @b arrow (@c e: @c A @c → @c M<B>) — declared as
 //     @c is_kleisli_arrow_v<E, M> + @c IsKleisliArrow<E, M> in
-//     @c dedekind.category:kleisli, where the composition / fmap
-//     machinery already lives.
+//     @c dedekind.category:kleisli, where Kleisli composition and
+//     extension already live.
 //   * @b Sentinel @b realisation (@c e: @c A @c → @c B, total with
 //     a documented sentinel for out-of-range inputs) — deferred to a
 //     downstream partition (likely co-located with the

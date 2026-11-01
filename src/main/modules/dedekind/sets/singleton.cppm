@@ -27,8 +27,8 @@
  * @section singleton__Structural_Role
  * The Singleton provides the baseline proof for the Unified Highway Bridge.
  * Its sets-layer operations (constructor, bind, extend) are available now;
- * category-layer η/ε and derived fmap wiring is intentionally postponed to a
- * follow-up integration pass.
+ * category-layer η/ε and the functor's action F(f) are intentionally
+ * postponed to a follow-up integration pass.
  *
  * @tparam T The underlying Species of the pivot element.
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
@@ -256,7 +256,7 @@ static_assert(
  *  @c dedekind.category: the tag-dispatched @c η / @c pure and its siblings
  *  @c μ / @c ε / @c δ (@c :monad, laws checked by @c IsMonad; @c η / @c ε live
  * in
- *  @c :natural), whose bona-fide monad-and-comonad (@c IsFrobenius, #632)
+ *  @c :natural), whose Frobenius monad (@c IsFrobenius, #632)
  * carrier is @c std::tuple (@c :kleisli).  The power-set monad's own functor
  * (@c η
  * + the union-flatten @c μ) is tracked in #691.  @b Distinct from the two other
@@ -328,8 +328,9 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the Kleisli arrow @c T → a set. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-                 typename Func>
-  requires std::invocable<const Func&, const T&>
+                 dedekind::category::IsArrow Func>
+  requires std::same_as<dedekind::category::Dom<Func>, T> &&
+           IsSetObject<dedekind::category::Cod<Func>>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            const Func& f) {
   /**
@@ -347,9 +348,9 @@ constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
  *  @tparam T the carrier.  @tparam L the species.  @tparam C the cardinality.
  *  @tparam Func the co-Kleisli arrow, a point @c → a value. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
-                 typename Func>
-  requires std::invocable<const Func&,
-                          const Comprehension<𝔸<T, L, C>, Point<T>>&>
+                 dedekind::category::IsArrow Func>
+  requires std::same_as<dedekind::category::Dom<Func>,
+                        Comprehension<𝔸<T, L, C>, Point<T>>>
 constexpr auto operator<<=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            const Func& f) {
   using U = std::invoke_result_t<const Func&,

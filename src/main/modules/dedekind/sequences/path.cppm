@@ -1,15 +1,15 @@
 /**
  * @file dedekind/sequences/path.cppm
  * @partition :path
- * @brief The Frobenius Path (Morphism of Enumeration).
+ * @brief The Path (Morphism of Enumeration): a monad and a comonad.
  *
  * @section path__The_Path_Morphism
  * Following the Dedekind structuralist tradition, a Path is a functional
  * mapping (λn. s_n) from the Countable Index (ℕ) to a Species (T).
  *
- * @subsection The_Frobenius_Highway
- * A Path is unique in the ontology as it satisfies both the Monadic (Push)
- * and Comonadic (Pull) extension systems:
+ * @subsection The_Monad_And_Comonad
+ * A Path satisfies both the Monadic (Push) and Comonadic (Pull) extension
+ * systems, though not the Frobenius law relating them (@c IsFrobenius):
  * - Kleisli (Monad)    : Enables 'flattening' of nested paths via diagonal
  *                        sampling (Bind).
  * - Co-Kleisli (Comonad): Enables 'contextual' transformations such as
@@ -18,7 +18,7 @@
  * @build_order 5
  * @dependency dedekind.category, dedekind.sequences:sequences
  *
- * Wikipedia: Sequence, Monad (category theory), Comonad, Frobenius algebra
+ * Wikipedia: Sequence, Monad (category theory), Comonad
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -61,7 +61,7 @@ using namespace dedekind::order;
 
 /**
  * @class Path
- * @brief A Frobenius-aware sequence F: ℕ → T.
+ * @brief A sequence F: ℕ → T.
  *
  * @tparam T The Species being enumerated.
  * @tparam Cardinality The cardinality tag (@c ℵ_0 for infinite, @c Finite
@@ -264,9 +264,20 @@ struct Path {
 
   /**
    * @section path__Kleisli_Triple
-   * @brief Bind (>>=): m >>= f.
+   * @brief Bind (>>=): m >>= f, for a Kleisli arrow @c f: T → Path<U>, a path
+   *  of this one's cardinality and index.
    */
   template <typename F>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<F>> &&
+             std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T> &&
+             requires {
+               typename dedekind::category::Cod<
+                   std::remove_cvref_t<F>>::Codomain;
+             } &&
+             std::same_as<dedekind::category::Cod<std::remove_cvref_t<F>>,
+                          Path<typename dedekind::category::Cod<
+                                   std::remove_cvref_t<F>>::Codomain,
+                               Cardinality, Index>>
   friend constexpr auto operator>>=(const Path& m, F&& f) {
     using ResultPath = std::invoke_result_t<F, T>;
     using U = typename ResultPath::Codomain;
@@ -284,9 +295,12 @@ struct Path {
 
   /**
    * @section path__Co_Kleisli_Triple
-   * @brief Extend (<<=): w <<= f.
+   * @brief Extend (<<=): w <<= f, for a co-Kleisli arrow @c f: Path<T> → U.
    */
   template <typename F>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<F>> &&
+             std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>,
+                          Path<T, Cardinality, Index>>
   friend constexpr auto operator<<=(const Path& w, F&& f) {
     // Symmetry: F now maps Path<T> -> U.
     // We wrap that U back into a Path<U>.
@@ -836,7 +850,7 @@ namespace dedekind::category {
  *
  * @details Carries the @c Shape<U> @c = @c Path<U> alias used by the
  * Kleisli witness registry (@c unit_witness / @c counit_witness /
- * @c IsKleisliTriple / @c IsCoKleisliTriple / @c IsFrobenius).
+ * @c IsKleisliTriple / @c IsCoKleisliTriple).
  * Named @c path_functor for naming-convention parity with the sibling
  * @c maybe_functor / @c vec2_functor / @c matrix2x2_functor functors in
  * other partitions.
@@ -844,7 +858,7 @@ namespace dedekind::category {
  * @section path__Why_The_Kleisli_Layer_And_Not_IsComonad
  * Path's (co)monadic structure is certified at the Kleisli-witness
  * layer (@c :kleisli — @c unit_witness, @c counit_witness,
- * @c IsKleisliTriple, @c IsCoKleisliTriple, @c IsFrobenius), @b not
+ * @c IsKleisliTriple, @c IsCoKleisliTriple), @b not
  * via the strict @c dedekind::category::IsComonad / @c IsMonad.  This is
  * a deliberate, textbook-sanctioned choice, not a Path-specific defect:
  *
@@ -875,9 +889,11 @@ namespace dedekind::category {
  *     the level on which the equivalence is actually witnessed for
  *     non-identity carriers.
  *
- * @section path__Frobenius_Reading
- * Path is @b Frobenius — it carries both monadic and comonadic
- * structure (per the partition's header note).  At the Kleisli-witness
+ * @section path__Monad_And_Comonad_Reading
+ * Path carries both monadic and comonadic structure (per the partition's
+ * header note), but is @b not a Frobenius monad: on streams
+ * @f$\delta \circ \mu@f$ reads @f$s_{i+j}(i+j)@f$ where
+ * @f$T\mu \circ \delta T@f$ reads @f$s_{i+j}(j)@f$.  At the Kleisli-witness
  * level:
  *   * @c path_functor is the tag for the type-constructor
  *     @c Path<·> on objects (object-action only; see above).
@@ -885,9 +901,9 @@ namespace dedekind::category {
  *     @c η: @c Id @c ⇒ @c T (constant path @c λn.x).
  *   * @c counit_witness<path_functor<T>, T> is the @c T-component of
  *     @c ε: @c T @c ⇒ @c Id (head sampling @c p.at(0)).
- *   * The downstream @c IsFrobenius<path_functor<int>, int, long>
- *     static_assert witnesses the Kleisli-side bracket shape
- *     mechanically — that's the right level to certify on Path.
+ *   * The downstream @c IsKleisliTriple / @c IsCoKleisliTriple
+ *     static_asserts witness both triples mechanically, and
+ *     @c !IsFrobenius that the Frobenius law is not claimed.
  */
 export template <typename T>
 struct path_functor {
@@ -1071,9 +1087,9 @@ static_assert(
     IsCoKleisliTriple<path_functor<int>, int, long>,
     "Path is a co-Kleisli triple: the stream comonad, extend by suffixes.");
 
-static_assert(
-    IsFrobenius<path_functor<int>, int, long>,
-    "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
+static_assert(!IsFrobenius<path_functor<int>, int, long>,
+              "Path is a monad and a comonad, not a Frobenius monad: on "
+              "streams δ∘μ and Tμ∘δT disagree off the diagonal.");
 
 // ---------------------------------------------------------------------------
 // Stream comonad (Uustalu–Vene), in the extension presentation.

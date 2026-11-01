@@ -8,7 +8,7 @@
  * @c ring_test, ...).
  *
  * The exercises here are deliberately at the @b closure tier:
- *   - @c IsAlgebra<T, Ops...> requires only that T is regular and each
+ *   - @c IsAlgebra<T, Ops...> requires only that T is semiregular and each
  *     Op closes on T.  Axioms (associativity, commutativity, etc.)
  *     live in specific refinements --- those are exercised in the
  *     existing per-concept tests.

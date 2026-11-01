@@ -105,11 +105,11 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
  * @tparam T A carrier with ring-like arithmetic compatible with `Dual<T>`.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
-  // `std::regular<T>` matches `Dual<F>`'s own constraint; `HasRingOperators<T>`
-  // is additionally required because the target `Matrix2x2V<T>` carries
-  // that bound.
+  // `std::semiregular<T>` matches `Dual<F>`'s own constraint;
+  // `HasRingOperators<T>` is additionally required because the target
+  // `Matrix2x2V<T>` carries that bound.
   return {d.value(), d.derivative(), T{0}, d.value()};
 }
 
@@ -120,7 +120,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
  *          Not enforced; see the `complex_from_matrix2x2` note.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Dual<T>{M.m11, M.m12};
 }

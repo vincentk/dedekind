@@ -10,10 +10,10 @@
  * @section magma__Where_The_Two_Roads_Meet
  * The @c category tower defines the axiomatic hierarchy
  * (@c category::IsMagma → @c IsMonoid → @c IsGroup → ... → @c IsField)
- * at the type level, without a @c std::regular carrier requirement.
+ * at the type level, without a value constraint on the carrier.
  * This partition opens the parallel @b algebra tower: the same rungs,
  * strengthened by the universal-algebra closure tier @c IsAlgebra
- * (which pins @c std::regular<T> and strict closure), so that every
+ * (which pins @c std::semiregular<T> and strict closure), so that every
  * rung is a @b bona-fide algebraic set.  Magma is the base; the
  * @c :monoid, @c :group, @c :ring and @c :field partitions build the
  * remaining rungs on the same pattern.
@@ -39,7 +39,7 @@ using namespace dedekind::category;
  * of the type-indexed @c category::IsMagma: @c X is an ETCS set
  * (@c category::IsSet), its carrier @c X::Domain satisfies the axiomatic
  * @c category::IsMagma<X::Domain, Op>, and @c IsAlgebraOnSet supplies the
- * carrier discipline: @c IsSet roots @c std::regular on @c X::Domain and
+ * carrier discipline: @c IsLSet roots @c std::semiregular on @c X::Domain and
  * @c IsClosedAlgebra pins strict closure under @c Op.
  * @tparam X  The set object (@c category::IsSet).
  * @tparam Op The binary operation on @c X::Domain (defaults to @c std::plus).

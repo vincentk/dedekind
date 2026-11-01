@@ -190,6 +190,8 @@ concept IsPartialSupportClassifier =
 /** @brief Addition with overflow check (Classical Logic). */
 export template <std::integral T>
 struct SafeAddTransform {
+  using Domain = std::pair<T, T>;
+  using Codomain = std::optional<T>;
   constexpr std::optional<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
     if constexpr (std::is_signed_v<T>) {

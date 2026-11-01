@@ -25,7 +25,7 @@
  *
  * @section dual__Carrier_Generality
  * The construction Dual(R) = R[ε]/(ε²) is well-defined over any
- * commutative ring R.  The Dual<F> constraint is `std::regular<F>` and not
+ * commutative ring R.  The Dual<F> constraint is `std::semiregular<F>` and not
  * `std::floating_point<F>` (IEEE floats are not a ring): integer carriers
  * (Dual<int>, Dual<SignedExtensionalCardinal<>>) and the modular ring
  * (Dual<unsigned int>) instantiate cleanly and close the ring-operator
@@ -112,7 +112,7 @@ using namespace dedekind::sets;
  *          kept for existing call sites.
  */
 export template <typename F>
-  requires std::regular<F> &&
+  requires std::semiregular<F> &&
            (!std::floating_point<F>)  // 𝔻 over raw floats is not a ring (IEEE)
 struct Dual {
   using value_type = F;
@@ -231,7 +231,7 @@ static_assert(dedekind::algebra::HasFieldOperators<𝔻_ℚ>,
 // Dual(R) = R[ε]/(ε²) is well-defined for any commutative ring R; nothing in
 // the +, -, unary -, * fragment needs R to be a field or to be a floating-
 // point carrier (cf. issue #504).  The current `Dual<F>` constraint is
-// `std::regular<F>`, which is permissive enough to admit integer carriers
+// `std::semiregular<F>`, which is permissive enough to admit integer carriers
 // and exact rationals; division (`operator/`, `inverse()`) additionally
 // requires F to admit `F{1}/val`, which is why `HasFieldOperators<Dual<...>>`
 // only fires when F itself is field-shaped.
@@ -373,7 +373,7 @@ export inline constexpr auto embed_ℝ_𝔻 =
 namespace dedekind::category {
 
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
   using type = F;
 };
@@ -382,7 +382,8 @@ struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
 // componentwise addition and F acting on both: a module, so a semimodule,
 // wherever F is a semiring.
 template <typename F>
-  requires std::regular<F> && IsSemiring<F, std::plus<F>, std::multiplies<F>> &&
+  requires std::semiregular<F> &&
+           IsSemiring<F, std::plus<F>, std::multiplies<F>> &&
            (!std::unsigned_integral<
                F>)  // the carrier saturates, the word wraps
 struct is_linear_action<dedekind::analysis::Dual<F>, F,
@@ -397,21 +398,21 @@ struct is_linear_action<dedekind::analysis::Dual<F>, F,
 // is_invertible_v absence for std::multiplies): exact for F = ℚ(√2), correctly
 // not for F = double (IEEE).
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct is_exact_total<dedekind::analysis::Dual<F>,
                       std::plus<dedekind::analysis::Dual<F>>>
     : is_exact_total<F, std::plus<F>> {};
 // 𝔻's × derivative component uses F's × AND F's +, so exact-total × needs
 // BOTH of F's additive and multiplicative exactness (mult alone is not enough).
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct is_exact_total<dedekind::analysis::Dual<F>,
                       std::multiplies<dedekind::analysis::Dual<F>>>
     : std::bool_constant<is_exact_total<F, std::multiplies<F>>::value &&
                          is_exact_total<F, std::plus<F>>::value> {};
 
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct unit_trait<dedekind::analysis::Dual<F>,
                   std::plus<dedekind::analysis::Dual<F>>> {
   using value_type = dedekind::analysis::Dual<F>;
@@ -419,7 +420,7 @@ struct unit_trait<dedekind::analysis::Dual<F>,
 };
 
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct unit_trait<dedekind::analysis::Dual<F>,
                   std::multiplies<dedekind::analysis::Dual<F>>> {
   using value_type = dedekind::analysis::Dual<F>;
@@ -427,13 +428,13 @@ struct unit_trait<dedekind::analysis::Dual<F>,
 };
 
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 inline constexpr bool is_invertible_v<dedekind::analysis::Dual<F>,
                                       std::plus<dedekind::analysis::Dual<F>>> =
     true;
 
 template <typename F>
-  requires std::regular<F>
+  requires std::semiregular<F>
 struct inverse_trait<dedekind::analysis::Dual<F>,
                      std::plus<dedekind::analysis::Dual<F>>> {
   static constexpr bool exists = true;

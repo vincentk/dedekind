@@ -21,6 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 
+import dedekind.category;
 import dedekind.sequences;
 
 using namespace dedekind::sequences;
@@ -98,9 +99,8 @@ TEST_CASE("sequences:comonad — extend (<<=) agrees with mapping over tails",
           "[sequences][comonad][extend]") {
   const auto s = naturals();
   // A context-aware extension: the first forward difference s(n+1) - s(n).
-  const auto fwd_diff = [](const Path<int>& ctx) {
-    return ctx.at(1) - ctx.at(0);
-  };
+  const auto fwd_diff = dedekind::category::arrow<Path<int>>(
+      [](const Path<int>& ctx) { return ctx.at(1) - ctx.at(0); });
   const auto extended = s <<= fwd_diff;
   // extend f == map (f) . tails, so extended(n) == f(tails(s)(n)).
   const auto ts = tails(s);

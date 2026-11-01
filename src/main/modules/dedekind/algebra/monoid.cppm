@@ -40,7 +40,7 @@ using namespace dedekind::category;
  *        a monoid --- the set-indexed lift of @c category::IsMonoid.
  * @details @c X is an ETCS set, its carrier @c X::Domain satisfies the
  * axiomatic @c category::IsMonoid<X::Domain, Op>, and @c IsAlgebraOnSet
- * supplies the carrier discipline (@c IsSet roots @c std::regular on
+ * supplies the carrier discipline (@c IsLSet roots @c std::semiregular on
  * @c X::Domain, @c IsClosedAlgebra pins strict closure).  The Op-defaulted
  * @c IsAdditiveMonoid / @c IsMultiplicativeMonoid siblings name the
  * canonical additive / multiplicative witnesses.
