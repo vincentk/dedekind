@@ -1,0 +1,39 @@
+# The C++ build and its tests on the newest macOS runner, with Homebrew's
+# LLVM: a gate of every release (cmake.yml's automatic one and release.yml's
+# manual one), not of CI, which stays on Ubuntu.  It also runs on a PR that
+# changes this file, so a change to the job is tried before a release needs
+# it.  The Python bindings are left out: a macOS wheel is its own topic.
+name: macOS build
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/build-macos.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    runs-on: macos-26  # the newest macOS runner, named: macos-latest may lag it
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+    - name: Install the build chain
+      run: |
+        brew install llvm cmake ninja
+        echo "LLVM_ROOT=$(brew --prefix llvm)" >> "$GITHUB_ENV"
+        echo "JOBS=$(sysctl -n hw.ncpu)" >> "$GITHUB_ENV"
+
+    - name: Toolchain versions
+      run: |
+        "$LLVM_ROOT/bin/clang++" --version | head -1
+        cmake --version | head -1
+        ninja --version
+
+    - name: Build and test
+      run: |
+        make compile LLVM_ROOT="$LLVM_ROOT" \
+          CMAKE_EXTRA_ARGS="-DDEDEKIND_BUILD_PYTHON_BINDINGS=OFF"
+        ctest --test-dir build --output-on-failure --parallel "$JOBS"

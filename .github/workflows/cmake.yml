@@ -254,47 +254,71 @@ jobs:
   # versioned 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (.github/scripts/release-version.sh).
   # It runs here rather than from a workflow_run event because such events
   # failed at startup on GitHub's side (nameless "BuildFailed" runs, 2026-10-25).
-  # release.yml keeps the manual, forced release.
-  release:
+  # release.yml keeps the manual, forced release.  Three jobs: the plan, the
+  # macOS build (only when a release is due), the release.
+  #
+  # Whether this commit is released: a tag of this commit whose release is
+  # missing is resumed, else the next version, or "skip" inside the 48 hours.
+  release-plan:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [build-and-deploy, python-dist, docs-and-pages]
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    env:
+      MIN_HOURS: "48"
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      with:
+        fetch-depth: 0
+
+    - name: Plan
+      id: plan
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        tag=$(git tag --points-at "$GITHUB_SHA" | grep '^v0\.' | head -1 || true)
+        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=resume" >> "$GITHUB_OUTPUT"
+        else
+          v=$(.github/scripts/release-version.sh "$GITHUB_SHA" "$MIN_HOURS" 0)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+        fi
+
+  # A release is built on macOS too; CI is not (#1121).
+  build-macos:
+    needs: release-plan
+    if: needs.release-plan.outputs.version != 'skip'
+    uses: ./.github/workflows/build-macos.yml
+
+  release:
+    needs: [release-plan, build-macos]
+    if: needs.release-plan.outputs.version != 'skip'
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: write
     concurrency:
       group: release
       cancel-in-progress: false
-    env:
-      MIN_HOURS: "48"
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:
         fetch-depth: 0
 
     - name: Resume a tag whose release is missing
-      id: resume
+      if: needs.release-plan.outputs.version == 'resume'
       env:
         GH_TOKEN: ${{ github.token }}
-      run: |
-        tag=$(git tag --points-at "$GITHUB_SHA" | grep '^v0\.' | head -1 || true)
-        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
-          gh release create "$tag" --verify-tag --title "$tag" --generate-notes
-          echo "resumed=1" >> "$GITHUB_OUTPUT"
-        fi
-
-    - name: Next version
-      id: version
-      if: steps.resume.outputs.resumed != '1'
-      run: |
-        v=$(.github/scripts/release-version.sh "$GITHUB_SHA" "$MIN_HOURS" 0)
-        echo "version=$v" >> "$GITHUB_OUTPUT"
-        echo "Next version: $v"
+        TAG: ${{ needs.release-plan.outputs.tag }}
+      run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
 
     - name: Tag and release
-      if: steps.resume.outputs.resumed != '1' && steps.version.outputs.version != 'skip'
+      if: needs.release-plan.outputs.version != 'resume'
       env:
         GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ steps.version.outputs.version }}
+        VERSION: ${{ needs.release-plan.outputs.version }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
