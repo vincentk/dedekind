@@ -235,7 +235,7 @@ ci-install-paper-deps:
 	# argparse a keyword newer Pythons refuse; latexminted 0.7 asks
 	# minted.sty 3.8, and that a newer fvextra.
 	set -e; for p in $(CTAN_LATEX_PACKAGES); do \
-		cd /tmp && curl -fsSL -o $$p.zip https://mirrors.ctan.org/macros/latex/contrib/$$p.zip \
+		cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o $$p.zip https://mirrors.ctan.org/macros/latex/contrib/$$p.zip \
 			&& rm -rf $$p && unzip -q -o $$p.zip \
 			&& (cd $$p && for ins in *.ins; do latex -interaction=nonstopmode $$ins >/dev/null; done) \
 			&& dest="$$(kpsewhich -var-value TEXMFHOME)/tex/latex/$$p" \
