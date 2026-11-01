@@ -21,9 +21,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # C/C++ is parsed without a build; Security → Code scanning → Tool
-        # status says how much of the C++23 module tree that reaches.
-        language: [actions, c-cpp, python]
+        # No C/C++: CodeQL's extractor does not read C++20 modules, which hold
+        # the library, so a scan would cover only the files around them.
+        language: [actions, python]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
     - name: Initialize CodeQL
