@@ -86,6 +86,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_12b_lp_unimodular_runtime.cpp",
         _PYTHON_DIR / "showcase_12b_lp_unimodular_runtime.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_13_site_occurrences.cpp",
+        _PYTHON_DIR / "showcase_13_site_occurrences.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -189,8 +193,11 @@ def normalize_ir(ir_text: str) -> str:
 
 
 def extract_function_block(ir_text: str, symbol: str) -> str | None:
+    # The symbol on the define line itself: `.*` across lines would start the
+    # block at the file's first define and let another function's body satisfy
+    # a check.
     pattern = re.compile(
-        rf"(?ms)^define\b.*@{re.escape(symbol)}\b.*?\n\}}"
+        rf"(?ms)^define\b[^\n]*@{re.escape(symbol)}\([^\n]*\n.*?\n\}}"
     )
     match = pattern.search(ir_text)
     return match.group(0) if match else None
@@ -364,13 +371,15 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             block = extract_function_block(ir_text, symbol)
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
-            # Residual Cramer 2x2 solve: two `fdiv double` (x* and y*
-            # numerators divided by the active-set determinant).
-            if "fdiv double" not in block:
+            # Residual Cramer 2x2 solve: x* and y*, the numerators divided
+            # by the active-set determinant, two `fdiv double` or one
+            # `fdiv <2 x double>` (the SLP vectoriser pairs them).
+            if not re.search(r"\bfdiv (<\d+ x )?double\b", block):
                 raise AssertionError(
                     f"{symbol}: expected residual `fdiv double` from the "
                     "Cramer 2x2 solve to survive in IR — its absence would "
                     "mean the runtime kernel was accidentally constant-folded."
+                    f"\n{block}"
                 )
             # Residual loop / argmax structure: the outer C(n,2) enumeration
             # and the argmax accumulator survive as `phi` nodes.
@@ -387,6 +396,24 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                     f"{symbol}: expected `llvm.fmuladd.f64` (Cramer "
                     "determinant + objective FMA) to survive in IR."
                 )
+    elif "showcase_13_site_occurrences" in name:
+        # Listing 5: the count at four binding times.  With both lengths
+        # known it is a constant, 7 · 4^3 · 4^6; the other three are what
+        # the paper reads back from the IR, each present as its own symbol.
+        # The three partly or wholly free stages are printed, what the paper
+        # reads back; only the bound one is asserted.
+        for symbol in ("witness_sites", "witness_sites_of_6",
+                       "witness_sites_in_12", "witness_sites_12_6"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
+        block = extract_function_block(ir_text, "witness_sites_12_6")
+        if not re.search(r"^\s*ret i64 1835008\s*$", block, re.MULTILINE):
+            raise AssertionError(
+                "Expected witness_sites_12_6 to collapse to `ret i64 1835008` "
+                "in IR (both lengths bound by constexpr)."
+            )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
 

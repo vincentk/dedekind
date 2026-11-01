@@ -351,6 +351,67 @@ constexpr N sum(const detail_periodic::Along<N, F>& v) {
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
 }
 
+namespace detail_periodic {
+/** @brief The checked sum of two exact counts: none if either is none or
+ *  their sum leaves the word. */
+template <IsCountWord N>
+struct CheckedPlus {
+  constexpr std::optional<N> operator()(std::optional<N> a,
+                                        std::optional<N> b) const {
+    if (!a || !b || *b > std::numeric_limits<N>::max() - *a)
+      return std::nullopt;
+    return static_cast<N>(*a + *b);
+  }
+};
+/** @brief Whether @c T is an exact count: a count word, or none. */
+template <typename T>
+inline constexpr bool is_exact_count_v = false;
+template <IsCountWord N>
+inline constexpr bool is_exact_count_v<std::optional<N>> = true;
+/** @brief The checked product of a count and an exact count. */
+template <IsCountWord N>
+constexpr std::optional<N> checked_times(N k, std::optional<N> x) {
+  if (!x || (k != 0 && *x > std::numeric_limits<N>::max() / k)) {
+    return std::nullopt;
+  }
+  return static_cast<N>(k * *x);
+}
+}  // namespace detail_periodic
+/** @brief The exact sum of a range of exact counts: the plain fold, never
+ *  wrapped, the discipline of @c exact_count.  @param r the range.
+ *  @return the sum, or none once a summand is none or the sum leaves the
+ *  word. */
+export template <std::ranges::input_range R>
+  requires detail_periodic::is_exact_count_v<std::ranges::range_value_t<R>>
+constexpr std::ranges::range_value_t<R> exact_sum(R r) {
+  using N = typename std::ranges::range_value_t<R>::value_type;
+  return std::ranges::fold_left(std::move(r), std::optional<N>{N{0}},
+                                detail_periodic::CheckedPlus<N>{});
+}
+namespace detail_periodic {
+/** @brief The plain exact sum of @c f(0), ..., @c f(m - 1). */
+template <IsCountWord N, IsArrow F>
+constexpr std::optional<N> exact_sum_below(N m, const F& f) {
+  return exact_sum(m >> chain<N>() >> opaque(f));
+}
+}  // namespace detail_periodic
+/** @brief The exact sum along the chain of @c n under a periodic arrow into
+ *  the exact counts: @c sum's law, checked.  @param v the chain under the
+ *  arrow.  @return @c f(0) + ... + @c f(n - 1), or none where it leaves the
+ *  word. */
+export template <IsCountWord N, HasPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
+constexpr std::optional<N> exact_sum(const detail_periodic::Along<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed(), p = period(f);
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  if (n < p) return detail_periodic::exact_sum_below(n, f);  // under a period
+  return detail_periodic::CheckedPlus<N>{}(
+      detail_periodic::checked_times(n / p,
+                                     detail_periodic::exact_sum_below(p, f)),
+      detail_periodic::exact_sum_below(static_cast<N>(n % p), f));
+}
+
 /** @brief A translation of the counts, @f$k \mapsto k + j@f$: after it, a
  *  periodic arrow keeps its period, on an extent narrowed by @c j.
  *  @tparam N the counts. */
@@ -451,7 +512,7 @@ struct AnyStep {
 };
 /** @brief One step of a window at @c k: the step applied to @c f(k + j). */
 template <IsArrow F, typename Step>
-struct Window {
+struct WindowStep {
   F f;
   Dom<F> k;
   template <std::semiregular Acc>
@@ -475,7 +536,7 @@ struct Rolling {
   /** @param k a count.  @return the window's fold at @c k. */
   constexpr Acc operator()(Dom<F> k) const {
     return std::ranges::fold_left(std::views::iota(Dom<F>{0}, width), Acc{},
-                                  detail_periodic::Window<F, Step>{f, k});
+                                  detail_periodic::WindowStep<F, Step>{f, k});
   }
 };
 /** @param r the window.  @return the predicate's period. */
@@ -1616,6 +1677,192 @@ constexpr std::vector<Factor<N>> count_factors(
   return std::ranges::fold_left(
       cycle_type(s.sigma, p.length), std::vector<Factor<N>>{},
       detail_periodic::CycleFactor<C, F, T, N>{p.letters, p.member, s.tau});
+}
+
+/** @brief The window of a word from position @c offset, @c length letters
+ *  long: its projection onto those positions, @f$\pi_I@f$ for @f$I =
+ *  \{\mathit{offset}, \ldots, \mathit{offset} + \mathit{length} - 1\}@f$, a
+ *  factor of the word in the sense of combinatorics on words.  Total: a
+ *  window past the word's end is cut at it, so it is shorter.  @tparam N the
+ *  counts. */
+export template <IsCountWord N = std::size_t>
+struct Window {
+  N offset;
+  N length;
+  template <std::ranges::random_access_range W>
+    requires std::semiregular<W> &&
+             std::constructible_from<W, std::ranges::iterator_t<const W>,
+                                     std::ranges::iterator_t<const W>>
+  constexpr W operator()(const W& w) const {
+    const auto size = static_cast<N>(std::ranges::size(w));
+    const N from = std::min(offset, size);
+    const N to = std::min(from + std::min(length, size - from), size);
+    return W(std::ranges::begin(w) + static_cast<std::ptrdiff_t>(from),
+             std::ranges::begin(w) + static_cast<std::ptrdiff_t>(to));
+  }
+  constexpr bool operator==(const Window&) const = default;
+};
+/** @param offset the first position.  @param length how many.  @return the
+ *  window of the words there. */
+export template <IsCountWord N = std::size_t>
+constexpr Window<N> window(std::type_identity_t<N> offset,
+                           std::type_identity_t<N> length) {
+  return {offset, length};
+}
+
+namespace detail_periodic {
+/** @brief The tensor power a set of words of one length is a subset of: the
+ *  power itself, or the power a symmetric section fixes words of. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr Power<C, F, N> power_of(const Power<C, F, N>& p) {
+  return p;
+}
+template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+constexpr Power<C, F, N> power_of(const Symmetric<Power<C, F, N>, S, T>& s) {
+  return s.power;
+}
+/** @brief Whether two tensor powers have the same legs: the same letters
+ *  under the same predicate, whatever their lengths. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+  requires std::equality_comparable<F>
+constexpr bool same_legs(const Power<C, F, N>& p, const Power<C, F, N>& q) {
+  return p.letters.lo == q.letters.lo && p.letters.hi == q.letters.hi &&
+         p.member == q.member;
+}
+}  // namespace detail_periodic
+
+/** @brief The words of a tensor power whose window lies in a set of words:
+ *  the cylinder set @f$\pi_I^{-1}(S)@f$, the legs the window reads
+ *  constrained by @c S and every other leg free.  @tparam P the power.
+ *  @tparam S the set of words the window lands in, over the same legs.
+ *  @tparam N the counts. */
+export template <typename P, typename S, IsCountWord N>
+struct Cylinder {
+  P power;
+  Window<N> window;
+  S inner;
+};
+/** @param p a tensor power.  @param w a window on its words.  @param s a set
+ *  of words over the same legs: a power, or a symmetric section of one.
+ *  @return the words of @c p whose window lies in @c s. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
+  } && std::equality_comparable<F>
+constexpr Cylinder<Power<C, F, N>, S, N> cylinder(const Power<C, F, N>& p,
+                                                  Window<N> w, S s) {
+  return {p, w, std::move(s)};
+}
+/** @brief The factors of a cylinder's count, aggregate pushdown (eager
+ *  aggregation: Yan and Larson, VLDB 1995): the count of the set the window
+ *  lands in, times @f$|\Sigma|^{N - n}@f$ for the legs it leaves free, the
+ *  window's offset dropping out.  Empty where no word's window can lie in
+ *  the set: a window past the end, or a set of words of another length.
+ *  @param c the cylinder.  @return its count, factored. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+  }
+constexpr std::vector<Factor<N>> count_factors(
+    const Cylinder<Power<C, F, N>, S, N>& c) {
+  const auto& p = c.power;
+  const auto q = detail_periodic::power_of(c.inner);
+  const bool fits =
+      detail_periodic::same_legs(p, q) && c.window.length == q.length &&
+      c.window.offset <= p.length && q.length <= p.length - c.window.offset;
+  if (!fits) return {Factor<N>{N{0}, N{1}}};
+  auto fs = count_factors(c.inner);
+  fs.push_back(
+      count_factors(Power<C, F, N>{p.letters, p.member, p.length - q.length})
+          .front());
+  return fs;
+}
+
+namespace detail_periodic {
+/** @brief The factors of the cylinder at one offset, as an arrow from the
+ *  offset.  A power is the same at every position, so every window that
+ *  fits has the same factors: period 1, on the offsets where the window
+ *  fits.  The summands of @c occurrences read it. */
+template <typename P, typename S, IsCountWord N>
+struct CylinderFactorsAt {
+  using Domain = N;
+  using Codomain = std::vector<Factor<N>>;
+  P power;
+  S inner;
+  N length;
+  constexpr Codomain operator()(N offset) const {
+    return count_factors(cylinder(power, window<N>(offset, length), inner));
+  }
+};
+/** @return 1: translation invariance. */
+template <typename P, typename S, IsCountWord N>
+constexpr N period(const CylinderFactorsAt<P, S, N>&) {
+  return N{1};
+}
+/** @param f the factors at an offset.  @return the offsets where the window
+ *  fits, @c N − @c n + 1, where the law holds. */
+template <typename P, typename S, IsCountWord N>
+constexpr N extent(const CylinderFactorsAt<P, S, N>& f) {
+  return f.length <= f.power.length
+             ? static_cast<N>(f.power.length - f.length + 1)
+             : N{0};
+}
+/** @brief A factored count read modulo the word, as an arrow. */
+template <IsCountWord N>
+struct CountOf {
+  using Domain = std::vector<Factor<N>>;
+  using Codomain = N;
+  constexpr N operator()(const Domain& fs) const { return count(fs); }
+};
+/** @brief A factored count read exactly, as an arrow. */
+template <IsCountWord N>
+struct ExactCountOf {
+  using Domain = std::vector<Factor<N>>;
+  using Codomain = std::optional<N>;
+  constexpr Codomain operator()(const Domain& fs) const {
+    return exact_count(fs);
+  }
+};
+}  // namespace detail_periodic
+
+/** @brief How often a set of words occurs in the words of a tensor power,
+ *  counted with their positions: the pairs (word, offset) whose window lies
+ *  in @c s, the sum over the offsets of the cylinders' counts, modulo the
+ *  word.  Each summand is pushed down (R2), so none depends on its offset:
+ *  the summand has period 1, and the periodic @c sum takes one of them,
+ *  times the number of offsets.
+ *  @param p a tensor power.  @param s a set of words over the same legs.
+ *  @return the occurrences. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
+    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+  } && std::equality_comparable<F>
+constexpr N occurrences(const Power<C, F, N>& p, const S& s) {
+  const N n = detail_periodic::power_of(s).length;
+  if (n > p.length) return N{0};
+  return sum(
+      static_cast<N>(p.length - n + 1) >> chain<N>() >>
+      (detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>{p, s, n} >>
+       detail_periodic::CountOf<N>{}));
+}
+/** @brief The occurrences exactly, or none where the word cannot hold them:
+ *  never wrapped, the discipline of @c exact_count.  @param p a tensor
+ *  power.  @param s a set of words over the same legs.  @return the
+ *  occurrences, or none. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
+    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+  } && std::equality_comparable<F>
+constexpr std::optional<N> exact_occurrences(const Power<C, F, N>& p,
+                                             const S& s) {
+  const N n = detail_periodic::power_of(s).length;
+  if (n > p.length) return N{0};
+  return exact_sum(
+      static_cast<N>(p.length - n + 1) >> chain<N>() >>
+      (detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>{p, s, n} >>
+       detail_periodic::ExactCountOf<N>{}));
 }
 
 }  // namespace dedekind::category
