@@ -96,8 +96,8 @@ using LeftActs = dedekind::category::ActionFunctor<Apply, size_t, Affine>;
 using Map = dedekind::category::Element<Affine, Op>;
 static_assert(dedekind::category::IsFunctor<LeftActs> &&
               (Map{twice} >> Map{next}).value == next * twice &&
-              LeftActs{}.φ(Map{twice} >> Map{next})(3uz) == 7 &&
-              (LeftActs{}.φ(Map{twice}) >> LeftActs{}.φ(Map{next}))(3uz) == 7);
+              LeftActs{}(Map{twice} >> Map{next})(3uz) == 7 &&
+              (LeftActs{}(Map{twice}) >> LeftActs{}(Map{next}))(3uz) == 7);
 
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.
@@ -130,9 +130,9 @@ using Negation =
     dedekind::category::DaggerFunctor<Negate, size_t, std::plus<size_t>>;
 using Plus = dedekind::category::Element<size_t, std::plus<size_t>>;
 static_assert(dedekind::category::IsFunctor<Negation> &&
-              Negation{}.φ(Plus{5} >> Plus{7}).value ==
-                  (Negation{}.φ(Plus{5}) >> Negation{}.φ(Plus{7})).value &&
-              Negation{}.φ(Plus{5}).value == 0uz - 5uz);
+              Negation{}(Plus{5} >> Plus{7}).value ==
+                  (Negation{}(Plus{5}) >> Negation{}(Plus{7})).value &&
+              Negation{}(Plus{5}).value == 0uz - 5uz);
 static_assert(dedekind::category::IsMagmaHomomorphism<AtRunTime, size_t,
                                                       std::plus<size_t>> &&
               !IsMonoidHomomorphism<AtRunTime, size_t, std::plus<size_t>>);

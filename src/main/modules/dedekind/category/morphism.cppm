@@ -103,7 +103,7 @@ namespace dedekind::category {
 // being @c g @c ∘ @c f, the reified @c Compose<F, G>.  A functor
 // @c F: @c 𝒞 @c → @c 𝒟 is an arrow too, an arrow of @b Cat whose ends
 // are categories, with extra structure: its action on the arrows of
-// @c 𝒞, @c F(f) @c = @c F.φ(f), with @c F(g @c ∘ @c f) @c = @c F(g)
+// @c 𝒞, @c F(f) @c = @c F(f), with @c F(g @c ∘ @c f) @c = @c F(g)
 // @c ∘ @c F(f) and @c F(id) @c = @c id (@c IsFunctor, @c :functor).  So
 // there is one concept per notion, @c IsArrow and @c IsFunctor, the
 // second refining the first, and three spellings of @c >>:

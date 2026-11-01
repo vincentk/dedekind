@@ -488,9 +488,9 @@ using Acts =
                                       M2>;
 using Mat = dedekind::category::Element<M2, MatMul>;
 static_assert(dedekind::category::IsFunctor<Acts> &&
-              Acts{}.φ(Mat{fib} >> Mat{shear})(V{1, 2}) ==
-                  (Acts{}.φ(Mat{fib}) >> Acts{}.φ(Mat{shear}))(V{1, 2}) &&
-              Acts{}.φ(Mat{fib} >> Mat{shear})(V{1, 2}) ==
+              Acts{}(Mat{fib} >> Mat{shear})(V{1, 2}) ==
+                  (Acts{}(Mat{fib}) >> Acts{}(Mat{shear}))(V{1, 2}) &&
+              Acts{}(Mat{fib} >> Mat{shear})(V{1, 2}) ==
                   act(act(V{1, 2}, fib), shear));
 // The semimodule's scaling is a left action of the counts, so a functor out
 // of the opposite of their delooping: 3 then 4 scales by 4 · 3.
@@ -501,9 +501,9 @@ using Scaling =
 using Count = dedekind::category::Element<
     size_t, dedekind::category::Opposite<std::multiplies<size_t>>>;
 static_assert(dedekind::category::IsFunctor<Scaling> &&
-              Scaling{}.φ(Count{3} >> Count{4})(shear) ==
-                  (Scaling{}.φ(Count{3}) >> Scaling{}.φ(Count{4}))(shear) &&
-              Scaling{}.φ(Count{3} >> Count{4})(shear) == 12uz * shear);
+              Scaling{}(Count{3} >> Count{4})(shear) ==
+                  (Scaling{}(Count{3}) >> Scaling{}(Count{4}))(shear) &&
+              Scaling{}(Count{3} >> Count{4})(shear) == 12uz * shear);
 // On a sequence that is not copies the product has no fast form, so the
 // library's fold is the plain one; the action law, acting once by the product
 // in the walk's order, agrees with it on matrices that do not commute.

@@ -35,8 +35,8 @@
  *
  * 1. The Functor (Intensional Functor / Law):
  *    Represented by @ref IsShapedFunctor, this is a stateless blueprint acting
- *    as a 1-morphism between categories. It owns the "Morphic Action" (φ)—the
- *    mathematical recipe for lifting arrows. It requires handles to its
+ *    as a 1-morphism between categories. It owns the action on arrows, F(f),
+ * the mathematical recipe for lifting arrows. It requires handles to its
  *    @ref Σ_cat and @ref Τ_cat to verify structural integrity (Identity and
  *    Composition preservation). Without these handles, a mapping is a
  *    mere function; with them, it becomes a verified Functor.
@@ -68,9 +68,6 @@
  * partition, but under the current category choices it is not an @ref
  * IsEndofunctor witness for @ref IsMonad (see `:monad` for the textbook
  * constraint).
- * - Value-level overloads of φ for Maybe / Identity / std::tuple at the end
- *   of this file are lifting utilities, not IsShapedFunctor functor models by
- * themselves.
  *
  *
  * @note "If we do not succeed in solving a mathematical problem, the reason
@@ -107,38 +104,6 @@ import :small;
 namespace dedekind::category {
 
 /**
- * @brief @c map_arrow(F, a): the object-free @b morphism @b map of a functor
- *        --- Haskell's @c fmap on @b arrows, @f$(a \to b) \mapsto (F a \to F
- *        b)@f$, exposed as a @b composable free helper rather than the member
- *        @c F.φ.
- *
- * @details This is the categorical @c φ freed from the receiver so it composes
- * as an ordinary function and can be reasoned about --- notably, functor
- * @b variance (@c IsCovariantFunctor / @c IsContravariantFunctor, below) is
- * stated on it, and @c IsFunctor itself @c requires it.  This base overload
- * thinly @b forwards to a functor's member @c φ (so the existing shaped
- * functors need no change); a @b lightweight functor may instead supply its own
- * free
- * @c map_arrow overload --- the customization point.  (Retiring the member
- * @c φ in favour of the free form is a follow-up.)
- *
- * @note Why not @c φ or @c fmap (the idiomatic names)?  Both are already bound
- * to @b different operations here: @c fmap(functor) is the applicative @b
- * factory
- * (@c fmap(functor)(value)(f), a curried applicator), and @c φ is three-way
- * overloaded --- the member lift @c f.φ, the @b value-level container fmap
- * @c φ(Maybe<A>,f), and the deleted species-lift primary @c φ(𝗙,𝗳).  A free
- * @c φ(F,arrow) would collide with that last one (both are @c
- * (Functor,callable), and an arrow @b is callable).  @c map_arrow names the
- * specific free arrow→arrow action without entering that overload thicket.
- */
-template <typename F, typename A>
-  requires requires(const F& f, A&& a) { f.φ(std::forward<A>(a)); }
-constexpr auto map_arrow(const F& f, A a) {
-  return f.φ(std::move(a));
-}
-
-/**
  * @concept IsFunctor
  * @brief The textbook functor (#633): an @c IsArrow whose Domain and Codomain
  *        are @b (small) @b categories --- a 1-morphism in @b Cat, Mac Lane
@@ -148,12 +113,11 @@ constexpr auto map_arrow(const F& f, A a) {
  * drops the container-flavoured @c Shape<U> object map but keeps the
  * categorical signature @f$F\colon\Sigma\to\mathrm{T}@f$ (with @c
  * IsSmallCategory Domain and Codomain) @b and the morphism action, required
- * through the @b free helper
- * @c map_arrow (@c φ) rather than a member @c f.φ.  @c IsShapedFunctor (the
+ * as the call on an arrow, @c F(f), beside the call on the source category,
+ * its action on objects, as the textbook writes both.  @c IsShapedFunctor (the
  * fmap / type-constructor endofunctor: @c maybe_functor, @c tuple_functor,
  * @c complex-/dual-style functors) @b refines it with @c Shape<U>, so
- * @c IsShapedFunctor @c ⟹ @c IsFunctor by construction (a shaped functor's
- * member @c φ is reached through the @c map_arrow forwarder).  Functor
+ * @c IsShapedFunctor @c ⟹ @c IsFunctor by construction.  Functor
  * @b variance branches off @c IsFunctor directly.
  *
  * @note What @b does @b not land here yet: the carrier-lattice @c embed_*_*_
@@ -182,16 +146,17 @@ export template <typename F>
 concept IsFunctor =
     IsArrow<F> && IsSmallCategory<Dom<F>> && IsSmallCategory<Cod<F>> &&
     requires(const F& f, typename Dom<F>::Arrow a) {
-      // The morphism map, required via the FREE helper @c map_arrow (not a
-      // member @c f.φ): a source arrow lifts to a target arrow.
-      { map_arrow(f, a) } -> IsArrow;
+      // The action on arrows, F(a), as the textbook writes it: the call on
+      // an arrow, beside the call on the source category, its action on
+      // objects.  A source arrow lifts to a target arrow.
+      { f(a) } -> IsArrow;
     } && is_functorial_v<F>;
 
 /**
  * @concept IsShapedFunctor
  * @brief A 1-morphism mapping CatS -> CatT, @b refined with the container
  * shape: an @c IsFunctor that additionally exposes a type-level object map
- *        @c Shape<U> and a morphism map @c φ (fmap).
+ *        @c Shape<U> and the action on arrows, @c F(f).
  *
  * @details
  * 1. Mapping: F(f: A->B) -> F(f): F(A)->F(B)
@@ -222,14 +187,14 @@ concept IsShapedFunctor = IsFunctor<F> && requires {
   typename F::template Shape<int>;
 } && requires(F f, typename F::Σ_cat::Arrow f_c) {
   // 1. Morphism mapping check
-  { f.φ(f_c >> f_c) } -> IsArrow;
+  { f(f_c >> f_c) } -> IsArrow;
 
   requires std::same_as<
-      typename decltype(f.φ(f_c))::Domain,
+      typename decltype(f(f_c))::Domain,
       typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
 
   requires std::same_as<
-      typename decltype(f.φ(f_c))::Codomain,
+      typename decltype(f(f_c))::Codomain,
       typename F::template Shape<typename F::Σ_cat::Arrow::Codomain>>;
 
   // 2. Identity Preservation check (The Textbook Embedding)
@@ -240,48 +205,18 @@ concept IsShapedFunctor = IsFunctor<F> && requires {
      * The image of the identity on object c in the source category
      * must be an arrow in the target category.
      *
-     * Note: We use 'f.φ' because φ is a member function.
      */
-    { f.φ(F::Σ_cat::id_c(c)) } -> IsArrow;
+    { f(F::Σ_cat::id_c(c)) } -> IsArrow;
 
     requires std::same_as<
-        typename decltype(f.φ(F::Σ_cat::id_c(c)))::Domain,
+        typename decltype(f(F::Σ_cat::id_c(c)))::Domain,
         typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
 
     requires std::same_as<
-        typename decltype(f.φ(F::Σ_cat::id_c(c)))::Codomain,
+        typename decltype(f(F::Σ_cat::id_c(c)))::Codomain,
         typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
   };
 };
-
-/**
- * @brief φ (phi): The Functorial Morphism Lift (fmap).
- *
- * Constraint: (a -> b) -> (T a -> T b)
- *
- * @details This is the core lifting engine of the library. It upgrades a
- * "homeless" function (a raw morphism) into a bona fide arrow within the
- * Functorial context.
- *
- * @tparam 𝗙 The Functorial type (The Box/Shape). Must satisfy @ref
- * IsShapedFunctor.
- * @tparam 𝗳 The raw morphism type. Must be invocable with the source category's
- * species.
- *
- * @param ma The functorial witness (the "Boxed" value) representing an object
- * in Σ_cat.
- * @param f  The transformation A -> B to be lifted into the functor.
- *
- * @return A new functorial instance of the same @ref Shape, containing the
- * result of f.
- * @note This base overload is deleted to force specialization for concrete
- * functors.
- */
-template <typename 𝗙, typename 𝗳>
-  requires IsShapedFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
-[[nodiscard]]
-constexpr auto φ(𝗙 const&, 𝗳) -> typename 𝗙::template Shape<
-    std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
 
 /**
  * @concept IsMorphicApplicator
@@ -323,11 +258,11 @@ struct morphic_engine {
 
   template <typename Func>
     requires requires(const Functor& functor, Func g) {
-      functor.φ(arrow(std::move(g)));
+      functor(arrow(std::move(g)));
     }
   constexpr auto operator()(Func f) const {
     // 1. Ensure we have an Arrow (lifts lambdas if necessary)
-    auto lifted_arrow = h.φ(arrow(std::move(f)));
+    auto lifted_arrow = h(arrow(std::move(f)));
 
     /**
      * 2. The Crucial Step:
@@ -358,10 +293,10 @@ struct maybe_functor {
   template <typename U>
   using Shape = std::optional<U>;
 
-  /** @brief φ: The Morphic Lift with Short-Circuiting Law */
+  /** @brief The action on arrows, F(f), short-circuiting on the empty value. */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳 f) const {
+  constexpr auto operator()(𝗳 f) const {
     return arrow([f = std::move(f)](std::optional<T> const& m) {
       // The Law: If the input is empty, the result remains empty.
       return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
@@ -392,11 +327,11 @@ struct tuple_functor {
   template <typename U>
   using Shape = std::tuple<U>;
 
-  /** @brief φ: lift @c f: T → U to @c std::tuple<T> → std::tuple<U>
-   *  by mapping the single element. */
+  /** @brief The action on arrows: @c f: T → U to @c std::tuple<T> →
+   * std::tuple<U> by mapping the single element. */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳 f) const {
+  constexpr auto operator()(𝗳 f) const {
     return arrow([f = std::move(f)](std::tuple<T> const& t) {
       return std::tuple{std::invoke(f, std::get<0>(t))};
     });
@@ -423,14 +358,13 @@ static_assert(
 // The extracted superinterface (#633): every IsShapedFunctor IS an IsFunctor
 // --- the container functors also satisfy the textbook "arrow between small
 // categories" concept, since their Σ_cat / Τ_cat = Set<·> are IsSmallCategory.
-// The strengthened IsFunctor also exercises the free morphism map: map_arrow
-// reaches each functor's member φ through the forwarder, so { map_arrow(f, a) }
-// is a valid IsArrow.
+// The strengthened IsFunctor also exercises the action on arrows, so
+// { F(f) } is a valid IsArrow.
 static_assert(
     IsFunctor<tuple_functor<int>> && IsFunctor<maybe_functor<int>>,
     "IsShapedFunctor ⟹ IsFunctor: the fmap functors are also textbook "
     "functors (Set<T> → Set<Shape<T>>, Mac Lane §I.3) carrying the "
-    "free morphism map map_arrow.");
+    "action on arrows, F(f).");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
@@ -480,22 +414,6 @@ constexpr auto immerse(Functor h, Value s) {
 }
 
 /**
- * @brief The action on arrows: a functor's action on an arrow.
- *
- * @details This keeps fish syntax for a functor acting on arrows:
- *   F >> f
- * where F is a verified functor and f is an arrow in F::Σ_cat.
- */
-export template <typename Functor, typename Arrow>
-  requires IsShapedFunctor<Functor> && IsArrow<std::remove_cvref_t<Arrow>> &&
-           std::same_as<Dom<std::remove_cvref_t<Arrow>>,
-                        typename Functor::Σ_cat::Species>
-[[nodiscard]]
-constexpr auto operator>>(Functor const& functor, Arrow f) {
-  return functor.φ(std::move(f));
-}
-
-/**
  * @brief Composite Functor G . F (Maps CatS -> CatT -> CatU).
  *
  * Verifies that the target of the first functor matches the source
@@ -519,14 +437,14 @@ struct composite_functor {
   using Shape = typename G::template Shape<typename F::template Shape<U>>;
 
   /**
-   * @brief φ(f) = G.φ(F.φ(f))
+   * @brief The composite's action on arrows: (G ∘ F)(f) = G(F(f)).
    * Chaining the functorial lift.
    */
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>>
-  constexpr auto φ(A f) const {
+  constexpr auto operator()(A f) const {
     // First lift through F, then through G.
-    return second.φ(first.φ(std::move(f)));
+    return second(first(std::move(f)));
   }
 
   /** @brief Object Mapping: (G . F)(c) = G(F(c)) */
@@ -852,7 +770,7 @@ struct identity_functor {
   constexpr Codomain operator()(const Domain& c) const noexcept { return c; }
 
   /**
-   * @brief φ for Identity: Just return the arrow.
+   * @brief The identity's action on arrows: the arrow itself.
    * We loosen the constraint to accept any valid arrow of the category,
    * satisfying the "Honest" requirement that F(f) = f.
    */
@@ -860,7 +778,7 @@ struct identity_functor {
     requires IsArrow<std::remove_cvref_t<𝗳>> &&
              std::same_as<typename std::remove_cvref_t<𝗳>::Domain,
                           typename Cat::Species>
-  constexpr auto φ(𝗳 f) const {
+  constexpr auto operator()(𝗳 f) const {
     return std::move(f);
   }
 
@@ -886,45 +804,6 @@ static_assert(
  */
 export template <typename T>
 using Maybe = std::optional<T>;
-
-/**
- * @brief φ for Maybe (std::optional).
- * If ma has a value, applies f and wraps the result.
- */
-export template <typename A, typename F>
-constexpr auto φ(Maybe<A> const& ma, F f) -> Maybe<std::invoke_result_t<F, A>> {
-  if (ma) {
-    return std::make_optional(std::invoke(std::move(f), *ma));
-  }
-  return std::nullopt;
-}
-
-/**
- * @brief φ for std::tuple<T> — Frobenius carrier (#632).
- * Applies @c f to the single element, returning a 1-tuple of the result.
- */
-export template <typename A, typename F>
-constexpr auto φ(std::tuple<A> const& ta, F f)
-    -> std::tuple<std::invoke_result_t<F, A>> {
-  return std::tuple<std::invoke_result_t<F, A>>{
-      std::invoke(std::move(f), std::get<0>(ta))};
-}
-
-/**
- * @brief φ for Identity.
- * Structural lift for Identity-as-arrow witnesses.
- *
- * Since Identity<T> in this model is the identity arrow witness (not a
- * value container), this overload transports only the species type-level
- * shape and returns id<invoke_result_t<F, A>>().
- */
-template <typename A, typename F>
-constexpr auto φ(Identity<A> const& id, F f)
-    -> Identity<std::invoke_result_t<F, A>> {
-  (void)id;
-  (void)f;
-  return category::id<std::invoke_result_t<F, A>>();
-}
 
 // The quotient-algebra meta-symmetry (Frac, Cplx, Dual as structural
 // functors that preserve associativity / commutativity / distributivity
@@ -1013,10 +892,10 @@ constexpr auto φ(Identity<A> const& id, F f)
  *
  * The two intuitions are unified at the @c IsFunctor level (Mac Lane
  * §I.3): a functor is a structure-preserving map between two
- * categories, full stop (@c IsShapedFunctor refines it with @c Shape<U> /
- * @c φ).  Polymorphic / non-polymorphic is a
- * presentation choice for how F is given, not a structural CT
- * property; textbook CT therefore does not name umbrella concepts
+ * categories, full stop (@c IsShapedFunctor refines it with @c Shape<U>).
+ * Polymorphic / non-polymorphic is a presentation choice for how F is given,
+ * not a structural CT property; textbook CT therefore does not name umbrella
+ * concepts
  * "@c IsContainerFunctor" / "@c IsSpecificFunctor".  This project
  * follows the textbook reading: no umbrella concepts, only the
  * textbook-canonical adjective modifiers.
@@ -1067,7 +946,7 @@ inline constexpr bool is_embedding_functor_v = false;
  * @c IsFunctor is @c false on them.  The #633 superinterface split has now
  * landed
  * (@c IsFunctor = the Shape-free "arrow between small categories"; @c
- * IsShapedFunctor refines it with @c Shape<U> / @c φ), so @c IsEmbeddingFunctor
+ * IsShapedFunctor refines it with @c Shape<U>), so @c IsEmbeddingFunctor
  * could be tightened to require @c IsFunctor once the @b remaining #633 step
  * lands: reifying a carrier's arrows as a small category (giving the embedding
  * @c Σ_cat / @c Τ_cat @c = @c Set<carrier> slots).  Until then the @c
@@ -1215,12 +1094,14 @@ struct ActionFunctor {
   using Shape = V;
   [[no_unique_address]] H h{};
   constexpr Codomain operator()(const Domain&) const { return {}; }
-  constexpr Acting<H, V, S> φ(const Element<S, Op>& s) const {
+  constexpr Acting<H, V, S> operator()(const Element<S, Op>& s) const {
     return {h, s.value};
   }
   /** @brief The identity to the identity: the functor's unit law, at the
    *  type. */
-  constexpr IdentityIn<Τ_cat> φ(const IdentityIn<Σ_cat>&) const { return {}; }
+  constexpr IdentityIn<Τ_cat> operator()(const IdentityIn<Σ_cat>&) const {
+    return {};
+  }
 };
 /** @brief An action's functor laws come with the action: derived from
  *  @c acting_monoid, which @c IsRightAction reads. */
@@ -1284,11 +1165,13 @@ struct LeftActionFunctor {
   using Shape = M;
   [[no_unique_address]] Act act{};
   constexpr Codomain operator()(const Domain&) const { return {}; }
-  constexpr LeftActing<Act, M, S> φ(
+  constexpr LeftActing<Act, M, S> operator()(
       const Element<S, Opposite<MultS>>& s) const {
     return {act, s.value};
   }
-  constexpr IdentityIn<Τ_cat> φ(const IdentityIn<Σ_cat>&) const { return {}; }
+  constexpr IdentityIn<Τ_cat> operator()(const IdentityIn<Σ_cat>&) const {
+    return {};
+  }
 };
 /** @brief A semimodule's functor laws come with it: derived from
  *  @c IsSemimodule. */
@@ -1320,10 +1203,12 @@ struct DaggerFunctor {
   using Shape = One;
   [[no_unique_address]] Dagger dagger{};
   constexpr Codomain operator()(const Domain&) const { return {}; }
-  constexpr Element<T, Opposite<Op>> φ(const Element<T, Op>& a) const {
+  constexpr Element<T, Opposite<Op>> operator()(const Element<T, Op>& a) const {
     return {static_cast<T>(dagger(a.value))};
   }
-  constexpr IdentityIn<Τ_cat> φ(const IdentityIn<Σ_cat>&) const { return {}; }
+  constexpr IdentityIn<Τ_cat> operator()(const IdentityIn<Σ_cat>&) const {
+    return {};
+  }
 };
 /** @brief A dagger's functor laws come with the dagger: derived from
  *  @c IsDagger, its involution and its reversal of products. */
@@ -1341,20 +1226,19 @@ static_assert(IsSmallCategory<Delooping<std::size_t, Plus>> &&
               "a monoid acting on itself, by +, is a functor out of its "
               "delooping, and one functor");
 static_assert((Sum{3} >> Sum{4}).value == 7 &&
-                  Adding{}.φ(Sum{3} >> Sum{4})(1uz) ==
-                      (Adding{}.φ(Sum{3}) >> Adding{}.φ(Sum{4}))(1uz) &&
-                  Adding{}.φ(Delooping<std::size_t, Plus>::id_c(One{}))(5uz) ==
-                      5,
+                  Adding{}(Sum{3} >> Sum{4})(1uz) ==
+                      (Adding{}(Sum{3}) >> Adding{}(Sum{4}))(1uz) &&
+                  Adding{}(Delooping<std::size_t, Plus>::id_c(One{}))(5uz) == 5,
               "composition is the operation; the functor keeps it and the "
               "unit, on values");
 using Scaling = LeftActionFunctor<std::size_t, std::size_t>;
 using Scalar = Element<std::size_t, Opposite<std::multiplies<std::size_t>>>;
 using Scalars = Delooping<std::size_t, Opposite<std::multiplies<std::size_t>>>;
 static_assert(IsShapedFunctor<Scaling> && has_one_value_v<Scaling> &&
-                  Scaling{}.φ(Scalar{3} >> Scalar{4})(5uz) ==
-                      (Scaling{}.φ(Scalar{3}) >> Scaling{}.φ(Scalar{4}))(5uz) &&
-                  Scaling{}.φ(Scalar{3} >> Scalar{4})(5uz) == 60 &&
-                  Scaling{}.φ(Scalars::id_c(One{}))(5uz) == 5,
+                  Scaling{}(Scalar{3} >> Scalar{4})(5uz) ==
+                      (Scaling{}(Scalar{3}) >> Scaling{}(Scalar{4}))(5uz) &&
+                  Scaling{}(Scalar{3} >> Scalar{4})(5uz) == 60 &&
+                  Scaling{}(Scalars::id_c(One{}))(5uz) == 5,
               "the counts scale themselves on the left, a functor out of the "
               "opposite delooping, its laws on values");
 }  // namespace detail_functor_actions

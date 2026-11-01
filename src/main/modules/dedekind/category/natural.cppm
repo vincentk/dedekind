@@ -285,11 +285,9 @@ concept IsTwoMorphism =
       // In the single-species setting, we recover F(c) and G(c) by lifting
       // the identity arrow on c and reading the resulting arrow's domain.
       requires std::same_as<typename decltype(α(c))::Domain,
-                            typename decltype(F{}.φ(
-                                F::Σ_cat::id_c(c)))::Domain>;
+                            typename decltype(F{}(F::Σ_cat::id_c(c)))::Domain>;
       requires std::same_as<typename decltype(α(c))::Codomain,
-                            typename decltype(G{}.φ(
-                                G::Σ_cat::id_c(c)))::Domain>;
+                            typename decltype(G{}(G::Σ_cat::id_c(c)))::Domain>;
     };
 
 namespace detail_natural {
@@ -343,7 +341,7 @@ concept IsNaturalTransformation =
     requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow f,
              typename F::Σ_cat::Arrow::Domain c) {
       requires detail_natural::IsNaturalSquare<
-          Α, F, G, decltype(f_map.φ(f)), decltype(g_map.φ(f)), decltype(α(c))>;
+          Α, F, G, decltype(f_map(f)), decltype(g_map(f)), decltype(α(c))>;
     };
 
 /**
@@ -365,7 +363,7 @@ struct identity_transformation {
                                       typename F::Τ_cat::Arrow::Domain>) {
       return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
     } else {
-      return f_map.φ(F::Σ_cat::id_c(c));
+      return f_map(F::Σ_cat::id_c(c));
     }
   }
 };
@@ -403,7 +401,7 @@ struct horizontal_composition {
   constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (β * α)_c = G'(α_c) >> β_{F(c)}
     // or equivalent: β_{F'(c)} >> G(α_c)
-    return G_prime{}.φ(α(c)) >>
+    return G_prime{}(α(c)) >>
            β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
   }
 };

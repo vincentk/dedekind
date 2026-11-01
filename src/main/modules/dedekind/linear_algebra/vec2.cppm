@@ -327,7 +327,7 @@ struct vec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
+  constexpr auto operator()(𝗳&& f) const {
     return dedekind::category::arrow(
         [f = std::forward<𝗳>(f)](Vec2V<T> const& v) -> Vec2V<T> {
           return {std::invoke(f, v.x), std::invoke(f, v.y)};
@@ -351,7 +351,7 @@ struct covec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
+  constexpr auto operator()(𝗳&& f) const {
     return dedekind::category::arrow(
         [f = std::forward<𝗳>(f)](Covec2V<T> const& v) -> Covec2V<T> {
           return {std::invoke(f, v.x), std::invoke(f, v.y)};

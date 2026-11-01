@@ -65,7 +65,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
-#include <functional>  // std::invoke for matrix2x2_functor::φ
+#include <functional>  // std::invoke for matrix2x2_functor's action on arrows
 #include <type_traits>
 #include <utility>  // std::declval for non-default-constructible type composition
 
@@ -576,7 +576,7 @@ struct matrix2x2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
+  constexpr auto operator()(𝗳&& f) const {
     return dedekind::category::arrow(
         [f = std::forward<𝗳>(f)](Matrix2x2V<T> const& m) -> Matrix2x2V<T> {
           return {std::invoke(f, m.m11), std::invoke(f, m.m12),

@@ -59,7 +59,8 @@ module;
 #include <functional>
 #include <ios>
 #include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
-#include <tuple>  // std::tuple<T> — bona-fide Frobenius carrier (#632)
+#include <tuple>        // std::tuple<T> — bona-fide Frobenius carrier (#632)
+#include <type_traits>  // std::remove_cvref_t: a container to its functor
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
@@ -210,11 +211,44 @@ concept IsFrobenius =
 
 /** @section kleisli__Kleisli_Operators */
 
+/** @brief The functor whose values a container is: @c Maybe<A> a value of
+ *  @c maybe_functor<A>, the one-tuple of @c tuple_functor<A>.  Kleisli
+ *  extension reads its action on arrows, @f$\mu \circ T(f)@f$.
+ *  @tparam MA the container. */
+export template <typename MA>
+struct functor_of {};
+template <typename A>
+struct functor_of<Maybe<A>> {
+  using type = maybe_functor<A>;
+};
+template <typename A>
+struct functor_of<std::tuple<A>> {
+  using type = tuple_functor<A>;
+};
+export template <typename MA>
+using functor_of_t = typename functor_of<std::remove_cvref_t<MA>>::type;
+
+namespace detail_kleisli {
+/** @brief @f$T(f)@f$ applied to @c ma: @c f, an arrow of @c T's source or a
+ *  callable lifted to one, under @c T's action, at the value.  @param ma the
+ *  value.  @param f the arrow. */
+template <typename MA, typename F>
+  requires requires { typename functor_of_t<MA>; }
+constexpr auto lifted(const MA& ma, F f) {
+  using T = functor_of_t<MA>;
+  if constexpr (IsArrow<F>) {
+    return T{}(std::move(f))(ma);
+  } else {
+    return T{}(arrow<typename T::Σ_cat::Species>(std::move(f)))(ma);
+  }
+}
+}  // namespace detail_kleisli
+
 /**
  * @brief κ (kappa): Kleisli bind (monadic extension).
  * @details Given a monadic value ma: T<A> and a Kleisli arrow f: A → T<B>,
  * produces a value of type T<B> by:
- *   κ(ma, f) = μ(φ(ma, f))
+ *   κ(ma, f) = μ(T(f)(ma))
  * This is the textbook Kleisli extension operation.
  *
  * @tparam MA The monadic type (e.g., Maybe<T>, Identity<T>)
@@ -222,19 +256,21 @@ concept IsFrobenius =
  *
  * @param ma The monadic value to bind
  * @param f The Kleisli arrow to extend
- * @return The result of applying μ(φ(ma, f))
+ * @return @f$\mu(T(f)(ma))@f$
  */
 export template <typename MA, typename F>
-  requires requires(MA const& ma, F&& f) { μ(φ(ma, std::forward<F>(f))); }
+  requires requires(MA const& ma, F&& f) {
+    μ(detail_kleisli::lifted(ma, std::forward<F>(f)));
+  }
 constexpr auto κ(MA const& ma, F f) {
-  return μ(φ(ma, std::move(f)));
+  return μ(detail_kleisli::lifted(ma, std::move(f)));  // μ ∘ T(f)
 }
 
 /**
  * @brief σ (sigma): Co-Kleisli extend (comonadic extension).
  * @details Given a comonadic value wa: W<A> and a co-Kleisli arrow f: W<A> → B,
  * produces a value of type W<B> by:
- *   σ(wa, f) = φ(δ(wa), f)
+ *   σ(wa, f) = W(f)(δ(wa))
  * This is the textbook co-Kleisli extension operation (extend/cobind).
  *
  * @tparam WA The comonadic type (e.g., @c std::tuple<T> as the
@@ -246,12 +282,14 @@ constexpr auto κ(MA const& ma, F f) {
  *
  * @param wa The comonadic value to extend
  * @param f The co-Kleisli arrow to apply
- * @return The result of applying φ(δ(wa), f)
+ * @return @f$W(f)(\delta(wa))@f$
  */
 export template <typename WA, typename F>
-  requires requires(WA const& wa, F&& f) { φ(δ(wa), std::forward<F>(f)); }
+  requires requires(WA const& wa, F&& f) {
+    detail_kleisli::lifted(δ(wa), std::forward<F>(f));
+  }
 constexpr auto σ(WA const& wa, F f) {
-  return φ(δ(wa), std::move(f));
+  return detail_kleisli::lifted(δ(wa), std::move(f));  // W(f) ∘ δ
 }
 
 /**
@@ -276,28 +314,28 @@ constexpr auto extend(WA const& wa, F f) {
 
 /**
  * @brief bind with explicit monad-tag dispatch.
- * @details Default route: bind(tag, ma, f) = join(tag, φ(ma, f)).
+ * @details Default route: bind(tag, ma, f) = join(tag, T(f)(ma)).
  */
 export template <typename MonadTag, typename MA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, MA const& ma, F&& f) {
-             join(tag, φ(ma, std::forward<F>(f)));
+             join(tag, detail_kleisli::lifted(ma, std::forward<F>(f)));
            }
 constexpr auto bind(MonadTag tag, MA const& ma, F f) {
-  return join(tag, φ(ma, std::move(f)));
+  return join(tag, detail_kleisli::lifted(ma, std::move(f)));
 }
 
 /**
  * @brief extend with explicit monad-tag dispatch.
- * @details Default route: extend(tag, wa, f) = φ(duplicate(tag, wa), f).
+ * @details Default route: extend(tag, wa, f) = W(f)(duplicate(tag, wa)).
  */
 export template <typename MonadTag, typename WA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, WA const& wa, F&& f) {
-             φ(duplicate(tag, wa), std::forward<F>(f));
+             detail_kleisli::lifted(duplicate(tag, wa), std::forward<F>(f));
            }
 constexpr auto extend(MonadTag tag, WA const& wa, F f) {
-  return φ(duplicate(tag, wa), std::move(f));
+  return detail_kleisli::lifted(duplicate(tag, wa), std::move(f));
 }
 
 /** @section kleisli__Kleisli_Bind_Operators */
@@ -324,8 +362,7 @@ constexpr auto operator>>=(MA const& ma, F f) {
  */
 export template <typename MA, typename F>
   requires requires(MA const& ma, F&& f) {
-    { φ(ma, std::forward<F>(f)) };
-    { μ(φ(ma, std::forward<F>(f))) };
+    { μ(detail_kleisli::lifted(ma, std::forward<F>(f))) };
   }
 constexpr auto operator>>(MA const& ma, F f) {
   return κ(ma, std::move(f));
@@ -355,7 +392,7 @@ export template <typename WA, typename F>
   requires(!std::derived_from<std::remove_cvref_t<WA>, std::ios_base>) &&
           requires(WA const& wa, F&& f) {
             { δ(wa) };
-            { φ(δ(wa), std::forward<F>(f)) };
+            { detail_kleisli::lifted(δ(wa), std::forward<F>(f)) };
           }
 constexpr auto operator<<(WA const& wa, F f) {
   return σ(wa, std::move(f));

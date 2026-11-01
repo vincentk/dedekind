@@ -20,7 +20,7 @@ TEST_CASE("Category: Functor action on arrows", "[category][functor][action]") {
     identity_functor<DiscreteCategory<int>> idf;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = idf.φ(plus_one);
+    auto lifted = idf(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(41) == 42);
@@ -31,7 +31,7 @@ TEST_CASE("Category: Functor action on arrows", "[category][functor][action]") {
     maybe_functor<int> maybef;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = maybef.φ(plus_one);
+    auto lifted = maybef(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(std::optional<int>{41}) == std::optional<int>{42});
@@ -61,8 +61,8 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   }
 
   SECTION("Composed action matches direct application") {
-    auto via_composed = composed.φ(plus_one);
-    auto via_direct = IdF{}.φ(plus_one);
+    auto via_composed = composed(plus_one);
+    auto via_direct = IdF{}(plus_one);
 
     CHECK(via_composed(9) == via_direct(9));
     CHECK(via_composed(-1) == via_direct(-1));
@@ -74,8 +74,8 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
 
     STATIC_CHECK(IsShapedFunctor<decltype(downstream)>);
     STATIC_CHECK(IsShapedFunctor<decltype(upstream)>);
-    CHECK(downstream.φ(plus_one)(9) == 10);
-    CHECK(upstream.φ(plus_one)(9) == 10);
+    CHECK(downstream(plus_one)(9) == 10);
+    CHECK(upstream(plus_one)(9) == 10);
   }
 }
 
@@ -105,10 +105,10 @@ TEST_CASE("Category: functor composition type proof",
   using IdF = identity_functor<IntCat>;
 
   using Arrow = typename IdF::Σ_cat::Arrow;
-  using Path1 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>() >>
-                                                      std::declval<Arrow>()));
-  using Path2 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>()) >>
-                         std::declval<IdF const&>().φ(std::declval<Arrow>()));
+  using Path1 = decltype(std::declval<IdF const&>()(std::declval<Arrow>() >>
+                                                    std::declval<Arrow>()));
+  using Path2 = decltype(std::declval<IdF const&>()(std::declval<Arrow>()) >>
+                         std::declval<IdF const&>()(std::declval<Arrow>()));
 
   STATIC_CHECK(std::same_as<Path1, Path2>);
   SUCCEED();
