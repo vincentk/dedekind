@@ -21,9 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # No C/C++: CodeQL's extractor does not read C++20 modules, which hold
-        # the library, so a scan would cover only the files around them.
-        language: [actions, python]
+        # C/C++ is parsed without a build.  CodeQL does not read C++20
+        # modules yet, which hold the library: the scan covers the files
+        # around them (tests, bindings) until it does.
+        language: [actions, c-cpp, python]
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
     - name: Initialize CodeQL
