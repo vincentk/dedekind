@@ -3,7 +3,7 @@ name: Release
 # A release cut by hand, on main, ignoring the 48-hour spacing by default:
 # for a paper submission or a fix that should not wait.  The automatic
 # release after a green build of main is the last job of cmake.yml.  Both
-# build the release on macOS first (build-macos.yml); CI does not.
+# build the release on macOS first (build.yml, CI's pipeline); CI does not.
 # Version: 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (see .github/scripts/release-version.sh).
 
 on:
@@ -57,11 +57,17 @@ jobs:
           echo "Next version: $v"
         fi
 
-  # A release is built on macOS too (#1121).
+  # A release is built on macOS too, by CI's pipeline (#1121).
   build-macos:
     needs: release-plan
     if: needs.release-plan.outputs.version != 'skip'
-    uses: ./.github/workflows/build-macos.yml
+    uses: ./.github/workflows/build.yml
+    with:
+      runner: macos-26
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
 
   release:
     needs: [release-plan, build-macos]
