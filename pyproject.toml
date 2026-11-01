@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.11"]
+requires = ["scikit-build-core>=1.1"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -58,9 +58,9 @@ graphblas = [
 ]
 
 test = [
-  "pytest>=7.0",
-  "pytest-cov>=4.0",
-  "numpy>=1.21",
+  "pytest>=9.2",
+  "pytest-cov>=7.1",
+  "numpy>=2.5",
 ]
 
 [tool.pytest.ini_options]

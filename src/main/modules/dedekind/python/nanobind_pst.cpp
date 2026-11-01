@@ -235,7 +235,8 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           "cover",
           [](const Ch&, nb::handle x) -> nb::object {
             const auto c = cover(from_py_as<C>(x));
-            return c ? to_py<C>(*c) : nb::none();
+            if (c) return to_py<C>(*c);
+            return nb::none();
           },
           nb::arg("x"),
           "The element covering x, or None at ⊤: the successor read partially, "
