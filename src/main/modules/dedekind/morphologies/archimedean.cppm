@@ -133,7 +133,7 @@ concept IsCyclicRing = IsCyclic<T> && requires(T a, T b) {
 };
 
 export template <typename T>
-concept IsOrderedField = std::regular<T> && std::totally_ordered<T>;
+concept IsOrderedField = std::semiregular<T> && std::totally_ordered<T>;
 
 export template <typename T>
 concept IsArchimedeanField = IsOrderedField<T> && requires(T a) {
