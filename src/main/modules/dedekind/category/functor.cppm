@@ -277,6 +277,35 @@ struct morphic_engine {
   }
 };
 
+/** @brief @c f on the value an optional holds, none where it holds none:
+ *  the optional functor's action on an arrow.  Its codomain is stated, so an
+ *  arrow into optionals lifts to one into optionals of optionals, as a
+ *  Kleisli extension needs, and is never collapsed by deduction.
+ *  @tparam T the element.  @tparam F the arrow. */
+export template <typename T, typename F>
+  requires std::invocable<const F&, const T&>
+struct MaybeMap {
+  using Domain = std::optional<T>;
+  using Codomain = std::optional<std::invoke_result_t<const F&, const T&>>;
+  [[no_unique_address]] F f;
+  constexpr Codomain operator()(const Domain& m) const {
+    if (!m.has_value()) return Codomain{std::nullopt};
+    return Codomain{std::in_place, std::invoke(f, *m)};
+  }
+};
+/** @brief @c f on the one element of a one-tuple: the one-tuple functor's
+ *  action on an arrow.  @tparam T the element.  @tparam F the arrow. */
+export template <typename T, typename F>
+  requires std::invocable<const F&, const T&>
+struct TupleMap {
+  using Domain = std::tuple<T>;
+  using Codomain = std::tuple<std::invoke_result_t<const F&, const T&>>;
+  [[no_unique_address]] F f;
+  constexpr Codomain operator()(const Domain& t) const {
+    return Codomain{std::invoke(f, std::get<0>(t))};
+  }
+};
+
 /**
  * @brief The Intensional Functor for Optional (Maybe) values.
  * @details Concrete @ref IsShapedFunctor model implementing
@@ -296,11 +325,8 @@ struct maybe_functor {
   /** @brief The action on arrows, F(f), short-circuiting on the empty value. */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto operator()(𝗳 f) const {
-    return arrow([f = std::move(f)](std::optional<T> const& m) {
-      // The Law: If the input is empty, the result remains empty.
-      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
-    });
+  constexpr MaybeMap<T, std::remove_cvref_t<𝗳>> operator()(𝗳 f) const {
+    return {std::move(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
@@ -331,10 +357,8 @@ struct tuple_functor {
    * std::tuple<U> by mapping the single element. */
   template <typename 𝗳>
     requires IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto operator()(𝗳 f) const {
-    return arrow([f = std::move(f)](std::tuple<T> const& t) {
-      return std::tuple{std::invoke(f, std::get<0>(t))};
-    });
+  constexpr TupleMap<T, std::remove_cvref_t<𝗳>> operator()(𝗳 f) const {
+    return {std::move(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }

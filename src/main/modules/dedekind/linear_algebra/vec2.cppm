@@ -304,6 +304,19 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
 
+/** @brief @c f on every entry: the vec2_functor's action on an arrow, an
+ *  endomap of the entries applied entrywise.  @tparam T the entries.
+ *  @tparam F the arrow. */
+export template <typename T, typename F>
+struct Vec2Map {
+  using Domain = Vec2V<T>;
+  using Codomain = Vec2V<T>;
+  F f;
+  constexpr Vec2V<T> operator()(Vec2V<T> const& v) const {
+    return {std::invoke(f, v.x), std::invoke(f, v.y)};
+  }
+};
+
 /** @section tuple__Functorial_Hubs
  *
  *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
@@ -327,14 +340,24 @@ struct vec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto operator()(𝗳&& f) const {
-    return dedekind::category::arrow(
-        [f = std::forward<𝗳>(f)](Vec2V<T> const& v) -> Vec2V<T> {
-          return {std::invoke(f, v.x), std::invoke(f, v.y)};
-        });
+  constexpr Vec2Map<T, std::remove_cvref_t<𝗳>> operator()(𝗳&& f) const {
+    return {std::forward<𝗳>(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+/** @brief @c f on every entry: the covec2_functor's action on an arrow, an
+ *  endomap of the entries applied entrywise.  @tparam T the entries.
+ *  @tparam F the arrow. */
+export template <typename T, typename F>
+struct Covec2Map {
+  using Domain = Covec2V<T>;
+  using Codomain = Covec2V<T>;
+  F f;
+  constexpr Covec2V<T> operator()(Covec2V<T> const& v) const {
+    return {std::invoke(f, v.x), std::invoke(f, v.y)};
+  }
 };
 
 export template <typename T>
@@ -351,11 +374,8 @@ struct covec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto operator()(𝗳&& f) const {
-    return dedekind::category::arrow(
-        [f = std::forward<𝗳>(f)](Covec2V<T> const& v) -> Covec2V<T> {
-          return {std::invoke(f, v.x), std::invoke(f, v.y)};
-        });
+  constexpr Covec2Map<T, std::remove_cvref_t<𝗳>> operator()(𝗳&& f) const {
+    return {std::forward<𝗳>(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }

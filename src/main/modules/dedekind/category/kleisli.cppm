@@ -82,7 +82,7 @@ namespace dedekind::category {
  * has no honest answer.  This block defines only the monadic surface
  * for @c Maybe<T> (bind, unit_witness).  The bona-fide Frobenius
  * carrier (= monad + comonad) is @c std::tuple<T> below; that's where
- * counit / extend / IsCoKleisliExtension / IsFrobenius witnesses live.
+ * counit / extend / IsCoKleisliTriple / IsFrobenius witnesses live.
  */
 
 namespace _kleisli_detail {
@@ -123,7 +123,9 @@ struct unit_witness;
 
 export template <typename T>
 struct unit_witness<maybe_functor<T>, T> final {
-  constexpr auto operator()(T x) const { return Maybe<T>{std::move(x)}; }
+  using Domain = T;
+  using Codomain = Maybe<T>;
+  constexpr Maybe<T> operator()(T x) const { return Maybe<T>{std::move(x)}; }
 };
 
 /**
@@ -175,11 +177,17 @@ constexpr auto operator<<=(const std::tuple<T>& t, Func f) {
 
 export template <typename T>
 struct unit_witness<tuple_functor<T>, T> final {
-  constexpr auto operator()(T x) const { return std::tuple<T>{std::move(x)}; }
+  using Domain = T;
+  using Codomain = std::tuple<T>;
+  constexpr std::tuple<T> operator()(T x) const {
+    return std::tuple<T>{std::move(x)};
+  }
 };
 
 export template <typename T>
 struct counit_witness<tuple_functor<T>, T> final {
+  using Domain = std::tuple<T>;
+  using Codomain = T;
   constexpr T operator()(const std::tuple<T>& t) const noexcept {
     return std::get<0>(t);
   }
@@ -187,8 +195,30 @@ struct counit_witness<tuple_functor<T>, T> final {
 
 /** @section kleisli__Extension_Concepts */
 
+/** @brief Trait: @c Functor's unit and bind satisfy the Kleisli-triple laws
+ *  (Manes): @f$\eta(x)^* f = f(x)@f$, @f$m^* \eta = m@f$ and
+ *  @f$(m^* f)^* g = m^* (x \mapsto f(x)^* g)@f$.  A certificate, primary
+ *  false, declared where a container's bind keeps them by construction.
+ *  @tparam Functor the functor. */
+export template <typename Functor>
+struct is_kleisli_triple : std::false_type {};
+/** @brief Trait: the co-Kleisli-triple laws, the duals, for @c Functor's
+ *  counit and extend.  @tparam Functor the functor. */
+export template <typename Functor>
+struct is_cokleisli_triple : std::false_type {};
+template <typename T>
+struct is_kleisli_triple<maybe_functor<T>> : std::true_type {};
+template <typename T>
+struct is_kleisli_triple<tuple_functor<T>> : std::true_type {};
+template <typename T>
+struct is_cokleisli_triple<tuple_functor<T>> : std::true_type {};
+
+/** @brief A Kleisli triple ⟨T, η, (−)*⟩ (Manes), the monad in its extension
+ *  form: the unit and bind, their laws certified by @c is_kleisli_triple.
+ *  @tparam Functor the functor.  @tparam T @tparam U the element types. */
 export template <typename Functor, typename T, typename U>
-concept IsKleisliExtension =
+concept IsKleisliTriple =
+    is_kleisli_triple<Functor>::value &&
     requires(T x, typename Functor::template Shape<T> box,
              std::function<typename Functor::template Shape<U>(T)> f) {
       {
@@ -197,8 +227,13 @@ concept IsKleisliExtension =
       { box >>= f } -> std::same_as<typename Functor::template Shape<U>>;
     };
 
+/** @brief A co-Kleisli triple ⟨W, ε, (−)†⟩, the comonad in its extension
+ *  form: the counit and extend, their laws certified by
+ *  @c is_cokleisli_triple.  @tparam Functor the functor.  @tparam T @tparam U
+ *  the element types. */
 export template <typename Functor, typename T, typename U>
-concept IsCoKleisliExtension =
+concept IsCoKleisliTriple =
+    is_cokleisli_triple<Functor>::value &&
     requires(typename Functor::template Shape<T> box,
              std::function<U(typename Functor::template Shape<T>)> f) {
       { counit_witness<Functor, T>{}(box) } -> std::same_as<T>;
@@ -207,7 +242,7 @@ concept IsCoKleisliExtension =
 
 export template <typename Functor, typename T, typename U>
 concept IsFrobenius =
-    IsKleisliExtension<Functor, T, U> && IsCoKleisliExtension<Functor, T, U>;
+    IsKleisliTriple<Functor, T, U> && IsCoKleisliTriple<Functor, T, U>;
 
 /** @section kleisli__Kleisli_Operators */
 
@@ -229,18 +264,14 @@ export template <typename MA>
 using functor_of_t = typename functor_of<std::remove_cvref_t<MA>>::type;
 
 namespace detail_kleisli {
-/** @brief @f$T(f)@f$ applied to @c ma: @c f, an arrow of @c T's source or a
- *  callable lifted to one, under @c T's action, at the value.  @param ma the
- *  value.  @param f the arrow. */
-template <typename MA, typename F>
-  requires requires { typename functor_of_t<MA>; }
+/** @brief @f$T(f)@f$ applied to @c ma: the arrow @c f, from the value's
+ *  element, under @c T's action, at the value.  @param ma the value.
+ *  @param f the arrow. */
+template <typename MA, IsArrow F>
+  requires requires { typename functor_of_t<MA>; } &&
+           std::same_as<Dom<F>, typename functor_of_t<MA>::Σ_cat::Species>
 constexpr auto lifted(const MA& ma, F f) {
-  using T = functor_of_t<MA>;
-  if constexpr (IsArrow<F>) {
-    return T{}(std::move(f))(ma);
-  } else {
-    return T{}(arrow<typename T::Σ_cat::Species>(std::move(f)))(ma);
-  }
+  return functor_of_t<MA>{}(std::move(f))(ma);
 }
 }  // namespace detail_kleisli
 
@@ -354,21 +385,6 @@ constexpr auto operator>>=(MA const& ma, F f) {
 }
 
 /**
- * @brief operator>> : Fish alias for monadic bind.
- * @details Enables left-associative Kleisli pipelines:
- *   ma >> f >> g
- * which is parsed as (ma >> f) >> g and avoids assignment-operator
- * associativity of >>=.
- */
-export template <typename MA, typename F>
-  requires requires(MA const& ma, F&& f) {
-    { μ(detail_kleisli::lifted(ma, std::forward<F>(f))) };
-  }
-constexpr auto operator>>(MA const& ma, F f) {
-  return κ(ma, std::move(f));
-}
-
-/**
  * @brief operator<<= : Comonadic extend (co-Kleisli arrow application).
  * @details Syntactic sugar for σ(wa, f).
  * Given wa: W<A> and f: W<A> → B, produces W<B>.
@@ -378,23 +394,6 @@ export template <typename WA, typename F>
     { σ(wa, std::forward<F>(f)) };
   }
 constexpr auto operator<<=(WA const& wa, F f) {
-  return σ(wa, std::move(f));
-}
-
-/**
- * @brief operator<< : Fish alias for comonadic extend.
- * @details Enables left-associative co-Kleisli pipelines:
- *   wa << f << g
- * which is parsed as (wa << f) << g and avoids assignment-operator
- * associativity of <<=.
- */
-export template <typename WA, typename F>
-  requires(!std::derived_from<std::remove_cvref_t<WA>, std::ios_base>) &&
-          requires(WA const& wa, F&& f) {
-            { δ(wa) };
-            { detail_kleisli::lifted(δ(wa), std::forward<F>(f)) };
-          }
-constexpr auto operator<<(WA const& wa, F f) {
   return σ(wa, std::move(f));
 }
 
@@ -417,36 +416,28 @@ constexpr auto operator<<(WA const& wa, F f) {
 
 /**
  * @concept HasKleisliBindOperators
- * @brief A monadic carrier @c MA supports Kleisli bind via BOTH
- *        @c >>= AND its fish alias @c >> with a Kleisli arrow @c F.
+ * @brief A monadic carrier @c MA supports Kleisli bind, @c >>=, with a
+ *        Kleisli arrow @c F; @c >> composes arrows and nothing else.
  * @details Captures the operator-shape availability of monadic bind:
  *          given @c ma @c : @c M<A> and @c f @c : @c A @c → @c M<B>,
- *          @b both @c ma @c >>= @c f and @c ma @c >> @c f must
- *          compile.  Requiring both makes the concept faithful to the
- *          docstring's claim of fish-pair support; downstream code
- *          constrained by this concept may freely use either spelling.
+ *          @c ma @c >>= @c f must compile.
  *          The laws (left/right unit, associativity) are not enforced
  *          here; they are pinned by @c IsMonad in @c :monad.
  */
 export template <typename MA, typename F>
 concept HasKleisliBindOperators = requires(MA const& ma, F&& f) {
   { ma >>= std::forward<F>(f) };
-  { ma >> std::forward<F>(f) };
 };
 
 /**
  * @concept HasComonadicExtendOperators
- * @brief A comonadic carrier @c WA supports comonadic extend via
- *        BOTH @c <<= AND its fish alias @c << with a co-Kleisli
- *        arrow @c F.
+ * @brief A comonadic carrier @c WA supports comonadic extend, @c <<=,
+ *        with a co-Kleisli arrow @c F.
  * @details Captures the operator-shape availability of comonadic
  *          extend: given @c wa @c : @c W<A> and @c f @c : @c W<A> @c
- *          → @c B, @b both @c wa @c <<= @c f and @c wa @c << @c f
- *          must compile.  Mirrors the existing @c operator<< guard
- *          on @c :kleisli that excludes @c std::ios_base-derived
- *          types so the concept doesn't accidentally fire on stream
- *          carriers; downstream code constrained by this concept may
- *          freely use either spelling.  The laws (counit,
+ *          → @c B, @c wa @c <<= @c f must compile.  It excludes
+ *          @c std::ios_base-derived types, so that it does not fire on
+ *          stream carriers.  The laws (counit,
  *          coassociativity) are pinned by @c IsComonad in @c :monad.
  */
 export template <typename WA, typename F>
@@ -454,7 +445,6 @@ concept HasComonadicExtendOperators =
     (!std::derived_from<std::remove_cvref_t<WA>, std::ios_base>) &&
     requires(WA const& wa, F&& f) {
       { wa <<= std::forward<F>(f) };
-      { wa << std::forward<F>(f) };
     };
 
 // ---------------------------------------------------------------------------

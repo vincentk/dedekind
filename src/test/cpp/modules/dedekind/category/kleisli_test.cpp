@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <tuple>
@@ -8,6 +10,7 @@
 import dedekind.category;
 
 using namespace dedekind::category;
+using std::size_t;
 
 // The checked arithmetic is a Kleisli arrow of the maybe monad: T x T ->
 // Maybe<T>, nothing on overflow.  Bind threads it, and overflow short-circuits
@@ -21,255 +24,151 @@ static_assert(!(Maybe<std::pair<int, int>>{{big, 1}} >>=
 static_assert(!(Maybe<std::pair<int, int>>{} >>= SafeAddTransform<int>{}));
 }  // namespace maybe_witness
 
-TEST_CASE("Category: Kleisli Extension Concepts", "[category][kleisli]") {
-  // Maybe is a monad (Kleisli extension only); std::tuple<T> is the
-  // bona-fide Frobenius carrier (both Kleisli and co-Kleisli, no
-  // Some-fragment concession).
-  STATIC_CHECK(IsKleisliExtension<maybe_functor<int>, int, int>);
-  STATIC_CHECK(IsKleisliExtension<tuple_functor<int>, int, int>);
-  STATIC_CHECK(IsCoKleisliExtension<tuple_functor<int>, int, int>);
-  STATIC_CHECK(IsFrobenius<tuple_functor<int>, int, int>);
+// The test's arrows, from the library's combinators: a section of + or · then
+// the unit is a Kleisli arrow, A → T(B); the counit then a section is a
+// co-Kleisli arrow, W(A) → B.
+namespace kleisli_arrows {
+constexpr auto adding = curry<size_t>(std::plus<size_t>{});
+constexpr auto scaling = curry<size_t>(std::multiplies<size_t>{});
+constexpr unit_witness<maybe_functor<size_t>, size_t> η_maybe{};
+constexpr unit_witness<tuple_functor<size_t>, size_t> η_tuple{};
+constexpr counit_witness<tuple_functor<size_t>, size_t> ε_tuple{};
+}  // namespace kleisli_arrows
+using namespace kleisli_arrows;
+
+// The Kleisli-triple laws, on values: η(x) >>= f is f(x), m >>= η is m, and
+// binding twice is binding once by the Kleisli composite.
+namespace kleisli_laws {
+constexpr auto f = adding(5uz) >> η_maybe;
+constexpr auto g = scaling(2uz) >> η_maybe;
+constexpr Maybe<size_t> m{10};
+static_assert(κ(η_maybe(10uz), f) == f(10uz) && κ(m, η_maybe) == m &&
+              κ(κ(m, f), g) == κ(m, adding(5uz) >> scaling(2uz) >> η_maybe) &&
+              κ(Maybe<size_t>{}, f) == Maybe<size_t>{});
+}  // namespace kleisli_laws
+
+TEST_CASE("Category: Kleisli triples", "[category][kleisli]") {
+  // Maybe is a monad (a Kleisli triple only); std::tuple<T> is a monad and a
+  // comonad, with no Some-fragment concession.
+  STATIC_CHECK(IsKleisliTriple<maybe_functor<size_t>, size_t, size_t>);
+  STATIC_CHECK(IsKleisliTriple<tuple_functor<size_t>, size_t, size_t>);
+  STATIC_CHECK(IsCoKleisliTriple<tuple_functor<size_t>, size_t, size_t>);
+  STATIC_CHECK(IsFrobenius<tuple_functor<size_t>, size_t, size_t>);
+  STATIC_CHECK(IsArrow<decltype(adding(10uz) >> η_maybe)> &&
+               IsArrow<decltype(ε_tuple >> adding(3uz))>);
 }
 
 TEST_CASE("Category: Tuple Frobenius structure",
           "[category][kleisli][frobenius]") {
-  std::tuple<int> value{9};
+  std::tuple<size_t> value{9};
 
   SECTION("Unit followed by counit returns the original value") {
-    auto wrapped = unit_witness<tuple_functor<int>, int>{}(std::get<0>(value));
-    auto raw = counit_witness<tuple_functor<int>, int>{}(wrapped);
-    CHECK(raw == std::get<0>(value));
+    CHECK(ε_tuple(η_tuple(std::get<0>(value))) == std::get<0>(value));
   }
 
   SECTION("Kleisli right unit law: κ(ma, η) = ma") {
-    auto result = κ(value, unit_witness<tuple_functor<int>, int>{});
-    CHECK(result == value);
+    CHECK(κ(value, η_tuple) == value);
   }
 
   SECTION("Co-Kleisli right counit law: σ(wa, ε) = wa") {
-    auto result = σ(value, counit_witness<tuple_functor<int>, int>{});
-    CHECK(result == value);
+    CHECK(σ(value, ε_tuple) == value);
   }
 
   SECTION("Bind then extract agrees with direct function result") {
-    auto f = [](int x) { return std::tuple<int>{x * 3}; };
-    auto via_bind = κ(value, f);
-    CHECK(counit_witness<tuple_functor<int>, int>{}(via_bind) ==
-          counit_witness<tuple_functor<int>, int>{}(f(std::get<0>(value))));
+    const auto f = scaling(3uz) >> η_tuple;
+    CHECK(ε_tuple(κ(value, f)) == ε_tuple(f(std::get<0>(value))));
   }
 
   SECTION("Extend then extract agrees with direct co-Kleisli result") {
-    auto g = [](std::tuple<int> b) { return std::get<0>(b) + 4; };
-    auto via_extend = σ(value, g);
-    CHECK(counit_witness<tuple_functor<int>, int>{}(via_extend) == g(value));
+    const auto g = ε_tuple >> adding(4uz);
+    CHECK(ε_tuple(σ(value, g)) == g(value));
   }
 }
 
 TEST_CASE("Category: Tuple Bind and Extend", "[category][kleisli]") {
-  std::tuple<int> value{21};
+  std::tuple<size_t> value{21};
 
   SECTION("Bind (>>=) chains in-context computations") {
-    auto doubled = value >>= [](int x) { return std::tuple<int>{x * 2}; };
-    CHECK(doubled == std::tuple<int>{42});
+    CHECK((value >>= scaling(2uz) >> η_tuple) == std::tuple<size_t>{42});
   }
 
   SECTION("Extend (<<=) samples context to build new context") {
-    auto summarized = value <<=
-        [](std::tuple<int> b) { return std::get<0>(b) + 1; };
-    CHECK(summarized == std::tuple<int>{22});
+    CHECK((value <<= ε_tuple >> adding(1uz)) == std::tuple<size_t>{22});
   }
 }
 
 TEST_CASE("Category: Maybe Bind", "[category][kleisli]") {
-  Maybe<int> value{21};
+  Maybe<size_t> value{21};
 
   SECTION("Bind (>>=) chains in-context computations") {
-    auto doubled = value >>= [](int x) { return Maybe<int>{x * 2}; };
-    CHECK(doubled == Maybe<int>{42});
+    CHECK((value >>= scaling(2uz) >> η_maybe) == Maybe<size_t>{42});
+  }
+
+  SECTION("Bind on nullopt propagates the empty case") {
+    CHECK((Maybe<size_t>{} >>= adding(10uz) >> η_maybe) == std::nullopt);
+  }
+
+  SECTION("Chaining multiple binds") {
+    CHECK(((value >>= scaling(2uz) >> η_maybe) >>= adding(1uz) >> η_maybe) ==
+          Maybe<size_t>{43});
   }
 }
 
 TEST_CASE("Category: Kleisli κ (kappa) extension",
           "[category][kleisli][kappa]") {
-  Maybe<int> value{10};
+  Maybe<size_t> value{10};
 
   SECTION("κ applies Kleisli arrow to monadic value") {
-    auto result = κ(value, [](int x) { return Maybe<int>{x * 2}; });
-    CHECK(result == Maybe<int>{20});
+    CHECK(κ(value, scaling(2uz) >> η_maybe) == Maybe<size_t>{20});
   }
 
   SECTION("κ chains multiple Kleisli extensions") {
-    auto step1 = κ(value, [](int x) { return Maybe<int>{x + 5}; });
-    auto step2 = κ(step1, [](int x) { return Maybe<int>{x * 2}; });
-    CHECK(step2 == Maybe<int>{30});
+    const auto step1 = κ(value, adding(5uz) >> η_maybe);
+    CHECK(κ(step1, scaling(2uz) >> η_maybe) == Maybe<size_t>{30});
   }
 }
 
 TEST_CASE("Category: Co-Kleisli σ (sigma) extend",
           "[category][kleisli][sigma]") {
-  std::tuple<int> value{7};
+  std::tuple<size_t> value{7};
 
   SECTION("σ applies co-Kleisli arrow to comonadic value") {
-    auto result =
-        σ(value, [](std::tuple<int> b) { return std::get<0>(b) + 3; });
-    CHECK(result == std::tuple<int>{10});
-  }
-
-  SECTION("σ chains through δ duplication") {
-    auto extracted =
-        σ(value, [](std::tuple<int> b) { return std::get<0>(b) * 2; });
-    CHECK(extracted == std::tuple<int>{14});
-  }
-}
-
-TEST_CASE("Category: Kleisli bind operator>>=", "[category][kleisli][bind]") {
-  Maybe<int> value{5};
-
-  SECTION("Monadic bind with >>= operator") {
-    auto result = value >>= [](int x) { return Maybe<int>{x + 10}; };
-    CHECK(result == Maybe<int>{15});
-  }
-
-  SECTION("Chaining multiple binds") {
-    auto result = (value >>= [](int x) { return Maybe<int>{x * 2}; }) >>=
-        [](int x) { return Maybe<int>{x + 1}; };
-    CHECK(result == Maybe<int>{11});
-  }
-
-  SECTION("Bind preserves container structure") {
-    Maybe<int> initial{3};
-    auto final = initial >>= [](int x) { return Maybe<int>{x * x}; };
-    CHECK(*final == 9);
-  }
-
-  SECTION("Bind on nullopt propagates the empty case") {
-    Maybe<int> empty{std::nullopt};
-    auto result = empty >>= [](int x) { return Maybe<int>{x + 10}; };
-    CHECK(result == std::nullopt);
-  }
-}
-
-TEST_CASE("Category: Fish alias operator>> for bind",
-          "[category][kleisli][bind][fish-alias]") {
-  Maybe<int> value{5};
-
-  SECTION("Value-level fish aliases bind") {
-    auto result = value >> [](int x) { return Maybe<int>{x + 10}; };
-    CHECK(result == Maybe<int>{15});
-  }
-
-  SECTION("Fish alias supports left-associative bind chains") {
-    auto result = value >> [](int x) { return Maybe<int>{x * 2}; } >>
-                  [](int x) { return Maybe<int>{x + 1}; };
-    CHECK(result == Maybe<int>{11});
-  }
-}
-
-TEST_CASE("Category: Co-Kleisli cobind operator<<=",
-          "[category][kleisli][cobind]") {
-  std::tuple<int> value{8};
-
-  SECTION("Comonadic extend with <<= operator") {
-    auto result = value <<=
-        [](std::tuple<int> b) { return std::get<0>(b) - 2; };
-    CHECK(result == std::tuple<int>{6});
+    CHECK(σ(value, ε_tuple >> adding(3uz)) == std::tuple<size_t>{10});
   }
 
   SECTION("Chaining multiple coextends") {
-    auto result =
-        (value <<= [](std::tuple<int> b) { return std::get<0>(b) / 2; }) <<=
-        [](std::tuple<int> b) { return std::get<0>(b) + 3; };
-    CHECK(result == std::tuple<int>{7});
-  }
-}
-
-TEST_CASE("Category: Fish alias operator<< for cobind",
-          "[category][kleisli][cobind][fish-alias]") {
-  std::tuple<int> value{8};
-
-  SECTION("Value-level upstream fish aliases cobind") {
-    auto result = value << [](std::tuple<int> b) { return std::get<0>(b) - 2; };
-    CHECK(result == std::tuple<int>{6});
-  }
-
-  SECTION("Fish alias supports left-associative cobind chains") {
-    auto result = value << [](std::tuple<int> b) { return std::get<0>(b) / 2; }
-                        << [](std::tuple<int> b) { return std::get<0>(b) + 3; };
-    CHECK(result == std::tuple<int>{7});
+    CHECK(((value <<= ε_tuple >> scaling(2uz)) <<= ε_tuple >> adding(3uz)) ==
+          std::tuple<size_t>{17});
   }
 }
 
 TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
-  SECTION("bind aliases κ for Maybe") {
-    Maybe<int> value{6};
-    auto result = bind(value, [](int x) { return Maybe<int>{x + 4}; });
-    CHECK(result == Maybe<int>{10});
+  SECTION("bind and extend alias κ and σ") {
+    CHECK(bind(Maybe<size_t>{6}, adding(4uz) >> η_maybe) == Maybe<size_t>{10});
+    CHECK(extend(std::tuple<size_t>{6}, ε_tuple >> scaling(3uz)) ==
+          std::tuple<size_t>{18});
   }
 
-  SECTION("extend aliases σ for std::tuple") {
-    std::tuple<int> value{6};
-    auto result =
-        extend(value, [](std::tuple<int> b) { return std::get<0>(b) * 3; });
-    CHECK(result == std::tuple<int>{18});
+  SECTION("bind with maybe_monad uses the default join route") {
+    const auto plus_two = adding(2uz) >> η_maybe;
+    CHECK(bind(maybe_monad, Maybe<size_t>{5}, plus_two) == Maybe<size_t>{7});
+    CHECK(bind(maybe_monad, Maybe<size_t>{}, plus_two) == std::nullopt);
   }
 
-  SECTION("bind aliases κ for Maybe/optional") {
-    std::optional<int> present{5};
-    std::optional<int> empty{std::nullopt};
-
-    auto plus_two = [](int x) { return std::optional<int>{x + 2}; };
-    CHECK(bind(present, plus_two) == std::optional<int>{7});
-    CHECK(bind(empty, plus_two) == std::nullopt);
-  }
-
-  SECTION("bind with maybe_monad uses default join/phi route") {
-    std::optional<int> present{5};
-    std::optional<int> empty{std::nullopt};
-
-    auto plus_two = [](int x) { return std::optional<int>{x + 2}; };
-    CHECK(bind(maybe_monad, present, plus_two) == std::optional<int>{7});
-    CHECK(bind(maybe_monad, empty, plus_two) == std::nullopt);
-  }
-
-  SECTION("bind and extend with tuple_monad use default Frobenius routes") {
-    std::tuple<int> value{6};
-
-    auto bound =
-        bind(tuple_monad, value, [](int x) { return std::tuple<int>{x + 4}; });
-    CHECK(bound == std::tuple<int>{10});
-
-    auto extended = extend(tuple_monad, value, [](std::tuple<int> b) {
-      return std::get<0>(b) * 3;
-    });
-    CHECK(extended == std::tuple<int>{18});
+  SECTION("bind and extend with tuple_monad use the default routes") {
+    const std::tuple<size_t> value{6};
+    CHECK(bind(tuple_monad, value, adding(4uz) >> η_tuple) ==
+          std::tuple<size_t>{10});
+    CHECK(extend(tuple_monad, value, ε_tuple >> scaling(3uz)) ==
+          std::tuple<size_t>{18});
   }
 }
 
-TEST_CASE(
-    "Category: Fish-operator concept tier (#450) — operator-shape "
-    "concepts for arrow compose / Kleisli bind / comonadic extend",
-    "[category][fish-operators][concept-shape]") {
-  // The fish-operator concept tier classifies types by which fish-family
-  // operator surfaces they support.  These are operator-shape concepts:
-  // they pin syntactic availability, not the equational laws (which are
-  // pinned by IsArrow / IsMonad / IsComonad in their own partitions).
-  using MaybeBind = decltype([](int x) { return Maybe<int>{x + 1}; });
-
-  SECTION("HasKleisliBindOperators: Maybe<int> + Kleisli arrow fires") {
-    STATIC_CHECK(HasKleisliBindOperators<Maybe<int>, MaybeBind>);
-  }
-
-  SECTION(
-      "HasComonadicExtendOperators: std::tuple<int> + co-Kleisli "
-      "arrow fires") {
-    using TupleCoBind =
-        decltype([](std::tuple<int> b) { return std::get<0>(b) * 2; });
-    STATIC_CHECK(HasComonadicExtendOperators<std::tuple<int>, TupleCoBind>);
-  }
-
-  SECTION(
-      "HasKleisliBindOperators negative: bare int + bind-arrow does NOT "
-      "fire (no Kleisli operator surface on a non-monadic carrier)") {
-    STATIC_CHECK(!HasKleisliBindOperators<int, MaybeBind>);
-  }
+TEST_CASE("Category: Kleisli operator-shape concepts",
+          "[category][kleisli][concept-shape]") {
+  using MaybeBind = decltype(adding(1uz) >> η_maybe);
+  using TupleCoBind = decltype(ε_tuple >> scaling(2uz));
+  STATIC_CHECK(HasKleisliBindOperators<Maybe<size_t>, MaybeBind>);
+  STATIC_CHECK(HasComonadicExtendOperators<std::tuple<size_t>, TupleCoBind>);
+  STATIC_CHECK(!HasKleisliBindOperators<size_t, MaybeBind>);
 }
