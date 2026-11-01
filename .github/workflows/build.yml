@@ -139,6 +139,13 @@ jobs:
       if: runner.os == 'Linux' && runner.arch == 'X64'
       run: make ir-fixture-refresh CXX="$CXX"
 
+    # Research (#1127): the table of what the optimiser did with each binding
+    # time and loop type, in the run's summary; nothing asserted.
+    - name: Research - binding times and loop types
+      if: runner.os == 'Linux' && runner.arch == 'X64'
+      continue-on-error: true
+      run: make ir-research | tee -a "$GITHUB_STEP_SUMMARY"
+
     - name: Upload Refreshed LLVM IR Snapshots
       if: runner.os == 'Linux' && runner.arch == 'X64'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4

@@ -115,8 +115,9 @@ def ensure_cmake_target() -> None:
     )
 
 
-def generate_ir(source: Path) -> str:
-    """Re-compile *source* with -S -emit-llvm using the cmake-recorded flags."""
+def generate_ir(source: Path, opt: str | None = None) -> str:
+    """Re-compile *source* with -S -emit-llvm using the cmake-recorded flags,
+    at *opt* (e.g. "-O3", appended last, so it wins) if given."""
     db_path = BUILD_DIR / "compile_commands.json"
     if not db_path.exists():
         raise RuntimeError(
@@ -158,6 +159,8 @@ def generate_ir(source: Path) -> str:
         if tok in _COVERAGE_FLAGS or tok.startswith("-fprofile-instr-generate="):
             continue
         adapted.append(tok)
+    if opt:
+        adapted.append(opt)
     adapted += ["-S", "-emit-llvm", "-o", "-"]
 
     # Compile from the recorded build directory so relative @response-file
@@ -454,9 +457,50 @@ def check() -> int:
     return 0
 
 
+RESEARCH = _PYTHON_DIR / "research_binding_times.cpp"
+
+
+def branch_on_flag(block: str) -> str:
+    """How often the function's boolean parameter is read: 0 where it is
+    dead, else where a branch or select may survive."""
+    head = block.splitlines()[0] if block else ""
+    m = re.search(r"i1 [^,)]*%([0-9A-Za-z_.]+)", head)
+    if not m:
+        return ""
+    return str(len(re.findall(rf"%{re.escape(m.group(1))}\b", block)) - 1)
+
+
+def research() -> int:
+    """Tabulate the IR of the research variants at -O2 and -O3: nothing is
+    asserted, the table is what the optimiser did."""
+    ensure_cmake_target()
+    rows = []
+    for opt in ("-O2", "-O3"):
+        ir = generate_ir(RESEARCH, opt)
+        for m in re.finditer(r"(?m)^define\b[^\n]*@(research_[a-z0-9_]+)\(", ir):
+            symbol = m.group(1)
+            block = extract_function_block(ir, symbol) or ""
+            lines = block.splitlines()
+            calls = sorted({c for c in re.findall(r"\bcall [^@\n]*@([A-Za-z0-9_.$]+)", block)
+                            if not c.startswith("llvm.")})
+            blocks = len(re.findall(r"(?m)^[0-9A-Za-z_.]+:", block)) + 1
+            phis = len(re.findall(r"= phi ", block))
+            ret = re.findall(r"ret i(?:32|64) ([^\n]+)", block)
+            rows.append((symbol, opt, len(lines), blocks, phis, len(calls),
+                         "fold_left" if any("fold_left" in c for c in calls) else "",
+                         branch_on_flag(block),
+                         ret[0] if ret and not ret[0].startswith("%") else ""))
+    print("| symbol | opt | lines | blocks | phis | calls | fold_left | reads of the flag | constant |")
+    print("|---|---|---|---|---|---|---|---|---|")
+    for r in sorted(rows):
+        print("| " + " | ".join(str(x) for x in r) + " |")
+    return 0
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=["check", "refresh"], help="Operation mode")
+    parser.add_argument("mode", choices=["check", "refresh", "research"],
+                        help="Operation mode")
     return parser.parse_args()
 
 
@@ -464,6 +508,8 @@ def main() -> int:
     args = parse_args()
     if args.mode == "refresh":
         return refresh()
+    if args.mode == "research":
+        return research()
     return check()
 
 

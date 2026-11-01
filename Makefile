@@ -167,6 +167,9 @@ python-coverage:
 # Local convenience alias (same behavior as python-coverage).
 python-coverage-local: python-coverage
 
+ir-research:
+	python .github/copilot/housekeeping/pruning-ir-fixture.py research
+
 ir-fixture-refresh:
 	python .github/copilot/housekeeping/pruning-ir-fixture.py refresh
 
