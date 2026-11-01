@@ -75,6 +75,12 @@ Coherence checks:
   any type (a passthrough wrapper, a perfect-forwarding sink). Flag a new
   unconstrained parameter whose body clearly assumes a shape; do not demand
   maximal strictness where a light concept already pins the intent.
+- **Composition over inheritance, inheritance over if-else, if-else over a
+  copy.** In code, CMake, CI workflows and scripts alike. Flag a diff that
+  adds a second copy of a block (a workflow job, a CMake section, a test, a
+  function) to handle a variant: the variant wants a composed, parameterised
+  unit (a reusable workflow, a function, a concept or template parameter),
+  failing that a shared base, failing that a branch inside the one copy.
 - **Burden of proof is on ADDING a struct/wrapper**, not on removing one. Push
   back on new wrappers that don't earn their place — especially thin "glorified
   for-loop" wrappers around `std::` containers/algorithms.

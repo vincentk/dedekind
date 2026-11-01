@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.28)
+# The floor is the CMake Ubuntu's latest LTS ships (26.04: 4.2); the range
+# asks the policies of every CMake up to 4.4, the newest in use (#1121).
+cmake_minimum_required(VERSION 4.2...4.4)
 
 # The version is the latest release tag, v0.<YYYYMMDD>.<n>+<hash> (see
 # .github/workflows/release.yml): its numeric part is the project version,
@@ -23,7 +25,11 @@ project(Dedekind VERSION ${DEDEKIND_VERSION} LANGUAGES CXX)
 if(APPLE)
     # Move the Makefile's "CXXFLAGS" logic here so it's not overwritten
     add_compile_options("-stdlib=libc++")
-    add_link_options("-stdlib=libc++" "-L/usr/local/opt/llvm/lib")
+    # libc++ from the LLVM that compiles, wherever Homebrew put it
+    # (/usr/local on Intel, /opt/homebrew on Apple Silicon).
+    cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_llvm_bin)
+    cmake_path(GET _dedekind_llvm_bin PARENT_PATH _dedekind_llvm_root)
+    add_link_options("-stdlib=libc++" "-L${_dedekind_llvm_root}/lib")
     
     # Auto-find SDK path on Mac
     execute_process(COMMAND xcrun --sdk macosx --show-sdk-path
@@ -33,7 +39,7 @@ if(APPLE)
 endif()
 
 # --- Instrumentation and Warnings ---
-# Hard-coded for Clang 22 as used in the CI pipeline
+# Clang's warnings, in CI and on the macOS dev machine alike
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
@@ -50,7 +56,6 @@ add_link_options(${DEDEKIND_COVERAGE_FLAGS})
 
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
-# Force C++23 standard for Clang 21
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # For clangd:
@@ -76,13 +81,22 @@ option(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
     "Allow double as explicit proxy for real scalars in geometry"
     OFF)
 
+# The options' definitions hold for every target, libraries, tests and the
+# Python bindings alike: a module's consumers then share its flags, and CMake
+# reuses its BMI rather than synthesising one per differing consumer (#1121).
+if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+    add_compile_definitions(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+endif()
+if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
+    add_compile_definitions(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
+endif()
+
 option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
 # Enable testing with Catch2, its latest release pinned (no tracking of main),
-# built from source because distribution packages lag far behind (Ubuntu
-# 24.04 ships 3.4).
+# built from source because distribution packages lag behind.
 include(FetchContent)
 FetchContent_Declare(
   Catch2
@@ -132,15 +146,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         # for both shared-library linkage and the test executables.
         POSITION_INDEPENDENT_CODE ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
-    target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-    if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-        target_compile_definitions(${LIB_TARGET}
-            PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-    endif()
-    if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
-        target_compile_definitions(${LIB_TARGET}
-            PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
-    endif()
     
     if(DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
@@ -157,14 +162,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     if(TEST_SOURCES)
         target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-        if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-            target_compile_definitions(${TEST_TARGET}
-                PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-        endif()
-        if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
-            target_compile_definitions(${TEST_TARGET}
-                PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
-        endif()
     endif()
 
     # Force whole-archive to ensure all module code is instrumented
@@ -451,21 +448,18 @@ endif()
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
 # --- Find LLVM Tools (Cross-Platform) ---
-find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-23 llvm-profdata-22 llvm-profdata REQUIRED)
-find_program(LLVM_COV_TOOL      NAMES llvm-cov-23 llvm-cov-22 llvm-cov REQUIRED)
+# Next to the compiler first: Homebrew's LLVM is keg-only, not on PATH.
+cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH _dedekind_compiler_dir)
+find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-23 llvm-profdata
+             HINTS ${_dedekind_compiler_dir} REQUIRED)
+find_program(LLVM_COV_TOOL      NAMES llvm-cov-23 llvm-cov
+             HINTS ${_dedekind_compiler_dir} REQUIRED)
 
 # Prepare the -object list for the command line
 set(OBJ_ARGS "")
 foreach(lib IN LISTS ALL_LIBS)
     list(APPEND OBJ_ARGS -object ${lib})
 endforeach()
-
-# Determine sed flag based on OS
-if(APPLE)
-    set(SED_INPLACE_FLAG "-i" "") # macOS requires an empty string after -i
-else()
-    set(SED_INPLACE_FLAG "-i")    # Linux (GNU) does not
-endif()
 
 add_custom_target(generate_coverage
     # 1. Merge the raw profiles into a single .profdata file

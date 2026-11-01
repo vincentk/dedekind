@@ -2,7 +2,8 @@ name: Release
 
 # A release cut by hand, on main, ignoring the 48-hour spacing by default:
 # for a paper submission or a fix that should not wait.  The automatic
-# release after a green build of main is the last job of cmake.yml.
+# release after a green build of main is the last job of cmake.yml.  Both
+# build the release on macOS first (build.yml, CI's pipeline); CI does not.
 # Version: 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (see .github/scripts/release-version.sh).
 
 on:
@@ -25,8 +26,43 @@ env:
   MIN_HOURS: "48"
 
 jobs:
-  release:
+  # Whether this commit is released: a tag of this commit whose release is
+  # missing is resumed, else the next version, or "skip".
+  release-plan:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+      with:
+        ref: ${{ github.sha }}
+        fetch-depth: 0
+
+    - name: Plan
+      id: plan
+      env:
+        GH_TOKEN: ${{ github.token }}
+        COMMIT: ${{ github.sha }}
+        FORCE: ${{ inputs.force && '1' || '0' }}
+      run: .github/scripts/release-plan.sh "$COMMIT" "$MIN_HOURS" "$FORCE" | tee -a "$GITHUB_OUTPUT"
+
+  # A release is built on macOS too, by CI's pipeline (#1121).
+  build-macos:
+    needs: release-plan
+    if: needs.release-plan.outputs.version != 'skip'
+    uses: ./.github/workflows/build.yml
+    with:
+      runner: macos-26
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
+
+  release:
+    needs: [release-plan, build-macos]
+    if: needs.release-plan.outputs.version != 'skip'
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -34,36 +70,29 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    - name: Resume a tag whose release is missing
-      id: resume
+    # Decided again here, inside the serialised group, against the tags as
+    # they are now: another release may have been cut while macOS built.
+    - name: Plan, again
+      id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-        COMMIT: ${{ github.sha }}
-      run: |
-        tag=$(git tag --points-at "$COMMIT" | grep '^v0\.' | head -1 || true)
-        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
-          gh release create "$tag" --verify-tag --title "$tag" --generate-notes
-          echo "resumed=1" >> "$GITHUB_OUTPUT"
-        fi
-
-    - name: Next version
-      id: version
-      if: steps.resume.outputs.resumed != '1'
-      env:
         COMMIT: ${{ github.sha }}
         FORCE: ${{ inputs.force && '1' || '0' }}
-      run: |
-        v=$(.github/scripts/release-version.sh "$COMMIT" "$MIN_HOURS" "$FORCE")
-        echo "version=$v" >> "$GITHUB_OUTPUT"
-        echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-        echo "Next version: $v"
+      run: .github/scripts/release-plan.sh "$COMMIT" "$MIN_HOURS" "$FORCE" | tee -a "$GITHUB_OUTPUT"
 
-    - name: Tag and release
-      if: steps.resume.outputs.resumed != '1' && steps.version.outputs.version != 'skip'
+    - name: Resume a tag whose release is missing
+      if: steps.plan.outputs.version == 'resume'
       env:
         GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ steps.version.outputs.version }}
-        COMMIT: ${{ steps.version.outputs.commit }}
+        TAG: ${{ steps.plan.outputs.tag }}
+      run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+
+    - name: Tag and release
+      if: steps.plan.outputs.version != 'resume' && steps.plan.outputs.version != 'skip'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.plan.outputs.version }}
+        COMMIT: ${{ github.sha }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
