@@ -23,9 +23,11 @@ Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL]
 import collections
 import concurrent.futures
 import glob
+import json
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 
@@ -66,6 +68,21 @@ def tool_check(rule):
     return None
 
 
+def exit_status(p):
+    """How a child ended, when it did not end well: its exit code, or the
+    signal that killed it (a negative return code), so a crash is not read as
+    a parse error."""
+    if p.returncode == 0:
+        return ""
+    if p.returncode < 0:
+        try:  # a real-time signal (SIGRTMIN + k) has no name
+            name = signal.Signals(-p.returncode).name
+        except ValueError:
+            name = str(-p.returncode)
+        return f"killed by signal {name}\n"
+    return f"exit code {p.returncode}\n"
+
+
 def run_tool(tool, build, path, namespace, checks):
     """The checks of jlt-lint on one file, over one parse: locations per
     check, or None and the output on an error."""
@@ -76,7 +93,7 @@ def run_tool(tool, build, path, namespace, checks):
         args += ["-p", str(build), *UNDO_FOR_CHECK, str(ROOT / path)]
     p = subprocess.run(args, capture_output=True, text=True)
     if p.returncode != 0:
-        return None, p.stdout + p.stderr
+        return None, exit_status(p) + p.stdout + p.stderr
     lines = [l for l in p.stdout.splitlines() if l.strip()]
     if len(checks) == 1:  # one check prints no section header
         return {checks[0]: lines}, p.stdout + p.stderr
@@ -86,11 +103,13 @@ def run_tool(tool, build, path, namespace, checks):
     for l in lines:
         if l.startswith("== "):
             section = l[3:].strip()
-            if section not in found or section in seen:
-                return None, p.stdout + p.stderr
+            if section not in found:
+                return None, f"jlt-lint: unrequested section {section}\n" + p.stdout + p.stderr
+            if section in seen:
+                return None, f"jlt-lint: section {section} twice (one parse per file?)\n" + p.stdout + p.stderr
             seen.append(section)
         elif section is None:
-            return None, p.stdout + p.stderr
+            return None, "jlt-lint: a finding before any section\n" + p.stdout + p.stderr
         else:
             found[section].append(l)
     # Every check must have reported, even with no findings: a missing
@@ -142,7 +161,7 @@ def run(query, build, path, namespace, rules):
     # findings of match k are the notes between count k-1 and count k.
     counts = [int(c) for c in COUNT.findall(out)]
     if p.returncode != 0 or len(counts) != len(owner) + 1:
-        return None, None, out
+        return None, None, exit_status(p) + out
     if counts[0] == 0:
         return None, None, f"namespace {namespace} does not occur in {path}"
     total = {r: 0 for r in rules}
@@ -156,6 +175,26 @@ def run(query, build, path, namespace, rules):
     return total, where, out
 
 
+def one_entry_per_file(build):
+    """A compilation database with one entry per file, in a directory of its
+    own: a module partition has one per set of flags it is built with (CMake 4
+    synthesises a BMI for every consumer with other flags, the Python
+    bindings'), and a tool given several parses the file once each, which
+    multiplies every count.  The library's own entry is kept, not a
+    synthesised one (@synth), so the file is read as the library builds it."""
+    entries = json.loads((build / "compile_commands.json").read_text())
+    kept = {}
+    for e in entries:
+        synth = "@synth" in e.get("output", "") or "@synth" in e.get("command", "")
+        old = kept.get(e["file"])
+        if old is None or (old[0] and not synth):
+            kept[e["file"]] = (synth, e)
+    db = build / "jlt-lint-db"
+    db.mkdir(exist_ok=True)
+    (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
+    return db
+
+
 def main():
     query = sys.argv[1] if len(sys.argv) > 1 else "clang-query"
     build = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else ROOT / "build")
@@ -164,6 +203,8 @@ def main():
     if any(not f.startswith("tools/") for _, f, _, _ in lines) and \
             not (build / "compile_commands.json").exists():
         sys.exit(f"jlt-lint: no {build}/compile_commands.json; build first")
+    if (build / "compile_commands.json").exists():
+        build = one_entry_per_file(build)
 
     groups = collections.defaultdict(list)
     for rule, f, ns, expected in lines:
@@ -197,7 +238,7 @@ def main():
     per_rule = collections.defaultdict(lambda: {"gated": 0, "reported": 0, "findings": 0})
     for ((f, ns), entries), (counts, where, out) in zip(ordered, results):
         if counts is None:
-            print(f"jlt-lint: {f}: does not parse, a matcher did not run, or the scope is absent", file=sys.stderr)
+            print(f"jlt-lint: {f}: does not parse, a matcher did not run, the scope is absent, or a tool failed", file=sys.stderr)
             print("\n".join(out.splitlines()[:30]), file=sys.stderr)
             failures += 1
             continue
