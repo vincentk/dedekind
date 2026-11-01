@@ -185,15 +185,7 @@ jobs:
       id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-      run: |
-        tag=$(git tag --points-at "$GITHUB_SHA" | grep '^v0\.' | head -1 || true)
-        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=resume" >> "$GITHUB_OUTPUT"
-        else
-          v=$(.github/scripts/release-version.sh "$GITHUB_SHA" "$MIN_HOURS" 0)
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-        fi
+      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
 
   # A release is built on macOS too, by the same pipeline; CI is not (#1121).
   build-macos:
@@ -216,23 +208,33 @@ jobs:
     concurrency:
       group: release
       cancel-in-progress: false
+    env:
+      MIN_HOURS: "48"
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       with:
         fetch-depth: 0
 
-    - name: Resume a tag whose release is missing
-      if: needs.release-plan.outputs.version == 'resume'
+    # Decided again here, inside the serialised group, against the tags as
+    # they are now: another release may have been cut while macOS built.
+    - name: Plan, again
+      id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-        TAG: ${{ needs.release-plan.outputs.tag }}
+      run: .github/scripts/release-plan.sh "$GITHUB_SHA" "$MIN_HOURS" 0 >> "$GITHUB_OUTPUT"
+
+    - name: Resume a tag whose release is missing
+      if: steps.plan.outputs.version == 'resume'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ steps.plan.outputs.tag }}
       run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
 
     - name: Tag and release
-      if: needs.release-plan.outputs.version != 'resume'
+      if: steps.plan.outputs.version != 'resume' && steps.plan.outputs.version != 'skip'
       env:
         GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ needs.release-plan.outputs.version }}
+        VERSION: ${{ steps.plan.outputs.version }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -27,6 +27,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -195,7 +196,7 @@ def one_entry_per_file(build):
         old = kept.get(e["file"])
         if old is None or (old[0] and not synth):
             kept[e["file"]] = (synth, e)
-    compiler = (entries[0].get("arguments") or entries[0]["command"].split())[0] if entries else None
+    compiler = (entries[0].get("arguments") or shlex.split(entries[0]["command"]))[0] if entries else None
     if compiler:
         r = subprocess.run([compiler, "-print-resource-dir"], capture_output=True, text=True)
         if r.returncode == 0 and r.stdout.strip():

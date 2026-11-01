@@ -46,16 +46,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         COMMIT: ${{ github.sha }}
         FORCE: ${{ inputs.force && '1' || '0' }}
-      run: |
-        tag=$(git tag --points-at "$COMMIT" | grep '^v0\.' | head -1 || true)
-        if [ -n "$tag" ] && ! gh release view "$tag" >/dev/null 2>&1; then
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=resume" >> "$GITHUB_OUTPUT"
-        else
-          v=$(.github/scripts/release-version.sh "$COMMIT" "$MIN_HOURS" "$FORCE")
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-          echo "Next version: $v"
-        fi
+      run: .github/scripts/release-plan.sh "$COMMIT" "$MIN_HOURS" "$FORCE" | tee -a "$GITHUB_OUTPUT"
 
   # A release is built on macOS too, by CI's pipeline (#1121).
   build-macos:
@@ -79,18 +70,28 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    - name: Resume a tag whose release is missing
-      if: needs.release-plan.outputs.version == 'resume'
+    # Decided again here, inside the serialised group, against the tags as
+    # they are now: another release may have been cut while macOS built.
+    - name: Plan, again
+      id: plan
       env:
         GH_TOKEN: ${{ github.token }}
-        TAG: ${{ needs.release-plan.outputs.tag }}
+        COMMIT: ${{ github.sha }}
+        FORCE: ${{ inputs.force && '1' || '0' }}
+      run: .github/scripts/release-plan.sh "$COMMIT" "$MIN_HOURS" "$FORCE" | tee -a "$GITHUB_OUTPUT"
+
+    - name: Resume a tag whose release is missing
+      if: steps.plan.outputs.version == 'resume'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ steps.plan.outputs.tag }}
       run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
 
     - name: Tag and release
-      if: needs.release-plan.outputs.version != 'resume'
+      if: steps.plan.outputs.version != 'resume' && steps.plan.outputs.version != 'skip'
       env:
         GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ needs.release-plan.outputs.version }}
+        VERSION: ${{ steps.plan.outputs.version }}
         COMMIT: ${{ github.sha }}
       run: |
         git config user.name "github-actions[bot]"
