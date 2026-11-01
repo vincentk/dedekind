@@ -210,8 +210,19 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+    - name: The wheel to publish
+      uses: ./.github/actions/pypi-wheel
+      with:
+        version: 0.0.0.dev${{ github.run_id }}
+
     - name: Publish to TestPyPI
-      uses: ./.github/actions/publish-testpypi
+      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true  # a resumed release may have uploaded already
+
+    - name: The wheel from TestPyPI
+      uses: ./.github/actions/pypi-verify
       with:
         version: 0.0.0.dev${{ github.run_id }}
         python-version: ${{ env.PYTHON_VERSION }}
@@ -296,9 +307,22 @@ jobs:
         v=$PLAN; [ "$v" = resume ] && v=${TAG#v}
         echo "PYNZLI_VERSION=$v" >> "$GITHUB_ENV"
 
+    - name: The wheel to publish
+      if: steps.plan.outputs.version != 'skip'
+      uses: ./.github/actions/pypi-wheel
+      with:
+        version: ${{ env.PYNZLI_VERSION }}
+
     - name: Publish to TestPyPI
       if: steps.plan.outputs.version != 'skip'
-      uses: ./.github/actions/publish-testpypi
+      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true  # a resumed release may have uploaded already
+
+    - name: The wheel from TestPyPI
+      if: steps.plan.outputs.version != 'skip'
+      uses: ./.github/actions/pypi-verify
       with:
         version: ${{ env.PYNZLI_VERSION }}
         python-version: ${{ env.PYTHON_VERSION }}

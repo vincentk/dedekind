@@ -1,0 +1,31 @@
+# The wheel just published, installed back from TestPyPI into the floor
+# Python and imported: the round trip of a publication.
+name: The wheel from TestPyPI
+description: Install a published version back from TestPyPI and import it
+inputs:
+  version:
+    description: The version published
+    required: true
+  python-version:
+    description: The Python the wheel is installed into (its floor)
+    required: true
+runs:
+  using: composite
+  steps:
+  - name: Set up Python
+    uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+    with:
+      python-version: ${{ inputs.python-version }}
+
+  - name: Install from TestPyPI
+    shell: bash
+    env:
+      VERSION: ${{ inputs.version }}
+    run: |
+      python -m venv .venv-testpypi
+      for i in 1 2 3 4 5 6 7 8 9 10; do
+        .venv-testpypi/bin/pip install --quiet --no-cache-dir \
+          --index-url https://test.pypi.org/simple/ "pynzli==$VERSION" && break
+        echo "not on the index yet ($i)"; sleep 30
+      done
+      .venv-testpypi/bin/python -c "import pynzli, pynzli.pst; assert pynzli.__version__ == '$VERSION'; print('testpypi-ok', pynzli.__version__)"
