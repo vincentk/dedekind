@@ -500,6 +500,21 @@ export struct Inf {
   }
 };
 
+/** @brief @c bool's ends, the identities of @c Sup and @c Inf, declared beside
+ *  them: every partition that can ask (a chain walk on @c bool, as
+ *  @c :equivalence does) then sees the one definition, before @c :logic's
+ *  classifier-answer specialisation could give it a second. */
+template <>
+struct unit_trait<bool, Sup> {
+  using value_type = bool;
+  static constexpr bool value = false;
+};
+template <>
+struct unit_trait<bool, Inf> {
+  using value_type = bool;
+  static constexpr bool value = true;
+};
+
 /** @brief The evaluation budget of a law: a law of @c k variables on a chain
  *  of @c n values costs @c nᵏ evaluations, and is decided only within this
  *  (reflexivity on a long chain, transitivity only on a short one). */
