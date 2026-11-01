@@ -1,13 +1,15 @@
 [build-system]
-requires = ["scikit-build-core>=0.10"]
+requires = ["scikit-build-core>=1.1"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "dedekind"
+name = "pydedekind"
 version = "0.1.0a0"
-description = "Python MVP bindings for the dedekind C++23 module library"
+description = "Python bindings for the dedekind library."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.15"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = []
 authors = [
   { name = "Dedekind Authors" },
@@ -15,13 +17,9 @@ authors = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
@@ -44,6 +42,10 @@ wheel.packages = ["python/dedekind"]
 # missing one fails the wheel install (#961: _jlt is the Jlt arrow exhibit;
 # #1001: _pst the Pst chains, with the term surface over u64 and 𝔽ₚ).
 build.targets = ["_jlt", "_pst"]
+# One wheel per platform for every Python from 3.15, the floor, through the
+# stable ABI (the modules are nanobind STABLE_ABI, CMakeLists.txt): tagged
+# cp315-abi3.
+wheel.py-api = "cp315"
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
@@ -55,9 +57,9 @@ graphblas = [
 ]
 
 test = [
-  "pytest>=7.0",
-  "pytest-cov>=4.0",
-  "numpy>=1.21",
+  "pytest>=9.2",
+  "pytest-cov>=7.1",
+  "numpy>=2.5",
 ]
 
 [tool.pytest.ini_options]

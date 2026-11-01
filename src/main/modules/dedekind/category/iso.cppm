@@ -22,7 +22,7 @@
  * @section iso__Retract_As_Kleisli
  * A retract is a Kleisli arrow into the maybe monad,
  * @c retract(f) @c : @c Cod<F> @c → @c Maybe<Dom<F>>, spelled honestly with
- * @c category::Maybe and the unit @c η (@c maybe_hub) from @c :functor /
+ * @c category::Maybe and the unit @c η (@c maybe_monad) from @c :functor /
  * @c :natural, not raw @c std::optional.  That is why this partition sits
  * downstream of @c :natural (@c :morphism → @c :natural → @c :iso): it removes
  * the layering inversion in which @c :morphism (importing only @c :species)
@@ -60,7 +60,7 @@ export module dedekind.category:iso;
 
 import :morphism;  // IsArrow, IsIsomorphism, IsMonicArrow, Cod, Dom, inverse
 import :functor;   // Maybe<T> = std::optional<T> (the retract's monad)
-import :natural;   // η (the maybe unit) + maybe_hub tag
+import :natural;   // η (the maybe unit) + maybe_monad tag
 
 namespace dedekind::category {
 
@@ -70,7 +70,7 @@ namespace dedekind::category {
  * @details Every iso @f$f:A\to B@f$ has a two-sided inverse
  *          @f$f^{-1}:B\to A@f$, so its retract is total: @c retract(f)(y)
  *          is always @c Some(@c f^{-1}(y)), built through the maybe unit
- *          @c η(maybe_hub, ·) rather than a raw @c std::optional constructor.
+ *          @c η(maybe_monad, ·) rather than a raw @c std::optional constructor.
  *          A named functor (not a lambda) so the type is nameable and the
  *          closure is transparent.
  * @tparam F The iso arrow type.
@@ -79,7 +79,7 @@ export template <typename F>
 struct IsoRetract {
   F f;
   constexpr Maybe<Dom<F>> operator()(const Cod<F>& y) const {
-    return η(maybe_hub, inverse(f)(y));
+    return η(maybe_monad, inverse(f)(y));
   }
 };
 

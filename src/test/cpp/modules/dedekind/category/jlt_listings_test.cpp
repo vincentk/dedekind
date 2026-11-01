@@ -19,6 +19,7 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 import dedekind.category;
@@ -479,6 +480,30 @@ static_assert(dedekind::category::IsMonoid<M2, MatMul> &&
               dedekind::category::IsRightAction<decltype(act), V, M2> &&
               fib * shear != shear * fib &&
               act(act(V{1, 2}, fib), shear) == act(V{1, 2}, fib* shear));
+// The same certificate makes act a functor out of the matrices' delooping,
+// the monoid as a category with one object: the action law is its
+// composition law, and acting by the product is acting twice (#1113).
+using Acts =
+    dedekind::category::ActionFunctor<std::remove_cvref_t<decltype(act)>, V,
+                                      M2>;
+using Mat = dedekind::category::Element<M2, MatMul>;
+static_assert(dedekind::category::IsFunctor<Acts> &&
+              Acts{}(Mat{fib} >> Mat{shear})(V{1, 2}) ==
+                  (Acts{}(Mat{fib}) >> Acts{}(Mat{shear}))(V{1, 2}) &&
+              Acts{}(Mat{fib} >> Mat{shear})(V{1, 2}) ==
+                  act(act(V{1, 2}, fib), shear));
+// The semimodule's scaling is a left action of the counts, so a functor out
+// of the opposite of their delooping: 3 then 4 scales by 4 · 3.
+using Scaling =
+    dedekind::category::LeftActionFunctor<M2, size_t, MatAdd, std::plus<size_t>,
+                                          std::multiplies<size_t>,
+                                          std::multiplies<>>;
+using Count = dedekind::category::Element<
+    size_t, dedekind::category::Opposite<std::multiplies<size_t>>>;
+static_assert(dedekind::category::IsFunctor<Scaling> &&
+              Scaling{}(Count{3} >> Count{4})(shear) ==
+                  (Scaling{}(Count{3}) >> Scaling{}(Count{4}))(shear) &&
+              Scaling{}(Count{3} >> Count{4})(shear) == 12uz * shear);
 // On a sequence that is not copies the product has no fast form, so the
 // library's fold is the plain one; the action law, acting once by the product
 // in the walk's order, agrees with it on matrices that do not commute.

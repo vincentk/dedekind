@@ -21,7 +21,7 @@
  * - It is a Comonad: It supports the Co-Kleisli Pull (<<=) via extraction (ε).
  *
  * Category-level η/ε specializations for Singleton are currently deferred
- * while dedekind.sets is being retargeted to the updated hub/spoke interfaces
+ * while dedekind.sets is being retargeted to the updated functor interfaces
  * in dedekind.category.
  *
  * @section singleton__Structural_Role
@@ -253,11 +253,12 @@ static_assert(
 /** @section singleton__The_Set_Monad_Realization
  *  The singleton @f$x \mapsto \{x\}@f$ is the @b unit of the power-set @b
  * monad. It is the power-set instance of the categorical unit machinery in
- *  @c dedekind.category: the hub-dispatched @c η / @c pure and its siblings
+ *  @c dedekind.category: the tag-dispatched @c η / @c pure and its siblings
  *  @c μ / @c ε / @c δ (@c :monad, laws checked by @c IsMonad; @c η / @c ε live
  * in
  *  @c :natural), whose bona-fide monad-and-comonad (@c IsFrobenius, #632)
- * carrier is @c std::tuple (@c :kleisli).  The power-set monad's own hub (@c η
+ * carrier is @c std::tuple (@c :kleisli).  The power-set monad's own functor
+ * (@c η
  * + the union-flatten @c μ) is tracked in #691.  @b Distinct from the two other
  *  reifications of the power object: @c dedekind.order:powerset (#830) is the
  *  @c Sub(C) subobject @b lattice @c 𝔓 (a @c Set), and
@@ -275,11 +276,11 @@ constexpr auto singleton(T value) {
 
 /** @brief @c η --- the idiomatic spelling of @c singleton: the power-set
  *  monad's unit @f$\eta : x \mapsto \{x\}@f$.  The name matches the categorical
- *  unit @c dedekind::category::η (the hub-dispatched @c η / @c pure of
+ *  unit @c dedekind::category::η (the tag-dispatched @c η / @c pure of
  *  @c :monad, §above) and the grammar's @c η generator (paper Listing~2).
  *  @f$\eta(x)@f$ is the least set containing @c x, so
  *  @f$\eta(x) \in \mathfrak{P}(S) \iff x \in S@f$.  The monad's @c μ
- *  (union-flatten) and full hub are #691; the @b enumerated power set is
+ *  (union-flatten) and full functor are #691; the @b enumerated power set is
  *  #840; the @c Sub(C) subobject @b lattice @c 𝔓 is
  *  @c order:powerset (#830) --- three distinct reifications of the power
  * object, all sharing this unit.  @tparam T the pivot's type. */

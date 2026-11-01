@@ -6,7 +6,7 @@
  * This partition internalizes monads and comonads as endofunctor-level
  * algebraic structure. Because categories in this library are specialized to a
  * single `Species` type, the object witness used by the laws is always
- * recovered through the identity spoke `id_c(x)` rather than through a
+ * recovered through the identity arrow `id_c(x)` rather than through a
  * separate textbook object universe.
  *
  * @copyright 2026 The Dedekind Authors
@@ -21,10 +21,12 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <type_traits>  // the monad-law certificates
 
 export module dedekind.category:monad;
 
 import :natural;
+import :morphism;  // IsIdentityArrow: the identity monad, decided
 
 namespace dedekind::category {
 
@@ -36,9 +38,9 @@ namespace dedekind::category {
  * supported monad/comonad type (e.g., η for Maybe, Identity, Box). These
  * are specific overloads, not generic template-template helpers.
  *
- * This design leverages the hub-spoke architectural pattern established in
- * the :functor partition, avoiding C++ limitations with template-template
- * parameter overloading and maintaining clean partition boundaries.
+ * This design follows the tag dispatch of the :functor partition, avoiding C++
+ * limitations with template-template parameter overloading and maintaining
+ * clean partition boundaries.
  *
  * Textbook alignment:
  * - η (eta): unit/pure      [defined in :natural]
@@ -48,38 +50,39 @@ namespace dedekind::category {
  */
 
 /**
- * @brief Value-level alias for η (eta) with explicit hub tag dispatch.
- * @details Example: pure(maybe_hub, x), pure(identity_hub, x),
- *          pure(tuple_hub, x).
+ * @brief Value-level alias for η (eta) with explicit monad-tag dispatch.
+ * @details Example: pure(maybe_monad, x), pure(identity_monad, x),
+ *          pure(tuple_monad, x).
  */
-export template <typename HubTag, typename A>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, A&& v) { η(tag, std::forward<A>(v)); }
-constexpr auto pure(HubTag tag, A value) {
+export template <typename MonadTag, typename A>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, A&& v) { η(tag, std::forward<A>(v)); }
+constexpr auto pure(MonadTag tag, A value) {
   return η(tag, std::move(value));
 }
 
-/** @brief Value-level alias for μ (mu) with explicit hub tag dispatch. */
-export template <typename HubTag, typename MMA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, MMA const& mma) { μ(tag, mma); }
-constexpr auto join(HubTag tag, MMA const& mma) {
+/** @brief Value-level alias for μ (mu) with explicit monad-tag dispatch. */
+export template <typename MonadTag, typename MMA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, MMA const& mma) { μ(tag, mma); }
+constexpr auto join(MonadTag tag, MMA const& mma) {
   return μ(tag, mma);
 }
 
-/** @brief Value-level alias for ε (epsilon) with explicit hub tag dispatch. */
-export template <typename HubTag, typename WA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, WA const& wa) { ε(tag, wa); }
-constexpr auto extract(HubTag tag, WA const& wa) {
+/** @brief Value-level alias for ε (epsilon) with explicit monad-tag dispatch.
+ */
+export template <typename MonadTag, typename WA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, WA const& wa) { ε(tag, wa); }
+constexpr auto extract(MonadTag tag, WA const& wa) {
   return ε(tag, wa);
 }
 
-/** @brief Value-level alias for δ (delta) with explicit hub tag dispatch. */
-export template <typename HubTag, typename WA>
-  requires IsDefaultHubTag<HubTag> &&
-           requires(HubTag tag, WA const& wa) { δ(tag, wa); }
-constexpr auto duplicate(HubTag tag, WA const& wa) {
+/** @brief Value-level alias for δ (delta) with explicit monad-tag dispatch. */
+export template <typename MonadTag, typename WA>
+  requires IsDefaultMonadTag<MonadTag> &&
+           requires(MonadTag tag, WA const& wa) { δ(tag, wa); }
+constexpr auto duplicate(MonadTag tag, WA const& wa) {
   return δ(tag, wa);
 }
 
@@ -92,7 +95,7 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
  * @details In the project's single-species setting, the component laws are
  *          checked against an object label `c`, then transported into the
- *          endofunctor context by lifting the identity spoke `id_c(c)`. This
+ *          endofunctor context by lifting the identity arrow `id_c(c)`. This
  *          is how the type system recovers the object witnesses `T(c)` and
  *          `T(T(c))` needed for η and μ.
  *
@@ -102,6 +105,22 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
  * `IsMonad` witness in this formalization, even if value-level `η/μ/κ`
  * behavior exists for its carrier.
  */
+/** @brief Trait: @c η and @c μ satisfy the monad laws on @c T,
+ *  associativity @f$\mu \circ T\mu = \mu \circ \mu T@f$ and the two unit
+ *  laws @f$\mu \circ T\eta = \mathrm{id} = \mu \circ \eta T@f$.  A
+ *  certificate, primary false: the two sides of each law are different
+ *  types that denote one arrow, so no type shows them.  Decided without it
+ *  where both components are identities (the identity monad), by the unit
+ *  law.  @tparam T the endofunctor.  @tparam η_t @tparam μ_t its unit and
+ *  multiplication. */
+export template <typename T, typename η_t, typename μ_t>
+struct is_monadic : std::false_type {};
+/** @brief Trait: the comonad laws for @c ε and @c δ on @c W, the duals.
+ *  @tparam W the endofunctor.  @tparam ε_t @tparam δ_t its counit and
+ *  comultiplication. */
+export template <typename W, typename ε_t, typename δ_t>
+struct is_comonadic : std::false_type {};
+
 export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
     IsEndofunctor<T> &&
@@ -110,18 +129,12 @@ concept IsMonad =
     // μ: T² ⟹ T (Multiplication/Join)
     IsNaturalTransformation<μ_t, composite_functor<T, T>, T> &&
 
-    requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
-      // `c` is the object label. The corresponding object in T and T² is
-      // recovered by functorially lifting the identity spoke on c.
-      // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
-      { T{}.φ(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
-
-      // 2. Left Unit Law: μ ∘ T(η) == id_T
-      { T{}.φ(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
-
-      // 3. Right Unit Law: μ ∘ η_T == id_T
-      { η(c) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
-    };
+    // the laws: decided where both components are identities, the unit law
+    // at the type; certified otherwise
+    (requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
+      requires IsIdentityArrow<decltype(η(c))> &&
+                   IsIdentityArrow<decltype(μ(c))>;
+    } || is_monadic<T, η_t, μ_t>::value);
 
 /**
  * @section monad__Comonadic_Morphisms
@@ -154,57 +167,9 @@ concept IsComonad =
     // δ: W ⟹ W² (Comultiplication / Duplicate)
     IsNaturalTransformation<δ_t, W, composite_functor<W, W>> &&
 
-    requires(ε_t ε, δ_t δ, typename W::Σ_cat::Arrow::Domain w_obj) {
-      // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
-      {
-        δ(w_obj) >> W{}.φ(δ(w_obj))
-      } -> std::same_as<decltype(δ(w_obj) >> δ(w_obj))>;
-
-      // 2. Left Counit Law: W(ε) ∘ δ == id_W
-      { δ(w_obj) >> W{}.φ(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
-
-      // 3. Right Counit Law: ε_W ∘ δ == id_W
-      // We move across the duplication, then extract using the component at the
-      // result.
-      { δ(w_obj) >> ε(w_obj) } -> std::same_as<typename W::Σ_cat::Id>;
-    };
-
-/** @section monad__Generic_Monadic_Pipeline */
-
-export template <typename W>
-struct η_tag {};
-
-// μ_tag carries the monad functor type T so that the operator can index μ_t
-// using the correct source-category object label typename
-// T::Σ_cat::Arrow::Domain.
-export template <typename T, typename μ_t>
-struct μ_tag {};
-
-// 1. Entry: value >> into<η_t>
-// Since η is a transformation from Id -> T, we select its component using the
-// raw object label directly. In the single-species setting that label is the
-// canonical witness for the identity spoke at the same object.
-export template <typename T, typename η_t>
-  requires requires(const T& v) { η_t{}(v)(v); }
-constexpr auto operator>>(T val, η_tag<η_t>) {
-  // η_t{}(val) produces the arrow, we then apply it to the value
-  return η_t{}(val)(std::move(val));
-}
-
-// 2. Join: T<T<X>> >> μ_tag<T, μ_t>
-// μ_t is the natural transformation T^2 => T, indexed by
-// typename T::Σ_cat::Arrow::Domain. NestedContext must be convertible to
-// that domain type for the component selection to be valid (e.g., for the
-// identity monad, NestedContext = int = Domain, so the cast is a no-op).
-export template <typename NestedContext, typename T, typename μ_t>
-  requires IsShapedFunctor<T> &&
-           std::convertible_to<NestedContext, typename T::Σ_cat::Arrow::Domain>
-constexpr auto operator>>(NestedContext nested, μ_tag<T, μ_t>) {
-  using Domain = typename T::Σ_cat::Arrow::Domain;
-  // Select the component using the correct object witness (the domain label),
-  // not the nested context value itself.
-  auto mu_x = μ_t{}(static_cast<Domain>(nested));
-  return mu_x(std::move(nested));
-}
+    (requires(ε_t ε, δ_t δ, typename W::Σ_cat::Arrow::Domain c) {
+      requires IsIdentityArrow<decltype(ε(c))> &&
+                   IsIdentityArrow<decltype(δ(c))>;
+    } || is_comonadic<W, ε_t, δ_t>::value);
 
 }  // namespace dedekind::category

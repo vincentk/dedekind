@@ -80,12 +80,14 @@ option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
-# Enable testing with Catch2 (pinned release tag; no tracking of main).
+# Enable testing with Catch2, its latest release pinned (no tracking of main),
+# built from source because distribution packages lag far behind (Ubuntu
+# 24.04 ships 3.4).
 include(FetchContent)
 FetchContent_Declare(
   Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.14.0
+    GIT_TAG        v3.16.1
     GIT_SHALLOW    TRUE
 )
 
@@ -289,18 +291,21 @@ target_compile_options(set-pruning-ir-fixture PRIVATE
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    find_package(Python 3.12...<3.15 QUIET COMPONENTS Interpreter Development.Module)
+    # Development.SABIModule too: nanobind builds STABLE_ABI only where
+    # Python::SABIModule exists, and silently falls back to the full ABI otherwise.
+    find_package(Python 3.15 QUIET COMPONENTS Interpreter Development.Module
+                 Development.SABIModule)
     if(NOT Python_FOUND)
         find_package(Python COMPONENTS Interpreter QUIET)
         if(Python_Interpreter_FOUND)
             message(FATAL_ERROR
-                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14. "
+                "Dedekind Python bindings/integration tests require Python 3.15 or newer. "
                 "Found ${Python_VERSION} at ${Python_EXECUTABLE}. "
-                "Activate a supported Python environment (for example: python3.12 -m venv .venv && source .venv/bin/activate) "
-                "or configure CMake with a 3.12-3.14 interpreter.")
+                "Activate a supported Python environment (for example: python3.15 -m venv .venv && source .venv/bin/activate) "
+                "or configure CMake with a 3.15 or newer interpreter.")
         else()
             message(FATAL_ERROR
-                "Dedekind Python bindings/integration tests require Python 3.12, 3.13, or 3.14, but no Python interpreter was found.")
+                "Dedekind Python bindings/integration tests require Python 3.15 or newer, but no Python interpreter was found.")
         endif()
     endif()
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)
@@ -326,10 +331,13 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/trsk.py
         COPYONLY)
 
+    # Both modules are built against CPython's stable ABI (STABLE_ABI, Python
+    # 3.15 and later, the floor in pyproject.toml), so one wheel per platform,
+    # cp315-abi3, serves every Python from 3.15 on.
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python dedekind.jlt facade).
-    nanobind_add_module(_jlt PROTECT_STACK
+    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -342,7 +350,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Pst exhibit (#1001) is its own private native module, dedekind._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
     # field 𝔽ₚ, and the term surface over them; re-exported by dedekind.pst).
-    nanobind_add_module(_pst PROTECT_STACK
+    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
         CXX_SCAN_FOR_MODULES ON

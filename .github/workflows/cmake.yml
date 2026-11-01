@@ -11,11 +11,11 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.15"  # the latest stable, and the floor (pyproject.toml)
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
       pull-requests: write  # required by codecov-action to post PR coverage comments
@@ -119,7 +119,7 @@ jobs:
   python-dist:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read  # checkout only; no PR write or pages needed
     steps:
@@ -162,7 +162,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install dist/*.whl
         mkdir -p build/python-docs
-        python -m pip show dedekind > build/python-docs/install-report.txt
+        python -m pip show pydedekind > build/python-docs/install-report.txt
         python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
         python - <<'PY'
         from dedekind.jlt import succ
@@ -188,7 +188,7 @@ jobs:
   docs-and-pages:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: read
       pages: write       # required by actions/upload-pages-artifact + deploy-pages
@@ -215,7 +215,7 @@ jobs:
         make ci-install-doxygen-deps
         make ci-install-paper-deps
 
-    - name: Build Doxygen and paper in parallel
+    - name: Build Doxygen and the papers in parallel
       run: |
         (
           make doxygen CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
@@ -225,6 +225,7 @@ jobs:
         (
           make paper
           make -C docs/paper doc
+          make paper-jlt
         ) &
         PAPER_BUILD_PID=$!
 
@@ -236,6 +237,7 @@ jobs:
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
         cp docs/paper/paper.pdf build/pages/paper.pdf
+        cp docs/paper/jlt/jlt.pdf build/pages/jlt.pdf
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4
@@ -247,14 +249,14 @@ jobs:
       uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
   # A release after a green build of main, at most once per 48 hours,
-  # versioned 0.<YYYYMMDD>.<n>+<short hash> (.github/scripts/release-version.sh).
+  # versioned 0.<YYYYMMDD>.<n>, PEP 440, the tag naming the commit (.github/scripts/release-version.sh).
   # It runs here rather than from a workflow_run event because such events
   # failed at startup on GitHub's side (nameless "BuildFailed" runs, 2026-10-25).
   # release.yml keeps the manual, forced release.
   release:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [build-and-deploy, python-dist, docs-and-pages]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     permissions:
       contents: write
     concurrency:

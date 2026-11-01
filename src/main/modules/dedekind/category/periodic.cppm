@@ -987,7 +987,6 @@ export struct LetterMapsOnWords {
  *  functor, and @c reverse and @c rotate(d) are natural transformations of
  *  it to itself, by the certificates above. */
 export struct PowerFunctor {
-  using ArrowKind = hub_arrow_tag;
   using Σ_cat = LetterMaps;
   using Τ_cat = LetterMapsOnWords;
   using Domain = LetterMaps;
@@ -999,7 +998,7 @@ export struct PowerFunctor {
     requires IsArrow<std::remove_cvref_t<A>> &&
              std::same_as<Dom<std::remove_cvref_t<A>>,
                           Cod<std::remove_cvref_t<A>>>
-  constexpr PowerMap<std::remove_cvref_t<A>> φ(A tau) const {
+  constexpr PowerMap<std::remove_cvref_t<A>> operator()(A tau) const {
     return {std::move(tau)};
   }
 };
@@ -1017,12 +1016,12 @@ constexpr LetterMap swap_at = letter_map("AT", "TA");
 constexpr LetterMap swap_cg = letter_map("CG", "GC");
 }  // namespace detail_periodic
 static_assert(
-    PowerFunctor{}.φ(LetterMaps::id_c(std::byte{}))(
-        detail_periodic::gattac()) == detail_periodic::gattac() &&
-        PowerFunctor{}.φ(detail_periodic::swap_at >>
-                         detail_periodic::swap_cg)(detail_periodic::gattac()) ==
-            (PowerFunctor{}.φ(detail_periodic::swap_at) >>
-             PowerFunctor{}.φ(detail_periodic::swap_cg))(
+    PowerFunctor{}(LetterMaps::id_c(std::byte{}))(detail_periodic::gattac()) ==
+            detail_periodic::gattac() &&
+        PowerFunctor{}(detail_periodic::swap_at >>
+                       detail_periodic::swap_cg)(detail_periodic::gattac()) ==
+            (PowerFunctor{}(detail_periodic::swap_at) >>
+             PowerFunctor{}(detail_periodic::swap_cg))(
                 detail_periodic::gattac()),
     "the power functor preserves the identity and composition, on a word");
 

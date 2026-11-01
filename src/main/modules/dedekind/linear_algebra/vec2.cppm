@@ -304,19 +304,34 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
 
+/** @brief @c f on every entry: the vec2_functor's action on an arrow, an
+ *  endomap of the entries applied entrywise.  @tparam T the entries.
+ *  @tparam F the arrow. */
+export template <typename T, typename F>
+  requires std::invocable<const F&, const T&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const T&>, T>
+struct Vec2Map {
+  using Domain = Vec2V<T>;
+  using Codomain = Vec2V<T>;
+  [[no_unique_address]] F f;
+  constexpr Vec2V<T> operator()(Vec2V<T> const& v) const {
+    return {static_cast<T>(std::invoke(f, v.x)),
+            static_cast<T>(std::invoke(f, v.y))};
+  }
+};
+
 /** @section tuple__Functorial_Hubs
  *
  *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
  *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
  *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
- *  The hub types below own that lift and witness
+ *  The functor types below own that lift and witness
  *  @c dedekind::category::IsShapedFunctor for each shape.  They mirror
  *  @c dedekind::category::maybe_functor in pattern.
  */
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct vec2_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Vec2V<T>>;
 
@@ -328,20 +343,32 @@ struct vec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    return dedekind::category::arrow(
-        [f = std::forward<𝗳>(f)](Vec2V<T> const& v) -> Vec2V<T> {
-          return {std::invoke(f, v.x), std::invoke(f, v.y)};
-        });
+  constexpr Vec2Map<T, std::remove_cvref_t<𝗳>> operator()(𝗳&& f) const {
+    return {std::forward<𝗳>(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
+/** @brief @c f on every entry: the covec2_functor's action on an arrow, an
+ *  endomap of the entries applied entrywise.  @tparam T the entries.
+ *  @tparam F the arrow. */
+export template <typename T, typename F>
+  requires std::invocable<const F&, const T&> &&
+           std::convertible_to<std::invoke_result_t<const F&, const T&>, T>
+struct Covec2Map {
+  using Domain = Covec2V<T>;
+  using Codomain = Covec2V<T>;
+  [[no_unique_address]] F f;
+  constexpr Covec2V<T> operator()(Covec2V<T> const& v) const {
+    return {static_cast<T>(std::invoke(f, v.x)),
+            static_cast<T>(std::invoke(f, v.y))};
+  }
+};
+
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct covec2_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Covec2V<T>>;
 
@@ -353,11 +380,8 @@ struct covec2_functor {
 
   template <typename 𝗳>
     requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    return dedekind::category::arrow(
-        [f = std::forward<𝗳>(f)](Covec2V<T> const& v) -> Covec2V<T> {
-          return {std::invoke(f, v.x), std::invoke(f, v.y)};
-        });
+  constexpr Covec2Map<T, std::remove_cvref_t<𝗳>> operator()(𝗳&& f) const {
+    return {std::forward<𝗳>(f)};
   }
 
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
@@ -400,7 +424,7 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
 
 /** @section tuple__Monadic_Unit_Witnesses
  *
- *  The functor hubs above are the morphism-lifting half of a Kleisli
+ *  The functors above are the morphism-lifting half of a Kleisli
  *  triple; this section pins the @c η / unit half — the scalar → linear-map
  *  lift that the user expects to see at the linear-algebra layer.  For
  *  @c Vec2V<T> and @c Covec2V<T> the canonical unit is the diagonal
@@ -414,9 +438,9 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
  */
 namespace dedekind::category {
 
-// PR #508: unit_witness / counit_witness now take a Hub regular type
+// PR #508: unit_witness / counit_witness now take a Functor regular type
 // rather than a template-template parameter.  The existing
-// vec2_functor<T> / covec2_functor<T> Hubs (above in this partition)
+// vec2_functor<T> / covec2_functor<T> functors (above in this partition)
 // already carry the @c Shape<U> alias the new witness primary expects;
 // reuse them directly.
 

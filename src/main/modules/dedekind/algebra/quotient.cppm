@@ -61,8 +61,8 @@
  * @section quotient__Categorical_Reading
  *
  * In the @c :morphism vocabulary, the quotient construction is a
- * @b hub @b arrow (a functor between categories) and its image is a
- * @b spoke (an object in the target category).  The construction rules in
+ * a @b functor between categories and its image is an
+ * @b object of the target category.  The construction rules in
  * @c category:total express functoriality at the trait level: the laws and
  * totality of @c Q are read off those of @c Base under @c std::plus /
  * @c std::multiplies, exactly as a structure-preserving functor does on

@@ -235,7 +235,8 @@ nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
           "cover",
           [](const Ch&, nb::handle x) -> nb::object {
             const auto c = cover(from_py_as<C>(x));
-            return c ? to_py<C>(*c) : nb::none();
+            if (c) return to_py<C>(*c);
+            return nb::none();
           },
           nb::arg("x"),
           "The element covering x, or None at ⊤: the successor read partially, "
@@ -433,8 +434,10 @@ struct PyConst {
              : gt ? std::weak_ordering::greater
                   : std::weak_ordering::equivalent;
     }
-    const std::string ta = Py_TYPE(a.o.ptr())->tp_name;
-    const std::string tb = Py_TYPE(b.o.ptr())->tp_name;
+    // the type's name through the limited API, PyTypeObject being opaque
+    // under the stable ABI
+    const auto ta = nb::cast<std::string>(nb::type_name(a.o.type()));
+    const auto tb = nb::cast<std::string>(nb::type_name(b.o.type()));
     if (const auto c = ta <=> tb; c != 0) return c;
     return nb::cast<std::string>(nb::repr(a.o)) <=>
            nb::cast<std::string>(nb::repr(b.o));

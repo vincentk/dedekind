@@ -90,6 +90,15 @@ static_assert(
 static_assert(twice * next != next * twice &&
               Op{}(twice, next) == next * twice);
 
+// A left action is a functor out of the opposite category: the delooping of
+// the opposite operation, where twice then next composes to next ∘ twice.
+using LeftActs = dedekind::category::ActionFunctor<Apply, size_t, Affine>;
+using Map = dedekind::category::Element<Affine, Op>;
+static_assert(dedekind::category::IsFunctor<LeftActs> &&
+              (Map{twice} >> Map{next}).value == next * twice &&
+              LeftActs{}(Map{twice} >> Map{next})(3uz) == 7 &&
+              (LeftActs{}(Map{twice}) >> LeftActs{}(Map{next}))(3uz) == 7);
+
 // A left action along a walk acts by the opposite product: twice, then next,
 // is next ∘ twice; and n copies are one power, by squaring.
 constexpr std::array<Affine, 2> walk{twice, next};
@@ -114,6 +123,16 @@ static_assert(IsMonoidHomomorphism<Negate, size_t, std::plus<size_t>> &&
               !IsDagger<std::bit_not<size_t>, size_t, std::plus<size_t>>);
 // A qualified operation names the same law.
 static_assert(IsDagger<Negate, size_t, const std::plus<size_t>>);
+// A dagger is a functor out of the one-object category into its opposite:
+// its laws derived from IsDagger, reversal of products being the opposite's
+// composition, and witnessed on values.
+using Negation =
+    dedekind::category::DaggerFunctor<Negate, size_t, std::plus<size_t>>;
+using Plus = dedekind::category::Element<size_t, std::plus<size_t>>;
+static_assert(dedekind::category::IsFunctor<Negation> &&
+              Negation{}(Plus{5} >> Plus{7}).value ==
+                  (Negation{}(Plus{5}) >> Negation{}(Plus{7})).value &&
+              Negation{}(Plus{5}).value == 0uz - 5uz);
 static_assert(dedekind::category::IsMagmaHomomorphism<AtRunTime, size_t,
                                                       std::plus<size_t>> &&
               !IsMonoidHomomorphism<AtRunTime, size_t, std::plus<size_t>>);

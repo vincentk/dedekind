@@ -45,7 +45,7 @@
  * species-mappings.
  *
  * In this library's single-species categories, object labels are recovered via
- * the identity spoke `id_c(x)`. As a result, component arrows such as `η_x`
+ * the identity arrow `id_c(x)`. As a result, component arrows such as `η_x`
  * are checked by lifting identity arrows and reading off the resulting domain
  * object, rather than by ranging over a separate textbook object class.
  *
@@ -72,20 +72,21 @@ import :morphism;
 
 namespace dedekind::category {
 
-// Hub tags for textbook operator defaults without template-template dispatch.
-export struct maybe_hub_tag final {};
-export struct identity_hub_tag final {};
-export struct tuple_hub_tag final {};
+// Functor tags for textbook operator defaults without template-template
+// dispatch.
+export struct maybe_monad_tag final {};
+export struct identity_monad_tag final {};
+export struct tuple_monad_tag final {};
 
-export inline constexpr maybe_hub_tag maybe_hub{};
-export inline constexpr identity_hub_tag identity_hub{};
-export inline constexpr tuple_hub_tag tuple_hub{};
+export inline constexpr maybe_monad_tag maybe_monad{};
+export inline constexpr identity_monad_tag identity_monad{};
+export inline constexpr tuple_monad_tag tuple_monad{};
 
 export template <typename Tag>
-concept IsDefaultHubTag =
-    std::same_as<std::remove_cvref_t<Tag>, maybe_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag> ||
-    std::same_as<std::remove_cvref_t<Tag>, tuple_hub_tag>;
+concept IsDefaultMonadTag =
+    std::same_as<std::remove_cvref_t<Tag>, maybe_monad_tag> ||
+    std::same_as<std::remove_cvref_t<Tag>, identity_monad_tag> ||
+    std::same_as<std::remove_cvref_t<Tag>, tuple_monad_tag>;
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
@@ -96,10 +97,10 @@ constexpr Maybe<std::decay_t<A>> η(A value) {
   return std::make_optional(std::move(value));
 }
 
-// Tagged defaults for Maybe hub.
+// Tagged defaults for Maybe monad.
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr Maybe<std::decay_t<A>> η(maybe_hub_tag, A value) {
+constexpr Maybe<std::decay_t<A>> η(maybe_monad_tag, A value) {
   return std::make_optional(std::move(value));
 }
 
@@ -115,13 +116,13 @@ constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
+constexpr Maybe<A> μ(maybe_monad_tag, Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }
 
 // (Maybe is a monad, not a comonad — counit on @c std::nullopt has no
 // honest answer.  The bona-fide Frobenius carrier in this codebase is
-// @c std::tuple<T> below; see the @c tuple_hub_tag block.)
+// @c std::tuple<T> below; see the @c tuple_monad_tag block.)
 
 /**
  * @brief The std::tuple<T> Frobenius carrier.
@@ -140,7 +141,7 @@ constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
 // η: a → std::tuple<a>
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr std::tuple<std::decay_t<A>> η(tuple_hub_tag, A value) {
+constexpr std::tuple<std::decay_t<A>> η(tuple_monad_tag, A value) {
   return std::tuple<std::decay_t<A>>{std::move(value)};
 }
 
@@ -157,7 +158,8 @@ constexpr std::tuple<A> μ(std::tuple<std::tuple<A>> const& tta) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr std::tuple<A> μ(tuple_hub_tag, std::tuple<std::tuple<A>> const& tta) {
+constexpr std::tuple<A> μ(tuple_monad_tag,
+                          std::tuple<std::tuple<A>> const& tta) {
   return std::get<0>(tta);
 }
 
@@ -169,7 +171,7 @@ constexpr A ε(std::tuple<A> const& ta) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr A ε(tuple_hub_tag, std::tuple<A> const& ta) {
+constexpr A ε(tuple_monad_tag, std::tuple<A> const& ta) {
   return std::get<0>(ta);
 }
 
@@ -182,7 +184,8 @@ constexpr std::tuple<std::tuple<A>> δ(std::tuple<A> const& ta) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr std::tuple<std::tuple<A>> δ(tuple_hub_tag, std::tuple<A> const& ta) {
+constexpr std::tuple<std::tuple<A>> δ(tuple_monad_tag,
+                                      std::tuple<A> const& ta) {
   return std::tuple<std::tuple<A>>{ta};
 }
 
@@ -198,17 +201,17 @@ constexpr Identity<std::decay_t<A>> η(A value) {
   return id<std::decay_t<A>>();
 }
 
-// Tagged defaults for Identity hub.
+// Tagged defaults for Identity monad.
 export template <typename A>
   requires IsSpecies<std::decay_t<A>>
-constexpr Identity<std::decay_t<A>> η(identity_hub_tag, A value) {
+constexpr Identity<std::decay_t<A>> η(identity_monad_tag, A value) {
   (void)value;
   return id<std::decay_t<A>>();
 }
 
 /**
  * @brief Monadic join (μ): Identity<Identity<A>> → Identity<A>.
- * In hub/spoke terms: unwraps a doubly-wrapped spoke.
+ * Unwraps a doubly wrapped identity arrow.
  */
 template <typename A>
   requires IsSpecies<A>
@@ -219,7 +222,7 @@ constexpr Identity<A> μ(Identity<Identity<A>> const& iia) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr Identity<A> μ(identity_hub_tag, Identity<Identity<A>> const& iia) {
+constexpr Identity<A> μ(identity_monad_tag, Identity<Identity<A>> const& iia) {
   (void)iia;
   return id<A>();
 }
@@ -233,14 +236,14 @@ constexpr Identity<A> ε(Identity<A> const& ia) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr Identity<A> ε(identity_hub_tag, Identity<A> const& ia) {
+constexpr Identity<A> ε(identity_monad_tag, Identity<A> const& ia) {
   (void)ia;
   return id<A>();
 }
 
 /**
  * @brief Comonadic duplicate (δ): Identity<A> → Identity<Identity<A>>.
- * In hub/spoke terms: wraps a spoke into a doubly-wrapped spoke.
+ * Wraps an identity arrow once more.
  */
 template <typename A>
 constexpr Identity<Identity<A>> δ(Identity<A> const& ia) {
@@ -250,7 +253,7 @@ constexpr Identity<Identity<A>> δ(Identity<A> const& ia) {
 
 export template <typename A>
   requires IsSpecies<A>
-constexpr Identity<Identity<A>> δ(identity_hub_tag, Identity<A> const& ia) {
+constexpr Identity<Identity<A>> δ(identity_monad_tag, Identity<A> const& ia) {
   (void)ia;
   return id<Identity<A>>();
 }
@@ -278,15 +281,13 @@ concept IsTwoMorphism =
     std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
     std::same_as<typename F::Τ_cat, typename G::Τ_cat> &&
     requires(Α α, typename F::Σ_cat::Arrow::Domain c) {
-      // Component at c connects F(c) to G(c) in the Target Hub
+      // Component at c connects F(c) to G(c) in the Target Functor
       // In the single-species setting, we recover F(c) and G(c) by lifting
-      // the identity spoke on c and reading the resulting spoke's domain.
+      // the identity arrow on c and reading the resulting arrow's domain.
       requires std::same_as<typename decltype(α(c))::Domain,
-                            typename decltype(F{}.φ(
-                                F::Σ_cat::id_c(c)))::Domain>;
+                            typename decltype(F{}(F::Σ_cat::id_c(c)))::Domain>;
       requires std::same_as<typename decltype(α(c))::Codomain,
-                            typename decltype(G{}.φ(
-                                G::Σ_cat::id_c(c)))::Domain>;
+                            typename decltype(G{}(G::Σ_cat::id_c(c)))::Domain>;
     };
 
 namespace detail_natural {
@@ -340,7 +341,7 @@ concept IsNaturalTransformation =
     requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow f,
              typename F::Σ_cat::Arrow::Domain c) {
       requires detail_natural::IsNaturalSquare<
-          Α, F, G, decltype(f_map.φ(f)), decltype(g_map.φ(f)), decltype(α(c))>;
+          Α, F, G, decltype(f_map(f)), decltype(g_map(f)), decltype(α(c))>;
     };
 
 /**
@@ -362,7 +363,7 @@ struct identity_transformation {
                                       typename F::Τ_cat::Arrow::Domain>) {
       return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
     } else {
-      return f_map.φ(F::Σ_cat::id_c(c));
+      return f_map(F::Σ_cat::id_c(c));
     }
   }
 };
@@ -400,7 +401,7 @@ struct horizontal_composition {
   constexpr auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (β * α)_c = G'(α_c) >> β_{F(c)}
     // or equivalent: β_{F'(c)} >> G(α_c)
-    return G_prime{}.φ(α(c)) >>
+    return G_prime{}(α(c)) >>
            β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
   }
 };

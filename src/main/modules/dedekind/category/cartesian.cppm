@@ -877,7 +877,7 @@ static_assert(IsCartesianClosed<CanonicalSetCCC<int>>,
               "Verification Failed: Set must be Cartesian Closed.");
 /**
  * @concept IsProductCategory
- * @brief A Category Hub where the Species is a Categorical Product (std::pair).
+ * @brief A category whose Species is a categorical product (std::pair).
  */
 export template <typename Cat>
 concept IsProductCategory = IsSmallCategory<Cat> && requires {
