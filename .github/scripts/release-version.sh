@@ -2,8 +2,8 @@
 # Prints the next release version for a commit, or "skip".
 #
 # Version: 0.<YYYYMMDD>.<n>, semantic versioning with the date (ISO 8601
-# basic, UTC) as the minor number and n the count of releases already cut on
-# that date (0 in practice): a PEP 440 public version, as PyPI requires (it
+# basic, UTC) as the minor number and n one past the highest release already
+# cut on that date (0 in practice): a PEP 440 public version, as PyPI requires (it
 # refuses the local "+<hash>" part).  The tag names the commit.
 #
 # Skips a commit that is already tagged, and, unless forced, any commit less
@@ -36,5 +36,7 @@ if date -u -d "@$now" +%Y%m%d >/dev/null 2>&1; then
 else
   day=$(date -u -r "$now" +%Y%m%d)
 fi
-n=$(git tag -l "v0.${day}.*" | wc -l | tr -d ' ')
-echo "0.${day}.${n}"
+# One past the highest n cut that day, not their count: a deleted earlier tag
+# must not hand out a number again (nor may PyPI, which never reuses one).
+last_n=$(git tag -l "v0.${day}.*" | sed -n "s/^v0\.${day}\.\([0-9][0-9]*\)$/\1/p" | sort -n | tail -1)
+echo "0.${day}.$((${last_n:--1} + 1))"
