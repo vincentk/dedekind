@@ -23,6 +23,7 @@ Usage: jlt_lint.py [CLANG_QUERY] [BUILD_DIR] [JLT_TOOL]
 import collections
 import concurrent.futures
 import glob
+import json
 import os
 import pathlib
 import re
@@ -91,32 +92,27 @@ def run_tool(tool, build, path, namespace, checks):
         return None, exit_status(p) + p.stdout + p.stderr
     lines = [l for l in p.stdout.splitlines() if l.strip()]
     if len(checks) == 1:  # one check prints no section header
-        return {checks[0]: sorted(set(lines))}, p.stdout + p.stderr
-    # The tool runs once per entry the compilation database has for the file,
-    # and a module partition has one per set of flags it is built with (the
-    # Python bindings' stable ABI synthesises a second): a run starts again
-    # when a section repeats, and the findings are the union over the runs.
-    found = {c: set() for c in checks}
-    runs = [[]]
+        return {checks[0]: lines}, p.stdout + p.stderr
+    found = {c: [] for c in checks}
+    seen = []
     section = None
     for l in lines:
         if l.startswith("== "):
             section = l[3:].strip()
             if section not in found:
                 return None, f"jlt-lint: unrequested section {section}\n" + p.stdout + p.stderr
-            if section in runs[-1]:
-                runs.append([])
-            runs[-1].append(section)
+            if section in seen:
+                return None, f"jlt-lint: section {section} twice (one parse per file?)\n" + p.stdout + p.stderr
+            seen.append(section)
         elif section is None:
             return None, "jlt-lint: a finding before any section\n" + p.stdout + p.stderr
         else:
-            found[section].add(l)
-    # Every check must have reported in every run, even with no findings: a
-    # missing section is a check that did not run, not a zero.
-    for seen in runs:
-        if sorted(seen) != sorted(checks):
-            return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
-    return {c: sorted(v) for c, v in found.items()}, p.stdout + p.stderr
+            found[section].append(l)
+    # Every check must have reported, even with no findings: a missing
+    # section is a check that did not run, not a zero.
+    if sorted(seen) != sorted(checks):
+        return None, f"jlt-lint: sections {seen}, wanted {checks}\n" + p.stdout + p.stderr
+    return found, p.stdout + p.stderr
 
 
 def matchers(rule):
@@ -175,6 +171,26 @@ def run(query, build, path, namespace, rules):
     return total, where, out
 
 
+def one_entry_per_file(build):
+    """A compilation database with one entry per file, in a directory of its
+    own: a module partition has one per set of flags it is built with (CMake 4
+    synthesises a BMI for every consumer with other flags, the Python
+    bindings'), and a tool given several parses the file once each, which
+    multiplies every count.  The library's own entry is kept, not a
+    synthesised one (@synth), so the file is read as the library builds it."""
+    entries = json.loads((build / "compile_commands.json").read_text())
+    kept = {}
+    for e in entries:
+        synth = "@synth" in e.get("output", "") or "@synth" in e.get("command", "")
+        old = kept.get(e["file"])
+        if old is None or (old[0] and not synth):
+            kept[e["file"]] = (synth, e)
+    db = build / "jlt-lint-db"
+    db.mkdir(exist_ok=True)
+    (db / "compile_commands.json").write_text(json.dumps([e for _, e in kept.values()], indent=1))
+    return db
+
+
 def main():
     query = sys.argv[1] if len(sys.argv) > 1 else "clang-query"
     build = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else ROOT / "build")
@@ -183,6 +199,8 @@ def main():
     if any(not f.startswith("tools/") for _, f, _, _ in lines) and \
             not (build / "compile_commands.json").exists():
         sys.exit(f"jlt-lint: no {build}/compile_commands.json; build first")
+    if (build / "compile_commands.json").exists():
+        build = one_entry_per_file(build)
 
     groups = collections.defaultdict(list)
     for rule, f, ns, expected in lines:
