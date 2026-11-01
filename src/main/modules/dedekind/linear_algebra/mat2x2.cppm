@@ -422,13 +422,13 @@ struct BlockUpperTriangular {
 // Bound: `HasRingOperators<T>` for the arithmetic surface (+, -, unary -,
 // *; division is not used here — `Invertible2x2`'s Cramer inverse stays
 // at `HasFieldOperators<T>`).  Pure syntactic shape, not an algebraic
-// claim — see #393.  `std::regular<T>` for the value-semantics surface:
-// members use `T x{}` default-init, `column(i)` / `row(i)` return `{}`
-// out-of-range, `operator==` is defaulted (needs equality-comparable T),
-// and struct copies require copyable T. The two constraints are
-// orthogonal and both are load-bearing.
+// claim — see #393.  `std::semiregular<T>` for the value-semantics surface
+// (Rule 1): members use `T x{}` default-init, `column(i)` / `row(i)` return
+// `{}` out-of-range, and struct copies require copyable T.  `operator==` is
+// defaulted, so it exists where T's does and asks nothing of T otherwise.
+// The two constraints are orthogonal and both are load-bearing.
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;
@@ -547,7 +547,7 @@ inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
  *  @c category::inverse_v reads, found by argument-dependent lookup.
  *  @param a the matrix.  @return @f$-A@f$. */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Matrix2x2V<T> inverse(const Matrix2x2V<T>& a,
                                 std::plus<Matrix2x2V<T>>) {
   return -a;
@@ -581,7 +581,7 @@ struct Matrix2x2Map {
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct matrix2x2_functor {
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Matrix2x2V<T>>;
@@ -605,7 +605,7 @@ struct matrix2x2_functor {
 namespace dedekind::category {
 /** @brief Elementwise lifts: the functor laws hold by construction. */
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct is_functorial<dedekind::linear_algebra::matrix2x2_functor<T>>
     : std::true_type {};
 }  // namespace dedekind::category
@@ -650,7 +650,7 @@ namespace dedekind::category {
 // witness primary expects; reuse it directly.
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
     return {s, T{0}, T{0}, s};
@@ -662,7 +662,7 @@ struct unit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
  *  algebra to the underlying scalar ring.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   constexpr T operator()(
       const dedekind::linear_algebra::Matrix2x2V<T>& m) const {
@@ -674,7 +674,7 @@ struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
  *  matrix for @c +, the identity for @c ×, what a ring homomorphism into it
  *  carries @c 0 and @c 1 to. */
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T> &&
            IsPointed<T, std::plus<T>>
 struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
                   std::plus<dedekind::linear_algebra::Matrix2x2V<T>>> {
@@ -683,7 +683,7 @@ struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
   static constexpr value_type value{o, o, o, o};
 };
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T> &&
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T> &&
            IsPointed<T, std::plus<T>> && IsPointed<T, std::multiplies<T>>
 struct unit_trait<dedekind::linear_algebra::Matrix2x2V<T>,
                   std::multiplies<dedekind::linear_algebra::Matrix2x2V<T>>> {

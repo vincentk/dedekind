@@ -95,7 +95,7 @@ struct Vec2 {
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct Covec2V;
 
 /**
@@ -114,7 +114,7 @@ struct Covec2V;
  * `:contracts`.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct Vec2V {
   using scalar_type = T;
   using orientation = ColumnOrientation;
@@ -235,7 +235,7 @@ struct Vec2V {
  * views share the same underlying scalar layout.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct Covec2V {
   using scalar_type = T;
   using orientation = RowOrientation;
@@ -299,7 +299,7 @@ struct Covec2V {
 };
 
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
@@ -330,7 +330,7 @@ struct Vec2Map {
  *  @c dedekind::category::maybe_functor in pattern.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct vec2_functor {
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Vec2V<T>>;
@@ -367,7 +367,7 @@ struct Covec2Map {
 };
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct covec2_functor {
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
   using Τ_cat = dedekind::category::CanonicalSetCCC<Covec2V<T>>;
@@ -391,11 +391,11 @@ struct covec2_functor {
 namespace dedekind::category {
 /** @brief Elementwise lifts: the functor laws hold by construction. */
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct is_functorial<dedekind::linear_algebra::vec2_functor<T>>
     : std::true_type {};
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct is_functorial<dedekind::linear_algebra::covec2_functor<T>>
     : std::true_type {};
 }  // namespace dedekind::category
@@ -445,7 +445,7 @@ namespace dedekind::category {
 // reuse them directly.
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
     return {s, s};
@@ -453,7 +453,7 @@ struct unit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
 };
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::covec2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
     return {s, s};
@@ -464,7 +464,7 @@ struct unit_witness<dedekind::linear_algebra::covec2_functor<T>, T> final {
  *  to the first coordinate; mirrors the Reader-monad @c π_0 counit.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+  requires std::semiregular<T> && dedekind::algebra::HasRingOperators<T>
 struct counit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {
     return v.x;

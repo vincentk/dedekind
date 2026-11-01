@@ -110,7 +110,8 @@ namespace dedekind::geometry {
  */
 export template <typename T>
 concept IsTangentBundle =
-    std::regular<T> && dedekind::algebra::HasRingOperators<T> && requires(T t) {
+    std::semiregular<T> && dedekind::algebra::HasRingOperators<T> &&
+    requires(T t) {
       typename T::value_type;
       { t.value() } -> std::same_as<typename T::value_type>;
       { t.derivative() } -> std::same_as<typename T::value_type>;
