@@ -98,14 +98,13 @@ using namespace dedekind::category;
 /**
  * @concept IsClosedAlgebra
  * @brief The @b closure-only tier of an @c (A, F) algebra: each @c Op
- *        closes on @c T, @b without the @c std::regular value-semantics
- *        requirement.
+ *        closes on @c T, @b without the value-semantics requirement.
  *
  * @details Factored out of @c IsAlgebra so that set-indexed callers can
  * compose it with @c IsLSet (which roots @c std::semiregular on the
  * carrier, since @c Trsk @c = @c Jlt @c ∩ @c Set) instead of pinning
  * a value constraint a second time.  Standalone type-level callers keep
- * @c IsAlgebra, which adds the @c std::regular clause.
+ * @c IsAlgebra, which adds the @c std::semiregular clause.
  */
 export template <typename T, typename... Ops>
 concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
@@ -119,8 +118,12 @@ concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
  * finitary operations on A satisfying axioms.  This concept captures
  * the @b closure tier:
  *
- *   - @c T is @c std::regular (the carrier has equality + copy
- *     semantics; "regularity" in the @c std::regular sense).
+ *   - @c T is @c std::semiregular (the Jlt paper's Rule 1: a value, with
+ *     copies and a default).  No @c == is asked: an algebra's equality is
+ *     not decidable in general (functions under composition), and where a
+ *     carrier has one it is one more operation of its signature.  The
+ *     Boolean specialisation that brings @c == is @c IsSet's, on the set
+ *     side (#1116).
  *   - Each @c Op in @c Ops closes on @c T (binary or unary).
  *
  * @b Axioms live in specific refinements
@@ -136,7 +139,7 @@ concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
  * this with the requirement that the arrow respects each operation in the
  * algebra's family.
  *
- * @tparam T   The carrier type (@c std::regular).
+ * @tparam T   The carrier type (@c std::semiregular).
  * @tparam Ops The variadic family of operations on @c T.
  *
  * @see Burris & Sankappanavar 1981 §I.1 (the formal definition).
@@ -145,7 +148,7 @@ concept IsClosedAlgebra = (... && IsClosedUnderEither<T, Ops>);
  *      construction-on-an-algebra pattern.
  */
 export template <typename T, typename... Ops>
-concept IsAlgebra = std::regular<T> && IsClosedAlgebra<T, Ops...>;
+concept IsAlgebra = std::semiregular<T> && IsClosedAlgebra<T, Ops...>;
 // Should probably include HasCarrier (see below).
 
 /**
@@ -213,7 +216,7 @@ concept IsAlgebraOnSet = dedekind::category::IsLSet<X> &&
  *
  * The three tiers compose as:
  *   - @c IsAlgebra<T, Ops...> --- @b closure tier: each @c Op closes on
- *     @c T; @c T is @c std::regular.
+ *     @c T; @c T is @c std::semiregular.
  *   - @c IsTotalAlgebra<T, Ops...> --- @b totality tier: closure plus
  *     each @c Op satisfies @c IsTotal<T, Op>.  This concept.
  *   - @c IsRing<T, Add, Mult>, @c IsField<T, Add, Mult>, etc.\ --- @b
@@ -229,7 +232,7 @@ concept IsAlgebraOnSet = dedekind::category::IsLSet<X> &&
  * for the same reason --- and now the refusal is named at this
  * intermediate tier rather than only inside each laws-tier concept.
  *
- * @tparam T   The carrier type (@c std::regular).
+ * @tparam T   The carrier type (@c std::semiregular).
  * @tparam Ops Family of operations that close on @c T and are total
  *             under one of the @c IsTotal paths.
  *
@@ -285,7 +288,7 @@ static_assert(
  * The concept composes three existing primitives:
  *   - @c IsAlgebra<Carrier, Ops...> from this partition --- the
  *     closure tier of the @c (A, @c F) pair (each @c Op closes on the
- *     carrier @c A, and the carrier is @c std::regular).
+ *     carrier @c A, and the carrier is @c std::semiregular).
  *   - @c IsPartOfRelation<Carrier, Algebra, bool> from @c
  *     category:mereology --- the value-level part-whole relation,
  *     accepted in any of three encodings (order-style @c <=,
@@ -302,7 +305,7 @@ static_assert(
  *
  * @c Ops is a parameter pack so the concept reads at the closure tier
  * when no operations are supplied (in which case the
- * @c IsAlgebra<Carrier> requirement reduces to @c std::regular<Carrier>)
+ * @c IsAlgebra<Carrier> requirement reduces to @c std::semiregular<Carrier>)
  * @b and at the operations tier when concrete operations are named (in
  * which case the operations are required to close on the carrier as
  * well).
@@ -367,14 +370,13 @@ struct algebra_view {
 // Mechanical witnesses that the @c HasCarrier concept fires.
 
 // Closure-tier witness: the synthetic algebra_view pilot satisfies the
-// concept with no Ops named, anchoring the concept at the std::regular
-// closure tier of @c IsAlgebra.
-static_assert(
-    HasCarrier<_has_carrier_witness::algebra_view<int>, int>,
-    "HasCarrier (#573): the thin algebra-view pilot must satisfy the "
-    "concept at the closure tier --- the wrapped carrier is std::regular, "
-    "is mereologically a part of the view (predicate-style), and is "
-    "exposed via arrow_drill_down.");
+// concept with no Ops named, anchoring the concept at the closure tier of
+// @c IsAlgebra.
+static_assert(HasCarrier<_has_carrier_witness::algebra_view<int>, int>,
+              "HasCarrier (#573): the thin algebra-view pilot must satisfy the "
+              "concept at the closure tier --- the wrapped carrier is a value, "
+              "is mereologically a part of the view (predicate-style), and is "
+              "exposed via arrow_drill_down.");
 
 // Concrete-algebra witness: F_2 = (𝔹, ⊕, ∧) wired through algebra_view.
 // IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>> certifies the
@@ -651,12 +653,11 @@ concept IsQuotientMorphism =
  * restated.
  *   - @c IsMonicArrow --- injective, so the image is a @b genuine subalgebra
  *     (@c Domain = the subalgebra carrier, @c Codomain = the ambient algebra).
- *   - @c Domain / @c Codomain are @c std::regular.  The embedding is the
+ *   - @c Domain / @c Codomain are @c std::semiregular.  The embedding is the
  *     @b pointwise arrow (@c f(q) takes a carrier @b element and
  *     @c embed(a+b)==embed(a)+embed(b) is an element-level law), so the
- * carriers are @c std::regular elements --- the @c Jlt value-semantics half
- * that
- *     @c IsSet roots on a carrier --- @b not @c IsAlgebraOnSet, which would
+ * carriers are values (Rule 1) --- the @c Jlt value-semantics half that
+ *     @c IsLSet roots on a carrier --- @b not @c IsAlgebraOnSet, which would
  * make the arrow a @f$\text{Set}\to\text{Set}@f$ map and break the hom law. The
  *     ambient algebra structure (@c IsAlgebraOnSet on @c 𝔸<Domain>) is
  * witnessed at the declaration site, where the operations are in scope.
@@ -681,8 +682,8 @@ export template <
     typename T = typename detail_universal::default_signatures<Arrow>::target>
 concept EmbedsAsSubalgebra =
     IsHomomorphism<Arrow, S, T> && dedekind::category::IsMonicArrow<Arrow> &&
-    std::regular<typename std::remove_cvref_t<Arrow>::Domain> &&
-    std::regular<typename std::remove_cvref_t<Arrow>::Codomain>;
+    std::semiregular<typename std::remove_cvref_t<Arrow>::Domain> &&
+    std::semiregular<typename std::remove_cvref_t<Arrow>::Codomain>;
 
 }  // namespace dedekind::algebra
 

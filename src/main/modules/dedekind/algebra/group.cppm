@@ -264,7 +264,7 @@ concept IsMultiplicativeGroup = IsGroup<X, Mult>;
  *
  *   - @c category::IsGroup<T, std::plus<T>> + @c IsAlgebra --- the strict
  *     categorical additive-group proof (type level) under the canonical
- *     @c + functor, with @c std::regular + closure;
+ *     @c + functor, with @c std::semiregular + closure;
  *   - @c HasGroupOperatorsAdd<T> --- the literal C++ operators
  *     @c +, @c -, unary @c - close strictly on @c T.
  *

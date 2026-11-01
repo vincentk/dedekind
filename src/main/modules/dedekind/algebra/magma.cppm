@@ -10,10 +10,10 @@
  * @section magma__Where_The_Two_Roads_Meet
  * The @c category tower defines the axiomatic hierarchy
  * (@c category::IsMagma → @c IsMonoid → @c IsGroup → ... → @c IsField)
- * at the type level, without a @c std::regular carrier requirement.
+ * at the type level, without a value constraint on the carrier.
  * This partition opens the parallel @b algebra tower: the same rungs,
  * strengthened by the universal-algebra closure tier @c IsAlgebra
- * (which pins @c std::regular<T> and strict closure), so that every
+ * (which pins @c std::semiregular<T> and strict closure), so that every
  * rung is a @b bona-fide algebraic set.  Magma is the base; the
  * @c :monoid, @c :group, @c :ring and @c :field partitions build the
  * remaining rungs on the same pattern.
