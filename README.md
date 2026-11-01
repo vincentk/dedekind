@@ -79,7 +79,7 @@ The library asks the engineer to claim only what is mathematically true of a typ
 
 ### Further reading:
 
-* **Theory**: The accompanying draft paper: [Symbolic Algebra in Standard C++ Verified at Compile Time](https://vincentk.github.io/dedekind/paper.pdf).
+* **Theory**: the Jlt paper, [The Juliet Posture: Structurally Typed Functional Programming in Standard C++23](https://vincentk.github.io/dedekind/jlt.pdf) (a draft), and the earlier, broader draft, [Symbolic Algebra in Standard C++ Verified at Compile Time](https://vincentk.github.io/dedekind/paper.pdf).
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
 * **Documentation**: the [Doxygen API Reference](https://vincentk.github.io/dedekind/), for quick lookups against the source tree (a work in progress).
 * **Python Bindings (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).

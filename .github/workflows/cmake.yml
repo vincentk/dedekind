@@ -215,7 +215,7 @@ jobs:
         make ci-install-doxygen-deps
         make ci-install-paper-deps
 
-    - name: Build Doxygen and paper in parallel
+    - name: Build Doxygen and the papers in parallel
       run: |
         (
           make doxygen CXX=clang++-23 CC=clang-23 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
@@ -225,6 +225,7 @@ jobs:
         (
           make paper
           make -C docs/paper doc
+          make paper-jlt
         ) &
         PAPER_BUILD_PID=$!
 
@@ -236,6 +237,7 @@ jobs:
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
         cp docs/paper/paper.pdf build/pages/paper.pdf
+        cp docs/paper/jlt/jlt.pdf build/pages/jlt.pdf
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4
