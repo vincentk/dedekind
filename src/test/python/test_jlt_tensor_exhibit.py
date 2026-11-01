@@ -16,16 +16,20 @@ from dedekind.jlt import (
     alphabet,
     count,
     count_factors,
+    cylinder,
     exact_count,
+    exact_occurrences,
     free_monoid,
     is_involution,
     is_square,
     letter_map,
+    occurrences,
     pack,
     power,
     reverse,
     rotate,
     symmetric,
+    window,
 )
 
 
@@ -56,6 +60,26 @@ class JltTensorExhibitTest(unittest.TestCase):
             power(self.nucleotides, 13), power(self.complement) >> reverse
         )
         self.assertEqual(exact_count(odd), 0)  # no base is its own complement
+
+    def test_a_site_in_a_window_is_pushed_down(self) -> None:
+        sites = symmetric(power(self.nucleotides, 6), power(self.complement) >> reverse)
+        genomes = power(self.nucleotides, 12)
+        # the window's legs merged through the reverse complement, the rest free
+        self.assertEqual(count_factors(cylinder(genomes, window(3, 6), sites)), [(4, 3), (4, 6)])
+        # wherever the window sits; empty past the end
+        self.assertEqual(
+            count_factors(cylinder(genomes, window(0, 6), sites)),
+            count_factors(cylinder(genomes, window(6, 6), sites)),
+        )
+        self.assertEqual(exact_count(cylinder(genomes, window(7, 6), sites)), 0)
+        self.assertEqual(occurrences(genomes, sites), 7 * 4**3 * 4**6)
+        # past the word, refused exactly; Python's integers hold it
+        long = power(self.nucleotides, 40)
+        self.assertIsNone(exact_occurrences(long, sites))
+        self.assertEqual(
+            sum(total(cylinder(long, window(i, 6), sites)) for i in range(35)),
+            35 * 4**3 * 4**34,
+        )
 
     def test_a_power_multiplies_on_either_side(self) -> None:
         a = self.nucleotides
