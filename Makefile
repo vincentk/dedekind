@@ -222,9 +222,19 @@ ci-install-paper-deps:
 	fi
 	sudo apt-get update
 	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments curl unzip fontconfig
-	# minted's latexminted from PyPI, its latest, ahead of TeX Live's bundled
-	# 0.6.0 on PATH: that one passes argparse a keyword newer Pythons refuse
-	# ("unexpected keyword argument 'color'", ubuntu-26.04).
+	# minted as a matching pair at its latest, ahead of TeX Live's: the LaTeX
+	# package from CTAN (minted.sty generated from minted.ins) into TEXMFHOME,
+	# and its Python half, latexminted, from PyPI onto PATH.  TeX Live's own
+	# pair (ubuntu-26.04) is minted.sty 3.7 with latexminted 0.6.0, which
+	# passes argparse a keyword newer Pythons refuse; latexminted 0.7 asks
+	# minted.sty 3.8.
+	cd /tmp && curl -fsSL -o minted.zip https://mirrors.ctan.org/macros/latex/contrib/minted.zip \
+		&& rm -rf minted && unzip -q -o minted.zip \
+		&& (cd minted && latex -interaction=nonstopmode minted.ins >/dev/null) \
+		&& dest="$$(kpsewhich -var-value TEXMFHOME)/tex/latex/minted" \
+		&& mkdir -p "$$dest" && cp minted/minted*.sty "$$dest"/ \
+		&& rm -rf minted minted.zip
+	kpsewhich minted.sty
 	python -m pip install --upgrade latexminted
 	command -v latexminted
 	# JuliaMono — downloaded from GitHub releases, installed system-wide,
