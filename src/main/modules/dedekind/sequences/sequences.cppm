@@ -12,8 +12,9 @@
  * @section sequences__Roadmap Roadmap (work in progress)
  * @li <a href="https://github.com/vincentk/dedekind/issues/286">#286
  *     undergraduate calculus</a>: limits, series, summability and monotone
- *     or bounded sequences; still open are the ratio, root and comparison
- *     tests and power series.
+ *     or bounded sequences, with the ratio, root and comparison tests as
+ *     finite-sampling hooks (@c :convergence); still open are those tests
+ *     as criteria proved of a series, and power series.
  * @li <a href="https://github.com/vincentk/dedekind/issues/330">#330
  *     undergraduate algorithms and data structures</a>: finite sequences;
  *     still open are stacks, queues, heaps and trees.

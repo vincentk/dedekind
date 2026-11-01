@@ -36,7 +36,9 @@
  *     Bellman-Ford beyond the DAG relaxation.
  * @see <a href="https://github.com/vincentk/dedekind/issues/330">#330
  *     undergraduate algorithms and data structures</a> (work in progress):
- *     topological sort, since @c ext assumes the edges ordered.
+ *     topological sort: @c ext lists the edges by ascending tail, so the
+ *     single-pass DAG relaxation assumes the vertices numbered
+ *     topologically.
  */
 module;
 

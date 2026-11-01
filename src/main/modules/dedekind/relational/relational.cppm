@@ -63,7 +63,7 @@
  * @section relational__Roadmap Roadmap (work in progress)
  * @li <a href="https://github.com/vincentk/dedekind/issues/319">#319
  *     undergraduate graph theory</a>: graphs as relations
- *     (@c IsDirectedGraph in @c :cartesian) and path problems as semiring
+ *     (@c IsDirectedGraph in @c dedekind.category:cartesian) and path problems as semiring
  *     closures (@c star in @c linear_algebra:transfer); still open are
  *     degree and incidence, multigraphs, walks and cycles, traversals,
  *     components, trees and spanning trees, planarity, colouring, matchings

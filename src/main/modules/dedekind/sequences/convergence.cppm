@@ -12,7 +12,8 @@
  *
  * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
  *     undergraduate calculus</a> (work in progress): the ratio, root and
- *     comparison tests.
+ *     comparison tests as criteria proved of a series; here they are
+ *     finite-sampling hooks.
  */
 module;
 

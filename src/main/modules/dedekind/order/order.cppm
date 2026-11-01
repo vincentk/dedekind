@@ -32,8 +32,10 @@
  *
  * @section order__Roadmap Roadmap (work in progress)
  * @li <a href="https://github.com/vincentk/dedekind/issues/308">#308
- *     undergraduate probability and statistics</a>: the powerset lattice
- *     @c Sub as the substrate of a σ-algebra; no measure yet.
+ *     undergraduate probability and statistics</a>: @c Sub holds the
+ *     convex subobjects of an ordered carrier (intervals, not arbitrary
+ *     subsets: no @c {0,2} in @c Sub<int>), so it is closed under meets but
+ *     not under unions or complements; σ-algebras and measures are open.
  */
 export module dedekind.order;
 
