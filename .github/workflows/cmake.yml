@@ -195,7 +195,11 @@ jobs:
   # A PR labelled testpypi publishes its dev wheel, to try the publisher
   # before a release needs it.  The environment must admit the PR's branch.
   testpypi-dev:
-    if: contains(github.event.pull_request.labels.*.name, 'testpypi')
+    # !cancelled(): python-dist's own need, release-plan, is skipped on a PR,
+    # and a job downstream of a skipped one is skipped unless it says so.
+    if: >-
+      !cancelled() && needs.python-dist.result == 'success' &&
+      contains(github.event.pull_request.labels.*.name, 'testpypi')
     needs: python-dist
     runs-on: ubuntu-26.04  # the latest LTS, named: ubuntu-latest lags it
     environment:
