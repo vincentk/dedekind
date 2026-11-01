@@ -184,7 +184,7 @@ template <typename A, typename B>
 struct kleisli_probe_arrow {
   using Domain = A;
   using Codomain = B;
-  B operator()(const A&) const { std::unreachable(); }
+  constexpr B operator()(const A&) const { std::unreachable(); }
 };
 
 /** @brief A Kleisli triple ⟨T, η, (−)*⟩ (Manes), the monad in its extension
