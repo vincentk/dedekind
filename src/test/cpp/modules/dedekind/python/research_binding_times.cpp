@@ -12,7 +12,9 @@
  *     bits (a narrow type a hint that the loops are short; the counts wrap
  *     modulo the word, so only the 64-bit values are the counts);
  *   - the stage: both lengths free (a), the site's length bound to EcoRI's
- *     six (b), the genome's length bound to twelve (b′).
+ *     six (b), the genome's length bound to twelve (b′), each bound either
+ *     by a literal argument (left to the optimiser) or @b staged, by a
+ *     @c constexpr variable holding the bound tensor (forced).
  * The fixture script emits each at -O2 and -O3 and tabulates the IR; nothing
  * is asserted of the optimiser.
  *
@@ -95,3 +97,27 @@ static_assert(sites<std::uint64_t>(12, 6, true) == 1'835'008);
 // type in the library.
 DEDEKIND_RESEARCH_VARIANTS(std::uint32_t, u32)
 DEDEKIND_RESEARCH_VARIANTS(std::uint64_t, u64)
+
+// Staged by hand: the bound tensor a constexpr variable, evaluated in
+// translation, and only the rest left to run time.
+namespace {
+using U64 = std::uint64_t;
+constexpr auto sites_6 =
+    symmetric(power<U64>(nucleotides, 6), power(complement) >> reverse);
+constexpr auto palindromes_6 = symmetric(power<U64>(nucleotides, 6), reverse);
+constexpr auto genomes_12 = power<U64>(nucleotides, 12);
+}  // namespace
+
+extern "C" __attribute__((noinline)) U64 research_b_staged_static_u64(U64 L) {
+  return occurrences(power<U64>(nucleotides, L), sites_6);
+}
+extern "C" __attribute__((noinline)) U64 research_bp_staged_static_u64(U64 n) {
+  return occurrences(genomes_12, symmetric(power<U64>(nucleotides, n),
+                                           power(complement) >> reverse));
+}
+extern "C" __attribute__((noinline)) U64 research_b_staged_dynamic_u64(U64 L,
+                                                                       bool c) {
+  const auto genomes = power<U64>(nucleotides, L);
+  return c ? occurrences(genomes, sites_6)
+           : occurrences(genomes, palindromes_6);
+}
