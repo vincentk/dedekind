@@ -67,7 +67,7 @@ inline constexpr bool is_transcendental_v = false;
  * @details { x ∈ ℝ | x is not a root of any rational polynomial }.
  */
 export template <typename R>
-  requires std::semiregular<R>
+  requires std::regular<R>  // ambient_set's IsSpecies: the set compares
 constexpr auto TranscendentalSet() {
   const dedekind::sets::𝔸<R> universe{};
   return ambient_set<R>([universe](const R& x) constexpr {

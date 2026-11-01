@@ -329,7 +329,8 @@ static_assert(std::same_as<decltype(η(0)), decltype(singleton(0))>,
  *  @tparam Func the Kleisli arrow @c T → a set. */
 export template <std::equality_comparable T, IsOckhamAlgebra L, IsCardinality C,
                  dedekind::category::IsArrow Func>
-  requires std::same_as<dedekind::category::Dom<Func>, T>
+  requires std::same_as<dedekind::category::Dom<Func>, T> &&
+           IsSetObject<dedekind::category::Cod<Func>>
 constexpr auto operator>>=(const Comprehension<𝔸<T, L, C>, Point<T>>& s,
                            const Func& f) {
   /**
