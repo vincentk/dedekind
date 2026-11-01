@@ -287,9 +287,12 @@ set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_EXTENSIONS OFF
     CXX_SCAN_FOR_MODULES ON)
 
-# -O2 is the build's own level (CMAKE_CXX_FLAGS_RELEASE above), the IR's.
+# -O2 is the build's own level in Release (CMAKE_CXX_FLAGS_RELEASE above), so
+# nothing is added there and the fixture shares the modules' BMIs; any other
+# configuration asks it here, since the IR checks read optimised IR.
 target_compile_options(set-pruning-ir-fixture PRIVATE
-    ${DEDEKIND_WARNING_FLAGS})
+    ${DEDEKIND_WARNING_FLAGS}
+    $<$<NOT:$<CONFIG:Release>>:-O2>)
 
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
