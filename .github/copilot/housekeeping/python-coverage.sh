@@ -21,7 +21,7 @@ fi
 mkdir -p build
 
 pytest src/test/python \
-  --cov=dedekind \
+  --cov=pynzli \
   --cov-report=xml:build/python-coverage.xml \
   --cov-report=term-missing \
   "$@"
