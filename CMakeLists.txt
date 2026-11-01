@@ -326,10 +326,13 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/trsk.py
         COPYONLY)
 
+    # Both modules are built against CPython's stable ABI (STABLE_ABI, Python
+    # 3.12 and later, the floor in pyproject.toml), so one wheel per platform,
+    # cp312-abi3, serves every Python from 3.12 on.
     # The Jlt exhibit (#961) is its own private native module, dedekind._jlt
     # (NumPy-style: one private compiled module per cohesive component,
     # re-exported by the pure-Python dedekind.jlt facade).
-    nanobind_add_module(_jlt PROTECT_STACK
+    nanobind_add_module(_jlt PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_jlt.cpp)
     set_target_properties(_jlt PROPERTIES
         CXX_SCAN_FOR_MODULES ON
@@ -342,7 +345,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # The Pst exhibit (#1001) is its own private native module, dedekind._pst
     # (the bounded chains the sets are valued in, the canonical ring u64 and
     # field 𝔽ₚ, and the term surface over them; re-exported by dedekind.pst).
-    nanobind_add_module(_pst PROTECT_STACK
+    nanobind_add_module(_pst PROTECT_STACK STABLE_ABI
         src/main/modules/dedekind/python/nanobind_pst.cpp)
     set_target_properties(_pst PROPERTIES
         CXX_SCAN_FOR_MODULES ON

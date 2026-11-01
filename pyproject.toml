@@ -43,6 +43,9 @@ wheel.packages = ["python/dedekind"]
 # missing one fails the wheel install (#961: _jlt is the Jlt arrow exhibit;
 # #1001: _pst the Pst chains, with the term surface over u64 and 𝔽ₚ).
 build.targets = ["_jlt", "_pst"]
+# One wheel per platform for every Python from 3.12, the stable ABI's (the
+# modules are nanobind STABLE_ABI, CMakeLists.txt): tagged cp312-abi3.
+wheel.py-api = "cp312"
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
