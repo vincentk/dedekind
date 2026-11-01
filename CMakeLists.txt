@@ -57,6 +57,12 @@ add_link_options(${DEDEKIND_COVERAGE_FLAGS})
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
 set(CMAKE_CXX_STANDARD 23)
+# One optimisation level for every target, -O2, the level the Jlt paper reads
+# its IR at: a module's consumers then share its flags, and CMake reuses its
+# BMI instead of synthesising another copy of every module library for the
+# one with other flags (the IR fixture at -O2 against -O3 cost 8 minutes of
+# CI, #1121).  The tests run at compile time, so -O3 bought them nothing.
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # For clangd:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -281,9 +287,9 @@ set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_EXTENSIONS OFF
     CXX_SCAN_FOR_MODULES ON)
 
+# -O2 is the build's own level (CMAKE_CXX_FLAGS_RELEASE above), the IR's.
 target_compile_options(set-pruning-ir-fixture PRIVATE
-    ${DEDEKIND_WARNING_FLAGS}
-    -O2)
+    ${DEDEKIND_WARNING_FLAGS})
 
 target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_optimization)
 
