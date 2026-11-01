@@ -283,6 +283,16 @@ constexpr bool pushed_down_at_4() {
 }
 static_assert(pushed_down_at_4<0>() && pushed_down_at_4<1>() &&
               pushed_down_at_4<2>());
+// Over every offset: the occurrences, with their positions, of a site of
+// length 6 in all genomes of length 12, 7 · 4^3 · 4^6; and in genomes of
+// length 40, more than a word holds, refused exactly and kept modulo it.
+using dedekind::category::exact_occurrences;
+using dedekind::category::occurrences;
+static_assert(occurrences(power(nucleotides, 12), sites_6) == 1'835'008uz &&
+              exact_occurrences(power(nucleotides, 12), sites_6) ==
+                  1'835'008uz &&
+              occurrences(power(nucleotides, 4), sites_6) == 0uz &&
+              !exact_occurrences(power(nucleotides, 40), sites_6).has_value());
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the

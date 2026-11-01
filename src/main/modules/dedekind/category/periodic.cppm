@@ -1717,4 +1717,71 @@ constexpr std::vector<Factor<N>> count_factors(
   return fs;
 }
 
+namespace detail_periodic {
+/** @brief The count of the cylinder at one offset, as an arrow from the
+ *  offset: the summand of @c occurrences. */
+template <typename P, typename S, IsCountWord N>
+struct CylinderAt {
+  using Domain = N;
+  using Codomain = N;
+  P power;
+  S inner;
+  N length;
+  constexpr N operator()(N offset) const {
+    return count(
+        count_factors(cylinder(power, window<N>(offset, length), inner)));
+  }
+};
+/** @brief One offset's exact count into the sum, checked: none once a
+ *  count or the sum leaves the word. */
+template <typename P, typename S, IsCountWord N>
+struct CheckedCylinderAt {
+  P power;
+  S inner;
+  N length;
+  constexpr std::optional<N> operator()(std::optional<N> acc, N offset) const {
+    if (!acc) return std::nullopt;
+    const std::optional<N> c = exact_count(
+        count_factors(cylinder(power, window<N>(offset, length), inner)));
+    if (!c || *c > std::numeric_limits<N>::max() - *acc) return std::nullopt;
+    return static_cast<N>(*acc + *c);
+  }
+};
+}  // namespace detail_periodic
+
+/** @brief How often a set of words occurs in the words of a tensor power,
+ *  counted with their positions: the pairs (word, offset) whose window lies
+ *  in @c s, the sum over the offsets of the cylinders' counts, modulo the
+ *  word.  Each summand is pushed down (R2), so none depends on its offset.
+ *  @param p a tensor power.  @param s a set of words over the same legs.
+ *  @return the occurrences. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
+    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+  } && std::equality_comparable<F>
+constexpr N occurrences(const Power<C, F, N>& p, const S& s) {
+  const N n = detail_periodic::power_of(s).length;
+  if (n > p.length) return N{0};
+  return sum(static_cast<N>(p.length - n + 1) >> chain<N>() >>
+             detail_periodic::CylinderAt<Power<C, F, N>, S, N>{p, s, n});
+}
+/** @brief The occurrences exactly, or none where the word cannot hold them:
+ *  never wrapped, the discipline of @c exact_count.  @param p a tensor
+ *  power.  @param s a set of words over the same legs.  @return the
+ *  occurrences, or none. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
+    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+  } && std::equality_comparable<F>
+constexpr std::optional<N> exact_occurrences(const Power<C, F, N>& p,
+                                             const S& s) {
+  const N n = detail_periodic::power_of(s).length;
+  if (n > p.length) return N{0};
+  return std::ranges::fold_left(
+      static_cast<N>(p.length - n + 1) >> chain<N>(), std::optional<N>{0},
+      detail_periodic::CheckedCylinderAt<Power<C, F, N>, S, N>{p, s, n});
+}
+
 }  // namespace dedekind::category
