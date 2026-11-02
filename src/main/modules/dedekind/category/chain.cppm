@@ -81,6 +81,14 @@ concept IsCountWord =
  *  | catamorphism, a banana       | @c std::ranges::fold_left, @c cata      |
  *  | hylomorphism, an envelope    | a fold over @c chain: nothing in between |
  *
+ *  The lens here unfolds on the initial algebra: @c chain walks Lambek's
+ *  inverse down from a seed and always ends, so Jlt's data-only posture
+ *  holds by construction.  Meijer et al.'s lens into the terminal
+ *  coalgebra, codata, is a different arrow; it is kept out of the posture,
+ *  not out of the library (@c :f_algebra's @c IsTerminalFCoalgebra; #449).
+ *  A fold over the chain is the Church-encoded finite sequence, the list
+ *  as its fold (#1133).
+ *
  *  A forward view, O(1) state: the element, its source state, the next state,
  *  and whether the walk is live.  The coalgebra is a value (Rule 1:
  * semiregular), and two positions of one walk compare by state, so the element

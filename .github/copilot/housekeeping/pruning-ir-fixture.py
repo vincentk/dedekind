@@ -206,6 +206,18 @@ def extract_function_block(ir_text: str, symbol: str) -> str | None:
     return match.group(0) if match else None
 
 
+HEAP_SYMBOLS = re.compile(
+    r"\bcall\b[^\n]*@(_Znwm|_Znam|_ZnwmSt11align_val_t|_ZnamSt11align_val_t|"
+    r"malloc|calloc|realloc|aligned_alloc)\("
+)
+
+
+def heap_calls(ir_text: str) -> set[str]:
+    """The heap allocation functions the IR calls: operator new and the C
+    allocators."""
+    return set(HEAP_SYMBOLS.findall(ir_text))
+
+
 def has_indirect_call(function_ir: str) -> bool:
     return re.search(r"(?m)\bcall\b[^\n@]*%[-a-zA-Z$._0-9]+", function_ir) is not None
 
@@ -411,6 +423,15 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             if block is None:
                 raise AssertionError(f"IR missing {symbol} symbol.")
             print(f"--- {symbol}: {len(block.splitlines())} lines\n{block}")
+        # The streaming rule: a count that can run in constant memory takes
+        # none from the heap.  Its storage is automatic, so no call in the
+        # module, the witnesses or what they call, allocates.
+        heap = heap_calls(ir_text)
+        if heap:
+            raise AssertionError(
+                "Expected no heap allocation in the site-occurrence count, "
+                f"found calls to {sorted(heap)}."
+            )
         block = extract_function_block(ir_text, "witness_sites_12_6")
         if not re.search(r"^\s*ret i64 1835008\s*$", block, re.MULTILINE):
             raise AssertionError(
