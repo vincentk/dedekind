@@ -324,15 +324,15 @@ constexpr auto extend(WA const& wa, F f) {
 
 /**
  * @brief bind with explicit monad-tag dispatch.
- * @details Default route: bind(tag, ma, f) = join(tag, T(f)(ma)).
+ * @details Default route: bind(tag, ma, f) = μ(tag, T(f)(ma)).
  */
 export template <typename MonadTag, typename MA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, MA const& ma, F&& f) {
-             join(tag, detail_kleisli::lifted(ma, std::forward<F>(f)));
+             μ(tag, detail_kleisli::lifted(ma, std::forward<F>(f)));
            }
 constexpr auto bind(MonadTag tag, MA const& ma, F f) {
-  return join(tag, detail_kleisli::lifted(ma, std::move(f)));
+  return μ(tag, detail_kleisli::lifted(ma, std::move(f)));
 }
 
 /**

@@ -61,14 +61,6 @@ constexpr auto pure(MonadTag tag, A value) {
   return η(tag, std::move(value));
 }
 
-/** @brief Value-level alias for μ (mu) with explicit monad-tag dispatch. */
-export template <typename MonadTag, typename MMA>
-  requires IsDefaultMonadTag<MonadTag> &&
-           requires(MonadTag tag, MMA const& mma) { μ(tag, mma); }
-constexpr auto join(MonadTag tag, MMA const& mma) {
-  return μ(tag, mma);
-}
-
 /** @brief Value-level alias for ε (epsilon) with explicit monad-tag dispatch.
  */
 export template <typename MonadTag, typename WA>

@@ -2,7 +2,7 @@
  * @file dedekind/category/comprehension.cppm
  * @partition :comprehension
  * @brief Monad comprehensions over a finite chain: the queries of SQL and
- *        LINQ, @c where, @c select, @c order_by and @c limit, and the folds
+ *        LINQ, @c where, @c select, @c order_by and @c take, and the folds
  *        that end them.
  *
  * @section comprehension__Rhythm One carrier, one rhythm
@@ -14,8 +14,16 @@
  * | @c from     | @c FROM    | @c n @c >> @c chain<N>()    |
  * | @c Select   | @c SELECT  | @c >> @c f                  |
  * | @c Where    | @c WHERE   | @c >> @c where(p)           |
+ * | @c Join     | @c JOIN    | @c join(p, s)               |
+ * | @c OrderBy  | @c ORDER BY| @c >> @c order_by(rank)     |
+ * | @c Take     | @c LIMIT   | @c >> @c take<K>()          |
  * | @c Count    | @c COUNT   | @c count                    |
  * | @c Sum      | @c SUM     | @c sum                      |
+ *
+ * The names are the common ones; where a name is the category theory's,
+ * the comprehension takes another: @c take, Haskell's and LINQ's, for SQL's
+ * @c LIMIT, since a limit here is the universal construction (@c :limit),
+ * and the monad's multiplication is @c μ, so that @c join is SQL's.
  *
  * The carrier is a finite chain sequence holding at most one element per
  * position: the list monad whose Kleisli arrows yield none or one, so a
@@ -230,13 +238,13 @@ export template <typename Order = ascending, IsArrow Rank>
 constexpr OrderBy<Rank, Order> order_by(Rank rank, Order order = {}) {
   return {std::move(rank), std::move(order)};
 }
-/** @brief @c limit<K>(), SQL's @c LIMIT: the first @c K present elements.
+/** @brief @c take<K>(), SQL's @c LIMIT: the first @c K present elements.
  *  @tparam K the bound. */
 export template <std::size_t K>
-struct Limit {};
+struct Take {};
 /** @tparam K the bound.  @return the stage. */
 export template <std::size_t K>
-constexpr Limit<K> limit() {
+constexpr Take<K> take() {
   return {};
 }
 
@@ -269,7 +277,7 @@ concept ReversedByTheWalk =
     (IsAntiMonotone<Rank> && std::same_as<Order, descending>) ||
     (IsMonotone<Rank> && std::same_as<Order, ascending>);
 
-/** @brief An element's share of a limit: one if present, none for a hole,
+/** @brief An element's share of a @c take: one if present, none for a hole,
  *  read through @c Maybe's eliminator. */
 struct One {
   template <typename A>
@@ -286,7 +294,7 @@ constexpr std::size_t present(const T&) {
   return 1;
 }
 
-/** @brief The coalgebra of @c limit<K>: the walk, until @c K elements are
+/** @brief The coalgebra of @c take<K>: the walk, until @c K elements are
  *  present.  One more state, the count so far; O(1), no storage. */
 template <std::regular S, std::semiregular Coalg, std::size_t K>
 struct Taken {
@@ -303,8 +311,8 @@ struct Taken {
   }
 };
 
-/** @brief @c order_by without a law to read, pending its @c limit: it needs
- *  the whole query, so only the fused @c order_by @c >> @c limit<K> is
+/** @brief @c order_by without a law to read, pending its @c take: it needs
+ *  the whole query, so only the fused @c order_by @c >> @c take<K> is
  *  offered, never the sort alone (it would need the caller's buffer). */
 template <typename Q, typename Rank, typename Order>
 struct Pending {
@@ -360,7 +368,7 @@ constexpr auto operator>>(const FiniteChainSequence<N, F>& q,
                           const OrderBy<Rank, Order>&) {
   return slice(N{0}, q.seed()) >> q.coalgebra().f;
 }
-/** @brief @c order_by with no law to read: pending its @c limit.
+/** @brief @c order_by with no law to read: pending its @c take.
  *  @param q the query.  @param by the stage.  @return the pending sort. */
 export template <std::ranges::input_range Q, IsArrow Rank, typename Order>
 constexpr detail_comprehension::Pending<Q, Rank, Order> operator>>(
@@ -368,20 +376,20 @@ constexpr detail_comprehension::Pending<Q, Rank, Order> operator>>(
   return {std::move(q), std::move(by)};
 }
 
-/** @brief @c limit<K> on a query or a sequence: the walk, until @c K
+/** @brief @c take<K> on a query or a sequence: the walk, until @c K
  *  elements are present, lazily (rewrite 1; on a sorted query, rewrite 3's
  *  first @c K).  @param q the query.  @return its first @c K. */
 export template <std::regular S, std::semiregular Coalg, std::size_t K>
-constexpr auto operator>>(const unfold_view<S, Coalg>& q, Limit<K>) {
+constexpr auto operator>>(const unfold_view<S, Coalg>& q, Take<K>) {
   return unfold(std::pair<S, std::size_t>{q.seed(), 0},
                 detail_comprehension::Taken<S, Coalg, K>{q.coalgebra()});
 }
-/** @brief @c order_by @c >> @c limit<K> with no law: fused, one pass keeping
+/** @brief @c order_by @c >> @c take<K> with no law: fused, one pass keeping
  *  the best @c K in an @c AtMost, never sorting the whole (rewrite 2).
  *  @param p the pending sort.  @return the best @c K, best first. */
 export template <typename Q, typename Rank, typename Order, std::size_t K>
 constexpr auto operator>>(
-    const detail_comprehension::Pending<Q, Rank, Order>& p, Limit<K>) {
+    const detail_comprehension::Pending<Q, Rank, Order>& p, Take<K>) {
   using T = typename std::ranges::range_value_t<Q>::value_type;
   return std::ranges::fold_left(
       p.query, AtMost<T, K>{},
@@ -389,9 +397,9 @@ constexpr auto operator>>(
           {p.by.rank, p.by.order}}));
 }
 
-/** @brief A query's present elements as a value, bounded by its @c limit:
+/** @brief A query's present elements as a value, bounded by its @c take:
  *  the @c ext boundary, where a list is asked for (#1133).  @param q a
- *  limited query.  @return its elements, on the stack. */
+ *  taken query.  @return its elements, on the stack. */
 export template <std::regular S, std::semiregular Coalg, std::size_t K>
 constexpr auto collect(
     const unfold_view<std::pair<S, std::size_t>,
@@ -424,15 +432,15 @@ static_assert(sum(10uz >> chain<std::size_t>() >> where(is_even) >>
 // smallest two by the reflection, which reverses the walk.
 static_assert(std::ranges::equal(
     collect(10uz >> chain<std::size_t>() >> where(is_even) >>
-            order_by<descending>(Identity<std::size_t>{}) >> limit<2>()),
+            order_by<descending>(Identity<std::size_t>{}) >> take<2>()),
     std::array{8uz, 6uz}));
 static_assert(std::ranges::equal(
     collect(10uz >> chain<std::size_t>() >> where(is_even) >>
-            order_by<descending>(Successor<std::size_t>{}) >> limit<2>()),
+            order_by<descending>(Successor<std::size_t>{}) >> take<2>()),
     std::array{8uz, 6uz}));
 static_assert(std::ranges::equal(
     collect(10uz >> chain<std::size_t>() >> where(is_even) >>
-            order_by<descending>(~Identity<std::size_t>{}) >> limit<2>()),
+            order_by<descending>(~Identity<std::size_t>{}) >> take<2>()),
     std::array{0uz, 2uz}));
 
 }  // namespace dedekind::category
