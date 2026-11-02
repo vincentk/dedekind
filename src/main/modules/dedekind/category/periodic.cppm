@@ -71,10 +71,12 @@ import :posetal;               // is_involution: a law asked on the value
 
 namespace dedekind::category {
 
-/** @brief An arrow on the counts with a declared period, read by
- *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  @tparam F the arrow. */
+/** @brief A sequence on finite chains with a declared period, read by
+ *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  Periodicity is a
+ *  sequence's, an arrow out of the counts, not an arrow's in general.
+ *  @tparam F the arrow. */
 export template <typename F>
-concept HasPeriod = IsArrow<F> && IsCountWord<Dom<F>> && requires(const F& f) {
+concept HasPeriod = IsFiniteChainSequence<F> && requires(const F& f) {
   { period(f) } -> std::same_as<Dom<F>>;
 };
 
@@ -131,9 +133,6 @@ constexpr N checked_lcm(N a, N b) {
   if (q > std::numeric_limits<N>::max() / b) refuse_unrepresentable_period();
   return static_cast<N>(q * b);
 }
-/** @brief A chain of the counts under an arrow. */
-template <IsCountWord N, IsArrow F>
-using Along = unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
 }  // namespace detail_periodic
 
 /** @brief The residue class @f$\{k \mid k \equiv r \pmod m\}@f$ as a
@@ -302,7 +301,7 @@ constexpr N count_below(N m, const F& f) {
  *  predicate.  @return how many of @c f(0), ..., @c f(n - 1) are true. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::convertible_to<Cod<F>, bool>
-constexpr N count(const detail_periodic::Along<N, F>& v) {
+constexpr N count(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
@@ -350,7 +349,7 @@ constexpr N sum_below(N m, const F& f) {
  *  @return @c f(0) + ... + @c f(n - 1), modulo the word. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, N>
-constexpr N sum(const detail_periodic::Along<N, F>& v) {
+constexpr N sum(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
@@ -412,7 +411,7 @@ constexpr std::optional<N> exact_sum_below(N m, const F& f) {
  *  word. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
-constexpr std::optional<N> exact_sum(const detail_periodic::Along<N, F>& v) {
+constexpr std::optional<N> exact_sum(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
@@ -621,8 +620,8 @@ struct Box {
  *  product. */
 export template <IsCountWord N, IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, bool> && std::same_as<Cod<G>, bool>
-constexpr auto operator*(const detail_periodic::Along<N, F>& a,
-                         const detail_periodic::Along<N, G>& b) {
+constexpr auto operator*(const FiniteChainSequence<N, F>& a,
+                         const FiniteChainSequence<N, G>& b) {
   using E = Compose<Tensor<F, G>, detail_periodic::Both>;
   return Box<E, 2, N>{E{Tensor<F, G>{a.coalgebra().f, b.coalgebra().f},
                         detail_periodic::Both{}},
@@ -633,7 +632,7 @@ constexpr auto operator*(const detail_periodic::Along<N, F>& a,
 export template <IsArrow T, std::size_t K, IsCountWord N, IsArrow G>
   requires std::same_as<Cod<G>, bool>
 constexpr auto operator*(const Box<T, K, N>& x,
-                         const detail_periodic::Along<N, G>& b) {
+                         const FiniteChainSequence<N, G>& b) {
   using E = Compose<Tensor<T, G>, detail_periodic::Both>;
   std::array<N, K + 1> sides{};
   std::ranges::copy(x.sides, sides.begin());
