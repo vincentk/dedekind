@@ -26,6 +26,26 @@ popcount; ``count`` its residue modulo 2**64; ``exact_count`` the count or
 ``None`` where no word holds it, so a genome of 2**200 words is refused as a
 sequence and counted as a tensor.  ``*`` is the outer product.
 
+A ``window(i, n)`` projects a word onto its letters i to i + n - 1;
+``cylinder(p, w, s)`` is the words of ``p`` whose window lies in ``s``, its count
+pushed down (the set's, times the alphabet's for each free leg); and
+``occurrences(p, s)`` counts ``s`` in ``p``'s words with its positions,
+``exact_occurrences`` the same or ``None``.  The Jlt paper's Listing 5, the
+restriction sites (words equal to their reverse complement) in all genomes:
+
+>>> nucleotides = alphabet("ACGT")
+>>> complement = letter_map("ACGT", "TGCA")
+>>> def site_occurrences(N, n):
+...     sites = symmetric(power(nucleotides, n), power(complement) >> reverse)
+...     return occurrences(power(nucleotides, N), sites)
+>>> site_occurrences(12, 6)  # 7 windows · 4**3 sites · 4**6 free letters
+1835008
+>>> site_occurrences(12, 7)  # no letter is its own complement
+0
+>>> sites = symmetric(power(nucleotides, 6), power(complement) >> reverse)
+>>> exact_occurrences(power(nucleotides, 40), sites) is None  # past 2**64
+True
+
 Arrows are **extensional** (functions): ``id(T) >> f`` and ``f`` are equal on
 every input.  Composability (``cod(f) == dom(g)``) is enforced structurally --
 composing across objects raises.  Structural reduction (``simplify`` / ``cata``)
@@ -40,13 +60,16 @@ from ._jlt import alphabet
 from ._jlt import cod
 from ._jlt import count
 from ._jlt import count_factors
+from ._jlt import cylinder
 from ._jlt import dom
 from ._jlt import exact_count
+from ._jlt import exact_occurrences
 from ._jlt import free_monoid
 from ._jlt import id
 from ._jlt import is_involution
 from ._jlt import is_square
 from ._jlt import letter_map
+from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
 from ._jlt import pred
@@ -55,19 +78,23 @@ from ._jlt import reverse
 from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
+from ._jlt import window
 
 __all__ = [
     "alphabet",
     "cod",
     "count",
     "count_factors",
+    "cylinder",
     "dom",
     "exact_count",
+    "exact_occurrences",
     "free_monoid",
     "id",
     "is_involution",
     "is_square",
     "letter_map",
+    "occurrences",
     "pack",
     "power",
     "pred",
@@ -76,4 +103,5 @@ __all__ = [
     "rotate",
     "succ",
     "symmetric",
+    "window",
 ]

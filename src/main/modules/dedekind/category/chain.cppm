@@ -81,6 +81,14 @@ concept IsCountWord =
  *  | catamorphism, a banana       | @c std::ranges::fold_left, @c cata      |
  *  | hylomorphism, an envelope    | a fold over @c chain: nothing in between |
  *
+ *  The lens here unfolds on the initial algebra: @c chain walks Lambek's
+ *  inverse down from a seed and always ends, so Jlt's data-only posture
+ *  holds by construction.  Meijer et al.'s lens into the terminal
+ *  coalgebra, codata, is a different arrow; it is kept out of the posture,
+ *  not out of the library (@c :f_algebra's @c IsTerminalFCoalgebra; #449).
+ *  A fold over the chain is the Church-encoded finite sequence, the list
+ *  as its fold (#1133).
+ *
  *  A forward view, O(1) state: the element, its source state, the next state,
  *  and whether the walk is live.  The coalgebra is a value (Rule 1:
  * semiregular), and two positions of one walk compare by state, so the element
@@ -438,5 +446,26 @@ export template <HasNNOStep N>
 constexpr auto chain() {
   return chain(Prior<N>{});
 }
+
+/** @concept IsFiniteChainSequence
+ *  @brief A sequence on finite chains: an arrow out of the counts, read
+ *  along a chain of them (the Jlt paper's Figure 2, its vertical arrows).
+ *  The chain is finite by its descent and ordered by its step, so the
+ *  sequence needs no set concept; its laws, a period or an order kept or
+ *  reversed, are laws of the composite @c chain @c >> @c f, and the folds
+ *  read them (#1133).  @tparam F the arrow. */
+export template <typename F>
+concept IsFiniteChainSequence = IsArrow<F> && IsCountWord<Dom<F>>;
+// Out of the counts a sequence; out of the letters a map on their chain.
+static_assert(IsFiniteChainSequence<Successor<std::size_t>> &&
+              !IsFiniteChainSequence<Identity<std::byte>>);
+
+/** @brief The finite sequence as a value, @c n @c >> @c chain<N>() @c >> @c f:
+ *  the chain of @c n read by @c f, never built.  A fold over it is the list
+ *  as its fold, the Church encoding (#1133).  @tparam N the counts.
+ *  @tparam F the arrow. */
+export template <IsCountWord N, IsFiniteChainSequence F>
+using FiniteChainSequence =
+    unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
 
 }  // namespace dedekind::category

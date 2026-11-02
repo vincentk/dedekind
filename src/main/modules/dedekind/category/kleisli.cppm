@@ -33,8 +33,8 @@
  * - σ : co-Kleisli extension (`σ(wa, f)`), exported in this partition
  *
  * Operator and named aliases in this partition:
- * - `ma >>= f` and `bind(ma, f)` are aliases for κ(ma, f)
- * - `wa <<= f` and `extend(wa, f)` are aliases for σ(wa, f)
+ * - `ma >>= f` is κ(ma, f) as an operator, `κ(tag, ma, f)` with a monad tag
+ * - `wa <<= f` is σ(wa, f) as an operator, `σ(tag, wa, f)` with a monad tag
  * - fish aliases: `ma >> f` (Kleisli) and `wa << f` (co-Kleisli)
  *
  * @section kleisli__The_Bootstrapping_Mechanism
@@ -303,49 +303,29 @@ constexpr auto σ(WA const& wa, F f) {
 }
 
 /**
- * @brief bind: named alias for monadic Kleisli extension.
- * @details Equivalent to κ(ma, f).
- */
-export template <typename MA, typename F>
-  requires requires(MA const& ma, F&& f) { κ(ma, std::forward<F>(f)); }
-constexpr auto bind(MA const& ma, F f) {
-  return κ(ma, std::move(f));
-}
-
-/**
- * @brief extend: named alias for comonadic co-Kleisli extension.
- * @details Equivalent to σ(wa, f).
- */
-export template <typename WA, typename F>
-  requires requires(WA const& wa, F&& f) { σ(wa, std::forward<F>(f)); }
-constexpr auto extend(WA const& wa, F f) {
-  return σ(wa, std::move(f));
-}
-
-/**
- * @brief bind with explicit monad-tag dispatch.
- * @details Default route: bind(tag, ma, f) = join(tag, T(f)(ma)).
+ * @brief κ with explicit monad-tag dispatch.
+ * @details Default route: κ(tag, ma, f) = μ(tag, T(f)(ma)).
  */
 export template <typename MonadTag, typename MA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, MA const& ma, F&& f) {
-             join(tag, detail_kleisli::lifted(ma, std::forward<F>(f)));
+             μ(tag, detail_kleisli::lifted(ma, std::forward<F>(f)));
            }
-constexpr auto bind(MonadTag tag, MA const& ma, F f) {
-  return join(tag, detail_kleisli::lifted(ma, std::move(f)));
+constexpr auto κ(MonadTag tag, MA const& ma, F f) {
+  return μ(tag, detail_kleisli::lifted(ma, std::move(f)));
 }
 
 /**
- * @brief extend with explicit monad-tag dispatch.
- * @details Default route: extend(tag, wa, f) = W(f)(duplicate(tag, wa)).
+ * @brief σ with explicit monad-tag dispatch.
+ * @details Default route: σ(tag, wa, f) = W(f)(δ(tag, wa)).
  */
 export template <typename MonadTag, typename WA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, WA const& wa, F&& f) {
-             detail_kleisli::lifted(duplicate(tag, wa), std::forward<F>(f));
+             detail_kleisli::lifted(δ(tag, wa), std::forward<F>(f));
            }
-constexpr auto extend(MonadTag tag, WA const& wa, F f) {
-  return detail_kleisli::lifted(duplicate(tag, wa), std::move(f));
+constexpr auto σ(MonadTag tag, WA const& wa, F f) {
+  return detail_kleisli::lifted(δ(tag, wa), std::move(f));
 }
 
 /** @section kleisli__Kleisli_Bind_Operators */

@@ -40,6 +40,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 import dedekind.category; // Identity, Successor, Predecessor, the species
@@ -163,14 +164,62 @@ using Word = std::vector<std::byte>;
 using ReverseAfter = dedekind::category::Compose<
     LetterPower, dedekind::category::Morphism<Word, Word, Reverse>>;
 
+/** @brief A symmetric section of a tensor power held as itself, not as its
+ *  count, so that a window can land in it (@c cylinder, @c occurrences): the
+ *  palindromes, the rotation-fixed words, or the words a letter map then the
+ *  reversal fixes. */
+struct Section {
+  std::variant<
+      dedekind::category::Symmetric<WordPower, Reverse,
+                                    dedekind::category::Identity<std::byte>>,
+      dedekind::category::Symmetric<WordPower, Rotation<>,
+                                    dedekind::category::Identity<std::byte>>,
+      dedekind::category::Symmetric<WordPower, Reverse, LetterMap>>
+      section;
+};
 /** @brief A tensor held by its factors, the core's @c count_factors of
- *  whatever it was built from. */
+ *  whatever it was built from; a section converts to it, so every count
+ *  and product taking a tensor takes a section. */
+/** @brief The factors as a list the type does not bound: a Python tensor's
+ *  products are built at run time. */
+template <std::ranges::input_range L>
+std::vector<Factor<>> factor_list(const L& fs) {
+  return {std::ranges::begin(fs), std::ranges::end(fs)};
+}
 struct Factored {
   std::vector<Factor<>> factors;
+  Factored(std::vector<Factor<>> fs) : factors(std::move(fs)) {}
+  template <std::ranges::input_range L>
+    requires std::same_as<std::ranges::range_value_t<L>, Factor<>>
+  Factored(const L& fs) : factors(factor_list(fs)) {}
+  Factored(const Section& s)
+      : factors(std::visit(
+            [](const auto& x) {
+              return factor_list(dedekind::category::count_factors(x));
+            },
+            s.section)) {}
 };
-/** @brief The factors of a held tensor: what makes it @c HasFactors, so the
- *  core's outer product and counts apply to it. */
-std::vector<Factor<>> count_factors(const Factored& f) { return f.factors; }
+/** @brief A tensor's factors as Python holds them: a held tensor's own
+ *  list, any other tensor's from the core's @c count_factors. */
+std::vector<Factor<>> factors_of(const Factored& f) { return f.factors; }
+inline std::vector<Factor<>> factors_of(const Section& s) {
+  return Factored{s}.factors;
+}
+template <typename T>
+std::vector<Factor<>> factors_of(const T& t) {
+  return factor_list(dedekind::category::count_factors(t));
+}
+/** @brief The outer product of two counted tensors, held by its factors: the
+ *  one @c __mul__ of every tensor class.  Its list is the caller's state,
+ *  built here at the boundary, where products are formed at run time; the
+ *  core's outer product is of shapes, bounded by their types. */
+template <typename A, typename B>
+Factored times(const A& a, const B& b) {
+  std::vector<Factor<>> fs = factors_of(a);
+  const std::vector<Factor<>> gs = factors_of(b);
+  fs.insert(fs.end(), gs.begin(), gs.end());
+  return Factored{std::move(fs)};
+}
 
 /** @param a the letters, as written.  @return the alphabet. */
 Alphabet alphabet(std::string_view a) {
@@ -186,10 +235,10 @@ Alphabet alphabet(std::string_view a) {
          dedekind::category::letters(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
-std::vector<std::pair<std::size_t, std::size_t>> pairs(
-    const std::vector<Factor<>>& fs) {
+template <std::ranges::sized_range L>
+std::vector<std::pair<std::size_t, std::size_t>> pairs(const L& fs) {
   std::vector<std::pair<std::size_t, std::size_t>> out;
-  out.reserve(fs.size());
+  out.reserve(std::ranges::size(fs));
   for (const auto& f : fs) out.emplace_back(f.base, f.exponent);
   return out;
 }
@@ -223,53 +272,54 @@ bool is_square(std::size_t k, std::size_t n) {
 }  // namespace jlt
 
 /** @brief Bind the tensor exhibit's handles. */
-void bind_tensors(nb::module_& m) {
-  nb::class_<jlt::Alphabet>(m, "Alphabet",
+void bind_tensors(nb::module_ module_) {
+  nb::class_<jlt::Alphabet>(module_, "Alphabet",
                             "A filtered alphabet: the byte chain under the "
                             "predicate that keeps its letters.");
-  auto power_class =
-      nb::class_<jlt::WordPower>(m, "Power",
-                                 "The words of one length over an alphabet, a "
-                                 "tensor power, never built.");
-  power_class.def(
-      "__mul__", [](const jlt::WordPower& a, const jlt::WordPower& b) {
-        return jlt::Factored{
-            jlt::count_factors(dedekind::category::operator*(a, b))};
-      });
-  nb::class_<jlt::Words>(m, "FreeMonoid",
+  nb::class_<jlt::WordPower>(module_, "Power",
+                             "The words of one length over an alphabet, a "
+                             "tensor power, never built.")
+      .def("__mul__", &jlt::times<jlt::WordPower, jlt::WordPower>)
+      .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>);
+  nb::class_<jlt::Words>(module_, "FreeMonoid",
                          "The free monoid on an alphabet truncated below a "
                          "length: the coproduct of the tensor powers.");
-  nb::class_<jlt::Reverse>(m, "Reverse", "The reversal of a word's positions.");
-  nb::class_<jlt::Rotation<>>(m, "Rotation",
+  nb::class_<jlt::Reverse>(module_, "Reverse",
+                           "The reversal of a word's positions.");
+  nb::class_<jlt::Rotation<>>(module_, "Rotation",
                               "A rotation of a word's positions.");
-  nb::class_<jlt::LetterMap>(m, "LetterMap", "An arrow on the letters.");
+  nb::class_<jlt::LetterMap>(module_, "LetterMap", "An arrow on the letters.");
   nb::class_<jlt::ReverseAfter>(
-      m, "ReverseAfter",
+      module_, "ReverseAfter",
       "A map on every letter, then the reversal of the positions.");
-  nb::class_<jlt::LetterPower>(m, "PowerMap",
+  nb::class_<jlt::LetterPower>(module_, "PowerMap",
                                "A letter map on every letter of a word.")
       .def("__rshift__", [](const jlt::LetterPower& f, const jlt::Reverse& r) {
         return f >> r;
       });
-  auto factored = nb::class_<jlt::Factored>(
-      m, "Tensor", "A tensor held by its factors, the core's count_factors.");
-  factored.def("__mul__", [](const jlt::Factored& a, const jlt::Factored& b) {
-    return jlt::Factored{
-        jlt::count_factors(dedekind::category::operator*(a, b))};
-  });
-  power_class.def(
-      "__mul__", [](const jlt::WordPower& a, const jlt::Factored& b) {
-        return jlt::Factored{
-            jlt::count_factors(dedekind::category::operator*(a, b))};
-      });
-  factored.def("__mul__", [](const jlt::Factored& a, const jlt::WordPower& b) {
-    return jlt::Factored{
-        jlt::count_factors(dedekind::category::operator*(a, b))};
-  });
+  // A Section counts as a Tensor wherever one is taken as an argument; as the
+  // left operand of * it is not converted, so it multiplies itself.
+  nb::class_<jlt::Section>(
+      module_, "Section",
+      "A symmetric section of a tensor power, held as itself: the words a "
+      "symmetry fixes.  Counted as a Tensor wherever one is taken.")
+      .def("__mul__", &jlt::times<jlt::Section, jlt::Factored>)
+      .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>);
+  nb::class_<jlt::Factored>(
+      module_, "Tensor",
+      "A tensor held by its factors, the core's count_factors.")
+      .def(nb::init_implicit<const jlt::Section&>())
+      .def("__mul__", &jlt::times<jlt::Factored, jlt::Factored>)
+      .def("__mul__", &jlt::times<jlt::Factored, jlt::WordPower>);
+  nb::class_<dedekind::category::Window<>>(
+      module_, "Window",
+      "The window of a word: its letters from a position, a given number "
+      "long, the projection onto those positions.");
 
-  m.def("alphabet", &jlt::alphabet, nb::arg("letters"),
-        "alphabet(letters): the filtered alphabet of the letters written.");
-  m.def(
+  module_.def(
+      "alphabet", &jlt::alphabet, nb::arg("letters"),
+      "alphabet(letters): the filtered alphabet of the letters written.");
+  module_.def(
       "letter_map",
       [](std::string_view from, std::string_view to) {
         if (from.size() != to.size())
@@ -279,11 +329,11 @@ void bind_tensors(nb::module_& m) {
       nb::arg("from_"), nb::arg("to"),
       "letter_map(from, to): each letter to the image at the same place, every "
       "other byte fixed.");
-  m.attr("reverse") = dedekind::category::reverse;
-  m.def(
+  module_.attr("reverse") = dedekind::category::reverse;
+  module_.def(
       "rotate", [](std::size_t d) { return dedekind::category::rotate(d); },
       nb::arg("by"), "rotate(by): the positions i -> i + by mod n.");
-  m.def(
+  module_.def(
       "is_involution",
       [](const jlt::LetterMap& t) {
         return dedekind::category::is_involution(t);
@@ -291,88 +341,136 @@ void bind_tensors(nb::module_& m) {
       nb::arg("arrow"),
       "is_involution(f): whether f twice is the identity, decided on its "
       "table, or derived from its legs.");
-  m.def(
+  module_.def(
       "is_involution",
       [](const jlt::ReverseAfter& g) {
         return dedekind::category::is_involution(g);
       },
       nb::arg("arrow"));
-  m.def(
+  module_.def(
       "power",
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
-  m.def(
+  module_.def(
       "power", [](const jlt::LetterMap& t) { return jlt::power(t); },
       nb::arg("arrow"),
       "power(f): the letter map f on every letter of a word.");
-  m.def(
+  module_.def(
       "free_monoid",
       [](const jlt::Alphabet& a, std::size_t below) {
         return jlt::free_monoid(a, below);
       },
       nb::arg("alphabet"), nb::arg("below"),
       "free_monoid(alphabet, L): the words shorter than L.");
-  m.def(
+  module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::Reverse& s) {
-        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s))};
+        return jlt::Section{jlt::symmetric(p, s)};
       },
       nb::arg("power"), nb::arg("symmetry"),
       "symmetric(power, g): the words g fixes, the legs merged along the "
       "cycles of its permutation of the positions: reverse, rotate(d), or "
       "power(complement) >> reverse.");
-  m.def(
+  module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::Rotation<>& s) {
-        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, s))};
+        return jlt::Section{jlt::symmetric(p, s)};
       },
       nb::arg("power"), nb::arg("symmetry"));
-  m.def(
+  module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::ReverseAfter& g) {
-        return jlt::Factored{jlt::count_factors(jlt::symmetric(p, g))};
+        return jlt::Section{jlt::symmetric(p, g)};
       },
       nb::arg("power"), nb::arg("symmetry"));
-  m.def(
+  module_.def(
       "count_factors",
       [](const jlt::WordPower& p) { return jlt::pairs(jlt::count_factors(p)); },
       nb::arg("tensor"),
       "count_factors(t): the factors (base, exponent) of t's count, each base "
       "a popcount; exact where the count is not.");
-  m.def(
+  module_.def(
       "count_factors",
       [](const jlt::Factored& f) { return jlt::pairs(f.factors); },
       nb::arg("tensor"));
-  m.def(
+  module_.def(
       "count",
       [](const jlt::WordPower& p) { return jlt::count(jlt::count_factors(p)); },
       nb::arg("tensor"),
       "count(t): the count modulo 2**64, a monoid concat under * over the "
       "factors, each by squaring.");
-  m.def(
+  module_.def(
       "count", [](const jlt::Factored& f) { return jlt::count(f.factors); },
       nb::arg("tensor"));
-  m.def(
+  module_.def(
       "exact_count",
       [](const jlt::WordPower& p) {
         return jlt::exact_count(jlt::count_factors(p));
       },
       nb::arg("tensor"),
       "exact_count(t): the count, or None where the word cannot hold it.");
-  m.def(
+  module_.def(
       "exact_count",
       [](const jlt::Factored& f) { return jlt::exact_count(f.factors); },
       nb::arg("tensor"));
-  m.def(
+  module_.def(
       "exact_count", [](const jlt::Words& w) { return jlt::exact_count(w); },
       nb::arg("tensor"));
-  m.def("pack", &jlt::packed, nb::arg("pattern"), nb::arg("width"),
-        "pack(k, w): the pattern k in the bit word of width w, read back: "
-        "its low w bits.");
-  m.def("is_square", &jlt::is_square, nb::arg("pattern"), nb::arg("width"),
-        "is_square(k, w): whether the w-bit pattern k is u u, fixed by the "
-        "rotation by w/2.");
+  module_.def(
+      "window",
+      [](std::size_t offset, std::size_t length) {
+        return dedekind::category::window(offset, length);
+      },
+      nb::arg("offset"), nb::arg("length"),
+      "window(i, n): a word's letters i to i + n - 1, its projection onto "
+      "those positions.");
+  module_.def(
+      "cylinder",
+      [](const jlt::WordPower& p, const dedekind::category::Window<>& w,
+         const jlt::Section& s) {
+        return std::visit(
+            [&](const auto& x) {
+              return jlt::Factored{
+                  jlt::count_factors(dedekind::category::cylinder(p, w, x))};
+            },
+            s.section);
+      },
+      nb::arg("power"), nb::arg("window"), nb::arg("inner"),
+      "cylinder(p, w, s): the words of p whose window w lies in s, its count "
+      "pushed down: s's, times the alphabet's for each free leg.");
+  module_.def(
+      "occurrences",
+      [](const jlt::WordPower& p, const jlt::Section& s) {
+        return std::visit(
+            [&](const auto& x) {
+              return dedekind::category::occurrences(p, x);
+            },
+            s.section);
+      },
+      nb::arg("power"), nb::arg("inner"),
+      "occurrences(p, s): how often s occurs in p's words, with its "
+      "positions, modulo 2**64.");
+  module_.def(
+      "exact_occurrences",
+      [](const jlt::WordPower& p, const jlt::Section& s) {
+        return std::visit(
+            [&](const auto& x) {
+              return dedekind::category::exact_occurrences(p, x);
+            },
+            s.section);
+      },
+      nb::arg("power"), nb::arg("inner"),
+      "exact_occurrences(p, s): the occurrences, or None where the word "
+      "cannot hold them.");
+  module_.def(
+      "pack", &jlt::packed, nb::arg("pattern"), nb::arg("width"),
+      "pack(k, w): the pattern k in the bit word of width w, read back: "
+      "its low w bits.");
+  module_.def(
+      "is_square", &jlt::is_square, nb::arg("pattern"), nb::arg("width"),
+      "is_square(k, w): whether the w-bit pattern k is u u, fixed by the "
+      "rotation by w/2.");
 }
 
 /** @brief @c dom / @c cod as a Python @b type object (numpy/pandas dtype
@@ -443,7 +541,7 @@ void bind_step_operators(nb::class_<S>& cls) {
  *  the real @c :nno @c Successor / @c Predecessor, composable like @c id, and
  *  read by @c pynzli.pst.image. */
 template <typename T>
-void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
+void bind_steps(nb::module_ m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
       m, succ_name,
       "The successor arrow S : T -> T (the real :nno Successor), total: "
@@ -468,7 +566,7 @@ void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
  *  @c Morphism<T,T>, their operators, and the free accessors @c dom / @c cod.
  */
 template <typename T>
-void bind_carrier(nb::module_& m, const char* identity_name,
+void bind_carrier(nb::module_ m, const char* identity_name,
                   const char* morphism_name) {
   auto identity = nb::class_<Identity<T>>(
       m, identity_name,
