@@ -1382,7 +1382,7 @@ struct TimesPower {
  *  popcount, by squaring.  Agrees with @c exact_count wherever the word
  *  holds the count.  @param fs the factors.  @return the count, modulo the
  *  word. */
-export template <typename L, typename N = detail_periodic::word_of_t<L>>
+export template <typename L, IsCountWord N = detail_periodic::word_of_t<L>>
   requires detail_periodic::IsFactorsOf<L, N>
 constexpr N count(const L& fs) {
   return std::ranges::fold_left(fs, N{1}, detail_periodic::TimesPower<N>{});
@@ -1390,7 +1390,7 @@ constexpr N count(const L& fs) {
 /** @brief The count of a factored tensor, exactly, or none where the word
  *  cannot hold it: never wrapped, the discipline of @c checked_lcm.
  *  @param fs the factors.  @return the count, or none. */
-export template <typename L, typename N = detail_periodic::word_of_t<L>>
+export template <typename L, IsCountWord N = detail_periodic::word_of_t<L>>
   requires detail_periodic::IsFactorsOf<L, N>
 constexpr std::optional<N> exact_count(const L& fs) {
   // an empty factor empties the product, whatever overflows beside it
