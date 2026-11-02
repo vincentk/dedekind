@@ -316,6 +316,12 @@ static_assert(occurrences(power(nucleotides, 12), sites_6) == 1'835'008uz &&
                   1'835'008uz &&
               occurrences(power(nucleotides, 4), sites_6) == 0uz &&
               !exact_occurrences(power(nucleotides, 40), sites_6).has_value());
+// The same count as a query: COUNT(*) over the join on the window.
+using dedekind::category::join;
+static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
+              exact_count(join(power(nucleotides, 12), sites_6)) ==
+                  1'835'008uz &&
+              !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the

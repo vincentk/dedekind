@@ -159,6 +159,53 @@ constexpr N sum(Q q) {
   return std::ranges::fold_left(std::move(q), N{0}, lifted(std::plus<N>{}));
 }
 
+/** @brief @c join(p, s), SQL's @c JOIN on a window: the tensor of the
+ *  windows of the words of @c p that land in @c s, at every offset where a
+ *  window fits.  A constructor, not a materialisation: the join is a
+ *  tensor, counted, never enumerated, so it stays inside the counted world
+ *  and never meets the bag a join yielding rows would need.
+ *  @details Read three ways.  As a @b pullback: the cylinder at offset
+ *  @c i is the preimage of @c s under the window @f$\pi_I : \Sigma^N \to
+ *  \Sigma^n@f$, the pullback of @f$\pi_I@f$ along the inclusion
+ *  @f$s \hookrightarrow \Sigma^n@f$ (@c :pullback); two words agreeing on
+ *  the window are related by its @b kernel @b pair (@c IsKernelPair), the
+ *  self-join of @c p on @f$\pi_I@f$.  As a @b correlation: the count
+ *  slides @c s's indicator, the @b kernel of the convolution, over every
+ *  offset of every word, @f$\sum_w \sum_i \chi_s(\pi_{I+i}(w))@f$.  As
+ *  a @b query: @c COUNT(*) over the join, its aggregate pushed through it
+ *  by R2, Yan and Larson's eager aggregation (VLDB 1995), the window's
+ *  count times the free legs', and the offsets summed by translation
+ *  invariance (@c HasUnitPeriod).  So @c count(join(p, s)) is
+ *  @c occurrences(p, s), and @c exact_count the checked one.
+ *  @tparam P the tensor power.  @tparam S the set of words. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+struct Join {
+  P power;
+  S inner;
+};
+/** @param p a tensor power.  @param s a set of words over the same legs.
+ *  @return the join of @c p and @c s on the window. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+constexpr Join<P, S> join(P p, S s) {
+  return {std::move(p), std::move(s)};
+}
+/** @param j a join on the window.  @return its count, @c COUNT(*), modulo
+ *  the word: @c occurrences. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+constexpr auto count(const Join<P, S>& j) {
+  return occurrences(j.power, j.inner);
+}
+/** @param j a join on the window.  @return its count exactly, or none
+ *  where the word cannot hold it: @c exact_occurrences. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+constexpr auto exact_count(const Join<P, S>& j) {
+  return exact_occurrences(j.power, j.inner);
+}
+
 // The laws, witnessed.  A filter keeps exactly what the characteristic
 // sequence counts; SELECT after WHERE maps the kept elements only: of
 // 0, ..., 9 the even ones, each one more, 1 + 3 + 5 + 7 + 9.
