@@ -93,7 +93,7 @@ template <std::size_t Sigma, IsCountWord N, std::size_t K>
 constexpr auto derived(const RunList<N, K>& r, N j, N a) {
   const N b = power_of<Sigma>(static_cast<N>(j - 1));
   const N lo = static_cast<N>(a * b);
-  return shift(lo) >> reduced(r & run<K>(lo, static_cast<N>(lo + b)));
+  return shift<N>(lo) >> reduced(r & run<K>(lo, static_cast<N>(lo + b)));
 }
 /** @brief One pending length of a state's derivative by a letter: the
  *  pending words one longer, and the set's own where they are its length,
