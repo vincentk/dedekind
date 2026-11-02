@@ -31,6 +31,23 @@
  *   @b Terminal @b F-coalgebra: dually; the unique morphism is the
  *   @b anamorphism (unfold).
  *
+ * @section f_algebra__Data_First  Data first, codata kept open
+ *
+ * The Jlt posture is data only: initial algebras in Set, codata out of
+ * scope as values (the Jlt paper's Rule 3).  The restriction lives in the
+ * posture (the rules, jlt-lint, the listings), not here: this partition
+ * keeps both halves of the dual, @c IsInitialFAlgebra and
+ * @c IsTerminalFCoalgebra, so that codata (Trsk, later) is registered
+ * beside the data side and needs no rewrite of it.  Jlt's recursion pair
+ * stays on the initial algebra: @c cata out of @f$\mu F@f$, and
+ * @c unfold of Lambek's inverse @f$\mathit{prior} = \mathit{in}^{-1}@f$ on
+ * @f$\mu F@f$ itself (@c :chain), which always ends; an anamorphism into
+ * @f$\nu F@f$ is a different arrow and keeps a different name.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/449">#449</a>
+ *      (the NNO and the list functor registered, after #1115 and #1007),
+ *      <a href="https://github.com/vincentk/dedekind/issues/1133">#1133</a>
+ *      (Figure 2's hylomorphism as the finite sequence).
+ *
  * @section f_algebra__Bridge_to_NNO
  *
  * The @c :nno partition reifies Lawvere's NNO universal property as

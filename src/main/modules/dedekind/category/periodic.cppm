@@ -777,7 +777,12 @@ constexpr N count_section(const Box<T, K, N>& b, std::type_identity_t<N> m,
 /** @brief At most @c K values, held in place: a list whose length the type
  *  bounds, so it needs no heap.  A cycle type and a tensor's factors are
  *  such lists, their length fixed by the shape and not by the word, so a
- *  count along a chain of them streams in constant memory.
+ *  count along a chain of them streams in constant memory.  It is the list
+ *  materialised, for where a value is asked for (returned, compared,
+ *  handed to Python: the @c ext pattern); a list that is only folded stays
+ *  a sequence, @c chain @c >> @c f, and is never built (#1133).  Storage a
+ *  combinator needs is automatic, as here; the heap appears only as state
+ *  the caller passes in.
  *  @tparam T the values.  @tparam K the bound. */
 export template <std::semiregular T, std::size_t K>
 struct AtMost {
