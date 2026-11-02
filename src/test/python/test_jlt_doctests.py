@@ -7,12 +7,12 @@ execute them; the docs will show the same examples with their output.
 import doctest
 import unittest
 
-import dedekind.jlt
+import pynzli.jlt
 
 
 class JltDoctests(unittest.TestCase):
     def test_the_facade_examples_hold(self) -> None:
-        failures, tried = doctest.testmod(dedekind.jlt)
+        failures, tried = doctest.testmod(pynzli.jlt)
         self.assertGreater(tried, 0)
         self.assertEqual(failures, 0)
 
