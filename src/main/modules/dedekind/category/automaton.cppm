@@ -51,7 +51,7 @@ module;
 
 export module dedekind.category:automaton;
 
-import :chain;     // IsCountWord, slice
+import :chain;     // IsCountWord
 import :functor;   // Maybe
 import :lattice;   // Join: a union as the lattice's node
 import :periodic;  // AtMost, shift
@@ -133,7 +133,8 @@ constexpr Maybe<Residual<N, P, K>> step(const Residual<N, P, K>& s,
                                         const RunList<N, KL>& sites, N length,
                                         N a) {
   return std::ranges::fold_left(
-      slice(N{0}, length), Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
+      std::views::iota(N{0}, length),
+      Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
       Advance<Sigma, N, P, K, KL>{s, sites, length, a});
 }
 /** @brief The construction so far: the states found, in the order found,
@@ -181,9 +182,9 @@ struct Walk {
   constexpr Maybe<B> operator()(const Maybe<B>& acc, std::size_t i) const {
     if (!acc || i >= acc->states.size()) return acc;
     const Residual<N, P, K> s = acc->states.items[i];
-    const Maybe<B> done =
-        std::ranges::fold_left(slice(N{0}, static_cast<N>(Sigma)), acc,
-                               Letter<Sigma, N, P, K, KL, Q>{s, sites, length});
+    const Maybe<B> done = std::ranges::fold_left(
+        std::views::iota(N{0}, static_cast<N>(Sigma)), acc,
+        Letter<Sigma, N, P, K, KL, Q>{s, sites, length});
     if (!done) return {};
     B next = *done;
     next.plan = {next.plan.next.with(next.row),
@@ -224,7 +225,7 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
   const B start{
       AtMost<detail_automaton::Residual<N, P, K>, Q>{}.with({}), {}, {}};
   const Maybe<B> built = std::ranges::fold_left(
-      slice(0uz, Q), Maybe<B>{start},
+      std::views::iota(0uz, Q), Maybe<B>{start},
       detail_automaton::Walk<Sigma, N, P, K, KL, Q>{sites, length});
   if (!built) return {};
   return built->plan;
