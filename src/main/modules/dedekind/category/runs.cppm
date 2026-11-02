@@ -33,6 +33,8 @@ module;
 #include <cstddef>
 #include <functional>
 #include <ranges>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.category:runs;
 
@@ -61,6 +63,54 @@ struct RunList {
   }
   constexpr bool operator==(const RunList&) const = default;
 };
+
+namespace detail_runs {
+/** @brief A lattice term over run lists of one type: a run list, or a
+ *  @c Meet or @c Join of two such terms. */
+template <typename T, typename R>
+struct is_run_term : std::is_same<T, R> {};
+template <typename A, typename B, typename R>
+struct is_run_term<Meet<A, B>, R>
+    : std::bool_constant<is_run_term<A, R>::value && is_run_term<B, R>::value> {
+};
+template <typename A, typename B, typename R>
+struct is_run_term<Join<A, B>, R>
+    : std::bool_constant<is_run_term<A, R>::value && is_run_term<B, R>::value> {
+};
+template <typename T>
+struct run_list_of {};
+template <IsCountWord N, std::size_t K>
+struct run_list_of<RunList<N, K>> {
+  using type = RunList<N, K>;
+};
+template <typename A, typename B>
+struct run_list_of<Meet<A, B>> : run_list_of<A> {};
+template <typename A, typename B>
+struct run_list_of<Join<A, B>> : run_list_of<A> {};
+/** @brief Two terms over run lists of one type, so @c | and @c & build the
+ *  lattice's nodes on them. */
+template <typename A, typename B>
+concept AreRunTerms = requires {
+  typename run_list_of<A>::type;
+  requires is_run_term<A, typename run_list_of<A>::type>::value &&
+               is_run_term<B, typename run_list_of<A>::type>::value;
+};
+}  // namespace detail_runs
+
+/** @param a @param b two terms over run lists.  @return their join, the
+ *  lattice's node: the union, once reduced. */
+export template <typename A, typename B>
+  requires detail_runs::AreRunTerms<A, B>
+constexpr Join<A, B> operator|(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+/** @param a @param b two terms over run lists.  @return their meet, the
+ *  lattice's node: the intersection, once reduced. */
+export template <typename A, typename B>
+  requires detail_runs::AreRunTerms<A, B>
+constexpr Meet<A, B> operator&(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
 
 /** @tparam K the bound on the steps.  @param lo @param hi the ends.
  *  @return the run @f$[lo, hi)@f$, empty where @c hi is not past @c lo. */
