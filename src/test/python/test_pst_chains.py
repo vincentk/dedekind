@@ -10,8 +10,8 @@ Python flags.
 
 import unittest
 
-from dedekind.pst import 𝔹, A, K3, Set, Ternary, ap, π, bottom, cardinality, carrier, identity, is_bounded, is_decidable, is_dense, is_truth_object, saturates, top
-from dedekind.trsk import Function
+from pynzli.pst import 𝔹, A, K3, Set, Ternary, ap, π, bottom, cardinality, carrier, identity, is_bounded, is_decidable, is_dense, is_truth_object, saturates, top
+from pynzli.trsk import Function
 
 # The written forms are the names: NFKC normalisation makes 𝔹 the identifier B.
 # Subscript digits are not identifier characters, so K₃ is spelled K3 and

@@ -387,12 +387,17 @@ static_assert(
  *
  *  The functor-parametric companion `IsAlgebra<U,
  *  std::plus<U>, std::multiplies<U>>` *does* fire, because functors
- *  return `U` by signature regardless of the internal promotion path.
- *  Algebraically, every `std::unsigned_integral U` is the modular
- *  ring Z/2^bits(U)Z under `(std::plus<U>, std::multiplies<U>)`; the
- *  bundled `algebra::IsRing<U>` therefore fires for every
- *  `std::unsigned_integral` (narrow or wide) -- it uses the
- *  functor-parametric shape, which the math respects.
+ *  return `U` by signature regardless of the internal promotion path:
+ *  closure is a signature, the closure tier.
+ *
+ *  The ring is one tier up, and asks the operations to be total.  The
+ *  functors compute in the promoted `int` and convert back modulo
+ *  2^bits(U), which is Z/2^bits(U)Z exactly where the promoted
+ *  computation is defined.  For `unsigned char` it always is (255 · 255
+ *  fits `int`); for `unsigned short` it is not (65535 · 65535 overflows
+ *  `int`, undefined behaviour), so `unsigned short` is refused as a ring
+ *  for the reason `int` is (`category::HasTotalProduct`).  Its sum is
+ *  total, so `(unsigned short, +)` is still the cyclic group Z/2^16Z.
  *
  *  `IsArithmeticRing` is the strict literal-operator seal and only
  *  fires on unsigned types whose width is >= sizeof(int): namely
@@ -432,10 +437,11 @@ static_assert(IsArithmeticRing<unsigned long long>,
 static_assert(IsArithmeticRing<std::size_t>,
               "std::size_t is an arithmetic ring (modular wrap).");
 
-// All `std::unsigned_integral` carriers, narrow or wide, are rings
+// The `std::unsigned_integral` carriers whose product is total are rings
 // under the functor-parametric bundle: the modular-wrap proof drives
 // IsPeriodic -> IsTotal -> IsMagma -> IsMonoid -> IsGroup -> IsRing,
 // and the std::plus / std::multiplies functors close on U by signature.
+// `unsigned short` is not: its product overflows `int` after promotion.
 // `IsArithmeticRing` (the strict literal-operator seal) is the
 // stronger claim and is only available on the wide ones.
 static_assert(
@@ -445,9 +451,12 @@ static_assert(
     "via the functor surface, even though its literal operators "
     "promote to int.");
 static_assert(
-    dedekind::category::IsRing<unsigned short, std::plus<unsigned short>,
-                               std::multiplies<unsigned short>>,
-    "unsigned short is likewise a functor-surface ring.");
+    !dedekind::category::IsRing<unsigned short, std::plus<unsigned short>,
+                                std::multiplies<unsigned short>> &&
+        dedekind::category::IsCyclicGroup<unsigned short,
+                                          std::plus<unsigned short>>,
+    "unsigned short is no ring: 65535 · 65535 overflows int after "
+    "promotion, undefined as for int; its sum is still Z/2^16Z.");
 static_assert(
     dedekind::category::IsRing<unsigned long, std::plus<unsigned long>,
                                std::multiplies<unsigned long>>,

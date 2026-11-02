@@ -13,6 +13,16 @@
  *       -- Henri Poincare, paraphrase
  *       [Trans: "Mathematics is the art of giving the same name to different
  * things."]
+ *
+ * @section linear_algebra__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/297">#297
+ *     undergraduate linear algebra</a>: present are the operator contracts,
+ *     the rank-nullity contract, 2×2 determinants and inverses, the rank-one
+ *     eigenvalue, diagonal matrices, inner products and affine spaces; still
+ *     open are span, kernel and image, change of basis, Gaussian elimination
+ *     and a solver, n×n determinants and inverses, general eigen theory, the
+ *     characteristic polynomial, Gram-Schmidt and projections, quadratic
+ *     forms, the spectral theorem and the SVD, and the GraphBLAS solve.
  */
 export module dedekind.linear_algebra;
 

@@ -28,6 +28,10 @@
  * @note 「三十輻，共一轂，當其無，有車之用。」
  * (Thirty spokes meet at a single hub; it is the empty space (the relation)
  * that makes the wheel useful.) — 老子 (Laozi)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/275">#275
+ *     nLab algebra/category hierarchy</a> (work in progress): the groupoid
+ *     beside @c IsDiscreteCategory.
  */
 
 module;

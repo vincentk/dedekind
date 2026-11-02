@@ -51,46 +51,6 @@ import :species;
 
 namespace dedekind::category {
 
-/** @section small__Canonical_Species_Infrastructure */
-
-/** @brief Primary template for canonical operations. */
-template <typename T>
-struct canonical_op;
-
-/** @brief Specialization for Unsigned: Modulo Addition. */
-template <std::unsigned_integral T>
-struct canonical_op<T> {
-  using type = std::plus<void>;
-};
-
-/** @brief Specialization for Signed: Lattice Max. */
-template <std::signed_integral T>
-struct canonical_op<T> {
-  using type = std::ranges::greater;
-};
-
-/** @brief Specialization for Floating: Lattice Max. */
-template <std::floating_point T>
-struct canonical_op<T> {
-  using type = std::ranges::greater;
-};
-
-/** @brief Specialization for Bools: Boolean Logic. */
-template <>
-struct canonical_op<bool> {
-  using type = std::logical_and<void>;
-};
-
-/** @brief Specialization for Strings: Concatenation. */
-template <>
-struct canonical_op<std::string> {
-  using type = std::plus<void>;
-};
-
-/** @brief Canonical operation shorthand. */
-template <typename T>
-using category_op_t = typename canonical_op<T>::type;
-
 /** @section small__Grounding_Truths */
 
 // Since is_associative_v is already defined in :species, we must

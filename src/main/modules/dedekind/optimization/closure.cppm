@@ -30,6 +30,15 @@
  *       [Litvinov writes in English; the "shadow" is idempotent mathematics ---
  *       the tropical (min/max-plus) dioid this closure runs the critical path
  *       over, obtained from the ordinary field by Maslov dequantization.]
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/319">#319
+ *     undergraduate graph theory</a> (work in progress): Dijkstra and
+ *     Bellman-Ford beyond the DAG relaxation.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/330">#330
+ *     undergraduate algorithms and data structures</a> (work in progress):
+ *     topological sort: @c ext lists the edges by ascending tail, so the
+ *     single-pass DAG relaxation assumes the vertices numbered
+ *     topologically.
  */
 module;
 

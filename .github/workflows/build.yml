@@ -107,8 +107,8 @@ jobs:
     # here.  The notebooks and the Python tests import the package that
     # `make test` built and staged in build/python (PYTHONPATH), so the
     # library is compiled once; the `[tool.coverage.paths]` mapping in
-    # pyproject.toml rewrites build/python/dedekind back to
-    # `python/dedekind/` for the grep gate / Codecov.  The wheel job on
+    # pyproject.toml rewrites build/python/pynzli back to
+    # `python/pynzli/` for the grep gate / Codecov.  The wheel job on
     # main checks that the package installs.
     - name: Set up .venv (parity with local dev)
       run: |
@@ -153,7 +153,7 @@ jobs:
     - name: Collect Python Coverage
       run: |
         make python-coverage
-        grep -q "python/dedekind/" build/python-coverage.xml
+        grep -q "python/pynzli/" build/python-coverage.xml
 
     - name: Upload to Codecov
       if: inputs.upload-coverage

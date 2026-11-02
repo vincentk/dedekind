@@ -12,8 +12,8 @@ whose middle keeps an ∃ no atom defines is witnessed at points."""
 
 import unittest
 
-from dedekind.pst import A, B, K3, U64, Ternary, 𝔽ₚ, ap, canonical, cond, u64, π, π_1, π_2, π_3, codomain
-from dedekind.trsk import Relation, copy, diag, function, inl, inr, kind, merge, operands, arrow, classifier, cod, converse, dom
+from pynzli.pst import A, B, K3, U64, Ternary, 𝔽ₚ, ap, canonical, cond, u64, π, π_1, π_2, π_3, codomain
+from pynzli.trsk import Relation, copy, diag, function, inl, inr, kind, merge, operands, arrow, classifier, cod, converse, dom
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)

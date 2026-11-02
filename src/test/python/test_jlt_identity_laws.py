@@ -1,6 +1,6 @@
 """Jlt arrow DSL (#961): involutive endomorphisms over two objects (bool, int).
 
-``int`` names the canonical ring u64 = ℤ/2⁶⁴ (``dedekind.pst``): its reflection
+``int`` names the canonical ring u64 = ℤ/2⁶⁴ (``pynzli.pst``): its reflection
 is the order reversal of the word, x ↦ 2⁶⁴ − 1 − x.
 
 The Python side is a fluent DSL over the *real* category arrows, duck-typed: an
@@ -15,7 +15,7 @@ The Python side is a fluent DSL over the *real* category arrows, duck-typed: an
 
 import unittest
 
-from dedekind.jlt import cod, dom, id, pred, refl, succ
+from pynzli.jlt import cod, dom, id, pred, refl, succ
 
 _ARROW_OPERATORS = ("__call__", "__rshift__")
 

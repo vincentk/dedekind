@@ -18,7 +18,7 @@ it, and iteration from ⊥ by the cover.
 Sets over 𝔹 and K₃ are the chain fragment of the paper's Lwv grammar, spelled
 as the paper spells it::
 
-    from dedekind.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall, identity
+    from pynzli.pst import 𝔸, Ø, η, π, K3, Ternary, Kleene, ap, canonical, exists, forall, identity
     U, T, F = Ternary.UNKNOWN, Ternary.TRUE, Ternary.FALSE
 
     S = K3 & (π > F)          # generator & pred      -> {U, ⊤}
@@ -54,7 +54,7 @@ outside that catalogue evaluates but does not compare.  Reduction stays in C++.
 
 The canonical ring and field, each as large as a machine word allows::
 
-    from dedekind.pst import 𝔸, is_field, u64, 𝔽ₚ   # 𝔽ₚ is the name Fp (NFKC)
+    from pynzli.pst import 𝔸, is_field, u64, 𝔽ₚ   # 𝔽ₚ is the name Fp (NFKC)
 
     u64(2**64 - 1) + 1          # u64(0): the ring ℤ/2⁶⁴ wraps
     u64(7) // 2;  u64(7) % 2    # by a nonzero word; u64(7) / 2 is a TypeError
@@ -72,8 +72,8 @@ set is built.  The universes multiply into products of any arity, each column
 its own sort (a relation is a table: one class, its schema as data); 𝔹 ↪ K₃
 is the one coercion, any other two carriers meet through ``ap``::
 
-    from dedekind.pst import A, U64, u64, 𝔽ₚ, B, ap, π, π_1, π_2, π_3
-    from dedekind.trsk import Function        # the relational surface
+    from pynzli.pst import A, U64, u64, 𝔽ₚ, B, ap, π, π_1, π_2, π_3
+    from pynzli.trsk import Function        # the relational surface
 
     U = A(u64)
     evens = U & (π % 2 == 0)            # + − · wrap; // and % by a nonzero word
@@ -95,10 +95,10 @@ is the one coercion, any other two carriers meet through ``ap``::
 A set over ``u64`` built from ``π ⋈ k`` atoms under ``&`` and ``|`` is read as
 its run list, so equality, ``canonical``, ``len``, iteration and slicing by value
 are the library's; ``image`` / ``preimage`` under ``succ`` / ``pred`` / ``id``
-(from ``dedekind.jlt``) substitute the variable, and the run list translates,
+(from ``pynzli.jlt``) substitute the variable, and the run list translates,
 wrapping at the word's end::
 
-    from dedekind.jlt import succ
+    from pynzli.jlt import succ
     (U & (π > 3)) & (U & (π < 5)) == U & (π == 4)    # True: one normal form
     canonical(~(U & (π == 5)))     # 𝔸(u64) & ((π <= 4) | (π >= 6)): the runs, written
     list(U[3:8]);  len(U & (π < 3))                  # [3, 4, 5, 6, 7]; 3
@@ -113,7 +113,7 @@ grammar's words ``exists`` / ``forall``, with ``any`` / ``all`` as aliases
 (importable by name; not star-exported, since they shadow the builtins).
 """
 
-# `_pst` is the private native extension module (dedekind._pst), NumPy-style;
+# `_pst` is the private native extension module (pynzli._pst), NumPy-style;
 # this pure-Python facade re-exports it under the public name.
 from ._pst import A
 from ._pst import B
@@ -205,7 +205,7 @@ class Set:
 
 
 # The aliases: deliberately not in __all__ (they shadow the builtins when
-# star-imported); `from dedekind.pst import any, all` is the explicit opt-in.
+# star-imported); `from pynzli.pst import any, all` is the explicit opt-in.
 any = exists  # noqa: A001
 all = forall  # noqa: A001
 

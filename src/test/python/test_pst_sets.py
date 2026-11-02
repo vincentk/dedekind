@@ -7,7 +7,7 @@ set's own species, so on a K₃-valued set ``==`` may be ``UNKNOWN``.
 
 import unittest
 
-from dedekind.pst import (
+from pynzli.pst import (
     𝔸, Ø, η, π, 𝔹, K3, Ternary, Boole, Kleene, ap, canonical, exists, forall, lift,
     codomain, identity, is_decidable,
     any as any_, all as all_,  # the aliases, imported under names that do not shadow the builtins
