@@ -1342,47 +1342,103 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
   return {p, g.f.transform, g.g.tau};
 }
 
-/** @brief The words fixed by the reversal after a letter map, one set per
- *  length: @f$n \mapsto \{w \in \Sigma^n : w = \tau(\mathrm{rev}\,w)\}@f$,
- *  the restriction sites for the Watson–Crick @f$\tau@f$.  Their density
- *  falls along the even lengths whatever @f$\tau@f$ is: of length @f$2j@f$
- *  there are @f$k^j@f$, with @f$k \le |\Sigma|@f$ the letters @f$\tau^2@f$
- *  fixes, so @f$k^j / |\Sigma|^{2j}@f$ shrinks with @f$j@f$ (Pólya, the
- *  reversal's pairs).  Hence @c antitone_on_even_lengths.
- *  @tparam C @tparam F the alphabet.  @tparam N the counts.  @tparam T the
- *  letter map. */
-export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T>
-struct ReversalSections {
+/** @brief @c powers(Σ), the tensor powers by length, @f$n \mapsto \Sigma^n@f$:
+ *  an arrow out of the counts into the tensors, the free monoid graded by
+ *  length.  Its density is 1 at every length.  @tparam C @tparam F the
+ *  alphabet.  @tparam N the counts. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N>
+struct Powers {
   using Domain = N;
-  using Codomain = Symmetric<Power<C, F, N>, Reverse, T>;
+  using Codomain = Power<C, F, N>;
   Slice<C> letters;
   F member;
-  T tau;
-  constexpr Codomain operator()(N n) const {
-    return {Power<C, F, N>{letters, member, n}, Reverse{}, tau};
-  }
+  constexpr Codomain operator()(N n) const { return {letters, member, n}; }
 };
-/** @tparam N the counts.  @param leg the filtered alphabet.  @param tau the
- *  letter map.  @return the sections it fixes after the reversal, by
- *  length. */
-export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F,
-                 IsArrow T>
+/** @tparam N the counts.  @param leg the filtered alphabet.  @return its
+ *  powers, by length. */
+export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F>
   requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
-           std::same_as<Dom<T>, C>
-constexpr ReversalSections<C, F, N, T> reversal_sections(
-    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg,
-    T tau) {
+           std::convertible_to<Cod<F>, bool>
+constexpr Powers<C, F, N> powers(
+    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg) {
   const Power<C, F, N> one = power<N>(leg, N{1});
-  return {one.letters, one.member, std::move(tau)};
+  return {one.letters, one.member};
 }
+
+/** @brief @c fixed_by(g), a tensor power to its section fixed by @c g, a
+ *  permutation of the positions after a letter map on every letter: an
+ *  arrow between tensors.  By Pólya each cycle of @c g fills with the
+ *  letters it fixes, at most @f$|\Sigma|^{\ell}@f$ for a cycle of length
+ *  @f$\ell@f$, so the section's density is at most 1.
+ *  @tparam P the power.  @tparam S the permutation.  @tparam T the map. */
+export template <typename P, typename S, IsArrow T>
+struct FixedBy {
+  using Domain = P;
+  using Codomain = Symmetric<P, S, T>;
+  S sigma;
+  T tau;
+  constexpr Codomain operator()(const P& p) const { return {p, sigma, tau}; }
+};
+namespace detail_periodic {
+/** @brief @c fixed_by(g) before it meets the powers it applies to. */
+template <typename S, typename T>
+struct FixedByStage {
+  S sigma;
+  T tau;
+};
+}  // namespace detail_periodic
+/** @param g a letter map on every letter, then a permutation of the
+ *  positions: @c power(complement) @c >> @c reverse.  @return the stage that
+ *  fixes it. */
+export template <IsArrow T, typename C, typename S>
+constexpr detail_periodic::FixedByStage<S, T> fixed_by(
+    const Compose<PowerMap<T>, Morphism<std::vector<C>, std::vector<C>, S>>&
+        g) {
+  return {g.g.transform, g.f.tau};
+}
+/** @param g a permutation of the positions, then a letter map on every
+ *  letter: the same section, the two commuting.  @return the stage. */
+export template <IsArrow T, typename C, typename S>
+constexpr detail_periodic::FixedByStage<S, T> fixed_by(
+    const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
+        g) {
+  return {g.f.transform, g.g.tau};
+}
+/** @brief The powers, then the sections each fixes: a family of sets of
+ *  words by length, @c powers(Σ) @c >> @c fixed_by(g).
+ *  @param ps the powers.  @param st the stage.  @return the family. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr auto operator>>(const Powers<C, F, N>& ps,
+                          const detail_periodic::FixedByStage<S, T>& st) {
+  return ps >> FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau};
+}
+
+/** @brief A permutation family coherent across lengths: from @c n to
+ *  @c n @c + @c 2 its cycle type gains cycles and changes none.  The
+ *  reversal's is: the longer chain's antitone bijection restricted to the
+ *  middle is the shorter's, with one more pair outside (@c
+ *  antitone_cycle_type).  A rotation's follows @f$\gcd(n, d)@f$ and is
+ *  not.  A struct trait, for a family to register by one specialisation.
+ *  @tparam S the permutation. */
+export template <typename S>
+struct length_coherent : std::false_type {};
+template <>
+struct length_coherent<Reverse> : std::true_type {};
+
 /** @brief A family of sets of words whose density does not grow along the
- *  even lengths, so that the occurrences of its sets, ranked by length, are
- *  sorted on the even ones by construction.  A struct trait, for a family
- *  to register by one partial specialisation.  @tparam Fam the family. */
+ *  even lengths.  Derived, not registered per family: the powers have
+ *  density 1; fixing a permutation keeps it at most 1, cycle by cycle; a
+ *  length-coherent permutation adds cycles from @c n to @c n @c + @c 2, each
+ *  at most 1, so the density along the even lengths does not grow (the
+ *  restriction sites: @f$k^j / |\Sigma|^{2j}@f$ of length @f$2j@f$, @c k the
+ *  letters @f$\tau^2@f$ fixes).  @tparam Fam the family. */
 export template <typename Fam>
-struct antitone_on_even_lengths : std::false_type {};
-template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T>
-struct antitone_on_even_lengths<ReversalSections<C, F, N, T>> : std::true_type {
+struct density_falls_on_even_lengths : std::false_type {};
+template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires length_coherent<S>::value
+struct density_falls_on_even_lengths<
+    Compose<Powers<C, F, N>, FixedBy<Power<C, F, N>, S, T>>> : std::true_type {
 };
 
 /** @brief An outer product of two counted tensors, its count the product of

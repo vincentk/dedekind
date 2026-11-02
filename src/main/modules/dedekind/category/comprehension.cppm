@@ -315,26 +315,67 @@ constexpr auto exact_count(const WindowJoin<P, S>& j) {
   return exact_occurrences(j.power, j.inner);
 }
 
-/** @brief A rank of the lengths: @f$n \mapsto@f$ how often the family's set
- *  of length @c n occurs in the words of @c p, @c COUNT(*) over the join on
- *  the window, grouped by the length.  @tparam P the tensor power.
- *  @tparam Fam the family, a set of words per length. */
-export template <typename P, IsArrow Fam>
-struct OccurrencesOfLength {
-  using Domain = Dom<Fam>;
-  using Codomain = Dom<Fam>;
+/** @brief @c join_with(p), a set of words to its join with @c p on the
+ *  window: the curried @c join, an arrow between tensors.
+ *  @tparam P the tensor power.  @tparam S the sets. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+struct JoinWith {
+  using Domain = S;
+  using Codomain = WindowJoin<P, S>;
   P power;
-  Fam family;
-  constexpr Codomain operator()(Domain n) const {
-    return count(join(power, family(n)));
-  }
+  constexpr Codomain operator()(const S& s) const { return join(power, s); }
 };
-/** @param p a tensor power.  @param fam a family of sets of words, by
- *  length.  @return the rank of the lengths by their occurrences. */
-export template <typename P, IsArrow Fam>
-constexpr OccurrencesOfLength<P, Fam> occurrences_of_length(P p, Fam fam) {
-  return {std::move(p), std::move(fam)};
+/** @brief @c counting, a counted tensor to its count: the reading that ends
+ *  a pipeline of arrows, as @c count ends a query.  @tparam J the tensor. */
+export template <typename J>
+struct Counting {
+  using Domain = J;
+  using Codomain = decltype(count(std::declval<const J&>()));
+  constexpr Codomain operator()(const J& j) const { return count(j); }
+};
+namespace detail_comprehension {
+template <typename P>
+struct JoinWithStage {
+  P power;
+};
+struct CountingStage {};
+}  // namespace detail_comprehension
+/** @param p a tensor power.  @return the stage joining a set with it. */
+export template <typename P>
+constexpr detail_comprehension::JoinWithStage<P> join_with(P p) {
+  return {std::move(p)};
 }
+/** @brief The stage counting what precedes it. */
+export inline constexpr detail_comprehension::CountingStage counting{};
+/** @param fam a family of sets of words.  @param st the stage.  @return the
+ *  family, each set joined with the power. */
+export template <IsArrow Fam, typename P>
+  requires requires(const P& p, const Cod<Fam>& s) { occurrences(p, s); }
+constexpr auto operator>>(const Fam& fam,
+                          const detail_comprehension::JoinWithStage<P>& st) {
+  return fam >> JoinWith<P, Cod<Fam>>{st.power};
+}
+/** @param f an arrow into counted tensors.  @return it, then the count. */
+export template <IsArrow F>
+  requires requires(const Cod<F>& j) { count(j); }
+constexpr auto operator>>(const F& f, detail_comprehension::CountingStage) {
+  return f >> Counting<Cod<F>>{};
+}
+/** @brief A rank whose values do not grow along the even lengths, so that
+ *  ranking the even lengths descending reads them upwards.  Derived, not
+ *  registered per rank: a family's occurrences in the words of length
+ *  @c N are @f$(N - n + 1)@f$ offsets times its density times
+ *  @f$|\Sigma|^N@f$, a product of non-negative sequences that do not grow,
+ *  which does not grow either.  The product law, stated here for the join's
+ *  count; a general one belongs in @c :posetal (#1134).
+ *  @tparam Rank the rank. */
+export template <typename Rank>
+struct antitone_on_even_lengths : std::false_type {};
+template <typename Fam, typename P, typename S, typename J>
+  requires density_falls_on_even_lengths<Fam>::value
+struct antitone_on_even_lengths<
+    Compose<Compose<Fam, JoinWith<P, S>>, Counting<J>>> : std::true_type {};
 
 /** @brief The orders a query is sorted by, the standard's comparisons named
  *  as SQL's @c ASC and @c DESC: the defaults of @c order_by's parameter,
@@ -560,13 +601,13 @@ constexpr auto operator>>(
  *  @f$j \mapsto m j + r@f$, unpadded by reading the lengths back.  An odd
  *  modulus mixes the parities and takes the fused pass.
  *  @param p the pending sort.  @return the first @c K lengths. */
-export template <IsCountWord N, typename P, typename Fam, std::size_t K>
-  requires antitone_on_even_lengths<Fam>::value
+export template <IsCountWord N, typename Rank, std::size_t K>
+  requires antitone_on_even_lengths<Rank>::value
 constexpr AtMost<Maybe<N>, K> operator>>(
     const detail_comprehension::Pending<
         unfold_view<std::optional<N>,
                     detail_chain::SliceStep<N, Where<Congruent<N>>>>,
-        OccurrencesOfLength<P, Fam>, descending>& p,
+        Rank, descending>& p,
     Take<K>) {
   const Congruent<N> c = p.query.coalgebra().f.p;
   if (c.modulus % 2 != 0) return detail_comprehension::fused_take<K>(p);

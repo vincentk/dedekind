@@ -341,20 +341,26 @@ static_assert(
                            power(nucleotides, 12), sites_6)),
                        Factors{{7, 1}, {4, 3}, {4, 6}}));
 // Which site lengths cut most often: the even lengths from 2 to 12, ranked
-// by their occurrences in all genomes of length 12, the first five.  The
-// sites' density falls along the even lengths, so they rank shortest first
-// by construction: the plan reads the class of even lengths upwards and
+// by their occurrences in all genomes of length 12, the first five.  The rank
+// is four generic arrows composed (the powers, the sections the reverse
+// complement fixes, the join, the count), and its law composes with them:
+// the reversal is length-coherent, so the sites' density falls along the
+// even lengths, so their occurrences do, and they rank shortest first by
+// construction: the plan reads the class of even lengths upwards and
 // evaluates no count.  With the law hidden, the fused pass ranks by the
 // counts and agrees.
 using dedekind::category::collect;
+using dedekind::category::counting;
 using dedekind::category::descending;
-using dedekind::category::occurrences_of_length;
+using dedekind::category::fixed_by;
+using dedekind::category::join_with;
 using dedekind::category::order_by;
-using dedekind::category::reversal_sections;
+using dedekind::category::powers;
 using dedekind::category::take;
 using dedekind::category::where;
-constexpr auto cuts_in_12 = occurrences_of_length(
-    power(nucleotides, 12), reversal_sections(nucleotides, complement));
+constexpr auto cuts_in_12 = powers(nucleotides) >>
+                            fixed_by(power(complement) >> reverse) >>
+                            join_with(power(nucleotides, 12)) >> counting;
 static_assert(cuts_in_12(6) == 1'835'008uz && cuts_in_12(7) == 0uz);
 static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
                                          where(dedekind::category::is_even) >>
