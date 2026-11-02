@@ -27,16 +27,15 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 ### The exhibit: restriction sites, two ways
 
-Listing 5 of the Jlt paper, in C++ (left) and in Python through `pynzli` (right).
+Listing 5 of the Jlt paper, in C++ and in Python through `pynzli`: open either.
 A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`; an enzyme cuts a genome where one occurs.
-The top row counts the cuts in *all* genomes of length `N`, never building one: the join's plan is a product of factors, a constant at compile time.
+The first counts the cuts in *all* genomes of length `N`, never building one: the join's plan is a product of factors, a constant at compile time.
 At `N = 32` the count is `27 · 2⁵⁸`, while the `4³² = 2⁶⁴` genomes it stands for are more than a 64-bit word can enumerate.
-The bottom row scans *one* genome, the matcher specialised to its site.
+The second scans *one* genome, the matcher specialised to its site.
 
-<table>
-<tr><th>C++ (Jlt)</th><th>Python (<code>pynzli</code>)</th></tr>
-<tr>
-<td>
+#### All genomes, counted
+
+<details open><summary><b>C++ (Jlt)</b></summary>
 
 <!-- listing5:all-genomes:cpp -->
 
@@ -53,8 +52,8 @@ constexpr size_t cuts(size_t N, size_t n) {
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```
 
-</td>
-<td>
+</details>
+<details><summary><b>Python (<code>pynzli</code>)</b></summary>
 
 <!-- listing5:all-genomes:python -->
 
@@ -69,18 +68,13 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 (1835008, True)
 ```
 
-</td>
-</tr>
-<tr>
-<td colspan="2">
+</details>
 
-*One genome, scanned: to come with the scanner ([#1135](https://github.com/vincentk/dedekind/issues/1135)).*
+#### One genome, scanned
 
-</td>
-</tr>
-</table>
+*To come with the scanner ([#1135](https://github.com/vincentk/dedekind/issues/1135)).*
 
-Both columns are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
+Both languages are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
 
 ### Another exhibit: a set collapsed to a point
 
