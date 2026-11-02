@@ -510,7 +510,14 @@ def research() -> int:
         ir = generate_ir(RESEARCH, opt)
         heap[opt] = sorted(heap_calls(ir))
         for symbol in READ_IN_FULL:
-            bodies[(symbol, opt)] = extract_function_block(ir, symbol) or ""
+            body = extract_function_block(ir, symbol) or ""
+            bodies[(symbol, opt)] = body
+            # and what it calls, one level down: what the call costs
+            for callee in sorted({c for c in re.findall(
+                    r"\bcall [^@\n]*@([A-Za-z0-9_.$]+)\(", body)
+                    if not c.startswith("llvm.")}):
+                bodies[(f"{symbol} → {callee}", opt)] = (
+                    extract_function_block(ir, callee) or "(declared only)")
         for m in re.finditer(r"(?m)^define\b[^\n]*@(research_[a-z0-9_]+)\(", ir):
             symbol = m.group(1)
             block = extract_function_block(ir, symbol) or ""
