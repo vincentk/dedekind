@@ -30,6 +30,7 @@
 module;
 
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <ranges>
@@ -120,6 +121,7 @@ constexpr Meet<A, B> operator&(A a, B b) {
 /** @tparam K the bound on the steps.  @param lo @param hi the ends.
  *  @return the run @f$[lo, hi)@f$, empty where @c hi is not past @c lo. */
 export template <std::size_t K, IsCountWord N>
+  requires(K >= 2)
 constexpr RunList<N, K> run(N lo, std::type_identity_t<N> hi) {
   if (hi <= lo) return {};
   return {AtMost<N, K>{}.with(lo).with(hi)};
@@ -229,6 +231,23 @@ static_assert(
     reduced((run<4>(0uz, 2uz) | run<4>(5uz, 7uz)) & run<4>(1uz, 6uz)) ==
     RunList<std::size_t, 4>{
         AtMost<std::size_t, 4>{}.with(1uz).with(2uz).with(5uz).with(6uz)});
+// Totality by type, not by abort: a union or an intersection of two run
+// lists has its steps among theirs, so its bound is the sum of theirs (the
+// run lists are not closed under either, but force the wider carrier, as a
+// fixed-width word does); a preimage along a translation keeps its bound,
+// closed.
+using Runs4 = RunList<std::size_t, 4>;
+static_assert(std::same_as<decltype(reduced(Runs4{} | Runs4{})),
+                           RunList<std::size_t, 8>> &&
+              std::same_as<decltype(reduced(Runs4{} & Runs4{})),
+                           RunList<std::size_t, 8>> &&
+              std::same_as<decltype(shift(1uz) >> Runs4{}), Runs4>);
+// The union that needs its wider bound: two runs apart are four steps, and
+// their intersection with a third that spans both cuts each, four again.
+static_assert(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)).steps.size() == 4 &&
+              reduced(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) &
+                      run<4>(1uz, 5uz))
+                      .steps.size() == 4);
 // A bound claimed: the union of two points fits four steps, not two.
 static_assert(
     narrowed<4>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
