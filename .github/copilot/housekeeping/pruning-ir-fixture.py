@@ -207,7 +207,7 @@ def extract_function_block(ir_text: str, symbol: str) -> str | None:
 
 
 HEAP_SYMBOLS = re.compile(
-    r"\bcall\b[^\n]*@(_Znwm|_Znam|_ZnwmSt11align_val_t|_ZnamSt11align_val_t|"
+    r"\b(?:call|invoke)\b[^\n]*@(_Znwm|_Znam|_ZnwmSt11align_val_t|_ZnamSt11align_val_t|"
     r"malloc|calloc|realloc|aligned_alloc)\("
 )
 

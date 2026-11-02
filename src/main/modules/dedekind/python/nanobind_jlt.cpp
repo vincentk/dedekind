@@ -272,7 +272,7 @@ bool is_square(std::size_t k, std::size_t n) {
 }  // namespace jlt
 
 /** @brief Bind the tensor exhibit's handles. */
-void bind_tensors(nb::module_& module_) {
+void bind_tensors(nb::module_ module_) {
   nb::class_<jlt::Alphabet>(module_, "Alphabet",
                             "A filtered alphabet: the byte chain under the "
                             "predicate that keeps its letters.");
@@ -541,7 +541,7 @@ void bind_step_operators(nb::class_<S>& cls) {
  *  the real @c :nno @c Successor / @c Predecessor, composable like @c id, and
  *  read by @c pynzli.pst.image. */
 template <typename T>
-void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
+void bind_steps(nb::module_ m, const char* succ_name, const char* pred_name) {
   auto succ = nb::class_<Successor<T>>(
       m, succ_name,
       "The successor arrow S : T -> T (the real :nno Successor), total: "
@@ -566,7 +566,7 @@ void bind_steps(nb::module_& m, const char* succ_name, const char* pred_name) {
  *  @c Morphism<T,T>, their operators, and the free accessors @c dom / @c cod.
  */
 template <typename T>
-void bind_carrier(nb::module_& m, const char* identity_name,
+void bind_carrier(nb::module_ m, const char* identity_name,
                   const char* morphism_name) {
   auto identity = nb::class_<Identity<T>>(
       m, identity_name,

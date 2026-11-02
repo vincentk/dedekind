@@ -115,14 +115,14 @@ concept IsTotallyOrderedPosetal =
  *
  * @note Naming history: an `IsOrderMeetSemilatticeSignature` shape mixin
  * was previously bundled into this concept's body; it was retired
- * because @c IsMereologicalMeetSemilattice transitively requires
+ * because @c IsMereologicalMeetBand transitively requires
  * @c IsMereologicalMeetMagma, which already checks the operator
  * surface (@c meet(a, b) @c -> @c convertible_to<T>).  Callsites that
  * need just the operator-surface check use the magma concept directly.
  */
 export template <typename T, typename Meet = Inf>
 concept IsOrderMeetSemilattice =
-    IsMereologicalMeetSemilattice<T, Meet> && IsCommutative<T, Meet>;
+    IsMereologicalMeetBand<T, Meet> && IsCommutative<T, Meet>;
 
 /**
  * @concept IsCertifiedOrderMeetSemilattice
@@ -143,14 +143,14 @@ concept IsCertifiedOrderMeetSemilattice = IsOrderMeetSemilattice<T, Meet>;
  *
  * @note Naming history: an `IsOrderJoinSemilatticeSignature` shape mixin
  * was previously bundled into this concept's body; it was retired
- * because @c IsMereologicalJoinSemilattice transitively requires
+ * because @c IsMereologicalJoinBand transitively requires
  * @c IsMereologicalJoinMagma, which already checks the operator
  * surface (@c join(a, b) @c -> @c convertible_to<T>).  Callsites that
  * need just the operator-surface check use the magma concept directly.
  */
 export template <typename T, typename Join = Sup>
 concept IsOrderJoinSemilattice =
-    IsMereologicalJoinSemilattice<T, Join> && IsCommutative<T, Join>;
+    IsMereologicalJoinBand<T, Join> && IsCommutative<T, Join>;
 
 /**
  * @concept IsCertifiedOrderJoinSemilattice
@@ -226,9 +226,9 @@ concept IsPathProjection = requires(Project project, T x, Rel rel) {
 
 // Upstream/downstream alignment: posetal concepts refine mereological ones.
 static_assert(IsOrderMeetSemilattice<int, DefaultMeet>);
-static_assert(IsMereologicalMeetSemilattice<int, DefaultMeet>);
+static_assert(IsMereologicalMeetBand<int, DefaultMeet>);
 static_assert(IsOrderJoinSemilattice<int, DefaultJoin>);
-static_assert(IsMereologicalJoinSemilattice<int, DefaultJoin>);
+static_assert(IsMereologicalJoinBand<int, DefaultJoin>);
 static_assert(IsOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
 static_assert(IsMereologicalLatticeOperations<int, DefaultJoin, DefaultMeet>);
 static_assert(

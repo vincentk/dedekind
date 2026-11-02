@@ -71,10 +71,12 @@ import :posetal;               // is_involution: a law asked on the value
 
 namespace dedekind::category {
 
-/** @brief An arrow on the counts with a declared period, read by
- *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  @tparam F the arrow. */
+/** @brief A sequence on finite chains with a declared period, read by
+ *  @c period(f): @f$f(k + p) = f(k)@f$ for every @c k.  Periodicity is a
+ *  sequence's, an arrow out of the counts, not an arrow's in general.
+ *  @tparam F the arrow. */
 export template <typename F>
-concept HasPeriod = IsArrow<F> && IsCountWord<Dom<F>> && requires(const F& f) {
+concept HasPeriod = IsFiniteChainSequence<F> && requires(const F& f) {
   { period(f) } -> std::same_as<Dom<F>>;
 };
 
@@ -108,6 +110,24 @@ constexpr N period(const ConstantMorphism<N, B>&) {
   return N{1};
 }
 
+/** @brief The trait behind @c HasUnitPeriod: a sequence whose period is 1
+ *  by its type, not only by its value, so that the sum along it needs no
+ *  fold.  A struct, as @c is_adjoint, so that a downstream partition
+ *  registers a family by one partial specialisation.  @tparam F the
+ *  sequence. */
+export template <typename F>
+struct unit_period : std::false_type {};
+/** @brief A sequence constant on its extent by its type: a constant arrow
+ *  out of the counts, a sequence after one, and the cylinder's factors
+ *  along the offsets (R2).  @tparam F the sequence. */
+export template <typename F>
+concept HasUnitPeriod = HasPeriod<F> && unit_period<F>::value;
+template <IsCountWord N, typename B>
+struct unit_period<ConstantMorphism<N, B>> : std::true_type {};
+template <typename F, typename G>
+  requires unit_period<F>::value
+struct unit_period<Compose<F, G>> : std::true_type {};
+
 namespace detail_periodic {
 /** @brief Refuses a modulus of 0, which has no residues: not a constant
  *  expression at compile time, the end of the program at run time. */
@@ -131,9 +151,6 @@ constexpr N checked_lcm(N a, N b) {
   if (q > std::numeric_limits<N>::max() / b) refuse_unrepresentable_period();
   return static_cast<N>(q * b);
 }
-/** @brief A chain of the counts under an arrow. */
-template <IsCountWord N, IsArrow F>
-using Along = unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
 }  // namespace detail_periodic
 
 /** @brief The residue class @f$\{k \mid k \equiv r \pmod m\}@f$ as a
@@ -302,7 +319,7 @@ constexpr N count_below(N m, const F& f) {
  *  predicate.  @return how many of @c f(0), ..., @c f(n - 1) are true. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::convertible_to<Cod<F>, bool>
-constexpr N count(const detail_periodic::Along<N, F>& v) {
+constexpr N count(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
@@ -350,13 +367,29 @@ constexpr N sum_below(N m, const F& f) {
  *  @return @c f(0) + ... + @c f(n - 1), modulo the word. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, N>
-constexpr N sum(const detail_periodic::Along<N, F>& v) {
+constexpr N sum(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
   if (n < p) return detail_periodic::sum_below(n, f);  // less than a period
   return static_cast<N>((n / p) * detail_periodic::sum_below(p, f) +
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
+}
+/** @brief The sum along the chain of @c n under a sequence of period 1 by
+ *  its type, a constant one on its extent: @c n copies of @c f(0), one
+ *  multiplication by the semimodule law, and no fold at all, not even over
+ *  a period of one or a remainder of none.  The action of @f$\mathbb{N}@f$
+ *  on the counts collapsing a constant, as Listing 4's @c concat on copies
+ *  does.  More specialised than the periodic @c sum, so resolution prefers
+ *  it.  @param v the chain under the sequence.  @return @c n @c f(0), modulo
+ *  the word. */
+export template <IsCountWord N, HasUnitPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, N>
+constexpr N sum(const FiniteChainSequence<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed();
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  return n == 0 ? N{0} : static_cast<N>(n * f(N{0}));
 }
 // A constant sequence: n copies of one value, one multiplication.
 static_assert(sum(std::size_t{5} >> chain<std::size_t>() >>
@@ -412,7 +445,7 @@ constexpr std::optional<N> exact_sum_below(N m, const F& f) {
  *  word. */
 export template <IsCountWord N, HasPeriod F>
   requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
-constexpr std::optional<N> exact_sum(const detail_periodic::Along<N, F>& v) {
+constexpr std::optional<N> exact_sum(const FiniteChainSequence<N, F>& v) {
   const F f = v.coalgebra().f;
   const N n = v.seed(), p = period(f);
   if (n > extent(f)) detail_periodic::refuse_beyond_extent();
@@ -421,6 +454,18 @@ constexpr std::optional<N> exact_sum(const detail_periodic::Along<N, F>& v) {
       detail_periodic::checked_times(n / p,
                                      detail_periodic::exact_sum_below(p, f)),
       detail_periodic::exact_sum_below(static_cast<N>(n % p), f));
+}
+/** @brief The exact sum along a constant sequence: @c sum's collapse,
+ *  checked.  @param v the chain under the sequence.  @return @c n @c f(0),
+ *  or none where it leaves the word. */
+export template <IsCountWord N, HasUnitPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
+constexpr std::optional<N> exact_sum(const FiniteChainSequence<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed();
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  return n == 0 ? std::optional<N>{N{0}}
+                : detail_periodic::checked_times(n, f(N{0}));
 }
 
 /** @brief A translation of the counts, @f$k \mapsto k + j@f$: after it, a
@@ -621,8 +666,8 @@ struct Box {
  *  product. */
 export template <IsCountWord N, IsArrow F, IsArrow G>
   requires std::same_as<Cod<F>, bool> && std::same_as<Cod<G>, bool>
-constexpr auto operator*(const detail_periodic::Along<N, F>& a,
-                         const detail_periodic::Along<N, G>& b) {
+constexpr auto operator*(const FiniteChainSequence<N, F>& a,
+                         const FiniteChainSequence<N, G>& b) {
   using E = Compose<Tensor<F, G>, detail_periodic::Both>;
   return Box<E, 2, N>{E{Tensor<F, G>{a.coalgebra().f, b.coalgebra().f},
                         detail_periodic::Both{}},
@@ -633,7 +678,7 @@ constexpr auto operator*(const detail_periodic::Along<N, F>& a,
 export template <IsArrow T, std::size_t K, IsCountWord N, IsArrow G>
   requires std::same_as<Cod<G>, bool>
 constexpr auto operator*(const Box<T, K, N>& x,
-                         const detail_periodic::Along<N, G>& b) {
+                         const FiniteChainSequence<N, G>& b) {
   using E = Compose<Tensor<T, G>, detail_periodic::Both>;
   std::array<N, K + 1> sides{};
   std::ranges::copy(x.sides, sides.begin());
@@ -825,7 +870,7 @@ struct factor_word<Factor<N>> {
 /** @brief A list of factors, a count factorised, in the counts @c N. */
 template <typename L, typename N>
 concept IsFactorsOf =
-    std::ranges::input_range<const L> &&
+    std::ranges::forward_range<const L> &&  // exact_count reads it twice
     std::same_as<std::ranges::range_value_t<const L>, Factor<N>>;
 /** @brief A list of factors bounded by its type: the factors of a shape. */
 template <typename L, typename N>
@@ -1018,14 +1063,22 @@ export template <IsCountWord N = std::size_t>
 constexpr Rotation<N> rotate(std::type_identity_t<N> d) {
   return {d};
 }
-/** @brief The cycle type of the reversal of @c n positions: @f$\lfloor n/2
- *  \rfloor@f$ pairs, and the middle where @c n is odd.  @param n the length.
- *  @return its cycles. */
+/** @brief The cycle type of a finite chain's antitone bijection.  A finite
+ *  chain is rigid: its one antitone bijection is its reversal, the least
+ *  element to the greatest and so inward, so @f$\lfloor m/2 \rfloor@f$
+ *  pairs and, where @c m is odd, the middle fixed (#1133).  @param m the
+ *  chain's length.  @return its cycles. */
+export template <IsCountWord N>
+constexpr AtMost<Cycles<N>, 2> antitone_cycle_type(N m) {
+  const auto pairs =
+      AtMost<Cycles<N>, 2>{}.with(Cycles<N>{2, static_cast<N>(m / 2)});
+  return m % 2 == 1 ? pairs.with(Cycles<N>{1, 1}) : pairs;
+}
+/** @brief The cycle type of the reversal of @c n positions: the antitone
+ *  bijection of their chain.  @param n the length.  @return its cycles. */
 export template <IsCountWord N>
 constexpr AtMost<Cycles<N>, 2> cycle_type(Reverse, N n) {
-  const auto pairs =
-      AtMost<Cycles<N>, 2>{}.with(Cycles<N>{2, static_cast<N>(n / 2)});
-  return n % 2 == 1 ? pairs.with(Cycles<N>{1, 1}) : pairs;
+  return antitone_cycle_type(n);
 }
 /** @brief The cycle type of a rotation of @c n positions by @c d: @f$g =
  *  \gcd(n, d)@f$ cycles of length @f$n / g@f$, the identity where @c d is a
@@ -1090,7 +1143,34 @@ struct ReturnsTwice {
     return ok && t(t(b)) == b;
   }
 };
+/** @brief One more letter of the alphabet against the one before it: the
+ *  map's images must not rise along the chain of the letters. */
+struct FallsAlong {
+  LetterMap t;
+  Letters on;
+  constexpr std::pair<bool, std::optional<std::byte>> operator()(
+      std::pair<bool, std::optional<std::byte>> s, std::size_t i) const {
+    const std::byte b{static_cast<unsigned char>(i)};
+    if (!on(b)) return s;
+    const bool falls = !s.second || t(b) <= t(*s.second);
+    return {s.first && falls, b};
+  }
+};
 }  // namespace detail_periodic
+/** @brief Whether a letter map reverses the order of an alphabet, decided on
+ *  its table: the letters as bytes are a chain, and on a chain consecutive
+ *  letters suffice.  A law of the value, not of the type: the Watson–Crick
+ *  pairing reverses @c A @c < @c C @c < @c G @c < @c T because of how the
+ *  one-letter codes are chosen.  Where it does and the map is a bijection,
+ *  its cycle type is @c antitone_cycle_type's.  @param t the map.
+ *  @param on the alphabet.  @return whether @c t is antitone on it. */
+export constexpr bool is_antitone(const LetterMap& t, const Letters& on) {
+  return std::ranges::fold_left(
+             std::views::iota(std::size_t{0}, std::size_t{256}),
+             std::pair<bool, std::optional<std::byte>>{true, std::nullopt},
+             detail_periodic::FallsAlong{t, on})
+      .first;
+}
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
  *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
@@ -1262,6 +1342,119 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
   return {p, g.f.transform, g.g.tau};
 }
 
+/** @brief @c powers(Σ), the tensor powers by length, @f$n \mapsto \Sigma^n@f$:
+ *  an arrow out of the counts into the tensors, the free monoid graded by
+ *  length.  Its density is 1 at every length.  Each power is the
+ *  exponential @f$\Sigma^{[n]}@f$, the functions from the chain of @c n to
+ *  the letters (@c IsExponential, @c :cartesian), and the family is a strong
+ *  monoidal functor @f$(\mathbb{N}, +) \to (\text{tensors}, \otimes)@f$,
+ *  @f$\Sigma^{m+n} \cong \Sigma^m \otimes \Sigma^n@f$: the box law is its
+ *  monoidality (no monoidal-functor concept states it yet, #1134).
+ *  @tparam C @tparam F the alphabet.  @tparam N the counts. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N>
+struct Powers {
+  using Domain = N;
+  using Codomain = Power<C, F, N>;
+  Slice<C> letters;
+  F member;
+  constexpr Codomain operator()(N n) const { return {letters, member, n}; }
+};
+/** @tparam N the counts.  @param leg the filtered alphabet.  @return its
+ *  powers, by length. */
+export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
+           std::convertible_to<Cod<F>, bool>
+constexpr Powers<C, F, N> powers(
+    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg) {
+  const Power<C, F, N> one = power<N>(leg, N{1});
+  return {one.letters, one.member};
+}
+
+/** @brief @c fixed_by(g), a tensor power to its section fixed by @c g, a
+ *  permutation of the positions after a letter map on every letter: an
+ *  arrow between tensors.  By Pólya each cycle of @c g fills with the
+ *  letters it fixes, at most @f$|\Sigma|^{\ell}@f$ for a cycle of length
+ *  @f$\ell@f$, so the section's density is at most 1.  The section is the
+ *  equalizer @f$\mathrm{Eq}(\mathrm{id}, g)@f$ (@c IsEqualizer,
+ *  @c :pullback), equally the limit of the action of @f$\langle g \rangle@f$
+ *  on the power, a functor out of its delooping (@c ActionFunctor,
+ *  @c Delooping, @c :functor): its invariants, Pólya their count.
+ *  @tparam P the power.  @tparam S the permutation.  @tparam T the map. */
+export template <typename P, typename S, IsArrow T>
+struct FixedBy {
+  using Domain = P;
+  using Codomain = Symmetric<P, S, T>;
+  S sigma;
+  T tau;
+  constexpr Codomain operator()(const P& p) const { return {p, sigma, tau}; }
+};
+namespace detail_periodic {
+/** @brief @c fixed_by(g) before it meets the powers it applies to. */
+template <typename S, typename T>
+struct FixedByStage {
+  S sigma;
+  T tau;
+};
+}  // namespace detail_periodic
+/** @param g a letter map on every letter, then a permutation of the
+ *  positions: @c power(complement) @c >> @c reverse.  @return the stage that
+ *  fixes it. */
+export template <IsArrow T, typename C, typename S>
+constexpr detail_periodic::FixedByStage<S, T> fixed_by(
+    const Compose<PowerMap<T>, Morphism<std::vector<C>, std::vector<C>, S>>&
+        g) {
+  return {g.g.transform, g.f.tau};
+}
+/** @param g a permutation of the positions, then a letter map on every
+ *  letter: the same section, the two commuting.  @return the stage. */
+export template <IsArrow T, typename C, typename S>
+constexpr detail_periodic::FixedByStage<S, T> fixed_by(
+    const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
+        g) {
+  return {g.f.transform, g.g.tau};
+}
+/** @brief The powers, then the sections each fixes: a family of sets of
+ *  words by length, @c powers(Σ) @c >> @c fixed_by(g).
+ *  @param ps the powers.  @param st the stage.  @return the family. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr auto operator>>(const Powers<C, F, N>& ps,
+                          const detail_periodic::FixedByStage<S, T>& st) {
+  return ps >> FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau};
+}
+
+/** @brief A permutation family coherent across lengths: from @c n to
+ *  @c n @c + @c 2 its cycle type gains cycles and changes none.  The
+ *  reversal's is: the longer chain's antitone bijection restricted to the
+ *  middle is the shorter's, with one more pair outside (@c
+ *  antitone_cycle_type).  A rotation's follows @f$\gcd(n, d)@f$ and is
+ *  not.  Coherence is naturality: the family is a natural transformation of
+ *  the powers over the chains and their middle inclusions @f$n
+ *  \hookrightarrow n + 2@f$ (@c IsNaturalTransformation, @c :natural), as it
+ *  is natural over the letter maps already (@c power(τ) commutes with it).
+ *  Sufficient, not necessary: @c rotate(1) is not coherent, yet its
+ *  sections' density @f$|\Sigma| / |\Sigma|^n@f$ falls.  A struct trait, for
+ *  a family to register by one specialisation.  @tparam S the permutation. */
+export template <typename S>
+struct length_coherent : std::false_type {};
+template <>
+struct length_coherent<Reverse> : std::true_type {};
+
+/** @brief A family of sets of words whose density does not grow along the
+ *  even lengths.  Derived, not registered per family: the powers have
+ *  density 1; fixing a permutation keeps it at most 1, cycle by cycle; a
+ *  length-coherent permutation adds cycles from @c n to @c n @c + @c 2, each
+ *  at most 1, so the density along the even lengths does not grow (the
+ *  restriction sites: @f$k^j / |\Sigma|^{2j}@f$ of length @f$2j@f$, @c k the
+ *  letters @f$\tau^2@f$ fixes).  @tparam Fam the family. */
+export template <typename Fam>
+struct density_falls_on_even_lengths : std::false_type {};
+template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires length_coherent<S>::value
+struct density_falls_on_even_lengths<
+    Compose<Powers<C, F, N>, FixedBy<Power<C, F, N>, S, T>>> : std::true_type {
+};
+
 /** @brief An outer product of two counted tensors, its count the product of
  *  theirs.  @tparam A @tparam B the factors. */
 export template <typename A, typename B>
@@ -1273,11 +1466,15 @@ struct Outer {
  *  bounds: a shape, so an outer product of two is one too. */
 export template <typename X>
 concept HasFactors = requires(const X& x) {
-  requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(x)),
-                                               std::size_t>;
+  requires detail_periodic::IsBoundedFactorsOf<
+      decltype(count_factors(x)),
+      detail_periodic::word_of_t<decltype(count_factors(x))>>;
 };
 /** @param a @param b two counted tensors.  @return their outer product. */
 export template <HasFactors A, HasFactors B>
+  requires std::same_as<
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<A>()))>,
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<B>()))>>
 constexpr Outer<A, B> operator*(const A& a, const B& b) {
   return {a, b};
 }
@@ -1403,6 +1600,69 @@ constexpr std::optional<N> exact_count(const L& fs) {
   return std::ranges::fold_left(fs, std::optional<N>{1},
                                 detail_periodic::CheckedFactor<N>{});
 }
+/** @brief @f$\lceil \log_2 \rceil@f$, the bits a positive count's
+ *  predecessor occupies: a lax monoid homomorphism @f$(\mathbb{N}_{>0},
+ *  \times) \to (\mathbb{N}, +)@f$, @f$\lceil \log_2 ab \rceil \le \lceil
+ *  \log_2 a \rceil + \lceil \log_2 b \rceil@f$, carrying the power action,
+ *  @f$\lceil \log_2 b^e \rceil \le e \lceil \log_2 b \rceil@f$.  The
+ *  inequality is the soundness of reading a count's width off its factors.
+ *  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct CeilLog2 {
+  using Domain = N;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(N b) const {
+    return static_cast<std::size_t>(std::bit_width(static_cast<N>(b - 1)));
+  }
+};
+namespace detail_periodic {
+/** @brief One factor into the width: its power's image under
+ *  @c CeilLog2, @f$e \lceil \log_2 b \rceil@f$, added saturating, the
+ *  @f$(\mathbb{N}, +)@f$ side of @c TimesPower's fold. */
+template <IsCountWord N>
+struct PlusLogPower {
+  constexpr std::size_t operator()(std::size_t acc, const Factor<N>& f) const {
+    constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+    const std::size_t w = CeilLog2<N>{}(f.base);
+    if (w != 0 && static_cast<std::size_t>(f.exponent) > top / w) return top;
+    const std::size_t these = static_cast<std::size_t>(f.exponent) * w;
+    return these > top - acc ? top : acc + these;
+  }
+};
+}  // namespace detail_periodic
+/** @brief The bits a count needs at most, read off its factors without
+ *  multiplying them: @f$\prod b_i^{e_i} \le 2^S@f$ with @f$S = \sum e_i
+ *  \lceil \log_2 b_i \rceil@f$, so at most @f$S + 1@f$ bits, @c S + 1 exactly
+ *  where the product is @f$2^S@f$; none for an empty factor; saturating.
+ *  The same fold as @c count, in the other monoid: @c count folds
+ *  @f$b^e@f$ by @f$\times@f$, this folds its image under @c CeilLog2 by
+ *  @f$+@f$, and the lax homomorphism between them is the bound.  An
+ *  abstract interpretation (Cousot and Cousot): the abstraction of a Galois
+ *  connection between sets of values and their widths (@c
+ *  IsGaloisConnection), sound by the adjunction.  @f$\mathbb{N}@f$ is the
+ *  filtered colimit of the words @f$\mathbb{N}_{<2^8} \hookrightarrow
+ *  \mathbb{N}_{<2^{16}} \hookrightarrow \cdots@f$ (@c :filtered), and a
+ *  finite count is compact, so it factors through a finite stage: this says
+ *  which, before the count is computed (#1134).
+ *  @param fs the factors.  @return the bits. */
+export template <typename L, IsCountWord N = detail_periodic::word_of_t<L>>
+  requires detail_periodic::IsFactorsOf<L, N>
+constexpr std::size_t bits_needed(const L& fs) {
+  if (std::ranges::any_of(fs, detail_periodic::IsEmptyFactor<N>{})) return 0;
+  const std::size_t s = std::ranges::fold_left(
+      fs, std::size_t{0}, detail_periodic::PlusLogPower<N>{});
+  return s == std::numeric_limits<std::size_t>::max() ? s : s + 1;
+}
+/** @brief The narrowest count word on the ladder holding @c Bits: the stage
+ *  of the filtered colimit a count of that many bits factors through.  The
+ *  rungs are the words whose products stay in them (@c IsCountWord): 32 and
+ *  64 bits; past the top there is none, and the count stays in its factors,
+ *  compared and multiplied exactly there.  @tparam Bits the bits. */
+export template <std::size_t Bits>
+  requires(Bits <= 64)
+using narrowest_count_word =
+    std::conditional_t<(Bits <= 32), std::uint32_t, std::uint64_t>;
+
 /** @param m the truncated free monoid.  @return how many words are shorter
  *  than its bound, exactly, or none where the word cannot hold it: then they
  *  are no sequence a word can index. */
@@ -1838,12 +2098,30 @@ constexpr Cylinder<Power<C, F, N>, S, N> cylinder(const Power<C, F, N>& p,
                                                   Window<N> w, S s) {
   return {p, w, std::move(s)};
 }
+/** @brief The plan of a cylinder, its selection pushed down.  A cylinder
+ *  in Tarski's sense, a predicate on a product in which only some legs
+ *  constrain: the window's legs must lie in the set, the others are free.
+ *  So the predicate moves onto the window's factor,
+ *  @f$\sigma_\varphi(W \times F) = \sigma_\varphi(W) \times F@f$, and the
+ *  cylinder is the set times the power on the free legs, an outer product,
+ *  whatever the window's offset.  Defined where the window fits.
+ *  @param c the cylinder.  @return its plan, an outer product. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
+  }
+constexpr auto pushed_down(const Cylinder<Power<C, F, N>, S, N>& c) {
+  const auto& p = c.power;
+  return c.inner * Power<C, F, N>{p.letters, p.member,
+                                  static_cast<N>(p.length - c.window.length)};
+}
 /** @brief The factors of a cylinder's count, aggregate pushdown (eager
- *  aggregation: Yan and Larson, VLDB 1995): the count of the set the window
- *  lands in, times @f$|\Sigma|^{N - n}@f$ for the legs it leaves free, the
- *  window's offset dropping out.  Empty where no word's window can lie in
- *  the set: a window past the end, or a set of words of another length.
- *  @param c the cylinder.  @return its count, factored. */
+ *  aggregation: Yan and Larson, VLDB 1995), derived rather than stated: the
+ *  selection pushed down (@c pushed_down), then the box law of the outer
+ *  product, the set's count times @f$|\Sigma|^{N - n}@f$ for the free legs.
+ *  Empty where no word's window can lie in the set: a window past the end,
+ *  or a set of words of another length.  @param c the cylinder.
+ *  @return its count, factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires requires(const S& s) {
     requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
@@ -1851,16 +2129,12 @@ export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
 constexpr auto count_factors(const Cylinder<Power<C, F, N>, S, N>& c) {
   const auto& p = c.power;
   const auto q = detail_periodic::power_of(c.inner);
-  using L = AtMost<Factor<N>, decltype(count_factors(c.inner))::capacity + 1>;
+  using L = decltype(count_factors(pushed_down(c)));
   const bool fits =
       detail_periodic::same_legs(p, q) && c.window.length == q.length &&
       c.window.offset <= p.length && q.length <= p.length - c.window.offset;
   if (!fits) return L{}.with(Factor<N>{N{0}, N{1}});
-  return std::ranges::fold_left(count_factors(c.inner), L{},
-                                detail_periodic::With{})
-      .with(count_factors(
-                Power<C, F, N>{p.letters, p.member, p.length - q.length})
-                .front());
+  return count_factors(pushed_down(c));
 }
 
 namespace detail_periodic {
@@ -1887,6 +2161,14 @@ template <typename P, typename S, IsCountWord N>
 constexpr N period(const CylinderFactorsAt<P, S, N>&) {
   return N{1};
 }
+}  // namespace detail_periodic
+/** @brief The cylinder's factors along the offsets are constant by their
+ *  type, R2's translation invariance: the sum of their counts is one count
+ *  times the offsets. */
+template <typename P, typename S, IsCountWord N>
+struct unit_period<detail_periodic::CylinderFactorsAt<P, S, N>>
+    : std::true_type {};
+namespace detail_periodic {
 /** @param f the factors at an offset.  @return the offsets where the window
  *  fits, @c N − @c n + 1, where the law holds. */
 template <typename P, typename S, IsCountWord N>
@@ -1949,6 +2231,12 @@ constexpr std::optional<N> exact_occurrences(const Power<C, F, N>& p,
   const N n = detail_periodic::power_of(s).length;
   if (n > p.length) return N{0};
   using At = detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>;
+  // N - n + 1 offsets leave the word only where n is 0 and N its largest:
+  // none fits then, unless the cylinder is empty and the sum is none.
+  if (p.length - n == std::numeric_limits<N>::max()) {
+    const std::optional<N> c = exact_count(At{p, s, n}(N{0}));
+    return c && *c == 0 ? std::optional<N>{N{0}} : std::nullopt;
+  }
   return exact_sum(static_cast<N>(p.length - n + 1) >> chain<N>() >>
                    (At{p, s, n} >> detail_periodic::ExactCountOf<Cod<At>>{}));
 }

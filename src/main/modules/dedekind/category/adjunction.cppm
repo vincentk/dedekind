@@ -367,11 +367,20 @@ concept IsOrderEmbedding = IsEmbeddingFunctor<F> && IsCovariantFunctor<F, Op>;
  *        adjunction.  Both are monotone arrows; @c F : @c P → @c Q
  *        and @c G : @c Q → @c P with the source/target carriers
  *        crossed (so @c F's @c Codomain matches @c G's @c Domain
- *        and vice versa).  The universal-property test
+ *        and vice versa).  The universal-property test, for monotone
+ *        legs
  *
  *          f(x) ≤ y  ⟺  x ≤ g(y)
  *
- *        holds.  C++ concepts cannot quantify universally over @c x
+ *        and for antitone legs, a polarity (the complement on
+ *        subobjects, @f$a \subseteq \neg b \iff b \subseteq \neg a@f$;
+ *        @f$-x@f$ on @f$\mathbb{Z}@f$)
+ *
+ *          y ≤ f(x)  ⟺  x ≤ g(y)
+ *
+ *        holds.  These are laws of partial orders; on a finite chain
+ *        an antitone bijection is the reversal, so its cycle type is
+ *        known (#1133).  C++ concepts cannot quantify universally over @c x
  *        and @c y, so the equivalence is the law leg @c is_adjoint_v:
  *        derived for a monotone isomorphism and its inverse, registered
  *        where its theorem is stated otherwise; the structural shape names

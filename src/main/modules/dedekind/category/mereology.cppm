@@ -1001,35 +1001,12 @@ concept IsMereologicalSkewLattice =
     IsAbsorptive<T, Join, Meet>;
 
 /**
- * @concept IsMereologicalMeetSemilattice
- * @brief Compatibility alias for a meet-band stage.
- *
- * @note Textbook term:
- * commutative meet-semilattice refinements are modeled in `:posetal`.
- *
- * @see https://en.wikipedia.org/wiki/Semilattice
- */
-export template <typename T, typename Meet = Inf>
-concept IsMereologicalMeetSemilattice = IsMereologicalMeetBand<T, Meet>;
-
-/**
- * @concept IsMereologicalJoinSemilattice
- * @brief Compatibility alias for a join-band stage.
- *
- * @note Textbook term:
- * commutative join-semilattice refinements are modeled in `:posetal`.
- *
- * @see https://en.wikipedia.org/wiki/Semilattice
- */
-export template <typename T, typename Join = Sup>
-concept IsMereologicalJoinSemilattice = IsMereologicalJoinBand<T, Join>;
-
-/**
  * @concept IsMereologicalLatticeOperations
  * @brief Compatibility lattice alias over the skew core + absorption.
  *
  * @details
- * This compatibility alias only requires paired join/meet semilattice stages.
+ * This compatibility alias only requires paired join and meet bands, possibly
+ * non-commutative (a semilattice is a commutative band, in `:posetal`).
  * Strict absorption-based lattice certification is hosted in `:posetal`
  * (`IsOrderLatticeOperations`) so order-theoretic laws and references live in
  * the order partition.
@@ -1041,8 +1018,7 @@ concept IsMereologicalJoinSemilattice = IsMereologicalJoinBand<T, Join>;
  */
 export template <typename T, typename Join = Sup, typename Meet = Inf>
 concept IsMereologicalLatticeOperations =
-    IsMereologicalJoinSemilattice<T, Join> &&
-    IsMereologicalMeetSemilattice<T, Meet>;
+    IsMereologicalJoinBand<T, Join> && IsMereologicalMeetBand<T, Meet>;
 
 /**
  * @concept IsMereologicalDistributiveLatticeOperations

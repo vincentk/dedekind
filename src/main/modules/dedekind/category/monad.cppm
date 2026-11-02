@@ -50,43 +50,6 @@ namespace dedekind::category {
  */
 
 /**
- * @brief Value-level alias for η (eta) with explicit monad-tag dispatch.
- * @details Example: pure(maybe_monad, x), pure(identity_monad, x),
- *          pure(tuple_monad, x).
- */
-export template <typename MonadTag, typename A>
-  requires IsDefaultMonadTag<MonadTag> &&
-           requires(MonadTag tag, A&& v) { η(tag, std::forward<A>(v)); }
-constexpr auto pure(MonadTag tag, A value) {
-  return η(tag, std::move(value));
-}
-
-/** @brief Value-level alias for μ (mu) with explicit monad-tag dispatch. */
-export template <typename MonadTag, typename MMA>
-  requires IsDefaultMonadTag<MonadTag> &&
-           requires(MonadTag tag, MMA const& mma) { μ(tag, mma); }
-constexpr auto join(MonadTag tag, MMA const& mma) {
-  return μ(tag, mma);
-}
-
-/** @brief Value-level alias for ε (epsilon) with explicit monad-tag dispatch.
- */
-export template <typename MonadTag, typename WA>
-  requires IsDefaultMonadTag<MonadTag> &&
-           requires(MonadTag tag, WA const& wa) { ε(tag, wa); }
-constexpr auto extract(MonadTag tag, WA const& wa) {
-  return ε(tag, wa);
-}
-
-/** @brief Value-level alias for δ (delta) with explicit monad-tag dispatch. */
-export template <typename MonadTag, typename WA>
-  requires IsDefaultMonadTag<MonadTag> &&
-           requires(MonadTag tag, WA const& wa) { δ(tag, wa); }
-constexpr auto duplicate(MonadTag tag, WA const& wa) {
-  return δ(tag, wa);
-}
-
-/**
  * @section monad__Monad_as_Monoid
  * We bridge the gap:
  *   η (Unit)           <--> unit_v (Monoid Unit)

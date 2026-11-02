@@ -447,4 +447,25 @@ constexpr auto chain() {
   return chain(Prior<N>{});
 }
 
+/** @concept IsFiniteChainSequence
+ *  @brief A sequence on finite chains: an arrow out of the counts, read
+ *  along a chain of them (the Jlt paper's Figure 2, its vertical arrows).
+ *  The chain is finite by its descent and ordered by its step, so the
+ *  sequence needs no set concept; its laws, a period or an order kept or
+ *  reversed, are laws of the composite @c chain @c >> @c f, and the folds
+ *  read them (#1133).  @tparam F the arrow. */
+export template <typename F>
+concept IsFiniteChainSequence = IsArrow<F> && IsCountWord<Dom<F>>;
+// Out of the counts a sequence; out of the letters a map on their chain.
+static_assert(IsFiniteChainSequence<Successor<std::size_t>> &&
+              !IsFiniteChainSequence<Identity<std::byte>>);
+
+/** @brief The finite sequence as a value, @c n @c >> @c chain<N>() @c >> @c f:
+ *  the chain of @c n read by @c f, never built.  A fold over it is the list
+ *  as its fold, the Church encoding (#1133).  @tparam N the counts.
+ *  @tparam F the arrow. */
+export template <IsCountWord N, IsFiniteChainSequence F>
+using FiniteChainSequence =
+    unfold_view<N, Mapped<N, StepCoalgebra<N, Prior<N>>, F>>;
+
 }  // namespace dedekind::category
