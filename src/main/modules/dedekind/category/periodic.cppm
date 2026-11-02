@@ -1353,11 +1353,15 @@ struct Outer {
  *  bounds: a shape, so an outer product of two is one too. */
 export template <typename X>
 concept HasFactors = requires(const X& x) {
-  requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(x)),
-                                               std::size_t>;
+  requires detail_periodic::IsBoundedFactorsOf<
+      decltype(count_factors(x)),
+      detail_periodic::word_of_t<decltype(count_factors(x))>>;
 };
 /** @param a @param b two counted tensors.  @return their outer product. */
 export template <HasFactors A, HasFactors B>
+  requires std::same_as<
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<A>()))>,
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<B>()))>>
 constexpr Outer<A, B> operator*(const A& a, const B& b) {
   return {a, b};
 }
@@ -1918,12 +1922,30 @@ constexpr Cylinder<Power<C, F, N>, S, N> cylinder(const Power<C, F, N>& p,
                                                   Window<N> w, S s) {
   return {p, w, std::move(s)};
 }
+/** @brief The plan of a cylinder, its selection pushed down.  A cylinder
+ *  in Tarski's sense, a predicate on a product in which only some legs
+ *  constrain: the window's legs must lie in the set, the others are free.
+ *  So the predicate moves onto the window's factor,
+ *  @f$\sigma_\varphi(W \times F) = \sigma_\varphi(W) \times F@f$, and the
+ *  cylinder is the set times the power on the free legs, an outer product,
+ *  whatever the window's offset.  Defined where the window fits.
+ *  @param c the cylinder.  @return its plan, an outer product. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
+  requires requires(const S& s) {
+    requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
+  }
+constexpr auto pushed_down(const Cylinder<Power<C, F, N>, S, N>& c) {
+  const auto& p = c.power;
+  return c.inner * Power<C, F, N>{p.letters, p.member,
+                                  static_cast<N>(p.length - c.window.length)};
+}
 /** @brief The factors of a cylinder's count, aggregate pushdown (eager
- *  aggregation: Yan and Larson, VLDB 1995): the count of the set the window
- *  lands in, times @f$|\Sigma|^{N - n}@f$ for the legs it leaves free, the
- *  window's offset dropping out.  Empty where no word's window can lie in
- *  the set: a window past the end, or a set of words of another length.
- *  @param c the cylinder.  @return its count, factored. */
+ *  aggregation: Yan and Larson, VLDB 1995), derived rather than stated: the
+ *  selection pushed down (@c pushed_down), then the box law of the outer
+ *  product, the set's count times @f$|\Sigma|^{N - n}@f$ for the free legs.
+ *  Empty where no word's window can lie in the set: a window past the end,
+ *  or a set of words of another length.  @param c the cylinder.
+ *  @return its count, factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires requires(const S& s) {
     requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
@@ -1931,16 +1953,12 @@ export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
 constexpr auto count_factors(const Cylinder<Power<C, F, N>, S, N>& c) {
   const auto& p = c.power;
   const auto q = detail_periodic::power_of(c.inner);
-  using L = AtMost<Factor<N>, decltype(count_factors(c.inner))::capacity + 1>;
+  using L = decltype(count_factors(pushed_down(c)));
   const bool fits =
       detail_periodic::same_legs(p, q) && c.window.length == q.length &&
       c.window.offset <= p.length && q.length <= p.length - c.window.offset;
   if (!fits) return L{}.with(Factor<N>{N{0}, N{1}});
-  return std::ranges::fold_left(count_factors(c.inner), L{},
-                                detail_periodic::With{})
-      .with(count_factors(
-                Power<C, F, N>{p.letters, p.member, p.length - q.length})
-                .front());
+  return count_factors(pushed_down(c));
 }
 
 namespace detail_periodic {

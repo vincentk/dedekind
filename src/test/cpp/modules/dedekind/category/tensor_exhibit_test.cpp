@@ -316,6 +316,16 @@ static_assert(occurrences(power(nucleotides, 12), sites_6) == 1'835'008uz &&
                   1'835'008uz &&
               occurrences(power(nucleotides, 4), sites_6) == 0uz &&
               !exact_occurrences(power(nucleotides, 40), sites_6).has_value());
+// The plan of a cylinder, its selection pushed down: the sites times the
+// power on the six free legs, an outer product whatever the offset, its
+// count the box law's.  EXPLAIN as a static_assert.
+using dedekind::category::Outer;
+using dedekind::category::pushed_down;
+static_assert(
+    std::same_as<decltype(pushed_down(cylinder(power(nucleotides, 12),
+                                               window(3, 6), sites_6))),
+                 Outer<std::remove_cvref_t<decltype(sites_6)>,
+                       std::remove_cvref_t<decltype(power(nucleotides, 6))>>>);
 // The same count as a query: COUNT(*) over the join on the window.
 using dedekind::category::join;
 static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
