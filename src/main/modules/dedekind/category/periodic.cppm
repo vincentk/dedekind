@@ -1600,6 +1600,53 @@ constexpr std::optional<N> exact_count(const L& fs) {
   return std::ranges::fold_left(fs, std::optional<N>{1},
                                 detail_periodic::CheckedFactor<N>{});
 }
+namespace detail_periodic {
+/** @brief One factor's bits into the bound, saturating:
+ *  @f$e \lceil \log_2 b \rceil@f$, the ceiling read as @c bit_width(b - 1). */
+template <IsCountWord N>
+struct BitsOf {
+  constexpr std::size_t operator()(std::size_t acc, const Factor<N>& f) const {
+    constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+    const auto width =
+        static_cast<std::size_t>(std::bit_width(static_cast<N>(f.base - 1)));
+    if (width != 0 && static_cast<std::size_t>(f.exponent) > top / width) {
+      return top;
+    }
+    const std::size_t these = static_cast<std::size_t>(f.exponent) * width;
+    return these > top - acc ? top : acc + these;
+  }
+};
+}  // namespace detail_periodic
+/** @brief The bits a count needs at most, read off its factors without
+ *  multiplying them: @f$\prod b_i^{e_i} \le 2^S@f$ with @f$S = \sum e_i
+ *  \lceil \log_2 b_i \rceil@f$, so at most @f$S + 1@f$ bits, @c S + 1 exactly
+ *  where the product is @f$2^S@f$; none for an empty factor; saturating.  An
+ *  abstract interpretation (Cousot and Cousot): the abstraction of a Galois
+ *  connection between sets of values and their widths (@c
+ *  IsGaloisConnection), sound by the adjunction.  @f$\mathbb{N}@f$ is the
+ *  filtered colimit of the words @f$\mathbb{N}_{<2^8} \hookrightarrow
+ *  \mathbb{N}_{<2^{16}} \hookrightarrow \cdots@f$ (@c :filtered), and a
+ *  finite count is compact, so it factors through a finite stage: this says
+ *  which, before the count is computed (#1134).
+ *  @param fs the factors.  @return the bits. */
+export template <typename L, IsCountWord N = detail_periodic::word_of_t<L>>
+  requires detail_periodic::IsFactorsOf<L, N>
+constexpr std::size_t bits_needed(const L& fs) {
+  if (std::ranges::any_of(fs, detail_periodic::IsEmptyFactor<N>{})) return 0;
+  const std::size_t s =
+      std::ranges::fold_left(fs, std::size_t{0}, detail_periodic::BitsOf<N>{});
+  return s == std::numeric_limits<std::size_t>::max() ? s : s + 1;
+}
+/** @brief The narrowest count word on the ladder holding @c Bits: the stage
+ *  of the filtered colimit a count of that many bits factors through.  The
+ *  rungs are the words whose products stay in them (@c IsCountWord): 32 and
+ *  64 bits; past the top there is none, and the count stays in its factors,
+ *  compared and multiplied exactly there.  @tparam Bits the bits. */
+export template <std::size_t Bits>
+  requires(Bits <= 64)
+using narrowest_count_word =
+    std::conditional_t<(Bits <= 32), std::uint32_t, std::uint64_t>;
+
 /** @param m the truncated free monoid.  @return how many words are shorter
  *  than its bound, exactly, or none where the word cannot hold it: then they
  *  are no sequence a word can index. */

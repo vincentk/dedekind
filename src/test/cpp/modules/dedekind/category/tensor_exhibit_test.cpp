@@ -376,6 +376,22 @@ TEST_CASE("Category: the fused ranking agrees with the law's",
               order_by<descending>(opaque(cuts_in_12)) >> take<5>()),
       std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
 }
+// The word, chosen by law: the join's count needs at most 22 bits by its
+// factors (7 · 4^3 · 4^6: 3 + 6 + 12, and one), read before it is computed;
+// it needs 21.  The narrowest count word holds it, and counted in that word
+// it is the same count.
+using dedekind::category::bits_needed;
+using dedekind::category::narrowest_count_word;
+static_assert(bits_needed(count_factors(dedekind::category::join(
+                  power(nucleotides, 12), sites_6))) == 22 &&
+              std::bit_width(1'835'008uz) == 21);
+using SiteCount = narrowest_count_word<bits_needed(
+    count_factors(dedekind::category::join(power(nucleotides, 12), sites_6)))>;
+static_assert(std::same_as<SiteCount, std::uint32_t>);
+static_assert(occurrences(power<SiteCount>(nucleotides, 12),
+                          symmetric(power<SiteCount>(nucleotides, 6),
+                                    power(complement) >> reverse)) ==
+              1'835'008u);
 // The same count as a query: COUNT(*) over the join on the window.
 using dedekind::category::join;
 static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
