@@ -121,3 +121,16 @@ extern "C" __attribute__((noinline)) U64 research_b_staged_dynamic_u64(U64 L,
   return c ? occurrences(genomes, sites_6)
            : occurrences(genomes, palindromes_6);
 }
+
+// The join's plan: the count as a product of factors (the offsets, the
+// sites', the free legs'), no sum over the offsets on its path.  Both lengths
+// free, and the site staged.
+using dedekind::category::join;
+extern "C" __attribute__((noinline)) U64 research_a_join_u64(U64 L, U64 n) {
+  return count(join(
+      power<U64>(nucleotides, L),
+      symmetric(power<U64>(nucleotides, n), power(complement) >> reverse)));
+}
+extern "C" __attribute__((noinline)) U64 research_b_join_staged_u64(U64 L) {
+  return count(join(power<U64>(nucleotides, L), sites_6));
+}

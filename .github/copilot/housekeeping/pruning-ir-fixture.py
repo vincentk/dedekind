@@ -496,7 +496,8 @@ def branch_on_flag(block: str) -> str:
 # The bodies the table summarises, read in full: the stages the listing
 # shows, at both levels.
 READ_IN_FULL = ("research_a_static_u64", "research_b_staged_static_u64",
-                "research_bp_staged_static_u64")
+                "research_bp_staged_static_u64", "research_a_join_u64",
+                "research_b_join_staged_u64")
 
 
 def research() -> int:
