@@ -268,12 +268,12 @@ constexpr WindowJoin<P, S> join(P p, S s) {
  * factor of the product.  @tparam N the counts. */
 export template <IsCountWord N>
 struct Offsets {
-  N count;
+  Factor<N> factor;  ///< m as m^1, or as 2^w where m is 2^w, past the word
 };
 /** @param o the offsets.  @return their count, one factor. */
 export template <IsCountWord N>
 constexpr AtMost<Factor<N>, 1> count_factors(const Offsets<N>& o) {
-  return AtMost<Factor<N>, 1>{}.with(Factor<N>{o.count, N{1}});
+  return AtMost<Factor<N>, 1>{}.with(o.factor);
 }
 /** @brief The plan of a join on the window, @c EXPLAIN: the offsets times
  *  the cylinder at the first, an outer product, the cylinder in turn its
@@ -286,8 +286,13 @@ export template <typename P, typename S>
 constexpr auto explain(const WindowJoin<P, S>& j) {
   const auto n = detail_periodic::power_of(j.inner).length;
   using N = std::remove_cvref_t<decltype(n)>;
-  return Offsets<N>{static_cast<N>(j.power.length - n + 1)} *
-         cylinder(j.power, window<N>(N{0}, n), j.inner);
+  // N - n + 1 offsets, kept symbolic where they are 2^w and leave the word
+  const N below = static_cast<N>(j.power.length - n);
+  const Factor<N> m =
+      below == std::numeric_limits<N>::max()
+          ? Factor<N>{N{2}, static_cast<N>(std::numeric_limits<N>::digits)}
+          : Factor<N>{static_cast<N>(below + 1), N{1}};
+  return Offsets<N>{m} * cylinder(j.power, window<N>(N{0}, n), j.inner);
 }
 /** @brief The factors of a join's count: its plan's, the box law throughout,
  *  with no sum over the offsets left; none where no window fits.
@@ -482,14 +487,33 @@ struct Taken {
   }
 };
 
-/** @brief One more element into a bounded query, present. */
-struct WithPresent {
-  template <std::semiregular T, std::size_t K>
-  constexpr AtMost<Maybe<T>, K> operator()(const AtMost<Maybe<T>, K>& q,
-                                           const T& x) const {
-    return q.with(Maybe<T>{x});
+/** @brief The value a query's element carries: the @c Maybe's, or the
+ *  element itself in a plain sequence. */
+template <typename E>
+struct element_of {
+  using type = E;
+};
+template <typename T>
+struct element_of<Maybe<T>> {
+  using type = T;
+};
+/** @brief The coalgebra reading a bounded list position by position, each
+ *  element present: a value on the stack walked as any query, so every
+ *  stage composes after it. */
+template <std::semiregular T, std::size_t K>
+struct Read {
+  AtMost<T, K> list;
+  constexpr std::optional<std::pair<Maybe<T>, std::size_t>> operator()(
+      std::size_t i) const {
+    if (i >= list.size()) return std::nullopt;
+    return std::pair<Maybe<T>, std::size_t>{Maybe<T>{list.items[i]}, i + 1};
   }
 };
+/** @param list a bounded list.  @return it as a query. */
+template <std::semiregular T, std::size_t K>
+constexpr unfold_view<std::size_t, Read<T, K>> walk(const AtMost<T, K>& list) {
+  return unfold(std::size_t{0}, Read<T, K>{list});
+}
 /** @brief @c order_by without a law to read, pending its @c take: it needs
  *  the whole query, so only the fused @c order_by @c >> @c take<K> is
  *  offered, never the sort alone (it would need the caller's buffer). */
@@ -569,13 +593,23 @@ namespace detail_comprehension {
  *  sort.  @return the best @c K, best first, as a query. */
 template <std::size_t K, typename Q, typename Rank, typename Order>
 constexpr auto fused_take(const Pending<Q, Rank, Order>& p) {
-  using T = typename std::ranges::range_value_t<Q>::value_type;
-  return std::ranges::fold_left(
-      std::ranges::fold_left(
-          p.query, AtMost<T, K>{},
-          lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
-              {p.by.rank, p.by.order}})),
-      AtMost<Maybe<T>, K>{}, detail_comprehension::WithPresent{});
+  using E = std::ranges::range_value_t<Q>;
+  using T = typename element_of<E>::type;
+  const KeepBest<T, K, Rank, Order> keep{{p.by.rank, p.by.order}};
+  if constexpr (IsMaybe<E>) {
+    return walk(std::ranges::fold_left(p.query, AtMost<T, K>{}, lifted(keep)));
+  } else {
+    return walk(std::ranges::fold_left(p.query, AtMost<T, K>{}, keep));
+  }
+}
+/** @brief Whether a rank of lengths stays exact from length @c l on: its
+ *  values do not grow there, so the largest is at @c l, and it fits the
+ *  word where its factors say so (@c bits_needed): the product law's extent,
+ *  decided by one count, before any is compared. */
+template <IsArrow F, typename J, IsCountWord N>
+constexpr bool fits_the_word(const Compose<F, Counting<J>>& rank, N l) {
+  return bits_needed(count_factors(rank.f(l))) <=
+         static_cast<std::size_t>(std::numeric_limits<N>::digits);
 }
 /** @brief The progression @f$j \mapsto m j + r@f$, a residue class's members
  *  in order: a congruence filter on a chain read as a chain of its own. */
@@ -613,30 +647,44 @@ constexpr auto operator>>(
  *  @param p the pending sort.  @return the first @c K lengths. */
 export template <IsCountWord N, typename Rank, std::size_t K>
   requires antitone_on_even_lengths<Rank>::value
-constexpr AtMost<Maybe<N>, K> operator>>(
+constexpr auto operator>>(
     const detail_comprehension::Pending<
         unfold_view<std::optional<N>,
                     detail_chain::SliceStep<N, Where<Congruent<N>>>>,
         Rank, descending>& p,
     Take<K>) {
   const Congruent<N> c = p.query.coalgebra().f.p;
-  if (c.modulus % 2 != 0) return detail_comprehension::fused_take<K>(p);
   const N hi = p.query.coalgebra().hi;
   const N lo = p.query.seed().value_or(hi);
-  const N first = static_cast<N>(
-      lo + (c.modulus + c.residue % c.modulus - lo % c.modulus) % c.modulus);
-  const N members =
-      first < hi ? static_cast<N>((hi - first - 1) / c.modulus + 1) : N{0};
+  const N m = c.modulus;
+  const N r = c.residue;
+  // no member: a residue at or past the modulus, or an empty slice
+  if (m == 0 || r >= m || lo >= hi) {
+    return detail_comprehension::walk(AtMost<N, K>{});
+  }
+  if (m % 2 != 0) return detail_comprehension::fused_take<K>(p);
+  // the first member, by subtraction, so nothing wraps near the word's top
+  const N below = static_cast<N>(lo % m);
+  const N d =
+      r >= below ? static_cast<N>(r - below) : static_cast<N>(m - (below - r));
+  if (d >= hi - lo) return detail_comprehension::walk(AtMost<N, K>{});
+  const N first = static_cast<N>(lo + d);
+  // the law is the exact counts': it holds while they fit the word, which
+  // the largest, the first member's, decides (the product law's extent)
+  if (!detail_comprehension::fits_the_word(p.by.rank, first)) {
+    return detail_comprehension::fused_take<K>(p);
+  }
+  const N members = static_cast<N>((hi - first - 1) / m + 1);
   const N taken = members < N{K} ? members : N{K};
-  return std::ranges::fold_left(
-      slice(N{0}, taken) >>
-          detail_comprehension::Progression<N>{c.modulus, first},
-      AtMost<Maybe<N>, K>{}, detail_comprehension::WithPresent{});
+  return detail_comprehension::walk(std::ranges::fold_left(
+      slice(N{0}, taken) >> detail_comprehension::Progression<N>{m, first},
+      AtMost<N, K>{}, detail_periodic::With{}));
 }
 
 /** @brief A query's present elements as a value, bounded by its @c take:
- *  the @c ext boundary, where a list is asked for (#1133).  @param q a
- *  taken query.  @return its elements, on the stack. */
+ *  the @c ext boundary, where a list is asked for (#1133).  A plain
+ *  sequence's elements as they are, a query's unwrapped.  @param q a taken
+ *  query or sequence.  @return its elements, on the stack. */
 export template <std::regular S, std::semiregular Coalg, std::size_t K>
 constexpr auto collect(
     const unfold_view<std::pair<S, std::size_t>,
@@ -644,16 +692,19 @@ constexpr auto collect(
   using E = typename unfold_view<
       std::pair<S, std::size_t>,
       detail_comprehension::Taken<S, Coalg, K>>::element_type;
-  using T = typename E::value_type;
-  return std::ranges::fold_left(q, AtMost<T, K>{},
-                                lifted(detail_periodic::With{}));
+  using T = typename detail_comprehension::element_of<E>::type;
+  if constexpr (detail_comprehension::IsMaybe<E>) {
+    return std::ranges::fold_left(q, AtMost<T, K>{},
+                                  lifted(detail_periodic::With{}));
+  } else {
+    return std::ranges::fold_left(q, AtMost<T, K>{}, detail_periodic::With{});
+  }
 }
-/** @param best the best @c K, a query already on the stack.  @return its
- *  elements as a plain list. */
-export template <typename T, std::size_t K>
-constexpr AtMost<T, K> collect(const AtMost<Maybe<T>, K>& best) {
-  return std::ranges::fold_left(best, AtMost<T, K>{},
-                                lifted(detail_periodic::With{}));
+/** @param q a bounded list walked as a query.  @return the list. */
+export template <std::semiregular T, std::size_t K>
+constexpr AtMost<T, K> collect(
+    const unfold_view<std::size_t, detail_comprehension::Read<T, K>>& q) {
+  return q.coalgebra().list;
 }
 
 // The laws, witnessed.  A filter keeps exactly what the characteristic
@@ -695,6 +746,19 @@ static_assert(count(3uz >> chain<std::size_t>() >> where(is_even) >>
               count(3uz >> chain<std::size_t>() >> where(is_even) >>
                     order_by<descending>(Identity<std::size_t>{}) >>
                     take<2>()));
+// A plain chain ranks and takes as a query does; a ranked, taken query takes
+// again (its result is still a walk); and a plain take collects as itself.
+static_assert(std::ranges::equal(collect(3uz >> chain<std::size_t>() >>
+                                         order_by(Identity<std::size_t>{}) >>
+                                         take<2>()),
+                                 std::array{0uz, 1uz}));
+static_assert(
+    std::ranges::equal(collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+                               order_by<descending>(Successor<std::size_t>{}) >>
+                               take<2>() >> take<1>()),
+                       std::array{8uz}));
+static_assert(std::ranges::equal(
+    collect(3uz >> chain<std::size_t>() >> take<2>()), std::array{2uz, 1uz}));
 // ORDER BY ... LIMIT three ways.  Sorted by construction: a monotone rank
 // descending is the walk's own order, an antitone one the walk reversed;
 // with no law the fused pass keeps the best K.  Of 0, ..., 9 the even ones:
