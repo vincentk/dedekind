@@ -1600,19 +1600,32 @@ constexpr std::optional<N> exact_count(const L& fs) {
   return std::ranges::fold_left(fs, std::optional<N>{1},
                                 detail_periodic::CheckedFactor<N>{});
 }
+/** @brief @f$\lceil \log_2 \rceil@f$, the bits a positive count's
+ *  predecessor occupies: a lax monoid homomorphism @f$(\mathbb{N}_{>0},
+ *  \times) \to (\mathbb{N}, +)@f$, @f$\lceil \log_2 ab \rceil \le \lceil
+ *  \log_2 a \rceil + \lceil \log_2 b \rceil@f$, carrying the power action,
+ *  @f$\lceil \log_2 b^e \rceil \le e \lceil \log_2 b \rceil@f$.  The
+ *  inequality is the soundness of reading a count's width off its factors.
+ *  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct CeilLog2 {
+  using Domain = N;
+  using Codomain = std::size_t;
+  constexpr std::size_t operator()(N b) const {
+    return static_cast<std::size_t>(std::bit_width(static_cast<N>(b - 1)));
+  }
+};
 namespace detail_periodic {
-/** @brief One factor's bits into the bound, saturating:
- *  @f$e \lceil \log_2 b \rceil@f$, the ceiling read as @c bit_width(b - 1). */
+/** @brief One factor into the width: its power's image under
+ *  @c CeilLog2, @f$e \lceil \log_2 b \rceil@f$, added saturating, the
+ *  @f$(\mathbb{N}, +)@f$ side of @c TimesPower's fold. */
 template <IsCountWord N>
-struct BitsOf {
+struct PlusLogPower {
   constexpr std::size_t operator()(std::size_t acc, const Factor<N>& f) const {
     constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
-    const auto width =
-        static_cast<std::size_t>(std::bit_width(static_cast<N>(f.base - 1)));
-    if (width != 0 && static_cast<std::size_t>(f.exponent) > top / width) {
-      return top;
-    }
-    const std::size_t these = static_cast<std::size_t>(f.exponent) * width;
+    const std::size_t w = CeilLog2<N>{}(f.base);
+    if (w != 0 && static_cast<std::size_t>(f.exponent) > top / w) return top;
+    const std::size_t these = static_cast<std::size_t>(f.exponent) * w;
     return these > top - acc ? top : acc + these;
   }
 };
@@ -1620,7 +1633,10 @@ struct BitsOf {
 /** @brief The bits a count needs at most, read off its factors without
  *  multiplying them: @f$\prod b_i^{e_i} \le 2^S@f$ with @f$S = \sum e_i
  *  \lceil \log_2 b_i \rceil@f$, so at most @f$S + 1@f$ bits, @c S + 1 exactly
- *  where the product is @f$2^S@f$; none for an empty factor; saturating.  An
+ *  where the product is @f$2^S@f$; none for an empty factor; saturating.
+ *  The same fold as @c count, in the other monoid: @c count folds
+ *  @f$b^e@f$ by @f$\times@f$, this folds its image under @c CeilLog2 by
+ *  @f$+@f$, and the lax homomorphism between them is the bound.  An
  *  abstract interpretation (Cousot and Cousot): the abstraction of a Galois
  *  connection between sets of values and their widths (@c
  *  IsGaloisConnection), sound by the adjunction.  @f$\mathbb{N}@f$ is the
@@ -1633,8 +1649,8 @@ export template <typename L, IsCountWord N = detail_periodic::word_of_t<L>>
   requires detail_periodic::IsFactorsOf<L, N>
 constexpr std::size_t bits_needed(const L& fs) {
   if (std::ranges::any_of(fs, detail_periodic::IsEmptyFactor<N>{})) return 0;
-  const std::size_t s =
-      std::ranges::fold_left(fs, std::size_t{0}, detail_periodic::BitsOf<N>{});
+  const std::size_t s = std::ranges::fold_left(
+      fs, std::size_t{0}, detail_periodic::PlusLogPower<N>{});
   return s == std::numeric_limits<std::size_t>::max() ? s : s + 1;
 }
 /** @brief The narrowest count word on the ladder holding @c Bits: the stage
