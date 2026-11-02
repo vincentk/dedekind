@@ -337,15 +337,15 @@ constexpr auto bind(MonadTag tag, MA const& ma, F f) {
 
 /**
  * @brief extend with explicit monad-tag dispatch.
- * @details Default route: extend(tag, wa, f) = W(f)(duplicate(tag, wa)).
+ * @details Default route: extend(tag, wa, f) = W(f)(δ(tag, wa)).
  */
 export template <typename MonadTag, typename WA, typename F>
   requires IsDefaultMonadTag<MonadTag> &&
            requires(MonadTag tag, WA const& wa, F&& f) {
-             detail_kleisli::lifted(duplicate(tag, wa), std::forward<F>(f));
+             detail_kleisli::lifted(δ(tag, wa), std::forward<F>(f));
            }
 constexpr auto extend(MonadTag tag, WA const& wa, F f) {
-  return detail_kleisli::lifted(duplicate(tag, wa), std::move(f));
+  return detail_kleisli::lifted(δ(tag, wa), std::move(f));
 }
 
 /** @section kleisli__Kleisli_Bind_Operators */

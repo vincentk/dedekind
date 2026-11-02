@@ -45,15 +45,15 @@ TEST_CASE("Category: Monad and Comonad Concepts", "[category][monad]") {
 }
 
 TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
-  SECTION("pure and join route to η/μ for Maybe") {
-    CHECK(pure(maybe_monad, 3) == std::optional<int>{3});
+  SECTION("η and μ for Maybe") {
+    CHECK(η(maybe_monad, 3) == std::optional<int>{3});
 
     std::optional<std::optional<int>> nested{std::optional<int>{8}};
     CHECK(μ(maybe_monad, nested) == std::optional<int>{8});
   }
 
-  SECTION("pure and join route to η/μ for Identity") {
-    auto p = pure(identity_monad, 3);
+  SECTION("η and μ for Identity") {
+    auto p = η(identity_monad, 3);
     STATIC_CHECK(std::same_as<decltype(p), Identity<int>>);
     CHECK(p(3) == 3);
 
@@ -62,14 +62,14 @@ TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
     CHECK(j(8) == 8);
   }
 
-  SECTION("pure, join, extract, duplicate route through tuple defaults") {
+  SECTION("η, μ, ε, δ through the tuple defaults") {
     // std::tuple<T> is the project's bona-fide Frobenius carrier
     // per #632 — both monad and comonad laws hold without concession.
-    CHECK(pure(tuple_monad, 2) == std::tuple<int>{2});
+    CHECK(η(tuple_monad, 2) == std::tuple<int>{2});
     CHECK(μ(tuple_monad, std::tuple<std::tuple<int>>{std::tuple<int>{6}}) ==
           std::tuple<int>{6});
-    CHECK(extract(tuple_monad, std::tuple<int>{9}) == 9);
-    CHECK(duplicate(tuple_monad, std::tuple<int>{9}) ==
+    CHECK(ε(tuple_monad, std::tuple<int>{9}) == 9);
+    CHECK(δ(tuple_monad, std::tuple<int>{9}) ==
           std::tuple<std::tuple<int>>{std::tuple<int>{9}});
   }
 }
