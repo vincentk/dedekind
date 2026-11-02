@@ -191,21 +191,21 @@ struct Join {
  *  @return the join of @c p and @c s on the window. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
-constexpr Join<P, S> join(P p, S s) {
+constexpr WindowJoin<P, S> join(P p, S s) {
   return {std::move(p), std::move(s)};
 }
 /** @param j a join on the window.  @return its count, @c COUNT(*), modulo
  *  the word: @c occurrences. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
-constexpr auto count(const Join<P, S>& j) {
+constexpr auto count(const WindowJoin<P, S>& j) {
   return occurrences(j.power, j.inner);
 }
 /** @param j a join on the window.  @return its count exactly, or none
  *  where the word cannot hold it: @c exact_occurrences. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
-constexpr auto exact_count(const Join<P, S>& j) {
+constexpr auto exact_count(const WindowJoin<P, S>& j) {
   return exact_occurrences(j.power, j.inner);
 }
 
