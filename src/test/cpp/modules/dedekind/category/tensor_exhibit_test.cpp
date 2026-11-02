@@ -414,7 +414,8 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 // half's reverse complement, the complement on ranks x ↦ 3 - x.
 TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
           "[category][tensor][automaton]") {
-  using Count = std::uint16_t;
+  using Count =
+      std::uint32_t;  // uint16_t promotes to int under *, no count word
   using dedekind::category::AtMost;
   using dedekind::category::RunList;
   std::array<Count, 64> palindromes{};
