@@ -361,11 +361,15 @@ static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
                                          order_by<descending>(cuts_in_12) >>
                                          take<5>()),
                                  std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
-static_assert(std::ranges::equal(
-    collect(dedekind::category::slice(2uz, 13uz) >>
-            where(dedekind::category::is_even) >>
-            order_by<descending>(opaque(cuts_in_12)) >> take<5>()),
-    std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
+TEST_CASE("Category: the fused ranking agrees with the law's",
+          "[category][tensor][comprehension]") {
+  // the run-time fallback: the counts evaluated and compared
+  CHECK(std::ranges::equal(
+      collect(dedekind::category::slice(2uz, 13uz) >>
+              where(dedekind::category::is_even) >>
+              order_by<descending>(opaque(cuts_in_12)) >> take<5>()),
+      std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
+}
 // The same count as a query: COUNT(*) over the join on the window.
 using dedekind::category::join;
 static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
