@@ -408,9 +408,9 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
-// PROBE (#1135, to be replaced by its outcome): does the 64 sites' plan fit
-// the evaluator's budget, and does a requires-expression turn running out
-// into false rather than an error?
+// Panel 2's plans and their binding times.  The 64 sites as a run list: a
+// site is its left half and the half's reverse complement, the complement on
+// ranks x ↦ 3 - x; no two are adjacent, so each is a run of one.
 constexpr dedekind::category::RunList<std::uint32_t, 128> sites_6_runs() {
   dedekind::category::AtMost<std::uint32_t, 128> steps;
   for (std::uint32_t h = 0; h < 64; ++h) {
@@ -423,39 +423,23 @@ constexpr dedekind::category::RunList<std::uint32_t, 128> sites_6_runs() {
   std::ranges::sort(steps.items.begin(), steps.items.begin() + steps.length);
   return {steps};
 }
+// Whether a set's plan is a constant: the evaluator running out of steps
+// makes the requires-expression false, not the program ill-formed, so the
+// binding time is decided by a concept.  One function, two binding times:
+// EcoRI's plan (KMP's, 7 states) is a constant; the 64 sites' (277 states)
+// are past the evaluator's budget and are planned at run time.
 template <auto Sites>
 concept PlansAtCompileTime = requires {
   typename std::bool_constant<
       dedekind::category::automaton<4, 6, 32, 288>(Sites, 6u).has_value()>;
 };
-// PROBE 3: after the hoist and the restriction law.  The single site plans
-// at compile time; the set: this fails where it now fits too.
-static_assert(PlansAtCompileTime<dedekind::category::run<2>(2109u, 2110u)>);
-static_assert(!PlansAtCompileTime<sites_6_runs()>,
-              "PROBE 3: the 64 sites' plan now fits at compile time");
+static_assert(PlansAtCompileTime<dedekind::category::run<2>(2109u, 2110u)> &&
+              !PlansAtCompileTime<sites_6_runs()>);
 
-// Panel 2's plan: the matcher specialised to all 64 sites at once, the
-// minimal automaton of Σ* sites(6), at run time (its construction is past
-// the evaluator's budget at compile time).  A site is its left half and the
-// half's reverse complement, the complement on ranks x ↦ 3 - x.
 TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
           "[category][tensor][automaton]") {
-  using Count =
-      std::uint32_t;  // uint16_t promotes to int under *, no count word
-  using dedekind::category::AtMost;
-  using dedekind::category::RunList;
-  std::array<Count, 64> palindromes{};
-  for (Count h = 0; h < 64; ++h) {
-    const Count l0 = h / 16, l1 = (h / 4) % 4, l2 = h % 4;
-    palindromes[h] = static_cast<Count>(
-        ((((l0 * 4 + l1) * 4 + l2) * 4 + (3 - l2)) * 4 + (3 - l1)) * 4 +
-        (3 - l0));
-  }
-  std::ranges::sort(palindromes);
-  AtMost<Count, 128> steps;
-  for (const Count p : palindromes)
-    steps = steps.with(p).with(static_cast<Count>(p + 1));
-  const RunList<Count, 128> sites{steps};
+  using Count = std::uint32_t;  // uint16_t promotes to int under *
+  const auto sites = sites_6_runs();
   const auto plan =
       dedekind::category::automaton<4, 6, 32, 288>(sites, Count{6});
   REQUIRE(plan.has_value());
