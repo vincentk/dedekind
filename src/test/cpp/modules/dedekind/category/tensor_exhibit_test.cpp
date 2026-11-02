@@ -361,7 +361,7 @@ using dedekind::category::where;
 constexpr auto cuts_in_12 = powers(nucleotides) >>
                             fixed_by(power(complement) >> reverse) >>
                             join_with(power(nucleotides, 12)) >> counting;
-static_assert(cuts_in_12(6) == 1'835'008uz && cuts_in_12(7) == 0uz);
+static_assert(cuts_in_12(6uz) == 1'835'008uz && cuts_in_12(7uz) == 0uz);
 static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
                                          where(dedekind::category::is_even) >>
                                          order_by<descending>(cuts_in_12) >>
