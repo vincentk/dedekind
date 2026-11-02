@@ -408,6 +408,30 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
+// PROBE (#1135, to be replaced by its outcome): does the 64 sites' plan fit
+// the evaluator's budget, and does a requires-expression turn running out
+// into false rather than an error?
+constexpr dedekind::category::RunList<std::uint32_t, 128> sites_6_runs() {
+  dedekind::category::AtMost<std::uint32_t, 128> steps;
+  for (std::uint32_t h = 0; h < 64; ++h) {
+    const std::uint32_t l0 = h / 16, l1 = (h / 4) % 4, l2 = h % 4;
+    const std::uint32_t p =
+        ((((l0 * 4 + l1) * 4 + l2) * 4 + (3 - l2)) * 4 + (3 - l1)) * 4 +
+        (3 - l0);
+    steps = steps.with(p).with(p + 1);
+  }
+  std::ranges::sort(steps.items.begin(), steps.items.begin() + steps.length);
+  return {steps};
+}
+template <auto Sites>
+concept PlansAtCompileTime = requires {
+  typename std::bool_constant<
+      dedekind::category::automaton<4, 6, 32, 288>(Sites, 6u).has_value()>;
+};
+static_assert(PlansAtCompileTime<sites_6_runs()>,
+              "PROBE: the 64 sites' plan does not fit at compile time "
+              "(and the gate degraded gracefully)");
+
 // Panel 2's plan: the matcher specialised to all 64 sites at once, the
 // minimal automaton of Σ* sites(6), at run time (its construction is past
 // the evaluator's budget at compile time).  A site is its left half and the
