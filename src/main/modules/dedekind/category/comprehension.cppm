@@ -61,6 +61,7 @@ import :chain;     // the chain, FiniteChainSequence, IsCountWord
 import :functor;   // Maybe, MaybeMap: the functor's action on the holes
 import :periodic;  // is_even, the count of a characteristic sequence, AtMost
 import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
+import :kleisli;   // κ, maybe_functor's Kleisli triple: the holes' monad
 
 namespace dedekind::category {
 
@@ -91,6 +92,23 @@ template <typename T>
 inline constexpr bool is_maybe_v = false;
 template <typename T>
 inline constexpr bool is_maybe_v<Maybe<T>> = true;
+template <typename T>
+concept IsMaybe = is_maybe_v<T>;
+/** @brief A stage that reads a query's elements: an arrow out of the type
+ *  its present elements have. */
+template <typename Q, typename F>
+concept ReadsItsElements =
+    std::same_as<typename Q::element_type, Maybe<Dom<F>>>;
+/** @brief A Kleisli arrow into @c Maybe extended to the elements of a
+ *  query, @f$\kappa(-, f) : \mathit{Maybe}\,A \to \mathit{Maybe}\,B@f$.
+ *  @tparam F the Kleisli arrow. */
+template <IsArrow F>
+struct Extended {
+  using Domain = Maybe<Dom<F>>;
+  using Codomain = Cod<F>;
+  F f;
+  constexpr Codomain operator()(const Domain& ma) const { return κ(ma, f); }
+};
 }  // namespace detail_comprehension
 
 /** @brief A query: a range whose elements are @c Maybe, each present or a
@@ -147,10 +165,21 @@ constexpr Where<P> where(P p) {
  *  elements, the holes passed through, @c Maybe's action on the arrow
  *  (@c maybe_functor).  @param q the query.  @param f the arrow. */
 export template <std::regular S, std::semiregular Coalg, IsArrow F>
-  requires std::same_as<typename unfold_view<S, Coalg>::element_type,
-                        Maybe<Dom<F>>>
+  requires detail_comprehension::ReadsItsElements<unfold_view<S, Coalg>, F>
 constexpr auto operator>>(const unfold_view<S, Coalg>& q, F f) {
   return q >> MaybeMap<Dom<F>, F>{std::move(f)};
+}
+/** @brief @c >> @c f on a query with @c f a Kleisli arrow into @c Maybe, a
+ *  second @c where among them: Kleisli composition, @c f extended by
+ *  @c Maybe's @c κ (@c :kleisli), so the holes do not nest.  Filter fusion,
+ *  @c where(p) @c >> @c where(q) @c = @c where(p @c ∧ @c q), is then the
+ *  monad's associativity, not a rewrite of this partition's.
+ *  @param q the query.  @param f the Kleisli arrow. */
+export template <std::regular S, std::semiregular Coalg, IsArrow F>
+  requires detail_comprehension::ReadsItsElements<unfold_view<S, Coalg>, F> &&
+           detail_comprehension::IsMaybe<Cod<F>>
+constexpr auto operator>>(const unfold_view<S, Coalg>& q, F f) {
+  return q >> detail_comprehension::Extended<F>{std::move(f)};
 }
 
 /** @brief The count of a query, SQL's @c COUNT: its present elements, the
@@ -425,6 +454,17 @@ static_assert(count(10uz >> chain<std::size_t>() >> where(is_even)) ==
               count(10uz >> chain<std::size_t>() >> where(is_even)) == 5);
 static_assert(sum(10uz >> chain<std::size_t>() >> where(is_even) >>
                   Successor<std::size_t>{}) == 25);
+// The holes' monad is :kleisli's Maybe, and WHERE after WHERE its Kleisli
+// composition: of 0, ..., 29 the even multiples of three, as the periodic
+// meet counts them.
+static_assert(
+    IsKleisliTriple<maybe_functor<std::size_t>, std::size_t, std::size_t>);
+static_assert(count(30uz >> chain<std::size_t>() >> where(is_even) >>
+                    where(Congruent<>{3, 0})) ==
+                  count(30uz >> chain<std::size_t>() >>
+                        (is_even & Congruent<>{3, 0})) &&
+              count(30uz >> chain<std::size_t>() >> where(is_even) >>
+                    where(Congruent<>{3, 0})) == 5);
 // ORDER BY ... LIMIT three ways.  Sorted by construction: a monotone rank
 // descending is the walk's own order, an antitone one the walk reversed;
 // with no law the fused pass keeps the best K.  Of 0, ..., 9 the even ones:
