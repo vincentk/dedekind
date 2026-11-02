@@ -148,6 +148,7 @@ static_assert(count(capitals >>
 // involutions that commute, so one involution, derived from the legs; the
 // complement's own law decided on its table.  Listing 1's ~ and - on size_t
 // are the two that do not commute.
+using dedekind::category::is_antitone;
 using dedekind::category::is_involution;
 using Word = std::vector<std::byte>;
 struct ToByte {
@@ -169,6 +170,23 @@ static_assert(is_involution(complement) &&
               reverse_complement(dna("GAATTC")) == dna("GAATTC") &&
               reverse_complement(dna("GATTAC")) == dna("GTAATC") &&
               complement_reversed(dna("GATTAC")) == dna("GTAATC"));
+
+// The pairing reverses the bases' order, A < C < G < T as bytes, because of
+// how the one-letter codes fall; another map need not.  An antitone bijection
+// of a finite chain is its reversal: two pairs of four letters and none
+// fixed, so no base is its own complement, which the count of the odd sites
+// reads from the table all the same.
+using dedekind::category::antitone_cycle_type;
+using dedekind::category::Cycles;
+constexpr auto bases = dedekind::category::letters("ACGT");
+static_assert(
+    is_antitone(complement, bases) &&
+    !is_antitone(dedekind::category::letter_map("ACGT", "CGTA"), bases) &&
+    std::ranges::equal(antitone_cycle_type(4uz), std::array{Cycles<>{2, 2}}) &&
+    std::ranges::equal(antitone_cycle_type(5uz),
+                       std::array{Cycles<>{2, 2}, Cycles<>{1, 1}}) &&
+    exact_count(count_factors(symmetric(power(nucleotides, 13),
+                                        power(complement) >> reverse))) == 0uz);
 
 // Refused as strings: the words shorter than 100 are about 2^200, no sequence
 // a size_t can index; counted as a tensor, length by length, exactly.

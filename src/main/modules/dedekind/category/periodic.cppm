@@ -1017,14 +1017,22 @@ export template <IsCountWord N = std::size_t>
 constexpr Rotation<N> rotate(std::type_identity_t<N> d) {
   return {d};
 }
-/** @brief The cycle type of the reversal of @c n positions: @f$\lfloor n/2
- *  \rfloor@f$ pairs, and the middle where @c n is odd.  @param n the length.
- *  @return its cycles. */
+/** @brief The cycle type of a finite chain's antitone bijection.  A finite
+ *  chain is rigid: its one antitone bijection is its reversal, the least
+ *  element to the greatest and so inward, so @f$\lfloor m/2 \rfloor@f$
+ *  pairs and, where @c m is odd, the middle fixed (#1133).  @param m the
+ *  chain's length.  @return its cycles. */
+export template <IsCountWord N>
+constexpr AtMost<Cycles<N>, 2> antitone_cycle_type(N m) {
+  const auto pairs =
+      AtMost<Cycles<N>, 2>{}.with(Cycles<N>{2, static_cast<N>(m / 2)});
+  return m % 2 == 1 ? pairs.with(Cycles<N>{1, 1}) : pairs;
+}
+/** @brief The cycle type of the reversal of @c n positions: the antitone
+ *  bijection of their chain.  @param n the length.  @return its cycles. */
 export template <IsCountWord N>
 constexpr AtMost<Cycles<N>, 2> cycle_type(Reverse, N n) {
-  const auto pairs =
-      AtMost<Cycles<N>, 2>{}.with(Cycles<N>{2, static_cast<N>(n / 2)});
-  return n % 2 == 1 ? pairs.with(Cycles<N>{1, 1}) : pairs;
+  return antitone_cycle_type(n);
 }
 /** @brief The cycle type of a rotation of @c n positions by @c d: @f$g =
  *  \gcd(n, d)@f$ cycles of length @f$n / g@f$, the identity where @c d is a
@@ -1089,7 +1097,34 @@ struct ReturnsTwice {
     return ok && t(t(b)) == b;
   }
 };
+/** @brief One more letter of the alphabet against the one before it: the
+ *  map's images must not rise along the chain of the letters. */
+struct FallsAlong {
+  LetterMap t;
+  Letters on;
+  constexpr std::pair<bool, std::optional<std::byte>> operator()(
+      std::pair<bool, std::optional<std::byte>> s, std::size_t i) const {
+    const std::byte b{static_cast<unsigned char>(i)};
+    if (!on(b)) return s;
+    const bool falls = !s.second || t(b) <= t(*s.second);
+    return {s.first && falls, b};
+  }
+};
 }  // namespace detail_periodic
+/** @brief Whether a letter map reverses the order of an alphabet, decided on
+ *  its table: the letters as bytes are a chain, and on a chain consecutive
+ *  letters suffice.  A law of the value, not of the type: the Watson–Crick
+ *  pairing reverses @c A @c < @c C @c < @c G @c < @c T because of how the
+ *  one-letter codes are chosen.  Where it does and the map is a bijection,
+ *  its cycle type is @c antitone_cycle_type's.  @param t the map.
+ *  @param on the alphabet.  @return whether @c t is antitone on it. */
+export constexpr bool is_antitone(const LetterMap& t, const Letters& on) {
+  return std::ranges::fold_left(
+             std::views::iota(std::size_t{0}, std::size_t{256}),
+             std::pair<bool, std::optional<std::byte>>{true, std::nullopt},
+             detail_periodic::FallsAlong{t, on})
+      .first;
+}
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
  *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
