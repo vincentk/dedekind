@@ -100,6 +100,14 @@ constexpr Dom<F> extent(const Compose<F, G>& c) {
   return extent(c.f);
 }
 
+/** @brief A constant sequence, a constant arrow out of the counts: period
+ *  1, on the whole word.  A constant arrow from anything else is no
+ *  sequence and has no period.  @return 1. */
+export template <IsCountWord N, typename B>
+constexpr N period(const ConstantMorphism<N, B>&) {
+  return N{1};
+}
+
 namespace detail_periodic {
 /** @brief Refuses a modulus of 0, which has no residues: not a constant
  *  expression at compile time, the end of the program at run time. */
@@ -349,6 +357,70 @@ constexpr N sum(const detail_periodic::Along<N, F>& v) {
   if (n < p) return detail_periodic::sum_below(n, f);  // less than a period
   return static_cast<N>((n / p) * detail_periodic::sum_below(p, f) +
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
+}
+// A constant sequence: n copies of one value, one multiplication.
+static_assert(sum(std::size_t{5} >> chain<std::size_t>() >>
+                  constant<std::size_t>(std::size_t{7})) == 35);
+
+namespace detail_periodic {
+/** @brief The checked sum of two exact counts: none if either is none or
+ *  their sum leaves the word. */
+template <IsCountWord N>
+struct CheckedPlus {
+  constexpr std::optional<N> operator()(std::optional<N> a,
+                                        std::optional<N> b) const {
+    if (!a || !b || *b > std::numeric_limits<N>::max() - *a)
+      return std::nullopt;
+    return static_cast<N>(*a + *b);
+  }
+};
+/** @brief Whether @c T is an exact count: a count word, or none. */
+template <typename T>
+inline constexpr bool is_exact_count_v = false;
+template <IsCountWord N>
+inline constexpr bool is_exact_count_v<std::optional<N>> = true;
+/** @brief The checked product of a count and an exact count. */
+template <IsCountWord N>
+constexpr std::optional<N> checked_times(N k, std::optional<N> x) {
+  if (!x || (k != 0 && *x > std::numeric_limits<N>::max() / k)) {
+    return std::nullopt;
+  }
+  return static_cast<N>(k * *x);
+}
+}  // namespace detail_periodic
+/** @brief The exact sum of a range of exact counts: the plain fold, never
+ *  wrapped, the discipline of @c exact_count.  @param r the range.
+ *  @return the sum, or none once a summand is none or the sum leaves the
+ *  word. */
+export template <std::ranges::input_range R>
+  requires detail_periodic::is_exact_count_v<std::ranges::range_value_t<R>>
+constexpr std::ranges::range_value_t<R> exact_sum(R r) {
+  using N = typename std::ranges::range_value_t<R>::value_type;
+  return std::ranges::fold_left(std::move(r), std::optional<N>{N{0}},
+                                detail_periodic::CheckedPlus<N>{});
+}
+namespace detail_periodic {
+/** @brief The plain exact sum of @c f(0), ..., @c f(m - 1). */
+template <IsCountWord N, IsArrow F>
+constexpr std::optional<N> exact_sum_below(N m, const F& f) {
+  return exact_sum(m >> chain<N>() >> opaque(f));
+}
+}  // namespace detail_periodic
+/** @brief The exact sum along the chain of @c n under a periodic arrow into
+ *  the exact counts: @c sum's law, checked.  @param v the chain under the
+ *  arrow.  @return @c f(0) + ... + @c f(n - 1), or none where it leaves the
+ *  word. */
+export template <IsCountWord N, HasPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
+constexpr std::optional<N> exact_sum(const detail_periodic::Along<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed(), p = period(f);
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  if (n < p) return detail_periodic::exact_sum_below(n, f);  // under a period
+  return detail_periodic::CheckedPlus<N>{}(
+      detail_periodic::checked_times(n / p,
+                                     detail_periodic::exact_sum_below(p, f)),
+      detail_periodic::exact_sum_below(static_cast<N>(n % p), f));
 }
 
 /** @brief A translation of the counts, @f$k \mapsto k + j@f$: after it, a
@@ -702,6 +774,30 @@ constexpr N count_section(const Box<T, K, N>& b, std::type_identity_t<N> m,
  *  invariance under a translation of the counts; a symmetry here is
  *  invariance under a permutation of the positions of a word. */
 
+/** @brief At most @c K values, held in place: a list whose length the type
+ *  bounds, so it needs no heap.  A cycle type and a tensor's factors are
+ *  such lists, their length fixed by the shape and not by the word, so a
+ *  count along a chain of them streams in constant memory.
+ *  @tparam T the values.  @tparam K the bound. */
+export template <std::semiregular T, std::size_t K>
+struct AtMost {
+  static constexpr std::size_t capacity = K;
+  std::array<T, K> items{};
+  std::size_t length{0};
+  /** @param x the next value; a list at its bound refuses it. */
+  constexpr void push_back(const T& x) {
+    if (length == K) std::abort();
+    items[length++] = x;
+  }
+  constexpr std::size_t size() const { return length; }
+  constexpr const T& front() const { return items[0]; }
+  constexpr const T* begin() const { return items.data(); }
+  constexpr const T* end() const { return items.data() + length; }
+  constexpr T* begin() { return items.data(); }
+  constexpr T* end() { return items.data() + length; }
+  constexpr bool operator==(const AtMost&) const = default;
+};
+
 /** @brief A factor of a count, @f$b^e@f$: a base raised to an exponent.
  *  @tparam N the counts. */
 export template <IsCountWord N = std::size_t>
@@ -710,6 +806,50 @@ struct Factor {
   N exponent;
   constexpr bool operator==(const Factor&) const = default;
 };
+
+namespace detail_periodic {
+/** @brief The count word of a factor. */
+template <typename T>
+struct factor_word {};
+template <IsCountWord N>
+struct factor_word<Factor<N>> {
+  using type = N;
+};
+/** @brief A list of factors, a count factorised, in the counts @c N. */
+template <typename L, typename N>
+concept IsFactorsOf =
+    std::ranges::input_range<const L> &&
+    std::same_as<std::ranges::range_value_t<const L>, Factor<N>>;
+/** @brief A list of factors bounded by its type: the factors of a shape. */
+template <typename L, typename N>
+concept IsBoundedFactorsOf = IsFactorsOf<L, N> && requires {
+  { L::capacity } -> std::convertible_to<std::size_t>;
+};
+/** @brief The count word of a list of factors. */
+template <typename L>
+using word_of_t =
+    typename factor_word<std::ranges::range_value_t<const L>>::type;
+/** @param a @param b two bounded lists.  @return @c a then @c b, bounded
+ *  by the sum of the bounds. */
+template <typename T, std::size_t J, std::size_t K>
+constexpr AtMost<T, J + K> joined(const AtMost<T, J>& a,
+                                  const AtMost<T, K>& b) {
+  AtMost<T, J + K> out;
+  for (const T& x : a) out.push_back(x);
+  for (const T& x : b) out.push_back(x);
+  return out;
+}
+/** @param a @param b two lists, one bounded by no type (a tensor held by
+ *  its factors at run time).  @return @c a then @c b, on the heap. */
+template <std::ranges::input_range A, std::ranges::input_range B>
+std::vector<std::ranges::range_value_t<const A>> joined(const A& a,
+                                                        const B& b) {
+  std::vector<std::ranges::range_value_t<const A>> out(std::ranges::begin(a),
+                                                       std::ranges::end(a));
+  out.insert(out.end(), std::ranges::begin(b), std::ranges::end(b));
+  return out;
+}
+}  // namespace detail_periodic
 /** @brief The cycles of a permutation of positions of one length, and how
  *  many there are: one term of its cycle type.  @tparam N the counts. */
 export template <IsCountWord N = std::size_t>
@@ -880,8 +1020,9 @@ constexpr Rotation<N> rotate(std::type_identity_t<N> d) {
  *  \rfloor@f$ pairs, and the middle where @c n is odd.  @param n the length.
  *  @return its cycles. */
 export template <IsCountWord N>
-constexpr std::vector<Cycles<N>> cycle_type(Reverse, N n) {
-  std::vector<Cycles<N>> c{Cycles<N>{2, static_cast<N>(n / 2)}};
+constexpr AtMost<Cycles<N>, 2> cycle_type(Reverse, N n) {
+  AtMost<Cycles<N>, 2> c;
+  c.push_back(Cycles<N>{2, static_cast<N>(n / 2)});
   if (n % 2 == 1) c.push_back(Cycles<N>{1, 1});
   return c;
 }
@@ -890,17 +1031,22 @@ constexpr std::vector<Cycles<N>> cycle_type(Reverse, N n) {
  *  multiple of @c n.  @param r the rotation.  @param n the length.  @return
  *  its cycles. */
 export template <IsCountWord N>
-constexpr std::vector<Cycles<N>> cycle_type(const Rotation<N>& r, N n) {
-  if (n == 0) return {};
+constexpr AtMost<Cycles<N>, 1> cycle_type(const Rotation<N>& r, N n) {
+  AtMost<Cycles<N>, 1> c;
+  if (n == 0) return c;
   const N g = std::gcd(n, static_cast<N>(r.shift % n));  // n where d ≡ 0
-  return {Cycles<N>{static_cast<N>(n / g), g}};
+  c.push_back(Cycles<N>{static_cast<N>(n / g), g});
+  return c;
 }
 
 /** @brief A permutation of positions with a known cycle type.
  *  @tparam S the permutation.  @tparam N the counts. */
 export template <typename S, typename N>
 concept HasCycleType = IsCountWord<N> && requires(const S& s, N n) {
-  { cycle_type(s, n) } -> std::same_as<std::vector<Cycles<N>>>;
+  { cycle_type(s, n) } -> std::ranges::input_range;
+  requires std::same_as<std::ranges::range_value_t<decltype(cycle_type(s, n))>,
+                        Cycles<N>>;
+  { decltype(cycle_type(s, n))::capacity } -> std::convertible_to<std::size_t>;
 };
 
 /** @brief The naturality of the permutations of positions: @c reverse and
@@ -1127,7 +1273,8 @@ struct Outer {
 /** @brief A tensor whose count is a product of factors. */
 export template <typename X>
 concept HasFactors = requires(const X& x) {
-  { count_factors(x) } -> std::same_as<std::vector<Factor<>>>;
+  requires detail_periodic::IsFactorsOf<decltype(count_factors(x)),
+                                        std::size_t>;
 };
 /** @param a @param b two counted tensors.  @return their outer product. */
 export template <HasFactors A, HasFactors B>
@@ -1137,11 +1284,8 @@ constexpr Outer<A, B> operator*(const A& a, const B& b) {
 /** @param o an outer product.  @return its count, factored: both factors'
  *  factors. */
 export template <HasFactors A, HasFactors B>
-constexpr std::vector<Factor<>> count_factors(const Outer<A, B>& o) {
-  auto fs = count_factors(o.left);
-  const auto gs = count_factors(o.right);
-  fs.insert(fs.end(), gs.begin(), gs.end());
-  return fs;
+constexpr auto count_factors(const Outer<A, B>& o) {
+  return detail_periodic::joined(count_factors(o.left), count_factors(o.right));
 }
 
 /** @brief The free monoid on a filtered alphabet, truncated below a length:
@@ -1243,15 +1387,17 @@ struct TimesPower {
  *  popcount, by squaring.  Agrees with @c exact_count wherever the word
  *  holds the count.  @param fs the factors.  @return the count, modulo the
  *  word. */
-export template <IsCountWord N>
-constexpr N count(const std::vector<Factor<N>>& fs) {
+export template <typename L, typename N = detail_periodic::word_of_t<L>>
+  requires detail_periodic::IsFactorsOf<L, N>
+constexpr N count(const L& fs) {
   return std::ranges::fold_left(fs, N{1}, detail_periodic::TimesPower<N>{});
 }
 /** @brief The count of a factored tensor, exactly, or none where the word
  *  cannot hold it: never wrapped, the discipline of @c checked_lcm.
  *  @param fs the factors.  @return the count, or none. */
-export template <IsCountWord N>
-constexpr std::optional<N> exact_count(const std::vector<Factor<N>>& fs) {
+export template <typename L, typename N = detail_periodic::word_of_t<L>>
+  requires detail_periodic::IsFactorsOf<L, N>
+constexpr std::optional<N> exact_count(const L& fs) {
   // an empty factor empties the product, whatever overflows beside it
   if (std::ranges::any_of(fs, detail_periodic::IsEmptyFactor<N>{})) return N{0};
   return std::ranges::fold_left(fs, std::optional<N>{1},
@@ -1581,8 +1727,8 @@ struct CycleFactor {
   Slice<C> letters;
   F member;
   T tau;
-  constexpr std::vector<Factor<N>> operator()(std::vector<Factor<N>> fs,
-                                              const Cycles<N>& c) const {
+  template <typename L>
+  constexpr L operator()(L fs, const Cycles<N>& c) const {
     fs.push_back(Factor<N>{
         with_width(letters_in<C, N>(letters),
                    CycleCount<C, F, T, N>{letters, member, tau, c.length}),
@@ -1597,12 +1743,14 @@ struct CycleFactor {
  *  length, by the box law.  @param p the power.  @return its count,
  *  factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N>
-constexpr std::vector<Factor<N>> count_factors(const Power<C, F, N>& p) {
-  return {
+constexpr AtMost<Factor<N>, 1> count_factors(const Power<C, F, N>& p) {
+  AtMost<Factor<N>, 1> fs;
+  fs.push_back(
       Factor<N>{with_width(detail_periodic::letters_in<C, N>(p.letters),
                            detail_periodic::CycleCount<C, F, Identity<C>, N>{
                                p.letters, p.member, Identity<C>{}, N{1}}),
-                p.length}};
+                p.length});
+  return fs;
 }
 /** @brief The factors of a symmetric section's count: one merged leg per
  *  cycle of @c sigma, so the box law after the merges, the count Pólya's
@@ -1610,11 +1758,11 @@ constexpr std::vector<Factor<N>> count_factors(const Power<C, F, N>& p) {
  *  @return its count, factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
   requires HasCycleType<S, N>
-constexpr std::vector<Factor<N>> count_factors(
-    const Symmetric<Power<C, F, N>, S, T>& s) {
+constexpr auto count_factors(const Symmetric<Power<C, F, N>, S, T>& s) {
   const auto& p = s.power;
+  using Cs = decltype(cycle_type(s.sigma, p.length));
   return std::ranges::fold_left(
-      cycle_type(s.sigma, p.length), std::vector<Factor<N>>{},
+      cycle_type(s.sigma, p.length), AtMost<Factor<N>, Cs::capacity>{},
       detail_periodic::CycleFactor<C, F, T, N>{p.letters, p.member, s.tau});
 }
 
@@ -1700,17 +1848,20 @@ constexpr Cylinder<Power<C, F, N>, S, N> cylinder(const Power<C, F, N>& p,
  *  @param c the cylinder.  @return its count, factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires requires(const S& s) {
-    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+    requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
   }
-constexpr std::vector<Factor<N>> count_factors(
-    const Cylinder<Power<C, F, N>, S, N>& c) {
+constexpr auto count_factors(const Cylinder<Power<C, F, N>, S, N>& c) {
   const auto& p = c.power;
   const auto q = detail_periodic::power_of(c.inner);
+  AtMost<Factor<N>, decltype(count_factors(c.inner))::capacity + 1> fs;
   const bool fits =
       detail_periodic::same_legs(p, q) && c.window.length == q.length &&
       c.window.offset <= p.length && q.length <= p.length - c.window.offset;
-  if (!fits) return {Factor<N>{N{0}, N{1}}};
-  auto fs = count_factors(c.inner);
+  if (!fits) {
+    fs.push_back(Factor<N>{N{0}, N{1}});
+    return fs;
+  }
+  for (const Factor<N>& f : count_factors(c.inner)) fs.push_back(f);
   fs.push_back(
       count_factors(Power<C, F, N>{p.letters, p.member, p.length - q.length})
           .front());
@@ -1718,33 +1869,53 @@ constexpr std::vector<Factor<N>> count_factors(
 }
 
 namespace detail_periodic {
-/** @brief The count of the cylinder at one offset, as an arrow from the
- *  offset: the summand of @c occurrences. */
+/** @brief The sequence of a cylinder's factors along the offsets of its
+ *  window.  A power is the same at every position, so every window that
+ *  fits has the same factors (R2: the offset drops out): period 1, on the
+ *  offsets where the window fits.  The summands of @c occurrences are this
+ *  sequence read by @c CountOf or @c ExactCountOf. */
 template <typename P, typename S, IsCountWord N>
-struct CylinderAt {
+struct CylinderFactorsAt {
   using Domain = N;
-  using Codomain = N;
+  using Codomain = decltype(count_factors(cylinder(std::declval<const P&>(),
+                                                   std::declval<Window<N>>(),
+                                                   std::declval<const S&>())));
   P power;
   S inner;
   N length;
-  constexpr N operator()(N offset) const {
-    return count(
-        count_factors(cylinder(power, window<N>(offset, length), inner)));
+  constexpr Codomain operator()(N offset) const {
+    return count_factors(cylinder(power, window<N>(offset, length), inner));
   }
 };
-/** @brief One offset's exact count into the sum, checked: none once a
- *  count or the sum leaves the word. */
+/** @return 1: translation invariance. */
 template <typename P, typename S, IsCountWord N>
-struct CheckedCylinderAt {
-  P power;
-  S inner;
-  N length;
-  constexpr std::optional<N> operator()(std::optional<N> acc, N offset) const {
-    if (!acc) return std::nullopt;
-    const std::optional<N> c = exact_count(
-        count_factors(cylinder(power, window<N>(offset, length), inner)));
-    if (!c || *c > std::numeric_limits<N>::max() - *acc) return std::nullopt;
-    return static_cast<N>(*acc + *c);
+constexpr N period(const CylinderFactorsAt<P, S, N>&) {
+  return N{1};
+}
+/** @param f the factors at an offset.  @return the offsets where the window
+ *  fits, @c N − @c n + 1, where the law holds. */
+template <typename P, typename S, IsCountWord N>
+constexpr N extent(const CylinderFactorsAt<P, S, N>& f) {
+  return f.length <= f.power.length
+             ? static_cast<N>(f.power.length - f.length + 1)
+             : N{0};
+}
+/** @brief A reading of a factored count, modulo the word: an arrow from the
+ *  factor lists, with no period of its own; after a periodic sequence, the
+ *  composite is periodic (@c period of a @c Compose). */
+template <typename L, IsCountWord N = word_of_t<L>>
+struct CountOf {
+  using Domain = L;
+  using Codomain = N;
+  constexpr N operator()(const Domain& fs) const { return count(fs); }
+};
+/** @brief A reading of a factored count, exactly: as @c CountOf. */
+template <typename L, IsCountWord N = word_of_t<L>>
+struct ExactCountOf {
+  using Domain = L;
+  using Codomain = std::optional<N>;
+  constexpr Codomain operator()(const Domain& fs) const {
+    return exact_count(fs);
   }
 };
 }  // namespace detail_periodic
@@ -1752,19 +1923,22 @@ struct CheckedCylinderAt {
 /** @brief How often a set of words occurs in the words of a tensor power,
  *  counted with their positions: the pairs (word, offset) whose window lies
  *  in @c s, the sum over the offsets of the cylinders' counts, modulo the
- *  word.  Each summand is pushed down (R2), so none depends on its offset.
+ *  word.  Each summand is pushed down (R2), so none depends on its offset:
+ *  the summand has period 1, and the periodic @c sum takes one of them,
+ *  times the number of offsets.
  *  @param p a tensor power.  @param s a set of words over the same legs.
  *  @return the occurrences. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires requires(const S& s) {
     { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
-    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+    requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
   } && std::equality_comparable<F>
 constexpr N occurrences(const Power<C, F, N>& p, const S& s) {
   const N n = detail_periodic::power_of(s).length;
   if (n > p.length) return N{0};
+  using At = detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>;
   return sum(static_cast<N>(p.length - n + 1) >> chain<N>() >>
-             detail_periodic::CylinderAt<Power<C, F, N>, S, N>{p, s, n});
+             (At{p, s, n} >> detail_periodic::CountOf<Cod<At>>{}));
 }
 /** @brief The occurrences exactly, or none where the word cannot hold them:
  *  never wrapped, the discipline of @c exact_count.  @param p a tensor
@@ -1773,15 +1947,15 @@ constexpr N occurrences(const Power<C, F, N>& p, const S& s) {
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires requires(const S& s) {
     { detail_periodic::power_of(s) } -> std::same_as<Power<C, F, N>>;
-    { count_factors(s) } -> std::same_as<std::vector<Factor<N>>>;
+    requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(s)), N>;
   } && std::equality_comparable<F>
 constexpr std::optional<N> exact_occurrences(const Power<C, F, N>& p,
                                              const S& s) {
   const N n = detail_periodic::power_of(s).length;
   if (n > p.length) return N{0};
-  return std::ranges::fold_left(
-      static_cast<N>(p.length - n + 1) >> chain<N>(), std::optional<N>{0},
-      detail_periodic::CheckedCylinderAt<Power<C, F, N>, S, N>{p, s, n});
+  using At = detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>;
+  return exact_sum(static_cast<N>(p.length - n + 1) >> chain<N>() >>
+                   (At{p, s, n} >> detail_periodic::ExactCountOf<Cod<At>>{}));
 }
 
 }  // namespace dedekind::category

@@ -179,13 +179,17 @@ static_assert(!exact_count(free_monoid(nucleotides, 100)).has_value() &&
 // restriction sites, of which there are none of odd length, since no base is
 // its own complement.
 static_assert(
-    count_factors(power(nucleotides, 99)) == Factors{{4, 99}} &&
-    count_factors(symmetric(power(nucleotides, 12), reverse)) ==
-        Factors{{4, 6}} &&
-    count_factors(symmetric(power(nucleotides, 13), reverse)) ==
-        Factors{{4, 6}, {4, 1}} &&
-    count_factors(symmetric(power(nucleotides, 12),
-                            power(complement) >> reverse)) == Factors{{4, 6}} &&
+    std::ranges::equal(count_factors(power(nucleotides, 99)),
+                       Factors{{4, 99}}) &&
+    std::ranges::equal(count_factors(symmetric(power(nucleotides, 12),
+                                               reverse)),
+                       Factors{{4, 6}}) &&
+    std::ranges::equal(count_factors(symmetric(power(nucleotides, 13),
+                                               reverse)),
+                       Factors{{4, 6}, {4, 1}}) &&
+    std::ranges::equal(count_factors(symmetric(power(nucleotides, 12),
+                                               power(complement) >> reverse)),
+                       Factors{{4, 6}}) &&
     exact_count(count_factors(symmetric(power(nucleotides, 13),
                                         power(complement) >> reverse))) == 0uz);
 
@@ -257,8 +261,9 @@ static_assert(window(1, 3)(dna("GAATTCA")) == dna("AAT") &&
               window(5, 3)(dna("GAATTC")) == dna("C") &&
               window(9, 3)(dna("GAATTC")).empty());
 static_assert(
-    count_factors(cylinder(power(nucleotides, 12), window(3, 6), sites_6)) ==
-        Factors{{4, 3}, {4, 6}} &&
+    std::ranges::equal(count_factors(cylinder(power(nucleotides, 12),
+                                              window(3, 6), sites_6)),
+                       Factors{{4, 3}, {4, 6}}) &&
     count_factors(cylinder(power(nucleotides, 12), window(0, 6), sites_6)) ==
         count_factors(cylinder(power(nucleotides, 12), window(6, 6),
                                sites_6)) &&
@@ -301,7 +306,8 @@ constexpr auto bits = dedekind::category::slice(0uz, 2uz) >>
                       dedekind::category::constant<size_t>(true);
 constexpr size_t width = dedekind::category::pow2(7);
 constexpr auto squares = symmetric(power(bits, width), rotate(width / 2));
-static_assert(width == 128 && count_factors(squares) == Factors{{2, 64}} &&
+static_assert(width == 128 &&
+              std::ranges::equal(count_factors(squares), Factors{{2, 64}}) &&
               !exact_count(count_factors(squares)).has_value());
 // The theorem by brute force on 8 bits: the patterns fixed by some nontrivial
 // rotation are the squares, 2^4 of them, as the tensor counts.
@@ -352,7 +358,8 @@ static_assert(
 // nucleotides and the squares of 128 bits, 2^100 · 2^64 entries, counted as
 // factors.
 constexpr auto exhibit = symmetric(power(nucleotides, 99), reverse) * squares;
-static_assert(count_factors(exhibit) == Factors{{4, 49}, {4, 1}, {2, 64}} &&
+static_assert(std::ranges::equal(count_factors(exhibit),
+                                 Factors{{4, 49}, {4, 1}, {2, 64}}) &&
               !exact_count(count_factors(exhibit)).has_value());
 
 // Review witnesses (#1108): an empty factor empties the product whatever
@@ -374,8 +381,8 @@ static_assert(exact_count(count_factors(
                   symmetric(power(just_a, 2),
                             power(dedekind::category::letter_map("AB", "BA")) >>
                                 reverse))) == 0uz);
-static_assert(count_factors(symmetric(power(bits, 4096uz), rotate(1))) ==
-              Factors{{2, 1}});
+static_assert(std::ranges::equal(
+    count_factors(symmetric(power(bits, 4096uz), rotate(1))), Factors{{2, 1}}));
 // The words shorter than a billion: refused at once, by the width, not after
 // visiting the lengths; over one letter, one word per length.
 constexpr auto just_g = dedekind::category::slice(std::byte{'G'},
