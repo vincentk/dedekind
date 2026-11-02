@@ -59,6 +59,7 @@ import :morphism;  // IsArrow, Dom, Cod
 import :nno;       // Successor: a witness's arrow
 import :chain;     // the chain, FiniteChainSequence, IsCountWord
 import :functor;   // Maybe, MaybeMap: the functor's action on the holes
+import :lattice;   // Meet: a filter's predicate as a lattice term
 import :periodic;  // is_even, the count of a characteristic sequence, AtMost
 import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
 import :kleisli;   // κ, maybe_functor's Kleisli triple: the holes' monad
@@ -180,6 +181,33 @@ export template <std::regular S, std::semiregular Coalg, IsArrow F>
            detail_comprehension::IsMaybe<Cod<F>>
 constexpr auto operator>>(const unfold_view<S, Coalg>& q, F f) {
   return q >> detail_comprehension::Extended<F>{std::move(f)};
+}
+
+/** @brief @c where(p) @c >> @c where(q) on a chain, fused by type: one
+ *  @c where whose predicate is the lattice term @c p @c & @c q, the meet in the
+ *  Boolean algebra of the chain's subobjects (@c :lattice's @c Meet).  The
+ *  filter is then a term the lattice's laws and the periodic counts read,
+ *  not two walks; where @c p @c & @c q is not formed, the Kleisli composite
+ *  above takes the query.  @param q the filtered chain.  @param w the second
+ *  filter.  @return the chain under one filter. */
+export template <IsCountWord N, typename P, typename Q>
+  requires requires(const P& p, const Q& q) {
+    { p & q } -> IsArrow;
+    requires std::same_as<Cod<decltype(p& q)>, bool>;
+  }
+constexpr auto operator>>(const FiniteChainSequence<N, Where<P>>& q,
+                          const Where<Q>& w) {
+  return q.seed() >> chain<N>() >> where(q.coalgebra().f.p & w.p);
+}
+/** @brief The count of a chain under a periodic filter: the count of the
+ *  filter's characteristic sequence, which @c :periodic takes period by
+ *  period (the lcm for a meet), no walk of the query.  The law
+ *  @c count(where(p)) @c = @c count(χ_p), used as the rewrite.
+ *  @param q the filtered chain.  @return how many elements it keeps. */
+export template <IsCountWord N, HasPeriod P>
+  requires std::same_as<Cod<P>, bool>
+constexpr N count(const FiniteChainSequence<N, Where<P>>& q) {
+  return count(q.seed() >> chain<N>() >> q.coalgebra().f.p);
 }
 
 /** @brief The count of a query, SQL's @c COUNT: its present elements, the
@@ -459,6 +487,13 @@ static_assert(sum(10uz >> chain<std::size_t>() >> where(is_even) >>
 // meet counts them.
 static_assert(
     IsKleisliTriple<maybe_functor<std::size_t>, std::size_t, std::size_t>);
+// Two filters on a chain are one, their predicate the lattice's meet, and
+// its count the periodic one (the lcm of 2 and 3), the walk never taken.
+static_assert(
+    std::same_as<decltype(30uz >> chain<std::size_t>() >> where(is_even) >>
+                          where(Congruent<>{3, 0})),
+                 FiniteChainSequence<std::size_t,
+                                     Where<Meet<Congruent<>, Congruent<>>>>>);
 static_assert(count(30uz >> chain<std::size_t>() >> where(is_even) >>
                     where(Congruent<>{3, 0})) ==
                   count(30uz >> chain<std::size_t>() >>
