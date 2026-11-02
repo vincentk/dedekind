@@ -630,6 +630,67 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
   }
 };
 
+/** @section lattice__Node_Builders
+ *  @c | and @c & on predicates build the nodes above, for the carriers that
+ *  opt in (@c builds_lattice_nodes): a carrier states once that its
+ *  predicates join and meet as these nodes, and a node over such predicates
+ *  does too.  Opt-in, so a set expression, with an @c | of its own, is never
+ *  taken. */
+/** @brief Whether @c T is one of the nodes, @c Meet, @c Join or @c Not. */
+export template <typename T>
+inline constexpr bool is_lattice_node_v = false;
+export template <typename A, typename B>
+inline constexpr bool is_lattice_node_v<Meet<A, B>> = true;
+export template <typename A, typename B>
+inline constexpr bool is_lattice_node_v<Join<A, B>> = true;
+export template <typename A>
+inline constexpr bool is_lattice_node_v<Not<A>> = true;
+/** @brief A carrier's opt-in: its predicates' @c | and @c & are the
+ *  lattice's nodes.  False by default; a node over two that build does. */
+export template <typename T>
+struct builds_lattice_nodes : std::false_type {};
+template <typename A, typename B>
+struct builds_lattice_nodes<Meet<A, B>>
+    : std::bool_constant<builds_lattice_nodes<A>::value &&
+                         builds_lattice_nodes<B>::value> {};
+template <typename A, typename B>
+struct builds_lattice_nodes<Join<A, B>>
+    : std::bool_constant<builds_lattice_nodes<A>::value &&
+                         builds_lattice_nodes<B>::value> {};
+template <typename A>
+struct builds_lattice_nodes<Not<A>> : builds_lattice_nodes<A> {};
+namespace detail_lattice_nodes {
+/** @brief The domain of a term, read off its first leaf. */
+template <typename T>
+struct domain_of {
+  using type = Dom<T>;
+};
+template <typename A, typename B>
+struct domain_of<Meet<A, B>> : domain_of<A> {};
+template <typename A, typename B>
+struct domain_of<Join<A, B>> : domain_of<A> {};
+/** @brief Two terms whose @c | and @c & build nodes: both opted in, on
+ *  one domain. */
+template <typename A, typename B>
+concept BuildNodes =
+    builds_lattice_nodes<A>::value && builds_lattice_nodes<B>::value &&
+    std::same_as<typename domain_of<A>::type, typename domain_of<B>::type>;
+}  // namespace detail_lattice_nodes
+/** @param a @param b two predicates that build nodes.  @return their join,
+ *  the node. */
+export template <typename A, typename B>
+  requires detail_lattice_nodes::BuildNodes<A, B>
+constexpr Join<A, B> operator|(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+/** @param a @param b two predicates that build nodes.  @return their meet,
+ *  the node. */
+export template <typename A, typename B>
+  requires detail_lattice_nodes::BuildNodes<A, B>
+constexpr Meet<A, B> operator&(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+
 /** @section lattice__AST_as_product
  *  A binary node @b is the categorical product / coproduct of its operands, so
  *  it inhabits @c category::IsProduct (the role @c sets::AndPredicate /

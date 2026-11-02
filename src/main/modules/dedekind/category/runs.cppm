@@ -41,7 +41,7 @@ export module dedekind.category:runs;
 
 import :morphism;      // IsArrow
 import :chain;         // IsCountWord
-import :lattice;       // Meet, Join: the nodes | and & build
+import :lattice;       // Meet, Join, builds_lattice_nodes: | and &
 import :lattice_term;  // Reduce, canonical_order: the one reducer
 import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
@@ -70,53 +70,10 @@ struct RunList {
   }
 };
 
-namespace detail_runs {
-/** @brief A lattice term over run lists of one type: a run list, or a
- *  @c Meet or @c Join of two such terms. */
-template <typename T, typename R>
-struct is_run_term : std::is_same<T, R> {};
-template <typename A, typename B, typename R>
-struct is_run_term<Meet<A, B>, R>
-    : std::bool_constant<is_run_term<A, R>::value && is_run_term<B, R>::value> {
-};
-template <typename A, typename B, typename R>
-struct is_run_term<Join<A, B>, R>
-    : std::bool_constant<is_run_term<A, R>::value && is_run_term<B, R>::value> {
-};
-template <typename T>
-struct run_list_of {};
+/** @brief Run lists opt in: their @c | and @c & are the lattice's nodes
+ *  (@c :lattice), a union and an intersection once reduced. */
 template <IsCountWord N, std::size_t K>
-struct run_list_of<RunList<N, K>> {
-  using type = RunList<N, K>;
-};
-template <typename A, typename B>
-struct run_list_of<Meet<A, B>> : run_list_of<A> {};
-template <typename A, typename B>
-struct run_list_of<Join<A, B>> : run_list_of<A> {};
-/** @brief Two terms over run lists of one type, so @c | and @c & build the
- *  lattice's nodes on them. */
-template <typename A, typename B>
-concept AreRunTerms = requires {
-  typename run_list_of<A>::type;
-  requires is_run_term<A, typename run_list_of<A>::type>::value &&
-               is_run_term<B, typename run_list_of<A>::type>::value;
-};
-}  // namespace detail_runs
-
-/** @param a @param b two terms over run lists.  @return their join, the
- *  lattice's node: the union, once reduced. */
-export template <typename A, typename B>
-  requires detail_runs::AreRunTerms<A, B>
-constexpr Join<A, B> operator|(A a, B b) {
-  return {std::move(a), std::move(b)};
-}
-/** @param a @param b two terms over run lists.  @return their meet, the
- *  lattice's node: the intersection, once reduced. */
-export template <typename A, typename B>
-  requires detail_runs::AreRunTerms<A, B>
-constexpr Meet<A, B> operator&(A a, B b) {
-  return {std::move(a), std::move(b)};
-}
+struct builds_lattice_nodes<RunList<N, K>> : std::true_type {};
 
 /** @tparam K the bound on the steps.  @param lo @param hi the ends.
  *  @return the run @f$[lo, hi)@f$, empty where @c hi is not past @c lo. */

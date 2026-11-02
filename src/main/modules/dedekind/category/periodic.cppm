@@ -504,23 +504,12 @@ namespace detail_periodic {
 template <typename P>
 concept IsPeriodicPredicate = HasPeriod<P> && std::same_as<Cod<P>, bool>;
 }  // namespace detail_periodic
-/** @brief The join of two periodic predicates, the lattice's @c Join node:
- *  periodic with the least common multiple of their periods.
- *  @param p @param q the predicates.  @return @c p or @c q. */
-export template <detail_periodic::IsPeriodicPredicate P,
-                 detail_periodic::IsPeriodicPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>>
-constexpr Join<P, Q> operator|(P p, Q q) {
-  return {std::move(p), std::move(q)};
-}
-/** @brief The meet, dual to the join.  @param p @param q the predicates.
- *  @return @c p and @c q. */
-export template <detail_periodic::IsPeriodicPredicate P,
-                 detail_periodic::IsPeriodicPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>>
-constexpr Meet<P, Q> operator&(P p, Q q) {
-  return {std::move(p), std::move(q)};
-}
+/** @brief Periodic predicates opt in: their @c | and @c & are the
+ *  lattice's nodes (@c :lattice), periodic with the least common multiple
+ *  of their periods. */
+template <typename P>
+  requires(detail_periodic::IsPeriodicPredicate<P> && !is_lattice_node_v<P>)
+struct builds_lattice_nodes<P> : std::true_type {};
 /** @param j the join.  @return the lcm of its legs' periods. */
 export template <HasPeriod P, HasPeriod Q>
 constexpr Dom<P> period(const Join<P, Q>& j) {
