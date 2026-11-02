@@ -872,6 +872,11 @@ template <typename L, typename N>
 concept IsFactorsOf =
     std::ranges::forward_range<const L> &&  // exact_count reads it twice
     std::same_as<std::ranges::range_value_t<const L>, Factor<N>>;
+/** @brief Bounded by its type: a forward range with a static @c capacity. */
+template <typename L>
+concept IsBoundedList = std::ranges::forward_range<const L> && requires {
+  { L::capacity } -> std::convertible_to<std::size_t>;
+};
 /** @brief A list of factors bounded by its type: the factors of a shape. */
 template <typename L, typename N>
 concept IsBoundedFactorsOf = IsFactorsOf<L, N> && IsBoundedList<L>;
@@ -885,11 +890,6 @@ struct With {
   constexpr AtMost<T, K> operator()(const AtMost<T, K>& l, const T& x) const {
     return l.with(x);
   }
-};
-/** @brief Bounded by its type: a forward range with a static @c capacity. */
-template <typename L>
-concept IsBoundedList = std::ranges::forward_range<const L> && requires {
-  { L::capacity } -> std::convertible_to<std::size_t>;
 };
 /** @param a @param b two bounded lists of one value type.  @return @c a then
  *  @c b, bounded by the sum of the bounds. */
