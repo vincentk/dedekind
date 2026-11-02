@@ -100,6 +100,14 @@ constexpr Dom<F> extent(const Compose<F, G>& c) {
   return extent(c.f);
 }
 
+/** @brief A constant sequence, a constant arrow out of the counts: period
+ *  1, on the whole word.  A constant arrow from anything else is no
+ *  sequence and has no period.  @return 1. */
+export template <IsCountWord N, typename B>
+constexpr N period(const ConstantMorphism<N, B>&) {
+  return N{1};
+}
+
 namespace detail_periodic {
 /** @brief Refuses a modulus of 0, which has no residues: not a constant
  *  expression at compile time, the end of the program at run time. */
@@ -350,6 +358,9 @@ constexpr N sum(const detail_periodic::Along<N, F>& v) {
   return static_cast<N>((n / p) * detail_periodic::sum_below(p, f) +
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
 }
+// A constant sequence: n copies of one value, one multiplication.
+static_assert(sum(std::size_t{5} >> chain<std::size_t>() >>
+                  constant<std::size_t>(std::size_t{7})) == 35);
 
 namespace detail_periodic {
 /** @brief The checked sum of two exact counts: none if either is none or
@@ -1858,10 +1869,11 @@ constexpr auto count_factors(const Cylinder<Power<C, F, N>, S, N>& c) {
 }
 
 namespace detail_periodic {
-/** @brief The factors of the cylinder at one offset, as an arrow from the
- *  offset.  A power is the same at every position, so every window that
- *  fits has the same factors: period 1, on the offsets where the window
- *  fits.  The summands of @c occurrences read it. */
+/** @brief The sequence of a cylinder's factors along the offsets of its
+ *  window.  A power is the same at every position, so every window that
+ *  fits has the same factors (R2: the offset drops out): period 1, on the
+ *  offsets where the window fits.  The summands of @c occurrences are this
+ *  sequence read by @c CountOf or @c ExactCountOf. */
 template <typename P, typename S, IsCountWord N>
 struct CylinderFactorsAt {
   using Domain = N;
@@ -1888,14 +1900,16 @@ constexpr N extent(const CylinderFactorsAt<P, S, N>& f) {
              ? static_cast<N>(f.power.length - f.length + 1)
              : N{0};
 }
-/** @brief A factored count read modulo the word, as an arrow. */
+/** @brief A reading of a factored count, modulo the word: an arrow from the
+ *  factor lists, with no period of its own; after a periodic sequence, the
+ *  composite is periodic (@c period of a @c Compose). */
 template <typename L, IsCountWord N = word_of_t<L>>
 struct CountOf {
   using Domain = L;
   using Codomain = N;
   constexpr N operator()(const Domain& fs) const { return count(fs); }
 };
-/** @brief A factored count read exactly, as an arrow. */
+/** @brief A reading of a factored count, exactly: as @c CountOf. */
 template <typename L, IsCountWord N = word_of_t<L>>
 struct ExactCountOf {
   using Domain = L;
