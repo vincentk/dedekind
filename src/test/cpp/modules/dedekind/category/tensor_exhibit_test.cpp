@@ -340,6 +340,32 @@ static_assert(
     std::ranges::equal(count_factors(dedekind::category::join(
                            power(nucleotides, 12), sites_6)),
                        Factors{{7, 1}, {4, 3}, {4, 6}}));
+// Which site lengths cut most often: the even lengths from 2 to 12, ranked
+// by their occurrences in all genomes of length 12, the first five.  The
+// sites' density falls along the even lengths, so they rank shortest first
+// by construction: the plan reads the class of even lengths upwards and
+// evaluates no count.  With the law hidden, the fused pass ranks by the
+// counts and agrees.
+using dedekind::category::collect;
+using dedekind::category::descending;
+using dedekind::category::occurrences_of_length;
+using dedekind::category::order_by;
+using dedekind::category::reversal_sections;
+using dedekind::category::take;
+using dedekind::category::where;
+constexpr auto cuts_in_12 = occurrences_of_length(
+    power(nucleotides, 12), reversal_sections(nucleotides, complement));
+static_assert(cuts_in_12(6) == 1'835'008uz && cuts_in_12(7) == 0uz);
+static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
+                                         where(dedekind::category::is_even) >>
+                                         order_by<descending>(cuts_in_12) >>
+                                         take<5>()),
+                                 std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
+static_assert(std::ranges::equal(
+    collect(dedekind::category::slice(2uz, 13uz) >>
+            where(dedekind::category::is_even) >>
+            order_by<descending>(opaque(cuts_in_12)) >> take<5>()),
+    std::array{2uz, 4uz, 6uz, 8uz, 10uz}));
 // The same count as a query: COUNT(*) over the join on the window.
 using dedekind::category::join;
 static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&

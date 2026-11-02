@@ -1342,6 +1342,49 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
   return {p, g.f.transform, g.g.tau};
 }
 
+/** @brief The words fixed by the reversal after a letter map, one set per
+ *  length: @f$n \mapsto \{w \in \Sigma^n : w = \tau(\mathrm{rev}\,w)\}@f$,
+ *  the restriction sites for the Watson–Crick @f$\tau@f$.  Their density
+ *  falls along the even lengths whatever @f$\tau@f$ is: of length @f$2j@f$
+ *  there are @f$k^j@f$, with @f$k \le |\Sigma|@f$ the letters @f$\tau^2@f$
+ *  fixes, so @f$k^j / |\Sigma|^{2j}@f$ shrinks with @f$j@f$ (Pólya, the
+ *  reversal's pairs).  Hence @c antitone_on_even_lengths.
+ *  @tparam C @tparam F the alphabet.  @tparam N the counts.  @tparam T the
+ *  letter map. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T>
+struct ReversalSections {
+  using Domain = N;
+  using Codomain = Symmetric<Power<C, F, N>, Reverse, T>;
+  Slice<C> letters;
+  F member;
+  T tau;
+  constexpr Codomain operator()(N n) const {
+    return {Power<C, F, N>{letters, member, n}, Reverse{}, tau};
+  }
+};
+/** @tparam N the counts.  @param leg the filtered alphabet.  @param tau the
+ *  letter map.  @return the sections it fixes after the reversal, by
+ *  length. */
+export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F,
+                 IsArrow T>
+  requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
+           std::same_as<Dom<T>, C>
+constexpr ReversalSections<C, F, N, T> reversal_sections(
+    const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg,
+    T tau) {
+  const Power<C, F, N> one = power<N>(leg, N{1});
+  return {one.letters, one.member, std::move(tau)};
+}
+/** @brief A family of sets of words whose density does not grow along the
+ *  even lengths, so that the occurrences of its sets, ranked by length, are
+ *  sorted on the even ones by construction.  A struct trait, for a family
+ *  to register by one partial specialisation.  @tparam Fam the family. */
+export template <typename Fam>
+struct antitone_on_even_lengths : std::false_type {};
+template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T>
+struct antitone_on_even_lengths<ReversalSections<C, F, N, T>> : std::true_type {
+};
+
 /** @brief An outer product of two counted tensors, its count the product of
  *  theirs.  @tparam A @tparam B the factors. */
 export template <typename A, typename B>

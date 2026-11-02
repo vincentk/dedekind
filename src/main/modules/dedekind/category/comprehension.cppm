@@ -315,6 +315,27 @@ constexpr auto exact_count(const WindowJoin<P, S>& j) {
   return exact_occurrences(j.power, j.inner);
 }
 
+/** @brief A rank of the lengths: @f$n \mapsto@f$ how often the family's set
+ *  of length @c n occurs in the words of @c p, @c COUNT(*) over the join on
+ *  the window, grouped by the length.  @tparam P the tensor power.
+ *  @tparam Fam the family, a set of words per length. */
+export template <typename P, IsArrow Fam>
+struct OccurrencesOfLength {
+  using Domain = Dom<Fam>;
+  using Codomain = Dom<Fam>;
+  P power;
+  Fam family;
+  constexpr Codomain operator()(Domain n) const {
+    return count(join(power, family(n)));
+  }
+};
+/** @param p a tensor power.  @param fam a family of sets of words, by
+ *  length.  @return the rank of the lengths by their occurrences. */
+export template <typename P, IsArrow Fam>
+constexpr OccurrencesOfLength<P, Fam> occurrences_of_length(P p, Fam fam) {
+  return {std::move(p), std::move(fam)};
+}
+
 /** @brief The orders a query is sorted by, the standard's comparisons named
  *  as SQL's @c ASC and @c DESC: the defaults of @c order_by's parameter,
  *  which takes any comparison with sufficient structure, a total preorder on
@@ -491,6 +512,31 @@ constexpr auto operator>>(const unfold_view<S, Coalg>& q, Take<K>) {
   return unfold(std::pair<S, std::size_t>{q.seed(), 0},
                 detail_comprehension::Taken<S, Coalg, K>{q.coalgebra()});
 }
+namespace detail_comprehension {
+/** @brief The fused plan of @c order_by @c >> @c take<K> with no law: one
+ *  pass keeping the best @c K, the elements present.  @param p the pending
+ *  sort.  @return the best @c K, best first, as a query. */
+template <std::size_t K, typename Q, typename Rank, typename Order>
+constexpr auto fused_take(const Pending<Q, Rank, Order>& p) {
+  using T = typename std::ranges::range_value_t<Q>::value_type;
+  return std::ranges::fold_left(
+      std::ranges::fold_left(
+          p.query, AtMost<T, K>{},
+          lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
+              {p.by.rank, p.by.order}})),
+      AtMost<Maybe<T>, K>{}, detail_comprehension::WithPresent{});
+}
+/** @brief The progression @f$j \mapsto m j + r@f$, a residue class's members
+ *  in order: a congruence filter on a chain read as a chain of its own. */
+template <IsCountWord N>
+struct Progression {
+  using Domain = N;
+  using Codomain = N;
+  N step;
+  N first;
+  constexpr N operator()(N j) const { return static_cast<N>(first + step * j); }
+};
+}  // namespace detail_comprehension
 /** @brief @c order_by @c >> @c take<K> with no law: fused, one pass keeping
  *  the best @c K in an @c AtMost, never sorting the whole (rewrite 2).  A
  *  query still, each element present, so its count is its rows' and
@@ -499,13 +545,42 @@ constexpr auto operator>>(const unfold_view<S, Coalg>& q, Take<K>) {
 export template <typename Q, typename Rank, typename Order, std::size_t K>
 constexpr auto operator>>(
     const detail_comprehension::Pending<Q, Rank, Order>& p, Take<K>) {
-  using T = typename std::ranges::range_value_t<Q>::value_type;
+  return detail_comprehension::fused_take<K>(p);
+}
+
+/** @brief The lengths in a residue class, ranked by their occurrences, the
+ *  first @c K: one plan compiled, the even case, and the run time only
+ *  reindexing into it.  A family whose density falls along the even lengths
+ *  ranks them by construction, the shortest first (the walk read upwards,
+ *  rewrite 3), so the first @c K need no rank evaluated at all.  A residue
+ *  class of even modulus holds lengths of one parity: even ones are the
+ *  case; odd ones occur nowhere (the reversal pairs the letters, and no
+ *  even alphabet fixes them all), all ranked alike.  Either way the class's
+ *  members in order are the plan, a progression: padded into the class by
+ *  @f$j \mapsto m j + r@f$, unpadded by reading the lengths back.  An odd
+ *  modulus mixes the parities and takes the fused pass.
+ *  @param p the pending sort.  @return the first @c K lengths. */
+export template <IsCountWord N, typename P, typename Fam, std::size_t K>
+  requires antitone_on_even_lengths<Fam>::value
+constexpr AtMost<Maybe<N>, K> operator>>(
+    const detail_comprehension::Pending<
+        unfold_view<std::optional<N>,
+                    detail_chain::SliceStep<N, Where<Congruent<N>>>>,
+        OccurrencesOfLength<P, Fam>, descending>& p,
+    Take<K>) {
+  const Congruent<N> c = p.query.coalgebra().f.p;
+  if (c.modulus % 2 != 0) return detail_comprehension::fused_take<K>(p);
+  const N hi = p.query.coalgebra().hi;
+  const N lo = p.query.seed().value_or(hi);
+  const N first = static_cast<N>(
+      lo + (c.modulus + c.residue % c.modulus - lo % c.modulus) % c.modulus);
+  const N members =
+      first < hi ? static_cast<N>((hi - first - 1) / c.modulus + 1) : N{0};
+  const N taken = members < N{K} ? members : N{K};
   return std::ranges::fold_left(
-      std::ranges::fold_left(
-          p.query, AtMost<T, K>{},
-          lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
-              {p.by.rank, p.by.order}})),
-      AtMost<Maybe<T>, K>{}, detail_comprehension::WithPresent{});
+      slice(N{0}, taken) >>
+          detail_comprehension::Progression<N>{c.modulus, first},
+      AtMost<Maybe<N>, K>{}, detail_comprehension::WithPresent{});
 }
 
 /** @brief A query's present elements as a value, bounded by its @c take:
