@@ -117,8 +117,8 @@ TEST_CASE("Total: Lattice Structures (Relational Presence)",
     using Min = Inf;
 
     // Verify structural properties of the operations
-    STATIC_CHECK(IsSemilattice<int, Max>);
-    STATIC_CHECK(IsSemilattice<int, Min>);
+    STATIC_CHECK(IsJoinSemilattice<int, Max>);
+    STATIC_CHECK(IsMeetSemilattice<int, Min>);
   }
 }
 

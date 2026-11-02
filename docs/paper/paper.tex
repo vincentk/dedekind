@@ -1704,7 +1704,7 @@ So the single lossy crossing is the representation map, and it is independent of
 This is the ring-swap machinery the \cppinline{Dual<F>} carrier already uses in miniature, generalised from computing a derivative exactly to computing the whole expression exactly and rounding once.
 Whether the type system can carry that boundary crossing as a first-class, mechanically-checked seam rather than a convention is the question we would pursue next.
 
-A complementary direction widens the family of structural specialisations the compiler recognises (§\ref{sec:ddk_comprehension}) toward a law-indexed reduction surface: gating the collapse rules on algebraic-law concepts such as \cppinline{IsMonoid} and \cppinline{IsSemilattice} rather than on named carriers.
+A complementary direction widens the family of structural specialisations the compiler recognises (§\ref{sec:ddk_comprehension}) toward a law-indexed reduction surface: gating the collapse rules on algebraic-law concepts such as \cppinline{IsMonoid} and \cppinline{IsMeetSemilattice} rather than on named carriers.
 Rice's theorem forecloses a fully general reducer.
 The family of law-carrying specialisations, however, has no obvious ceiling short of it.
 
