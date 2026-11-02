@@ -397,7 +397,7 @@ The structure lives in a \emph{type} (a typed term, an array of known length), o
 In both cases, an iteration that can be mapped onto the chain of Figure~\ref{fig:structures} contains no loop and terminates, whether the chain is held as one count or as the elements of an array.
 In the terms of Meijer et al., \cppinline{concat} over a list is a catamorphism.
 The chain is an anamorphism, $\mathit{prior}$ unfolded from the seed and delimited where it has nothing.
-\cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list.
+\cppinline{concat} over the chain is a hylomorphism, and the chain is never built as a list, only as its fold (Appendix~\ref{app:fjlt:translation}).
 
 \begin{listing}[htbp]
 \begin{minipage}[t]{0.49\linewidth}
