@@ -326,6 +326,20 @@ static_assert(
                                                window(3, 6), sites_6))),
                  Outer<std::remove_cvref_t<decltype(sites_6)>,
                        std::remove_cvref_t<decltype(power(nucleotides, 6))>>>);
+// The join's plan: the seven offsets times the cylinder at the first, whose
+// selection is pushed down in turn; its count the box law's throughout,
+// 7 · 4^3 · 4^6 as factors, no sum over the offsets left.
+using dedekind::category::explain;
+using dedekind::category::Offsets;
+static_assert(
+    std::same_as<decltype(explain(dedekind::category::join(
+                     power(nucleotides, 12), sites_6))),
+                 Outer<Offsets<std::size_t>,
+                       std::remove_cvref_t<decltype(cylinder(
+                           power(nucleotides, 12), window(0, 6), sites_6))>>> &&
+    std::ranges::equal(count_factors(dedekind::category::join(
+                           power(nucleotides, 12), sites_6)),
+                       Factors{{7, 1}, {4, 3}, {4, 6}}));
 // The same count as a query: COUNT(*) over the join on the window.
 using dedekind::category::join;
 static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&

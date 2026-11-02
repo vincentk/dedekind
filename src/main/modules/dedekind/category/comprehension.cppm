@@ -260,12 +260,52 @@ export template <typename P, typename S>
 constexpr WindowJoin<P, S> join(P p, S s) {
   return {std::move(p), std::move(s)};
 }
+/** @brief The offsets a window takes, as a tensor: the chain of @c m, its
+ *  count @c m, one factor @f$m^1@f$.  Fubini's sum over the offsets, every
+ *  summand the same (period 1, translation invariance), is this factor of
+ *  the product.  @tparam N the counts. */
+export template <IsCountWord N>
+struct Offsets {
+  N count;
+};
+/** @param o the offsets.  @return their count, one factor. */
+export template <IsCountWord N>
+constexpr AtMost<Factor<N>, 1> count_factors(const Offsets<N>& o) {
+  return AtMost<Factor<N>, 1>{}.with(Factor<N>{o.count, N{1}});
+}
+/** @brief The plan of a join on the window, @c EXPLAIN: the offsets times
+ *  the cylinder at the first, an outer product, the cylinder in turn its
+ *  selection pushed down (@c pushed_down).  Fubini, periodicity and the box
+ *  law compose into it; none of the three is stated for joins.  Its type is
+ *  the plan, so a test asserts it.  Defined where a window fits.
+ *  @param j the join.  @return its plan. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+constexpr auto explain(const WindowJoin<P, S>& j) {
+  const auto n = detail_periodic::power_of(j.inner).length;
+  using N = std::remove_cvref_t<decltype(n)>;
+  return Offsets<N>{static_cast<N>(j.power.length - n + 1)} *
+         cylinder(j.power, window<N>(N{0}, n), j.inner);
+}
+/** @brief The factors of a join's count: its plan's, the box law throughout,
+ *  with no sum over the offsets left; none where no window fits.
+ *  @param j the join.  @return its count, factored. */
+export template <typename P, typename S>
+  requires requires(const P& p, const S& s) { occurrences(p, s); }
+constexpr auto count_factors(const WindowJoin<P, S>& j) {
+  using L = decltype(count_factors(explain(j)));
+  using N = detail_periodic::word_of_t<L>;
+  if (detail_periodic::power_of(j.inner).length > j.power.length) {
+    return L{}.with(Factor<N>{N{0}, N{1}});
+  }
+  return count_factors(explain(j));
+}
 /** @param j a join on the window.  @return its count, @c COUNT(*), modulo
  *  the word: @c occurrences. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
 constexpr auto count(const WindowJoin<P, S>& j) {
-  return occurrences(j.power, j.inner);
+  return count(count_factors(j));
 }
 /** @param j a join on the window.  @return its count exactly, or none
  *  where the word cannot hold it: @c exact_occurrences. */
