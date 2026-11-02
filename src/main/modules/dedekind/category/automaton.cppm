@@ -93,25 +93,38 @@ template <std::size_t Sigma, IsCountWord N, std::size_t K>
 constexpr auto derived(const RunList<N, K>& r, N j, N a) {
   const N b = power_of<Sigma>(static_cast<N>(j - 1));
   const N lo = static_cast<N>(a * b);
-  return shift<N>(lo) >> reduced(r & run<K>(lo, static_cast<N>(lo + b)));
+  return shift<N>(lo) >> reduced(Meet<RunList<N, K>, RunList<N, 2>>{
+                             r, run<2>(lo, static_cast<N>(lo + b))});
 }
+/** @brief The set's own derivatives, one per letter: the same for every
+ *  state, so computed once, before the walk. */
+template <std::size_t Sigma, IsCountWord N, std::size_t KL>
+struct DeriveSites {
+  RunList<N, KL> sites;
+  N length;
+  using Own = std::array<RunList<N, KL + 2>, Sigma>;
+  constexpr Own operator()(const Own& acc, N a) const {
+    Own next = acc;
+    next[a] = derived<Sigma>(sites, length, a);
+    return next;
+  }
+};
 /** @brief One pending length of a state's derivative by a letter: the
- *  pending words one longer, and the set's own where they are its length,
- *  derived and joined; a word of length zero is a match. */
+ *  pending words one longer, derived, and the set's own derivative where
+ *  they are its length, joined; a word of length zero is a match. */
 template <std::size_t Sigma, IsCountWord N, std::size_t P, std::size_t K,
           std::size_t KL>
 struct Advance {
   Residual<N, P, K> from;
-  RunList<N, KL> sites;
+  std::array<RunList<N, KL>, Sigma> own;
   N length;
   N letter;
   constexpr Maybe<Residual<N, P, K>> operator()(
       const Maybe<Residual<N, P, K>>& acc, N k) const {
     if (!acc) return acc;
     const N j = static_cast<N>(k + 1);
-    const RunList<N, KL> own = j == length ? sites : RunList<N, KL>{};
     const auto longer = derived<Sigma>(from.pending[k], j, letter);
-    const auto mine = derived<Sigma>(own, j, letter);
+    const RunList<N, KL> mine = j == length ? own[letter] : RunList<N, KL>{};
     const auto r =
         reduced(Join<decltype(longer), decltype(mine)>{longer, mine});
     Residual<N, P, K> next = *acc;
@@ -129,13 +142,12 @@ struct Advance {
  *  @c a, or nothing where a pending set outgrows its bound. */
 template <std::size_t Sigma, IsCountWord N, std::size_t P, std::size_t K,
           std::size_t KL>
-constexpr Maybe<Residual<N, P, K>> step(const Residual<N, P, K>& s,
-                                        const RunList<N, KL>& sites, N length,
-                                        N a) {
-  return std::ranges::fold_left(
-      std::views::iota(N{0}, length),
-      Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
-      Advance<Sigma, N, P, K, KL>{s, sites, length, a});
+constexpr Maybe<Residual<N, P, K>> step(
+    const Residual<N, P, K>& s, const std::array<RunList<N, KL>, Sigma>& own,
+    N length, N a) {
+  return std::ranges::fold_left(std::views::iota(N{0}, length),
+                                Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
+                                Advance<Sigma, N, P, K, KL>{s, own, length, a});
 }
 /** @brief The construction so far: the states found, in the order found,
  *  and the plan's rows for those already walked. */
@@ -152,12 +164,12 @@ template <std::size_t Sigma, IsCountWord N, std::size_t P, std::size_t K,
           std::size_t KL, std::size_t Q>
 struct Letter {
   Residual<N, P, K> from;
-  RunList<N, KL> sites;
+  std::array<RunList<N, KL>, Sigma> own;
   N length;
   using B = Build<Sigma, N, P, K, Q>;
   constexpr Maybe<B> operator()(const Maybe<B>& acc, N a) const {
     if (!acc) return acc;
-    const Maybe<Residual<N, P, K>> t = step<Sigma>(from, sites, length, a);
+    const Maybe<Residual<N, P, K>> t = step<Sigma>(from, own, length, a);
     if (!t) return {};
     B next = *acc;
     const auto at = std::ranges::find(next.states, *t);
@@ -176,7 +188,7 @@ struct Letter {
 template <std::size_t Sigma, IsCountWord N, std::size_t P, std::size_t K,
           std::size_t KL, std::size_t Q>
 struct Walk {
-  RunList<N, KL> sites;
+  std::array<RunList<N, KL>, Sigma> own;
   N length;
   using B = Build<Sigma, N, P, K, Q>;
   constexpr Maybe<B> operator()(const Maybe<B>& acc, std::size_t i) const {
@@ -184,7 +196,7 @@ struct Walk {
     const Residual<N, P, K> s = acc->states.items[i];
     const Maybe<B> done = std::ranges::fold_left(
         std::views::iota(N{0}, static_cast<N>(Sigma)), acc,
-        Letter<Sigma, N, P, K, KL, Q>{s, sites, length});
+        Letter<Sigma, N, P, K, KL, Q>{s, own, length});
     if (!done) return {};
     B next = *done;
     next.plan = {next.plan.next.with(next.row),
@@ -224,9 +236,13 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
   using B = detail_automaton::Build<Sigma, N, P, K, Q>;
   const B start{
       AtMost<detail_automaton::Residual<N, P, K>, Q>{}.with({}), {}, {}};
+  using Derive = detail_automaton::DeriveSites<Sigma, N, KL>;
+  const typename Derive::Own own =
+      std::ranges::fold_left(std::views::iota(N{0}, static_cast<N>(Sigma)),
+                             typename Derive::Own{}, Derive{sites, length});
   const Maybe<B> built = std::ranges::fold_left(
       std::views::iota(0uz, Q), Maybe<B>{start},
-      detail_automaton::Walk<Sigma, N, P, K, KL, Q>{sites, length});
+      detail_automaton::Walk<Sigma, N, P, K, KL + 2, Q>{own, length});
   if (!built) return {};
   return built->plan;
 }

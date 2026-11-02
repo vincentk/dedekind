@@ -159,6 +159,25 @@ constexpr RunList<N, J + K> swept(const RunList<N, J>& a,
       std::ranges::fold_left(at, typename Sweep<N, J, K, Op>::State{}, sweep)
           .steps};
 }
+/** @param r a run list.  @param w a single run @f$[lo, hi)@f$, or none.
+ *  @return @c r restricted to it: its steps strictly inside, opened at
+ *  @c lo where @c lo is in @c r and closed at @c hi where @c hi - 1 is.  Two
+ *  bisections and a copy of what is kept, where the sweep tests every
+ *  position of both. */
+template <IsCountWord N, std::size_t J>
+constexpr RunList<N, J + 2> restricted(const RunList<N, J>& r,
+                                       const RunList<N, 2>& w) {
+  if (w.steps.size() < 2) return {};
+  const N lo = w.steps.items[0];
+  const N hi = w.steps.items[1];
+  const AtMost<N, J + 2> opened =
+      r(lo) ? AtMost<N, J + 2>{}.with(lo) : AtMost<N, J + 2>{};
+  const AtMost<N, J + 2> inside = std::ranges::fold_left(
+      std::ranges::subrange(std::ranges::upper_bound(r.steps, lo),
+                            std::ranges::lower_bound(r.steps, hi)),
+      opened, detail_periodic::With{});
+  return {r(static_cast<N>(hi - 1)) ? inside.with(hi) : inside};
+}
 /** @brief No order on run lists for the reducer to canonicalise by: the
  *  residual of two keeps its authored order, then combines. */
 struct Unordered {};
@@ -181,6 +200,13 @@ export struct RunCombine {
   static constexpr RunList<N, J + K> meet_value(const RunList<N, J>& a,
                                                 const RunList<N, K>& b) {
     return detail_runs::swept(a, b, std::logical_and<bool>{});
+  }
+  /** @brief The meet with a single run, by law a restriction: the same
+   *  set as the sweep's, by bisection. */
+  template <IsCountWord N, std::size_t J>
+  static constexpr RunList<N, J + 2> meet_value(const RunList<N, J>& a,
+                                                const RunList<N, 2>& w) {
+    return detail_runs::restricted(a, w);
   }
   template <IsCountWord N, std::size_t J, std::size_t K>
   static constexpr RunList<N, J + K> join_value(const RunList<N, J>& a,
@@ -248,6 +274,21 @@ static_assert(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)).steps.size() == 4 &&
               reduced(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) &
                       run<4>(1uz, 5uz))
                       .steps.size() == 4);
+// The restriction is the sweep's meet: [0, 2) ∪ [4, 6) ∪ [8, 9) cut to
+// [1, 8) is [1, 2) ∪ [4, 6), and cut to [5, 9) is [5, 6) ∪ [8, 9).
+static_assert(detail_runs::restricted(reduced(reduced(run<2>(0uz, 2uz) |
+                                                      run<2>(4uz, 6uz)) |
+                                              run<4>(8uz, 9uz)),
+                                      run<2>(1uz, 8uz)) ==
+                  detail_runs::swept(
+                      reduced(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                              run<4>(8uz, 9uz)),
+                      run<2>(1uz, 8uz), std::logical_and<bool>{}) &&
+              detail_runs::restricted(reduced(reduced(run<2>(0uz, 2uz) |
+                                                      run<2>(4uz, 6uz)) |
+                                              run<4>(8uz, 9uz)),
+                                      run<2>(5uz, 9uz)) ==
+                  reduced(run<2>(5uz, 6uz) | run<2>(8uz, 9uz)));
 // A bound claimed: the union of two points fits four steps, not two.
 static_assert(
     narrowed<4>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&

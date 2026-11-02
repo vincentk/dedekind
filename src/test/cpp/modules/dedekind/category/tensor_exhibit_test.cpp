@@ -428,10 +428,11 @@ concept PlansAtCompileTime = requires {
   typename std::bool_constant<
       dedekind::category::automaton<4, 6, 32, 288>(Sites, 6u).has_value()>;
 };
-static_assert(!PlansAtCompileTime<sites_6_runs()>);
-// PROBE 2: outside the gate, the evaluator says why.
-constexpr auto sites_6_plan =
-    dedekind::category::automaton<4, 6, 32, 288>(sites_6_runs(), 6u);
+// PROBE 3: after the hoist and the restriction law.  The single site plans
+// at compile time; the set: this fails where it now fits too.
+static_assert(PlansAtCompileTime<dedekind::category::run<2>(2109u, 2110u)>);
+static_assert(!PlansAtCompileTime<sites_6_runs()>,
+              "PROBE 3: the 64 sites' plan now fits at compile time");
 
 // Panel 2's plan: the matcher specialised to all 64 sites at once, the
 // minimal automaton of Σ* sites(6), at run time (its construction is past
