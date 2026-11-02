@@ -110,8 +110,10 @@ export import :adjunction;  // Free / Forgetful pair, IsAdjunction (Pierce-style
 export import :cartesian_bicategory;  // Frobenius spider: Copy/Merge/Tensor,
                                       // meet = right adjoint of the diagonal
                                       // (Δ ⊣ ∧); reusable downstream (#946)
-export import :periodic;  // Periodic arrows on the counts and their counts
-                          // (the Jlt paper's tensor exhibit, #1104)
+export import :periodic;       // Periodic arrows on the counts and their counts
+export import :comprehension;  // Monad comprehensions: where, select, the
+                               // queries of SQL (the Jlt paper's tensor
+                               // exhibit, #1104)
 export import :monad;
 export import :kleisli;
 
