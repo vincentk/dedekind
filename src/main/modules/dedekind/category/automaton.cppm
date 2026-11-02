@@ -53,9 +53,12 @@ export module dedekind.category:automaton;
 
 import :chain;     // IsCountWord
 import :functor;   // Maybe
-import :lattice;   // Join: a union as the lattice's node
+import :lattice;   // Join, Meet: a union, a restriction, as the lattice's nodes
 import :periodic;  // AtMost, shift
 import :runs;      // RunList, run, reduced, narrowed
+import :total;     // power: σ^k by squaring
+import :action;    // fold: a plain fold, the scan
+import :kleisli;   // fold in the Kleisli category: the steps that may fail
 
 namespace dedekind::category {
 
@@ -71,13 +74,7 @@ struct Automaton {
 };
 
 namespace detail_automaton {
-/** @tparam Sigma the base.  @param k the exponent.  @return
- *  @f$\sigma^k@f$. */
-template <std::size_t Sigma, IsCountWord N>
-constexpr N power_of(N k) {
-  return std::ranges::fold_left(std::views::repeat(static_cast<N>(Sigma), k),
-                                N{1}, std::multiplies<N>{});
-}
+
 /** @brief A state: whether a word of the set has just been read, and the
  *  pending words by length, @c pending[k - 1] those of length @c k. */
 template <IsCountWord N, std::size_t P, std::size_t K>
@@ -91,7 +88,8 @@ struct Residual {
  *  @c a in them, the meet with @c a's interval read from its start. */
 template <std::size_t Sigma, IsCountWord N, std::size_t K>
 constexpr auto derived(const RunList<N, K>& r, N j, N a) {
-  const N b = power_of<Sigma>(static_cast<N>(j - 1));
+  const N b = detail_concat::power(static_cast<N>(Sigma), static_cast<N>(j - 1),
+                                   std::multiplies<N>{});
   const N lo = static_cast<N>(a * b);
   return shift<N>(lo) >> reduced(Meet<RunList<N, K>, RunList<N, 2>>{
                              r, run<2>(lo, static_cast<N>(lo + b))});
@@ -119,15 +117,14 @@ struct Advance {
   std::array<RunList<N, KL>, Sigma> own;
   N length;
   N letter;
-  constexpr Maybe<Residual<N, P, K>> operator()(
-      const Maybe<Residual<N, P, K>>& acc, N k) const {
-    if (!acc) return acc;
+  constexpr Maybe<Residual<N, P, K>> operator()(const Residual<N, P, K>& acc,
+                                                N k) const {
     const N j = static_cast<N>(k + 1);
     const auto longer = derived<Sigma>(from.pending[k], j, letter);
     const RunList<N, KL> mine = j == length ? own[letter] : RunList<N, KL>{};
     const auto r =
         reduced(Join<decltype(longer), decltype(mine)>{longer, mine});
-    Residual<N, P, K> next = *acc;
+    Residual<N, P, K> next = acc;
     if (k == 0) {
       next.accepting = r(N{0});
       return next;
@@ -145,9 +142,9 @@ template <std::size_t Sigma, IsCountWord N, std::size_t P, std::size_t K,
 constexpr Maybe<Residual<N, P, K>> step(
     const Residual<N, P, K>& s, const std::array<RunList<N, KL>, Sigma>& own,
     N length, N a) {
-  return std::ranges::fold_left(std::views::iota(N{0}, length),
-                                Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
-                                Advance<Sigma, N, P, K, KL>{s, own, length, a});
+  return fold(std::views::iota(N{0}, length),
+              Maybe<Residual<N, P, K>>{Residual<N, P, K>{}},
+              Advance<Sigma, N, P, K, KL>{s, own, length, a});
 }
 /** @brief The construction so far: the states found, in the order found,
  *  and the plan's rows for those already walked. */
@@ -167,11 +164,10 @@ struct Letter {
   std::array<RunList<N, KL>, Sigma> own;
   N length;
   using B = Build<Sigma, N, P, K, Q>;
-  constexpr Maybe<B> operator()(const Maybe<B>& acc, N a) const {
-    if (!acc) return acc;
+  constexpr Maybe<B> operator()(const B& acc, N a) const {
     const Maybe<Residual<N, P, K>> t = step<Sigma>(from, own, length, a);
     if (!t) return {};
-    B next = *acc;
+    B next = acc;
     const auto at = std::ranges::find(next.states, *t);
     if (at == next.states.end()) {
       if (next.states.size() == Q) return {};
@@ -191,12 +187,12 @@ struct Walk {
   std::array<RunList<N, KL>, Sigma> own;
   N length;
   using B = Build<Sigma, N, P, K, Q>;
-  constexpr Maybe<B> operator()(const Maybe<B>& acc, std::size_t i) const {
-    if (!acc || i >= acc->states.size()) return acc;
-    const Residual<N, P, K> s = acc->states.items[i];
-    const Maybe<B> done = std::ranges::fold_left(
-        std::views::iota(N{0}, static_cast<N>(Sigma)), acc,
-        Letter<Sigma, N, P, K, KL, Q>{s, own, length});
+  constexpr Maybe<B> operator()(const B& acc, std::size_t i) const {
+    if (i >= acc.states.size()) return acc;
+    const Residual<N, P, K> s = acc.states.items[i];
+    const Maybe<B> done =
+        fold(std::views::iota(N{0}, static_cast<N>(Sigma)), Maybe<B>{acc},
+             Letter<Sigma, N, P, K, KL, Q>{s, own, length});
     if (!done) return {};
     B next = *done;
     next.plan = {next.plan.next.with(next.row),
@@ -238,11 +234,11 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
       AtMost<detail_automaton::Residual<N, P, K>, Q>{}.with({}), {}, {}};
   using Derive = detail_automaton::DeriveSites<Sigma, N, KL>;
   const typename Derive::Own own =
-      std::ranges::fold_left(std::views::iota(N{0}, static_cast<N>(Sigma)),
-                             typename Derive::Own{}, Derive{sites, length});
-  const Maybe<B> built = std::ranges::fold_left(
-      std::views::iota(0uz, Q), Maybe<B>{start},
-      detail_automaton::Walk<Sigma, N, P, K, KL + 2, Q>{own, length});
+      fold(std::views::iota(N{0}, static_cast<N>(Sigma)),
+           typename Derive::Own{}, Derive{sites, length});
+  const Maybe<B> built =
+      fold(std::views::iota(0uz, Q), Maybe<B>{start},
+           detail_automaton::Walk<Sigma, N, P, K, KL + 2, Q>{own, length});
   if (!built) return {};
   return built->plan;
 }
@@ -253,9 +249,10 @@ export template <std::size_t Sigma, std::size_t Q,
                  std::ranges::input_range Letters>
 constexpr std::size_t scan(const Automaton<Sigma, Q>& plan,
                            const Letters& letters) {
-  return std::ranges::fold_left(
-             letters, typename detail_automaton::Scan<Sigma, Q>::State{},
-             detail_automaton::Scan<Sigma, Q>{plan})
+  // the text by reference: the caller's state, never copied
+  return fold(std::views::all(letters),
+              typename detail_automaton::Scan<Sigma, Q>::State{},
+              detail_automaton::Scan<Sigma, Q>{plan})
       .matches;
 }
 
