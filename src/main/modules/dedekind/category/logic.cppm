@@ -54,6 +54,10 @@
  * @note "Every kind of science, if it has only reached a certain degree of
  * maturity, automatically becomes a part of mathematics."
  *       -- David Hilbert, Axiomatic Thought (1918)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/274">#274
+ *     Probabilistic Set Membership</a> (work in progress): real or semiring
+ *     scores beside the chains (@c ScoreSet).
  */
 module;
 

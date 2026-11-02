@@ -49,6 +49,10 @@
  * @note "A set is a Many that allows itself to be thought of as a One."
  *       --- Georg Cantor (letter to Dedekind, 1899).  @f$\mathfrak{P}(S)@f$
  *       reifies "the subobjects of @c S" as one @c Set, over one carrier.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/308">#308
+ *     undergraduate probability and statistics</a> (work in progress):
+ *     measures and σ-algebras over @c Sub.
  */
 
 module;

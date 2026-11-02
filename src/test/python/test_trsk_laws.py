@@ -3,8 +3,8 @@
 
 import unittest
 
-from dedekind.pst import K3, U64, Ternary, ap, u64, π_1, π_2, π_3, codomain
-from dedekind.trsk import Function, copy, function, injective, surjective, total, univalent
+from pynzli.pst import K3, U64, Ternary, ap, u64, π_1, π_2, π_3, codomain
+from pynzli.trsk import Function, copy, function, injective, surjective, total, univalent
 
 succ = U64 * U64 & (π_2 == π_1 + 1)
 sq = U64 * U64 & (π_2 * π_2 == π_1)

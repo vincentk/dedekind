@@ -43,6 +43,13 @@
  * @note "Alles Gescheite ist schon gedacht worden, man muß nur versuchen, es
  *        noch einmal zu denken." — J. W. von Goethe.  Here: the transfer
  *        matrix of statistical mechanics, met again as a rank-1 dyad.
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/319">#319
+ *     undergraduate graph theory</a> (work in progress): shortest paths and
+ *     reachability as the closure @c star, named as such, and components.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/297">#297
+ *     undergraduate linear algebra</a> (work in progress): general eigen
+ *     theory beyond the rank-one eigenvalue.
  */
 module;
 

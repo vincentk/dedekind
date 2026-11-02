@@ -784,17 +784,19 @@ struct AtMost {
   static constexpr std::size_t capacity = K;
   std::array<T, K> items{};
   std::size_t length{0};
-  /** @param x the next value; a list at its bound refuses it. */
-  constexpr void push_back(const T& x) {
+  /** @param x the next value.  @return this list and @c x after it; a list
+   *  at its bound refuses it. */
+  constexpr AtMost with(const T& x) const {
     if (length == K) std::abort();
-    items[length++] = x;
+    AtMost l = *this;
+    l.items[length] = x;
+    l.length = length + 1;
+    return l;
   }
   constexpr std::size_t size() const { return length; }
-  constexpr const T& front() const { return items[0]; }
+  constexpr T front() const { return items[0]; }
   constexpr const T* begin() const { return items.data(); }
   constexpr const T* end() const { return items.data() + length; }
-  constexpr T* begin() { return items.data(); }
-  constexpr T* end() { return items.data() + length; }
   constexpr bool operator==(const AtMost&) const = default;
 };
 
@@ -829,15 +831,20 @@ concept IsBoundedFactorsOf = IsFactorsOf<L, N> && requires {
 template <typename L>
 using word_of_t =
     typename factor_word<std::ranges::range_value_t<const L>>::type;
+/** @brief One more value into a bounded list, as a fold's step. */
+struct With {
+  template <std::semiregular T, std::size_t K>
+  constexpr AtMost<T, K> operator()(const AtMost<T, K>& l, const T& x) const {
+    return l.with(x);
+  }
+};
 /** @param a @param b two bounded lists.  @return @c a then @c b, bounded
  *  by the sum of the bounds. */
-template <typename T, std::size_t J, std::size_t K>
+template <std::semiregular T, std::size_t J, std::size_t K>
 constexpr AtMost<T, J + K> joined(const AtMost<T, J>& a,
                                   const AtMost<T, K>& b) {
-  AtMost<T, J + K> out;
-  for (const T& x : a) out.push_back(x);
-  for (const T& x : b) out.push_back(x);
-  return out;
+  return std::ranges::fold_left(
+      b, std::ranges::fold_left(a, AtMost<T, J + K>{}, With{}), With{});
 }
 }  // namespace detail_periodic
 /** @brief The cycles of a permutation of positions of one length, and how
@@ -1011,10 +1018,9 @@ constexpr Rotation<N> rotate(std::type_identity_t<N> d) {
  *  @return its cycles. */
 export template <IsCountWord N>
 constexpr AtMost<Cycles<N>, 2> cycle_type(Reverse, N n) {
-  AtMost<Cycles<N>, 2> c;
-  c.push_back(Cycles<N>{2, static_cast<N>(n / 2)});
-  if (n % 2 == 1) c.push_back(Cycles<N>{1, 1});
-  return c;
+  const auto pairs =
+      AtMost<Cycles<N>, 2>{}.with(Cycles<N>{2, static_cast<N>(n / 2)});
+  return n % 2 == 1 ? pairs.with(Cycles<N>{1, 1}) : pairs;
 }
 /** @brief The cycle type of a rotation of @c n positions by @c d: @f$g =
  *  \gcd(n, d)@f$ cycles of length @f$n / g@f$, the identity where @c d is a
@@ -1022,11 +1028,9 @@ constexpr AtMost<Cycles<N>, 2> cycle_type(Reverse, N n) {
  *  its cycles. */
 export template <IsCountWord N>
 constexpr AtMost<Cycles<N>, 1> cycle_type(const Rotation<N>& r, N n) {
-  AtMost<Cycles<N>, 1> c;
-  if (n == 0) return c;
+  if (n == 0) return {};
   const N g = std::gcd(n, static_cast<N>(r.shift % n));  // n where d ≡ 0
-  c.push_back(Cycles<N>{static_cast<N>(n / g), g});
-  return c;
+  return AtMost<Cycles<N>, 1>{}.with(Cycles<N>{static_cast<N>(n / g), g});
 }
 
 /** @brief A permutation of positions with a known cycle type.
@@ -1718,13 +1722,13 @@ struct CycleFactor {
   Slice<C> letters;
   F member;
   T tau;
-  template <typename L>
-  constexpr L operator()(L fs, const Cycles<N>& c) const {
-    fs.push_back(Factor<N>{
+  template <std::size_t K>
+  constexpr AtMost<Factor<N>, K> operator()(const AtMost<Factor<N>, K>& fs,
+                                            const Cycles<N>& c) const {
+    return fs.with(Factor<N>{
         with_width(letters_in<C, N>(letters),
                    CycleCount<C, F, T, N>{letters, member, tau, c.length}),
         c.count});
-    return fs;
   }
 };
 }  // namespace detail_periodic
@@ -1735,13 +1739,11 @@ struct CycleFactor {
  *  factored. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N>
 constexpr AtMost<Factor<N>, 1> count_factors(const Power<C, F, N>& p) {
-  AtMost<Factor<N>, 1> fs;
-  fs.push_back(
+  return AtMost<Factor<N>, 1>{}.with(
       Factor<N>{with_width(detail_periodic::letters_in<C, N>(p.letters),
                            detail_periodic::CycleCount<C, F, Identity<C>, N>{
                                p.letters, p.member, Identity<C>{}, N{1}}),
                 p.length});
-  return fs;
 }
 /** @brief The factors of a symmetric section's count: one merged leg per
  *  cycle of @c sigma, so the box law after the merges, the count Pólya's
@@ -1844,19 +1846,16 @@ export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
 constexpr auto count_factors(const Cylinder<Power<C, F, N>, S, N>& c) {
   const auto& p = c.power;
   const auto q = detail_periodic::power_of(c.inner);
-  AtMost<Factor<N>, decltype(count_factors(c.inner))::capacity + 1> fs;
+  using L = AtMost<Factor<N>, decltype(count_factors(c.inner))::capacity + 1>;
   const bool fits =
       detail_periodic::same_legs(p, q) && c.window.length == q.length &&
       c.window.offset <= p.length && q.length <= p.length - c.window.offset;
-  if (!fits) {
-    fs.push_back(Factor<N>{N{0}, N{1}});
-    return fs;
-  }
-  for (const Factor<N>& f : count_factors(c.inner)) fs.push_back(f);
-  fs.push_back(
-      count_factors(Power<C, F, N>{p.letters, p.member, p.length - q.length})
-          .front());
-  return fs;
+  if (!fits) return L{}.with(Factor<N>{N{0}, N{1}});
+  return std::ranges::fold_left(count_factors(c.inner), L{},
+                                detail_periodic::With{})
+      .with(count_factors(
+                Power<C, F, N>{p.letters, p.member, p.length - q.length})
+                .front());
 }
 
 namespace detail_periodic {

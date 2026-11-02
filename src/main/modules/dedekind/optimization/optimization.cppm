@@ -23,6 +23,16 @@
  * @note "Modellbildung ist die halbe Miete."
  *       (Modelling is half the battle.)
  *       — Operations-research folk wisdom.
+ *
+ * @section optimization__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/319">#319
+ *     undergraduate graph theory</a>: the semiring closure and the critical
+ *     path over a DAG; still open are Dijkstra and Bellman-Ford on general
+ *     graphs, spanning trees, flows and matchings.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/330">#330
+ *     undergraduate algorithms and data structures</a>: dynamic programming
+ *     as an algebraic path problem; still open are optimal substructure and
+ *     memoisation as concepts, and topological sort.
  */
 export module dedekind.optimization;
 

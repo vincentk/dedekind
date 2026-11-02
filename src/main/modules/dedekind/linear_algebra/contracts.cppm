@@ -34,6 +34,10 @@
  *
  * @note "Nullity is not nothingness; it is the complement of reach."
  *       -- Anonymous lecture note, Linear Algebra II, 1990s
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/297">#297
+ *     undergraduate linear algebra</a> (work in progress): span, kernel and
+ *     image beyond the rank-nullity contract, and change of basis.
  */
 module;
 

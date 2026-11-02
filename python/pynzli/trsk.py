@@ -2,14 +2,14 @@
 
 A relation ``A ⇸ B`` is a term over relations (C++ ``relational:rows``): its
 domain and codomain are products of the universes (``U64``, ``GF_p``, ``B``,
-``K3``, from ``dedekind.pst``), and its predicate a reading of the term.  A
+``K3``, from ``pynzli.pst``), and its predicate a reading of the term.  A
 set ``U & pred`` is a relation out of the unit; ``U * V`` multiplies.
 
 Relations are the Kleisli arrows of the powerset monad, composed
 monadically, and form a cartesian bicategory::
 
-    from dedekind.pst import U64, π_1, π_2, canonical
-    from dedekind.trsk import Function, arrow, converse, copy, diag, merge
+    from pynzli.pst import U64, π_1, π_2, canonical
+    from pynzli.trsk import Function, arrow, converse, copy, diag, merge
 
     succ = U64 * U64 & (π_2 == π_1 + 1)
     two = succ >> succ                     # Kleisli composition: ∃ over the middle

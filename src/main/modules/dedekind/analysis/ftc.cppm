@@ -40,6 +40,10 @@
  *       [Trans: "Hence our differential method comprehends in a single
  *        calculus also that inverse one, which formerly scarcely supplied
  *        the solution of a single problem."]
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a> (work in progress): Riemann integrability
+ *     and the fundamental theorem beyond numerical hypotheses.
  */
 module;
 

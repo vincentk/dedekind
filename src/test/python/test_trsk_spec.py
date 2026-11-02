@@ -38,7 +38,7 @@ class PathHandles(unittest.TestCase):
 
     @_needs("dedekind.sequences", "orbit", "u64", exhibit="exhibit 1")
     def test_positional_slicing_is_range(self) -> None:
-        from dedekind.sequences import orbit, u64
+        from pynzli.sequences import orbit, u64
 
         n = orbit(u64, 0)  # 0, 1, 2, … by the successor
         self.assertEqual(list(n[3:8]), list(range(3, 8)))
@@ -51,7 +51,7 @@ class CutsPullBackAlongAdjoints(unittest.TestCase):
 
     @_needs("dedekind.sequences", "preimage", "below", exhibit="exhibit 2")
     def test_preimage_of_a_rational_ray_is_a_prefix(self) -> None:
-        from dedekind.sequences import below, preimage
+        from pynzli.sequences import below, preimage
 
         def r(n: int) -> Fraction:  # n ↦ n / (n + 1), monotone into ℚ ∩ [0, 1)
             return Fraction(n, n + 1)
@@ -63,13 +63,13 @@ class CutsPullBackAlongAdjoints(unittest.TestCase):
 class RelationAsSymbolicFunction(unittest.TestCase):
     """Exhibit 3: a relation functional in one projection solves to a path."""
 
-    @_needs("dedekind.pst", "A", "u64", "π_1", "π_2", "π_3", exhibit="exhibit 3")
+    @_needs("pynzli.pst", "A", "u64", "π_1", "π_2", "π_3", exhibit="exhibit 3")
     def test_the_fibonacci_law_is_a_function_and_solves_to_a_path(self) -> None:
-        from dedekind.pst import A, u64, π_1, π_2, π_3
+        from pynzli.pst import A, u64, π_1, π_2, π_3
 
         U = A(u64)
         law = U * U * U & (π_3 == π_1 + π_2)
-        from dedekind.trsk import function
+        from pynzli.trsk import function
 
         self.assertIn(law, function)  # functional in π_3
         if not hasattr(law, "solve"):
@@ -83,9 +83,9 @@ class ExtToTheHost(unittest.TestCase):
     """Exhibit 4: ext lowers a finite relation to host data, one row per
     element of the domain when the relation is a function."""
 
-    @_needs("dedekind.pst", "A", "u64", "π_1", "π_2", "ext", exhibit="exhibit 4")
+    @_needs("pynzli.pst", "A", "u64", "π_1", "π_2", "ext", exhibit="exhibit 4")
     def test_a_functional_relation_is_one_row_per_domain_element(self) -> None:
-        from dedekind.pst import A, ext, u64, π_1, π_2
+        from pynzli.pst import A, ext, u64, π_1, π_2
 
         U = A(u64)
         doubling = (U[:5] * U) & (π_2 == π_1 * 2)
@@ -97,9 +97,9 @@ class TheTotalOperatorSurface(unittest.TestCase):
     carrier, or divides by a nonzero constant; a constant must meet the
     carrier."""
 
-    @_needs("dedekind.pst", "A", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
+    @_needs("pynzli.pst", "A", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
     def test_on_an_unsigned_word(self) -> None:
-        from dedekind.pst import A, u64, π, π_1, π_2
+        from pynzli.pst import A, u64, π, π_1, π_2
 
         U = A(u64)  # the factory: carrier ℤ/2⁶⁴, its total operators
         # + − · are total on the word (they wrap); % by a constant is too.
@@ -118,9 +118,9 @@ class TheTotalOperatorSurface(unittest.TestCase):
         with self.assertRaises(ValueError):
             π % 0
 
-    @_needs("dedekind.pst", "A", "ap", "Fp", "modulus", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
+    @_needs("pynzli.pst", "A", "ap", "Fp", "modulus", "u64", "π", "π_1", "π_2", exhibit="exhibit 3 (terms)")
     def test_on_the_prime_field(self) -> None:
-        from dedekind.pst import A, ap, modulus, u64, 𝔽ₚ, π, π_1, π_2
+        from pynzli.pst import A, ap, modulus, u64, 𝔽ₚ, π, π_1, π_2
 
         F = A(𝔽ₚ)
         # The quotient map: p + 2 meets 𝔽ₚ as 2.
@@ -140,9 +140,9 @@ class TheTotalOperatorSurface(unittest.TestCase):
         with self.assertRaises(TypeError):
             A(u64) & (π / 2 == 1)
 
-    @_needs("dedekind.pst", "A", "B", "π", exhibit="exhibit 3 (terms)")
+    @_needs("pynzli.pst", "A", "B", "π", exhibit="exhibit 3 (terms)")
     def test_on_the_truth_chain(self) -> None:
-        from dedekind.pst import A, B, π
+        from pynzli.pst import A, B, π
 
         # 𝔹's rig is spelled (∨, ∧): + is in no signature of bool, so it is refused.
         B & (π == True)  # noqa: E712 — π is a term, not a bool

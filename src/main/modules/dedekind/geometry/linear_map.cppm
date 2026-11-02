@@ -55,6 +55,13 @@
  * been independently verified. [Trans: "What one most needs in the science of
  * computation is to know the quantities people need in their dealings, for by
  * that, justice in judgment is measured."]
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/272">#272
+ *     Denotational Automatic Differentiation</a> (work in progress): the
+ *     chain rule for composed @c DifferentiableMap, the Jacobian from dual
+ *     propagation.
+ * @see <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a> (work in progress): gradient and Hessian.
  */
 
 module;

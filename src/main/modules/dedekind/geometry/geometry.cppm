@@ -35,6 +35,15 @@
  * explicit, elegant computations has always come out by itself, as a byproduct
  * of a thorough conceptual understanding of what was going on." — Alexander
  * Grothendieck, letter to Ronald Brown (April 12, 1983).
+ *
+ * @section geometry__Roadmap Roadmap (work in progress)
+ * @li <a href="https://github.com/vincentk/dedekind/issues/286">#286
+ *     undergraduate calculus</a>: the Jacobian and the Fréchet derivative of
+ *     a differentiable map; still open are gradient and Hessian and the
+ *     integral theorems.
+ * @li <a href="https://github.com/vincentk/dedekind/issues/272">#272
+ *     Denotational Automatic Differentiation</a>: the chain rule for
+ *     composed differentiable maps, Jacobians from dual propagation.
  */
 
 export module dedekind.geometry;

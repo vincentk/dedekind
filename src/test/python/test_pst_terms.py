@@ -10,7 +10,7 @@ constant; order comparisons on an ordered carrier.
 
 import unittest
 
-from dedekind.pst import A, B, K3, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, carrier, universe
+from pynzli.pst import A, B, K3, Ternary, ap, cond, u64, π, π_1, π_2, 𝔽ₚ, carrier, universe
 
 P = 2**64 - 59
 

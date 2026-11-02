@@ -14,7 +14,7 @@ have no normal form and are refused.
 
 import unittest
 
-from dedekind.pst import A, canonical, u64, π, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
+from pynzli.pst import A, canonical, u64, π, π_1, π_2, 𝔽ₚ  # 𝔽ₚ is Fp (NFKC)
 
 P = 2**64 - 59
 U, F = A(u64), A(𝔽ₚ)

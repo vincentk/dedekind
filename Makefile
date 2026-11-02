@@ -42,7 +42,7 @@ _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || ech
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
 .PHONY: jlt-lint jlt-lint-tool
-.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
+.PHONY: all clean compile test-compile test integration-test coverage wheel wheel-verify python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-paper-deps doxygen paper paper-jlt \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -84,7 +84,7 @@ test: test-compile
 # that the package installs.
 integration-test: test
 	python -m pip install --upgrade pip jupyter
-	@ls $(BUILD_DIR)/python/dedekind/_jlt*.so $(BUILD_DIR)/python/dedekind/_pst*.so >/dev/null 2>&1 || \
+	@ls $(BUILD_DIR)/python/pynzli/_jlt*.so $(BUILD_DIR)/python/pynzli/_pst*.so >/dev/null 2>&1 || \
 		{ echo "ERROR: no staged dedekind package in $(BUILD_DIR)/python; configure with DEDEKIND_BUILD_PYTHON_BINDINGS=ON"; exit 2; }
 	mkdir -p $(BUILD_DIR)/python-notebooks
 	@export PYTHONPATH="$(abspath $(BUILD_DIR))/python$${PYTHONPATH:+:$$PYTHONPATH}"; \
@@ -103,8 +103,8 @@ integration-test: test
 	for nb in $$NOTEBOOKS; do \
 		TOTAL=$$((TOTAL + 1)); \
 		name="$$(basename $$nb)"; \
-		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import dedekind" in to_text(c.get("source", "")) or "from dedekind import" in to_text(c.get("source", "")) or "from dedekind." in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
-			echo "FAILED: $$name does not import dedekind in any code cell" | tee -a "$$REPORT"; \
+		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import pynzli" in to_text(c.get("source", "")) or "from pynzli import" in to_text(c.get("source", "")) or "from pynzli." in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
+			echo "FAILED: $$name does not import pynzli in any code cell" | tee -a "$$REPORT"; \
 			FAILURES=$$((FAILURES + 1)); \
 			continue; \
 		fi; \
@@ -161,6 +161,15 @@ coverage: compile
 
 # Run Python tests with coverage collection and produce an XML report for Codecov.
 # Uses the repo-managed housekeeping helper for auditable approvals.
+# The wheel at a version (build, manylinux retag, check) and its install,
+# from dist/ or an index (INDEX=test.pypi.org|pypi.org): the steps a release calls,
+# by CI or by hand.
+wheel:
+	bash .github/scripts/wheel.sh $(VERSION)
+
+wheel-verify:
+	bash .github/scripts/wheel-verify.sh $(VERSION) $(INDEX)
+
 python-coverage:
 	bash .github/copilot/housekeeping/python-coverage.sh
 
@@ -218,16 +227,35 @@ ci-install-doxygen-deps:
 # it as an apt package (`fonts-juliamono` does not exist).  Pinned version
 # for reproducibility; bump as needed.
 JULIAMONO_VERSION := 0.062
+# The LaTeX packages taken from CTAN at their latest, ahead of the
+# distribution's TeX Live: minted 3.8 (beside latexminted 0.7 from PyPI) and
+# the two it asks newer than ubuntu-26.04 has, both by minted's author (its
+# other packages it asks at no version).  One more is one more name here.
+CTAN_LATEX_PACKAGES := minted fvextra latex2pydata
 ci-install-paper-deps:
 	@if ! command -v apt-get >/dev/null 2>&1; then \
 		echo "ERROR: ci-install-paper-deps requires apt-get (intended for Ubuntu CI runners)."; \
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments curl unzip fontconfig
-	# minted's latexminted from PyPI, its latest, ahead of TeX Live's bundled
-	# 0.6.0 on PATH: that one passes argparse a keyword newer Pythons refuse
-	# ("unexpected keyword argument 'color'", ubuntu-26.04).
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex texlive-lang-greek texlive-science python3-pygments curl unzip fontconfig
+	# minted as a matching pair at its latest, ahead of TeX Live's: the LaTeX
+	# packages from CTAN (CTAN_LATEX_PACKAGES, each .sty generated from its
+	# .ins) into TEXMFHOME, which TeX searches first, and minted's Python
+	# half, latexminted, from PyPI onto PATH.  TeX Live's own pair
+	# (ubuntu-26.04) is minted.sty 3.7 with latexminted 0.6.0, which passes
+	# argparse a keyword newer Pythons refuse; latexminted 0.7 asks
+	# minted.sty 3.8, and that a newer fvextra.
+	set -e; for p in $(CTAN_LATEX_PACKAGES); do \
+		cd /tmp && curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors -o $$p.zip https://mirrors.ctan.org/macros/latex/contrib/$$p.zip \
+			&& rm -rf $$p && unzip -q -o $$p.zip \
+			&& (cd $$p && for ins in *.ins; do latex -interaction=nonstopmode $$ins >/dev/null; done) \
+			&& dest="$$(kpsewhich -var-value TEXMFHOME)/tex/latex/$$p" \
+			&& mkdir -p "$$dest" && cp $$p/*.sty "$$dest"/ \
+			&& rm -rf $$p $$p.zip \
+			&& kpsewhich $$p.sty \
+			|| { echo "ERROR: $$p from CTAN did not install"; exit 1; }; \
+	done
 	python -m pip install --upgrade latexminted
 	command -v latexminted
 	# JuliaMono — downloaded from GitHub releases, installed system-wide,

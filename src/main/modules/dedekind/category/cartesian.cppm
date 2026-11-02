@@ -31,6 +31,10 @@
  * @note "Mathematical science is in my opinion an indivisible whole, an
  * organism whose vitality is conditioned upon the connection of its parts."
  *       -- David Hilbert, Mathematical Problems (1900)
+ *
+ * @see <a href="https://github.com/vincentk/dedekind/issues/319">#319
+ *     undergraduate graph theory</a> (work in progress): degree, incidence
+ *     and multigraphs beside @c IsDirectedGraph.
  */
 module;
 
