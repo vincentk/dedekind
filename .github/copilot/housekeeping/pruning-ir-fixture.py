@@ -204,14 +204,14 @@ def extract_function_block(ir_text: str, symbol: str) -> str | None:
 
 
 HEAP_SYMBOLS = re.compile(
-    r"\b(?:call|invoke)\b[^\n]*@(_Znwm|_Znam|_ZnwmSt11align_val_t|_ZnamSt11align_val_t|"
-    r"malloc|calloc|realloc|aligned_alloc)\("
+    r"\b(?:call|invoke)\b[^\n]*@(_Zn[wa][jmy][A-Za-z0-9_]*|__size_returning_new[A-Za-z0-9_]*|"
+    r"malloc|calloc|realloc|aligned_alloc|posix_memalign|memalign|valloc|pvalloc)\("
 )
 
 
 def heap_calls(ir_text: str) -> set[str]:
-    """The heap allocation functions the IR calls: operator new and the C
-    allocators."""
+    """The heap allocation functions the IR calls: every operator new and
+    new[] (plain, aligned, nothrow, size-returning) and the C allocators."""
     return set(HEAP_SYMBOLS.findall(ir_text))
 
 

@@ -874,9 +874,7 @@ concept IsFactorsOf =
     std::same_as<std::ranges::range_value_t<const L>, Factor<N>>;
 /** @brief A list of factors bounded by its type: the factors of a shape. */
 template <typename L, typename N>
-concept IsBoundedFactorsOf = IsFactorsOf<L, N> && requires {
-  { L::capacity } -> std::convertible_to<std::size_t>;
-};
+concept IsBoundedFactorsOf = IsFactorsOf<L, N> && IsBoundedList<L>;
 /** @brief The count word of a list of factors. */
 template <typename L>
 using word_of_t =
@@ -888,13 +886,22 @@ struct With {
     return l.with(x);
   }
 };
-/** @param a @param b two bounded lists.  @return @c a then @c b, bounded
- *  by the sum of the bounds. */
-template <std::semiregular T, std::size_t J, std::size_t K>
-constexpr AtMost<T, J + K> joined(const AtMost<T, J>& a,
-                                  const AtMost<T, K>& b) {
+/** @brief Bounded by its type: a forward range with a static @c capacity. */
+template <typename L>
+concept IsBoundedList = std::ranges::forward_range<const L> && requires {
+  { L::capacity } -> std::convertible_to<std::size_t>;
+};
+/** @param a @param b two bounded lists of one value type.  @return @c a then
+ *  @c b, bounded by the sum of the bounds. */
+template <IsBoundedList A, IsBoundedList B>
+  requires std::same_as<std::ranges::range_value_t<const A>,
+                        std::ranges::range_value_t<const B>>
+constexpr auto joined(const A& a, const B& b) {
+  using T = std::ranges::range_value_t<const A>;
   return std::ranges::fold_left(
-      b, std::ranges::fold_left(a, AtMost<T, J + K>{}, With{}), With{});
+      b,
+      std::ranges::fold_left(a, AtMost<T, A::capacity + B::capacity>{}, With{}),
+      With{});
 }
 }  // namespace detail_periodic
 /** @brief The cycles of a permutation of positions of one length, and how
@@ -1479,8 +1486,11 @@ constexpr Outer<A, B> operator*(const A& a, const B& b) {
   return {a, b};
 }
 /** @param o an outer product.  @return its count, factored: both factors'
- *  factors. */
+ *  factors, in their one word. */
 export template <HasFactors A, HasFactors B>
+  requires std::same_as<
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<A>()))>,
+      detail_periodic::word_of_t<decltype(count_factors(std::declval<B>()))>>
 constexpr auto count_factors(const Outer<A, B>& o) {
   return detail_periodic::joined(count_factors(o.left), count_factors(o.right));
 }

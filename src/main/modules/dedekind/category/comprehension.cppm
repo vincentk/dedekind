@@ -402,9 +402,14 @@ export using ascending = std::less<>;
 export using descending = std::greater<>;
 
 /** @brief @c order_by(rank), SQL's @c ORDER @c BY: the stage that sorts a
- *  query by @c rank under @c Order.  @tparam Rank the rank.  @tparam Order
- *  the comparison. */
+ *  query by @c rank under @c Order, a strict weak order on the ranks.  Ties
+ *  are SQL's: which of the tied elements a @c take keeps, and in which
+ *  order, is the plan's (a law's rewrite reads them in the walk's order or
+ *  its reversal, the fused pass in the walk's); a rank without ties orders
+ *  alike under every plan.  @tparam Rank the rank.  @tparam Order the
+ *  comparison. */
 export template <IsArrow Rank, typename Order>
+  requires std::strict_weak_order<const Order&, Cod<Rank>, Cod<Rank>>
 struct OrderBy {
   Rank rank;
   Order order;
@@ -412,6 +417,7 @@ struct OrderBy {
 /** @tparam Order the comparison, @c ascending by default.  @param rank the
  *  rank.  @return the stage. */
 export template <typename Order = ascending, IsArrow Rank>
+  requires std::strict_weak_order<const Order&, Cod<Rank>, Cod<Rank>>
 constexpr OrderBy<Rank, Order> order_by(Rank rank, Order order = {}) {
   return {std::move(rank), std::move(order)};
 }
@@ -534,20 +540,22 @@ struct Before {
     return std::invoke(order, std::invoke(rank, a), std::invoke(rank, b));
   }
 };
-/** @brief One more element into the best @c K so far: the list with it,
- *  sorted by the rank, its last cut where it overflows.  @c K + 1 values on
- *  the stack, sorted by the standard's sort. */
+/** @brief One more element into the best @c K so far, sorted by the rank:
+ *  inserted after those it does not rank before, so ties keep the walk's
+ *  order, and the last cut where the list overflows.  O(K) on the stack. */
 template <typename T, std::size_t K, typename Rank, typename Order>
 struct KeepBest {
   Before<Rank, Order> before;
   constexpr AtMost<T, K> operator()(const AtMost<T, K>& best,
                                     const T& x) const {
-    AtMost<T, K + 1> all =
-        detail_periodic::joined(best, AtMost<T, 1>{}.with(x));
-    std::ranges::sort(all.items.begin(), all.items.begin() + all.length,
-                      before);
-    return std::ranges::fold_left(all | std::views::take(K), AtMost<T, K>{},
-                                  detail_periodic::With{});
+    const auto at = static_cast<std::size_t>(
+        std::ranges::upper_bound(best, x, before) - best.begin());
+    if (at == K) return best;
+    const AtMost<T, K> head = std::ranges::fold_left(
+        best | std::views::take(at), AtMost<T, K>{}, detail_periodic::With{});
+    return std::ranges::fold_left(
+        best | std::views::drop(at) | std::views::take(K - at - 1),
+        head.with(x), detail_periodic::With{});
   }
 };
 }  // namespace detail_comprehension
@@ -772,6 +780,12 @@ static_assert(
                        std::array{8uz}));
 static_assert(std::ranges::equal(
     collect(3uz >> chain<std::size_t>() >> take<2>()), std::array{2uz, 1uz}));
+// Ties under the fused pass keep the walk's order: of 9, ..., 0 ranked by
+// evenness, the even ones tie, and the first three read are kept.
+static_assert(std::ranges::equal(collect(10uz >> chain<std::size_t>() >>
+                                         order_by<descending>(is_even) >>
+                                         take<3>()),
+                                 std::array{8uz, 6uz, 4uz}));
 // The bound survives SELECT and WHERE after the take: each presents no more.
 static_assert(std::ranges::equal(collect(3uz >> chain<std::size_t>() >>
                                          take<2>() >> Successor<std::size_t>{}),
