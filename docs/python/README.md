@@ -6,9 +6,9 @@ is decided in Python.
 
 ## Modules
 
-- `dedekind.jlt`: the arrows `id`, `refl`, `succ`, `pred` over `bool` and
+- `pynzli.jlt`: the arrows `id`, `refl`, `succ`, `pred` over `bool` and
   `int` (the word u64), composed with `>>`.
-- `dedekind.pst`: the finite carriers and the sets over them.
+- `pynzli.pst`: the finite carriers and the sets over them.
   - The universes `B = A(bool)` (𝔹) and `K3 = A(Ternary)` (K₃), carrying their
     chain's order; `A(Ternary, Kleene)` is K₃-valued.
   - The canonical ring `u64` (ℤ/2⁶⁴: `+ − ·` wrap, `//` and `%` by a nonzero
@@ -61,8 +61,8 @@ python -m pip install --no-build-isolation -e .
 ## Quickstart
 
 ```python
-from dedekind.jlt import succ
-from dedekind.pst import A, U64, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
+from pynzli.jlt import succ
+from pynzli.pst import A, U64, canonical, image, u64, 𝔽ₚ, π, π_1, π_2
 
 U = U64  # = A(u64)
 region = (U & (π > 3)) & (U & (π < 5))
@@ -166,7 +166,7 @@ Review path:
    - distribution manifest (`dist-manifest.txt`)
    - distribution checksums (`dist-sha256.txt`)
    - installed wheel report (`install-report.txt`)
-   - generated pydoc output (`pydoc-dedekind.txt`)
+   - generated pydoc output (`pydoc-pynzli.txt`)
 5. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
 6. Confirm the workflow step `Build & Run Integration Tests` is green.
 

@@ -38,7 +38,7 @@ Expected artifacts:
 ```bash
 python -m twine check dist/*
 python -m pip install --force-reinstall dist/*.whl
-python -c "from dedekind.pst import A, u64, π; print((A(u64) & (π > 3)) & (A(u64) & (π < 5)))"
+python -c "from pynzli.pst import A, u64, π; print((A(u64) & (π > 3)) & (A(u64) & (π < 5)))"
 make integration-test
 ```
 
@@ -63,7 +63,7 @@ Then verify in a clean environment:
 
 ```bash
 python -m pip install --index-url https://test.pypi.org/simple/ dedekind
-python -c "from dedekind.pst import u64, 𝔽ₚ; print(u64(2**64 - 1) + 1, 𝔽ₚ(1) / 3)"
+python -c "from pynzli.pst import u64, 𝔽ₚ; print(u64(2**64 - 1) + 1, 𝔽ₚ(1) / 3)"
 ```
 
 ## Promotion Gates (Before Production PyPI)
@@ -86,8 +86,8 @@ python -m twine upload dist/*
 1. Confirm package appears on PyPI with expected version and metadata.
 2. Install from PyPI in a clean environment.
 3. Verify import succeeds and representative calls work:
-   - `dedekind.pst`: `A(u64) & term`, `u64`, `𝔽ₚ`, the truth chains
-   - `dedekind.jlt`: `succ(int)`, `refl(bool)`, composition with `>>`
+   - `pynzli.pst`: `A(u64) & term`, `u64`, `𝔽ₚ`, the truth chains
+   - `pynzli.jlt`: `succ(int)`, `refl(bool)`, composition with `>>`
 4. Confirm CI remains green after release tagging.
 5. Confirm notebook demos still execute successfully against the published package expectations.
 6. Post release note linking:
