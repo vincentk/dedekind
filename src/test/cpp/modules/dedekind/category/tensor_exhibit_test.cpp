@@ -362,6 +362,15 @@ constexpr auto cuts_in_12 = powers(nucleotides) >>
                             fixed_by(power(complement) >> reverse) >>
                             join_with(power(nucleotides, 12)) >> counting;
 static_assert(cuts_in_12(6uz) == 1'835'008uz && cuts_in_12(7uz) == 0uz);
+// Passes by the law, fails without it: genomes of length 32, the longest
+// whose count still fits a size_t, (32 - 5) · 4^29 = 27 · 2^58 of them cut
+// by a six-letter site.  The plan is a handful of factors at compile time;
+// the 4^32 = 2^64 genomes it stands for are more than a size_t counts, so
+// no evaluation that enumerates them could finish, at either binding time.
+constexpr auto cuts_in_32 = powers(nucleotides) >>
+                            fixed_by(power(complement) >> reverse) >>
+                            join_with(power(nucleotides, 32)) >> counting;
+static_assert(cuts_in_32(6uz) == 27uz << 58);
 static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
                                          where(dedekind::category::is_even) >>
                                          order_by<descending>(cuts_in_12) >>
