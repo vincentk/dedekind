@@ -1344,8 +1344,13 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
 
 /** @brief @c powers(Σ), the tensor powers by length, @f$n \mapsto \Sigma^n@f$:
  *  an arrow out of the counts into the tensors, the free monoid graded by
- *  length.  Its density is 1 at every length.  @tparam C @tparam F the
- *  alphabet.  @tparam N the counts. */
+ *  length.  Its density is 1 at every length.  Each power is the
+ *  exponential @f$\Sigma^{[n]}@f$, the functions from the chain of @c n to
+ *  the letters (@c IsExponential, @c :cartesian), and the family is a strong
+ *  monoidal functor @f$(\mathbb{N}, +) \to (\text{tensors}, \otimes)@f$,
+ *  @f$\Sigma^{m+n} \cong \Sigma^m \otimes \Sigma^n@f$: the box law is its
+ *  monoidality (no monoidal-functor concept states it yet, #1134).
+ *  @tparam C @tparam F the alphabet.  @tparam N the counts. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N>
 struct Powers {
   using Domain = N;
@@ -1369,7 +1374,11 @@ constexpr Powers<C, F, N> powers(
  *  permutation of the positions after a letter map on every letter: an
  *  arrow between tensors.  By Pólya each cycle of @c g fills with the
  *  letters it fixes, at most @f$|\Sigma|^{\ell}@f$ for a cycle of length
- *  @f$\ell@f$, so the section's density is at most 1.
+ *  @f$\ell@f$, so the section's density is at most 1.  The section is the
+ *  equalizer @f$\mathrm{Eq}(\mathrm{id}, g)@f$ (@c IsEqualizer,
+ *  @c :pullback), equally the limit of the action of @f$\langle g \rangle@f$
+ *  on the power, a functor out of its delooping (@c ActionFunctor,
+ *  @c Delooping, @c :functor): its invariants, Pólya their count.
  *  @tparam P the power.  @tparam S the permutation.  @tparam T the map. */
 export template <typename P, typename S, IsArrow T>
 struct FixedBy {
@@ -1419,8 +1428,13 @@ constexpr auto operator>>(const Powers<C, F, N>& ps,
  *  reversal's is: the longer chain's antitone bijection restricted to the
  *  middle is the shorter's, with one more pair outside (@c
  *  antitone_cycle_type).  A rotation's follows @f$\gcd(n, d)@f$ and is
- *  not.  A struct trait, for a family to register by one specialisation.
- *  @tparam S the permutation. */
+ *  not.  Coherence is naturality: the family is a natural transformation of
+ *  the powers over the chains and their middle inclusions @f$n
+ *  \hookrightarrow n + 2@f$ (@c IsNaturalTransformation, @c :natural), as it
+ *  is natural over the letter maps already (@c power(τ) commutes with it).
+ *  Sufficient, not necessary: @c rotate(1) is not coherent, yet its
+ *  sections' density @f$|\Sigma| / |\Sigma|^n@f$ falls.  A struct trait, for
+ *  a family to register by one specialisation.  @tparam S the permutation. */
 export template <typename S>
 struct length_coherent : std::false_type {};
 template <>

@@ -261,9 +261,11 @@ constexpr WindowJoin<P, S> join(P p, S s) {
   return {std::move(p), std::move(s)};
 }
 /** @brief The offsets a window takes, as a tensor: the chain of @c m, its
- *  count @c m, one factor @f$m^1@f$.  Fubini's sum over the offsets, every
- *  summand the same (period 1, translation invariance), is this factor of
- *  the product.  @tparam N the counts. */
+ *  count @c m, one factor @f$m^1@f$.  Its outer product with a tensor is the
+ *  copower @f$m \cdot X@f$, @c m copies, the action of @f$\mathbb{N}@f$ on the
+ *  counts (@c :action; Listing 4's @c concat on copies).  Fubini's sum over the
+ * offsets, every summand the same (period 1, translation invariance), is this
+ * factor of the product.  @tparam N the counts. */
 export template <IsCountWord N>
 struct Offsets {
   N count;
@@ -316,7 +318,9 @@ constexpr auto exact_count(const WindowJoin<P, S>& j) {
 }
 
 /** @brief @c join_with(p), a set of words to its join with @c p on the
- *  window: the curried @c join, an arrow between tensors.
+ *  window: the curried @c join, an arrow between tensors, the exponential
+ *  transpose of @c join (@c curry, @c :cartesian); each join the pullback
+ *  along the window (@c IsPullback, @c :pullback).
  *  @tparam P the tensor power.  @tparam S the sets. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
@@ -327,7 +331,11 @@ struct JoinWith {
   constexpr Codomain operator()(const S& s) const { return join(power, s); }
 };
 /** @brief @c counting, a counted tensor to its count: the reading that ends
- *  a pipeline of arrows, as @c count ends a query.  @tparam J the tensor. */
+ *  a pipeline of arrows, as @c count ends a query.  The cardinality, strong
+ *  monoidal from @f$\otimes@f$ to @f$\times@f$ (the box law read on counts),
+ *  modulo the word: a ranking by it is a ranking of the exact counts only
+ *  while they fit, which the law's plan, evaluating no count, does not need
+ *  and the fused pass does (#1134).  @tparam J the tensor. */
 export template <typename J>
 struct Counting {
   using Domain = J;
@@ -368,7 +376,9 @@ constexpr auto operator>>(const F& f, detail_comprehension::CountingStage) {
  *  @c N are @f$(N - n + 1)@f$ offsets times its density times
  *  @f$|\Sigma|^N@f$, a product of non-negative sequences that do not grow,
  *  which does not grow either.  The product law, stated here for the join's
- *  count; a general one belongs in @c :posetal (#1134).
+ *  exact count; a general one belongs in @c :posetal, on an exact carrier or
+ *  on an extent, since a word's @c × wraps and an antitone product past it
+ *  is not antitone (#1134).
  *  @tparam Rank the rank. */
 export template <typename Rank>
 struct antitone_on_even_lengths : std::false_type {};
