@@ -428,9 +428,10 @@ concept PlansAtCompileTime = requires {
   typename std::bool_constant<
       dedekind::category::automaton<4, 6, 32, 288>(Sites, 6u).has_value()>;
 };
-static_assert(PlansAtCompileTime<sites_6_runs()>,
-              "PROBE: the 64 sites' plan does not fit at compile time "
-              "(and the gate degraded gracefully)");
+static_assert(!PlansAtCompileTime<sites_6_runs()>);
+// PROBE 2: outside the gate, the evaluator says why.
+constexpr auto sites_6_plan =
+    dedekind::category::automaton<4, 6, 32, 288>(sites_6_runs(), 6u);
 
 // Panel 2's plan: the matcher specialised to all 64 sites at once, the
 // minimal automaton of Σ* sites(6), at run time (its construction is past
