@@ -183,7 +183,7 @@ constexpr N sum(Q q) {
  *  @tparam P the tensor power.  @tparam S the set of words. */
 export template <typename P, typename S>
   requires requires(const P& p, const S& s) { occurrences(p, s); }
-struct Join {
+struct WindowJoin {
   P power;
   S inner;
 };
