@@ -36,12 +36,14 @@
 module;
 
 #include <algorithm>
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <functional>
 #include <optional>
 #include <ranges>
 #include <type_traits>
+#include <utility>
 
 export module dedekind.category:comprehension;
 
@@ -49,7 +51,8 @@ import :morphism;  // IsArrow, Dom, Cod
 import :nno;       // Successor: a witness's arrow
 import :chain;     // the chain, FiniteChainSequence, IsCountWord
 import :functor;   // Maybe, MaybeMap: the functor's action on the holes
-import :periodic;  // is_even, the count of a characteristic sequence
+import :periodic;  // is_even, the count of a characteristic sequence, AtMost
+import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
 
 namespace dedekind::category {
 
@@ -206,6 +209,206 @@ constexpr auto exact_count(const Join<P, S>& j) {
   return exact_occurrences(j.power, j.inner);
 }
 
+/** @brief The orders a query is sorted by, the standard's comparisons named
+ *  as SQL's @c ASC and @c DESC: the defaults of @c order_by's parameter,
+ *  which takes any comparison with sufficient structure, a total preorder on
+ *  the rank's values. */
+export using ascending = std::less<>;
+export using descending = std::greater<>;
+
+/** @brief @c order_by(rank), SQL's @c ORDER @c BY: the stage that sorts a
+ *  query by @c rank under @c Order.  @tparam Rank the rank.  @tparam Order
+ *  the comparison. */
+export template <IsArrow Rank, typename Order>
+struct OrderBy {
+  Rank rank;
+  Order order;
+};
+/** @tparam Order the comparison, @c ascending by default.  @param rank the
+ *  rank.  @return the stage. */
+export template <typename Order = ascending, IsArrow Rank>
+constexpr OrderBy<Rank, Order> order_by(Rank rank, Order order = {}) {
+  return {std::move(rank), std::move(order)};
+}
+/** @brief @c limit<K>(), SQL's @c LIMIT: the first @c K present elements.
+ *  @tparam K the bound. */
+export template <std::size_t K>
+struct Limit {};
+/** @tparam K the bound.  @return the stage. */
+export template <std::size_t K>
+constexpr Limit<K> limit() {
+  return {};
+}
+
+namespace detail_comprehension {
+/** @brief The trait behind @c AscendsByPosition: an arrow over the
+ *  positions whose present elements rise with the position, so that a
+ *  query read through it is sorted by construction.  A struct, so that a
+ *  family registers by one partial specialisation.  @tparam F the arrow. */
+template <typename F>
+struct ascends_by_position : std::false_type {};
+/** @brief @c where keeps the positions it keeps: a filtered chain is a chain
+ *  in the same order. */
+template <typename P>
+struct ascends_by_position<Where<P>> : std::true_type {};
+template <typename F>
+concept AscendsByPosition = ascends_by_position<F>::value;
+
+/** @brief The walk's own order already is @c Order's under @c Rank: the
+ *  chain descends by @c prior, so its elements fall along it, and a
+ *  monotone rank under @c descending, or an antitone one under
+ *  @c ascending, keeps them in order.  @c order_by is then the identity. */
+template <typename Rank, typename Order>
+concept KeptByTheWalk =
+    (IsMonotone<Rank> && std::same_as<Order, descending>) ||
+    (IsAntiMonotone<Rank> && std::same_as<Order, ascending>);
+/** @brief The walk's order is @c Order's reversed: @c order_by is the query
+ *  re-rooted on the ascending slice, read upwards. */
+template <typename Rank, typename Order>
+concept ReversedByTheWalk =
+    (IsAntiMonotone<Rank> && std::same_as<Order, descending>) ||
+    (IsMonotone<Rank> && std::same_as<Order, ascending>);
+
+/** @brief An element's share of a limit: one if present, none for a hole,
+ *  read through @c Maybe's eliminator. */
+struct One {
+  template <typename A>
+  constexpr std::size_t operator()(const A&) const {
+    return 1;
+  }
+};
+template <typename T>
+constexpr std::size_t present(const Maybe<T>& e) {
+  return e.transform(One{}).value_or(0);
+}
+template <typename T>
+constexpr std::size_t present(const T&) {
+  return 1;
+}
+
+/** @brief The coalgebra of @c limit<K>: the walk, until @c K elements are
+ *  present.  One more state, the count so far; O(1), no storage. */
+template <std::regular S, std::semiregular Coalg, std::size_t K>
+struct Taken {
+  Coalg coalg;
+  using Yield = std::invoke_result_t<const Coalg&, const S&>;
+  using Element = std::remove_cvref_t<decltype(std::declval<Yield>()->first)>;
+  constexpr std::optional<std::pair<Element, std::pair<S, std::size_t>>>
+  operator()(const std::pair<S, std::size_t>& s) const {
+    if (s.second == K) return std::nullopt;
+    const Yield y = std::invoke(coalg, s.first);
+    if (!y.has_value()) return std::nullopt;
+    return std::pair<Element, std::pair<S, std::size_t>>{
+        y->first, {y->second, s.second + present(y->first)}};
+  }
+};
+
+/** @brief @c order_by without a law to read, pending its @c limit: it needs
+ *  the whole query, so only the fused @c order_by @c >> @c limit<K> is
+ *  offered, never the sort alone (it would need the caller's buffer). */
+template <typename Q, typename Rank, typename Order>
+struct Pending {
+  Q query;
+  OrderBy<Rank, Order> by;
+};
+/** @brief Whether @c a ranks before @c b. */
+template <typename Rank, typename Order>
+struct Before {
+  Rank rank;
+  Order order;
+  template <typename A>
+  constexpr bool operator()(const A& a, const A& b) const {
+    return std::invoke(order, std::invoke(rank, a), std::invoke(rank, b));
+  }
+};
+/** @brief One more element into the best @c K so far: the list with it,
+ *  sorted by the rank, its last cut where it overflows.  @c K + 1 values on
+ *  the stack, sorted by the standard's sort. */
+template <typename T, std::size_t K, typename Rank, typename Order>
+struct KeepBest {
+  Before<Rank, Order> before;
+  constexpr AtMost<T, K> operator()(const AtMost<T, K>& best,
+                                    const T& x) const {
+    AtMost<T, K + 1> all =
+        detail_periodic::joined(best, AtMost<T, 1>{}.with(x));
+    std::ranges::sort(all.items.begin(), all.items.begin() + all.length,
+                      before);
+    return std::ranges::fold_left(all | std::views::take(K), AtMost<T, K>{},
+                                  detail_periodic::With{});
+  }
+};
+}  // namespace detail_comprehension
+
+/** @brief @c order_by on a filtered chain whose rank keeps the walk's order:
+ *  the identity, the query sorted by construction (rewrite 3).
+ *  @param q the query.  @return it. */
+export template <IsCountWord N, typename F, IsArrow Rank, typename Order>
+  requires detail_comprehension::AscendsByPosition<F> &&
+           detail_comprehension::KeptByTheWalk<Rank, Order>
+constexpr FiniteChainSequence<N, F> operator>>(
+    const FiniteChainSequence<N, F>& q, const OrderBy<Rank, Order>&) {
+  return q;
+}
+/** @brief @c order_by on a filtered chain whose rank reverses the walk's
+ *  order: the query re-rooted on the ascending slice @c [0, n), read
+ *  upwards, the positions where the walk read them downwards (rewrite 3).
+ *  @param q the query.  @return it, ascending. */
+export template <IsCountWord N, typename F, IsArrow Rank, typename Order>
+  requires detail_comprehension::AscendsByPosition<F> &&
+           detail_comprehension::ReversedByTheWalk<Rank, Order>
+constexpr auto operator>>(const FiniteChainSequence<N, F>& q,
+                          const OrderBy<Rank, Order>&) {
+  return slice(N{0}, q.seed()) >> q.coalgebra().f;
+}
+/** @brief @c order_by with no law to read: pending its @c limit.
+ *  @param q the query.  @param by the stage.  @return the pending sort. */
+export template <std::ranges::input_range Q, IsArrow Rank, typename Order>
+constexpr detail_comprehension::Pending<Q, Rank, Order> operator>>(
+    Q q, OrderBy<Rank, Order> by) {
+  return {std::move(q), std::move(by)};
+}
+
+/** @brief @c limit<K> on a query or a sequence: the walk, until @c K
+ *  elements are present, lazily (rewrite 1; on a sorted query, rewrite 3's
+ *  first @c K).  @param q the query.  @return its first @c K. */
+export template <std::regular S, std::semiregular Coalg, std::size_t K>
+constexpr auto operator>>(const unfold_view<S, Coalg>& q, Limit<K>) {
+  return unfold(std::pair<S, std::size_t>{q.seed(), 0},
+                detail_comprehension::Taken<S, Coalg, K>{q.coalgebra()});
+}
+/** @brief @c order_by @c >> @c limit<K> with no law: fused, one pass keeping
+ *  the best @c K in an @c AtMost, never sorting the whole (rewrite 2).
+ *  @param p the pending sort.  @return the best @c K, best first. */
+export template <typename Q, typename Rank, typename Order, std::size_t K>
+constexpr auto operator>>(
+    const detail_comprehension::Pending<Q, Rank, Order>& p, Limit<K>) {
+  using T = typename std::ranges::range_value_t<Q>::value_type;
+  return std::ranges::fold_left(
+      p.query, AtMost<T, K>{},
+      lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
+          {p.by.rank, p.by.order}}));
+}
+
+/** @brief A query's present elements as a value, bounded by its @c limit:
+ *  the @c ext boundary, where a list is asked for (#1133).  @param q a
+ *  limited query.  @return its elements, on the stack. */
+export template <std::regular S, std::semiregular Coalg, std::size_t K>
+constexpr auto collect(
+    const unfold_view<std::pair<S, std::size_t>,
+                      detail_comprehension::Taken<S, Coalg, K>>& q) {
+  using E = typename unfold_view<
+      std::pair<S, std::size_t>,
+      detail_comprehension::Taken<S, Coalg, K>>::element_type;
+  using T = typename E::value_type;
+  return std::ranges::fold_left(q, AtMost<T, K>{},
+                                lifted(detail_periodic::With{}));
+}
+/** @param best the best @c K, already a value.  @return them. */
+export template <typename T, std::size_t K>
+constexpr AtMost<T, K> collect(const AtMost<T, K>& best) {
+  return best;
+}
+
 // The laws, witnessed.  A filter keeps exactly what the characteristic
 // sequence counts; SELECT after WHERE maps the kept elements only: of
 // 0, ..., 9 the even ones, each one more, 1 + 3 + 5 + 7 + 9.
@@ -214,5 +417,22 @@ static_assert(count(10uz >> chain<std::size_t>() >> where(is_even)) ==
               count(10uz >> chain<std::size_t>() >> where(is_even)) == 5);
 static_assert(sum(10uz >> chain<std::size_t>() >> where(is_even) >>
                   Successor<std::size_t>{}) == 25);
+// ORDER BY ... LIMIT three ways.  Sorted by construction: a monotone rank
+// descending is the walk's own order, an antitone one the walk reversed;
+// with no law the fused pass keeps the best K.  Of 0, ..., 9 the even ones:
+// the largest two by the identity, by the successor (no law here), and the
+// smallest two by the reflection, which reverses the walk.
+static_assert(std::ranges::equal(
+    collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+            order_by<descending>(Identity<std::size_t>{}) >> limit<2>()),
+    std::array{8uz, 6uz}));
+static_assert(std::ranges::equal(
+    collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+            order_by<descending>(Successor<std::size_t>{}) >> limit<2>()),
+    std::array{8uz, 6uz}));
+static_assert(std::ranges::equal(
+    collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+            order_by<descending>(~Identity<std::size_t>{}) >> limit<2>()),
+    std::array{0uz, 2uz}));
 
 }  // namespace dedekind::category
