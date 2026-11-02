@@ -59,6 +59,7 @@ import :morphism;  // IsArrow, Dom, Cod
 import :nno;       // Successor: a witness's arrow
 import :chain;     // the chain, FiniteChainSequence, IsCountWord
 import :functor;   // Maybe, MaybeMap: the functor's action on the holes
+import :discrete;  // constant: a witness's rank
 import :lattice;   // Meet: a filter's predicate as a lattice term
 import :periodic;  // is_even, the count of a characteristic sequence, AtMost
 import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
@@ -331,8 +332,9 @@ concept KeptByTheWalk =
  *  re-rooted on the ascending slice, read upwards. */
 template <typename Rank, typename Order>
 concept ReversedByTheWalk =
-    (IsAntiMonotone<Rank> && std::same_as<Order, descending>) ||
-    (IsMonotone<Rank> && std::same_as<Order, ascending>);
+    ((IsAntiMonotone<Rank> && std::same_as<Order, descending>) ||
+     (IsMonotone<Rank> && std::same_as<Order, ascending>)) &&
+    !KeptByTheWalk<Rank, Order>;  // a constant rank keeps the walk
 
 /** @brief An element's share of a @c take: one if present, none for a hole,
  *  read through @c Maybe's eliminator. */
@@ -368,6 +370,14 @@ struct Taken {
   }
 };
 
+/** @brief One more element into a bounded query, present. */
+struct WithPresent {
+  template <std::semiregular T, std::size_t K>
+  constexpr AtMost<Maybe<T>, K> operator()(const AtMost<Maybe<T>, K>& q,
+                                           const T& x) const {
+    return q.with(Maybe<T>{x});
+  }
+};
 /** @brief @c order_by without a law to read, pending its @c take: it needs
  *  the whole query, so only the fused @c order_by @c >> @c take<K> is
  *  offered, never the sort alone (it would need the caller's buffer). */
@@ -442,16 +452,20 @@ constexpr auto operator>>(const unfold_view<S, Coalg>& q, Take<K>) {
                 detail_comprehension::Taken<S, Coalg, K>{q.coalgebra()});
 }
 /** @brief @c order_by @c >> @c take<K> with no law: fused, one pass keeping
- *  the best @c K in an @c AtMost, never sorting the whole (rewrite 2).
- *  @param p the pending sort.  @return the best @c K, best first. */
+ *  the best @c K in an @c AtMost, never sorting the whole (rewrite 2).  A
+ *  query still, each element present, so its count is its rows' and
+ *  @c collect makes the plain list.  @param p the pending sort.
+ *  @return the best @c K, best first. */
 export template <typename Q, typename Rank, typename Order, std::size_t K>
 constexpr auto operator>>(
     const detail_comprehension::Pending<Q, Rank, Order>& p, Take<K>) {
   using T = typename std::ranges::range_value_t<Q>::value_type;
   return std::ranges::fold_left(
-      p.query, AtMost<T, K>{},
-      lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
-          {p.by.rank, p.by.order}}));
+      std::ranges::fold_left(
+          p.query, AtMost<T, K>{},
+          lifted(detail_comprehension::KeepBest<T, K, Rank, Order>{
+              {p.by.rank, p.by.order}})),
+      AtMost<Maybe<T>, K>{}, detail_comprehension::WithPresent{});
 }
 
 /** @brief A query's present elements as a value, bounded by its @c take:
@@ -468,10 +482,12 @@ constexpr auto collect(
   return std::ranges::fold_left(q, AtMost<T, K>{},
                                 lifted(detail_periodic::With{}));
 }
-/** @param best the best @c K, already a value.  @return them. */
+/** @param best the best @c K, a query already on the stack.  @return its
+ *  elements as a plain list. */
 export template <typename T, std::size_t K>
-constexpr AtMost<T, K> collect(const AtMost<T, K>& best) {
-  return best;
+constexpr AtMost<T, K> collect(const AtMost<Maybe<T>, K>& best) {
+  return std::ranges::fold_left(best, AtMost<T, K>{},
+                                lifted(detail_periodic::With{}));
 }
 
 // The laws, witnessed.  A filter keeps exactly what the characteristic
@@ -500,6 +516,19 @@ static_assert(count(30uz >> chain<std::size_t>() >> where(is_even) >>
                         (is_even & Congruent<>{3, 0})) &&
               count(30uz >> chain<std::size_t>() >> where(is_even) >>
                     where(Congruent<>{3, 0})) == 5);
+// A constant rank is monotone and antitone at once: it keeps the walk, the
+// identity rewrite, not its reversal.  And the fused take is still a query,
+// counted by its rows, as the lazy one is.
+static_assert(std::ranges::equal(
+    collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+            order_by<descending>(constant<std::size_t>(0uz)) >> take<2>()),
+    std::array{8uz, 6uz}));
+static_assert(count(3uz >> chain<std::size_t>() >> where(is_even) >>
+                    order_by<descending>(Successor<std::size_t>{}) >>
+                    take<2>()) ==
+              count(3uz >> chain<std::size_t>() >> where(is_even) >>
+                    order_by<descending>(Identity<std::size_t>{}) >>
+                    take<2>()));
 // ORDER BY ... LIMIT three ways.  Sorted by construction: a monotone rank
 // descending is the walk's own order, an antitone one the walk reversed;
 // with no law the fused pass keeps the best K.  Of 0, ..., 9 the even ones:

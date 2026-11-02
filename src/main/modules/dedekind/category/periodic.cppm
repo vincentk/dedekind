@@ -870,7 +870,7 @@ struct factor_word<Factor<N>> {
 /** @brief A list of factors, a count factorised, in the counts @c N. */
 template <typename L, typename N>
 concept IsFactorsOf =
-    std::ranges::input_range<const L> &&
+    std::ranges::forward_range<const L> &&  // exact_count reads it twice
     std::same_as<std::ranges::range_value_t<const L>, Factor<N>>;
 /** @brief A list of factors bounded by its type: the factors of a shape. */
 template <typename L, typename N>
@@ -2037,6 +2037,12 @@ constexpr std::optional<N> exact_occurrences(const Power<C, F, N>& p,
   const N n = detail_periodic::power_of(s).length;
   if (n > p.length) return N{0};
   using At = detail_periodic::CylinderFactorsAt<Power<C, F, N>, S, N>;
+  // N - n + 1 offsets leave the word only where n is 0 and N its largest:
+  // none fits then, unless the cylinder is empty and the sum is none.
+  if (p.length - n == std::numeric_limits<N>::max()) {
+    const std::optional<N> c = exact_count(At{p, s, n}(N{0}));
+    return c && *c == 0 ? std::optional<N>{N{0}} : std::nullopt;
+  }
   return exact_sum(static_cast<N>(p.length - n + 1) >> chain<N>() >>
                    (At{p, s, n} >> detail_periodic::ExactCountOf<Cod<At>>{}));
 }
