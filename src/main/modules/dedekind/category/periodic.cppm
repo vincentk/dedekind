@@ -110,6 +110,24 @@ constexpr N period(const ConstantMorphism<N, B>&) {
   return N{1};
 }
 
+/** @brief The trait behind @c HasUnitPeriod: a sequence whose period is 1
+ *  by its type, not only by its value, so that the sum along it needs no
+ *  fold.  A struct, as @c is_adjoint, so that a downstream partition
+ *  registers a family by one partial specialisation.  @tparam F the
+ *  sequence. */
+export template <typename F>
+struct unit_period : std::false_type {};
+/** @brief A sequence constant on its extent by its type: a constant arrow
+ *  out of the counts, a sequence after one, and the cylinder's factors
+ *  along the offsets (R2).  @tparam F the sequence. */
+export template <typename F>
+concept HasUnitPeriod = HasPeriod<F> && unit_period<F>::value;
+template <IsCountWord N, typename B>
+struct unit_period<ConstantMorphism<N, B>> : std::true_type {};
+template <typename F, typename G>
+  requires unit_period<F>::value
+struct unit_period<Compose<F, G>> : std::true_type {};
+
 namespace detail_periodic {
 /** @brief Refuses a modulus of 0, which has no residues: not a constant
  *  expression at compile time, the end of the program at run time. */
@@ -357,6 +375,22 @@ constexpr N sum(const FiniteChainSequence<N, F>& v) {
   return static_cast<N>((n / p) * detail_periodic::sum_below(p, f) +
                         detail_periodic::sum_below(static_cast<N>(n % p), f));
 }
+/** @brief The sum along the chain of @c n under a sequence of period 1 by
+ *  its type, a constant one on its extent: @c n copies of @c f(0), one
+ *  multiplication by the semimodule law, and no fold at all, not even over
+ *  a period of one or a remainder of none.  The action of @f$\mathbb{N}@f$
+ *  on the counts collapsing a constant, as Listing 4's @c concat on copies
+ *  does.  More specialised than the periodic @c sum, so resolution prefers
+ *  it.  @param v the chain under the sequence.  @return @c n @c f(0), modulo
+ *  the word. */
+export template <IsCountWord N, HasUnitPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, N>
+constexpr N sum(const FiniteChainSequence<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed();
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  return n == 0 ? N{0} : static_cast<N>(n * f(N{0}));
+}
 // A constant sequence: n copies of one value, one multiplication.
 static_assert(sum(std::size_t{5} >> chain<std::size_t>() >>
                   constant<std::size_t>(std::size_t{7})) == 35);
@@ -420,6 +454,18 @@ constexpr std::optional<N> exact_sum(const FiniteChainSequence<N, F>& v) {
       detail_periodic::checked_times(n / p,
                                      detail_periodic::exact_sum_below(p, f)),
       detail_periodic::exact_sum_below(static_cast<N>(n % p), f));
+}
+/** @brief The exact sum along a constant sequence: @c sum's collapse,
+ *  checked.  @param v the chain under the sequence.  @return @c n @c f(0),
+ *  or none where it leaves the word. */
+export template <IsCountWord N, HasUnitPeriod F>
+  requires std::same_as<Dom<F>, N> && std::same_as<Cod<F>, std::optional<N>>
+constexpr std::optional<N> exact_sum(const FiniteChainSequence<N, F>& v) {
+  const F f = v.coalgebra().f;
+  const N n = v.seed();
+  if (n > extent(f)) detail_periodic::refuse_beyond_extent();
+  return n == 0 ? std::optional<N>{N{0}}
+                : detail_periodic::checked_times(n, f(N{0}));
 }
 
 /** @brief A translation of the counts, @f$k \mapsto k + j@f$: after it, a
@@ -1921,6 +1967,14 @@ template <typename P, typename S, IsCountWord N>
 constexpr N period(const CylinderFactorsAt<P, S, N>&) {
   return N{1};
 }
+}  // namespace detail_periodic
+/** @brief The cylinder's factors along the offsets are constant by their
+ *  type, R2's translation invariance: the sum of their counts is one count
+ *  times the offsets. */
+template <typename P, typename S, IsCountWord N>
+struct unit_period<detail_periodic::CylinderFactorsAt<P, S, N>>
+    : std::true_type {};
+namespace detail_periodic {
 /** @param f the factors at an offset.  @return the offsets where the window
  *  fits, @c N − @c n + 1, where the law holds. */
 template <typename P, typename S, IsCountWord N>
