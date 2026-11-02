@@ -199,23 +199,26 @@ struct Factored {
             },
             s.section)) {}
 };
-/** @brief The factors of a held tensor: what makes it @c HasFactors, so the
- *  core's outer product and counts apply to it. */
-std::vector<Factor<>> count_factors(const Factored& f) { return f.factors; }
-
-/** @brief A tensor as the outer product takes it: a section as its factors,
- *  anything else as itself. */
-inline Factored tensor_of(const Section& s) { return Factored{s}; }
+/** @brief A tensor's factors as Python holds them: a held tensor's own
+ *  list, any other tensor's from the core's @c count_factors. */
+std::vector<Factor<>> factors_of(const Factored& f) { return f.factors; }
+inline std::vector<Factor<>> factors_of(const Section& s) {
+  return Factored{s}.factors;
+}
 template <typename T>
-const T& tensor_of(const T& t) {
-  return t;
+std::vector<Factor<>> factors_of(const T& t) {
+  return factor_list(dedekind::category::count_factors(t));
 }
 /** @brief The outer product of two counted tensors, held by its factors: the
- *  one @c __mul__ of every tensor class, the core's @c operator*. */
+ *  one @c __mul__ of every tensor class.  Its list is the caller's state,
+ *  built here at the boundary, where products are formed at run time; the
+ *  core's outer product is of shapes, bounded by their types. */
 template <typename A, typename B>
 Factored times(const A& a, const B& b) {
-  return Factored{
-      count_factors(dedekind::category::operator*(tensor_of(a), b))};
+  std::vector<Factor<>> fs = factors_of(a);
+  const std::vector<Factor<>> gs = factors_of(b);
+  fs.insert(fs.end(), gs.begin(), gs.end());
+  return Factored{std::move(fs)};
 }
 
 /** @param a the letters, as written.  @return the alphabet. */

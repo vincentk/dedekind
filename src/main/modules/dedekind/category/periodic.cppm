@@ -839,16 +839,6 @@ constexpr AtMost<T, J + K> joined(const AtMost<T, J>& a,
   for (const T& x : b) out.push_back(x);
   return out;
 }
-/** @param a @param b two lists, one bounded by no type (a tensor held by
- *  its factors at run time).  @return @c a then @c b, on the heap. */
-template <std::ranges::input_range A, std::ranges::input_range B>
-std::vector<std::ranges::range_value_t<const A>> joined(const A& a,
-                                                        const B& b) {
-  std::vector<std::ranges::range_value_t<const A>> out(std::ranges::begin(a),
-                                                       std::ranges::end(a));
-  out.insert(out.end(), std::ranges::begin(b), std::ranges::end(b));
-  return out;
-}
 }  // namespace detail_periodic
 /** @brief The cycles of a permutation of positions of one length, and how
  *  many there are: one term of its cycle type.  @tparam N the counts. */
@@ -1270,11 +1260,12 @@ struct Outer {
   A left;
   B right;
 };
-/** @brief A tensor whose count is a product of factors. */
+/** @brief A tensor whose count is a product of factors, as many as its type
+ *  bounds: a shape, so an outer product of two is one too. */
 export template <typename X>
 concept HasFactors = requires(const X& x) {
-  requires detail_periodic::IsFactorsOf<decltype(count_factors(x)),
-                                        std::size_t>;
+  requires detail_periodic::IsBoundedFactorsOf<decltype(count_factors(x)),
+                                               std::size_t>;
 };
 /** @param a @param b two counted tensors.  @return their outer product. */
 export template <HasFactors A, HasFactors B>
