@@ -197,7 +197,7 @@ struct ChainIter {
 };
 
 template <typename C>
-nb::class_<pst::Chain<C>> bind_chain(nb::module_& m, const char* cls,
+nb::class_<pst::Chain<C>> bind_chain(nb::module_ m, const char* cls,
                                      const char* iter_cls, const char* doc) {
   using Ch = pst::Chain<C>;
   nb::class_<ChainIter<C>>(m, iter_cls)
@@ -1277,7 +1277,7 @@ struct LawSet {
  *  universe multiplies with every factor.  @param factors the carriers' Python
  *  objects, by sort. */
 template <typename... Universes>
-void bind_relations(nb::module_& m, std::vector<nb::object> factors,
+void bind_relations(nb::module_ m, std::vector<nb::object> factors,
                     nb::class_<Universes>&... universes) {
   nb::class_<Relation>(
       m, "ProductRelation",
@@ -1699,7 +1699,7 @@ void bind_relations(nb::module_& m, std::vector<nb::object> factors,
  *  translates, wrapping.  @tparam C the carrier.  @tparam ToC a Python value
  *  into @c C, raising where it is none. */
 template <typename C, typename ToC>
-void bind_term_sets(nb::module_& m,
+void bind_term_sets(nb::module_ m,
                     nb::class_<𝔸<C, Boole, dedekind::sets::Finite>>& universe,
                     const char* name, const char* set_cls, ToC to_c) {
   using U = 𝔸<C, Boole, dedekind::sets::Finite>;
@@ -2045,7 +2045,7 @@ std::string written_set(const pst::Set<C, L>& s) {
 }
 
 template <typename C, typename L>
-nb::class_<pst::Set<C, L>> bind_set(nb::module_& m, const char* cls,
+nb::class_<pst::Set<C, L>> bind_set(nb::module_ m, const char* cls,
                                     const char* doc) {
   using S = pst::Set<C, L>;
   using Ω = typename L::Ω;
@@ -2160,7 +2160,7 @@ nb::object full_universe() {
  *  the step, iteration) are the universe's own (@c bind_chain).  @tparam C the
  *  carrier. */
 template <typename C>
-void bind_universe(nb::module_& m, nb::class_<pst::Chain<C>>& ch) {
+void bind_universe(nb::module_ m, nb::class_<pst::Chain<C>> ch) {
   using Ch = pst::Chain<C>;
   // The set operations, the queries and the set's metadata are the full run
   // list's: the universe answers as the set it is, against a Boolean set, a
@@ -2278,7 +2278,7 @@ struct Forall {
  *  classifier(S), @c codomain(S) …, one spelling, as @c ap reads @c _ap.  Each
  *  class provides the private attribute @c _name it answers; a value without
  *  it is no term the reading applies to (#1054). */
-void bind_readings(nb::module_& m) {
+void bind_readings(nb::module_ m) {
   struct Reading {
     const char* name;
     const char* doc;
