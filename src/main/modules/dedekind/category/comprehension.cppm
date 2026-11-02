@@ -554,7 +554,8 @@ struct KeepBest {
  *  the identity, the query sorted by construction (rewrite 3).
  *  @param q the query.  @return it. */
 export template <IsCountWord N, typename F, IsArrow Rank, typename Order>
-  requires detail_comprehension::AscendsByPosition<F> &&
+  requires std::same_as<Dom<Rank>, N> &&
+           detail_comprehension::AscendsByPosition<F> &&
            detail_comprehension::KeptByTheWalk<Rank, Order>
 constexpr FiniteChainSequence<N, F> operator>>(
     const FiniteChainSequence<N, F>& q, const OrderBy<Rank, Order>&) {
@@ -565,7 +566,8 @@ constexpr FiniteChainSequence<N, F> operator>>(
  *  upwards, the positions where the walk read them downwards (rewrite 3).
  *  @param q the query.  @return it, ascending. */
 export template <IsCountWord N, typename F, IsArrow Rank, typename Order>
-  requires detail_comprehension::AscendsByPosition<F> &&
+  requires std::same_as<Dom<Rank>, N> &&
+           detail_comprehension::AscendsByPosition<F> &&
            detail_comprehension::ReversedByTheWalk<Rank, Order>
 constexpr auto operator>>(const FiniteChainSequence<N, F>& q,
                           const OrderBy<Rank, Order>&) {
@@ -589,10 +591,11 @@ constexpr auto operator>>(const unfold_view<S, Coalg>& q, Take<K>) {
 }
 namespace detail_comprehension {
 /** @brief The fused plan of @c order_by @c >> @c take<K> with no law: one
- *  pass keeping the best @c K, the elements present.  @param p the pending
- *  sort.  @return the best @c K, best first, as a query. */
+ *  pass keeping the best @c K, the elements present.  The pending query is
+ *  owned, so a range iterable only when mutable folds too.  @param p the
+ *  pending sort.  @return the best @c K, best first, as a query. */
 template <std::size_t K, typename Q, typename Rank, typename Order>
-constexpr auto fused_take(const Pending<Q, Rank, Order>& p) {
+constexpr auto fused_take(Pending<Q, Rank, Order> p) {
   using E = std::ranges::range_value_t<Q>;
   using T = typename element_of<E>::type;
   const KeepBest<T, K, Rank, Order> keep{{p.by.rank, p.by.order}};
@@ -604,12 +607,13 @@ constexpr auto fused_take(const Pending<Q, Rank, Order>& p) {
 }
 /** @brief Whether a rank of lengths stays exact from length @c l on: its
  *  values do not grow there, so the largest is at @c l, and it fits the
- *  word where its factors say so (@c bits_needed): the product law's extent,
- *  decided by one count, before any is compared. */
+ *  rank's word, the count's, where its factors say so (@c bits_needed): the
+ *  product law's extent, decided by one count, before any is compared. */
 template <IsArrow F, typename J, IsCountWord N>
 constexpr bool fits_the_word(const Compose<F, Counting<J>>& rank, N l) {
   return bits_needed(count_factors(rank.f(l))) <=
-         static_cast<std::size_t>(std::numeric_limits<N>::digits);
+         static_cast<std::size_t>(
+             std::numeric_limits<Cod<Counting<J>>>::digits);
 }
 /** @brief The progression @f$j \mapsto m j + r@f$, a residue class's members
  *  in order: a congruence filter on a chain read as a chain of its own. */
@@ -628,9 +632,9 @@ struct Progression {
  *  @c collect makes the plain list.  @param p the pending sort.
  *  @return the best @c K, best first. */
 export template <typename Q, typename Rank, typename Order, std::size_t K>
-constexpr auto operator>>(
-    const detail_comprehension::Pending<Q, Rank, Order>& p, Take<K>) {
-  return detail_comprehension::fused_take<K>(p);
+constexpr auto operator>>(detail_comprehension::Pending<Q, Rank, Order> p,
+                          Take<K>) {
+  return detail_comprehension::fused_take<K>(std::move(p));
 }
 
 /** @brief The lengths in a residue class, ranked by their occurrences, the
@@ -646,7 +650,7 @@ constexpr auto operator>>(
  *  modulus mixes the parities and takes the fused pass.
  *  @param p the pending sort.  @return the first @c K lengths. */
 export template <IsCountWord N, typename Rank, std::size_t K>
-  requires antitone_on_even_lengths<Rank>::value
+  requires std::same_as<Dom<Rank>, N> && antitone_on_even_lengths<Rank>::value
 constexpr auto operator>>(
     const detail_comprehension::Pending<
         unfold_view<std::optional<N>,
@@ -681,30 +685,37 @@ constexpr auto operator>>(
       AtMost<N, K>{}, detail_periodic::With{}));
 }
 
+namespace detail_comprehension {
+/** @brief The most elements a walk presents: a @c take's @c K, or a bounded
+ *  list's, kept by each @c SELECT and @c WHERE after it (a map presents no
+ *  more than it reads).  No member where nothing bounds the walk. */
+template <typename Coalg>
+struct bound_of {};
+template <std::regular S, std::semiregular Coalg, std::size_t K>
+struct bound_of<Taken<S, Coalg, K>> : std::integral_constant<std::size_t, K> {};
+template <std::semiregular T, std::size_t K>
+struct bound_of<Read<T, K>> : std::integral_constant<std::size_t, K> {};
+template <std::regular S, std::semiregular Coalg, IsArrow F>
+struct bound_of<Mapped<S, Coalg, F>> : bound_of<Coalg> {};
+template <typename Coalg>
+concept IsBounded = requires { bound_of<Coalg>::value; };
+}  // namespace detail_comprehension
 /** @brief A query's present elements as a value, bounded by its @c take:
  *  the @c ext boundary, where a list is asked for (#1133).  A plain
- *  sequence's elements as they are, a query's unwrapped.  @param q a taken
- *  query or sequence.  @return its elements, on the stack. */
-export template <std::regular S, std::semiregular Coalg, std::size_t K>
-constexpr auto collect(
-    const unfold_view<std::pair<S, std::size_t>,
-                      detail_comprehension::Taken<S, Coalg, K>>& q) {
-  using E = typename unfold_view<
-      std::pair<S, std::size_t>,
-      detail_comprehension::Taken<S, Coalg, K>>::element_type;
+ *  sequence's elements as they are, a query's unwrapped.  @param q a
+ *  bounded query or sequence.  @return its elements, on the stack. */
+export template <std::regular S, std::semiregular Coalg>
+  requires detail_comprehension::IsBounded<Coalg>
+constexpr auto collect(const unfold_view<S, Coalg>& q) {
+  using E = typename unfold_view<S, Coalg>::element_type;
   using T = typename detail_comprehension::element_of<E>::type;
+  constexpr std::size_t K = detail_comprehension::bound_of<Coalg>::value;
   if constexpr (detail_comprehension::IsMaybe<E>) {
     return std::ranges::fold_left(q, AtMost<T, K>{},
                                   lifted(detail_periodic::With{}));
   } else {
     return std::ranges::fold_left(q, AtMost<T, K>{}, detail_periodic::With{});
   }
-}
-/** @param q a bounded list walked as a query.  @return the list. */
-export template <std::semiregular T, std::size_t K>
-constexpr AtMost<T, K> collect(
-    const unfold_view<std::size_t, detail_comprehension::Read<T, K>>& q) {
-  return q.coalgebra().list;
 }
 
 // The laws, witnessed.  A filter keeps exactly what the characteristic
@@ -759,6 +770,22 @@ static_assert(
                        std::array{8uz}));
 static_assert(std::ranges::equal(
     collect(3uz >> chain<std::size_t>() >> take<2>()), std::array{2uz, 1uz}));
+// The bound survives SELECT and WHERE after the take: each presents no more.
+static_assert(std::ranges::equal(collect(3uz >> chain<std::size_t>() >>
+                                         take<2>() >> Successor<std::size_t>{}),
+                                 std::array{3uz, 2uz}));
+static_assert(
+    std::ranges::equal(collect(10uz >> chain<std::size_t>() >> where(is_even) >>
+                               order_by<descending>(Successor<std::size_t>{}) >>
+                               take<2>() >> where(Congruent<>{4, 0})),
+                       std::array{8uz}));
+// A rank on another word than the query's would read it converted, so its
+// order law, stated on its own domain, rewrites nothing: the identity on
+// uint8_t leaves the query pending its comparisons, as one with no law.
+static_assert(
+    !std::same_as<decltype(10uz >> chain<std::size_t>() >> where(is_even) >>
+                           order_by<descending>(Identity<std::uint8_t>{})),
+                  decltype(10uz >> chain<std::size_t>() >> where(is_even))>);
 // ORDER BY ... LIMIT three ways.  Sorted by construction: a monotone rank
 // descending is the walk's own order, an antitone one the walk reversed;
 // with no law the fused pass keeps the best K.  Of 0, ..., 9 the even ones:
