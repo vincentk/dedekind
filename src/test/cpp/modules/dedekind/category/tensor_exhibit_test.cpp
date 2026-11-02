@@ -408,6 +408,27 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
+// Listing 5, all genomes: the README's and the paper's text, verbatim between
+// the markers (src/test/python/test_readme_listing5.py checks it), beside
+// pynzli.jlt's doctest of the same.
+namespace listing5 {
+using dedekind::category::letter_map;
+using dedekind::category::letters;
+using dedekind::category::slice;
+// [listing5:all-genomes]
+constexpr auto nucleotides = slice(std::byte{'A'}, std::byte{'['}) >>
+                             letters("ACGT");
+constexpr auto complement = letter_map("ACGT", "TGCA");
+constexpr auto sites(size_t n) {
+  return symmetric(power(nucleotides, n), power(complement) >> reverse);
+}
+constexpr size_t cuts(size_t N, size_t n) {
+  return count(join(power(nucleotides, N), sites(n)));
+}
+static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
+// [/listing5:all-genomes]
+}  // namespace listing5
+
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the
 // width, one merge of 64 pairs of legs; 2^64 of them, one bit past size_t.

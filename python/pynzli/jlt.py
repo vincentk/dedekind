@@ -30,21 +30,31 @@ A ``window(i, n)`` projects a word onto its letters i to i + n - 1;
 ``cylinder(p, w, s)`` is the words of ``p`` whose window lies in ``s``, its count
 pushed down (the set's, times the alphabet's for each free leg); and
 ``occurrences(p, s)`` counts ``s`` in ``p``'s words with its positions,
-``exact_occurrences`` the same or ``None``.  The Jlt paper's Listing 5, the
-restriction sites (words equal to their reverse complement) in all genomes:
+``exact_occurrences`` the same or ``None``.  ``join(p, s)`` is the same
+count as a query's: the windows' offsets times the cylinder on each, a
+tensor whose ``count`` is the product of its factors.  The Jlt paper's
+Listing 5, the restriction sites (words equal to their reverse complement)
+in all genomes, the README's text between the markers:
+
+.. [listing5:all-genomes]
 
 >>> nucleotides = alphabet("ACGT")
 >>> complement = letter_map("ACGT", "TGCA")
->>> def site_occurrences(N, n):
-...     sites = symmetric(power(nucleotides, n), power(complement) >> reverse)
-...     return occurrences(power(nucleotides, N), sites)
->>> site_occurrences(12, 6)  # 7 windows · 4**3 sites · 4**6 free letters
-1835008
->>> site_occurrences(12, 7)  # no letter is its own complement
+>>> def sites(n):
+...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
+>>> def cuts(N, n):
+...     return count(join(power(nucleotides, N), sites(n)))
+>>> cuts(12, 6), cuts(32, 6) == 27 << 58
+(1835008, True)
+
+.. [/listing5:all-genomes]
+
+>>> cuts(12, 7)  # no letter is its own complement
 0
->>> sites = symmetric(power(nucleotides, 6), power(complement) >> reverse)
->>> exact_occurrences(power(nucleotides, 40), sites) is None  # past 2**64
+>>> exact_count(join(power(nucleotides, 40), sites(6))) is None  # past 2**64
 True
+>>> occurrences(power(nucleotides, 12), sites(6))  # the same count
+1835008
 
 Arrows are **extensional** (functions): ``id(T) >> f`` and ``f`` are equal on
 every input.  Composability (``cod(f) == dom(g)``) is enforced structurally --
@@ -68,6 +78,7 @@ from ._jlt import free_monoid
 from ._jlt import id
 from ._jlt import is_involution
 from ._jlt import is_square
+from ._jlt import join
 from ._jlt import letter_map
 from ._jlt import occurrences
 from ._jlt import pack
@@ -93,6 +104,7 @@ __all__ = [
     "id",
     "is_involution",
     "is_square",
+    "join",
     "letter_map",
     "occurrences",
     "pack",

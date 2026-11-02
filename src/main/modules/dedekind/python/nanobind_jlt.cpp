@@ -464,6 +464,20 @@ void bind_tensors(nb::module_ module_) {
       "exact_occurrences(p, s): the occurrences, or None where the word "
       "cannot hold them.");
   module_.def(
+      "join",
+      [](const jlt::WordPower& p, const jlt::Section& s) {
+        return std::visit(
+            [&](const auto& x) {
+              return jlt::Factored{
+                  jlt::count_factors(dedekind::category::join(p, x))};
+            },
+            s.section);
+      },
+      nb::arg("power"), nb::arg("sites"),
+      "join(p, s): the words of p with a window in s, each window an "
+      "occurrence: the windows' offsets times the cylinder on each, its "
+      "count the factors' product (pushdown and the box law).");
+  module_.def(
       "pack", &jlt::packed, nb::arg("pattern"), nb::arg("width"),
       "pack(k, w): the pattern k in the bit word of width w, read back: "
       "its low w bits.");

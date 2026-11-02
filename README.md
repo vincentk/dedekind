@@ -25,6 +25,65 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 - **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
 - **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile time, through theorem search and term reduction. Whatever cannot fold is emitted as a specialized runtime residual.
 
+### The exhibit: restriction sites, two ways
+
+Listing 5 of the Jlt paper, in C++ (left) and in Python through `pynzli` (right).
+A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`; an enzyme cuts a genome where one occurs.
+The top row counts the cuts in *all* genomes of length `N`, never building one: the join's plan is a product of factors, a constant at compile time.
+At `N = 32` the count is `27 · 2⁵⁸`, while the `4³² = 2⁶⁴` genomes it stands for are more than a 64-bit word can enumerate.
+The bottom row scans *one* genome, the matcher specialised to its site.
+
+<table>
+<tr><th>C++ (Jlt)</th><th>Python (<code>pynzli</code>)</th></tr>
+<tr>
+<td>
+
+<!-- listing5:all-genomes:cpp -->
+
+```cpp
+constexpr auto nucleotides = slice(std::byte{'A'}, std::byte{'['}) >>
+                             letters("ACGT");
+constexpr auto complement = letter_map("ACGT", "TGCA");
+constexpr auto sites(size_t n) {
+  return symmetric(power(nucleotides, n), power(complement) >> reverse);
+}
+constexpr size_t cuts(size_t N, size_t n) {
+  return count(join(power(nucleotides, N), sites(n)));
+}
+static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
+```
+
+</td>
+<td>
+
+<!-- listing5:all-genomes:python -->
+
+```pycon
+>>> nucleotides = alphabet("ACGT")
+>>> complement = letter_map("ACGT", "TGCA")
+>>> def sites(n):
+...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
+>>> def cuts(N, n):
+...     return count(join(power(nucleotides, N), sites(n)))
+>>> cuts(12, 6), cuts(32, 6) == 27 << 58
+(1835008, True)
+```
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+
+*One genome, scanned: to come with the scanner ([#1135](https://github.com/vincentk/dedekind/issues/1135)).*
+
+</td>
+</tr>
+</table>
+
+Both columns are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
+
+### Another exhibit: a set collapsed to a point
+
 ```cpp
 // Cardinality-1 reduction: an intensional meet of two halfspaces over
 // a transfinite carrier collapses to the point {4}, an interval value,
