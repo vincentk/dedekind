@@ -408,6 +408,49 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
+// Panel 2's plan: the matcher specialised to all 64 sites at once, the
+// minimal automaton of Σ* sites(6), at run time (its construction is past
+// the evaluator's budget at compile time).  A site is its left half and the
+// half's reverse complement, the complement on ranks x ↦ 3 - x.
+TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
+          "[category][tensor][automaton]") {
+  using Count = std::uint16_t;
+  using dedekind::category::AtMost;
+  using dedekind::category::RunList;
+  std::array<Count, 64> palindromes{};
+  for (Count h = 0; h < 64; ++h) {
+    const Count l0 = h / 16, l1 = (h / 4) % 4, l2 = h % 4;
+    palindromes[h] = static_cast<Count>(
+        ((((l0 * 4 + l1) * 4 + l2) * 4 + (3 - l2)) * 4 + (3 - l1)) * 4 +
+        (3 - l0));
+  }
+  std::ranges::sort(palindromes);
+  AtMost<Count, 128> steps;
+  for (const Count p : palindromes)
+    steps = steps.with(p).with(static_cast<Count>(p + 1));
+  const RunList<Count, 128> sites{steps};
+  const auto plan =
+      dedekind::category::automaton<4, 6, 32, 288>(sites, Count{6});
+  REQUIRE(plan.has_value());
+  CHECK(plan->next.size() == 277);
+  CHECK(std::ranges::count(plan->accepting, true) == 64);
+  // a scan of 2000 letters against every window, by a fixed linear
+  // congruential sequence of letters
+  std::vector<std::size_t> genome(2000);
+  std::uint32_t x = 1;
+  for (auto& g : genome) {
+    x = x * 1664525u + 1013904223u;
+    g = (x >> 16) % 4;
+  }
+  std::size_t windows = 0;
+  for (std::size_t i = 0; i + 6 <= genome.size(); ++i) {
+    std::size_t w = 0;
+    for (std::size_t j = 0; j < 6; ++j) w = w * 4 + genome[i + j];
+    windows += sites(static_cast<Count>(w)) ? 1 : 0;
+  }
+  CHECK(dedekind::category::scan(*plan, genome) == windows);
+}
+
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the
 // width, one merge of 64 pairs of legs; 2^64 of them, one bit past size_t.

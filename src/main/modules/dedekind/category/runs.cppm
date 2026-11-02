@@ -44,6 +44,7 @@ import :lattice;       // Meet, Join: the nodes | and & build
 import :lattice_term;  // Reduce, canonical_order: the one reducer
 import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
+import :functor;       // Maybe: where a bound is claimed, not proved
 
 namespace dedekind::category {
 
@@ -61,7 +62,11 @@ struct RunList {
   constexpr bool operator()(N x) const {
     return (std::ranges::upper_bound(steps, x) - steps.begin()) % 2 == 1;
   }
-  constexpr bool operator==(const RunList&) const = default;
+  /** @brief The sets' equality, whatever the two bounds: the same steps. */
+  template <std::size_t J>
+  constexpr bool operator==(const RunList<N, J>& o) const {
+    return std::ranges::equal(steps, o.steps);
+  }
 };
 
 namespace detail_runs {
@@ -123,14 +128,14 @@ constexpr RunList<N, K> run(N lo, std::type_identity_t<N> hi) {
 namespace detail_runs {
 /** @brief One position of a sweep: the operation's value there, kept as a
  *  step where it differs from the value before. */
-template <IsCountWord N, std::size_t K, typename Op>
+template <IsCountWord N, std::size_t J, std::size_t K, typename Op>
 struct Sweep {
-  RunList<N, K> a;
+  RunList<N, J> a;
   RunList<N, K> b;
   Op op;
   struct State {
     bool inside{false};
-    AtMost<N, K> steps;
+    AtMost<N, J + K> steps;
   };
   constexpr State operator()(const State& s, N p) const {
     const bool v = op(a(p), b(p));
@@ -140,15 +145,17 @@ struct Sweep {
 };
 /** @param a @param b two run lists.  @param op a pointwise operation on
  *  truth values.  @return the run list of @c op on them: the steps of both,
- *  in order, kept where the value changes, so the runs are maximal. */
-template <IsCountWord N, std::size_t K, typename Op>
-constexpr RunList<N, K> swept(const RunList<N, K>& a, const RunList<N, K>& b,
-                              Op op) {
-  AtMost<N, 2 * K> at = detail_periodic::joined(a.steps, b.steps);
+ *  in order, kept where the value changes, so the runs are maximal.  Its
+ *  steps are among theirs, so its bound is the sum of theirs: total. */
+template <IsCountWord N, std::size_t J, std::size_t K, typename Op>
+constexpr RunList<N, J + K> swept(const RunList<N, J>& a,
+                                  const RunList<N, K>& b, Op op) {
+  AtMost<N, J + K> at = detail_periodic::joined(a.steps, b.steps);
   std::ranges::sort(at.items.begin(), at.items.begin() + at.length);
-  const Sweep<N, K, Op> sweep{a, b, op};
-  return {std::ranges::fold_left(at, typename Sweep<N, K, Op>::State{}, sweep)
-              .steps};
+  const Sweep<N, J, K, Op> sweep{a, b, op};
+  return {
+      std::ranges::fold_left(at, typename Sweep<N, J, K, Op>::State{}, sweep)
+          .steps};
 }
 /** @brief No order on run lists for the reducer to canonicalise by: the
  *  residual of two keeps its authored order, then combines. */
@@ -165,16 +172,17 @@ struct Translated {
 }  // namespace detail_runs
 
 /** @brief The run lists' domain meet and join, the reducer's leaf-combine:
- *  where two leaves are run lists of one type, the sweep. */
+ *  where two leaves are run lists on one chain, the sweep, its bound the sum
+ *  of theirs. */
 export struct RunCombine {
-  template <IsCountWord N, std::size_t K>
-  static constexpr RunList<N, K> meet_value(const RunList<N, K>& a,
-                                            const RunList<N, K>& b) {
+  template <IsCountWord N, std::size_t J, std::size_t K>
+  static constexpr RunList<N, J + K> meet_value(const RunList<N, J>& a,
+                                                const RunList<N, K>& b) {
     return detail_runs::swept(a, b, std::logical_and<bool>{});
   }
-  template <IsCountWord N, std::size_t K>
-  static constexpr RunList<N, K> join_value(const RunList<N, K>& a,
-                                            const RunList<N, K>& b) {
+  template <IsCountWord N, std::size_t J, std::size_t K>
+  static constexpr RunList<N, J + K> join_value(const RunList<N, J>& a,
+                                                const RunList<N, K>& b) {
     return detail_runs::swept(a, b, std::logical_or<bool>{});
   }
 };
@@ -184,6 +192,16 @@ export struct RunCombine {
 export template <typename T>
 constexpr auto reduced(const T& t) {
   return cata(Reduce<detail_runs::Unordered, canonical_order, RunCombine>{}, t);
+}
+
+/** @brief A run list under a bound claimed, not proved by the types: the
+ *  same set where its steps fit, nothing where they do not.  @tparam K the
+ *  claimed bound.  @param r the run list.  @return it, bounded by @c K. */
+export template <std::size_t K, IsCountWord N, std::size_t J>
+constexpr Maybe<RunList<N, K>> narrowed(const RunList<N, J>& r) {
+  if (r.steps.size() > K) return {};
+  return RunList<N, K>{
+      std::ranges::fold_left(r.steps, AtMost<N, K>{}, detail_periodic::With{})};
 }
 
 /** @brief @c shift(d) @c >> @c s: @f$x \mapsto s(x + d)@f$, the preimage
@@ -211,6 +229,10 @@ static_assert(
     reduced((run<4>(0uz, 2uz) | run<4>(5uz, 7uz)) & run<4>(1uz, 6uz)) ==
     RunList<std::size_t, 4>{
         AtMost<std::size_t, 4>{}.with(1uz).with(2uz).with(5uz).with(6uz)});
+// A bound claimed: the union of two points fits four steps, not two.
+static_assert(
+    narrowed<4>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
+    !narrowed<2>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value());
 // The preimage along a translation: [2, 5) seen from 3 on is [0, 2), and
 // from 1 on is [1, 4).
 static_assert((shift(3uz) >> run<4>(2uz, 5uz)) == run<4>(0uz, 2uz) &&
