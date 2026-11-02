@@ -493,13 +493,24 @@ def branch_on_flag(block: str) -> str:
     return str(len(re.findall(rf"%{re.escape(m.group(1))}\b", block)) - 1)
 
 
+# The bodies the table summarises, read in full: the stages the listing
+# shows, at both levels.
+READ_IN_FULL = ("research_a_static_u64", "research_b_staged_static_u64",
+                "research_bp_staged_static_u64")
+
+
 def research() -> int:
     """Tabulate the IR of the research variants at -O2 and -O3: nothing is
     asserted, the table is what the optimiser did."""
     ensure_cmake_target()
     rows = []
+    heap = {}
+    bodies = {}
     for opt in ("-O2", "-O3"):
         ir = generate_ir(RESEARCH, opt)
+        heap[opt] = sorted(heap_calls(ir))
+        for symbol in READ_IN_FULL:
+            bodies[(symbol, opt)] = extract_function_block(ir, symbol) or ""
         for m in re.finditer(r"(?m)^define\b[^\n]*@(research_[a-z0-9_]+)\(", ir):
             symbol = m.group(1)
             block = extract_function_block(ir, symbol) or ""
@@ -517,6 +528,11 @@ def research() -> int:
     print("|---|---|---|---|---|---|---|---|---|")
     for r in sorted(rows):
         print("| " + " | ".join(str(x) for x in r) + " |")
+    print()
+    for opt, calls in heap.items():
+        print(f"heap allocation calls in the module at {opt}: {calls or 'none'}")
+    for (symbol, opt), body in sorted(bodies.items()):
+        print(f"\n--- {symbol} at {opt}\n```llvm\n{body}\n```")
     return 0
 
 
