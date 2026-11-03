@@ -281,16 +281,21 @@ struct Commutes {
   }
 };
 }  // namespace detail_runs
-// The meet is the pullback of the inclusions: by shape (the concept), and
-// by value (the square at every count of a chain).
+// The meet is the pullback of the inclusions, the join the pushout of the
+// meet's legs: by shape (the concepts), and the square by value at every
+// count of a chain.
 static_assert(IsSubobject<RunList<std::size_t, 4>, std::size_t>);
 static_assert(
     IsPullback<decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
                decltype(inclusion_arrow(run<2>(0uz, 4uz))),
                decltype(inclusion_arrow(run<2>(2uz, 6uz)))>);
-// The pushout's span is the pullback's own legs, A <- A & B -> B, which are
-// member functions, not yet nameable arrows (#887): its concept waits for
-// them; its view is here.
+// The join is the pushout of the span A <- A & B -> B, the pullback's own
+// legs as arrows.
+static_assert(
+    IsPushout<decltype(as_pushout(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
+              decltype(leg<1>(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)))),
+              decltype(leg<2>(as_pullback(run<2>(0uz, 4uz),
+                                          run<2>(2uz, 6uz))))>);
 static_assert(std::ranges::fold_left(
     std::views::iota(0uz, 8uz), true,
     detail_runs::Commutes<decltype(as_pullback(run<2>(0uz, 4uz),

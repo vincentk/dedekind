@@ -62,8 +62,10 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 export module dedekind.category:pullback;
 
@@ -388,6 +390,34 @@ struct PullbackApex {
   constexpr typename B::Member π_2(const Member& m) const { return {m.value}; }
   constexpr auto operator()(const Domain& x) const { return apex(x); }
 };
+/** @brief A leg of a pullback apex as an arrow, @c π_1 or @c π_2 from the
+ *  apex's members to an operand's: the co-restriction @c A ∧ B ↪ A.  So the
+ *  span @c A ← A ∧ B → B of a pushout is two arrows.
+ *  @note FIXME(#887): reified as @c inclusion_arrow is, until the legs are
+ *  intrinsic arrows. */
+template <typename P, std::size_t I>
+  requires(I == 1 || I == 2)
+struct ApexLeg {
+  using Domain = typename P::Member;
+  using Codomain = std::conditional_t<
+      I == 1,
+      decltype(std::declval<const P&>().π_1(std::declval<const Domain&>())),
+      decltype(std::declval<const P&>().π_2(std::declval<const Domain&>()))>;
+  P apex;
+  constexpr Codomain operator()(const Domain& m) const {
+    if constexpr (I == 1) {
+      return apex.π_1(m);
+    } else {
+      return apex.π_2(m);
+    }
+  }
+};
+/** @tparam I the leg, 1 or 2.  @param p a pullback apex.  @return its leg,
+ *  an arrow. */
+export template <std::size_t I, typename P>
+constexpr ApexLeg<P, I> leg(const P& p) {
+  return {p};
+}
 /** @brief The pushout apex of a join of @c A and @c B: the apex viewed with
  *  the subobject surface and the coprojections @c ι1 / @c ι2
  *  (@c IsPushout).  Dual of @ref PullbackApex. */
