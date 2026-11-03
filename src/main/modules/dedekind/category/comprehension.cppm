@@ -56,6 +56,7 @@ module;
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <version>
 
 export module dedekind.category:comprehension;
 
@@ -206,6 +207,41 @@ export template <detail_comprehension::IsForeignContainer R, IsArrow F>
 constexpr auto operator>>(const R& r, F f) {
   return std::views::transform(std::views::all(r), std::move(f));
 }
+namespace detail_comprehension {
+#ifdef __cpp_lib_ranges_slide
+/** @brief The windows of @c n: the standard's @c slide. */
+template <std::ranges::view R>
+  requires std::ranges::forward_range<R>
+constexpr auto sliding(R r, std::size_t n) {
+  return std::views::slide(std::move(r),
+                           static_cast<std::ranges::range_difference_t<R>>(n));
+}
+#else
+// libc++ (Homebrew LLVM 23, Apple) ships no std::views::slide yet, where
+// libstdc++ (CI) does: the same windows, each the subrange of n from its
+// position, spelled with the views libc++ has.  To delete once libc++ has
+// slide; the pinning witness below is skipped meanwhile.
+template <std::ranges::view R>
+struct SubrangeAt {
+  R r;
+  std::ranges::range_difference_t<R> n;
+  constexpr auto operator()(std::ranges::range_difference_t<R> i) const {
+    return std::ranges::subrange(std::ranges::begin(r) + i,
+                                 std::ranges::begin(r) + i + n);
+  }
+};
+template <std::ranges::view R>
+  requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
+constexpr auto sliding(R r, std::size_t n) {
+  using D = std::ranges::range_difference_t<R>;
+  const D size = static_cast<D>(std::ranges::size(r));
+  const D w = static_cast<D>(n);
+  const D windows = w > 0 && w <= size ? size - w + 1 : D{0};
+  return std::views::transform(std::views::iota(D{0}, windows),
+                               SubrangeAt<R>{std::move(r), w});
+}
+#endif
+}  // namespace detail_comprehension
 /** @brief @c windows(n), the stage that reads each position's window of
  *  @c n elements, a position with its context, as a comonad's
  *  @f$\delta@f$ would on an infinite stream; on a finite range the last
@@ -221,17 +257,14 @@ export constexpr Windows windows(std::size_t n) { return {n}; }
 export template <detail_comprehension::IsForeignView R>
   requires std::ranges::forward_range<R>
 constexpr auto operator>>(R r, Windows w) {
-  return std::views::slide(
-      std::move(r), static_cast<std::ranges::range_difference_t<R>>(w.n));
+  return detail_comprehension::sliding(std::move(r), w.n);
 }
 /** @param r a container, read in place.  @param w the stage.  @return the
  *  standard's slide view over it. */
 export template <detail_comprehension::IsForeignContainer R>
   requires std::ranges::forward_range<const R>
 constexpr auto operator>>(const R& r, Windows w) {
-  return std::views::slide(
-      std::views::all(r),
-      static_cast<std::ranges::range_difference_t<const R>>(w.n));
+  return detail_comprehension::sliding(std::views::all(r), w.n);
 }
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.
@@ -267,13 +300,14 @@ constexpr bool lazy_is_the_functor() {
 static_assert(IsFunctor<PowerFunctor> &&
               detail_comprehension::lazy_is_the_functor());
 // The spellings are the standard's views, by type.
-static_assert(
-    std::same_as<decltype(std::span<const std::size_t>{} >> windows(6)),
-                 decltype(std::span<const std::size_t>{} |
-                          std::views::slide(6))> &&
-    std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
-                 decltype(std::span<const std::size_t>{} |
-                          std::views::transform(is_even))>);
+#ifdef __cpp_lib_ranges_slide
+static_assert(std::same_as<
+              decltype(std::span<const std::size_t>{} >> windows(6)),
+              decltype(std::span<const std::size_t>{} | std::views::slide(6))>);
+#endif
+static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
+                           decltype(std::span<const std::size_t>{} |
+                                    std::views::transform(is_even))>);
 
 /** @brief @c where(section): the windows a section holds, its membership
  *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *

@@ -1571,17 +1571,18 @@ static_assert(std::same_as<decltype(I{} * B{}), ProductArrow<I, B>> &&
 // applying g and f.
 static_assert(IsInvolution<Flip<int, int>, std::pair<int, int>> &&
                   IsIsomorphism<Flip<int, int>> &&
-                  flip<int, bool>()({1, true}) == std::pair{true, 1} &&
-                  (flip<int, bool>() >> flip<bool, int>())({1, true}) ==
-                      std::pair{1, true},
+                  flip<int, bool>()(std::pair{1, true}) == std::pair{true, 1} &&
+                  (flip<int, bool>() >>
+                   flip<bool, int>())(std::pair{1, true}) == std::pair{1, true},
               "flip is the product's symmetry: its own inverse on a square, "
               "the flip the other way on two factors");
-static_assert(
-    ((endo<int>(std::negate<int>{}) * endo<bool>(std::logical_not<bool>{})) >>
-     flip<int, bool>())({3, true}) ==
-        (flip<int, bool>() >> (endo<bool>(std::logical_not<bool>{}) *
-                               endo<int>(std::negate<int>{})))({3, true}),
-    "flip is natural: (f × g) then σ is σ then (g × f)");
+static_assert(((endo<int>(std::negate<int>{}) *
+                endo<bool>(std::logical_not<bool>{})) >>
+               flip<int, bool>())(std::pair{3, true}) ==
+                  (flip<int, bool>() >>
+                   (endo<bool>(std::logical_not<bool>{}) *
+                    endo<int>(std::negate<int>{})))(std::pair{3, true}),
+              "flip is natural: (f × g) then σ is σ then (g × f)");
 static_assert(IsEpicArrow<Copairing<I, I>>,
               "[f, g] is surjective as soon as one leg is (the codiagonal)");
 static_assert(IsMonotone<ProductArrow<I, I>,
