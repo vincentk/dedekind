@@ -50,6 +50,7 @@ import :lattice_term;  // Reduce, canonical_order: the one reducer
 import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
 import :pullback;  // the apex views: the meet a pullback, the join a pushout
+import :limit;     // Π: the apex's legs, as projections
 import :topoi;     // IsSubobject: a run list's subobject surface
 import :functor;   // Maybe: where a bound is claimed, not proved
 import :logic;     // Boole: a run list's truth values
@@ -289,19 +290,21 @@ static_assert(
     IsPullback<decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
                decltype(inclusion_arrow(run<2>(0uz, 4uz))),
                decltype(inclusion_arrow(run<2>(2uz, 6uz)))>);
-// The inclusions and the meet's legs are monomorphisms, and run lists are a
-// Boolean subobject lattice: their classifier is Boole.
+// The inclusions and the meet's legs are monomorphisms, the legs being the
+// apex's projections (:limit's Π), inclusions and so not epic; and run lists
+// are a Boolean subobject lattice: their classifier is Boole.
+namespace detail_runs {
+using Meet04_26 = decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)));
+}  // namespace detail_runs
 static_assert(IsMonicArrow<decltype(inclusion_arrow(run<2>(0uz, 4uz)))> &&
-              IsMonicArrow<decltype(leg<1>(as_pullback(run<2>(0uz, 4uz),
-                                                       run<2>(2uz, 6uz))))> &&
+              IsMonicArrow<Π<1, detail_runs::Meet04_26::Member>> &&
+              !IsEpicArrow<Π<1, detail_runs::Meet04_26::Member>> &&
               IsBooleanSubobjectLattice<RunList<std::size_t, 4>>);
-// The join is the pushout of the span A <- A & B -> B, the pullback's own
-// legs as arrows.
+// The join is the pushout of the span A <- A & B -> B, the meet's legs.
 static_assert(
     IsPushout<decltype(as_pushout(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
-              decltype(leg<1>(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)))),
-              decltype(leg<2>(as_pullback(run<2>(0uz, 4uz),
-                                          run<2>(2uz, 6uz))))>);
+              Π<1, detail_runs::Meet04_26::Member>,
+              Π<2, detail_runs::Meet04_26::Member>>);
 static_assert(std::ranges::fold_left(
     std::views::iota(0uz, 8uz), true,
     detail_runs::Commutes<decltype(as_pullback(run<2>(0uz, 4uz),
