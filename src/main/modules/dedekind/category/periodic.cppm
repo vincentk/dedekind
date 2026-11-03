@@ -69,6 +69,7 @@ import :lattice;               // Meet, Join: the nodes & and | build
 import :cartesian_bicategory;  // Tensor, Merge: the outer product
 import :involution;            // Reverse, commutes: the symmetries of a word
 import :posetal;               // is_involution: a law asked on the value
+import :logic;                 // NegationArrow, Chain: the chain's reflection
 import :functor;               // Maybe: a byte outside the alphabet, a hole
 
 namespace dedekind::category {
@@ -1127,21 +1128,30 @@ export template <IsCountWord N>
 constexpr N position(const Rotation<N>& r, N n, N i) {
   return static_cast<N>((i + r.shift % n) % n);
 }
-/** @brief The reversal of @c length positions on indices, as an arrow on
- *  the counts: an involution on all of them, the counts being unsigned, so
- *  @f$n - 1 - (n - 1 - i) \equiv i@f$ modulo the word.  @tparam N the
- *  counts. */
-export template <IsCountWord N>
-struct ReversedPosition {
-  using Domain = N;
-  using Codomain = N;
-  N length;
-  constexpr N operator()(N i) const { return position(Reverse{}, length, i); }
-  constexpr bool operator==(const ReversedPosition&) const = default;
-};
+/** @brief The chain's reflection, then a translation, is a point
+ *  reflection, @f$x \mapsto c - x@f$, an involution for every @c c, the
+ *  counts being unsigned: @f$c - (c - x) \equiv x@f$ modulo the word.  The
+ *  reversal of @c n positions on indices is the one with @f$c = n - 1@f$:
+ *  @f$n - 1 - i \equiv {\sim} i + n@f$, so @c ~Identity<N>{} @c >>
+ *  @c shift(n).  An involution, so an isomorphism, its own inverse
+ *  (@c :involution). */
 template <IsCountWord N>
-struct is_involutive<ReversedPosition<N>, N> : std::true_type {};
-static_assert(IsInvolution<ReversedPosition<std::size_t>, std::size_t>);
+struct is_involutive<Compose<NegationArrow<Chain<N>>, Shift<N>>, N>
+    : std::true_type {};
+namespace detail_periodic {
+/** @brief The reversal on indices agrees with @c position at @c i. */
+struct ReversalAgrees {
+  constexpr bool operator()(bool ok, std::size_t i) const {
+    return ok && (~Identity<std::size_t>{} >> shift(5uz))(i) ==
+                     position(Reverse{}, 5uz, i);
+  }
+};
+}  // namespace detail_periodic
+static_assert(IsInvolution<decltype(~Identity<std::size_t>{} >> shift(5uz)),
+                           std::size_t> &&
+              IsIsomorphism<decltype(~Identity<std::size_t>{} >> shift(5uz))> &&
+              std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
+                                     detail_periodic::ReversalAgrees{}));
 // The index form agrees with the word form: the letter at i of a word is at
 // position(i) of its reversal; and the reversal on indices is an
 // involution.
