@@ -17,7 +17,7 @@
  * | @c Join     | @c JOIN    | @c join(p, s)               |
  * | @c OrderBy  | @c ORDER BY| @c >> @c order_by(rank)     |
  * | @c Take     | @c LIMIT   | @c >> @c take<K>()          |
- * | @c Count    | @c COUNT   | @c count                    |
+ * | @c Count    | @c COUNT   | @c count, @c >> @c counting   |
  * | @c Sum      | @c SUM     | @c sum                      |
  *
  * The names are the common ones; where a name is the category theory's,
@@ -551,6 +551,32 @@ export template <IsArrow F>
   requires requires(const Cod<F>& j) { count(j); }
 constexpr auto operator>>(const F& f, detail_comprehension::CountingStage) {
   return f >> Counting<Cod<F>>{};
+}
+/** @brief @c q @c >> @c counting, the stage form of @c count(q): the fold
+ *  that ends a query, in the query's own rhythm.  @param q the query.
+ *  @return its count. */
+export template <IsQuery Q>
+constexpr std::size_t operator>>(Q q, detail_comprehension::CountingStage) {
+  return count(std::move(q));
+}
+namespace detail_comprehension {
+/** @brief The count of a query, as @c Maybe's action: a query that may not
+ *  be, counted where it is. */
+struct Counted {
+  template <IsQuery Q>
+  constexpr std::size_t operator()(Q q) const {
+    return count(std::move(q));
+  }
+};
+}  // namespace detail_comprehension
+/** @brief A query that may not be (a plan past its capacity), counted: the
+ *  count lifted through @c Maybe, nothing where the query is nothing.  The
+ *  monad carries the uncertainty to the end, so no caller cases on it.
+ *  @param q the query, or nothing.  @return its count, or nothing. */
+export template <IsQuery Q>
+constexpr Maybe<std::size_t> operator>>(const Maybe<Q>& q,
+                                        detail_comprehension::CountingStage) {
+  return q.transform(detail_comprehension::Counted{});
 }
 /** @brief A rank whose values do not grow along the even lengths, so that
  *  ranking the even lengths descending reads them upwards.  Derived, not

@@ -66,16 +66,18 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 .. [listing5:one-genome]
 
 >>> genome = b"TTGAATTCAAGCTTA"
->>> count(genome >> windows(6) >> where(sites(6)))
+>>> genome >> windows(6) >> where(sites(6)) >> counting
 2
->>> plan = automaton(sites(6))
->>> count(genome >> rank(nucleotides) >> matches(plan))
+>>> genome >> rank(nucleotides) >> matches(automaton(sites(6))) >> counting
 2
 
 .. [/listing5:one-genome]
 
+>>> plan = automaton(sites(6))
 >>> plan
 automaton(states=277, accepting=64)
+>>> count(genome >> rank(nucleotides) >> matches(plan))  # count, as a function
+2
 >>> collect(genome >> rank(nucleotides) >> matches(plan))  # where a site ends
 [7, 13]
 >>> collect(genome >> windows(6) >> where(sites(6)))  # where its window begins
@@ -104,6 +106,7 @@ from ._jlt import automaton
 from ._jlt import cod
 from ._jlt import collect
 from ._jlt import count
+from ._jlt import counting
 from ._jlt import count_factors
 from ._jlt import cylinder
 from ._jlt import dom
@@ -137,6 +140,7 @@ __all__ = [
     "cod",
     "collect",
     "count",
+    "counting",
     "count_factors",
     "cylinder",
     "dom",

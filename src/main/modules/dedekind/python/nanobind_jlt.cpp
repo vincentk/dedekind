@@ -471,12 +471,26 @@ void bind_matcher(nb::module_ module_) {
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
                                 "along a genome read as letters.");
+  nb::class_<dedekind::category::detail_comprehension::CountingStage>(
+      module_, "Counting",
+      "counting: the stage form of count, ending a query: q >> counting.");
+  module_.attr("counting") = dedekind::category::counting;
   nb::class_<jlt::MatchQuery>(module_, "MatchQuery",
                               "The positions where a site ends: count it, "
-                              "collect it.");
+                              "collect it.")
+      .def("__rshift__",
+           [](const jlt::MatchQuery& q,
+              const dedekind::category::detail_comprehension::CountingStage&) {
+             return jlt::count(q);
+           });
   nb::class_<jlt::WindowQuery>(module_, "WindowQuery",
                                "The windows that are sites: count it, collect "
-                               "it (the positions where they begin).");
+                               "it (the positions where they begin).")
+      .def("__rshift__",
+           [](const jlt::WindowQuery& q,
+              const dedekind::category::detail_comprehension::CountingStage&) {
+             return jlt::count(q);
+           });
 
   module_.def(
       "rank",

@@ -435,24 +435,28 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 // evaluator's budget, so these run at run time (the TEST_CASE below); a
 // single site's is a constant (PlansAtCompileTime, above).
 using dedekind::category::automaton;
+using dedekind::category::counting;
 using dedekind::category::matches;
 using dedekind::category::rank;
 using dedekind::category::where;
 using dedekind::category::windows;
 // [listing5:one-genome]
-constexpr size_t by_the_query(std::span<const std::byte> genome) {
-  return count(genome >> windows(6) >> where(sites(6)));
+constexpr auto by_the_query(std::span<const std::byte> genome) {
+  return genome >> windows(6) >> where(sites(6)) >> counting;
 }
-constexpr size_t by_the_plan(std::span<const std::byte> genome) {
-  const auto plan = automaton(sites(6));  // Maybe: nothing past the capacity
-  return plan ? count(genome >> rank(nucleotides) >> matches(*plan)) : 0;
+constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
+  return genome >> rank(nucleotides) >> matches(automaton(sites(6))) >>
+         counting;
 }
 // [/listing5:one-genome]
+// The plan's count is a Maybe: the plan may exceed its capacity, and the
+// monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
   const Word genome = dna("TTGAATTCAAGCTTA");
   CHECK(by_the_query(genome) == 2);
-  CHECK(by_the_plan(genome) == 2);
+  CHECK(by_the_plan(genome) == 2);  // Maybe{2}
+  CHECK(by_the_plan(genome).has_value());
 }
 }  // namespace listing5
 

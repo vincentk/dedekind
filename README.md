@@ -77,12 +77,12 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-constexpr size_t by_the_query(std::span<const std::byte> genome) {
-  return count(genome >> windows(6) >> where(sites(6)));
+constexpr auto by_the_query(std::span<const std::byte> genome) {
+  return genome >> windows(6) >> where(sites(6)) >> counting;
 }
-constexpr size_t by_the_plan(std::span<const std::byte> genome) {
-  const auto plan = automaton(sites(6));  // Maybe: nothing past the capacity
-  return plan ? count(genome >> rank(nucleotides) >> matches(*plan)) : 0;
+constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
+  return genome >> rank(nucleotides) >> matches(automaton(sites(6))) >>
+         counting;
 }
 ```
 
@@ -93,10 +93,9 @@ constexpr size_t by_the_plan(std::span<const std::byte> genome) {
 
 ```pycon
 >>> genome = b"TTGAATTCAAGCTTA"
->>> count(genome >> windows(6) >> where(sites(6)))
+>>> genome >> windows(6) >> where(sites(6)) >> counting
 2
->>> plan = automaton(sites(6))
->>> count(genome >> rank(nucleotides) >> matches(plan))
+>>> genome >> rank(nucleotides) >> matches(automaton(sites(6))) >> counting
 2
 ```
 

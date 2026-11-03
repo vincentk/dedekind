@@ -363,6 +363,19 @@ constexpr Matches<Sigma, Q> matches(const Automaton<Sigma, Q>& plan,
                                     Holes holes = Holes::break_match) {
   return {plan, holes};
 }
+/** @brief @c matches on a plan that may not be, @c automaton(section)'s
+ *  @c Maybe: the stage, or nothing, by @c Maybe's action.  The uncertainty
+ *  of the capacity travels through the query to its count, so
+ *  @c genome @c >> @c rank(a) @c >> @c matches(automaton(s)) @c >> @c counting
+ *  is a @c Maybe count with no case on it in between.  @param plan the plan,
+ *  or nothing.  @param holes what a hole does.  @return the stage, or
+ *  nothing. */
+export template <std::size_t Sigma, std::size_t Q>
+constexpr Maybe<Matches<Sigma, Q>> matches(
+    const Maybe<Automaton<Sigma, Q>>& plan, Holes holes = Holes::break_match) {
+  if (!plan) return {};
+  return matches(*plan, holes);
+}
 namespace detail_automaton {
 /** @brief Where a run of the matcher is: its state and the next position. */
 struct Cursor {
@@ -414,6 +427,16 @@ struct MatchStep {
   }
 };
 }  // namespace detail_automaton
+/** @param letters a text, as above.  @param m the stage, or nothing.
+ *  @return the query, or nothing: @c Maybe's action on the stage. */
+export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
+           std::semiregular<V>
+constexpr auto operator>>(V letters, const Maybe<Matches<Sigma, Q>>& m) {
+  using Query = decltype(std::move(letters) >> *m);
+  if (!m) return Maybe<Query>{};
+  return Maybe<Query>{std::move(letters) >> *m};
+}
 /** @param letters a text of the caller's, as the letters' indices or as
  *  bytes read through @c rank(alphabet); a view, read where it is.
  *  @param m the stage.  @return the query of the positions where a word of
