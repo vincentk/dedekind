@@ -293,6 +293,10 @@ using dedekind::category::Holes;
 using dedekind::category::Ranked;
 using dedekind::category::Windows;
 
+/** @brief The stage ending a query, @c >> @c counting: the exported object's
+ *  type (its namespace is the comprehension's detail). */
+using CountingStage =
+    std::remove_cvref_t<decltype(dedekind::category::counting)>;
 /** @brief A text of the caller's, Python's bytes, read in place. */
 struct Text {
   nb::bytes bytes;
@@ -471,7 +475,7 @@ void bind_matcher(nb::module_ module_) {
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
                                 "along a genome read as letters.");
-  nb::class_<dedekind::category::detail_comprehension::CountingStage>(
+  nb::class_<jlt::CountingStage>(
       module_, "Counting",
       "counting: the stage form of count, ending a query: q >> counting.");
   module_.attr("counting") = dedekind::category::counting;
@@ -479,16 +483,14 @@ void bind_matcher(nb::module_ module_) {
                               "The positions where a site ends: count it, "
                               "collect it.")
       .def("__rshift__",
-           [](const jlt::MatchQuery& q,
-              const dedekind::category::detail_comprehension::CountingStage&) {
+           [](const jlt::MatchQuery& q, const jlt::CountingStage&) {
              return jlt::count(q);
            });
   nb::class_<jlt::WindowQuery>(module_, "WindowQuery",
                                "The windows that are sites: count it, collect "
                                "it (the positions where they begin).")
       .def("__rshift__",
-           [](const jlt::WindowQuery& q,
-              const dedekind::category::detail_comprehension::CountingStage&) {
+           [](const jlt::WindowQuery& q, const jlt::CountingStage&) {
              return jlt::count(q);
            });
 
