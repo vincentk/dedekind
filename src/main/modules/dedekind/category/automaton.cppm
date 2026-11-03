@@ -48,6 +48,7 @@ module;
 #include <cstdint>
 #include <functional>
 #include <ranges>
+#include <span>
 
 export module dedekind.category:automaton;
 
@@ -406,7 +407,8 @@ struct MatchStep {
  *  @param m the stage.  @return the query of the positions where a word of
  *  the set ends: count it, take from it, collect it. */
 export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
-  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
+           std::semiregular<V>
 constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
   return unfold(detail_automaton::Cursor{},
                 detail_automaton::MatchStep<Sigma, Q, V>{m.plan, m.holes,
@@ -445,17 +447,21 @@ static_assert(automaton<4, 6, 4, 8>(run<2>(2109uz, 2110uz), 6) == kmp_gaattc);
 // fit six.
 static_assert(!automaton<4, 6, 4, 6>(run<2>(2109uz, 2110uz), 6).has_value());
 // The matches of the site, where it ends: once in TTGAATTCAAGCTTA, at
-// position 7, the C of its GAATTC; twice in GAATTCGAATTC.
-static_assert(count(std::views::all(std::array{3uz, 3uz, 2uz, 0uz, 0uz, 3uz,
-                                               3uz, 1uz, 0uz, 0uz, 2uz, 1uz,
-                                               3uz, 3uz, 0uz}) >>
-                    matches(kmp_gaattc)) == 1 &&
-              count(std::views::all(std::array{2uz, 0uz, 0uz, 3uz, 3uz, 1uz,
-                                               2uz, 0uz, 0uz, 3uz, 3uz, 1uz}) >>
-                    matches(kmp_gaattc)) == 2);
+// position 7, the C of its GAATTC; twice in GAATTCGAATTC.  The texts are
+// the caller's, read through a span.
+namespace detail_automaton {
+constexpr std::array<std::size_t, 15> ttgaattcaagctta{3, 3, 2, 0, 0, 3, 3, 1,
+                                                      0, 0, 2, 1, 3, 3, 0};
+constexpr std::array<std::size_t, 12> gaattcgaattc{2, 0, 0, 3, 3, 1,
+                                                   2, 0, 0, 3, 3, 1};
+}  // namespace detail_automaton
+static_assert(
+    count(std::span<const std::size_t>{detail_automaton::ttgaattcaagctta} >>
+          matches(kmp_gaattc)) == 1 &&
+    count(std::span<const std::size_t>{detail_automaton::gaattcgaattc} >>
+          matches(kmp_gaattc)) == 2);
 static_assert(std::ranges::equal(
-    collect(std::views::all(std::array{3uz, 3uz, 2uz, 0uz, 0uz, 3uz, 3uz, 1uz,
-                                       0uz, 0uz, 2uz, 1uz, 3uz, 3uz, 0uz}) >>
+    collect(std::span<const std::size_t>{detail_automaton::ttgaattcaagctta} >>
             matches(kmp_gaattc) >> take<1>()),
     std::array{7uz}));
 
