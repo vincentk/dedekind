@@ -556,29 +556,14 @@ concept IsSetObjectLeaf =
       classifier(s)(x);
     };
 
-/** @brief Two types carry the same carrier: the domain tie a lattice node over
- *  set objects needs (the logic may differ; the codomain leg reconciles it).
- *  The same rule as @c category's @c builds_lattice_nodes, the opt-in of
- *  predicates to the lattice's @c | and @c &: a property of the leaves
- *  lifted over the nodes, with this tie at each. */
-template <typename A, typename B>
-concept SameCarrier = requires {
-  typename A::Domain;
-  typename B::Domain;
-} && std::same_as<typename A::Domain, typename B::Domain>;
-
+/** @brief A leaf that is a set object, the property @c over_nodes lifts. */
 template <typename T>
-struct is_set_object : std::bool_constant<IsSetObjectLeaf<T>> {};
-template <typename A, typename B>
-struct is_set_object<dedekind::category::Meet<A, B>>
-    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
-                         SameCarrier<A, B>> {};
-template <typename A, typename B>
-struct is_set_object<dedekind::category::Join<A, B>>
-    : std::bool_constant<is_set_object<A>::value && is_set_object<B>::value &&
-                         SameCarrier<A, B>> {};
-template <typename A>
-struct is_set_object<dedekind::category::Not<A>> : is_set_object<A> {};
+struct set_object_leaf : std::bool_constant<IsSetObjectLeaf<T>> {};
+/** @brief A set object: a leaf, or a node over set objects on one domain,
+ *  by @c category's @c over_nodes, the rule its opt-in @c | and @c & follow
+ *  too. */
+template <typename T>
+struct is_set_object : dedekind::category::over_nodes<set_object_leaf, T> {};
 
 /** @brief An @b object of the category Set: a leaf carrying the subobject
  *  surface and its legs, @b or a lattice node --- @c Meet / @c Join / @c Not

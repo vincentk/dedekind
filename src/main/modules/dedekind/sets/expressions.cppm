@@ -606,6 +606,8 @@ concept PlainSet = requires { typename set_predicate<S>::type; };
  *  carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -618,6 +620,8 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
  *  irreducible join becomes a @c Join carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -636,6 +640,8 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
  *  it never competes with the meet above). */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
@@ -650,6 +656,8 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
 /** @brief Cross-species join, dual to the cross-species meet (#894, step i). */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&

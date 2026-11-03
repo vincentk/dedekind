@@ -647,43 +647,59 @@ template <typename A, typename B>
 struct domain_of<Meet<A, B>> : domain_of<A> {};
 template <typename A, typename B>
 struct domain_of<Join<A, B>> : domain_of<A> {};
+template <typename A>
+struct domain_of<Not<A>> : domain_of<A> {};
+/** @brief Two operands on one domain: a lazy trait, read only once both
+ *  operands qualify, so an operand with no domain is never asked for one. */
+template <typename A, typename B>
+struct same_domain
+    : std::bool_constant<std::same_as<typename domain_of<A>::type,
+                                      typename domain_of<B>::type>> {};
 }  // namespace detail_lattice_nodes
+/** @brief A property of a term's leaves, lifted over the lattice's nodes:
+ *  a @c Meet or @c Join has it where both operands do and share a domain, a
+ *  @c Not where its operand does.  One rule for every carrier that lifts a
+ *  leaf property over the nodes: the opt-in to @c | and @c & below, and the
+ *  set objects of @c sets (@c is_set_object).  @tparam Leaf the property of
+ *  a leaf.  @tparam T the term. */
+export template <template <typename> class Leaf, typename T>
+struct over_nodes : Leaf<T> {};
+template <template <typename> class Leaf, typename A, typename B>
+struct over_nodes<Leaf, Meet<A, B>>
+    : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
+                       detail_lattice_nodes::same_domain<A, B>> {};
+template <template <typename> class Leaf, typename A, typename B>
+struct over_nodes<Leaf, Join<A, B>>
+    : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
+                       detail_lattice_nodes::same_domain<A, B>> {};
+template <template <typename> class Leaf, typename A>
+struct over_nodes<Leaf, Not<A>> : over_nodes<Leaf, A> {};
 /** @brief A carrier's opt-in: its predicates' @c | and @c & are the
  *  lattice's nodes.  False by default; a node over two that build does,
- *  where they share a domain.  The same shape as @c sets' @c is_set_object:
- *  a property of the leaves lifted over @c Meet, @c Join and @c Not, with
- *  the domain tie at each node (its @c SameCarrier).  This is the lazy form:
+ *  where they share a domain, by @c over_nodes, the rule @c sets'
+ *  @c is_set_object follows too.  A carrier that opts in keeps the lazy
+ *  @c | and @c &; the set grammar of @c sets takes the rest, so a type that
+ *  is both, a @c Subobject, is the lattice's.  This is the lazy form:
  *  the node is the result, for intensional and symbolic predicates.  A
  *  carrier with a normal form reduces at once instead (run lists in
  *  @c :runs, the set grammar in @c sets); where the lazy and the strict
  *  forms meet is not yet uniform (#1138). */
 export template <typename T>
 struct builds_lattice_nodes : std::false_type {};
-namespace detail_lattice_nodes {
-/** @brief Two operands on one domain, read only once both build: a lazy
- *  trait, so an operand with no domain is never asked for one. */
-template <typename A, typename B>
-struct same_domain
-    : std::bool_constant<std::same_as<typename domain_of<A>::type,
-                                      typename domain_of<B>::type>> {};
-}  // namespace detail_lattice_nodes
 template <typename A, typename B>
 struct builds_lattice_nodes<Meet<A, B>>
-    : std::conjunction<builds_lattice_nodes<A>, builds_lattice_nodes<B>,
-                       detail_lattice_nodes::same_domain<A, B>> {};
+    : over_nodes<builds_lattice_nodes, Meet<A, B>> {};
 template <typename A, typename B>
 struct builds_lattice_nodes<Join<A, B>>
-    : std::conjunction<builds_lattice_nodes<A>, builds_lattice_nodes<B>,
-                       detail_lattice_nodes::same_domain<A, B>> {};
+    : over_nodes<builds_lattice_nodes, Join<A, B>> {};
 template <typename A>
-struct builds_lattice_nodes<Not<A>> : builds_lattice_nodes<A> {};
+struct builds_lattice_nodes<Not<A>> : over_nodes<builds_lattice_nodes, Not<A>> {
+};
 namespace detail_lattice_nodes {
 /** @brief Two terms whose @c | and @c & build nodes: both opted in, on
  *  one domain. */
 template <typename A, typename B>
-concept BuildNodes =
-    std::conjunction_v<builds_lattice_nodes<A>, builds_lattice_nodes<B>,
-                       same_domain<A, B>>;
+concept BuildNodes = builds_lattice_nodes<Meet<A, B>>::value;
 }  // namespace detail_lattice_nodes
 /** @param a @param b two predicates that build nodes.  @return their join,
  *  the node. */
