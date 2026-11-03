@@ -1111,6 +1111,24 @@ constexpr AtMost<Cycles<N>, 1> cycle_type(const Rotation<N>& r, N n) {
   const N g = std::gcd(n, static_cast<N>(r.shift % n));  // n where d ≡ 0
   return AtMost<Cycles<N>, 1>{}.with(Cycles<N>{static_cast<N>(n / g), g});
 }
+/** @brief A permutation of positions on indices: where it sends the
+ *  position @c i of a word of length @c n, the reversal to
+ *  @f$n - 1 - i@f$.  @param n the length.  @param i a position below it.
+ *  @return its image. */
+export template <IsCountWord N>
+constexpr N position(Reverse, N n, N i) {
+  return static_cast<N>(n - 1 - i);
+}
+/** @param r the rotation by @c d.  @param n the length.  @param i a
+ *  position below it.  @return @f$i + d \bmod n@f$, where the letter at
+ *  @c i moves. */
+export template <IsCountWord N>
+constexpr N position(const Rotation<N>& r, N n, N i) {
+  return static_cast<N>((i + r.shift % n) % n);
+}
+static_assert(position(Reverse{}, 6uz, 0uz) == 5 &&
+              position(Reverse{}, 6uz, 2uz) == 3 &&
+              position(Rotation<>{2}, 6uz, 5uz) == 1);
 
 /** @brief A permutation of positions with a known cycle type.
  *  @tparam S the permutation.  @tparam N the counts. */
@@ -1322,6 +1340,36 @@ struct Symmetric {
   P power;
   S sigma;
   T tau;
+  /** @brief One position of a word against the condition: the letter at
+   *  @c i is the power's, and its image under @c tau is at @c sigma(i). */
+  template <std::ranges::random_access_range V>
+  struct Holds {
+    P power;
+    S sigma;
+    T tau;
+    V word;
+    constexpr bool operator()(bool ok, decltype(P::length) i) const {
+      const auto x = word[i];
+      return ok && power.letters.lo <= x && x < power.letters.hi &&
+             power.member(x) &&
+             word[position(sigma, power.length, i)] == tau(x);
+    }
+  };
+  /** @brief Membership, read in place: a word of the power's length over
+   *  its letters that the pair fixes, @f$x_{\sigma(i)} = \tau(x_i)@f$, each
+   *  position compared where it is, nothing copied.  A window of a genome
+   *  is a site exactly where this holds.  @param w a word.  @return whether
+   *  the section holds it. */
+  template <std::ranges::random_access_range W>
+    requires std::ranges::sized_range<W>
+  constexpr bool operator()(const W& w) const {
+    using N = decltype(P::length);
+    if (static_cast<N>(std::ranges::size(w)) != power.length) return false;
+    using V = decltype(std::views::all(w));
+    return std::ranges::fold_left(
+        std::views::iota(N{0}, power.length), true,
+        Holds<V>{power, sigma, tau, std::views::all(w)});
+  }
 };
 /** @param p a tensor power.  @param sigma a permutation of its positions,
  *  @c reverse or @c rotate(d).  @return the words it fixes. */

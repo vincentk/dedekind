@@ -462,6 +462,19 @@ static_assert(ecori_sites("TTGAATTCAAGCTTA", false) == 1 &&
               ecori_sites("GAANTTC", false) == 0 &&
               ecori_sites("GAANTTC", true) == 1);
 
+// Panel 2's query: the windows of a genome that are sites, each tested
+// against the section itself, in place.  The section sites(6) is the one
+// value both panels read: counted over all genomes (panel 1), tested window
+// by window, and compiled into the matcher.
+constexpr std::size_t windows_that_are_sites(std::string_view genome) {
+  const Word bytes = dna(genome);
+  return static_cast<std::size_t>(std::ranges::count_if(
+      std::span<const std::byte>{bytes} | std::views::slide(6), sites_6));
+}
+static_assert(sites_6(dna("GAATTC")) && !sites_6(dna("GAATTA")) &&
+              !sites_6(dna("GAANTC")) && !sites_6(dna("GAATT")));
+static_assert(windows_that_are_sites("TTGAATTCAAGCTTA") == 2);
+
 TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
           "[category][tensor][automaton]") {
   using Count = std::uint32_t;  // uint16_t promotes to int under *
@@ -486,6 +499,13 @@ TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
     windows += sites(static_cast<Count>(w)) ? 1 : 0;
   }
   CHECK(dedekind::category::scan(*plan, std::views::all(genome)) == windows);
+  // and the query plan, the section tested on each window of the same
+  // genome as bytes, agrees with the matcher's
+  Word bytes;
+  for (const std::size_t g : genome) bytes.push_back(acgt[g]);
+  CHECK(static_cast<std::size_t>(std::ranges::count_if(
+            std::span<const std::byte>{bytes} | std::views::slide(6),
+            sites_6)) == windows);
 }
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
