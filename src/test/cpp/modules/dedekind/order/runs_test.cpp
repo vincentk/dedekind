@@ -248,6 +248,30 @@ TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
         static_cast<std::ptrdiff_t>(either.steps.size()));
 }
 
+// translate is an action of the word's additive group (V, +) on its run
+// lists: translate(s, a + b) = translate(translate(s, a), b), the wrap
+// included, since the group's + wraps with it.  Named as a functor here, not
+// in the module (the run-time layer, its non-constexpr functions ratcheted),
+// and certified: the chain reading, Pst's preimage along a shift on the
+// extent, is no action, since there the preimage truncates where + wraps
+// (category:runs), which is why the two are two arrows.
+template <std::unsigned_integral V, typename L>
+struct Translate {
+  Runs<V, L> operator()(Runs<V, L> s, V k) const {
+    return translate(std::move(s), k);
+  }
+};
+namespace dedekind::category {
+template <std::unsigned_integral V, typename L>
+struct acting_monoid<::Translate<V, L>> {
+  using type = std::plus<V>;
+};
+}  // namespace dedekind::category
+static_assert(IsRightAction<Translate<std::size_t, Boole>,
+                            Runs<std::size_t, Boole>, std::size_t>,
+              "the cyclic translate is an action of the word's additive group "
+              "on its run lists");
+
 // Two readings of one word (#1138): the chain's, Pst's preimage along a shift
 // on the extent (category), and the group's, the order's translate on the
 // cyclic word ℤ/2^w.  The preimage under x ↦ x + 3 is the image under
