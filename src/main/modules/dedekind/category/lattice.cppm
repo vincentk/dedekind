@@ -652,7 +652,11 @@ struct domain_of<Join<A, B>> : domain_of<A> {};
  *  lattice's nodes.  False by default; a node over two that build does,
  *  where they share a domain.  The same shape as @c sets' @c is_set_object:
  *  a property of the leaves lifted over @c Meet, @c Join and @c Not, with
- *  the domain tie at each node (its @c SameCarrier). */
+ *  the domain tie at each node (its @c SameCarrier).  This is the lazy form:
+ *  the node is the result, for intensional and symbolic predicates.  A
+ *  carrier with a normal form reduces at once instead (run lists in
+ *  @c :runs, the set grammar in @c sets); where the lazy and the strict
+ *  forms meet is not yet uniform (#1138). */
 export template <typename T>
 struct builds_lattice_nodes : std::false_type {};
 namespace detail_lattice_nodes {

@@ -185,7 +185,9 @@ constexpr auto reduced(const T& t) {
 /** @brief The union of two run lists, at once: the lattice's @c Join node
  *  folded by the one reducer, the sweep its leaf-combine, as the set
  *  grammar's @c | folds through @c SetCombine (@c sets).  Its bound is the
- *  sum of theirs.  @param a @param b two run lists on one chain.  @return
+ *  sum of theirs.  The strict form; the lazy one is the node itself, built
+ *  and reduced later, as the predicates that opt in to @c :lattice's @c |
+ *  keep it (#1138).  @param a @param b two run lists on one chain.  @return
  *  their union. */
 export template <IsCountWord N, std::size_t J, std::size_t K>
 constexpr RunList<N, J + K> operator|(const RunList<N, J>& a,
