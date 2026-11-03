@@ -1350,7 +1350,10 @@ struct Symmetric {
     V word;
     /** @param i a position.  @return the letter there. */
     constexpr auto at(decltype(P::length) i) const {
-      return word[static_cast<std::ranges::range_difference_t<V>>(i)];
+      // through the iterator: its subscript takes the difference type, for
+      // a span and a view alike
+      return std::ranges::begin(
+          word)[static_cast<std::ranges::range_difference_t<V>>(i)];
     }
     constexpr bool operator()(bool ok, decltype(P::length) i) const {
       const auto x = at(i);
