@@ -233,6 +233,12 @@ TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
     CHECK(ext(x & y)(v) == both(v));
     CHECK(ext(x | y)(v) == either(v));
   }
+  // Equal as sets across the two vocabularies, the order's extensional
+  // equality reading both normal forms; between two run lists, the run
+  // list's own == still decides, by its steps.
+  STATIC_CHECK(dedekind::category::run<2>(1uz, 8uz) == half_open(1, 8));
+  STATIC_CHECK(!(dedekind::category::run<2>(1uz, 8uz) == half_open(1, 9)));
+  STATIC_CHECK(std::same_as<decltype(ry == ry), bool>);
   // and read by the order's machinery, the same stored run lists
   CHECK(ext(both) == ext(x & y));
   CHECK(ext(either) == ext(x | y));

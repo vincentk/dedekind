@@ -488,6 +488,36 @@ static_assert(std::ranges::equal(
         Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
                           Bound<std::size_t>{8, Strictness::Strict}}}
         .steps()));
+// The edges: the empty run list has no step and is out at the start; a run
+// from the chain's least element starts with a step there, as the interval
+// closed at 0 does.
+static_assert(std::ranges::empty(RunListSteps<std::size_t, 2>{
+                  dedekind::category::RunList<std::size_t, 2>{}}
+                                     .steps()) &&
+              !RunListSteps<std::size_t, 2>{}.first());
+static_assert(std::ranges::equal(
+    RunListSteps<std::size_t, 2>{dedekind::category::run<2>(0uz, 3uz)}.steps(),
+    SpanSteps<std::size_t, Boole>{
+        Span<std::size_t>{Bound<std::size_t>{0, Strictness::NonStrict},
+                          Bound<std::size_t>{3, Strictness::Strict}}}
+        .steps()));
+// The two vocabularies mix: Pst's run list merged with the order's interval
+// under the meet is the run list's own meet, step for step.
+static_assert(std::ranges::equal(
+    MergeSteps<RunListSteps<std::size_t, 4>, SpanSteps<std::size_t, Boole>,
+               std::logical_and<bool>>{
+        {dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                     dedekind::category::run<2>(4uz, 6uz))},
+        {Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
+                           Bound<std::size_t>{5, Strictness::Strict}}},
+        {}}
+        .steps(),
+    RunListSteps<std::size_t, 8>{
+        dedekind::category::reduced(
+            dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                        dedekind::category::run<2>(4uz, 6uz)) &
+            dedekind::category::run<4>(1uz, 5uz))}
+        .steps()));
 
 /** @brief A source read through a reference: a stored run list inside a term
  *  is traversed where it is, not copied.  @tparam S the source. */

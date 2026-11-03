@@ -20,9 +20,13 @@
  * with a translation, @c shift(d) @c >> @c s, is the preimage of @c s along
  * it, again a run list.
  *
- * Over a finite chain only, by the type's bound @c K on the steps; the
- * order module's @c Runs, over chains that may be infinite and stored in a
- * map, agrees with it there (#1135).
+ * Over a finite chain only, by the type's bound @c K on the steps: Pst's
+ * run list.  The order module's @c Runs, valued in any species over chains
+ * that may be infinite, stored in a map, is the general case; there a run
+ * list is a step source (@c order::RunListSteps), so the order's @c ext,
+ * merges, cuts and extensional equality read it, and a run list and an
+ * interval term are compared as sets.  The step-source vocabulary they
+ * share is to move here, over finite chains (#1138).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
