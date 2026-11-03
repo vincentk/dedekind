@@ -1348,11 +1348,14 @@ struct Symmetric {
     S sigma;
     T tau;
     V word;
+    /** @param i a position.  @return the letter there. */
+    constexpr auto at(decltype(P::length) i) const {
+      return word[static_cast<std::ranges::range_difference_t<V>>(i)];
+    }
     constexpr bool operator()(bool ok, decltype(P::length) i) const {
-      const auto x = word[i];
+      const auto x = at(i);
       return ok && power.letters.lo <= x && x < power.letters.hi &&
-             power.member(x) &&
-             word[position(sigma, power.length, i)] == tau(x);
+             power.member(x) && at(position(sigma, power.length, i)) == tau(x);
     }
   };
   /** @brief Membership, read in place: a word of the power's length over

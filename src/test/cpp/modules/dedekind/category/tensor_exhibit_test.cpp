@@ -409,33 +409,28 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
 
-// Panel 2's plans and their binding times.  The 64 sites as a run list: a
-// site is its left half and the half's reverse complement, the complement on
-// ranks x ↦ 3 - x; no two are adjacent, so each is a run of one.
-constexpr dedekind::category::RunList<std::uint32_t, 128> sites_6_runs() {
-  dedekind::category::AtMost<std::uint32_t, 128> steps;
-  for (std::uint32_t h = 0; h < 64; ++h) {
-    const std::uint32_t l0 = h / 16, l1 = (h / 4) % 4, l2 = h % 4;
-    const std::uint32_t p =
-        ((((l0 * 4 + l1) * 4 + l2) * 4 + (3 - l2)) * 4 + (3 - l1)) * 4 +
-        (3 - l0);
-    steps = steps.with(p).with(p + 1);
+// Panel 2's plans and their binding times, each a plan of the library's own
+// values: EcoRI's single site, and the section sites(6) itself.  Whether a
+// plan is a constant is decided by a concept: the evaluator running out of
+// steps makes the requires-expression false, not the program ill-formed.
+// One function, two binding times: EcoRI's plan (KMP's, 7 states) is a
+// constant; the 64 sites' (277 states) are past the evaluator's budget and
+// are planned at run time.
+struct EcoRIPlan {
+  static constexpr auto value() {
+    return dedekind::category::automaton<4, 6, 4, 8>(
+        dedekind::category::run<2>(2109uz, 2110uz), 6uz);
   }
-  std::ranges::sort(steps.items.begin(), steps.items.begin() + steps.length);
-  return {steps};
-}
-// Whether a set's plan is a constant: the evaluator running out of steps
-// makes the requires-expression false, not the program ill-formed, so the
-// binding time is decided by a concept.  One function, two binding times:
-// EcoRI's plan (KMP's, 7 states) is a constant; the 64 sites' (277 states)
-// are past the evaluator's budget and are planned at run time.
-template <auto Sites>
-concept PlansAtCompileTime = requires {
-  typename std::bool_constant<
-      dedekind::category::automaton<4, 6, 32, 288>(Sites, 6u).has_value()>;
 };
-static_assert(PlansAtCompileTime<dedekind::category::run<2>(2109u, 2110u)> &&
-              !PlansAtCompileTime<sites_6_runs()>);
+struct SitesPlan {
+  static constexpr auto value() {
+    return dedekind::category::automaton<4, 6, 32, 288, 128>(sites_6);
+  }
+};
+template <typename Plan>
+concept PlansAtCompileTime =
+    requires { typename std::bool_constant<Plan::value().has_value()>; };
+static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 
 // A genome as the caller has it, bytes, read through the alphabet's rank:
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
@@ -477,35 +472,34 @@ static_assert(windows_that_are_sites("TTGAATTCAAGCTTA") == 2);
 
 TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
           "[category][tensor][automaton]") {
-  using Count = std::uint32_t;  // uint16_t promotes to int under *
-  const auto sites = sites_6_runs();
-  const auto plan =
-      dedekind::category::automaton<4, 6, 32, 288>(sites, Count{6});
+  // the section's words, enumerated once: 64 sites, each a run of one, and
+  // EcoRI's among them
+  const auto words = dedekind::category::run_list<128, 4, 6>(sites_6);
+  REQUIRE(words.has_value());
+  CHECK(words->steps.size() == 128);
+  CHECK((*words)(2109uz));
+  // the plan, from the section itself
+  const auto plan = dedekind::category::automaton<4, 6, 32, 288, 128>(sites_6);
   REQUIRE(plan.has_value());
   CHECK(plan->next.size() == 277);
   CHECK(std::ranges::count(plan->accepting, true) == 64);
-  // a scan of 2000 letters against every window, by a fixed linear
-  // congruential sequence of letters
-  std::vector<std::size_t> genome(2000);
+  // a genome of 2000 letters, by a fixed linear congruential sequence, as
+  // bytes; the matcher's count against the query's, the section tested on
+  // every window
+  Word genome;
   std::uint32_t x = 1;
-  for (auto& g : genome) {
+  for (std::size_t i = 0; i < 2000; ++i) {
     x = x * 1664525u + 1013904223u;
-    g = (x >> 16) % 4;
+    genome.push_back(acgt[(x >> 16) % 4]);
   }
-  std::size_t windows = 0;
-  for (std::size_t i = 0; i + 6 <= genome.size(); ++i) {
-    std::size_t w = 0;
-    for (std::size_t j = 0; j < 6; ++j) w = w * 4 + genome[i + j];
-    windows += sites(static_cast<Count>(w)) ? 1 : 0;
-  }
-  CHECK(dedekind::category::scan(*plan, std::views::all(genome)) == windows);
-  // and the query plan, the section tested on each window of the same
-  // genome as bytes, agrees with the matcher's
-  Word bytes;
-  for (const std::size_t g : genome) bytes.push_back(acgt[g]);
-  CHECK(static_cast<std::size_t>(std::ranges::count_if(
-            std::span<const std::byte>{bytes} | std::views::slide(6),
-            sites_6)) == windows);
+  const std::span<const std::byte> g{genome};
+  const auto windows = static_cast<std::size_t>(
+      std::ranges::count_if(g | std::views::slide(6), sites_6));
+  CHECK(windows > 0);
+  CHECK(dedekind::category::scan(
+            *plan, std::views::transform(
+                       g, dedekind::category::rank(dedekind::category::letters(
+                              "ACGT")))) == windows);
 }
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a

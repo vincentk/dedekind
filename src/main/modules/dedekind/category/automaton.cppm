@@ -51,10 +51,12 @@ module;
 
 export module dedekind.category:automaton;
 
+import :morphism;  // Identity: a chain's letters read as they are
+import :nno;       // HasNNOStep: the letters' chain
 import :chain;     // IsCountWord
 import :functor;   // Maybe
 import :lattice;   // Join, Meet: a union, a restriction, as the lattice's nodes
-import :periodic;  // AtMost, shift
+import :periodic;  // AtMost, shift, Symmetric, Power: a section of words
 import :runs;      // RunList, run, reduced, narrowed
 import :total;     // power: σ^k by squaring
 import :action;    // fold: a plain fold, the scan
@@ -248,6 +250,110 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
            detail_automaton::Walk<Sigma, N, P, K, KL + 2, Q>{own, length});
   if (!built) return {};
   return built->plan;
+}
+
+namespace detail_automaton {
+/** @brief One byte of a power's chain kept where it is a letter: the
+ *  alphabet in its order, as a list. */
+template <HasNNOStep C, IsArrow F>
+struct KeepLetter {
+  F member;
+  constexpr AtMost<C, 256> operator()(const AtMost<C, 256>& acc, C c) const {
+    return member(c) ? acc.with(c) : acc;
+  }
+};
+/** @param p a power.  @return its letters, in the chain's order. */
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+constexpr AtMost<C, 256> letters_of(const Power<C, F, N>& p) {
+  return fold(p.letters >> Identity<C>{}, AtMost<C, 256>{},
+              KeepLetter<C, F>{p.member});
+}
+/** @brief A code read back as its word: the digits in base @c Sigma, the
+ *  first letter the most significant, each the letter of that rank. */
+template <std::size_t Sigma, HasNNOStep C, std::size_t P, IsCountWord N>
+struct Decode {
+  AtMost<C, 256> alphabet;
+  N length;
+  struct Digits {
+    std::array<C, P> word{};
+    N rest{0};
+  };
+  struct Digit {
+    AtMost<C, 256> alphabet;
+    N length;
+    constexpr Digits operator()(const Digits& d, N j) const {
+      Digits next = d;
+      next.word[length - 1 - j] = alphabet.items[d.rest % Sigma];
+      next.rest = static_cast<N>(d.rest / Sigma);
+      return next;
+    }
+  };
+  constexpr AtMost<C, P> operator()(N code) const {
+    const Digits d = fold(std::views::iota(N{0}, length), Digits{{}, code},
+                          Digit{alphabet, length});
+    return {d.word, static_cast<std::size_t>(length)};
+  }
+};
+/** @brief One code of the sweep: its word in the section or not, a step
+ *  where that changes, nothing where the steps outgrow their bound. */
+template <typename Section, typename Decoder, IsCountWord N, std::size_t KL>
+struct SweepWords {
+  Section section;
+  Decoder decode;
+  struct State {
+    bool inside{false};
+    AtMost<N, KL> steps;
+  };
+  constexpr Maybe<State> operator()(const State& s, N code) const {
+    const bool in = section(decode(code));
+    if (in == s.inside) return s;
+    if (s.steps.size() == KL) return {};
+    return State{in, s.steps.with(code)};
+  }
+};
+}  // namespace detail_automaton
+
+/** @brief A section's words as a run list over their codes: each word read
+ *  as its letters' ranks in base @f$\sigma@f$, the first the most
+ *  significant, so the chain @f$[0, \sigma^n)@f$ in the dictionary order.
+ *  Every code is read back as its word and tested by the section's own
+ *  membership: @f$\sigma^n@f$ tests, the set enumerated once.
+ *  @tparam KL the bound claimed on the steps.  @tparam Sigma the letters.
+ *  @tparam P the bound on the words' length.  @param sites the section.
+ *  @return its words, or nothing where a bound is too small. */
+export template <std::size_t KL, std::size_t Sigma, std::size_t P, HasNNOStep C,
+                 IsArrow F, IsCountWord N, typename S, IsArrow T>
+constexpr Maybe<RunList<N, KL>> run_list(
+    const Symmetric<Power<C, F, N>, S, T>& sites) {
+  const AtMost<C, 256> alphabet = detail_automaton::letters_of(sites.power);
+  const N n = sites.power.length;
+  if (alphabet.size() != Sigma || n > P) return {};
+  const N end =
+      detail_concat::power(static_cast<N>(Sigma), n, std::multiplies<N>{});
+  using Decoder = detail_automaton::Decode<Sigma, C, P, N>;
+  using Sweep = detail_automaton::SweepWords<Symmetric<Power<C, F, N>, S, T>,
+                                             Decoder, N, KL>;
+  const Maybe<typename Sweep::State> swept =
+      fold(std::views::iota(N{0}, end),
+           Maybe<typename Sweep::State>{typename Sweep::State{}},
+           Sweep{sites, Decoder{alphabet, n}});
+  if (!swept) return {};
+  if (!swept->inside) return RunList<N, KL>{swept->steps};
+  if (swept->steps.size() == KL) return {};
+  return RunList<N, KL>{swept->steps.with(end)};
+}
+/** @brief The matcher specialised to a section: its words as a run list,
+ *  then the plan.  @tparam KL the bound claimed on the section's steps.
+ *  @param sites the section, as @c sites(6).  @return the plan, or nothing
+ *  where a bound is too small. */
+export template <std::size_t Sigma, std::size_t P, std::size_t K, std::size_t Q,
+                 std::size_t KL = 256, HasNNOStep C, IsArrow F, IsCountWord N,
+                 typename S, IsArrow T>
+constexpr Maybe<Automaton<Sigma, Q>> automaton(
+    const Symmetric<Power<C, F, N>, S, T>& sites) {
+  const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
+  if (!words) return {};
+  return automaton<Sigma, P, K, Q>(*words, sites.power.length);
 }
 
 /** @param plan a matcher.  @param letters a text, as the letters' indices,
