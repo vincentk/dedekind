@@ -1126,7 +1126,11 @@ constexpr N position(Reverse, N n, N i) {
  *  @c i moves. */
 export template <IsCountWord N>
 constexpr N position(const Rotation<N>& r, N n, N i) {
-  return static_cast<N>((i + r.shift % n) % n);
+  // the shift reduced first, then the wrap at the chain's length by a
+  // comparison, so the sum never leaves the word
+  const N d = static_cast<N>(r.shift % n);
+  return i >= static_cast<N>(n - d) ? static_cast<N>(i - (n - d))
+                                    : static_cast<N>(i + d);
 }
 /** @brief The chain's reflection, then a translation, is a point
  *  reflection, @f$x \mapsto c - x@f$, an involution for every @c c, the
@@ -1172,7 +1176,10 @@ static_assert(std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
                                              0, 1, 2, 3, 4})}));
 static_assert(position(Reverse{}, 6uz, 0uz) == 5 &&
               position(Reverse{}, 6uz, 2uz) == 3 &&
-              position(Rotation<>{2}, 6uz, 5uz) == 1);
+              position(Rotation<>{2}, 6uz, 5uz) == 1 &&
+              // a chain the length of the word less one: the sum would wrap
+              position(Rotation<std::uint32_t>{2}, 4294967295u, 4294967294u) ==
+                  1u);
 
 /** @brief A permutation of positions with a known cycle type.
  *  @tparam S the permutation.  @tparam N the counts. */
@@ -1441,7 +1448,8 @@ struct Symmetric {
     requires std::ranges::sized_range<W>
   constexpr bool operator()(const W& w) const {
     using N = decltype(P::length);
-    if (static_cast<N>(std::ranges::size(w)) != power.length) return false;
+    // the sizes compared as integers, not narrowed to the count word
+    if (!std::cmp_equal(std::ranges::size(w), power.length)) return false;
     using V = decltype(std::views::all(w));
     return std::ranges::fold_left(
         std::views::iota(N{0}, power.length), true,

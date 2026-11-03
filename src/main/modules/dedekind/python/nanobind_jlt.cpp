@@ -324,7 +324,12 @@ struct WindowQuery {
  *  the menu says. */
 struct Plan {
   std::variant<Automaton<4, 16>, Automaton<4, 320>> plan;
-  bool operator==(const Plan& o) const { return plan == o.plan; }
+  /** @brief The alphabet the plan's columns are the ranks of: a text must
+   *  be ranked in the same one, not merely one of the same size. */
+  Letters alphabet;
+  bool operator==(const Plan& o) const {
+    return plan == o.plan && alphabet == o.alphabet;
+  }
 };
 /** @brief @c matches(plan, holes): the stage running a matcher. */
 struct MatchesStage {
@@ -343,9 +348,9 @@ struct MatchQuery {
 template <typename S>
 Plan plan_of(const S& s) {
   if (const auto small = dedekind::category::automaton<4, 8, 4, 16, 256>(s))
-    return {*small};
+    return {*small, s.power.member};
   if (const auto large = dedekind::category::automaton<4, 8, 32, 320, 256>(s))
-    return {*large};
+    return {*large, s.power.member};
   throw nb::value_error(
       "automaton: the section's plan exceeds the largest capacity (320 "
       "states, 32 steps per pending set, words of length 8 over 4 letters)");
@@ -438,19 +443,17 @@ void bind_matcher(nb::module_ module_) {
       module_, "Where", "where(section): the windows the section holds.");
   nb::class_<jlt::RankedText>(module_, "RankedText",
                               "A genome read as letters, where it is.")
-      .def("__rshift__", [](const jlt::RankedText& t,
-                            const jlt::MatchesStage& m) {
-        // the plan reads the menu's four letters: a wider alphabet's
-        // ranks would name rows the plan has not (the matcher treats
-        // them as holes; the boundary says so instead)
-        if (const auto letters = t.ranked.letters.members.count(); letters != 4)
-          throw nb::value_error(
-              ("matches: the plan reads an alphabet of 4 letters; "
-               "rank() was given one of " +
-               std::to_string(letters))
-                  .c_str());
-        return jlt::MatchQuery{t, m};
-      });
+      .def("__rshift__",
+           [](const jlt::RankedText& t, const jlt::MatchesStage& m) {
+             // the plan's columns are the ranks of the alphabet it was
+             // built from: a text ranked in another one, even of the same
+             // size, would read other letters into them
+             if (t.ranked.letters != m.plan.alphabet)
+               throw nb::value_error(
+                   "matches: the text is ranked in an alphabet other than "
+                   "the one the plan was built from");
+             return jlt::MatchQuery{t, m};
+           });
   nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
                                "A genome's windows, where it is.")
       .def("__rshift__",
