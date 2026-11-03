@@ -10,6 +10,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <limits>
 #include <ranges>
 
@@ -26,6 +27,10 @@ using I = Interval<int>;
 constexpr auto closed = Strictness::NonStrict;
 constexpr auto strict = Strictness::Strict;
 constexpr I span(int lo, int hi) { return I::bounded(lo, closed, hi, closed); }
+/** @brief @f$[lo, hi)@f$ on the counts, as category's runs are. */
+constexpr Interval<std::size_t> half_open(std::size_t lo, std::size_t hi) {
+  return Interval<std::size_t>::bounded(lo, closed, hi, strict);
+}
 
 // [0, 10] without 5, five ways: terms, stored as constants.
 constexpr auto a = span(0, 10) & ~I::point(5);
@@ -207,4 +212,29 @@ TEST_CASE(
   CHECK(structural_order(lt5, ne2) < 0);
   CHECK(structural_order(ne2, sq) < 0);
   CHECK(structural_order(sq, sq) == 0);
+}
+
+// Where Pst's run list applies, on a finite chain with Boolean values, the
+// order's run list agrees with it (#1135): category's RunList, bounded and on
+// the stack, and order's Runs, over any chain and stored in a map, hold the
+// same sets, with the same runs, under union and intersection.
+TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
+          "[order][runs][pst]") {
+  const auto x = half_open(0, 2) | half_open(4, 6) | half_open(8, 9);
+  const auto y = half_open(1, 8);
+  const auto rx = dedekind::category::reduced(
+      dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                  dedekind::category::run<2>(4uz, 6uz)) |
+      dedekind::category::run<4>(8uz, 9uz));
+  const auto ry = dedekind::category::run<2>(1uz, 8uz);
+  const auto both = dedekind::category::reduced(rx & ry);
+  const auto either = dedekind::category::reduced(rx | ry);
+  for (std::size_t v = 0; v < 12; ++v) {
+    CHECK(ext(x & y)(v) == both(v));
+    CHECK(ext(x | y)(v) == either(v));
+  }
+  CHECK(std::ranges::distance(runs(steps(x & y))) * 2 ==
+        static_cast<std::ptrdiff_t>(both.steps.size()));
+  CHECK(std::ranges::distance(runs(steps(x | y))) * 2 ==
+        static_cast<std::ptrdiff_t>(either.steps.size()));
 }
