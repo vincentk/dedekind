@@ -25,6 +25,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 
@@ -36,6 +37,7 @@
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -271,6 +273,242 @@ bool is_square(std::size_t k, std::size_t n) {
 }
 }  // namespace jlt
 
+// ── The string matcher (#1135): Listing 5's second panel from Python ───────
+//
+// The two lines of panel 2, as Python spells them on the caller's bytes:
+//
+//   count(genome >> windows(6) >> where(sites))                 the query
+//   count(genome >> rank(nucleotides) >> matches(automaton(sites)))   the plan
+//
+// The bytes are read where they are (the handle keeps the Python object
+// alive, nothing is copied); every stage is the library's own, dispatched at
+// the boundary.  The plan is a value: built at run time here by the same
+// function C++ runs at compile time, compared by == (equality of the
+// languages), printed as its EXPLAIN.  Capacities are a menu: the smallest
+// that holds the plan is taken, none a ValueError naming the bound.
+
+namespace jlt {
+using dedekind::category::Automaton;
+using dedekind::category::Holes;
+using dedekind::category::Ranked;
+using dedekind::category::Windows;
+
+/** @brief A text of the caller's, Python's bytes, read in place. */
+struct Text {
+  nb::bytes bytes;
+  std::span<const std::byte> view() const {
+    return {static_cast<const std::byte*>(bytes.data()), bytes.size()};
+  }
+};
+/** @brief @c genome @c >> @c rank(alphabet): the text read as letters. */
+struct RankedText {
+  Text text;
+  Ranked ranked;
+};
+/** @brief @c genome @c >> @c windows(n): the text's windows. */
+struct WindowsOver {
+  Text text;
+  Windows windows;
+};
+/** @brief @c where(section): the stage keeping the windows a section holds. */
+struct WhereSection {
+  Section section;
+};
+/** @brief @c ... @c >> @c windows(n) @c >> @c where(section): the query. */
+struct WindowQuery {
+  WindowsOver over;
+  Section section;
+};
+/** @brief A plan, one of the menu's capacities: the letters' count 4, the
+ *  words' length up to 8, a pending set's steps and the states bounded as
+ *  the menu says. */
+struct Plan {
+  std::variant<Automaton<4, 16>, Automaton<4, 320>> plan;
+  bool operator==(const Plan& o) const { return plan == o.plan; }
+};
+/** @brief @c matches(plan, holes): the stage running a matcher. */
+struct MatchesStage {
+  Plan plan;
+  Holes holes;
+};
+/** @brief @c genome @c >> @c rank(a) @c >> @c matches(plan): the query of the
+ *  positions where a site ends. */
+struct MatchQuery {
+  RankedText text;
+  MatchesStage stage;
+};
+
+/** @brief The plan of a section, from the menu: the first capacity that
+ *  holds it.  @param s the section. */
+template <typename S>
+Plan plan_of(const S& s) {
+  if (const auto small = dedekind::category::automaton<4, 8, 4, 16, 256>(s))
+    return {*small};
+  if (const auto large = dedekind::category::automaton<4, 8, 32, 320, 256>(s))
+    return {*large};
+  throw nb::value_error(
+      "automaton: the section's plan exceeds the largest capacity (320 "
+      "states, 32 steps per pending set, words of length 8 over 4 letters)");
+}
+Plan automaton(const Section& s) {
+  return std::visit([](const auto& x) { return plan_of(x); }, s.section);
+}
+/** @brief The plan as its EXPLAIN: how many states, how many accept. */
+std::string explain(const Plan& p) {
+  return std::visit(
+      [](const auto& a) {
+        return "automaton(states=" + std::to_string(a.next.size()) +
+               ", accepting=" +
+               std::to_string(std::ranges::count(a.accepting, true)) + ")";
+      },
+      p.plan);
+}
+/** @brief Whether the section holds a word of bytes. */
+bool holds(const Section& s, const Text& w) {
+  return std::visit([&](const auto& x) { return x(w.view()); }, s.section);
+}
+std::size_t count(const MatchQuery& q) {
+  return std::visit(
+      [&](const auto& a) {
+        return dedekind::category::count(
+            q.text.text.view() >> q.text.ranked >>
+            dedekind::category::matches(a, q.stage.holes));
+      },
+      q.stage.plan.plan);
+}
+/** @brief The positions where a site ends, as a list: the boundary's own
+ *  materialisation of the query (@c collect in C++ takes a static bound). */
+std::vector<std::size_t> collect(const MatchQuery& q) {
+  return std::visit(
+      [&](const auto& a) {
+        std::vector<std::size_t> out;
+        for (const auto& m : q.text.text.view() >> q.text.ranked >>
+                                 dedekind::category::matches(a, q.stage.holes))
+          if (m) out.push_back(*m);
+        return out;
+      },
+      q.stage.plan.plan);
+}
+std::size_t count(const WindowQuery& q) {
+  return std::visit(
+      [&](const auto& x) {
+        return dedekind::category::count(q.over.text.view() >> q.over.windows >>
+                                         dedekind::category::where(x));
+      },
+      q.section.section);
+}
+/** @brief The positions where a window that is a site begins. */
+std::vector<std::size_t> collect(const WindowQuery& q) {
+  return std::visit(
+      [&](const auto& x) {
+        std::vector<std::size_t> out;
+        std::size_t at = 0;
+        for (const auto& m : q.over.text.view() >> q.over.windows >>
+                                 dedekind::category::where(x)) {
+          if (m) out.push_back(at);
+          ++at;
+        }
+        return out;
+      },
+      q.section.section);
+}
+}  // namespace jlt
+
+/** @brief Bind the matcher: the stages, the plan, the queries. */
+void bind_matcher(nb::module_ module_) {
+  nb::enum_<jlt::Holes>(module_, "Holes",
+                        "What a byte outside the alphabet does to a match: "
+                        "break it (the default), or be skipped.")
+      .value("break_match", jlt::Holes::break_match)
+      .value("skip", jlt::Holes::skip);
+  nb::class_<jlt::Ranked>(module_, "Rank",
+                          "rank(alphabet): a byte's rank in the alphabet, a "
+                          "hole for any other byte; genome >> rank(a) reads "
+                          "the genome as letters.")
+      .def("__rrshift__", [](const jlt::Ranked& r, nb::bytes b) {
+        return jlt::RankedText{{std::move(b)}, r};
+      });
+  nb::class_<jlt::Windows>(module_, "Windows",
+                           "windows(n): each position's window of n letters; "
+                           "genome >> windows(n).")
+      .def("__rrshift__", [](const jlt::Windows& w, nb::bytes b) {
+        return jlt::WindowsOver{{std::move(b)}, w};
+      });
+  nb::class_<jlt::WhereSection>(
+      module_, "Where", "where(section): the windows the section holds.");
+  nb::class_<jlt::RankedText>(module_, "RankedText",
+                              "A genome read as letters, where it is.")
+      .def("__rshift__",
+           [](const jlt::RankedText& t, const jlt::MatchesStage& m) {
+             return jlt::MatchQuery{t, m};
+           });
+  nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
+                               "A genome's windows, where it is.")
+      .def("__rshift__",
+           [](const jlt::WindowsOver& w, const jlt::WhereSection& s) {
+             return jlt::WindowQuery{w, s.section};
+           });
+  nb::class_<jlt::Plan>(
+      module_, "Automaton",
+      "The matcher specialised to a section: the minimal automaton of the "
+      "words it holds, canonical, so == compares the languages.  The same "
+      "function C++ runs at compile time, run here.")
+      .def("__eq__",
+           [](const jlt::Plan& a, const jlt::Plan& b) { return a == b; })
+      .def("__repr__", &jlt::explain);
+  nb::class_<jlt::MatchesStage>(module_, "Matches",
+                                "matches(plan): the stage running a matcher "
+                                "along a genome read as letters.");
+  nb::class_<jlt::MatchQuery>(module_, "MatchQuery",
+                              "The positions where a site ends: count it, "
+                              "collect it.");
+  nb::class_<jlt::WindowQuery>(module_, "WindowQuery",
+                               "The windows that are sites: count it, collect "
+                               "it (the positions where they begin).");
+
+  module_.def(
+      "rank",
+      [](const jlt::Alphabet& a) {
+        return dedekind::category::rank(a.coalgebra().f);
+      },
+      nb::arg("alphabet"),
+      "rank(alphabet): a byte's rank in the alphabet (A < C < G < T is 0, 1, "
+      "2, 3), a hole for any other byte.");
+  module_.def(
+      "windows", [](std::size_t n) { return dedekind::category::windows(n); },
+      nb::arg("n"), "windows(n): each position's window of n letters.");
+  module_.def(
+      "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
+      nb::arg("section"),
+      "where(section): keep the windows the section holds.");
+  module_.def("automaton", &jlt::automaton, nb::arg("section"),
+              "automaton(section): the matcher specialised to the section's "
+              "words, its plan built now; ValueError where it exceeds the "
+              "menu's largest capacity.");
+  module_.def(
+      "matches",
+      [](const jlt::Plan& p, jlt::Holes holes) {
+        return jlt::MatchesStage{p, holes};
+      },
+      nb::arg("plan"), nb::arg("holes") = jlt::Holes::break_match,
+      "matches(plan, holes=Holes.break_match): run the matcher; a byte "
+      "outside the alphabet breaks a match, or is skipped.");
+  module_.def(
+      "count", [](const jlt::MatchQuery& q) { return jlt::count(q); },
+      nb::arg("query"), "count(query): how many sites.");
+  module_.def(
+      "count", [](const jlt::WindowQuery& q) { return jlt::count(q); },
+      nb::arg("query"));
+  module_.def(
+      "collect", [](const jlt::MatchQuery& q) { return jlt::collect(q); },
+      nb::arg("query"),
+      "collect(query): the positions, where a site ends (the matcher) or "
+      "where its window begins (the query).");
+  module_.def(
+      "collect", [](const jlt::WindowQuery& q) { return jlt::collect(q); },
+      nb::arg("query"));
+}
+
 /** @brief Bind the tensor exhibit's handles. */
 void bind_tensors(nb::module_ module_) {
   nb::class_<jlt::Alphabet>(module_, "Alphabet",
@@ -304,7 +542,16 @@ void bind_tensors(nb::module_ module_) {
       "A symmetric section of a tensor power, held as itself: the words a "
       "symmetry fixes.  Counted as a Tensor wherever one is taken.")
       .def("__mul__", &jlt::times<jlt::Section, jlt::Factored>)
-      .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>);
+      .def("__mul__", &jlt::times<jlt::Section, jlt::WordPower>)
+      .def(
+          "__call__",
+          [](const jlt::Section& s, nb::bytes w) {
+            return jlt::holds(s, jlt::Text{std::move(w)});
+          },
+          nb::arg("word"),
+          "section(word): whether the section holds the word of bytes, read "
+          "in place: its length, its letters, and the symmetry at every "
+          "position.");
   nb::class_<jlt::Factored>(
       module_, "Tensor",
       "A tensor held by its factors, the core's count_factors.")
@@ -616,6 +863,7 @@ NB_MODULE(_jlt, m) {
   bind_steps<bool>(m, "SuccessorBool", "PredecessorBool");
   bind_steps<jlt::Int>(m, "SuccessorInt", "PredecessorInt");
   bind_tensors(m);
+  bind_matcher(m);
 
   // id(T) / refl(T): the primitive arrows on carrier T (a Python type object,
   // bool or int) -- mirroring :morphism's id<T>().  refl is :logic's reflection
