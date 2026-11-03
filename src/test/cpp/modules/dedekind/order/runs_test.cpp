@@ -247,3 +247,32 @@ TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
   CHECK(std::ranges::distance(runs(steps(x | y))) * 2 ==
         static_cast<std::ptrdiff_t>(either.steps.size()));
 }
+
+// Two readings of one word (#1138): the chain's, Pst's preimage along a shift
+// on the extent (category), and the group's, the order's translate on the
+// cyclic word ℤ/2^w.  The preimage under x ↦ x + 3 is the image under
+// x ↦ x − 3: the two agree exactly where nothing lies below 3, and differ by
+// the word's top segment otherwise, the elements whose preimage wraps.
+TEST_CASE(
+    "order:runs: the chain's preimage and the cyclic translate agree "
+    "off the wrap",
+    "[order][runs][pst]") {
+  using dedekind::category::preimage;
+  using dedekind::category::run;
+  using dedekind::category::shift;
+  constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+  const std::size_t minus_three = 0uz - 3uz;
+  // [5, 8): nothing below 3, one set either way, [2, 5)
+  CHECK(translate(ext(run<4>(5uz, 8uz)), minus_three) ==
+        ext(preimage(shift(3uz), run<4>(5uz, 8uz))));
+  // [2, 5): the element 2 lies below 3; its preimage wraps to the top, which
+  // the group's translate holds and the chain's preimage, on its extent,
+  // does not; below the top they agree, [0, 2)
+  const auto cyclic = translate(ext(run<4>(2uz, 5uz)), minus_three);
+  const auto chain = ext(preimage(shift(3uz), run<4>(2uz, 5uz)));
+  CHECK(cyclic(top));
+  CHECK_FALSE(chain(top));
+  CHECK(cyclic(0uz) && cyclic(1uz) && !cyclic(2uz));
+  CHECK(chain(0uz) && chain(1uz) && !chain(2uz));
+  CHECK_FALSE(cyclic == chain);
+}

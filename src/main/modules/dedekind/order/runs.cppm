@@ -1024,6 +1024,12 @@ struct MapSteps {
  *  read as the cyclic group ℤ/2^w it is: @f$x \mapsto x + k@f$ wraps at the
  *  word's end, so a run through the end splits in two.  It is the image of
  *  the set under the translation, and the preimage under the inverse one.
+ *  The other reading of the same word, as the @b chain, is Pst's
+ *  @c category::preimage(shift(d), @c s) on a @c RunList: the translation as a
+ *  map of the chain, on its extent, where the word does not wrap; the two
+ *  agree exactly where nothing lies below @c d, and differ by the segment at
+ *  the word's top otherwise (witnessed in @c runs_test).  Two arrows on one
+ *  word; the chain's is the derivative's (@c :automaton), the group's is this.
  *  @tparam V an unsigned word.  @tparam L the species.  @param s the set.
  *  @param k the shift. */
 export template <std::unsigned_integral V, typename L>
@@ -1051,6 +1057,12 @@ Runs<V, L> translate(const Runs<V, L>& s, V k) {
   }
   return Runs<V, L>(out);
 }
+// The chain reading exists upstream and is a set term here: Pst's preimage
+// along a shift is a run list, so the order's ext, merges and equality read
+// it beside translate (the type-checked half of the two readings' tie).
+static_assert(IsStepSource<decltype(steps(dedekind::category::preimage(
+                  dedekind::category::shift(1uz),
+                  dedekind::category::RunList<std::size_t, 2>{})))>);
 
 /** @section runs__Formal_Verification */
 namespace detail_runs_witness {
