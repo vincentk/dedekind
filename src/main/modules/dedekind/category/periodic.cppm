@@ -1338,10 +1338,6 @@ static_assert(
  *  permutation.  @tparam T the arrow on the letters. */
 export template <typename P, typename S, IsArrow T>
 struct Symmetric {
-  /** @brief An arrow, by name: from a window of letters, read where it is,
-   *  to whether the section holds it; any word is taken. */
-  using Domain = std::span<const Dom<T>>;
-  using Codomain = bool;
   P power;
   S sigma;
   T tau;

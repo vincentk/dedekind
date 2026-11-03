@@ -443,7 +443,8 @@ constexpr std::size_t ecori_sites(std::string_view genome,
   using namespace dedekind::category;
   const Word bytes = dna(genome);
   const std::span<const std::byte> g{bytes};
-  return count(g >> rank(letters("ACGT")) >> matches(ecori, holes));
+  return count(g >> rank(dedekind::category::letters("ACGT")) >>
+               matches(ecori, holes));
 }
 static_assert(ecori_sites("TTGAATTCAAGCTTA",
                           dedekind::category::Holes::break_match) == 1 &&
@@ -490,7 +491,8 @@ TEST_CASE("Category: the plan for the 64 sites matches as the windows do",
   const std::span<const std::byte> genome{bytes};
   const std::size_t query = count(genome >> windows(6) >> where(sites_6));
   CHECK(query > 0);
-  CHECK(count(genome >> rank(letters("ACGT")) >> matches(*plan)) == query);
+  CHECK(count(genome >> rank(dedekind::category::letters("ACGT")) >>
+              matches(*plan)) == query);
 }
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
