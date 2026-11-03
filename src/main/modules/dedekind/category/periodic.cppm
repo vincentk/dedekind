@@ -960,23 +960,6 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
-// The rank is natural for the complement: complementing a letter, then
-// ranking it, is ranking it, then reflecting the rank, x -> 3 - x.  The
-// Watson-Crick pairing reverses A < C < G < T, read on the ranks.
-namespace detail_periodic {
-struct ComplementCommutes {
-  Ranked ranked;
-  LetterMap complement;
-  constexpr bool operator()(bool ok, char c) const {
-    const auto b = std::byte{static_cast<unsigned char>(c)};
-    return ok && ranked(complement(b)) == 3 - *ranked(b);
-  }
-};
-}  // namespace detail_periodic
-static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
-                                     detail_periodic::ComplementCommutes{
-                                         rank(letters("ACGT")),
-                                         letter_map("ACGT", "TGCA")}));
 // The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
 static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&
@@ -1246,6 +1229,23 @@ export constexpr bool is_antitone(const LetterMap& t, const Letters& on) {
              detail_periodic::FallsAlong{t, on})
       .first;
 }
+// The rank is natural for the complement: complementing a letter, then
+// ranking it, is ranking it, then reflecting the rank, x -> 3 - x.  The
+// Watson-Crick pairing reverses A < C < G < T, read on the ranks.
+namespace detail_periodic {
+struct ComplementCommutes {
+  Ranked ranked;
+  LetterMap complement;
+  constexpr bool operator()(bool ok, char c) const {
+    const auto b = std::byte{static_cast<unsigned char>(c)};
+    return ok && ranked(complement(b)) == 3 - *ranked(b);
+  }
+};
+}  // namespace detail_periodic
+static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
+                                     detail_periodic::ComplementCommutes{
+                                         rank(letters("ACGT")),
+                                         letter_map("ACGT", "TGCA")}));
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
  *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
