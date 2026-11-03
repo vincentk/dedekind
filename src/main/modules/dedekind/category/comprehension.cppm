@@ -309,8 +309,12 @@ static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
 /** @brief @c where(section): the windows a section holds, its membership
  *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *
  *  is the outer product); only here is it read as a predicate, its
- *  characteristic map, an arrow from a window of its letters.
- *  @param s the section.  @return the stage. */
+ *  characteristic map, an arrow from a window of its letters: a
+ *  @c std::span, since an arrow has one domain and a text is contiguous (a
+ *  genome's bytes, Listing 5's carrier).  The membership itself reads any
+ *  random-access range; a window of a non-contiguous container is tested
+ *  by it directly, not through this stage.  @param s the section.
+ *  @return the stage. */
 export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
   return where(arrow<std::span<const Dom<T>>, bool>(s));

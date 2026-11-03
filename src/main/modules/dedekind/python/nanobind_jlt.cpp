@@ -490,6 +490,11 @@ void bind_matcher(nb::module_ module_) {
       "windows",
       [](std::size_t n) {
         if (n == 0) throw nb::value_error("windows: a window has a letter");
+        // the width a span's difference type counts: past it the stage
+        // would refuse, which in Python is a ValueError, not an abort
+        if (n > static_cast<std::size_t>(
+                    std::numeric_limits<std::ptrdiff_t>::max()))
+          throw nb::value_error("windows: a window wider than a text can be");
         return dedekind::category::windows(n);
       },
       nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");

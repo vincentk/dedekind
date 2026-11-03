@@ -257,23 +257,24 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
 
 namespace detail_automaton {
 /** @param p a power.  @return its letters, in the chain's order: the
- *  chain filtered by its predicate, collected. */
+ *  chain filtered by its predicate, collected, one past the bytes' 256 so
+ *  that a wider chain is seen as such and refused, not cut to 256. */
 template <HasNNOStep C, IsArrow F, IsCountWord N>
-constexpr AtMost<C, 256> letters_of(const Power<C, F, N>& p) {
-  return collect(p.letters >> where(p.member) >> take<256>());
+constexpr AtMost<C, 257> letters_of(const Power<C, F, N>& p) {
+  return collect(p.letters >> where(p.member) >> take<257>());
 }
 /** @brief A code read back as its word: the digits in base @c Sigma, the
  *  first letter the most significant, each the letter of that rank. */
 template <std::size_t Sigma, HasNNOStep C, std::size_t P, IsCountWord N>
 struct Decode {
-  AtMost<C, 256> alphabet;
+  AtMost<C, 257> alphabet;
   N length;
   struct Digits {
     std::array<C, P> word{};
     N rest{0};
   };
   struct Digit {
-    AtMost<C, 256> alphabet;
+    AtMost<C, 257> alphabet;
     N length;
     constexpr Digits operator()(const Digits& d, N j) const {
       Digits next = d;
@@ -313,8 +314,9 @@ export template <std::size_t KL, std::size_t Sigma, std::size_t P, HasNNOStep C,
                  IsArrow F, IsCountWord N, typename S, IsArrow T>
 constexpr Maybe<RunList<N, KL>> run_list(
     const Symmetric<Power<C, F, N>, S, T>& sites) {
-  const AtMost<C, 256> alphabet = detail_automaton::letters_of(sites.power);
+  const AtMost<C, 257> alphabet = detail_automaton::letters_of(sites.power);
   const N n = sites.power.length;
+  // exactly Sigma letters: a wider chain shows a letter past Sigma
   if (alphabet.size() != Sigma || n > P) return {};
   // σ^n, nothing where it outgrows the word
   const Maybe<N> end = detail_periodic::checked_power(static_cast<N>(Sigma), n);
