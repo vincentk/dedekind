@@ -636,15 +636,7 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
  *  predicates join and meet as these nodes, and a node over such predicates
  *  does too.  Opt-in, so a set expression, with an @c | of its own, is never
  *  taken. */
-/** @brief Whether @c T is one of the nodes, @c Meet, @c Join or @c Not. */
-export template <typename T>
-inline constexpr bool is_lattice_node_v = false;
-export template <typename A, typename B>
-inline constexpr bool is_lattice_node_v<Meet<A, B>> = true;
-export template <typename A, typename B>
-inline constexpr bool is_lattice_node_v<Join<A, B>> = true;
-export template <typename A>
-inline constexpr bool is_lattice_node_v<Not<A>> = true;
+
 /** @brief A carrier's opt-in: its predicates' @c | and @c & are the
  *  lattice's nodes.  False by default; a node over two that build does. */
 export template <typename T>
@@ -1269,6 +1261,10 @@ export template <typename X>
 inline constexpr bool is_meet_node_v = false;
 export template <typename A, typename B>
 inline constexpr bool is_meet_node_v<Meet<A, B>> = true;
+/** @brief Whether @c T is one of the nodes, @c Meet, @c Join or @c Not. */
+export template <typename T>
+inline constexpr bool is_lattice_node_v =
+    is_meet_node_v<T> || is_join_node_v<T> || is_not_node_v<T>;
 
 /** @brief Does the lattice (carrier @c T, order @c Ord) carry an @b involutive
  *  order-reversing @b negation (@c ¬¬a=a and the De Morgan laws)?  Keyed to the
@@ -1314,8 +1310,7 @@ export template <typename Ord, typename RA>
 constexpr auto de_morgan_law(const RA& a) {
   if constexpr (!is_de_morgan_negation_for_v<carrier_of_t<RA>, Ord>) {
     return law_inactive{};
-  } else if constexpr (is_not_node_v<RA> || is_meet_node_v<RA> ||
-                       is_join_node_v<RA>) {
+  } else if constexpr (is_lattice_node_v<RA>) {
     return de_morgan_of(a);
   } else {
     return law_inactive{};  // ¬leaf is negation-normal

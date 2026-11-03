@@ -51,6 +51,8 @@ import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
 import :functor;       // Maybe: where a bound is claimed, not proved
 import :logic;         // Boole: a run list's truth values
+import :action;        // fold: a plain fold
+import :kleisli;       // fold in the Kleisli category: a bound that may fail
 
 namespace dedekind::category {
 
@@ -115,8 +117,11 @@ struct Sweep {
 template <IsCountWord N, std::size_t J, std::size_t K, typename Op>
 constexpr RunList<N, J + K> swept(const RunList<N, J>& a,
                                   const RunList<N, K>& b, Op op) {
-  AtMost<N, J + K> at = detail_periodic::joined(a.steps, b.steps);
-  std::ranges::sort(at.items.begin(), at.items.begin() + at.length);
+  // both sorted, so one linear merge
+  AtMost<N, J + K> at{};
+  at.length = static_cast<std::size_t>(
+      std::ranges::merge(a.steps, b.steps, at.items.begin()).out -
+      at.items.begin());
   const Sweep<N, J, K, Op> sweep{a, b, op};
   return {
       std::ranges::fold_left(at, typename Sweep<N, J, K, Op>::State{}, sweep)
@@ -141,9 +146,7 @@ constexpr RunList<N, J + 2> restricted(const RunList<N, J>& r,
       opened, detail_periodic::With{});
   return {r(static_cast<N>(hi - 1)) ? inside.with(hi) : inside};
 }
-/** @brief No order on run lists for the reducer to canonicalise by: the
- *  residual of two keeps its authored order, then combines. */
-struct Unordered {};
+
 /** @brief One step of a preimage along a translation: a step past it moves
  *  down by it; one at or before it is absorbed into the value at 0. */
 template <IsCountWord N, std::size_t K>
@@ -182,8 +185,49 @@ export struct RunCombine {
  *  reducer's laws, then the run lists' sweep on what remains. */
 export template <typename T>
 constexpr auto reduced(const T& t) {
-  return cata(Reduce<detail_runs::Unordered, canonical_order, RunCombine>{}, t);
+  return cata(Reduce<no_canonical_order, canonical_order, RunCombine>{}, t);
 }
+
+namespace detail_runs {
+/** @brief One count of a sweep along a predicate: a step where its value
+ *  changes, nothing where the steps outgrow their bound. */
+template <typename Pred, IsCountWord N, std::size_t K>
+struct Along {
+  Pred holds;
+  struct State {
+    bool inside{false};
+    AtMost<N, K> steps;
+  };
+  constexpr Maybe<State> operator()(const State& s, N x) const {
+    const bool in = holds(x);
+    if (in == s.inside) return s;
+    if (s.steps.size() == K) return {};
+    return State{in, s.steps.with(x)};
+  }
+};
+}  // namespace detail_runs
+/** @brief The run list of a predicate on @f$[0, \mathit{end})@f$: every
+ *  count tested once, a step where the value changes.  @tparam K the bound
+ *  claimed on the steps.  @param end the chain's end.  @param holds the
+ *  predicate.  @return its run list, or nothing where the bound is too
+ *  small. */
+export template <std::size_t K, IsCountWord N, typename Pred>
+  requires std::predicate<const Pred&, N>
+constexpr Maybe<RunList<N, K>> run_list(N end, Pred holds) {
+  using A = detail_runs::Along<Pred, N, K>;
+  const Maybe<typename A::State> swept =
+      fold(std::views::iota(N{0}, end),
+           Maybe<typename A::State>{typename A::State{}}, A{std::move(holds)});
+  if (!swept) return {};
+  if (!swept->inside) return RunList<N, K>{swept->steps};
+  if (swept->steps.size() == K) return {};
+  return RunList<N, K>{swept->steps.with(end)};
+}
+// The evens below 6 as a run list: three runs of one.
+static_assert(run_list<6>(6uz, is_even) ==
+                  reduced(reduced(run<2>(0uz, 1uz) | run<2>(2uz, 3uz)) |
+                          run<4>(4uz, 5uz)) &&
+              !run_list<4>(6uz, is_even).has_value());
 
 /** @brief A run list under a bound claimed, not proved by the types: the
  *  same set where its steps fit, nothing where they do not.  @tparam K the

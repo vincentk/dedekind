@@ -458,7 +458,8 @@ struct SpanSteps {
 export template <dedekind::category::IsCountWord N, std::size_t K>
 struct RunListSteps {
   using Domain = N;
-  using logic_species = Boole;
+  using logic_species =
+      typename dedekind::category::RunList<N, K>::logic_species;
   dedekind::category::RunList<N, K> list;
   constexpr bool first() const { return false; }
   /** @brief The @c i-th step as the order's: below its position, in where

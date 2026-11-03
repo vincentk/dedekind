@@ -435,9 +435,7 @@ static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
 // hole: by default it breaks a match, so GAANTTC holds none; skipped, the
 // run goes on as it was, and GAATTC remains.
-constexpr auto ecori = dedekind::category::automaton<4, 6, 4, 8>(
-                           dedekind::category::run<2>(2109uz, 2110uz), 6uz)
-                           .value();
+constexpr auto ecori = EcoRIPlan::value().value();
 constexpr std::size_t ecori_sites(std::string_view genome,
                                   dedekind::category::Holes holes) {
   using namespace dedekind::category;

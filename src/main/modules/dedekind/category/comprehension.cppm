@@ -236,25 +236,14 @@ static_assert(
                  decltype(std::span<const std::size_t>{} |
                           std::views::transform(is_even))>);
 
-namespace detail_comprehension {
-/** @brief A section's membership as an arrow, for @c where: from a window
- *  of its letters, read where it is, to whether the section holds it.  The
- *  section itself stays a tensor (its @c * is the outer product); only
- *  here is it read as a predicate, its characteristic map. */
-template <typename Section, typename C>
-struct Membership {
-  using Domain = std::span<const C>;
-  using Codomain = bool;
-  Section section;
-  constexpr bool operator()(const Domain& w) const { return section(w); }
-};
-}  // namespace detail_comprehension
 /** @brief @c where(section): the windows a section holds, its membership
- *  as the filter, @c where(sites(6)).  @param s the section.  @return the
- *  stage. */
+ *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *
+ *  is the outer product); only here is it read as a predicate, its
+ *  characteristic map, an arrow from a window of its letters.
+ *  @param s the section.  @return the stage. */
 export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
-  return where(detail_comprehension::Membership<Symmetric<P, S, T>, Dom<T>>{s});
+  return where(arrow<std::span<const Dom<T>>, bool>(s));
 }
 
 /** @brief @c >> @c f on a query, SQL's @c SELECT: @c f on the present

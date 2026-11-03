@@ -5,7 +5,7 @@
  *        minimal automaton of @f$\Sigma^* L@f$, a value computed by one
  *        @c constexpr function at either binding time.
  *
- * A scan reads a text letter by letter and reports where a word of @c L
+ * A matcher reads a text letter by letter and reports where a word of @c L
  * ends.  Its state is what remains to be read for a match: a set of words,
  * the derivative of @f$\Sigma^* L@f$ by the text so far (Brzozowski 1964).
  * The derivative is a homomorphism of the join-semilattice of sets of
@@ -47,8 +47,11 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <ranges>
 #include <span>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.category:automaton;
 
@@ -56,17 +59,17 @@ import :morphism;  // Identity: a chain's letters read as they are
 import :nno;       // HasNNOStep: the letters' chain
 import :chain;     // IsCountWord
 import :functor;   // Maybe
-import :lattice;   // Join, Meet: a union, a restriction, as the lattice's nodes
+import :lattice;   // | and &: a union, a restriction, as the lattice's nodes
 import :periodic;  // AtMost, shift, Symmetric, Power: a section of words
 import :runs;      // RunList, run, reduced, narrowed
 import :total;     // power: σ^k by squaring
 import :action;    // fold: a plain fold
 import :kleisli;   // fold in the Kleisli category: the steps that may fail
-import :comprehension;  // count, take, collect: the matches are a query
+import :comprehension;  // where, take, collect, IsMaybe: queries
 
 namespace dedekind::category {
 
-/** @brief A scan's plan: the transitions on each letter, and the states
+/** @brief A matcher's plan: the transitions on each letter, and the states
  *  where a word of the set has just been read.  @tparam Sigma the letters.
  *  @tparam Q the bound on the states. */
 export template <std::size_t Sigma, std::size_t Q>
@@ -95,8 +98,7 @@ constexpr auto derived(const RunList<N, K>& r, N j, N a) {
   const N b = detail_concat::power(static_cast<N>(Sigma), static_cast<N>(j - 1),
                                    std::multiplies<N>{});
   const N lo = static_cast<N>(a * b);
-  return shift<N>(lo) >> reduced(Meet<RunList<N, K>, RunList<N, 2>>{
-                             r, run<2>(lo, static_cast<N>(lo + b))});
+  return shift<N>(lo) >> reduced(r & run<2>(lo, static_cast<N>(lo + b)));
 }
 /** @brief The set's own derivatives, one per letter: the same for every
  *  state, so computed once, before the walk. */
@@ -126,8 +128,7 @@ struct Advance {
     const N j = static_cast<N>(k + 1);
     const auto longer = derived<Sigma>(from.pending[k], j, letter);
     const RunList<N, KL> mine = j == length ? own[letter] : RunList<N, KL>{};
-    const auto r =
-        reduced(Join<decltype(longer), decltype(mine)>{longer, mine});
+    const auto r = reduced(longer | mine);
     Residual<N, P, K> next = acc;
     if (k == 0) {
       next.accepting = r(N{0});
@@ -233,20 +234,11 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
 }
 
 namespace detail_automaton {
-/** @brief One byte of a power's chain kept where it is a letter: the
- *  alphabet in its order, as a list. */
-template <HasNNOStep C, IsArrow F>
-struct KeepLetter {
-  F member;
-  constexpr AtMost<C, 256> operator()(const AtMost<C, 256>& acc, C c) const {
-    return member(c) ? acc.with(c) : acc;
-  }
-};
-/** @param p a power.  @return its letters, in the chain's order. */
+/** @param p a power.  @return its letters, in the chain's order: the
+ *  chain filtered by its predicate, collected. */
 template <HasNNOStep C, IsArrow F, IsCountWord N>
 constexpr AtMost<C, 256> letters_of(const Power<C, F, N>& p) {
-  return fold(p.letters >> Identity<C>{}, AtMost<C, 256>{},
-              KeepLetter<C, F>{p.member});
+  return collect(p.letters >> where(p.member) >> take<256>());
 }
 /** @brief A code read back as its word: the digits in base @c Sigma, the
  *  first letter the most significant, each the letter of that rank. */
@@ -274,21 +266,15 @@ struct Decode {
     return {d.word, static_cast<std::size_t>(length)};
   }
 };
-/** @brief One code of the sweep: its word in the section or not, a step
- *  where that changes, nothing where the steps outgrow their bound. */
-template <typename Section, typename Decoder, IsCountWord N, std::size_t KL>
-struct SweepWords {
+/** @brief A code tested by a section: read back as its word, then the
+ *  section's own membership. */
+template <typename Section, typename Decoder>
+struct ReadBack {
   Section section;
   Decoder decode;
-  struct State {
-    bool inside{false};
-    AtMost<N, KL> steps;
-  };
-  constexpr Maybe<State> operator()(const State& s, N code) const {
-    const bool in = section(decode(code));
-    if (in == s.inside) return s;
-    if (s.steps.size() == KL) return {};
-    return State{in, s.steps.with(code)};
+  template <IsCountWord N>
+  constexpr bool operator()(N code) const {
+    return section(decode(code));
   }
 };
 }  // namespace detail_automaton
@@ -308,19 +294,13 @@ constexpr Maybe<RunList<N, KL>> run_list(
   const AtMost<C, 256> alphabet = detail_automaton::letters_of(sites.power);
   const N n = sites.power.length;
   if (alphabet.size() != Sigma || n > P) return {};
-  const N end =
-      detail_concat::power(static_cast<N>(Sigma), n, std::multiplies<N>{});
+  // σ^n, nothing where it outgrows the word
+  const Maybe<N> end = detail_periodic::checked_power(static_cast<N>(Sigma), n);
+  if (!end) return {};
   using Decoder = detail_automaton::Decode<Sigma, C, P, N>;
-  using Sweep = detail_automaton::SweepWords<Symmetric<Power<C, F, N>, S, T>,
-                                             Decoder, N, KL>;
-  const Maybe<typename Sweep::State> swept =
-      fold(std::views::iota(N{0}, end),
-           Maybe<typename Sweep::State>{typename Sweep::State{}},
-           Sweep{sites, Decoder{alphabet, n}});
-  if (!swept) return {};
-  if (!swept->inside) return RunList<N, KL>{swept->steps};
-  if (swept->steps.size() == KL) return {};
-  return RunList<N, KL>{swept->steps.with(end)};
+  using Section = Symmetric<Power<C, F, N>, S, T>;
+  return run_list<KL>(*end, detail_automaton::ReadBack<Section, Decoder>{
+                                sites, Decoder{alphabet, n}});
 }
 /** @brief The matcher specialised to a section: its words as a run list,
  *  then the plan.  @tparam KL the bound claimed on the section's steps.

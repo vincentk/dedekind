@@ -1330,6 +1330,15 @@ static_assert(
     "complement on every letter is not, since it commutes only with the "
     "letter maps that commute with the complement, and none is certified");
 
+namespace detail_periodic {
+/** @brief A letter of the alphabet: within the slice, and kept by its
+ *  predicate.  @param letters the chain.  @param member the predicate.
+ *  @param x a value.  @return whether it is a letter. */
+template <HasNNOStep C, typename F>
+constexpr bool is_letter(const Slice<C>& letters, const F& member, const C& x) {
+  return letters.lo <= x && x < letters.hi && static_cast<bool>(member(x));
+}
+}  // namespace detail_periodic
 /** @brief The section of a tensor power fixed by a permutation @c sigma of
  *  the positions and an arrow @c tau on the letters, @f$x_{\sigma(i)} =
  *  \tau(x_i)@f$: the legs merged along each cycle of @c sigma, the spider's
@@ -1358,8 +1367,8 @@ struct Symmetric {
     }
     constexpr bool operator()(bool ok, decltype(P::length) i) const {
       const auto x = at(i);
-      return ok && power.letters.lo <= x && x < power.letters.hi &&
-             power.member(x) && at(position(sigma, power.length, i)) == tau(x);
+      return ok && detail_periodic::is_letter(power.letters, power.member, x) &&
+             at(position(sigma, power.length, i)) == tau(x);
     }
   };
   /** @brief Membership, read in place: a word of the power's length over
@@ -1954,8 +1963,7 @@ struct KeptAfter {
   constexpr bool operator()(const Domain& a) const {
     const Domain b = std::ranges::fold_left(std::views::iota(N{0}, steps), a,
                                             Iterate<T, N>{tau});
-    // a letter of the alphabet: within the slice, and kept by the predicate
-    return letters.lo <= b && b < letters.hi && static_cast<bool>(member(b));
+    return detail_periodic::is_letter(letters, member, b);
   }
 };
 /** @brief Whether @c tau taken @c steps times returns the letter. */

@@ -58,8 +58,8 @@ module;
 #include <cstddef>
 #include <functional>
 #include <ios>
-#include <optional>
-#include <ranges>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
+#include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
+#include <ranges>       // the Kleisli fold
 #include <tuple>        // std::tuple<T> — bona-fide Frobenius carrier (#632)
 #include <type_traits>  // std::remove_cvref_t: a container to its functor
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
