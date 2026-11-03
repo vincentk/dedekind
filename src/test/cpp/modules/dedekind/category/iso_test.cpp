@@ -16,13 +16,14 @@ import dedekind.category;
 // only be found because it is declared before the IsRetractableArrow concept
 // (ordinary lookup), which is exactly the property CP asked to pin.
 namespace client_ns {
-struct Flip {
+struct NegWithInverse {
   using Domain = int;
   using Codomain = int;
   constexpr int operator()(int x) const { return -x; }
 };
-// Self-inverse (negation is an involution): makes Flip an IsIsomorphism.
-constexpr Flip inverse(Flip f) noexcept { return f; }
+// Its inverse, given explicitly: negation is its own (the iso route through an
+// inverse, beside Neg's route through the involution certificate below).
+constexpr NegWithInverse inverse(NegWithInverse f) noexcept { return f; }
 }  // namespace client_ns
 
 // A client involution certified only as an involution, with NO inverse of its
@@ -47,37 +48,38 @@ static_assert(
     "by ordinary lookup, not only by ADL into dedekind::category");
 
 // ── Type-level: iso ⟹ monic ∧ epic ∧ bijective ∧ retractable, all derived ────
-static_assert(IsIsomorphism<client_ns::Flip>,
+static_assert(IsIsomorphism<client_ns::NegWithInverse>,
               "a self-inverse endo in a client namespace is an isomorphism.");
-static_assert(IsMonicArrow<client_ns::Flip>,
+static_assert(IsMonicArrow<client_ns::NegWithInverse>,
               "iso ⟹ monic, derived (no is_monic_arrow_v opt-in).");
-static_assert(IsEpicArrow<client_ns::Flip>,
+static_assert(IsEpicArrow<client_ns::NegWithInverse>,
               "iso ⟹ epic, derived (no is_epic_arrow_v opt-in).");
-static_assert(IsBijectiveArrow<client_ns::Flip>,
+static_assert(IsBijectiveArrow<client_ns::NegWithInverse>,
               "iso ⟹ bijective, derived from monic ∧ epic.");
 static_assert(
-    IsRetractableArrow<client_ns::Flip>,
+    IsRetractableArrow<client_ns::NegWithInverse>,
     "iso ⟹ retractable via the blanket IsoRetract, for an iso in an UNRELATED "
     "namespace: the blanket retract is found by ordinary lookup, so the "
     "advertised implication does not depend on dedekind::category being an "
     "associated namespace of the arrow (CP #876 finding).");
 // The image of an iso is the whole codomain, hence decidable (Boole).
-static_assert(
-    std::same_as<typename decltype(image_of(client_ns::Flip{}))::logic_species,
-                 Boole>,
-    "iso ⟹ decidable image, for a client-namespace iso.");
+static_assert(std::same_as<typename decltype(image_of(
+                               client_ns::NegWithInverse{}))::logic_species,
+                           Boole>,
+              "iso ⟹ decidable image, for a client-namespace iso.");
 
 TEST_CASE("category:iso — client-namespace iso is retractable, retract inverts",
           "[category][iso][retract]") {
-  // The derived retract is the total inverse wrapped in Some: retract(Flip)(5)
-  // = η(maybe_monad, inverse(Flip)(5)) = Some(Flip(5)) = Some(-5).
-  auto r = retract(client_ns::Flip{});
+  // The derived retract is the total inverse wrapped in Some:
+  // retract(NegWithInverse)(5) = η(maybe_monad, inverse(NegWithInverse)(5)) =
+  // Some(NegWithInverse(5)) = Some(-5).
+  auto r = retract(client_ns::NegWithInverse{});
   auto m = r(5);
   CHECK(m.has_value());
   CHECK(*m == -5);
 
   // image_of(iso) recognises every codomain element as a member.
-  auto img = image_of(client_ns::Flip{});
+  auto img = image_of(client_ns::NegWithInverse{});
   CHECK(img(5) == true);
   CHECK(img(-7) == true);
 }

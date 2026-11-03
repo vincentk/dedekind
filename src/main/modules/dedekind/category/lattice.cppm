@@ -630,6 +630,101 @@ struct Not<A> {  // RFL ∘ A: an arrow into Ω, reflected
   }
 };
 
+/** @section lattice__Node_Builders
+ *  @c | and @c & on predicates build the nodes above, for the carriers that
+ *  opt in (@c builds_lattice_nodes): a carrier states once that its
+ *  predicates join and meet as these nodes, and a node over such predicates
+ *  does too.  Opt-in, so a set expression, with an @c | of its own, is never
+ *  taken. */
+
+namespace detail_lattice_nodes {
+/** @brief The domain of a term, read off its first leaf. */
+template <typename T>
+struct domain_of {
+  using type = Dom<T>;
+};
+template <typename A, typename B>
+struct domain_of<Meet<A, B>> : domain_of<A> {};
+template <typename A, typename B>
+struct domain_of<Join<A, B>> : domain_of<A> {};
+template <typename A>
+struct domain_of<Not<A>> : domain_of<A> {};
+/** @brief Two operands on one domain: a lazy trait, read only once both
+ *  operands qualify, so an operand with no domain is never asked for one. */
+template <typename A, typename B>
+struct same_domain
+    : std::bool_constant<std::same_as<typename domain_of<A>::type,
+                                      typename domain_of<B>::type>> {};
+}  // namespace detail_lattice_nodes
+/** @brief A property of a term's leaves, lifted over the lattice's nodes:
+ *  a @c Meet or @c Join has it where both operands do and share a domain, a
+ *  @c Not where its operand does.  One rule for every carrier that lifts a
+ *  leaf property over the nodes: the opt-in to @c | and @c & below, and the
+ *  set objects of @c sets (@c is_set_object).  @tparam Leaf the property,
+ *  a policy type with @c Leaf::holds<T>, a @c bool per leaf (a type, not a
+ *  template-template parameter, which the posture keeps out of exported
+ *  signatures).  @tparam T the term. */
+export template <typename Leaf, typename T>
+struct over_nodes : std::bool_constant<Leaf::template holds<T>> {};
+template <typename Leaf, typename A, typename B>
+struct over_nodes<Leaf, Meet<A, B>>
+    : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
+                       detail_lattice_nodes::same_domain<A, B>> {};
+template <typename Leaf, typename A, typename B>
+struct over_nodes<Leaf, Join<A, B>>
+    : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
+                       detail_lattice_nodes::same_domain<A, B>> {};
+template <typename Leaf, typename A>
+struct over_nodes<Leaf, Not<A>> : over_nodes<Leaf, A> {};
+/** @brief A carrier's opt-in: its predicates' @c | and @c & are the
+ *  lattice's nodes.  False by default; a node over two that build does,
+ *  where they share a domain, by @c over_nodes, the rule @c sets'
+ *  @c is_set_object follows too.  A carrier that opts in keeps the lazy
+ *  @c | and @c &; the set grammar of @c sets takes the rest, so a type that
+ *  is both, a @c Subobject, is the lattice's.  This is the lazy form:
+ *  the node is the result, for intensional and symbolic predicates.  A
+ *  carrier with a normal form reduces at once instead (run lists in
+ *  @c :runs, the set grammar in @c sets); where the lazy and the strict
+ *  forms meet is not yet uniform (#1138). */
+export template <typename T>
+struct builds_lattice_nodes : std::false_type {};
+namespace detail_lattice_nodes {
+/** @brief The opt-in as a leaf property, for @c over_nodes. */
+struct BuildsNodes {
+  template <typename T>
+  static constexpr bool holds = builds_lattice_nodes<T>::value;
+};
+}  // namespace detail_lattice_nodes
+template <typename A, typename B>
+struct builds_lattice_nodes<Meet<A, B>>
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Meet<A, B>> {};
+template <typename A, typename B>
+struct builds_lattice_nodes<Join<A, B>>
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Join<A, B>> {};
+template <typename A>
+struct builds_lattice_nodes<Not<A>>
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Not<A>> {};
+namespace detail_lattice_nodes {
+/** @brief Two terms whose @c | and @c & build nodes: both opted in, on
+ *  one domain. */
+template <typename A, typename B>
+concept BuildNodes = builds_lattice_nodes<Meet<A, B>>::value;
+}  // namespace detail_lattice_nodes
+/** @param a @param b two predicates that build nodes.  @return their join,
+ *  the node. */
+export template <typename A, typename B>
+  requires detail_lattice_nodes::BuildNodes<A, B>
+constexpr Join<A, B> operator|(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+/** @param a @param b two predicates that build nodes.  @return their meet,
+ *  the node. */
+export template <typename A, typename B>
+  requires detail_lattice_nodes::BuildNodes<A, B>
+constexpr Meet<A, B> operator&(A a, B b) {
+  return {std::move(a), std::move(b)};
+}
+
 /** @section lattice__AST_as_product
  *  A binary node @b is the categorical product / coproduct of its operands, so
  *  it inhabits @c category::IsProduct (the role @c sets::AndPredicate /
@@ -1208,6 +1303,10 @@ export template <typename X>
 inline constexpr bool is_meet_node_v = false;
 export template <typename A, typename B>
 inline constexpr bool is_meet_node_v<Meet<A, B>> = true;
+/** @brief Whether @c T is one of the nodes, @c Meet, @c Join or @c Not. */
+export template <typename T>
+inline constexpr bool is_lattice_node_v =
+    is_meet_node_v<T> || is_join_node_v<T> || is_not_node_v<T>;
 
 /** @brief Does the lattice (carrier @c T, order @c Ord) carry an @b involutive
  *  order-reversing @b negation (@c ¬¬a=a and the De Morgan laws)?  Keyed to the
@@ -1253,8 +1352,7 @@ export template <typename Ord, typename RA>
 constexpr auto de_morgan_law(const RA& a) {
   if constexpr (!is_de_morgan_negation_for_v<carrier_of_t<RA>, Ord>) {
     return law_inactive{};
-  } else if constexpr (is_not_node_v<RA> || is_meet_node_v<RA> ||
-                       is_join_node_v<RA>) {
+  } else if constexpr (is_lattice_node_v<RA>) {
     return de_morgan_of(a);
   } else {
     return law_inactive{};  // ¬leaf is negation-normal

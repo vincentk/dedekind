@@ -134,6 +134,9 @@ consteval bool lattice_definitely_less() {
  *  domain combination applies.  This injected policy lets the reducer's
  *  incomparable-leaf residual fall through to the carrier's own `∧`/`∨`. */
 export struct no_leaf_combine {};
+/** @brief No order for the reducer to canonicalise by: a carrier without
+ *  one keeps the residue in its authored order, then combines it. */
+export struct no_canonical_order {};
 
 // The reduction laws assembled here are order-theoretic: the meet IS the glb,
 // the right adjoint of the diagonal (Δ ⊣ ∧, epic #946).  Pin that reification

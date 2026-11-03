@@ -48,12 +48,16 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <type_traits>
 #include <utility>
+#include <vector>
+#include <version>
 
 export module dedekind.category:comprehension;
 
@@ -65,6 +69,9 @@ import :discrete;  // constant: a witness's rank
 import :lattice;   // Meet: a filter's predicate as a lattice term
 import :periodic;  // is_even, the count of a characteristic sequence, AtMost
 import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
+import :topoi;     // Subobject: what a predicate classifies
+import :pullback;  // as_classified: the classifier's square
+import :limit;     // One: the terminal object
 import :kleisli;   // κ, maybe_functor's Kleisli triple: the holes' monad
 
 namespace dedekind::category {
@@ -164,6 +171,174 @@ export template <IsArrow P>
 constexpr Where<P> where(P p) {
   return {std::move(p)};
 }
+
+/** @section comprehension__Foreign_Ranges The caller's ranges
+ *  A range of the caller's, a genome's bytes or a series of prices, is read
+ *  where it is, never copied, and a stage on it is the standard's own view:
+ *  @c r @c >> @c f is @c std::views::transform, @c r @c >> @c windows(n)
+ *  is @c std::views::slide.  A spelling in the arrow vocabulary, not a new
+ *  type: the types are the standard's, as the witnesses below check.  A
+ *  view is taken by value, as Rule 1 asks; a container is read through a
+ *  @c std::span or @c std::views::all of it, by the caller, so no stage
+ *  borrows a temporary.  The library's own walks keep their @c >>. */
+namespace detail_comprehension {
+template <typename R>
+inline constexpr bool is_walk_v = false;
+template <std::regular S, std::semiregular Coalg>
+inline constexpr bool is_walk_v<unfold_view<S, Coalg>> = true;
+/** @brief A view of the caller's, not one of the library's walks. */
+template <typename R>
+concept IsForeignView = std::ranges::view<R> && !is_walk_v<R>;
+
+}  // namespace detail_comprehension
+/** @brief @c r @c >> @c f on a range of the caller's: @c f on each
+ *  element, which is @c std::views::transform.  @param r the view.
+ *  @param f the arrow.  @return the standard's transform view. */
+export template <detail_comprehension::IsForeignView R, IsArrow F>
+  requires std::invocable<const F&, std::ranges::range_reference_t<R>>
+constexpr auto operator>>(R r, F f) {
+  return std::views::transform(std::move(r), std::move(f));
+}
+
+namespace detail_comprehension {
+/** @brief Refuses a window of no letters, or wider than a range's distance
+ *  type counts: the standard's @c slide has no such view. */
+[[noreturn]] constexpr void refuse_window_width() { std::abort(); }
+#ifdef __cpp_lib_ranges_slide
+/** @brief The windows of @c n: the standard's @c slide. */
+template <std::ranges::view R>
+  requires std::ranges::forward_range<R>
+constexpr auto sliding(R r, std::size_t n) {
+  using D = std::ranges::range_difference_t<R>;
+  if (n == 0 || n > static_cast<std::size_t>(std::numeric_limits<D>::max()))
+    refuse_window_width();
+  return std::views::slide(std::move(r), static_cast<D>(n));
+}
+#else
+// libc++ (Homebrew LLVM 23, Apple) ships no std::views::slide yet, where
+// libstdc++ (CI) does: the same windows, each the subrange of n from its
+// position, spelled with the views libc++ has.  To delete once libc++ has
+// slide; the pinning witness below is skipped meanwhile.
+template <std::ranges::view R>
+struct SubrangeAt {
+  R r;
+  std::ranges::range_difference_t<R> n;
+  constexpr auto operator()(std::ranges::range_difference_t<R> i) const {
+    return std::ranges::subrange(std::ranges::begin(r) + i,
+                                 std::ranges::begin(r) + i + n);
+  }
+};
+template <std::ranges::view R>
+  requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
+constexpr auto sliding(R r, std::size_t n) {
+  using D = std::ranges::range_difference_t<R>;
+  if (n == 0 || n > static_cast<std::size_t>(std::numeric_limits<D>::max()))
+    refuse_window_width();
+  const D size = static_cast<D>(std::ranges::size(r));
+  const D w = static_cast<D>(n);
+  const D windows = w <= size ? size - w + 1 : D{0};
+  return std::views::transform(std::views::iota(D{0}, windows),
+                               SubrangeAt<R>{std::move(r), w});
+}
+#endif
+}  // namespace detail_comprehension
+/** @brief @c windows(n), the stage that reads each position's window of
+ *  @c n elements, a position with its context, as a comonad's
+ *  @f$\delta@f$ would on an infinite stream; on a finite range the last
+ *  @c n - 1 positions have no full window, so it is not a comonad here.
+ *  It is @c std::views::slide(n), spelled as a stage. */
+export struct Windows {
+  std::size_t n;
+};
+/** @param n the window's length, at least one.  @return the stage. */
+export constexpr Windows windows(std::size_t n) {
+  if (n == 0) detail_comprehension::refuse_window_width();
+  return {n};
+}
+/** @param r a view of the caller's.  @param w the stage.  @return the
+ *  standard's slide view over it. */
+export template <detail_comprehension::IsForeignView R>
+  requires std::ranges::forward_range<R>
+constexpr auto operator>>(R r, Windows w) {
+  return detail_comprehension::sliding(std::move(r), w.n);
+}
+
+// The functor's laws, read on a range of the caller's: the identity maps
+// it to itself, and mapping twice is mapping the composite once.
+namespace detail_comprehension {
+constexpr std::array<std::size_t, 5> functor_witness{0, 1, 2, 3, 4};
+}  // namespace detail_comprehension
+static_assert(
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            Identity<std::size_t>{},
+        detail_comprehension::functor_witness) &&
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            Successor<std::size_t>{} >> is_even,
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            (Successor<std::size_t>{} >> is_even)));
+// The lazy map is the list functor's action, read extensionally: a letter
+// map over the caller's bytes yields what the certified PowerFunctor's
+// power(tau) does to the word (an eager functor; the lazy pipeline has no
+// single target type, so it is the functor's action by value, not by
+// concept).
+namespace detail_comprehension {
+constexpr std::array<std::byte, 6> gaattc{std::byte{'G'}, std::byte{'A'},
+                                          std::byte{'A'}, std::byte{'T'},
+                                          std::byte{'T'}, std::byte{'C'}};
+constexpr bool lazy_is_the_functor() {
+  const LetterMap complement = letter_map("ACGT", "TGCA");
+  const std::vector<std::byte> word(gaattc.begin(), gaattc.end());
+  return std::ranges::equal(std::span<const std::byte>{gaattc} >> complement,
+                            power(complement)(word));
+}
+}  // namespace detail_comprehension
+static_assert(IsFunctor<PowerFunctor> &&
+              detail_comprehension::lazy_is_the_functor());
+// The spellings are the standard's views, by type.
+#ifdef __cpp_lib_ranges_slide
+static_assert(std::same_as<
+              decltype(std::span<const std::size_t>{} >> windows(6)),
+              decltype(std::span<const std::size_t>{} | std::views::slide(6))>);
+#endif
+static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
+                           decltype(std::span<const std::size_t>{} |
+                                    std::views::transform(is_even))>);
+
+/** @brief @c where(section): the windows a section holds, its membership
+ *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *
+ *  is the outer product); only here is it read as a predicate, its
+ *  characteristic map, an arrow from a window of its letters: a
+ *  @c std::span, since an arrow has one domain and a text is contiguous (a
+ *  genome's bytes, Listing 5's carrier).  The membership itself reads any
+ *  random-access range; a window of a non-contiguous container is tested
+ *  by it directly, not through this stage.  @param s the section.
+ *  @return the stage. */
+export template <typename P, typename S, IsArrow T>
+constexpr auto where(const Symmetric<P, S, T>& s) {
+  return where(arrow<std::span<const Dom<T>>, bool>(s));
+}
+
+// where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
+// of the truth 1 -> Omega along p, by shape (the concept, ⊤ the constant
+// arrow), and the filter keeps an element exactly where it is a member.
+namespace detail_comprehension {
+using Evens = Subobject<std::size_t, Congruent<>>;
+struct KeepsWhatItClassifies {
+  Evens classified;
+  constexpr bool operator()(bool ok, std::size_t x) const {
+    return ok && where(is_even)(x).has_value() == classified(x);
+  }
+};
+}  // namespace detail_comprehension
+static_assert(
+    IsPullback<decltype(as_classified(detail_comprehension::Evens{is_even})),
+               Congruent<>, decltype(constant<One>(true))>);
+static_assert(
+    std::ranges::fold_left(std::views::iota(0uz, 10uz), true,
+                           detail_comprehension::KeepsWhatItClassifies{
+                               detail_comprehension::Evens{is_even}}));
 
 /** @brief @c >> @c f on a query, SQL's @c SELECT: @c f on the present
  *  elements, the holes passed through, @c Maybe's action on the arrow

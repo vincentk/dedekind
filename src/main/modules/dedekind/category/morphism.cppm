@@ -1118,7 +1118,8 @@ concept IsConstantArrow =
  *          A third branch reads a structural @c E::is_monic_arrow_tag typedef,
  *          the same tag-discovery idiom @c IsInitialObject / @c
  * IsTerminalObject use.  It lets a @b downstream template @b family opt into
- * monicity (e.g. @c sets::SubobjectInclusion<S>, monic by definition) where an
+ * monicity (e.g. @c category::SubobjectInclusion<S>, monic by definition) where
+ * an
  *          @c is_monic_arrow_v partial spec would not cross the module boundary
  *          --- only full specialisations on concrete types do.  #881.
  */

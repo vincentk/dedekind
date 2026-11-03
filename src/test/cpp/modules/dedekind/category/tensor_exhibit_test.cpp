@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -362,6 +363,15 @@ constexpr auto cuts_in_12 = powers(nucleotides) >>
                             fixed_by(power(complement) >> reverse) >>
                             join_with(power(nucleotides, 12)) >> counting;
 static_assert(cuts_in_12(6uz) == 1'835'008uz && cuts_in_12(7uz) == 0uz);
+// Passes by the law, fails without it: genomes of length 32, the longest
+// whose count still fits a size_t, (32 - 5) · 4^29 = 27 · 2^58 of them cut
+// by a six-letter site.  The plan is a handful of factors at compile time;
+// the 4^32 = 2^64 genomes it stands for are more than a size_t counts, so
+// no evaluation that enumerates them could finish, at either binding time.
+constexpr auto cuts_in_32 = powers(nucleotides) >>
+                            fixed_by(power(complement) >> reverse) >>
+                            join_with(power(nucleotides, 32)) >> counting;
+static_assert(cuts_in_32(6uz) == 27uz << 58);
 static_assert(std::ranges::equal(collect(dedekind::category::slice(2uz, 13uz) >>
                                          where(dedekind::category::is_even) >>
                                          order_by<descending>(cuts_in_12) >>
@@ -398,6 +408,90 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
               exact_count(join(power(nucleotides, 12), sites_6)) ==
                   1'835'008uz &&
               !exact_count(join(power(nucleotides, 40), sites_6)).has_value());
+
+// Panel 2's plans and their binding times, each a plan of the library's own
+// values: EcoRI's single site, and the section sites(6) itself.  Whether a
+// plan is a constant is decided by a concept: the evaluator running out of
+// steps makes the requires-expression false, not the program ill-formed.
+// One function, two binding times: EcoRI's plan (KMP's, 7 states) is a
+// constant; the 64 sites' (277 states) are past the evaluator's budget and
+// are planned at run time.
+struct EcoRIPlan {
+  static constexpr auto value() {
+    return dedekind::category::automaton<4, 6, 4, 8>(
+        dedekind::category::run<2>(2109uz, 2110uz), 6uz);
+  }
+};
+struct SitesPlan {
+  static constexpr auto value() {
+    return dedekind::category::automaton<4, 6, 32, 288, 128>(sites_6);
+  }
+};
+template <typename Plan>
+concept PlansAtCompileTime =
+    requires { typename std::bool_constant<Plan::value().has_value()>; };
+static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
+// A genome as the caller has it, bytes, read through the alphabet's rank:
+// EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
+// hole: by default it breaks a match, so GAANTTC holds none; skipped, the
+// run goes on as it was, and GAATTC remains.
+constexpr auto ecori = EcoRIPlan::value().value();
+constexpr std::size_t ecori_sites(std::string_view genome,
+                                  dedekind::category::Holes holes) {
+  using namespace dedekind::category;
+  const Word bytes = dna(genome);
+  const std::span<const std::byte> g{bytes};
+  return count(g >> rank(dedekind::category::letters("ACGT")) >>
+               matches(ecori, holes));
+}
+static_assert(ecori_sites("TTGAATTCAAGCTTA",
+                          dedekind::category::Holes::break_match) == 1 &&
+              ecori_sites("GAANTTC", dedekind::category::Holes::break_match) ==
+                  0 &&
+              ecori_sites("GAANTTC", dedekind::category::Holes::skip) == 1);
+
+// Panel 2, its two lines.  The query: each window tested against the
+// section itself, in place.  The plan: the matcher built from the same
+// section.  sites(6) is the one value both panels read: counted over all
+// genomes (panel 1), tested window by window, compiled into the matcher.
+constexpr std::size_t windows_that_are_sites(std::string_view genome) {
+  using namespace dedekind::category;
+  const Word bytes = dna(genome);
+  const std::span<const std::byte> g{bytes};
+  return count(g >> windows(6) >> where(sites_6));
+}
+static_assert(sites_6(dna("GAATTC")) && !sites_6(dna("GAATTA")) &&
+              !sites_6(dna("GAANTC")) && !sites_6(dna("GAATT")));
+static_assert(windows_that_are_sites("TTGAATTCAAGCTTA") == 2);
+
+TEST_CASE("Category: the plan for the 64 sites matches as the windows do",
+          "[category][tensor][automaton]") {
+  using namespace dedekind::category;
+  // the section's words, enumerated once: 64 sites, each a run of one, and
+  // EcoRI's among them
+  const auto words = run_list<128, 4, 6>(sites_6);
+  REQUIRE(words.has_value());
+  CHECK(words->steps.size() == 128);
+  CHECK((*words)(2109uz));
+  // the plan, from the section itself
+  const auto plan = automaton<4, 6, 32, 288, 128>(sites_6);
+  REQUIRE(plan.has_value());
+  CHECK(plan->next.size() == 277);
+  CHECK(std::ranges::count(plan->accepting, true) == 64);
+  // a genome of 2000 letters, by a fixed linear congruential sequence, as
+  // bytes; the two lines of panel 2 count the same sites
+  Word bytes;
+  std::uint32_t x = 1;
+  for (std::size_t i = 0; i < 2000; ++i) {
+    x = x * 1664525u + 1013904223u;
+    bytes.push_back(acgt[(x >> 16) % 4]);
+  }
+  const std::span<const std::byte> genome{bytes};
+  const std::size_t query = count(genome >> windows(6) >> where(sites_6));
+  CHECK(query > 0);
+  CHECK(count(genome >> rank(dedekind::category::letters("ACGT")) >>
+              matches(*plan)) == query);
+}
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
 // power of two, exactly the squares u u, fixed by the rotation by half the

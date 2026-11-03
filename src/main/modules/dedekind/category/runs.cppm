@@ -1,0 +1,441 @@
+/**
+ * @file dedekind/category/runs.cppm
+ * @partition :runs
+ * @brief Run lists over a finite chain: a subset of @f$[0, n)@f$ as the
+ *        positions where its membership changes, the canonical form of a
+ *        decidable set on a chain, bounded by its type and on the stack.
+ *
+ * @section runs__Canonical_Form One set, one run list
+ * A run list is a predicate on the counts, an arrow @f$N \to \mathbb{B}@f$,
+ * held as its steps: the strictly increasing positions where its value
+ * flips, from outside at 0.  The steps @c {2, 5, 7, 9} are the set
+ * @f$[2, 5) \cup [7, 9)@f$.  Maximal runs are what makes the form canonical:
+ * two run lists are equal exactly when they hold the same elements, so
+ * @c == is the sets' equality, at compile time and at run time alike.
+ *
+ * The lattice operations are @c :lattice's own vocabulary: @c a @c | @c b
+ * and @c a @c & @c b build @c Join and @c Meet nodes, and @c :lattice_term's
+ * reducer folds a term over run lists to one run list.  Its induced laws
+ * fire first; the residual pair of leaves takes the run lists' own sweep,
+ * injected as the reducer's leaf-combine (@c RunCombine).  Precomposition
+ * with a translation, @c shift(d) @c >> @c s, is the preimage of @c s along
+ * it on the translation's extent, the counts below the word's top less
+ * @c d, where the word does not wrap (the extent @c :periodic gives the
+ * shift's law): again a run list.
+ *
+ * Over a finite chain only, by the type's bound @c K on the steps: Pst's
+ * run list.  The order module's @c Runs, valued in any species over chains
+ * that may be infinite, stored in a map, is the general case; there a run
+ * list is a step source (@c order::RunListSteps), so the order's @c ext,
+ * merges, cuts and extensional equality read it, and a run list and an
+ * interval term are compared as sets.  The step-source vocabulary they
+ * share is to move here, over finite chains (#1138).
+ *
+ * Wikipedia: Run-length encoding, Step function, Dedekind cut.
+ *
+ * @note "To denote the subsequence of natural numbers 2, 3, ..., 12 without
+ *       the pernicious three dots, four conventions are open to us."
+ *       -- Edsger W. Dijkstra, *Why numbering should start at zero*, EWD831
+ *          (1982).  The convention he chooses, @f$2 \le i < 13@f$, is a run
+ *          list's step: the order's run lists (@c order:runs) open with the
+ *          same words, the two being one form.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ */
+module;
+
+#include <algorithm>
+#include <concepts>
+#include <cstddef>
+#include <functional>
+#include <ranges>
+#include <type_traits>
+#include <utility>
+
+export module dedekind.category:runs;
+
+import :morphism;      // IsArrow
+import :chain;         // IsCountWord
+import :lattice;       // Meet, Join, builds_lattice_nodes: | and &
+import :lattice_term;  // Reduce, canonical_order: the one reducer
+import :f_algebra;     // cata: the one fold
+import :periodic;      // AtMost, Shift
+import :pullback;  // the apex views: the meet a pullback, the join a pushout
+import :limit;     // Π: the apex's legs, as projections
+import :topoi;     // IsSubobject: a run list's subobject surface
+import :functor;   // Maybe: where a bound is claimed, not proved
+import :logic;     // Boole: a run list's truth values
+import :action;    // fold: a plain fold
+import :kleisli;   // fold in the Kleisli category: a bound that may fail
+
+namespace dedekind::category {
+
+/** @brief A subset of the counts held as its steps: the positions where
+ *  membership flips, strictly increasing, from outside at 0.  At most @c K
+ *  steps, so at most @c K / 2 runs.  @tparam N the counts.  @tparam K the
+ *  bound on the steps. */
+export template <IsCountWord N, std::size_t K>
+struct RunList {
+  using Domain = N;
+  using Codomain = bool;
+  using logic_species = Boole;  // Pst's: decided, two-valued
+  AtMost<N, K> steps;
+  /** @brief The subobject surface: a member is a count the run list holds,
+   *  and its inclusion into the counts is the count itself. */
+  struct Member {
+    N value;
+  };
+  constexpr N ι(const Member& m) const { return m.value; }
+  /** @param x a count.  @return whether it lies in the set: an odd number
+   *  of steps at or before it. */
+  constexpr bool operator()(N x) const {
+    return (std::ranges::upper_bound(steps, x) - steps.begin()) % 2 == 1;
+  }
+  /** @brief The sets' equality, whatever the two bounds: the same steps. */
+  template <std::size_t J>
+  constexpr bool operator==(const RunList<N, J>& o) const {
+    return std::ranges::equal(steps, o.steps);
+  }
+};
+
+/** @tparam K the bound on the steps.  @param lo @param hi the ends.
+ *  @return the run @f$[lo, hi)@f$, empty where @c hi is not past @c lo. */
+export template <std::size_t K, IsCountWord N>
+  requires(K >= 2)
+constexpr RunList<N, K> run(N lo, std::type_identity_t<N> hi) {
+  if (hi <= lo) return {};
+  return {AtMost<N, K>{}.with(lo).with(hi)};
+}
+
+namespace detail_runs {
+/** @brief One position of a sweep: the operation's value there, kept as a
+ *  step where it differs from the value before. */
+template <IsCountWord N, std::size_t J, std::size_t K, typename Op>
+struct Sweep {
+  RunList<N, J> a;
+  RunList<N, K> b;
+  Op op;
+  struct State {
+    bool inside{false};
+    AtMost<N, J + K> steps;
+  };
+  constexpr State operator()(const State& s, N p) const {
+    const bool v = op(a(p), b(p));
+    if (v == s.inside) return s;
+    return {v, s.steps.with(p)};
+  }
+};
+/** @param a @param b two run lists.  @param op a pointwise operation on
+ *  truth values.  @return the run list of @c op on them: the steps of both,
+ *  in order, kept where the value changes, so the runs are maximal.  Its
+ *  steps are among theirs, so its bound is the sum of theirs: total. */
+template <IsCountWord N, std::size_t J, std::size_t K, typename Op>
+constexpr RunList<N, J + K> swept(const RunList<N, J>& a,
+                                  const RunList<N, K>& b, Op op) {
+  // both sorted, so one linear merge
+  AtMost<N, J + K> at{};
+  at.length = static_cast<std::size_t>(
+      std::ranges::merge(a.steps, b.steps, at.items.begin()).out -
+      at.items.begin());
+  const Sweep<N, J, K, Op> sweep{a, b, op};
+  return {
+      std::ranges::fold_left(at, typename Sweep<N, J, K, Op>::State{}, sweep)
+          .steps};
+}
+/** @param r a run list.  @param w a single run @f$[lo, hi)@f$, or none.
+ *  @return @c r restricted to it: its steps strictly inside, opened at
+ *  @c lo where @c lo is in @c r and closed at @c hi where @c hi - 1 is.  Two
+ *  bisections and a copy of what is kept, where the sweep tests every
+ *  position of both. */
+template <IsCountWord N, std::size_t J>
+constexpr RunList<N, J + 2> restricted(const RunList<N, J>& r,
+                                       const RunList<N, 2>& w) {
+  if (w.steps.size() < 2) return {};
+  const N lo = w.steps.items[0];
+  const N hi = w.steps.items[1];
+  const AtMost<N, J + 2> opened =
+      r(lo) ? AtMost<N, J + 2>{}.with(lo) : AtMost<N, J + 2>{};
+  const AtMost<N, J + 2> inside = std::ranges::fold_left(
+      std::ranges::subrange(std::ranges::upper_bound(r.steps, lo),
+                            std::ranges::lower_bound(r.steps, hi)),
+      opened, detail_periodic::With{});
+  return {r(static_cast<N>(hi - 1)) ? inside.with(hi) : inside};
+}
+
+/** @brief One step of a preimage along a translation: a step past it moves
+ *  down by it; one at or before it is absorbed into the value at 0. */
+template <IsCountWord N, std::size_t K>
+struct Translated {
+  N by;
+  constexpr AtMost<N, K> operator()(const AtMost<N, K>& out, N p) const {
+    return p > by ? out.with(static_cast<N>(p - by)) : out;
+  }
+};
+}  // namespace detail_runs
+
+/** @brief The run lists' domain meet and join, the reducer's leaf-combine:
+ *  where two leaves are run lists on one chain, the sweep, its bound the sum
+ *  of theirs. */
+export struct RunCombine {
+  template <IsCountWord N, std::size_t J, std::size_t K>
+  static constexpr RunList<N, J + K> meet_value(const RunList<N, J>& a,
+                                                const RunList<N, K>& b) {
+    return detail_runs::swept(a, b, std::logical_and<bool>{});
+  }
+  /** @brief The meet with a single run, by law a restriction: the same
+   *  set as the sweep's, by bisection. */
+  template <IsCountWord N, std::size_t J>
+  static constexpr RunList<N, J + 2> meet_value(const RunList<N, J>& a,
+                                                const RunList<N, 2>& w) {
+    return detail_runs::restricted(a, w);
+  }
+  template <IsCountWord N, std::size_t J, std::size_t K>
+  static constexpr RunList<N, J + K> join_value(const RunList<N, J>& a,
+                                                const RunList<N, K>& b) {
+    return detail_runs::swept(a, b, std::logical_or<bool>{});
+  }
+};
+
+/** @param t a lattice term over run lists.  @return its normal form: the
+ *  reducer's laws, then the run lists' sweep on what remains. */
+export template <typename T>
+constexpr auto reduced(const T& t) {
+  return cata(Reduce<no_canonical_order, canonical_order, RunCombine>{}, t);
+}
+/** @brief The union of two run lists, at once: the lattice's @c Join node
+ *  folded by the one reducer, the sweep its leaf-combine, as the set
+ *  grammar's @c | folds through @c SetCombine (@c sets).  Its bound is the
+ *  sum of theirs.  The strict form; the lazy one is the node itself, built
+ *  and reduced later, as the predicates that opt in to @c :lattice's @c |
+ *  keep it (#1138).  @param a @param b two run lists on one chain.  @return
+ *  their union. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr RunList<N, J + K> operator|(const RunList<N, J>& a,
+                                      const RunList<N, K>& b) {
+  return reduced(Join<RunList<N, J>, RunList<N, K>>{a, b});
+}
+/** @brief The intersection, dual to the union; with a single run, by law a
+ *  restriction.  @param a @param b two run lists on one chain.  @return
+ *  their intersection. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr RunList<N, J + K> operator&(const RunList<N, J>& a,
+                                      const RunList<N, K>& b) {
+  return reduced(Meet<RunList<N, J>, RunList<N, K>>{a, b});
+}
+
+namespace detail_runs {
+/** @brief One count of a sweep along a predicate: a step where its value
+ *  changes, nothing where the steps outgrow their bound. */
+template <typename Pred, IsCountWord N, std::size_t K>
+struct Along {
+  Pred holds;
+  struct State {
+    bool inside{false};
+    AtMost<N, K> steps;
+  };
+  constexpr Maybe<State> operator()(const State& s, N x) const {
+    const bool in = holds(x);
+    if (in == s.inside) return s;
+    if (s.steps.size() == K) return {};
+    return State{in, s.steps.with(x)};
+  }
+};
+}  // namespace detail_runs
+/** @brief The run list of a predicate on @f$[0, \mathit{end})@f$: every
+ *  count tested once, a step where the value changes.  @tparam K the bound
+ *  claimed on the steps.  @param end the chain's end.  @param holds the
+ *  predicate.  @return its run list, or nothing where the bound is too
+ *  small. */
+export template <std::size_t K, IsCountWord N, typename Pred>
+  requires std::predicate<const Pred&, N>
+constexpr Maybe<RunList<N, K>> run_list(N end, Pred holds) {
+  using A = detail_runs::Along<Pred, N, K>;
+  const Maybe<typename A::State> swept =
+      fold(std::views::iota(N{0}, end),
+           Maybe<typename A::State>{typename A::State{}}, A{std::move(holds)});
+  if (!swept) return {};
+  if (!swept->inside) return RunList<N, K>{swept->steps};
+  if (swept->steps.size() == K) return {};
+  return RunList<N, K>{swept->steps.with(end)};
+}
+// The evens below 6 as a run list: three runs of one.
+static_assert(run_list<6>(6uz, is_even) ==
+                  ((run<2>(0uz, 1uz) | run<2>(2uz, 3uz)) | run<4>(4uz, 5uz)) &&
+              !run_list<4>(6uz, is_even).has_value());
+
+/** @brief The intersection as the pullback of the two inclusions into the
+ *  counts, @c category's apex view over it (@c IsPullback): in the thin
+ *  category of run lists, the meet is the pullback.  @param a @param b two
+ *  run lists on one chain.  @return the apex. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr auto as_pullback(const RunList<N, J>& a, const RunList<N, K>& b) {
+  return PullbackApex<RunList<N, J + K>, RunList<N, J>, RunList<N, K>>{a & b};
+}
+/** @brief The union as the pushout, dual to @c as_pullback (@c IsPushout).
+ *  @param a @param b two run lists on one chain.  @return the apex. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr auto as_pushout(const RunList<N, J>& a, const RunList<N, K>& b) {
+  return PushoutApex<RunList<N, J + K>, RunList<N, J>, RunList<N, K>>{a | b};
+}
+namespace detail_runs {
+/** @brief The pullback square at one count: the apex holds it exactly where
+ *  both operands do, and its legs land on the count itself. */
+template <typename P, typename A, typename B>
+struct Commutes {
+  P apex;
+  A a;
+  B b;
+  template <IsCountWord N>
+  constexpr bool operator()(bool ok, N x) const {
+    return ok && apex(x) == (a(x) && b(x)) &&
+           apex.π_1(typename P::Member{x}).value == x &&
+           apex.π_2(typename P::Member{x}).value == x;
+  }
+};
+}  // namespace detail_runs
+// The meet is the pullback of the inclusions, the join the pushout of the
+// meet's legs: by shape (the concepts), and the square by value at every
+// count of a chain.
+static_assert(IsSubobject<RunList<std::size_t, 4>, std::size_t>);
+static_assert(
+    IsPullback<decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
+               decltype(inclusion_arrow(run<2>(0uz, 4uz))),
+               decltype(inclusion_arrow(run<2>(2uz, 6uz)))>);
+// The inclusions and the meet's legs are monomorphisms, the legs being the
+// apex's projections (:limit's Π), inclusions and so not epic; and run lists
+// are a Boolean subobject lattice: their classifier is Boole.
+namespace detail_runs {
+using Meet04_26 = decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)));
+}  // namespace detail_runs
+static_assert(IsMonicArrow<decltype(inclusion_arrow(run<2>(0uz, 4uz)))> &&
+              IsMonicArrow<Π<1, detail_runs::Meet04_26::Member>> &&
+              !IsEpicArrow<Π<1, detail_runs::Meet04_26::Member>> &&
+              IsBooleanSubobjectLattice<RunList<std::size_t, 4>>);
+// The join is the pushout of the span A <- A & B -> B, the meet's legs.
+static_assert(
+    IsPushout<decltype(as_pushout(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
+              Π<1, detail_runs::Meet04_26::Member>,
+              Π<2, detail_runs::Meet04_26::Member>>);
+static_assert(std::ranges::fold_left(
+    std::views::iota(0uz, 8uz), true,
+    detail_runs::Commutes<decltype(as_pullback(run<2>(0uz, 4uz),
+                                               run<2>(2uz, 6uz))),
+                          RunList<std::size_t, 2>, RunList<std::size_t, 2>>{
+        as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)), run<2>(0uz, 4uz),
+        run<2>(2uz, 6uz)}));
+
+/** @brief A run list under a bound claimed, not proved by the types: the
+ *  same set where its steps fit, nothing where they do not.  @tparam K the
+ *  claimed bound.  @param r the run list.  @return it, bounded by @c K. */
+export template <std::size_t K, IsCountWord N, std::size_t J>
+constexpr Maybe<RunList<N, K>> narrowed(const RunList<N, J>& r) {
+  if (r.steps.size() > K) return {};
+  return RunList<N, K>{
+      std::ranges::fold_left(r.steps, AtMost<N, K>{}, detail_periodic::With{})};
+}
+
+/** @brief @c preimage(shift(d), @c s): the pullback of @c s along the
+ *  translation, @f$x \mapsto s(x + d)@f$, in closed form, a run list again:
+ *  the closed-form overload of @c :morphism's @c preimage(f, P), whose
+ *  general form is the composite @c P∘f, as @c algebra's
+ *  @c halfspace_transport gives one for an interval.  The translation is
+ *  read as a map of the @b chain, on its extent: the counts @f$x@f$ with
+ *  @f$x + d@f$ below the word's top (@c extent in @c :periodic, where a
+ *  shift's law holds), where the word does not wrap.  @c halfspace_transport
+ *  gates the same reading by the carrier's type (an ordered group, or ℕ,
+ *  where @f$x + k@f$ misses @f$\{0, \ldots, k - 1\}@f$); on the word, Pst's
+ *  carrier, the extent is that gate, by value.  The elements of @c s below
+ *  @c d, whose preimages would wrap past the top, lie outside it and are
+ *  not reported; the derivative (@c :automaton) meets its operand with the
+ *  letter's interval first, so none exist there.  The other reading, the
+ *  word as the cyclic group @f$\mathbb{Z}/2^w@f$ whose translation wraps, is
+ *  @c order's @c translate (an image, a run through the end splitting in
+ *  two) and @c morphologies' congruence preimage; it is a different arrow,
+ *  and not this one (#1138).  @param t the translation.  @param s the run
+ *  list.  @return the preimage, on the extent. */
+export template <IsCountWord N, std::size_t K>
+constexpr RunList<N, K> preimage(const Shift<N>& t, const RunList<N, K>& s) {
+  const AtMost<N, K> start =
+      s(t.by) ? AtMost<N, K>{}.with(N{0}) : AtMost<N, K>{};
+  return {std::ranges::fold_left(s.steps, start,
+                                 detail_runs::Translated<N, K>{t.by})};
+}
+/** @brief @c shift(d) @c >> @c s, the spelling of the preimage: precomposition
+ *  with the translation.  @param t the translation.  @param s the run list.
+ *  @return @c preimage(t, @c s). */
+export template <IsCountWord N, std::size_t K>
+constexpr RunList<N, K> operator>>(const Shift<N>& t, const RunList<N, K>& s) {
+  return preimage(t, s);
+}
+namespace detail_runs {
+/** @brief The pullback's law at one count: the closed form reads what the
+ *  composite @c P∘f reads, @c preimage(f, P)(x) @c = @c P(f(x)). */
+template <IsCountWord N, std::size_t K>
+struct PullsBack {
+  Shift<N> t;
+  RunList<N, K> s;
+  constexpr bool operator()(bool ok, N x) const {
+    return ok && preimage(t, s)(x) == Compose<Shift<N>, RunList<N, K>>{t, s}(x);
+  }
+};
+}  // namespace detail_runs
+// The closed form is the composite, on the extent: at every count below the
+// top less the shift, preimage(shift(3), [2, 5)) reads [2, 5) at x + 3.
+static_assert(std::ranges::fold_left(std::views::iota(0uz, 8uz), true,
+                                     detail_runs::PullsBack<std::size_t, 4>{
+                                         shift(3uz), run<4>(2uz, 5uz)}));
+
+// The canonical form, witnessed.  A run is its two ends; two runs that
+// touch merge into one, so the form is unique and == is the sets' equality.
+static_assert(run<4>(2uz, 5uz)(2) && run<4>(2uz, 5uz)(4) &&
+              !run<4>(2uz, 5uz)(5) && !run<4>(2uz, 5uz)(1) &&
+              run<4>(3uz, 3uz) == RunList<std::size_t, 4>{});
+static_assert((run<4>(0uz, 2uz) | run<4>(2uz, 4uz)) == run<4>(0uz, 4uz) &&
+              (run<4>(0uz, 3uz) & run<4>(2uz, 6uz)) == run<4>(2uz, 3uz) &&
+              (run<4>(0uz, 2uz) & run<4>(2uz, 4uz)) ==
+                  RunList<std::size_t, 4>{});
+// A term of three folds to one run list: [0, 2) ∪ [5, 7), then cut to [1, 6).
+static_assert(
+    ((run<4>(0uz, 2uz) | run<4>(5uz, 7uz)) & run<4>(1uz, 6uz)) ==
+    RunList<std::size_t, 4>{
+        AtMost<std::size_t, 4>{}.with(1uz).with(2uz).with(5uz).with(6uz)});
+// Totality by type, not by abort: a union or an intersection of two run
+// lists has its steps among theirs, so its bound is the sum of theirs (the
+// run lists are not closed under either, but force the wider carrier, as a
+// fixed-width word does); a preimage along a translation keeps its bound,
+// closed.
+using Runs4 = RunList<std::size_t, 4>;
+static_assert(
+    std::same_as<decltype((Runs4{} | Runs4{})), RunList<std::size_t, 8>> &&
+    std::same_as<decltype((Runs4{} & Runs4{})), RunList<std::size_t, 8>> &&
+    std::same_as<decltype(shift(1uz) >> Runs4{}), Runs4>);
+// The union that needs its wider bound: two runs apart are four steps, and
+// their intersection with a third that spans both cuts each, four again.
+static_assert((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)).steps.size() == 4 &&
+              ((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) & run<4>(1uz, 5uz))
+                      .steps.size() == 4);
+// The restriction is the sweep's meet: [0, 2) ∪ [4, 6) ∪ [8, 9) cut to
+// [1, 8) is [1, 2) ∪ [4, 6), and cut to [5, 9) is [5, 6) ∪ [8, 9).
+static_assert(detail_runs::restricted(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                       run<4>(8uz, 9uz)),
+                                      run<2>(1uz, 8uz)) ==
+                  detail_runs::swept(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                      run<4>(8uz, 9uz)),
+                                     run<2>(1uz, 8uz),
+                                     std::logical_and<bool>{}) &&
+              detail_runs::restricted(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                       run<4>(8uz, 9uz)),
+                                      run<2>(5uz, 9uz)) ==
+                  (run<2>(5uz, 6uz) | run<2>(8uz, 9uz)));
+// A bound claimed: the union of two points fits four steps, not two.
+static_assert(narrowed<4>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
+              !narrowed<2>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value());
+// The preimage along a translation: [2, 5) seen from 3 on is [0, 2), and
+// from 1 on is [1, 4); [0, 1) seen from 1 on is empty on the extent (its
+// preimage, the word's top, lies past it).
+static_assert((shift(3uz) >> run<4>(2uz, 5uz)) == run<4>(0uz, 2uz) &&
+              (shift(1uz) >> run<4>(2uz, 5uz)) == run<4>(1uz, 4uz) &&
+              (shift(1uz) >> run<2>(0uz, 1uz)) == RunList<std::size_t, 2>{});
+
+}  // namespace dedekind::category

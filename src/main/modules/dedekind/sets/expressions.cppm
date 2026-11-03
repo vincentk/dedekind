@@ -606,6 +606,8 @@ concept PlainSet = requires { typename set_predicate<S>::type; };
  *  carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -618,6 +620,8 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
  *  irreducible join becomes a @c Join carrying both operand sets. */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            std::same_as<typename LHS::logic_species,
                         typename RHS::logic_species>
@@ -636,6 +640,8 @@ constexpr auto operator|(const LHS& lhs, const RHS& rhs) {
  *  it never competes with the meet above). */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
@@ -650,6 +656,8 @@ constexpr auto operator&(const LHS& lhs, const RHS& rhs) {
 /** @brief Cross-species join, dual to the cross-species meet (#894, step i). */
 export template <typename LHS, typename RHS>
   requires IsSetObject<LHS> && IsSetObject<RHS> &&
+           (!(dedekind::category::builds_lattice_nodes<LHS>::value &&
+              dedekind::category::builds_lattice_nodes<RHS>::value)) &&
            std::same_as<typename LHS::Domain, typename RHS::Domain> &&
            (!std::same_as<typename LHS::logic_species,
                           typename RHS::logic_species>) &&
@@ -830,48 +838,10 @@ static_assert(dedekind::category::logic_negation_is_involutive_v<
               "to is an involution");
 }  // namespace detail_complement_involution
 
-/** @brief @c inclusion_arrow(S) --- the inclusion ι_S: S ↪ Domain<S> of a
- *  subobject as a first-class @c IsArrow (@c Domain = @c S::Member,
- *  @c Codomain = @c S::Domain, routing through @c S's own @c ι).  A thin
- *  arrow-wrapper of the @c ι that @c Set / @c Subobject already expose, so it
- *  can serve as a cospan arrow.  The meet-as-pullback (#881): @c A @c & @c B is
- *  the pullback of the cospan @c inclusion_arrow(A), @c inclusion_arrow(B).
- *
- *  @note FIXME(#887): this is a @b localized reification.  Categorically @c ι
- * is already an arrow, but every subobject exposes it only as the @c .ι @b
- * member
- *  @b function (the @c #681 structural-refactor call shape), so it is not a
- *  nameable @c IsArrow that @c IsPullback can take as a cospan leg.  #887
- * tracks promoting the inclusion to a first-class arrow intrinsic to each
- * subobject carrier (strengthening @c IsSubobject) and retiring this wrapper.
- */
-export template <typename S>
-  requires dedekind::category::IsSubobject<S, typename S::Domain>
-struct SubobjectInclusion {
-  using Domain = typename S::Member;
-  using Codomain = typename S::Domain;
-  /** @brief Structural monic opt-in: a subobject inclusion @c ι: S ↪ A is a
-   *  monomorphism by definition, so @c IsMonicArrow fires via its tag-discovery
-   *  branch.  A tag (not an @c is_monic_arrow_v partial spec) because a
-   *  variable-template partial spec does not cross the module boundary from
-   *  @c :sets to @c :morphism (cf. the note at @c is_monic_arrow_v). */
-  using is_monic_arrow_tag = void;
-  /** @brief The subobject whose canonical inclusion this arrow reifies; held so
-   *  @c operator() routes through @b its @c ι rather than re-deriving
-   *  @c m.value, staying faithful to any subobject that customises @c ι. */
-  S subobject;
-  constexpr Codomain operator()(const Domain& m) const {
-    return subobject.ι(m);
-  }
-};
-export template <typename S>
-  requires dedekind::category::IsSubobject<
-      std::remove_cvref_t<S>, typename std::remove_cvref_t<S>::Domain>
-constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
-    const S& s) {
-  return {s};
-}
-
+// inclusion_arrow and the apex views are category's (:pullback), generic
+// over any carrier with the subobject surface; the set objects take them over
+// their meet and join nodes (#881).
+export using dedekind::category::inclusion_arrow;
 // ── The apex views: meet = pullback, join = pushout in Sub(U) (#881)
 // ──────────
 //
@@ -883,55 +853,21 @@ constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
 // of the node.  The view owns nothing: it evaluates through the node's χ.
 
 /** @brief The pullback apex of an applied meet: the same set, viewed with the
- *  subobject surface and the projection legs @c π_1 / @c π_2 (@c IsPullback).
- */
+ *  subobject surface and the projection legs @c π_1 / @c π_2 (@c IsPullback),
+ *  @c category's view over the node.  @param m the meet.  @return its apex. */
 export template <typename A, typename B>
   requires IsSetObject<Meet<A, B>> && IsSubobject<A, typename A::Domain> &&
            IsSubobject<B, typename B::Domain>
-struct PullbackApex {
-  Meet<A, B> node;
-  using Domain = typename Meet<A, B>::Domain;
-  using Codomain = typename Meet<A, B>::Codomain;
-  using logic_species = typename Meet<A, B>::logic_species;
-  struct Member {
-    Domain value;
-  };
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  constexpr typename A::Member π_1(const Member& m) const { return {m.value}; }
-  constexpr typename B::Member π_2(const Member& m) const { return {m.value}; }
-  constexpr auto operator()(const Domain& x) const { return node(x); }
-};
-export template <typename A, typename B>
 constexpr auto as_pullback(const Meet<A, B>& m) {
-  return PullbackApex<A, B>{m};
+  return dedekind::category::PullbackApex<Meet<A, B>, A, B>{m};
 }
-
-/** @brief The pushout apex of an applied join: the same set, viewed with the
- *  subobject surface and the coprojection colegs @c ι1 / @c ι2
- *  (@c IsPushout).  Dual of @ref PullbackApex. */
+/** @brief The pushout apex of an applied join, dual to @c as_pullback.
+ *  @param j the join.  @return its apex. */
 export template <typename A, typename B>
   requires IsSetObject<Join<A, B>> && IsSubobject<A, typename A::Domain> &&
            IsSubobject<B, typename B::Domain>
-struct PushoutApex {
-  Join<A, B> node;
-  using Domain = typename Join<A, B>::Domain;
-  using Codomain = typename Join<A, B>::Codomain;
-  using logic_species = typename Join<A, B>::logic_species;
-  struct Member {
-    Domain value;
-  };
-  constexpr Domain ι(const Member& m) const { return m.value; }
-  constexpr Member ι1(const typename A::Member& m) const {
-    return Member{m.value};
-  }
-  constexpr Member ι2(const typename B::Member& m) const {
-    return Member{m.value};
-  }
-  constexpr auto operator()(const Domain& x) const { return node(x); }
-};
-export template <typename A, typename B>
 constexpr auto as_pushout(const Join<A, B>& j) {
-  return PushoutApex<A, B>{j};
+  return dedekind::category::PushoutApex<Join<A, B>, A, B>{j};
 }
 
 /** @brief @c InitialObjectArrow<Init, Target> --- the unique arrow from the

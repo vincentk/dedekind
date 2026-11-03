@@ -53,10 +53,13 @@
  */
 module;
 
+#include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <ios>
 #include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
+#include <ranges>       // the Kleisli fold
 #include <tuple>        // std::tuple<T> — bona-fide Frobenius carrier (#632)
 #include <type_traits>  // std::remove_cvref_t: a container to its functor
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
@@ -71,6 +74,7 @@ import :natural;  // IsDefaultMonadTag — type-checked constraint on the Kleisl
 import :monad;
 import :small;
 import :morphism;
+import :action;  // fold: the fold the Kleisli one overloads
 
 namespace dedekind::category {
 
@@ -327,6 +331,67 @@ export template <typename MonadTag, typename WA, typename F>
 constexpr auto σ(MonadTag tag, WA const& wa, F f) {
   return detail_kleisli::lifted(δ(tag, wa), std::move(f));
 }
+
+/** @section kleisli__Kleisli_Fold The fold in the Kleisli category
+ *  A step that may fail, @f$A \times X \to T(A)@f$, folds a range from
+ *  @f$a : T(A)@f$: at each element, the step there as a Kleisli arrow
+ *  @f$A \to T(A)@f$, extended by @c κ, so a hole passes through to the end
+ *  and no step cases on it (Haskell's @c foldM). */
+namespace detail_kleisli {
+/** @brief The step at one element, a Kleisli arrow @f$A \to T(A)@f$. */
+template <typename Step, typename A, typename X, typename TA>
+struct StepAt {
+  using Domain = A;
+  using Codomain = TA;
+  Step step;
+  X x;
+  constexpr TA operator()(const A& a) const { return step(a, x); }
+};
+/** @brief A fold step on @f$T(A)@f$: the step at the element, by @c κ. */
+template <typename Step>
+struct Extending {
+  Step step;
+  template <typename TA, typename X>
+  constexpr TA operator()(const TA& ta, const X& x) const {
+    using A = typename functor_of_t<TA>::Σ_cat::Species;
+    return κ(ta, StepAt<Step, A, X, TA>{step, x});
+  }
+};
+/** @brief A step from @c A and an element into @c TA, the monad on @c A. */
+template <typename Step, typename TA, typename X>
+concept IsKleisliStep =
+    requires { typename functor_of_t<TA>; } &&
+    std::same_as<
+        std::invoke_result_t<const Step&,
+                             const typename functor_of_t<TA>::Σ_cat::Species&,
+                             const X&>,
+        TA>;
+}  // namespace detail_kleisli
+/** @param r the range.  @param ta the start, in the monad.  @param step a
+ *  step that may fail.  @return the fold in the Kleisli category. */
+export template <std::ranges::input_range R, typename TA, typename Step>
+  requires detail_kleisli::IsKleisliStep<Step, TA,
+                                         std::ranges::range_value_t<R>>
+constexpr TA fold(R r, TA ta, Step step) {
+  return std::ranges::fold_left(
+      std::move(r), std::move(ta),
+      detail_kleisli::Extending<Step>{std::move(step)});
+}
+
+namespace detail_kleisli {
+/** @brief A witness's step that may fail: half of an even count. */
+struct Halved {
+  constexpr Maybe<std::size_t> operator()(std::size_t a, std::size_t) const {
+    return a % 2 == 0 ? Maybe<std::size_t>{a / 2} : Maybe<std::size_t>{};
+  }
+};
+}  // namespace detail_kleisli
+// 8 halves three times to 1; a fourth time fails, and the hole passes on.
+static_assert(fold(std::views::iota(0uz, 3uz), Maybe<std::size_t>{8uz},
+                   detail_kleisli::Halved{}) == 1uz &&
+              !fold(std::views::iota(0uz, 5uz), Maybe<std::size_t>{8uz},
+                    detail_kleisli::Halved{})
+                   .has_value());
 
 /** @section kleisli__Kleisli_Bind_Operators */
 

@@ -52,6 +52,7 @@ module;
 #include <numeric>
 #include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
+#include <span>
 #include <string_view>  // the letters of an alphabet, as written
 #include <tuple>        // a letter and its image, zipped
 #include <type_traits>
@@ -68,6 +69,8 @@ import :lattice;               // Meet, Join: the nodes & and | build
 import :cartesian_bicategory;  // Tensor, Merge: the outer product
 import :involution;            // Reverse, commutes: the symmetries of a word
 import :posetal;               // is_involution: a law asked on the value
+import :logic;                 // NegationArrow, Chain: the chain's reflection
+import :functor;               // Maybe: a byte outside the alphabet, a hole
 
 namespace dedekind::category {
 
@@ -504,23 +507,12 @@ namespace detail_periodic {
 template <typename P>
 concept IsPeriodicPredicate = HasPeriod<P> && std::same_as<Cod<P>, bool>;
 }  // namespace detail_periodic
-/** @brief The join of two periodic predicates, the lattice's @c Join node:
- *  periodic with the least common multiple of their periods.
- *  @param p @param q the predicates.  @return @c p or @c q. */
-export template <detail_periodic::IsPeriodicPredicate P,
-                 detail_periodic::IsPeriodicPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>>
-constexpr Join<P, Q> operator|(P p, Q q) {
-  return {std::move(p), std::move(q)};
-}
-/** @brief The meet, dual to the join.  @param p @param q the predicates.
- *  @return @c p and @c q. */
-export template <detail_periodic::IsPeriodicPredicate P,
-                 detail_periodic::IsPeriodicPredicate Q>
-  requires std::same_as<Dom<P>, Dom<Q>>
-constexpr Meet<P, Q> operator&(P p, Q q) {
-  return {std::move(p), std::move(q)};
-}
+/** @brief Periodic predicates opt in: their @c | and @c & are the
+ *  lattice's nodes (@c :lattice), periodic with the least common multiple
+ *  of their periods. */
+template <typename P>
+  requires(detail_periodic::IsPeriodicPredicate<P> && !is_lattice_node_v<P>)
+struct builds_lattice_nodes<P> : std::true_type {};
 /** @param j the join.  @return the lcm of its legs' periods. */
 export template <HasPeriod P, HasPeriod Q>
 constexpr Dom<P> period(const Join<P, Q>& j) {
@@ -950,6 +942,30 @@ export constexpr Letters letters(std::string_view alphabet) {
   return {std::ranges::fold_left(alphabet, std::bitset<256>{},
                                  detail_periodic::SetByte{})};
 }
+/** @brief A byte's rank in an alphabet: how many of its letters lie below
+ *  it, the order isomorphism of the letters, in the bytes' order, onto
+ *  @f$[0, |\Sigma|)@f$; a byte outside it is a hole.  A Kleisli arrow into
+ *  @c Maybe, as @c where is: a text of bytes read through it is the
+ *  alphabet's letters, holes where it has none. */
+export struct Ranked {
+  using Domain = std::byte;
+  using Codomain = Maybe<std::size_t>;
+  Letters letters;
+  constexpr Maybe<std::size_t> operator()(std::byte b) const {
+    const auto i = std::to_integer<unsigned char>(b);
+    if (!letters.members.test(i)) return {};
+    // the members below i: those left once the rest is shifted out
+    return (letters.members << (256 - i)).count();
+  }
+  constexpr bool operator==(const Ranked&) const = default;
+};
+/** @param on the alphabet.  @return the rank of a byte in it. */
+export constexpr Ranked rank(const Letters& on) { return {on}; }
+// The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
+static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
+              rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&
+              rank(letters("ACGT"))(std::byte{'T'}) == 3uz &&
+              !rank(letters("ACGT"))(std::byte{'N'}).has_value());
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an
@@ -1097,6 +1113,73 @@ constexpr AtMost<Cycles<N>, 1> cycle_type(const Rotation<N>& r, N n) {
   const N g = std::gcd(n, static_cast<N>(r.shift % n));  // n where d ≡ 0
   return AtMost<Cycles<N>, 1>{}.with(Cycles<N>{static_cast<N>(n / g), g});
 }
+/** @brief A permutation of positions on indices: where it sends the
+ *  position @c i of a word of length @c n, the reversal to
+ *  @f$n - 1 - i@f$.  @param n the length.  @param i a position below it.
+ *  @return its image. */
+export template <IsCountWord N>
+constexpr N position(Reverse, N n, N i) {
+  return static_cast<N>(n - 1 - i);
+}
+/** @param r the rotation by @c d.  @param n the length.  @param i a
+ *  position below it.  @return @f$i + d \bmod n@f$, where the letter at
+ *  @c i moves. */
+export template <IsCountWord N>
+constexpr N position(const Rotation<N>& r, N n, N i) {
+  // the shift reduced first, then the wrap at the chain's length by a
+  // comparison, so the sum never leaves the word
+  const N d = static_cast<N>(r.shift % n);
+  return i >= static_cast<N>(n - d) ? static_cast<N>(i - (n - d))
+                                    : static_cast<N>(i + d);
+}
+/** @brief The chain's reflection, then a translation, is a point
+ *  reflection, @f$x \mapsto c - x@f$, an involution for every @c c, the
+ *  counts being unsigned: @f$c - (c - x) \equiv x@f$ modulo the word.  The
+ *  reversal of @c n positions on indices is the one with @f$c = n - 1@f$:
+ *  @f$n - 1 - i \equiv {\sim} i + n@f$, so @c ~Identity<N>{} @c >>
+ *  @c shift(n).  An involution, so an isomorphism, its own inverse
+ *  (@c :involution). */
+template <IsCountWord N>
+struct is_involutive<Compose<NegationArrow<Chain<N>>, Shift<N>>, N>
+    : std::true_type {};
+namespace detail_periodic {
+/** @brief The reversal on indices agrees with @c position at @c i. */
+struct ReversalAgrees {
+  constexpr bool operator()(bool ok, std::size_t i) const {
+    return ok && (~Identity<std::size_t>{} >> shift(5uz))(i) ==
+                     position(Reverse{}, 5uz, i);
+  }
+};
+}  // namespace detail_periodic
+static_assert(IsInvolution<decltype(~Identity<std::size_t>{} >> shift(5uz)),
+                           std::size_t> &&
+              IsIsomorphism<decltype(~Identity<std::size_t>{} >> shift(5uz))> &&
+              std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
+                                     detail_periodic::ReversalAgrees{}));
+// The index form agrees with the word form: the letter at i of a word is at
+// position(i) of its reversal; and the reversal on indices is an
+// involution.
+namespace detail_periodic {
+struct AgreesWithReverse {
+  std::array<std::size_t, 5> word;
+  std::array<std::size_t, 5> reversed;
+  constexpr bool operator()(bool ok, std::size_t i) const {
+    const std::size_t j = position(Reverse{}, 5uz, i);
+    return ok && reversed[j] == word[i] && position(Reverse{}, 5uz, j) == i;
+  }
+};
+}  // namespace detail_periodic
+static_assert(std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
+                                     detail_periodic::AgreesWithReverse{
+                                         {0, 1, 2, 3, 4},
+                                         Reverse{}(std::array<std::size_t, 5>{
+                                             0, 1, 2, 3, 4})}));
+static_assert(position(Reverse{}, 6uz, 0uz) == 5 &&
+              position(Reverse{}, 6uz, 2uz) == 3 &&
+              position(Rotation<>{2}, 6uz, 5uz) == 1 &&
+              // a chain the length of the word less one: the sum would wrap
+              position(Rotation<std::uint32_t>{2}, 4294967295u, 4294967294u) ==
+                  1u);
 
 /** @brief A permutation of positions with a known cycle type.
  *  @tparam S the permutation.  @tparam N the counts. */
@@ -1178,6 +1261,23 @@ export constexpr bool is_antitone(const LetterMap& t, const Letters& on) {
              detail_periodic::FallsAlong{t, on})
       .first;
 }
+// The rank is natural for the complement: complementing a letter, then
+// ranking it, is ranking it, then reflecting the rank, x -> 3 - x.  The
+// Watson-Crick pairing reverses A < C < G < T, read on the ranks.
+namespace detail_periodic {
+struct ComplementCommutes {
+  Ranked ranked;
+  LetterMap complement;
+  constexpr bool operator()(bool ok, char c) const {
+    const auto b = std::byte{static_cast<unsigned char>(c)};
+    return ok && ranked(complement(b)) == 3 - *ranked(b);
+  }
+};
+}  // namespace detail_periodic
+static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
+                                     detail_periodic::ComplementCommutes{
+                                         rank(letters("ACGT")),
+                                         letter_map("ACGT", "TGCA")}));
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
  *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
@@ -1297,6 +1397,16 @@ static_assert(
     "complement on every letter is not, since it commutes only with the "
     "letter maps that commute with the complement, and none is certified");
 
+namespace detail_periodic {
+/** @brief A letter of the alphabet: within the slice, and kept by its
+ *  predicate.  @param letters the chain.  @param member the predicate.
+ *  @param x a value.  @return whether it is a letter. */
+template <HasNNOStep C, typename F>
+  requires std::totally_ordered<C> && std::predicate<const F&, const C&>
+constexpr bool is_letter(const Slice<C>& letters, const F& member, const C& x) {
+  return letters.lo <= x && x < letters.hi && static_cast<bool>(member(x));
+}
+}  // namespace detail_periodic
 /** @brief The section of a tensor power fixed by a permutation @c sigma of
  *  the positions and an arrow @c tau on the letters, @f$x_{\sigma(i)} =
  *  \tau(x_i)@f$: the legs merged along each cycle of @c sigma, the spider's
@@ -1308,6 +1418,43 @@ struct Symmetric {
   P power;
   S sigma;
   T tau;
+  /** @brief One position of a word against the condition: the letter at
+   *  @c i is the power's, and its image under @c tau is at @c sigma(i). */
+  template <std::ranges::random_access_range V>
+  struct Holds {
+    P power;
+    S sigma;
+    T tau;
+    V word;
+    /** @param i a position.  @return the letter there. */
+    constexpr auto at(decltype(P::length) i) const {
+      // through the iterator: its subscript takes the difference type, for
+      // a span and a view alike
+      return std::ranges::begin(
+          word)[static_cast<std::ranges::range_difference_t<V>>(i)];
+    }
+    constexpr bool operator()(bool ok, decltype(P::length) i) const {
+      const auto x = at(i);
+      return ok && detail_periodic::is_letter(power.letters, power.member, x) &&
+             at(position(sigma, power.length, i)) == tau(x);
+    }
+  };
+  /** @brief Membership, read in place: a word of the power's length over
+   *  its letters that the pair fixes, @f$x_{\sigma(i)} = \tau(x_i)@f$, each
+   *  position compared where it is, nothing copied.  A window of a genome
+   *  is a site exactly where this holds.  @param w a word.  @return whether
+   *  the section holds it. */
+  template <std::ranges::random_access_range W>
+    requires std::ranges::sized_range<W>
+  constexpr bool operator()(const W& w) const {
+    using N = decltype(P::length);
+    // the sizes compared as integers, not narrowed to the count word
+    if (!std::cmp_equal(std::ranges::size(w), power.length)) return false;
+    using V = decltype(std::views::all(w));
+    return std::ranges::fold_left(
+        std::views::iota(N{0}, power.length), true,
+        Holds<V>{power, sigma, tau, std::views::all(w)});
+  }
 };
 /** @param p a tensor power.  @param sigma a permutation of its positions,
  *  @c reverse or @c rotate(d).  @return the words it fixes. */
@@ -1885,8 +2032,7 @@ struct KeptAfter {
   constexpr bool operator()(const Domain& a) const {
     const Domain b = std::ranges::fold_left(std::views::iota(N{0}, steps), a,
                                             Iterate<T, N>{tau});
-    // a letter of the alphabet: within the slice, and kept by the predicate
-    return letters.lo <= b && b < letters.hi && static_cast<bool>(member(b));
+    return detail_periodic::is_letter(letters, member, b);
   }
 };
 /** @brief Whether @c tau taken @c steps times returns the letter. */

@@ -382,12 +382,32 @@ struct projection_arrow<0, P> {
 export template <std::size_t K, typename P>
 using Π = typename detail_limit::projection_arrow<K, P>::type;
 
-/** @brief A projection of a product is epic: every value of the component is
- *  attained, the other component being any value of its type, which is
- *  inhabited (semiregular).  It is not monic, since it forgets the other
- *  component; the Jlt paper's Listing 1 shows it beside its section. */
+namespace detail_limit {
+/** @brief A point whose components are stored independently, every value of
+ *  one beside every value of the others: a tuple, a pair-like product, or a
+ *  carrier that says so.  Not a fibred product's point, whose components are
+ *  read off one value. */
+template <typename P>
+concept HasIndependentComponents = TupleLike<P> || requires(const P& p) {
+  p.first;
+  p.second;
+} || requires { typename P::components_are_independent; };
+}  // namespace detail_limit
+/** @brief A projection of a product is epic, inferred from the point's shape:
+ *  with independent components, every value of the component is attained,
+ *  the others being any value of their types, which are inhabited
+ *  (semiregular).  It is not monic, since it forgets the others; the Jlt
+ *  paper's Listing 1 shows it beside its section. */
 template <std::size_t K, typename P>
+  requires detail_limit::HasIndependentComponents<P>
 inline constexpr bool is_epic_arrow_v<detail_limit::ProjectionAt<K, P>> = true;
+/** @brief A projection whose components are inclusions is monic: the point
+ *  is one value, each component that value seen in a part, as a pullback
+ *  apex's legs are (@c :pullback).  Inferred from the point's own
+ *  declaration. */
+template <std::size_t K, typename P>
+  requires requires { typename P::components_are_inclusions; }
+inline constexpr bool is_monic_arrow_v<detail_limit::ProjectionAt<K, P>> = true;
 static_assert(IsEpicArrow<Π<1, std::pair<bool, std::size_t>>> &&
                   !IsMonicArrow<Π<1, std::pair<bool, std::size_t>>> &&
                   Π<2, std::pair<bool, std::size_t>>{}({true, 7}) == 7,
