@@ -60,6 +60,7 @@ import :posetal;   // the laws of a function (arrow_node, arrow_laws_v),
                    // ProductLeq
 import :species;   // IsAssociative: what lets two sections merge
 import :total;     // IsMonoid, concat: sections under composition
+import :involution;  // is_involutive: the flip of a square, its own inverse
 
 namespace dedekind::category {
 
@@ -1433,6 +1434,24 @@ struct Copairing {
 export template <IsArrow F, IsArrow G>
 using ProductArrow = Pairing<Compose<Π<1, std::pair<Dom<F>, Dom<G>>>, F>,
                              Compose<Π<2, std::pair<Dom<F>, Dom<G>>>, G>>;
+/** @brief @c flip, the symmetry of the cartesian product,
+ *  @f$\sigma_{A,B} : A \times B \to B \times A@f$: the pairing of the
+ *  projections the other way round, @f$\langle \pi_2, \pi_1 \rangle@f$.
+ *  On a square an involution, so an isomorphism, its own inverse; natural in
+ *  both factors, @f$\sigma \circ (f \times g) = (g \times f) \circ
+ *  \sigma@f$, the braiding of the cartesian monoidal structure, symmetric.
+ *  A word of two letters flipped is the word reversed.
+ *  @tparam A @tparam B the factors. */
+export template <typename A, typename B>
+using Flip = Pairing<Π<2, std::pair<A, B>>, Π<1, std::pair<A, B>>>;
+/** @tparam A @tparam B the factors.  @return the flip of @f$A \times B@f$: a
+ *  function, so it joins the overload set of any other @c flip. */
+export template <typename A, typename B = A>
+constexpr Flip<A, B> flip() {
+  return {};
+}
+template <typename A>
+struct is_involutive<Flip<A, A>, std::pair<A, A>> : std::true_type {};
 /** @brief f + g = [ι₁ ∘ f, ι₂ ∘ g] : A + C → B + D. */
 export template <IsArrow F, IsArrow G>
 using SumArrow = Copairing<Compose<F, Injection<1, Cod<F>, Cod<G>>>,
@@ -1547,6 +1566,22 @@ static_assert(std::same_as<decltype(I{} * B{}), ProductArrow<I, B>> &&
                   std::same_as<decltype(I{} + B{}), SumArrow<I, B>> &&
                   (I{} * B{})({3, true}) == std::pair{3, true},
               "f * g and f + g are the product and the sum of the arrows");
+// The flip: its own inverse on a square, the flip the other way on two
+// factors, and natural: applying f and g, then flipping, is flipping, then
+// applying g and f.
+static_assert(IsInvolution<Flip<int, int>, std::pair<int, int>> &&
+                  IsIsomorphism<Flip<int, int>> &&
+                  flip<int, bool>()({1, true}) == std::pair{true, 1} &&
+                  (flip<int, bool>() >> flip<bool, int>())({1, true}) ==
+                      std::pair{1, true},
+              "flip is the product's symmetry: its own inverse on a square, "
+              "the flip the other way on two factors");
+static_assert(
+    ((endo<int>(std::negate<int>{}) * endo<bool>(std::logical_not<bool>{})) >>
+     flip<int, bool>())({3, true}) ==
+        (flip<int, bool>() >> (endo<bool>(std::logical_not<bool>{}) *
+                               endo<int>(std::negate<int>{})))({3, true}),
+    "flip is natural: (f × g) then σ is σ then (g × f)");
 static_assert(IsEpicArrow<Copairing<I, I>>,
               "[f, g] is surjective as soon as one leg is (the codiagonal)");
 static_assert(IsMonotone<ProductArrow<I, I>,

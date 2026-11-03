@@ -52,7 +52,6 @@ import :morphism;
 import :small;  // IsSmallCategory --- the size-axis prerequisite for
                 // IsCartesian
 import :species;
-import :involution;  // is_involutive: the flip of a square, its own inverse
 
 namespace dedekind::category {
 
@@ -414,36 +413,6 @@ static_assert(IsEpicArrow<Π<1, std::pair<bool, std::size_t>>> &&
                   Π<2, std::pair<bool, std::size_t>>{}({true, 7}) == 7,
               "a projection is epic and not monic");
 
-/** @brief @c flip, the symmetry of the cartesian product,
- *  @f$\sigma_{A,B} : A \times B \to B \times A@f$, the pairing
- *  @f$\langle \pi_2, \pi_1 \rangle@f$.  On a square @f$A \times A@f$ an
- *  involution, so an isomorphism, its own inverse; on two factors, its
- *  inverse is the flip the other way.  A word of two letters flipped is
- *  the word reversed.  @tparam A @tparam B the factors. */
-export template <typename A, typename B>
-struct Flip {
-  using Domain = std::pair<A, B>;
-  using Codomain = std::pair<B, A>;
-  constexpr Codomain operator()(const Domain& p) const {
-    return {π_2(p), π_1(p)};
-  }
-  constexpr bool operator==(const Flip&) const = default;
-};
-/** @tparam A @tparam B the factors.  @return the flip of @f$A \times B@f$:
- *  a function, so it joins the overload set of any other @c flip. */
-export template <typename A, typename B = A>
-constexpr Flip<A, B> flip() {
-  return {};
-}
-template <typename A>
-struct is_involutive<Flip<A, A>, std::pair<A, A>> : std::true_type {};
-static_assert(IsInvolution<Flip<int, int>, std::pair<int, int>> &&
-                  IsIsomorphism<Flip<int, int>> &&
-                  flip<int, bool>()({1, true}) == std::pair{true, 1} &&
-                  (flip<int, bool>() >> flip<bool, int>())({1, true}) ==
-                      std::pair{1, true},
-              "flip is the product's symmetry: its own inverse on a square, "
-              "the flip the other way on two factors");
 static_assert(π_1(std::pair{7, false}) == 7 && !π_2(std::pair{7, false}) &&
                   π_<3>(std::tuple{1, 2, 3}) == 3 && π(5) == 5,
               "π_k reads the k-th component; π is the identity");
