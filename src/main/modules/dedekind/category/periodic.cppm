@@ -961,6 +961,13 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
+/** @param alphabet the filtered byte chain, @c slice(lo, hi) @c >> @c letters,
+ *  as @c nucleotides is written.  @return the rank of a byte in its letters. */
+export constexpr Ranked rank(
+    const unfold_view<std::optional<std::byte>,
+                      detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
+  return {alphabet.coalgebra().f};
+}
 // The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
 static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&

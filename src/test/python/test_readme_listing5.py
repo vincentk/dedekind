@@ -17,13 +17,23 @@ import pynzli.jlt
 ROOT = Path(__file__).resolve().parents[3]
 README = ROOT / "README.md"
 CPP = ROOT / "src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp"
-PANELS = ["all-genomes"]
+PANELS = ["all-genomes", "one-genome"]
 
 # A C++ name whose Python spelling is another, more natural there: the
 # alphabet is written as its letters, the byte range around them implied.
 PYTHON_SPELLING = {"slice": "alphabet", "letters": "alphabet"}
 # The host language's own words, not the library's.
-CPP_WORDS = {"auto", "byte", "constexpr", "return", "size_t", "static_assert", "std"}
+CPP_WORDS = {
+    "auto",
+    "byte",
+    "const",
+    "constexpr",
+    "return",
+    "size_t",
+    "span",
+    "static_assert",
+    "std",
+}
 
 
 def between(text: str, begin: str, end: str) -> str:
@@ -55,14 +65,21 @@ def readme_panel(panel: str, language: str) -> str:
     )
 
 
-def library_names(cpp: str) -> set[str]:
+def definitions(cpp: str) -> set[str]:
+    """What a panel defines: its constants, functions and parameters."""
+    code = re.sub(r"'[^']*'|\"[^\"]*\"|//[^\n]*", "", cpp)
+    defined = set(re.findall(r"(?:constexpr|const)\s+\w+\s+(\w+)\s*[=(]", code))
+    parameters = set(re.findall(r"(?:size_t|>)\s+(\w+)\s*[,)]", code))
+    return defined | parameters
+
+
+def library_names(cpp: str, defined: set[str]) -> set[str]:
     """The names a panel takes from the library: its identifiers, less the
-    host language's words, the parameters and what the panel defines."""
-    code = re.sub(r"'[^']*'|\"[^\"]*\"", "", cpp)
-    defined = set(re.findall(r"constexpr\s+\w+\s+(\w+)\s*[=(]", code))
-    parameters = set(re.findall(r"size_t\s+(\w+)\s*[,)]", code))
+    host language's words and what the panels define (a later panel uses an
+    earlier one's names, as the README shows them in order)."""
+    code = re.sub(r"'[^']*'|\"[^\"]*\"|//[^\n]*", "", cpp)
     names = set(re.findall(r"\b[A-Za-z_]\w*\b", code))
-    return names - CPP_WORDS - defined - parameters
+    return names - CPP_WORDS - defined
 
 
 class ReadmeListing5(unittest.TestCase):
@@ -77,8 +94,9 @@ class ReadmeListing5(unittest.TestCase):
                 self.assertEqual(readme_panel(panel, "python"), python_panel(panel))
 
     def test_python_has_the_listings_surface(self) -> None:
+        defined = set().union(*(definitions(cpp_panel(p)) for p in PANELS))
         for panel in PANELS:
-            for name in sorted(library_names(cpp_panel(panel))):
+            for name in sorted(library_names(cpp_panel(panel), defined)):
                 with self.subTest(panel=panel, name=name):
                     self.assertIn(PYTHON_SPELLING.get(name, name), pynzli.jlt.__all__)
 

@@ -428,6 +428,32 @@ constexpr size_t cuts(size_t N, size_t n) {
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 // [/listing5:all-genomes]
+
+// Listing 5, one genome: the two lines, the README's text between the markers.
+// The query tests each window against the section; the plan is the matcher
+// specialised to the section's words.  The 64 sites' plan is past the
+// evaluator's budget, so these run at run time (the TEST_CASE below); a
+// single site's is a constant (PlansAtCompileTime, above).
+using dedekind::category::automaton;
+using dedekind::category::matches;
+using dedekind::category::rank;
+using dedekind::category::where;
+using dedekind::category::windows;
+// [listing5:one-genome]
+constexpr size_t by_the_query(std::span<const std::byte> genome) {
+  return count(genome >> windows(6) >> where(sites(6)));
+}
+constexpr size_t by_the_plan(std::span<const std::byte> genome) {
+  const auto plan = automaton(sites(6));  // Maybe: nothing past the capacity
+  return plan ? count(genome >> rank(nucleotides) >> matches(*plan)) : 0;
+}
+// [/listing5:one-genome]
+TEST_CASE("Category: Listing 5's one-genome lines agree",
+          "[category][tensor][listing5]") {
+  const Word genome = dna("TTGAATTCAAGCTTA");
+  CHECK(by_the_query(genome) == 2);
+  CHECK(by_the_plan(genome) == 2);
+}
 }  // namespace listing5
 
 // Panel 2's plans and their binding times, each a plan of the library's own

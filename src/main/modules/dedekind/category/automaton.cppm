@@ -327,12 +327,16 @@ constexpr Maybe<RunList<N, KL>> run_list(
                                 sites, Decoder{alphabet, n}});
 }
 /** @brief The matcher specialised to a section: its words as a run list,
- *  then the plan.  @tparam KL the bound claimed on the section's steps.
+ *  then the plan.  The capacities default to a menu's largest, four
+ *  letters, words of length 8, pending sets of 32 steps and 320 states, the
+ *  one @c pynzli offers too, so @c automaton(sites(6)) reads alike in both
+ *  languages; a tighter bound is named where the plan is a constant.
+ *  @tparam KL the bound claimed on the section's steps.
  *  @param sites the section, as @c sites(6).  @return the plan, or nothing
  *  where a bound is too small. */
-export template <std::size_t Sigma, std::size_t P, std::size_t K, std::size_t Q,
-                 std::size_t KL = 256, HasNNOStep C, IsArrow F, IsCountWord N,
-                 typename S, IsArrow T>
+export template <std::size_t Sigma = 4, std::size_t P = 8, std::size_t K = 32,
+                 std::size_t Q = 320, std::size_t KL = 256, HasNNOStep C,
+                 IsArrow F, IsCountWord N, typename S, IsArrow T>
 constexpr Maybe<Automaton<Sigma, Q>> automaton(
     const Symmetric<Power<C, F, N>, S, T>& sites) {
   const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
