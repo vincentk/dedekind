@@ -63,6 +63,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <type_traits>
 
 export module dedekind.category:pullback;
 
@@ -329,5 +330,86 @@ export template <typename F, typename G>
 concept IsParallelPair =
     IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
     std::same_as<Cod<F>, Cod<G>>;
+
+/** @section pullback__Apex_Views Meet = pullback, join = pushout in Sub(U)
+ *  In the thin category of subobjects of one ambient, the meet @c A ∧ B is
+ *  the pullback of the inclusions @c A ↪ U ↩ B and the join their pushout
+ *  (#881).  The reading needs the apex's member shape and its legs, so it
+ *  is a view over the apex, owning nothing: it evaluates through the apex's
+ *  own χ.  Any carrier with the subobject surface takes it: the set objects
+ *  of @c sets over their meet and join nodes, the run lists of @c :runs over
+ *  their reduced intersection and union. */
+
+/** @brief @c inclusion_arrow(S): the inclusion @f$\iota_S : S \hookrightarrow
+ *  \mathrm{Domain}(S)@f$ of a subobject as an arrow (@c Domain @c =
+ *  @c S::Member, @c Codomain @c = @c S::Domain, through @c S's own @c ι), so
+ *  it can be a leg of a cospan.  A monomorphism by definition.
+ *  @note FIXME(#887): every subobject exposes @c ι as a member function, not
+ *  as a nameable arrow; this reifies it until the inclusion is intrinsic. */
+export template <typename S>
+  requires IsSubobject<S, typename S::Domain>
+struct SubobjectInclusion {
+  using Domain = typename S::Member;
+  using Codomain = typename S::Domain;
+  /** @brief Structural monic opt-in, by tag: a variable-template partial
+   *  specialisation would not cross the module boundary (cf.
+   *  @c is_monic_arrow_v). */
+  using is_monic_arrow_tag = void;
+  S subobject;
+  constexpr Codomain operator()(const Domain& m) const {
+    return subobject.ι(m);
+  }
+};
+/** @param s a subobject.  @return its inclusion, an arrow. */
+export template <typename S>
+  requires IsSubobject<std::remove_cvref_t<S>,
+                       typename std::remove_cvref_t<S>::Domain>
+constexpr SubobjectInclusion<std::remove_cvref_t<S>> inclusion_arrow(
+    const S& s) {
+  return {s};
+}
+/** @brief The pullback apex of a meet of @c A and @c B: the apex itself,
+ *  viewed with the subobject surface and the projection legs @c π_1 /
+ *  @c π_2 (@c IsPullback).  @tparam Apex the meet, as a node or reduced.
+ *  @tparam A @tparam B the operands. */
+export template <typename Apex, typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PullbackApex {
+  Apex apex;
+  using Domain = typename Apex::Domain;
+  using Codomain = typename Apex::Codomain;
+  using logic_species = typename Apex::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr typename A::Member π_1(const Member& m) const { return {m.value}; }
+  constexpr typename B::Member π_2(const Member& m) const { return {m.value}; }
+  constexpr auto operator()(const Domain& x) const { return apex(x); }
+};
+/** @brief The pushout apex of a join of @c A and @c B: the apex viewed with
+ *  the subobject surface and the coprojections @c ι1 / @c ι2
+ *  (@c IsPushout).  Dual of @ref PullbackApex. */
+export template <typename Apex, typename A, typename B>
+  requires IsSubobject<A, typename A::Domain> &&
+           IsSubobject<B, typename B::Domain>
+struct PushoutApex {
+  Apex apex;
+  using Domain = typename Apex::Domain;
+  using Codomain = typename Apex::Codomain;
+  using logic_species = typename Apex::logic_species;
+  struct Member {
+    Domain value;
+  };
+  constexpr Domain ι(const Member& m) const { return m.value; }
+  constexpr Member ι1(const typename A::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr Member ι2(const typename B::Member& m) const {
+    return Member{m.value};
+  }
+  constexpr auto operator()(const Domain& x) const { return apex(x); }
+};
 
 }  // namespace dedekind::category

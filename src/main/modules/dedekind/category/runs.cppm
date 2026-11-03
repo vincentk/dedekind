@@ -49,10 +49,12 @@ import :lattice;       // Meet, Join, builds_lattice_nodes: | and &
 import :lattice_term;  // Reduce, canonical_order: the one reducer
 import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
-import :functor;       // Maybe: where a bound is claimed, not proved
-import :logic;         // Boole: a run list's truth values
-import :action;        // fold: a plain fold
-import :kleisli;       // fold in the Kleisli category: a bound that may fail
+import :pullback;  // the apex views: the meet a pullback, the join a pushout
+import :topoi;     // IsSubobject: a run list's subobject surface
+import :functor;   // Maybe: where a bound is claimed, not proved
+import :logic;     // Boole: a run list's truth values
+import :action;    // fold: a plain fold
+import :kleisli;   // fold in the Kleisli category: a bound that may fail
 
 namespace dedekind::category {
 
@@ -66,6 +68,12 @@ struct RunList {
   using Codomain = bool;
   using logic_species = Boole;  // Pst's: decided, two-valued
   AtMost<N, K> steps;
+  /** @brief The subobject surface: a member is a count the run list holds,
+   *  and its inclusion into the counts is the count itself. */
+  struct Member {
+    N value;
+  };
+  constexpr N ι(const Member& m) const { return m.value; }
   /** @param x a count.  @return whether it lies in the set: an odd number
    *  of steps at or before it. */
   constexpr bool operator()(N x) const {
@@ -242,6 +250,54 @@ constexpr Maybe<RunList<N, K>> run_list(N end, Pred holds) {
 static_assert(run_list<6>(6uz, is_even) ==
                   ((run<2>(0uz, 1uz) | run<2>(2uz, 3uz)) | run<4>(4uz, 5uz)) &&
               !run_list<4>(6uz, is_even).has_value());
+
+/** @brief The intersection as the pullback of the two inclusions into the
+ *  counts, @c category's apex view over it (@c IsPullback): in the thin
+ *  category of run lists, the meet is the pullback.  @param a @param b two
+ *  run lists on one chain.  @return the apex. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr auto as_pullback(const RunList<N, J>& a, const RunList<N, K>& b) {
+  return PullbackApex<RunList<N, J + K>, RunList<N, J>, RunList<N, K>>{a & b};
+}
+/** @brief The union as the pushout, dual to @c as_pullback (@c IsPushout).
+ *  @param a @param b two run lists on one chain.  @return the apex. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr auto as_pushout(const RunList<N, J>& a, const RunList<N, K>& b) {
+  return PushoutApex<RunList<N, J + K>, RunList<N, J>, RunList<N, K>>{a | b};
+}
+namespace detail_runs {
+/** @brief The pullback square at one count: the apex holds it exactly where
+ *  both operands do, and its legs land on the count itself. */
+template <typename P, typename A, typename B>
+struct Commutes {
+  P apex;
+  A a;
+  B b;
+  template <IsCountWord N>
+  constexpr bool operator()(bool ok, N x) const {
+    return ok && apex(x) == (a(x) && b(x)) &&
+           apex.π_1(typename P::Member{x}).value == x &&
+           apex.π_2(typename P::Member{x}).value == x;
+  }
+};
+}  // namespace detail_runs
+// The meet is the pullback of the inclusions: by shape (the concept), and
+// by value (the square at every count of a chain).
+static_assert(IsSubobject<RunList<std::size_t, 4>, std::size_t>);
+static_assert(
+    IsPullback<decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
+               decltype(inclusion_arrow(run<2>(0uz, 4uz))),
+               decltype(inclusion_arrow(run<2>(2uz, 6uz)))>);
+// The pushout's span is the pullback's own legs, A <- A & B -> B, which are
+// member functions, not yet nameable arrows (#887): its concept waits for
+// them; its view is here.
+static_assert(std::ranges::fold_left(
+    std::views::iota(0uz, 8uz), true,
+    detail_runs::Commutes<decltype(as_pullback(run<2>(0uz, 4uz),
+                                               run<2>(2uz, 6uz))),
+                          RunList<std::size_t, 2>, RunList<std::size_t, 2>>{
+        as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz)), run<2>(0uz, 4uz),
+        run<2>(2uz, 6uz)}));
 
 /** @brief A run list under a bound claimed, not proved by the types: the
  *  same set where its steps fit, nothing where they do not.  @tparam K the
