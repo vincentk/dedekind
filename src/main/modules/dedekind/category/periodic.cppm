@@ -1127,6 +1127,21 @@ export template <IsCountWord N>
 constexpr N position(const Rotation<N>& r, N n, N i) {
   return static_cast<N>((i + r.shift % n) % n);
 }
+/** @brief The reversal of @c length positions on indices, as an arrow on
+ *  the counts: an involution on all of them, the counts being unsigned, so
+ *  @f$n - 1 - (n - 1 - i) \equiv i@f$ modulo the word.  @tparam N the
+ *  counts. */
+export template <IsCountWord N>
+struct ReversedPosition {
+  using Domain = N;
+  using Codomain = N;
+  N length;
+  constexpr N operator()(N i) const { return position(Reverse{}, length, i); }
+  constexpr bool operator==(const ReversedPosition&) const = default;
+};
+template <IsCountWord N>
+struct is_involutive<ReversedPosition<N>, N> : std::true_type {};
+static_assert(IsInvolution<ReversedPosition<std::size_t>, std::size_t>);
 // The index form agrees with the word form: the letter at i of a word is at
 // position(i) of its reversal; and the reversal on indices is an
 // involution.

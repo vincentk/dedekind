@@ -206,8 +206,10 @@ constexpr auto operator>>(const R& r, F f) {
   return std::views::transform(std::views::all(r), std::move(f));
 }
 /** @brief @c windows(n), the stage that reads each position's window of
- *  @c n elements: the window comonad's @f$\delta@f$, a position with its
- *  context.  It is @c std::views::slide(n), spelled as a stage. */
+ *  @c n elements, a position with its context, as a comonad's
+ *  @f$\delta@f$ would on an infinite stream; on a finite range the last
+ *  @c n - 1 positions have no full window, so it is not a comonad here.
+ *  It is @c std::views::slide(n), spelled as a stage. */
 export struct Windows {
   std::size_t n;
 };

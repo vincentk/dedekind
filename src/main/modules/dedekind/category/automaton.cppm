@@ -395,6 +395,12 @@ constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
                                                          std::move(letters)});
 }
 
+// The rank of a byte in an alphabet is a Kleisli arrow into Maybe: a
+// letter's rank, or nothing.
+template <>
+inline constexpr bool is_kleisli_arrow_v<Ranked, maybe_monad_tag> = true;
+static_assert(IsKleisliArrow<Ranked, maybe_monad_tag>);
+
 // EcoRI's site GAATTC, its letters ranked A < C < G < T, is the index
 // 2·4^5 + 0 + 0 + 3·4^2 + 3·4 + 1 = 2109.  Its plan is Knuth, Morris and
 // Pratt's: the state is how much of the site has matched, numbered so by the

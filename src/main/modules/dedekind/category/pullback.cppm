@@ -399,6 +399,8 @@ struct PullbackApex {
 template <typename P, std::size_t I>
   requires(I == 1 || I == 2)
 struct ApexLeg {
+  /** @brief A co-restriction keeps the value, so it is monic. */
+  using is_monic_arrow_tag = void;
   using Domain = typename P::Member;
   using Codomain = std::conditional_t<
       I == 1,

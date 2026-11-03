@@ -289,6 +289,12 @@ static_assert(
     IsPullback<decltype(as_pullback(run<2>(0uz, 4uz), run<2>(2uz, 6uz))),
                decltype(inclusion_arrow(run<2>(0uz, 4uz))),
                decltype(inclusion_arrow(run<2>(2uz, 6uz)))>);
+// The inclusions and the meet's legs are monomorphisms, and run lists are a
+// Boolean subobject lattice: their classifier is Boole.
+static_assert(IsMonicArrow<decltype(inclusion_arrow(run<2>(0uz, 4uz)))> &&
+              IsMonicArrow<decltype(leg<1>(as_pullback(run<2>(0uz, 4uz),
+                                                       run<2>(2uz, 6uz))))> &&
+              IsBooleanSubobjectLattice<RunList<std::size_t, 4>>);
 // The join is the pushout of the span A <- A & B -> B, the pullback's own
 // legs as arrows.
 static_assert(
