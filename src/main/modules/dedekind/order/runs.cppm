@@ -632,17 +632,15 @@ struct MergeSteps {
 static_assert(std::ranges::equal(
     MergeSteps<RunListSteps<std::size_t, 4>, SpanSteps<std::size_t, Boole>,
                std::logical_and<bool>>{
-        {dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
-                                     dedekind::category::run<2>(4uz, 6uz))},
+        {(dedekind::category::run<2>(0uz, 2uz) |
+          dedekind::category::run<2>(4uz, 6uz))},
         {Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
                            Bound<std::size_t>{5, Strictness::Strict}}},
         {}}
         .steps(),
-    RunListSteps<std::size_t, 8>{
-        dedekind::category::reduced(
-            dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
-                                        dedekind::category::run<2>(4uz, 6uz)) &
-            dedekind::category::run<4>(1uz, 5uz))}
+    RunListSteps<std::size_t, 8>{((dedekind::category::run<2>(0uz, 2uz) |
+                                   dedekind::category::run<2>(4uz, 6uz)) &
+                                  dedekind::category::run<4>(1uz, 5uz))}
         .steps()));
 
 /** @brief The decidable sets of an L-valued source: the α-cut

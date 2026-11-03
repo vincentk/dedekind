@@ -78,11 +78,6 @@ struct RunList {
   }
 };
 
-/** @brief Run lists opt in: their @c | and @c & are the lattice's nodes
- *  (@c :lattice), a union and an intersection once reduced. */
-template <IsCountWord N, std::size_t K>
-struct builds_lattice_nodes<RunList<N, K>> : std::true_type {};
-
 /** @tparam K the bound on the steps.  @param lo @param hi the ends.
  *  @return the run @f$[lo, hi)@f$, empty where @c hi is not past @c lo. */
 export template <std::size_t K, IsCountWord N>
@@ -187,6 +182,24 @@ export template <typename T>
 constexpr auto reduced(const T& t) {
   return cata(Reduce<no_canonical_order, canonical_order, RunCombine>{}, t);
 }
+/** @brief The union of two run lists, at once: the lattice's @c Join node
+ *  folded by the one reducer, the sweep its leaf-combine, as the set
+ *  grammar's @c | folds through @c SetCombine (@c sets).  Its bound is the
+ *  sum of theirs.  @param a @param b two run lists on one chain.  @return
+ *  their union. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr RunList<N, J + K> operator|(const RunList<N, J>& a,
+                                      const RunList<N, K>& b) {
+  return reduced(Join<RunList<N, J>, RunList<N, K>>{a, b});
+}
+/** @brief The intersection, dual to the union; with a single run, by law a
+ *  restriction.  @param a @param b two run lists on one chain.  @return
+ *  their intersection. */
+export template <IsCountWord N, std::size_t J, std::size_t K>
+constexpr RunList<N, J + K> operator&(const RunList<N, J>& a,
+                                      const RunList<N, K>& b) {
+  return reduced(Meet<RunList<N, J>, RunList<N, K>>{a, b});
+}
 
 namespace detail_runs {
 /** @brief One count of a sweep along a predicate: a step where its value
@@ -225,8 +238,7 @@ constexpr Maybe<RunList<N, K>> run_list(N end, Pred holds) {
 }
 // The evens below 6 as a run list: three runs of one.
 static_assert(run_list<6>(6uz, is_even) ==
-                  reduced(reduced(run<2>(0uz, 1uz) | run<2>(2uz, 3uz)) |
-                          run<4>(4uz, 5uz)) &&
+                  ((run<2>(0uz, 1uz) | run<2>(2uz, 3uz)) | run<4>(4uz, 5uz)) &&
               !run_list<4>(6uz, is_even).has_value());
 
 /** @brief A run list under a bound claimed, not proved by the types: the
@@ -255,13 +267,13 @@ constexpr RunList<N, K> operator>>(const Shift<N>& t, const RunList<N, K>& s) {
 static_assert(run<4>(2uz, 5uz)(2) && run<4>(2uz, 5uz)(4) &&
               !run<4>(2uz, 5uz)(5) && !run<4>(2uz, 5uz)(1) &&
               run<4>(3uz, 3uz) == RunList<std::size_t, 4>{});
-static_assert(
-    reduced(run<4>(0uz, 2uz) | run<4>(2uz, 4uz)) == run<4>(0uz, 4uz) &&
-    reduced(run<4>(0uz, 3uz) & run<4>(2uz, 6uz)) == run<4>(2uz, 3uz) &&
-    reduced(run<4>(0uz, 2uz) & run<4>(2uz, 4uz)) == RunList<std::size_t, 4>{});
+static_assert((run<4>(0uz, 2uz) | run<4>(2uz, 4uz)) == run<4>(0uz, 4uz) &&
+              (run<4>(0uz, 3uz) & run<4>(2uz, 6uz)) == run<4>(2uz, 3uz) &&
+              (run<4>(0uz, 2uz) & run<4>(2uz, 4uz)) ==
+                  RunList<std::size_t, 4>{});
 // A term of three folds to one run list: [0, 2) ∪ [5, 7), then cut to [1, 6).
 static_assert(
-    reduced((run<4>(0uz, 2uz) | run<4>(5uz, 7uz)) & run<4>(1uz, 6uz)) ==
+    ((run<4>(0uz, 2uz) | run<4>(5uz, 7uz)) & run<4>(1uz, 6uz)) ==
     RunList<std::size_t, 4>{
         AtMost<std::size_t, 4>{}.with(1uz).with(2uz).with(5uz).with(6uz)});
 // Totality by type, not by abort: a union or an intersection of two run
@@ -270,36 +282,31 @@ static_assert(
 // fixed-width word does); a preimage along a translation keeps its bound,
 // closed.
 using Runs4 = RunList<std::size_t, 4>;
-static_assert(std::same_as<decltype(reduced(Runs4{} | Runs4{})),
-                           RunList<std::size_t, 8>> &&
-              std::same_as<decltype(reduced(Runs4{} & Runs4{})),
-                           RunList<std::size_t, 8>> &&
-              std::same_as<decltype(shift(1uz) >> Runs4{}), Runs4>);
+static_assert(
+    std::same_as<decltype((Runs4{} | Runs4{})), RunList<std::size_t, 8>> &&
+    std::same_as<decltype((Runs4{} & Runs4{})), RunList<std::size_t, 8>> &&
+    std::same_as<decltype(shift(1uz) >> Runs4{}), Runs4>);
 // The union that needs its wider bound: two runs apart are four steps, and
 // their intersection with a third that spans both cuts each, four again.
-static_assert(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)).steps.size() == 4 &&
-              reduced(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) &
-                      run<4>(1uz, 5uz))
+static_assert((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)).steps.size() == 4 &&
+              ((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) & run<4>(1uz, 5uz))
                       .steps.size() == 4);
 // The restriction is the sweep's meet: [0, 2) ∪ [4, 6) ∪ [8, 9) cut to
 // [1, 8) is [1, 2) ∪ [4, 6), and cut to [5, 9) is [5, 6) ∪ [8, 9).
-static_assert(detail_runs::restricted(reduced(reduced(run<2>(0uz, 2uz) |
-                                                      run<2>(4uz, 6uz)) |
-                                              run<4>(8uz, 9uz)),
+static_assert(detail_runs::restricted(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                       run<4>(8uz, 9uz)),
                                       run<2>(1uz, 8uz)) ==
-                  detail_runs::swept(
-                      reduced(reduced(run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
-                              run<4>(8uz, 9uz)),
-                      run<2>(1uz, 8uz), std::logical_and<bool>{}) &&
-              detail_runs::restricted(reduced(reduced(run<2>(0uz, 2uz) |
-                                                      run<2>(4uz, 6uz)) |
-                                              run<4>(8uz, 9uz)),
+                  detail_runs::swept(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                      run<4>(8uz, 9uz)),
+                                     run<2>(1uz, 8uz),
+                                     std::logical_and<bool>{}) &&
+              detail_runs::restricted(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
+                                       run<4>(8uz, 9uz)),
                                       run<2>(5uz, 9uz)) ==
-                  reduced(run<2>(5uz, 6uz) | run<2>(8uz, 9uz)));
+                  (run<2>(5uz, 6uz) | run<2>(8uz, 9uz)));
 // A bound claimed: the union of two points fits four steps, not two.
-static_assert(
-    narrowed<4>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
-    !narrowed<2>(reduced(run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value());
+static_assert(narrowed<4>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
+              !narrowed<2>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value());
 // The preimage along a translation: [2, 5) seen from 3 on is [0, 2), and
 // from 1 on is [1, 4).
 static_assert((shift(3uz) >> run<4>(2uz, 5uz)) == run<4>(0uz, 2uz) &&

@@ -98,7 +98,7 @@ constexpr auto derived(const RunList<N, K>& r, N j, N a) {
   const N b = detail_concat::power(static_cast<N>(Sigma), static_cast<N>(j - 1),
                                    std::multiplies<N>{});
   const N lo = static_cast<N>(a * b);
-  return shift<N>(lo) >> reduced(r & run<2>(lo, static_cast<N>(lo + b)));
+  return shift<N>(lo) >> (r & run<2>(lo, static_cast<N>(lo + b)));
 }
 /** @brief The set's own derivatives, one per letter: the same for every
  *  state, so computed once, before the walk. */
@@ -128,7 +128,7 @@ struct Advance {
     const N j = static_cast<N>(k + 1);
     const auto longer = derived<Sigma>(from.pending[k], j, letter);
     const RunList<N, KL> mine = j == length ? own[letter] : RunList<N, KL>{};
-    const auto r = reduced(longer | mine);
+    const auto r = (longer | mine);
     Residual<N, P, K> next = acc;
     if (k == 0) {
       next.accepting = r(N{0});

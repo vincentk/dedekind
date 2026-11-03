@@ -557,7 +557,10 @@ concept IsSetObjectLeaf =
     };
 
 /** @brief Two types carry the same carrier: the domain tie a lattice node over
- *  set objects needs (the logic may differ; the codomain leg reconciles it). */
+ *  set objects needs (the logic may differ; the codomain leg reconciles it).
+ *  The same rule as @c category's @c builds_lattice_nodes, the opt-in of
+ *  predicates to the lattice's @c | and @c &: a property of the leaves
+ *  lifted over the nodes, with this tie at each. */
 template <typename A, typename B>
 concept SameCarrier = requires {
   typename A::Domain;
