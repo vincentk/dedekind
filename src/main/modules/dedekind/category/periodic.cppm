@@ -960,6 +960,23 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
+// The rank is natural for the complement: complementing a letter, then
+// ranking it, is ranking it, then reflecting the rank, x -> 3 - x.  The
+// Watson-Crick pairing reverses A < C < G < T, read on the ranks.
+namespace detail_periodic {
+struct ComplementCommutes {
+  Ranked ranked;
+  LetterMap complement;
+  constexpr bool operator()(bool ok, char c) const {
+    const auto b = std::byte{static_cast<unsigned char>(c)};
+    return ok && ranked(complement(b)) == 3 - *ranked(b);
+  }
+};
+}  // namespace detail_periodic
+static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
+                                     detail_periodic::ComplementCommutes{
+                                         rank(letters("ACGT")),
+                                         letter_map("ACGT", "TGCA")}));
 // The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
 static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&
@@ -1127,6 +1144,24 @@ export template <IsCountWord N>
 constexpr N position(const Rotation<N>& r, N n, N i) {
   return static_cast<N>((i + r.shift % n) % n);
 }
+// The index form agrees with the word form: the letter at i of a word is at
+// position(i) of its reversal; and the reversal on indices is an
+// involution.
+namespace detail_periodic {
+struct AgreesWithReverse {
+  std::array<std::size_t, 5> word;
+  std::array<std::size_t, 5> reversed;
+  constexpr bool operator()(bool ok, std::size_t i) const {
+    const std::size_t j = position(Reverse{}, 5uz, i);
+    return ok && reversed[j] == word[i] && position(Reverse{}, 5uz, j) == i;
+  }
+};
+}  // namespace detail_periodic
+static_assert(std::ranges::fold_left(std::views::iota(0uz, 5uz), true,
+                                     detail_periodic::AgreesWithReverse{
+                                         {0, 1, 2, 3, 4},
+                                         Reverse{}(std::array<std::size_t, 5>{
+                                             0, 1, 2, 3, 4})}));
 static_assert(position(Reverse{}, 6uz, 0uz) == 5 &&
               position(Reverse{}, 6uz, 2uz) == 3 &&
               position(Rotation<>{2}, 6uz, 5uz) == 1);

@@ -227,6 +227,21 @@ constexpr auto operator>>(const R& r, Windows w) {
       std::views::all(r),
       static_cast<std::ranges::range_difference_t<const R>>(w.n));
 }
+// The functor's laws, read on a range of the caller's: the identity maps
+// it to itself, and mapping twice is mapping the composite once.
+namespace detail_comprehension {
+constexpr std::array<std::size_t, 5> functor_witness{0, 1, 2, 3, 4};
+}  // namespace detail_comprehension
+static_assert(
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            Identity<std::size_t>{},
+        detail_comprehension::functor_witness) &&
+    std::ranges::equal(
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            Successor<std::size_t>{} >> is_even,
+        std::span<const std::size_t>{detail_comprehension::functor_witness} >>
+            (Successor<std::size_t>{} >> is_even)));
 // The spellings are the standard's views, by type.
 static_assert(
     std::same_as<decltype(std::span<const std::size_t>{} >> windows(6)),
