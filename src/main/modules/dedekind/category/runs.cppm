@@ -335,22 +335,56 @@ constexpr Maybe<RunList<N, K>> narrowed(const RunList<N, J>& r) {
       std::ranges::fold_left(r.steps, AtMost<N, K>{}, detail_periodic::With{})};
 }
 
-/** @brief @c shift(d) @c >> @c s: @f$x \mapsto s(x + d)@f$, the preimage
- *  of @c s along the translation on its extent, the counts @f$x@f$ with
- *  @f$x + d@f$ below the word's top (@c extent in @c :periodic: a shift's
- *  law holds where the word does not wrap).  The elements of @c s below
+/** @brief @c preimage(shift(d), @c s): the pullback of @c s along the
+ *  translation, @f$x \mapsto s(x + d)@f$, in closed form, a run list again:
+ *  the closed-form overload of @c :morphism's @c preimage(f, P), whose
+ *  general form is the composite @c P∘f, as @c algebra's
+ *  @c halfspace_transport gives one for an interval.  The translation is
+ *  read as a map of the @b chain, on its extent: the counts @f$x@f$ with
+ *  @f$x + d@f$ below the word's top (@c extent in @c :periodic, where a
+ *  shift's law holds), where the word does not wrap.  @c halfspace_transport
+ *  gates the same reading by the carrier's type (an ordered group, or ℕ,
+ *  where @f$x + k@f$ misses @f$\{0, \ldots, k - 1\}@f$); on the word, Pst's
+ *  carrier, the extent is that gate, by value.  The elements of @c s below
  *  @c d, whose preimages would wrap past the top, lie outside it and are
- *  not reported: the derivative (@c :automaton) meets its operand with the
- *  letter's interval first, so none exist there.  @param t the
- *  translation.  @param s the run list.  @return the preimage, on the
- *  extent. */
+ *  not reported; the derivative (@c :automaton) meets its operand with the
+ *  letter's interval first, so none exist there.  The other reading, the
+ *  word as the cyclic group @f$\mathbb{Z}/2^w@f$ whose translation wraps, is
+ *  @c order's @c translate (an image, a run through the end splitting in
+ *  two) and @c morphologies' congruence preimage; it is a different arrow,
+ *  and not this one (#1138).  @param t the translation.  @param s the run
+ *  list.  @return the preimage, on the extent. */
 export template <IsCountWord N, std::size_t K>
-constexpr RunList<N, K> operator>>(const Shift<N>& t, const RunList<N, K>& s) {
+constexpr RunList<N, K> preimage(const Shift<N>& t, const RunList<N, K>& s) {
   const AtMost<N, K> start =
       s(t.by) ? AtMost<N, K>{}.with(N{0}) : AtMost<N, K>{};
   return {std::ranges::fold_left(s.steps, start,
                                  detail_runs::Translated<N, K>{t.by})};
 }
+/** @brief @c shift(d) @c >> @c s, the spelling of the preimage: precomposition
+ *  with the translation.  @param t the translation.  @param s the run list.
+ *  @return @c preimage(t, @c s). */
+export template <IsCountWord N, std::size_t K>
+constexpr RunList<N, K> operator>>(const Shift<N>& t, const RunList<N, K>& s) {
+  return preimage(t, s);
+}
+namespace detail_runs {
+/** @brief The pullback's law at one count: the closed form reads what the
+ *  composite @c P∘f reads, @c preimage(f, P)(x) @c = @c P(f(x)). */
+template <IsCountWord N, std::size_t K>
+struct PullsBack {
+  Shift<N> t;
+  RunList<N, K> s;
+  constexpr bool operator()(bool ok, N x) const {
+    return ok && preimage(t, s)(x) == Compose<Shift<N>, RunList<N, K>>{t, s}(x);
+  }
+};
+}  // namespace detail_runs
+// The closed form is the composite, on the extent: at every count below the
+// top less the shift, preimage(shift(3), [2, 5)) reads [2, 5) at x + 3.
+static_assert(std::ranges::fold_left(std::views::iota(0uz, 8uz), true,
+                                     detail_runs::PullsBack<std::size_t, 4>{
+                                         shift(3uz), run<4>(2uz, 5uz)}));
 
 // The canonical form, witnessed.  A run is its two ends; two runs that
 // touch merge into one, so the form is unique and == is the sets' equality.
