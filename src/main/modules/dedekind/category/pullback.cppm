@@ -73,6 +73,7 @@ import :morphism;   // For arrow<>
 import :logic;      // For IsΩ
 import :cartesian;  // For Product
 import :topoi;
+import :limit;  // One: the terminal object, the classifier's 1
 
 namespace dedekind::category {
 
@@ -441,5 +442,31 @@ struct PushoutApex {
   }
   constexpr auto operator()(const Domain& x) const { return apex(x); }
 };
+
+/** @brief The subobject a predicate classifies, as the pullback of the
+ *  truth @f$\top : 1 \to \Omega@f$ along the predicate @f$p : X \to
+ *  \Omega@f$ (the subobject classifier's square): its members, the leg into
+ *  @c X their inclusion, the leg to @c 1 the unique one.  A view over the
+ *  subobject, owning nothing.  @tparam S the subobject. */
+export template <typename S>
+  requires IsSubobject<S, typename S::Domain>
+struct ClassifierApex {
+  S subobject;
+  using Domain = typename S::Domain;
+  using Codomain = typename S::Codomain;
+  using logic_species = typename S::logic_species;
+  using Member = typename S::Member;
+  constexpr Domain ι(const Member& m) const { return subobject.ι(m); }
+  constexpr Domain π_1(const Member& m) const { return subobject.ι(m); }
+  constexpr One π_2(const Member&) const { return {}; }
+  constexpr auto operator()(const Domain& x) const { return subobject(x); }
+};
+/** @param s a subobject.  @return it as the pullback of @c ⊤ along its
+ *  characteristic map. */
+export template <typename S>
+  requires IsSubobject<S, typename S::Domain>
+constexpr ClassifierApex<S> as_classified(const S& s) {
+  return {s};
+}
 
 }  // namespace dedekind::category

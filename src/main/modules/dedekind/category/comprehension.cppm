@@ -66,6 +66,9 @@ import :discrete;  // constant: a witness's rank
 import :lattice;   // Meet: a filter's predicate as a lattice term
 import :periodic;  // is_even, the count of a characteristic sequence, AtMost
 import :posetal;   // IsMonotone, IsAntiMonotone, ~: the order laws a rank has
+import :topoi;     // Subobject: what a predicate classifies
+import :pullback;  // as_classified: the classifier's square
+import :limit;     // One: the terminal object
 import :kleisli;   // κ, maybe_functor's Kleisli triple: the holes' monad
 
 namespace dedekind::category {
@@ -260,6 +263,26 @@ export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
   return where(arrow<std::span<const Dom<T>>, bool>(s));
 }
+
+// where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
+// of the truth 1 -> Omega along p, by shape (the concept, ⊤ the constant
+// arrow), and the filter keeps an element exactly where it is a member.
+namespace detail_comprehension {
+using Evens = Subobject<std::size_t, Congruent<>>;
+struct KeepsWhatItClassifies {
+  Evens classified;
+  constexpr bool operator()(bool ok, std::size_t x) const {
+    return ok && where(is_even)(x).has_value() == classified(x);
+  }
+};
+}  // namespace detail_comprehension
+static_assert(
+    IsPullback<decltype(as_classified(detail_comprehension::Evens{is_even})),
+               Congruent<>, decltype(constant<One>(true))>);
+static_assert(
+    std::ranges::fold_left(std::views::iota(0uz, 10uz), true,
+                           detail_comprehension::KeepsWhatItClassifies{
+                               detail_comprehension::Evens{is_even}}));
 
 /** @brief @c >> @c f on a query, SQL's @c SELECT: @c f on the present
  *  elements, the holes passed through, @c Maybe's action on the arrow
