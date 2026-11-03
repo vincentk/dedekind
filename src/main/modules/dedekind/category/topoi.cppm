@@ -517,15 +517,23 @@ struct Subobject {
   }
 };
 
-/** @brief Subobjects opt in to the lattice's @c | and @c & (@c :lattice):
- *  the meet and join of two subobjects of @c A are the pointwise meet and
- *  join of their characteristic arrows (@f$\mathrm{Sub}(A) \cong
- *  \mathrm{Hom}(A, \Omega)@f$), the lattice's own nodes over them, nested
- *  terms included.  Arrow vocabulary only; the set surface spells the same
- *  operation in @c dedekind.sets.  @tparam A the ambient.  @tparam Chi the
- *  characteristic arrow. */
-template <typename A, typename Chi>
-struct builds_lattice_nodes<Subobject<A, Chi>> : std::true_type {};
+/** @brief The meet of two subobjects of @c A: the pointwise meet of their
+ *  characteristic arrows (@f$\mathrm{Sub}(A) \cong \mathrm{Hom}(A, \Omega)@f$),
+ *  the lattice's own @c Meet node over them.  Arrow vocabulary only; the
+ *  set surface spells the same operation in @c dedekind.sets.  Written for
+ *  @c Subobject itself, not through @c :lattice's opt-in @c | and @c &: a
+ *  subobject is also a set object, and this more specialised pair is what
+ *  orders it before the set grammar's (#1138).
+ *  @tparam A the ambient.  @tparam X, Y the characteristic arrows. */
+export template <typename A, typename X, typename Y>
+constexpr auto operator&(const Subobject<A, X>& s, const Subobject<A, Y>& t) {
+  return Meet<Subobject<A, X>, Subobject<A, Y>>{s, t};
+}
+/** @brief The join of two subobjects of @c A, dual to @c operator&. */
+export template <typename A, typename X, typename Y>
+constexpr auto operator|(const Subobject<A, X>& s, const Subobject<A, Y>& t) {
+  return Join<Subobject<A, X>, Subobject<A, Y>>{s, t};
+}
 
 /**
  * @brief Characteristic Morphism Factory (classify)
