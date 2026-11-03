@@ -272,8 +272,12 @@ TEST_CASE(
   const auto chain = ext(preimage(shift(3uz), run<4>(2uz, 5uz)));
   CHECK(cyclic(top));
   CHECK_FALSE(chain(top));
-  CHECK(cyclic(0uz) && cyclic(1uz) && !cyclic(2uz));
-  CHECK(chain(0uz) && chain(1uz) && !chain(2uz));
+  CHECK(cyclic(0uz));
+  CHECK(cyclic(1uz));
+  CHECK_FALSE(cyclic(2uz));
+  CHECK(chain(0uz));
+  CHECK(chain(1uz));
+  CHECK_FALSE(chain(2uz));
   CHECK_FALSE(cyclic == chain);
   // The group's translate is the closed form of the general preimage, P∘f,
   // on the WHOLE word: translate(s, k)(x) = s(x − k), the shift wrapping with
@@ -288,7 +292,9 @@ TEST_CASE(
   // and an action of the word's group, the wrap included: by a, then by b,
   // is by a + b, even where a + b wraps past the top
   const Translate<std::size_t, Boole> act{};
-  const std::size_t a = top - 1, b = 4uz;  // a + b wraps to 2
-  CHECK(act(act(s, a), b) == act(s, static_cast<std::size_t>(a + b)));
-  CHECK(act(s, static_cast<std::size_t>(a + b)) == translate(s, 2uz));
+  const std::size_t by_first = top - 1, by_then = 4uz;  // their sum wraps to 2
+  CHECK(act(act(s, by_first), by_then) ==
+        act(s, static_cast<std::size_t>(by_first + by_then)));
+  CHECK(act(s, static_cast<std::size_t>(by_first + by_then)) ==
+        translate(s, 2uz));
 }
