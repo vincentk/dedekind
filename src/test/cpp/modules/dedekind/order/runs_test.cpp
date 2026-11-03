@@ -275,4 +275,20 @@ TEST_CASE(
   CHECK(cyclic(0uz) && cyclic(1uz) && !cyclic(2uz));
   CHECK(chain(0uz) && chain(1uz) && !chain(2uz));
   CHECK_FALSE(cyclic == chain);
+  // The group's translate is the closed form of the general preimage, P∘f,
+  // on the WHOLE word: translate(s, k)(x) = s(x − k), the shift wrapping with
+  // the word.  The chain's closed form (category) agrees with P∘f only on
+  // the extent, witnessed there.
+  const auto s = ext(run<4>(2uz, 5uz));
+  const auto composite =
+      dedekind::category::preimage(shift(minus_three), s);  // x ↦ s(x − 3)
+  for (const std::size_t x : {0uz, 1uz, 2uz, 4uz, 5uz, 7uz, top - 1, top}) {
+    CHECK(translate(s, 3uz)(x) == composite(x));
+  }
+  // and an action of the word's group, the wrap included: by a, then by b,
+  // is by a + b, even where a + b wraps past the top
+  const Translate<std::size_t, Boole> act{};
+  const std::size_t a = top - 1, b = 4uz;  // a + b wraps to 2
+  CHECK(act(act(s, a), b) == act(s, static_cast<std::size_t>(a + b)));
+  CHECK(act(s, static_cast<std::size_t>(a + b)) == translate(s, 2uz));
 }
