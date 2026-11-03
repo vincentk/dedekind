@@ -69,7 +69,7 @@ def definitions(cpp: str) -> set[str]:
     """What a panel defines: its constants, functions and parameters."""
     code = re.sub(r"'[^']*'|\"[^\"]*\"|//[^\n]*", "", cpp)
     defined = set(re.findall(r"(?:constexpr|const)\s+\w+\s+(\w+)\s*[=(]", code))
-    parameters = set(re.findall(r"(?:size_t|>)\s+(\w+)\s*[,)]", code))
+    parameters = set(re.findall(r"(?:size_t|std::byte>)\s+(\w+)\s*[,)]", code))
     return defined | parameters
 
 
