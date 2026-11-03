@@ -55,6 +55,7 @@ module;
 #include <span>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 export module dedekind.category:comprehension;
 
@@ -247,6 +248,24 @@ static_assert(
             Successor<std::size_t>{} >> is_even,
         std::span<const std::size_t>{detail_comprehension::functor_witness} >>
             (Successor<std::size_t>{} >> is_even)));
+// The lazy map is the list functor's action, read extensionally: a letter
+// map over the caller's bytes yields what the certified PowerFunctor's
+// power(tau) does to the word (an eager functor; the lazy pipeline has no
+// single target type, so it is the functor's action by value, not by
+// concept).
+namespace detail_comprehension {
+constexpr std::array<std::byte, 6> gaattc{std::byte{'G'}, std::byte{'A'},
+                                          std::byte{'A'}, std::byte{'T'},
+                                          std::byte{'T'}, std::byte{'C'}};
+constexpr bool lazy_is_the_functor() {
+  const LetterMap complement = letter_map("ACGT", "TGCA");
+  const std::vector<std::byte> word(gaattc.begin(), gaattc.end());
+  return std::ranges::equal(std::span<const std::byte>{gaattc} >> complement,
+                            power(complement)(word));
+}
+}  // namespace detail_comprehension
+static_assert(IsFunctor<PowerFunctor> &&
+              detail_comprehension::lazy_is_the_functor());
 // The spellings are the standard's views, by type.
 static_assert(
     std::same_as<decltype(std::span<const std::size_t>{} >> windows(6)),
