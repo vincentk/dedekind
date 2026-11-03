@@ -1335,6 +1335,7 @@ namespace detail_periodic {
  *  predicate.  @param letters the chain.  @param member the predicate.
  *  @param x a value.  @return whether it is a letter. */
 template <HasNNOStep C, typename F>
+  requires std::totally_ordered<C> && std::predicate<const F&, const C&>
 constexpr bool is_letter(const Slice<C>& letters, const F& member, const C& x) {
   return letters.lo <= x && x < letters.hi && static_cast<bool>(member(x));
 }

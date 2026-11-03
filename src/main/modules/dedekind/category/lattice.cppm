@@ -663,7 +663,7 @@ struct same_domain
  *  set objects of @c sets (@c is_set_object).  @tparam Leaf the property of
  *  a leaf.  @tparam T the term. */
 export template <template <typename> class Leaf, typename T>
-struct over_nodes : Leaf<T> {};
+struct over_nodes : std::bool_constant<Leaf<T>::value> {};
 template <template <typename> class Leaf, typename A, typename B>
 struct over_nodes<Leaf, Meet<A, B>>
     : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
