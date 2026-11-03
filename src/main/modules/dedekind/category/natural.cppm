@@ -99,23 +99,25 @@ constexpr Maybe<std::decay_t<A>> η(A value) {
 
 // Tagged defaults for Maybe monad.
 export template <typename A>
-  requires IsSpecies<std::decay_t<A>>
+  requires std::semiregular<std::decay_t<A>>
 constexpr Maybe<std::decay_t<A>> η(maybe_monad_tag, A value) {
   return std::make_optional(std::move(value));
 }
 
 /**
  * @brief μ for Maybe: flattens nested optional context.
- * @details Maybe<Maybe<A>> -> Maybe<A>
+ * @details Maybe<Maybe<A>> -> Maybe<A>.  On every value type, as its functor
+ * (@c maybe_functor) acts on every arrow: the Maybe monad on Set, not only
+ * on the registered species, so a Kleisli fold may carry any state.
  */
 template <typename A>
-  requires IsSpecies<A>
+  requires std::semiregular<A>
 constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }
 
 export template <typename A>
-  requires IsSpecies<A>
+  requires std::semiregular<A>
 constexpr Maybe<A> μ(maybe_monad_tag, Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }

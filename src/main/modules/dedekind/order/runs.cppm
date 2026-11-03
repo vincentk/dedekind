@@ -449,6 +449,59 @@ struct SpanSteps {
   }
 };
 
+/** @brief Pst's run list (@c category:runs) as a step source: each of its
+ *  steps the position just below it, the value from there on alternating
+ *  from outside.  Where both apply, on a finite chain with Boolean values,
+ *  the order's run lists read it as any source, so @c ext, the merges and
+ *  the cuts take it; the vocabulary they share is to move into @c category
+ *  (#1138).  @tparam N the counts.  @tparam K its bound. */
+export template <dedekind::category::IsCountWord N, std::size_t K>
+struct RunListSteps {
+  using Domain = N;
+  using logic_species =
+      typename dedekind::category::RunList<N, K>::logic_species;
+  dedekind::category::RunList<N, K> list;
+  constexpr bool first() const { return false; }
+  /** @brief The @c i-th step as the order's: below its position, in where
+   *  @c i is even. */
+  struct AsStep {
+    dedekind::category::AtMost<N, K> steps;
+    constexpr Step<N, Boole> operator()(std::size_t i) const {
+      return {canonical(Position<N>{steps.items[i], Side::Below}), i % 2 == 0};
+    }
+  };
+  constexpr auto steps() const {
+    return std::views::transform(std::views::iota(0uz, list.steps.size()),
+                                 AsStep{list.steps});
+  }
+};
+/** @param r Pst's run list.  @return it as a step source. */
+export template <dedekind::category::IsCountWord N, std::size_t K>
+constexpr RunListSteps<N, K> steps(const dedekind::category::RunList<N, K>& r) {
+  return {r};
+}
+// The overlap, by the types: Pst's run list is a step source, and [1, 8) as
+// either is one normal form.
+static_assert(IsStepSource<RunListSteps<std::size_t, 2>>);
+static_assert(std::ranges::equal(
+    RunListSteps<std::size_t, 2>{dedekind::category::run<2>(1uz, 8uz)}.steps(),
+    SpanSteps<std::size_t, Boole>{
+        Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
+                          Bound<std::size_t>{8, Strictness::Strict}}}
+        .steps()));
+// The edges: the empty run list has no step and is out at the start; a run
+// from the chain's least element starts with a step there, as the interval
+// closed at 0 does.
+static_assert(std::ranges::empty(RunListSteps<std::size_t, 2>{
+                  dedekind::category::RunList<std::size_t, 2>{}}
+                                     .steps()) &&
+              !RunListSteps<std::size_t, 2>{}.first());
+static_assert(std::ranges::equal(
+    RunListSteps<std::size_t, 2>{dedekind::category::run<2>(0uz, 3uz)}.steps(),
+    SpanSteps<std::size_t, Boole>{
+        Span<std::size_t>{Bound<std::size_t>{0, Strictness::NonStrict},
+                          Bound<std::size_t>{3, Strictness::Strict}}}
+        .steps()));
 /** @brief A source read through a reference: a stored run list inside a term
  *  is traversed where it is, not copied.  @tparam S the source. */
 export template <typename S>
@@ -573,6 +626,22 @@ struct MergeSteps {
                           first());
   }
 };
+
+// The two vocabularies mix: Pst's run list merged with the order's interval
+// under the meet is the run list's own meet, step for step.
+static_assert(std::ranges::equal(
+    MergeSteps<RunListSteps<std::size_t, 4>, SpanSteps<std::size_t, Boole>,
+               std::logical_and<bool>>{
+        {(dedekind::category::run<2>(0uz, 2uz) |
+          dedekind::category::run<2>(4uz, 6uz))},
+        {Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
+                           Bound<std::size_t>{5, Strictness::Strict}}},
+        {}}
+        .steps(),
+    RunListSteps<std::size_t, 8>{((dedekind::category::run<2>(0uz, 2uz) |
+                                   dedekind::category::run<2>(4uz, 6uz)) &
+                                  dedekind::category::run<4>(1uz, 5uz))}
+        .steps()));
 
 /** @brief The decidable sets of an L-valued source: the α-cut
  *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
@@ -955,6 +1024,12 @@ struct MapSteps {
  *  read as the cyclic group ℤ/2^w it is: @f$x \mapsto x + k@f$ wraps at the
  *  word's end, so a run through the end splits in two.  It is the image of
  *  the set under the translation, and the preimage under the inverse one.
+ *  The other reading of the same word, as the @b chain, is Pst's
+ *  @c category::preimage(shift(d), @c s) on a @c RunList: the translation as a
+ *  map of the chain, on its extent, where the word does not wrap; the two
+ *  agree exactly where nothing lies below @c d, and differ by the segment at
+ *  the word's top otherwise (witnessed in @c runs_test).  Two arrows on one
+ *  word; the chain's is the derivative's (@c :automaton), the group's is this.
  *  @tparam V an unsigned word.  @tparam L the species.  @param s the set.
  *  @param k the shift. */
 export template <std::unsigned_integral V, typename L>
@@ -982,6 +1057,37 @@ Runs<V, L> translate(const Runs<V, L>& s, V k) {
   }
   return Runs<V, L>(out);
 }
+/** @brief @c translate as the action it is: the word's additive group
+ *  @f$(V, +)@f$ acting on its run lists, @c translate(s, a + b) @c =
+ *  @c translate(translate(s, a), b), the wrap included, since the group's
+ *  @c + wraps with it (@c IsRightAction, the law in @c runs_test).  The chain
+ *  reading, Pst's preimage along a shift on the extent, is no action: there
+ *  the preimage truncates where @c + wraps (@c category:runs), which is why
+ *  the two are two arrows.  @tparam V the word.  @tparam L the species. */
+export template <std::unsigned_integral V, typename L>
+struct Translate {
+  Runs<V, L> operator()(Runs<V, L> s, V k) const {
+    return translate(std::move(s), k);
+  }
+};
+}  // namespace dedekind::order
+namespace dedekind::category {
+template <std::unsigned_integral V, typename L>
+struct acting_monoid<dedekind::order::Translate<V, L>> {
+  using type = std::plus<V>;
+};
+}  // namespace dedekind::category
+namespace dedekind::order {
+static_assert(IsRightAction<Translate<std::size_t, Boole>,
+                            Runs<std::size_t, Boole>, std::size_t>,
+              "the cyclic translate is an action of the word's additive group "
+              "on its run lists");
+// The chain reading exists upstream and is a set term here: Pst's preimage
+// along a shift is a run list, so the order's ext, merges and equality read
+// it beside translate (the type-checked half of the two readings' tie).
+static_assert(IsStepSource<decltype(steps(dedekind::category::preimage(
+                  dedekind::category::shift(1uz),
+                  dedekind::category::RunList<std::size_t, 2>{})))>);
 
 /** @section runs__Formal_Verification */
 namespace detail_runs_witness {

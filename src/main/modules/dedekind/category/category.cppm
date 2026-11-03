@@ -111,9 +111,13 @@ export import :cartesian_bicategory;  // Frobenius spider: Copy/Merge/Tensor,
                                       // meet = right adjoint of the diagonal
                                       // (Δ ⊣ ∧); reusable downstream (#946)
 export import :periodic;       // Periodic arrows on the counts and their counts
+export import :runs;           // Run lists over a finite chain: the canonical
+                               // form of a decidable set on it (#1135)
 export import :comprehension;  // Monad comprehensions: where, select, the
                                // queries of SQL (the Jlt paper's tensor
                                // exhibit, #1104)
+export import :automaton;      // The matcher specialised to a set of words:
+                               // the minimal automaton, canonical (#1135)
 export import :monad;
 export import :kleisli;
 

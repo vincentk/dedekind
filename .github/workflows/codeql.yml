@@ -23,8 +23,17 @@ jobs:
       matrix:
         # C/C++ is parsed without a build.  CodeQL does not read C++20
         # modules yet, which hold the library: the scan covers the files
-        # around them (tests, bindings) until it does.
-        language: [actions, c-cpp, python]
+        # around them (tests, bindings) until it does.  Without the modules
+        # and headers the quality queries misread that code (an unused
+        # "static variable" in a binding or a test case), so C/C++ runs the
+        # security queries only, until modules are read (#1139).
+        include:
+          - language: actions
+            queries: security-and-quality
+          - language: c-cpp
+            queries: security-extended
+          - language: python
+            queries: security-and-quality
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
     - name: Initialize CodeQL
@@ -32,7 +41,7 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: none
-        queries: security-and-quality
+        queries: ${{ matrix.queries }}
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
       with:

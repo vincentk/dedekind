@@ -10,6 +10,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <cstddef>
 #include <limits>
 #include <ranges>
 
@@ -26,6 +27,10 @@ using I = Interval<int>;
 constexpr auto closed = Strictness::NonStrict;
 constexpr auto strict = Strictness::Strict;
 constexpr I span(int lo, int hi) { return I::bounded(lo, closed, hi, closed); }
+/** @brief @f$[lo, hi)@f$ on the counts, as category's runs are. */
+constexpr Interval<std::size_t> half_open(std::size_t lo, std::size_t hi) {
+  return Interval<std::size_t>::bounded(lo, closed, hi, strict);
+}
 
 // [0, 10] without 5, five ways: terms, stored as constants.
 constexpr auto a = span(0, 10) & ~I::point(5);
@@ -207,4 +212,89 @@ TEST_CASE(
   CHECK(structural_order(lt5, ne2) < 0);
   CHECK(structural_order(ne2, sq) < 0);
   CHECK(structural_order(sq, sq) == 0);
+}
+
+// Where Pst's run list applies, on a finite chain with Boolean values, the
+// order's run list agrees with it (#1135): category's RunList, bounded and on
+// the stack, and order's Runs, over any chain and stored in a map, hold the
+// same sets, with the same runs, under union and intersection.
+TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
+          "[order][runs][pst]") {
+  const auto x = half_open(0, 2) | half_open(4, 6) | half_open(8, 9);
+  const auto y = half_open(1, 8);
+  const auto rx = dedekind::category::reduced(
+      dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                  dedekind::category::run<2>(4uz, 6uz)) |
+      dedekind::category::run<4>(8uz, 9uz));
+  const auto ry = dedekind::category::run<2>(1uz, 8uz);
+  const auto both = dedekind::category::reduced(rx & ry);
+  const auto either = dedekind::category::reduced(rx | ry);
+  for (std::size_t v = 0; v < 12; ++v) {
+    CHECK(ext(x & y)(v) == both(v));
+    CHECK(ext(x | y)(v) == either(v));
+  }
+  // Equal as sets across the two vocabularies, the order's extensional
+  // equality reading both normal forms; between two run lists, the run
+  // list's own == still decides, by its steps.
+  STATIC_CHECK(dedekind::category::run<2>(1uz, 8uz) == half_open(1, 8));
+  STATIC_CHECK(!(dedekind::category::run<2>(1uz, 8uz) == half_open(1, 9)));
+  STATIC_CHECK(std::same_as<decltype(ry == ry), bool>);
+  // and read by the order's machinery, the same stored run lists
+  CHECK(ext(both) == ext(x & y));
+  CHECK(ext(either) == ext(x | y));
+  CHECK(std::ranges::distance(runs(steps(x & y))) * 2 ==
+        static_cast<std::ptrdiff_t>(both.steps.size()));
+  CHECK(std::ranges::distance(runs(steps(x | y))) * 2 ==
+        static_cast<std::ptrdiff_t>(either.steps.size()));
+}
+
+// Two readings of one word (#1138): the chain's, Pst's preimage along a shift
+// on the extent (category), and the group's, the order's translate on the
+// cyclic word ℤ/2^w.  The preimage under x ↦ x + 3 is the image under
+// x ↦ x − 3: the two agree exactly where nothing lies below 3, and differ by
+// the word's top segment otherwise, the elements whose preimage wraps.
+TEST_CASE(
+    "order:runs: the chain's preimage and the cyclic translate agree "
+    "off the wrap",
+    "[order][runs][pst]") {
+  using dedekind::category::preimage;
+  using dedekind::category::run;
+  using dedekind::category::shift;
+  constexpr std::size_t top = std::numeric_limits<std::size_t>::max();
+  const std::size_t minus_three = 0uz - 3uz;
+  // [5, 8): nothing below 3, one set either way, [2, 5)
+  CHECK(translate(ext(run<4>(5uz, 8uz)), minus_three) ==
+        ext(preimage(shift(3uz), run<4>(5uz, 8uz))));
+  // [2, 5): the element 2 lies below 3; its preimage wraps to the top, which
+  // the group's translate holds and the chain's preimage, on its extent,
+  // does not; below the top they agree, [0, 2)
+  const auto cyclic = translate(ext(run<4>(2uz, 5uz)), minus_three);
+  const auto chain = ext(preimage(shift(3uz), run<4>(2uz, 5uz)));
+  CHECK(cyclic(top));
+  CHECK_FALSE(chain(top));
+  CHECK(cyclic(0uz));
+  CHECK(cyclic(1uz));
+  CHECK_FALSE(cyclic(2uz));
+  CHECK(chain(0uz));
+  CHECK(chain(1uz));
+  CHECK_FALSE(chain(2uz));
+  CHECK_FALSE(cyclic == chain);
+  // The group's translate is the closed form of the general preimage, P∘f,
+  // on the WHOLE word: translate(s, k)(x) = s(x − k), the shift wrapping with
+  // the word.  The chain's closed form (category) agrees with P∘f only on
+  // the extent, witnessed there.
+  const auto s = ext(run<4>(2uz, 5uz));
+  const auto composite =
+      dedekind::category::preimage(shift(minus_three), s);  // x ↦ s(x − 3)
+  for (const std::size_t x : {0uz, 1uz, 2uz, 4uz, 5uz, 7uz, top - 1, top}) {
+    CHECK(translate(s, 3uz)(x) == composite(x));
+  }
+  // and an action of the word's group, the wrap included: by a, then by b,
+  // is by a + b, even where a + b wraps past the top
+  const Translate<std::size_t, Boole> act{};
+  const std::size_t by_first = top - 1, by_then = 4uz;  // their sum wraps to 2
+  CHECK(act(act(s, by_first), by_then) ==
+        act(s, static_cast<std::size_t>(by_first + by_then)));
+  CHECK(act(s, static_cast<std::size_t>(by_first + by_then)) ==
+        translate(s, 2uz));
 }

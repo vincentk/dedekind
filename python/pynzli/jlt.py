@@ -56,6 +56,39 @@ True
 >>> occurrences(power(nucleotides, 12), sites(6))  # the same count
 1835008
 
+The second panel of Listing 5 (#1135) scans **one** genome, the caller's
+``bytes``, read where they are.  Two lines count the same sites: the query,
+each window tested against the section; and the plan, the matcher
+specialised to the section's words (``automaton``, the minimal automaton,
+built here at run time by the function C++ runs at compile time).  A plan
+is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
+
+.. [listing5:one-genome]
+
+>>> genome = b"TTGAATTCAAGCTTA"
+>>> count(genome >> windows(6) >> where(sites(6)))
+2
+>>> plan = automaton(sites(6))
+>>> count(genome >> rank(nucleotides) >> matches(plan))
+2
+
+.. [/listing5:one-genome]
+
+>>> plan
+automaton(states=277, accepting=64)
+>>> collect(genome >> rank(nucleotides) >> matches(plan))  # where a site ends
+[7, 13]
+>>> collect(genome >> windows(6) >> where(sites(6)))  # where its window begins
+[2, 8]
+>>> sites(6)(b"GAATTC"), sites(6)(b"GAATTA"), sites(6)(b"GAATT")
+(True, False, False)
+>>> count(b"GAANTTC" >> rank(nucleotides) >> matches(plan))  # N breaks it
+0
+>>> count(b"GAANTTC" >> rank(nucleotides) >> matches(plan, Holes.skip))
+1
+>>> plan == automaton(sites(6))
+True
+
 Arrows are **extensional** (functions): ``id(T) >> f`` and ``f`` are equal on
 every input.  Composability (``cod(f) == dom(g)``) is enforced structurally --
 composing across objects raises.  Structural reduction (``simplify`` / ``cata``)
@@ -67,7 +100,9 @@ is *intensional* and lives on the C++ side; it is vacuous here.  ``id`` /
 # `_jlt` is the exhibit's own private native extension module (pynzli._jlt),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
 from ._jlt import alphabet
+from ._jlt import automaton
 from ._jlt import cod
+from ._jlt import collect
 from ._jlt import count
 from ._jlt import count_factors
 from ._jlt import cylinder
@@ -75,25 +110,32 @@ from ._jlt import dom
 from ._jlt import exact_count
 from ._jlt import exact_occurrences
 from ._jlt import free_monoid
+from ._jlt import Holes
 from ._jlt import id
 from ._jlt import is_involution
 from ._jlt import is_square
 from ._jlt import join
 from ._jlt import letter_map
+from ._jlt import matches
 from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
 from ._jlt import pred
+from ._jlt import rank
 from ._jlt import refl
 from ._jlt import reverse
 from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
+from ._jlt import where
 from ._jlt import window
+from ._jlt import windows
 
 __all__ = [
     "alphabet",
+    "automaton",
     "cod",
+    "collect",
     "count",
     "count_factors",
     "cylinder",
@@ -101,19 +143,24 @@ __all__ = [
     "exact_count",
     "exact_occurrences",
     "free_monoid",
+    "Holes",
     "id",
     "is_involution",
     "is_square",
     "join",
     "letter_map",
+    "matches",
     "occurrences",
     "pack",
     "power",
     "pred",
+    "rank",
     "refl",
     "reverse",
     "rotate",
     "succ",
     "symmetric",
+    "where",
     "window",
+    "windows",
 ]
