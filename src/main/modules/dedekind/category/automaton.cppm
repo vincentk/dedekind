@@ -5,6 +5,7 @@
  *        minimal automaton of @f$\Sigma^* L@f$, a value computed by one
  *        @c constexpr function at either binding time.
  *
+ * @section automaton__Derivatives The matcher as a coalgebra
  * A matcher reads a text letter by letter and reports where a word of @c L
  * ends.  Its state is what remains to be read for a match: a set of words,
  * the derivative of @f$\Sigma^* L@f$ by the text so far (Brzozowski 1964).
@@ -36,6 +37,25 @@
  * @c Maybe monad and yields nothing where a claim fails, at either binding
  * time.  At compile time a large set may exceed the evaluator's step
  * budget; the same call then runs at run time (#1135).
+ *
+ * @section automaton__Binding_Times One function, two binding times
+ * The plan is a value.  A @c constexpr variable forces it at compile time,
+ * where a single site's plan (Knuth, Morris and Pratt's) is a constant and a
+ * set of 64 sites exceeds the evaluator's budget; the same function builds
+ * either at run time, from Python through @c pynzli.  Consel and Danvy
+ * (1989) obtain the single-site automaton by partially evaluating a naive
+ * matcher in its pattern; here the specialisation is the derivative's.
+ *
+ * Wikipedia: Brzozowski derivative, Aho–Corasick algorithm,
+ * Knuth–Morris–Pratt algorithm, DFA minimization.
+ *
+ * @note "In this paper the notion of a derivative of a regular expression
+ *       is introduced and the properties of derivatives are discussed.  This
+ *       leads, in a very natural way, to the construction of a state diagram
+ *       from a regular expression containing any number of logical
+ *       operators."
+ *       -- Janusz A. Brzozowski, *Derivatives of Regular Expressions*,
+ *          Journal of the ACM 11(4), 1964, abstract.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -73,7 +93,7 @@ namespace dedekind::category {
  *  where a word of the set has just been read.  @tparam Sigma the letters.
  *  @tparam Q the bound on the states. */
 export template <std::size_t Sigma, std::size_t Q>
-  requires(Q <= 65536)
+  requires(Q >= 1 && Q <= 65536)  // the start state, and 16-bit indices
 struct Automaton {
   AtMost<std::array<std::uint16_t, Sigma>, Q> next;
   AtMost<bool, Q> accepting;
@@ -219,6 +239,8 @@ export template <std::size_t Sigma, std::size_t P, std::size_t K, std::size_t Q,
 constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
                                                std::type_identity_t<N> length) {
   if (length == 0 || length > P) return {};
+  // the codes of the words must fit the word, σ^length and all below it
+  if (!detail_periodic::checked_power(static_cast<N>(Sigma), length)) return {};
   using B = detail_automaton::Build<Sigma, N, P, K, Q>;
   const B start{
       AtMost<detail_automaton::Residual<N, P, K>, Q>{}.with({}), {}, {}};
@@ -350,28 +372,32 @@ struct MatchStep {
   Automaton<Sigma, Q> plan;
   Holes holes;
   V letters;
-  template <IsCountWord N>
-  constexpr std::uint16_t after(std::uint16_t at, N letter) const {
-    return plan.next.items[at][letter];
+  using Yield = std::optional<std::pair<Maybe<std::size_t>, Cursor>>;
+  /** @brief A hole at @c c: no match ends here; the run restarts, or goes
+   *  on as it was. */
+  constexpr Yield hole(const Cursor& c) const {
+    return std::pair{
+        Maybe<std::size_t>{},
+        Cursor{holes == Holes::skip ? c.at : std::uint16_t{0}, c.position + 1}};
   }
-  constexpr std::optional<std::pair<Maybe<std::size_t>, Cursor>> operator()(
-      const Cursor& c) const {
+  /** @brief A letter at @c c: the transition, where the letter is one of
+   *  the plan's @c Sigma; a rank past them (an alphabet wider than the
+   *  plan's) is a hole, never a row past the table. */
+  template <IsCountWord N>
+  constexpr Yield letter(const Cursor& c, N rank) const {
+    if (rank >= static_cast<N>(Sigma)) return hole(c);
+    return hit(plan.next.items[c.at][rank], c.position);
+  }
+  constexpr Yield operator()(const Cursor& c) const {
     if (c.position >= static_cast<std::size_t>(std::ranges::size(letters)))
       return std::nullopt;
-    const auto letter = std::ranges::begin(
+    const auto x = std::ranges::begin(
         letters)[static_cast<std::ranges::range_difference_t<V>>(c.position)];
-    const Cursor next{c.at, c.position + 1};
     if constexpr (detail_comprehension::IsMaybe<
-                      std::remove_cvref_t<decltype(letter)>>) {
-      if (!letter) {
-        // a hole: no match ends here; the run restarts or goes on as it was
-        return std::pair{Maybe<std::size_t>{},
-                         Cursor{holes == Holes::skip ? c.at : std::uint16_t{0},
-                                next.position}};
-      }
-      return hit(after(c.at, *letter), c.position);
+                      std::remove_cvref_t<decltype(x)>>) {
+      return x ? letter(c, *x) : hole(c);
     } else {
-      return hit(after(c.at, letter), c.position);
+      return letter(c, x);
     }
   }
   constexpr std::pair<Maybe<std::size_t>, Cursor> hit(std::uint16_t to,

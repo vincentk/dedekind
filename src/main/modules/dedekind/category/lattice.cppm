@@ -660,19 +660,21 @@ struct same_domain
  *  a @c Meet or @c Join has it where both operands do and share a domain, a
  *  @c Not where its operand does.  One rule for every carrier that lifts a
  *  leaf property over the nodes: the opt-in to @c | and @c & below, and the
- *  set objects of @c sets (@c is_set_object).  @tparam Leaf the property of
- *  a leaf.  @tparam T the term. */
-export template <template <typename> class Leaf, typename T>
-struct over_nodes : std::bool_constant<Leaf<T>::value> {};
-template <template <typename> class Leaf, typename A, typename B>
+ *  set objects of @c sets (@c is_set_object).  @tparam Leaf the property,
+ *  a policy type with @c Leaf::holds<T>, a @c bool per leaf (a type, not a
+ *  template-template parameter, which the posture keeps out of exported
+ *  signatures).  @tparam T the term. */
+export template <typename Leaf, typename T>
+struct over_nodes : std::bool_constant<Leaf::template holds<T>> {};
+template <typename Leaf, typename A, typename B>
 struct over_nodes<Leaf, Meet<A, B>>
     : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
                        detail_lattice_nodes::same_domain<A, B>> {};
-template <template <typename> class Leaf, typename A, typename B>
+template <typename Leaf, typename A, typename B>
 struct over_nodes<Leaf, Join<A, B>>
     : std::conjunction<over_nodes<Leaf, A>, over_nodes<Leaf, B>,
                        detail_lattice_nodes::same_domain<A, B>> {};
-template <template <typename> class Leaf, typename A>
+template <typename Leaf, typename A>
 struct over_nodes<Leaf, Not<A>> : over_nodes<Leaf, A> {};
 /** @brief A carrier's opt-in: its predicates' @c | and @c & are the
  *  lattice's nodes.  False by default; a node over two that build does,
@@ -686,15 +688,22 @@ struct over_nodes<Leaf, Not<A>> : over_nodes<Leaf, A> {};
  *  forms meet is not yet uniform (#1138). */
 export template <typename T>
 struct builds_lattice_nodes : std::false_type {};
+namespace detail_lattice_nodes {
+/** @brief The opt-in as a leaf property, for @c over_nodes. */
+struct BuildsNodes {
+  template <typename T>
+  static constexpr bool holds = builds_lattice_nodes<T>::value;
+};
+}  // namespace detail_lattice_nodes
 template <typename A, typename B>
 struct builds_lattice_nodes<Meet<A, B>>
-    : over_nodes<builds_lattice_nodes, Meet<A, B>> {};
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Meet<A, B>> {};
 template <typename A, typename B>
 struct builds_lattice_nodes<Join<A, B>>
-    : over_nodes<builds_lattice_nodes, Join<A, B>> {};
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Join<A, B>> {};
 template <typename A>
-struct builds_lattice_nodes<Not<A>> : over_nodes<builds_lattice_nodes, Not<A>> {
-};
+struct builds_lattice_nodes<Not<A>>
+    : over_nodes<detail_lattice_nodes::BuildsNodes, Not<A>> {};
 namespace detail_lattice_nodes {
 /** @brief Two terms whose @c | and @c & build nodes: both opted in, on
  *  one domain. */

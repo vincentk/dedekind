@@ -438,10 +438,19 @@ void bind_matcher(nb::module_ module_) {
       module_, "Where", "where(section): the windows the section holds.");
   nb::class_<jlt::RankedText>(module_, "RankedText",
                               "A genome read as letters, where it is.")
-      .def("__rshift__",
-           [](const jlt::RankedText& t, const jlt::MatchesStage& m) {
-             return jlt::MatchQuery{t, m};
-           });
+      .def("__rshift__", [](const jlt::RankedText& t,
+                            const jlt::MatchesStage& m) {
+        // the plan reads the menu's four letters: a wider alphabet's
+        // ranks would name rows the plan has not (the matcher treats
+        // them as holes; the boundary says so instead)
+        if (const auto letters = t.ranked.letters.members.count(); letters != 4)
+          throw nb::value_error(
+              ("matches: the plan reads an alphabet of 4 letters; "
+               "rank() was given one of " +
+               std::to_string(letters))
+                  .c_str());
+        return jlt::MatchQuery{t, m};
+      });
   nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
                                "A genome's windows, where it is.")
       .def("__rshift__",
@@ -475,8 +484,12 @@ void bind_matcher(nb::module_ module_) {
       "rank(alphabet): a byte's rank in the alphabet (A < C < G < T is 0, 1, "
       "2, 3), a hole for any other byte.");
   module_.def(
-      "windows", [](std::size_t n) { return dedekind::category::windows(n); },
-      nb::arg("n"), "windows(n): each position's window of n letters.");
+      "windows",
+      [](std::size_t n) {
+        if (n == 0) throw nb::value_error("windows: a window has a letter");
+        return dedekind::category::windows(n);
+      },
+      nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
   module_.def(
       "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
       nb::arg("section"),

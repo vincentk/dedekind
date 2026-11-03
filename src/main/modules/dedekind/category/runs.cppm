@@ -5,6 +5,7 @@
  *        positions where its membership changes, the canonical form of a
  *        decidable set on a chain, bounded by its type and on the stack.
  *
+ * @section runs__Canonical_Form One set, one run list
  * A run list is a predicate on the counts, an arrow @f$N \to \mathbb{B}@f$,
  * held as its steps: the strictly increasing positions where its value
  * flips, from outside at 0.  The steps @c {2, 5, 7, 9} are the set
@@ -18,7 +19,9 @@
  * fire first; the residual pair of leaves takes the run lists' own sweep,
  * injected as the reducer's leaf-combine (@c RunCombine).  Precomposition
  * with a translation, @c shift(d) @c >> @c s, is the preimage of @c s along
- * it, again a run list.
+ * it on the translation's extent, the counts below the word's top less
+ * @c d, where the word does not wrap (the extent @c :periodic gives the
+ * shift's law): again a run list.
  *
  * Over a finite chain only, by the type's bound @c K on the steps: Pst's
  * run list.  The order module's @c Runs, valued in any species over chains
@@ -27,6 +30,15 @@
  * merges, cuts and extensional equality read it, and a run list and an
  * interval term are compared as sets.  The step-source vocabulary they
  * share is to move here, over finite chains (#1138).
+ *
+ * Wikipedia: Run-length encoding, Step function, Dedekind cut.
+ *
+ * @note "To denote the subsequence of natural numbers 2, 3, ..., 12 without
+ *       the pernicious three dots, four conventions are open to us."
+ *       -- Edsger W. Dijkstra, *Why numbering should start at zero*, EWD831
+ *          (1982).  The convention he chooses, @f$2 \le i < 13@f$, is a run
+ *          list's step: the order's run lists (@c order:runs) open with the
+ *          same words, the two being one form.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -324,8 +336,14 @@ constexpr Maybe<RunList<N, K>> narrowed(const RunList<N, J>& r) {
 }
 
 /** @brief @c shift(d) @c >> @c s: @f$x \mapsto s(x + d)@f$, the preimage
- *  of @c s along the translation, a run list again.  @param t the
- *  translation.  @param s the run list.  @return the preimage. */
+ *  of @c s along the translation on its extent, the counts @f$x@f$ with
+ *  @f$x + d@f$ below the word's top (@c extent in @c :periodic: a shift's
+ *  law holds where the word does not wrap).  The elements of @c s below
+ *  @c d, whose preimages would wrap past the top, lie outside it and are
+ *  not reported: the derivative (@c :automaton) meets its operand with the
+ *  letter's interval first, so none exist there.  @param t the
+ *  translation.  @param s the run list.  @return the preimage, on the
+ *  extent. */
 export template <IsCountWord N, std::size_t K>
 constexpr RunList<N, K> operator>>(const Shift<N>& t, const RunList<N, K>& s) {
   const AtMost<N, K> start =
@@ -380,8 +398,10 @@ static_assert(detail_runs::restricted(((run<2>(0uz, 2uz) | run<2>(4uz, 6uz)) |
 static_assert(narrowed<4>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value() &&
               !narrowed<2>((run<2>(0uz, 1uz) | run<2>(5uz, 6uz))).has_value());
 // The preimage along a translation: [2, 5) seen from 3 on is [0, 2), and
-// from 1 on is [1, 4).
+// from 1 on is [1, 4); [0, 1) seen from 1 on is empty on the extent (its
+// preimage, the word's top, lies past it).
 static_assert((shift(3uz) >> run<4>(2uz, 5uz)) == run<4>(0uz, 2uz) &&
-              (shift(1uz) >> run<4>(2uz, 5uz)) == run<4>(1uz, 4uz));
+              (shift(1uz) >> run<4>(2uz, 5uz)) == run<4>(1uz, 4uz) &&
+              (shift(1uz) >> run<2>(0uz, 1uz)) == RunList<std::size_t, 2>{});
 
 }  // namespace dedekind::category

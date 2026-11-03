@@ -557,13 +557,15 @@ concept IsSetObjectLeaf =
     };
 
 /** @brief A leaf that is a set object, the property @c over_nodes lifts. */
-template <typename T>
-struct set_object_leaf : std::bool_constant<IsSetObjectLeaf<T>> {};
+struct SetObjectLeaf {
+  template <typename T>
+  static constexpr bool holds = IsSetObjectLeaf<T>;
+};
 /** @brief A set object: a leaf, or a node over set objects on one domain,
  *  by @c category's @c over_nodes, the rule its opt-in @c | and @c & follow
  *  too. */
 template <typename T>
-struct is_set_object : dedekind::category::over_nodes<set_object_leaf, T> {};
+struct is_set_object : dedekind::category::over_nodes<SetObjectLeaf, T> {};
 
 /** @brief An @b object of the category Set: a leaf carrying the subobject
  *  surface and its legs, @b or a lattice node --- @c Meet / @c Join / @c Not

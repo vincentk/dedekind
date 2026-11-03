@@ -48,6 +48,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <optional>
@@ -177,8 +178,9 @@ constexpr Where<P> where(P p) {
  *  @c r @c >> @c f is @c std::views::transform, @c r @c >> @c windows(n)
  *  is @c std::views::slide.  A spelling in the arrow vocabulary, not a new
  *  type: the types are the standard's, as the witnesses below check.  A
- *  view is taken by value, as Rule 1 asks; a container is read through
- *  @c std::views::all.  The library's own walks keep their @c >>. */
+ *  view is taken by value, as Rule 1 asks; a container is read through a
+ *  @c std::span or @c std::views::all of it, by the caller, so no stage
+ *  borrows a temporary.  The library's own walks keep their @c >>. */
 namespace detail_comprehension {
 template <typename R>
 inline constexpr bool is_walk_v = false;
@@ -187,10 +189,7 @@ inline constexpr bool is_walk_v<unfold_view<S, Coalg>> = true;
 /** @brief A view of the caller's, not one of the library's walks. */
 template <typename R>
 concept IsForeignView = std::ranges::view<R> && !is_walk_v<R>;
-/** @brief A container of the caller's, read in place. */
-template <typename R>
-concept IsForeignContainer =
-    std::ranges::range<const R> && !std::ranges::view<R>;
+
 }  // namespace detail_comprehension
 /** @brief @c r @c >> @c f on a range of the caller's: @c f on each
  *  element, which is @c std::views::transform.  @param r the view.
@@ -200,21 +199,20 @@ export template <detail_comprehension::IsForeignView R, IsArrow F>
 constexpr auto operator>>(R r, F f) {
   return std::views::transform(std::move(r), std::move(f));
 }
-/** @param r a container, read in place.  @param f the arrow.  @return the
- *  standard's transform view over it. */
-export template <detail_comprehension::IsForeignContainer R, IsArrow F>
-  requires std::invocable<const F&, std::ranges::range_reference_t<const R>>
-constexpr auto operator>>(const R& r, F f) {
-  return std::views::transform(std::views::all(r), std::move(f));
-}
+
 namespace detail_comprehension {
+/** @brief Refuses a window of no letters, or wider than a range's distance
+ *  type counts: the standard's @c slide has no such view. */
+[[noreturn]] constexpr void refuse_window_width() { std::abort(); }
 #ifdef __cpp_lib_ranges_slide
 /** @brief The windows of @c n: the standard's @c slide. */
 template <std::ranges::view R>
   requires std::ranges::forward_range<R>
 constexpr auto sliding(R r, std::size_t n) {
-  return std::views::slide(std::move(r),
-                           static_cast<std::ranges::range_difference_t<R>>(n));
+  using D = std::ranges::range_difference_t<R>;
+  if (n == 0 || n > static_cast<std::size_t>(std::numeric_limits<D>::max()))
+    refuse_window_width();
+  return std::views::slide(std::move(r), static_cast<D>(n));
 }
 #else
 // libc++ (Homebrew LLVM 23, Apple) ships no std::views::slide yet, where
@@ -234,9 +232,11 @@ template <std::ranges::view R>
   requires std::ranges::random_access_range<R> && std::ranges::sized_range<R>
 constexpr auto sliding(R r, std::size_t n) {
   using D = std::ranges::range_difference_t<R>;
+  if (n == 0 || n > static_cast<std::size_t>(std::numeric_limits<D>::max()))
+    refuse_window_width();
   const D size = static_cast<D>(std::ranges::size(r));
   const D w = static_cast<D>(n);
-  const D windows = w > 0 && w <= size ? size - w + 1 : D{0};
+  const D windows = w <= size ? size - w + 1 : D{0};
   return std::views::transform(std::views::iota(D{0}, windows),
                                SubrangeAt<R>{std::move(r), w});
 }
@@ -250,8 +250,11 @@ constexpr auto sliding(R r, std::size_t n) {
 export struct Windows {
   std::size_t n;
 };
-/** @param n the window's length.  @return the stage. */
-export constexpr Windows windows(std::size_t n) { return {n}; }
+/** @param n the window's length, at least one.  @return the stage. */
+export constexpr Windows windows(std::size_t n) {
+  if (n == 0) detail_comprehension::refuse_window_width();
+  return {n};
+}
 /** @param r a view of the caller's.  @param w the stage.  @return the
  *  standard's slide view over it. */
 export template <detail_comprehension::IsForeignView R>
@@ -259,13 +262,7 @@ export template <detail_comprehension::IsForeignView R>
 constexpr auto operator>>(R r, Windows w) {
   return detail_comprehension::sliding(std::move(r), w.n);
 }
-/** @param r a container, read in place.  @param w the stage.  @return the
- *  standard's slide view over it. */
-export template <detail_comprehension::IsForeignContainer R>
-  requires std::ranges::forward_range<const R>
-constexpr auto operator>>(const R& r, Windows w) {
-  return detail_comprehension::sliding(std::views::all(r), w.n);
-}
+
 // The functor's laws, read on a range of the caller's: the identity maps
 // it to itself, and mapping twice is mapping the composite once.
 namespace detail_comprehension {
