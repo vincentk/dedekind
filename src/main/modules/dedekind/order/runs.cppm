@@ -501,24 +501,6 @@ static_assert(std::ranges::equal(
         Span<std::size_t>{Bound<std::size_t>{0, Strictness::NonStrict},
                           Bound<std::size_t>{3, Strictness::Strict}}}
         .steps()));
-// The two vocabularies mix: Pst's run list merged with the order's interval
-// under the meet is the run list's own meet, step for step.
-static_assert(std::ranges::equal(
-    MergeSteps<RunListSteps<std::size_t, 4>, SpanSteps<std::size_t, Boole>,
-               std::logical_and<bool>>{
-        {dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
-                                     dedekind::category::run<2>(4uz, 6uz))},
-        {Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
-                           Bound<std::size_t>{5, Strictness::Strict}}},
-        {}}
-        .steps(),
-    RunListSteps<std::size_t, 8>{
-        dedekind::category::reduced(
-            dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
-                                        dedekind::category::run<2>(4uz, 6uz)) &
-            dedekind::category::run<4>(1uz, 5uz))}
-        .steps()));
-
 /** @brief A source read through a reference: a stored run list inside a term
  *  is traversed where it is, not copied.  @tparam S the source. */
 export template <typename S>
@@ -643,6 +625,24 @@ struct MergeSteps {
                           first());
   }
 };
+
+// The two vocabularies mix: Pst's run list merged with the order's interval
+// under the meet is the run list's own meet, step for step.
+static_assert(std::ranges::equal(
+    MergeSteps<RunListSteps<std::size_t, 4>, SpanSteps<std::size_t, Boole>,
+               std::logical_and<bool>>{
+        {dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                     dedekind::category::run<2>(4uz, 6uz))},
+        {Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
+                           Bound<std::size_t>{5, Strictness::Strict}}},
+        {}}
+        .steps(),
+    RunListSteps<std::size_t, 8>{
+        dedekind::category::reduced(
+            dedekind::category::reduced(dedekind::category::run<2>(0uz, 2uz) |
+                                        dedekind::category::run<2>(4uz, 6uz)) &
+            dedekind::category::run<4>(1uz, 5uz))}
+        .steps()));
 
 /** @brief The decidable sets of an L-valued source: the α-cut
  *  @f$\{\chi \ge \ell\}@f$ and the fibre @f$\chi^{-1}(\ell)@f$.
