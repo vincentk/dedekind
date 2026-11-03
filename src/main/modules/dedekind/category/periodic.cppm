@@ -52,6 +52,7 @@ module;
 #include <numeric>
 #include <optional>  // std::lcm: the period of a join or a meet
 #include <ranges>
+#include <span>
 #include <string_view>  // the letters of an alphabet, as written
 #include <tuple>        // a letter and its image, zipped
 #include <type_traits>
@@ -1337,6 +1338,10 @@ static_assert(
  *  permutation.  @tparam T the arrow on the letters. */
 export template <typename P, typename S, IsArrow T>
 struct Symmetric {
+  /** @brief An arrow, by name: from a window of letters, read where it is,
+   *  to whether the section holds it; any word is taken. */
+  using Domain = std::span<const Dom<T>>;
+  using Codomain = bool;
   P power;
   S sigma;
   T tau;

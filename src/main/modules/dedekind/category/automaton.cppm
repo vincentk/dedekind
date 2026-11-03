@@ -59,8 +59,9 @@ import :lattice;   // Join, Meet: a union, a restriction, as the lattice's nodes
 import :periodic;  // AtMost, shift, Symmetric, Power: a section of words
 import :runs;      // RunList, run, reduced, narrowed
 import :total;     // power: σ^k by squaring
-import :action;    // fold: a plain fold, the scan
+import :action;    // fold: a plain fold
 import :kleisli;   // fold in the Kleisli category: the steps that may fail
+import :comprehension;  // count, take, collect: the matches are a query
 
 namespace dedekind::category {
 
@@ -202,28 +203,6 @@ struct Walk {
     return next;
   }
 };
-/** @brief One letter of a scan: the state after it, and the matches so far
- *  with one more where it accepts. */
-template <std::size_t Sigma, std::size_t Q>
-struct Scan {
-  Automaton<Sigma, Q> plan;
-  struct State {
-    std::uint16_t at{0};
-    std::size_t matches{0};
-  };
-  template <IsCountWord N>
-  constexpr State operator()(const State& s, N letter) const {
-    const std::uint16_t to = plan.next.items[s.at][letter];
-    return {to, s.matches + (plan.accepting.items[to] ? 1uz : 0uz)};
-  }
-  /** @brief A hole, a byte outside the alphabet: no word of the set holds
-   *  it, so it breaks every match, the scan back at its start.  A caller
-   *  who would ignore holes drops them first. */
-  template <IsCountWord N>
-  constexpr State operator()(const State& s, const Maybe<N>& letter) const {
-    return letter ? (*this)(s, *letter) : State{0, s.matches};
-  }
-};
 }  // namespace detail_automaton
 
 /** @brief The matcher specialised to a set of words of one length: the
@@ -356,17 +335,82 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
   return automaton<Sigma, P, K, Q>(*words, sites.power.length);
 }
 
-/** @param plan a matcher.  @param letters a text, as the letters' indices,
- *  or as bytes read through @c rank(alphabet), holes breaking a match; a
- *  view, taken by value as Rule 1 asks, a container passed as
- *  @c std::views::all of it, so the text stays the caller's, never copied.
- *  @return how many times a word of the plan's set ends in it. */
-export template <std::size_t Sigma, std::size_t Q, std::ranges::view Letters>
-constexpr std::size_t scan(const Automaton<Sigma, Q>& plan, Letters letters) {
-  return fold(std::move(letters),
-              typename detail_automaton::Scan<Sigma, Q>::State{},
-              detail_automaton::Scan<Sigma, Q>{plan})
-      .matches;
+/** @brief What a byte outside the alphabet does to a match: break it, the
+ *  matcher back at its start (no word of the set holds the byte), or be
+ *  skipped, the matcher as it was.  Never a match itself. */
+export enum class Holes : bool { break_match, skip };
+/** @brief @c matches(plan), the stage that runs a matcher along a text: a
+ *  query over the text's positions, present where a word of the plan's set
+ *  ends.  @tparam Sigma the letters.  @tparam Q the bound on the states. */
+export template <std::size_t Sigma, std::size_t Q>
+struct Matches {
+  Automaton<Sigma, Q> plan;
+  Holes holes = Holes::break_match;
+};
+/** @param plan the matcher.  @param holes what a hole does.  @return the
+ *  stage. */
+export template <std::size_t Sigma, std::size_t Q>
+constexpr Matches<Sigma, Q> matches(const Automaton<Sigma, Q>& plan,
+                                    Holes holes = Holes::break_match) {
+  return {plan, holes};
+}
+namespace detail_automaton {
+/** @brief Where a run of the matcher is: its state and the next position. */
+struct Cursor {
+  std::uint16_t at{0};
+  std::size_t position{0};
+  constexpr bool operator==(const Cursor&) const = default;
+};
+/** @brief One position of the run: the state after its letter, and the
+ *  position itself where that state accepts.  O(1) state, the text read
+ *  where it is. */
+template <std::size_t Sigma, std::size_t Q, std::ranges::view V>
+struct MatchStep {
+  Automaton<Sigma, Q> plan;
+  Holes holes;
+  V letters;
+  template <IsCountWord N>
+  constexpr std::uint16_t after(std::uint16_t at, N letter) const {
+    return plan.next.items[at][letter];
+  }
+  constexpr std::optional<std::pair<Maybe<std::size_t>, Cursor>> operator()(
+      const Cursor& c) const {
+    if (c.position >= static_cast<std::size_t>(std::ranges::size(letters)))
+      return std::nullopt;
+    const auto letter = std::ranges::begin(
+        letters)[static_cast<std::ranges::range_difference_t<V>>(c.position)];
+    const Cursor next{c.at, c.position + 1};
+    if constexpr (detail_comprehension::IsMaybe<
+                      std::remove_cvref_t<decltype(letter)>>) {
+      if (!letter) {
+        // a hole: no match ends here; the run restarts or goes on as it was
+        return std::pair{Maybe<std::size_t>{},
+                         Cursor{holes == Holes::skip ? c.at : std::uint16_t{0},
+                                next.position}};
+      }
+      return hit(after(c.at, *letter), c.position);
+    } else {
+      return hit(after(c.at, letter), c.position);
+    }
+  }
+  constexpr std::pair<Maybe<std::size_t>, Cursor> hit(std::uint16_t to,
+                                                      std::size_t p) const {
+    return {
+        plan.accepting.items[to] ? Maybe<std::size_t>{p} : Maybe<std::size_t>{},
+        Cursor{to, p + 1}};
+  }
+};
+}  // namespace detail_automaton
+/** @param letters a text of the caller's, as the letters' indices or as
+ *  bytes read through @c rank(alphabet); a view, read where it is.
+ *  @param m the stage.  @return the query of the positions where a word of
+ *  the set ends: count it, take from it, collect it. */
+export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V>
+constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
+  return unfold(detail_automaton::Cursor{},
+                detail_automaton::MatchStep<Sigma, Q, V>{m.plan, m.holes,
+                                                         std::move(letters)});
 }
 
 // EcoRI's site GAATTC, its letters ranked A < C < G < T, is the index
@@ -400,13 +444,19 @@ static_assert(automaton<4, 6, 4, 8>(run<2>(2109uz, 2110uz), 6) == kmp_gaattc);
 // A claimed bound too small is nothing, not a failure: seven states do not
 // fit six.
 static_assert(!automaton<4, 6, 4, 6>(run<2>(2109uz, 2110uz), 6).has_value());
-// The scan counts the site where it ends: once in TTGAATTCAAGCTTA, twice in
-// GAATTCGAATTC.
-static_assert(scan(kmp_gaattc, std::views::all(std::array{
-                                   3uz, 3uz, 2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 0uz,
-                                   0uz, 2uz, 1uz, 3uz, 3uz, 0uz})) == 1 &&
-              scan(kmp_gaattc,
-                   std::views::all(std::array{2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 2uz,
-                                              0uz, 0uz, 3uz, 3uz, 1uz})) == 2);
+// The matches of the site, where it ends: once in TTGAATTCAAGCTTA, at
+// position 7, the C of its GAATTC; twice in GAATTCGAATTC.
+static_assert(count(std::views::all(std::array{3uz, 3uz, 2uz, 0uz, 0uz, 3uz,
+                                               3uz, 1uz, 0uz, 0uz, 2uz, 1uz,
+                                               3uz, 3uz, 0uz}) >>
+                    matches(kmp_gaattc)) == 1 &&
+              count(std::views::all(std::array{2uz, 0uz, 0uz, 3uz, 3uz, 1uz,
+                                               2uz, 0uz, 0uz, 3uz, 3uz, 1uz}) >>
+                    matches(kmp_gaattc)) == 2);
+static_assert(std::ranges::equal(
+    collect(std::views::all(std::array{3uz, 3uz, 2uz, 0uz, 0uz, 3uz, 3uz, 1uz,
+                                       0uz, 0uz, 2uz, 1uz, 3uz, 3uz, 0uz}) >>
+            matches(kmp_gaattc) >> take<1>()),
+    std::array{7uz}));
 
 }  // namespace dedekind::category

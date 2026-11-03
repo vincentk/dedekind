@@ -431,75 +431,66 @@ template <typename Plan>
 concept PlansAtCompileTime =
     requires { typename std::bool_constant<Plan::value().has_value()>; };
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
-
 // A genome as the caller has it, bytes, read through the alphabet's rank:
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
-// hole and breaks a match, so GAANTTC holds none; a caller who would ignore
-// such bytes drops the holes first, and GAATTC remains.
-struct Present {
-  constexpr bool operator()(const std::optional<std::size_t>& m) const {
-    return m.has_value();
-  }
-};
+// hole: by default it breaks a match, so GAANTTC holds none; skipped, the
+// run goes on as it was, and GAATTC remains.
 constexpr auto ecori = dedekind::category::automaton<4, 6, 4, 8>(
                            dedekind::category::run<2>(2109uz, 2110uz), 6uz)
                            .value();
-constexpr std::size_t ecori_sites(std::string_view genome, bool ignore_holes) {
+constexpr std::size_t ecori_sites(std::string_view genome,
+                                  dedekind::category::Holes holes) {
+  using namespace dedekind::category;
   const Word bytes = dna(genome);
-  const auto ranked = std::views::transform(
-      std::span<const std::byte>{bytes},
-      dedekind::category::rank(dedekind::category::letters("ACGT")));
-  return ignore_holes ? dedekind::category::scan(
-                            ecori, std::views::filter(ranked, Present{}))
-                      : dedekind::category::scan(ecori, ranked);
+  const std::span<const std::byte> g{bytes};
+  return count(g >> rank(letters("ACGT")) >> matches(ecori, holes));
 }
-static_assert(ecori_sites("TTGAATTCAAGCTTA", false) == 1 &&
-              ecori_sites("GAANTTC", false) == 0 &&
-              ecori_sites("GAANTTC", true) == 1);
+static_assert(ecori_sites("TTGAATTCAAGCTTA",
+                          dedekind::category::Holes::break_match) == 1 &&
+              ecori_sites("GAANTTC", dedekind::category::Holes::break_match) ==
+                  0 &&
+              ecori_sites("GAANTTC", dedekind::category::Holes::skip) == 1);
 
-// Panel 2's query: the windows of a genome that are sites, each tested
-// against the section itself, in place.  The section sites(6) is the one
-// value both panels read: counted over all genomes (panel 1), tested window
-// by window, and compiled into the matcher.
+// Panel 2, its two lines.  The query: each window tested against the
+// section itself, in place.  The plan: the matcher built from the same
+// section.  sites(6) is the one value both panels read: counted over all
+// genomes (panel 1), tested window by window, compiled into the matcher.
 constexpr std::size_t windows_that_are_sites(std::string_view genome) {
+  using namespace dedekind::category;
   const Word bytes = dna(genome);
-  return static_cast<std::size_t>(std::ranges::count_if(
-      std::span<const std::byte>{bytes} | std::views::slide(6), sites_6));
+  const std::span<const std::byte> g{bytes};
+  return count(g >> windows(6) >> where(sites_6));
 }
 static_assert(sites_6(dna("GAATTC")) && !sites_6(dna("GAATTA")) &&
               !sites_6(dna("GAANTC")) && !sites_6(dna("GAATT")));
 static_assert(windows_that_are_sites("TTGAATTCAAGCTTA") == 2);
 
-TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
+TEST_CASE("Category: the plan for the 64 sites matches as the windows do",
           "[category][tensor][automaton]") {
+  using namespace dedekind::category;
   // the section's words, enumerated once: 64 sites, each a run of one, and
   // EcoRI's among them
-  const auto words = dedekind::category::run_list<128, 4, 6>(sites_6);
+  const auto words = run_list<128, 4, 6>(sites_6);
   REQUIRE(words.has_value());
   CHECK(words->steps.size() == 128);
   CHECK((*words)(2109uz));
   // the plan, from the section itself
-  const auto plan = dedekind::category::automaton<4, 6, 32, 288, 128>(sites_6);
+  const auto plan = automaton<4, 6, 32, 288, 128>(sites_6);
   REQUIRE(plan.has_value());
   CHECK(plan->next.size() == 277);
   CHECK(std::ranges::count(plan->accepting, true) == 64);
   // a genome of 2000 letters, by a fixed linear congruential sequence, as
-  // bytes; the matcher's count against the query's, the section tested on
-  // every window
-  Word genome;
+  // bytes; the two lines of panel 2 count the same sites
+  Word bytes;
   std::uint32_t x = 1;
   for (std::size_t i = 0; i < 2000; ++i) {
     x = x * 1664525u + 1013904223u;
-    genome.push_back(acgt[(x >> 16) % 4]);
+    bytes.push_back(acgt[(x >> 16) % 4]);
   }
-  const std::span<const std::byte> g{genome};
-  const auto windows = static_cast<std::size_t>(
-      std::ranges::count_if(g | std::views::slide(6), sites_6));
-  CHECK(windows > 0);
-  CHECK(dedekind::category::scan(
-            *plan, std::views::transform(
-                       g, dedekind::category::rank(dedekind::category::letters(
-                              "ACGT")))) == windows);
+  const std::span<const std::byte> genome{bytes};
+  const std::size_t query = count(genome >> windows(6) >> where(sites_6));
+  CHECK(query > 0);
+  CHECK(count(genome >> rank(letters("ACGT")) >> matches(*plan)) == query);
 }
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a

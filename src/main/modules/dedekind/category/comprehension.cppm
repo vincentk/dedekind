@@ -52,6 +52,7 @@ module;
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -164,6 +165,76 @@ export template <IsArrow P>
 constexpr Where<P> where(P p) {
   return {std::move(p)};
 }
+
+/** @section comprehension__Foreign_Ranges The caller's ranges
+ *  A range of the caller's, a genome's bytes or a series of prices, is read
+ *  where it is, never copied, and a stage on it is the standard's own view:
+ *  @c r @c >> @c f is @c std::views::transform, @c r @c >> @c windows(n)
+ *  is @c std::views::slide.  A spelling in the arrow vocabulary, not a new
+ *  type: the types are the standard's, as the witnesses below check.  A
+ *  view is taken by value, as Rule 1 asks; a container is read through
+ *  @c std::views::all.  The library's own walks keep their @c >>. */
+namespace detail_comprehension {
+template <typename R>
+inline constexpr bool is_walk_v = false;
+template <std::regular S, std::semiregular Coalg>
+inline constexpr bool is_walk_v<unfold_view<S, Coalg>> = true;
+/** @brief A view of the caller's, not one of the library's walks. */
+template <typename R>
+concept IsForeignView = std::ranges::view<R> && !is_walk_v<R>;
+/** @brief A container of the caller's, read in place. */
+template <typename R>
+concept IsForeignContainer =
+    std::ranges::range<const R> && !std::ranges::view<R>;
+}  // namespace detail_comprehension
+/** @brief @c r @c >> @c f on a range of the caller's: @c f on each
+ *  element, which is @c std::views::transform.  @param r the view.
+ *  @param f the arrow.  @return the standard's transform view. */
+export template <detail_comprehension::IsForeignView R, IsArrow F>
+  requires std::invocable<const F&, std::ranges::range_reference_t<R>>
+constexpr auto operator>>(R r, F f) {
+  return std::views::transform(std::move(r), std::move(f));
+}
+/** @param r a container, read in place.  @param f the arrow.  @return the
+ *  standard's transform view over it. */
+export template <detail_comprehension::IsForeignContainer R, IsArrow F>
+  requires std::invocable<const F&, std::ranges::range_reference_t<const R>>
+constexpr auto operator>>(const R& r, F f) {
+  return std::views::transform(std::views::all(r), std::move(f));
+}
+/** @brief @c windows(n), the stage that reads each position's window of
+ *  @c n elements: the window comonad's @f$\delta@f$, a position with its
+ *  context.  It is @c std::views::slide(n), spelled as a stage. */
+export struct Windows {
+  std::size_t n;
+};
+/** @param n the window's length.  @return the stage. */
+export constexpr Windows windows(std::size_t n) { return {n}; }
+/** @param r a view of the caller's.  @param w the stage.  @return the
+ *  standard's slide view over it. */
+export template <detail_comprehension::IsForeignView R>
+  requires std::ranges::forward_range<R>
+constexpr auto operator>>(R r, Windows w) {
+  return std::views::slide(
+      std::move(r), static_cast<std::ranges::range_difference_t<R>>(w.n));
+}
+/** @param r a container, read in place.  @param w the stage.  @return the
+ *  standard's slide view over it. */
+export template <detail_comprehension::IsForeignContainer R>
+  requires std::ranges::forward_range<const R>
+constexpr auto operator>>(const R& r, Windows w) {
+  return std::views::slide(
+      std::views::all(r),
+      static_cast<std::ranges::range_difference_t<const R>>(w.n));
+}
+// The spellings are the standard's views, by type.
+static_assert(
+    std::same_as<decltype(std::span<const std::size_t>{} >> windows(6)),
+                 decltype(std::span<const std::size_t>{} |
+                          std::views::slide(6))> &&
+    std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
+                 decltype(std::span<const std::size_t>{} |
+                          std::views::transform(is_even))>);
 
 /** @brief @c >> @c f on a query, SQL's @c SELECT: @c f on the present
  *  elements, the holes passed through, @c Maybe's action on the arrow
