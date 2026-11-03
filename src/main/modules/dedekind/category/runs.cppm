@@ -46,6 +46,7 @@ import :lattice_term;  // Reduce, canonical_order: the one reducer
 import :f_algebra;     // cata: the one fold
 import :periodic;      // AtMost, Shift
 import :functor;       // Maybe: where a bound is claimed, not proved
+import :logic;         // Boole: a run list's truth values
 
 namespace dedekind::category {
 
@@ -57,6 +58,7 @@ export template <IsCountWord N, std::size_t K>
 struct RunList {
   using Domain = N;
   using Codomain = bool;
+  using logic_species = Boole;  // Pst's: decided, two-valued
   AtMost<N, K> steps;
   /** @param x a count.  @return whether it lies in the set: an odd number
    *  of steps at or before it. */

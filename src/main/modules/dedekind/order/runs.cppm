@@ -449,6 +449,46 @@ struct SpanSteps {
   }
 };
 
+/** @brief Pst's run list (@c category:runs) as a step source: each of its
+ *  steps the position just below it, the value from there on alternating
+ *  from outside.  Where both apply, on a finite chain with Boolean values,
+ *  the order's run lists read it as any source, so @c ext, the merges and
+ *  the cuts take it; the vocabulary they share is to move into @c category
+ *  (#1138).  @tparam N the counts.  @tparam K its bound. */
+export template <dedekind::category::IsCountWord N, std::size_t K>
+struct RunListSteps {
+  using Domain = N;
+  using logic_species = Boole;
+  dedekind::category::RunList<N, K> list;
+  constexpr bool first() const { return false; }
+  /** @brief The @c i-th step as the order's: below its position, in where
+   *  @c i is even. */
+  struct AsStep {
+    dedekind::category::AtMost<N, K> steps;
+    constexpr Step<N, Boole> operator()(std::size_t i) const {
+      return {canonical(Position<N>{steps.items[i], Side::Below}), i % 2 == 0};
+    }
+  };
+  constexpr auto steps() const {
+    return std::views::transform(std::views::iota(0uz, list.steps.size()),
+                                 AsStep{list.steps});
+  }
+};
+/** @param r Pst's run list.  @return it as a step source. */
+export template <dedekind::category::IsCountWord N, std::size_t K>
+constexpr RunListSteps<N, K> steps(const dedekind::category::RunList<N, K>& r) {
+  return {r};
+}
+// The overlap, by the types: Pst's run list is a step source, and [1, 8) as
+// either is one normal form.
+static_assert(IsStepSource<RunListSteps<std::size_t, 2>>);
+static_assert(std::ranges::equal(
+    RunListSteps<std::size_t, 2>{dedekind::category::run<2>(1uz, 8uz)}.steps(),
+    SpanSteps<std::size_t, Boole>{
+        Span<std::size_t>{Bound<std::size_t>{1, Strictness::NonStrict},
+                          Bound<std::size_t>{8, Strictness::Strict}}}
+        .steps()));
+
 /** @brief A source read through a reference: a stored run list inside a term
  *  is traversed where it is, not copied.  @tparam S the source. */
 export template <typename S>

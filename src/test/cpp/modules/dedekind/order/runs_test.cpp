@@ -233,6 +233,9 @@ TEST_CASE("order:runs: agrees with category's run lists on a finite chain",
     CHECK(ext(x & y)(v) == both(v));
     CHECK(ext(x | y)(v) == either(v));
   }
+  // and read by the order's machinery, the same stored run lists
+  CHECK(ext(both) == ext(x & y));
+  CHECK(ext(either) == ext(x | y));
   CHECK(std::ranges::distance(runs(steps(x & y))) * 2 ==
         static_cast<std::ptrdiff_t>(both.steps.size()));
   CHECK(std::ranges::distance(runs(steps(x | y))) * 2 ==
