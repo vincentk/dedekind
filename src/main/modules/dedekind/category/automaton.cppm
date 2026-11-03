@@ -214,6 +214,13 @@ struct Scan {
     const std::uint16_t to = plan.next.items[s.at][letter];
     return {to, s.matches + (plan.accepting.items[to] ? 1uz : 0uz)};
   }
+  /** @brief A hole, a byte outside the alphabet: no word of the set holds
+   *  it, so it breaks every match, the scan back at its start.  A caller
+   *  who would ignore holes drops them first. */
+  template <IsCountWord N>
+  constexpr State operator()(const State& s, const Maybe<N>& letter) const {
+    return letter ? (*this)(s, *letter) : State{0, s.matches};
+  }
 };
 }  // namespace detail_automaton
 
@@ -243,14 +250,14 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(const RunList<N, KL>& sites,
   return built->plan;
 }
 
-/** @param plan a matcher.  @param letters a text, as the letters' indices.
+/** @param plan a matcher.  @param letters a text, as the letters' indices,
+ *  or as bytes read through @c rank(alphabet), holes breaking a match; a
+ *  view, taken by value as Rule 1 asks, a container passed as
+ *  @c std::views::all of it, so the text stays the caller's, never copied.
  *  @return how many times a word of the plan's set ends in it. */
-export template <std::size_t Sigma, std::size_t Q,
-                 std::ranges::input_range Letters>
-constexpr std::size_t scan(const Automaton<Sigma, Q>& plan,
-                           const Letters& letters) {
-  // the text by reference: the caller's state, never copied
-  return fold(std::views::all(letters),
+export template <std::size_t Sigma, std::size_t Q, std::ranges::view Letters>
+constexpr std::size_t scan(const Automaton<Sigma, Q>& plan, Letters letters) {
+  return fold(std::move(letters),
               typename detail_automaton::Scan<Sigma, Q>::State{},
               detail_automaton::Scan<Sigma, Q>{plan})
       .matches;
@@ -289,10 +296,11 @@ static_assert(automaton<4, 6, 4, 8>(run<2>(2109uz, 2110uz), 6) == kmp_gaattc);
 static_assert(!automaton<4, 6, 4, 6>(run<2>(2109uz, 2110uz), 6).has_value());
 // The scan counts the site where it ends: once in TTGAATTCAAGCTTA, twice in
 // GAATTCGAATTC.
-static_assert(scan(kmp_gaattc,
-                   std::array{3uz, 3uz, 2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 0uz, 0uz,
-                              2uz, 1uz, 3uz, 3uz, 0uz}) == 1 &&
-              scan(kmp_gaattc, std::array{2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 2uz,
-                                          0uz, 0uz, 3uz, 3uz, 1uz}) == 2);
+static_assert(scan(kmp_gaattc, std::views::all(std::array{
+                                   3uz, 3uz, 2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 0uz,
+                                   0uz, 2uz, 1uz, 3uz, 3uz, 0uz})) == 1 &&
+              scan(kmp_gaattc,
+                   std::views::all(std::array{2uz, 0uz, 0uz, 3uz, 3uz, 1uz, 2uz,
+                                              0uz, 0uz, 3uz, 3uz, 1uz})) == 2);
 
 }  // namespace dedekind::category

@@ -68,6 +68,7 @@ import :lattice;               // Meet, Join: the nodes & and | build
 import :cartesian_bicategory;  // Tensor, Merge: the outer product
 import :involution;            // Reverse, commutes: the symmetries of a word
 import :posetal;               // is_involution: a law asked on the value
+import :functor;               // Maybe: a byte outside the alphabet, a hole
 
 namespace dedekind::category {
 
@@ -939,6 +940,30 @@ export constexpr Letters letters(std::string_view alphabet) {
   return {std::ranges::fold_left(alphabet, std::bitset<256>{},
                                  detail_periodic::SetByte{})};
 }
+/** @brief A byte's rank in an alphabet: how many of its letters lie below
+ *  it, the order isomorphism of the letters, in the bytes' order, onto
+ *  @f$[0, |\Sigma|)@f$; a byte outside it is a hole.  A Kleisli arrow into
+ *  @c Maybe, as @c where is: a text of bytes read through it is the
+ *  alphabet's letters, holes where it has none. */
+export struct Ranked {
+  using Domain = std::byte;
+  using Codomain = Maybe<std::size_t>;
+  Letters letters;
+  constexpr Maybe<std::size_t> operator()(std::byte b) const {
+    const auto i = std::to_integer<unsigned char>(b);
+    if (!letters.members.test(i)) return {};
+    // the members below i: those left once the rest is shifted out
+    return (letters.members << (256 - i)).count();
+  }
+  constexpr bool operator==(const Ranked&) const = default;
+};
+/** @param on the alphabet.  @return the rank of a byte in it. */
+export constexpr Ranked rank(const Letters& on) { return {on}; }
+// The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
+static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
+              rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&
+              rank(letters("ACGT"))(std::byte{'T'}) == 3uz &&
+              !rank(letters("ACGT"))(std::byte{'N'}).has_value());
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an

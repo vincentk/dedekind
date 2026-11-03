@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -436,6 +437,31 @@ concept PlansAtCompileTime = requires {
 static_assert(PlansAtCompileTime<dedekind::category::run<2>(2109u, 2110u)> &&
               !PlansAtCompileTime<sites_6_runs()>);
 
+// A genome as the caller has it, bytes, read through the alphabet's rank:
+// EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
+// hole and breaks a match, so GAANTTC holds none; a caller who would ignore
+// such bytes drops the holes first, and GAATTC remains.
+struct Present {
+  constexpr bool operator()(const std::optional<std::size_t>& m) const {
+    return m.has_value();
+  }
+};
+constexpr auto ecori = dedekind::category::automaton<4, 6, 4, 8>(
+                           dedekind::category::run<2>(2109uz, 2110uz), 6uz)
+                           .value();
+constexpr std::size_t ecori_sites(std::string_view genome, bool ignore_holes) {
+  const Word bytes = dna(genome);
+  const auto ranked = std::views::transform(
+      std::span<const std::byte>{bytes},
+      dedekind::category::rank(dedekind::category::letters("ACGT")));
+  return ignore_holes ? dedekind::category::scan(
+                            ecori, std::views::filter(ranked, Present{}))
+                      : dedekind::category::scan(ecori, ranked);
+}
+static_assert(ecori_sites("TTGAATTCAAGCTTA", false) == 1 &&
+              ecori_sites("GAANTTC", false) == 0 &&
+              ecori_sites("GAANTTC", true) == 1);
+
 TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
           "[category][tensor][automaton]") {
   using Count = std::uint32_t;  // uint16_t promotes to int under *
@@ -459,7 +485,7 @@ TEST_CASE("Category: the plan for the 64 sites scans as the windows do",
     for (std::size_t j = 0; j < 6; ++j) w = w * 4 + genome[i + j];
     windows += sites(static_cast<Count>(w)) ? 1 : 0;
   }
-  CHECK(dedekind::category::scan(*plan, genome) == windows);
+  CHECK(dedekind::category::scan(*plan, std::views::all(genome)) == windows);
 }
 
 // The bit patterns of 2^7 = 128 bits that are proper powers: for a width a
