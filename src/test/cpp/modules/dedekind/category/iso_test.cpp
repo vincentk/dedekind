@@ -70,8 +70,9 @@ static_assert(std::same_as<typename decltype(image_of(
 
 TEST_CASE("category:iso — client-namespace iso is retractable, retract inverts",
           "[category][iso][retract]") {
-  // The derived retract is the total inverse wrapped in Some: retract(Flip)(5)
-  // = η(maybe_monad, inverse(Flip)(5)) = Some(Flip(5)) = Some(-5).
+  // The derived retract is the total inverse wrapped in Some:
+  // retract(NegWithInverse)(5) = η(maybe_monad, inverse(NegWithInverse)(5)) =
+  // Some(NegWithInverse(5)) = Some(-5).
   auto r = retract(client_ns::NegWithInverse{});
   auto m = r(5);
   CHECK(m.has_value());
