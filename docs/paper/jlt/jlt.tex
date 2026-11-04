@@ -852,14 +852,10 @@ by_the_plan g =              -- the residual
 \caption{Restriction sites, counted two ways on one definition.
 A site is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
 Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
-No $N$-mer is built: the count is a product of factors, and the $4^{32}$ of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
 Right: the cuts of the same cocktail in one sequence, the caller's bytes read where they lie.
-The query tests each hexamer; the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.
-Below each: its translation (Section~\ref{sec:translation}), factored into a closed term and a residual.
-The count's closed term is a constant.
-The plan's is Knuth, Morris and Pratt's table~\cite{knuth1977fast} for one site, which Consel and Danvy obtain by partially evaluating a naive matcher in its pattern~\cite{consel1989partial}, reduced at compile time; for the 64 sites it exceeds the evaluator's budget, a concept decides so, and the same function reduces it at run time, as Python does.
-The residual is one pass over the sequence with the table.
-``Negative overhead abstraction''~\cite{stroustrup2026peterman} is then precise: the cost of the table is not removed but moved to compile time where the budget admits it, and paid once.}
+Below each: its translation (Section~\ref{sec:translation}), a closed term the compiler reduces and a residual for the run time.
+Without the count's laws, the left panel would build the $N$-mers and exhaust the step limit (Table~\ref{tab:binding}) before reaching its \cppinline{static_assert}.
+The table is Brzozowski's automaton~\cite{brzozowski1964derivatives}, for one site that of Knuth, Morris and Pratt~\cite{knuth1977fast} as partial evaluation derives it~\cite{consel1989partial}, its cost moved to compile time where the budget admits: ``negative overhead''~\cite{stroustrup2026peterman}.}
 \label{lst:sites}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
