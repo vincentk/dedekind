@@ -952,6 +952,13 @@ export constexpr Letters letters(std::string_view alphabet) {
   return {std::ranges::fold_left(alphabet, std::bitset<256>{},
                                  detail_periodic::SetByte{})};
 }
+/** @brief The byte alphabet's type, as @c alphabet builds it: the letters
+ *  under their predicate, a filtered chain of the bytes.  Listing 5's
+ *  @c Alphabet @c nucleotides.  (#1141: the first carrier of the alphabet
+ *  concept.) */
+export using Alphabet =
+    unfold_view<std::optional<std::byte>,
+                detail_chain::SliceStep<std::byte, Letters>>;
 /** @brief The alphabet of its letters alone: the least slice of the bytes
  *  that holds them, under the predicate that keeps them, @c slice(lo, hi)
  *  @c >> @c letters(a) with @c lo the least letter and @c hi one past the
@@ -988,9 +995,7 @@ export struct Ranked {
 export constexpr Ranked rank(const Letters& on) { return {on}; }
 /** @param alphabet the filtered byte chain, as @c alphabet builds it.
  *  @return the rank of a byte in its letters. */
-export constexpr Ranked rank(
-    const unfold_view<std::optional<std::byte>,
-                      detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
+export constexpr Ranked rank(const Alphabet& alphabet) {
   return {alphabet.coalgebra().f};
 }
 // The nucleotides ranked in the bytes' order, A < C < G < T; N is none.
@@ -1059,9 +1064,7 @@ export constexpr Reflection refl(const Letters& on) { return {on}; }
 /** @param alphabet the filtered byte chain, as @c alphabet builds it.
  *  @return the duality of its letters, as @c complement is written.
  *  (#1141) */
-export constexpr Reflection refl(
-    const unfold_view<std::optional<std::byte>,
-                      detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
+export constexpr Reflection refl(const Alphabet& alphabet) {
   return {alphabet.coalgebra().f};
 }
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
@@ -1659,6 +1662,9 @@ constexpr Powers<C, F, N> words(
   const Power<C, F, N> one = power<N>(leg, N{1});
   return {one.letters, one.member};
 }
+/** @brief The words over the byte alphabet, by length: @c words(Σ)'s type,
+ *  Listing 5's @c Words @c sequences. */
+export using Words = Powers<std::byte, Letters, std::size_t>;
 
 /** @brief @c fixed_by(g), a tensor power to its section fixed by @c g, a
  *  permutation of the positions after a letter map on every letter: an
