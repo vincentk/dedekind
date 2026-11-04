@@ -774,14 +774,16 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 
 \begin{listing}[htbp]
 \begin{cpp}
-// the sites: the palindromes of length n, a palindrome its own reverse complement
 constexpr Alphabet nucleotides = alphabet("ACGT");
+// Σ* = ⊔ₙ Σⁿ :
+constexpr Words sequences = words(nucleotides);
 constexpr Reflection complement = refl(nucleotides);
-constexpr auto reverse_complement = reverse >> map(complement);     // the other strand
-constexpr Words sequences = words(nucleotides);                     // all of them, by length
-constexpr auto palindromes = sequences & fixed_by(reverse_complement);
+constexpr auto rc = reverse >> map(complement);
+// { w ∈ Σ* | rc(w) = w } :
+constexpr auto palindromes = sequences & fixed_by(rc);
+// { w ∈ palindromes | |w| = n } :
 constexpr auto sites(size_t n) { return palindromes & length(n); }
-// all sequences of length N: the cuts, counted, none built
+// |{ (s, i) ∈ Σᴺ × [0, N−n] | s[i, i+n) ∈ sites(n) }| :
 constexpr size_t cuts(size_t N, size_t n) {
   return count(join(sequences & length(N), sites(n)));
 }
