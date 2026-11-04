@@ -332,8 +332,8 @@ constexpr Maybe<RunList<N, KL>> run_list(
  *  one @c pynzli offers too, so @c automaton(sites) reads alike in both
  *  languages; a tighter bound is named where the plan is a constant.
  *  @tparam KL the bound claimed on the section's steps.
- *  @param sites the section, Listing 5's @c sites.  @return the plan, or nothing
- *  where a bound is too small. */
+ *  @param sites the section, Listing 5's @c sites.  @return the plan, or
+ * nothing where a bound is too small. */
 export template <std::size_t Sigma = 4, std::size_t P = 8, std::size_t K = 32,
                  std::size_t Q = 320, std::size_t KL = 256, HasNNOStep C,
                  IsArrow F, IsCountWord N, typename S, IsArrow T>
