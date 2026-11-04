@@ -75,7 +75,7 @@ For them the repository binds the library's combinators into Python as handles t
 The most widely written functional language may well be SQL's \texttt{SELECT}, a declarative query over relations~\cite{iso9075sql}, whose algebra is Codd's~\cite{codd1970relational}, after Tarski's calculus of relations~\cite{tarski1941calculus}.
 A functional fragment of \Cpp{23} is worth drawing because the whole is too large to work in with confidence, and worth drawing now because \Cpp{23} is the first standard with every ingredient: compile-time evaluation of ordinary functions and of most of the standard library, concepts, and folds over ranges.
 Performance is why one comes to such a language in the first place, by its zero-overhead principle~\cite{stroustrup2005abstraction},\footnote{Stroustrup has since called the phrase an understatement: ``It's compiled away. This is why I talk about zero overhead abstraction, and people are beginning to take me to task for that because that's understating the ability of the \Cpp{} compiler. We can do negative overhead abstraction''~\cite{stroustrup2026peterman}.
-Listing~\ref{lst:desugar} is a case: the chain, the arrow and the matrix arithmetic compile away to the Fibonacci recurrence.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
+Listing~\ref{lst:sites} is a case: a join over all genomes compiles away to a constant, a matcher to its table.} and the posture does not affect it: an optimising compiler already reasons about a program, by abstract interpretation~\cite{cousot1977abstract} and by algebraic laws it is told it may assume, as \texttt{-ffast-math} lets it for floating point.
 What the posture addresses is the other cost, the language's size.
 Alignment with the posture is easier to check than a decade ago: for example, a language model of code~\cite{chen2021evaluating} reads every change against its rules.
 And while this is not a hard proof but only a read, it is often a thorough read (Section~\ref{sec:limits}).
@@ -766,7 +766,7 @@ The test behind the listings calls the same functions at runtime, on values it d
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
 Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
-Listing~\ref{lst:sites} shows the paper's exhibit on both of its panels, and Listing~\ref{lst:desugar} follows one program down both legs.
+Listing~\ref{lst:sites} is the paper's exhibit on both of its panels, each followed through the translation.
 With $n$ free, each leg evaluates what it can and keeps the fold over $n$, which only the run time can finish.
 The System~F term gets there by two equations outside the appendix's reductions, fusion and dropping an unread position.
 What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
@@ -820,53 +820,6 @@ The residual is one pass over the genome with the table.
 ``Negative overhead abstraction''~\cite{stroustrup2026peterman} is then precise: the cost of building the table is not removed but moved, to compile time where the budget admits it, and paid once.}
 \label{lst:sites}
 \end{listing}
-
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// Listing 3's chain, its length a parameter
-constexpr size_t fibonacci_steps(size_t n) {
-  const auto copies =
-      n >> chain<size_t>() >> constant<size_t>(fib);
-  return ranges::fold_left(copies, V{1, 0}, act)[1];
-}
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-static_assert(fibonacci_steps(0) == 0 &&
-              fibonacci_steps(1) == 1 &&
-              fibonacci_steps(10) == 55 &&
-              fibonacci_steps(90) ==
-                  2'880'067'194'370'816'120uz);
-constexpr size_t fibonacci_10() {
-  return fibonacci_steps(10);
-}
-\end{cpp}
-\end{minipage}
-\begin{minted}{text}
--- FJlt's leg: the translation into System F, then reduction
-fibonacci_steps    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
-                   = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion
-fibonacci_steps 10 ~> 55
--- the compiler's leg: @fibonacci_steps's IR at -O2 -fno-unroll-loops, read back
-fibonacci_steps n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
-  where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
-\end{minted}
-\begin{minted}{llvm}
-define i64 @fibonacci_10() {
-  ret i64 55
-}
-\end{minted}
-\caption{Partial evaluation along both legs of Figure~\ref{fig:arrows}'s bottom edge, on one program.
-Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
-Top right: the function at four lengths, evaluated at compile time.
-Middle: FJlt's leg, the function translated (Section~\ref{sec:translation}) and rewritten with $n$ free, and its value at $10$.
-Then the compiler's leg: the IR Clang~23 emits with $n$ known at run time, read back as a function after Appel, its blocks local functions and its $\phi$-nodes their parameters (Appendix~\ref{app:fjlt:ssa}).
-The two legs agree: the same iteration over $(a + b, a)$, its first step peeled, an equivalence checked by inspection.
-Bottom: with $10$ given, the IR is the value, $55$.}
-\label{lst:desugar}
-\end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
 
@@ -881,7 +834,7 @@ who evaluates & the front end's interpreter, one step at a time & the processor,
 a fold's length & at most 1\,048\,576 steps (\texttt{-fconstexpr-steps}), past which the program does not compile & the count alone \\
 a call's depth & at most 512 nested calls (\texttt{-fconstexpr-depth}) & the stack \\
 undefined behaviour & refused: the expression is not a constant, and the program does not compile & no diagnostic required and no guarantee: the optimiser may assume it never happens \\
-a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as Listing~\ref{lst:desugar}'s matrices become two additions \\
+a shortcut & only by resolution, a declared law, as Listing~\ref{lst:laws}'s overloads & the optimiser's, as Listing~\ref{lst:sites}'s matcher runs from a table it never builds \\
 telling them apart & \texttt{if consteval} and \texttt{is\_constant\_evaluated()} say compile time & they say run time, and FJlt desugars it to the first where both agree \\
 \bottomrule
 \end{tabularx}
@@ -892,7 +845,7 @@ Apart from the last row, no difference is a different value: where both evaluati
 \end{table}
 
 \paragraph{The two evaluators are different programs.}
-In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that reduces Listing~\ref{lst:desugar}'s matrices to two additions sees only the code emitted for run time.
+In constant evaluation no optimiser runs: the front end interprets a fold one step at a time, and the optimiser that folds Listing~\ref{lst:sites}'s table into its residual pass sees only the code emitted for run time.
 So at compile time only a declared law shortens a fold, chosen by resolution, as for Listing~\ref{lst:laws}'s overloads: it buys at build time what the optimiser finds at run time by itself.
 
 Not every algorithm converges, so Jlt allows a \emph{budget}, a counter beside the structure's own count, as the compiler has one; exhausting either is never a value (Appendix~\ref{app:fjlt:ssa}).\footnote{The compiler's budgets apply at compile time only, Jlt's at both binding times, and they are the compiler's to set: raised, the refused fold of $10^8$ copies compiles and holds.}
