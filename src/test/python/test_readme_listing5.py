@@ -4,8 +4,7 @@ Each C++ panel is the region between ``// [listing5:<panel>]`` markers in the
 tensor exhibit's test, which compiles it; each Python panel is the region
 between ``.. [listing5:<panel>]`` markers in ``pynzli.jlt``'s docstring, which
 ``test_jlt_doctests`` runs.  And the Python column has the C++ column's
-surface: every library name a C++ panel uses is ``pynzli.jlt``'s too, or is
-named below with the Python spelling that covers it.
+surface: every library name a C++ panel uses is ``pynzli.jlt``'s too.
 """
 
 import re
@@ -19,9 +18,6 @@ README = ROOT / "README.md"
 CPP = ROOT / "src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp"
 PANELS = ["all-genomes", "one-genome"]
 
-# A C++ name whose Python spelling is another, more natural there: the
-# alphabet is written as its letters, the byte range around them implied.
-PYTHON_SPELLING = {"slice": "alphabet", "letters": "alphabet"}
 # The host language's own words, not the library's.
 CPP_WORDS = {
     "auto",
@@ -98,7 +94,7 @@ class ReadmeListing5(unittest.TestCase):
         for panel in PANELS:
             for name in sorted(library_names(cpp_panel(panel), defined)):
                 with self.subTest(panel=panel, name=name):
-                    self.assertIn(PYTHON_SPELLING.get(name, name), pynzli.jlt.__all__)
+                    self.assertIn(name, pynzli.jlt.__all__)
 
 
 if __name__ == "__main__":

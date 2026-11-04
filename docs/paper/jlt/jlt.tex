@@ -775,7 +775,7 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{listing}[htbp]
 \begin{cpp}
 // the sites: the words of length n fixed by the reverse complement
-constexpr auto nucleotides = slice(byte{'A'}, byte{'['}) >> letters("ACGT");
+constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement  = letter_map("ACGT", "TGCA");
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);

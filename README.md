@@ -40,8 +40,7 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 <!-- listing5:all-genomes:cpp -->
 
 ```cpp
-constexpr auto nucleotides = slice(std::byte{'A'}, std::byte{'['}) >>
-                             letters("ACGT");
+constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = letter_map("ACGT", "TGCA");
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);

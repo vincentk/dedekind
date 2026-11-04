@@ -912,6 +912,16 @@ struct SetByte {
     return m.set(static_cast<unsigned char>(c));
   }
 };
+/** @brief A letter as the byte it is: ordered as bytes, not as @c char,
+ *  which may be signed. */
+struct ByteOf {
+  constexpr unsigned char operator()(char c) const {
+    return static_cast<unsigned char>(c);
+  }
+};
+/** @brief Refuses an alphabet without letters, or one holding the last
+ *  byte, which no byte slice ends past. */
+[[noreturn]] constexpr void refuse_no_alphabet() { std::abort(); }
 /** @brief One letter and its image into a table on the bytes. */
 struct MapByte {
   constexpr std::pair<std::array<std::byte, 256>, std::size_t> operator()(
@@ -942,6 +952,20 @@ export constexpr Letters letters(std::string_view alphabet) {
   return {std::ranges::fold_left(alphabet, std::bitset<256>{},
                                  detail_periodic::SetByte{})};
 }
+/** @brief The alphabet of its letters alone: the least slice of the bytes
+ *  that holds them, under the predicate that keeps them, @c slice(lo, hi)
+ *  @c >> @c letters(a) with @c lo the least letter and @c hi one past the
+ *  greatest.  @param a the letters, as written: at least one, none the
+ *  last byte.  @return the filtered byte chain, as @c nucleotides is
+ *  written. */
+export constexpr auto alphabet(std::string_view a) {
+  if (a.empty()) detail_periodic::refuse_no_alphabet();
+  const auto [lo, hi] =
+      std::ranges::minmax(a | std::views::transform(detail_periodic::ByteOf{}));
+  if (hi == 0xFF) detail_periodic::refuse_no_alphabet();
+  return slice(std::byte{lo}, std::byte{static_cast<unsigned char>(hi + 1)}) >>
+         letters(a);
+}
 /** @brief A byte's rank in an alphabet: how many of its letters lie below
  *  it, the order isomorphism of the letters, in the bytes' order, onto
  *  @f$[0, |\Sigma|)@f$; a byte outside it is a hole.  A Kleisli arrow into
@@ -961,8 +985,8 @@ export struct Ranked {
 };
 /** @param on the alphabet.  @return the rank of a byte in it. */
 export constexpr Ranked rank(const Letters& on) { return {on}; }
-/** @param alphabet the filtered byte chain, @c slice(lo, hi) @c >> @c letters,
- *  as @c nucleotides is written.  @return the rank of a byte in its letters. */
+/** @param alphabet the filtered byte chain, as @c alphabet builds it.
+ *  @return the rank of a byte in its letters. */
 export constexpr Ranked rank(
     const unfold_view<std::optional<std::byte>,
                       detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
@@ -973,6 +997,11 @@ static_assert(rank(letters("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(letters("ACGT"))(std::byte{'G'}) == 2uz &&
               rank(letters("ACGT"))(std::byte{'T'}) == 3uz &&
               !rank(letters("ACGT"))(std::byte{'N'}).has_value());
+// The alphabet is its letters' least slice: the same ranks, the same holes.
+static_assert(rank(alphabet("ACGT"))(std::byte{'A'}) == 0uz &&
+              rank(alphabet("ACGT"))(std::byte{'T'}) == 3uz &&
+              !rank(alphabet("ACGT"))(std::byte{'@'}).has_value() &&
+              !rank(alphabet("ACGT"))(std::byte{'['}).has_value());
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an

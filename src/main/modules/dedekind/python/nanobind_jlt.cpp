@@ -149,13 +149,12 @@ using dedekind::category::Power;
 using dedekind::category::PowerMap;
 using dedekind::category::Reverse;
 using dedekind::category::Rotation;
-using dedekind::category::slice;
 using dedekind::category::symmetric;
 using dedekind::category::with_width;
 
 /** @brief A filtered alphabet: the byte chain between its first and last
  *  letter, under the predicate that keeps the letters. */
-using Alphabet = decltype(slice(std::byte{}, std::byte{}) >> Letters{});
+using Alphabet = decltype(dedekind::category::alphabet(""));
 using WordPower = Power<std::byte, Letters, std::size_t>;
 using Words = FreeMonoid<std::byte, Letters, std::size_t>;
 /** @brief A letter map on every letter of a word, and that followed by the
@@ -226,15 +225,9 @@ Factored times(const A& a, const B& b) {
 /** @param a the letters, as written.  @return the alphabet. */
 Alphabet alphabet(std::string_view a) {
   if (a.empty()) throw nb::value_error("alphabet: no letters");
-  // ordered as bytes, not as char, which may be signed
-  const auto [lo, hi] =
-      std::ranges::minmax(a | std::views::transform([](char c) {
-                            return static_cast<unsigned char>(c);
-                          }));
-  if (hi == 0xFF)
+  if (std::ranges::contains(a, '\xFF'))
     throw nb::value_error("alphabet: the byte 0xFF ends no byte slice");
-  return slice(std::byte{lo}, std::byte{static_cast<unsigned char>(hi + 1)}) >>
-         dedekind::category::letters(a);
+  return dedekind::category::alphabet(a);
 }
 /** @brief The factors as Python sees them: pairs (base, exponent). */
 template <std::ranges::sized_range L>

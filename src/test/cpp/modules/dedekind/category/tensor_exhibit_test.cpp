@@ -413,12 +413,10 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 // the markers (src/test/python/test_readme_listing5.py checks it), beside
 // pynzli.jlt's doctest of the same.
 namespace listing5 {
+using dedekind::category::alphabet;
 using dedekind::category::letter_map;
-using dedekind::category::letters;
-using dedekind::category::slice;
 // [listing5:all-genomes]
-constexpr auto nucleotides = slice(std::byte{'A'}, std::byte{'['}) >>
-                             letters("ACGT");
+constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = letter_map("ACGT", "TGCA");
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);
