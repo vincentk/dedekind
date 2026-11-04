@@ -776,7 +776,7 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{cpp}
 // the sites: the palindromes of length n, a palindrome its own reverse complement
 constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement  = dual(nucleotides);
+constexpr auto complement  = refl(nucleotides);
 constexpr auto reverse_complement = map(complement) >> reverse;     // the other strand
 constexpr auto sequences   = words(nucleotides);                    // all of them, by length
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);

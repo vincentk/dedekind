@@ -17,7 +17,6 @@ from pynzli.jlt import (
     count,
     count_factors,
     cylinder,
-    dual,
     exact_count,
     exact_occurrences,
     free_monoid,
@@ -27,6 +26,7 @@ from pynzli.jlt import (
     occurrences,
     pack,
     power,
+    refl,
     reverse,
     rotate,
     symmetric,
@@ -101,7 +101,7 @@ class JltTensorExhibitTest(unittest.TestCase):
     def test_the_dual_is_the_complement(self) -> None:
         # the alphabet's duality, an involution by construction, counts the
         # same sites as the complement written out as a table
-        d = dual(self.nucleotides)
+        d = refl(self.nucleotides)
         self.assertTrue(is_involution(d))
         self.assertTrue(is_involution(power(d) >> reverse))
         for n in (4, 6, 7):

@@ -1032,7 +1032,7 @@ struct NthLetter {
  *  isomorphism, so the TYPE carries the law (@c IsInvolution), where a
  *  @c letter_map's law is read off its table.  (#1141: an alphabet over
  *  another carrier gets its duality the same way, from its rank.) */
-export struct Duality {
+export struct Reflection {
   using Domain = std::byte;
   using Codomain = std::byte;
   Letters on;
@@ -1047,19 +1047,19 @@ export struct Duality {
                    on, (~Identity<std::size_t>{} >> shift(n))(*r)})
         .second;
   }
-  constexpr bool operator==(const Duality&) const = default;
+  constexpr bool operator==(const Reflection&) const = default;
 };
 /** @brief The duality is an involution: @f$({\sim} + n)@f$ is one on the
  *  ranks (@c is_involutive above), and a conjugate of an involution by a
  *  bijection is one. */
 template <>
-struct is_involutive<Duality, std::byte> : std::true_type {};
+struct is_involutive<Reflection, std::byte> : std::true_type {};
 /** @param on the letters.  @return their duality.  (#1141) */
-export constexpr Duality dual(const Letters& on) { return {on}; }
+export constexpr Reflection refl(const Letters& on) { return {on}; }
 /** @param alphabet the filtered byte chain, as @c alphabet builds it.
  *  @return the duality of its letters, as @c complement is written.
  *  (#1141) */
-export constexpr Duality dual(
+export constexpr Reflection refl(
     const unfold_view<std::optional<std::byte>,
                       detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
   return {alphabet.coalgebra().f};
@@ -1326,7 +1326,7 @@ static_assert(
     IsInvolution<Compose<PowerMap<Identity<std::byte>>,
                          Morphism<std::vector<std::byte>,
                                   std::vector<std::byte>, Reverse>>> &&
-        IsInvolution<Compose<PowerMap<Duality>,
+        IsInvolution<Compose<PowerMap<Reflection>,
                              Morphism<std::vector<std::byte>,
                                       std::vector<std::byte>, Reverse>>> &&
         !IsInvolution<Compose<
@@ -1389,7 +1389,7 @@ constexpr bool is_antitone(const T& t, const Letters& on) {
 namespace detail_periodic {
 struct DualIsTheMask {
   Ranked ranked;
-  Duality d;
+  Reflection d;
   constexpr bool operator()(bool ok, char c) const {
     const auto b = std::byte{static_cast<unsigned char>(c)};
     return ok && ranked(d(b)) == (*ranked(b) ^ 3uz);
@@ -1397,18 +1397,20 @@ struct DualIsTheMask {
 };
 }  // namespace detail_periodic
 static_assert(
-    IsInvolution<Duality> &&
-        std::ranges::fold_left(
-            std::views::iota(std::size_t{0}, std::size_t{256}), true,
-            detail_periodic::ReturnsTwice<Duality>{dual(alphabet("ACGT"))}) &&
-        is_antitone(dual(alphabet("ACGT")), letters("ACGT")) &&
+    IsInvolution<Reflection> &&
+        std::ranges::fold_left(std::views::iota(std::size_t{0},
+                                                std::size_t{256}),
+                               true,
+                               detail_periodic::ReturnsTwice<Reflection>{
+                                   refl(alphabet("ACGT"))}) &&
+        is_antitone(refl(alphabet("ACGT")), letters("ACGT")) &&
         std::ranges::fold_left(std::string_view{"ACGT"}, true,
                                detail_periodic::DualIsTheMask{
                                    rank(alphabet("ACGT")),
-                                   dual(alphabet("ACGT"))}) &&
-        dual(alphabet("ACGT"))(std::byte{'N'}) == std::byte{'N'} &&
-        dual(alphabet("ACG"))(std::byte{'C'}) == std::byte{'C'} &&
-        dual(alphabet("ACG"))(std::byte{'A'}) == std::byte{'G'},
+                                   refl(alphabet("ACGT"))}) &&
+        refl(alphabet("ACGT"))(std::byte{'N'}) == std::byte{'N'} &&
+        refl(alphabet("ACG"))(std::byte{'C'}) == std::byte{'C'} &&
+        refl(alphabet("ACG"))(std::byte{'A'}) == std::byte{'G'},
     "the duality is an involution by its type, antitone on its alphabet, "
     "bitwise NOT on the two-bit ranks, the identity off the alphabet, and "
     "fixes the middle letter of an odd alphabet");

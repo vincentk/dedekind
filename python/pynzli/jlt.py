@@ -22,9 +22,9 @@ The tensor exhibit (#1107) adds handles to ``:periodic``'s tensors: an
 ``p & fixed_by(g)`` as Trsk spells a set under a predicate (the
 words a symmetry fixes: ``reverse``, ``rotate(d)``, or an arrow on every
 letter then the reversal, ``power(complement) >> reverse``, the reverse
-complement, where the complement is the alphabet's ``dual``, its one
-order-reversing bijection, or a ``letter_map`` written out; ``is_involution``
-asks its law, by the type for ``dual``, on the table for a ``letter_map``).  ``count_factors`` gives a count as factors, each a
+complement, where the complement is ``refl`` of the alphabet, its reflection
+about its centre, or a ``letter_map`` written out; ``is_involution``
+asks its law, by the type for ``refl``, on the table for a ``letter_map``).  ``count_factors`` gives a count as factors, each a
 popcount; ``count`` its residue modulo 2**64; ``exact_count`` the count or
 ``None`` where no word holds it, so a genome of 2**200 words is refused as a
 sequence and counted as a tensor.  ``*`` is the outer product.
@@ -42,7 +42,7 @@ in all genomes, the README's text between the markers:
 .. [listing5:all-genomes]
 
 >>> nucleotides = alphabet("ACGT")
->>> complement = dual(nucleotides)
+>>> complement = refl(nucleotides)
 >>> reverse_complement = map(complement) >> reverse
 >>> sequences = words(nucleotides)
 >>> palindromes = sequences & fixed_by(reverse_complement)
@@ -119,7 +119,6 @@ from ._jlt import counting
 from ._jlt import count_factors
 from ._jlt import cylinder
 from ._jlt import dom
-from ._jlt import dual
 from ._jlt import exact_count
 from ._jlt import exact_occurrences
 from ._jlt import fixed_by
@@ -158,7 +157,6 @@ __all__ = [
     "count_factors",
     "cylinder",
     "dom",
-    "dual",
     "exact_count",
     "exact_occurrences",
     "fixed_by",

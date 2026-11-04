@@ -414,14 +414,14 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 // pynzli.jlt's doctest of the same.
 namespace listing5 {
 using dedekind::category::alphabet;
-using dedekind::category::dual;
 using dedekind::category::fixed_by;
 using dedekind::category::length;
 using dedekind::category::map;
+using dedekind::category::refl;
 using dedekind::category::words;
 // [listing5:all-genomes]
 constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement = dual(nucleotides);
+constexpr auto complement = refl(nucleotides);
 constexpr auto reverse_complement = map(complement) >> reverse;
 constexpr auto sequences = words(nucleotides);
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);
