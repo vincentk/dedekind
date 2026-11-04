@@ -777,12 +777,14 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 // the sites: the words of length n fixed by the reverse complement
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement  = dual(nucleotides);
+constexpr auto reverse_complement = power(complement) >> reverse;   // the other strand
+constexpr auto sequences = powers(nucleotides);                     // all of them, by length
 constexpr auto sites(size_t n) {
-  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
+  return sequences(n) & fixed_by(reverse_complement);
 }
 // all genomes of length N: the cuts, counted, none built
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(power(nucleotides, N), sites(n)));
+  return count(join(sequences(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 \end{cpp}

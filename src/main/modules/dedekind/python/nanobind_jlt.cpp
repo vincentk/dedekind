@@ -157,6 +157,8 @@ using dedekind::category::with_width;
  *  letter, under the predicate that keeps the letters. */
 using Alphabet = decltype(dedekind::category::alphabet(""));
 using WordPower = Power<std::byte, Letters, std::size_t>;
+/** @brief @c powers(alphabet): all the words, by length; @c sequences. */
+using WordPowers = dedekind::category::Powers<std::byte, Letters, std::size_t>;
 using Words = FreeMonoid<std::byte, Letters, std::size_t>;
 /** @brief A letter map on every letter of a word, and that followed by the
  *  reversal of the positions: the reverse complement where the map is the
@@ -710,6 +712,18 @@ void bind_tensors(nb::module_ module_) {
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
+  nb::class_<jlt::WordPowers>(module_, "Powers",
+                              "powers(alphabet): the words over it, by "
+                              "length; powers(a)(n) is power(a, n).")
+      .def(
+          "__call__",
+          [](const jlt::WordPowers& p, std::size_t n) { return p(n); },
+          nb::arg("length"));
+  module_.def(
+      "powers",
+      [](const jlt::Alphabet& a) { return dedekind::category::powers(a); },
+      nb::arg("alphabet"),
+      "powers(alphabet): the family of its tensor powers, by length.");
   module_.def(
       "power", [](const jlt::LetterMap& t) { return jlt::power(t); },
       nb::arg("arrow"),
