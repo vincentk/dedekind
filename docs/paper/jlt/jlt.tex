@@ -774,17 +774,16 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 
 \begin{listing}[htbp]
 \begin{cpp}
-// the sites: the words of length n fixed by the reverse complement
+// the sites: the palindromes of length n, a palindrome its own reverse complement
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement  = dual(nucleotides);
-constexpr auto reverse_complement = power(complement) >> reverse;   // the other strand
-constexpr auto sequences = powers(nucleotides);                     // all of them, by length
-constexpr auto sites(size_t n) {
-  return sequences(n) & fixed_by(reverse_complement);
-}
-// all genomes of length N: the cuts, counted, none built
+constexpr auto reverse_complement = map(complement) >> reverse;     // the other strand
+constexpr auto sequences   = words(nucleotides);                    // all of them, by length
+constexpr auto palindromes = sequences & fixed_by(reverse_complement);
+constexpr auto sites(size_t n) { return palindromes & length(n); }
+// all sequences of length N: the cuts, counted, none built
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(sequences(N), sites(n)));
+  return count(join(sequences & length(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 \end{cpp}
@@ -802,7 +801,7 @@ static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 \end{cpp}
 \begin{minted}{text}
 -- all genomes: the join's count by its laws, as Listing 4's fold by the action law
-cuts N n      = count (join (power Σ N) (sites n))
+cuts N n      = count (join (words Σ & length N) (sites n))
               = (N − n + 1) · 4^(n/2) · 4^(N − n)        -- pushdown and the box law, n even
 cuts 32 6    ~> 27 · 2^58                                -- a constant; no genome built
 -- one genome: the plan is a closed term, the pass over the genome is not
@@ -815,7 +814,7 @@ by_the_plan g = π₂ (fold (λ (q, c) a. (T q a, c + F (T q a))) (0, 0) (map ra
 \caption{Restriction sites, counted two ways on one definition.
 A site of length $n$ is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts a genome where one occurs.
 The complement is the alphabet's duality, the reversal of the chain of letters as \cppinline{reverse} is of the chain of positions, so the reverse complement is an involution by construction; on the ranks as two bits it is bitwise NOT, as every 2-bit genome code has it, by the luck of the four initials' alphabetical order.
-Top: the sites as a section of $\Sigma^n$, and the cuts in all $4^N$ genomes as the join of the genomes' power with the sites, counted by the join's laws: a product of factors.
+Top: the palindromes, the sequences fixed by their reverse complement, and the sites of length $n$ among them; the cuts in all $4^N$ sequences of length $N$ as the join of those sequences with the sites, counted by the join's laws: a product of factors.
 The $4^{32}$ genomes of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
 Middle: one sequence, its bytes read where they are, on the same section; the query meets its hexamers with the sites, the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.
 Bottom: the translation (Section~\ref{sec:translation}) factors, on both panels, into a closed term and a residual.

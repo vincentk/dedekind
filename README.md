@@ -45,9 +45,7 @@ constexpr auto complement = dual(nucleotides);
 constexpr auto reverse_complement = map(complement) >> reverse;
 constexpr auto sequences = words(nucleotides);
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);
-constexpr auto sites(size_t n) {
-  return palindromes & length(n);
-}
+constexpr auto sites(size_t n) { return palindromes & length(n); }
 constexpr size_t cuts(size_t N, size_t n) {
   return count(join(sequences & length(N), sites(n)));
 }
