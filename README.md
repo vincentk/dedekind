@@ -76,11 +76,13 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-constexpr auto by_the_query(std::span<const std::byte> genome) {
-  return count(genome >> windows(6) & sites(6));
+constexpr auto hexamers = windows(6);            // every window of six letters
+constexpr auto cut_sites = hexamers & sites(6);  // the hexamers a six-cutter recognises
+constexpr auto by_the_query(std::span<const std::byte> sequence) {
+  return count(sequence >> cut_sites);
 }
-constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
-  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
+constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
+  return count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 ```
 
@@ -90,17 +92,19 @@ constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
 <!-- listing5:one-genome:python -->
 
 ```pycon
->>> genome = b"TTGAATTCAAGCTTA"
->>> count(genome >> windows(6) & sites(6))
+>>> sequence = b"TTGAATTCAAGCTTA"
+>>> hexamers = windows(6)
+>>> cut_sites = hexamers & sites(6)
+>>> count(sequence >> cut_sites)
 2
->>> count(genome >> rank(nucleotides) >> matches(automaton(sites(6))))
+>>> count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))))
 2
 ```
 
 </details>
 
 The two lines count the same sites, 2 in `TTGAATTCAAGCTTA` (EcoRI's `GAATTC` and HindIII's `AAGCTT`).
-The query tests each window against the section; the plan is the matcher specialised to the section's 64 words, the minimal automaton of their occurrences (277 states), built once.
+The query meets the sequence's hexamers with the sites; the plan is the matcher specialised to the section's 64 words, the minimal automaton of their occurrences (277 states), built once.
 In C++ a single site's plan is a compile-time constant, Knuth, Morris and Pratt's table; the 64 sites' exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
 
 Both languages are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.

@@ -334,6 +334,30 @@ export template <detail_comprehension::IsForeignView R, typename P, typename S,
 constexpr auto operator&(R r, const Symmetric<P, S, T>& s) {
   return std::move(r) >> where(s);
 }
+/** @brief @c windows(n) @c & @c s: the windows of @c n that lie in the
+ *  section, as a stage, named before any sequence is given: Listing 5's
+ *  @c cut_sites @c = @c hexamers @c & @c sites(6).  @tparam P @tparam S
+ *  @tparam T the section's. */
+export template <typename P, typename S, IsArrow T>
+struct WindowsIn {
+  Windows windows;
+  Symmetric<P, S, T> section;
+};
+/** @param w the windows.  @param s the section.  @return the stage. */
+export template <typename P, typename S, IsArrow T>
+constexpr WindowsIn<P, S, T> operator&(Windows w, const Symmetric<P, S, T>& s) {
+  return {w, s};
+}
+/** @param r a view of the caller's.  @param w the stage.  @return the
+ *  windows of @c r that lie in the section, the query. */
+export template <detail_comprehension::IsForeignView R, typename P, typename S,
+                 IsArrow T>
+  requires requires(R r, const WindowsIn<P, S, T>& w) {
+    (std::move(r) >> w.windows) & w.section;
+  }
+constexpr auto operator>>(R r, const WindowsIn<P, S, T>& w) {
+  return (std::move(r) >> w.windows) & w.section;
+}
 
 // where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
 // of the truth 1 -> Omega along p, by shape (the concept, ⊤ the constant

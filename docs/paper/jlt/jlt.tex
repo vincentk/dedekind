@@ -787,12 +787,14 @@ constexpr size_t cuts(size_t N, size_t n) {
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 \end{cpp}
 \begin{cpp}
-// one genome, the caller's bytes: each window tested, or the matcher
-constexpr auto by_the_query(span<const byte> genome) {
-  return count(genome >> windows(6) & sites(6));
+// one sequence, the caller's bytes: its hexamers met with the sites, or the matcher
+constexpr auto hexamers  = windows(6);
+constexpr auto cut_sites = hexamers & sites(6);
+constexpr auto by_the_query(span<const byte> sequence) {
+  return count(sequence >> cut_sites);
 }
-constexpr auto by_the_plan(span<const byte> genome) {            // a Maybe
-  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
+constexpr auto by_the_plan(span<const byte> sequence) {          // a Maybe
+  return count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 \end{cpp}
@@ -813,7 +815,7 @@ A site of length $n$ is a word equal to its reverse complement, as EcoRI's \text
 The complement is the alphabet's duality, the reversal of the chain of letters as \cppinline{reverse} is of the chain of positions, so the reverse complement is an involution by construction; on the ranks as two bits it is bitwise NOT, as every 2-bit genome code has it, by the luck of the four initials' alphabetical order.
 Top: the sites as a section of $\Sigma^n$, and the cuts in all $4^N$ genomes as the join of the genomes' power with the sites, counted by the join's laws: a product of factors.
 The $4^{32}$ genomes of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
-Middle: one genome, its bytes read where they are, on the same section; the query tests each window, the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.
+Middle: one sequence, its bytes read where they are, on the same section; the query meets its hexamers with the sites, the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.
 Bottom: the translation (Section~\ref{sec:translation}) factors, on both panels, into a closed term and a residual.
 The count's closed term reduces to a constant.
 The plan is a closed term too: for one site it reduces at compile time to Knuth, Morris and Pratt's table~\cite{knuth1977fast}, which Consel and Danvy obtain by partially evaluating a naive matcher in its pattern~\cite{consel1989partial}; for the 64 sites it exceeds the evaluator's budget, which a concept decides, and the same function reduces it at run time, as Python does.

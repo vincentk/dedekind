@@ -323,6 +323,12 @@ struct WindowsOver {
 struct WhereSection {
   Section section;
 };
+/** @brief @c windows(n) @c & @c section: the windows that lie in the
+ *  section, a stage named before any sequence, @c cut_sites. */
+struct WindowsIn {
+  Windows windows;
+  Section section;
+};
 /** @brief @c ... @c >> @c windows(n) @c >> @c where(section): the query. */
 struct WindowQuery {
   WindowsOver over;
@@ -445,8 +451,19 @@ void bind_matcher(nb::module_ module_) {
   nb::class_<jlt::Windows>(module_, "Windows",
                            "windows(n): each position's window of n letters; "
                            "genome >> windows(n).")
-      .def("__rrshift__", [](const jlt::Windows& w, nb::bytes b) {
-        return jlt::WindowsOver{{std::move(b)}, w};
+      .def("__rrshift__",
+           [](const jlt::Windows& w, nb::bytes b) {
+             return jlt::WindowsOver{{std::move(b)}, w};
+           })
+      .def("__and__", [](const jlt::Windows& w, const jlt::Section& s) {
+        return jlt::WindowsIn{w, s};
+      });
+  nb::class_<jlt::WindowsIn>(module_, "WindowsIn",
+                             "windows(n) & section: the windows that lie in "
+                             "the section, a stage; sequence >> it is the "
+                             "query.")
+      .def("__rrshift__", [](const jlt::WindowsIn& w, nb::bytes b) {
+        return jlt::WindowQuery{{{std::move(b)}, w.windows}, w.section};
       });
   nb::class_<jlt::WhereSection>(
       module_, "Where", "where(section): the windows the section holds.");

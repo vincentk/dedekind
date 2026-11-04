@@ -59,19 +59,22 @@ True
 >>> occurrences(power(nucleotides, 12), sites(6))  # the same count
 1835008
 
-The second panel of Listing 5 (#1135) scans **one** genome, the caller's
+The second panel of Listing 5 (#1135) scans **one** sequence, the caller's
 ``bytes``, read where they are.  Two lines count the same sites: the query,
-each window tested against the section; and the plan, the matcher
+the sequence's hexamers met with the sites, ``windows(6) & sites(6)`` a stage
+named before any sequence is given; and the plan, the matcher
 specialised to the section's words (``automaton``, the minimal automaton,
 built here at run time by the function C++ runs at compile time).  A plan
 is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 
 .. [listing5:one-genome]
 
->>> genome = b"TTGAATTCAAGCTTA"
->>> count(genome >> windows(6) & sites(6))
+>>> sequence = b"TTGAATTCAAGCTTA"
+>>> hexamers = windows(6)
+>>> cut_sites = hexamers & sites(6)
+>>> count(sequence >> cut_sites)
 2
->>> count(genome >> rank(nucleotides) >> matches(automaton(sites(6))))
+>>> count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))))
 2
 
 .. [/listing5:one-genome]
@@ -79,11 +82,11 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 >>> plan = automaton(sites(6))
 >>> plan
 automaton(states=277, accepting=64)
->>> count(genome >> rank(nucleotides) >> matches(plan))  # count, as a function
+>>> count(sequence >> rank(nucleotides) >> matches(plan))  # the stage form: >> counting
 2
->>> collect(genome >> rank(nucleotides) >> matches(plan))  # where a site ends
+>>> collect(sequence >> rank(nucleotides) >> matches(plan))  # where a site ends
 [7, 13]
->>> collect(genome >> windows(6) >> where(sites(6)))  # where its window begins
+>>> collect(sequence >> cut_sites)  # the restriction map: where each site begins
 [2, 8]
 >>> sites(6)(b"GAATTC"), sites(6)(b"GAATTA"), sites(6)(b"GAATT")
 (True, False, False)

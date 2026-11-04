@@ -438,11 +438,14 @@ using dedekind::category::matches;
 using dedekind::category::rank;
 using dedekind::category::windows;
 // [listing5:one-genome]
-constexpr auto by_the_query(std::span<const std::byte> genome) {
-  return count(genome >> windows(6) & sites(6));
+constexpr auto hexamers = windows(6);  // every window of six letters
+constexpr auto cut_sites =
+    hexamers & sites(6);  // the hexamers a six-cutter recognises
+constexpr auto by_the_query(std::span<const std::byte> sequence) {
+  return count(sequence >> cut_sites);
 }
-constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
-  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
+constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
+  return count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
