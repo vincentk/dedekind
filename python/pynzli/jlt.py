@@ -43,7 +43,7 @@ in all genomes, the README's text between the markers:
 
 >>> nucleotides = alphabet("ACGT")
 >>> complement = refl(nucleotides)
->>> reverse_complement = map(complement) >> reverse
+>>> reverse_complement = reverse >> map(complement)
 >>> sequences = words(nucleotides)
 >>> palindromes = sequences & fixed_by(reverse_complement)
 >>> def sites(n):
@@ -110,6 +110,7 @@ is *intensional* and lives on the C++ side; it is vacuous here.  ``id`` /
 
 # `_jlt` is the exhibit's own private native extension module (pynzli._jlt),
 # NumPy-style; this pure-Python facade re-exports it under the public name.
+from ._jlt import Alphabet
 from ._jlt import alphabet
 from ._jlt import automaton
 from ._jlt import cod
@@ -138,6 +139,7 @@ from ._jlt import power
 from ._jlt import pred
 from ._jlt import rank
 from ._jlt import refl
+from ._jlt import Reflection
 from ._jlt import reverse
 from ._jlt import rotate
 from ._jlt import succ
@@ -146,8 +148,10 @@ from ._jlt import where
 from ._jlt import window
 from ._jlt import windows
 from ._jlt import words
+from ._jlt import Words
 
 __all__ = [
+    "Alphabet",
     "alphabet",
     "automaton",
     "cod",
@@ -176,6 +180,7 @@ __all__ = [
     "pred",
     "rank",
     "refl",
+    "Reflection",
     "reverse",
     "rotate",
     "succ",
@@ -184,4 +189,5 @@ __all__ = [
     "window",
     "windows",
     "words",
+    "Words",
 ]

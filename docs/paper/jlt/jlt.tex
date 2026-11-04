@@ -775,10 +775,10 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{listing}[htbp]
 \begin{cpp}
 // the sites: the palindromes of length n, a palindrome its own reverse complement
-constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement  = refl(nucleotides);
-constexpr auto reverse_complement = map(complement) >> reverse;     // the other strand
-constexpr auto sequences   = words(nucleotides);                    // all of them, by length
+constexpr Alphabet nucleotides = alphabet("ACGT");
+constexpr Reflection complement = refl(nucleotides);
+constexpr auto reverse_complement = reverse >> map(complement);     // the other strand
+constexpr Words sequences = words(nucleotides);                     // all of them, by length
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);
 constexpr auto sites(size_t n) { return palindromes & length(n); }
 // all sequences of length N: the cuts, counted, none built
@@ -813,7 +813,7 @@ by_the_plan g = π₂ (fold (λ (q, c) a. (T q a, c + F (T q a))) (0, 0) (map ra
 \end{minted}
 \caption{Restriction sites, counted two ways on one definition.
 A site of length $n$ is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts a genome where one occurs.
-The complement is the alphabet's duality, the reversal of the chain of letters as \cppinline{reverse} is of the chain of positions, so the reverse complement is an involution by construction; on the ranks as two bits it is bitwise NOT, as every 2-bit genome code has it, by the luck of the four initials' alphabetical order.
+The complement is the alphabet's reflection about its centre, \cppinline{refl} on the chain of letters as \cppinline{reverse} is on the chain of positions; the two commute, so the reverse complement is an involution by construction, in either order. The nouns carry their types, the composites are \cppinline{auto}, their type being the term itself; on the ranks as two bits it is bitwise NOT, as every 2-bit genome code has it, by the luck of the four initials' alphabetical order.
 Top: the palindromes, the sequences fixed by their reverse complement, and the sites of length $n$ among them; the cuts in all $4^N$ sequences of length $N$ as the join of those sequences with the sites, counted by the join's laws: a product of factors.
 The $4^{32}$ genomes of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
 Middle: one sequence, its bytes read where they are, on the same section; the query meets its hexamers with the sites, the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.

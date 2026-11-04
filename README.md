@@ -40,10 +40,10 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 <!-- listing5:all-genomes:cpp -->
 
 ```cpp
-constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement = refl(nucleotides);
-constexpr auto reverse_complement = map(complement) >> reverse;
-constexpr auto sequences = words(nucleotides);
+constexpr Alphabet nucleotides = alphabet("ACGT");
+constexpr Reflection complement = refl(nucleotides);
+constexpr auto reverse_complement = reverse >> map(complement);
+constexpr Words sequences = words(nucleotides);
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);
 constexpr auto sites(size_t n) { return palindromes & length(n); }
 constexpr size_t cuts(size_t N, size_t n) {
@@ -60,7 +60,7 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```pycon
 >>> nucleotides = alphabet("ACGT")
 >>> complement = refl(nucleotides)
->>> reverse_complement = map(complement) >> reverse
+>>> reverse_complement = reverse >> map(complement)
 >>> sequences = words(nucleotides)
 >>> palindromes = sequences & fixed_by(reverse_complement)
 >>> def sites(n):

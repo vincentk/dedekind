@@ -162,8 +162,7 @@ constexpr Word dna(std::string_view s) {
   return Word(bytes.begin(), bytes.end());
 }
 constexpr auto reverse_complement = power(complement) >> reverse;
-constexpr auto complement_reversed = dedekind::category::endo<Word>(reverse) >>
-                                     power(complement);
+constexpr auto complement_reversed = reverse >> power(complement);
 static_assert(is_involution(complement) &&
               !is_involution(dedekind::category::letter_map("ACGT", "CGTA")) &&
               is_involution(reverse_complement) &&
@@ -414,16 +413,19 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 // pynzli.jlt's doctest of the same.
 namespace listing5 {
 using dedekind::category::alphabet;
+using dedekind::category::Alphabet;
 using dedekind::category::fixed_by;
 using dedekind::category::length;
 using dedekind::category::map;
 using dedekind::category::refl;
+using dedekind::category::Reflection;
 using dedekind::category::words;
+using dedekind::category::Words;
 // [listing5:all-genomes]
-constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement = refl(nucleotides);
-constexpr auto reverse_complement = map(complement) >> reverse;
-constexpr auto sequences = words(nucleotides);
+constexpr Alphabet nucleotides = alphabet("ACGT");
+constexpr Reflection complement = refl(nucleotides);
+constexpr auto reverse_complement = reverse >> map(complement);
+constexpr Words sequences = words(nucleotides);
 constexpr auto palindromes = sequences & fixed_by(reverse_complement);
 constexpr auto sites(size_t n) { return palindromes & length(n); }
 constexpr size_t cuts(size_t N, size_t n) {

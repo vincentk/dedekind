@@ -155,7 +155,7 @@ using dedekind::category::with_width;
 
 /** @brief A filtered alphabet: the byte chain between its first and last
  *  letter, under the predicate that keeps the letters. */
-using Alphabet = decltype(dedekind::category::alphabet(""));
+using Alphabet = dedekind::category::Alphabet;
 using WordPower = Power<std::byte, Letters, std::size_t>;
 /** @brief @c words(alphabet): all the words, by length; @c sequences. */
 using WordPowers = dedekind::category::Powers<std::byte, Letters, std::size_t>;
@@ -173,11 +173,19 @@ using ReverseAfter = dedekind::category::Compose<
  *  complement as the alphabet's own, an involution by its type. */
 using ReverseAfterDual = dedekind::category::Compose<
     DualPower, dedekind::category::Morphism<Word, Word, Reverse>>;
+/** @brief The reversal first, then the map on every letter: the same two
+ *  commuting involutions in the other order, @c reverse @c >> @c map(c). */
+using MapAfterReverse = dedekind::category::Compose<
+    dedekind::category::Morphism<Word, Word, Reverse>, LetterPower>;
+using DualAfterReverse = dedekind::category::Compose<
+    dedekind::category::Morphism<Word, Word, Reverse>, DualPower>;
 
 /** @brief @c fixed_by(g): the stage of what the reverse complement fixes,
  *  for @c power @c & @c fixed_by(g); the complement a table or the duality. */
 struct FixedStage {
-  std::variant<ReverseAfter, ReverseAfterDual> g;
+  std::variant<ReverseAfter, ReverseAfterDual, MapAfterReverse,
+               DualAfterReverse>
+      g;
 };
 /** @brief @c words(a) @c & @c fixed_by(g): the words @c g fixes, by length,
  *  Listing 5's @c palindromes; @c & @c length(n) is one of its sections. */
@@ -563,6 +571,14 @@ void bind_matcher(nb::module_ module_) {
       [](const jlt::ReverseAfterDual& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"));
   module_.def(
+      "fixed_by",
+      [](const jlt::MapAfterReverse& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
+  module_.def(
+      "fixed_by",
+      [](const jlt::DualAfterReverse& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
+  module_.def(
       "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
       nb::arg("section"),
       "where(section): keep the windows the section holds.");
@@ -615,7 +631,18 @@ void bind_tensors(nb::module_ module_) {
                          "The free monoid on an alphabet truncated below a "
                          "length: the coproduct of the tensor powers.");
   nb::class_<jlt::Reverse>(module_, "Reverse",
-                           "The reversal of a word's positions.");
+                           "The reversal of a word's positions.")
+      .def("__rshift__", [](const jlt::Reverse& r,
+                            const jlt::LetterPower& f) { return r >> f; })
+      .def("__rshift__", [](const jlt::Reverse& r, const jlt::DualPower& f) {
+        return r >> f;
+      });
+  nb::class_<jlt::MapAfterReverse>(
+      module_, "MapAfterReverse",
+      "The reversal of the positions, then a map on every letter.");
+  nb::class_<jlt::DualAfterReverse>(
+      module_, "DualAfterReverse",
+      "The reversal of the positions, then the reflection on every letter.");
   nb::class_<jlt::Rotation<>>(module_, "Rotation",
                               "A rotation of a word's positions.");
   nb::class_<jlt::LetterMap>(module_, "LetterMap", "An arrow on the letters.");
@@ -720,6 +747,18 @@ void bind_tensors(nb::module_ module_) {
       },
       nb::arg("arrow"));
   module_.def(
+      "is_involution",
+      [](const jlt::MapAfterReverse& g) {
+        return dedekind::category::is_involution(g);
+      },
+      nb::arg("arrow"));
+  module_.def(
+      "is_involution",
+      [](const jlt::DualAfterReverse& g) {
+        return dedekind::category::is_involution(g);
+      },
+      nb::arg("arrow"));
+  module_.def(
       "power",
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
@@ -816,6 +855,18 @@ void bind_tensors(nb::module_ module_) {
   module_.def(
       "symmetric",
       [](const jlt::WordPower& p, const jlt::ReverseAfterDual& g) {
+        return jlt::Section{jlt::symmetric(p, g)};
+      },
+      nb::arg("power"), nb::arg("symmetry"));
+  module_.def(
+      "symmetric",
+      [](const jlt::WordPower& p, const jlt::MapAfterReverse& g) {
+        return jlt::Section{jlt::symmetric(p, g)};
+      },
+      nb::arg("power"), nb::arg("symmetry"));
+  module_.def(
+      "symmetric",
+      [](const jlt::WordPower& p, const jlt::DualAfterReverse& g) {
         return jlt::Section{jlt::symmetric(p, g)};
       },
       nb::arg("power"), nb::arg("symmetry"));
