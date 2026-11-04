@@ -43,12 +43,13 @@ in all genomes, the README's text between the markers:
 
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
->>> reverse_complement = power(complement) >> reverse
->>> sequences = powers(nucleotides)
+>>> reverse_complement = map(complement) >> reverse
+>>> sequences = words(nucleotides)
+>>> palindromes = sequences & fixed_by(reverse_complement)
 >>> def sites(n):
-...     return sequences(n) & fixed_by(reverse_complement)
+...     return palindromes & length(n)
 >>> def cuts(N, n):
-...     return count(join(sequences(N), sites(n)))
+...     return count(join(sequences & length(N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
 (1835008, True)
 
@@ -128,12 +129,13 @@ from ._jlt import id
 from ._jlt import is_involution
 from ._jlt import is_square
 from ._jlt import join
+from ._jlt import length
 from ._jlt import letter_map
+from ._jlt import map
 from ._jlt import matches
 from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
-from ._jlt import powers
 from ._jlt import pred
 from ._jlt import rank
 from ._jlt import refl
@@ -144,6 +146,7 @@ from ._jlt import symmetric
 from ._jlt import where
 from ._jlt import window
 from ._jlt import windows
+from ._jlt import words
 
 __all__ = [
     "alphabet",
@@ -165,12 +168,13 @@ __all__ = [
     "is_involution",
     "is_square",
     "join",
+    "length",
     "letter_map",
+    "map",
     "matches",
     "occurrences",
     "pack",
     "power",
-    "powers",
     "pred",
     "rank",
     "refl",
@@ -181,4 +185,5 @@ __all__ = [
     "where",
     "window",
     "windows",
+    "words",
 ]

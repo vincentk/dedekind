@@ -1156,6 +1156,16 @@ export template <IsArrow T>
 constexpr PowerMap<T> power(const T& tau) {
   return {tau};
 }
+/** @brief @c map(τ), the list functor's own name for the same arrow: the
+ *  textbook factors the functor as the type on objects, @c words, and
+ *  @c map on arrows, so Listing 5 writes @c map(complement) @c >>
+ *  @c reverse for the reverse complement.  @param tau an arrow on the
+ *  letters.  @return @c tau on every letter of a word. */
+export template <IsArrow T>
+  requires std::same_as<Dom<T>, Cod<T>>
+constexpr PowerMap<T> map(const T& tau) {
+  return {tau};
+}
 
 /** @brief The rotation of the positions of a word by @c shift, @f$i \mapsto
  *  i + d \bmod n@f$, the symmetry of a power @f$u^j@f$: on a word, the letter
@@ -1620,7 +1630,7 @@ constexpr Symmetric<Power<C, F, N>, S, T> symmetric(
   return {p, g.f.transform, g.g.tau};
 }
 
-/** @brief @c powers(Σ), the tensor powers by length, @f$n \mapsto \Sigma^n@f$:
+/** @brief @c words(Σ), the tensor powers by length, @f$n \mapsto \Sigma^n@f$:
  *  an arrow out of the counts into the tensors, the free monoid graded by
  *  length.  Its density is 1 at every length.  Each power is the
  *  exponential @f$\Sigma^{[n]}@f$, the functions from the chain of @c n to
@@ -1642,7 +1652,7 @@ struct Powers {
 export template <IsCountWord N = std::size_t, HasNNOStep C, IsArrow F>
   requires std::totally_ordered<C> && std::same_as<Dom<F>, C> &&
            std::convertible_to<Cod<F>, bool>
-constexpr Powers<C, F, N> powers(
+constexpr Powers<C, F, N> words(
     const unfold_view<std::optional<C>, detail_chain::SliceStep<C, F>>& leg) {
   const Power<C, F, N> one = power<N>(leg, N{1});
   return {one.letters, one.member};
@@ -1692,13 +1702,55 @@ constexpr detail_periodic::FixedByStage<S, T> fixed_by(
   return {g.f.transform, g.g.tau};
 }
 /** @brief The powers, then the sections each fixes: a family of sets of
- *  words by length, @c powers(Σ) @c >> @c fixed_by(g).
+ *  words by length, @c words(Σ) @c >> @c fixed_by(g).
  *  @param ps the powers.  @param st the stage.  @return the family. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
   requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
 constexpr auto operator>>(const Powers<C, F, N>& ps,
                           const detail_periodic::FixedByStage<S, T>& st) {
   return ps >> FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau};
+}
+/** @brief @c words(Σ) @c & @c fixed_by(g): the words @c g fixes, by length,
+ *  the same family spelled as Trsk spells a set under a predicate; Listing
+ *  5's @c palindromes @c = @c sequences @c & @c fixed_by(reverse_complement).
+ *  @param ps the words.  @param st the stage.  @return the family. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr auto operator&(const Powers<C, F, N>& ps,
+                         const detail_periodic::FixedByStage<S, T>& st) {
+  return ps >> st;
+}
+/** @brief @c length(n): the fibre of the length over @c n, the predicate a
+ *  graded family of words is met with.  @c sequences @c & @c length(n) is
+ *  the words of length @c n, @f$\Sigma^n@f$ as the fibre of @f$\Sigma^*
+ *  \to \mathbb{N}@f$ over @c n, Trsk's filter on the graded set; it is
+ *  the family applied at @c n, so the count law of the fibre is the
+ *  power's, @f$|\Sigma|^n@f$.  The meets commute: @c sequences @c &
+ *  @c length(n) @c & @c fixed_by(g) and @c sequences @c & @c fixed_by(g)
+ *  @c & @c length(n) are one section.  @tparam N the counts. */
+export template <IsCountWord N = std::size_t>
+struct Length {
+  N n;
+};
+/** @param n the length.  @return the fibre's predicate. */
+export template <IsCountWord N = std::size_t>
+constexpr Length<N> length(std::type_identity_t<N> n) {
+  return {n};
+}
+/** @brief A graded family of sets of words, indexed by the length:
+ *  @c words(Σ), or it followed by stages. */
+template <typename Fam>
+inline constexpr bool is_graded_v = false;
+template <HasNNOStep C, IsArrow F, IsCountWord N>
+inline constexpr bool is_graded_v<Powers<C, F, N>> = true;
+template <typename Fam, typename G>
+inline constexpr bool is_graded_v<Compose<Fam, G>> = is_graded_v<Fam>;
+/** @param fam a graded family of sets of words.  @param l the length.
+ *  @return the family's set at that length, the fibre. */
+export template <IsArrow Fam, IsCountWord N>
+  requires is_graded_v<Fam> && std::same_as<Dom<Fam>, N>
+constexpr Cod<Fam> operator&(const Fam& fam, Length<N> l) {
+  return fam(l.n);
 }
 /** @brief @c power(Σ, n) @c & @c fixed_by(g): the power met with what @c g
  *  fixes, @c symmetric(power, g) spelled as Trsk spells a set under a

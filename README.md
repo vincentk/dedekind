@@ -42,13 +42,14 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 ```cpp
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
-constexpr auto reverse_complement = power(complement) >> reverse;
-constexpr auto sequences = powers(nucleotides);
+constexpr auto reverse_complement = map(complement) >> reverse;
+constexpr auto sequences = words(nucleotides);
+constexpr auto palindromes = sequences & fixed_by(reverse_complement);
 constexpr auto sites(size_t n) {
-  return sequences(n) & fixed_by(reverse_complement);
+  return palindromes & length(n);
 }
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(sequences(N), sites(n)));
+  return count(join(sequences & length(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```
@@ -61,12 +62,13 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```pycon
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
->>> reverse_complement = power(complement) >> reverse
->>> sequences = powers(nucleotides)
+>>> reverse_complement = map(complement) >> reverse
+>>> sequences = words(nucleotides)
+>>> palindromes = sequences & fixed_by(reverse_complement)
 >>> def sites(n):
-...     return sequences(n) & fixed_by(reverse_complement)
+...     return palindromes & length(n)
 >>> def cuts(N, n):
-...     return count(join(sequences(N), sites(n)))
+...     return count(join(sequences & length(N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
 (1835008, True)
 ```

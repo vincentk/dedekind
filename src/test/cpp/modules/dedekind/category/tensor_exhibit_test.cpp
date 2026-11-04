@@ -356,10 +356,10 @@ using dedekind::category::descending;
 using dedekind::category::fixed_by;
 using dedekind::category::join_with;
 using dedekind::category::order_by;
-using dedekind::category::powers;
 using dedekind::category::take;
 using dedekind::category::where;
-constexpr auto cuts_in_12 = powers(nucleotides) >>
+using dedekind::category::words;
+constexpr auto cuts_in_12 = words(nucleotides) >>
                             fixed_by(power(complement) >> reverse) >>
                             join_with(power(nucleotides, 12)) >> counting;
 static_assert(cuts_in_12(6uz) == 1'835'008uz && cuts_in_12(7uz) == 0uz);
@@ -368,7 +368,7 @@ static_assert(cuts_in_12(6uz) == 1'835'008uz && cuts_in_12(7uz) == 0uz);
 // by a six-letter site.  The plan is a handful of factors at compile time;
 // the 4^32 = 2^64 genomes it stands for are more than a size_t counts, so
 // no evaluation that enumerates them could finish, at either binding time.
-constexpr auto cuts_in_32 = powers(nucleotides) >>
+constexpr auto cuts_in_32 = words(nucleotides) >>
                             fixed_by(power(complement) >> reverse) >>
                             join_with(power(nucleotides, 32)) >> counting;
 static_assert(cuts_in_32(6uz) == 27uz << 58);
@@ -416,20 +416,28 @@ namespace listing5 {
 using dedekind::category::alphabet;
 using dedekind::category::dual;
 using dedekind::category::fixed_by;
-using dedekind::category::powers;
+using dedekind::category::length;
+using dedekind::category::map;
+using dedekind::category::words;
 // [listing5:all-genomes]
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
-constexpr auto reverse_complement = power(complement) >> reverse;
-constexpr auto sequences = powers(nucleotides);
-constexpr auto sites(size_t n) {
-  return sequences(n) & fixed_by(reverse_complement);
-}
+constexpr auto reverse_complement = map(complement) >> reverse;
+constexpr auto sequences = words(nucleotides);
+constexpr auto palindromes = sequences & fixed_by(reverse_complement);
+constexpr auto sites(size_t n) { return palindromes & length(n); }
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(sequences(N), sites(n)));
+  return count(join(sequences & length(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 // [/listing5:all-genomes]
+// The meets commute: the length then the symmetry, or the symmetry then
+// the length, is one section; and no odd palindrome, as no base is its own
+// complement.
+static_assert(exact_count(count_factors(sequences& length(6uz) &
+                                        fixed_by(reverse_complement))) ==
+                  exact_count(count_factors(palindromes & length(6uz))) &&
+              exact_count(count_factors(palindromes & length(7uz))) == 0uz);
 
 // Listing 5, one genome: the two lines, the README's text between the markers.
 // The query tests each window against the section; the plan is the matcher
