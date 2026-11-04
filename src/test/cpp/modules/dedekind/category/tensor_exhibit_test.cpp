@@ -415,11 +415,12 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 namespace listing5 {
 using dedekind::category::alphabet;
 using dedekind::category::dual;
+using dedekind::category::fixed_by;
 // [listing5:all-genomes]
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
 constexpr auto sites(size_t n) {
-  return symmetric(power(nucleotides, n), power(complement) >> reverse);
+  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
 }
 constexpr size_t cuts(size_t N, size_t n) {
   return count(join(power(nucleotides, N), sites(n)));
@@ -433,18 +434,15 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 // evaluator's budget, so these run at run time (the TEST_CASE below); a
 // single site's is a constant (PlansAtCompileTime, above).
 using dedekind::category::automaton;
-using dedekind::category::counting;
 using dedekind::category::matches;
 using dedekind::category::rank;
-using dedekind::category::where;
 using dedekind::category::windows;
 // [listing5:one-genome]
 constexpr auto by_the_query(std::span<const std::byte> genome) {
-  return genome >> windows(6) >> where(sites(6)) >> counting;
+  return count(genome >> windows(6) & sites(6));
 }
 constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
-  return genome >> rank(nucleotides) >> matches(automaton(sites(6))) >>
-         counting;
+  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the

@@ -171,6 +171,11 @@ using ReverseAfter = dedekind::category::Compose<
 using ReverseAfterDual = dedekind::category::Compose<
     DualPower, dedekind::category::Morphism<Word, Word, Reverse>>;
 
+/** @brief @c fixed_by(g): the stage of what the reverse complement fixes,
+ *  for @c power @c & @c fixed_by(g); the complement a table or the duality. */
+struct FixedStage {
+  std::variant<ReverseAfter, ReverseAfterDual> g;
+};
 /** @brief A symmetric section of a tensor power held as itself, not as its
  *  count, so that a window can land in it (@c cylinder, @c occurrences): the
  *  palindromes, the rotation-fixed words, or the words a letter map then the
@@ -463,7 +468,10 @@ void bind_matcher(nb::module_ module_) {
       .def("__rshift__",
            [](const jlt::WindowsOver& w, const jlt::WhereSection& s) {
              return jlt::WindowQuery{w, s.section};
-           });
+           })
+      .def("__and__", [](const jlt::WindowsOver& w, const jlt::Section& s) {
+        return jlt::WindowQuery{w, s};
+      });
   nb::class_<jlt::Plan>(
       module_, "Automaton",
       "The matcher specialised to a section: the minimal automaton of the "
@@ -515,6 +523,15 @@ void bind_matcher(nb::module_ module_) {
       },
       nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
   module_.def(
+      "fixed_by", [](const jlt::ReverseAfter& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"),
+      "fixed_by(g): the stage of the words g fixes, for power & fixed_by(g), "
+      "the power met with the predicate: symmetric(power, g).");
+  module_.def(
+      "fixed_by",
+      [](const jlt::ReverseAfterDual& g) { return jlt::FixedStage{g}; },
+      nb::arg("symmetry"));
+  module_.def(
       "where", [](const jlt::Section& s) { return jlt::WhereSection{s}; },
       nb::arg("section"),
       "where(section): keep the windows the section holds.");
@@ -555,7 +572,14 @@ void bind_tensors(nb::module_ module_) {
                              "The words of one length over an alphabet, a "
                              "tensor power, never built.")
       .def("__mul__", &jlt::times<jlt::WordPower, jlt::WordPower>)
-      .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>);
+      .def("__mul__", &jlt::times<jlt::WordPower, jlt::Factored>)
+      .def("__and__", [](const jlt::WordPower& p, const jlt::FixedStage& st) {
+        return std::visit(
+            [&](const auto& g) {
+              return jlt::Section{p & dedekind::category::fixed_by(g)};
+            },
+            st.g);
+      });
   nb::class_<jlt::Words>(module_, "FreeMonoid",
                          "The free monoid on an alphabet truncated below a "
                          "length: the coproduct of the tensor powers.");
@@ -586,6 +610,9 @@ void bind_tensors(nb::module_ module_) {
       });
   // A Section counts as a Tensor wherever one is taken as an argument; as the
   // left operand of * it is not converted, so it multiplies itself.
+  nb::class_<jlt::FixedStage>(module_, "FixedBy",
+                              "fixed_by(g): what a symmetry fixes, the "
+                              "predicate a power is met with.");
   nb::class_<jlt::Section>(
       module_, "Section",
       "A symmetric section of a tensor power, held as itself: the words a "

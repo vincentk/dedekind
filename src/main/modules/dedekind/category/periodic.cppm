@@ -1700,6 +1700,17 @@ constexpr auto operator>>(const Powers<C, F, N>& ps,
                           const detail_periodic::FixedByStage<S, T>& st) {
   return ps >> FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau};
 }
+/** @brief @c power(Σ, n) @c & @c fixed_by(g): the power met with what @c g
+ *  fixes, @c symmetric(power, g) spelled as Trsk spells a set under a
+ *  predicate.  The equalizer of @c g and the identity, a subobject of the
+ *  power, and one the laws count: from @c g's cycle type, no word built.
+ *  @param p the power.  @param st the stage.  @return the section. */
+export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
+  requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
+constexpr Symmetric<Power<C, F, N>, S, T> operator&(
+    const Power<C, F, N>& p, const detail_periodic::FixedByStage<S, T>& st) {
+  return FixedBy<Power<C, F, N>, S, T>{st.sigma, st.tau}(p);
+}
 
 /** @brief A permutation family coherent across lengths: from @c n to
  *  @c n @c + @c 2 its cycle type gains cycles and changes none.  The

@@ -18,7 +18,8 @@ saturating at the chain's bounds: ``succ(bool)(True) is True``.
 
 The tensor exhibit (#1107) adds handles to ``:periodic``'s tensors: an
 ``alphabet("ACGT")``, its ``power(a, n)`` (the words of length n, never built),
-``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, g)`` (the
+``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, g)``, or
+``p & fixed_by(g)`` as Trsk spells a set under a predicate (the
 words a symmetry fixes: ``reverse``, ``rotate(d)``, or an arrow on every
 letter then the reversal, ``power(complement) >> reverse``, the reverse
 complement, where the complement is the alphabet's ``dual``, its one
@@ -43,7 +44,7 @@ in all genomes, the README's text between the markers:
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
 >>> def sites(n):
-...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
+...     return power(nucleotides, n) & fixed_by(power(complement) >> reverse)
 >>> def cuts(N, n):
 ...     return count(join(power(nucleotides, N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
@@ -68,9 +69,9 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 .. [listing5:one-genome]
 
 >>> genome = b"TTGAATTCAAGCTTA"
->>> genome >> windows(6) >> where(sites(6)) >> counting
+>>> count(genome >> windows(6) & sites(6))
 2
->>> genome >> rank(nucleotides) >> matches(automaton(sites(6))) >> counting
+>>> count(genome >> rank(nucleotides) >> matches(automaton(sites(6))))
 2
 
 .. [/listing5:one-genome]
@@ -115,6 +116,7 @@ from ._jlt import dom
 from ._jlt import dual
 from ._jlt import exact_count
 from ._jlt import exact_occurrences
+from ._jlt import fixed_by
 from ._jlt import free_monoid
 from ._jlt import Holes
 from ._jlt import id
@@ -150,6 +152,7 @@ __all__ = [
     "dual",
     "exact_count",
     "exact_occurrences",
+    "fixed_by",
     "free_monoid",
     "Holes",
     "id",

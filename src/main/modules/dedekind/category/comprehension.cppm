@@ -319,6 +319,21 @@ export template <typename P, typename S, IsArrow T>
 constexpr auto where(const Symmetric<P, S, T>& s) {
   return where(arrow<std::span<const Dom<T>>, bool>(s));
 }
+/** @brief @c r @c & @c s: a range of the caller's windows met with a
+ *  section, the windows that lie in it, @c where(s) on the range.  Trsk's
+ *  @c & of a set and a predicate, read on the caller's data: the meet in
+ *  the subobjects of the windows.  @c >> binds tighter than @c &, so
+ *  @c genome @c >> @c windows(6) @c & @c sites(6) is the windows, then the
+ *  meet, and @c count of it the panel's number.  @param r the view.
+ *  @param s the section.  @return the query. */
+export template <detail_comprehension::IsForeignView R, typename P, typename S,
+                 IsArrow T>
+  requires requires(R r, const Symmetric<P, S, T>& s) {
+    std::move(r) >> where(s);
+  }
+constexpr auto operator&(R r, const Symmetric<P, S, T>& s) {
+  return std::move(r) >> where(s);
+}
 
 // where(p) keeps what p classifies: the subobject {x | p(x)} is the pullback
 // of the truth 1 -> Omega along p, by shape (the concept, ⊤ the constant
@@ -573,10 +588,15 @@ struct Counted {
  *  count lifted through @c Maybe, nothing where the query is nothing.  The
  *  monad carries the uncertainty to the end, so no caller cases on it.
  *  @param q the query, or nothing.  @return its count, or nothing. */
+export template <IsCountWord N = std::size_t, IsQuery Q>
+constexpr Maybe<N> count(const Maybe<Q>& q) {
+  return q.transform(detail_comprehension::Counted{});
+}
+/** @brief The stage form of the same. */
 export template <IsQuery Q>
 constexpr Maybe<std::size_t> operator>>(const Maybe<Q>& q,
                                         detail_comprehension::CountingStage) {
-  return q.transform(detail_comprehension::Counted{});
+  return count(q);
 }
 /** @brief A rank whose values do not grow along the even lengths, so that
  *  ranking the even lengths descending reads them upwards.  Derived, not

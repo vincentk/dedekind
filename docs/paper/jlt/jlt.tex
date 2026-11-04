@@ -778,7 +778,7 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement  = dual(nucleotides);
 constexpr auto sites(size_t n) {
-  return symmetric(power(nucleotides, n), power(complement) >> reverse);
+  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
 }
 // all genomes of length N: the cuts, counted, none built
 constexpr size_t cuts(size_t N, size_t n) {
@@ -789,10 +789,10 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 \begin{cpp}
 // one genome, the caller's bytes: each window tested, or the matcher
 constexpr auto by_the_query(span<const byte> genome) {
-  return genome >> windows(6) >> where(sites(6)) >> counting;
+  return count(genome >> windows(6) & sites(6));
 }
 constexpr auto by_the_plan(span<const byte> genome) {            // a Maybe
-  return genome >> rank(nucleotides) >> matches(automaton(sites(6))) >> counting;
+  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
 \end{cpp}

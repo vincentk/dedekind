@@ -43,7 +43,7 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
 constexpr auto sites(size_t n) {
-  return symmetric(power(nucleotides, n), power(complement) >> reverse);
+  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
 }
 constexpr size_t cuts(size_t N, size_t n) {
   return count(join(power(nucleotides, N), sites(n)));
@@ -60,7 +60,7 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
 >>> def sites(n):
-...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
+...     return power(nucleotides, n) & fixed_by(power(complement) >> reverse)
 >>> def cuts(N, n):
 ...     return count(join(power(nucleotides, N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
@@ -77,11 +77,10 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 
 ```cpp
 constexpr auto by_the_query(std::span<const std::byte> genome) {
-  return genome >> windows(6) >> where(sites(6)) >> counting;
+  return count(genome >> windows(6) & sites(6));
 }
 constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
-  return genome >> rank(nucleotides) >> matches(automaton(sites(6))) >>
-         counting;
+  return count(genome >> rank(nucleotides) >> matches(automaton(sites(6))));
 }
 ```
 
@@ -92,9 +91,9 @@ constexpr auto by_the_plan(std::span<const std::byte> genome) {  // a Maybe
 
 ```pycon
 >>> genome = b"TTGAATTCAAGCTTA"
->>> genome >> windows(6) >> where(sites(6)) >> counting
+>>> count(genome >> windows(6) & sites(6))
 2
->>> genome >> rank(nucleotides) >> matches(automaton(sites(6))) >> counting
+>>> count(genome >> rank(nucleotides) >> matches(automaton(sites(6))))
 2
 ```
 
