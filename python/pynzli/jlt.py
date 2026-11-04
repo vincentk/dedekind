@@ -42,29 +42,29 @@ in all genomes, the README's text between the markers:
 .. [listing5:all-genomes]
 
 >>> nucleotides = alphabet("ACGT")
+>>> sequences = words(nucleotides)
 >>> complement = refl(nucleotides)
 >>> rc = reverse >> map(complement)
->>> sequences = words(nucleotides)
->>> palindromes = sequences & fixed_by(rc)
->>> def sites(n):
-...     return palindromes & length(n)
->>> def cuts(N, n):
-...     return count(join(sequences & length(N), sites(n)))
->>> cuts(12, 6), cuts(32, 6) == 27 << 58
+>>> hexamers = sequences & length(6)
+>>> palindromic = fixed_by(rc)
+>>> sites = hexamers & palindromic
+>>> def cuts(N):
+...     return count(join(sequences & length(N), sites))
+>>> cuts(12), cuts(32) == 27 << 58
 (1835008, True)
 
 .. [/listing5:all-genomes]
 
->>> cuts(12, 7)  # no letter is its own complement
+>>> count(sequences & palindromic & length(7))  # no letter is its own complement
 0
->>> exact_count(join(power(nucleotides, 40), sites(6))) is None  # past 2**64
+>>> exact_count(join(sequences & length(40), sites)) is None  # past 2**64
 True
->>> occurrences(power(nucleotides, 12), sites(6))  # the same count
+>>> occurrences(sequences & length(12), sites)  # the same count
 1835008
 
 The second panel of Listing 5 (#1135) scans **one** sequence, the caller's
 ``bytes``, read where they are.  Two lines count the same sites: the query,
-the sequence's hexamers met with the sites, ``windows(6) & sites(6)`` a stage
+the windows of the sites' length that are sites, ``windows(sites)``, a stage
 named before any sequence is given; and the plan, the matcher
 specialised to the section's words (``automaton``, the minimal automaton,
 built here at run time by the function C++ runs at compile time).  A plan
@@ -73,16 +73,15 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 .. [listing5:one-genome]
 
 >>> sequence = b"TTGAATTCAAGCTTA"
->>> hexamers = windows(6)
->>> cut_sites = hexamers & sites(6)
+>>> cut_sites = windows(sites)
 >>> count(sequence >> cut_sites)
 2
->>> count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))))
+>>> count(sequence >> rank(nucleotides) >> matches(automaton(sites)))
 2
 
 .. [/listing5:one-genome]
 
->>> plan = automaton(sites(6))
+>>> plan = automaton(sites)
 >>> plan
 automaton(states=277, accepting=64)
 >>> count(sequence >> rank(nucleotides) >> matches(plan))  # the stage form: >> counting
@@ -91,13 +90,13 @@ automaton(states=277, accepting=64)
 [7, 13]
 >>> collect(sequence >> cut_sites)  # the restriction map: where each site begins
 [2, 8]
->>> sites(6)(b"GAATTC"), sites(6)(b"GAATTA"), sites(6)(b"GAATT")
+>>> sites(b"GAATTC"), sites(b"GAATTA"), sites(b"GAATT")
 (True, False, False)
 >>> count(b"GAANTTC" >> rank(nucleotides) >> matches(plan))  # N breaks it
 0
 >>> count(b"GAANTTC" >> rank(nucleotides) >> matches(plan, Holes.skip))
 1
->>> plan == automaton(sites(6))
+>>> plan == automaton(sites)
 True
 
 Arrows are **extensional** (functions): ``id(T) >> f`` and ``f`` are equal on

@@ -562,6 +562,16 @@ void bind_matcher(nb::module_ module_) {
       },
       nb::arg("n"), "windows(n): each position's window of n letters, n >= 1.");
   module_.def(
+      "windows",
+      [](const jlt::Section& s) {
+        const std::size_t n =
+            std::visit([](const auto& x) { return x.power.length; }, s.section);
+        return jlt::WindowsIn{dedekind::category::windows(n), s};
+      },
+      nb::arg("section"),
+      "windows(section): the windows of the section's length that lie in it, "
+      "windows(n) & section with n read off the section; cut_sites.");
+  module_.def(
       "fixed_by", [](const jlt::ReverseAfter& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"),
       "fixed_by(g): the stage of the words g fixes, for power & fixed_by(g), "

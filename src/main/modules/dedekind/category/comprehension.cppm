@@ -307,7 +307,7 @@ static_assert(std::same_as<decltype(std::span<const std::size_t>{} >> is_even),
                                     std::views::transform(is_even))>);
 
 /** @brief @c where(section): the windows a section holds, its membership
- *  as the filter, @c where(sites(6)).  The section stays a tensor (its @c *
+ *  as the filter, @c where(sites).  The section stays a tensor (its @c *
  *  is the outer product); only here is it read as a predicate, its
  *  characteristic map, an arrow from a window of its letters: a
  *  @c std::span, since an arrow has one domain and a text is contiguous (a
@@ -323,7 +323,7 @@ constexpr auto where(const Symmetric<P, S, T>& s) {
  *  section, the windows that lie in it, @c where(s) on the range.  Trsk's
  *  @c & of a set and a predicate, read on the caller's data: the meet in
  *  the subobjects of the windows.  @c >> binds tighter than @c &, so
- *  @c genome @c >> @c windows(6) @c & @c sites(6) is the windows, then the
+ *  @c genome @c >> @c windows(6) @c & @c sites is the windows, then the
  *  meet, and @c count of it the panel's number.  @param r the view.
  *  @param s the section.  @return the query. */
 export template <detail_comprehension::IsForeignView R, typename P, typename S,
@@ -336,7 +336,7 @@ constexpr auto operator&(R r, const Symmetric<P, S, T>& s) {
 }
 /** @brief @c windows(n) @c & @c s: the windows of @c n that lie in the
  *  section, as a stage, named before any sequence is given: Listing 5's
- *  @c cut_sites @c = @c hexamers @c & @c sites(6).  @tparam P @tparam S
+ *  @c cut_sites @c = @c windows(sites).  @tparam P @tparam S
  *  @tparam T the section's. */
 export template <typename P, typename S, IsArrow T>
 struct WindowsIn {
@@ -347,6 +347,15 @@ struct WindowsIn {
 export template <typename P, typename S, IsArrow T>
 constexpr WindowsIn<P, S, T> operator&(Windows w, const Symmetric<P, S, T>& s) {
   return {w, s};
+}
+/** @brief @c windows(s): the windows of a section's own length that lie in
+ *  it, @c windows(n) @c & @c s with @c n read off the section, so the
+ *  length is written once, where the section is defined: Listing 5's
+ *  @c cut_sites @c = @c windows(sites).  @param s the section.  @return the
+ *  stage. */
+export template <typename P, typename S, IsArrow T>
+constexpr WindowsIn<P, S, T> windows(const Symmetric<P, S, T>& s) {
+  return {windows(static_cast<std::size_t>(s.power.length)), s};
 }
 /** @param r a view of the caller's.  @param w the stage.  @return the
  *  windows of @c r that lie in the section, the query. */

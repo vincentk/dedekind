@@ -773,53 +773,112 @@ What remains is the loop the optimiser emits, read as a function after Appel~\ci
 With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
 
 \begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-constexpr Alphabet nucleotides = alphabet("ACGT");
+// Σ, the alphabet :
+constexpr Alphabet nucleotides =
+  alphabet("ACGT");
+
 // Σ* = ⊔ₙ Σⁿ :
-constexpr Words sequences = words(nucleotides);
-constexpr Reflection complement = refl(nucleotides);
-constexpr auto rc = reverse >> map(complement);
-// { w ∈ Σ* | rc(w) = w } :
-constexpr auto palindromes = sequences & fixed_by(rc);
-// { w ∈ palindromes | |w| = n } :
-constexpr auto sites(size_t n) { return palindromes & length(n); }
-// |{ (s, i) ∈ Σᴺ × [0, N−n] | s[i, i+n) ∈ sites(n) }| :
-constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(sequences & length(N), sites(n)));
+constexpr Words sequences =
+  words(nucleotides);
+
+// A ↔ T, C ↔ G :
+constexpr Reflection complement =
+  refl(nucleotides);
+
+// w ↦ rc(w), the reverse complement :
+constexpr auto rc =
+  reverse >> map(complement);
+
+// Σ⁶ :
+constexpr auto hexamers =
+  sequences & length(6);
+
+// the predicate rc(w) = w :
+constexpr auto palindromic =
+  fixed_by(rc);
+
+// { w ∈ Σ⁶ | rc(w) = w } :
+constexpr auto sites =
+  hexamers & palindromic;
+
+// |{ (s, i) ∈ Σᴺ × [0, N−6]
+//    | s[i, i+6) ∈ sites }| :
+constexpr size_t cuts(size_t N) {
+  return count(
+    join(sequences & length(N), sites));
 }
-static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
+
+static_assert(cuts(12) == 1'835'008uz &&
+              cuts(32) == 27uz << 58);
 \end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
 \begin{cpp}
-// one sequence, the caller's bytes: its hexamers met with the sites, or the matcher
-constexpr auto hexamers  = windows(6);
-constexpr auto cut_sites = hexamers & sites(6);
-constexpr auto by_the_query(span<const byte> sequence) {
+// { i | s[i, i+6) ∈ sites } :
+constexpr auto cut_sites =
+  windows(sites);
+
+// the query: each window, tested
+constexpr auto by_the_query(
+    span<const byte> sequence) {
   return count(sequence >> cut_sites);
 }
-constexpr auto by_the_plan(span<const byte> sequence) {          // a Maybe
-  return count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))));
+
+// the plan: the matcher, specialised;
+// a Maybe, nothing past its capacity
+constexpr auto by_the_plan(
+    span<const byte> sequence) {
+  return count(sequence
+               >> rank(nucleotides)
+               >> matches(automaton(sites)));
 }
-static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
+
+static_assert(
+    PlansAtCompileTime<EcoRIPlan> &&
+    !PlansAtCompileTime<SitesPlan>);
 \end{cpp}
+\end{minipage}
+\begin{minipage}[t]{0.49\linewidth}
 \begin{minted}{text}
--- all genomes: the join's count by its laws, as Listing 4's fold by the action law
-cuts N n      = count (join (words Σ & length N) (sites n))
-              = (N − n + 1) · 4^(n/2) · 4^(N − n)        -- pushdown and the box law, n even
-cuts 32 6    ~> 27 · 2^58                                -- a constant; no genome built
--- one genome: the plan is a closed term, the pass over the genome is not
-by_the_plan g = κ (automaton (sites 6)) (λ (q₀, δ, ε).   -- in Maybe: nothing past the capacity
-                  η (π₂ (fold (λ (q, c) a. (δ q a, c + ε (δ q a))) (q₀, 0) (map rank g))))
-automaton (site GAATTC) ~> (0, T, F)                      -- static: KMP's table, 7 states, at compile time
-automaton (sites 6)     ~> (0, T', F')                    -- static, 277 states: past the budget, so at run time
-by_the_plan g = π₂ (fold (λ (q, c) a. (T q a, c + F (T q a))) (0, 0) (map rank g))   -- the residual
+-- the join's count by its laws,
+-- as Listing 4's fold by the action law
+cuts N  = count (join (words Σ & length N)
+                      sites)
+        = (N − 5) · 4^3 · 4^(N − 6)
+          -- pushdown and the box law
+cuts 32 ~> 27 · 2^58
+          -- a constant; no sequence built
 \end{minted}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{minted}{text}
+-- the plan is a closed term,
+-- the pass over the sequence is not
+by_the_plan g =
+  κ (automaton sites) (λ (q₀, δ, ε).
+    η (π₂ (fold (λ (q, c) a.
+                  (δ q a, c + ε (δ q a)))
+                (q₀, 0) (map rank g))))
+  -- in Maybe: nothing past the capacity
+automaton (site GAATTC) ~> (0, T, F)
+  -- static: KMP's table, 7 states
+automaton sites ~> (0, T', F')
+  -- static, 277 states: past the budget,
+  -- so at run time
+by_the_plan g =              -- the residual
+  π₂ (fold (λ (q, c) a. (T q a, c + F (T q a)))
+           (0, 0) (map rank g))
+\end{minted}
+\end{minipage}
 \caption{Restriction sites, counted two ways on one definition.
 A site is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts where one occurs.
-Top: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
+Left: how many cuts a cocktail of every six-cutter makes in all $4^N$ $N$-mers, each digested once.
 No $N$-mer is built: the join's count is a product of factors, and the $4^{32}$ of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
-Middle: the cuts of the same cocktail in one sequence, the caller's bytes read where they lie.
+Right: the cuts of the same cocktail in one sequence, the caller's bytes read where they lie.
 The query tests each hexamer; the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.
-Bottom: the translation (Section~\ref{sec:translation}) factors each panel into a closed term and a residual.
+Below each: its translation (Section~\ref{sec:translation}), factored into a closed term and a residual.
 The count's closed term is a constant.
 The plan's is Knuth, Morris and Pratt's table~\cite{knuth1977fast} for one site, which Consel and Danvy obtain by partially evaluating a naive matcher in its pattern~\cite{consel1989partial}, reduced at compile time; for the 64 sites it exceeds the evaluator's budget, a concept decides so, and the same function reduces it at run time, as Python does.
 The residual is one pass over the sequence with the table.

@@ -1720,7 +1720,7 @@ constexpr auto operator>>(const Powers<C, F, N>& ps,
 }
 /** @brief @c words(Σ) @c & @c fixed_by(g): the words @c g fixes, by length,
  *  the same family spelled as Trsk spells a set under a predicate; Listing
- *  5's @c palindromes @c = @c sequences @c & @c fixed_by(reverse_complement).
+ *  5's @c sites @c = @c hexamers @c & @c palindromic.
  *  @param ps the words.  @param st the stage.  @return the family. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S, IsArrow T>
   requires std::same_as<Dom<T>, C> && HasCycleType<S, N>

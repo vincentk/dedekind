@@ -427,23 +427,24 @@ constexpr Alphabet nucleotides = alphabet("ACGT");
 constexpr Words sequences = words(nucleotides);
 constexpr Reflection complement = refl(nucleotides);
 constexpr auto rc = reverse >> map(complement);
-// { w ∈ Σ* | rc(w) = w } :
-constexpr auto palindromes = sequences & fixed_by(rc);
-// { w ∈ palindromes | |w| = n } :
-constexpr auto sites(size_t n) { return palindromes & length(n); }
-// |{ (s, i) ∈ Σᴺ × [0, N−n] | s[i, i+n) ∈ sites(n) }| :
-constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(sequences & length(N), sites(n)));
+// Σ⁶, and the predicate rc(w) = w :
+constexpr auto hexamers = sequences & length(6);
+constexpr auto palindromic = fixed_by(rc);
+// { w ∈ Σ⁶ | rc(w) = w }, the six-cutters' recognition sites :
+constexpr auto sites = hexamers & palindromic;
+// |{ (s, i) ∈ Σᴺ × [0, N−6] | s[i, i+6) ∈ sites }| :
+constexpr size_t cuts(size_t N) {
+  return count(join(sequences & length(N), sites));
 }
-static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
+static_assert(cuts(12) == 1'835'008uz && cuts(32) == 27uz << 58);
 // [/listing5:all-genomes]
 // The meets commute: the length then the symmetry, or the symmetry then
 // the length, is one section; and no odd palindrome, as no base is its own
 // complement.
-static_assert(exact_count(count_factors(sequences& length(6uz) &
-                                        fixed_by(rc))) ==
-                  exact_count(count_factors(palindromes & length(6uz))) &&
-              exact_count(count_factors(palindromes & length(7uz))) == 0uz);
+static_assert(
+    exact_count(count_factors(sites)) ==
+        exact_count(count_factors(sequences & palindromic & length(6uz))) &&
+    exact_count(count_factors(sequences & palindromic & length(7uz))) == 0uz);
 
 // Listing 5, one genome: the two lines, the README's text between the markers.
 // The query tests each window against the section; the plan is the matcher
@@ -455,13 +456,13 @@ using dedekind::category::matches;
 using dedekind::category::rank;
 using dedekind::category::windows;
 // [listing5:one-genome]
-constexpr auto hexamers = windows(6);            // every window of six letters
-constexpr auto cut_sites = hexamers & sites(6);  // the hexamers that are sites
+// { i | s[i, i+6) ∈ sites } :
+constexpr auto cut_sites = windows(sites);
 constexpr auto by_the_query(std::span<const std::byte> sequence) {
   return count(sequence >> cut_sites);
 }
 constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
-  return count(sequence >> rank(nucleotides) >> matches(automaton(sites(6))));
+  return count(sequence >> rank(nucleotides) >> matches(automaton(sites)));
 }
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
@@ -476,7 +477,7 @@ TEST_CASE("Category: Listing 5's one-genome lines agree",
 }  // namespace listing5
 
 // Panel 2's plans and their binding times, each a plan of the library's own
-// values: EcoRI's single site, and the section sites(6) itself.  Whether a
+// values: EcoRI's single site, and the section sites itself.  Whether a
 // plan is a constant is decided by a concept: the evaluator running out of
 // steps makes the requires-expression false, not the program ill-formed.
 // One function, two binding times: EcoRI's plan (KMP's, 7 states) is a
@@ -518,7 +519,7 @@ static_assert(ecori_sites("TTGAATTCAAGCTTA",
 
 // Panel 2, its two lines.  The query: each window tested against the
 // section itself, in place.  The plan: the matcher built from the same
-// section.  sites(6) is the one value both panels read: counted over all
+// section.  sites is the one value both panels read: counted over all
 // genomes (panel 1), tested window by window, compiled into the matcher.
 constexpr std::size_t windows_that_are_sites(std::string_view genome) {
   using namespace dedekind::category;
