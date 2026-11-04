@@ -22,6 +22,7 @@ PANELS = ["all-genomes", "one-genome"]
 CPP_WORDS = {
     "auto",
     "byte",
+    "bytes",  # the library's in C++, Python's own there
     "const",
     "constexpr",
     "return",

@@ -974,6 +974,24 @@ export constexpr auto abc(std::string_view a) {
   return slice(std::byte{lo}, std::byte{static_cast<unsigned char>(hi + 1)}) >>
          letters(a);
 }
+namespace detail_periodic {
+/** @brief A character as a byte. */
+struct ToByte {
+  constexpr std::byte operator()(char c) const {
+    return std::byte{static_cast<unsigned char>(c)};
+  }
+};
+}  // namespace detail_periodic
+/** @brief A text written in the source, as the bytes a sequence is read
+ *  from.  @param s the text.  @return its bytes, without the terminator. */
+export template <std::size_t M>
+  requires(M >= 1)
+constexpr std::array<std::byte, M - 1> bytes(const char (&s)[M]) {
+  std::array<std::byte, M - 1> out{};
+  std::ranges::transform(std::string_view{s, M - 1}, out.begin(),
+                         detail_periodic::ToByte{});
+  return out;
+}
 /** @brief A byte's rank in an alphabet: how many of its letters lie below
  *  it, the order isomorphism of the letters, in the bytes' order, onto
  *  @f$[0, |\Sigma|)@f$; a byte outside it is a hole.  A Kleisli arrow into

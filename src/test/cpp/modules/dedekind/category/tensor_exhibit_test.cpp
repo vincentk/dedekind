@@ -451,24 +451,35 @@ static_assert(
 // evaluator's budget, so these run at run time (the TEST_CASE below); a
 // single site's is a constant (PlansAtCompileTime, above).
 using dedekind::category::automaton;
+using dedekind::category::bytes;
 using dedekind::category::matches;
 using dedekind::category::rank;
+using dedekind::category::site;
 // [listing5:one-genome]
-constexpr auto by_the_query(std::span<const std::byte> sequence) {
-  return count(sequence >> hexamers & sites);
+// a sequence, N a base not read :
+constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
+// { i | s[i, i+6) ∈ sites }, each window tested :
+constexpr auto cut_sites(std::span<const std::byte> s) {
+  return s >> hexamers & sites;
 }
-constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
-  return count(sequence >> rank(bases) >> matches(automaton(sites)));
+static_assert(count(cut_sites(dna)) == 2uz);
+// one site, its table built by the compiler :
+constexpr auto ecori = automaton(site(bases, "GAATTC"));
+static_assert(count(dna >> matches(ecori)) == 1uz);
+// all 64, by the same function; the table past the budget, built at run time :
+constexpr auto by_the_plan(std::span<const std::byte> s) {
+  return count(s >> matches(automaton(sites)));
 }
 // [/listing5:one-genome]
 // The plan's count is a Maybe: the plan may exceed its capacity, and the
 // monad carries that to the end, where the count is read.
 TEST_CASE("Category: Listing 5's one-genome lines agree",
           "[category][tensor][listing5]") {
-  const Word genome = dna("TTGAATTCAAGCTTA");
-  CHECK(by_the_query(genome) == 2);
+  const Word genome = ::dna("TTGAATTCAAGCTTA");
+  CHECK(count(cut_sites(genome)) == 2);
   CHECK(by_the_plan(genome) == 2);  // Maybe{2}
   CHECK(by_the_plan(genome).has_value());
+  CHECK(by_the_plan(dna) == 2);
 }
 }  // namespace listing5
 
@@ -494,6 +505,10 @@ template <typename Plan>
 concept PlansAtCompileTime =
     requires { typename std::bool_constant<Plan::value().has_value()>; };
 static_assert(PlansAtCompileTime<EcoRIPlan> && !PlansAtCompileTime<SitesPlan>);
+// One site written out is that plan, and knows its alphabet.
+static_assert(listing5::ecori->next == EcoRIPlan::value()->next &&
+              listing5::ecori->accepting == EcoRIPlan::value()->accepting &&
+              listing5::ecori->letters == dedekind::category::letters("ACGT"));
 // A genome as the caller has it, bytes, read through the alphabet's rank:
 // EcoRI's site once in TTGAATTCAAGCTTA.  A byte outside the alphabet is a
 // hole: by default it breaks a match, so GAANTTC holds none; skipped, the

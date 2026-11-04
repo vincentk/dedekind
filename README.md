@@ -31,7 +31,7 @@ Listing 5 of the Jlt paper, in C++ and in Python through `pynzli`: open either.
 A restriction site is a word equal to its reverse complement, as EcoRI's `GAATTC`; an enzyme cuts a genome where one occurs.
 The first counts the cuts in *all* genomes of length `N`, never building one: the count is a product of factors, a constant at compile time.
 At `N = 32` the count is `27 · 2⁵⁸`, while the `4³² = 2⁶⁴` genomes it stands for are more than a 64-bit word can enumerate.
-The second scans *one* genome: each window tested, or the matcher specialised to the sites.
+The second scans *one* sequence: each window tested, or the matcher specialised to the sites.
 
 #### All genomes, counted
 
@@ -79,11 +79,19 @@ static_assert(count(cuts(12)) == 1'835'008uz && count(cuts(32)) == 27uz << 58);
 <!-- listing5:one-genome:cpp -->
 
 ```cpp
-constexpr auto by_the_query(std::span<const std::byte> sequence) {
-  return count(sequence >> hexamers & sites);
+// a sequence, N a base not read :
+constexpr auto dna = bytes("TTGAATTCNNNNNNNAAGCTTA");
+// { i | s[i, i+6) ∈ sites }, each window tested :
+constexpr auto cut_sites(std::span<const std::byte> s) {
+  return s >> hexamers & sites;
 }
-constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
-  return count(sequence >> rank(bases) >> matches(automaton(sites)));
+static_assert(count(cut_sites(dna)) == 2uz);
+// one site, its table built by the compiler :
+constexpr auto ecori = automaton(site(bases, "GAATTC"));
+static_assert(count(dna >> matches(ecori)) == 1uz);
+// all 64, by the same function; the table past the budget, built at run time :
+constexpr auto by_the_plan(std::span<const std::byte> s) {
+  return count(s >> matches(automaton(sites)));
 }
 ```
 
@@ -93,18 +101,25 @@ constexpr auto by_the_plan(std::span<const std::byte> sequence) {  // a Maybe
 <!-- listing5:one-genome:python -->
 
 ```pycon
->>> sequence = b"TTGAATTCAAGCTTA"
->>> count(sequence >> hexamers & sites)
+>>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
+>>> def cut_sites(s):
+...     return s >> hexamers & sites
+>>> count(cut_sites(dna))
 2
->>> count(sequence >> rank(bases) >> matches(automaton(sites)))
+>>> ecori = automaton(site(bases, "GAATTC"))
+>>> count(dna >> matches(ecori))
+1
+>>> def by_the_plan(s):
+...     return count(s >> matches(automaton(sites)))
+>>> by_the_plan(dna)
 2
 ```
 
 </details>
 
-The two lines count the same sites, 2 in `TTGAATTCAAGCTTA` (EcoRI's `GAATTC` and HindIII's `AAGCTT`).
-The query tests each window of the sequence against the sites; the plan is the matcher specialised to the section's 64 words, the minimal automaton of their occurrences (277 states), built once.
-In C++ a single site's plan is a compile-time constant, Knuth, Morris and Pratt's table; the 64 sites' exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
+The sequence holds two sites, EcoRI's `GAATTC` and HindIII's `AAGCTT`, with unread bases between them; a byte outside the alphabet is no site.
+The query tests each window against the sites, at compile time here.
+One site's matcher is Knuth, Morris and Pratt's table, a compile-time constant; the matcher of all 64 sites, the minimal automaton of their occurrences (277 states), exceeds the evaluator's budget and is built at run time by the same function, as Python builds it.
 
 Both languages are checked sources: the C++ compiles in [`tensor_exhibit_test.cpp`](src/test/cpp/modules/dedekind/category/tensor_exhibit_test.cpp), the Python runs as a doctest of [`pynzli.jlt`](python/pynzli/jlt.py), and [`test_readme_listing5.py`](src/test/python/test_readme_listing5.py) checks that this page shows them verbatim.
 

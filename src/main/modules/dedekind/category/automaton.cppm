@@ -66,10 +66,12 @@ module;
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>  // std::abort: a refused word
 #include <functional>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <string_view>  // a site, as written
 #include <type_traits>
 #include <utility>
 
@@ -97,6 +99,9 @@ export template <std::size_t Sigma, std::size_t Q>
 struct Automaton {
   AtMost<std::array<std::uint16_t, Sigma>, Q> next;
   AtMost<bool, Q> accepting;
+  /** @brief The alphabet the columns rank, so that a text of bytes is read
+   *  through it; none for a plan given as a table over ranks. */
+  Letters letters{};
   constexpr bool operator==(const Automaton&) const = default;
 };
 
@@ -326,6 +331,24 @@ constexpr Maybe<RunList<N, KL>> run_list(
   return run_list<KL>(*end, detail_automaton::ReadBack<Section, Decoder>{
                                 sites, Decoder{alphabet, n}});
 }
+namespace detail_automaton {
+/** @brief A plan with the alphabet its columns rank. */
+template <std::size_t Sigma, std::size_t Q>
+struct WithLetters {
+  Letters letters;
+  constexpr Automaton<Sigma, Q> operator()(Automaton<Sigma, Q> a) const {
+    a.letters = letters;
+    return a;
+  }
+};
+/** @param member a power's predicate.  @return its letters, where it is the
+ *  bytes' subobject; none otherwise. */
+constexpr Letters letters_of(const Letters& member) { return member; }
+template <typename F>
+constexpr Letters letters_of(const F&) {
+  return {};
+}
+}  // namespace detail_automaton
 /** @brief The matcher specialised to a section: its words as a run list,
  *  then the plan.  The capacities default to a menu's largest, four
  *  letters, words of length 8, pending sets of 32 steps and 320 states, the
@@ -341,7 +364,56 @@ constexpr Maybe<Automaton<Sigma, Q>> automaton(
     const Symmetric<Power<C, F, N>, S, T>& sites) {
   const Maybe<RunList<N, KL>> words = run_list<KL, Sigma, P>(sites);
   if (!words) return {};
-  return automaton<Sigma, P, K, Q>(*words, sites.power.length);
+  return automaton<Sigma, P, K, Q>(*words, sites.power.length)
+      .transform(detail_automaton::WithLetters<Sigma, Q>{
+          detail_automaton::letters_of(sites.power.member)});
+}
+
+/** @brief One word over an alphabet, the set of one site: @c GAATTC as
+ *  @c site(bases, "GAATTC").  Its length is in the type, so its plan's
+ *  capacities follow from it: the least that hold Knuth, Morris and Pratt's
+ *  table, a plan the evaluator's budget admits.  @tparam L the length. */
+export template <std::size_t L>
+struct Site {
+  Letters letters;
+  std::size_t index;  ///< the letters' ranks in base |Σ|, the first the highest
+};
+namespace detail_automaton {
+/** @brief Refuses a word with a byte outside its alphabet. */
+[[noreturn]] constexpr void refuse_foreign_letter() { std::abort(); }
+/** @brief One more letter of a word: its rank, the next digit. */
+struct NextDigit {
+  Letters on;
+  constexpr std::size_t operator()(std::size_t index, char c) const {
+    const Maybe<std::size_t> r = Ranked{on}(detail_periodic::ToByte{}(c));
+    if (!r) refuse_foreign_letter();
+    return index * on.members.count() + *r;
+  }
+};
+}  // namespace detail_automaton
+/** @param on the letters.  @param word a word of them.  @return its letters'
+ *  ranks read as digits in base @f$|\Sigma|@f$, the first the highest. */
+export constexpr std::size_t word_index(const Letters& on,
+                                        std::string_view word) {
+  return std::ranges::fold_left(word, std::size_t{0},
+                                detail_automaton::NextDigit{on});
+}
+/** @param alphabet the letters.  @param word a word of them, written out.
+ *  @return the site. */
+export template <std::size_t M>
+  requires(M >= 2)
+constexpr Site<M - 1> site(const Alphabet& alphabet, const char (&word)[M]) {
+  const Letters on = alphabet.coalgebra().f;
+  return {on, word_index(on, std::string_view{word, M - 1})};
+}
+/** @brief The matcher of one site, Knuth, Morris and Pratt's: @c L + 1
+ *  states, and a capacity of one more.  @param s the site.  @return the plan,
+ *  or nothing where the alphabet has not @c Sigma letters. */
+export template <std::size_t Sigma = 4, std::size_t L>
+constexpr Maybe<Automaton<Sigma, L + 2>> automaton(const Site<L>& s) {
+  if (s.letters.members.count() != Sigma) return {};
+  return automaton<Sigma, L, 4, L + 2>(run<2>(s.index, s.index + 1), L)
+      .transform(detail_automaton::WithLetters<Sigma, L + 2>{s.letters});
 }
 
 /** @brief What a byte outside the alphabet does to a match: break it, the
@@ -366,7 +438,7 @@ constexpr Matches<Sigma, Q> matches(const Automaton<Sigma, Q>& plan,
 /** @brief @c matches on a plan that may not be, @c automaton(section)'s
  *  @c Maybe: the stage, or nothing, by @c Maybe's action.  The uncertainty
  *  of the capacity travels through the query to its count, so
- *  @c genome @c >> @c rank(a) @c >> @c matches(automaton(s)) @c >> @c counting
+ *  @c dna @c >> @c matches(automaton(s)) @c >> @c counting
  *  is a @c Maybe count with no case on it in between.  @param plan the plan,
  *  or nothing.  @param holes what a hole does.  @return the stage, or
  *  nothing. */
@@ -437,17 +509,33 @@ constexpr auto operator>>(V letters, const Maybe<Matches<Sigma, Q>>& m) {
   if (!m) return Maybe<Query>{};
   return Maybe<Query>{std::move(letters) >> *m};
 }
-/** @param letters a text of the caller's, as the letters' indices or as
- *  bytes read through @c rank(alphabet); a view, read where it is.
+/** @param letters a text of the caller's, as the letters' ranks, or bytes
+ *  read through @c rank(alphabet); a view, read where it is.
  *  @param m the stage.  @return the query of the positions where a word of
  *  the set ends: count it, take from it, collect it. */
 export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
   requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
-           std::semiregular<V>
+           std::semiregular<V> &&
+           (!std::same_as<std::ranges::range_value_t<V>, std::byte>)
 constexpr auto operator>>(V letters, const Matches<Sigma, Q>& m) {
   return unfold(detail_automaton::Cursor{},
                 detail_automaton::MatchStep<Sigma, Q, V>{m.plan, m.holes,
                                                          std::move(letters)});
+}
+namespace detail_automaton {
+/** @brief Refuses bytes for a plan that knows no alphabet to rank them in. */
+[[noreturn]] constexpr void refuse_no_letters() { std::abort(); }
+}  // namespace detail_automaton
+/** @brief A text of bytes: read through the rank of the plan's own alphabet,
+ *  so no text is ranked in another one.  @param text the bytes.  @param m the
+ *  stage.  @return the query. */
+export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
+  requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&
+           std::semiregular<V> &&
+           std::same_as<std::ranges::range_value_t<V>, std::byte>
+constexpr auto operator>>(V text, const Matches<Sigma, Q>& m) {
+  if (m.plan.letters.members.none()) detail_automaton::refuse_no_letters();
+  return std::move(text) >> Ranked{m.plan.letters} >> m;
 }
 
 // The rank of a byte in an alphabet is a Kleisli arrow into Maybe: a

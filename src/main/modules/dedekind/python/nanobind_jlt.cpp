@@ -299,7 +299,7 @@ bool is_square(std::size_t k, std::size_t n) {
 // The two lines of panel 2, as Python spells them on the caller's bytes:
 //
 //   count(sequence >> hexamers & sites)                         the query
-//   count(sequence >> rank(bases) >> matches(automaton(sites)))     the plan
+//   count(sequence >> matches(automaton(sites)))                    the plan
 //
 // The bytes are read where they are (the handle keeps the Python object
 // alive, nothing is copied); every stage is the library's own, dispatched at
@@ -311,7 +311,6 @@ bool is_square(std::size_t k, std::size_t n) {
 namespace jlt {
 using dedekind::category::Automaton;
 using dedekind::category::Holes;
-using dedekind::category::Ranked;
 using dedekind::category::Windows;
 
 /** @brief The stage ending a query, @c >> @c counting: the exported object's
@@ -324,11 +323,6 @@ struct Text {
   std::span<const std::byte> view() const {
     return {static_cast<const std::byte*>(bytes.data()), bytes.size()};
   }
-};
-/** @brief @c genome @c >> @c rank(alphabet): the text read as letters. */
-struct RankedText {
-  Text text;
-  Ranked ranked;
 };
 /** @brief @c genome @c >> @c windows(n): the text's windows. */
 struct WindowsOver {
@@ -368,22 +362,17 @@ struct WindowQuery {
  *  the menu says. */
 struct Plan {
   std::variant<Automaton<4, 16>, Automaton<4, 320>> plan;
-  /** @brief The alphabet the plan's columns are the ranks of: a text must
-   *  be ranked in the same one, not merely one of the same size. */
-  Letters alphabet;
-  bool operator==(const Plan& o) const {
-    return plan == o.plan && alphabet == o.alphabet;
-  }
+  bool operator==(const Plan& o) const { return plan == o.plan; }
 };
 /** @brief @c matches(plan, holes): the stage running a matcher. */
 struct MatchesStage {
   Plan plan;
   Holes holes;
 };
-/** @brief @c genome @c >> @c rank(a) @c >> @c matches(plan): the query of the
- *  positions where a site ends. */
+/** @brief @c dna @c >> @c matches(plan): the query of the positions where a
+ *  site ends. */
 struct MatchQuery {
-  RankedText text;
+  Text text;
   MatchesStage stage;
 };
 
@@ -392,12 +381,38 @@ struct MatchQuery {
 template <typename S>
 Plan plan_of(const S& s) {
   if (const auto small = dedekind::category::automaton<4, 8, 4, 16, 256>(s))
-    return {*small, s.power.member};
+    return {*small};
   if (const auto large = dedekind::category::automaton<4, 8, 32, 320, 256>(s))
-    return {*large, s.power.member};
+    return {*large};
   throw nb::value_error(
       "automaton: the section's plan exceeds the largest capacity (320 "
       "states, 32 steps per pending set, words of length 8 over 4 letters)");
+}
+/** @brief @c site(alphabet, word): one word, its letters' ranks as digits;
+ *  its length a value here, where C++ has it in the type. */
+struct Site {
+  Letters letters;
+  std::size_t index;
+  std::size_t length;
+};
+/** @param a the alphabet.  @param word a word of it.  @return the site. */
+Site site(const Alphabet& a, std::string_view word) {
+  const Letters on = a.coalgebra().f;
+  if (on.members.count() != 4) throw nb::value_error("site: 4 letters");
+  if (word.empty() || word.size() > 8)
+    throw nb::value_error("site: a word of 1 to 8 letters");
+  if (!std::ranges::all_of(word, [&](char c) {
+        return on(std::byte{static_cast<unsigned char>(c)});
+      }))
+    throw nb::value_error("site: a letter outside the alphabet");
+  return {on, dedekind::category::word_index(on, word), word.size()};
+}
+/** @brief The plan of one site, the menu's smallest capacity holding it. */
+Plan automaton_of_site(const Site& s) {
+  auto plan = *dedekind::category::automaton<4, 8, 4, 16>(
+      dedekind::category::run<2>(s.index, s.index + 1), s.length);
+  plan.letters = s.letters;
+  return {plan};
 }
 Plan automaton(const Section& s) {
   return std::visit([](const auto& x) { return plan_of(x); }, s.section);
@@ -420,8 +435,7 @@ std::size_t count(const MatchQuery& q) {
   return std::visit(
       [&](const auto& a) {
         return dedekind::category::count(
-            q.text.text.view() >> q.text.ranked >>
-            dedekind::category::matches(a, q.stage.holes));
+            q.text.view() >> dedekind::category::matches(a, q.stage.holes));
       },
       q.stage.plan.plan);
 }
@@ -431,8 +445,8 @@ std::vector<std::size_t> collect(const MatchQuery& q) {
   return std::visit(
       [&](const auto& a) {
         std::vector<std::size_t> out;
-        for (const auto& m : q.text.text.view() >> q.text.ranked >>
-                                 dedekind::category::matches(a, q.stage.holes))
+        for (const auto& m :
+             q.text.view() >> dedekind::category::matches(a, q.stage.holes))
           if (m) out.push_back(*m);
         return out;
       },
@@ -470,13 +484,6 @@ void bind_matcher(nb::module_ module_) {
                         "break it (the default), or be skipped.")
       .value("break_match", jlt::Holes::break_match)
       .value("skip", jlt::Holes::skip);
-  nb::class_<jlt::Ranked>(module_, "Rank",
-                          "rank(alphabet): a byte's rank in the alphabet, a "
-                          "hole for any other byte; genome >> rank(a) reads "
-                          "the genome as letters.")
-      .def("__rrshift__", [](const jlt::Ranked& r, nb::bytes b) {
-        return jlt::RankedText{{std::move(b)}, r};
-      });
   nb::class_<jlt::Windows>(module_, "Windows",
                            "windows(n): each position's window of n letters; "
                            "genome >> windows(n).")
@@ -500,19 +507,6 @@ void bind_matcher(nb::module_ module_) {
       "every offset; & section is the join on the window, a tensor counted "
       "by its laws, never enumerated.")
       .def("__and__", &jlt::window_join);
-  nb::class_<jlt::RankedText>(module_, "RankedText",
-                              "A genome read as letters, where it is.")
-      .def("__rshift__",
-           [](const jlt::RankedText& t, const jlt::MatchesStage& m) {
-             // the plan's columns are the ranks of the alphabet it was
-             // built from: a text ranked in another one, even of the same
-             // size, would read other letters into them
-             if (t.ranked.letters != m.plan.alphabet)
-               throw nb::value_error(
-                   "matches: the text is ranked in an alphabet other than "
-                   "the one the plan was built from");
-             return jlt::MatchQuery{t, m};
-           });
   nb::class_<jlt::WindowsOver>(module_, "WindowsOver",
                                "A genome's windows, where it is.")
       .def("__and__", [](const jlt::WindowsOver& w, const jlt::Section& s) {
@@ -528,7 +522,12 @@ void bind_matcher(nb::module_ module_) {
       .def("__repr__", &jlt::explain);
   nb::class_<jlt::MatchesStage>(module_, "Matches",
                                 "matches(plan): the stage running a matcher "
-                                "along a genome read as letters.");
+                                "along a sequence of bytes.")
+      .def("__rrshift__", [](const jlt::MatchesStage& m, nb::bytes b) {
+        return jlt::MatchQuery{{std::move(b)}, m};
+      });
+  nb::class_<jlt::Site>(module_, "Site",
+                        "site(alphabet, word): one word, the set of one site.");
   nb::class_<jlt::CountingStage>(
       module_, "Counting",
       "counting: the stage form of count, ending a query: q >> counting.");
@@ -548,14 +547,6 @@ void bind_matcher(nb::module_ module_) {
              return jlt::count(q);
            });
 
-  module_.def(
-      "rank",
-      [](const jlt::Alphabet& a) {
-        return dedekind::category::rank(a.coalgebra().f);
-      },
-      nb::arg("alphabet"),
-      "rank(alphabet): a byte's rank in the alphabet (A < C < G < T is 0, 1, "
-      "2, 3), a hole for any other byte.");
   module_.def(
       "windows",
       [](std::size_t n) {
@@ -581,6 +572,9 @@ void bind_matcher(nb::module_ module_) {
       "fixed_by",
       [](const jlt::ReflectedReverse& g) { return jlt::FixedStage{g}; },
       nb::arg("symmetry"));
+  module_.def("site", &jlt::site, nb::arg("alphabet"), nb::arg("word"),
+              "site(alphabet, word): one word over the alphabet.");
+  module_.def("automaton", &jlt::automaton_of_site, nb::arg("site"));
   module_.def("automaton", &jlt::automaton, nb::arg("section"),
               "automaton(section): the matcher specialised to the section's "
               "words, its plan built now; ValueError where it exceeds the "

@@ -62,17 +62,24 @@ True
 The second panel of Listing 5 (#1135) scans **one** sequence, the caller's
 ``bytes``, read where they are.  Two lines count the same sites: the query,
 the sequence's hexamers that are sites, ``>> hexamers & sites``, the first
-panel's stage read at one sequence; and the plan, the matcher
+panel's stage read at one sequence, here a function of it; and the plan, the matcher
 specialised to the section's words (``automaton``, the minimal automaton,
 built here at run time by the function C++ runs at compile time).  A plan
 is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 
 .. [listing5:one-genome]
 
->>> sequence = b"TTGAATTCAAGCTTA"
->>> count(sequence >> hexamers & sites)
+>>> dna = b"TTGAATTCNNNNNNNAAGCTTA"
+>>> def cut_sites(s):
+...     return s >> hexamers & sites
+>>> count(cut_sites(dna))
 2
->>> count(sequence >> rank(bases) >> matches(automaton(sites)))
+>>> ecori = automaton(site(bases, "GAATTC"))
+>>> count(dna >> matches(ecori))
+1
+>>> def by_the_plan(s):
+...     return count(s >> matches(automaton(sites)))
+>>> by_the_plan(dna)
 2
 
 .. [/listing5:one-genome]
@@ -80,17 +87,17 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 >>> plan = automaton(sites)
 >>> plan
 automaton(states=277, accepting=64)
->>> sequence >> rank(bases) >> matches(plan) >> counting  # the stage form of count
+>>> dna >> matches(plan) >> counting  # the stage form of count
 2
->>> collect(sequence >> rank(bases) >> matches(plan))  # where a site ends
-[7, 13]
->>> collect(sequence >> hexamers & sites)  # the restriction map: where each site begins
-[2, 8]
+>>> collect(dna >> matches(plan))  # where a site ends
+[7, 20]
+>>> collect(cut_sites(dna))  # the restriction map: where each site begins
+[2, 15]
 >>> sites(b"GAATTC"), sites(b"GAATTA"), sites(b"GAATT")
 (True, False, False)
->>> count(b"GAANTTC" >> rank(bases) >> matches(plan))  # N breaks it
+>>> count(b"GAANTTC" >> matches(plan))  # N breaks it
 0
->>> count(b"GAANTTC" >> rank(bases) >> matches(plan, Holes.skip))
+>>> count(b"GAANTTC" >> matches(plan, Holes.skip))
 1
 >>> plan == automaton(sites)
 True
@@ -130,10 +137,10 @@ from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
 from ._jlt import pred
-from ._jlt import rank
 from ._jlt import refl
 from ._jlt import Reflection
 from ._jlt import rev
+from ._jlt import site
 from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
@@ -168,10 +175,10 @@ __all__ = [
     "pack",
     "power",
     "pred",
-    "rank",
     "refl",
     "Reflection",
     "rev",
+    "site",
     "rotate",
     "succ",
     "symmetric",
