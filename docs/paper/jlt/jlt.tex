@@ -785,10 +785,9 @@ constexpr auto hexamers = windows(6);
 // { w ∈ Σ⁶ | ~rev w = w }, the palindromic hexamers :
 constexpr auto sites =
   oligos & hexamers & fixed_by(~rev);
-// Σᴺ ⊗ sites read along its band of diagonals,
-// one entry per (s, i) with s[i, i+6) ∈ sites :
+// { (s, i) ∈ Σᴺ × ℕ | s[i, i+6) ∈ sites } :
 constexpr auto cuts(size_t N) {
-  return (oligos & len(N)) * sites >> band;
+  return (oligos & len(N)) >> hexamers & sites;
 }
 
 static_assert(
@@ -820,10 +819,10 @@ static_assert(
 \end{minipage}
 \begin{minipage}[t]{0.49\linewidth}
 \begin{minted}{text}
--- the outer product read along a band: one
--- diagonal per offset, the graph of a window
--- πᵢ, all alike (Toeplitz): N − 5 copies of one
-cuts N = Σ^N ⊗ sites >> ⊔ᵢ Γ(πᵢ)
+-- the right panel's query at every N-mer, the
+-- bind of the bag monad, counted by its laws:
+-- a cylinder per offset, 4^3 · 4^(N−6), N − 5 alike
+cuts N = Σ^N >>= (λ s. s >> hexamers & sites)
 count (cuts N)
        = (N − 5) · 4^3 · 4^(N − 6)
 count (cuts 32) ~> 27 · 2^58
