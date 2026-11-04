@@ -416,14 +416,17 @@ namespace listing5 {
 using dedekind::category::alphabet;
 using dedekind::category::dual;
 using dedekind::category::fixed_by;
+using dedekind::category::powers;
 // [listing5:all-genomes]
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
+constexpr auto reverse_complement = power(complement) >> reverse;
+constexpr auto sequences = powers(nucleotides);
 constexpr auto sites(size_t n) {
-  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
+  return sequences(n) & fixed_by(reverse_complement);
 }
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(power(nucleotides, N), sites(n)));
+  return count(join(sequences(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 // [/listing5:all-genomes]

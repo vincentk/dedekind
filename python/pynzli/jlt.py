@@ -43,10 +43,12 @@ in all genomes, the README's text between the markers:
 
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
+>>> reverse_complement = power(complement) >> reverse
+>>> sequences = powers(nucleotides)
 >>> def sites(n):
-...     return power(nucleotides, n) & fixed_by(power(complement) >> reverse)
+...     return sequences(n) & fixed_by(reverse_complement)
 >>> def cuts(N, n):
-...     return count(join(power(nucleotides, N), sites(n)))
+...     return count(join(sequences(N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
 (1835008, True)
 
@@ -131,6 +133,7 @@ from ._jlt import matches
 from ._jlt import occurrences
 from ._jlt import pack
 from ._jlt import power
+from ._jlt import powers
 from ._jlt import pred
 from ._jlt import rank
 from ._jlt import refl
@@ -167,6 +170,7 @@ __all__ = [
     "occurrences",
     "pack",
     "power",
+    "powers",
     "pred",
     "rank",
     "refl",

@@ -42,11 +42,13 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 ```cpp
 constexpr auto nucleotides = alphabet("ACGT");
 constexpr auto complement = dual(nucleotides);
+constexpr auto reverse_complement = power(complement) >> reverse;
+constexpr auto sequences = powers(nucleotides);
 constexpr auto sites(size_t n) {
-  return power(nucleotides, n) & fixed_by(power(complement) >> reverse);
+  return sequences(n) & fixed_by(reverse_complement);
 }
 constexpr size_t cuts(size_t N, size_t n) {
-  return count(join(power(nucleotides, N), sites(n)));
+  return count(join(sequences(N), sites(n)));
 }
 static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```
@@ -59,10 +61,12 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```pycon
 >>> nucleotides = alphabet("ACGT")
 >>> complement = dual(nucleotides)
+>>> reverse_complement = power(complement) >> reverse
+>>> sequences = powers(nucleotides)
 >>> def sites(n):
-...     return power(nucleotides, n) & fixed_by(power(complement) >> reverse)
+...     return sequences(n) & fixed_by(reverse_complement)
 >>> def cuts(N, n):
-...     return count(join(power(nucleotides, N), sites(n)))
+...     return count(join(sequences(N), sites(n)))
 >>> cuts(12, 6), cuts(32, 6) == 27 << 58
 (1835008, True)
 ```
