@@ -766,59 +766,11 @@ The test behind the listings calls the same functions at runtime, on values it d
 Rule~1 is what makes that unremarkable: a \cppinline{constexpr} function of its arguments alone has no binding time of its own.\footnote{A \cppinline{consteval} function is evaluated only at compile time, so it has one binding time, which is why Rule~1 asks \cppinline{constexpr} and not \cppinline{consteval}.}
 Theorem~\ref{thm:simulation} says the two evaluations agree, which is the presumption of this section: moving a call from compile time to run time changes where it is evaluated, not what it evaluates to.
 Both are partial evaluation~\cite{jones1993partial} at build time: the compiler evaluates what it can and leaves the processor the rest.
-Listing~\ref{lst:desugar} follows one program down both legs.
+Listing~\ref{lst:sites} shows the paper's exhibit on both of its panels, and Listing~\ref{lst:desugar} follows one program down both legs.
 With $n$ free, each leg evaluates what it can and keeps the fold over $n$, which only the run time can finish.
 The System~F term gets there by two equations outside the appendix's reductions, fusion and dropping an unread position.
 What remains is the loop the optimiser emits, read as a function after Appel~\cite{appel1998ssa}.
 With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fig:arrows}'s bottom edge on one program.
-
-\begin{listing}[htbp]
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-// Listing 3's chain, its length a parameter
-constexpr size_t fibonacci_steps(size_t n) {
-  const auto copies =
-      n >> chain<size_t>() >> constant<size_t>(fib);
-  return ranges::fold_left(copies, V{1, 0}, act)[1];
-}
-\end{cpp}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.49\linewidth}
-\begin{cpp}
-static_assert(fibonacci_steps(0) == 0 &&
-              fibonacci_steps(1) == 1 &&
-              fibonacci_steps(10) == 55 &&
-              fibonacci_steps(90) ==
-                  2'880'067'194'370'816'120uz);
-constexpr size_t fibonacci_10() {
-  return fibonacci_steps(10);
-}
-\end{cpp}
-\end{minipage}
-\begin{minted}{text}
--- FJlt's leg: the translation into System F, then reduction
-fibonacci_steps    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
-                   = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion
-fibonacci_steps 10 ~> 55
--- the compiler's leg: @fibonacci_steps's IR at -O2 -fno-unroll-loops, read back
-fibonacci_steps n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
-  where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
-\end{minted}
-\begin{minted}{llvm}
-define i64 @fibonacci_10() {
-  ret i64 55
-}
-\end{minted}
-\caption{Partial evaluation along both legs of Figure~\ref{fig:arrows}'s bottom edge, on one program.
-Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
-Top right: the function at four lengths, evaluated at compile time.
-Middle: FJlt's leg, the function translated (Section~\ref{sec:translation}) and rewritten with $n$ free, and its value at $10$.
-Then the compiler's leg: the IR Clang~23 emits with $n$ known at run time, read back as a function after Appel, its blocks local functions and its $\phi$-nodes their parameters (Appendix~\ref{app:fjlt:ssa}).
-The two legs agree: the same iteration over $(a + b, a)$, its first step peeled, an equivalence checked by inspection.
-Bottom: with $10$ given, the IR is the value, $55$.}
-\label{lst:desugar}
-\end{listing}
-Listing~\ref{lst:sites} reads the paper's exhibit the same way, on both of its panels.
 
 \begin{listing}[htbp]
 \begin{cpp}
@@ -867,6 +819,53 @@ The plan is a closed term too: for one site it reduces at compile time to Knuth,
 The residual is one pass over the genome with the table.
 ``Negative overhead abstraction''~\cite{stroustrup2026peterman} is then precise: the cost of building the table is not removed but moved, to compile time where the budget admits it, and paid once.}
 \label{lst:sites}
+\end{listing}
+
+\begin{listing}[htbp]
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+// Listing 3's chain, its length a parameter
+constexpr size_t fibonacci_steps(size_t n) {
+  const auto copies =
+      n >> chain<size_t>() >> constant<size_t>(fib);
+  return ranges::fold_left(copies, V{1, 0}, act)[1];
+}
+\end{cpp}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\linewidth}
+\begin{cpp}
+static_assert(fibonacci_steps(0) == 0 &&
+              fibonacci_steps(1) == 1 &&
+              fibonacci_steps(10) == 55 &&
+              fibonacci_steps(90) ==
+                  2'880'067'194'370'816'120uz);
+constexpr size_t fibonacci_10() {
+  return fibonacci_steps(10);
+}
+\end{cpp}
+\end{minipage}
+\begin{minted}{text}
+-- FJlt's leg: the translation into System F, then reduction
+fibonacci_steps    = λ n. π₂ (fold act (1, 0) (map (const M) (chain prior n)))
+                   = λ n. π₂ (iter n (λ (a, b). (a + b, a)) (1, 0))    -- by fusion
+fibonacci_steps 10 ~> 55
+-- the compiler's leg: @fibonacci_steps's IR at -O2 -fno-unroll-loops, read back
+fibonacci_steps n  = if n = 0 then 0 else if n = 1 then 1 else loop (n − 1) 1 1
+  where loop k a b = if k = 1 then a else loop (k − 1) (a + b) a
+\end{minted}
+\begin{minted}{llvm}
+define i64 @fibonacci_10() {
+  ret i64 55
+}
+\end{minted}
+\caption{Partial evaluation along both legs of Figure~\ref{fig:arrows}'s bottom edge, on one program.
+Top left: Listing~\ref{lst:rule3}'s matrix chain, its length a parameter.
+Top right: the function at four lengths, evaluated at compile time.
+Middle: FJlt's leg, the function translated (Section~\ref{sec:translation}) and rewritten with $n$ free, and its value at $10$.
+Then the compiler's leg: the IR Clang~23 emits with $n$ known at run time, read back as a function after Appel, its blocks local functions and its $\phi$-nodes their parameters (Appendix~\ref{app:fjlt:ssa}).
+The two legs agree: the same iteration over $(a + b, a)$, its first step peeled, an equivalence checked by inspection.
+Bottom: with $10$ given, the IR is the value, $55$.}
+\label{lst:desugar}
 \end{listing}
 The presumption holds where both evaluations finish and neither meets undefined behaviour.
 Table~\ref{tab:binding} lists where the two binding times part.
