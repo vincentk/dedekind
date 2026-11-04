@@ -1057,31 +1057,10 @@ Runs<V, L> translate(const Runs<V, L>& s, V k) {
   }
   return Runs<V, L>(out);
 }
-/** @brief @c translate as the action it is: the word's additive group
- *  @f$(V, +)@f$ acting on its run lists, @c translate(s, a + b) @c =
- *  @c translate(translate(s, a), b), the wrap included, since the group's
- *  @c + wraps with it (@c IsRightAction, the law in @c runs_test).  The chain
- *  reading, Pst's preimage along a shift on the extent, is no action: there
- *  the preimage truncates where @c + wraps (@c category:runs), which is why
- *  the two are two arrows.  @tparam V the word.  @tparam L the species. */
-export template <std::unsigned_integral V, typename L>
-struct Translate {
-  Runs<V, L> operator()(Runs<V, L> s, V k) const {
-    return translate(std::move(s), k);
-  }
-};
-}  // namespace dedekind::order
-namespace dedekind::category {
-template <std::unsigned_integral V, typename L>
-struct acting_monoid<dedekind::order::Translate<V, L>> {
-  using type = std::plus<V>;
-};
-}  // namespace dedekind::category
-namespace dedekind::order {
-static_assert(IsRightAction<Translate<std::size_t, Boole>,
-                            Runs<std::size_t, Boole>, std::size_t>,
-              "the cyclic translate is an action of the word's additive group "
-              "on its run lists");
+// translate is an action of the word's additive group on its run lists,
+// certified (IsRightAction) and its law checked, in runs_test: this module is
+// the run-time layer, its non-constexpr functions ratcheted (#1094), and the
+// functor that names the action adds none here.
 // The chain reading exists upstream and is a set term here: Pst's preimage
 // along a shift is a run list, so the order's ext, merges and equality read
 // it beside translate (the type-checked half of the two readings' tie).
