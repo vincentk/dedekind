@@ -138,7 +138,7 @@ Arrow<Dom<F>> compose(const F& f, const G& g) {
 namespace jlt {
 using dedekind::category::count;
 using dedekind::category::count_factors;
-using dedekind::category::Dual;
+using dedekind::category::Duality;
 using dedekind::category::exact_count;
 using dedekind::category::Factor;
 using dedekind::category::free_monoid;
@@ -162,7 +162,7 @@ using Words = FreeMonoid<std::byte, Letters, std::size_t>;
  *  reversal of the positions: the reverse complement where the map is the
  *  complement. */
 using LetterPower = PowerMap<LetterMap>;
-using DualPower = PowerMap<Dual>;
+using DualPower = PowerMap<Duality>;
 using Word = std::vector<std::byte>;
 using ReverseAfter = dedekind::category::Compose<
     LetterPower, dedekind::category::Morphism<Word, Word, Reverse>>;
@@ -182,7 +182,7 @@ struct Section {
       dedekind::category::Symmetric<WordPower, Rotation<>,
                                     dedekind::category::Identity<std::byte>>,
       dedekind::category::Symmetric<WordPower, Reverse, LetterMap>,
-      dedekind::category::Symmetric<WordPower, Reverse, Dual>>
+      dedekind::category::Symmetric<WordPower, Reverse, Duality>>
       section;
 };
 /** @brief A tensor held by its factors, the core's @c count_factors of
@@ -564,9 +564,10 @@ void bind_tensors(nb::module_ module_) {
   nb::class_<jlt::Rotation<>>(module_, "Rotation",
                               "A rotation of a word's positions.");
   nb::class_<jlt::LetterMap>(module_, "LetterMap", "An arrow on the letters.");
-  nb::class_<jlt::Dual>(module_, "Dual",
-                        "The duality of an alphabet: the one order-reversing "
-                        "bijection of its letters, an involution by its type.");
+  nb::class_<jlt::Duality>(
+      module_, "Duality",
+      "The duality of an alphabet: the one order-reversing "
+      "bijection of its letters, an involution by its type.");
   nb::class_<jlt::ReverseAfterDual>(
       module_, "ReverseAfterDual",
       "The duality on every letter, then the reversal of the positions.");
@@ -650,7 +651,9 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("arrow"));
   module_.def(
       "is_involution",
-      [](const jlt::Dual& d) { return dedekind::category::is_involution(d); },
+      [](const jlt::Duality& d) {
+        return dedekind::category::is_involution(d);
+      },
       nb::arg("arrow"));
   module_.def(
       "is_involution",
@@ -668,7 +671,7 @@ void bind_tensors(nb::module_ module_) {
       nb::arg("arrow"),
       "power(f): the letter map f on every letter of a word.");
   module_.def(
-      "power", [](const jlt::Dual& d) { return jlt::power(d); },
+      "power", [](const jlt::Duality& d) { return jlt::power(d); },
       nb::arg("arrow"));
   module_.def(
       "free_monoid",

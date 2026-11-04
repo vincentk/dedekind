@@ -1032,7 +1032,7 @@ struct NthLetter {
  *  isomorphism, so the TYPE carries the law (@c IsInvolution), where a
  *  @c letter_map's law is read off its table.  (#1141: an alphabet over
  *  another carrier gets its duality the same way, from its rank.) */
-export struct Dual {
+export struct Duality {
   using Domain = std::byte;
   using Codomain = std::byte;
   Letters on;
@@ -1047,19 +1047,19 @@ export struct Dual {
                    on, (~Identity<std::size_t>{} >> shift(n))(*r)})
         .second;
   }
-  constexpr bool operator==(const Dual&) const = default;
+  constexpr bool operator==(const Duality&) const = default;
 };
 /** @brief The duality is an involution: @f$({\sim} + n)@f$ is one on the
  *  ranks (@c is_involutive above), and a conjugate of an involution by a
  *  bijection is one. */
 template <>
-struct is_involutive<Dual, std::byte> : std::true_type {};
+struct is_involutive<Duality, std::byte> : std::true_type {};
 /** @param on the letters.  @return their duality.  (#1141) */
-export constexpr Dual dual(const Letters& on) { return {on}; }
+export constexpr Duality dual(const Letters& on) { return {on}; }
 /** @param alphabet the filtered byte chain, as @c alphabet builds it.
  *  @return the duality of its letters, as @c complement is written.
  *  (#1141) */
-export constexpr Dual dual(
+export constexpr Duality dual(
     const unfold_view<std::optional<std::byte>,
                       detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
   return {alphabet.coalgebra().f};
@@ -1316,7 +1316,7 @@ static_assert(
     IsInvolution<Compose<PowerMap<Identity<std::byte>>,
                          Morphism<std::vector<std::byte>,
                                   std::vector<std::byte>, Reverse>>> &&
-        IsInvolution<Compose<PowerMap<Dual>,
+        IsInvolution<Compose<PowerMap<Duality>,
                              Morphism<std::vector<std::byte>,
                                       std::vector<std::byte>, Reverse>>> &&
         !IsInvolution<Compose<
@@ -1379,7 +1379,7 @@ constexpr bool is_antitone(const T& t, const Letters& on) {
 namespace detail_periodic {
 struct DualIsTheMask {
   Ranked ranked;
-  Dual d;
+  Duality d;
   constexpr bool operator()(bool ok, char c) const {
     const auto b = std::byte{static_cast<unsigned char>(c)};
     return ok && ranked(d(b)) == (*ranked(b) ^ 3uz);
@@ -1387,10 +1387,10 @@ struct DualIsTheMask {
 };
 }  // namespace detail_periodic
 static_assert(
-    IsInvolution<Dual> &&
+    IsInvolution<Duality> &&
         std::ranges::fold_left(
             std::views::iota(std::size_t{0}, std::size_t{256}), true,
-            detail_periodic::ReturnsTwice<Dual>{dual(alphabet("ACGT"))}) &&
+            detail_periodic::ReturnsTwice<Duality>{dual(alphabet("ACGT"))}) &&
         is_antitone(dual(alphabet("ACGT")), letters("ACGT")) &&
         std::ranges::fold_left(std::string_view{"ACGT"}, true,
                                detail_periodic::DualIsTheMask{
