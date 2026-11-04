@@ -43,9 +43,9 @@ in all genomes, the README's text between the markers:
 
 >>> nucleotides = alphabet("ACGT")
 >>> complement = refl(nucleotides)
->>> reverse_complement = reverse >> map(complement)
+>>> rc = reverse >> map(complement)
 >>> sequences = words(nucleotides)
->>> palindromes = sequences & fixed_by(reverse_complement)
+>>> palindromes = sequences & fixed_by(rc)
 >>> def sites(n):
 ...     return palindromes & length(n)
 >>> def cuts(N, n):

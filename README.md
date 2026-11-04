@@ -41,11 +41,15 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 
 ```cpp
 constexpr Alphabet nucleotides = alphabet("ACGT");
-constexpr Reflection complement = refl(nucleotides);
-constexpr auto reverse_complement = reverse >> map(complement);
+// Σ* = ⊔ₙ Σⁿ :
 constexpr Words sequences = words(nucleotides);
-constexpr auto palindromes = sequences & fixed_by(reverse_complement);
+constexpr Reflection complement = refl(nucleotides);
+constexpr auto rc = reverse >> map(complement);
+// { w ∈ Σ* | rc(w) = w } :
+constexpr auto palindromes = sequences & fixed_by(rc);
+// { w ∈ palindromes | |w| = n } :
 constexpr auto sites(size_t n) { return palindromes & length(n); }
+// |{ (s, i) ∈ Σᴺ × [0, N−n] | s[i, i+n) ∈ sites(n) }| :
 constexpr size_t cuts(size_t N, size_t n) {
   return count(join(sequences & length(N), sites(n)));
 }
@@ -60,9 +64,9 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 ```pycon
 >>> nucleotides = alphabet("ACGT")
 >>> complement = refl(nucleotides)
->>> reverse_complement = reverse >> map(complement)
+>>> rc = reverse >> map(complement)
 >>> sequences = words(nucleotides)
->>> palindromes = sequences & fixed_by(reverse_complement)
+>>> palindromes = sequences & fixed_by(rc)
 >>> def sites(n):
 ...     return palindromes & length(n)
 >>> def cuts(N, n):
