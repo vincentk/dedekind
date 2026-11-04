@@ -913,14 +913,14 @@ struct SetByte {
   }
 };
 /** @brief A letter as the byte it is: ordered as bytes, not as @c char,
- *  which may be signed. */
+ *  which may be signed.  (#1141) */
 struct ByteOf {
   constexpr unsigned char operator()(char c) const {
     return static_cast<unsigned char>(c);
   }
 };
 /** @brief Refuses an alphabet without letters, or one holding the last
- *  byte, which no byte slice ends past. */
+ *  byte, which no byte slice ends past.  (#1141) */
 [[noreturn]] constexpr void refuse_no_alphabet() { std::abort(); }
 /** @brief One letter and its image into a table on the bytes. */
 struct MapByte {
@@ -957,7 +957,8 @@ export constexpr Letters letters(std::string_view alphabet) {
  *  @c >> @c letters(a) with @c lo the least letter and @c hi one past the
  *  greatest.  @param a the letters, as written: at least one, none the
  *  last byte.  @return the filtered byte chain, as @c nucleotides is
- *  written. */
+ *  written.  (#1141: one constructor of the alphabet concept, the filtered
+ *  finite chain; the byte is its first carrier.) */
 export constexpr auto alphabet(std::string_view a) {
   if (a.empty()) detail_periodic::refuse_no_alphabet();
   const auto [lo, hi] =
@@ -1002,6 +1003,67 @@ static_assert(rank(alphabet("ACGT"))(std::byte{'A'}) == 0uz &&
               rank(alphabet("ACGT"))(std::byte{'T'}) == 3uz &&
               !rank(alphabet("ACGT"))(std::byte{'@'}).has_value() &&
               !rank(alphabet("ACGT"))(std::byte{'['}).has_value());
+
+namespace detail_periodic {
+/** @brief The letter at a rank, the inverse of @c rank: one more byte of
+ *  the alphabet, counted until the rank is reached.  (#1141: the chain's
+ *  enumeration, once alphabets range over other carriers.) */
+struct NthLetter {
+  Letters on;
+  std::size_t rank;
+  constexpr std::pair<std::size_t, std::byte> operator()(
+      std::pair<std::size_t, std::byte> s, std::size_t i) const {
+    const std::byte b{static_cast<unsigned char>(i)};
+    if (!on(b)) return s;
+    return {s.first + 1, s.first == rank ? b : s.second};
+  }
+};
+}  // namespace detail_periodic
+/** @brief The duality of an alphabet: the one antitone bijection of its
+ *  letters onto themselves, the reflection of the chain of ranks carried
+ *  to the letters along @c rank, @f$\mathrm{rank}^{-1} \circ ({\sim} + n)
+ *  \circ \mathrm{rank}@f$ with @f$n@f$ the letters' count; the identity
+ *  off the alphabet.  The arrow @c ~Identity @c >> @c shift(n) is the one
+ *  @c reverse applies to the @f$n@f$ positions of a word, here applied to
+ *  the chain of letters: the Watson–Crick complement of @c ACGT, which
+ *  pairs the outer letters and the inner ones because of how the four
+ *  one-letter codes fall in the Latin alphabet.  An involution and antitone
+ *  by construction, the conjugate of a certified involution by an order
+ *  isomorphism, so the TYPE carries the law (@c IsInvolution), where a
+ *  @c letter_map's law is read off its table.  (#1141: an alphabet over
+ *  another carrier gets its duality the same way, from its rank.) */
+export struct Dual {
+  using Domain = std::byte;
+  using Codomain = std::byte;
+  Letters on;
+  constexpr std::byte operator()(std::byte b) const {
+    const Maybe<std::size_t> r = Ranked{on}(b);
+    if (!r) return b;
+    const std::size_t n = on.members.count();
+    return std::ranges::fold_left(
+               std::views::iota(std::size_t{0}, std::size_t{256}),
+               std::pair<std::size_t, std::byte>{0, b},
+               detail_periodic::NthLetter{
+                   on, (~Identity<std::size_t>{} >> shift(n))(*r)})
+        .second;
+  }
+  constexpr bool operator==(const Dual&) const = default;
+};
+/** @brief The duality is an involution: @f$({\sim} + n)@f$ is one on the
+ *  ranks (@c is_involutive above), and a conjugate of an involution by a
+ *  bijection is one. */
+template <>
+struct is_involutive<Dual, std::byte> : std::true_type {};
+/** @param on the letters.  @return their duality.  (#1141) */
+export constexpr Dual dual(const Letters& on) { return {on}; }
+/** @param alphabet the filtered byte chain, as @c alphabet builds it.
+ *  @return the duality of its letters, as @c complement is written.
+ *  (#1141) */
+export constexpr Dual dual(
+    const unfold_view<std::optional<std::byte>,
+                      detail_chain::SliceStep<std::byte, Letters>>& alphabet) {
+  return {alphabet.coalgebra().f};
+}
 /** @brief An arrow on the bytes given by a table, each letter of @c from to
  *  the letter at the same place of @c to, every other byte fixed:
  *  @c letter_map("ACGT", "TGCA") is the complement of a base, an
@@ -1254,16 +1316,23 @@ static_assert(
     IsInvolution<Compose<PowerMap<Identity<std::byte>>,
                          Morphism<std::vector<std::byte>,
                                   std::vector<std::byte>, Reverse>>> &&
+        IsInvolution<Compose<PowerMap<Dual>,
+                             Morphism<std::vector<std::byte>,
+                                      std::vector<std::byte>, Reverse>>> &&
         !IsInvolution<Compose<
             PowerMap<LetterMap>,
             Morphism<std::vector<std::byte>, std::vector<std::byte>, Reverse>>>,
-    "the type certifies the reversal after the identity on every letter; the "
-    "complement's law is in its table, read by is_involution on the value");
+    "the type certifies the reversal after the identity, or after the "
+    "duality, on every letter: the reverse complement is an involution by "
+    "construction; a letter map's law is in its table, read by is_involution "
+    "on the value");
 
 namespace detail_periodic {
 /** @brief Whether a letter map, taken twice, returns one more byte. */
+template <IsArrow T>
+  requires std::same_as<Dom<T>, std::byte> && std::same_as<Cod<T>, std::byte>
 struct ReturnsTwice {
-  LetterMap t;
+  T t;
   constexpr bool operator()(bool ok, std::size_t i) const {
     const std::byte b{static_cast<unsigned char>(i)};
     return ok && t(t(b)) == b;
@@ -1271,8 +1340,10 @@ struct ReturnsTwice {
 };
 /** @brief One more letter of the alphabet against the one before it: the
  *  map's images must not rise along the chain of the letters. */
+template <IsArrow T>
+  requires std::same_as<Dom<T>, std::byte> && std::same_as<Cod<T>, std::byte>
 struct FallsAlong {
-  LetterMap t;
+  T t;
   Letters on;
   constexpr std::pair<bool, std::optional<std::byte>> operator()(
       std::pair<bool, std::optional<std::byte>> s, std::size_t i) const {
@@ -1288,32 +1359,49 @@ struct FallsAlong {
  *  letters suffice.  A law of the value, not of the type: the Watson–Crick
  *  pairing reverses @c A @c < @c C @c < @c G @c < @c T because of how the
  *  one-letter codes are chosen.  Where it does and the map is a bijection,
- *  its cycle type is @c antitone_cycle_type's.  @param t the map.
- *  @param on the alphabet.  @return whether @c t is antitone on it. */
-export constexpr bool is_antitone(const LetterMap& t, const Letters& on) {
+ *  its cycle type is @c antitone_cycle_type's.  @tparam T an arrow on the
+ *  bytes.  @param t the map.  @param on the alphabet.  @return whether @c t
+ *  is antitone on it. */
+export template <IsArrow T>
+  requires std::same_as<Dom<T>, std::byte> && std::same_as<Cod<T>, std::byte>
+constexpr bool is_antitone(const T& t, const Letters& on) {
   return std::ranges::fold_left(
              std::views::iota(std::size_t{0}, std::size_t{256}),
              std::pair<bool, std::optional<std::byte>>{true, std::nullopt},
-             detail_periodic::FallsAlong{t, on})
+             detail_periodic::FallsAlong<T>{t, on})
       .first;
 }
-// The rank is natural for the complement: complementing a letter, then
-// ranking it, is ranking it, then reflecting the rank, x -> 3 - x.  The
-// Watson-Crick pairing reverses A < C < G < T, read on the ranks.
+// The duality on the ranks is the reflection n - 1 - r, and for n = 4 that
+// is XOR with the mask 3: bitwise NOT in two bits, the complement of a 2-bit
+// nucleotide code.  An odd alphabet has a self-dual middle letter instead,
+// which no mask produces.  The rank is natural for the duality: dual a
+// letter, then rank it, is rank it, then reflect the rank.
 namespace detail_periodic {
-struct ComplementCommutes {
+struct DualIsTheMask {
   Ranked ranked;
-  LetterMap complement;
+  Dual d;
   constexpr bool operator()(bool ok, char c) const {
     const auto b = std::byte{static_cast<unsigned char>(c)};
-    return ok && ranked(complement(b)) == 3 - *ranked(b);
+    return ok && ranked(d(b)) == (*ranked(b) ^ 3uz);
   }
 };
 }  // namespace detail_periodic
-static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
-                                     detail_periodic::ComplementCommutes{
-                                         rank(letters("ACGT")),
-                                         letter_map("ACGT", "TGCA")}));
+static_assert(
+    IsInvolution<Dual> &&
+        std::ranges::fold_left(
+            std::views::iota(std::size_t{0}, std::size_t{256}), true,
+            detail_periodic::ReturnsTwice<Dual>{dual(alphabet("ACGT"))}) &&
+        is_antitone(dual(alphabet("ACGT")), letters("ACGT")) &&
+        std::ranges::fold_left(std::string_view{"ACGT"}, true,
+                               detail_periodic::DualIsTheMask{
+                                   rank(alphabet("ACGT")),
+                                   dual(alphabet("ACGT"))}) &&
+        dual(alphabet("ACGT"))(std::byte{'N'}) == std::byte{'N'} &&
+        dual(alphabet("ACG"))(std::byte{'C'}) == std::byte{'C'} &&
+        dual(alphabet("ACG"))(std::byte{'A'}) == std::byte{'G'},
+    "the duality is an involution by its type, antitone on its alphabet, "
+    "bitwise NOT on the two-bit ranks, the identity off the alphabet, and "
+    "fixes the middle letter of an odd alphabet");
 /** @brief Whether a letter map is an involution, decided on its table: a
  *  law of the value, the 256 bytes taken twice, as a law of a finite
  *  structure is decided.  @param t the map.  @return whether @f$t \circ t =
@@ -1321,7 +1409,7 @@ static_assert(std::ranges::fold_left(std::string_view{"ACGT"}, true,
 export constexpr bool is_involution(const LetterMap& t) {
   return std::ranges::fold_left(
       std::views::iota(std::size_t{0}, std::size_t{256}), true,
-      detail_periodic::ReturnsTwice{t});
+      detail_periodic::ReturnsTwice<LetterMap>{t});
 }
 /** @brief A map on every letter is an involution where the map on one is.
  *  @param p the power of the map.  @return whether it is one. */

@@ -17,6 +17,7 @@ from pynzli.jlt import (
     count,
     count_factors,
     cylinder,
+    dual,
     exact_count,
     exact_occurrences,
     free_monoid,
@@ -96,6 +97,22 @@ class JltTensorExhibitTest(unittest.TestCase):
         self.assertFalse(is_involution(letter_map("ACGT", "CGTA")))
         # derived: the complement and the reversal commute
         self.assertTrue(is_involution(power(self.complement) >> reverse))
+
+    def test_the_dual_is_the_complement(self) -> None:
+        # the alphabet's duality, an involution by construction, counts the
+        # same sites as the complement written out as a table
+        d = dual(self.nucleotides)
+        self.assertTrue(is_involution(d))
+        self.assertTrue(is_involution(power(d) >> reverse))
+        for n in (4, 6, 7):
+            self.assertEqual(
+                count(symmetric(power(self.nucleotides, n), power(d) >> reverse)),
+                count(
+                    symmetric(
+                        power(self.nucleotides, n), power(self.complement) >> reverse
+                    )
+                ),
+            )
 
     def test_the_squares_of_128_bits(self) -> None:
         squares = symmetric(power(self.bits, 128), rotate(64))

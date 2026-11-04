@@ -414,10 +414,10 @@ static_assert(count(join(power(nucleotides, 12), sites_6)) == 1'835'008uz &&
 // pynzli.jlt's doctest of the same.
 namespace listing5 {
 using dedekind::category::alphabet;
-using dedekind::category::letter_map;
+using dedekind::category::dual;
 // [listing5:all-genomes]
 constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement = letter_map("ACGT", "TGCA");
+constexpr auto complement = dual(nucleotides);
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);
 }

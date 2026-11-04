@@ -776,7 +776,7 @@ With $n$ given, the term evaluates to $55$, and so does the code: Figure~\ref{fi
 \begin{cpp}
 // the sites: the words of length n fixed by the reverse complement
 constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement  = letter_map("ACGT", "TGCA");
+constexpr auto complement  = dual(nucleotides);
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);
 }
@@ -810,6 +810,7 @@ by_the_plan g = π₂ (fold (λ (q, c) a. (T q a, c + F (T q a))) (0, 0) (map ra
 \end{minted}
 \caption{Restriction sites, counted two ways on one definition.
 A site of length $n$ is a word equal to its reverse complement, as EcoRI's \texttt{GAATTC}; an enzyme cuts a genome where one occurs.
+The complement is the alphabet's duality, the reversal of the chain of letters as \cppinline{reverse} is of the chain of positions, so the reverse complement is an involution by construction; on the ranks as two bits it is bitwise NOT, as every 2-bit genome code has it, by the luck of the four initials' alphabetical order.
 Top: the sites as a section of $\Sigma^n$, and the cuts in all $4^N$ genomes as the join of the genomes' power with the sites, counted by the join's laws: a product of factors.
 The $4^{32}$ genomes of the second assertion are more than a 64-bit word enumerates, so no evaluation that built them could finish, at either binding time.
 Middle: one genome, its bytes read where they are, on the same section; the query tests each window, the plan is the matcher specialised to the sites, the minimal automaton of their occurrences~\cite{brzozowski1964derivatives}, one \cppinline{constexpr} function at either binding time.

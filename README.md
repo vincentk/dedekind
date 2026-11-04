@@ -41,7 +41,7 @@ The second scans *one* genome: each window tested, or the matcher specialised to
 
 ```cpp
 constexpr auto nucleotides = alphabet("ACGT");
-constexpr auto complement = letter_map("ACGT", "TGCA");
+constexpr auto complement = dual(nucleotides);
 constexpr auto sites(size_t n) {
   return symmetric(power(nucleotides, n), power(complement) >> reverse);
 }
@@ -58,7 +58,7 @@ static_assert(cuts(12, 6) == 1'835'008uz && cuts(32, 6) == 27uz << 58);
 
 ```pycon
 >>> nucleotides = alphabet("ACGT")
->>> complement = letter_map("ACGT", "TGCA")
+>>> complement = dual(nucleotides)
 >>> def sites(n):
 ...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
 >>> def cuts(N, n):

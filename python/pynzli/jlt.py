@@ -19,9 +19,11 @@ saturating at the chain's bounds: ``succ(bool)(True) is True``.
 The tensor exhibit (#1107) adds handles to ``:periodic``'s tensors: an
 ``alphabet("ACGT")``, its ``power(a, n)`` (the words of length n, never built),
 ``free_monoid(a, L)`` (the words shorter than L), and ``symmetric(p, g)`` (the
-words a symmetry fixes: ``reverse``, ``rotate(d)``, or a ``letter_map`` on every
+words a symmetry fixes: ``reverse``, ``rotate(d)``, or an arrow on every
 letter then the reversal, ``power(complement) >> reverse``, the reverse
-complement; ``is_involution`` asks its law).  ``count_factors`` gives a count as factors, each a
+complement, where the complement is the alphabet's ``dual``, its one
+order-reversing bijection, or a ``letter_map`` written out; ``is_involution``
+asks its law, by the type for ``dual``, on the table for a ``letter_map``).  ``count_factors`` gives a count as factors, each a
 popcount; ``count`` its residue modulo 2**64; ``exact_count`` the count or
 ``None`` where no word holds it, so a genome of 2**200 words is refused as a
 sequence and counted as a tensor.  ``*`` is the outer product.
@@ -39,7 +41,7 @@ in all genomes, the README's text between the markers:
 .. [listing5:all-genomes]
 
 >>> nucleotides = alphabet("ACGT")
->>> complement = letter_map("ACGT", "TGCA")
+>>> complement = dual(nucleotides)
 >>> def sites(n):
 ...     return symmetric(power(nucleotides, n), power(complement) >> reverse)
 >>> def cuts(N, n):
@@ -110,6 +112,7 @@ from ._jlt import counting
 from ._jlt import count_factors
 from ._jlt import cylinder
 from ._jlt import dom
+from ._jlt import dual
 from ._jlt import exact_count
 from ._jlt import exact_occurrences
 from ._jlt import free_monoid
@@ -144,6 +147,7 @@ __all__ = [
     "count_factors",
     "cylinder",
     "dom",
+    "dual",
     "exact_count",
     "exact_occurrences",
     "free_monoid",
