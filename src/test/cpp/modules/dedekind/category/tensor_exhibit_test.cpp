@@ -179,15 +179,17 @@ static_assert(is_involution(complement) &&
 // reads from the table all the same.
 using dedekind::category::antitone_cycle_type;
 using dedekind::category::Cycles;
-constexpr auto acgt = dedekind::category::letters("ACGT");
-static_assert(
-    is_antitone(complement, acgt) &&
-    !is_antitone(dedekind::category::letter_map("ACGT", "CGTA"), acgt) &&
-    std::ranges::equal(antitone_cycle_type(4uz), std::array{Cycles<>{2, 2}}) &&
-    std::ranges::equal(antitone_cycle_type(5uz),
-                       std::array{Cycles<>{2, 2}, Cycles<>{1, 1}}) &&
-    exact_count(count_factors(symmetric(power(nucleotides, 13),
-                                        power(complement) >> rev))) == 0uz);
+constexpr auto base_letters = dedekind::category::letters("ACGT");
+static_assert(is_antitone(complement, base_letters) &&
+              !is_antitone(dedekind::category::letter_map("ACGT", "CGTA"),
+                           base_letters) &&
+              std::ranges::equal(antitone_cycle_type(4uz),
+                                 std::array{Cycles<>{2, 2}}) &&
+              std::ranges::equal(antitone_cycle_type(5uz),
+                                 std::array{Cycles<>{2, 2}, Cycles<>{1, 1}}) &&
+              exact_count(count_factors(symmetric(power(nucleotides, 13),
+                                                  power(complement) >> rev))) ==
+                  0uz);
 
 // Refused as strings: the words shorter than 100 are about 2^200, no sequence
 // a size_t can index; counted as a tensor, length by length, exactly.
