@@ -157,8 +157,9 @@ using dedekind::category::with_width;
  *  letter, under the predicate that keeps the letters. */
 using Alphabet = decltype(dedekind::category::alphabet(""));
 using WordPower = Power<std::byte, Letters, std::size_t>;
-/** @brief @c powers(alphabet): all the words, by length; @c sequences. */
+/** @brief @c words(alphabet): all the words, by length; @c sequences. */
 using WordPowers = dedekind::category::Powers<std::byte, Letters, std::size_t>;
+using Length = dedekind::category::Length<>;
 using Words = FreeMonoid<std::byte, Letters, std::size_t>;
 /** @brief A letter map on every letter of a word, and that followed by the
  *  reversal of the positions: the reverse complement where the map is the
@@ -177,6 +178,17 @@ using ReverseAfterDual = dedekind::category::Compose<
  *  for @c power @c & @c fixed_by(g); the complement a table or the duality. */
 struct FixedStage {
   std::variant<ReverseAfter, ReverseAfterDual> g;
+};
+/** @brief @c words(a) @c & @c fixed_by(g): the words @c g fixes, by length,
+ *  Listing 5's @c palindromes; @c & @c length(n) is one of its sections. */
+struct SectionFamily {
+  std::variant<decltype(std::declval<const WordPowers&>() &
+                        dedekind::category::fixed_by(
+                            std::declval<const ReverseAfter&>())),
+               decltype(std::declval<const WordPowers&>() &
+                        dedekind::category::fixed_by(
+                            std::declval<const ReverseAfterDual&>()))>
+      family;
 };
 /** @brief A symmetric section of a tensor power held as itself, not as its
  *  count, so that a window can land in it (@c cylinder, @c occurrences): the
@@ -712,18 +724,60 @@ void bind_tensors(nb::module_ module_) {
       [](const jlt::Alphabet& a, std::size_t n) { return jlt::power(a, n); },
       nb::arg("alphabet"), nb::arg("length"),
       "power(alphabet, n): the words of length n, a tensor power.");
-  nb::class_<jlt::WordPowers>(module_, "Powers",
-                              "powers(alphabet): the words over it, by "
-                              "length; powers(a)(n) is power(a, n).")
+  nb::class_<jlt::Length>(module_, "Length",
+                          "length(n): the fibre of the length over n, the "
+                          "predicate a family of words is met with.");
+  module_.def(
+      "length", [](std::size_t n) { return dedekind::category::length(n); },
+      nb::arg("n"), "length(n): words & length(n) is the words of length n.");
+  nb::class_<jlt::WordPowers>(module_, "Words",
+                              "words(alphabet): the words over it, by "
+                              "length; words(a) & length(n) is power(a, n).")
       .def(
           "__call__",
           [](const jlt::WordPowers& p, std::size_t n) { return p(n); },
+          nb::arg("length"))
+      .def("__and__",
+           [](const jlt::WordPowers& p, const jlt::Length& l) { return p & l; })
+      .def("__and__", [](const jlt::WordPowers& p, const jlt::FixedStage& st) {
+        return std::visit(
+            [&](const auto& g) {
+              return jlt::SectionFamily{p & dedekind::category::fixed_by(g)};
+            },
+            st.g);
+      });
+  nb::class_<jlt::SectionFamily>(
+      module_, "SectionFamily",
+      "words(a) & fixed_by(g): the words g fixes, by length; & length(n) "
+      "is the section of that length.")
+      .def("__and__",
+           [](const jlt::SectionFamily& f, const jlt::Length& l) {
+             return std::visit(
+                 [&](const auto& fam) { return jlt::Section{fam & l}; },
+                 f.family);
+           })
+      .def(
+          "__call__",
+          [](const jlt::SectionFamily& f, std::size_t n) {
+            return std::visit(
+                [&](const auto& fam) { return jlt::Section{fam(n)}; },
+                f.family);
+          },
           nb::arg("length"));
   module_.def(
-      "powers",
-      [](const jlt::Alphabet& a) { return dedekind::category::powers(a); },
+      "words",
+      [](const jlt::Alphabet& a) { return dedekind::category::words(a); },
       nb::arg("alphabet"),
-      "powers(alphabet): the family of its tensor powers, by length.");
+      "words(alphabet): the words over it, by length; the free monoid as a "
+      "graded family.");
+  module_.def(
+      "map", [](const jlt::LetterMap& t) { return jlt::power(t); },
+      nb::arg("arrow"),
+      "map(f): f on every letter of a word, the list functor's map; "
+      "power(f) is the same arrow.");
+  module_.def(
+      "map", [](const jlt::Duality& d) { return jlt::power(d); },
+      nb::arg("arrow"));
   module_.def(
       "power", [](const jlt::LetterMap& t) { return jlt::power(t); },
       nb::arg("arrow"),
