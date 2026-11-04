@@ -788,7 +788,7 @@ constexpr auto sites =
 // Σᴺ ⊗ sites read along its band of diagonals,
 // one entry per (s, i) with s[i, i+6) ∈ sites :
 constexpr auto cuts(size_t N) {
-  return (oligos & len(N)) * sites >> band(hexamers);
+  return (oligos & len(N)) * sites >> band;
 }
 
 static_assert(
