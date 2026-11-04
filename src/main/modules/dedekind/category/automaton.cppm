@@ -427,7 +427,7 @@ struct MatchStep {
   }
 };
 }  // namespace detail_automaton
-/** @param letters a text, as above.  @param m the stage, or nothing.
+/** @param letters a text read as letters.  @param m the stage, or nothing.
  *  @return the query, or nothing: @c Maybe's action on the stage. */
 export template <std::ranges::view V, std::size_t Sigma, std::size_t Q>
   requires std::ranges::random_access_range<V> && std::ranges::sized_range<V> &&

@@ -665,8 +665,8 @@ struct Counted {
  *  count lifted through @c Maybe, nothing where the query is nothing.  The
  *  monad carries the uncertainty to the end, so no caller cases on it.
  *  @param q the query, or nothing.  @return its count, or nothing. */
-export template <IsCountWord N = std::size_t, IsQuery Q>
-constexpr Maybe<N> count(const Maybe<Q>& q) {
+export template <IsQuery Q>
+constexpr Maybe<std::size_t> count(const Maybe<Q>& q) {
   return q.transform(detail_comprehension::Counted{});
 }
 /** @brief The stage form of the same. */

@@ -19,6 +19,7 @@ from pynzli.jlt import (
     cylinder,
     exact_count,
     exact_occurrences,
+    fixed_by,
     free_monoid,
     is_involution,
     is_square,
@@ -31,6 +32,7 @@ from pynzli.jlt import (
     rotate,
     symmetric,
     window,
+    windows,
 )
 
 
@@ -91,6 +93,13 @@ class JltTensorExhibitTest(unittest.TestCase):
             count_factors(power(a, 2)) + count_factors(palindromes),
         )
         self.assertEqual(exact_count(free_monoid(a, 1_000_000_000)), None)
+
+    def test_windows_of_another_length_are_refused(self) -> None:
+        # a ValueError, not the core's abort, which would end the interpreter
+        sites = power(self.nucleotides, 6) & fixed_by(~rev)
+        self.assertEqual(count(power(self.nucleotides, 12) >> windows(6) & sites), 1835008)
+        with self.assertRaises(ValueError):
+            power(self.nucleotides, 12) >> windows(7) & sites
 
     def test_the_reverse_complement_is_an_involution(self) -> None:
         self.assertTrue(is_involution(self.complement))  # decided on its table

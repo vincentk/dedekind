@@ -1159,16 +1159,6 @@ export template <IsArrow T>
 constexpr PowerMap<T> power(const T& tau) {
   return {tau};
 }
-/** @brief @c map(τ), the list functor's own name for the same arrow: the
- *  textbook factors the functor as the type on objects, @c words, and
- *  @c map on arrows, so the exhibit writes @c map(complement) @c >>
- *  @c reverse for the reverse complement.  @param tau an arrow on the
- *  letters.  @return @c tau on every letter of a word. */
-export template <IsArrow T>
-  requires std::same_as<Dom<T>, Cod<T>>
-constexpr PowerMap<T> map(const T& tau) {
-  return {tau};
-}
 
 /** @brief The rotation of the positions of a word by @c shift, @f$i \mapsto
  *  i + d \bmod n@f$, the symmetry of a power @f$u^j@f$: on a word, the letter
@@ -1341,7 +1331,7 @@ static_assert(
     "on the value");
 
 namespace detail_periodic {
-/** @brief Whether a letter map, taken twice, returns one more byte. */
+/** @brief Whether an arrow on the bytes, taken twice, returns one more byte. */
 template <IsArrow T>
   requires std::same_as<Dom<T>, std::byte> && std::same_as<Cod<T>, std::byte>
 struct ReturnsTwice {
@@ -1452,7 +1442,7 @@ export struct LetterMapsOnWords {
 /** @brief The list functor on the letter maps, a word for a letter, of
  *  every length, and @c power(tau) for an arrow @c tau: the power functor
  *  @f$(-)^n@f$ at each length at once.  It has no state, so it is one
- *  functor, and @c reverse and @c rotate(d) are natural transformations of
+ *  functor, and @c rev and @c rotate(d) are natural transformations of
  *  it to itself, by the certificates above. */
 export struct PowerFunctor {
   using Σ_cat = LetterMaps;
@@ -1593,7 +1583,7 @@ struct Symmetric {
   }
 };
 /** @param p a tensor power.  @param sigma a permutation of its positions,
- *  @c reverse or @c rotate(d).  @return the words it fixes. */
+ *  @c rev or @c rotate(d).  @return the words it fixes. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, typename S>
   requires HasCycleType<S, N>
 constexpr Symmetric<Power<C, F, N>, S, Identity<C>> symmetric(
@@ -1610,7 +1600,7 @@ constexpr Symmetric<Power<C, F, N>, S, Identity<C>> symmetric(
   return {p, sigma.transform, Identity<C>{}};
 }
 /** @param p a tensor power.  @param g an arrow on every letter, then a
- *  permutation of the positions: @c power(complement) >> reverse.
+ *  permutation of the positions: @c power(complement) >> rev.
  *  @return the words it fixes. */
 export template <HasNNOStep C, IsArrow F, IsCountWord N, IsArrow T, typename S>
   requires std::same_as<Dom<T>, C> && HasCycleType<S, N>
@@ -1698,14 +1688,6 @@ constexpr detail_periodic::FixedByStage<S, T> fixed_by(
         g) {
   return {g.g.transform, g.f.tau};
 }
-/** @param g a permutation of the positions, then a letter map on every
- *  letter: the same section, the two commuting.  @return the stage. */
-export template <IsArrow T, typename C, typename S>
-constexpr detail_periodic::FixedByStage<S, T> fixed_by(
-    const Compose<Morphism<std::vector<C>, std::vector<C>, S>, PowerMap<T>>&
-        g) {
-  return {g.f.transform, g.g.tau};
-}
 /** @brief The powers, then the sections each fixes: a family of sets of
  *  words by length, @c words(Σ) @c >> @c fixed_by(g).
  *  @param ps the powers.  @param st the stage.  @return the family. */
@@ -1773,7 +1755,7 @@ constexpr Symmetric<Power<C, F, N>, S, T> operator&(
  *  the reflection of its codomain's chain, which on the ranks of @c ACGT is
  *  @f$x \mapsto 3 - x@f$, bitwise NOT on two bits.  A word carries no
  *  alphabet, so @c ~rev is natural in it: a family with a component at
- *  every alphabet, @c map(refl(Σ)) @c >> @c rev at Σ, taken where
+ *  every alphabet, @c power(refl(Σ)) @c >> @c rev at Σ, taken where
  *  @c fixed_by(~rev) meets a power over Σ, as the exhibit's @c oligos @c &
  *  @c hexamers @c & @c fixed_by(~rev).  Each component is an involution,
  *  two commuting involutions (@c commutes and @c is_involutive above).
@@ -1789,14 +1771,10 @@ namespace detail_periodic {
 /** @brief @c fixed_by(~rev) before it meets the powers it applies to. */
 struct FixedByReflectedReverse {};
 /** @param p a power over the byte alphabet, or the powers.  @return the
- *  component of @c ~rev at its alphabet, @c map(refl(Σ)) @c >> @c rev. */
-template <IsCountWord N>
-constexpr auto reverse_complement(const Power<std::byte, Letters, N>& p) {
-  return map(refl(p.member)) >> rev;
-}
-template <IsCountWord N>
-constexpr auto reverse_complement(const Powers<std::byte, Letters, N>& ps) {
-  return map(refl(ps.member)) >> rev;
+ *  component of @c ~rev at its alphabet, @c power(refl(Σ)) @c >> @c rev. */
+template <typename P>
+constexpr auto reverse_complement(const P& p) {
+  return power(refl(p.member)) >> rev;
 }
 }  // namespace detail_periodic
 /** @param g the reverse complement, natural in the alphabet.  @return the
@@ -1820,11 +1798,6 @@ export template <IsCountWord N>
 constexpr auto operator&(const Powers<std::byte, Letters, N>& ps,
                          detail_periodic::FixedByReflectedReverse) {
   return ps & fixed_by(detail_periodic::reverse_complement(ps));
-}
-export template <IsCountWord N>
-constexpr auto operator>>(const Powers<std::byte, Letters, N>& ps,
-                          detail_periodic::FixedByReflectedReverse st) {
-  return ps & st;
 }
 // The component at ACGT: the reversal, and the alphabet's own reflection.
 static_assert((power(abc("ACGT"), 6uz) & fixed_by(~rev)).tau ==

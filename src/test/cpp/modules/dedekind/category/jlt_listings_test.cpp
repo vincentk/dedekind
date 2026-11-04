@@ -522,20 +522,6 @@ constexpr size_t fibonacci(size_t n) {
 }
 static_assert(fibonacci(0) == 0 && fibonacci(10) == fs_10[1] &&
               fibonacci(100'000'000) == 14'139'011'350'745'967'675uz);
-// Listing 5: the plain fold, its length a parameter; its LLVM IR at -O2
-// -fno-unroll-loops with n at run time is the paper's loop, and with 10 given,
-// the value.
-constexpr size_t fibonacci_steps(size_t n) {
-  const auto copies = n >> chain<size_t>() >> constant<size_t>(fib);
-  return std::ranges::fold_left(copies, V{1, 0}, act)[1];
-}
-static_assert(fibonacci_steps(0) == 0 && fibonacci_steps(1) == 1 &&
-              fibonacci_steps(10) == 55 &&
-              fibonacci_steps(90) == 2'880'067'194'370'816'120uz &&
-              fibonacci_steps(90) == fibonacci(90));
-constexpr size_t fibonacci_10() { return fibonacci_steps(10); }
-static_assert(fibonacci_10() == 55);
-
 // The chain summed with the count known only at run time.
 constexpr size_t sum_n(size_t n) { return concat(n >> chain<size_t>()); }
 static_assert(sum_n(100) == 4950);
@@ -620,7 +606,6 @@ TEST_CASE("Jlt paper listings: the unit and the laws, read at runtime",
     CHECK(L::id<size_t>()(twelve) == 12);
     CHECK(L::listing3::sum_n(twelve) == 66);
     CHECK(L::listing3::fibonacci(twelve) == 144);
-    CHECK(L::listing3::fibonacci_steps(twelve) == 144);
     CHECK(
         C::fold(twelve >> C::chain<size_t>() >> C::constant<size_t>(size_t{7}),
                 size_t{0}, std::plus<size_t>{}) == 84);

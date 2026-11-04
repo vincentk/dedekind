@@ -80,7 +80,7 @@ is a value: ``==`` compares the languages, ``repr`` is its EXPLAIN.
 >>> plan = automaton(sites)
 >>> plan
 automaton(states=277, accepting=64)
->>> count(sequence >> rank(bases) >> matches(plan))  # the stage form: >> counting
+>>> sequence >> rank(bases) >> matches(plan) >> counting  # the stage form of count
 2
 >>> collect(sequence >> rank(bases) >> matches(plan))  # where a site ends
 [7, 13]
@@ -125,7 +125,6 @@ from ._jlt import is_involution
 from ._jlt import is_square
 from ._jlt import len
 from ._jlt import letter_map
-from ._jlt import map
 from ._jlt import matches
 from ._jlt import occurrences
 from ._jlt import pack
@@ -138,7 +137,6 @@ from ._jlt import rev
 from ._jlt import rotate
 from ._jlt import succ
 from ._jlt import symmetric
-from ._jlt import where
 from ._jlt import window
 from ._jlt import windows
 from ._jlt import words
@@ -165,7 +163,6 @@ __all__ = [
     "is_square",
     "len",
     "letter_map",
-    "map",
     "matches",
     "occurrences",
     "pack",
@@ -178,7 +175,6 @@ __all__ = [
     "rotate",
     "succ",
     "symmetric",
-    "where",
     "window",
     "windows",
     "words",
